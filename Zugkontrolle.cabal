@@ -1,0 +1,142 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: ef50e3f5f991c6b31019435f2ad205d658e22057e965a0bb13a5e970a4ef00d5
+
+name:           Zugkontrolle
+version:        1.0.0.4
+description:    Please see the README on GitHub at <https://github.com/githubuser/Zugkontrolle#readme>
+homepage:       https://github.com/spamviech/Zugkontrolle#readme
+bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
+author:         spamviech
+maintainer:     spamviech@web.de
+copyright:      2019 Wolfgang Witt
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/spamviech/Zugkontrolle
+
+flag gui
+  description: Erstelle ein graphisches User Interface mit GTK+
+  manual: True
+  default: True
+
+library
+  exposed-modules:
+      Zug.Anbindung
+      Zug.Anbindung.SoftwarePWM
+      Zug.Klassen
+      Zug.Language
+      Zug.LinkedMVar
+      Zug.Options
+      Zug.Plan
+      Zug.UI
+      Zug.UI.Base
+      Zug.UI.Befehl
+      Zug.UI.Cmd
+      Zug.UI.Cmd.Lexer
+      Zug.UI.Cmd.Parser
+      Zug.UI.GTK
+      Zug.UI.GTK.Dialog
+      Zug.UI.GTK.FortfahrenWenn
+      Zug.UI.GTK.Widgets
+      Zug.UI.Save
+  other-modules:
+      Paths_Zugkontrolle
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wno-name-shadowing -Wno-unused-do-bind
+  build-depends:
+      aeson
+    , ansi-terminal
+    , base
+    , bytestring
+    , concurrency
+    , containers
+    , directory
+    , mtl
+    , optparse-applicative
+    , text
+    , wiringPi
+  if flag(gui)
+    cpp-options: -DZUGKONTROLLEGUI
+    build-depends:
+        gtk3
+      , lens
+      , sequence
+  if os(linux)
+    build-depends:
+        unix
+  default-language: Haskell2010
+
+executable Zugkontrolle
+  main-is: Main.hs
+  other-modules:
+      Paths_Zugkontrolle
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded
+  build-depends:
+      Zugkontrolle
+    , aeson
+    , ansi-terminal
+    , base
+    , bytestring
+    , concurrency
+    , containers
+    , directory
+    , mtl
+    , optparse-applicative
+    , text
+    , wiringPi
+  if flag(gui)
+    cpp-options: -DZUGKONTROLLEGUI
+    build-depends:
+        gtk3
+      , lens
+      , sequence
+  if os(linux)
+    build-depends:
+        unix
+  default-language: Haskell2010
+
+test-suite Zugkontrolle-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_Zugkontrolle
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -threaded
+  build-depends:
+      Zugkontrolle
+    , aeson
+    , ansi-terminal
+    , base
+    , bytestring
+    , concurrency
+    , containers
+    , directory
+    , mtl
+    , optparse-applicative
+    , text
+    , wiringPi
+  if flag(gui)
+    cpp-options: -DZUGKONTROLLEGUI
+    build-depends:
+        gtk3
+      , lens
+      , sequence
+  if os(linux)
+    build-depends:
+        unix
+  default-language: Haskell2010
