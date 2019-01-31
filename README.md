@@ -68,7 +68,7 @@ Dazu ist am besten die Anleitung auf der Website zu befolgen: https://www.gtk.or
     Linux/Raspian:
         Falls es nicht schon installiert ist (bei Raspian der Fall) ist eine Installation über den verwendeten packet manager vermutlich das einfachste.
         Bei Verwendung von apt-get ist der Befehl:
-        "sudo apt-get install "
+        "sudo apt-get install libgtk-3-dev"
     Windows MSYS2:
         In dieser muss natürlich gtk3 installiert sein (pacman -S mingw-w64-x86_64-gtk3).
         Wenn man keine selbst geplegte MSYS2-Installation wünscht kann man die von stack mitgebrachte verwenden.
@@ -82,7 +82,7 @@ Nachdem auf nicht-RasperryPi-Systemen sämtliche IO-Funktionen des WiringPi-Modu
 
 Wenn das Programm unter Windows nicht startet, bzw. mit dll-Fehlern abbricht (Fehlermeldungen werden bei Start über Powershell nicht angezeigt) muss der Ordner der MSYS2-Installation weiter vorne im Path stehen.
 Bei einer eigenen MSYS2-Installation ist das normalerweise: "C:\msys64\mingw64\bin".
-Für die von stack mitgelieferte Version ist der Pfad normalerweise: "~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\"
+Für die von stack mitgelieferte Version ist der Pfad normalerweise: "\~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\"
 Falls das immer nocht nicht hilft (bei "stack exec ..." normalerweise der Fall) muss die "zlib1.dll" durch die neuere aus dem msys-Ordner ersetzt werden.
 Durch den Befehl "stack exec -- where zlib1.dll" werden alle im Pfad befindlichen in Reihenfolge aufgelistet.
 Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werden.
