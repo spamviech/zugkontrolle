@@ -1,0 +1,76 @@
+Dokumentation schreiben
+    ReadMe
+    Beispiel-Schaltpläne
+        ReadMe texen?
+    Copyright/Lizenz
+Unfinished Features:
+    Test-Suite vervollständigen
+    Lego: Bahngeschwindigkeit (Gleichstrom), Weiche (Servo-Motor: PWM-Frequenz)
+        In UI integrieren
+    Cmd-UI:
+        Mehr Farbe verwenden?
+gi-gtk/gi-gtk-declarative verwenden?
+    Fehlermeldungen auf Raspberry Pi!!!!!!
+Umstellen String auf Text bei allen Datentypen?
+Plan abbrechbar machen?
+-------------------------------
+VS-Code globale Settings.json:
+{
+    "editor.autoClosingBrackets": "never",
+    "editor.autoClosingQuotes": "never",
+    "editor.autoSurround": "never",
+    "editor.minimap.enabled": false,
+    "editor.renderWhitespace": "all",
+    "workbench.colorTheme": "Quiet Light",
+    "files.exclude": {
+        "**/.stack-work": true,
+        "**/.vscode": true,
+    },
+    "editor.tokenColorCustomizations": {
+        "comments": "#FF0000"
+    },
+    "workbench.colorCustomizations": {
+        "editorWhitespace.foreground": "#cccccc"
+    },
+    "files.eol": "\n",
+    "hoogle-vscode.useCabalDependencies": true
+}
+---------------------------------
+VS-Code globale keybindings.json:
+// Platzieren Sie Ihre Tastenzuordnungen in dieser Datei, um die Standardwerte zu überschreiben.auto[]
+[
+    {
+        "key": "shift+tab",
+        "command": "acceptSelectedSuggestion",
+        "when": "suggestWidgetVisible && textInputFocus"
+    },
+    {
+        "key": "tab",
+        "command": "-acceptSelectedSuggestion",
+        "when": "suggestWidgetVisible && textInputFocus"
+    },
+    {
+        "key": "alt+pagedown",
+        "command": "workbench.action.splitEditorDown"
+    },
+    {
+        "key": "ctrl+shift+h",
+        "command": "workbench.action.tasks.runTask",
+        "args": "haddock"
+    },
+    {
+        "key": "ctrl+shift+t",
+        "command": "workbench.action.tasks.runTask",
+        "args": "test"
+    },
+    {
+        "key": "ctrl+shift+e",
+        "command": "workbench.action.tasks.runTask",
+        "args": "exec"
+    },
+    {
+        "key": "ctrl+shift+a",
+        "command": "workbench.action.tasks.runTask",
+        "args": ""
+    }
+]

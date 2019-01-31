@@ -1,0 +1,77 @@
+name:                 Zugkontrolle
+version:              1.0.0.4
+github:               "spamviech/Zugkontrolle"
+license:              BSD3
+author:               "spamviech"
+maintainer:           "spamviech@web.de"
+copyright:            "2019 Wolfgang Witt"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:           Short description of your package
+# category:           Raspberry Pi
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:          Please see the README on GitHub at <https://github.com/githubuser/Zugkontrolle#readme>
+
+flags:
+  gui:
+    description: "Erstelle ein graphisches User Interface mit GTK+"
+    default: true
+    manual: true
+
+when:
+  - condition: flag(gui)
+    cpp-options: -DZUGKONTROLLEGUI
+    dependencies:
+      - gtk3
+      - lens
+      - sequence
+  - condition: os(linux)
+    dependencies:
+      - unix
+
+dependencies:
+  - base
+  - mtl
+  - containers
+  - aeson
+  - bytestring
+  - directory
+  - optparse-applicative
+  - concurrency
+  - text
+  - ansi-terminal
+  - wiringPi
+
+ghc-options:
+  - -Wall
+
+library:
+  source-dirs: src
+  ghc-options:
+    - -Wno-name-shadowing
+    - -Wno-unused-do-bind
+
+executables:
+  Zugkontrolle:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+      - -threaded
+    dependencies:
+      - Zugkontrolle
+
+tests:
+  Zugkontrolle-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+      - -threaded
+    dependencies:
+      - Zugkontrolle
