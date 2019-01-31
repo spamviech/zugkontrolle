@@ -312,7 +312,7 @@ queryWegstrecke query@(QWegstreckeNameAnzahl acc@(Wegstrecke {wsBahngeschwindigk
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         qWeicheAnhängen _                   = query
 queryWegstrecke (QWegstreckeBefehlQuery qKonstruktor eitherF)                                                                   token                               = Left $ QWegstreckeIOStatus (qKonstruktor token) eitherF
-queryWegstrecke query@(QWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWeichenRichtungen}) anzahl weiche)                  token@(EingabeToken {eingabe})      = wähleBefehl token [
+queryWegstrecke query@(QWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWeichenRichtungen}) anzahl weiche)                token@(EingabeToken {eingabe})      = wähleBefehl token [
     (Lexer.Gerade   , eitherWeicheRichtungAnhängen Gerade),
     (Lexer.Kurve    , eitherWeicheRichtungAnhängen Kurve),
     (Lexer.Links    , eitherWeicheRichtungAnhängen Links),
@@ -328,24 +328,33 @@ queryWegstrecke query@(QWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWe
 queryWegstrecke query                                                                           _token                              = Left query
 -- | Eingabe einer Weiche
 queryWeiche :: QWeiche -> EingabeToken -> Either QWeiche Weiche
--- Zugtyp automatisch auf Märklin festgelegt: ToDo!!!
-queryWeiche (QWeiche)                                                           (EingabeToken {eingabe})            = Left $ QMärklinWeicheName eingabe
+queryWeiche (QWeiche)                                                           token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.Märklin  , QMärklinWeiche),
+    (Lexer.Lego     , QLegoWeiche)]
+    $ QWUnbekannt QWeiche eingabe
+queryWeiche (QLegoWeiche)                                                       (EingabeToken {eingabe})            = Left $ QLegoWeicheName eingabe
+queryWeiche query@(QLegoWeicheName name)                                        token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Nothing)           -> QWUnbekannt query eingabe
+    (Just richtung1)    -> QLegoWeicheNameRichtung1 name richtung1
+queryWeiche query@(QLegoWeicheNameRichtung1 name richtung1)                     token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Nothing)           -> QWUnbekannt query eingabe
+    (Just richtung2)    -> QLegoWeicheNameRichtungen name richtung1 richtung2
+queryWeiche query@(QLegoWeicheNameRichtungen name richtung1 richtung2)          (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ QWUnbekannt query eingabe
+    (Just pin)  -> Right $ LegoWeiche {weName=unpack name, richtungsPin=toPin pin, richtungen=(richtung1,richtung2)}
 queryWeiche (QMärklinWeiche)                                                    (EingabeToken {eingabe})            = Left $ QMärklinWeicheName eingabe
 queryWeiche query@(QMärklinWeicheName name)                                     (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)       -> Left $ QWUnbekannt query eingabe
     (Just anzahl)   -> Left $ QMärklinWeicheNameAnzahl name anzahl []
-queryWeiche query@(QMärklinWeicheNameAnzahl name anzahl acc)                    token@(EingabeToken {eingabe})      = wähleBefehl token [
-    (Lexer.Gerade   , Left $ QMärklinWeicheNameAnzahlRichtung name anzahl acc Gerade),
-    (Lexer.Kurve    , Left $ QMärklinWeicheNameAnzahlRichtung name anzahl acc Kurve),
-    (Lexer.Links    , Left $ QMärklinWeicheNameAnzahlRichtung name anzahl acc Links),
-    (Lexer.Rechts   , Left $ QMärklinWeicheNameAnzahlRichtung name anzahl acc Rechts)]
-    $ Left $ QWUnbekannt query eingabe
+queryWeiche query@(QMärklinWeicheNameAnzahl name anzahl acc)                    token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Nothing)       -> QWUnbekannt query eingabe
+    (Just richtung) -> QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung
 queryWeiche query@(QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)           -> Left $ QWUnbekannt query eingabe
     (Just pin)
         | anzahl > 1    -> Left $ QMärklinWeicheNameAnzahl name (anzahl - 1) $ (richtung, toPin pin):acc
         | otherwise     -> Right $ MärklinWeiche {weName=unpack name, richtungsPins=(richtung, toPin pin):|acc}
-queryWeiche query                                                               _token                              = Left query
+queryWeiche query@(QWUnbekannt _ _)                                             _token                              = Left query
 -- | Eingabe einer Bahngeschwindigkeit
 queryBahngeschwindigkeit :: QBahngeschwindigkeit -> EingabeToken -> Either QBahngeschwindigkeit Bahngeschwindigkeit
 -- Zugtyp automatisch auf Märklin festgelegt: ToDo!!!
@@ -780,9 +789,7 @@ instance Show QWeiche where
     show    (QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)     = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.erwartet Language.richtungen <=> showText anzahl <^> showText acc <> Language.richtung <=> showText richtung
 instance Query QWeiche where
     getQuery :: (IsString s, Semigroup s) => QWeiche -> s
-    -- Zugtyp auswählen: ToDo!!!
-    -- Zugtyp auswählen: getQuery    (QWeiche)                                                       = Language.zugtyp
-    getQuery    (QWeiche)                                                       = Language.name
+    getQuery    (QWeiche)                                                       = Language.zugtyp
     getQuery    (QWUnbekannt query _eingabe)                                    = getQuery query
     getQuery    (QLegoWeiche)                                                   = Language.name
     getQuery    (QLegoWeicheName _name)                                         = Language.richtung
@@ -798,8 +805,7 @@ instance Query QWeiche where
     getQueryFailed  q@(QMärklinWeicheNameAnzahlRichtung _name _anzahl _acc _richtung)   eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
     getQueryFailed  q                                                                   eingabe = getQueryFailedDefault q eingabe
     getQueryOptions :: (IsString s, Semigroup s) => QWeiche -> Maybe s
-    -- Zugtyp auswählen: ToDo!!!
-    -- Zugtyp auswählen: getQueryOptions (QWeiche)                                       = Just $ toBefehlsString $ map showText unterstützteZugtypen
+    getQueryOptions (QWeiche)                                       = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
     getQueryOptions (QWUnbekannt query _eingabe)                    = getQueryOptions query
     getQueryOptions (QLegoWeicheName _name)                         = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     getQueryOptions (QLegoWeicheNameRichtung1 _name _richtung1)     = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
@@ -893,6 +899,14 @@ wähleBefehl _eingabe                                ([])                    ers
 wähleBefehl eingabe@(EingabeToken {möglichkeiten})  ((befehl,ergebnis):t)   ersatz
     | elem befehl möglichkeiten                                                     = ergebnis
     | otherwise                                                                     = wähleBefehl eingabe t ersatz
+
+wähleRichtung :: EingabeToken -> Maybe Richtung
+wähleRichtung token = wähleBefehl token [
+    (Lexer.Gerade   , Just Gerade),
+    (Lexer.Kurve    , Just Kurve),
+    (Lexer.Links    , Just Links),
+    (Lexer.Rechts   , Just Rechts)]
+    $ Nothing
 
 -- ** Text-Hilfsfunktionen
 -- | Erhalte Name als Text
