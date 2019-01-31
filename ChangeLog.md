@@ -29,4 +29,4 @@
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
 ## Unreleased changes
-- Lego-Weiche von Cmd-UI unterstützt.
+- Lego-Weiche/Bahngeschwindigkeit von Cmd-UI unterstützt.

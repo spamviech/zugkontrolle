@@ -6,7 +6,7 @@ Dokumentation schreiben
 Unfinished Features:
     Test-Suite vervollständigen
     Lego: Bahngeschwindigkeit (Gleichstrom), Weiche (Servo-Motor: PWM-Frequenz)
-        In UI integrieren
+        In GTK-UI integrieren
     Cmd-UI:
         Mehr Farbe verwenden?
 gi-gtk/gi-gtk-declarative verwenden?

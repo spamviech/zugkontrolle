@@ -238,18 +238,15 @@ queryAktionWegstrecke   (QAWSKupplung qAktion0)                 token           
 -- | Eingabe einer Weichen-Aktion
 queryAktionWeiche :: (Show qw, Show w, WeicheKlasse w) => QAktionWeiche qw w -> EingabeToken -> Either (QAktionWeiche qw w) (AktionWeiche w)
 queryAktionWeiche   query@(QAktionWeiche weiche)    token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Stellen  , Left $ QAWStellen weiche)] $ Left $ QAWUnbekannt query eingabe
-queryAktionWeiche   query@(QAWStellen _weiche)      token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Gerade   , mitRichtung query Gerade),
-    (Lexer.Kurve    , mitRichtung query Kurve),
-    (Lexer.Links    , mitRichtung query Links),
-    (Lexer.Rechts   , mitRichtung query Rechts)]
-    $ Left $ QAWUnbekannt query eingabe
-    where
-        mitRichtung :: (Show qw, Show w, WeicheKlasse w) => QAktionWeiche qw w -> Richtung -> Either (QAktionWeiche qw w) (AktionWeiche w)
-        mitRichtung  query@(QAWStellen weiche)  richtung
-            | hatRichtung weiche richtung                   = Right $ Stellen weiche richtung
-            | otherwise                                     = Left $ QAWUnbekannt query eingabe
-        mitRichtung query                       _richtung   = error $ "mitRichtung mit unbekannter query aufgerufen: " ++ show query
+queryAktionWeiche   query@(QAWStellen _weiche)      token@(EingabeToken {eingabe})  = case wähleRichtung token of
+    (Nothing)       -> Left $ QAWUnbekannt query eingabe
+    (Just richtung) -> mitRichtung query richtung
+        where
+            mitRichtung :: (Show qw, Show w, WeicheKlasse w) => QAktionWeiche qw w -> Richtung -> Either (QAktionWeiche qw w) (AktionWeiche w)
+            mitRichtung  query@(QAWStellen weiche)  richtung
+                | hatRichtung weiche richtung                   = Right $ Stellen weiche richtung
+                | otherwise                                     = Left $ QAWUnbekannt query eingabe
+            mitRichtung query                       _richtung   = error $ "mitRichtung mit unbekannter query aufgerufen: " ++ show query
 queryAktionWeiche   query                           _token                                          = Left query
 -- | Eingabe einer Bahngeschwindigkeit-Aktion
 queryAktionBahngeschwindigkeit :: (BahngeschwindigkeitKlasse b) => QAktionBahngeschwindigkeit qb b -> EingabeToken -> Either (QAktionBahngeschwindigkeit qb b) (AktionBahngeschwindigkeit b)
@@ -312,19 +309,16 @@ queryWegstrecke query@(QWegstreckeNameAnzahl acc@(Wegstrecke {wsBahngeschwindigk
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         qWeicheAnhängen _                   = query
 queryWegstrecke (QWegstreckeBefehlQuery qKonstruktor eitherF)                                                                   token                               = Left $ QWegstreckeIOStatus (qKonstruktor token) eitherF
-queryWegstrecke query@(QWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWeichenRichtungen}) anzahl weiche)                token@(EingabeToken {eingabe})      = wähleBefehl token [
-    (Lexer.Gerade   , eitherWeicheRichtungAnhängen Gerade),
-    (Lexer.Kurve    , eitherWeicheRichtungAnhängen Kurve),
-    (Lexer.Links    , eitherWeicheRichtungAnhängen Links),
-    (Lexer.Rechts   , eitherWeicheRichtungAnhängen Rechts)]
-    $ Left $ QWSUnbekannt query eingabe
-    where
-        eitherWeicheRichtungAnhängen :: Richtung -> Either QWegstrecke Wegstrecke
-        eitherWeicheRichtungAnhängen richtung = if anzahl > 1 then Left $ qWeicheRichtungAnhängen richtung else Right $ weicheRichtungAnhängen richtung
-        qWeicheRichtungAnhängen :: Richtung -> QWegstrecke
-        qWeicheRichtungAnhängen richtung = QWegstreckeNameAnzahl (weicheRichtungAnhängen richtung) $ anzahl - 1
-        weicheRichtungAnhängen :: Richtung -> Wegstrecke
-        weicheRichtungAnhängen richtung = acc {wsWeichenRichtungen=(weiche, richtung):wsWeichenRichtungen}
+queryWegstrecke query@(QWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWeichenRichtungen}) anzahl weiche)                token@(EingabeToken {eingabe})      = case wähleRichtung token of
+    (Nothing)       -> Left $ QWSUnbekannt query eingabe
+    (Just richtung) -> eitherWeicheRichtungAnhängen richtung
+        where
+            eitherWeicheRichtungAnhängen :: Richtung -> Either QWegstrecke Wegstrecke
+            eitherWeicheRichtungAnhängen richtung = if anzahl > 1 then Left $ qWeicheRichtungAnhängen richtung else Right $ weicheRichtungAnhängen richtung
+            qWeicheRichtungAnhängen :: Richtung -> QWegstrecke
+            qWeicheRichtungAnhängen richtung = QWegstreckeNameAnzahl (weicheRichtungAnhängen richtung) $ anzahl - 1
+            weicheRichtungAnhängen :: Richtung -> Wegstrecke
+            weicheRichtungAnhängen richtung = acc {wsWeichenRichtungen=(weiche, richtung):wsWeichenRichtungen}
 queryWegstrecke query                                                                           _token                              = Left query
 -- | Eingabe einer Weiche
 queryWeiche :: QWeiche -> EingabeToken -> Either QWeiche Weiche
@@ -357,13 +351,22 @@ queryWeiche query@(QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)  
 queryWeiche query@(QWUnbekannt _ _)                                             _token                              = Left query
 -- | Eingabe einer Bahngeschwindigkeit
 queryBahngeschwindigkeit :: QBahngeschwindigkeit -> EingabeToken -> Either QBahngeschwindigkeit Bahngeschwindigkeit
--- Zugtyp automatisch auf Märklin festgelegt: ToDo!!!
-queryBahngeschwindigkeit    (QBahngeschwindigkeit)                          (EingabeToken {eingabe})            = Left $ QMärklinBahngeschwindigkeitName eingabe
-queryBahngeschwindigkeit    (QMärklinBahngeschwindigkeit)                   (EingabeToken {eingabe})            = Left $ QMärklinBahngeschwindigkeitName eingabe
-queryBahngeschwindigkeit    query@(QMärklinBahngeschwindigkeitName name)    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+queryBahngeschwindigkeit    (QBahngeschwindigkeit)                                                          token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.Märklin  , QMärklinBahngeschwindigkeit),
+    (Lexer.Lego     , QLegoBahngeschwindigkeit)]
+    $ QBGUnbekannt QBahngeschwindigkeit eingabe
+queryBahngeschwindigkeit    (QLegoBahngeschwindigkeit)                                                      (EingabeToken {eingabe})            = Left $ QLegoBahngeschwindigkeitName eingabe
+queryBahngeschwindigkeit    query@(QLegoBahngeschwindigkeitName name)                                       (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ QBGUnbekannt query eingabe
+    (Just pin)  -> Left $ QLegoBahngeschwindigkeitNameGeschwindigkeit name $ toPin pin
+queryBahngeschwindigkeit    query@(QLegoBahngeschwindigkeitNameGeschwindigkeit name geschwindigkeitsPin)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ QBGUnbekannt query eingabe
+    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=unpack name, geschwindigkeitsPin, fahrtrichtungsPin=toPin pin}
+queryBahngeschwindigkeit    (QMärklinBahngeschwindigkeit)                                                   (EingabeToken {eingabe})            = Left $ QMärklinBahngeschwindigkeitName eingabe
+queryBahngeschwindigkeit    query@(QMärklinBahngeschwindigkeitName name)                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QBGUnbekannt query eingabe
     (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=unpack name, geschwindigkeitsPin=toPin pin}
-queryBahngeschwindigkeit    query                                           _token                              = Left query
+queryBahngeschwindigkeit    query@(QBGUnbekannt _ _)                                                        _token                              = Left query
 -- | Eingabe eines Streckenabschnitts
 queryStreckenabschnitt :: QStreckenabschnitt -> EingabeToken -> Either QStreckenabschnitt Streckenabschnitt
 queryStreckenabschnitt  (QStreckenabschnitt)                (EingabeToken {eingabe})            = Left $ QStreckenabschnittName eingabe
@@ -831,9 +834,7 @@ instance Show QBahngeschwindigkeit where
     show    (QMärklinBahngeschwindigkeitName name)                      = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
 instance Query QBahngeschwindigkeit where
     getQuery :: (IsString s, Semigroup s) => QBahngeschwindigkeit -> s
-    -- Zugtyp auswählen: ToDo!!!
-    --getQuery    (QBahngeschwindigkeit)                                      = Language.zugtyp
-    getQuery    (QBahngeschwindigkeit)                                      = Language.name
+    getQuery    (QBahngeschwindigkeit)                                      = Language.zugtyp
     getQuery    (QBGUnbekannt query _eingabe)                               = getQuery query
     getQuery    (QLegoBahngeschwindigkeit)                                  = Language.name
     getQuery    (QLegoBahngeschwindigkeitName _name)                        = Language.pin
@@ -846,8 +847,7 @@ instance Query QBahngeschwindigkeit where
     getQueryFailed  q@(QMärklinBahngeschwindigkeitName _name)                   eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
     getQueryFailed  q                                                           eingabe = getQueryFailedDefault q eingabe
     getQueryOptions :: (IsString s, Semigroup s) => QBahngeschwindigkeit -> Maybe s
-    -- Zugtyp auswählen: ToDo!!!
-    --getQueryOptions (QBahngeschwindigkeit)          = Just $ toBefehlsString $ map showText unterstützteZugtypen
+    getQueryOptions (QBahngeschwindigkeit)          = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
     getQueryOptions (QBGUnbekannt query _eingabe)   = getQueryOptions query
     getQueryOptions _query                          = Nothing
 
