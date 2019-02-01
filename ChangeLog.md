@@ -29,4 +29,5 @@
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
 ## Unreleased changes
+- Bugfix: Beim Hinzufügen einer Wegstrecke wurde immer die erste Richtung einer Weiche ausgewählt.
 - Lego-Weiche/Bahngeschwindigkeit von Cmd-UI unterstützt.

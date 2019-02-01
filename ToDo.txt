@@ -1,3 +1,5 @@
+Bekannte Bugs:
+    Keine
 Dokumentation schreiben
     ReadMe
     Beispiel-Schaltpläne
@@ -13,6 +15,14 @@ gi-gtk/gi-gtk-declarative verwenden?
     Fehlermeldungen auf Raspberry Pi!!!!!!
 Umstellen String auf Text bei allen Datentypen?
 Plan abbrechbar machen?
+-------------------------------
+VS-Code Extensions:
+    German Language Pack
+    GitLens
+    Haskell Language Server
+        haskell-ide-engine (benötigt ältere Version für Windows)
+    Haskell Syntax Highlighting
+    Unicode Latex
 -------------------------------
 VS-Code globale Settings.json:
 {
