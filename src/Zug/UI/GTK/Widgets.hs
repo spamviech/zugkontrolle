@@ -372,7 +372,7 @@ weichePackNew   weiche  mvarStatus  (DynamischeWidgets {vBoxWeichen, vBoxHinzuf�
         richtungsRadioButtons <- do
             let (h:|t) = getRichtungen weiche
             hRichtungRadioButton <- boxPackWidgetNewDefault hBoxHinzuf체gen (radioButtonNewWithLabel $ show h) >>= \radioButton -> pure (h, radioButton)
-            tRichtungRadioButtons <- mapM (\richtung -> boxPackWidgetNewDefault hBoxHinzuf체gen (radioButtonNewWithLabelFromWidget (snd hRichtungRadioButton) $ show richtung) >>= \radioButton -> pure (h, radioButton)) t
+            tRichtungRadioButtons <- mapM (\richtung -> boxPackWidgetNewDefault hBoxHinzuf체gen (radioButtonNewWithLabelFromWidget (snd hRichtungRadioButton) $ show richtung) >>= \radioButton -> pure (richtung, radioButton)) t
             pure $ hRichtungRadioButton :| tRichtungRadioButtons
         pure (hBoxHinzuf체gen, unregistriert checkButton, richtungsRadioButtons)
     hinzuf체genPlanWidgetGerade <- if hatRichtung weiche Gerade then pure Nothing else hinzuf체genWidgetPlanNew weiche vBoxHinzuf체genPlanWeichenGerade OWeiche mvarPlanObjekt >>= pure . Just

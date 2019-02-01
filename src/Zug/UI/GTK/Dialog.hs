@@ -192,9 +192,11 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
                     getToggledRichtung :: NonEmpty (Richtung, RadioButton) -> IO Richtung
                     getToggledRichtung  ((richtung, radioButton):|tail) = do
                         toggled <- get radioButton toggleButtonActive
-                        if toggled then pure richtung else case tail of
-                            ([])    -> error "getToggledRichtung ohne ausgewählten RadioButton aufgerufen."
-                            (h:t)   -> getToggledRichtung $ h:|t
+                        if toggled
+                            then pure richtung
+                            else case tail of
+                                ([])    -> error "getToggledRichtung ohne ausgewählten RadioButton aufgerufen."
+                                (h:t)   -> getToggledRichtung $ h:|t
         objektHinzufügen    (PagePlan {nameEntry, aktionen})                                        mvarStatus  dynamischeWidgets   = void $ do
             plName <- get nameEntry entryText
             aktionenQueue <- readLMVar $ aktionen ^. linkedMVarElemente
@@ -224,6 +226,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             rbPlan                  <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.plan :: String)
             pure (PageStart {widget=vBox, radioButtons=rbBahngeschwindigkeit:|rbStreckenabschnitt:rbWeiche:rbKupplung:rbWegstrecke:rbPlan:[]}, Nothing)
         appendPage contentBox $ do
+            -- Bahngeschwindigkeit
             -- Lego-Zugtyp: ToDo!!!
             widget <- vBoxNew False 0
             boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.bahngeschwindigkeit :: String)
@@ -235,6 +238,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackDefault widget fahrtrichtungsPinWidget
             pure (PageBahngeschwindigkeit {widget, nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton}, Nothing)
         appendPage contentBox $ do
+            -- Streckenabschnitt
             widget <- vBoxNew False 0
             boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.streckenabschnitt :: String)
             nameEntry <- nameEntryPackNew widget
@@ -242,6 +246,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault widget $ pure stromPinWidget
             pure (PageStreckenabschnitt {widget, nameEntry, stromPinSpinButton}, Nothing)
         appendPage contentBox $ do
+            -- Weiche
             -- Lego-Zugtyp: ToDo!!!
             widget <- vBoxNew False 0
             boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.weiche :: String)
@@ -257,6 +262,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             richtungsWidgets <- mapM createRichtungsPin unterstützteRichtungen >>= fortfahrenWennToggledNew buttonHinzufügenWeiche
             pure (PageWeiche {widget, nameEntry, richtungsWidgets}, Nothing)
         appendPage contentBox $ do
+            -- Kupplung
             widget <- vBoxNew False 0
             boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.kupplung :: String)
             nameEntry <- nameEntryPackNew widget
@@ -264,6 +270,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault widget $ pure kupplungPinWidget
             pure (PageKupplung {widget, nameEntry, kupplungsPinSpinButton}, Nothing)
         (Just linkedMVar) <- appendPage contentBox $ do
+            -- Wegstrecke
             widget <- vBoxNew False 0
             boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.wegstrecke :: String)
             nameEntry <- nameEntryPackNew widget
@@ -275,6 +282,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             wegstreckenElemente <- fortfahrenWennToggledEmptyLinkedMVarNew buttonHinzufügenWegstrecke traversalHinzufügenWegstrecke (Nothing :: Maybe (LinkedMVar StatusGUI))
             pure (PageWegstrecke {widget, nameEntry, wegstreckenElemente}, Just $ wegstreckenElemente ^. linkedMVarCheckButtons)
         appendPage contentBox $ do
+            -- Plan
             -- Objekt-Buttons schreiben bei Druck Objekt in mvarPlanObjekt
             -- Sobald diese gefüllt ist kann die Aktion zur LinkedMVar hinzufgefügt werden
             aktionenWidgets <- newMVar []
