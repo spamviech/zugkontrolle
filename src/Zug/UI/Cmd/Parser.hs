@@ -16,12 +16,12 @@ module Zug.UI.Cmd.Parser (
                         QObjekt(..), QWegstrecke(..), QWeiche(..), QBahngeschwindigkeit(..), QStreckenabschnitt(..), QKupplung(..)) where
 
 -- Bibliotheken
-import GHC.Exts (IsString(..))
-import Data.Maybe
-import Data.Text (Text, pack, unpack)
-import Data.Semigroup (Semigroup(..))
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
+import Data.Maybe
+import Data.Semigroup (Semigroup(..))
+import Data.String (IsString(..))
+import Data.Text (Text, pack, unpack)
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen

@@ -21,15 +21,15 @@ module Zug.UI.Base (
     passMVarPinMap, liftIOFunction) where
 
 -- Bibliotheken
-import GHC.Exts (IsString(..))
+import Control.Concurrent.MVar
 import Control.Monad.Trans
 import Control.Monad.State
-import Control.Concurrent.MVar
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens, lens)
 #endif
-import Data.Semigroup (Semigroup(..))
 import Data.List
+import Data.Semigroup (Semigroup(..))
+import Data.String (IsString(..))
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar

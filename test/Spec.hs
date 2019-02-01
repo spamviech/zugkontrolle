@@ -1,7 +1,9 @@
 {-# LANGUAGE InstanceSigs, OverloadedStrings, DuplicateRecordFields #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 
 -- Bibliotheken
-import GHC.Exts(IsString(..))
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup(Semigroup(..))
 import qualified Data.Text as T
 import Data.Text (Text, unpack)
@@ -9,8 +11,8 @@ import Data.Text (Text, unpack)
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
 import Zug.UI.Befehl
-import qualified Zug.UI.Language as Language
-import Zug.UI.Language ((<~>))
+import qualified Zug.Language as Language
+import Zug.Language ((<~>))
 import Zug.UI.Cmd ()
 import Zug.UI.Cmd.Parser (QErgebnis(..), BefehlSofort(..), QBefehl(..), parser)
 import Zug.UI.Cmd.Lexer (lexer)
@@ -32,13 +34,13 @@ parseBefehl = do
         (Language.abbrechen, QEBefehl (UI Abbrechen)),
         (Language.hinzufügen <~> Language.abbrechen, QEBefehl (UI Abbrechen)),
         (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.abbrechen, QEBefehl (UI Abbrechen)),
-        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> "Name" <~> Language.beenden, QEBefehl (UI Beenden)),
-        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> "Name" <~> "3", (QEBefehl (Hinzufügen (OBahngeschwindigkeit (MärklinBahngeschwindigkeit {name="Name", geschwindigkeitsPin=toPin 3}))))),
-        (Language.hinzufügen <~> Language.kupplung <~> "Name" <~> "22", (QEBefehl (Hinzufügen (OKupplung (Kupplung {name="Name", kupplungsPin=toPin 22}))))),
-        (Language.hinzufügen <~> Language.streckenabschnitt <~> "Name" <~> "3245", (QEBefehl (Hinzufügen (OStreckenabschnitt (Streckenabschnitt {name="Name", stromPin=toPin 3245}))))),
-        (Language.hinzufügen <~> Language.weiche <~> "Name" <~> "1" <~> Language.rechts <~> "2", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {name="Name", richtungsPins=[(toPin 2, Rechts)]}))))),
-        (Language.hinzufügen <~> Language.weiche <~> "Name" <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "-4", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {name="Name", richtungsPins=[(toPin (-4), Kurve), (toPin 2, Gerade)]}))))),
-        ((T.take 4 Language.hinzufügen) <~> Language.weiche <~> "Name" <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "-4", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {name="Name", richtungsPins=[(toPin (-4), Kurve), (toPin 2, Gerade)]}))))),
+        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.märklin <~> "Name" <~> Language.beenden, QEBefehl (UI Beenden)),
+        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.märklin <~> "Name" <~> "3", (QEBefehl (Hinzufügen (OBahngeschwindigkeit (MärklinBahngeschwindigkeit {bgName="Name", geschwindigkeitsPin=toPin 3}))))),
+        (Language.hinzufügen <~> Language.kupplung <~> "Name" <~> "22", (QEBefehl (Hinzufügen (OKupplung (Kupplung {kuName="Name", kupplungsPin=toPin 22}))))),
+        (Language.hinzufügen <~> Language.streckenabschnitt <~> "Name" <~> "3245", (QEBefehl (Hinzufügen (OStreckenabschnitt (Streckenabschnitt {stName="Name", stromPin=toPin 3245}))))),
+        (Language.hinzufügen <~> Language.weiche <~> Language.märklin <~> "Name" <~> "1" <~> Language.rechts <~> "2", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", richtungsPins=(Rechts, toPin 2):|[]}))))),
+        (Language.hinzufügen <~> Language.weiche <~> Language.märklin <~> "Name" <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "4", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", richtungsPins=(Kurve, toPin (4)):|(Gerade, toPin 2):[]}))))),
+        ((T.take 4 Language.hinzufügen) <~> Language.weiche <~> Language.märklin <~> "Name" <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "4", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", richtungsPins=(Kurve, toPin (4)):|(Gerade, toPin 2):[]}))))),
         (Language.speichern <~> "Dateiname", (QEBefehl (Speichern "Dateiname")))]
     setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite Befehl not yet fully implemented" >> setSGR [Reset]
 
@@ -93,22 +95,13 @@ instance Show QErgebnis where
     show    (QEBefehl (Hinzufügen objekt))                                      = "Hinzufügen " <> show objekt
     show    (QEBefehl (Entfernen objekt))                                       = "Entfernen " <> show objekt
     show    (QEBefehl (Speichern dateipfad))                                    = "Speichern " <> dateipfad
-    show    (QEBefehl (Laden dateipfad _fehlerbehandlung))                      = "Laden " <> dateipfad
-    show    (QEBefehl (Ausführen plan))                                         = "Ausführen " <> show plan
+    show    (QEBefehl (Laden dateipfad _erfolgsAktion _fehlerbehandlung))       = "Laden " <> dateipfad
+    show    (QEBefehl (Ausführen plan _showAction))                             = "Ausführen " <> show plan
     show    (QEBefehl (AktionBefehl aktion))                                    = "Aktion " <> show aktion
     show    (QEBefehlSofort (BSLaden dateipfad) eingabeRest)                    = "Laden " <> dateipfad <> "=>" <> show eingabeRest
-    show    (QEBefehlQuery qObjektIOStatus eitherF fallback eingabeRest)        = "Query " <> show qObjektIOStatus <> konstruktor eitherF <> "=>" <> show eingabeRest
+    show    (QEBefehlQuery qObjektIOStatus eitherF _fallback eingabeRest)       = "Query " <> show qObjektIOStatus <> konstruktor eitherF <> "=>" <> show eingabeRest
         where
             konstruktor :: Either a b -> String
             konstruktor (Left _qKonstruktor)    = " Konstruktor "
             konstruktor (Right _konstruktor)    = " qKonstruktor "
     show    (QEQBefehl qBefehl)                                                 = show qBefehl
-
-instance Show Objekt where
-    show :: Objekt -> String
-    show    (OPlan plan)                                = show plan
-    show    (OWegstrecke wegstrecke)                    = show wegstrecke
-    show    (OWeiche weiche)                            = show weiche
-    show    (OBahngeschwindigkeit bahngeschwindigkeit)  = show bahngeschwindigkeit
-    show    (OStreckenabschnitt streckenabschnitt)      = show streckenabschnitt
-    show    (OKupplung kupplung)                        = show kupplung
