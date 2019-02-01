@@ -5,8 +5,8 @@ Description : Sammlung aller verwendeten Strings, zur einfacheren Unterstützung
 -}
 module Zug.Language where
 
-import GHC.Exts (IsString(..))
 import Data.Semigroup (Semigroup(..))
+import Data.String (IsString(..))
 import Data.Text (Text, unpack)
 
 -- * Titel

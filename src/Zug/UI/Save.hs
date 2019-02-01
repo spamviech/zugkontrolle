@@ -9,17 +9,17 @@ module Zug.UI.Save (
                 save, load) where
 
 -- Bibliotheken
-import GHC.Exts (IsString(..))
-import System.Directory
+import Control.Concurrent.MVar
+import Control.Monad
 import Data.Aeson
 import Data.Aeson.Types
-import Data.Text (Text, pack)
+import qualified Data.ByteString.Lazy as ByteString
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
-import Control.Monad
-import Control.Concurrent.MVar
-import qualified Data.ByteString.Lazy as ByteString
+import Data.String (IsString(..))
+import Data.Text (Text, pack)
 import Numeric.Natural
+import System.Directory
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen
 import Zug.Anbindung
