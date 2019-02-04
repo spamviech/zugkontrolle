@@ -13,7 +13,6 @@ Unfinished Features:
         Mehr Farbe verwenden?
 gi-gtk/gi-gtk-declarative verwenden?
     Fehlermeldungen auf Raspberry Pi!!!!!!
-Umstellen String auf Text bei allen Datentypen?
 Plan abbrechbar machen?
 -------------------------------
 VS-Code Extensions:

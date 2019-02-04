@@ -17,10 +17,11 @@ main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnters
 module Zug.UI.GTK (main, setupGUI) where
 
 -- Bibliotheken
-import Graphics.UI.Gtk
 import Control.Concurrent
 import Control.Monad (void)
 import Control.Monad.Trans (liftIO)
+import Data.Text (Text)
+import Graphics.UI.Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 import Zug.Options
@@ -44,7 +45,7 @@ main = do
 setupGUI :: IO ()
 setupGUI = void $ do
     -- Hauptfenster
-    windowMain <- widgetShowNew $ widgetNewWithOptionsEvents windowNew [windowTitle := (Language.zugkontrolle :: String), windowDefaultWidth := 640, windowDefaultHeight := 480] [(deleteEvent, Left . liftIO $ mainQuit >> pure False)]
+    windowMain <- widgetShowNew $ widgetNewWithOptionsEvents windowNew [windowTitle := (Language.zugkontrolle :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480] [(deleteEvent, Left . liftIO $ mainQuit >> pure False)]
     vBox <- containerAddWidgetNew windowMain $ vBoxNew False 0
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault notebookNew

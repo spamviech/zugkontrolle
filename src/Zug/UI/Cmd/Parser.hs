@@ -21,7 +21,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, unpack)
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen
@@ -169,9 +169,9 @@ queryPlan   query@(QPlanName name)                          (EingabeToken {einga
 queryPlan   (QPlanNameAnzahl name anzahl acc qAktion)       token                               = case queryAktion qAktion token of
     (Left (QAUnbekannt qAktion1 eingabe))                           -> Left $ QPUnbekannt (QPlanNameAnzahl name anzahl acc qAktion1) eingabe
     (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ Left $ \objekt -> QPlanNameAnzahl name anzahl acc $ qKonstruktor objekt
-    (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl ((konstruktor objekt):acc) QAktion else Right $ \objekt -> Plan {plName=unpack name, plAktionen=reverse $ (konstruktor objekt):acc}
+    (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl ((konstruktor objekt):acc) QAktion else Right $ \objekt -> Plan {plName=name, plAktionen=reverse $ (konstruktor objekt):acc}
     (Left qAktion1)                                                 -> Left $ QPlanNameAnzahl name anzahl acc qAktion1
-    (Right aktion)                                                  -> if anzahl > 1 then Left $ QPlanNameAnzahl name anzahl (aktion:acc) QAktion else Right $ Plan {plName=unpack name, plAktionen=reverse $ aktion:acc}
+    (Right aktion)                                                  -> if anzahl > 1 then Left $ QPlanNameAnzahl name anzahl (aktion:acc) QAktion else Right $ Plan {plName=name, plAktionen=reverse $ aktion:acc}
 queryPlan   query                                           token                               = error $ "Spezielles Token an queryUpdate " ++ show query ++ " übergeben: " ++ show token
 -- | Eingabe einer Aktion
 queryAktion :: QAktion -> EingabeToken -> Either QAktion Aktion
@@ -279,7 +279,7 @@ queryWegstrecke :: QWegstrecke -> EingabeToken -> Either QWegstrecke Wegstrecke
 queryWegstrecke (QWegstrecke)                                                                                                   (EingabeToken {eingabe})            = Left $ QWegstreckeName eingabe
 queryWegstrecke query@(QWegstreckeName name)                                                                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)       -> Left $ QWSUnbekannt query eingabe
-    (Just anzahl)   -> Left $ QWegstreckeNameAnzahl (Wegstrecke {wsName=unpack name, wsBahngeschwindigkeiten=[], wsStreckenabschnitte=[], wsWeichenRichtungen=[], wsKupplungen=[]}) anzahl
+    (Just anzahl)   -> Left $ QWegstreckeNameAnzahl (Wegstrecke {wsName=name, wsBahngeschwindigkeiten=[], wsStreckenabschnitte=[], wsWeichenRichtungen=[], wsKupplungen=[]}) anzahl
 queryWegstrecke query@(QWegstreckeNameAnzahl acc@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsKupplungen}) anzahl)   token                               = Left $ case queryWegstreckenElement token of
     (QWEWeiche)                 -> QWegstreckeBefehlQuery QOIOSWeiche $ Left $ qWeicheAnhängen
     (QWEBahngeschwindigkeit)    -> QWegstreckeBefehlQuery QOIOSBahngeschwindigkeit eitherObjektAnhängen
@@ -335,7 +335,7 @@ queryWeiche query@(QLegoWeicheNameRichtung1 name richtung1)                     
     (Just richtung2)    -> QLegoWeicheNameRichtungen name richtung1 richtung2
 queryWeiche query@(QLegoWeicheNameRichtungen name richtung1 richtung2)          (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QWUnbekannt query eingabe
-    (Just pin)  -> Right $ LegoWeiche {weName=unpack name, richtungsPin=toPin pin, richtungen=(richtung1,richtung2)}
+    (Just pin)  -> Right $ LegoWeiche {weName=name, richtungsPin=toPin pin, richtungen=(richtung1,richtung2)}
 queryWeiche (QMärklinWeiche)                                                    (EingabeToken {eingabe})            = Left $ QMärklinWeicheName eingabe
 queryWeiche query@(QMärklinWeicheName name)                                     (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)       -> Left $ QWUnbekannt query eingabe
@@ -347,7 +347,7 @@ queryWeiche query@(QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)  
     (Nothing)           -> Left $ QWUnbekannt query eingabe
     (Just pin)
         | anzahl > 1    -> Left $ QMärklinWeicheNameAnzahl name (anzahl - 1) $ (richtung, toPin pin):acc
-        | otherwise     -> Right $ MärklinWeiche {weName=unpack name, richtungsPins=(richtung, toPin pin):|acc}
+        | otherwise     -> Right $ MärklinWeiche {weName=name, richtungsPins=(richtung, toPin pin):|acc}
 queryWeiche query@(QWUnbekannt _ _)                                             _token                              = Left query
 -- | Eingabe einer Bahngeschwindigkeit
 queryBahngeschwindigkeit :: QBahngeschwindigkeit -> EingabeToken -> Either QBahngeschwindigkeit Bahngeschwindigkeit
@@ -361,25 +361,25 @@ queryBahngeschwindigkeit    query@(QLegoBahngeschwindigkeitName name)           
     (Just pin)  -> Left $ QLegoBahngeschwindigkeitNameGeschwindigkeit name $ toPin pin
 queryBahngeschwindigkeit    query@(QLegoBahngeschwindigkeitNameGeschwindigkeit name geschwindigkeitsPin)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QBGUnbekannt query eingabe
-    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=unpack name, geschwindigkeitsPin, fahrtrichtungsPin=toPin pin}
+    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, geschwindigkeitsPin, fahrtrichtungsPin=toPin pin}
 queryBahngeschwindigkeit    (QMärklinBahngeschwindigkeit)                                                   (EingabeToken {eingabe})            = Left $ QMärklinBahngeschwindigkeitName eingabe
 queryBahngeschwindigkeit    query@(QMärklinBahngeschwindigkeitName name)                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QBGUnbekannt query eingabe
-    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=unpack name, geschwindigkeitsPin=toPin pin}
+    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, geschwindigkeitsPin=toPin pin}
 queryBahngeschwindigkeit    query@(QBGUnbekannt _ _)                                                        _token                              = Left query
 -- | Eingabe eines Streckenabschnitts
 queryStreckenabschnitt :: QStreckenabschnitt -> EingabeToken -> Either QStreckenabschnitt Streckenabschnitt
 queryStreckenabschnitt  (QStreckenabschnitt)                (EingabeToken {eingabe})            = Left $ QStreckenabschnittName eingabe
 queryStreckenabschnitt  query@(QStreckenabschnittName name) (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QSUnbekannt query eingabe
-    (Just pin)  -> Right $ Streckenabschnitt {stName=unpack name, stromPin=toPin pin}
+    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stromPin=toPin pin}
 queryStreckenabschnitt  query@(QSUnbekannt _ _)             _token                              = Left query
 -- | Eingabe einer Kupplung
 queryKupplung :: QKupplung -> EingabeToken -> Either QKupplung Kupplung
 queryKupplung   (QKupplung)                 (EingabeToken {eingabe})            = Left $ QKupplungName eingabe
 queryKupplung   query@(QKupplungName name)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QKUnbekannt query eingabe
-    (Just pin)  -> Right $ Kupplung {kuName=unpack name, kupplungsPin=toPin pin}
+    (Just pin)  -> Right $ Kupplung {kuName=name, kupplungsPin=toPin pin}
 queryKupplung   query@(QKUnbekannt _ _)     _token                       = Left query
 
 -- * Klasse für unvollständige Befehle
@@ -909,10 +909,6 @@ wähleRichtung token = wähleBefehl token [
     $ Nothing
 
 -- ** Text-Hilfsfunktionen
--- | Erhalte Name als Text
-getNameText :: (StreckenObjekt a) => a -> Text
-getNameText = pack.getName
-
 --  | Fehlerhafte Eingabe melden
 unbekanntShowText :: (Show q, Query q, IsString s, Semigroup s) => q -> s -> s
 unbekanntShowText q eingabe = fehlerText $ showQueryFailed q eingabe
@@ -921,7 +917,7 @@ unbekanntShowText q eingabe = fehlerText $ showQueryFailed q eingabe
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
 findByNameOrIndex   liste   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Just index)    | index >= 0, längerAls liste index     -> Just $ liste !! fromIntegral index
-    _maybeIndex                                             -> listToMaybe $ filter ((== eingabe).getNameText) liste
+    _maybeIndex                                             -> listToMaybe $ filter ((== eingabe) . getName) liste
 
 -- | Prüft, ob eine Liste mindestens von der Länge i ist, ohne die komplette Länge zu berechnen
 längerAls :: [a] -> Natural -> Bool

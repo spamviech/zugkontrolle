@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns, InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings, NamedFieldPuns, InstanceSigs #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.
@@ -25,13 +25,15 @@ import Control.Monad
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup (Semigroup(..))
+import Data.Text (Text, unpack)
+import qualified Data.Text.IO as T
 import Numeric.Natural
 import System.Hardware.WiringPi
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen
 import Zug.Options
 import qualified Zug.Language as Language
-import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), (<°>))
+import Zug.Language (showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
 import Zug.Anbindung.SoftwarePWM
 
 -- * Repräsentation von Pins
@@ -103,17 +105,17 @@ class StreckenObjekt s where
     zugtyp :: s -> Zugtyp
     zugtyp  _s  = Undefiniert
     pins :: s -> [Pin]
-    getName :: s -> String
+    getName :: s -> Text
     {-# MINIMAL pins, getName #-}
 
-data Bahngeschwindigkeit    = LegoBahngeschwindigkeit {bgName :: String, geschwindigkeitsPin::Pin, fahrtrichtungsPin::Pin}
-                            | MärklinBahngeschwindigkeit {bgName :: String, geschwindigkeitsPin::Pin}
+data Bahngeschwindigkeit    = LegoBahngeschwindigkeit {bgName :: Text, geschwindigkeitsPin::Pin, fahrtrichtungsPin::Pin}
+                            | MärklinBahngeschwindigkeit {bgName :: Text, geschwindigkeitsPin::Pin}
                                         deriving (Eq)
 
 instance Show Bahngeschwindigkeit where
     show :: Bahngeschwindigkeit -> String
-    show    (LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin})    = Language.lego <-> Language.bahngeschwindigkeit <:> Language.name <=> bgName <^> Language.geschwindigkeit <-> Language.pin <=> show geschwindigkeitsPin <^> Language.fahrtrichtung <-> Language.pin <=> show fahrtrichtungsPin
-    show    (MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin})                    = Language.märklin <-> Language.bahngeschwindigkeit <:> Language.name <=> bgName <^> Language.geschwindigkeit <-> Language.pin <=> show geschwindigkeitsPin
+    show    (LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin})    = Language.lego <-> Language.bahngeschwindigkeit <:> Language.name <=> unpack bgName <^> Language.geschwindigkeit <-> Language.pin <=> show geschwindigkeitsPin <^> Language.fahrtrichtung <-> Language.pin <=> show fahrtrichtungsPin
+    show    (MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin})                    = Language.märklin <-> Language.bahngeschwindigkeit <:> Language.name <=> unpack bgName <^> Language.geschwindigkeit <-> Language.pin <=> show geschwindigkeitsPin
 
 instance StreckenObjekt Bahngeschwindigkeit where
     zugtyp :: Bahngeschwindigkeit -> Zugtyp
@@ -122,7 +124,7 @@ instance StreckenObjekt Bahngeschwindigkeit where
     pins :: Bahngeschwindigkeit -> [Pin]
     pins    (LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin})  = [geschwindigkeitsPin, fahrtrichtungsPin]
     pins    (MärklinBahngeschwindigkeit {geschwindigkeitsPin})                  = [geschwindigkeitsPin]
-    getName :: Bahngeschwindigkeit -> String
+    getName :: Bahngeschwindigkeit -> Text
     getName (LegoBahngeschwindigkeit {bgName})    = bgName
     getName (MärklinBahngeschwindigkeit {bgName}) = bgName
 
@@ -141,30 +143,30 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     geschwindigkeit :: Bahngeschwindigkeit -> Natural -> PinMapIO ()
     geschwindigkeit (LegoBahngeschwindigkeit {geschwindigkeitsPin})     geschwindigkeit mvarPinMap  = befehlAusführen
         (pwmWriteSoftHardware geschwindigkeitsPin (getPwmValueFull geschwindigkeit) mvarPinMap)
-        ("Geschwindigkeit (" ++ (show geschwindigkeitsPin) ++ ")->" ++ (show geschwindigkeit))
+        ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
     geschwindigkeit (MärklinBahngeschwindigkeit {geschwindigkeitsPin})  geschwindigkeit mvarPinMap  = befehlAusführen
         (pwmWriteSoftHardware geschwindigkeitsPin (getPwmValueReduced geschwindigkeit) mvarPinMap)
-        ("Geschwindigkeit (" ++ (show geschwindigkeitsPin) ++ ")->" ++ (show geschwindigkeit))
+        ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
     umdrehen :: Bahngeschwindigkeit -> Maybe Fahrtrichtung -> PinMapIO ()
     umdrehen (LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin}) (Just fahrtrichtung)    mvarPinMap = befehlAusführen
         (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> delayµs umdrehenDelayµs >> pwmServo fahrtrichtungsPin (if (fahrtrichtung == Vorwärts) then 100 else 0) mvarPinMap)
-        ("Umdrehen (" ++ (show geschwindigkeitsPin) ++ ", " ++ (show fahrtrichtungsPin) ++ ")->" ++ (show fahrtrichtung))
+        ("Umdrehen (" <> showText geschwindigkeitsPin <^> showText fahrtrichtungsPin <> ")->" <> showText fahrtrichtung)
     umdrehen bahngeschwindigkeit@(LegoBahngeschwindigkeit {})                   (Nothing)               mvarPinMap = umdrehen bahngeschwindigkeit (Just Vorwärts) mvarPinMap
     umdrehen (MärklinBahngeschwindigkeit {geschwindigkeitsPin})                 _maybeRichtung  mvarPinMap = befehlAusführen
         (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> delayµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin pwmRange mvarPinMap >> delayµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap)
-        ("Umdrehen (" ++ (show geschwindigkeitsPin) ++ ")")
+        ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
 
-data Streckenabschnitt = Streckenabschnitt {stName :: String, stromPin::Pin}
+data Streckenabschnitt = Streckenabschnitt {stName :: Text, stromPin::Pin}
                             deriving (Eq)
 
 instance Show Streckenabschnitt where
     show :: Streckenabschnitt -> String
-    show    (Streckenabschnitt {stName, stromPin})    = Language.streckenabschnitt <:> Language.name <=> stName <^> Language.strom <-> Language.pin <=> show stromPin
+    show    (Streckenabschnitt {stName, stromPin})    = Language.streckenabschnitt <:> Language.name <=> unpack stName <^> Language.strom <-> Language.pin <=> show stromPin
 
 instance StreckenObjekt Streckenabschnitt where
     pins :: Streckenabschnitt -> [Pin]
     pins (Streckenabschnitt {stromPin})    = [stromPin]
-    getName :: Streckenabschnitt -> String
+    getName :: Streckenabschnitt -> Text
     getName (Streckenabschnitt {stName})  = stName
 
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
@@ -176,16 +178,16 @@ instance StreckenabschnittKlasse Streckenabschnitt where
     strom :: Streckenabschnitt -> Bool -> PinMapIO ()
     strom   (Streckenabschnitt {stromPin})  an  _mvarPinMap = befehlAusführen
         (pinMode stromPin OUTPUT >> digitalWrite stromPin (if an then HIGH else LOW))
-        ("Strom (" <> (show stromPin) <> ")->" <> (show an))
+        ("Strom (" <> showText stromPin <> ")->" <> showText an)
 
-data Weiche = LegoWeiche {weName :: String, richtungsPin :: Pin, richtungen::(Richtung,Richtung)}
-            | MärklinWeiche {weName :: String, richtungsPins :: NonEmpty (Richtung, Pin)}
+data Weiche = LegoWeiche {weName :: Text, richtungsPin :: Pin, richtungen::(Richtung,Richtung)}
+            | MärklinWeiche {weName :: Text, richtungsPins :: NonEmpty (Richtung, Pin)}
                     deriving (Eq)
 
 instance Show Weiche where
     show :: Weiche -> String
-    show    (LegoWeiche {weName, richtungsPin, richtungen=(richtung1, richtung2)})    = Language.lego <-> Language.weiche <:> Language.name <=> weName <^> Language.richtung <-> Language.pin <=> show richtungsPin <^> Language.richtungen <=> show richtung1 <|> show richtung2
-    show    (MärklinWeiche {weName, richtungsPins})                                   = Language.märklin <-> Language.weiche <:> Language.name <=> weName <^> foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" richtungsPins
+    show    (LegoWeiche {weName, richtungsPin, richtungen=(richtung1, richtung2)})    = Language.lego <-> Language.weiche <:> Language.name <=> unpack weName <^> Language.richtung <-> Language.pin <=> show richtungsPin <^> Language.richtungen <=> show richtung1 <|> show richtung2
+    show    (MärklinWeiche {weName, richtungsPins})                                   = Language.märklin <-> Language.weiche <:> Language.name <=> unpack weName <^> foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" richtungsPins
 
 instance StreckenObjekt Weiche where
     zugtyp :: Weiche -> Zugtyp
@@ -194,7 +196,7 @@ instance StreckenObjekt Weiche where
     pins :: Weiche -> [Pin]
     pins (LegoWeiche {richtungsPin})        = [richtungsPin]
     pins (MärklinWeiche {richtungsPins})    = map snd $ NE.toList richtungsPins
-    getName :: Weiche -> String
+    getName :: Weiche -> Text
     getName (LegoWeiche {weName})     = weName
     getName (MärklinWeiche {weName})  = weName
 
@@ -216,14 +218,14 @@ instance WeicheKlasse Weiche where
     stellen :: Weiche -> Richtung -> PinMapIO ()
     stellen (LegoWeiche {richtungsPin, richtungen}) richtung    mvarPinMap  | richtung == fst richtungen    = befehlAusführen
         (pwmServo richtungsPin 25 mvarPinMap >> delayµs weicheDelayµs >> pwmServo richtungsPin 0 mvarPinMap)
-        ("Stellen (" ++ (show richtungsPin) ++ ") -> " ++ (show richtung))
+        ("Stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
                                                                             | richtung == snd richtungen    = befehlAusführen
         (pwmServo richtungsPin 75 mvarPinMap >> delayµs weicheDelayµs >> pwmServo richtungsPin 0 mvarPinMap)
-        ("stellen (" ++ (show richtungsPin) ++ ") -> " ++ (show richtung))
+        ("stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
                                                                             | otherwise                     = pure ()
     stellen (MärklinWeiche {richtungsPins})         richtung    _mvarPinMap = befehlAusführen
         richtungStellen
-        ("Stellen (" ++ (show $ getRichtungsPin richtung $ NE.toList richtungsPins) ++ ") -> " ++ (show richtung))
+        ("Stellen (" <> showText (getRichtungsPin richtung $ NE.toList richtungsPins) <> ") -> " <> showText richtung)
             where
                 richtungStellen :: IO ()
                 richtungStellen = case getRichtungsPin richtung $ NE.toList richtungsPins of
@@ -241,17 +243,17 @@ instance WeicheKlasse Weiche where
     getRichtungen   (LegoWeiche {richtungen=(richtung1, richtung2)})    = richtung1 :| [richtung2]
     getRichtungen   (MärklinWeiche {richtungsPins})                     = fst <$> richtungsPins
 
-data Kupplung = Kupplung {kuName :: String, kupplungsPin::Pin}
+data Kupplung = Kupplung {kuName :: Text, kupplungsPin::Pin}
                     deriving (Eq)
 
 instance Show Kupplung where
     show :: Kupplung -> String
-    show    (Kupplung {kuName, kupplungsPin}) = Language.kupplung <:> Language.name <=> kuName <^> Language.kupplung <-> Language.pin <=> show kupplungsPin
+    show    (Kupplung {kuName, kupplungsPin}) = Language.kupplung <:> Language.name <=> unpack kuName <^> Language.kupplung <-> Language.pin <=> show kupplungsPin
 
 instance StreckenObjekt Kupplung where
     pins :: Kupplung -> [Pin]
     pins (Kupplung {kupplungsPin})  = [kupplungsPin]
-    getName :: Kupplung -> String
+    getName :: Kupplung -> Text
     getName (Kupplung {kuName})   = kuName
 
 class (StreckenObjekt k) => KupplungKlasse k where
@@ -267,11 +269,11 @@ instance KupplungKlasse Kupplung where
     kuppeln :: Kupplung -> PinMapIO ()
     kuppeln (Kupplung {kupplungsPin})   _mvarPinMap = befehlAusführen
         (pinMode kupplungsPin OUTPUT >> digitalWrite kupplungsPin HIGH >> delayµs kuppelnDelayµs >> digitalWrite kupplungsPin LOW)
-        ("Kuppeln (" ++ (show kupplungsPin) ++ ")")
+        ("Kuppeln (" <> showText kupplungsPin <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
 data Wegstrecke = Wegstrecke {
-    wsName :: String,
+    wsName :: Text,
     wsBahngeschwindigkeiten :: [Bahngeschwindigkeit],
     wsStreckenabschnitte :: [Streckenabschnitt],
     wsWeichenRichtungen :: [(Weiche, Richtung)],
@@ -280,7 +282,7 @@ data Wegstrecke = Wegstrecke {
 
 instance Show Wegstrecke where
     show :: Wegstrecke -> String
-    show    (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) = Language.wegstrecke <:> Language.name <=> wsName
+    show    (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) = Language.wegstrecke <:> Language.name <=> unpack wsName
                                                                                                                     <^> Language.bahngeschwindigkeiten <=> show wsBahngeschwindigkeiten
                                                                                                                     <^> Language.streckenabschnitte <=> show wsStreckenabschnitte
                                                                                                                     <^> Language.weichen <=> "[" <> foldl (\acc (weiche, richtung) -> (if null acc then id else (acc <^>)) $ show weiche <°> show richtung) "" wsWeichenRichtungen <> "]"
@@ -303,7 +305,7 @@ instance StreckenObjekt Wegstrecke where
     zugtyp _wegstrecke                                              = Undefiniert
     pins :: Wegstrecke -> [Pin]
     pins (Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})    = join $ (map pins wsBahngeschwindigkeiten) <> (map pins wsStreckenabschnitte) <> (map pins (map fst wsWeichenRichtungen)) <> (map pins wsKupplungen)
-    getName :: Wegstrecke -> String
+    getName :: Wegstrecke -> Text
     getName (Wegstrecke {wsName}) = wsName
 
 instance BahngeschwindigkeitKlasse Wegstrecke where
@@ -329,9 +331,9 @@ instance WegstreckeKlasse Wegstrecke where
     einstellen  (Wegstrecke {wsWeichenRichtungen})    mvarPinMap  = mapM_ (\(weiche, richtung) -> stellen weiche richtung mvarPinMap) wsWeichenRichtungen
 
 -- | Ausführen einer IO-Aktion, bzw. Ausgabe eines Strings, abhängig vom Kommandozeilen-Argument
-befehlAusführen :: IO () -> String -> IO ()
+befehlAusführen :: IO () -> Text -> IO ()
 befehlAusführen ioAction ersatzNachricht = do
     (Options {printCmd}) <- getOptions
     if printCmd
-        then putStrLn ersatzNachricht
+        then T.putStrLn ersatzNachricht
         else ioAction
