@@ -16,12 +16,13 @@ module Zug.Plan (
 import Control.Concurrent
 import Control.Monad (void, foldM)
 import Data.Semigroup (Semigroup(..))
+import Data.Text (Text, unpack)
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen
 import Zug.Anbindung
 import qualified Zug.Language as Language
-import Zug.Language ((<~>), (<^>), (<=>), (<:>), (<°>))
+import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).
 -- Sie können selbst entscheiden, ob sie die mitgegebene Update-Funktion über den Fortschritt informieren, oder nicht.
@@ -32,7 +33,7 @@ class PlanKlasse a where
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
 data PlanGeneral bg st we ku ws = Plan {
-    plName :: String,
+    plName :: Text,
     plAktionen :: [AktionGeneral bg st we ku ws]}
         deriving (Eq)
 
@@ -41,7 +42,7 @@ type Plan = PlanGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung We
 instance (Show bg, Show st, Show we, Show ku, Show ws, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => Show (PlanGeneral bg st we ku ws) where
     show :: PlanGeneral bg st we ku ws -> String
     show    (Plan {plName, plAktionen}) = Language.plan
-                                        <:> Language.name <=> plName
+                                        <:> Language.name <=> unpack plName
                                         <^> Language.aktionen <=> show plAktionen
 
 instance (Show bg, Show st, Show we, Show ku, Show ws, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => StreckenObjekt (PlanGeneral bg st we ku ws) where
@@ -49,7 +50,7 @@ instance (Show bg, Show st, Show we, Show ku, Show ws, BahngeschwindigkeitKlasse
     pins    (Plan {plAktionen}) = foldMap pins plAktionen
     zugtyp :: PlanGeneral bg st we ku ws -> Zugtyp
     zugtyp  (Plan {plAktionen}) = foldZugtyp plAktionen
-    getName :: PlanGeneral bg st we ku ws -> String
+    getName :: PlanGeneral bg st we ku ws -> Text
     getName (Plan {plName})     = plName
 
 instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => PlanKlasse (PlanGeneral bg st we ku ws) where
@@ -91,8 +92,8 @@ instance (Show bg, Show st, Show we, Show ku, Show ws, BahngeschwindigkeitKlasse
     zugtyp  (ABahngeschwindigkeit b)    = zugtyp b
     zugtyp  (AStreckenabschnitt s)      = zugtyp s
     zugtyp  (AKupplung k)               = zugtyp k
-    getName :: AktionGeneral bg st we ku ws -> String
-    getName = show
+    getName :: AktionGeneral bg st we ku ws -> Text
+    getName = showText
 
 instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => PlanKlasse (AktionGeneral bg st we ku ws) where
     ausführenPlan :: AktionGeneral bg st we ku ws -> (Natural -> IO ()) -> PinMapIO ()
@@ -111,7 +112,7 @@ data AktionWegstrecke w = Einstellen w
 
 instance (StreckenObjekt w)  => Show (AktionWegstrecke w) where
     show :: AktionWegstrecke w -> String
-    show    (Einstellen wegstrecke)     = getName wegstrecke <°> Language.einstellen
+    show    (Einstellen wegstrecke)     = unpack $ getName wegstrecke <°> Language.einstellen
     show    (AWSBahngeschwindigkeit a)  = show a
     show    (AWSStreckenabschnitt a)    = show a
     show    (AWSKupplung a)             = show a
@@ -127,8 +128,8 @@ instance (WegstreckeKlasse w, Show w) => StreckenObjekt (AktionWegstrecke w) whe
     zugtyp  (AWSBahngeschwindigkeit w)  = zugtyp w
     zugtyp  (AWSStreckenabschnitt w)    = zugtyp w
     zugtyp  (AWSKupplung w)             = zugtyp w
-    getName :: AktionWegstrecke w -> String
-    getName = show
+    getName :: AktionWegstrecke w -> Text
+    getName = showText
 
 instance (WegstreckeKlasse w) => PlanKlasse (AktionWegstrecke w) where
     ausführenPlan :: AktionWegstrecke w -> (Natural -> IO ()) -> PinMapIO ()
@@ -142,15 +143,15 @@ data AktionWeiche w = Stellen w Richtung
 
 instance (StreckenObjekt w)  => Show (AktionWeiche w) where
     show :: AktionWeiche w -> String
-    show    (Stellen w richtung)    = getName w <°> Language.stellen <=> show richtung
+    show    (Stellen w richtung)    = unpack $ getName w <°> Language.stellen <=> showText richtung
 
 instance (WeicheKlasse w, Show w) => StreckenObjekt (AktionWeiche w) where
     pins :: AktionWeiche w -> [Pin]
     pins    (Stellen w _richtung)   = pins w
     zugtyp :: AktionWeiche w -> Zugtyp
     zugtyp  (Stellen w _richtung)   = zugtyp w
-    getName :: AktionWeiche w -> String
-    getName = show
+    getName :: AktionWeiche w -> Text
+    getName = showText
 
 instance (WeicheKlasse w) => PlanKlasse (AktionWeiche w) where
     ausführenPlan :: AktionWeiche w -> (Natural -> IO ()) -> PinMapIO ()
@@ -162,9 +163,9 @@ data AktionBahngeschwindigkeit b    = Geschwindigkeit b Natural
 
 instance (StreckenObjekt b) => Show (AktionBahngeschwindigkeit b) where
     show :: AktionBahngeschwindigkeit b -> String
-    show    (Geschwindigkeit b wert)            = getName b <°> Language.geschwindigkeit <=> show wert
-    show    (Umdrehen b (Just fahrtrichtung))   = getName b <°> Language.umdrehen <=> show fahrtrichtung
-    show    (Umdrehen b Nothing)                = getName b <°> Language.umdrehen
+    show    (Geschwindigkeit b wert)            = unpack $ getName b <°> Language.geschwindigkeit <=> showText wert
+    show    (Umdrehen b (Just fahrtrichtung))   = unpack $ getName b <°> Language.umdrehen <=> showText fahrtrichtung
+    show    (Umdrehen b Nothing)                = unpack $ getName b <°> Language.umdrehen
 
 instance (BahngeschwindigkeitKlasse b, Show b) => StreckenObjekt (AktionBahngeschwindigkeit b) where
     pins :: AktionBahngeschwindigkeit b -> [Pin]
@@ -173,8 +174,8 @@ instance (BahngeschwindigkeitKlasse b, Show b) => StreckenObjekt (AktionBahngesc
     zugtyp :: AktionBahngeschwindigkeit b -> Zugtyp
     zugtyp  (Geschwindigkeit b _wert)   = zugtyp b
     zugtyp  (Umdrehen b _maybe)         = zugtyp b
-    getName :: AktionBahngeschwindigkeit b -> String
-    getName = show
+    getName :: AktionBahngeschwindigkeit b -> Text
+    getName = showText
 
 instance (BahngeschwindigkeitKlasse b) => PlanKlasse (AktionBahngeschwindigkeit b) where
     ausführenPlan :: AktionBahngeschwindigkeit b -> (Natural -> IO ()) -> PinMapIO ()
@@ -186,16 +187,16 @@ data AktionStreckenabschnitt s   = Strom s Bool
 
 instance (StreckenObjekt s) => Show (AktionStreckenabschnitt s) where
     show :: AktionStreckenabschnitt s -> String
-    show    (Strom s True)  = getName s <°> Language.strom <=> Language.an
-    show    (Strom s False) = getName s <°> Language.strom <=> Language.aus
+    show    (Strom s True)  = unpack $ getName s <°> Language.strom <=> Language.an
+    show    (Strom s False) = unpack $ getName s <°> Language.strom <=> Language.aus
 
 instance (StreckenabschnittKlasse s, Show s) => StreckenObjekt (AktionStreckenabschnitt s) where
     pins :: AktionStreckenabschnitt s -> [Pin]
     pins    (Strom s _an)   = pins s
     zugtyp :: AktionStreckenabschnitt s -> Zugtyp
     zugtyp  (Strom s _an)   = zugtyp s
-    getName :: AktionStreckenabschnitt s -> String
-    getName = show
+    getName :: AktionStreckenabschnitt s -> Text
+    getName = showText
 
 instance (StreckenabschnittKlasse s) => PlanKlasse (AktionStreckenabschnitt s) where
     ausführenPlan :: AktionStreckenabschnitt s -> (Natural -> IO ()) -> PinMapIO ()
@@ -206,15 +207,15 @@ data AktionKupplung k   = Kuppeln k
 
 instance (StreckenObjekt k) => Show (AktionKupplung k) where
     show :: AktionKupplung k -> String
-    show    (Kuppeln k) = getName k <°> Language.kuppeln
+    show    (Kuppeln k) = unpack $ getName k <°> Language.kuppeln
 
 instance (KupplungKlasse k, Show k) => StreckenObjekt (AktionKupplung k) where
     pins :: AktionKupplung k -> [Pin]
     pins    (Kuppeln k) = pins k
     zugtyp :: AktionKupplung k -> Zugtyp
     zugtyp  (Kuppeln k) = zugtyp k
-    getName :: AktionKupplung k -> String
-    getName = show
+    getName :: AktionKupplung k -> Text
+    getName = showText
 
 instance (KupplungKlasse k) => PlanKlasse (AktionKupplung k) where
     ausführenPlan :: AktionKupplung k -> (Natural -> IO ()) -> PinMapIO ()

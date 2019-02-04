@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns, DuplicateRecordFields, RankNTypes, InstanceSigs, CPP #-}
+{-# LANGUAGE OverloadedStrings, NamedFieldPuns, DuplicateRecordFields, RankNTypes, InstanceSigs, CPP #-}
 
 {-|
 Description : Erstelle zusammengesetzte Widgets.
@@ -25,21 +25,22 @@ module Zug.UI.GTK.Widgets (
                         traversalHinzufügenWegstrecke, WegstreckenElement(..), getterRichtungsRadioButtons, PlanElement(..)) where
 
 -- Bibliotheken
-import Graphics.UI.Gtk
 import Control.Applicative (ZipList(..))
+import Control.Concurrent.MVar
+import Control.Lens (Traversal', Lens', Getter, Fold, (%%~), (^.), (^..), Field2(..), Field3(..))
+import qualified Control.Lens as Lens
 import Control.Monad
 import Control.Monad.State (State, StateT)
 import Control.Monad.Trans
-import Control.Concurrent.MVar
 import Data.Aeson (ToJSON(..), Value)
 import Data.List.NonEmpty (NonEmpty (..))
-import Control.Lens (Traversal', Lens', Getter, Fold, (%%~), (^.), (^..), Field2(..), Field3(..))
-import qualified Control.Lens as Lens
+import Data.Text (Text)
+import Graphics.UI.Gtk
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 import qualified Zug.Language as Language
-import Zug.Language ((<^>), (<->), (<:>), (<°>), addMnemonic)
+import Zug.Language ((<^>), (<->), (<:>), (<°>), addMnemonic, showText)
 import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
@@ -137,7 +138,7 @@ boxPackDefault :: (BoxClass b, WidgetClass w) => b -> w -> IO ()
 boxPackDefault box widget = boxPack box widget packingDefault paddingDefault positionDefault
 
 -- | Neu erstelltes Widget zu Notebook hinzufügen
-notebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> String -> IO w -> IO w
+notebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> Text -> IO w -> IO w
 notebookAppendPageNew notebook name konstruktor = do
     widget <- widgetShowNew konstruktor
     notebookAppendPage notebook widget name
@@ -170,10 +171,10 @@ widgetShowIf    False   = widgetHide
 buttonNewWithEvent :: IO Button -> IO () -> IO Button
 buttonNewWithEvent konstruktor action = widgetNewWithOptionsEvents konstruktor [] [(buttonActivated, Left action)]
 
-buttonNewWithEventMnemonic :: String -> IO () -> IO Button
+buttonNewWithEventMnemonic :: Text -> IO () -> IO Button
 buttonNewWithEventMnemonic label = buttonNewWithEvent $ buttonNewWithMnemonic $ addMnemonic label
 
-buttonNewWithEventLabel :: String -> IO () -> IO Button
+buttonNewWithEventLabel :: Text -> IO () -> IO Button
 buttonNewWithEventLabel label = buttonNewWithEvent $ buttonNewWithLabel label
 
 -- | Entfernen-Knopf zu Box hinzufügen
@@ -185,11 +186,11 @@ buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ containerRemove
 
 -- ** Darstellung von Pins
 -- | Label für Pin erstellen
-pinLabelNew :: String -> Pin -> IO Label
-pinLabelNew name pin = labelNew $ Just $ name <-> Language.pin <:> show pin
+pinLabelNew :: Text -> Pin -> IO Label
+pinLabelNew name pin = labelNew $ Just $ name <-> Language.pin <:> showText pin
 
 -- | SpinBox zur Pin-Abfrage erstellen
-pinSpinBoxNew :: String -> IO (HBox, SpinButton)
+pinSpinBoxNew :: Text -> IO (HBox, SpinButton)
 pinSpinBoxNew name = do
     hBox <- hBoxNew False 0
     boxPackWidgetNewDefault hBox $ labelNew $ Just $ name <-> Language.pin <:> ""
@@ -201,8 +202,8 @@ pinSpinBoxNew name = do
 nameEntryPackNew :: (BoxClass b) => b -> IO Entry
 nameEntryPackNew box = do
     hBox <- boxPackWidgetNewDefault box $ hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ labelNew $ Just $ Language.name <:> ""
-    boxPackWidgetNewDefault hBox $ widgetNewWithOptionsEvents entryNew [entryPlaceholderText := Just (Language.name :: String)] []
+    boxPackWidgetNewDefault hBox $ labelNew $ Just $ (Language.name <:> "" :: Text)
+    boxPackWidgetNewDefault hBox $ widgetNewWithOptionsEvents entryNew [entryPlaceholderText := Just (Language.name :: Text)] []
 
 -- | Name anzeigen
 nameLabelPackNew :: (BoxClass b, StreckenObjekt s) => b -> s -> IO Label
@@ -218,7 +219,7 @@ scrolledWidgetPackNew box konstruktor = do
     pure (scrolledWindow, widget)
 
 -- | Seite mit scrollbarer VBox einem Notebook hinzufügen
-scrolledWidgedNotebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> String -> IO w -> IO (ScrolledWindow, w)
+scrolledWidgedNotebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> Text -> IO w -> IO (ScrolledWindow, w)
 scrolledWidgedNotebookAppendPageNew notebook name konstruktor = do
     widget <- widgetShowNew konstruktor
     scrolledWindow <- notebookAppendPageNew notebook name $ widgetNewWithOptionsEvents (scrolledWindowNew Nothing Nothing) [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways] []
@@ -285,7 +286,7 @@ instance StreckenObjekt BGWidgets where
     zugtyp  (BGWidgets {bg})    = zugtyp bg
     pins :: BGWidgets -> [Pin]
     pins    (BGWidgets {bg})    = pins bg
-    getName :: BGWidgets -> String
+    getName :: BGWidgets -> Text
     getName (BGWidgets {bg})    = getName bg
 
 instance ToJSON BGWidgets where
@@ -305,7 +306,7 @@ buttonUmdrehenPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, LikeMVar lmv
 buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit mvarStatus = do
     set rangeGeschwindigkeit [rangeValue := 0]
     if (zugtyp bahngeschwindigkeit == Lego)
-        then boxPackWidgetNewDefault box (widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.umdrehen :: String)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \vorwärts -> runMVarAktion (Umdrehen bahngeschwindigkeit (Just $ if vorwärts then Vorwärts else Rückwärts)) mvarStatus)]) >>= pure . Right
+        then boxPackWidgetNewDefault box (widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.umdrehen :: Text)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \vorwärts -> runMVarAktion (Umdrehen bahngeschwindigkeit (Just $ if vorwärts then Vorwärts else Rückwärts)) mvarStatus)]) >>= pure . Right
         else boxPackWidgetNewDefault box (buttonNewWithEventLabel Language.umdrehen $ runMVarAktion (Umdrehen bahngeschwindigkeit Nothing) mvarStatus) >>= pure . Left
 
 -- | Streckenabschnitt darstellen
@@ -347,7 +348,7 @@ instance StreckenObjekt STWidgets where
     zugtyp  (STWidgets {st})    = zugtyp st
     pins :: STWidgets -> [Pin]
     pins    (STWidgets {st})    = pins st
-    getName :: STWidgets -> String
+    getName :: STWidgets -> Text
     getName (STWidgets {st})    = getName st
 
 instance ToJSON STWidgets where
@@ -359,7 +360,7 @@ instance StreckenabschnittKlasse STWidgets where
     strom   (STWidgets {st})    = strom st
 
 toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s, LikeMVar lmvar) => b -> s -> lmvar StatusGUI -> IO ToggleButton
-toggleButtonStromPackNew box streckenabschnitt mvarStatus = boxPackWidgetNewDefault box $ widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.strom :: String)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt an) mvarStatus)]
+toggleButtonStromPackNew box streckenabschnitt mvarStatus = boxPackWidgetNewDefault box $ widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.strom :: Text)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt an) mvarStatus)]
 
 -- | Weiche darstellen
 weichePackNew :: (LikeMVar lmvar) => Weiche -> lmvar StatusGUI -> DynamischeWidgets -> IO WeicheWidget
@@ -393,9 +394,9 @@ weichePackNew   weiche  mvarStatus  (DynamischeWidgets {vBoxWeichen, vBoxHinzuf�
             richtungsButtonsNew :: (BoxClass b) => Weiche -> b -> IO ()
             richtungsButtonsNew (LegoWeiche {richtungsPin, richtungen=(richtung1, richtung2)})    box = void $ do
                 boxPackWidgetNewDefault box $ pinLabelNew Language.richtung richtungsPin
-                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (show richtung1) $ runMVarAktion (Stellen weiche richtung1) mvarStatus
-                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (show richtung2) $ runMVarAktion (Stellen weiche richtung2) mvarStatus
-            richtungsButtonsNew (MärklinWeiche {richtungsPins})                                     box = mapM_ (\(richtung, pin) -> boxPackWidgetNewDefault box $ buttonNewWithEventLabel (show richtung <:> show pin) $ runMVarAktion (Stellen weiche richtung) mvarStatus) richtungsPins
+                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung1) $ runMVarAktion (Stellen weiche richtung1) mvarStatus
+                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung2) $ runMVarAktion (Stellen weiche richtung2) mvarStatus
+            richtungsButtonsNew (MärklinWeiche {richtungsPins})                                     box = mapM_ (\(richtung, pin) -> boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung <:> showText pin) $ runMVarAktion (Stellen weiche richtung) mvarStatus) richtungsPins
 type WeicheWidget = HBox
 type WeicheWidgetHinzufügenWegstrecke = (HBox, VRCheckButton, NonEmpty (Richtung, RadioButton))
 type WeicheWidgetHinzufügenPlan = (Maybe Button, Maybe Button, Maybe Button, Maybe Button)
@@ -422,7 +423,7 @@ instance StreckenObjekt WEWidgets where
     zugtyp  (WEWidgets {we})    = zugtyp we
     pins :: WEWidgets -> [Pin]
     pins    (WEWidgets {we})    = pins we
-    getName :: WEWidgets -> String
+    getName :: WEWidgets -> Text
     getName (WEWidgets {we})    = getName we
 
 instance ToJSON WEWidgets where
@@ -474,7 +475,7 @@ instance StreckenObjekt KUWidgets where
     zugtyp  (KUWidgets {ku})    = zugtyp ku
     pins :: KUWidgets -> [Pin]
     pins    (KUWidgets {ku})    = pins ku
-    getName :: KUWidgets -> String
+    getName :: KUWidgets -> Text
     getName (KUWidgets {ku})    = getName ku
 
 instance ToJSON KUWidgets where
@@ -501,7 +502,7 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
     frame <- boxPackWidgetNewDefault vBoxWegstrecken frameNew
     vBox <- containerAddWidgetNew frame $ vBoxNew False 0
     nameLabelPackNew vBox wegstrecke
-    expander <- boxPackWidgetNewDefault vBox $ expanderNew (Language.wegstreckenElemente :: String)
+    expander <- boxPackWidgetNewDefault vBox $ expanderNew (Language.wegstreckenElemente :: Text)
     vBoxExpander <- containerAddWidgetNew expander $ vBoxNew False 0
     functionBox <- boxPackWidgetNewDefault vBox $ hBoxNew False 0
     unless (null wsBahngeschwindigkeiten) $ void $ do
@@ -512,7 +513,7 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
         boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.streckenabschnitte <:> foldl appendName ("") wsStreckenabschnitte
         toggleButtonStromPackNew functionBox wegstrecke mvarStatus
     unless (null wsWeichenRichtungen) $ void $ do
-        boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.weichen <:> foldl (\acc (weiche, richtung) -> appendName acc weiche <°> show richtung) ("") wsWeichenRichtungen
+        boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.weichen <:> foldl (\acc (weiche, richtung) -> appendName acc weiche <°> showText richtung) ("") wsWeichenRichtungen
         boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.einstellen $ runMVarAktion (Einstellen wegstrecke) mvarStatus
     unless (null wsKupplungen) $ void $ do
         boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.kupplungen <:> foldl appendName ("") wsKupplungen
@@ -523,7 +524,7 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
     runMVarBefehl (Hinzufügen $ OWegstrecke wsWidgets) mvarStatus
     pure frame
         where
-            appendName :: (StreckenObjekt o) => String -> o -> String
+            appendName :: (StreckenObjekt o) => Text -> o -> Text
             appendName ("")     objekt = getName objekt
             appendName string   objekt = string <^> getName objekt
 type WegstreckeWidget = Frame
@@ -543,7 +544,7 @@ instance StreckenObjekt WSWidgets where
     zugtyp  (WSWidgets {ws})    = zugtyp ws
     pins :: WSWidgets -> [Pin]
     pins    (WSWidgets {ws})    = pins ws
-    getName :: WSWidgets -> String
+    getName :: WSWidgets -> Text
     getName (WSWidgets {ws})    = getName ws
 
 instance ToJSON WSWidgets where
@@ -595,7 +596,7 @@ instance StreckenObjekt PLWidgets where
     zugtyp  (PLWidgets {pl})    = zugtyp pl
     pins :: PLWidgets -> [Pin]
     pins    (PLWidgets {pl})    = pins pl
-    getName :: PLWidgets -> String
+    getName :: PLWidgets -> Text
     getName (PLWidgets {pl})    = getName pl
 
 instance ToJSON PLWidgets where

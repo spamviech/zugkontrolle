@@ -97,7 +97,7 @@ instance FromJSON Bahngeschwindigkeit where
         maybeFahrtrichtungsPin <- (v .:? "FahrtrichtungsPin")
         createBahngeschwindigkeit zugtyp name geschwindigkeitsPin maybeFahrtrichtungsPin
             where
-                createBahngeschwindigkeit :: Zugtyp -> String -> Natural -> Maybe Natural -> Parser Bahngeschwindigkeit
+                createBahngeschwindigkeit :: Zugtyp -> Text -> Natural -> Maybe Natural -> Parser Bahngeschwindigkeit
                 createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Nothing)                   = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = toPin geschwindigkeitsPin, fahrtrichtungsPin = toPin (0 :: Int)}
                 createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Just fahrtrichtungsPin)    = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = toPin geschwindigkeitsPin, fahrtrichtungsPin = toPin fahrtrichtungsPin}
                 createBahngeschwindigkeit Märklin   bgName  geschwindigkeitsPin     _maybeFahrtrichtungsPin     = pure MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin = toPin geschwindigkeitsPin}
@@ -133,7 +133,7 @@ instance FromJSON Weiche where
         maybeRichtungsPins <- (v .:? "RichtungsPins")
         createWeiche zugtyp name maybeRichtungsPin maybeRichtungen maybeRichtungsPins
             where
-                createWeiche :: Zugtyp -> String -> Maybe Natural -> Maybe (Richtung, Richtung) -> Maybe [(Richtung, Natural)] -> Parser Weiche
+                createWeiche :: Zugtyp -> Text -> Maybe Natural -> Maybe (Richtung, Richtung) -> Maybe [(Richtung, Natural)] -> Parser Weiche
                 createWeiche Lego       weName   (Just richtungsPin) (Just richtungen)   _maybeRichtungsPins                     = pure LegoWeiche {weName, richtungsPin=toPin richtungsPin, richtungen}
                 createWeiche Märklin    weName   _maybeRichtungsPin  _maybeRichtungen    (Just ((richtung, pin):richtungsPins))  = pure MärklinWeiche {weName, richtungsPins=(richtung, toPin pin):|map (\(richtung, pin) -> (richtung, toPin pin)) richtungsPins}
                 createWeiche _zugtyp    _name   _maybeRichtungsPin  _maybeRichtungen    _maybeRichtungsPins                     = mzero

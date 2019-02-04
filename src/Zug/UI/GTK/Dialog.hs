@@ -1,4 +1,4 @@
-{-# LANGUAGE InstanceSigs, NamedFieldPuns, LambdaCase, CPP #-}
+{-# LANGUAGE OverloadedStrings, InstanceSigs, NamedFieldPuns, LambdaCase, CPP #-}
 
 {-|
 Description : Dialoge für GTK-UI.
@@ -13,17 +13,18 @@ module Zug.UI.GTK.Dialog (
                         buttonSavePack, buttonLoadPack, loadWidgets, buttonHinzufügenPack) where
 
 -- Bibliotheken
-import Graphics.UI.Gtk
-import Data.Sequence.Queue
-import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
-import Data.Foldable (toList)
 import Control.Applicative (ZipList(..))
-import Control.Monad
-import Control.Monad.Trans
-import Control.Monad.State (StateT, evalStateT)
-import qualified Control.Monad.State as State
 import Control.Concurrent
 import Control.Lens ((^.), (^..))
+import Control.Monad
+import Control.Monad.State (StateT, evalStateT)
+import qualified Control.Monad.State as State
+import Control.Monad.Trans
+import Data.Foldable (toList)
+import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
+import Data.Sequence.Queue
+import Data.Text (Text)
+import Graphics.UI.Gtk
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
@@ -31,7 +32,7 @@ import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
 import qualified Zug.Language as Language
-import Zug.Language ((<!>), (<:>))
+import Zug.Language (showText, (<!>), (<:>))
 import Zug.UI.Base
 import Zug.UI.Befehl
 import Zug.UI.GTK.Widgets
@@ -44,7 +45,7 @@ buttonSavePack windowMain box mvarStatus = do
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSave >>= \response -> when (response == ResponseOk) $ fileChooserGetFilename dialogSave >>= \(Just dateipfad) -> void $ runMVarBefehl (Speichern dateipfad) mvarStatus
 
 dialogSaveNew :: Window -> IO FileChooserDialog
-dialogSaveNew window = widgetNewWithOptionsEvents (fileChooserDialogNew (Just Language.speichern :: Maybe String) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]) [fileChooserDoOverwriteConfirmation := True] []
+dialogSaveNew window = widgetNewWithOptionsEvents (fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]) [fileChooserDoOverwriteConfirmation := True] []
 
 -- | Laden eines neuen 'StatusGUI' aus einer Datei
 buttonLoadPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> DynamischeWidgets -> IO Button
@@ -55,7 +56,7 @@ buttonLoadPack windowMain box mvarStatus dynamischeWidgets = do
         response <- dialogEval dialogLoad
         when (response == ResponseOk) $ void $ do
             fileChooserGetFilename dialogLoad >>= \case
-                (Nothing)           -> void $ set dialogLoadFail [windowTitle := (Language.nichtGefundeneDatei :: String)] >> dialogEval dialogLoadFail
+                (Nothing)           -> void $ set dialogLoadFail [windowTitle := (Language.nichtGefundeneDatei :: Text)] >> dialogEval dialogLoadFail
                 (Just dateipfad)    -> void $ do
                     statusInitial <- readLMVar mvarStatus
                     -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden
@@ -88,10 +89,10 @@ loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindig
                 readLMVar mvarStatus
 
 dialogLoadNew :: Window -> IO FileChooserDialog
-dialogLoadNew window = fileChooserDialogNew (Just Language.laden :: Maybe String) (Just window) FileChooserActionOpen [(Language.laden, ResponseOk), (Language.abbrechen, ResponseCancel)]
+dialogLoadNew window = fileChooserDialogNew (Just Language.laden :: Maybe Text) (Just window) FileChooserActionOpen [(Language.laden, ResponseOk), (Language.abbrechen, ResponseCancel)]
 
 dialogLoadFailNew :: Window -> IO MessageDialog
-dialogLoadFailNew window = messageDialogNew (Just window) [] MessageError ButtonsOk (Language.nichtGefundeneDatei <!> "" :: String)
+dialogLoadFailNew window = messageDialogNew (Just window) [] MessageError ButtonsOk (Language.nichtGefundeneDatei <!> "" :: Text)
 
 -- | Hinzufügen eines 'StreckenObjekt'
 buttonHinzufügenPack :: (WindowClass w, BoxClass b) => w -> b -> DynamischeWidgets -> IO (Button, LinkedMVar StatusGUI)
@@ -131,12 +132,12 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
         hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeiche, buttonHinzufügenWegstrecke, buttonHinzufügenPlan}) (PageStart {})      = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeiche >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
         hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeiche, buttonHinzufügenWegstrecke, buttonHinzufügenPlan}) _page               = widgetShow buttonHinzufügen >> widgetHide buttonHinzufügenWeiche >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
         resetEntry :: PageHinzufügen -> IO ()
-        resetEntry  (PageBahngeschwindigkeit {nameEntry})   = set nameEntry [entryText := "", widgetHasFocus := True]
-        resetEntry  (PageStreckenabschnitt {nameEntry})     = set nameEntry [entryText := "", widgetHasFocus := True]
-        resetEntry  (PageWeiche {nameEntry})                = set nameEntry [entryText := "", widgetHasFocus := True]
-        resetEntry  (PageKupplung {nameEntry})              = set nameEntry [entryText := "", widgetHasFocus := True]
-        resetEntry  (PageWegstrecke {nameEntry})            = set nameEntry [entryText := "", widgetHasFocus := True]
-        resetEntry  (PagePlan {nameEntry})                  = set nameEntry [entryText := "", widgetHasFocus := True]
+        resetEntry  (PageBahngeschwindigkeit {nameEntry})   = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
+        resetEntry  (PageStreckenabschnitt {nameEntry})     = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
+        resetEntry  (PageWeiche {nameEntry})                = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
+        resetEntry  (PageKupplung {nameEntry})              = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
+        resetEntry  (PageWegstrecke {nameEntry})            = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
+        resetEntry  (PagePlan {nameEntry})                  = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
         resetEntry  _page                                   = pure ()
         optionenAnzeigen :: (LikeMVar lmvar) => PageHinzufügen -> lmvar StatusGUI -> IO ()
         optionenAnzeigen    (PagePlan {bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen, aktionen}) mvarStatus  = do
@@ -206,41 +207,42 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
 
 dialogHinzufügenNew :: (WindowClass w) => w -> DynamischeWidgets -> IO (DialogHinzufügen, LinkedMVar StatusGUI)
 dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
-    dialog <- widgetNewWithOptionsEvents dialogNew [windowTitle := (Language.hinzufügen :: String), windowTransientFor := parent, windowDefaultHeight := 320] []
-    buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: String) ResponseOk
-    buttonHinzufügenWeiche <- dialogAddButton dialog (Language.hinzufügen :: String) ResponseOk
-    buttonHinzufügenWegstrecke <- dialogAddButton dialog (Language.hinzufügen :: String) ResponseOk
-    buttonHinzufügenPlan <- dialogAddButton dialog (Language.hinzufügen :: String) ResponseOk
-    buttonWeiter <- dialogAddButton dialog (Language.weiter :: String) ResponseApply
-    buttonZurück <- dialogAddButton dialog (Language.zurück :: String) ResponseReject
-    _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: String) ResponseCancel
-    contentBox <- dialogGetUpperNew dialog
+    dialog <- widgetNewWithOptionsEvents dialogNew [windowTitle := (Language.hinzufügen :: Text), windowTransientFor := parent, windowDefaultHeight := 320] []
+    buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
+    buttonHinzufügenWeiche <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
+    buttonHinzufügenWegstrecke <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
+    buttonHinzufügenPlan <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
+    buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) ResponseApply
+    buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) ResponseReject
+    _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
+    contentBox <- dialogGetUpper dialog
     (linkedMVar, pages) <- flip State.runStateT seEmpty $ do
         appendPage contentBox $ do
             vBox <- vBoxNew False 0
-            rbBahngeschwindigkeit   <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabel (Language.bahngeschwindigkeit :: String)
-            rbStreckenabschnitt     <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.streckenabschnitt :: String)
-            rbWeiche                <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.weiche :: String)
-            rbKupplung              <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.kupplung :: String)
-            rbWegstrecke            <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.wegstrecke :: String)
-            rbPlan                  <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.plan :: String)
+            rbBahngeschwindigkeit   <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabel (Language.bahngeschwindigkeit :: Text)
+            rbStreckenabschnitt     <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.streckenabschnitt :: Text)
+            rbWeiche                <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.weiche :: Text)
+            rbKupplung              <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.kupplung :: Text)
+            rbWegstrecke            <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.wegstrecke :: Text)
+            rbPlan                  <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.plan :: Text)
             pure (PageStart {widget=vBox, radioButtons=rbBahngeschwindigkeit:|rbStreckenabschnitt:rbWeiche:rbKupplung:rbWegstrecke:rbPlan:[]}, Nothing)
         appendPage contentBox $ do
             -- Bahngeschwindigkeit
             -- Lego-Zugtyp: ToDo!!!
             widget <- vBoxNew False 0
-            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.bahngeschwindigkeit :: String)
+            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.bahngeschwindigkeit :: Text)
             nameEntry <- nameEntryPackNew widget
             (geschwindigkeitsPinWidget, geschwindigkeitsPinSpinButton) <- pinSpinBoxNew Language.geschwindigkeit
             boxPackWidgetNewDefault widget $ pure geschwindigkeitsPinWidget
             -- Zeige Fahrtrichtungs-Pin nicht für Märklin-Bahngeschwindigkeit an
             (fahrtrichtungsPinWidget, fahrtrichtungsPinSpinButton) <- pinSpinBoxNew Language.fahrtrichtung
-            boxPackDefault widget fahrtrichtungsPinWidget
+            boxPackWidgetNewDefault widget $ pure fahrtrichtungsPinWidget
+            widgetHide fahrtrichtungsPinWidget
             pure (PageBahngeschwindigkeit {widget, nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton}, Nothing)
         appendPage contentBox $ do
             -- Streckenabschnitt
             widget <- vBoxNew False 0
-            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.streckenabschnitt :: String)
+            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.streckenabschnitt :: Text)
             nameEntry <- nameEntryPackNew widget
             (stromPinWidget, stromPinSpinButton) <- pinSpinBoxNew Language.strom
             boxPackWidgetNewDefault widget $ pure stromPinWidget
@@ -249,14 +251,14 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             -- Weiche
             -- Lego-Zugtyp: ToDo!!!
             widget <- vBoxNew False 0
-            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.weiche :: String)
+            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.weiche :: Text)
             nameEntry <- nameEntryPackNew widget
             let
                 createRichtungsPin :: Richtung -> IO (Richtung, CheckButton, SpinButton)
                 createRichtungsPin richtung = do
                     hBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                     checkButton <- boxPackWidgetNewDefault hBox checkButtonNew
-                    (pinWidget, spinButton) <- pinSpinBoxNew $ show richtung
+                    (pinWidget, spinButton) <- pinSpinBoxNew $ showText richtung
                     boxPackWidgetNewDefault hBox $ pure pinWidget
                     pure (richtung, checkButton, spinButton)
             richtungsWidgets <- mapM createRichtungsPin unterstützteRichtungen >>= fortfahrenWennToggledNew buttonHinzufügenWeiche
@@ -264,7 +266,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
         appendPage contentBox $ do
             -- Kupplung
             widget <- vBoxNew False 0
-            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.kupplung :: String)
+            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.kupplung :: Text)
             nameEntry <- nameEntryPackNew widget
             (kupplungPinWidget, kupplungsPinSpinButton) <- pinSpinBoxNew Language.kupplung
             boxPackWidgetNewDefault widget $ pure kupplungPinWidget
@@ -272,7 +274,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
         (Just linkedMVar) <- appendPage contentBox $ do
             -- Wegstrecke
             widget <- vBoxNew False 0
-            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.wegstrecke :: String)
+            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.wegstrecke :: Text)
             nameEntry <- nameEntryPackNew widget
             notebook <- boxPackWidgetNew widget PackGrow paddingDefault positionDefault notebookNew
             scrolledWidgedNotebookAppendPageNew notebook Language.bahngeschwindigkeiten $ pure vBoxHinzufügenWegstreckeBahngeschwindigkeiten
@@ -286,13 +288,13 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             -- Objekt-Buttons schreiben bei Druck Objekt in mvarPlanObjekt
             -- Sobald diese gefüllt ist kann die Aktion zur LinkedMVar hinzufgefügt werden
             aktionenWidgets <- newMVar []
-            expanderAktionen <-  expanderNew (Language.aktionen :: String)
+            expanderAktionen <-  expanderNew (Language.aktionen :: Text)
             vBoxAktionen <- vBoxNew False 0
             lmvarTemp <- newEmptyLinkedMVar $ \_updateAktion aktionen -> showAktionen vBoxAktionen expanderAktionen aktionenWidgets aktionen >> pure aktionen
             aktionen <- fortfahrenWennGefülltEmptyLinkedMVarNew buttonHinzufügenPlan $ Just lmvarTemp
             let lmvarElemente = aktionen ^. linkedMVarElemente
             -- Hilfsdialog erstellen
-            windowObjekte <- widgetNewWithOptionsEvents windowNew [windowTitle := (Language.aktion :: String), windowModal := True, windowTransientFor := dialog] [(deleteEvent, Right $ \window -> liftIO $ putLMVar mvarPlanObjekt Nothing >> widgetHide window >> pure True)]
+            windowObjekte <- widgetNewWithOptionsEvents windowNew [windowTitle := (Language.aktion :: Text), windowModal := True, windowTransientFor := dialog] [(deleteEvent, Right $ \window -> liftIO $ putLMVar mvarPlanObjekt Nothing >> widgetHide window >> pure True)]
             widgetHide windowObjekte
             windowVBox <- containerAddWidgetNew windowObjekte $ vBoxNew False 0
             (windowScrolledWindowBG         , windowVBoxBG)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
@@ -304,31 +306,31 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             (windowScrolledWindowKU         , windowVBoxKU)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             (windowScrolledWindowWS         , windowVBoxWS)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             boxPackWidgetNewDefault windowVBox $ buttonNewWithEventLabel Language.abbrechen $ putLMVar mvarPlanObjekt Nothing >> widgetHide windowObjekte
-            boxPackWidgetNewDefault windowVBoxBG $ labelNew $ Just $ (Language.bahngeschwindigkeiten :: String) 
+            boxPackWidgetNewDefault windowVBoxBG $ labelNew $ Just $ (Language.bahngeschwindigkeiten :: Text) 
             boxPackDefault windowVBoxBG vBoxHinzufügenPlanBahngeschwindigkeiten
-            boxPackWidgetNewDefault windowVBoxBG $ labelNew $ Just $ (Language.wegstrecken :: String)
+            boxPackWidgetNewDefault windowVBoxBG $ labelNew $ Just $ (Language.wegstrecken :: Text)
             boxPackDefault windowVBoxBG vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
-            boxPackWidgetNewDefault windowVBoxST $ labelNew $ Just $ (Language.streckenabschnitte :: String)
+            boxPackWidgetNewDefault windowVBoxST $ labelNew $ Just $ (Language.streckenabschnitte :: Text)
             boxPackDefault windowVBoxST vBoxHinzufügenPlanStreckenabschnitte
-            boxPackWidgetNewDefault windowVBoxST $ labelNew $ Just $ (Language.wegstrecken :: String)
+            boxPackWidgetNewDefault windowVBoxST $ labelNew $ Just $ (Language.wegstrecken :: Text)
             boxPackDefault windowVBoxST vBoxHinzufügenPlanWegstreckenStreckenabschnitt
-            boxPackWidgetNewDefault windowVBoxWEGerade $ labelNew $ Just $ (Language.weichen :: String)
+            boxPackWidgetNewDefault windowVBoxWEGerade $ labelNew $ Just $ (Language.weichen :: Text)
             boxPackDefault windowVBoxWEGerade vBoxHinzufügenPlanWeichenGerade
-            boxPackWidgetNewDefault windowVBoxWEKurve $ labelNew $ Just $ (Language.weichen :: String)
+            boxPackWidgetNewDefault windowVBoxWEKurve $ labelNew $ Just $ (Language.weichen :: Text)
             boxPackDefault windowVBoxWEKurve vBoxHinzufügenPlanWeichenKurve
-            boxPackWidgetNewDefault windowVBoxWELinks $ labelNew $ Just $ (Language.weichen :: String)
+            boxPackWidgetNewDefault windowVBoxWELinks $ labelNew $ Just $ (Language.weichen :: Text)
             boxPackDefault windowVBoxWELinks vBoxHinzufügenPlanWeichenLinks
-            boxPackWidgetNewDefault windowVBoxWERechts $ labelNew $ Just $ (Language.weichen :: String)
+            boxPackWidgetNewDefault windowVBoxWERechts $ labelNew $ Just $ (Language.weichen :: Text)
             boxPackDefault windowVBoxWERechts vBoxHinzufügenPlanWeichenRechts
-            boxPackWidgetNewDefault windowVBoxKU $ labelNew $ Just $ (Language.kupplungen :: String)
+            boxPackWidgetNewDefault windowVBoxKU $ labelNew $ Just $ (Language.kupplungen :: Text)
             boxPackDefault windowVBoxKU vBoxHinzufügenPlanKupplungen
-            boxPackWidgetNewDefault windowVBoxKU $ labelNew $ Just $ (Language.wegstrecken :: String)
+            boxPackWidgetNewDefault windowVBoxKU $ labelNew $ Just $ (Language.wegstrecken :: Text)
             boxPackDefault windowVBoxKU vBoxHinzufügenPlanWegstreckenKupplung
-            boxPackWidgetNewDefault windowVBoxWS $ labelNew $ Just $ (Language.wegstrecken :: String)
+            boxPackWidgetNewDefault windowVBoxWS $ labelNew $ Just $ (Language.wegstrecken :: Text)
             boxPackDefault windowVBoxWS vBoxHinzufügenPlanWegstreckenWeiche
             -- Widget erstellen
             widget <- vBoxNew False 0
-            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.plan :: String)
+            boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.plan :: Text)
             nameEntry <- nameEntryPackNew widget
             functionBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
             let µsInS = 1000000
@@ -337,7 +339,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                 wertDouble <- get spinButtonZeit spinButtonValue
                 modifyLMVar_ lmvarElemente $ pure . (append (Warten $ fromIntegral $ fromEnum wertDouble))
             boxPackWidgetNewDefault functionBox $ pure spinButtonZeit
-            boxPackWidgetNewDefault functionBox $ labelNew $ Just $ (Language.wartenEinheit :: String)
+            boxPackWidgetNewDefault functionBox $ labelNew $ Just $ (Language.wartenEinheit :: Text)
             bgFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
             hScaleGeschwindigkeit <- hScaleNewWithRange 0 100 1
             boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.geschwindigkeit $ void $ forkIO $ do
@@ -589,11 +591,16 @@ dialogEval dialog = do
     widgetHide dialog
     pure response
 
+{-
 -- | dialogGetUpper fehlt in gtk3 (Box ist nicht existent), daher hier ersetzt
 dialogGetUpperNew :: (DialogClass d) => d -> IO VBox
 dialogGetUpperNew dialog = do
     dialogBox <- dialogGetContentArea dialog >>= pure . castToBox
     boxPackWidgetNew dialogBox PackGrow paddingDefault positionDefault $ vBoxNew False 0
+-}
+-- | dialogGetUpper fehlt in gtk3 (Box ist nicht existent), daher hier ersetzt
+dialogGetUpper :: (DialogClass d) => d -> IO VBox
+dialogGetUpper dialog = dialogGetActionArea dialog >>= pure . castToVBox
 
 -- * Single Ended Queue-Wrapper
 -- | Foldable-Instanz von Queue erzeugt Liste von toList in umgekehrter Reihenfolge
