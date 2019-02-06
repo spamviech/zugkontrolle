@@ -11,9 +11,6 @@ Der Hauptunterschied besteht darin, wie ein Umdrehen einer Lokomotive erfolgt:
     Bei __Lego__-Eisenbahnen gibt die _Polarität_ der Spannung die Richtung vor.
 Außerdem gibt es bei __Lego__-Eisenbahnen keine automatischen Weichen, weshalb ein Schalten z.B. über einen Servo-Motor realisiert werden muss.
 
-__Anmerkung:__
-    __Lego__-spezifische Elemente können momenan NICHT ERSTELLT WERDEN.
-
 ## Bahngeschwindigkeit
 Eine Bahngeschwindigkeit regelt die Geschwindigkeit von allen Zügen auf den zugehörigen Gleisen, bzw. deren Fahrtrichtung.
 Dazu wird ein PWM-Signal erzeugt um ausgehend von einer Maximal-Spannung eine effektiv geringere Fahrspannung zu erzeugen.
