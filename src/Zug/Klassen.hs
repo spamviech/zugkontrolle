@@ -6,27 +6,27 @@ Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer We
 module Zug.Klassen where
 
 -- Bibliotheken
-import Data.List.NonEmpty (NonEmpty(..))
+import Data.List.NonEmpty (NonEmpty(..), fromList)
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
 
 data Zugtyp = Undefiniert | Märklin | Lego
-                                        deriving (Eq)
+                deriving (Eq)
 
 unterstützteZugtypen :: NonEmpty Zugtyp
 unterstützteZugtypen = Märklin:|Lego:[]
 
 data Richtung = Gerade | Kurve | Links | Rechts
-                                            deriving (Eq)
+                    deriving (Eq, Bounded, Enum)
 
 unterstützteRichtungen :: NonEmpty Richtung
-unterstützteRichtungen = Gerade:|Kurve:Links:Rechts:[]
+unterstützteRichtungen = fromList [minBound..maxBound]
 
 data Fahrtrichtung = Vorwärts | Rückwärts
-                                        deriving (Eq)
+                        deriving (Eq, Bounded, Enum)
 
 unterstützteFahrtrichtungen :: NonEmpty Fahrtrichtung
-unterstützteFahrtrichtungen = Vorwärts:|Rückwärts:[]
+unterstützteFahrtrichtungen = fromList [minBound..maxBound]
 
 -- Instanz-Deklarationen
 instance Show Zugtyp where
