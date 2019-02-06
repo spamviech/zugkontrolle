@@ -163,8 +163,7 @@ containerRemoveJust container   (Just w)    = containerRemove container w
 
 -- | Zeige widget, falls eine Bedingung erfüllt ist
 widgetShowIf :: (WidgetClass w) => Bool -> w -> IO ()
-widgetShowIf    True    = widgetShow
-widgetShowIf    False   = widgetHide
+widgetShowIf visible widget = set widget [widgetVisible := visible]
 
 -- ** Knöpfe mit einer Funktion
 -- | Knopf mit Label und Funktion erstellen
