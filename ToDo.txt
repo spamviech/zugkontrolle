@@ -11,6 +11,10 @@ Unfinished Features:
         In GTK-UI integrieren
     Cmd-UI:
         Mehr Farbe verwenden?
+Code verbessern:
+    FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
+        LinkedMVar benötigt dadurch Update-Aktion nicht mehr
+        Konstruktor muss LinkedMVar kennen
 gi-gtk/gi-gtk-declarative verwenden?
     Fehlermeldungen auf Raspberry Pi!!!!!!
 Plan abbrechbar machen?
