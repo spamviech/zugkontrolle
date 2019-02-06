@@ -22,7 +22,9 @@ import qualified Control.Monad.State as State
 import Control.Monad.Trans
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe
+import Data.Semigroup (Semigroup(..))
 import Data.Sequence.Queue
 import Data.Text (Text)
 import Graphics.UI.Gtk
@@ -98,7 +100,7 @@ dialogLoadFailNew window = messageDialogNew (Just window) [] MessageError Button
 -- | Hinzufügen eines 'StreckenObjekt'
 buttonHinzufügenPack :: (WindowClass w, BoxClass b) => w -> b -> DynamischeWidgets -> IO (Button, LinkedMVar StatusGUI)
 buttonHinzufügenPack parentWindow box dynamischeWidgets = do
-    (dialogHinzufügen@(DialogHinzufügen {dialog}), lmvar, zugtypIndizes) <- dialogHinzufügenNew parentWindow dynamischeWidgets
+    (dialogHinzufügen@(DialogHinzufügen {dialog}), lmvar) <- dialogHinzufügenNew parentWindow dynamischeWidgets
     button <- liftIO $ boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.hinzufügen $ do
         widgetShow dialog
         runPage 0 dialogHinzufügen lmvar dynamischeWidgets
@@ -127,11 +129,19 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
         istLetzteSeite  (PageStart {})  = False
         istLetzteSeite  _               = True
         hinzufügenAktivieren :: DialogHinzufügen -> PageHinzufügen -> IO ()
-        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, comboBoxZugtyp})  (PageWeiche {})     = widgetHide buttonHinzufügen >> {-get comboBoxZugtyp comboBoxActive >>= \index -> widgetShowIf (index == indexMärklin) buttonHinzufügenWeicheMärklin >> widgetShowIf (index == indexLego) buttonHinzufügenWeicheLego >>-} widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
-        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                  (PageWegstrecke {}) = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetShow buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
-        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                  (PagePlan {})       = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetShow buttonHinzufügenPlan
-        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                  (PageStart {})      = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
-        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                  _page               = widgetShow buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
+        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, comboBoxZugtyp, indizesZugtyp})   (PageWeiche {})     = widgetHide buttonHinzufügen >> get comboBoxZugtyp comboBoxActive >>= \index -> widgetShowIf (indexStimmtÜberein indizesZugtyp Märklin index) buttonHinzufügenWeicheMärklin >> widgetShowIf (indexStimmtÜberein indizesZugtyp Lego index) buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
+            where
+                indexStimmtÜberein :: NonEmpty (Int, Zugtyp) -> Zugtyp -> Int -> Bool
+                indexStimmtÜberein ne zugtyp index = foldr (indexStimmtÜbereinAux zugtyp index) False ne
+                indexStimmtÜbereinAux :: Zugtyp -> Int -> (Int, Zugtyp) -> Bool -> Bool
+                indexStimmtÜbereinAux   _zugtyp _index  _current            True    = True
+                indexStimmtÜbereinAux   zugtyp  index   (index1, zugtyp1)   False
+                    | index == index1, zugtyp == zugtyp1                            = True
+                    | otherwise                                                     = False
+        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                                  (PageWegstrecke {}) = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetShow buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
+        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                                  (PagePlan {})       = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetShow buttonHinzufügenPlan
+        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                                  (PageStart {})      = widgetHide buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
+        hinzufügenAktivieren    (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})                                  _page               = widgetShow buttonHinzufügen >> widgetHide buttonHinzufügenWeicheMärklin >> widgetHide buttonHinzufügenWeicheLego >> widgetHide buttonHinzufügenWegstrecke >> widgetHide buttonHinzufügenPlan
         resetEntry :: PageHinzufügen -> IO ()
         resetEntry  (PageBahngeschwindigkeit {nameEntry})   = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
         resetEntry  (PageStreckenabschnitt {nameEntry})     = set nameEntry [entryText := ("" :: Text), widgetHasFocus := True]
@@ -206,7 +216,7 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
         objektHinzufügen    page                                                                    _mvarStatus _dynamischeWidgets   = do
             error $ "Unbekannte Seite während dem Hinzufügen angezeigt: " ++ show page
 
-dialogHinzufügenNew :: (WindowClass w) => w -> DynamischeWidgets -> IO (DialogHinzufügen, LinkedMVar StatusGUI, NonEmpty (Int, Zugtyp))
+dialogHinzufügenNew :: (WindowClass w) => w -> DynamischeWidgets -> IO (DialogHinzufügen, LinkedMVar StatusGUI)
 dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
     dialog <- widgetNewWithOptionsEvents dialogNew [windowTitle := (Language.hinzufügen :: Text), windowTransientFor := parent, windowDefaultHeight := 320] []
     -- Eigene Hinzufügen-Knöpfe für Seiten, bei denen er temporär deaktiert sein kann
@@ -230,7 +240,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
     -}
     indexMärklin <- comboBoxAppendText comboBoxZugtyp Language.märklin
     indexLego <-comboBoxAppendText comboBoxZugtyp Language.lego
-    let zugtypIndizes = (indexMärklin, Märklin):|(indexLego, Lego):[]
+    let indizesZugtyp = (indexMärklin, Märklin):|(indexLego, Lego):[]
     -- Flow-Kontrolle des Dialogs
     buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) ResponseApply
     buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) ResponseReject
@@ -294,13 +304,23 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                 getRichtungenText (richtung1, richtung2) = showText richtung1 <^> showText richtung2
             richtungsPins <- mapM createRichtungsPin unterstützteRichtungen
             richtungsWidgetsMärklin <- fortfahrenWennToggledNew buttonHinzufügenWeicheMärklin $ (\(richtung, _hBox, checkButton, spinButton) -> (richtung, checkButton, spinButton)) <$> richtungsPins
-            richtungsRadioButtons <- foldM createRichtungenRadioButton Nothing ((,) <$> unterstützteRichtungen <*> unterstützteRichtungen) >>= pure . fromJust
+            let
+                richtungsKombinationen :: NonEmpty (Richtung, Richtung)
+                richtungsKombinationen = dreiecksKombinationen unterstützteRichtungen
+                -- Wenn gespiegelte Kombinationen gewünscht werden nutze Applicative-Instanz
+                -- richtungsKombinationen = (,) <&> unterstützteRichtungen <*> unterstützteRichtungen
+                dreiecksKombinationen :: NonEmpty a -> NonEmpty (a, a)
+                dreiecksKombinationen   (h:|[])     = (h, h) :| []
+                dreiecksKombinationen   (h:|s:[])   = (h, s) :| []
+                dreiecksKombinationen   (h:|t)      = let tNE = NE.fromList t in ((,) h <$> tNE) <> dreiecksKombinationen tNE
+            richtungsRadioButtons <- foldM createRichtungenRadioButton Nothing richtungsKombinationen >>= pure . fromJust
             let richtungsWidgetsLego = (richtungsPinSpinButton, richtungsRadioButtons)
             on comboBoxZugtyp changed $ do
                 index <- get comboBoxZugtyp comboBoxActive
-                widgetShowIf (index == indexMärklin) buttonHinzufügenWeicheMärklin
+                visible <- get widget widgetVisible
+                widgetShowIf (visible && index == indexMärklin) buttonHinzufügenWeicheMärklin
                 mapM_ (\(_,hBox,_,_) -> widgetShowIf (index == indexMärklin) hBox) richtungsPins
-                widgetShowIf (index == indexLego) buttonHinzufügenWeicheLego
+                widgetShowIf (visible && index == indexLego) buttonHinzufügenWeicheLego
                 widgetShowIf (index == indexLego) richtungsPinWidget
                 mapM_ (\(_,_,rb) -> widgetShowIf (index == indexLego) rb) richtungsRadioButtons
                 -- Hinzufügen wird auch auf anderen Seiten gezeigt
@@ -565,7 +585,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
         pure linkedMVar
     -- Setze Wert der ComboBox am Ende um davon abhängige Widgets automatisch zu zeigen/verstecken
     comboBoxSetActive comboBoxZugtyp indexMärklin
-    pure (DialogHinzufügen {dialog, pages, buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, buttonWeiter, buttonZurück, comboBoxZugtyp}, linkedMVar, zugtypIndizes)
+    pure (DialogHinzufügen {dialog, pages, buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, buttonWeiter, buttonZurück, comboBoxZugtyp, indizesZugtyp}, linkedMVar)
         where
             appendPage :: (BoxClass b, Monad m, MonadIO m) => b -> m (PageHinzufügen, Maybe (LinkedMVar StatusGUI)) -> StateT (SEQueue PageHinzufügen) m (Maybe (LinkedMVar StatusGUI))
             appendPage box konstruktor = do
@@ -627,7 +647,8 @@ data DialogHinzufügen = DialogHinzufügen {
                                     buttonHinzufügenPlan :: Button,
                                     buttonWeiter :: Button,
                                     buttonZurück :: Button,
-                                    comboBoxZugtyp :: ComboBox}
+                                    comboBoxZugtyp :: ComboBox,
+                                    indizesZugtyp :: NonEmpty (Int, Zugtyp)}
 
 -- * Dialog-spezifische Funktionen
 -- | Dialog anzeigen und auswerten
