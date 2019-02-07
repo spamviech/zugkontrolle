@@ -183,7 +183,6 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
             stromPin <- get stromPinSpinButton spinButtonValue >>= pure . toPin
             streckenabschnittPackNew (Streckenabschnitt {stName, stromPin}) mvarStatus dynamischeWidgets
         objektHinzufügen    (DialogHinzufügen {comboBoxZugtyp, indizesZugtyp})  (PageWeiche {nameEntry, richtungsWidgetsMärklin, richtungsWidgetsLego}) mvarStatus  dynamischeWidgets   = void $ do
-            -- Kein Zugtyp Lego: ToDo!!!
             weName <- get nameEntry entryText
             weiche <- get comboBoxZugtyp comboBoxActive >>= \case
                 index   | indexStimmtÜberein indizesZugtyp Märklin index    -> do
