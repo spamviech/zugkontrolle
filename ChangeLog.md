@@ -28,7 +28,8 @@
     gtk3- und lens-Packete setzen Cabal-Packet vorraus, dessen Installation sehr lange (und viel Arbeitsspeicher) braucht.
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
-## Unreleased changes
+1.0.0.5:
 - Bugfix: Beim Hinzufügen einer Wegstrecke wurde immer die erste Richtung einer Weiche ausgewählt.
 - Lego-Weiche/Bahngeschwindigkeit von Cmd-UI unterstützt.
 - Lego-Weiche/Bahngeschwindigkeit von GTK-UI unterstützt.
+## Unreleased changes
