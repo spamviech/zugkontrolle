@@ -7,8 +7,6 @@ Dokumentation schreiben
     Copyright/Lizenz
 Unfinished Features:
     Test-Suite vervollständigen
-    Lego: Bahngeschwindigkeit (Gleichstrom), Weiche (Servo-Motor: PWM-Frequenz)
-        In GTK-UI integrieren
     Cmd-UI:
         Mehr Farbe verwenden?
 Code verbessern:
