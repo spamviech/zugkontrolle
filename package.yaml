@@ -2,8 +2,8 @@ name:                 Zugkontrolle
 version:              1.0.0.5
 github:               "spamviech/Zugkontrolle"
 license:              BSD3
-author:               "spamviech"
-maintainer:           "spamviech@web.de"
+author:               "Wolfgang Witt"
+maintainer:           "wolfi.witt@gmx.de"
 copyright:            "2019 Wolfgang Witt"
 
 extra-source-files:
@@ -11,7 +11,7 @@ extra-source-files:
 - ChangeLog.md
 
 # Metadata used when publishing your package
-# synopsis:           Short description of your package
+# synopsis:           Steuerung einer Modelleisenbahn über einen Raspberry Pi
 # category:           Raspberry Pi
 
 # To avoid duplicated efforts in documentation and dealing with the
