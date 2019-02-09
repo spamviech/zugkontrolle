@@ -4,15 +4,15 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: aff5a9eb84a9ad743eab319767632640f7dec5fa933ec933bcea2dc187e9f6db
+-- hash: 5fb84688afbfbbc700dc6b5a1630a8179b97364f89ba32b0f579dc55f5a2c534
 
 name:           Zugkontrolle
-version:        1.0.0.5
+version:        1.0.0.6
 description:    Please see the README on GitHub at <https://github.com/githubuser/Zugkontrolle#readme>
 homepage:       https://github.com/spamviech/Zugkontrolle#readme
 bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
-author:         spamviech
-maintainer:     spamviech@web.de
+author:         Wolfgang Witt
+maintainer:     wolfi.witt@gmx.de
 copyright:      2019 Wolfgang Witt
 license:        BSD3
 license-file:   LICENSE
@@ -39,6 +39,7 @@ library
       Zug.LinkedMVar
       Zug.Options
       Zug.Plan
+      Zug.SEQueue
       Zug.UI
       Zug.UI.Base
       Zug.UI.Befehl

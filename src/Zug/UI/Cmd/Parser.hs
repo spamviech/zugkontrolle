@@ -16,6 +16,7 @@ module Zug.UI.Cmd.Parser (
                         QObjekt(..), QWegstrecke(..), QWeiche(..), QBahngeschwindigkeit(..), QStreckenabschnitt(..), QKupplung(..)) where
 
 -- Bibliotheken
+import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
@@ -24,6 +25,7 @@ import Data.String (IsString(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
+import Zug.SEQueue
 import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
@@ -60,7 +62,7 @@ parser = parserAux []
         parserAux   acc query       ([])                    = (reverse acc, QEQBefehl query)
         parserAux   acc _query      (TkBeenden:_t)          = parserErgebnisOk (UI Beenden:acc)
         parserAux   acc _query      (TkAbbrechen:_t)        = parserErgebnisOk (UI Abbrechen:acc)
-        parserAux   acc query       (h:t)                   = case queryUpdate query h of
+        parserAux   acc query       ((Tk h):t)              = case queryUpdate query h of
             QEQBefehl qFehler@(QBUnbekannt _qb _b)      -> parserErgebnis acc $ QEQBefehl qFehler
             QEQBefehl qBefehl                           -> parserAux acc qBefehl t
             (QEBefehlSofort eingabe _)                  -> parserErgebnis acc $ QEBefehlSofort eingabe t
@@ -74,30 +76,28 @@ parser = parserAux []
         parserErgebnisOk    (befehl:befehle)    = parserErgebnis befehle $ QEBefehl befehl
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
-queryUpdate :: QBefehl -> AllgemeinesEingabeToken -> QErgebnis
-queryUpdate query                                           TkBeenden                           = error $ "Spezielles Token an queryUpdate " ++ show query ++ " übergeben: " ++ show TkBeenden
-queryUpdate query                                           TkAbbrechen                         = error $ "Spezielles Token an queryUpdate " ++ show query ++ " übergeben: " ++ show TkAbbrechen
-queryUpdate query@(QBUnbekannt _ _)                         _token                              = QEQBefehl query
-queryUpdate (QBefehl)                                       (Tk token@(EingabeToken {eingabe})) = wähleBefehl token [
+queryUpdate :: QBefehl -> EingabeToken -> QErgebnis
+queryUpdate query@(QBUnbekannt _ _)                         _token                          = QEQBefehl query
+queryUpdate (QBefehl)                                       token@(EingabeToken {eingabe})  = wähleBefehl token [
     (Lexer.Beenden              , QEBefehl $ UI Beenden),
     (Lexer.Hinzufügen           , QEQBefehl $ QBHinzufügen QObjekt),
     (Lexer.Entfernen            , QEQBefehl QBEntfernen),
     (Lexer.Speichern            , QEQBefehl QBSpeichern),
     (Lexer.Laden                , QEQBefehl QBLaden),
     (Lexer.Plan                 , QEQBefehl $ QBBefehlQuery QOIOSPlan (Left $ \(OPlan plan) -> QBAktionPlan plan)),
-    (Lexer.Wegstrecke           , queryUpdate (QBAktion QAktion) $ Tk token),
-    (Lexer.Weiche               , queryUpdate (QBAktion QAktion) $ Tk token),
-    (Lexer.Bahngeschwindigkeit  , queryUpdate (QBAktion QAktion) $ Tk token),
-    (Lexer.Streckenabschnitt    , queryUpdate (QBAktion QAktion) $ Tk token),
-    (Lexer.Kupplung             , queryUpdate (QBAktion QAktion) $ Tk token)]
+    (Lexer.Wegstrecke           , queryUpdate (QBAktion QAktion) token),
+    (Lexer.Weiche               , queryUpdate (QBAktion QAktion) token),
+    (Lexer.Bahngeschwindigkeit  , queryUpdate (QBAktion QAktion) token),
+    (Lexer.Streckenabschnitt    , queryUpdate (QBAktion QAktion) token),
+    (Lexer.Kupplung             , queryUpdate (QBAktion QAktion) token)]
     $ QEQBefehl $ QBUnbekannt QBefehl eingabe
-queryUpdate query@(QBHinzufügen qObjekt)                    (Tk token)                          = case queryObjekt qObjekt token of
+queryUpdate query@(QBHinzufügen qObjekt)                    token                           = case queryObjekt qObjekt token of
     (Left (QOUnbekannt query eingabe))                  -> QEQBefehl $ QBUnbekannt (QBHinzufügen query) eingabe
     (Left (QOIOStatus statusQuery (Right konstruktor))) -> QEBefehlQuery statusQuery (Right $ \objekt -> Hinzufügen $ konstruktor objekt) query []
     (Left (QOIOStatus statusQuery (Left qKonstruktor))) -> QEBefehlQuery statusQuery (Left $ \objekt -> QBHinzufügen $ qKonstruktor objekt) query []
     (Left qObjekt1)                                     -> QEQBefehl $ QBHinzufügen qObjekt1
     (Right objekt)                                      -> QEBefehl $ Hinzufügen objekt
-queryUpdate (QBEntfernen)                                   (Tk token@(EingabeToken {eingabe})) = case queryObjektExistierend token of
+queryUpdate (QBEntfernen)                                   token@(EingabeToken {eingabe})  = case queryObjektExistierend token of
     (Nothing)           -> QEQBefehl $ QBUnbekannt QBEntfernen eingabe
     (Just qKonstruktor) -> QEQBefehl $ QBBefehlQuery qKonstruktor (Right Entfernen)
     where
@@ -111,16 +111,16 @@ queryUpdate (QBEntfernen)                                   (Tk token@(EingabeTo
             (Lexer.Streckenabschnitt     , Just QOIOSStreckenabschnitt),
             (Lexer.Kupplung              , Just QOIOSKupplung)]
             $ Nothing
-queryUpdate (QBSpeichern)                                   (Tk (EingabeToken {eingabe}))       = QEBefehl $ Speichern $ unpack eingabe
-queryUpdate (QBLaden)                                       (Tk (EingabeToken {eingabe}))       = QEBefehlSofort (BSLaden $ unpack eingabe) []
-queryUpdate query@(QBAktionPlan plan@(Plan {plAktionen}))   (Tk token@(EingabeToken {eingabe})) = wähleBefehl token [(Lexer.Ausführen, QEBefehl $ Ausführen plan $ \i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double))] $ QEQBefehl $ QBUnbekannt query eingabe
-queryUpdate query@(QBAktion qAktion)                        (Tk token)                          = case queryAktion qAktion token of
+queryUpdate (QBSpeichern)                                   (EingabeToken {eingabe})        = QEBefehl $ Speichern $ unpack eingabe
+queryUpdate (QBLaden)                                       (EingabeToken {eingabe})        = QEBefehlSofort (BSLaden $ unpack eingabe) []
+queryUpdate query@(QBAktionPlan plan@(Plan {plAktionen}))   token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Ausführen, QEBefehl $ Ausführen plan $ \i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double))] $ QEQBefehl $ QBUnbekannt query eingabe
+queryUpdate query@(QBAktion qAktion)                        token                           = case queryAktion qAktion token of
     (Left (QAUnbekannt query eingabe))                              -> QEQBefehl $ QBUnbekannt (QBAktion query) eingabe
     (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> QEBefehlQuery qObjektIOStatus (Left $ \objekt -> QBAktion $ qKonstruktor objekt) query []
     (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> QEBefehlQuery qObjektIOStatus (Right $ \objekt -> AktionBefehl $ konstruktor objekt) query []
     (Left qAktion)                                                  -> QEQBefehl $ QBAktion qAktion
     (Right aktion)                                                  -> QEBefehl $ AktionBefehl aktion
-queryUpdate query@(QBBefehlQuery qKonstruktor eitherF)      (Tk token)                          = QEBefehlQuery (qKonstruktor token) eitherF query []
+queryUpdate query@(QBBefehlQuery qKonstruktor eitherF)      token                           = QEBefehlQuery (qKonstruktor token) eitherF query []
 
 -- | Eingabe eines Objekts
 queryObjekt :: QObjekt -> EingabeToken -> Either QObjekt Objekt
@@ -135,9 +135,11 @@ queryObjekt (QObjekt)                                       token@(EingabeToken 
     (Lexer.Kupplung              , Left $ QOKupplung QKupplung)]
     $ Left $ QOUnbekannt QObjekt eingabe
 queryObjekt (QOPlan qPlan)                                  token                           = case queryPlan qPlan token of
-    (Left (QPUnbekannt query eingabe1)) -> Left $ QOUnbekannt (QOPlan query) eingabe1
-    (Left qPlan1)                       -> Left $ QOPlan qPlan1
-    (Right plan)                        -> Right $ OPlan plan
+    (Left (QPUnbekannt query eingabe1))                         -> Left $ QOUnbekannt (QOPlan query) eingabe1
+    (Left (QPlanIOStatus qObjektIOStatus (Right konstruktor)))  -> Left $ QOIOStatus qObjektIOStatus $ Right $ \objekt -> OPlan $ konstruktor objekt
+    (Left (QPlanIOStatus qObjektIOStatus (Left qKonstruktor)))  -> Left $ QOIOStatus qObjektIOStatus $ Left $ \objekt -> QOPlan $ qKonstruktor objekt
+    (Left qPlan1)                                               -> Left $ QOPlan qPlan1
+    (Right plan)                                                -> Right $ OPlan plan
 queryObjekt (QOWegstrecke qWegstrecke0)                     token                           = case queryWegstrecke qWegstrecke0 token of
     (Left (QWSUnbekannt query eingabe1))                                    -> Left $ QOUnbekannt (QOWegstrecke query) eingabe1
     (Left (QWegstreckeIOStatus qObjektIOStatus (Right konstruktor)))        -> Left $ QOIOStatus qObjektIOStatus $ Right $ \objekt -> OWegstrecke $ konstruktor objekt
@@ -165,54 +167,61 @@ queryPlan :: QPlan -> EingabeToken -> Either QPlan Plan
 queryPlan   (QPlan)                                         (EingabeToken {eingabe})            = Left $ QPlanName eingabe
 queryPlan   query@(QPlanName name)                          (EingabeToken {eingabe, ganzzahl})  = Left $ case ganzzahl of
     (Nothing)       -> QPUnbekannt query eingabe
-    (Just anzahl)   -> QPlanNameAnzahl name anzahl [] QAktion
+    (Just anzahl)   -> QPlanNameAnzahl name anzahl seEmpty QAktion
 queryPlan   (QPlanNameAnzahl name anzahl acc qAktion)       token                               = case queryAktion qAktion token of
     (Left (QAUnbekannt qAktion1 eingabe))                           -> Left $ QPUnbekannt (QPlanNameAnzahl name anzahl acc qAktion1) eingabe
     (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ Left $ \objekt -> QPlanNameAnzahl name anzahl acc $ qKonstruktor objekt
-    (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl ((konstruktor objekt):acc) QAktion else Right $ \objekt -> Plan {plName=name, plAktionen=reverse $ (konstruktor objekt):acc}
+    (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl (append (konstruktor objekt) acc) QAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ append (konstruktor objekt) acc}
     (Left qAktion1)                                                 -> Left $ QPlanNameAnzahl name anzahl acc qAktion1
-    (Right aktion)                                                  -> if anzahl > 1 then Left $ QPlanNameAnzahl name anzahl (aktion:acc) QAktion else Right $ Plan {plName=name, plAktionen=reverse $ aktion:acc}
-queryPlan   query                                           token                               = error $ "Spezielles Token an queryUpdate " ++ show query ++ " übergeben: " ++ show token
+    (Right aktion)  | anzahl > 1                                    -> Left $ QPlanNameAnzahl name (pred anzahl) (append aktion acc) QAktion
+                    | otherwise                                     -> Right $ Plan {plName=name, plAktionen=toList $ append aktion acc}
+queryPlan   (QPlanBefehlQuery qKonstruktor eitherF)         token                               = Left $ QPlanIOStatus (qKonstruktor token) eitherF
+queryPlan   query                                           _token                              = Left query
 -- | Eingabe einer Aktion
 queryAktion :: QAktion -> EingabeToken -> Either QAktion Aktion
-queryAktion (QAktion)                                   token   = Left $ case queryAktionElement token of
-    (QAEUnbekannt eingabe)    -> QAUnbekannt QAktion eingabe
-    (QAEWegstrecke)           -> QAktionBefehlQuery QOIOSWegstrecke $ Left $ \(OWegstrecke wegstrecke) -> QAWegstrecke $ QAktionWegstrecke wegstrecke
-    (QAEWeiche)               -> QAktionBefehlQuery QOIOSWeiche $ Left $ \(OWeiche weiche) -> QAWeiche $ QAktionWeiche weiche
-    (QAEBahngeschwindigkeit)  -> QAktionBefehlQuery QOIOSBahngeschwindigkeit $ Left $ \(OBahngeschwindigkeit bahngeschwindigkeit) -> QABahngeschwindigkeit $ QAktionBahngeschwindigkeit bahngeschwindigkeit
-    (QAEStreckenabschnitt)    -> QAktionBefehlQuery QOIOSStreckenabschnitt $ Left $ \(OStreckenabschnitt streckenabschnitt) -> QAStreckenabschnitt $ QAktionStreckenabschnitt streckenabschnitt
-    (QAEKupplung)             -> QAktionBefehlQuery QOIOSKupplung $ Left $ \(OKupplung kupplung) -> QAKupplung $ QAktionKupplung kupplung
+queryAktion (QAktion)                                   token                               = Left $ case queryAktionElement token of
+    (QAEUnbekannt eingabe)      -> QAUnbekannt QAktion eingabe
+    (QAEWarten)                 -> QAWarten
+    (QAEWegstrecke)             -> QAktionBefehlQuery QOIOSWegstrecke $ Left $ \(OWegstrecke wegstrecke) -> QAWegstrecke $ QAktionWegstrecke wegstrecke
+    (QAEWeiche)                 -> QAktionBefehlQuery QOIOSWeiche $ Left $ \(OWeiche weiche) -> QAWeiche $ QAktionWeiche weiche
+    (QAEBahngeschwindigkeit)    -> QAktionBefehlQuery QOIOSBahngeschwindigkeit $ Left $ \(OBahngeschwindigkeit bahngeschwindigkeit) -> QABahngeschwindigkeit $ QAktionBahngeschwindigkeit bahngeschwindigkeit
+    (QAEStreckenabschnitt)      -> QAktionBefehlQuery QOIOSStreckenabschnitt $ Left $ \(OStreckenabschnitt streckenabschnitt) -> QAStreckenabschnitt $ QAktionStreckenabschnitt streckenabschnitt
+    (QAEKupplung)               -> QAktionBefehlQuery QOIOSKupplung $ Left $ \(OKupplung kupplung) -> QAKupplung $ QAktionKupplung kupplung
     where
         queryAktionElement :: EingabeToken -> QAktionElement
         queryAktionElement  token@(EingabeToken {eingabe})  = wähleBefehl token [
+            (Lexer.Warten               , QAEWarten),
             (Lexer.Wegstrecke           , QAEWegstrecke),
             (Lexer.Weiche               , QAEWeiche),
             (Lexer.Bahngeschwindigkeit  , QAEBahngeschwindigkeit),
             (Lexer.Streckenabschnitt    , QAEStreckenabschnitt),
             (Lexer.Kupplung             , QAEKupplung)]
             $ QAEUnbekannt eingabe
-queryAktion (QAktionBefehlQuery qKonstruktor eitherF)   token   = Left $ QAktionIOStatus (qKonstruktor token) eitherF
-queryAktion (QAWegstrecke qAktion)                      token   = case queryAktionWegstrecke qAktion token of
+queryAktion (QAWarten)                                  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ QAUnbekannt QAWarten eingabe
+    (Just zeit) -> Right $ Warten zeit
+queryAktion (QAktionBefehlQuery qKonstruktor eitherF)   token                               = Left $ QAktionIOStatus (qKonstruktor token) eitherF
+queryAktion (QAWegstrecke qAktion)                      token                               = case queryAktionWegstrecke qAktion token of
     (Left (QAWSUnbekannt query eingabe))    -> Left $ QAUnbekannt (QAWegstrecke query) eingabe
     (Left qAktionWegstrecke)                -> Left $ QAWegstrecke qAktionWegstrecke
     (Right aktionWegstrecke)                -> Right $ AWegstrecke aktionWegstrecke
-queryAktion (QAWeiche qAktion)                          token   = case queryAktionWeiche qAktion token of
+queryAktion (QAWeiche qAktion)                          token                               = case queryAktionWeiche qAktion token of
     (Left (QAWUnbekannt query eingabe)) -> Left $ QAUnbekannt (QAWeiche query) eingabe
     (Left qAktionWeiche)                -> Left $ QAWeiche qAktionWeiche
     (Right aktionWeiche)                -> Right $ AWeiche aktionWeiche
-queryAktion (QABahngeschwindigkeit qAktion)             token   = case queryAktionBahngeschwindigkeit qAktion token of
+queryAktion (QABahngeschwindigkeit qAktion)             token                               = case queryAktionBahngeschwindigkeit qAktion token of
     (Left (QABGUnbekannt query eingabe))    -> Left $ QAUnbekannt (QABahngeschwindigkeit query) eingabe
     (Left qAktionBahngeschwindigkeit)       -> Left $ QABahngeschwindigkeit qAktionBahngeschwindigkeit
     (Right aktionBahngeschwindigkeit)       -> Right $ ABahngeschwindigkeit aktionBahngeschwindigkeit
-queryAktion (QAStreckenabschnitt qAktion)               token   = case queryAktionStreckenabschnitt qAktion token of
+queryAktion (QAStreckenabschnitt qAktion)               token                               = case queryAktionStreckenabschnitt qAktion token of
     (Left (QASUnbekannt query eingabe)) -> Left $ QAUnbekannt (QAStreckenabschnitt query) eingabe
     (Left qAktionStreckenabschnitt)     -> Left $ QAStreckenabschnitt qAktionStreckenabschnitt
     (Right aktionStreckenabschnitt)     -> Right $ AStreckenabschnitt aktionStreckenabschnitt
-queryAktion (QAKupplung qAktion)                        token   = case queryAktionKupplung qAktion token of
+queryAktion (QAKupplung qAktion)                        token                               = case queryAktionKupplung qAktion token of
     (Left (QAKUnbekannt query eingabe)) -> Left $ QAUnbekannt (QAKupplung query) eingabe
     (Left qAktionKupplung)              -> Left $ QAKupplung qAktionKupplung
     (Right aktionKupplung)              -> Right $ AKupplung aktionKupplung
-queryAktion query                                       token   = error $ "Spezielles Token an queryAktion " ++ show query ++ " übergeben: " ++ show token
+queryAktion query                                       _token                              = Left query
 -- | Eingabe einer Wegstrecken-Aktion
 queryAktionWegstrecke :: (WegstreckeKlasse w) => QAktionWegstrecke qw w -> EingabeToken -> Either (QAktionWegstrecke qw w) (AktionWegstrecke w)
 queryAktionWegstrecke   query@(QAWSUnbekannt _ _)               _token  = Left query
@@ -513,7 +522,7 @@ instance Query QObjekt where
     getQuery    (QOIOStatus qObjektIOStatus _eitherKonstruktor) = getQuery qObjektIOStatus
     getQueryOptions :: (IsString s, Semigroup s) => QObjekt -> Maybe s
     getQueryOptions (QOUnbekannt qObjekt _eingabe)                  = getQueryOptions qObjekt
-    getQueryOptions (QObjekt)                                       = Just $ toBefehlsString Language.befehlObjekte
+    getQueryOptions (QObjekt)                                       = Just $ toBefehlsString Language.befehlTypen
     getQueryOptions (QOPlan qPlan)                                  = getQueryOptions qPlan
     getQueryOptions (QOWegstrecke qWegstrecke)                      = getQueryOptions qWegstrecke
     getQueryOptions (QOWeiche qWeiche)                              = getQueryOptions qWeiche
@@ -523,6 +532,7 @@ instance Query QObjekt where
     getQueryOptions (QOIOStatus qObjektIOStatus _eitherKonstruktor) = getQueryOptions qObjektIOStatus
 
 data QAktionElement = QAEUnbekannt              Text
+                    | QAEWarten
                     | QAEWegstrecke
                     | QAEWeiche
                     | QAEBahngeschwindigkeit
@@ -539,23 +549,23 @@ data QWegstreckenElement    = QWEUnbekannt              Text
 data QPlan  = QPlan
             | QPUnbekannt       QPlan                               Text
             | QPlanName         Text
-            | QPlanNameAnzahl   Text                                Natural                                     [Aktion]    QAktion
+            | QPlanNameAnzahl   Text                                Natural                                     (SEQueue Aktion)    QAktion
             | QPlanIOStatus     QObjektIOStatus                     (Either (Objekt -> QPlan) (Objekt -> Plan))
             | QPlanBefehlQuery  (EingabeToken -> QObjektIOStatus)   (Either (Objekt -> QPlan) (Objekt -> Plan))
 
 instance Show QPlan where
     show :: QPlan -> String
     show    (QPUnbekannt qPlan eingabe)                         = unpack $ unbekanntShowText qPlan eingabe
-    show    (QPlan)                                             = unpack $ Language.plan
+    show    (QPlan)                                             = Language.plan
     show    (QPlanName name)                                    = unpack $ Language.plan <^> Language.name <=> name
-    show    (QPlanNameAnzahl name anzahl acc qAktion)           = unpack $ Language.plan <^> Language.name <=> name <^> Language.anzahl Language.aktionen <=> showText anzahl <> showText acc <^> showText qAktion
+    show    (QPlanNameAnzahl name anzahl acc qAktion)           = unpack $ Language.plan <^> Language.name <=> name <^> Language.anzahl Language.aktionen <=> showText anzahl <^> showText acc <^> showText qAktion
     show    (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = Language.plan <^> showText qObjektIOStatus
     show    (QPlanBefehlQuery qKonstruktor _eitherF)            = Language.plan <^> Language.aktion <-> Language.objekt <^> showText (qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
 instance Query QPlan where
     getQuery :: (IsString s, Semigroup s) => QPlan -> s
     getQuery    (QPUnbekannt qPlan _eingabe)                        = getQuery qPlan
     getQuery    (QPlan)                                             = Language.name
-    getQuery    (QPlanName _name)                                   = Language.erwartet Language.aktionen
+    getQuery    (QPlanName _name)                                   = Language.anzahl Language.aktionen
     getQuery    (QPlanNameAnzahl _name _anzahl _acc qAktion)        = getQuery qAktion
     getQuery    (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = getQuery qObjektIOStatus
     getQuery    (QPlanBefehlQuery qKonstruktor _eitherF)            = getQuery $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
@@ -565,7 +575,7 @@ instance Query QPlan where
     getQueryOptions :: (IsString s, Semigroup s) => QPlan -> Maybe s
     getQueryOptions (QPUnbekannt qPlan _eingabe)                        = getQueryOptions qPlan
     getQueryOptions (QPlan)                                             = Nothing
-    getQueryOptions (QPlanName _name)                                   = Just $ toBefehlsString Language.aktionWegstrecke
+    getQueryOptions (QPlanName _name)                                   = Nothing
     getQueryOptions (QPlanNameAnzahl _name _anzahl _acc qAktion)        = getQueryOptions qAktion
     getQueryOptions (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = getQueryOptions qObjektIOStatus
     getQueryOptions (QPlanBefehlQuery qKonstruktor _eitherF)            = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
@@ -610,7 +620,7 @@ instance Query QAktion where
     getQueryFailed  q               eingabe = getQueryFailedDefault q eingabe
     getQueryOptions :: (IsString s, Semigroup s) => QAktion -> Maybe s
     getQueryOptions (QAUnbekannt qAktion _eingabe)                          = getQueryOptions qAktion
-    getQueryOptions (QAktion)                                               = Just $ toBefehlsString Language.aktionWegstrecke
+    getQueryOptions (QAktion)                                               = Just $ toBefehlsString Language.aktionGruppen
     getQueryOptions (QAWarten)                                              = Nothing
     getQueryOptions (QAWegstrecke qAktionWegstrecke)                        = getQueryOptions qAktionWegstrecke
     getQueryOptions (QAWeiche qAktionWeiche)                                = getQueryOptions qAktionWeiche

@@ -9,6 +9,11 @@ Unfinished Features:
     Test-Suite vervollständigen
     Cmd-UI:
         Mehr Farbe verwenden?
+    Plan erstellen:
+        Korrektur ermöglichen (Letzte Aktion löschen)
+        GTK-UI:
+            GTK-Fehlermeldung bei zu vielen Aktionen
+            Size-Allocation -> Scrolled Window verwenden?
 Code verbessern:
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
         LinkedMVar benötigt dadurch Update-Aktion nicht mehr

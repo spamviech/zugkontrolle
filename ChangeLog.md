@@ -32,4 +32,6 @@
 - Bugfix: Beim Hinzufügen einer Wegstrecke wurde immer die erste Richtung einer Weiche ausgewählt.
 - Lego-Weiche/Bahngeschwindigkeit von Cmd-UI unterstützt.
 - Lego-Weiche/Bahngeschwindigkeit von GTK-UI unterstützt.
+1.0.0.6:
+- Bugfix: Beim erstellen eines Plans mit dem Cmd-UI wurde die Error-Funktion aufgerufen.
 ## Unreleased changes
