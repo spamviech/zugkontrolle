@@ -25,12 +25,12 @@ import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import Data.Semigroup (Semigroup(..))
-import Data.Sequence.Queue
 import Data.Text (Text)
 import Graphics.UI.Gtk
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
+import Zug.SEQueue
 import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
@@ -679,29 +679,4 @@ dialogGetUpperNew dialog = do
 -- | dialogGetUpper fehlt in gtk3 (Box ist nicht existent), daher hier ersetzt
 dialogGetUpper :: (DialogClass d) => d -> IO Box
 dialogGetUpper dialog = dialogGetActionArea dialog >>= pure . castToBox
-
--- * Single Ended Queue-Wrapper
--- | Foldable-Instanz von Queue erzeugt Liste von toList in umgekehrter Reihenfolge
-newtype SEQueue a = SEQueue (Queue a)
-
-seEmpty :: SEQueue a
-seEmpty = SEQueue empty
-
-append :: a -> SEQueue a -> SEQueue a
-append a (SEQueue queue) = SEQueue $ queue |> a
-
-view :: (SEQueue a) -> ViewL SEQueue a
-view (SEQueue queue) = case viewl queue of
-    (EmptyL)        -> EmptyL
-    (h :< t) -> h :< SEQueue t
-
-instance Foldable SEQueue where
-    foldMap :: Monoid m => (a -> m) -> SEQueue a -> m 
-    foldMap f seQueue = case view seQueue of
-        (EmptyL)    -> mempty
-        (h :< t)    -> mappend (f h) $ foldMap f t
-
-instance Functor SEQueue where
-    fmap :: (a -> b) -> SEQueue a -> SEQueue b
-    fmap f (SEQueue queue) = SEQueue $ fmap f queue
 #endif
