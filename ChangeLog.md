@@ -34,4 +34,9 @@
 - Lego-Weiche/Bahngeschwindigkeit von GTK-UI unterstützt.
 1.0.0.6:
 - Bugfix: Beim erstellen eines Plans mit dem Cmd-UI wurde die Error-Funktion aufgerufen.
+1.0.0.7:
+- Plan erstellen:
+    Letztes Element kann entfernt werden
+    Fahrtrichtung kann für Umdrehen mit Lego-Weichen angegeben werden.
+    GTK-UI: Aktionen eines Plans werden in einem ScrolledWindow innerhalb eines Expanders angezeigt
 ## Unreleased changes

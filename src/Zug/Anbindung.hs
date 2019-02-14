@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns, InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.

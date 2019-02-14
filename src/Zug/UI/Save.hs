@@ -1,4 +1,8 @@
-{-# LANGUAGE NamedFieldPuns, OverloadedStrings, InstanceSigs, LambdaCase, MultiWayIf #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -170,24 +174,23 @@ instance ToJSON Wegstrecke where
 -- Instanz-Deklaration für Plan
 instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (AktionGeneral bg st we ku ws) where
     parseJSON :: Value -> Parser (AktionGeneral bg st we ku ws)
-    parseJSON   (Object v)  = do
-        ((v .: "Aktion") :: Parser Text) >>= \case
-            "Warten"            -> Warten <$> v .: "Wert"
-            "Einstellen"        -> AWegstrecke <$> Einstellen <$> v .: "Wegstrecke"
-            "Stellen"           -> AWeiche <$> (Stellen <$> v .: "Weiche" <*> v .: "Richtung")
-            "Geschwindigkeit"   -> parseMaybeWegstrecke v
-                (\w v   -> AWSBahngeschwindigkeit <$> Geschwindigkeit w <$> v .: "Wert")
-                (\v     -> ABahngeschwindigkeit <$> (Geschwindigkeit <$> v .: "Bahngeschwindigkeit" <*> v .: "Wert"))
-            "Umdrehen"          -> parseMaybeWegstrecke v
-                (\w v   -> AWSBahngeschwindigkeit <$> Umdrehen w <$> v .:? "Fahrtrichtung")
-                (\v     -> ABahngeschwindigkeit <$> (Umdrehen <$> v .: "Bahngeschwindigkeit" <*> v .:? "Fahrtrichtung"))
-            "Strom"             -> parseMaybeWegstrecke v
-                (\w v   -> AWSStreckenabschnitt <$> Strom w <$> v .: "An")
-                (\v     -> AStreckenabschnitt <$> (Strom <$> v .: "Streckenabschnitt" <*> v .: "An"))
-            "Kuppeln"           -> parseMaybeWegstrecke v
-                (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
-                (\v     -> AKupplung <$> Kuppeln <$> v .: "Kupplung")
-            _otherwise          -> mzero
+    parseJSON   (Object v)  = ((v .: "Aktion") :: Parser Text) >>= \case
+        "Warten"            -> Warten <$> v .: "Wert"
+        "Einstellen"        -> AWegstrecke <$> Einstellen <$> v .: "Wegstrecke"
+        "Stellen"           -> AWeiche <$> (Stellen <$> v .: "Weiche" <*> v .: "Richtung")
+        "Geschwindigkeit"   -> parseMaybeWegstrecke v
+            (\w v   -> AWSBahngeschwindigkeit <$> Geschwindigkeit w <$> v .: "Wert")
+            (\v     -> ABahngeschwindigkeit <$> (Geschwindigkeit <$> v .: "Bahngeschwindigkeit" <*> v .: "Wert"))
+        "Umdrehen"          -> parseMaybeWegstrecke v
+            (\w v   -> AWSBahngeschwindigkeit <$> Umdrehen w <$> v .:? "Fahrtrichtung")
+            (\v     -> ABahngeschwindigkeit <$> (Umdrehen <$> v .: "Bahngeschwindigkeit" <*> v .:? "Fahrtrichtung"))
+        "Strom"             -> parseMaybeWegstrecke v
+            (\w v   -> AWSStreckenabschnitt <$> Strom w <$> v .: "An")
+            (\v     -> AStreckenabschnitt <$> (Strom <$> v .: "Streckenabschnitt" <*> v .: "An"))
+        "Kuppeln"           -> parseMaybeWegstrecke v
+            (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
+            (\v     -> AKupplung <$> Kuppeln <$> v .: "Kupplung")
+        _otherwise          -> mzero
         where
             parseMaybeWegstrecke :: (FromJSON ws) => Object -> (ws -> Object -> Parser (AktionWegstrecke ws)) -> (Object -> Parser (AktionGeneral bg st we ku ws)) -> Parser (AktionGeneral bg st we ku ws)
             parseMaybeWegstrecke    v   wsParser    altParser   = v .:? "Wegstrecke" >>= \case

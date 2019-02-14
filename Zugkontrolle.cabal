@@ -4,11 +4,11 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5fb84688afbfbbc700dc6b5a1630a8179b97364f89ba32b0f579dc55f5a2c534
+-- hash: 59c97d1e410febfdefd64ef137f793a1ffab79bf08f428007433c8e374ec6c79
 
 name:           Zugkontrolle
-version:        1.0.0.6
-description:    Please see the README on GitHub at <https://github.com/githubuser/Zugkontrolle#readme>
+version:        1.0.0.7
+description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 homepage:       https://github.com/spamviech/Zugkontrolle#readme
 bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
 author:         Wolfgang Witt
@@ -73,7 +73,6 @@ library
     build-depends:
         gtk3
       , lens
-      , sequence
   if os(linux)
     build-depends:
         unix
@@ -104,7 +103,6 @@ executable Zugkontrolle
     build-depends:
         gtk3
       , lens
-      , sequence
   if os(linux)
     build-depends:
         unix
@@ -136,7 +134,6 @@ test-suite Zugkontrolle-test
     build-depends:
         gtk3
       , lens
-      , sequence
   if os(linux)
     build-depends:
         unix

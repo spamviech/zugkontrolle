@@ -1,4 +1,5 @@
-{-# LANGUAGE NamedFieldPuns, InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.

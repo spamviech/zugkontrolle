@@ -1,4 +1,5 @@
-{-# LANGUAGE NamedFieldPuns, CPP #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Auswahl des verwendeten UI-Funktion anhand der Kommandozeilen-Parameter

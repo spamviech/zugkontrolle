@@ -1,4 +1,9 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns, DuplicateRecordFields, RankNTypes, InstanceSigs, CPP #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Erstelle zusammengesetzte Widgets.
@@ -13,7 +18,7 @@ module Zug.UI.GTK.Widgets (
                         widgetShowNew, widgetNewWithOptionsEvents, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
                         boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault,
                         -- *`* Scrollbare Widgets
-                        scrolledWidgetPackNew, scrolledWidgedNotebookAppendPageNew,
+                        scrolledWidgetNew, scrolledWidgetPackNew, scrolledWidgetAddNew, scrolledWidgedNotebookAppendPageNew,
                         -- ** Knopf erstellen
                         buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
                         -- ** Pin darstellen
@@ -210,11 +215,25 @@ nameLabelPackNew box objekt = boxPackWidgetNewDefault box $ widgetNewWithOptions
 
 -- ** Scrollbare Widgets erstellen
 -- | Erstelle neues ScrolledWindow mit automatisch erstelltem Viewport
+scrolledWidgetNew :: (WidgetClass w) => IO w -> IO (ScrolledWindow, w)
+scrolledWidgetNew konstruktor = do
+    widget <- widgetShowNew konstruktor
+    scrolledWindow <- widgetNewWithOptionsEvents (scrolledWindowNew Nothing Nothing) [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways] []
+    scrolledWindowAddWithViewport scrolledWindow widget
+    pure (scrolledWindow, widget)
+
+-- | Erstelle neues ScrolledWindow mit automatisch erstelltem Viewport und packe sie in eine Box
 scrolledWidgetPackNew :: (BoxClass b, WidgetClass w) => b -> IO w -> IO (ScrolledWindow, w)
 scrolledWidgetPackNew box konstruktor = do
-    widget <- widgetShowNew konstruktor
-    scrolledWindow <- boxPackWidgetNew box PackGrow paddingDefault positionDefault $ widgetNewWithOptionsEvents (scrolledWindowNew Nothing Nothing) [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways] []
-    scrolledWindowAddWithViewport scrolledWindow widget
+    (scrolledWindow, widget) <- scrolledWidgetNew konstruktor
+    boxPackWidgetNew box PackGrow paddingDefault positionDefault $ pure scrolledWindow
+    pure (scrolledWindow, widget)
+
+-- | Erstelle neues ScrolledWindow mit automatisch erstelltem Viewport und füge sie zu Container hinzu
+scrolledWidgetAddNew :: (ContainerClass c, WidgetClass w) => c -> IO w -> IO (ScrolledWindow, w)
+scrolledWidgetAddNew container konstruktor = do
+    (scrolledWindow, widget) <- scrolledWidgetNew konstruktor
+    containerAddWidgetNew container $ pure scrolledWindow
     pure (scrolledWindow, widget)
 
 -- | Seite mit scrollbarer VBox einem Notebook hinzufügen

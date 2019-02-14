@@ -1,4 +1,6 @@
-{-# LANGUAGE NamedFieldPuns, LambdaCase, CPP #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Erstelle GUI und starte den GTK-Main-Loop.

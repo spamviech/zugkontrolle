@@ -1,4 +1,7 @@
-{-# LANGUAGE NamedFieldPuns, DuplicateRecordFields, InstanceSigs, LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-|
 Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementierung.
