@@ -7,7 +7,8 @@ module Zug.Language where
 
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
-import Data.Text (Text, unpack)
+import Data.Text (Text)
+import qualified Data.Text.IO as T
 
 -- * Titel
 zugkontrolle :: (Semigroup s, IsString s) => s
@@ -18,6 +19,8 @@ beenden :: (Semigroup s, IsString s) => s
 beenden                         = "Beenden"
 abbrechen :: (Semigroup s, IsString s) => s
 abbrechen                       = "Abbrechen"
+rückgängig :: (Semigroup s, IsString s) => s
+rückgängig                      = "Rückgängig"
 weiter :: (Semigroup s, IsString s) => s
 weiter                          = "Weiter"
 zurück :: (Semigroup s, IsString s) => s
@@ -120,30 +123,30 @@ anzahl :: (Semigroup s, IsString s) => s -> s
 anzahl  s   = "Anzahl" <~> s
 
 -- Befehlsgruppen
-befehlAlle :: (IsString s, Semigroup s) => [s]
+befehlAlle :: (Semigroup s, IsString s) => [s]
 befehlAlle = [beenden, hinzufügen, entfernen, speichern, laden] <> befehlTypen
-befehlTypen :: (IsString s, Semigroup s) => [s]
+befehlTypen :: (Semigroup s, IsString s) => [s]
 befehlTypen = [plan] <> befehlObjekte
-befehlObjekte :: (IsString s, Semigroup s) => [s]
+befehlObjekte :: (Semigroup s, IsString s) => [s]
 befehlObjekte = [wegstrecke] <> befehlWegstreckenElemente
-befehlWegstreckenElemente :: (IsString s, Semigroup s) => [s]
+befehlWegstreckenElemente :: (Semigroup s, IsString s) => [s]
 befehlWegstreckenElemente = [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
-aktionGruppen :: (IsString s, Semigroup s) => [s]
+aktionGruppen :: (Semigroup s, IsString s) => [s]
 aktionGruppen = [warten] <> befehlObjekte
-aktionPlan :: (IsString s, Semigroup s) => [s]
+aktionPlan :: (Semigroup s, IsString s) => [s]
 aktionPlan = [ausführen]
-aktionWegstrecke :: (IsString s, Semigroup s) => [s]
+aktionWegstrecke :: (Semigroup s, IsString s) => [s]
 aktionWegstrecke = [einstellen] <> aktionBahngeschwindigkeit <> aktionStreckenabschnitt <> aktionKupplung
-aktionWeiche :: (IsString s, Semigroup s) => [s]
+aktionWeiche :: (Semigroup s, IsString s) => [s]
 aktionWeiche = [stellen]
-aktionBahngeschwindigkeit :: (IsString s, Semigroup s) => [s]
+aktionBahngeschwindigkeit :: (Semigroup s, IsString s) => [s]
 aktionBahngeschwindigkeit = [geschwindigkeit, umdrehen]
-aktionStreckenabschnitt :: (IsString s, Semigroup s) => [s]
+aktionStreckenabschnitt :: (Semigroup s, IsString s) => [s]
 aktionStreckenabschnitt = [strom]
-aktionKupplung :: (IsString s, Semigroup s) => [s]
+aktionKupplung :: (Semigroup s, IsString s) => [s]
 aktionKupplung = [kuppeln]
 
-toBefehlsString :: (IsString s, Semigroup s) => [s] -> s
+toBefehlsString :: (Semigroup s, IsString s) => [s] -> s
 toBefehlsString ([])    = ""
 toBefehlsString ([s])   = s
 toBefehlsString (h:t)   = h <^> toBefehlsString t
@@ -201,51 +204,51 @@ rückwärts                       = "Rückwärts"
 
 -- * Strings mit Leerzeichen/Trennzeichen verknüpfen
 infixr 6 <~>
-(<~>) :: (IsString s, Semigroup s) => s -> s -> s
+(<~>) :: (Semigroup s, IsString s) => s -> s -> s
 a <~> b = a <> " " <> b
 
 infixr 6 <^>
-(<^>) :: (IsString s, Semigroup s) => s -> s -> s
+(<^>) :: (Semigroup s, IsString s) => s -> s -> s
 a <^> b = a <> ", " <> b
 
 infixr 6 <=>
-(<=>) :: (IsString s, Semigroup s) => s -> s -> s
+(<=>) :: (Semigroup s, IsString s) => s -> s -> s
 a <=> b = a <> "=" <> b
 
 infixr 6 <->
-(<->) :: (IsString s, Semigroup s) => s -> s -> s
+(<->) :: (Semigroup s, IsString s) => s -> s -> s
 a <-> b = a <> "-" <> b
 
 infixr 6 <|>
-(<|>) :: (IsString s, Semigroup s) => s -> s -> s
+(<|>) :: (Semigroup s, IsString s) => s -> s -> s
 a <|> b = a <> "|" <> b
 
 infixr 6 <:>
-(<:>) :: (IsString s, Semigroup s) => s -> s -> s
+(<:>) :: (Semigroup s, IsString s) => s -> s -> s
 a <:> b = a <> ": " <> b
 
 infixr 6 <!>
-(<!>) :: (IsString s, Semigroup s) => s -> s -> s
+(<!>) :: (Semigroup s, IsString s) => s -> s -> s
 a <!> b = a <> "!\n" <> b
 
 infixr 6 <°>
-(<°>) :: (IsString s, Semigroup s) => s -> s -> s
+(<°>) :: (Semigroup s, IsString s) => s -> s -> s
 a <°> b = a <> "->" <> b
 
 infixr 6 <\>
-(<\>) :: (IsString s, Semigroup s) => s -> s -> s
+(<\>) :: (Semigroup s, IsString s) => s -> s -> s
 a <\> b = a <> "\n" <> b
 
 -- * Text-Hilfsfunktionen
 showText :: (Show a, IsString s) => a -> s
-showText = fromString.show
+showText = fromString . show
 
 -- ** Unbekannte Eingabe melden
-fehlerText :: (IsString s, Semigroup s) => s -> s
+fehlerText :: (Semigroup s, IsString s) => s -> s
 fehlerText begründung = ungültigeEingabe <^> begründung <!> ""
 
 fehlerhafteEingabe :: Text -> IO ()
-fehlerhafteEingabe begründung = putStrLn.unpack $ fehlerText begründung
+fehlerhafteEingabe begründung = T.putStrLn $ fehlerText begründung
 
 -- ** GUI
 -- | Mnemonic-Markierung hinzufügen

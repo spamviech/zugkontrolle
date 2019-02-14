@@ -1,4 +1,6 @@
-{-# LANGUAGE InstanceSigs, OverloadedStrings, DuplicateRecordFields #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 

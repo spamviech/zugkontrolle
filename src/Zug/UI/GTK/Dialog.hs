@@ -249,12 +249,13 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
         widgetShowIf (index == indexLego) fahrtrichtungsPinWidget
         widgetShowIf (index == indexLego) buttonHinzufügenWeicheLego
         widgetShowIf (index == indexLego) richtungsPinWidget
+        widgetShowIf (index == indexLego) fahrtrichtungsToggleButton
         mapM_ (\(_,_,rb) -> widgetShowIf (index == indexLego) rb) richtungsRadioButtons
     -}
     indexMärklin <- comboBoxAppendText comboBoxZugtyp Language.märklin
     indexLego <-comboBoxAppendText comboBoxZugtyp Language.lego
     let indizesZugtyp = (indexMärklin, Märklin):|(indexLego, Lego):[]
-    -- Flow-Kontrolle des Dialogs
+    -- Fluss-Kontrolle des Dialogs
     buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) ResponseApply
     buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) ResponseReject
     _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
@@ -435,6 +436,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     _objekt                             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNew bgFunktionen PackGrow paddingDefault positionDefault $ pure hScaleGeschwindigkeit
+            vorwärtsRadioButton <- radioButtonNewWithLabel (Language.vorwärts :: Text)
+            rückwärtsRadioButton <- radioButtonNewWithLabelFromWidget vorwärtsRadioButton (Language.rückwärts :: Text)
             boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.umdrehen $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
@@ -447,12 +450,21 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowKU
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
-                -- Lego-Zugtyp mit vorgegebener Fahrtrichtung: ToDo!!!
                 case objekt of
-                    (Just (OBahngeschwindigkeit bg))    -> modifyLMVar_ lmvarElemente $ pure . (append (ABahngeschwindigkeit (Umdrehen bg Nothing)))
+                    (Just (OBahngeschwindigkeit bg))    -> do
+                        maybeFahrtrichtung <- case zugtyp bg of
+                            (Lego)  -> get vorwärtsRadioButton toggleButtonActive >>= \toggled -> pure $ Just $ if toggled then Vorwärts else Rückwärts
+                            _zugtyp -> pure Nothing
+                        modifyLMVar_ lmvarElemente $ pure . (append (ABahngeschwindigkeit (Umdrehen bg maybeFahrtrichtung)))
                     (Just (OWegstrecke ws))             -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSBahngeschwindigkeit (Umdrehen ws Nothing))))
                     _objekt                             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
+            fahrtrichtungsVBox <- boxPackWidgetNewDefault bgFunktionen $ vBoxNew False 0
+            on comboBoxZugtyp changed $ do
+                index <- get comboBoxZugtyp comboBoxActive
+                widgetShowIf (index == indexLego) fahrtrichtungsVBox
+            boxPackWidgetNewDefault fahrtrichtungsVBox $ pure vorwärtsRadioButton
+            boxPackWidgetNewDefault fahrtrichtungsVBox $ pure rückwärtsRadioButton
             stFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
             boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.an) $ void $ forkIO $ do
                 postGUIAsync $ do
@@ -554,7 +566,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     _objekt             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             kuFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-            boxPackWidgetNewDefault kuFunktionen $ buttonNewWithEventLabel (Language.kuppeln) $ void $ forkIO $ do
+            boxPackWidgetNewDefault kuFunktionen $ buttonNewWithEventLabel Language.kuppeln $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
                     widgetHide windowScrolledWindowBG
@@ -572,7 +584,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     _objekt                 -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             wsFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-            boxPackWidgetNewDefault wsFunktionen $ buttonNewWithEventLabel (Language.einstellen) $ void $ forkIO $ do
+            boxPackWidgetNewDefault wsFunktionen $ buttonNewWithEventLabel Language.einstellen $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
                     widgetHide windowScrolledWindowBG
@@ -588,8 +600,9 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     (Just (OWegstrecke ws)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (Einstellen ws)))
                     _objekt                 -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
-            boxPackWidgetNewDefault widget $ pure expanderAktionen
-            containerAddWidgetNew expanderAktionen $ pure vBoxAktionen
+            boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
+            scrolledWidgetAddNew expanderAktionen $ widgetNewWithOptionsEvents (pure vBoxAktionen) [widgetExpand := True] []
+            boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . (\acc -> let prevAcc = case viewLast acc of {(Empty) -> seEmpty; (Filled _l p) -> p} in prevAcc)
             putLMVar lmvarElemente seEmpty
             pure (PagePlan {widget, nameEntry, bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen, aktionen}, Nothing)
         pure linkedMVar
@@ -614,8 +627,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
 -- | Zeige nur die n-te Seite (start bei n=0) an
 showNth :: Natural -> SEQueue PageHinzufügen -> IO (Maybe PageHinzufügen)
 showNth i   queue   = case view queue of
-    (EmptyL)        -> pure Nothing
-    (h :< t)
+    (Empty)        -> pure Nothing
+    (Filled h t)
         | i <= 0    -> do
             widgetShow $ widget h
             mapM_ (widgetHide . widget) t

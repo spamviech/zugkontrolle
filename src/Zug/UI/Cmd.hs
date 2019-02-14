@@ -1,4 +1,7 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns, InstanceSigs, LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-|
 Description : Starte Main-Loop für Kommandozeilen-basiertes UI.

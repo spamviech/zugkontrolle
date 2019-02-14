@@ -1,4 +1,8 @@
-{-# LANGUAGE LambdaCase, NamedFieldPuns, InstanceSigs, RankNTypes, CPP #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Erzeuge Buttons die nur sensitiv sind, wenn eine Bedingung erfüllt ist.

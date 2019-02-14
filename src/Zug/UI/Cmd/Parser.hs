@@ -1,4 +1,7 @@
-{-# LANGUAGE NamedFieldPuns, LambdaCase, OverloadedStrings, InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE InstanceSigs #-}
 
 {-|
 Description : Verarbeiten von Token.
@@ -172,6 +175,7 @@ queryPlan   (QPlanNameAnzahl name anzahl acc qAktion)       token               
     (Left (QAUnbekannt qAktion1 eingabe))                           -> Left $ QPUnbekannt (QPlanNameAnzahl name anzahl acc qAktion1) eingabe
     (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ Left $ \objekt -> QPlanNameAnzahl name anzahl acc $ qKonstruktor objekt
     (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl (append (konstruktor objekt) acc) QAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ append (konstruktor objekt) acc}
+    (Left QARückgängig)                                             -> let prevAcc = case viewLast acc of {(Empty) -> seEmpty; (Filled _l p) -> p} in Left $ QPlanNameAnzahl name (succ anzahl) prevAcc QAktion
     (Left qAktion1)                                                 -> Left $ QPlanNameAnzahl name anzahl acc qAktion1
     (Right aktion)  | anzahl > 1                                    -> Left $ QPlanNameAnzahl name (pred anzahl) (append aktion acc) QAktion
                     | otherwise                                     -> Right $ Plan {plName=name, plAktionen=toList $ append aktion acc}
@@ -181,6 +185,7 @@ queryPlan   query                                           _token              
 queryAktion :: QAktion -> EingabeToken -> Either QAktion Aktion
 queryAktion (QAktion)                                   token                               = Left $ case queryAktionElement token of
     (QAEUnbekannt eingabe)      -> QAUnbekannt QAktion eingabe
+    (QAERückgängig)             -> QARückgängig
     (QAEWarten)                 -> QAWarten
     (QAEWegstrecke)             -> QAktionBefehlQuery QOIOSWegstrecke $ Left $ \(OWegstrecke wegstrecke) -> QAWegstrecke $ QAktionWegstrecke wegstrecke
     (QAEWeiche)                 -> QAktionBefehlQuery QOIOSWeiche $ Left $ \(OWeiche weiche) -> QAWeiche $ QAktionWeiche weiche
@@ -190,6 +195,7 @@ queryAktion (QAktion)                                   token                   
     where
         queryAktionElement :: EingabeToken -> QAktionElement
         queryAktionElement  token@(EingabeToken {eingabe})  = wähleBefehl token [
+            (Lexer.Rückgängig           , QAERückgängig),
             (Lexer.Warten               , QAEWarten),
             (Lexer.Wegstrecke           , QAEWegstrecke),
             (Lexer.Weiche               , QAEWeiche),
@@ -197,6 +203,8 @@ queryAktion (QAktion)                                   token                   
             (Lexer.Streckenabschnitt    , QAEStreckenabschnitt),
             (Lexer.Kupplung             , QAEKupplung)]
             $ QAEUnbekannt eingabe
+queryAktion _query                                      (EingabeToken {möglichkeiten})
+    | elem Lexer.Rückgängig möglichkeiten                                                   = Left QAktion
 queryAktion (QAWarten)                                  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ QAUnbekannt QAWarten eingabe
     (Just zeit) -> Right $ Warten zeit
@@ -270,7 +278,7 @@ queryAktionBahngeschwindigkeit  query@(QABGUmdrehen bahngeschwindigkeit)        
     (Lexer.Vorwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Vorwärts),
     (Lexer.Rückwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Rückwärts)]
     $ Left $ QABGUnbekannt query eingabe
-queryAktionBahngeschwindigkeit  query                                                   _token                                  = Left $ query
+queryAktionBahngeschwindigkeit  query                                                   _token                              = Left $ query
 -- | Eingabe einer Streckenabschnitt-Aktion
 queryAktionStreckenabschnitt :: (StreckenabschnittKlasse s) => QAktionStreckenabschnitt qs s -> EingabeToken -> Either (QAktionStreckenabschnitt qs s) (AktionStreckenabschnitt s)
 queryAktionStreckenabschnitt    query@(QAktionStreckenabschnitt streckenabschnitt)  token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Strom, Left $ QASStrom streckenabschnitt)] $ Left $ QASUnbekannt query eingabe
@@ -532,6 +540,7 @@ instance Query QObjekt where
     getQueryOptions (QOIOStatus qObjektIOStatus _eitherKonstruktor) = getQueryOptions qObjektIOStatus
 
 data QAktionElement = QAEUnbekannt              Text
+                    | QAERückgängig
                     | QAEWarten
                     | QAEWegstrecke
                     | QAEWeiche
@@ -582,6 +591,7 @@ instance Query QPlan where
 
 data QAktion    = QAktion
                 | QAUnbekannt           QAktion                                                                 Text
+                | QARückgängig
                 | QAWarten
                 | QAWegstrecke          (QAktionWegstrecke QWegstrecke Wegstrecke)
                 | QAWeiche              (QAktionWeiche QWeiche Weiche)
@@ -594,8 +604,9 @@ data QAktion    = QAktion
 instance Show QAktion where
     show :: QAktion -> String
     show    (QAUnbekannt qAktion eingabe)                           = unpack $ unbekanntShowText qAktion eingabe
-    show    (QAktion)                                               = unpack $ Language.aktion
-    show    (QAWarten)                                              = unpack $ Language.aktion <^> Language.warten
+    show    (QAktion)                                               = Language.aktion
+    show    (QARückgängig)                                          = Language.rückgängig
+    show    (QAWarten)                                              = Language.aktion <^> Language.warten
     show    (QAWegstrecke qAktionWegstrecke)                        = Language.aktion <^> showText qAktionWegstrecke
     show    (QAWeiche qAktionWeiche)                                = Language.aktion <^> showText qAktionWeiche
     show    (QABahngeschwindigkeit qAktionBahngeschwindigkeit)      = Language.aktion <^> showText qAktionBahngeschwindigkeit
@@ -607,6 +618,7 @@ instance Query QAktion where
     getQuery :: (IsString s, Semigroup s) => QAktion -> s
     getQuery    (QAUnbekannt qAktion _eingabe)                          = getQuery qAktion
     getQuery    (QAktion)                                               = Language.aktion
+    getQuery    (QARückgängig)                                          = Language.aktion
     getQuery    (QAWarten)                                              = Language.zeit
     getQuery    (QAWegstrecke qAktionWegstrecke)                        = getQuery qAktionWegstrecke
     getQuery    (QAWeiche qAktionWeiche)                                = getQuery qAktionWeiche
@@ -621,6 +633,7 @@ instance Query QAktion where
     getQueryOptions :: (IsString s, Semigroup s) => QAktion -> Maybe s
     getQueryOptions (QAUnbekannt qAktion _eingabe)                          = getQueryOptions qAktion
     getQueryOptions (QAktion)                                               = Just $ toBefehlsString Language.aktionGruppen
+    getQueryOptions (QARückgängig)                                          = Nothing
     getQueryOptions (QAWarten)                                              = Nothing
     getQueryOptions (QAWegstrecke qAktionWegstrecke)                        = getQueryOptions qAktionWegstrecke
     getQueryOptions (QAWeiche qAktionWeiche)                                = getQueryOptions qAktionWeiche
@@ -671,11 +684,6 @@ instance Query (QAktionWeiche qw w) where
     getQuery    (QAktionWeiche _weiche)         = Language.aktion
     getQuery    (QAWUnbekannt qAktion _eingabe) = getQuery qAktion
     getQuery    (QAWStellen _weiche)            = Language.richtung
-    {-
-    getQueryFailed :: (IsString s, Semigroup s) => (QAktionWeiche qw w) -> s -> s
-    getQueryFailed  q@(QAWStellen _weiche)  eingabe = getQueryFailedDefault q eingabe <^> Language.richtungErwartet
-    getQueryFailed  q                       eingabe = getQueryFailedDefault q eingabe
-    -}
     getQueryOptions :: (IsString s, Semigroup s) => QAktionWeiche qw w -> Maybe s
     getQueryOptions (QAktionWeiche _weiche)         = Just $ toBefehlsString Language.aktionWeiche
     getQueryOptions (QAWUnbekannt qAktion _eingabe) = getQueryOptions qAktion

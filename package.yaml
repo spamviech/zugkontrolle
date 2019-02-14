@@ -1,5 +1,5 @@
 name:                 Zugkontrolle
-version:              1.0.0.6
+version:              1.0.0.7
 github:               "spamviech/Zugkontrolle"
 license:              BSD3
 author:               "Wolfgang Witt"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:          Please see the README on GitHub at <https://github.com/githubuser/Zugkontrolle#readme>
+description:          Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 
 flags:
   gui:
@@ -31,7 +31,6 @@ when:
     dependencies:
       - gtk3
       - lens
-      - sequence
   - condition: os(linux)
     dependencies:
       - unix

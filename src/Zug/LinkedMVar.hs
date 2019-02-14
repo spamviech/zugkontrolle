@@ -1,4 +1,5 @@
-{-# LANGUAGE NamedFieldPuns, InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
 
 {-|
 Description : 'MVar', welche beim setzen/updaten eine IO-Aktion ausführen.

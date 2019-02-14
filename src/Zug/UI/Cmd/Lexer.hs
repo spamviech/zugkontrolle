@@ -28,6 +28,7 @@ lexOne  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, t
         befehlToken = [
             (beenden            , Beenden),
             (abbrechen          , Abbrechen),
+            (rückgängig         , Rückgängig),
             (hinzufügen         , Hinzufügen),
             (entfernen          , Entfernen),
             (speichern          , Speichern),
@@ -67,6 +68,7 @@ data EingabeToken = EingabeToken {eingabe::Text, möglichkeiten::[Token], ganzza
 
 data Token  = Beenden
             | Abbrechen
+            | Rückgängig
             | Hinzufügen
             | Entfernen
             | Speichern

@@ -1,4 +1,6 @@
-{-# LANGUAGE InstanceSigs, OverloadedStrings, CPP #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Grundlegende UI-Funktionen.
