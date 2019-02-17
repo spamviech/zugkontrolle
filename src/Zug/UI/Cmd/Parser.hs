@@ -170,12 +170,12 @@ queryPlan :: QPlan -> EingabeToken -> Either QPlan Plan
 queryPlan   (QPlan)                                         (EingabeToken {eingabe})            = Left $ QPlanName eingabe
 queryPlan   query@(QPlanName name)                          (EingabeToken {eingabe, ganzzahl})  = Left $ case ganzzahl of
     (Nothing)       -> QPUnbekannt query eingabe
-    (Just anzahl)   -> QPlanNameAnzahl name anzahl seEmpty QAktion
+    (Just anzahl)   -> QPlanNameAnzahl name anzahl empty QAktion
 queryPlan   (QPlanNameAnzahl name anzahl acc qAktion)       token                               = case queryAktion qAktion token of
     (Left (QAUnbekannt qAktion1 eingabe))                           -> Left $ QPUnbekannt (QPlanNameAnzahl name anzahl acc qAktion1) eingabe
     (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ Left $ \objekt -> QPlanNameAnzahl name anzahl acc $ qKonstruktor objekt
     (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl (append (konstruktor objekt) acc) QAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ append (konstruktor objekt) acc}
-    (Left QARückgängig)                                             -> let prevAcc = case viewLast acc of {(Empty) -> seEmpty; (Filled _l p) -> p} in Left $ QPlanNameAnzahl name (succ anzahl) prevAcc QAktion
+    (Left QARückgängig)                                             -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in Left $ QPlanNameAnzahl name (succ anzahl) prevAcc QAktion
     (Left qAktion1)                                                 -> Left $ QPlanNameAnzahl name anzahl acc qAktion1
     (Right aktion)  | anzahl > 1                                    -> Left $ QPlanNameAnzahl name (pred anzahl) (append aktion acc) QAktion
                     | otherwise                                     -> Right $ Plan {plName=name, plAktionen=toList $ append aktion acc}

@@ -1,5 +1,5 @@
 name:                 Zugkontrolle
-version:              1.0.0.7
+version:              1.0.0.8
 github:               "spamviech/Zugkontrolle"
 license:              BSD3
 author:               "Wolfgang Witt"
@@ -27,10 +27,11 @@ flags:
 
 when:
   - condition: flag(gui)
-    cpp-options: -DZUGKONTROLLEGUI
     dependencies:
       - gtk3
       - lens
+    cpp-options:
+      -DZUGKONTROLLEGUI
   - condition: os(linux)
     dependencies:
       - unix

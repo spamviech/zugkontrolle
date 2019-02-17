@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings, InstanceSigs, NamedFieldPuns, LambdaCase, CPP #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Dialoge für GTK-UI.
@@ -160,7 +164,7 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
             widgetShowIf (not $ null (status ^. kupplungen)) kuFunktionen
             widgetShowIf (not $ null (status ^. wegstrecken)) wsFunktionen
             -- Aktionen zurücksetzen
-            modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . const seEmpty
+            modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . const empty
         optionenAnzeigen    _page                                                                               _mvarStatus = pure ()
         zeigeNächsteSeite :: (LikeMVar lmvar) => PageHinzufügen -> DialogHinzufügen -> lmvar StatusGUI -> DynamischeWidgets -> IO ()
         zeigeNächsteSeite   (PageStart {radioButtons})  dialogHinzufügen                    mvarStatus  dynamischeWidgets   = getToggled radioButtons >>= \pageNr -> runPage (succ pageNr) dialogHinzufügen mvarStatus dynamischeWidgets
@@ -261,7 +265,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
     _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
     -- Seiten mit Einstellungs-Möglichkeiten
     contentBox <- dialogGetUpper dialog
-    (linkedMVar, pages) <- flip State.runStateT seEmpty $ do
+    (linkedMVar, pages) <- flip State.runStateT empty $ do
         appendPage contentBox $ do
             vBox <- vBoxNew False 0
             rbBahngeschwindigkeit   <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabel (Language.bahngeschwindigkeit :: Text)
@@ -364,7 +368,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             aktionenWidgets <- newMVar []
             expanderAktionen <-  expanderNew (Language.aktionen :: Text)
             vBoxAktionen <- vBoxNew False 0
-            lmvarTemp <- newEmptyLinkedMVar $ \_updateAktion aktionen -> showAktionen vBoxAktionen expanderAktionen aktionenWidgets aktionen >> pure aktionen
+            lmvarTemp <- newEmptyLinkedMVar $ \aktionen -> showAktionen vBoxAktionen expanderAktionen aktionenWidgets aktionen >> pure aktionen
             aktionen <- fortfahrenWennGefülltEmptyLinkedMVarNew buttonHinzufügenPlan $ Just lmvarTemp
             let lmvarElemente = aktionen ^. linkedMVarElemente
             -- Hilfsdialog erstellen
@@ -602,8 +606,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
             scrolledWidgetAddNew expanderAktionen $ widgetNewWithOptionsEvents (pure vBoxAktionen) [widgetExpand := True] []
-            boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . (\acc -> let prevAcc = case viewLast acc of {(Empty) -> seEmpty; (Filled _l p) -> p} in prevAcc)
-            putLMVar lmvarElemente seEmpty
+            boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . (\acc -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in prevAcc)
+            putLMVar lmvarElemente empty
             pure (PagePlan {widget, nameEntry, bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen, aktionen}, Nothing)
         pure linkedMVar
     -- Setze Wert der ComboBox am Ende um davon abhängige Widgets automatisch zu zeigen/verstecken
