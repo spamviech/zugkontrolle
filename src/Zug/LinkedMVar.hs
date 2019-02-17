@@ -6,7 +6,7 @@ Description : 'MVar', welche beim setzen/updaten eine IO-Aktion ausführen.
 -}
 module Zug.LinkedMVar (
                     -- * Datentyp und Konstruktoren
-                    LinkedMVar(), newEmptyLinkedMVar, newLinkedMVar, appendEmptyLinkedMVar, appendLinkedMVar,
+                    LinkedMVar(), newEmptyLinkedMVar, newLinkedMVar, newEmptyUnlinkedMVar, newUnlinkedMVar, appendLinkedMVar,
                     -- * Funktionen
                     readLinkedMVar, takeLinkedMVar, putLinkedMVar, modifyLinkedMVar_, modifyLinkedMVar, swapLinkedMVar, isEmptyLinkedMVar, updateAktion,
                     -- * Klasse zur einfacheren Verwendung
@@ -14,31 +14,38 @@ module Zug.LinkedMVar (
 
 -- Bibliotheken
 import Control.Concurrent.MVar
-import Control.Monad (void)
+import Data.Foldable (toList)
+-- Abhängigkeit von anderen Modulen
+import Zug.SEQueue
 
 -- | 'MVar', welche beim setzen des Werts eine Update-Aktion ausführt.
 -- Das Ergebnis der Update-Aktion wird der neue Wert der 'LinkedMVar', ohne ein erneuten Aufruf der Update-Aktion auszulösen.
 -- Wenn ein erneutes ausführen der Update-Aktion gewünscht wird kann dies mit der übergebenen IO-Aktion erzwungen werden.
-data LinkedMVar a = LinkedMVar {linkedUpdate :: IO () -> a -> IO a, mvar :: MVar a}
+data LinkedMVar a = LinkedMVar {linkedUpdate :: MVar (SEQueue (a -> IO a)), mvar :: MVar a}
 
 -- * Konstruktoren
 -- | Erzeuge eine neue leere 'LinkedMVar', ausgehend von einer Update-Aktion.
 -- Diese wird immer aufgerufen, wenn sich der Wert der 'LinkedMVar' ändert.
 -- Der neue Wert wird an die Update-Aktion übergeben.
-newEmptyLinkedMVar :: (IO () -> a -> IO a)  -> IO (LinkedMVar a)
-newEmptyLinkedMVar update = newEmptyMVar >>= pure . LinkedMVar update
+newEmptyLinkedMVar :: (a -> IO a)  -> IO (LinkedMVar a)
+newEmptyLinkedMVar update = LinkedMVar <$> newMVar (singleton update) <*> newEmptyMVar
 
-newLinkedMVar :: (IO () -> a -> IO a) -> a -> IO (LinkedMVar a)
+-- | Erzeuge eine neue 'LinkedMVar' und fülle sie umgehend mit einem Wert.
+newLinkedMVar :: (a -> IO a) -> a -> IO (LinkedMVar a)
 newLinkedMVar update a = newEmptyLinkedMVar update >>= \lmvar -> putLinkedMVar lmvar a >> pure lmvar
 
--- | Füge einer LinkedMVar eine neue Update-Aktion hinzu. Der Wert der so erzeugten 'LinkedMVar' ist unabhängig von der ursprünglichen 'LinkedMVar'.
--- Ein ändern der ursprünglichen 'LinkedMVar' ruft nur die ursprüngliche Update-Aktion auf.
--- Die Update-Aktionen werden in append-Reihenfolge (realisiert über monadischen '>>='-Operator) aufgerufen.
-appendEmptyLinkedMVar :: LinkedMVar a -> (IO () -> a -> IO a) -> IO (LinkedMVar a)
-appendEmptyLinkedMVar old newCommand = newEmptyLinkedMVar $ \forceUpdate a -> (linkedUpdate old) forceUpdate a >>= newCommand forceUpdate
+-- | Erzeuge eine neue leere 'LinkedMVar' ohne Update-Aktion.
+newEmptyUnlinkedMVar :: IO (LinkedMVar a)
+newEmptyUnlinkedMVar = LinkedMVar <$> newMVar empty <*> newEmptyMVar
 
-appendLinkedMVar :: LinkedMVar a -> (IO () -> a -> IO a) -> a -> IO (LinkedMVar a)
-appendLinkedMVar old newCommand a = appendEmptyLinkedMVar old newCommand >>= \lmvar -> putLinkedMVar lmvar a >> pure lmvar
+-- | Erzeuge eine neue 'LinkedMVar' ohne Update-Aktion und fülle sie umgehen mit einem Wert.
+newUnlinkedMVar :: a -> IO (LinkedMVar a)
+newUnlinkedMVar a = LinkedMVar <$> newMVar empty <*> newMVar a
+
+-- | Füge einer LinkedMVar eine neue Update-Aktion hinzu. 
+-- Die Update-Aktionen werden in append-Reihenfolge aufgerufen.
+appendLinkedMVar :: LinkedMVar a -> (a -> IO a) -> IO ()
+appendLinkedMVar (LinkedMVar {linkedUpdate}) newCommand = modifyMVar_ linkedUpdate $ pure . append newCommand
 
 -- * Funktionen
 -- | Lese den aktuellen Wert einer 'LinkedMVar', ohne diese zu verändern.
@@ -54,32 +61,36 @@ takeLinkedMVar (LinkedMVar {mvar}) = takeMVar mvar
 -- | Schreibe einen Wert in eine 'LinkedMVar' und rufe deren Update-Aktion auf.
 -- Wenn die 'LinkedMVar' aktuell gefüllt ist, warte bis diese geleert wird.
 putLinkedMVar :: LinkedMVar a -> a -> IO ()
-putLinkedMVar linkedMVar@(LinkedMVar {mvar, linkedUpdate}) v = void $ putMVar mvar v >> linkedUpdate (updateAktion linkedMVar) v
+putLinkedMVar (LinkedMVar {linkedUpdate, mvar}) v = do
+    putMVar mvar v
+    -- Stelle sicher, dass reverse nur einmal auf Update-Queue aufgerufen werden muss
+    updateQueue <- modifyMVar linkedUpdate $ (\a -> pure (a, a)) . fromList . toList
+    sequence_ $ ($ v) <$> updateQueue
 
 -- | Modifiziere den aktuellen Wert einer 'LinkedMVar' und rufe deren Update-Aktion auf.
 -- 'modifyLinkedMVar_' ist nur atomar, wenn es nur einen Producer für diese 'LinkedMVar' gibt.
 modifyLinkedMVar_ :: LinkedMVar a -> (a -> IO a) -> IO ()
-modifyLinkedMVar_   lmvar f = modifyLinkedMVar lmvar $ \a -> f a >>= \res -> pure (res, ())
+modifyLinkedMVar_ lmvar f = modifyLinkedMVar lmvar $ \a -> (\res -> (res, ())) <$> f a
 
 -- | Eine leiche Variation zu 'modifyLinkedMVar_', welche einen Rückgabewert erlaubt.
 modifyLinkedMVar :: LinkedMVar a -> (a -> IO (a, b)) -> IO b
-modifyLinkedMVar    lmvar f = readLinkedMVar lmvar >>= f >>= \(a, b) -> swapLinkedMVar lmvar a >> pure b
+modifyLinkedMVar lmvar f = takeLinkedMVar lmvar >>= f >>= \(a, b) -> putLinkedMVar lmvar a >> pure b
 
 -- | Nehme einen Wert aus der aktullen 'LinkedMVar' und ersetzte ihn durch einen neuen. Gebe den ursprünglichen Wert zurück.
 -- 
 -- Die Funktion ist nur atomar, wenn es keinen anderen Producer für diese 'LinkedMVar' gibt.
 swapLinkedMVar :: LinkedMVar a -> a -> IO a
-swapLinkedMVar linkedMVar@(LinkedMVar {mvar, linkedUpdate}) v = swapMVar mvar v >>= \old -> linkedUpdate (updateAktion linkedMVar) v >> pure old
-
--- | Führe die mit einer 'LinkedMVar' assoziierte Update-Aktion aus. Verwende den aktuellen Wert dabei als Argument.
-updateAktion :: LinkedMVar a -> IO ()
-updateAktion = flip modifyLinkedMVar_ pure
+swapLinkedMVar linkedMVar v = takeLinkedMVar linkedMVar >>= \old -> putLinkedMVar linkedMVar v >> pure old
 
 -- | Prüfe, ob die 'LinkedMVar' aktuell leer ist.
 -- 
 -- Dabei ist zu berücksichtigen, dass es sich nur um einen Schnappschuss handelt. Wenn der Bool verarbeitet wird, kann sich der Zustand der 'LinkedMVar' bereits geändert haben.
 isEmptyLinkedMVar :: LinkedMVar a -> IO Bool
 isEmptyLinkedMVar (LinkedMVar {mvar}) = isEmptyMVar mvar
+
+-- | Führe die mit einer 'LinkedMVar' assoziierte Update-Aktion aus. Verwende den aktuellen Wert dabei als Argument.
+updateAktion :: LinkedMVar a -> IO ()
+updateAktion = flip modifyLinkedMVar_ pure
 
 -- * Klasse zur einfachen Verwendung
 -- | Mitglieder dieser Klasse sollen sich wie eine 'MVar' verhalten

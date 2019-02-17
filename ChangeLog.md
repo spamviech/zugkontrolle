@@ -36,7 +36,12 @@
 - Bugfix: Beim erstellen eines Plans mit dem Cmd-UI wurde die Error-Funktion aufgerufen.
 1.0.0.7:
 - Plan erstellen:
-    Letztes Element kann entfernt werden
-    Fahrtrichtung kann für Umdrehen mit Lego-Weichen angegeben werden.
-    GTK-UI: Aktionen eines Plans werden in einem ScrolledWindow innerhalb eines Expanders angezeigt
+    - Letztes Element kann entfernt werden
+    - Fahrtrichtung kann für Umdrehen mit Lego-Weichen angegeben werden.
+    - GTK-UI: Aktionen eines Plans werden in einem ScrolledWindow innerhalb eines Expanders angezeigt
+1.0.0.8:
+- SEQueue-Funktionen umbenannt
+- LinkedMVar:
+    - Update-Aktion nicht mehr als Argument übergeben
+    - Hinzufügen einer zusätzlichen Update-Aktion erzeugt keine neue LinkedMVar, sondern verändert die aktuelle LinkedMVar
 ## Unreleased changes

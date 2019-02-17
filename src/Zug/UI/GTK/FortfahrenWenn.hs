@@ -26,7 +26,6 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (maybe)
 import Control.Lens (Traversal', Getter, Prism', Field2(..), (^.), (%%~))
 import qualified Control.Lens as Lens
-import Control.Monad.Trans (liftIO)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 
@@ -80,8 +79,9 @@ aktiviereWennToggledAux button foldable = set button [widgetSensitive := False] 
 -- Es wird eine neue 'LinkedMVar' erzeugt, welche bei jedem setzten die Button-Senitivität überprüft.
 fortfahrenWennToggledEmptyLinkedMVarNew :: (MitCheckButton c) => Button -> Traversal' a (VielleichtRegistrierterCheckButton c) -> Maybe (LinkedMVar a) -> IO (FortfahrenWennToggled LinkedMVar a)
 fortfahrenWennToggledEmptyLinkedMVarNew fortfahren traversal maybeLMVar = do
-    checkButtons <- liftIO $ (maybe newEmptyLinkedMVar appendEmptyLinkedMVar maybeLMVar) $ \updateAktion vielleichtUnregistriert -> do
-        alleRegistriert <- traversal %%~ registrieren updateAktion $ vielleichtUnregistriert
+    checkButtons <- maybe newEmptyUnlinkedMVar pure maybeLMVar
+    appendLinkedMVar checkButtons $ \vielleichtUnregistriert -> do
+        alleRegistriert <- traversal %%~ registrieren (updateAktion checkButtons) $ vielleichtUnregistriert
         aktiviereWennToggledAux fortfahren $ Lens.toListOf (traversal . _Registriert) alleRegistriert
         pure alleRegistriert
     pure FortfahrenWennToggled {fortfahren, checkButtons}
@@ -131,7 +131,8 @@ data FortfahrenWennGefüllt t a = FortfahrenWennGefüllt {fortfahrenGefüllt :: 
 -- | Konstruktor erzeugt neue 'LinkedMVar', welche bei jedem Setzen die Button-Sensitivität überprüft.
 fortfahrenWennGefülltEmptyLinkedMVarNew :: (Foldable t) => Button -> Maybe (LinkedMVar (t a)) -> IO (FortfahrenWennGefüllt t a)
 fortfahrenWennGefülltEmptyLinkedMVarNew fortfahrenGefüllt maybeLMVar = do
-    elemente <- liftIO $ (maybe newEmptyLinkedMVar appendEmptyLinkedMVar maybeLMVar) $ \_updateAktion fa -> aktiviereWennGefülltAux fortfahrenGefüllt fa >> pure fa
+    elemente <- maybe newEmptyUnlinkedMVar pure maybeLMVar
+    appendLinkedMVar elemente $ \fa -> aktiviereWennGefülltAux fortfahrenGefüllt fa >> pure fa
     pure FortfahrenWennGefüllt {fortfahrenGefüllt, elemente}
 
 linkedMVarElemente :: Getter (FortfahrenWennGefüllt t a) (LinkedMVar (t a))
