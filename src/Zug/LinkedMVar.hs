@@ -14,7 +14,9 @@ module Zug.LinkedMVar (
 
 -- Bibliotheken
 import Control.Concurrent.MVar
+import Control.Monad (foldM)
 import Data.Foldable (toList)
+import Data.Function ((&))
 -- Abhängigkeit von anderen Modulen
 import Zug.SEQueue
 
@@ -62,10 +64,10 @@ takeLinkedMVar (LinkedMVar {mvar}) = takeMVar mvar
 -- Wenn die 'LinkedMVar' aktuell gefüllt ist, warte bis diese geleert wird.
 putLinkedMVar :: LinkedMVar a -> a -> IO ()
 putLinkedMVar (LinkedMVar {linkedUpdate, mvar}) v = do
-    putMVar mvar v
     -- Stelle sicher, dass reverse nur einmal auf Update-Queue aufgerufen werden muss
     updateQueue <- modifyMVar linkedUpdate $ (\a -> pure (a, a)) . fromList . toList
-    sequence_ $ ($ v) <$> updateQueue
+    vAfter <- foldM (&) v updateQueue
+    putMVar mvar vAfter
 
 -- | Modifiziere den aktuellen Wert einer 'LinkedMVar' und rufe deren Update-Aktion auf.
 -- 'modifyLinkedMVar_' ist nur atomar, wenn es nur einen Producer für diese 'LinkedMVar' gibt.

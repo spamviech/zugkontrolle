@@ -103,7 +103,15 @@ getPwmValueReduced = getPwmValue 75
 
 -- | Zeit, die Strom bei kurzen Schalt-Aktionen anliegt
 generalDelayµs :: Natural
-generalDelayµs = 1000000
+generalDelayµs = µsInS
+
+-- | µs in a second
+µsInS :: Natural
+µsInS = 1000000
+
+-- | µs in a millisecond
+µsInms :: Natural
+µsInms = 1000
 
 -- * Repräsentation von StreckenObjekten
 -- | Klassen-Definitionen
@@ -224,7 +232,7 @@ class (StreckenObjekt w) => WeicheKlasse w where
 
 -- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
 weicheDelayµs :: Natural
-weicheDelayµs = generalDelayµs
+weicheDelayµs = 500 * µsInms
 
 instance WeicheKlasse Weiche where
     stellen :: Weiche -> Richtung -> PinMapIO ()

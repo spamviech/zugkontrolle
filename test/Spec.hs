@@ -12,6 +12,8 @@ import Data.Text (Text, unpack)
 -- Bessere Konsolenausgabe
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
+import Zug.SEQueue
+import Zug.LinkedMVar
 import Zug.UI.Befehl
 import qualified Zug.Language as Language
 import Zug.Language ((<~>))
@@ -23,10 +25,35 @@ import Zug.Klassen
 
 main :: IO ()
 main = do
+    seQueueTests
+    linkedMVarTests
     parseBefehl
     parseQuery
     parseBefehlSofort
     parseQBefehl
+
+-- Tests für SEQueue
+seQueueTests :: IO ()
+seQueueTests = setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite SEQueue not yet implemented" >> setSGR [Reset]
+
+-- Tests für LinkedMVar
+linkedMVarTests :: IO ()
+linkedMVarTests = do
+    -- LinkedMVar ohne Update-Funktion
+    unlinked <- newUnlinkedMVar (0 :: Word)
+    modifyLinkedMVar_ unlinked $ pure . succ
+    unlinkedRes <- readLinkedMVar unlinked
+    testResult "0 >>= modifyUnlinkedMVar_ unlinked $ pure . succ" unlinkedRes 1
+    -- LinkedMVar mit pure als Update-Funktion
+    linkedPure <- newLinkedMVar pure (0 :: Int)
+    modifyLinkedMVar_ linkedPure $ pure . succ
+    linkedPureRes <- readLinkedMVar linkedPure
+    testResult "0 >>= modifyUnlinkedMVar_ linkedPure $ pure . succ" linkedPureRes 1
+    -- LinkedMVar mit pure . const 0 als Update-Funktion
+    linkedConst0 <- newLinkedMVar (pure . const 0) (0 :: Float)
+    modifyLinkedMVar_ linkedConst0 $ pure . succ
+    linkedConst0Res <- readLinkedMVar linkedConst0
+    testResult "0 >>= modifyUnlinkedMVar_ linkedConst0 $ pure . succ" linkedConst0Res 0
 
 -- Parser für Eingabe von vollständigen Befehlen testen
 parseBefehl :: IO ()
@@ -85,6 +112,26 @@ test eingabe sollErgebnis = do
     putStrLn $ show sollErgebnis
     setSGR [Reset]
     setSGR [SetColor Foreground Vivid White] >> if istErgebnis <==> sollErgebnis
+        then setSGR [SetColor Background Dull Green] >> putStrLn "Richtig"
+        else setSGR [SetColor Background Dull Red] >> putStrLn "Falsch"
+    setSGR [Reset]
+    putStrLn $ "------------------"
+
+testResult :: (Show a, Eq a) => String -> a -> a -> IO ()
+testResult eingabe ist soll = do
+    putStr "Eingabe:\t"
+    setSGR [SetColor Foreground Dull Cyan]
+    putStrLn eingabe
+    setSGR [Reset]
+    putStr "Ergebnis:\t"
+    setSGR [SetColor Foreground Dull Blue]
+    putStrLn $ show ist
+    setSGR [Reset]
+    putStr "Erwartet:\t"
+    setSGR [SetColor Foreground Dull Green]
+    putStrLn $ show soll
+    setSGR [Reset]
+    setSGR [SetColor Foreground Vivid White] >> if ist == soll
         then setSGR [SetColor Background Dull Green] >> putStrLn "Richtig"
         else setSGR [SetColor Background Dull Red] >> putStrLn "Falsch"
     setSGR [Reset]

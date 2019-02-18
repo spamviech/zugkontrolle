@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 40f7cc6e4ac655f2e408801d11c03ec0f3f6f91acff2a2eb9a0921dd1fc00450
+-- hash: 82a96dc60170f5086d8504fbe73d24ccd227d5e834a3eabcba6413bc23f07206
 
 name:           Zugkontrolle
-version:        1.0.0.8
+version:        1.0.0.9
 description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 homepage:       https://github.com/spamviech/Zugkontrolle#readme
 bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
