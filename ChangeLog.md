@@ -44,4 +44,7 @@
 - LinkedMVar:
     - Update-Aktion nicht mehr als Argument übergeben
     - Hinzufügen einer zusätzlichen Update-Aktion erzeugt keine neue LinkedMVar, sondern verändert die aktuelle LinkedMVar
+1.0.0.9:
+- Zeit zum stellen einer Weiche reduziert
+- Bugfix: LinkedMVar merkt sich Änderungen wieder
 ## Unreleased changes
