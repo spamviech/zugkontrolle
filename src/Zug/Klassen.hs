@@ -11,31 +11,30 @@ import Data.List.NonEmpty (NonEmpty(..), fromList)
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
 
+-- | Zugtyp eines Elements (sofern ein Unterschied besteht)
 data Zugtyp = Undefiniert | Märklin | Lego
                 deriving (Eq, Bounded, Enum)
 
+-- | Unterstützte 'Zugtyp'en
 unterstützteZugtypen :: NonEmpty Zugtyp
 unterstützteZugtypen = fromList $ delete Undefiniert [minBound..maxBound]
 
-data Richtung = Gerade | Kurve | Links | Rechts
-                    deriving (Eq, Bounded, Enum)
-
-unterstützteRichtungen :: NonEmpty Richtung
-unterstützteRichtungen = fromList [minBound..maxBound]
-
-data Fahrtrichtung = Vorwärts | Rückwärts
-                        deriving (Eq, Bounded, Enum)
-
-unterstützteFahrtrichtungen :: NonEmpty Fahrtrichtung
-unterstützteFahrtrichtungen = fromList [minBound..maxBound]
-
--- Instanz-Deklarationen
+-- | Anzeigen eines 'Zugtyp'
 instance Show Zugtyp where
     show :: Zugtyp -> String
     show Undefiniert    = Language.undefiniert
     show Märklin        = Language.märklin
     show Lego           = Language.lego
 
+-- | Richtung einer 'Weiche'
+data Richtung = Gerade | Kurve | Links | Rechts
+                    deriving (Eq, Bounded, Enum)
+
+-- | Alle 'Richtung'en
+unterstützteRichtungen :: NonEmpty Richtung
+unterstützteRichtungen = fromList [minBound..maxBound]
+
+-- | Anzeigen einer 'Richtung'
 instance Show Richtung where
     show :: Richtung -> String
     show Gerade = Language.gerade
@@ -43,6 +42,15 @@ instance Show Richtung where
     show Links  = Language.links
     show Rechts = Language.rechts
 
+-- | Fahrtrichtung auf einer Schiene
+data Fahrtrichtung = Vorwärts | Rückwärts
+                        deriving (Eq, Bounded, Enum)
+
+-- | Alle 'Fahrtrichtung'en
+unterstützteFahrtrichtungen :: NonEmpty Fahrtrichtung
+unterstützteFahrtrichtungen = fromList [minBound..maxBound]
+
+-- | Anzeigen einer 'Fahrtrichtung'
 instance Show Fahrtrichtung where
     show :: Fahrtrichtung -> String
     show Vorwärts   = Language.vorwärts

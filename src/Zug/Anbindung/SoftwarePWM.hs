@@ -26,9 +26,11 @@ type PinMapIO a = MVar PinMap -> IO a
 pinMapEmpty :: PinMap
 pinMapEmpty = Map.empty
 
+-- | Maximaler Range-Wert der PWM-Funktion
 pwmRange :: PwmValue
 pwmRange        = 1024
 
+-- | Erhalte Zeit, die der Strom während einer PWM-Periode (an, aus) ist.
 pwmGetTimeµs :: Natural -> PwmValue -> (Natural, Natural)
 pwmGetTimeµs    pwmFrequency    pwmValue    = (onTime, offTime)
     where
@@ -53,6 +55,7 @@ pwmWriteSoftware pin pwmFrequency   pwmValue    mvarPinMap = do
         (Nothing)           -> void $ forkIO $ runPWMSoftware pin mvarPinMap
         (Just _pwmValue)    -> pure ()
 
+-- | PWM-Funktion für einen 'Pin'. Sollte in einem eigenem Thread laufen.
 runPWMSoftware :: Pin -> PinMapIO ()
 runPWMSoftware pin mvarPinMap = do
     pinMapCurrent <- readMVar mvarPinMap
@@ -67,5 +70,8 @@ runPWMSoftware pin mvarPinMap = do
             delayµs offTime
             runPWMSoftware pin mvarPinMap
 
+-- | Warte mindestens das Argument in µs.
+-- 
+-- Die Wartezeit kann länger sein (bedingt durch 'threadDelay'), allerdings kommt es nicht zu einem divide-by-zero error für 0-Argumente.
 delayµs :: Natural -> IO ()
 delayµs time = when (time > 0) $ threadDelay $ fromIntegral time

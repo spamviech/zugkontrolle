@@ -30,7 +30,7 @@ import Zug.UI.Befehl
 import Zug.UI.Cmd.Lexer(AllgemeinesEingabeToken(..), EingabeToken(..), lexer)
 import Zug.UI.Cmd.Parser
 
--- | main loop
+-- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
 main :: IO ()
 main = do
     -- Lade Datei angegeben in Kommandozeilenargument
@@ -39,6 +39,7 @@ main = do
         (Nothing)           -> evalEmptyIOStatus mainStatus
         (Just konstruktor)  -> newMVar pinMapEmpty >>= \mvarPinMap -> konstruktor mvarPinMap >>= evalStateT mainStatus
 
+-- | main loop
 mainStatus :: IOStatus ()
 mainStatus = do
     ende <- get >>= \status -> do

@@ -400,6 +400,7 @@ queryKupplung   query@(QKupplungName name)  (EingabeToken {eingabe, ganzzahl})  
 queryKupplung   query@(QKUnbekannt _ _)     _token                       = Left query
 
 -- * Klasse für unvollständige Befehle
+-- | Unvollständige Befehle/Objekte stellen Funktionen bereit, damit dem Nutzer angezeigt wird, was als nächstes benötigt wird.
 class Query q where
     getQuery :: (IsString s, Semigroup s) => q -> s
     getQueryFailed :: (IsString s, Semigroup s) => q -> s -> s
@@ -408,12 +409,15 @@ class Query q where
     getQueryOptions _query = Nothing
     {-# MINIMAL getQuery #-}
 
+-- | Standard-Implementierung zum Anzeigen einer fehlgeschlagenen 'Query'
 getQueryFailedDefault :: (Query q, IsString s, Semigroup s) => q -> s -> s
 getQueryFailedDefault q eingabe = Language.unbekannt (getQuery q) <=> eingabe
 
+-- | Zeige ein unvollständiges Objekt, gefolgt von der nächsten Nachfrage an
 showQuery :: (Show q, Query q, IsString s, Semigroup s) => q -> s
 showQuery q = showText q <^> getQuery q
 
+-- | Zeige Meldung für eine invalide Eingabe auf die Nachfrage einer 'Query' an
 showQueryFailed :: (Show q, Query q, IsString s, Semigroup s) => q -> s -> s
 showQueryFailed q eingabe = showText q <^> getQueryFailed q eingabe
 
@@ -539,6 +543,7 @@ instance Query QObjekt where
     getQueryOptions (QOKupplung qKupplung)                          = getQueryOptions qKupplung
     getQueryOptions (QOIOStatus qObjektIOStatus _eitherKonstruktor) = getQueryOptions qObjektIOStatus
 
+-- | 'Aktion'-Klassifizierungen
 data QAktionElement = QAEUnbekannt              Text
                     | QAERückgängig
                     | QAEWarten
@@ -548,13 +553,14 @@ data QAktionElement = QAEUnbekannt              Text
                     | QAEStreckenabschnitt
                     | QAEKupplung
 
+-- | Bekannte Teil-Typen einer 'Wegstrecke'
 data QWegstreckenElement    = QWEUnbekannt              Text
                             | QWEWeiche
                             | QWEBahngeschwindigkeit
                             | QWEStreckenabschnitt
                             | QWEKupplung
 
--- | Unvollständiger Plan
+-- | Unvollständiger 'Plan'
 data QPlan  = QPlan
             | QPUnbekannt       QPlan                               Text
             | QPlanName         Text
@@ -589,6 +595,7 @@ instance Query QPlan where
     getQueryOptions (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = getQueryOptions qObjektIOStatus
     getQueryOptions (QPlanBefehlQuery qKonstruktor _eitherF)            = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
 
+-- | Unvollständige 'Aktion'
 data QAktion    = QAktion
                 | QAUnbekannt           QAktion                                                                 Text
                 | QARückgängig
@@ -643,6 +650,7 @@ instance Query QAktion where
     getQueryOptions (QAktionIOStatus qObjektIOStatus _eitherKonstruktor)    = getQueryOptions qObjektIOStatus
     getQueryOptions (QAktionBefehlQuery qKonstruktor _eitherF)              = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
 
+-- | Unvollständige 'Aktion' einer 'Wegstrecke'
 data QAktionWegstrecke qw w = QAktionWegstrecke         w
                             | QAWSUnbekannt             (QAktionWegstrecke qw w)            Text
                             | QAWSBahngeschwindigkeit   (QAktionBahngeschwindigkeit qw w)
@@ -670,6 +678,7 @@ instance Query (QAktionWegstrecke qw w) where
     getQueryOptions (QAWSStreckenabschnitt qAktion)     = getQueryOptions qAktion
     getQueryOptions (QAWSKupplung qAktion)              = getQueryOptions qAktion
 
+-- | Unvollständige 'Aktion' einer 'Weiche'
 data QAktionWeiche qw w = QAktionWeiche         w
                         | QAWUnbekannt          (QAktionWeiche qw w)    Text
                         | QAWStellen            w
@@ -689,6 +698,7 @@ instance Query (QAktionWeiche qw w) where
     getQueryOptions (QAWUnbekannt qAktion _eingabe) = getQueryOptions qAktion
     getQueryOptions (QAWStellen _weiche)            = Just $ toBefehlsString $ NE.toList $ fmap showText unterstützteRichtungen
 
+-- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
 data QAktionBahngeschwindigkeit qb b    = QAktionBahngeschwindigkeit            b
                                         | QABGUnbekannt                         (QAktionBahngeschwindigkeit qb b)   Text
                                         | QABGGeschwindigkeit                   b
@@ -716,6 +726,7 @@ instance Query (QAktionBahngeschwindigkeit qb b) where
     getQueryOptions (QABGGeschwindigkeit _bahngeschwindigkeit)          = Nothing
     getQueryOptions (QABGUmdrehen _bahngeschwindigkeit)                 = Just $ toBefehlsString $ map showText $ NE.toList unterstützteFahrtrichtungen
 
+-- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
 data QAktionStreckenabschnitt qs s  = QAktionStreckenabschnitt          s
                                     | QASUnbekannt                      (QAktionStreckenabschnitt qs s) Text
                                     | QASStrom                          s
@@ -735,6 +746,7 @@ instance Query (QAktionStreckenabschnitt qst st) where
     getQueryOptions (QASUnbekannt qAktion _eingabe)                 = getQueryOptions qAktion
     getQueryOptions (QASStrom _streckenabschnitt)                   = Just $ toBefehlsString [Language.an, Language.aus]
 
+-- | Unvollständige 'Aktion' einer 'Kupplung'
 data QAktionKupplung qk k   = QAktionKupplung           k
                             | QAKUnbekannt              (QAktionKupplung qk k)  Text
 
@@ -750,7 +762,7 @@ instance Query (QAktionKupplung qk k) where
     getQueryOptions (QAktionKupplung _kupplung)     = Just $ toBefehlsString Language.aktionKupplung
     getQueryOptions (QAKUnbekannt qAktion _eingabe) = getQueryOptions qAktion
 
--- | Unvollständige Wegstrecke
+-- | Unvollständige 'Wegstrecke'
 data QWegstrecke    = QWegstrecke
                     | QWSUnbekannt                              QWegstrecke                         Text
                     | QWegstreckeName                           Text
@@ -785,6 +797,7 @@ instance Query QWegstrecke where
     getQueryOptions (QWegstreckeBefehlQuery qKonstruktor _eitherF)              = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
     getQueryOptions _query                                                      = Nothing
 
+-- | Unvollständige 'Weiche'
 data QWeiche    = QWeiche
                 | QWUnbekannt                       QWeiche Text
                 | QLegoWeiche
@@ -833,6 +846,7 @@ instance Query QWeiche where
     getQueryOptions (QMärklinWeicheNameAnzahl _name _anzahl _acc)   = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     getQueryOptions _query                                          = Nothing
 
+-- | Unvollständige 'Bahngeschwindigkeit'
 data QBahngeschwindigkeit   = QBahngeschwindigkeit
                             | QBGUnbekannt                                   QBahngeschwindigkeit    Text
                             | QLegoBahngeschwindigkeit
@@ -869,6 +883,7 @@ instance Query QBahngeschwindigkeit where
     getQueryOptions (QBGUnbekannt query _eingabe)   = getQueryOptions query
     getQueryOptions _query                          = Nothing
 
+-- | Unvollständiger 'Streckenabschnitt'
 data QStreckenabschnitt = QStreckenabschnitt
                         | QSUnbekannt               QStreckenabschnitt  Text
                         | QStreckenabschnittName    Text
@@ -890,6 +905,7 @@ instance Query QStreckenabschnitt where
     getQueryOptions (QSUnbekannt query _eingabe)    = getQueryOptions query
     getQueryOptions _query                          = Nothing
 
+-- | Unvollständige 'Kupplung'
 data QKupplung  = QKupplung
                 | QKUnbekannt   QKupplung   Text
                 | QKupplungName Text
@@ -912,12 +928,15 @@ instance Query QKupplung where
     getQueryOptions _query                          = Nothing
 
 -- * Hilfs-Befehle
+-- | Wähle aus möglichen Interpretationen der Eingabe die erste passende aus und gebe den daraus resultierenden Befehl zurück.
+-- Falls keine Möglichkeit passend ist, gebe wird das Ersatz-Ergebnis zurückgegeben.
 wähleBefehl :: EingabeToken -> [(Token, a)] -> a -> a
 wähleBefehl _eingabe                                ([])                    ersatz  = ersatz
 wähleBefehl eingabe@(EingabeToken {möglichkeiten})  ((befehl,ergebnis):t)   ersatz
     | elem befehl möglichkeiten                                                     = ergebnis
     | otherwise                                                                     = wähleBefehl eingabe t ersatz
 
+-- | Gebe (falls möglich) die zur Eingabe passende 'Richtung' zurück.
 wähleRichtung :: EingabeToken -> Maybe Richtung
 wähleRichtung token = wähleBefehl token [
     (Lexer.Gerade   , Just Gerade),
@@ -927,7 +946,7 @@ wähleRichtung token = wähleBefehl token [
     $ Nothing
 
 -- ** Text-Hilfsfunktionen
---  | Fehlerhafte Eingabe melden
+-- | Fehlerhafte Eingabe anzeigen
 unbekanntShowText :: (Show q, Query q, IsString s, Semigroup s) => q -> s -> s
 unbekanntShowText q eingabe = fehlerText $ showQueryFailed q eingabe
 

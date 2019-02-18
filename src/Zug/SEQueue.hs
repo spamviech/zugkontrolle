@@ -1,6 +1,10 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
+{-|
+Description :
+Single-Ended Queue mit O(1) 'append' und amortisierter O(1) 'view'-Funktion.
+-}
 module Zug.SEQueue (SEQueue(), empty, singleton, fromList, append, view, viewLast, View(..)) where
 
 -- Bibliotheken

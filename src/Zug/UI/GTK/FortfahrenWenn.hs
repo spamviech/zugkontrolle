@@ -15,7 +15,7 @@ module Zug.UI.GTK.FortfahrenWenn (
                                 FortfahrenWennToggled(), fortfahrenWennToggledNew, aktiviereWennToggled,
                                 MitCheckButton(..),
                                 -- * Foldable
-                                VielleichtRegistrierterCheckButton(), VRCheckButton, unregistriert, erhalteWidget, _Registriert, _Unregistriert,
+                                VielleichtRegistrierterCheckButton(), VRCheckButton, unregistriert, erhalteWidget,
                                 fortfahrenWennToggledEmptyLinkedMVarNew, linkedMVarCheckButtons,
                                 FortfahrenWennGefüllt(), fortfahrenWennGefülltEmptyLinkedMVarNew, linkedMVarElemente) where
 
@@ -36,6 +36,7 @@ instance (Foldable f) => Foldable (FortfahrenWennToggled f) where
     foldMap :: Monoid m => (a -> m) -> FortfahrenWennToggled f a -> m
     foldMap f (FortfahrenWennToggled {checkButtons}) = foldMap f checkButtons
 
+-- | Klasse für Typen, die einen ausgezeichneten 'CheckButton' haben
 class MitCheckButton c where
     checkButton :: Getter c CheckButton
 
@@ -90,13 +91,16 @@ fortfahrenWennToggledEmptyLinkedMVarNew fortfahren traversal maybeLMVar = do
             registrieren    _updateAktion   reg@(Registriert _c)    = pure reg
             registrieren    updateAktion    (Unregistriert c)       = on (c ^. checkButton) toggled updateAktion >> pure (Registriert c)
 
+-- | Erhalte 'LinkedMVar' in der 'CheckButton's gespeichert werden
 linkedMVarCheckButtons :: Getter (FortfahrenWennToggled LinkedMVar a) (LinkedMVar a)
 linkedMVarCheckButtons = Lens.to checkButtons
 
 -- ** Either-ähnlicher Datentyp, zum unterscheiden von registrierten und unregistrierten CheckButtons
+-- | 'MitCheckButton', der vielleicht schon registriert wurde
 data VielleichtRegistrierterCheckButton c   = Unregistriert c
                                             | Registriert   c
                                                             deriving (Eq)
+-- | 'VielleichtRegistrierterCheckButton' spezialisiert auf 'CheckButton'
 type VRCheckButton = VielleichtRegistrierterCheckButton CheckButton
 
 -- Prism wie bei Either
@@ -115,9 +119,11 @@ _Unregistriert = Lens.prism Unregistriert updateUnregistriert
         updateUnregistriert   (Unregistriert c)             = Right c
 
 -- exportierte Konstruktoren
+-- | Setzte einen 'CheckButton' als unregistriert
 unregistriert :: c -> VielleichtRegistrierterCheckButton c
 unregistriert = Unregistriert
 
+-- | Erhalte Widget eines 'VielleichtRegistierterCheckButton', z.B. um es einem 'Container' hinzuzufügen
 erhalteWidget :: Getter (VielleichtRegistrierterCheckButton c) c
 erhalteWidget = Lens.to erhalteWidgetAux
     where
@@ -135,6 +141,7 @@ fortfahrenWennGefülltEmptyLinkedMVarNew fortfahrenGefüllt maybeLMVar = do
     appendLinkedMVar elemente $ \fa -> aktiviereWennGefülltAux fortfahrenGefüllt fa >> pure fa
     pure FortfahrenWennGefüllt {fortfahrenGefüllt, elemente}
 
+-- | Erhalte 'LinkedMVar', in der die Elemente gespeichert werden
 linkedMVarElemente :: Getter (FortfahrenWennGefüllt t a) (LinkedMVar (t a))
 linkedMVarElemente = Lens.to elemente
 
