@@ -22,6 +22,9 @@ import System.Posix.User
 import qualified Zug.Language as Language
 #endif
 
+-- | Wähle das per Kommandozeilen-Parameter gewählte Nutzer-Interface und starte dessen main loop.
+-- 
+-- Falls es nicht verfügbar ist, starte stattdessen den Cmd-UI main loop.
 main :: IO ()
 main = whenRoot $ do
     (Options {ui}) <- getOptions

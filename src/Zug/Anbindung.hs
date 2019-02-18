@@ -50,9 +50,13 @@ fromPin pin = case (pinToBcmGpio pin) of
     (Nothing)   -> 0
 
 -- * Test-Funktionen, ob Pins bestimmte Funktionen unterstützen
+-- | Unterstützt der 'Pin'
+-- >'pinMode' pin PWM_OUTPUT
 hasPWM :: Pin -> Bool
 hasPWM = (`elem` [Wpi 1, Wpi 23, Wpi 24, Wpi 26])
 
+-- | Unterstützt der 'Pin'
+-- >'pinMode' pin GPIO_CLOCK
 hasClock :: Pin -> Bool
 hasClock = (`elem` [Wpi 7, Wpi 21, Wpi 22, Wpi 29])
 
@@ -110,6 +114,7 @@ class StreckenObjekt s where
     getName :: s -> Text
     {-# MINIMAL pins, getName #-}
 
+-- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
 data Bahngeschwindigkeit    = LegoBahngeschwindigkeit {bgName :: Text, geschwindigkeitsPin::Pin, fahrtrichtungsPin::Pin}
                             | MärklinBahngeschwindigkeit {bgName :: Text, geschwindigkeitsPin::Pin}
                                         deriving (Eq)
@@ -130,6 +135,7 @@ instance StreckenObjekt Bahngeschwindigkeit where
     getName (LegoBahngeschwindigkeit {bgName})    = bgName
     getName (MärklinBahngeschwindigkeit {bgName}) = bgName
 
+-- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen
 class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
     geschwindigkeit :: b -> Natural -> PinMapIO ()
@@ -158,6 +164,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> delayµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin pwmRange mvarPinMap >> delayµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap)
         ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
 
+-- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt = Streckenabschnitt {stName :: Text, stromPin::Pin}
                             deriving (Eq)
 
@@ -171,6 +178,7 @@ instance StreckenObjekt Streckenabschnitt where
     getName :: Streckenabschnitt -> Text
     getName (Streckenabschnitt {stName})  = stName
 
+-- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
     strom :: s -> Bool -> MVar PinMap -> IO ()
@@ -182,6 +190,7 @@ instance StreckenabschnittKlasse Streckenabschnitt where
         (pinMode stromPin OUTPUT >> digitalWrite stromPin (if an then HIGH else LOW))
         ("Strom (" <> showText stromPin <> ")->" <> showText an)
 
+-- | Stellen einer 'Weiche'
 data Weiche = LegoWeiche {weName :: Text, richtungsPin :: Pin, richtungen::(Richtung,Richtung)}
             | MärklinWeiche {weName :: Text, richtungsPins :: NonEmpty (Richtung, Pin)}
                     deriving (Eq)
@@ -202,6 +211,7 @@ instance StreckenObjekt Weiche where
     getName (LegoWeiche {weName})     = weName
     getName (MärklinWeiche {weName})  = weName
 
+-- | Sammel-Klasse für 'Weiche'n-artige Typen
 class (StreckenObjekt w) => WeicheKlasse w where
     -- | Weiche einstellen
     stellen :: w -> Richtung -> PinMapIO ()
@@ -245,6 +255,7 @@ instance WeicheKlasse Weiche where
     getRichtungen   (LegoWeiche {richtungen=(richtung1, richtung2)})    = richtung1 :| [richtung2]
     getRichtungen   (MärklinWeiche {richtungsPins})                     = fst <$> richtungsPins
 
+-- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekuppelt werden
 data Kupplung = Kupplung {kuName :: Text, kupplungsPin::Pin}
                     deriving (Eq)
 
@@ -258,6 +269,7 @@ instance StreckenObjekt Kupplung where
     getName :: Kupplung -> Text
     getName (Kupplung {kuName})   = kuName
 
+-- | Sammel-Klasse für 'Kupplung'-artige Typen
 class (StreckenObjekt k) => KupplungKlasse k where
     -- | Kupplung betätigen
     kuppeln :: k -> PinMapIO ()
@@ -324,6 +336,7 @@ instance KupplungKlasse Wegstrecke where
     kuppeln :: Wegstrecke -> PinMapIO ()
     kuppeln (Wegstrecke {wsKupplungen})  mvarPinMap  = mapM_ (flip kuppeln mvarPinMap) wsKupplungen
 
+-- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
     einstellen :: w -> PinMapIO ()
     {-# MINIMAL einstellen #-}

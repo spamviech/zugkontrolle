@@ -58,14 +58,17 @@ lexOne  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, t
             (vorwärts           , Vorwärts),
             (rückwärts          , Rückwärts)]
 
+-- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
 data AllgemeinesEingabeToken    = Tk            EingabeToken
                                 | TkBeenden
                                 | TkAbbrechen
                                     deriving (Show)
 
+-- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken = EingabeToken {eingabe::Text, möglichkeiten::[Token], ganzzahl::Maybe Natural}
                         deriving (Show)
 
+-- | Bekannte Befehle
 data Token  = Beenden
             | Abbrechen
             | Rückgängig
@@ -104,8 +107,10 @@ data Token  = Beenden
 istBefehl :: Text -> Text -> Bool
 istBefehl = istPrefix
 
+-- | Teste auf Prefix-Eigenschaft ohne Berücksichtigung von Groß-/Klein-Schreibung
 istPrefix :: Text -> Text -> Bool
 istPrefix eingabe command = T.isPrefixOf (T.toCaseFold $ eingabe) (T.toCaseFold $ command)
 
+-- | Teste auf Gleichheit ohne Berücksichtigung von Groß-/Klein-Schreibung
 istGleich :: Text -> Text -> Bool
 istGleich eingabe command = T.toCaseFold eingabe == T.toCaseFold command

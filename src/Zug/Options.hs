@@ -18,6 +18,7 @@ data Options = Options {
                     load :: String}
                         deriving Show
 
+-- | Unterstützte Benutzer-Schnittstellen
 data UI = GTK | Cmd
             deriving (Show, Read)
 

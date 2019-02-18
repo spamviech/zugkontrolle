@@ -12,7 +12,7 @@ import System.Console.ANSI
 import qualified Zug.Language as Language
 import qualified Zug.UI.Cmd as Cmd
 
--- | Weiche auf Cmd-UI aus
+-- | GTK-main loop nicht verfügbar. Weiche auf Cmd-UI aus
 main :: IO ()
 main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnterstützt >> setSGR [Reset] >> Cmd.main
 #else
@@ -44,6 +44,9 @@ main = do
     -- GTK+ main loop
     mainGUI
 
+-- | Erstelle GUI inkl. sämtlicher Events.
+-- 
+-- Zur Verwendung muss vorher 'initGUI' aufgerufen werden.
 setupGUI :: IO ()
 setupGUI = void $ do
     -- Hauptfenster

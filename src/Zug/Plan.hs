@@ -38,6 +38,7 @@ data PlanGeneral bg st we ku ws = Plan {
     plAktionen :: [AktionGeneral bg st we ku ws]}
         deriving (Eq)
 
+-- | Spezialisierung eines 'PlanGeneral' auf minimal benötigte Typen
 type Plan = PlanGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke
 
 instance (Show bg, Show st, Show we, Show ku, Show ws, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => Show (PlanGeneral bg st we ku ws) where
@@ -67,6 +68,7 @@ data AktionGeneral bg st we ku ws   = Warten                Natural
                                     | AStreckenabschnitt    (AktionStreckenabschnitt st)
                                     | AKupplung             (AktionKupplung ku)
                                         deriving (Eq)
+-- | Spezialisierung einer 'AktionGeneral' auf minimal benötigte Typen
 type Aktion = AktionGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke
 
 instance (Show bg, Show st, Show we, Show ku, Show ws, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => Show (AktionGeneral bg st we ku ws) where
@@ -105,6 +107,7 @@ instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse
     ausführenPlan (AStreckenabschnitt aktion)     showAction    = ausführenPlan aktion showAction
     ausführenPlan (AKupplung aktion)              showAction    = ausführenPlan aktion showAction
 
+-- | Bekannte Aktionen einer Wegstrecke
 data AktionWegstrecke w = Einstellen w
                         | AWSBahngeschwindigkeit (AktionBahngeschwindigkeit w)
                         | AWSStreckenabschnitt (AktionStreckenabschnitt w)
@@ -139,6 +142,7 @@ instance (WegstreckeKlasse w) => PlanKlasse (AktionWegstrecke w) where
     ausführenPlan (AWSStreckenabschnitt aktion)   showAction    = ausführenPlan aktion showAction
     ausführenPlan (AWSKupplung aktion)            showAction    = ausführenPlan aktion showAction
 
+-- | Bekannte Aktionen einer Weiche
 data AktionWeiche w = Stellen w Richtung
                         deriving (Eq)
 
@@ -158,6 +162,7 @@ instance (WeicheKlasse w) => PlanKlasse (AktionWeiche w) where
     ausführenPlan :: AktionWeiche w -> (Natural -> IO ()) -> PinMapIO ()
     ausführenPlan (Stellen w richtung)    _showAction   = stellen w richtung
 
+-- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit b    = Geschwindigkeit b Natural
                                     | Umdrehen b (Maybe Fahrtrichtung)
                                         deriving (Eq)
@@ -183,6 +188,7 @@ instance (BahngeschwindigkeitKlasse b) => PlanKlasse (AktionBahngeschwindigkeit 
     ausführenPlan (Geschwindigkeit b wert)        _showAction   = geschwindigkeit b wert
     ausführenPlan (Umdrehen b maybeFahrtrichtung) _showAction   = umdrehen b maybeFahrtrichtung
 
+-- | Aktionen eines Streckenabschnitts
 data AktionStreckenabschnitt s   = Strom s Bool
                                     deriving (Eq)
 
@@ -203,6 +209,7 @@ instance (StreckenabschnittKlasse s) => PlanKlasse (AktionStreckenabschnitt s) w
     ausführenPlan :: AktionStreckenabschnitt s -> (Natural -> IO ()) -> PinMapIO ()
     ausführenPlan (Strom s an)    _showAction   = strom s an
 
+-- | Aktionen einer Kupplung
 data AktionKupplung k   = Kuppeln k
                             deriving (Eq)
 

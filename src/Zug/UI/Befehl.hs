@@ -58,11 +58,13 @@ data BefehlGeneral bg st we ku ws pl    = UI            (UIBefehlGeneral bg st w
                                         | Laden         FilePath                            (Status -> IO (StatusGeneral bg st we ku ws pl))  (IOStatusGeneral bg st we ku ws pl ())
                                         | Ausführen     (PlanGeneral bg st we ku ws)        (Natural -> IO ())
                                         | AktionBefehl  (AktionGeneral  bg st we ku ws)
+-- | 'BefehlGeneral' spezialisiert auf minimal spezialisierte Typen
 type Befehl = BefehlGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
--- | UI-spezifische Befehle
+-- | UI-spezifische Befehle. 6-facher Phantomtyp, um eine 'BefehlKlasse'-Instanz zu erhalten.
 data UIBefehlGeneral bg st we ku ws pl = Beenden | Abbrechen
                                             deriving (Show)
+-- | 'UIBefehlGeneral' spezialisiert auf minimal benötigte Typen
 type UIBefehl = UIBefehlGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 -- | Sammel-Typen
@@ -73,6 +75,7 @@ data ObjektGeneral bg st we ku ws pl    = OPlan                 pl
                                         | OStreckenabschnitt    st
                                         | OKupplung             ku
                                             deriving (Show)
+-- | 'ObjektGeneral' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 instance BefehlKlasse UIBefehlGeneral where
@@ -110,7 +113,9 @@ instance BefehlKlasse BefehlGeneral where
             ausführenBefehlAux  (Ausführen plan showAction)                             = passMVarPinMap $ ausführenPlan plan showAction
             ausführenBefehlAux  (AktionBefehl aktion)                                   = passMVarPinMap $ ausführenPlan aktion $ \_ -> pure ()
 
+-- | Normale Listen von 'BefehlGeneral' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.
 newtype BefehlListeGeneral bg st we ku ws pl = BefehlListe {getBefehlListe :: [BefehlGeneral bg st we ku ws pl]}
+-- | 'BefehlListeGeneral' spezialisiert auf minimal benötigte Typen
 type BefehlListe = BefehlListeGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 instance BefehlKlasse BefehlListeGeneral where
