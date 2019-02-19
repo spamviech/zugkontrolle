@@ -2,8 +2,9 @@ Bekannte Bugs:
     Keine
 Dokumentation schreiben
     ReadMe
-    Beispiel-Schaltpläne
-        ReadMe texen?
+        Markup überprüfen
+        Beispiel-Schaltpläne
+            ReadMe texen?
     Copyright/Lizenz
 Unfinished Features:
     Test-Suite vervollständigen
@@ -15,8 +16,6 @@ Code verbessern:
         LinkedMVar benötigt dadurch Update-Aktion nicht mehr
         Konstruktor muss LinkedMVar kennen
     Bahngeschwindigkeit beim Umdrehen nur abhängig vom Zugtyp anzeigen
-    Objekt zu StreckenObjekt machen
-        hinzufügenWidgetPlanNew benötigt nur noch Objekt, nicht mehr den Objekt-Konstruktor
     hinzufügenWidgetSimpleNew umbenennen -> hinzufügenWidgetWegstreckeNew
     englische Namen beseitigen:
         PlanGeneral -> AllgemeinerPlan
