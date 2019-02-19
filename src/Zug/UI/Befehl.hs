@@ -21,9 +21,11 @@ import Control.Monad.Trans
 import Control.Monad.State
 import Control.Concurrent
 import Data.Aeson (ToJSON)
+import Data.Text (Text)
 import Numeric.Natural
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
+import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
 import qualified Zug.UI.Save as Save
@@ -77,6 +79,29 @@ data ObjektGeneral bg st we ku ws pl    = OPlan                 pl
                                             deriving (Show)
 -- | 'ObjektGeneral' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+
+instance (StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws, StreckenObjekt pl) => StreckenObjekt (ObjektGeneral bg st we ku ws pl) where
+    getName :: ObjektGeneral bg st we ku ws pl -> Text
+    getName (OPlan pl)                  = getName pl
+    getName (OWegstrecke ws)            = getName ws
+    getName (OWeiche we)                = getName we
+    getName (OBahngeschwindigkeit bg)   = getName bg
+    getName (OStreckenabschnitt st)     = getName st
+    getName (OKupplung ku)              = getName ku
+    pins ::ObjektGeneral bg st we ku ws pl -> [Pin]
+    pins (OPlan pl)                 = pins pl
+    pins (OWegstrecke ws)           = pins ws
+    pins (OWeiche we)               = pins we
+    pins (OBahngeschwindigkeit bg)  = pins bg
+    pins (OStreckenabschnitt st)    = pins st
+    pins (OKupplung ku)             = pins ku
+    zugtyp :: ObjektGeneral bg st we ku ws pl -> Zugtyp
+    zugtyp (OPlan pl)                  = zugtyp pl
+    zugtyp (OWegstrecke ws)            = zugtyp ws
+    zugtyp (OWeiche we)                = zugtyp we
+    zugtyp (OBahngeschwindigkeit bg)   = zugtyp bg
+    zugtyp (OStreckenabschnitt st)     = zugtyp st
+    zugtyp (OKupplung ku)              = zugtyp ku
 
 instance BefehlKlasse UIBefehlGeneral where
     ausführenBefehl :: (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)

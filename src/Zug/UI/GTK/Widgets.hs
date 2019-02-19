@@ -269,8 +269,8 @@ hinzufügenWidgetSimpleNew objekt box = do
     pure (hBoxHinzufügen, unregistriert checkButton)
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'LikeMVar' mit dem Objekt gefüllt.
-hinzufügenWidgetPlanNew :: (StreckenObjekt o, BoxClass b, LikeMVar lmvar) => o -> b -> (o -> Objekt) -> lmvar (Maybe Objekt) -> IO Button
-hinzufügenWidgetPlanNew objekt box objektKonstruktor lmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (getName objekt) $ putLMVar lmvar $ Just $ objektKonstruktor objekt
+hinzufügenWidgetPlanNew :: (BoxClass b, LikeMVar lmvar) => b -> Objekt -> lmvar (Maybe Objekt) -> IO Button
+hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (getName objekt) $ putLMVar lmvar $ Just objekt
 
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
@@ -278,7 +278,7 @@ bahngeschwindigkeitPackNew :: (LikeMVar lmvar) => Bahngeschwindigkeit -> lmvar S
 bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus (DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew bahngeschwindigkeit vBoxHinzufügenWegstreckeBahngeschwindigkeiten
-    hinzufügenPlanWidget <- hinzufügenWidgetPlanNew bahngeschwindigkeit vBoxHinzufügenPlanBahngeschwindigkeiten OBahngeschwindigkeit mvarPlanObjekt
+    hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanBahngeschwindigkeiten (OBahngeschwindigkeit bahngeschwindigkeit) mvarPlanObjekt
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ hBoxNew False 0
     nameLabelPackNew hBox bahngeschwindigkeit
@@ -355,7 +355,7 @@ streckenabschnittPackNew :: (LikeMVar lmvar) => Streckenabschnitt -> lmvar Statu
 streckenabschnittPackNew streckenabschnitt@(Streckenabschnitt {stromPin}) mvarStatus (DynamischeWidgets {vBoxStreckenabschnitte, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew streckenabschnitt vBoxHinzufügenWegstreckeStreckenabschnitte
-    hinzufügenPlanWidget <- hinzufügenWidgetPlanNew streckenabschnitt vBoxHinzufügenPlanStreckenabschnitte OStreckenabschnitt mvarPlanObjekt
+    hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanStreckenabschnitte (OStreckenabschnitt streckenabschnitt) mvarPlanObjekt
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ hBoxNew False 0
     nameLabelPackNew hBox streckenabschnitt
@@ -422,10 +422,10 @@ weichePackNew   weiche  mvarStatus  (DynamischeWidgets {vBoxWeichen, vBoxHinzuf�
             tRichtungRadioButtons <- mapM (\richtung -> boxPackWidgetNewDefault hBoxHinzufügen (radioButtonNewWithLabelFromWidget (snd hRichtungRadioButton) $ show richtung) >>= \radioButton -> pure (richtung, radioButton)) t
             pure $ hRichtungRadioButton :| tRichtungRadioButtons
         pure (hBoxHinzufügen, unregistriert checkButton, richtungsRadioButtons)
-    hinzufügenPlanWidgetGerade <- if hatRichtung weiche Gerade then pure Nothing else hinzufügenWidgetPlanNew weiche vBoxHinzufügenPlanWeichenGerade OWeiche mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetKurve <- if hatRichtung weiche Kurve then pure Nothing else hinzufügenWidgetPlanNew weiche vBoxHinzufügenPlanWeichenKurve OWeiche mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetLinks <- if hatRichtung weiche Links then pure Nothing else hinzufügenWidgetPlanNew weiche vBoxHinzufügenPlanWeichenLinks OWeiche mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetRechts <- if hatRichtung weiche Rechts then pure Nothing else hinzufügenWidgetPlanNew weiche vBoxHinzufügenPlanWeichenRechts OWeiche mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetGerade  <- if hatRichtung weiche Gerade then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenGerade (OWeiche weiche) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetKurve   <- if hatRichtung weiche Kurve  then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenKurve  (OWeiche weiche) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetLinks   <- if hatRichtung weiche Links  then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenLinks  (OWeiche weiche) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetRechts  <- if hatRichtung weiche Rechts then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenRechts (OWeiche weiche) mvarPlanObjekt >>= pure . Just
     let hinzufügenPlanWidget = (hinzufügenPlanWidgetGerade, hinzufügenPlanWidgetKurve, hinzufügenPlanWidgetLinks, hinzufügenPlanWidgetRechts)
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxWeichen $ hBoxNew False 0
@@ -492,7 +492,7 @@ kupplungPackNew :: (LikeMVar lmvar) => Kupplung -> lmvar StatusGUI -> Dynamische
 kupplungPackNew kupplung@(Kupplung {kupplungsPin}) mvarStatus (DynamischeWidgets {vBoxKupplungen, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew kupplung vBoxHinzufügenWegstreckeKupplungen
-    hinzufügenPlanWidget <- hinzufügenWidgetPlanNew kupplung vBoxHinzufügenPlanKupplungen OKupplung mvarPlanObjekt
+    hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanKupplungen (OKupplung kupplung) mvarPlanObjekt
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxKupplungen $ hBoxNew False 0
     nameLabelPackNew hBox kupplung
@@ -549,10 +549,10 @@ buttonKuppelnPackNew box kupplung mvarStatus = boxPackWidgetNewDefault box $ but
 wegstreckePackNew :: (LikeMVar lmvar) => Wegstrecke -> lmvar StatusGUI -> DynamischeWidgets -> IO WegstreckeWidget
 wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) mvarStatus (DynamischeWidgets {vBoxWegstrecken, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten then pure Nothing else hinzufügenWidgetPlanNew wegstrecke vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit OWegstrecke mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetST <- if null wsStreckenabschnitte then pure Nothing else hinzufügenWidgetPlanNew wegstrecke vBoxHinzufügenPlanWegstreckenStreckenabschnitt OWegstrecke mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetWE <- if null wsWeichenRichtungen then pure Nothing else hinzufügenWidgetPlanNew wegstrecke vBoxHinzufügenPlanWegstreckenWeiche OWegstrecke mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetKU <- if null wsKupplungen then pure Nothing else hinzufügenWidgetPlanNew wegstrecke vBoxHinzufügenPlanWegstreckenKupplung OWegstrecke mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten   then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetST <- if null wsStreckenabschnitte      then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenStreckenabschnitt   (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetWE <- if null wsWeichenRichtungen       then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenWeiche              (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetKU <- if null wsKupplungen              then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenKupplung            (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
     let hinzufügenPlanWidget = (hinzufügenPlanWidgetBG, hinzufügenPlanWidgetST, hinzufügenPlanWidgetWE, hinzufügenPlanWidgetKU)
     -- Widget erstellen
     frame <- boxPackWidgetNewDefault vBoxWegstrecken frameNew
