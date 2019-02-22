@@ -48,3 +48,4 @@
 - Zeit zum stellen einer Weiche reduziert
 - Bugfix: LinkedMVar merkt sich Änderungen wieder
 ## Unreleased changes
+- HIGH/Low vertauscht (unverändert für PWM-Output)
