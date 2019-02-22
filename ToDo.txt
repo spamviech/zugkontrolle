@@ -11,7 +11,12 @@ Unfinished Features:
     Cmd-UI:
         Mehr Farbe verwenden?
 Code verbessern:
-    Verwende TypeFamilies um Argumente von StatusGeneral etc. zu reduzieren
+    HIGH/LOW vertauschen
+        beim Start sind Relays standardmäßig wie bei HIGH-Eingabe
+    Argumente von StatusGeneral etc. reduzieren
+        TypeFamilies
+        GADTs
+            stelle zumindes gleichzeitige Verwendung von zusammnegehörigen Elementen sicher
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
         LinkedMVar benötigt dadurch Update-Aktion nicht mehr
         Konstruktor muss LinkedMVar kennen
