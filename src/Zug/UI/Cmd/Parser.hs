@@ -37,7 +37,7 @@ import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), showText, fehlerText, to
 import Zug.UI.Base
 import Zug.UI.Befehl
 import qualified Zug.UI.Cmd.Lexer as Lexer
-import Zug.UI.Cmd.Lexer (AllgemeinesEingabeToken(..), EingabeToken(..), Token())
+import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token())
 
 -- * Auswerten einer Text-Eingabe
 -- | Erhalte ein im Status existierendes Objekt
@@ -57,10 +57,10 @@ statusQueryObjektAux    query   eingabe getFromStatus   konstruktor = getFromSta
     (Just objekt)   -> Right $ konstruktor objekt
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
-parser :: QBefehl -> [AllgemeinesEingabeToken] -> ([Befehl], QErgebnis)
+parser :: QBefehl -> [EingabeTokenAllgemein] -> ([Befehl], QErgebnis)
 parser = parserAux []
     where
-        parserAux :: [Befehl] -> QBefehl -> [AllgemeinesEingabeToken] -> ([Befehl], QErgebnis)
+        parserAux :: [Befehl] -> QBefehl -> [EingabeTokenAllgemein] -> ([Befehl], QErgebnis)
         parserAux   acc (QBefehl)   ([])                    = parserErgebnisOk acc
         parserAux   acc query       ([])                    = (reverse acc, QEQBefehl query)
         parserAux   acc _query      (TkBeenden:_t)          = parserErgebnisOk (UI Beenden:acc)
@@ -423,8 +423,8 @@ showQueryFailed q eingabe = showText q <^> getQueryFailed q eingabe
 
 -- | Rückgabe-Typen
 data QErgebnis  = QEBefehl          Befehl
-                | QEBefehlSofort    BefehlSofort    [AllgemeinesEingabeToken]
-                | QEBefehlQuery     QObjektIOStatus (Either (Objekt -> QBefehl) (Objekt -> Befehl))    QBefehl  [AllgemeinesEingabeToken]
+                | QEBefehlSofort    BefehlSofort    [EingabeTokenAllgemein]
+                | QEBefehlQuery     QObjektIOStatus (Either (Objekt -> QBefehl) (Objekt -> Befehl))    QBefehl  [EingabeTokenAllgemein]
                 | QEQBefehl         QBefehl
 
 -- | Befehle, die sofort ausgführt werden müssen
