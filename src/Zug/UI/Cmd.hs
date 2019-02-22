@@ -27,7 +27,7 @@ import qualified Zug.UI.Save as Save
 import Zug.Options
 import Zug.UI.Base
 import Zug.UI.Befehl
-import Zug.UI.Cmd.Lexer(AllgemeinesEingabeToken(..), EingabeToken(..), lexer)
+import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
 import Zug.UI.Cmd.Parser
 
 -- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
@@ -57,7 +57,7 @@ mainStatus = do
     unless ende mainStatus
 
 -- | Gesammter Auswerte-Prozess
-statusParser :: [AllgemeinesEingabeToken] -> IOStatus Bool
+statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
 statusParser    eingabe = (uncurry statusParserAux) $ parser QBefehl eingabe
     where
         statusParserAux :: [Befehl] -> QErgebnis-> IOStatus Bool
