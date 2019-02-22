@@ -11,8 +11,6 @@ Unfinished Features:
     Cmd-UI:
         Mehr Farbe verwenden?
 Code verbessern:
-    HIGH/LOW vertauschen
-        beim Start sind Relays standardmäßig wie bei HIGH-Eingabe
     Argumente von StatusGeneral etc. reduzieren
         TypeFamilies
         GADTs

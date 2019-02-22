@@ -101,10 +101,6 @@ getPwmValueFull = getPwmValue 100
 getPwmValueReduced :: (Integral i) => i -> PwmValue
 getPwmValueReduced = getPwmValue 75
 
--- | Zeit, die Strom bei kurzen Schalt-Aktionen anliegt
-generalDelayµs :: Natural
-generalDelayµs = µsInS
-
 -- | µs in a second
 µsInS :: Natural
 µsInS = 1000000
@@ -112,6 +108,14 @@ generalDelayµs = µsInS
 -- | µs in a millisecond
 µsInms :: Natural
 µsInms = 1000
+
+-- | HIGH/LOW-Repräsentation für fließenden Strom
+stromFließend :: Value
+stromFließend = LOW
+
+-- | HIGH/LOW-Repräsentation für gesperrten Strom
+stromGesperrt :: Value
+stromGesperrt = HIGH
 
 -- * Repräsentation von StreckenObjekten
 -- | Klassen-Definitionen
@@ -153,7 +157,7 @@ class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
 umdrehenDelayµs :: Natural
-umdrehenDelayµs = generalDelayµs
+umdrehenDelayµs = 500 * µsInms
 
 instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     geschwindigkeit :: Bahngeschwindigkeit -> Natural -> PinMapIO ()
@@ -195,7 +199,7 @@ class (StreckenObjekt s) => StreckenabschnittKlasse s where
 instance StreckenabschnittKlasse Streckenabschnitt where
     strom :: Streckenabschnitt -> Bool -> PinMapIO ()
     strom   (Streckenabschnitt {stromPin})  an  _mvarPinMap = befehlAusführen
-        (pinMode stromPin OUTPUT >> digitalWrite stromPin (if an then HIGH else LOW))
+        (pinMode stromPin OUTPUT >> digitalWrite stromPin (if an then stromFließend else stromGesperrt))
         ("Strom (" <> showText stromPin <> ")->" <> showText an)
 
 -- | Stellen einer 'Weiche'
@@ -250,7 +254,7 @@ instance WeicheKlasse Weiche where
                 richtungStellen :: IO ()
                 richtungStellen = case getRichtungsPin richtung $ NE.toList richtungsPins of
                     (Nothing)           -> pure ()
-                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> digitalWrite richtungsPin HIGH >> delayµs weicheDelayµs >> digitalWrite richtungsPin LOW
+                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> digitalWrite richtungsPin stromFließend >> delayµs weicheDelayµs >> digitalWrite richtungsPin stromGesperrt
                 getRichtungsPin :: Richtung -> [(Richtung, Pin)] -> Maybe Pin
                 getRichtungsPin _richtung   []  = Nothing
                 getRichtungsPin richtung    ((ersteRichtung, ersterPin):andereRichtungen)
@@ -285,12 +289,12 @@ class (StreckenObjekt k) => KupplungKlasse k where
 
 -- | Zeit, die Strom beim Kuppeln anliegt
 kuppelnDelayµs :: Natural
-kuppelnDelayµs = generalDelayµs
+kuppelnDelayµs = µsInS
 
 instance KupplungKlasse Kupplung where
     kuppeln :: Kupplung -> PinMapIO ()
     kuppeln (Kupplung {kupplungsPin})   _mvarPinMap = befehlAusführen
-        (pinMode kupplungsPin OUTPUT >> digitalWrite kupplungsPin HIGH >> delayµs kuppelnDelayµs >> digitalWrite kupplungsPin LOW)
+        (pinMode kupplungsPin OUTPUT >> digitalWrite kupplungsPin stromFließend >> delayµs kuppelnDelayµs >> digitalWrite kupplungsPin stromGesperrt)
         ("Kuppeln (" <> showText kupplungsPin <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
