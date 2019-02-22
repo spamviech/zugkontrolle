@@ -21,9 +21,9 @@ Code verbessern:
     Bahngeschwindigkeit beim Umdrehen nur abhängig vom Zugtyp anzeigen
     hinzufügenWidgetSimpleNew umbenennen -> hinzufügenWidgetWegstreckeNew
     englische Namen beseitigen:
-        PlanGeneral -> AllgemeinerPlan
-        AktionGeneral -> AllgemeineAktion
-        StatusGeneral -> AllgemeinerStatus
+        PlanGeneral -> PlanAllgemein|Done
+        AktionGeneral -> AktionAllgemein|Done
+        StatusGeneral -> StatusAllgemein|Done
             Status -> Zustand?
         Weitere?
 gi-gtk/gi-gtk-declarative verwenden?

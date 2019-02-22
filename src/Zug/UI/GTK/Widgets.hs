@@ -58,7 +58,7 @@ import Zug.UI.GTK.FortfahrenWenn
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Zustands-Typ der Zustands-Monade spezialisiert auf GUI-Typen
-type StatusGUI = StatusGeneral BGWidgets STWidgets WEWidgets KUWidgets WSWidgets PLWidgets
+type StatusGUI = StatusAllgemein BGWidgets STWidgets WEWidgets KUWidgets WSWidgets PLWidgets
 -- | Zustands-Monaden-Transformer spezialisiert auf GUI-Typen in der IO-Monade
 type IOStatusGUI = StateT StatusGUI IO
 -- | Reine Zustands-Monade spezialiert auf GUI-Typen
