@@ -31,7 +31,7 @@ import Zug.Plan
 import Zug.UI.Base
 
 -- | Speichere aktuellen Zustand in Datei
-save :: (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => StatusGeneral bg st we ku ws pl -> FilePath -> IO ()
+save :: (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => StatusAllgemein bg st we ku ws pl -> FilePath -> IO ()
 save contents path = ByteString.writeFile path $ encode contents
 
 -- | Lade Datei
@@ -44,15 +44,15 @@ load path fromStatus = do
         then ByteString.readFile path >>= \byteString -> pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarPinMap)
         else pure Nothing
 
-newtype AlmostStatus bg st we ku ws pl = AlmostStatus {getStatusFunction :: (MVar PinMap -> StatusGeneral bg st we ku ws pl)}
+newtype AlmostStatus bg st we ku ws pl = AlmostStatus {getStatusFunction :: (MVar PinMap -> StatusAllgemein bg st we ku ws pl)}
 
 instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJSON pl) => FromJSON (AlmostStatus bg st we ku ws pl) where
     parseJSON :: Value -> Parser (AlmostStatus bg st we ku ws pl)
     parseJSON   (Object v)  = AlmostStatus <$> (Status <$> (v .: "Bahngeschwindigkeiten") <*> (v .: "Streckenabschnitte") <*> (v .: "Weichen") <*> (v .: "Kupplungen") <*> (v .: "Wegstrecken") <*> (v .: "Pläne"))
     parseJSON   _           = mzero
 
-instance (ToJSON bahngeschwindigkeit, ToJSON streckenabschnitt, ToJSON weiche, ToJSON kupplung, ToJSON wegstrecke, ToJSON plan) => ToJSON (StatusGeneral bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
-    toJSON :: StatusGeneral bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan -> Value
+instance (ToJSON bahngeschwindigkeit, ToJSON streckenabschnitt, ToJSON weiche, ToJSON kupplung, ToJSON wegstrecke, ToJSON plan) => ToJSON (StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
+    toJSON :: StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan -> Value
     toJSON   status  = object [
                             "Bahngeschwindigkeiten" .= _bahngeschwindigkeiten status,
                             "Streckenabschnitte"    .= _streckenabschnitte status,
@@ -172,8 +172,8 @@ instance ToJSON Wegstrecke where
     toJSON  (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})   = object ["Name" .= wsName, "Bahngeschwindigkeiten" .= wsBahngeschwindigkeiten, "Streckenabschnitte" .= wsStreckenabschnitte, "Weichen-Richtungen" .= wsWeichenRichtungen, "Kupplungen" .= wsKupplungen]
 
 -- Instanz-Deklaration für Plan
-instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (AktionGeneral bg st we ku ws) where
-    parseJSON :: Value -> Parser (AktionGeneral bg st we ku ws)
+instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (AktionAllgemein bg st we ku ws) where
+    parseJSON :: Value -> Parser (AktionAllgemein bg st we ku ws)
     parseJSON   (Object v)  = ((v .: "Aktion") :: Parser Text) >>= \case
         "Warten"            -> Warten <$> v .: "Wert"
         "Einstellen"        -> AWegstrecke <$> Einstellen <$> v .: "Wegstrecke"
@@ -192,14 +192,14 @@ instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => Fr
             (\v     -> AKupplung <$> Kuppeln <$> v .: "Kupplung")
         _otherwise          -> mzero
         where
-            parseMaybeWegstrecke :: (FromJSON ws) => Object -> (ws -> Object -> Parser (AktionWegstrecke ws)) -> (Object -> Parser (AktionGeneral bg st we ku ws)) -> Parser (AktionGeneral bg st we ku ws)
+            parseMaybeWegstrecke :: (FromJSON ws) => Object -> (ws -> Object -> Parser (AktionWegstrecke ws)) -> (Object -> Parser (AktionAllgemein bg st we ku ws)) -> Parser (AktionAllgemein bg st we ku ws)
             parseMaybeWegstrecke    v   wsParser    altParser   = v .:? "Wegstrecke" >>= \case
                 (Just w)    -> AWegstrecke <$> wsParser w v
                 (Nothing)   -> altParser v
     parseJSON   _           = mzero
 
-instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (AktionGeneral bg st we ku ws) where
-    toJSON :: AktionGeneral bg st we ku ws -> Value
+instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (AktionAllgemein bg st we ku ws) where
+    toJSON :: AktionAllgemein bg st we ku ws -> Value
     toJSON  (Warten wert)                                                               = object ["Aktion" .= pack "Warten", "Wert" .= wert]
     toJSON  (AWegstrecke (Einstellen w))                                                = object ["Wegstrecke" .= w, "Aktion" .= pack "Einstellen"]
     toJSON  (AWegstrecke (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))             = object ["Wegstrecke" .= w, "Aktion" .= pack "Geschwindigkeit", "Wert" .= wert]
@@ -213,13 +213,13 @@ instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (Akti
     toJSON  (AStreckenabschnitt (Strom s an))                                           = object ["Streckenabschnitt" .= s, "Aktion" .= pack "Strom", "An" .= an]
     toJSON  (AKupplung (Kuppeln k))                                                     = object ["Kupplung" .= k, "Aktion" .= pack "Kuppeln"]
 
-instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (PlanGeneral bg st we ku ws) where
-    parseJSON :: Value -> Parser (PlanGeneral bg st we ku ws)
+instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (PlanAllgemein bg st we ku ws) where
+    parseJSON :: Value -> Parser (PlanAllgemein bg st we ku ws)
     parseJSON   (Object v)  = Plan <$> (v .: "Name") <*> (v .: "Aktionen")
     parseJSON   _           = mzero
 
-instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (PlanGeneral bg st we ku ws) where
-    toJSON :: PlanGeneral bg st we ku ws -> Value
+instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (PlanAllgemein bg st we ku ws) where
+    toJSON :: PlanAllgemein bg st we ku ws -> Value
     toJSON  (Plan {plName, plAktionen}) = object ["Name" .= plName, "Aktionen" .= plAktionen]
 
 -- | Hilfsfunktion um JSON-Instanzen zu erstellen

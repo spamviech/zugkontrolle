@@ -3,7 +3,7 @@
 {-|
 Description : Umwandeln einer Text-Eingabe in Token.
 -}
-module Zug.UI.Cmd.Lexer (lexer, Token(..), AllgemeinesEingabeToken(..), EingabeToken(..)) where
+module Zug.UI.Cmd.Lexer (lexer, Token(..), EingabeTokenAllgemein(..), EingabeToken(..)) where
 
 -- Bibliotheken
 import Text.Read
@@ -14,11 +14,11 @@ import Numeric.Natural
 import Zug.Language
 
 -- | Text-Eingabe in Token übersetzen
-lexer :: [Text] -> [AllgemeinesEingabeToken]
+lexer :: [Text] -> [EingabeTokenAllgemein]
 lexer   ([])    = []
 lexer   (h:t)   = (lexOne h):(lexer t)
 
-lexOne :: Text -> AllgemeinesEingabeToken
+lexOne :: Text -> EingabeTokenAllgemein
 lexOne  eingabe
     | istGleich eingabe beenden     = TkBeenden
     | istGleich eingabe abbrechen   = TkAbbrechen
@@ -59,7 +59,7 @@ lexOne  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, t
             (rückwärts          , Rückwärts)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
-data AllgemeinesEingabeToken    = Tk            EingabeToken
+data EingabeTokenAllgemein    = Tk            EingabeToken
                                 | TkBeenden
                                 | TkAbbrechen
                                     deriving (Show)

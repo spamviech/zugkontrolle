@@ -7,12 +7,12 @@ Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusGeneral(..), emptyStatus, emptyStatusNew,
+    Status, StatusAllgemein(..), emptyStatus, emptyStatusNew,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarPinMap,
 #endif
     -- * Zustands-Monade
-    IOStatus, MStatus, MonadMStatus, IOStatusGeneral, MStatusGeneral, MonadMStatusGeneral, evalEmptyIOStatus, evalMVarIOStatus, evalMVarMStatus,
+    IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, evalEmptyIOStatus, evalMVarIOStatus, evalMVarMStatus,
     -- ** Anpassen des aktuellen Zustands
     hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung, hinzufügenWegstrecke, hinzufügenPlan,
     entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan,
@@ -41,7 +41,7 @@ import Zug.Anbindung (Bahngeschwindigkeit, Streckenabschnitt, Weiche, Kupplung, 
 import Zug.Plan
 
 -- | Aktueller Status
-data StatusGeneral bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan = Status {
+data StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan = Status {
     _bahngeschwindigkeiten :: [bahngeschwindigkeit],
     _streckenabschnitte :: [streckenabschnitt],
     _weichen :: [weiche],
@@ -49,37 +49,37 @@ data StatusGeneral bahngeschwindigkeit streckenabschnitt weiche kupplung wegstre
     _wegstrecken :: [wegstrecke],
     _pläne :: [plan],
     _mvarPinMap :: MVar PinMap}
--- | Spezialisierung von 'StatusGeneral' auf minimal benötigte Typen
-type Status = StatusGeneral Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+-- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
+type Status = StatusAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 #ifdef ZUGKONTROLLEGUI
--- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusGeneral wirft dll-Fehler unter Windows)
+-- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusAllgemein wirft dll-Fehler unter Windows)
 -- Linsen werden daher per Hand erstellt
--- | 'Bahngeschwindigkeit'en im aktuellen 'StatusGeneral'
-bahngeschwindigkeiten :: Lens (StatusGeneral bg0 st we ku ws pl) (StatusGeneral bg1 st we ku ws pl) [bg0] [bg1]
+-- | 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
+bahngeschwindigkeiten :: Lens (StatusAllgemein bg0 st we ku ws pl) (StatusAllgemein bg1 st we ku ws pl) [bg0] [bg1]
 bahngeschwindigkeiten   = lens _bahngeschwindigkeiten   $ \status bgs -> status {_bahngeschwindigkeiten=bgs}
--- | 'Streckenabschitt'e im aktuellen 'StatusGeneral'
-streckenabschnitte :: Lens (StatusGeneral bg st0 we ku ws pl) (StatusGeneral bg st1 we ku ws pl) [st0] [st1]
+-- | 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
+streckenabschnitte :: Lens (StatusAllgemein bg st0 we ku ws pl) (StatusAllgemein bg st1 we ku ws pl) [st0] [st1]
 streckenabschnitte      = lens _streckenabschnitte      $ \status sts -> status {_streckenabschnitte=sts}
--- | 'Weiche'en im aktuellen 'StatusGeneral'
-weichen :: Lens (StatusGeneral bg st we0 ku ws pl) (StatusGeneral bg st we1 ku ws pl) [we0] [we1]
+-- | 'Weiche'en im aktuellen 'StatusAllgemein'
+weichen :: Lens (StatusAllgemein bg st we0 ku ws pl) (StatusAllgemein bg st we1 ku ws pl) [we0] [we1]
 weichen                 = lens _weichen                 $ \status wes -> status {_weichen=wes}
--- | 'Kupplung'en im aktuellen 'StatusGeneral'
-kupplungen :: Lens (StatusGeneral bg st we ku0 ws pl) (StatusGeneral bg st we ku1 ws pl) [ku0] [ku1]
+-- | 'Kupplung'en im aktuellen 'StatusAllgemein'
+kupplungen :: Lens (StatusAllgemein bg st we ku0 ws pl) (StatusAllgemein bg st we ku1 ws pl) [ku0] [ku1]
 kupplungen              = lens _kupplungen              $ \status kus -> status {_kupplungen=kus}
--- | 'Wegstrecke'en im aktuellen 'StatusGeneral'
-wegstrecken :: Lens (StatusGeneral bg st we ku ws0 pl) (StatusGeneral bg st we ku ws1 pl) [ws0] [ws1]
+-- | 'Wegstrecke'en im aktuellen 'StatusAllgemein'
+wegstrecken :: Lens (StatusAllgemein bg st we ku ws0 pl) (StatusAllgemein bg st we ku ws1 pl) [ws0] [ws1]
 wegstrecken             = lens _wegstrecken             $ \status wss -> status {_wegstrecken=wss}
--- | 'Plän'e im aktuellen 'StatusGeneral'
-pläne :: Lens (StatusGeneral bg st we ku ws pl0) (StatusGeneral bg st we ku ws pl1) [pl0] [pl1]
+-- | 'Plän'e im aktuellen 'StatusAllgemein'
+pläne :: Lens (StatusAllgemein bg st we ku ws pl0) (StatusAllgemein bg st we ku ws pl1) [pl0] [pl1]
 pläne                   = lens _pläne                   $ \status pls -> status {_pläne=pls}
 -- | Aktuell aktive PWM-Funktionen
-mvarPinMap :: Lens (StatusGeneral bg st we ku ws pl) (StatusGeneral bg st we ku ws pl) (MVar PinMap) (MVar PinMap)
+mvarPinMap :: Lens (StatusAllgemein bg st we ku ws pl) (StatusAllgemein bg st we ku ws pl) (MVar PinMap) (MVar PinMap)
 mvarPinMap              = lens _mvarPinMap              $ \status mv  -> status {_mvarPinMap=mv}
 #endif
 
-instance (Show bahngeschwindigkeit, Show streckenabschnitt, Show weiche, Show kupplung, Show wegstrecke, Show plan) => Show (StatusGeneral bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
-    show :: StatusGeneral bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan -> String
+instance (Show bahngeschwindigkeit, Show streckenabschnitt, Show weiche, Show kupplung, Show wegstrecke, Show plan) => Show (StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
+    show :: StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan -> String
     show status = Language.bahngeschwindigkeiten <=> (showSublist $ _bahngeschwindigkeiten status)
                 <\> Language.streckenabschnitte <=> (showSublist $ _streckenabschnitte status)
                 <\> Language.weichen <=> (showSublist $ _weichen status)
@@ -99,32 +99,32 @@ showSublist liste = "[" <> (showSublistAux "" 0 liste)
 liftIOFunction :: (MonadIO m) => (a -> IO b) -> (a -> m b)
 liftIOFunction f = \a -> liftIO $ f a
 
--- | Erzeuge einen neuen, leeren 'StatusGeneral' (inklusive MVar)
-emptyStatusNew :: IO (StatusGeneral bg st we ku ws pl)
+-- | Erzeuge einen neuen, leeren 'StatusAllgemein' (inklusive MVar)
+emptyStatusNew :: IO (StatusAllgemein bg st we ku ws pl)
 emptyStatusNew = newMVar pinMapEmpty >>= pure . emptyStatus
 
--- | Erzeuge einen neuen, leeren 'StatusGeneral' unter Verwendung einer existieren 'MVar'
-emptyStatus :: MVar PinMap -> (StatusGeneral bg st we ku ws pl)
+-- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung einer existieren 'MVar'
+emptyStatus :: MVar PinMap -> (StatusAllgemein bg st we ku ws pl)
 emptyStatus mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarPinMap=mvarPinMap}
 
 -- | Übergebe mvarPinMap aus dem Status an eine eine Funktion
-passMVarPinMap :: PinMapIO a -> IOStatusGeneral bg st we ku ws pl a
+passMVarPinMap :: PinMapIO a -> IOStatusAllgemein bg st we ku ws pl a
 passMVarPinMap  f   = getMVarPinMap >>= liftIOFunction f
 
--- | Führe IO-Aktion mit initialem 'StatusGeneral' aus
-evalEmptyIOStatus :: IOStatusGeneral bg st we ku ws pl a -> IO a
+-- | Führe IO-Aktion mit initialem 'StatusAllgemein' aus
+evalEmptyIOStatus :: IOStatusAllgemein bg st we ku ws pl a -> IO a
 evalEmptyIOStatus ioStatus = emptyStatusNew >>= evalStateT ioStatus
 
--- | Führe IO-Aktion mit 'StatusGeneral' in 'LikeMVar' aus
-evalMVarIOStatus :: (LikeMVar lmvar) => IOStatusGeneral bg st we ku ws pl a -> lmvar (StatusGeneral bg st we ku ws pl) -> IO a
+-- | Führe IO-Aktion mit 'StatusAllgemein' in 'LikeMVar' aus
+evalMVarIOStatus :: (LikeMVar lmvar) => IOStatusAllgemein bg st we ku ws pl a -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO a
 evalMVarIOStatus action mvarStatus = do
     status0 <- takeLMVar mvarStatus
     (a, status1) <- runStateT action status0
     putLMVar mvarStatus status1
     pure a
 
--- | Führe Aktion mit 'StatusGeneral' in 'LikeMVar' aus
-evalMVarMStatus :: (LikeMVar lmvar) => MStatusGeneral bg st we ku ws pl a -> lmvar (StatusGeneral bg st we ku ws pl) -> IO a
+-- | Führe Aktion mit 'StatusAllgemein' in 'LikeMVar' aus
+evalMVarMStatus :: (LikeMVar lmvar) => MStatusAllgemein bg st we ku ws pl a -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO a
 evalMVarMStatus action mvarStatus = do
     status0 <- takeLMVar mvarStatus
     let (a, status1) = runState action status0
@@ -138,96 +138,96 @@ type IOStatus = StateT Status IO
 type MStatus = State Status
 -- | Zustands-Monaden-Transformer spezialiert auf 'Status'
 type MonadMStatus m a = StateT Status m a
--- | Zustands-Monaden-Transformer spezialisiert auf 'StatusGeneral' in der IO-Monade
-type IOStatusGeneral bg st we ku ws pl = StateT (StatusGeneral bg st we ku ws pl) IO
--- | Reine Zustands-Monade spezialiert auf 'StatusGeneral'
-type MStatusGeneral bg st we ku ws pl = State (StatusGeneral bg st we ku ws pl)
--- | Zustands-Monaden-Transformer spezialiert auf 'StatusGeneral'
-type MonadMStatusGeneral m bg st we ku ws pl a = StateT (StatusGeneral bg st we ku ws pl) m a
+-- | Zustands-Monaden-Transformer spezialisiert auf 'StatusAllgemein' in der IO-Monade
+type IOStatusAllgemein bg st we ku ws pl = StateT (StatusAllgemein bg st we ku ws pl) IO
+-- | Reine Zustands-Monade spezialiert auf 'StatusAllgemein'
+type MStatusAllgemein bg st we ku ws pl = State (StatusAllgemein bg st we ku ws pl)
+-- | Zustands-Monaden-Transformer spezialiert auf 'StatusAllgemein'
+type MonadMStatusAllgemein m bg st we ku ws pl a = StateT (StatusAllgemein bg st we ku ws pl) m a
 
 -- * Erhalte aktuellen Status.
--- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusGeneral'
-getBahngeschwindigkeiten :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl [bg]
+-- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
+getBahngeschwindigkeiten :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl [bg]
 getBahngeschwindigkeiten = gets _bahngeschwindigkeiten
--- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusGeneral'
-getStreckenabschnitte :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl [st]
+-- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
+getStreckenabschnitte :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl [st]
 getStreckenabschnitte = gets _streckenabschnitte
--- | Erhalte 'Weiche'n im aktuellen 'StatusGeneral'
-getWeichen :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl [we]
+-- | Erhalte 'Weiche'n im aktuellen 'StatusAllgemein'
+getWeichen :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl [we]
 getWeichen = gets _weichen
--- | Erhalte 'Kupplung'en im aktuellen 'StatusGeneral'
-getKupplungen :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl [ku]
+-- | Erhalte 'Kupplung'en im aktuellen 'StatusAllgemein'
+getKupplungen :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl [ku]
 getKupplungen = gets _kupplungen
--- | Erhalte 'Wegstrecke'n im aktuellen 'StatusGeneral'
-getWegstrecken :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl [ws]
+-- | Erhalte 'Wegstrecke'n im aktuellen 'StatusAllgemein'
+getWegstrecken :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl [ws]
 getWegstrecken = gets _wegstrecken
--- | Erhalte Pläne ('Plan') im aktuellen 'StatusGeneral'
-getPläne :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl [pl]
+-- | Erhalte Pläne ('Plan') im aktuellen 'StatusAllgemein'
+getPläne :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl [pl]
 getPläne = gets _pläne
 -- | Erhalte 'MVar' zur SoftwarePWM-Steuerung
-getMVarPinMap :: (Monad m) => MonadMStatusGeneral m bg st we ku ws pl (MVar PinMap)
+getMVarPinMap :: (Monad m) => MonadMStatusAllgemein m bg st we ku ws pl (MVar PinMap)
 getMVarPinMap = gets _mvarPinMap
 
 -- * Ändere aktuellen Status
--- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusGeneral'
-putBahngeschwindigkeiten :: (Monad m) => [bg] -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
+putBahngeschwindigkeiten :: (Monad m) => [bg] -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putBahngeschwindigkeiten bgs = modify $ \status -> status {_bahngeschwindigkeiten=bgs}
--- | Setze 'Streckenabschnitt'e im aktuellen 'StatusGeneral'
-putStreckenabschnitte :: (Monad m) => [st] -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
+putStreckenabschnitte :: (Monad m) => [st] -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putStreckenabschnitte sts = modify $ \status -> status {_streckenabschnitte=sts}
--- | Setze 'Streckenabschitt'e im aktuellen 'StatusGeneral'
-putWeichen :: (Monad m) => [we] -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Setze 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
+putWeichen :: (Monad m) => [we] -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putWeichen wes = modify $ \status -> status{_weichen=wes}
--- | Setze 'Weiche'n im aktuellen 'StatusGeneral'
-putKupplungen :: (Monad m) => [ku] -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Setze 'Weiche'n im aktuellen 'StatusAllgemein'
+putKupplungen :: (Monad m) => [ku] -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putKupplungen kus = modify $ \status -> status{_kupplungen=kus}
--- | Setze 'Kupplung'en im akutellen 'StatusGeneral'
-putWegstrecken :: (Monad m) => [ws] -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Setze 'Kupplung'en im akutellen 'StatusAllgemein'
+putWegstrecken :: (Monad m) => [ws] -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putWegstrecken wss = modify $ \status -> status{_wegstrecken=wss}
--- | Setze Pläne ('Plan') im aktuellen 'StatusGeneral'
-putPläne :: (Monad m) => [pl] -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'
+putPläne :: (Monad m) => [pl] -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putPläne pls = modify $ \status -> status{_pläne=pls}
 -- | Setzte 'MVar' zur SoftwarePWM-Kontrolle.
 -- 
 -- __Achtung__: Aktuell laufende SoftwarePWM wird dadurch nicht beeinflusst.
-putMVarPinMap :: (Monad m) => MVar PinMap -> MonadMStatusGeneral m bg st we ku ws pl ()
+putMVarPinMap :: (Monad m) => MVar PinMap -> MonadMStatusAllgemein m bg st we ku ws pl ()
 putMVarPinMap mv = modify $ \status -> status{_mvarPinMap=mv}
 
 -- * Elemente hinzufügen
--- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusGeneral' hinzu
-hinzufügenBahngeschwindigkeit :: (Monad m) => bg -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
+hinzufügenBahngeschwindigkeit :: (Monad m) => bg -> MonadMStatusAllgemein m bg st we ku ws pl ()
 hinzufügenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten -> putBahngeschwindigkeiten $ bahngeschwindigkeit:bahngeschwindigkeiten
--- | Füge einen 'Streckenabschnitt' zum aktuellen 'StatusGeneral' hinzu
-hinzufügenStreckenabschnitt :: (Monad m) => st -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Füge einen 'Streckenabschnitt' zum aktuellen 'StatusAllgemein' hinzu
+hinzufügenStreckenabschnitt :: (Monad m) => st -> MonadMStatusAllgemein m bg st we ku ws pl ()
 hinzufügenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte -> putStreckenabschnitte $ streckenabschnitt:streckenabschnitte
--- | Füge eine 'Weiche' zum aktuellen 'StatusGeneral' hinzu
-hinzufügenWeiche :: (Monad m) => we -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Füge eine 'Weiche' zum aktuellen 'StatusAllgemein' hinzu
+hinzufügenWeiche :: (Monad m) => we -> MonadMStatusAllgemein m bg st we ku ws pl ()
 hinzufügenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ weiche:weichen
--- | Füge eine 'Kupplung' zum aktuellen 'StatusGeneral' hinzu
-hinzufügenKupplung :: (Monad m) => ku -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Füge eine 'Kupplung' zum aktuellen 'StatusAllgemein' hinzu
+hinzufügenKupplung :: (Monad m) => ku -> MonadMStatusAllgemein m bg st we ku ws pl ()
 hinzufügenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ kupplung:kupplungen
--- | Füge eine 'Wegstrecke' zum aktuellen 'StatusGeneral' hinzu
-hinzufügenWegstrecke :: (Monad m) => ws -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Füge eine 'Wegstrecke' zum aktuellen 'StatusAllgemein' hinzu
+hinzufügenWegstrecke :: (Monad m) => ws -> MonadMStatusAllgemein m bg st we ku ws pl ()
 hinzufügenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ wegstrecke:wegstrecken
--- | Füge einen 'Plan' zum aktuellen 'StatusGeneral' hinzu
-hinzufügenPlan :: (Monad m) => pl -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Füge einen 'Plan' zum aktuellen 'StatusAllgemein' hinzu
+hinzufügenPlan :: (Monad m) => pl -> MonadMStatusAllgemein m bg st we ku ws pl ()
 hinzufügenPlan plan = getPläne >>= \pläne -> putPläne $ plan:pläne
 -- * Elemente entfernen
--- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusGeneral'
-entfernenBahngeschwindigkeit :: (Monad m, Eq bg) => bg -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'
+entfernenBahngeschwindigkeit :: (Monad m, Eq bg) => bg -> MonadMStatusAllgemein m bg st we ku ws pl ()
 entfernenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten -> putBahngeschwindigkeiten $ delete bahngeschwindigkeit bahngeschwindigkeiten
--- | Entferne einen 'Streckenabschnitt' aus dem aktuellen 'StatusGeneral'
-entfernenStreckenabschnitt :: (Monad m, Eq st) => st -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Entferne einen 'Streckenabschnitt' aus dem aktuellen 'StatusAllgemein'
+entfernenStreckenabschnitt :: (Monad m, Eq st) => st -> MonadMStatusAllgemein m bg st we ku ws pl ()
 entfernenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte -> putStreckenabschnitte $ delete streckenabschnitt streckenabschnitte
--- | Entferne eine 'Weiche' aus dem aktuellen 'StatusGeneral'
-entfernenWeiche :: (Monad m, Eq we) => we -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Entferne eine 'Weiche' aus dem aktuellen 'StatusAllgemein'
+entfernenWeiche :: (Monad m, Eq we) => we -> MonadMStatusAllgemein m bg st we ku ws pl ()
 entfernenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ delete weiche weichen
--- | Entferne eine 'Kupplung' aus dem aktuellen 'StatusGeneral'
-entfernenKupplung :: (Monad m, Eq ku) => ku -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Entferne eine 'Kupplung' aus dem aktuellen 'StatusAllgemein'
+entfernenKupplung :: (Monad m, Eq ku) => ku -> MonadMStatusAllgemein m bg st we ku ws pl ()
 entfernenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ delete kupplung kupplungen
--- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusGeneral'
-entfernenWegstrecke :: (Monad m, Eq ws) => ws -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusAllgemein'
+entfernenWegstrecke :: (Monad m, Eq ws) => ws -> MonadMStatusAllgemein m bg st we ku ws pl ()
 entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ delete wegstrecke wegstrecken
--- | Entferne einen 'Plan' aus dem aktuellen 'StatusGeneral'
-entfernenPlan :: (Monad m, Eq pl) => pl -> MonadMStatusGeneral m bg st we ku ws pl ()
+-- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
+entfernenPlan :: (Monad m, Eq pl) => pl -> MonadMStatusAllgemein m bg st we ku ws pl ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
