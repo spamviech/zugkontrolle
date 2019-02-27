@@ -283,8 +283,10 @@ queryAktionBahngeschwindigkeit  query                                           
 queryAktionStreckenabschnitt :: (StreckenabschnittKlasse s) => QAktionStreckenabschnitt qs s -> EingabeToken -> Either (QAktionStreckenabschnitt qs s) (AktionStreckenabschnitt s)
 queryAktionStreckenabschnitt    query@(QAktionStreckenabschnitt streckenabschnitt)  token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Strom, Left $ QASStrom streckenabschnitt)] $ Left $ QASUnbekannt query eingabe
 queryAktionStreckenabschnitt    query@(QASStrom streckenabschnitt)                  token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.An   , Right $ Strom streckenabschnitt True),
-    (Lexer.Aus  , Right $ Strom streckenabschnitt False)]
+    (Lexer.Fließend , Right $ Strom streckenabschnitt Fließend),
+    (Lexer.An       , Right $ Strom streckenabschnitt Fließend),
+    (Lexer.Gesperrt , Right $ Strom streckenabschnitt Gesperrt),
+    (Lexer.Aus      , Right $ Strom streckenabschnitt Gesperrt)]
     $ Left $ QASUnbekannt query eingabe
 queryAktionStreckenabschnitt    query                                               _token                          = Left $ query
 -- | Eingabe einer Kupplung-Aktion
@@ -718,7 +720,6 @@ instance Query (QAktionBahngeschwindigkeit qb b) where
     getQuery    (QABGUmdrehen _bahngeschwindigkeit)                 = Language.fahrtrichtung
     getQueryFailed :: (IsString s, Semigroup s) => QAktionBahngeschwindigkeit qb b -> s -> s
     getQueryFailed  q@(QABGGeschwindigkeit _bahngeschwindigkeit)    eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    -- getQueryFailed  q@(QABGUmdrehen _bahngeschwindigkeit)          eingabe = getQueryFailedDefault q eingabe <^> Language.fahrtrichtungErwartet
     getQueryFailed q                                                eingabe = getQueryFailedDefault q eingabe
     getQueryOptions :: (IsString s, Semigroup s) => QAktionBahngeschwindigkeit bg b -> Maybe s
     getQueryOptions (QAktionBahngeschwindigkeit _bahngeschwindigkeit)   = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
@@ -740,7 +741,7 @@ instance Query (QAktionStreckenabschnitt qst st) where
     getQuery :: (IsString s, Semigroup s) => QAktionStreckenabschnitt qst st -> s
     getQuery    (QAktionStreckenabschnitt _streckenabschnitt)   = Language.aktion
     getQuery    (QASUnbekannt qAktion _eingabe)                 = getQuery qAktion
-    getQuery    (QASStrom _streckenabschnitt)                   = Language.an <|> Language.aus
+    getQuery    (QASStrom _streckenabschnitt)                   = Language.fließend <|> Language.gesperrt
     getQueryOptions :: (IsString s, Semigroup s) => QAktionStreckenabschnitt qst st -> Maybe s
     getQueryOptions (QAktionStreckenabschnitt _streckenabschnitt)   = Just $ toBefehlsString Language.aktionStreckenabschnitt
     getQueryOptions (QASUnbekannt qAktion _eingabe)                 = getQueryOptions qAktion

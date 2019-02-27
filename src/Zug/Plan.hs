@@ -189,13 +189,13 @@ instance (BahngeschwindigkeitKlasse b) => PlanKlasse (AktionBahngeschwindigkeit 
     ausführenPlan (Umdrehen b maybeFahrtrichtung) _showAction   = umdrehen b maybeFahrtrichtung
 
 -- | Aktionen eines Streckenabschnitts
-data AktionStreckenabschnitt s   = Strom s Bool
+data AktionStreckenabschnitt s   = Strom s Strom
                                     deriving (Eq)
 
 instance (StreckenObjekt s) => Show (AktionStreckenabschnitt s) where
     show :: AktionStreckenabschnitt s -> String
-    show    (Strom s True)  = unpack $ getName s <°> Language.strom <=> Language.an
-    show    (Strom s False) = unpack $ getName s <°> Language.strom <=> Language.aus
+    show    (Strom s Fließend)  = unpack $ getName s <°> Language.strom <=> Language.an
+    show    (Strom s Gesperrt)  = unpack $ getName s <°> Language.strom <=> Language.aus
 
 instance (StreckenabschnittKlasse s, Show s) => StreckenObjekt (AktionStreckenabschnitt s) where
     pins :: AktionStreckenabschnitt s -> [Pin]

@@ -483,8 +483,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (append (AStreckenabschnitt (Strom st True)))
-                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSStreckenabschnitt (Strom ws True))))
+                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (append (AStreckenabschnitt (Strom st Fließend)))
+                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSStreckenabschnitt (Strom ws Fließend))))
                     _objekt                         -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.aus) $ void $ forkIO $ do
@@ -500,8 +500,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (append (AStreckenabschnitt (Strom st False)))
-                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSStreckenabschnitt (Strom ws False))))
+                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (append (AStreckenabschnitt (Strom st Gesperrt)))
+                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSStreckenabschnitt (Strom ws Gesperrt))))
                     _objekt                         -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             weFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0

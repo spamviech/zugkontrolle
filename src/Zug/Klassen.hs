@@ -55,3 +55,16 @@ instance Show Fahrtrichtung where
     show :: Fahrtrichtung -> String
     show Vorwärts   = Language.vorwärts
     show Rückwärts  = Language.rückwärts
+
+-- | Zustand des einzustellenden Stroms
+data Strom = Fließend | Gesperrt
+                deriving (Eq, Bounded, Enum)
+
+instance Show Strom where
+    show :: Strom -> String
+    show    (Fließend)  = Language.fließend
+    show    (Gesperrt)  = Language.gesperrt
+
+-- | Alle Einstellmöglichkeiten eines Stroms
+unterstützteStromeinstellungen :: NonEmpty Strom
+unterstützteStromeinstellungen = fromList [minBound..maxBound]

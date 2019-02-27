@@ -66,6 +66,12 @@ an                              = "An"
 -- | Off
 aus :: (Semigroup s, IsString s) => s
 aus                             = "Aus"
+-- | Flowing
+fließend :: (Semigroup s, IsString s) => s
+fließend                        = "Fließend"
+-- | blocked
+gesperrt :: (Semigroup s, IsString s) => s
+gesperrt                        = "Gesperrt"
 -- | Uncouple
 kuppeln :: (Semigroup s, IsString s) => s
 kuppeln                         = "Kuppeln"

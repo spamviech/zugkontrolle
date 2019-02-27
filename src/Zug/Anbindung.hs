@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.
@@ -63,12 +64,12 @@ hasClock = (`elem` [Wpi 7, Wpi 21, Wpi 22, Wpi 29])
 -- * PWM-Funktion
 -- | pwmWrite mit alternativer Software-basierter PWM-Funktion
 pwmWriteSoftHardware :: Pin -> PwmValue -> PinMapIO ()
-pwmWriteSoftHardware pin pwmValue mvarPinMap = if hasPWM pin
-    then do
+pwmWriteSoftHardware pin pwmValue mvarPinMap = getOptions >>= \(Options {pwm}) -> case pwm of
+    (HardwarePWM) | hasPWM pin  -> do
         pinMode pin PWM_OUTPUT
         pwmSetRange pwmRange
         pwmWrite pin pwmValue
-    else pwmWriteSoftware pin pwmFrequencyHzNormal pwmValue mvarPinMap
+    _otherwise                  -> pwmWriteSoftware pin pwmFrequencyHzNormal pwmValue mvarPinMap
 
 -- | Erzeuge PWM-Funktion für einen Servo-Motor
 --   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmRange und pwmValue)
@@ -109,13 +110,10 @@ getPwmValueReduced = getPwmValue 75
 µsInms :: Natural
 µsInms = 1000
 
--- | HIGH/LOW-Repräsentation für fließenden Strom
-stromFließend :: Value
-stromFließend = LOW
-
--- | HIGH/LOW-Repräsentation für gesperrten Strom
-stromGesperrt :: Value
-stromGesperrt = HIGH
+-- | Stelle Strom fließend/gesperrt
+stromStellen :: Pin -> Strom -> IO ()
+stromStellen pin (Fließend)  = getOptions >>= digitalWrite pin . fließend
+stromStellen pin (Gesperrt)  = getOptions >>= digitalWrite pin . (\case {HIGH -> LOW; LOW -> HIGH}) . fließend
 
 -- * Repräsentation von StreckenObjekten
 -- | Klassen-Definitionen
@@ -193,13 +191,13 @@ instance StreckenObjekt Streckenabschnitt where
 -- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
-    strom :: s -> Bool -> MVar PinMap -> IO ()
+    strom :: s -> Strom -> MVar PinMap -> IO ()
     {-# MINIMAL strom #-}
 
 instance StreckenabschnittKlasse Streckenabschnitt where
-    strom :: Streckenabschnitt -> Bool -> PinMapIO ()
+    strom :: Streckenabschnitt -> Strom -> PinMapIO ()
     strom   (Streckenabschnitt {stromPin})  an  _mvarPinMap = befehlAusführen
-        (pinMode stromPin OUTPUT >> digitalWrite stromPin (if an then stromFließend else stromGesperrt))
+        (pinMode stromPin OUTPUT >> stromStellen stromPin an)
         ("Strom (" <> showText stromPin <> ")->" <> showText an)
 
 -- | Stellen einer 'Weiche'
@@ -254,7 +252,7 @@ instance WeicheKlasse Weiche where
                 richtungStellen :: IO ()
                 richtungStellen = case getRichtungsPin richtung $ NE.toList richtungsPins of
                     (Nothing)           -> pure ()
-                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> digitalWrite richtungsPin stromFließend >> delayµs weicheDelayµs >> digitalWrite richtungsPin stromGesperrt
+                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> stromStellen richtungsPin Fließend >> delayµs weicheDelayµs >> stromStellen richtungsPin Gesperrt
                 getRichtungsPin :: Richtung -> [(Richtung, Pin)] -> Maybe Pin
                 getRichtungsPin _richtung   []  = Nothing
                 getRichtungsPin richtung    ((ersteRichtung, ersterPin):andereRichtungen)
@@ -294,7 +292,7 @@ kuppelnDelayµs = µsInS
 instance KupplungKlasse Kupplung where
     kuppeln :: Kupplung -> PinMapIO ()
     kuppeln (Kupplung {kupplungsPin})   _mvarPinMap = befehlAusführen
-        (pinMode kupplungsPin OUTPUT >> digitalWrite kupplungsPin stromFließend >> delayµs kuppelnDelayµs >> digitalWrite kupplungsPin stromGesperrt)
+        (pinMode kupplungsPin OUTPUT >> stromStellen kupplungsPin Fließend >> delayµs kuppelnDelayµs >> stromStellen kupplungsPin Gesperrt)
         ("Kuppeln (" <> showText kupplungsPin <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
@@ -341,7 +339,7 @@ instance BahngeschwindigkeitKlasse Wegstrecke where
     umdrehen    (Wegstrecke {wsBahngeschwindigkeiten})    maybeFahrtrichtung  mvarPinMap  = mapM_ (\bahngeschwindigkeit -> umdrehen bahngeschwindigkeit maybeFahrtrichtung mvarPinMap) wsBahngeschwindigkeiten
 
 instance StreckenabschnittKlasse Wegstrecke where
-    strom :: Wegstrecke -> Bool -> PinMapIO ()
+    strom :: Wegstrecke -> Strom -> PinMapIO ()
     strom   (Wegstrecke {wsStreckenabschnitte})   an  mvarPinMap  = mapM_ (flip (flip strom an) mvarPinMap) wsStreckenabschnitte
 
 instance KupplungKlasse Wegstrecke where
