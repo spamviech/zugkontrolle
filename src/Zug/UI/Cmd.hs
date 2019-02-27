@@ -2,6 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Starte Main-Loop für Kommandozeilen-basiertes UI.
@@ -21,7 +22,7 @@ import Control.Concurrent
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
-import Zug.Language ((<=>), (<!>), (<:>), showText, fehlerhafteEingabe, toBefehlsString)
+import Zug.Language ((<~>), (<\>), (<=>), (<!>), (<:>), showText, fehlerhafteEingabe, toBefehlsString)
 import Zug.Anbindung
 import qualified Zug.UI.Save as Save
 import Zug.Options
@@ -45,15 +46,17 @@ mainStatus = do
     ende <- get >>= \status -> do
         liftIO $ do
             setSGR [SetColor Foreground Dull Green]
-            putStrLn $ '\n':Language.zugkontrolle
+            putStr $ "" <\> Language.zugkontrolle
+            setSGR [Reset]
+            putStr $ "" <~> ZUGKONTROLLEVERSION
             setSGR [SetColor Foreground Dull Cyan]
-            putStrLn (map (\_ -> '-') Language.zugkontrolle)
+            putStrLn $ (const '-') <$> Language.zugkontrolle
             setSGR [Reset]
             putStrLn $ showText status
             setSGR [SetColor Foreground Dull Blue]
             putStrLn $ toBefehlsString Language.befehlAlle
             setSGR [Reset]
-        promptS "\n" >>= statusParser.lexer
+        promptS "\n" >>= statusParser . lexer
     unless ende mainStatus
 
 -- | Gesammter Auswerte-Prozess
