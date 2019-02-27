@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -28,6 +29,7 @@ import Graphics.UI.Gtk
 import Zug.LinkedMVar
 import Zug.Options
 import Zug.Anbindung (pinMapEmpty)
+import Zug.Language ((<~>))
 import qualified Zug.Language as Language
 import Zug.UI.Base
 import qualified Zug.UI.Save as Save
@@ -50,7 +52,7 @@ main = do
 setupGUI :: IO ()
 setupGUI = void $ do
     -- Hauptfenster
-    windowMain <- widgetShowNew $ widgetNewWithOptionsEvents windowNew [windowTitle := (Language.zugkontrolle :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480] [(deleteEvent, Left . liftIO $ mainQuit >> pure False)]
+    windowMain <- widgetShowNew $ widgetNewWithOptionsEvents windowNew [windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480] [(deleteEvent, Left . liftIO $ mainQuit >> pure False)]
     vBox <- containerAddWidgetNew windowMain $ vBoxNew False 0
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault notebookNew
