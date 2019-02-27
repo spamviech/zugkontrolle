@@ -11,8 +11,6 @@ Unfinished Features:
     Cmd-UI:
         Mehr Farbe verwenden?
 Code verbessern:
-    Versionsanzeige in UI
-        Übergabe über CPP aus package.yaml?
     Argumente von StatusGeneral etc. reduzieren
         TypeFamilies
         GADTs
