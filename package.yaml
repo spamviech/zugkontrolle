@@ -1,5 +1,6 @@
 name:                 Zugkontrolle
 version:              1.0.0.9
+cpp-options:          -DZUGKONTROLLEVERSION="1.0.0.9"
 github:               "spamviech/Zugkontrolle"
 license:              BSD3
 author:               "Wolfgang Witt"

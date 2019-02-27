@@ -49,3 +49,5 @@
 - Bugfix: LinkedMVar merkt sich Änderungen wieder
 ## Unreleased changes
 - HIGH/Low vertauscht (unverändert für PWM-Output)
+    kann per Kommandozeilenargument "--fließend=<Value>" eingestellt werden
+- SoftwarePWM kann auf allen Pins per Kommandozeile "--pwm=SoftwarePWM" erzwungen werden

@@ -37,6 +37,8 @@ lexOne  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, t
             (umdrehen           , Umdrehen),
             (stellen            , Stellen),
             (strom              , Strom),
+            (fließend           , Fließend),
+            (gesperrt           , Gesperrt),
             (an                 , An),
             (aus                , Aus),
             (kuppeln            , Kuppeln),
@@ -80,6 +82,8 @@ data Token  = Beenden
             | Umdrehen
             | Stellen
             | Strom
+            | Fließend
+            | Gesperrt
             | An
             | Aus
             | Kuppeln

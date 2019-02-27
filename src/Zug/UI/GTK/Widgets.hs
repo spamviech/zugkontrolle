@@ -401,12 +401,12 @@ instance ToJSON STWidgets where
     toJSON  (STWidgets {st})    = toJSON st
 
 instance StreckenabschnittKlasse STWidgets where
-    strom :: STWidgets -> Bool -> MVar PinMap -> IO ()
+    strom :: STWidgets -> Strom -> MVar PinMap -> IO ()
     strom   (STWidgets {st})    = strom st
 
 -- | Füge 'ToggleButton' zum einstellen des Stroms zur Box hinzu
 toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s, LikeMVar lmvar) => b -> s -> lmvar StatusGUI -> IO ToggleButton
-toggleButtonStromPackNew box streckenabschnitt mvarStatus = boxPackWidgetNewDefault box $ widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.strom :: Text)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt an) mvarStatus)]
+toggleButtonStromPackNew box streckenabschnitt mvarStatus = boxPackWidgetNewDefault box $ widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.strom :: Text)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) mvarStatus)]
 
 -- | 'Weiche' darstellen
 weichePackNew :: (LikeMVar lmvar) => Weiche -> lmvar StatusGUI -> DynamischeWidgets -> IO WeicheWidget
@@ -617,7 +617,7 @@ instance BahngeschwindigkeitKlasse WSWidgets where
     umdrehen    (WSWidgets {ws})    = umdrehen ws
 
 instance StreckenabschnittKlasse WSWidgets where
-    strom :: WSWidgets -> Bool -> MVar PinMap -> IO ()
+    strom :: WSWidgets -> Strom -> MVar PinMap -> IO ()
     strom   (WSWidgets {ws})    = strom ws
 
 instance KupplungKlasse WSWidgets where

@@ -91,6 +91,16 @@ instance ToJSON Fahrtrichtung where
     toJSON :: Fahrtrichtung -> Value
     toJSON  fahrtrichtung   = String $ pack $ show fahrtrichtung
 
+-- Instanz-Deklaration für Strom
+instance FromJSON Strom where
+    parseJSON :: Value -> Parser Strom
+    parseJSON   (String s)  = returnMatchingShow (NE.toList unterstützteStromeinstellungen) s
+    parseJSON   _           = mzero
+
+instance ToJSON Strom where
+    toJSON :: Strom -> Value
+    toJSON  fahrtrichtung   = String $ pack $ show fahrtrichtung
+
 -- Instanz-Deklarationen für Bahngeschwindigkeit
 instance FromJSON Bahngeschwindigkeit where
     parseJSON :: Value -> Parser Bahngeschwindigkeit
