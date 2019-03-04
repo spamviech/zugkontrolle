@@ -334,17 +334,17 @@ instance StreckenObjekt Wegstrecke where
 
 instance BahngeschwindigkeitKlasse Wegstrecke where
     geschwindigkeit :: Wegstrecke -> Natural -> PinMapIO ()
-    geschwindigkeit (Wegstrecke {wsBahngeschwindigkeiten}) wert mvarPinMap = mapM_ (\bahngeschwindigkeit -> geschwindigkeit bahngeschwindigkeit wert mvarPinMap) wsBahngeschwindigkeiten
+    geschwindigkeit (Wegstrecke {wsBahngeschwindigkeiten}) wert mvarPinMap = mapM_ (\bahngeschwindigkeit -> forkIO $ geschwindigkeit bahngeschwindigkeit wert mvarPinMap) wsBahngeschwindigkeiten
     umdrehen :: Wegstrecke -> Maybe Fahrtrichtung -> PinMapIO ()
-    umdrehen    (Wegstrecke {wsBahngeschwindigkeiten})    maybeFahrtrichtung  mvarPinMap  = mapM_ (\bahngeschwindigkeit -> umdrehen bahngeschwindigkeit maybeFahrtrichtung mvarPinMap) wsBahngeschwindigkeiten
+    umdrehen    (Wegstrecke {wsBahngeschwindigkeiten})    maybeFahrtrichtung  mvarPinMap  = mapM_ (\bahngeschwindigkeit -> forkIO $ umdrehen bahngeschwindigkeit maybeFahrtrichtung mvarPinMap) wsBahngeschwindigkeiten
 
 instance StreckenabschnittKlasse Wegstrecke where
     strom :: Wegstrecke -> Strom -> PinMapIO ()
-    strom   (Wegstrecke {wsStreckenabschnitte})   an  mvarPinMap  = mapM_ (flip (flip strom an) mvarPinMap) wsStreckenabschnitte
+    strom   (Wegstrecke {wsStreckenabschnitte})   an  mvarPinMap  = mapM_ (\streckenabschnitt -> forkIO $ strom streckenabschnitt an mvarPinMap) wsStreckenabschnitte
 
 instance KupplungKlasse Wegstrecke where
     kuppeln :: Wegstrecke -> PinMapIO ()
-    kuppeln (Wegstrecke {wsKupplungen})  mvarPinMap  = mapM_ (flip kuppeln mvarPinMap) wsKupplungen
+    kuppeln (Wegstrecke {wsKupplungen})  mvarPinMap  = mapM_ (\kupplung -> forkIO $ kuppeln kupplung mvarPinMap) wsKupplungen
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
@@ -353,7 +353,7 @@ class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w,
 
 instance WegstreckeKlasse Wegstrecke where
     einstellen :: Wegstrecke -> PinMapIO ()
-    einstellen  (Wegstrecke {wsWeichenRichtungen})    mvarPinMap  = mapM_ (\(weiche, richtung) -> stellen weiche richtung mvarPinMap) wsWeichenRichtungen
+    einstellen  (Wegstrecke {wsWeichenRichtungen})    mvarPinMap  = mapM_ (\(weiche, richtung) -> forkIO $ stellen weiche richtung mvarPinMap) wsWeichenRichtungen
 
 -- | Ausführen einer IO-Aktion, bzw. Ausgabe eines Strings, abhängig vom Kommandozeilen-Argument
 befehlAusführen :: IO () -> Text -> IO ()

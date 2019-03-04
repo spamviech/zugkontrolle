@@ -13,7 +13,7 @@ Unfinished Features:
             Selector-Funktionen exportieren?
             Identischer View-Datentyp mit exportiertem Konstruktor?
         Alternativ Umdrehen bei unklarem Zugtyp der verwendeten Bahngeschwindigkeiten verbieten?
-    Aktionen bei Wegstrecken mit forkIO parallel ablaufen lassen
+        Mischformen können aktuell zu potentiell unerwartetem Verhalten führen
     Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl
         Lade korrekte Teile, ignoriere/melde fehlerhafte
     Laden dreht beim GTK-UI die Reihenfolge um
