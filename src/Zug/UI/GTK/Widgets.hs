@@ -266,8 +266,8 @@ scrolledWidgedNotebookAppendPageNew notebook name konstruktor = do
 
 -- ** Widget mit Name und CheckButton erstellen
 -- | Füge einen 'VRCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
-hinzufügenWidgetSimpleNew :: (StreckenObjekt o, BoxClass b) => o -> b -> IO (HBox, VRCheckButton)
-hinzufügenWidgetSimpleNew objekt box = do
+hinzufügenWidgetWegstreckeNew :: (StreckenObjekt o, BoxClass b) => o -> b -> IO (HBox, VRCheckButton)
+hinzufügenWidgetWegstreckeNew objekt box = do
     hBoxHinzufügen <- boxPackWidgetNewDefault box $ hBoxNew False 0
     checkButton <- boxPackWidgetNewDefault hBoxHinzufügen checkButtonNew
     boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ getName objekt
@@ -282,7 +282,7 @@ hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ button
 bahngeschwindigkeitPackNew :: (LikeMVar lmvar) => Bahngeschwindigkeit -> lmvar StatusGUI -> DynamischeWidgets -> IO BahngeschwindigkeitWidget
 bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus (DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew bahngeschwindigkeit vBoxHinzufügenWegstreckeBahngeschwindigkeiten
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeNew bahngeschwindigkeit vBoxHinzufügenWegstreckeBahngeschwindigkeiten
     hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanBahngeschwindigkeiten (OBahngeschwindigkeit bahngeschwindigkeit) mvarPlanObjekt
     hinzufügenPlanWidgetZT <- case zugtyp bahngeschwindigkeit of
         (Lego)          -> hinzufügenWidgetPlanNew vBoxHinzufügenPlanBahngeschwindigkeitenLego (OBahngeschwindigkeit bahngeschwindigkeit) mvarPlanObjekt >>= pure . Left
@@ -363,7 +363,7 @@ buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit mvarStatus = 
 streckenabschnittPackNew :: (LikeMVar lmvar) => Streckenabschnitt -> lmvar StatusGUI -> DynamischeWidgets -> IO StreckenabschnittWidget
 streckenabschnittPackNew streckenabschnitt@(Streckenabschnitt {stromPin}) mvarStatus (DynamischeWidgets {vBoxStreckenabschnitte, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew streckenabschnitt vBoxHinzufügenWegstreckeStreckenabschnitte
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeNew streckenabschnitt vBoxHinzufügenWegstreckeStreckenabschnitte
     hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanStreckenabschnitte (OStreckenabschnitt streckenabschnitt) mvarPlanObjekt
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ hBoxNew False 0
@@ -500,7 +500,7 @@ instance WeicheKlasse WEWidgets where
 kupplungPackNew :: (LikeMVar lmvar) => Kupplung -> lmvar StatusGUI -> DynamischeWidgets -> IO KupplungWidget
 kupplungPackNew kupplung@(Kupplung {kupplungsPin}) mvarStatus (DynamischeWidgets {vBoxKupplungen, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew kupplung vBoxHinzufügenWegstreckeKupplungen
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeNew kupplung vBoxHinzufügenWegstreckeKupplungen
     hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanKupplungen (OKupplung kupplung) mvarPlanObjekt
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxKupplungen $ hBoxNew False 0
