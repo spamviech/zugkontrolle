@@ -54,3 +54,4 @@
 ## Unreleased changes
 - Bugfix (GTK-UI): Weiche werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben und nicht umgekehrt
 - GTK-UI: Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt
+- Aktionen einer Wegstrecke (z.B. Weichen einstellen) laufen nun parallel ab
