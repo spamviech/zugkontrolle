@@ -53,5 +53,7 @@
 - SoftwarePWM kann auf allen Pins per Kommandozeile "--pwm=SoftwarePWM" erzwungen werden
 ## Unreleased changes
 - Bugfix (GTK-UI): Weiche werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben und nicht umgekehrt
-- GTK-UI: Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt
+- GTK-UI:
+    - Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt
+    - Laden dreht nicht mehr die Reihenfolge um
 - Aktionen einer Wegstrecke (z.B. Weichen einstellen) laufen nun parallel ab

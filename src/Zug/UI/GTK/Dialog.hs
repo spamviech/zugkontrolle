@@ -87,12 +87,12 @@ loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindig
                 mapM_ (\(PLWidgets {plWidget=w}) -> containerRemove vBoxPläne w) $ status ^. pläne
             erstelleWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> Status -> IO StatusGUI
             erstelleWidgets mvarStatus status = do
-                mapM_ (\bahngeschwindigkeit -> bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets) $ status ^. bahngeschwindigkeiten
-                mapM_ (\streckenabschnitt -> streckenabschnittPackNew streckenabschnitt mvarStatus dynamischeWidgets) $ status ^. streckenabschnitte
-                mapM_ (\weiche -> weichePackNew weiche mvarStatus dynamischeWidgets) $ status ^. weichen
-                mapM_ (\kupplung -> kupplungPackNew kupplung mvarStatus dynamischeWidgets) $ status ^. kupplungen
-                mapM_ (\wegstrecke -> wegstreckePackNew wegstrecke mvarStatus dynamischeWidgets) $ status ^. wegstrecken
-                mapM_ (\plan -> planPackNew plan mvarStatus dynamischeWidgets) $ status ^. pläne
+                mapM_ (\bahngeschwindigkeit -> bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets) $ reverse $ status ^. bahngeschwindigkeiten
+                mapM_ (\streckenabschnitt -> streckenabschnittPackNew streckenabschnitt mvarStatus dynamischeWidgets)       $ reverse $ status ^. streckenabschnitte
+                mapM_ (\weiche -> weichePackNew weiche mvarStatus dynamischeWidgets)                                        $ reverse $ status ^. weichen
+                mapM_ (\kupplung -> kupplungPackNew kupplung mvarStatus dynamischeWidgets)                                  $ reverse $ status ^. kupplungen
+                mapM_ (\wegstrecke -> wegstreckePackNew wegstrecke mvarStatus dynamischeWidgets)                            $ reverse $ status ^. wegstrecken
+                mapM_ (\plan -> planPackNew plan mvarStatus dynamischeWidgets)                                              $ reverse $ status ^. pläne
                 readLMVar mvarStatus
 
 dialogLoadNew :: Window -> IO FileChooserDialog
