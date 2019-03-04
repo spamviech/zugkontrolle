@@ -62,23 +62,27 @@ setupGUI = void $ do
     (_scrolledWindow, vBoxKupplungen)               <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.kupplungen $ vBoxNew False 0
     (_scrolledWindow, vBoxWegstrecken)              <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.wegstrecken $ vBoxNew False 0
     (_scrolledWindow, vBoxPläne)                    <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.pläne $ vBoxNew False 0
-    progressBarPlan                                     <- widgetShowNew progressBarNew
-    vBoxHinzufügenWegstreckeBahngeschwindigkeiten       <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanBahngeschwindigkeiten             <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenWegstreckeStreckenabschnitte          <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanStreckenabschnitte                <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenWegstreckeWeichen                     <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenGerade                     <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenKurve                      <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenLinks                      <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenRechts                     <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenWegstreckeKupplungen                  <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanKupplungen                        <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit    <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenStreckenabschnitt      <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenWeiche                 <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenKupplung               <- widgetShowNew $ vBoxNew False 0
-    mvarPlanObjekt                                      <- newEmptyMVar
+    progressBarPlan                                         <- widgetShowNew progressBarNew
+    vBoxHinzufügenWegstreckeBahngeschwindigkeiten           <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanBahngeschwindigkeiten                 <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanBahngeschwindigkeitenLego             <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanBahngeschwindigkeitenMärklin          <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenWegstreckeStreckenabschnitte              <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanStreckenabschnitte                    <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenWegstreckeWeichen                         <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenGerade                         <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenKurve                          <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenLinks                          <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenRechts                         <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenWegstreckeKupplungen                      <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanKupplungen                            <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego    <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenStreckenabschnitt          <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenWeiche                     <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenKupplung                   <- widgetShowNew $ vBoxNew False 0
+    mvarPlanObjekt                                          <- newEmptyMVar
     let dynamischeWidgets = DynamischeWidgets {
         vBoxBahngeschwindigkeiten,
         vBoxStreckenabschnitte,
@@ -88,6 +92,8 @@ setupGUI = void $ do
         vBoxPläne,
         vBoxHinzufügenWegstreckeBahngeschwindigkeiten,
         vBoxHinzufügenPlanBahngeschwindigkeiten,
+        vBoxHinzufügenPlanBahngeschwindigkeitenLego,
+        vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
         vBoxHinzufügenWegstreckeStreckenabschnitte,
         vBoxHinzufügenPlanStreckenabschnitte,
         vBoxHinzufügenWegstreckeWeichen,
@@ -98,6 +104,8 @@ setupGUI = void $ do
         vBoxHinzufügenWegstreckeKupplungen,
         vBoxHinzufügenPlanKupplungen,
         vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit,
+        vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
+        vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
         vBoxHinzufügenPlanWegstreckenStreckenabschnitt,
         vBoxHinzufügenPlanWegstreckenWeiche,
         vBoxHinzufügenPlanWegstreckenKupplung,

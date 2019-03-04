@@ -71,7 +71,7 @@ buttonLoadPack windowMain box mvarStatus dynamischeWidgets = do
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
 loadWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
-loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung}) status = do
+loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung}) status = do
     evalMVarIOStatus löscheWidgets mvarStatus
     erstelleWidgets mvarStatus status
         where
@@ -79,11 +79,11 @@ loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindig
             löscheWidgets = State.get >>= liftIOFunction (löscheWidgetsAux) >> putBahngeschwindigkeiten [] >> putStreckenabschnitte [] >> putWeichen [] >> putKupplungen [] >> putWegstrecken [] >> putPläne []
             löscheWidgetsAux :: StatusGUI -> IO ()
             löscheWidgetsAux status = do
-                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w, bgHinzWS=hww}) -> containerRemove vBoxBahngeschwindigkeiten w >> containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanBahngeschwindigkeiten] <*> ZipList (bgWidgets ^.. foldPlan))) $ status ^. bahngeschwindigkeiten
+                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w, bgHinzWS=hww}) -> containerRemove vBoxBahngeschwindigkeiten w >> containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin] <*> ZipList (bgWidgets ^.. foldPlan))) $ status ^. bahngeschwindigkeiten
                 mapM_ (\stWidgets@(STWidgets {stWidget=w, stHinzWS=hww}) -> containerRemove vBoxStreckenabschnitte w >> containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanStreckenabschnitte] <*> ZipList (stWidgets ^.. foldPlan))) $ status ^. streckenabschnitte
                 mapM_ (\weWidgets@(WEWidgets {weWidget=w, weHinzWS=hww}) -> containerRemove vBoxWeichen w >> containerRemove vBoxHinzufügenWegstreckeWeichen ((\(w,_,_) -> w) hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts] <*> ZipList (weWidgets ^.. foldPlan))) $ status ^. weichen
                 mapM_ (\kuWidgets@(KUWidgets {kuWidget=w, kuHinzWS=hww}) -> containerRemove vBoxKupplungen w >> containerRemove vBoxHinzufügenWegstreckeKupplungen (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanKupplungen] <*> ZipList (kuWidgets ^.. foldPlan))) $ status ^. kupplungen
-                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w}) -> containerRemove vBoxWegstrecken w >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung] <*> ZipList (wsWidgets ^.. foldPlan))) $ status ^. wegstrecken
+                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w}) -> containerRemove vBoxWegstrecken w >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung] <*> ZipList (wsWidgets ^.. foldPlan))) $ status ^. wegstrecken
                 mapM_ (\(PLWidgets {plWidget=w}) -> containerRemove vBoxPläne w) $ status ^. pläne
             erstelleWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> Status -> IO StatusGUI
             erstelleWidgets mvarStatus status = do
@@ -234,7 +234,7 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
             error $ "Unbekannte Seite während dem Hinzufügen angezeigt: " ++ show page
 
 dialogHinzufügenNew :: (WindowClass w) => w -> DynamischeWidgets -> IO (DialogHinzufügen, LinkedMVar StatusGUI)
-dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
+dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
     dialog <- widgetNewWithOptionsEvents dialogNew [windowTitle := (Language.hinzufügen :: Text), windowTransientFor := parent, windowDefaultHeight := 320] []
     -- Eigene Hinzufügen-Knöpfe für Seiten, bei denen er temporär deaktiert sein kann
     buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
@@ -245,17 +245,6 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
     -- ComboBox zur Zugtyp-Auswahl
     buttonBox <- widgetGetParent buttonHinzufügen >>= pure . castToBox . fromJust
     comboBoxZugtyp <- boxPackWidgetNewDefault buttonBox comboBoxNewText
-    {-
-    on comboBoxZugtyp changed $ do
-        index <- get comboBoxZugtyp comboBoxActive
-        widgetShowIf (index == indexMärklin) buttonHinzufügenWeicheMärklin
-        mapM_ (\(_,hBox,_,_) -> widgetShowIf (index == indexMärklin) hBox) richtungsPins
-        widgetShowIf (index == indexLego) fahrtrichtungsPinWidget
-        widgetShowIf (index == indexLego) buttonHinzufügenWeicheLego
-        widgetShowIf (index == indexLego) richtungsPinWidget
-        widgetShowIf (index == indexLego) fahrtrichtungsToggleButton
-        mapM_ (\(_,_,rb) -> widgetShowIf (index == indexLego) rb) richtungsRadioButtons
-    -}
     indexMärklin <- comboBoxAppendText comboBoxZugtyp Language.märklin
     indexLego <-comboBoxAppendText comboBoxZugtyp Language.lego
     let indizesZugtyp = (indexMärklin, Märklin):|(indexLego, Lego):[]
@@ -285,7 +274,9 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             -- Zeige Fahrtrichtungs-Pin nicht für Märklin-Bahngeschwindigkeit an
             (fahrtrichtungsPinWidget, fahrtrichtungsPinSpinButton) <- pinSpinBoxNew Language.fahrtrichtung
             boxPackWidgetNewDefault widget $ pure fahrtrichtungsPinWidget
-            on comboBoxZugtyp changed $ get comboBoxZugtyp comboBoxActive >>= \i -> widgetShowIf (i == indexLego) fahrtrichtungsPinWidget
+            on comboBoxZugtyp changed $ do
+                index <- get comboBoxZugtyp comboBoxActive
+                widgetShowIf (index == indexLego) fahrtrichtungsPinWidget
             pure (PageBahngeschwindigkeit {widget, nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton}, Nothing)
         appendPage contentBox $ do
             -- Streckenabschnitt
@@ -375,7 +366,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             windowObjekte <- widgetNewWithOptionsEvents windowNew [windowTitle := (Language.aktion :: Text), windowModal := True, windowTransientFor := dialog] [(deleteEvent, Right $ \window -> liftIO $ putLMVar mvarPlanObjekt Nothing >> widgetHide window >> pure True)]
             widgetHide windowObjekte
             windowVBox <- containerAddWidgetNew windowObjekte $ vBoxNew False 0
-            (windowScrolledWindowBG         , windowVBoxBG)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            (windowScrolledWindowBGGeschw   , windowVBoxBGGeschw)   <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            (windowScrolledWindowBGUmdrehen , windowVBoxBGUmdrehen) <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             (windowScrolledWindowST         , windowVBoxST)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             (windowScrolledWindowWEGerade   , windowVBoxWEGerade)   <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             (windowScrolledWindowWEKurve    , windowVBoxWEKurve)    <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
@@ -384,10 +376,16 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             (windowScrolledWindowKU         , windowVBoxKU)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             (windowScrolledWindowWS         , windowVBoxWS)         <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             boxPackWidgetNewDefault windowVBox $ buttonNewWithEventLabel Language.abbrechen $ putLMVar mvarPlanObjekt Nothing >> widgetHide windowObjekte
-            boxPackWidgetNewDefault windowVBoxBG $ labelNew $ Just $ (Language.bahngeschwindigkeiten :: Text) 
-            boxPackDefault windowVBoxBG vBoxHinzufügenPlanBahngeschwindigkeiten
-            boxPackWidgetNewDefault windowVBoxBG $ labelNew $ Just $ (Language.wegstrecken :: Text)
-            boxPackDefault windowVBoxBG vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
+            boxPackWidgetNewDefault windowVBoxBGGeschw $ labelNew $ Just $ (Language.bahngeschwindigkeiten :: Text)
+            boxPackDefault windowVBoxBGGeschw vBoxHinzufügenPlanBahngeschwindigkeiten
+            boxPackWidgetNewDefault windowVBoxBGGeschw $ labelNew $ Just $ (Language.wegstrecken :: Text)
+            boxPackDefault windowVBoxBGGeschw vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
+            boxPackWidgetNewDefault windowVBoxBGUmdrehen $ labelNew $ Just $ (Language.bahngeschwindigkeiten :: Text)
+            boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanBahngeschwindigkeitenLego
+            boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+            boxPackWidgetNewDefault windowVBoxBGUmdrehen $ labelNew $ Just $ (Language.wegstrecken :: Text)
+            boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+            boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
             boxPackWidgetNewDefault windowVBoxST $ labelNew $ Just $ (Language.streckenabschnitte :: Text)
             boxPackDefault windowVBoxST vBoxHinzufügenPlanStreckenabschnitte
             boxPackWidgetNewDefault windowVBoxST $ labelNew $ Just $ (Language.wegstrecken :: Text)
@@ -423,7 +421,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.geschwindigkeit $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetShow windowScrolledWindowBG
+                    widgetShow windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -445,7 +444,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.umdrehen $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetShow windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetShow windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -466,14 +466,16 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             fahrtrichtungsVBox <- boxPackWidgetNewDefault bgFunktionen $ vBoxNew False 0
             on comboBoxZugtyp changed $ do
                 index <- get comboBoxZugtyp comboBoxActive
-                widgetShowIf (index == indexLego) fahrtrichtungsVBox
+                mapM_ (widgetShowIf (index == indexLego)) [vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, fahrtrichtungsVBox]
+                mapM_ (widgetShowIf (index == indexMärklin)) [vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin]
             boxPackWidgetNewDefault fahrtrichtungsVBox $ pure vorwärtsRadioButton
             boxPackWidgetNewDefault fahrtrichtungsVBox $ pure rückwärtsRadioButton
             stFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
             boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.an) $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetShow windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -490,7 +492,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.aus) $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetShow windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -508,7 +511,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetShow windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -524,7 +528,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetShow windowScrolledWindowWEKurve
@@ -540,7 +545,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.links) $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -556,7 +562,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -573,7 +580,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault kuFunktionen $ buttonNewWithEventLabel Language.kuppeln $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
@@ -591,7 +599,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             boxPackWidgetNewDefault wsFunktionen $ buttonNewWithEventLabel Language.einstellen $ void $ forkIO $ do
                 postGUIAsync $ do
                     widgetShow windowObjekte
-                    widgetHide windowScrolledWindowBG
+                    widgetHide windowScrolledWindowBGGeschw
+                    widgetHide windowScrolledWindowBGUmdrehen
                     widgetHide windowScrolledWindowST
                     widgetHide windowScrolledWindowWEGerade
                     widgetHide windowScrolledWindowWEKurve
