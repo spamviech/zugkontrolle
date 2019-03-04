@@ -13,9 +13,6 @@ Unfinished Features:
             Selector-Funktionen exportieren?
             Identischer View-Datentyp mit exportiertem Konstruktor?
         Alternativ Umdrehen bei unklarem Zugtyp der verwendeten Bahngeschwindigkeiten verbieten?
-    Test-Suite vervollständigen
-    Cmd-UI:
-        Mehr Farbe verwenden?
     Aktionen bei Wegstrecken mit forkIO parallel ablaufen lassen
     Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl
         Lade korrekte Teile, ignoriere/melde fehlerhafte
@@ -24,6 +21,9 @@ Unfinished Features:
     Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
         Füge --version/-v flag hinzu
     Bei Verwenden von --pwm=SoftwarePWM werden keine Root-Rechte benötigt
+    Test-Suite vervollständigen
+    Cmd-UI:
+        Mehr Farbe verwenden?
     Plan:
         abbrechbar machen?
         Nur einen Plan gleichzeitig ausführen erlauben?
@@ -33,7 +33,6 @@ Code verbessern:
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
         LinkedMVar benötigt dadurch Update-Aktion nicht mehr
         Konstruktor muss LinkedMVar kennen
-    hinzufügenWidgetSimpleNew umbenennen -> hinzufügenWidgetWegstreckeNew
     englische Namen beseitigen:
         PlanGeneral -> PlanAllgemein|Done
         AktionGeneral -> AktionAllgemein|Done
