@@ -47,7 +47,10 @@
 1.0.0.9:
 - Zeit zum stellen einer Weiche reduziert
 - Bugfix: LinkedMVar merkt sich Änderungen wieder
-## Unreleased changes
+1.0.0.10:
 - HIGH/Low vertauscht (unverändert für PWM-Output)
     kann per Kommandozeilenargument "--fließend=<Value>" eingestellt werden
 - SoftwarePWM kann auf allen Pins per Kommandozeile "--pwm=SoftwarePWM" erzwungen werden
+## Unreleased changes
+- Bugfix (GTK-UI): Weiche werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben und nicht umgekehrt
+- GTK-UI: Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt

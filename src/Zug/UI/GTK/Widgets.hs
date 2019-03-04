@@ -42,6 +42,7 @@ import Control.Monad.State (State, StateT)
 import Control.Monad.Trans
 import Data.Aeson (ToJSON(..), Value)
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk
 import Numeric.Natural
@@ -76,6 +77,8 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxPläne :: VBox,
     vBoxHinzufügenWegstreckeBahngeschwindigkeiten :: VBox,
     vBoxHinzufügenPlanBahngeschwindigkeiten :: VBox,
+    vBoxHinzufügenPlanBahngeschwindigkeitenLego :: VBox,
+    vBoxHinzufügenPlanBahngeschwindigkeitenMärklin :: VBox,
     vBoxHinzufügenWegstreckeStreckenabschnitte :: VBox,
     vBoxHinzufügenPlanStreckenabschnitte :: VBox,
     vBoxHinzufügenWegstreckeWeichen :: VBox,
@@ -86,6 +89,8 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxHinzufügenWegstreckeKupplungen :: VBox,
     vBoxHinzufügenPlanKupplungen :: VBox,
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit :: VBox,
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego :: VBox,
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin :: VBox,
     vBoxHinzufügenPlanWegstreckenStreckenabschnitt :: VBox,
     vBoxHinzufügenPlanWegstreckenWeiche :: VBox,
     vBoxHinzufügenPlanWegstreckenKupplung :: VBox,
@@ -275,10 +280,14 @@ hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ button
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
 bahngeschwindigkeitPackNew :: (LikeMVar lmvar) => Bahngeschwindigkeit -> lmvar StatusGUI -> DynamischeWidgets -> IO BahngeschwindigkeitWidget
-bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus (DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, mvarPlanObjekt}) = do
+bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus (DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetSimpleNew bahngeschwindigkeit vBoxHinzufügenWegstreckeBahngeschwindigkeiten
     hinzufügenPlanWidget <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanBahngeschwindigkeiten (OBahngeschwindigkeit bahngeschwindigkeit) mvarPlanObjekt
+    hinzufügenPlanWidgetZT <- case zugtyp bahngeschwindigkeit of
+        (Lego)          -> hinzufügenWidgetPlanNew vBoxHinzufügenPlanBahngeschwindigkeitenLego (OBahngeschwindigkeit bahngeschwindigkeit) mvarPlanObjekt >>= pure . Left
+        (Märklin)       -> hinzufügenWidgetPlanNew vBoxHinzufügenPlanBahngeschwindigkeitenMärklin (OBahngeschwindigkeit bahngeschwindigkeit) mvarPlanObjekt >>= pure . Right
+        (Undefiniert)   -> error "Bahngeschwindigkeit mit undefiniertem Zugtyp erstellt."
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ hBoxNew False 0
     nameLabelPackNew hBox bahngeschwindigkeit
@@ -286,8 +295,8 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus (DynamischeWidgets {vB
     hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bahngeschwindigkeit mvarStatus
     fahrtrichtungsPinLabelPackNew hBox bahngeschwindigkeit
     buttonUmdrehenPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit mvarStatus
-    let bgWidgets = BGWidgets {bg=bahngeschwindigkeit, bgWidget=hBox, bgHinzPL=hinzufügenPlanWidget, bgHinzWS=hinzufügenWegstreckeWidget}
-    buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hinzufügenWegstreckeWidget) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanBahngeschwindigkeiten] <*> ZipList (bgWidgets ^.. foldPlan)))) mvarStatus
+    let bgWidgets = BGWidgets {bg=bahngeschwindigkeit, bgWidget=hBox, bgHinzPL=(hinzufügenPlanWidget, hinzufügenPlanWidgetZT), bgHinzWS=hinzufügenWegstreckeWidget}
+    buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hinzufügenWegstreckeWidget) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin] <*> ZipList (bgWidgets ^.. foldPlan)))) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OBahngeschwindigkeit bgWidgets) mvarStatus
     pure hBox
@@ -303,7 +312,7 @@ type BahngeschwindigkeitWidget = HBox
 -- | Widgets zum Hinzufügen einer 'Bahngeschwindigkeit' zu einer 'Wegstrecke'
 type BahngeschwindigkeitWidgetHinzufügenWegstrecke = (HBox, VRCheckButton)
 -- | Widgets zum Hinzufügen einer 'Bahngeschwindigkeit' zu einem 'Plan'
-type BahngeschwindigkeitWidgetHinzufügenPlan = Button
+type BahngeschwindigkeitWidgetHinzufügenPlan = (Button, Either Button Button)
 -- | 'Bahngeschwindigkeit' mit zugehörigen Widgets
 data BGWidgets = BGWidgets {
                         bg :: Bahngeschwindigkeit,
@@ -318,7 +327,7 @@ instance WegstreckenElement BGWidgets where
 
 instance PlanElement BGWidgets where
     foldPlan :: Fold BGWidgets (Maybe Button)
-    foldPlan = Lens.folding $ (:[]) . Just . bgHinzPL
+    foldPlan = Lens.folding $ (\(b, bZT) -> (Just b) : (case bZT of {Left bLego -> [Just bLego, Nothing]; Right bMärklin -> [Nothing, Just bMärklin]})) . bgHinzPL
 
 instance StreckenObjekt BGWidgets where
     zugtyp :: BGWidgets -> Zugtyp
@@ -422,27 +431,27 @@ weichePackNew   weiche  mvarStatus  (DynamischeWidgets {vBoxWeichen, vBoxHinzuf�
             tRichtungRadioButtons <- mapM (\richtung -> boxPackWidgetNewDefault hBoxHinzufügen (radioButtonNewWithLabelFromWidget (snd hRichtungRadioButton) $ show richtung) >>= \radioButton -> pure (richtung, radioButton)) t
             pure $ hRichtungRadioButton :| tRichtungRadioButtons
         pure (hBoxHinzufügen, unregistriert checkButton, richtungsRadioButtons)
-    hinzufügenPlanWidgetGerade  <- if hatRichtung weiche Gerade then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenGerade (OWeiche weiche) mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetKurve   <- if hatRichtung weiche Kurve  then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenKurve  (OWeiche weiche) mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetLinks   <- if hatRichtung weiche Links  then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenLinks  (OWeiche weiche) mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetRechts  <- if hatRichtung weiche Rechts then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenRechts (OWeiche weiche) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetGerade  <- if hatRichtung weiche Gerade then hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenGerade (OWeiche weiche) mvarPlanObjekt >>= pure . Just else pure Nothing
+    hinzufügenPlanWidgetKurve   <- if hatRichtung weiche Kurve  then hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenKurve  (OWeiche weiche) mvarPlanObjekt >>= pure . Just else pure Nothing
+    hinzufügenPlanWidgetLinks   <- if hatRichtung weiche Links  then hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenLinks  (OWeiche weiche) mvarPlanObjekt >>= pure . Just else pure Nothing
+    hinzufügenPlanWidgetRechts  <- if hatRichtung weiche Rechts then hinzufügenWidgetPlanNew vBoxHinzufügenPlanWeichenRechts (OWeiche weiche) mvarPlanObjekt >>= pure . Just else pure Nothing
     let hinzufügenPlanWidget = (hinzufügenPlanWidgetGerade, hinzufügenPlanWidgetKurve, hinzufügenPlanWidgetLinks, hinzufügenPlanWidgetRechts)
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxWeichen $ hBoxNew False 0
     nameLabelPackNew hBox weiche
-    richtungsButtonsNew weiche hBox
+    richtungsButtonsPackNew weiche hBox
     let weWidgets = WEWidgets {we=weiche, weWidget=hBox, weHinzPL=hinzufügenPlanWidget, weHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxWeichen (entfernenWeiche weWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeWeichen ((\(w,_,_) -> w) hinzufügenWegstreckeWidget) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts] <*> ZipList (weWidgets ^.. foldPlan)))) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OWeiche weWidgets) mvarStatus
     pure hBox
         where
-            richtungsButtonsNew :: (BoxClass b) => Weiche -> b -> IO ()
-            richtungsButtonsNew (LegoWeiche {richtungsPin, richtungen=(richtung1, richtung2)})    box = void $ do
+            richtungsButtonsPackNew :: (BoxClass b) => Weiche -> b -> IO ()
+            richtungsButtonsPackNew (LegoWeiche {richtungsPin, richtungen=(richtung1, richtung2)})    box = void $ do
                 boxPackWidgetNewDefault box $ pinLabelNew Language.richtung richtungsPin
                 boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung1) $ runMVarAktion (Stellen weiche richtung1) mvarStatus
                 boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung2) $ runMVarAktion (Stellen weiche richtung2) mvarStatus
-            richtungsButtonsNew (MärklinWeiche {richtungsPins})                                     box = mapM_ (\(richtung, pin) -> boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung <:> showText pin) $ runMVarAktion (Stellen weiche richtung) mvarStatus) richtungsPins
+            richtungsButtonsPackNew (MärklinWeiche {richtungsPins})                                     box = mapM_ (\(richtung, pin) -> boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung <:> showText pin) $ runMVarAktion (Stellen weiche richtung) mvarStatus) richtungsPins
 -- | Äußerstes Widget zur Darstellung einer 'Weiche'
 type WeicheWidget = HBox
 -- | Widget zum Hinzufügen einer 'Weiche' zu einer 'Wegstrecke'
@@ -547,12 +556,18 @@ buttonKuppelnPackNew box kupplung mvarStatus = boxPackWidgetNewDefault box $ but
 
 -- | 'Wegstrecke' darstellen
 wegstreckePackNew :: (LikeMVar lmvar) => Wegstrecke -> lmvar StatusGUI -> DynamischeWidgets -> IO WegstreckeWidget
-wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) mvarStatus (DynamischeWidgets {vBoxWegstrecken, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
+wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) mvarStatus (DynamischeWidgets {vBoxWegstrecken, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten   then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetST <- if null wsStreckenabschnitte      then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenStreckenabschnitt   (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetWE <- if null wsWeichenRichtungen       then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenWeiche              (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
-    hinzufügenPlanWidgetKU <- if null wsKupplungen              then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenKupplung            (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetBG  <- if null wsBahngeschwindigkeiten  then pure Nothing else do
+        hinzufügenPlanWidgetBG <- hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit        (OWegstrecke wegstrecke) mvarPlanObjekt
+        hinzufügenPlanWidgetBGZ <- case zugtyp wegstrecke of
+            (Lego)          -> hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego     (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Left
+            (Märklin)       -> hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin  (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Right
+            (Undefiniert)   -> error "Wegstrecke mit Bahngeschwindigkeit und Undefiniertem Zugtyp erstellt."
+        pure $ Just (hinzufügenPlanWidgetBG, hinzufügenPlanWidgetBGZ)
+    hinzufügenPlanWidgetST  <- if null wsStreckenabschnitte     then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenStreckenabschnitt          (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetWE  <- if null wsWeichenRichtungen      then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenWeiche                     (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
+    hinzufügenPlanWidgetKU  <- if null wsKupplungen             then pure Nothing else hinzufügenWidgetPlanNew vBoxHinzufügenPlanWegstreckenKupplung                   (OWegstrecke wegstrecke) mvarPlanObjekt >>= pure . Just
     let hinzufügenPlanWidget = (hinzufügenPlanWidgetBG, hinzufügenPlanWidgetST, hinzufügenPlanWidgetWE, hinzufügenPlanWidgetKU)
     -- Widget erstellen
     frame <- boxPackWidgetNewDefault vBoxWegstrecken frameNew
@@ -575,7 +590,7 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
         boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.kupplungen <:> foldl appendName ("") wsKupplungen
         buttonKuppelnPackNew functionBox wegstrecke mvarStatus
     let wsWidgets = WSWidgets {ws=wegstrecke, wsWidget=frame, wsHinzPL=hinzufügenPlanWidget}
-    buttonEntfernenPack functionBox (containerRemove vBoxWegstrecken frame >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung] <*> ZipList (wsWidgets ^.. foldPlan))) (entfernenWegstrecke wsWidgets) mvarStatus
+    buttonEntfernenPack functionBox (containerRemove vBoxWegstrecken frame >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung] <*> ZipList (wsWidgets ^.. foldPlan))) (entfernenWegstrecke wsWidgets) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OWegstrecke wsWidgets) mvarStatus
     pure frame
@@ -586,7 +601,7 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
 -- | Äußerstes Widget zur Darstellung einer 'Wegstrecke'
 type WegstreckeWidget = Frame
 -- | Widget zum Hinzufügen einer 'Wegstrecke' zu einem 'Plan'
-type WegstreckeWidgetHinzufügenPlan = (Maybe Button, Maybe Button, Maybe Button, Maybe Button)
+type WegstreckeWidgetHinzufügenPlan = (Maybe (Button, Either Button Button), Maybe Button, Maybe Button, Maybe Button)
 -- | 'Wegstrecke' mit zugehörigen Widgets
 data WSWidgets = WSWidgets {
                         ws :: Wegstrecke,
@@ -596,7 +611,12 @@ data WSWidgets = WSWidgets {
 
 instance PlanElement WSWidgets where
     foldPlan :: Fold WSWidgets (Maybe Button)
-    foldPlan = Lens.folding $ \(WSWidgets {wsHinzPL=(a, b, c, d)}) -> [a, b, c, d]
+    foldPlan = Lens.folding $ \(WSWidgets {wsHinzPL=(bgs, st, we, ku)}) -> bgButtons bgs <> [st, we, ku]
+        where
+            bgButtons :: Maybe (Button, Either Button Button) -> [Maybe Button]
+            bgButtons (Nothing)                 = [Nothing, Nothing, Nothing]
+            bgButtons (Just (bg, (Left bgL)))   = [Just bg, Just bgL, Nothing]
+            bgButtons (Just (bg, (Right bgM)))  = [Just bg, Nothing, Just bgM]
 
 instance StreckenObjekt WSWidgets where
     zugtyp :: WSWidgets -> Zugtyp
