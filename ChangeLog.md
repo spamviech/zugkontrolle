@@ -57,3 +57,4 @@
     - Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt
     - Laden dreht nicht mehr die Reihenfolge um
 - Aktionen einer Wegstrecke (z.B. Weichen einstellen) laufen nun parallel ab
+- Bei Verwenden von --pwm=SoftwarePWM werden keine Root-Rechte benötigt

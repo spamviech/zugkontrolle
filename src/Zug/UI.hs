@@ -35,13 +35,17 @@ main = whenRoot $ do
 whenRoot :: IO () -> IO ()
 #ifdef ZUGKONTROLLERASPI
 whenRoot action = do
-    uid <- getRealUserID
-    if (uid == 0)
-        then action
-        else do
-            setSGR [SetColor Foreground Vivid Red]
-            putStrLn Language.nichtRoot
-            setSGR [Reset]
+    (Options {pwm}) <- getOptions
+    case pwm of
+        (SoftwarePWM)   -> action
+        (HardwarePWM)   -> do
+            uid <- getRealUserID
+            if (uid == 0)
+                then action
+                else do
+                    setSGR [SetColor Foreground Vivid Red]
+                    putStrLn Language.nichtRoot
+                    setSGR [Reset]
 #else
 whenRoot action = action
 #endif

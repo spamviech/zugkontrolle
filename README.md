@@ -73,8 +73,10 @@ Dazu ist am besten die Anleitung auf der Website zu befolgen: https://www.gtk.or
     Die Installation von gtk3 erfolgt dann über `stack exec -- pacman -S mingw-w64-x86_64-gtk3`
 
 # Ausführen des Programms
-Zum Ausführen werden Root-Rechte benötigt, weil sonst nicht alle Funktionen der WiringPi-Bibliothek zur Verfügung stehen.
-Auf Linux-Systemen mit ARM-Architektur bricht das Programm sonst direkt mit einer Fehlermeldung ab.
+Zum Ausführen werden Root-Rechte benötigt, weil sonst nicht alle Funktionen der WiringPi-Bibliothek zur Verfügung stehen.  
+Auf Linux-Systemen mit ARM-Architektur (Raspberry Pi) bricht das Programm sonst direkt mit einer Fehlermeldung ab.  
+Eine Außnahme bildet die Außführung unter der Flag `--pwm=SoftwarePWM`.
+Die betroffenen Befehle werden dann nicht benötigt, wodurch eine Ausführung ohne Root-Rechte möglich ist.
 
 Nachdem auf nicht-RasperryPi-Systemen sämtliche IO-Funktionen des WiringPi-Moduls durch "return ()" ersetzt wurden ist das dort natürlich nicht notwendig.
 

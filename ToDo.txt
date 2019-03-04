@@ -18,7 +18,6 @@ Unfinished Features:
         Lade korrekte Teile, ignoriere/melde fehlerhafte
     Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
         Füge --version/-v flag hinzu
-    Bei Verwenden von --pwm=SoftwarePWM werden keine Root-Rechte benötigt
     Test-Suite vervollständigen
     Cmd-UI:
         Mehr Farbe verwenden?
