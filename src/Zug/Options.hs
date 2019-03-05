@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 {-|
 Description : Kommandozeilen-Optionen
 -}
@@ -7,6 +9,9 @@ module Zug.Options (Options(..), getOptions, UI(..), PWM(..)) where
 import Options.Applicative
 import Data.Semigroup (Semigroup(..))
 import System.Hardware.WiringPi
+-- Abhängigkeit von anderen Modulen
+import Zug.Language ((<~>), (<:>))
+import qualified Zug.Language as Language
 
 -- | Erhalte Kommandozeilen-Arguemente
 getOptions :: IO Options
@@ -23,10 +28,13 @@ data Options = Options {
 
 opts :: ParserInfo Options
 opts = info
-        (helper <*> combinedOptions)
+        (helper <*> versionOpt <*> combinedOptions)
         (fullDesc <>
             progDesc "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle." <>
             header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
+
+versionOpt :: Parser (a -> a)
+versionOpt = infoOption (Language.zugkontrolle <~> "Version" <:> ZUGKONTROLLEVERSION) (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
 
 combinedOptions :: Parser Options
 combinedOptions = Options <$> printOpt <*> uiOpt <*> loadOpt <*> pwmOpt <*> fließendOpt
@@ -64,12 +72,12 @@ pwmOpt = option auto (
             long "pwm" <>
             metavar "PWMTYP" <>
             showDefault <>
-            value HardwarePWM <>
+            value SoftwarePWM <>
             help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [PWM]) ++ " wenn möglich."))
 
 fließendOpt :: Parser Value
 fließendOpt = option auto (
-                long "on" <>
+                long "fließend" <>
                 metavar "VALUE" <>
                 showDefault <>
                 value LOW <>

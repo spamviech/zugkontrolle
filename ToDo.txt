@@ -8,10 +8,10 @@ Dokumentation schreiben
     Copyright/Lizenz
 Unfinished Features:
     Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
-        Füge --version/-v flag hinzu
+        Füge --version/-v flag hinzu|Done
         Zeige mögliche Optionen an|Done
         Speichere Hilfe-Texte ebenfalls in Language.hs
-        helper durch eigene
+        helper durch eigenen Hilfstext ersetzten
     Smart-Constructor für Wegstrecken um (wenn nötig) einen eindeutigen Zugtyp sicherzustellen
         wegstrecke :: Text -> [Bahngeschwindigkeit] -> [Streckenabschnitt] -> [(Weiche, Richtung)] -> [Kupplung] -> Maybe Wegstrecke
         stelle smart-Destructor zum Pattern Matching bereit
