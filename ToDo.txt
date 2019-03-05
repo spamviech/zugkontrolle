@@ -18,6 +18,7 @@ Unfinished Features:
         Lade korrekte Teile, ignoriere/melde fehlerhafte
     Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
         Füge --version/-v flag hinzu
+        Zeige mögliche Optionen an
     Test-Suite vervollständigen
     Cmd-UI:
         Mehr Farbe verwenden?
