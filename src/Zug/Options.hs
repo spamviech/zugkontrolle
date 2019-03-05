@@ -22,7 +22,11 @@ data Options = Options {
                         deriving Show
 
 opts :: ParserInfo Options
-opts = info (combinedOptions <**> helper) (fullDesc <> progDesc "Kontrolliere einzelne Wegstrecken-Elemente, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle." <> header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
+opts = info
+        (helper <*> combinedOptions)
+        (fullDesc <>
+            progDesc "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle." <>
+            header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
 
 combinedOptions :: Parser Options
 combinedOptions = Options <$> printOpt <*> uiOpt <*> loadOpt <*> pwmOpt <*> fließendOpt
@@ -32,7 +36,7 @@ printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe a
 
 -- | Unterstützte Benutzer-Schnittstellen
 data UI = GTK | Cmd
-            deriving (Show, Read)
+            deriving (Show, Read, Enum, Bounded)
 
 uiOpt :: Parser UI
 uiOpt = option auto (
@@ -40,7 +44,7 @@ uiOpt = option auto (
                 metavar "UI" <>
                 showDefault <>
                 value GTK <>
-                help "Verwende UI als Benutzer-Schnittstelle.")
+                help ("Verwende UI=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [UI]) ++ " als Benutzer-Schnittstelle."))
 
 loadOpt :: Parser String
 loadOpt = strOption (
@@ -53,7 +57,7 @@ loadOpt = strOption (
 
 -- | Verwende Hardware-PWM wenn möglich?
 data PWM = SoftwarePWM | HardwarePWM
-                deriving (Show, Read)
+                deriving (Show, Read, Enum, Bounded)
 
 pwmOpt :: Parser PWM
 pwmOpt = option auto (
@@ -61,7 +65,7 @@ pwmOpt = option auto (
             metavar "PWMTYP" <>
             showDefault <>
             value HardwarePWM <>
-            help "Verwende Hardware-PWM wenn möglich?")
+            help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [PWM]) ++ " wenn möglich."))
 
 fließendOpt :: Parser Value
 fließendOpt = option auto (
@@ -69,4 +73,10 @@ fließendOpt = option auto (
                 metavar "VALUE" <>
                 showDefault <>
                 value LOW <>
-                help "Bei welchem Pin-Output fließt der Strom (HardwarePWM unbeeinflusst)?")
+                help ("Bei welchem Pin-Output VALUE=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [Value]) ++ " fließt der Strom (PWM-Ausgabe unbeeinflusst)."))
+
+-- | Hilfsfunktion um mögliche Optionen anzuzeigen
+zeigeMöglichkeiten :: (Show a) => [a] -> String
+zeigeMöglichkeiten  ([])    = ""
+zeigeMöglichkeiten  (h:[])  = show h
+zeigeMöglichkeiten  (h:t)   = show h ++ '|' : zeigeMöglichkeiten t
