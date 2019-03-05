@@ -47,7 +47,9 @@ Ein Plan ist eine Aneinanderreihung von Aktionen vorher erstellter StreckenObjek
 Beim ausführen eines Plans werden diese nacheinander aufgerufen.
 
 # Installation
-Zur Installation wird stack empfohlen. Durch Aufruf von `stack install` wird eine Kopie der Executable im Unterordner "./bin" erstellt.
+Zur Installation wird stack empfohlen.  
+Nach Installation aller Abhängigkeiten (siehe Unten) kann durch den Aufruf von `stack build` eine Executable in einem Unterordner von `./.stack-work` erstellt werden.
+Durch Aufruf von `stack install` wird eine Kopie der Executable im Unterordner "./bin" erstellt.
 
 Nachdem die Installation der Pakete "gtk3" und "lens" eine Installation des "Cabal"-Pakets vorraussetzen, welches sehr lange dauert (bei mir ~1 Tag) wird eine Installation ohne beide Pakete unterstützt.  
 Dazu muss der Installations-Befehl erweitert werden um die flag gui auf false zu setzten. Der neue Installationsbefehl lautet somit:
@@ -73,13 +75,15 @@ Dazu ist am besten die Anleitung auf der Website zu befolgen: https://www.gtk.or
     Die Installation von gtk3 erfolgt dann über `stack exec -- pacman -S mingw-w64-x86_64-gtk3`
 
 # Ausführen des Programms
-Zum Ausführen werden Root-Rechte benötigt, weil sonst nicht alle Funktionen der WiringPi-Bibliothek zur Verfügung stehen.  
-Auf Linux-Systemen mit ARM-Architektur (Raspberry Pi) bricht das Programm sonst direkt mit einer Fehlermeldung ab.  
-Eine Außnahme bildet die Außführung unter der Flag `--pwm=SoftwarePWM`.
-Die betroffenen Befehle werden dann nicht benötigt, wodurch eine Ausführung ohne Root-Rechte möglich ist.
+Zum Ausführen kann wieder stack verwendet werden.  
+Der Befehl lautet `stack exec Zugkontrolle`.  
+Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` übergeben werden.
 
+Bei Verwenden der Flag `--pwm=HardwarePWM` werden Root-Rechte benötigt, weil sonst nicht alle notwendigen Funktionen der WiringPi-Bibliothek zur Verfügung stehen.
+Auf Linux-Systemen mit ARM-Architektur (Raspberry Pi) bricht das Programm sonst direkt mit einer Fehlermeldung ab.  
 Nachdem auf nicht-RasperryPi-Systemen sämtliche IO-Funktionen des WiringPi-Moduls durch "return ()" ersetzt wurden ist das dort natürlich nicht notwendig.
 
+## GTK-Probleme mit stack und Windows
 Wenn das Programm unter Windows nicht startet, bzw. mit dll-Fehlern abbricht (Fehlermeldungen werden bei Start über Powershell nicht angezeigt) muss der Ordner der MSYS2-Installation weiter vorne im Path stehen.
 Bei einer eigenen MSYS2-Installation ist das normalerweise: `C:\msys64\mingw64\bin`.
 Für die von stack mitgelieferte Version ist der Pfad normalerweise: `\~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\`
@@ -89,13 +93,23 @@ Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werd
 Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\AppData\Local\Programs\stack\x86_64-windows\ghc-8.2.2\mingw\bin\zlib1.dll\zlib1.dll`
 
 ## Unterstütze Kommandozeilen-Parameter
-* -p|--print
+* -h|--help  
+    Zeige den Hilfstext an. Dieser wird automatisch erzeugt, woduch Teile davon auf englisch sind.
+* -v|--version  
+    Zeige die aktuelle Version an.
+* -p|--print  
     Wenn diese Flag gesetzt ist werden die Ausgaben der Raspberry Pi Ausgänge (Pins) nicht als Ausgang verwendet.
-    Es wird stattdessen eine Konsolenausgabe erzeugt.
-    Die Flag ist vor allem zum Testen auf anderen Systemen gedacht.
-* --ui=Cmd|GTK
+    Es wird stattdessen eine Konsolenausgabe erzeugt.  
+    Diese Flag ist vor allem zum Testen auf anderen Systemen gedacht.
+* --ui=Cmd|GTK  
     Auswahl der Benutzer-Schnittstelle (Standard: GTK).
     Bei Installation mit "--flag Zugkontrolle:-gui" wird immer das Cmd-UI verwendet.
-* -lDATEI|--load=DATEI
+* -lDATEI|--load=DATEI  
     Versuche den in DATEI gespeicherten Zustand zu laden.
     Wenn die Datei nicht existiert/das falsche Format hat wird ohne Fehlermeldung mit einem leeren Zustand gestartet.
+* --pwm=HardwarePWM|SoftwarePWM  
+    Gebe an, welche PWM-Funktion bevorzugt verwendet wird (Standard: SoftwarePWM).
+    Nachdem nur das Einstellen der hardware-basierten PWM-Funktion Root-Rechte benötigt werden diese bei Verwendung von `--pwm=SoftwarePWM` nicht benötigt.
+* --fließend=LOW|HIGH  
+    Gebe an bei welchen Output der Pins die verwendeten Relais auf fließend stehen.
+    Diese flag hat __keinen__ Einfluss auf die Ausgabe von PWM-Signalen (HIGH wird immer als fließend interpretiert).

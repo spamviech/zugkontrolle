@@ -62,3 +62,4 @@
 - Zum Laden werden immer deutsche Namen (unabhängig von Language.hs) verwendet.
     Einmal erzeugte json-Dateien können somit unabhängig von der Sprache verwendet werden.
 - Beim Hilfe-Text werden unterstützte Optionen angezeigt.
+- Flag -v|--version hinzugefügt
