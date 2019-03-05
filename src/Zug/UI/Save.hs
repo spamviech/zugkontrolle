@@ -13,6 +13,7 @@ module Zug.UI.Save (
                 save, load) where
 
 -- Bibliotheken
+import Control.Applicative (Alternative(..))
 import Control.Concurrent.MVar
 import Control.Monad
 import Data.Aeson
@@ -48,7 +49,14 @@ newtype AlmostStatus bg st we ku ws pl = AlmostStatus {getStatusFunction :: (MVa
 
 instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJSON pl) => FromJSON (AlmostStatus bg st we ku ws pl) where
     parseJSON :: Value -> Parser (AlmostStatus bg st we ku ws pl)
-    parseJSON   (Object v)  = AlmostStatus <$> (Status <$> (v .: "Bahngeschwindigkeiten") <*> (v .: "Streckenabschnitte") <*> (v .: "Weichen") <*> (v .: "Kupplungen") <*> (v .: "Wegstrecken") <*> (v .: "Pläne"))
+    parseJSON   (Object v)  = AlmostStatus
+                            <$> (Status
+                                <$> ((v .: "Bahngeschwindigkeiten") <|> pure [])
+                                <*> ((v .: "Streckenabschnitte")    <|> pure [])
+                                <*> ((v .: "Weichen")               <|> pure [])
+                                <*> ((v .: "Kupplungen")            <|> pure [])
+                                <*> ((v .: "Wegstrecken")           <|> pure [])
+                                <*> ((v .: "Pläne")                 <|> pure []))
     parseJSON   _           = mzero
 
 instance (ToJSON bahngeschwindigkeit, ToJSON streckenabschnitt, ToJSON weiche, ToJSON kupplung, ToJSON wegstrecke, ToJSON plan) => ToJSON (StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
