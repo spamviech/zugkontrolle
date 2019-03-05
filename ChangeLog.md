@@ -61,3 +61,4 @@
 - Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl. Es werden nun alle korrekt vormatierten Teilestücke geladen.
 - Zum Laden werden immer deutsche Namen (unabhängig von Language.hs) verwendet.
     Einmal erzeugte json-Dateien können somit unabhängig von der Sprache verwendet werden.
+- Beim Hilfe-Text werden unterstützte Optionen angezeigt.
