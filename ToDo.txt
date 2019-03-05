@@ -14,8 +14,6 @@ Unfinished Features:
             Identischer View-Datentyp mit exportiertem Konstruktor?
         Alternativ Umdrehen bei unklarem Zugtyp der verwendeten Bahngeschwindigkeiten verbieten?
         Mischformen können aktuell zu potentiell unerwartetem Verhalten führen
-    Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl
-        Lade korrekte Teile, ignoriere/melde fehlerhafte
     Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
         Füge --version/-v flag hinzu
         Zeige mögliche Optionen an
