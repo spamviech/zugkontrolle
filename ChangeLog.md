@@ -59,3 +59,5 @@
 - Aktionen einer Wegstrecke (z.B. Weichen einstellen) laufen nun parallel ab
 - Bei Verwenden von --pwm=SoftwarePWM werden keine Root-Rechte benötigt
 - Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl. Es werden nun alle korrekt vormatierten Teilestücke geladen.
+- Zum Laden werden immer deutsche Namen (unabhängig von Language.hs) verwendet.
+    Einmal erzeugte json-Dateien können somit unabhängig von der Sprache verwendet werden.
