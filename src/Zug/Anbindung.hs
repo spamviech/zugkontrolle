@@ -12,7 +12,7 @@ module Zug.Anbindung (
                     -- * Strecken-Objekte
                     StreckenObjekt(..),
                     -- ** Bahngeschwindigkeiten
-                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..),
+                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), pwmEingabeMaximal, getPwmValueVoll, getPwmValueReduziert,
                     -- ** Streckenabschnitte
                     Streckenabschnitt(..), StreckenabschnittKlasse(..),
                     -- ** Weichen
@@ -74,7 +74,7 @@ pwmWriteSoftHardware pin pwmValue mvarPinMap = getOptions >>= \(Options {pwm}) -
 -- | Erzeuge PWM-Funktion für einen Servo-Motor
 --   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmRange und pwmValue)
 pwmServo :: Pin -> Natural -> PinMapIO ()
-pwmServo pin value = pwmWriteSoftware pin pwmFrequencyHzServo $ getPwmValueFull value
+pwmServo pin value = pwmWriteSoftware pin pwmFrequencyHzServo $ getPwmValueVoll value
 
 -- ** Frequenzen
 -- | 50 Hz Frequenz; Standard-Wert von Servo-Motoren
@@ -83,24 +83,51 @@ pwmFrequencyHzServo  = 50
 
 -- | Normale PWM-Frequenz
 pwmFrequencyHzNormal :: Natural
-pwmFrequencyHzNormal = pwmFrequencyHzServo
+pwmFrequencyHzNormal = 250
 
--- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und einem Maximalwert
-getPwmValue :: (Integral i) => i -> i -> PwmValue
-getPwmValue maxValue value = fromIntegral pwmValue
+-- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und 'pwmEingabeMaximal'.
+getPwmValue :: (Integral i) => Natural -> i -> PwmValue
+getPwmValue pwmRangeMax value = fromIntegral ergebnis
     where
-        pwmValue :: Natural
-        pwmValue = div a 100
-        a :: Natural
-        a = (fromIntegral pwmRange) * (min (fromIntegral maxValue) $ fromIntegral value)
+        {-
+            Verwende Natural um Fehler wegen zu kleinem Wertebereich zu vermeiden.
+            Multipliziere zuerst alle Werte, bevor sie normaliert werden um Rundungsfehler zu verhindern.
+            Möglich, nachdem die Funktion nicht in Perfomance-kritischen Bereichen (und selten) aufgerufen wird.
+            Effektivspannung skaliert wie die Wurzel des PwmValue.
+            Der Eingabewert wird daher quadriert um linear mit der Effektivspannung zu skalieren.
+        -}
+        ergebnis :: Natural
+        ergebnis = div wertSkaliert (pwmEingabeMaximal * pwmEingabeMaximal)
+        wertSkaliert :: Natural
+        wertSkaliert = pwmRangeMax * wertBegrenzt * wertBegrenzt
+        wertBegrenzt :: Natural
+        wertBegrenzt = min pwmEingabeMaximal $ fromIntegral value
+
+-- | Maximaler Eingabewert für 'getPwmValue' und 'geschwindigkeit'.
+pwmEingabeMaximal :: Natural
+pwmEingabeMaximal = 100
+
+-- | Vollständige pwmRange als Natural.
+pwmRangeVoll :: Natural
+pwmRangeVoll = fromIntegral pwmRange
+
+-- | Maximal erlaubter pwmRange für 'getPWMValue' um eine Effektivspannung von 16V zu erhalten.
+pwmRangeReduziert :: Natural
+pwmRangeReduziert = div (pwmRangeVoll * spannungFahrt * spannungFahrt) (spannungQuelle * spannungQuelle)
+    -- Effektivspannung skaliert wie die Wurzel des PwmValues.
+    where
+        spannungFahrt :: Natural
+        spannungFahrt = 16
+        spannungQuelle :: Natural
+        spannungQuelle = 25
 
 -- | Nutze komplette pwmRange
-getPwmValueFull :: (Integral i) => i -> PwmValue
-getPwmValueFull = getPwmValue 100
+getPwmValueVoll :: (Integral i) => i -> PwmValue
+getPwmValueVoll = getPwmValue pwmRangeVoll
 
--- | Nutze 3/4 der pwmRange (maximal 16V von 24V Maximalspannung)
-getPwmValueReduced :: (Integral i) => i -> PwmValue
-getPwmValueReduced = getPwmValue 75
+-- | Nutze einen reduzierten Bereich der pwmRange (maximal 16V von 24V Maximalspannung)
+getPwmValueReduziert :: (Integral i) => i -> PwmValue
+getPwmValueReduziert = getPwmValue pwmRangeReduziert
 
 -- | µs in a second
 µsInS :: Natural
@@ -155,15 +182,15 @@ class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
 umdrehenDelayµs :: Natural
-umdrehenDelayµs = 500 * µsInms
+umdrehenDelayµs = 250 * µsInms
 
 instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     geschwindigkeit :: Bahngeschwindigkeit -> Natural -> PinMapIO ()
     geschwindigkeit (LegoBahngeschwindigkeit {geschwindigkeitsPin})     geschwindigkeit mvarPinMap  = befehlAusführen
-        (pwmWriteSoftHardware geschwindigkeitsPin (getPwmValueFull geschwindigkeit) mvarPinMap)
+        (pwmWriteSoftHardware geschwindigkeitsPin (getPwmValueVoll geschwindigkeit) mvarPinMap)
         ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
     geschwindigkeit (MärklinBahngeschwindigkeit {geschwindigkeitsPin})  geschwindigkeit mvarPinMap  = befehlAusführen
-        (pwmWriteSoftHardware geschwindigkeitsPin (getPwmValueReduced geschwindigkeit) mvarPinMap)
+        (pwmWriteSoftHardware geschwindigkeitsPin (getPwmValueReduziert geschwindigkeit) mvarPinMap)
         ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
     umdrehen :: Bahngeschwindigkeit -> Maybe Fahrtrichtung -> PinMapIO ()
     umdrehen (LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin}) (Just fahrtrichtung)    mvarPinMap = befehlAusführen

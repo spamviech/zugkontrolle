@@ -7,11 +7,6 @@ Dokumentation schreiben
             ReadMe texen?
     Copyright/Lizenz
 Unfinished Features:
-    Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
-        Füge --version/-v flag hinzu|Done
-        Zeige mögliche Optionen an|Done
-        Speichere Hilfe-Texte ebenfalls in Language.hs
-        helper durch eigenen Hilfstext ersetzten
     Smart-Constructor für Wegstrecken um (wenn nötig) einen eindeutigen Zugtyp sicherzustellen
         wegstrecke :: Text -> [Bahngeschwindigkeit] -> [Streckenabschnitt] -> [(Weiche, Richtung)] -> [Kupplung] -> Maybe Wegstrecke
         stelle smart-Destructor zum Pattern Matching bereit
@@ -22,10 +17,15 @@ Unfinished Features:
     Test-Suite vervollständigen
     Cmd-UI:
         Mehr Farbe verwenden?
+    Zeige in der Hilfe die Optionen der Flags an (optparse-applicative)
+        Speichere Hilfe-Texte ebenfalls in Language.hs
+        helper durch eigenen Hilfstext ersetzten
     Plan:
         abbrechbar machen?
         Nur einen Plan gleichzeitig ausführen erlauben?
 Code verbessern:
+    widgetsNewWithOptionsEvents entfernen
+        Events können unterschiedliche Typen haben -> Liste nicht möglich
     Entfernen von zusätzlich erstellten Widgets in entsprechender Typklasse (als Fkt von Dynamische Widgets)
         vermeidet Duplikation (und damit Fehlerquelle) beim Laden
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
