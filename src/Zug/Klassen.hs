@@ -60,6 +60,7 @@ instance Show Fahrtrichtung where
 data Strom = Fließend | Gesperrt
                 deriving (Eq, Bounded, Enum)
 
+-- | Anzeigen von 'Strom'
 instance Show Strom where
     show :: Strom -> String
     show    (Fließend)  = Language.fließend

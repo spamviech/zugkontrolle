@@ -51,7 +51,7 @@
 - HIGH/Low vertauscht (unverändert für PWM-Output)
     kann per Kommandozeilenargument "--fließend=<Value>" eingestellt werden
 - SoftwarePWM kann auf allen Pins per Kommandozeile "--pwm=SoftwarePWM" erzwungen werden
-## Unreleased changes
+1.0.0.11:
 - Bugfix (GTK-UI): Weiche werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben und nicht umgekehrt
 - GTK-UI:
     - Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt
@@ -63,3 +63,6 @@
     Einmal erzeugte json-Dateien können somit unabhängig von der Sprache verwendet werden.
 - Beim Hilfe-Text werden unterstützte Optionen angezeigt.
 - Flag -v|--version hinzugefügt
+- Bugfix: getPWMValue reagiert nun richtig auf eine reduzierte PWMRange
+- PWMValue skaliert nur quadrisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
+## Unreleased changes
