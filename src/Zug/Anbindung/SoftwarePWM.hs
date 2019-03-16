@@ -15,8 +15,9 @@ module Zug.Anbindung.SoftwarePWM (
 import qualified Data.Map.Strict as Map
 import System.Hardware.WiringPi
 import Control.Concurrent
-import Control.Monad
-import Numeric.Natural
+import Control.Monad (void, when)
+import Data.Maybe (isNothing)
+import Numeric.Natural (Natural)
 
 -- | Welche Pins haben aktuell Software-PWM
 type PinMap = Map.Map Pin (PwmValue, Natural)
@@ -46,14 +47,11 @@ pwmGetTimeµs    pwmFrequency    pwmValue    = (onTime, offTime)
 -- | Nutze Haskell-Module um ein Software-generiertes PWM-Signal zu erzeugen
 pwmWriteSoftware :: Pin -> Natural -> PwmValue -> PinMapIO ()
 pwmWriteSoftware pin _pwmFrequency  0           mvarPinMap = do
-    pinMap <- takeMVar mvarPinMap
-    putMVar mvarPinMap (Map.delete pin pinMap)
+    modifyMVar_ mvarPinMap $ pure . Map.delete pin
 pwmWriteSoftware pin pwmFrequency   pwmValue    mvarPinMap = do
-    pinMap <- takeMVar mvarPinMap
-    putMVar mvarPinMap $ Map.insert pin (pwmValue, pwmFrequency) pinMap
-    case Map.lookup pin pinMap of
-        (Nothing)           -> void $ forkIO $ runPWMSoftware pin mvarPinMap
-        (Just _pwmValue)    -> pure ()
+    pinMapAlt <- modifyMVar mvarPinMap $ \pinMapAlt -> pure (Map.insert pin (pwmValue, pwmFrequency) pinMapAlt, pinMapAlt)
+    -- Starte neuen Pwm-Thread, falls er noch nicht existiert
+    when (isNothing $ Map.lookup pin pinMapAlt) $ void $ forkIO $ runPWMSoftware pin mvarPinMap
 
 -- | PWM-Funktion für einen 'Pin'. Sollte in einem eigenem Thread laufen.
 runPWMSoftware :: Pin -> PinMapIO ()
