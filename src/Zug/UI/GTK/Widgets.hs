@@ -15,7 +15,7 @@ module Zug.UI.GTK.Widgets () where
 #else
 module Zug.UI.GTK.Widgets (
                         -- * Allgemeine Widget-Funktionen
-                        widgetShowNew, widgetNewWithOptionsEvents, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
+                        widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
                         boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault,
                         -- *`* Scrollbare Widgets
                         scrolledWidgetNew, scrolledWidgetPackNew, scrolledWidgetAddNew, scrolledWidgedNotebookAppendPageNew,
@@ -166,6 +166,7 @@ notebookAppendPageNew notebook name konstruktor = do
     notebookAppendPage notebook widget name
     pure widget
 
+{-
 -- | Widget neu erstellen, Optionen setzen und Events erstellen
 widgetNewWithOptionsEvents :: (WidgetClass w) => IO w -> [AttrOp w] -> [(Signal w a, Either a (w -> a))] -> IO w
 widgetNewWithOptionsEvents konstruktor options eventActions = do
@@ -177,6 +178,7 @@ widgetNewWithOptionsEvents konstruktor options eventActions = do
             uncurryEither :: (WidgetClass w) => (w -> a -> b -> c) -> w -> (a, Either b (w -> b)) -> c
             uncurryEither f w (a, (Left b))     = f w a b
             uncurryEither f w (a, (Right fb))   = f w a $ fb w
+-}
 
 -- | Entferne ein vielleicht vorhandenes Widget aus einem Container
 containerRemoveJust :: (ContainerClass c, WidgetClass w) => c -> Maybe w -> IO ()
@@ -190,7 +192,10 @@ widgetShowIf visible widget = set widget [widgetVisible := visible]
 -- ** Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
 buttonNewWithEvent :: IO Button -> IO () -> IO Button
-buttonNewWithEvent konstruktor action = widgetNewWithOptionsEvents konstruktor [] [(buttonActivated, Left action)]
+buttonNewWithEvent konstruktor action = do
+    button <- widgetShowNew konstruktor
+    on button buttonActivated action
+    pure button
 
 -- | Knopf mit Mnemonic-Label und Funktion erstellen
 buttonNewWithEventMnemonic :: Text -> IO () -> IO Button
@@ -227,18 +232,24 @@ nameEntryPackNew :: (BoxClass b) => b -> IO Entry
 nameEntryPackNew box = do
     hBox <- boxPackWidgetNewDefault box $ hBoxNew False 0
     boxPackWidgetNewDefault hBox $ labelNew $ Just $ (Language.name <:> "" :: Text)
-    boxPackWidgetNewDefault hBox $ widgetNewWithOptionsEvents entryNew [entryPlaceholderText := Just (Language.name :: Text)] []
+    entry <- boxPackWidgetNewDefault hBox entryNew
+    set entry [entryPlaceholderText := Just (Language.name :: Text)]
+    pure entry
 
 -- | Name anzeigen
 nameLabelPackNew :: (BoxClass b, StreckenObjekt s) => b -> s -> IO Label
-nameLabelPackNew box objekt = boxPackWidgetNewDefault box $ widgetNewWithOptionsEvents (labelNew $ Just $ getName objekt) [widgetMarginRight := 5] []
+nameLabelPackNew box objekt = do
+    label <- boxPackWidgetNewDefault box $ labelNew $ Just $ getName objekt
+    set label [widgetMarginRight := 5]
+    pure label
 
 -- ** Scrollbare Widgets erstellen
 -- | Erstelle neues ScrolledWindow mit automatisch erstelltem Viewport
 scrolledWidgetNew :: (WidgetClass w) => IO w -> IO (ScrolledWindow, w)
 scrolledWidgetNew konstruktor = do
     widget <- widgetShowNew konstruktor
-    scrolledWindow <- widgetNewWithOptionsEvents (scrolledWindowNew Nothing Nothing) [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways] []
+    scrolledWindow <- widgetShowNew $ scrolledWindowNew Nothing Nothing
+    set scrolledWindow [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways]
     scrolledWindowAddWithViewport scrolledWindow widget
     pure (scrolledWindow, widget)
 
@@ -260,7 +271,8 @@ scrolledWidgetAddNew container konstruktor = do
 scrolledWidgedNotebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> Text -> IO w -> IO (ScrolledWindow, w)
 scrolledWidgedNotebookAppendPageNew notebook name konstruktor = do
     widget <- widgetShowNew konstruktor
-    scrolledWindow <- notebookAppendPageNew notebook name $ widgetNewWithOptionsEvents (scrolledWindowNew Nothing Nothing) [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways] []
+    scrolledWindow <- notebookAppendPageNew notebook name $ widgetShowNew $ scrolledWindowNew Nothing Nothing
+    set scrolledWindow [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways]
     scrolledWindowAddWithViewport scrolledWindow widget
     pure (scrolledWindow, widget)
 
@@ -349,14 +361,20 @@ instance BahngeschwindigkeitKlasse BGWidgets where
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, LikeMVar lmvar) => b -> bg -> lmvar StatusGUI -> IO HScale
-hScaleGeschwindigkeitPackNew box bahngeschwindigkeit mvarStatus = boxPackWidgetNew box PackGrow paddingDefault positionDefault $ widgetNewWithOptionsEvents (hScaleNewWithRange 0 100 1) [] [(valueChanged, Right $ \widget -> get widget rangeValue >>= \wert -> runMVarAktion (Geschwindigkeit bahngeschwindigkeit $ fromIntegral $ fromEnum wert) mvarStatus)]
+hScaleGeschwindigkeitPackNew box bahngeschwindigkeit mvarStatus = do
+    scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault $ widgetShowNew $ hScaleNewWithRange 0 100 1
+    on scale valueChanged $ get scale rangeValue >>= \wert -> runMVarAktion (Geschwindigkeit bahngeschwindigkeit $ fromIntegral $ fromEnum wert) mvarStatus
+    pure scale
 
 -- | Füge 'Button' zum umdrehen zur Box hinzu
 buttonUmdrehenPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, LikeMVar lmvar, RangeClass r) => b -> bg -> r -> lmvar StatusGUI -> IO (Either Button ToggleButton)
 buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit mvarStatus = do
     set rangeGeschwindigkeit [rangeValue := 0]
     if (zugtyp bahngeschwindigkeit == Lego)
-        then boxPackWidgetNewDefault box (widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.umdrehen :: Text)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \vorwärts -> runMVarAktion (Umdrehen bahngeschwindigkeit (Just $ if vorwärts then Vorwärts else Rückwärts)) mvarStatus)]) >>= pure . Right
+        then do
+            toggleButton <- boxPackWidgetNewDefault box $ toggleButtonNewWithLabel (Language.umdrehen :: Text)
+            on toggleButton toggled $ get toggleButton toggleButtonActive >>= \vorwärts -> runMVarAktion (Umdrehen bahngeschwindigkeit (Just $ if vorwärts then Vorwärts else Rückwärts)) mvarStatus
+            pure $ Right toggleButton
         else boxPackWidgetNewDefault box (buttonNewWithEventLabel Language.umdrehen $ runMVarAktion (Umdrehen bahngeschwindigkeit Nothing) mvarStatus) >>= pure . Left
 
 -- | 'Streckenabschnitt' darstellen
@@ -415,7 +433,10 @@ instance StreckenabschnittKlasse STWidgets where
 
 -- | Füge 'ToggleButton' zum einstellen des Stroms zur Box hinzu
 toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s, LikeMVar lmvar) => b -> s -> lmvar StatusGUI -> IO ToggleButton
-toggleButtonStromPackNew box streckenabschnitt mvarStatus = boxPackWidgetNewDefault box $ widgetNewWithOptionsEvents (toggleButtonNewWithLabel (Language.strom :: Text)) [] [(toggled, Right $ \widget -> get widget toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) mvarStatus)]
+toggleButtonStromPackNew box streckenabschnitt mvarStatus = do
+    toggleButton <- boxPackWidgetNewDefault box $ toggleButtonNewWithLabel (Language.strom :: Text)
+    on toggleButton toggled $ get toggleButton toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) mvarStatus
+    pure toggleButton
 
 -- | 'Weiche' darstellen
 weichePackNew :: (LikeMVar lmvar) => Weiche -> lmvar StatusGUI -> DynamischeWidgets -> IO WeicheWidget

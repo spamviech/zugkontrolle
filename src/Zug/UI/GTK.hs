@@ -52,7 +52,9 @@ main = do
 setupGUI :: IO ()
 setupGUI = void $ do
     -- Hauptfenster
-    windowMain <- widgetShowNew $ widgetNewWithOptionsEvents windowNew [windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480] [(deleteEvent, Left . liftIO $ mainQuit >> pure False)]
+    windowMain <- widgetShowNew windowNew
+    set windowMain [windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480]
+    on windowMain deleteEvent $ liftIO $ mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ vBoxNew False 0
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault notebookNew
