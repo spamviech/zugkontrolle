@@ -1,5 +1,6 @@
 Bekannte Bugs:
-    Keine
+    GTK-UI:
+        Default-Höhe wird ignoriert
 Dokumentation schreiben
     ReadMe
         Markup überprüfen
@@ -24,8 +25,6 @@ Unfinished Features:
         abbrechbar machen?
         Nur einen Plan gleichzeitig ausführen erlauben?
 Code verbessern:
-    widgetsNewWithOptionsEvents entfernen
-        Events können unterschiedliche Typen haben -> Liste nicht möglich
     Entfernen von zusätzlich erstellten Widgets in entsprechender Typklasse (als Fkt von Dynamische Widgets)
         vermeidet Duplikation (und damit Fehlerquelle) beim Laden
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?

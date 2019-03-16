@@ -52,7 +52,10 @@ buttonSavePack windowMain box mvarStatus = do
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSave >>= \response -> when (response == ResponseOk) $ fileChooserGetFilename dialogSave >>= \(Just dateipfad) -> void $ runMVarBefehl (Speichern dateipfad) mvarStatus
 
 dialogSaveNew :: Window -> IO FileChooserDialog
-dialogSaveNew window = widgetNewWithOptionsEvents (fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]) [fileChooserDoOverwriteConfirmation := True] []
+dialogSaveNew window = do
+    fileChooserDialog <- fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]
+    set fileChooserDialog [fileChooserDoOverwriteConfirmation := True]
+    pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGUI' aus einer Datei
 buttonLoadPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> DynamischeWidgets -> IO Button
@@ -235,7 +238,8 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
 
 dialogHinzufügenNew :: (WindowClass w) => w -> DynamischeWidgets -> IO (DialogHinzufügen, LinkedMVar StatusGUI)
 dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, mvarPlanObjekt}) = do
-    dialog <- widgetNewWithOptionsEvents dialogNew [windowTitle := (Language.hinzufügen :: Text), windowTransientFor := parent, windowDefaultHeight := 320] []
+    dialog <- dialogNew
+    set dialog [windowTitle := (Language.hinzufügen :: Text), windowTransientFor := parent, windowDefaultHeight := 320]
     -- Eigene Hinzufügen-Knöpfe für Seiten, bei denen er temporär deaktiert sein kann
     buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
     buttonHinzufügenWeicheMärklin <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
@@ -363,8 +367,9 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             aktionen <- fortfahrenWennGefülltEmptyLinkedMVarNew buttonHinzufügenPlan $ Just lmvarTemp
             let lmvarElemente = aktionen ^. linkedMVarElemente
             -- Hilfsdialog erstellen
-            windowObjekte <- widgetNewWithOptionsEvents windowNew [windowTitle := (Language.aktion :: Text), windowModal := True, windowTransientFor := dialog] [(deleteEvent, Right $ \window -> liftIO $ putLMVar mvarPlanObjekt Nothing >> widgetHide window >> pure True)]
-            widgetHide windowObjekte
+            windowObjekte <- windowNew
+            set windowObjekte [windowTitle := (Language.aktion :: Text), windowModal := True, windowTransientFor := dialog]
+            on windowObjekte deleteEvent $ liftIO $ putLMVar mvarPlanObjekt Nothing >> widgetHide windowObjekte >> pure True
             windowVBox <- containerAddWidgetNew windowObjekte $ vBoxNew False 0
             (windowScrolledWindowBGGeschw   , windowVBoxBGGeschw)   <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
             (windowScrolledWindowBGUmdrehen , windowVBoxBGUmdrehen) <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
@@ -614,7 +619,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     _objekt                 -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
-            scrolledWidgetAddNew expanderAktionen $ widgetNewWithOptionsEvents (pure vBoxAktionen) [widgetExpand := True] []
+            scrolledWidgetAddNew expanderAktionen $ widgetShow vBoxAktionen >> pure vBoxAktionen
+            set vBoxAktionen [widgetExpand := True]
             boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . (\acc -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in prevAcc)
             putLMVar lmvarElemente empty
             pure (PagePlan {widget, nameEntry, bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen, aktionen}, Nothing)
