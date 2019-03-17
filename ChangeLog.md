@@ -66,3 +66,4 @@
 - Bugfix: getPWMValue reagiert nun richtig auf eine reduzierte PWMRange
 - PWMValue skaliert nur quadrisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
 ## Unreleased changes
+- Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.

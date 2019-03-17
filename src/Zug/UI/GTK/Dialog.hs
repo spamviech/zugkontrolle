@@ -700,14 +700,7 @@ dialogEval dialog = do
     widgetHide dialog
     pure response
 
-{-
--- | dialogGetUpper fehlt in gtk3 (Box ist nicht existent), daher hier ersetzt
-dialogGetUpperNew :: (DialogClass d) => d -> IO VBox
-dialogGetUpperNew dialog = do
-    dialogBox <- dialogGetContentArea dialog >>= pure . castToBox
-    boxPackWidgetNew dialogBox PackGrow paddingDefault positionDefault $ vBoxNew False 0
--}
--- | dialogGetUpper fehlt in gtk3 (Box ist nicht existent), daher hier ersetzt
+-- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
 dialogGetUpper :: (DialogClass d) => d -> IO Box
 dialogGetUpper dialog = dialogGetActionArea dialog >>= pure . castToBox
 #endif

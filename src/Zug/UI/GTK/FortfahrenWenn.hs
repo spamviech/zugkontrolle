@@ -99,7 +99,13 @@ linkedMVarCheckButtons = Lens.to checkButtons
 -- | 'MitCheckButton', der vielleicht schon registriert wurde
 data VielleichtRegistrierterCheckButton c   = Unregistriert c
                                             | Registriert   c
-                                                            deriving (Eq)
+
+instance (Eq c) => Eq (VielleichtRegistrierterCheckButton c) where
+    (Unregistriert c0)  ==  (Unregistriert c1)  = c0 == c1
+    (Unregistriert c0)  ==  (Registriert c1)    = c0 == c1
+    (Registriert c0)    ==  (Unregistriert c1)  = c0 == c1
+    (Registriert c0)    ==  (Registriert c1)    = c0 == c1
+
 -- | 'VielleichtRegistrierterCheckButton' spezialisiert auf 'CheckButton'
 type VRCheckButton = VielleichtRegistrierterCheckButton CheckButton
 
