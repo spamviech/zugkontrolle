@@ -9,7 +9,7 @@ module Zug.Anbindung.SoftwarePWM (
     -- * Map über aktuell laufende PWM-Ausgabe
     PinMap, PinMapIO, pinMapEmpty,
     -- * Aufruf der PWM-Funktion und zugehörige Hilfsfunktionen
-    pwmWriteSoftware, pwmRange, delayµs) where
+    pwmSoftwareSetzteWert, pwmGrenze, warteµs) where
 
 -- Bibliotheken
 import qualified Data.Map.Strict as Map
@@ -28,48 +28,49 @@ pinMapEmpty :: PinMap
 pinMapEmpty = Map.empty
 
 -- | Maximaler Range-Wert der PWM-Funktion
-pwmRange :: PwmValue
-pwmRange        = 1024
+pwmGrenze :: PwmValue
+pwmGrenze = 1024
 
--- | Erhalte Zeit, die der Strom während einer PWM-Periode (an, aus) ist.
-pwmGetTimeµs :: Natural -> PwmValue -> (Natural, Natural)
-pwmGetTimeµs    pwmFrequency    pwmValue    = (onTime, offTime)
+-- | Erhalte Zeit in µs, die der Strom während einer PWM-Periode (an, aus) ist.
+pwmBerechneZeiten :: Natural -> PwmValue -> (Natural, Natural)
+pwmBerechneZeiten   pwmFrequenzHz   pwmWert = (zeitAnµs, zeitAusµs)
     where
-        onTime :: Natural
-        onTime = div (pwmPeriodµs * (fromIntegral pwmValue)) (fromIntegral pwmRange)
-        offTime :: Natural
-        offTime = pwmPeriodµs - onTime
+        zeitAnµs :: Natural
+        zeitAnµs = div (pwmPeriodendauerµs * (fromIntegral pwmWert)) (fromIntegral pwmGrenze)
+        zeitAusµs :: Natural
+        zeitAusµs = pwmPeriodendauerµs - zeitAnµs
         µsInS :: Natural
         µsInS = 1000000
-        pwmPeriodµs :: Natural
-        pwmPeriodµs     = div µsInS pwmFrequency
+        pwmPeriodendauerµs :: Natural
+        pwmPeriodendauerµs = div µsInS pwmFrequenzHz
 
 -- | Nutze Haskell-Module um ein Software-generiertes PWM-Signal zu erzeugen
-pwmWriteSoftware :: Pin -> Natural -> PwmValue -> PinMapIO ()
-pwmWriteSoftware pin _pwmFrequency  0           mvarPinMap = do
-    modifyMVar_ mvarPinMap $ pure . Map.delete pin
-pwmWriteSoftware pin pwmFrequency   pwmValue    mvarPinMap = do
-    pinMapAlt <- modifyMVar mvarPinMap $ \pinMapAlt -> pure (Map.insert pin (pwmValue, pwmFrequency) pinMapAlt, pinMapAlt)
+pwmSoftwareSetzteWert :: Pin -> Natural -> PwmValue -> PinMapIO ()
+pwmSoftwareSetzteWert pin _pwmFrequency  0           mvarPinMap = modifyMVar_ mvarPinMap $ pure . Map.delete pin
+pwmSoftwareSetzteWert pin pwmFrequenz   pwmWert    mvarPinMap = do
+    pinMapAlt <- modifyMVar mvarPinMap $ \pinMapAlt -> pure (Map.insert pin (pwmWert, pwmFrequenz) pinMapAlt, pinMapAlt)
     -- Starte neuen Pwm-Thread, falls er noch nicht existiert
-    when (isNothing $ Map.lookup pin pinMapAlt) $ void $ forkIO $ runPWMSoftware pin mvarPinMap
+    when (isNothing $ Map.lookup pin pinMapAlt) $ void $ forkIO $ pwmSoftwarePinMain pin mvarPinMap
 
 -- | PWM-Funktion für einen 'Pin'. Sollte in einem eigenem Thread laufen.
-runPWMSoftware :: Pin -> PinMapIO ()
-runPWMSoftware pin mvarPinMap = do
-    pinMapCurrent <- readMVar mvarPinMap
-    case Map.lookup pin pinMapCurrent of
+-- 
+-- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Pin' in der übergebenen 'MVar' 'PinMap' nicht mehr vorkommt.
+pwmSoftwarePinMain :: Pin -> PinMapIO ()
+pwmSoftwarePinMain pin mvarPinMap = do
+    pinMap <- readMVar mvarPinMap
+    case Map.lookup pin pinMap of
         (Nothing)                       -> pure ()
-        (Just (pwmValue, pwmFrequency)) -> do
+        (Just (pwmWert, pwmFrequenz))   -> do
             pinMode pin OUTPUT
             digitalWrite pin HIGH
-            let (onTime, offTime) = pwmGetTimeµs pwmFrequency pwmValue
-            delayµs onTime
+            let (zeitAnµs, zeitAusµs) = pwmBerechneZeiten pwmFrequenz pwmWert
+            warteµs zeitAnµs
             digitalWrite pin LOW
-            delayµs offTime
-            runPWMSoftware pin mvarPinMap
+            warteµs zeitAusµs
+            pwmSoftwarePinMain pin mvarPinMap
 
 -- | Warte mindestens das Argument in µs.
 -- 
 -- Die Wartezeit kann länger sein (bedingt durch 'threadDelay'), allerdings kommt es nicht zu einem divide-by-zero error für 0-Argumente.
-delayµs :: Natural -> IO ()
-delayµs time = when (time > 0) $ threadDelay $ fromIntegral time
+warteµs :: Natural -> IO ()
+warteµs time = when (time > 0) $ threadDelay $ fromIntegral time

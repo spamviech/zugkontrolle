@@ -100,7 +100,7 @@ instance (Show bg, Show st, Show we, Show ku, Show ws, BahngeschwindigkeitKlasse
 
 instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => PlanKlasse (AktionAllgemein bg st we ku ws) where
     ausführenPlan :: AktionAllgemein bg st we ku ws -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Warten time)                   _showAction   = \_ -> delayµs time
+    ausführenPlan (Warten time)                   _showAction   = \_ -> warteµs time
     ausführenPlan (AWegstrecke aktion)            showAction    = ausführenPlan aktion showAction
     ausführenPlan (AWeiche aktion)                showAction    = ausführenPlan aktion showAction
     ausführenPlan (ABahngeschwindigkeit aktion)   showAction    = ausführenPlan aktion showAction
