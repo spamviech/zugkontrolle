@@ -8,7 +8,7 @@ Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.
 -}
 module Zug.Anbindung (
                     -- * Pin-Repräsentation
-                    Pin(), toPin, fromPin, hasPWM, hasClock, PinMap, pinMapEmpty, PinMapIO, delayµs,
+                    Pin(), toPin, fromPin, hasPWM, hasClock, PinMap, pinMapEmpty, PinMapIO, warteµs,
                     -- * Strecken-Objekte
                     StreckenObjekt(..),
                     -- ** Bahngeschwindigkeiten
@@ -67,14 +67,14 @@ pwmWriteSoftHardware :: Pin -> PwmValue -> PinMapIO ()
 pwmWriteSoftHardware pin pwmValue mvarPinMap = getOptions >>= \(Options {pwm}) -> case pwm of
     (HardwarePWM) | hasPWM pin  -> do
         pinMode pin PWM_OUTPUT
-        pwmSetRange pwmRange
+        pwmSetRange pwmGrenze
         pwmWrite pin pwmValue
-    _otherwise                  -> pwmWriteSoftware pin pwmFrequencyHzNormal pwmValue mvarPinMap
+    _otherwise                  -> pwmSoftwareSetzteWert pin pwmFrequencyHzNormal pwmValue mvarPinMap
 
 -- | Erzeuge PWM-Funktion für einen Servo-Motor
---   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmRange und pwmValue)
+--   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmGrenze und pwmValue)
 pwmServo :: Pin -> Natural -> PinMapIO ()
-pwmServo pin value = pwmWriteSoftware pin pwmFrequencyHzServo $ getPwmValueVoll value
+pwmServo pin value = pwmSoftwareSetzteWert pin pwmFrequencyHzServo $ getPwmValueVoll value
 
 -- ** Frequenzen
 -- | 50 Hz Frequenz; Standard-Wert von Servo-Motoren
@@ -87,7 +87,7 @@ pwmFrequencyHzNormal = 250
 
 -- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und 'pwmEingabeMaximal'.
 getPwmValue :: (Integral i) => Natural -> i -> PwmValue
-getPwmValue pwmRangeMax value = fromIntegral ergebnis
+getPwmValue pwmGrenzeMax value = fromIntegral ergebnis
     where
         {-
             Verwende Natural um Fehler wegen zu kleinem Wertebereich zu vermeiden.
@@ -99,7 +99,7 @@ getPwmValue pwmRangeMax value = fromIntegral ergebnis
         ergebnis :: Natural
         ergebnis = div wertSkaliert (pwmEingabeMaximal * pwmEingabeMaximal)
         wertSkaliert :: Natural
-        wertSkaliert = pwmRangeMax * wertBegrenzt * wertBegrenzt
+        wertSkaliert = pwmGrenzeMax * wertBegrenzt * wertBegrenzt
         wertBegrenzt :: Natural
         wertBegrenzt = min pwmEingabeMaximal $ fromIntegral value
 
@@ -107,13 +107,13 @@ getPwmValue pwmRangeMax value = fromIntegral ergebnis
 pwmEingabeMaximal :: Natural
 pwmEingabeMaximal = 100
 
--- | Vollständige pwmRange als Natural.
-pwmRangeVoll :: Natural
-pwmRangeVoll = fromIntegral pwmRange
+-- | Vollständige pwmGrenze als Natural.
+pwmGrenzeVoll :: Natural
+pwmGrenzeVoll = fromIntegral pwmGrenze
 
--- | Maximal erlaubter pwmRange für 'getPWMValue' um eine Effektivspannung von 16V zu erhalten.
-pwmRangeReduziert :: Natural
-pwmRangeReduziert = div (pwmRangeVoll * spannungFahrt * spannungFahrt) (spannungQuelle * spannungQuelle)
+-- | Maximal erlaubter pwmGrenze für 'getPWMValue' um eine Effektivspannung von 16V zu erhalten.
+pwmGrenzeReduziert :: Natural
+pwmGrenzeReduziert = div (pwmGrenzeVoll * spannungFahrt * spannungFahrt) (spannungQuelle * spannungQuelle)
     -- Effektivspannung skaliert wie die Wurzel des PwmValues.
     where
         spannungFahrt :: Natural
@@ -121,13 +121,13 @@ pwmRangeReduziert = div (pwmRangeVoll * spannungFahrt * spannungFahrt) (spannung
         spannungQuelle :: Natural
         spannungQuelle = 25
 
--- | Nutze komplette pwmRange
+-- | Nutze komplette pwmGrenze
 getPwmValueVoll :: (Integral i) => i -> PwmValue
-getPwmValueVoll = getPwmValue pwmRangeVoll
+getPwmValueVoll = getPwmValue pwmGrenzeVoll
 
--- | Nutze einen reduzierten Bereich der pwmRange (maximal 16V von 24V Maximalspannung)
+-- | Nutze einen reduzierten Bereich der pwmGrenze (maximal 16V von 24V Maximalspannung)
 getPwmValueReduziert :: (Integral i) => i -> PwmValue
-getPwmValueReduziert = getPwmValue pwmRangeReduziert
+getPwmValueReduziert = getPwmValue pwmGrenzeReduziert
 
 -- | µs in a second
 µsInS :: Natural
@@ -194,11 +194,11 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
     umdrehen :: Bahngeschwindigkeit -> Maybe Fahrtrichtung -> PinMapIO ()
     umdrehen (LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin}) (Just fahrtrichtung)    mvarPinMap = befehlAusführen
-        (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> delayµs umdrehenDelayµs >> pwmServo fahrtrichtungsPin (if (fahrtrichtung == Vorwärts) then 100 else 0) mvarPinMap)
+        (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> warteµs umdrehenDelayµs >> pwmServo fahrtrichtungsPin (if (fahrtrichtung == Vorwärts) then 100 else 0) mvarPinMap)
         ("Umdrehen (" <> showText geschwindigkeitsPin <^> showText fahrtrichtungsPin <> ")->" <> showText fahrtrichtung)
     umdrehen bahngeschwindigkeit@(LegoBahngeschwindigkeit {})                   (Nothing)               mvarPinMap = umdrehen bahngeschwindigkeit (Just Vorwärts) mvarPinMap
     umdrehen (MärklinBahngeschwindigkeit {geschwindigkeitsPin})                 _maybeRichtung  mvarPinMap = befehlAusführen
-        (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> delayµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin pwmRange mvarPinMap >> delayµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap)
+        (pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap >> warteµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin pwmGrenze mvarPinMap >> warteµs umdrehenDelayµs >> pwmWriteSoftHardware geschwindigkeitsPin 0 mvarPinMap)
         ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
 
 -- | Steuere die Stromzufuhr einer Schiene
@@ -266,10 +266,10 @@ weicheDelayµs = 500 * µsInms
 instance WeicheKlasse Weiche where
     stellen :: Weiche -> Richtung -> PinMapIO ()
     stellen (LegoWeiche {richtungsPin, richtungen}) richtung    mvarPinMap  | richtung == fst richtungen    = befehlAusführen
-        (pwmServo richtungsPin 25 mvarPinMap >> delayµs weicheDelayµs >> pwmServo richtungsPin 0 mvarPinMap)
+        (pwmServo richtungsPin 25 mvarPinMap >> warteµs weicheDelayµs >> pwmServo richtungsPin 0 mvarPinMap)
         ("Stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
                                                                             | richtung == snd richtungen    = befehlAusführen
-        (pwmServo richtungsPin 75 mvarPinMap >> delayµs weicheDelayµs >> pwmServo richtungsPin 0 mvarPinMap)
+        (pwmServo richtungsPin 75 mvarPinMap >> warteµs weicheDelayµs >> pwmServo richtungsPin 0 mvarPinMap)
         ("stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
                                                                             | otherwise                     = pure ()
     stellen (MärklinWeiche {richtungsPins})         richtung    _mvarPinMap = befehlAusführen
@@ -279,7 +279,7 @@ instance WeicheKlasse Weiche where
                 richtungStellen :: IO ()
                 richtungStellen = case getRichtungsPin richtung $ NE.toList richtungsPins of
                     (Nothing)           -> pure ()
-                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> stromStellen richtungsPin Fließend >> delayµs weicheDelayµs >> stromStellen richtungsPin Gesperrt
+                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> stromStellen richtungsPin Fließend >> warteµs weicheDelayµs >> stromStellen richtungsPin Gesperrt
                 getRichtungsPin :: Richtung -> [(Richtung, Pin)] -> Maybe Pin
                 getRichtungsPin _richtung   []  = Nothing
                 getRichtungsPin richtung    ((ersteRichtung, ersterPin):andereRichtungen)
@@ -319,7 +319,7 @@ kuppelnDelayµs = µsInS
 instance KupplungKlasse Kupplung where
     kuppeln :: Kupplung -> PinMapIO ()
     kuppeln (Kupplung {kupplungsPin})   _mvarPinMap = befehlAusführen
-        (pinMode kupplungsPin OUTPUT >> stromStellen kupplungsPin Fließend >> delayµs kuppelnDelayµs >> stromStellen kupplungsPin Gesperrt)
+        (pinMode kupplungsPin OUTPUT >> stromStellen kupplungsPin Fließend >> warteµs kuppelnDelayµs >> stromStellen kupplungsPin Gesperrt)
         ("Kuppeln (" <> showText kupplungsPin <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
