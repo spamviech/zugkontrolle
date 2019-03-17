@@ -160,11 +160,11 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
         optionenAnzeigen    (PagePlan {bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen, aktionen}) mvarStatus  = do
             -- Zeige nur verfügbare Aktionen an
             status <- readLMVar mvarStatus
-            widgetShowIf (not $ null (status ^. bahngeschwindigkeiten)) bgFunktionen
-            widgetShowIf (not $ null (status ^. streckenabschnitte)) stFunktionen
+            widgetShowIf (not $ null (status ^. bahngeschwindigkeiten) && null (status ^. wegstrecken)) bgFunktionen
+            widgetShowIf (not $ null (status ^. streckenabschnitte) && null (status ^. wegstrecken)) stFunktionen
             widgetShowIf (not $ null (status ^. weichen)) weFunktionen
-            widgetShowIf (not $ null (status ^. kupplungen)) kuFunktionen
-            widgetShowIf (not $ null (status ^. wegstrecken)) wsFunktionen
+            widgetShowIf (not $ null (status ^. kupplungen) && null (status ^. wegstrecken)) kuFunktionen
+            widgetShowIf (not $ null (status ^. wegstrecken) && null (status ^. wegstrecken)) wsFunktionen
             -- Aktionen zurücksetzen
             modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . const empty
         optionenAnzeigen    _page                                                                               _mvarStatus = pure ()

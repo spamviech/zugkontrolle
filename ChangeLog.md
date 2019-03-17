@@ -67,3 +67,4 @@
 - PWMValue skaliert nur quadrisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
 ## Unreleased changes
 - Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.
+- Bugfix (GTK-UI): Wegstrecken sorgen auch alleine dazu,  dass betroffene Aktionen angezeigt werden.
