@@ -17,21 +17,20 @@ module Zug.UI.GTK.Dialog (
                         buttonSavePack, buttonLoadPack, loadWidgets, buttonHinzufügenPack) where
 
 -- Bibliotheken
-import Control.Applicative (ZipList(..))
 import Control.Concurrent
-import Control.Lens ((^.), (^..))
-import Control.Monad
+import Control.Lens ((^.))
+import Control.Monad (void, when, foldM)
 import Control.Monad.State (StateT, evalStateT)
 import qualified Control.Monad.State as State
-import Control.Monad.Trans
+import Control.Monad.Trans (MonadIO(..), lift)
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe
+import Data.Maybe (maybe, fromJust)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk
-import Numeric.Natural
+import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 import Zug.SEQueue
@@ -74,7 +73,7 @@ buttonLoadPack windowMain box mvarStatus dynamischeWidgets = do
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
 loadWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
-loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung}) status = do
+loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenWegstreckeKupplungen}) status = do
     evalMVarIOStatus löscheWidgets mvarStatus
     erstelleWidgets mvarStatus status
         where
@@ -82,11 +81,11 @@ loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindig
             löscheWidgets = State.get >>= liftIOFunction (löscheWidgetsAux) >> putBahngeschwindigkeiten [] >> putStreckenabschnitte [] >> putWeichen [] >> putKupplungen [] >> putWegstrecken [] >> putPläne []
             löscheWidgetsAux :: StatusGUI -> IO ()
             löscheWidgetsAux status = do
-                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w, bgHinzWS=hww}) -> containerRemove vBoxBahngeschwindigkeiten w >> containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin] <*> ZipList (bgWidgets ^.. foldPlan))) $ status ^. bahngeschwindigkeiten
-                mapM_ (\stWidgets@(STWidgets {stWidget=w, stHinzWS=hww}) -> containerRemove vBoxStreckenabschnitte w >> containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanStreckenabschnitte] <*> ZipList (stWidgets ^.. foldPlan))) $ status ^. streckenabschnitte
-                mapM_ (\weWidgets@(WEWidgets {weWidget=w, weHinzWS=hww}) -> containerRemove vBoxWeichen w >> containerRemove vBoxHinzufügenWegstreckeWeichen ((\(w,_,_) -> w) hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts] <*> ZipList (weWidgets ^.. foldPlan))) $ status ^. weichen
-                mapM_ (\kuWidgets@(KUWidgets {kuWidget=w, kuHinzWS=hww}) -> containerRemove vBoxKupplungen w >> containerRemove vBoxHinzufügenWegstreckeKupplungen (fst hww) >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanKupplungen] <*> ZipList (kuWidgets ^.. foldPlan))) $ status ^. kupplungen
-                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w}) -> containerRemove vBoxWegstrecken w >> sequence_ (getZipList $ containerRemoveJust <$> ZipList [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung] <*> ZipList (wsWidgets ^.. foldPlan))) $ status ^. wegstrecken
+                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w, bgHinzWS=hww}) -> containerRemove vBoxBahngeschwindigkeiten w >> containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hww) >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets) $ status ^. bahngeschwindigkeiten
+                mapM_ (\stWidgets@(STWidgets {stWidget=w, stHinzWS=hww}) -> containerRemove vBoxStreckenabschnitte w >> containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte (fst hww) >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets) $ status ^. streckenabschnitte
+                mapM_ (\weWidgets@(WEWidgets {weWidget=w, weHinzWS=hww}) -> containerRemove vBoxWeichen w >> containerRemove vBoxHinzufügenWegstreckeWeichen ((\(w,_,_) -> w) hww) >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets) $ status ^. weichen
+                mapM_ (\kuWidgets@(KUWidgets {kuWidget=w, kuHinzWS=hww}) -> containerRemove vBoxKupplungen w >> containerRemove vBoxHinzufügenWegstreckeKupplungen (fst hww) >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets) $ status ^. kupplungen
+                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w}) -> containerRemove vBoxWegstrecken w >> entferneHinzufügenPlanWidgets wsWidgets dynamischeWidgets) $ status ^. wegstrecken
                 mapM_ (\(PLWidgets {plWidget=w}) -> containerRemove vBoxPläne w) $ status ^. pläne
             erstelleWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> Status -> IO StatusGUI
             erstelleWidgets mvarStatus status = do
