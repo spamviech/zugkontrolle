@@ -124,7 +124,7 @@ setupGUI = void $ do
     -- Lade Datei angegeben in Kommandozeilenargument
     (Options {load=dateipfad}) <- getOptions
     -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden
-    Save.load dateipfad (ladeWidgets mvarStatus dynamischeWidgets) >>= \case
+    Save.laden dateipfad (ladeWidgets mvarStatus dynamischeWidgets) >>= \case
         (Nothing)           -> pure ()
         (Just konstruktor)  -> void $ newMVar pinMapEmpty >>= konstruktor
 #endif

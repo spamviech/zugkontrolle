@@ -133,8 +133,8 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Entfernen (OBahngeschwindigkeit bahngeschwindigkeit))  = entfernenBahngeschwindigkeit bahngeschwindigkeit
             ausführenBefehlAux  (Entfernen (OStreckenabschnitt streckenabschnitt))      = entfernenStreckenabschnitt streckenabschnitt
             ausführenBefehlAux  (Entfernen (OKupplung kupplung))                        = entfernenKupplung kupplung
-            ausführenBefehlAux  (Speichern dateipfad)                                   = get >>= liftIOFunction (flip Save.save dateipfad)
-            ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.load dateipfad erfolgsAktion) >>= \case
+            ausführenBefehlAux  (Speichern dateipfad)                                   = get >>= liftIOFunction (flip Save.speichern dateipfad)
+            ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
             ausführenBefehlAux  (Ausführen plan showAction)                             = übergebeMVarPinMap $ ausführenPlan plan showAction
