@@ -31,8 +31,6 @@ Code verbessern:
         Weitere?
     Imports einschränken:
         bei wenigen Funktionen explizit benennen
-    Entfernen von zusätzlich erstellten Widgets in entsprechender Typklasse (als Fkt von Dynamische Widgets)
-        vermeidet Duplikation (und damit Fehlerquelle) beim Laden
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
         LinkedMVar benötigt dadurch Update-Aktion nicht mehr
         Konstruktor muss LinkedMVar kennen
@@ -66,7 +64,7 @@ VS-Code globale Settings.json:
         "editorWhitespace.foreground": "#cccccc"
     },
     "files.eol": "\n",
-    "hoogle-vscode.useCabalDependencies": true
+    "git.confirmSync": false
 }
 ---------------------------------
 VS-Code globale keybindings.json:

@@ -117,14 +117,14 @@ setupGUI = void $ do
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault False $ hBoxNew False 0
     (_button, mvarStatus) <- buttonHinzufügenPack windowMain functionBox dynamischeWidgets
     boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
-    buttonSavePack windowMain functionBox mvarStatus
-    buttonLoadPack windowMain functionBox mvarStatus dynamischeWidgets
+    buttonSpeichernPack windowMain functionBox mvarStatus
+    buttonLadenPack windowMain functionBox mvarStatus dynamischeWidgets
     boxPackWidgetNew functionBox packingDefault paddingDefault False $ buttonNewWithEventMnemonic Language.beenden $ mainQuit
     emptyStatusNew >>= putLMVar mvarStatus
     -- Lade Datei angegeben in Kommandozeilenargument
-    (Options {load=path}) <- getOptions
+    (Options {load=dateipfad}) <- getOptions
     -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden
-    Save.load path (loadWidgets mvarStatus dynamischeWidgets) >>= \case
+    Save.load dateipfad (ladeWidgets mvarStatus dynamischeWidgets) >>= \case
         (Nothing)           -> pure ()
-        (Just konstruktor)  -> newMVar pinMapEmpty >>= \mvarPinMap -> void $ konstruktor mvarPinMap
+        (Just konstruktor)  -> void $ newMVar pinMapEmpty >>= konstruktor
 #endif

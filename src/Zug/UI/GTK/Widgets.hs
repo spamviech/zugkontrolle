@@ -34,18 +34,18 @@ module Zug.UI.GTK.Widgets (
 
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
-import Control.Concurrent.MVar
+import Control.Concurrent.MVar (MVar)
 import Control.Lens (Traversal', Lens', Getter, Fold, (%%~), (^.), (^..), Field1(..), Field2(..), Field3(..))
 import qualified Control.Lens as Lens
-import Control.Monad
+import Control.Monad (void, unless)
 import Control.Monad.State (State, StateT)
-import Control.Monad.Trans
+import Control.Monad.Trans (liftIO)
 import Data.Aeson (ToJSON(..), Value)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk
-import Numeric.Natural
+import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 import qualified Zug.Language as Language
@@ -334,7 +334,7 @@ instance WegstreckenElement BGWidgets where
     lensWegstrecke = (Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: BGWidgets -> DynamischeWidgets -> IO ()
     entferneHinzufügenWegstreckeWidgets (BGWidgets {bgHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten})
-        = containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten $ fst bgHinzWS
+        = containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten $ bgHinzWS ^. _1
 
 instance PlanElement BGWidgets where
     foldPlan :: Fold BGWidgets (Maybe Button)
@@ -418,7 +418,7 @@ instance WegstreckenElement STWidgets where
     lensWegstrecke = (Lens.lens stHinzWS (\st v -> st {stHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: STWidgets -> DynamischeWidgets -> IO ()
     entferneHinzufügenWegstreckeWidgets (STWidgets {stHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeStreckenabschnitte})
-        = containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte $ fst stHinzWS
+        = containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte $ stHinzWS ^. _1
 
 instance PlanElement STWidgets where
     foldPlan :: Fold STWidgets (Maybe Button)
@@ -570,7 +570,7 @@ instance WegstreckenElement KUWidgets where
     lensWegstrecke = (Lens.lens kuHinzWS (\ku v -> ku {kuHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: KUWidgets -> DynamischeWidgets -> IO ()
     entferneHinzufügenWegstreckeWidgets (KUWidgets {kuHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeKupplungen})
-        = containerRemove vBoxHinzufügenWegstreckeKupplungen $ fst kuHinzWS
+        = containerRemove vBoxHinzufügenWegstreckeKupplungen $ kuHinzWS ^. _1
 
 instance PlanElement KUWidgets where
     foldPlan :: Fold KUWidgets (Maybe Button)
