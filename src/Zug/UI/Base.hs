@@ -7,12 +7,12 @@ Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusAllgemein(..), emptyStatus, emptyStatusNew,
+    Status, StatusAllgemein(..), statusLeer, statusLeerNeu,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarPinMap,
 #endif
     -- * Zustands-Monade
-    IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, evalEmptyIOStatus, evalMVarIOStatus, evalMVarMStatus,
+    IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, auswertenLeererIOStatus, auswertenMVarIOStatus, auswertenMVarMStatus,
     -- ** Anpassen des aktuellen Zustands
     hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung, hinzufügenWegstrecke, hinzufügenPlan,
     entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan,
@@ -20,19 +20,19 @@ module Zug.UI.Base (
     getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarPinMap,
     putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarPinMap,
     -- * Hilfsfunktionen
-    passMVarPinMap, liftIOFunction) where
+    übergebeMVarPinMap, liftIOFunction) where
 
 -- Bibliotheken
-import Control.Concurrent.MVar
-import Control.Monad.Trans
-import Control.Monad.State
+import Control.Concurrent.MVar (MVar, newMVar)
+import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.State (StateT, State, evalStateT, runStateT, runState, gets, modify)
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens, lens)
 #endif
-import Data.List
+import Data.List (delete)
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
-import Numeric.Natural
+import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 import qualified Zug.Language as Language
@@ -80,52 +80,52 @@ mvarPinMap              = lens _mvarPinMap              $ \status mv  -> status 
 
 instance (Show bahngeschwindigkeit, Show streckenabschnitt, Show weiche, Show kupplung, Show wegstrecke, Show plan) => Show (StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
     show :: StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan -> String
-    show status = Language.bahngeschwindigkeiten <=> (showSublist $ _bahngeschwindigkeiten status)
-                <\> Language.streckenabschnitte <=> (showSublist $ _streckenabschnitte status)
-                <\> Language.weichen <=> (showSublist $ _weichen status)
-                <\> Language.kupplungen <=> (showSublist $ _kupplungen status)
-                <\> Language.wegstrecken <=> (showSublist $ _wegstrecken status)
-                <\> Language.pläne <=> (showSublist $ _pläne status)
+    show status = Language.bahngeschwindigkeiten <=> (zeigeUnterliste $ _bahngeschwindigkeiten status)
+                <\> Language.streckenabschnitte <=> (zeigeUnterliste $ _streckenabschnitte status)
+                <\> Language.weichen <=> (zeigeUnterliste $ _weichen status)
+                <\> Language.kupplungen <=> (zeigeUnterliste $ _kupplungen status)
+                <\> Language.wegstrecken <=> (zeigeUnterliste $ _wegstrecken status)
+                <\> Language.pläne <=> (zeigeUnterliste $ _pläne status)
 
--- | Zeige Liste besser Lesbar, als normale Show-Instanz.
-showSublist :: (Show a, Semigroup s, IsString s) => [a] -> s
-showSublist liste = "[" <> (showSublistAux "" 0 liste)
+-- | Zeige Liste besser Lesbar, als normale Show-Instanz (newlines und Index-Angabe).
+zeigeUnterliste :: (Show a, Semigroup s, IsString s) => [a] -> s
+zeigeUnterliste liste = "[" <> (zeigeUnterlisteAux "" 0 liste)
     where
-        showSublistAux :: (Show a, Semigroup s, IsString s) => s -> Natural -> [a] -> s
-        showSublistAux  acc index   ([])    = acc <> if (index == 0) then "]" else "\n]"
-        showSublistAux  acc index   (h:t)   = showSublistAux (acc <\> "\t" <> (showText index) <> ") " <> (showText h)) (index+1) t
+        zeigeUnterlisteAux :: (Show a, Semigroup s, IsString s) => s -> Natural -> [a] -> s
+        zeigeUnterlisteAux  acc index   ([])    = acc <> if (index == 0) then "]" else "\n]"
+        zeigeUnterlisteAux  acc index   (h:t)   = zeigeUnterlisteAux (acc <\> "\t" <> (showText index) <> ") " <> (showText h)) (index+1) t
 
--- | Hebe eine IO-Funktion mit Argument in einen Monaden-Transformer
+-- | Hebe eine IO-Funktion mit Argument in eine 'MonadIO'-Monade
 liftIOFunction :: (MonadIO m) => (a -> IO b) -> (a -> m b)
 liftIOFunction f = \a -> liftIO $ f a
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' (inklusive MVar)
-emptyStatusNew :: IO (StatusAllgemein bg st we ku ws pl)
-emptyStatusNew = newMVar pinMapEmpty >>= pure . emptyStatus
+statusLeerNeu :: IO (StatusAllgemein bg st we ku ws pl)
+statusLeerNeu = newMVar pinMapEmpty >>= pure . statusLeer
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung einer existieren 'MVar'
-emptyStatus :: MVar PinMap -> (StatusAllgemein bg st we ku ws pl)
-emptyStatus mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarPinMap=mvarPinMap}
+statusLeer :: MVar PinMap -> (StatusAllgemein bg st we ku ws pl)
+statusLeer mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarPinMap=mvarPinMap}
 
--- | Übergebe mvarPinMap aus dem Status an eine eine Funktion
-passMVarPinMap :: PinMapIO a -> IOStatusAllgemein bg st we ku ws pl a
-passMVarPinMap  f   = getMVarPinMap >>= liftIOFunction f
+-- | Übergebe mvarPinMap aus dem Status an eine 'PinMapIO'-Funktion
+übergebeMVarPinMap :: PinMapIO a -> IOStatusAllgemein bg st we ku ws pl a
+übergebeMVarPinMap  f   = getMVarPinMap >>= liftIOFunction f
 
--- | Führe IO-Aktion mit initialem 'StatusAllgemein' aus
-evalEmptyIOStatus :: IOStatusAllgemein bg st we ku ws pl a -> IO a
-evalEmptyIOStatus ioStatus = emptyStatusNew >>= evalStateT ioStatus
+-- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus
+auswertenLeererIOStatus :: IOStatusAllgemein bg st we ku ws pl a -> IO a
+auswertenLeererIOStatus ioStatus = statusLeerNeu >>= evalStateT ioStatus
 
 -- | Führe IO-Aktion mit 'StatusAllgemein' in 'LikeMVar' aus
-evalMVarIOStatus :: (LikeMVar lmvar) => IOStatusAllgemein bg st we ku ws pl a -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO a
-evalMVarIOStatus action mvarStatus = do
+auswertenMVarIOStatus :: (LikeMVar lmvar) => IOStatusAllgemein bg st we ku ws pl a -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO a
+auswertenMVarIOStatus action mvarStatus = do
     status0 <- takeLMVar mvarStatus
     (a, status1) <- runStateT action status0
     putLMVar mvarStatus status1
     pure a
 
 -- | Führe Aktion mit 'StatusAllgemein' in 'LikeMVar' aus
-evalMVarMStatus :: (LikeMVar lmvar) => MStatusAllgemein bg st we ku ws pl a -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO a
-evalMVarMStatus action mvarStatus = do
+auswertenMVarMStatus :: (LikeMVar lmvar) => MStatusAllgemein bg st we ku ws pl a -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO a
+auswertenMVarMStatus action mvarStatus = do
     status0 <- takeLMVar mvarStatus
     let (a, status1) = runState action status0
     putLMVar mvarStatus status1

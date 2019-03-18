@@ -36,17 +36,17 @@ import Zug.UI.Base
 -- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
 runMVarPlan :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
             => p -> (Natural -> IO ()) -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO ()
-runMVarPlan plan showAction mvarStatus = evalMVarIOStatus getMVarPinMap mvarStatus >>= ausführenPlan plan showAction
+runMVarPlan plan showAction mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenPlan plan showAction
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
 runMVarAktion   :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
                 => p -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO ()
-runMVarAktion aktion mvarStatus = runMVarPlan aktion (\_ -> pure ()) mvarStatus
+runMVarAktion aktion = runMVarPlan aktion $ const $ pure ()
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
 runMVarBefehl   :: (BefehlKlasse b, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl, LikeMVar lmvar)
                 => b bg st we ku ws pl -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO Bool
-runMVarBefehl befehl mvarStatus = evalMVarIOStatus (ausführenBefehl befehl) mvarStatus
+runMVarBefehl befehl = auswertenMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
 class BefehlKlasse b where
@@ -55,7 +55,7 @@ class BefehlKlasse b where
                     => b bg st we ku ws pl -> IOStatusAllgemein bg st we ku ws pl Bool
 
 -- | Unterstütze Befehle
-data BefehlAllgemein bg st we ku ws pl    = UI            (UIBefehlAllgemein bg st we ku ws pl)
+data BefehlAllgemein bg st we ku ws pl  = UI            (UIBefehlAllgemein bg st we ku ws pl)
                                         | Hinzufügen    (ObjektAllgemein bg st we ku ws pl)
                                         | Entfernen     (ObjektAllgemein bg st we ku ws pl)
                                         | Speichern     FilePath
@@ -72,7 +72,7 @@ data UIBefehlAllgemein bg st we ku ws pl = Beenden | Abbrechen
 type UIBefehl = UIBefehlAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 -- | Sammel-Typen
-data ObjektAllgemein bg st we ku ws pl    = OPlan                 pl
+data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
                                         | OWegstrecke           ws
                                         | OWeiche               we
                                         | OBahngeschwindigkeit  bg
@@ -137,8 +137,8 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.load dateipfad erfolgsAktion) >>= \case
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
-            ausführenBefehlAux  (Ausführen plan showAction)                             = passMVarPinMap $ ausführenPlan plan showAction
-            ausführenBefehlAux  (AktionBefehl aktion)                                   = passMVarPinMap $ ausführenPlan aktion $ \_ -> pure ()
+            ausführenBefehlAux  (Ausführen plan showAction)                             = übergebeMVarPinMap $ ausführenPlan plan showAction
+            ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenPlan aktion $ \_ -> pure ()
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.
 newtype BefehlListeAllgemein bg st we ku ws pl = BefehlListe {getBefehlListe :: [BefehlAllgemein bg st we ku ws pl]}

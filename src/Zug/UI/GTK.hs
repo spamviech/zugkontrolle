@@ -120,7 +120,7 @@ setupGUI = void $ do
     buttonSpeichernPack windowMain functionBox mvarStatus
     buttonLadenPack windowMain functionBox mvarStatus dynamischeWidgets
     boxPackWidgetNew functionBox packingDefault paddingDefault False $ buttonNewWithEventMnemonic Language.beenden $ mainQuit
-    emptyStatusNew >>= putLMVar mvarStatus
+    statusLeerNeu >>= putLMVar mvarStatus
     -- Lade Datei angegeben in Kommandozeilenargument
     (Options {load=dateipfad}) <- getOptions
     -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden

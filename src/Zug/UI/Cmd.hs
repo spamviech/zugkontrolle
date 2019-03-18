@@ -37,7 +37,7 @@ main = do
     -- Lade Datei angegeben in Kommandozeilenargument
     (Options {load=path}) <- getOptions
     Save.load path pure >>= \case
-        (Nothing)           -> evalEmptyIOStatus mainStatus
+        (Nothing)           -> auswertenLeererIOStatus mainStatus
         (Just konstruktor)  -> newMVar pinMapEmpty >>= konstruktor >>= evalStateT mainStatus
 
 -- | main loop
