@@ -10,7 +10,7 @@ module Zug.UI (main) where
 #define ZUGKONTROLLERASPI 1
 #endif
 
--- Bibliotheken
+-- Abhängigkeiten von anderen Modulen
 import Zug.Options
 import qualified Zug.UI.Cmd as Cmd
 import qualified Zug.UI.GTK as GTK
@@ -26,15 +26,15 @@ import qualified Zug.Language as Language
 -- 
 -- Falls es nicht verfügbar ist, starte stattdessen den Cmd-UI main loop.
 main :: IO ()
-main = whenRoot $ do
+main = ausführenWennRoot $ do
     (Options {ui}) <- getOptions
     case ui of
         GTK -> GTK.main
         Cmd -> Cmd.main
 
-whenRoot :: IO () -> IO ()
+ausführenWennRoot :: IO () -> IO ()
 #ifdef ZUGKONTROLLERASPI
-whenRoot action = do
+ausführenWennRoot action = do
     (Options {pwm}) <- getOptions
     case pwm of
         (SoftwarePWM)   -> action
@@ -47,5 +47,5 @@ whenRoot action = do
                     putStrLn Language.nichtRoot
                     setSGR [Reset]
 #else
-whenRoot action = action
+ausführenWennRoot action = action
 #endif
