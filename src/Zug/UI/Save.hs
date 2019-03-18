@@ -178,16 +178,16 @@ instance FromJSON Bahngeschwindigkeit where
         createBahngeschwindigkeit zugtyp name geschwindigkeitsPin maybeFahrtrichtungsPin
             where
                 createBahngeschwindigkeit :: Zugtyp -> Text -> Natural -> Maybe Natural -> Parser Bahngeschwindigkeit
-                createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Nothing)                   = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = toPin geschwindigkeitsPin, fahrtrichtungsPin = toPin (0 :: Int)}
-                createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Just fahrtrichtungsPin)    = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = toPin geschwindigkeitsPin, fahrtrichtungsPin = toPin fahrtrichtungsPin}
-                createBahngeschwindigkeit Märklin   bgName  geschwindigkeitsPin     _maybeFahrtrichtungsPin     = pure MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin = toPin geschwindigkeitsPin}
+                createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Nothing)                   = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin (0 :: Int)}
+                createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Just fahrtrichtungsPin)    = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin fahrtrichtungsPin}
+                createBahngeschwindigkeit Märklin   bgName  geschwindigkeitsPin     _maybeFahrtrichtungsPin     = pure MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin = zuPin geschwindigkeitsPin}
                 createBahngeschwindigkeit _zutyp    _name   _geschwindigkeitsPin    _maybeFahrtrichtungsPin     = mzero
     parseJSON   _           = mzero
 
 instance ToJSON Bahngeschwindigkeit where
     toJSON :: Bahngeschwindigkeit -> Value
-    toJSON  (LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin})  = object [nameJS .= bgName, geschwindigkeitsPinJS .= fromPin geschwindigkeitsPin, zugtypJS .= Lego, fahrtrichtungsPinJS .= fromPin fahrtrichtungsPin]
-    toJSON  (MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin})                  = object [nameJS .= bgName, geschwindigkeitsPinJS .= fromPin geschwindigkeitsPin, zugtypJS .= Märklin]
+    toJSON  (LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin})  = object [nameJS .= bgName, geschwindigkeitsPinJS .= vonPin geschwindigkeitsPin, zugtypJS .= Lego, fahrtrichtungsPinJS .= vonPin fahrtrichtungsPin]
+    toJSON  (MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin})                  = object [nameJS .= bgName, geschwindigkeitsPinJS .= vonPin geschwindigkeitsPin, zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 stromPinJS :: Text
@@ -199,12 +199,12 @@ instance FromJSON Streckenabschnitt where
     parseJSON   (Object v)  = do
         stName <- (v .: nameJS)
         stromPin <- (v .: stromPinJS) :: Parser Natural
-        pure $ Streckenabschnitt {stName, stromPin=toPin stromPin}
+        pure $ Streckenabschnitt {stName, stromPin=zuPin stromPin}
     parseJSON   _           = mzero
 
 instance ToJSON Streckenabschnitt where
     toJSON :: Streckenabschnitt -> Value
-    toJSON  (Streckenabschnitt {stName, stromPin})  = object [nameJS .= stName, stromPinJS .= fromPin stromPin]
+    toJSON  (Streckenabschnitt {stName, stromPin})  = object [nameJS .= stName, stromPinJS .= vonPin stromPin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 richtungsPinJS :: Text
@@ -226,15 +226,15 @@ instance FromJSON Weiche where
         createWeiche zugtyp name maybeRichtungsPin maybeRichtungen maybeRichtungsPins
             where
                 createWeiche :: Zugtyp -> Text -> Maybe Natural -> Maybe (Richtung, Richtung) -> Maybe [(Richtung, Natural)] -> Parser Weiche
-                createWeiche Lego       weName   (Just richtungsPin) (Just richtungen)   _maybeRichtungsPins                     = pure LegoWeiche {weName, richtungsPin=toPin richtungsPin, richtungen}
-                createWeiche Märklin    weName   _maybeRichtungsPin  _maybeRichtungen    (Just ((richtung, pin):richtungsPins))  = pure MärklinWeiche {weName, richtungsPins=(richtung, toPin pin):|map (\(richtung, pin) -> (richtung, toPin pin)) richtungsPins}
+                createWeiche Lego       weName   (Just richtungsPin) (Just richtungen)   _maybeRichtungsPins                     = pure LegoWeiche {weName, richtungsPin=zuPin richtungsPin, richtungen}
+                createWeiche Märklin    weName   _maybeRichtungsPin  _maybeRichtungen    (Just ((richtung, pin):richtungsPins))  = pure MärklinWeiche {weName, richtungsPins=(richtung, zuPin pin):|map (\(richtung, pin) -> (richtung, zuPin pin)) richtungsPins}
                 createWeiche _zugtyp    _name   _maybeRichtungsPin  _maybeRichtungen    _maybeRichtungsPins                     = mzero
     parseJSON   _           = mzero
 
 instance ToJSON Weiche where
     toJSON :: Weiche -> Value
-    toJSON  (LegoWeiche {weName, richtungsPin, richtungen})   = object [nameJS .= weName, richtungsPinJS .= fromPin richtungsPin, richtungenJS .= richtungen, zugtypJS .= Lego]
-    toJSON  (MärklinWeiche {weName, richtungsPins})           = object [nameJS .= weName, richtungsPinsJS .= map (\(richtung, pin) -> (richtung, fromPin pin)) (NE.toList richtungsPins), zugtypJS .= Märklin]
+    toJSON  (LegoWeiche {weName, richtungsPin, richtungen})   = object [nameJS .= weName, richtungsPinJS .= vonPin richtungsPin, richtungenJS .= richtungen, zugtypJS .= Lego]
+    toJSON  (MärklinWeiche {weName, richtungsPins})           = object [nameJS .= weName, richtungsPinsJS .= map (\(richtung, pin) -> (richtung, vonPin pin)) (NE.toList richtungsPins), zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 kupplungsPinJS :: Text
@@ -246,12 +246,12 @@ instance FromJSON Kupplung where
     parseJSON   (Object v)  = do
         kuName <- (v .: nameJS)
         kupplungsPin <- (v .: kupplungsPinJS) :: Parser Natural
-        pure $ Kupplung {kuName, kupplungsPin=toPin kupplungsPin}
+        pure $ Kupplung {kuName, kupplungsPin=zuPin kupplungsPin}
     parseJSON   _           = mzero
 
 instance ToJSON Kupplung where
     toJSON :: Kupplung -> Value
-    toJSON  (Kupplung {kuName, kupplungsPin}) = object [nameJS .= kuName, kupplungsPinJS .= fromPin kupplungsPin]
+    toJSON  (Kupplung {kuName, kupplungsPin}) = object [nameJS .= kuName, kupplungsPinJS .= vonPin kupplungsPin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 weichenRichtungenJS :: Text

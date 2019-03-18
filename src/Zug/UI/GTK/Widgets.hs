@@ -235,7 +235,7 @@ nameEntryPackNew box = do
 -- | Name anzeigen
 nameLabelPackNew :: (BoxClass b, StreckenObjekt s) => b -> s -> IO Label
 nameLabelPackNew box objekt = do
-    label <- boxPackWidgetNewDefault box $ labelNew $ Just $ getName objekt
+    label <- boxPackWidgetNewDefault box $ labelNew $ Just $ erhalteName objekt
     set label [widgetMarginRight := 5]
     pure label
 
@@ -278,12 +278,12 @@ hinzufügenWidgetWegstreckeNew :: (StreckenObjekt o, BoxClass b) => o -> b -> IO
 hinzufügenWidgetWegstreckeNew objekt box = do
     hBoxHinzufügen <- boxPackWidgetNewDefault box $ hBoxNew False 0
     checkButton <- boxPackWidgetNewDefault hBoxHinzufügen checkButtonNew
-    boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ getName objekt
+    boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ erhalteName objekt
     pure (hBoxHinzufügen, unregistriert checkButton)
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'LikeMVar' mit dem Objekt gefüllt.
 hinzufügenWidgetPlanNew :: (BoxClass b, LikeMVar lmvar) => b -> Objekt -> lmvar (Maybe Objekt) -> IO Button
-hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (getName objekt) $ putLMVar lmvar $ Just objekt
+hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $ putLMVar lmvar $ Just objekt
 
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
@@ -352,8 +352,8 @@ instance StreckenObjekt BGWidgets where
     zugtyp  (BGWidgets {bg})    = zugtyp bg
     pins :: BGWidgets -> [Pin]
     pins    (BGWidgets {bg})    = pins bg
-    getName :: BGWidgets -> Text
-    getName (BGWidgets {bg})    = getName bg
+    erhalteName :: BGWidgets -> Text
+    erhalteName (BGWidgets {bg})    = erhalteName bg
 
 instance ToJSON BGWidgets where
     toJSON :: BGWidgets -> Value
@@ -432,8 +432,8 @@ instance StreckenObjekt STWidgets where
     zugtyp  (STWidgets {st})    = zugtyp st
     pins :: STWidgets -> [Pin]
     pins    (STWidgets {st})    = pins st
-    getName :: STWidgets -> Text
-    getName (STWidgets {st})    = getName st
+    erhalteName :: STWidgets -> Text
+    erhalteName (STWidgets {st})    = erhalteName st
 
 instance ToJSON STWidgets where
     toJSON :: STWidgets -> Value
@@ -457,9 +457,9 @@ weichePackNew weiche mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxWeiche
     hinzufügenWegstreckeWidget <- do
         hBoxHinzufügen <- boxPackWidgetNewDefault vBoxHinzufügenWegstreckeWeichen $ hBoxNew False 0
         checkButton <- boxPackWidgetNewDefault hBoxHinzufügen checkButtonNew
-        boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ getName weiche
+        boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ erhalteName weiche
         richtungsRadioButtons <- do
-            let (h:|t) = getRichtungen weiche
+            let (h:|t) = erhalteRichtungen weiche
             hRichtungRadioButton <- boxPackWidgetNewDefault hBoxHinzufügen (radioButtonNewWithLabel $ show h) >>= \radioButton -> pure (h, radioButton)
             tRichtungRadioButtons <- mapM (\richtung -> boxPackWidgetNewDefault hBoxHinzufügen (radioButtonNewWithLabelFromWidget (snd hRichtungRadioButton) $ show richtung) >>= \radioButton -> pure (richtung, radioButton)) t
             pure $ hRichtungRadioButton :| tRichtungRadioButtons
@@ -522,8 +522,8 @@ instance StreckenObjekt WEWidgets where
     zugtyp  (WEWidgets {we})    = zugtyp we
     pins :: WEWidgets -> [Pin]
     pins    (WEWidgets {we})    = pins we
-    getName :: WEWidgets -> Text
-    getName (WEWidgets {we})    = getName we
+    erhalteName :: WEWidgets -> Text
+    erhalteName (WEWidgets {we})    = erhalteName we
 
 instance ToJSON WEWidgets where
     toJSON :: WEWidgets -> Value
@@ -532,8 +532,8 @@ instance ToJSON WEWidgets where
 instance WeicheKlasse WEWidgets where
     stellen :: WEWidgets -> Richtung -> PinMapIO ()
     stellen (WEWidgets {we})    = stellen we
-    getRichtungen :: WEWidgets -> NonEmpty Richtung
-    getRichtungen   (WEWidgets {we})    = getRichtungen we
+    erhalteRichtungen :: WEWidgets -> NonEmpty Richtung
+    erhalteRichtungen   (WEWidgets {we})    = erhalteRichtungen we
 
 -- | 'Kupplung' darstellen
 kupplungPackNew :: (LikeMVar lmvar) => Kupplung -> lmvar StatusGUI -> DynamischeWidgets -> IO KupplungWidget
@@ -584,8 +584,8 @@ instance StreckenObjekt KUWidgets where
     zugtyp  (KUWidgets {ku})    = zugtyp ku
     pins :: KUWidgets -> [Pin]
     pins    (KUWidgets {ku})    = pins ku
-    getName :: KUWidgets -> Text
-    getName (KUWidgets {ku})    = getName ku
+    erhalteName :: KUWidgets -> Text
+    erhalteName (KUWidgets {ku})    = erhalteName ku
 
 instance ToJSON KUWidgets where
     toJSON :: KUWidgets -> Value
@@ -641,8 +641,8 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
     pure frame
         where
             appendName :: (StreckenObjekt o) => Text -> o -> Text
-            appendName ("")     objekt = getName objekt
-            appendName string   objekt = string <^> getName objekt
+            appendName ("")     objekt = erhalteName objekt
+            appendName string   objekt = string <^> erhalteName objekt
 -- | Äußerstes Widget zur Darstellung einer 'Wegstrecke'
 type WegstreckeWidget = Frame
 -- | Widget zum Hinzufügen einer 'Wegstrecke' zu einem 'Plan'
@@ -671,8 +671,8 @@ instance StreckenObjekt WSWidgets where
     zugtyp  (WSWidgets {ws})    = zugtyp ws
     pins :: WSWidgets -> [Pin]
     pins    (WSWidgets {ws})    = pins ws
-    getName :: WSWidgets -> Text
-    getName (WSWidgets {ws})    = getName ws
+    erhalteName :: WSWidgets -> Text
+    erhalteName (WSWidgets {ws})    = erhalteName ws
 
 instance ToJSON WSWidgets where
     toJSON :: WSWidgets -> Value
@@ -726,8 +726,8 @@ instance StreckenObjekt PLWidgets where
     zugtyp  (PLWidgets {pl})    = zugtyp pl
     pins :: PLWidgets -> [Pin]
     pins    (PLWidgets {pl})    = pins pl
-    getName :: PLWidgets -> Text
-    getName (PLWidgets {pl})    = getName pl
+    erhalteName :: PLWidgets -> Text
+    erhalteName (PLWidgets {pl})    = erhalteName pl
 
 instance ToJSON PLWidgets where
     toJSON :: PLWidgets -> Value

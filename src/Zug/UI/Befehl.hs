@@ -83,13 +83,13 @@ data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 instance (StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws, StreckenObjekt pl) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
-    getName :: ObjektAllgemein bg st we ku ws pl -> Text
-    getName (OPlan pl)                  = getName pl
-    getName (OWegstrecke ws)            = getName ws
-    getName (OWeiche we)                = getName we
-    getName (OBahngeschwindigkeit bg)   = getName bg
-    getName (OStreckenabschnitt st)     = getName st
-    getName (OKupplung ku)              = getName ku
+    erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
+    erhalteName (OPlan pl)                  = erhalteName pl
+    erhalteName (OWegstrecke ws)            = erhalteName ws
+    erhalteName (OWeiche we)                = erhalteName we
+    erhalteName (OBahngeschwindigkeit bg)   = erhalteName bg
+    erhalteName (OStreckenabschnitt st)     = erhalteName st
+    erhalteName (OKupplung ku)              = erhalteName ku
     pins ::ObjektAllgemein bg st we ku ws pl -> [Pin]
     pins (OPlan pl)                 = pins pl
     pins (OWegstrecke ws)           = pins ws
