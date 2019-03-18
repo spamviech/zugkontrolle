@@ -176,36 +176,36 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
         objektHinzufügen :: (LikeMVar lmvar) => DialogHinzufügen -> PageHinzufügen -> lmvar StatusGUI -> DynamischeWidgets -> IO ()
         objektHinzufügen    (DialogHinzufügen {comboBoxZugtyp, indizesZugtyp})  (PageBahngeschwindigkeit {nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton})   mvarStatus  dynamischeWidgets   = void $ do
             bgName <- get nameEntry entryText
-            geschwindigkeitsPin <- get geschwindigkeitsPinSpinButton spinButtonValue >>= pure . toPin
+            geschwindigkeitsPin <- get geschwindigkeitsPinSpinButton spinButtonValue >>= pure . zuPin
             bahngeschwindigkeit <- get comboBoxZugtyp comboBoxActive >>= \case
                 index   | indexStimmtÜberein indizesZugtyp Märklin index    -> pure MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin}
                         | indexStimmtÜberein indizesZugtyp Lego index       -> do
-                            fahrtrichtungsPin <- get fahrtrichtungsPinSpinButton spinButtonValue >>= pure . toPin
+                            fahrtrichtungsPin <- get fahrtrichtungsPinSpinButton spinButtonValue >>= pure . zuPin
                             pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin}
                         | otherwise                                         -> error $ "Unbekannter Zugtyp beim Hinzufügen einer Bahngeschwindigkeit ausgewählt: " ++ show index
             bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets
         objektHinzufügen    _dialogHinzufügen                                   (PageStreckenabschnitt {nameEntry, stromPinSpinButton})                                             mvarStatus  dynamischeWidgets   = void $ do
             stName <- get nameEntry entryText
-            stromPin <- get stromPinSpinButton spinButtonValue >>= pure . toPin
+            stromPin <- get stromPinSpinButton spinButtonValue >>= pure . zuPin
             streckenabschnittPackNew (Streckenabschnitt {stName, stromPin}) mvarStatus dynamischeWidgets
         objektHinzufügen    (DialogHinzufügen {comboBoxZugtyp, indizesZugtyp})  (PageWeiche {nameEntry, richtungsWidgetsMärklin, richtungsWidgetsLego}) mvarStatus  dynamischeWidgets   = void $ do
             weName <- get nameEntry entryText
             weiche <- get comboBoxZugtyp comboBoxActive >>= \case
                 index   | indexStimmtÜberein indizesZugtyp Märklin index    -> do
-                            richtungsPins <- foldM (\acc (richtung, checkButton, spinButton) -> get checkButton toggleButtonActive >>= \pressed -> if pressed then get spinButton spinButtonValue >>= \pin -> pure ((richtung, toPin pin):acc) else pure acc) [] richtungsWidgetsMärklin
+                            richtungsPins <- foldM (\acc (richtung, checkButton, spinButton) -> get checkButton toggleButtonActive >>= \pressed -> if pressed then get spinButton spinButtonValue >>= \pin -> pure ((richtung, zuPin pin):acc) else pure acc) [] richtungsWidgetsMärklin
                             case richtungsPins of
                                 ([])    -> error "Keine Richtung beim Hinzufügen einer Märklin-Weiche ausgewählt."
                                 (h:t)   -> pure MärklinWeiche {weName, richtungsPins=h:|t}
                         | indexStimmtÜberein indizesZugtyp Lego index       -> do
                             let (richtungsPinSpinButton, richtungenRadioButtons) = richtungsWidgetsLego
-                            richtungsPin <- get richtungsPinSpinButton spinButtonValue >>= pure . toPin
+                            richtungsPin <- get richtungsPinSpinButton spinButtonValue >>= pure . zuPin
                             richtungen <- foldM (\(r1, r2) (rn1, rn2, rb) -> get rb toggleButtonActive >>= \toggled -> pure $ if toggled then (rn1, rn2) else (r1, r2)) (Gerade, Gerade) richtungenRadioButtons
                             pure LegoWeiche {weName, richtungsPin, richtungen}
                         | otherwise                                         -> error $ "Unbekannter Zugtyp beim Hinzufügen einer Weiche ausgewählt: " ++ show index
             weichePackNew weiche mvarStatus dynamischeWidgets
         objektHinzufügen    _dialogHinzufügen                                   (PageKupplung {nameEntry, kupplungsPinSpinButton})                                                  mvarStatus  dynamischeWidgets   = void $ do
             kuName <- get nameEntry entryText
-            kupplungsPin <- get kupplungsPinSpinButton spinButtonValue >>= pure . toPin
+            kupplungsPin <- get kupplungsPinSpinButton spinButtonValue >>= pure . zuPin
             kupplungPackNew (Kupplung {kuName, kupplungsPin}) mvarStatus dynamischeWidgets
         objektHinzufügen    _dialogHinzufügen                                   (PageWegstrecke {nameEntry, wegstreckenElemente})                                                   mvarStatus  dynamischeWidgets   = void $ do
             wsName <- get nameEntry entryText

@@ -354,7 +354,7 @@ anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameRichtung1 name richtung1)    
     (Just richtung2)    -> ALegoWeicheNameRichtungen name richtung1 richtung2
 anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameRichtungen name richtung1 richtung2)         (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ AWEUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ LegoWeiche {weName=name, richtungsPin=toPin pin, richtungen=(richtung1,richtung2)}
+    (Just pin)  -> Right $ LegoWeiche {weName=name, richtungsPin=zuPin pin, richtungen=(richtung1,richtung2)}
 anfrageWeicheAktualisieren (AMärklinWeiche)                                                     (EingabeToken {eingabe})            = Left $ AMärklinWeicheName eingabe
 anfrageWeicheAktualisieren anfrage@(AMärklinWeicheName name)                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)       -> Left $ AWEUnbekannt anfrage eingabe
@@ -365,8 +365,8 @@ anfrageWeicheAktualisieren anfrage@(AMärklinWeicheNameAnzahl name anzahl acc)  
 anfrageWeicheAktualisieren anfrage@(AMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)           -> Left $ AWEUnbekannt anfrage eingabe
     (Just pin)
-        | anzahl > 1    -> Left $ AMärklinWeicheNameAnzahl name (pred anzahl) $ (richtung, toPin pin):acc
-        | otherwise     -> Right $ MärklinWeiche {weName=name, richtungsPins=(richtung, toPin pin):|acc}
+        | anzahl > 1    -> Left $ AMärklinWeicheNameAnzahl name (pred anzahl) $ (richtung, zuPin pin):acc
+        | otherwise     -> Right $ MärklinWeiche {weName=name, richtungsPins=(richtung, zuPin pin):|acc}
 anfrageWeicheAktualisieren anfrage@(AWEUnbekannt _ _)                                           _token                              = Left anfrage
 -- | Eingabe einer Bahngeschwindigkeit
 anfrageBahngeschwindigkeitAktualisieren :: AnfrageBahngeschwindigkeit -> EingabeToken -> Either AnfrageBahngeschwindigkeit Bahngeschwindigkeit
@@ -377,28 +377,28 @@ anfrageBahngeschwindigkeitAktualisieren    (AnfrageBahngeschwindigkeit)         
 anfrageBahngeschwindigkeitAktualisieren    (ALegoBahngeschwindigkeit)                                                       (EingabeToken {eingabe})            = Left $ ALegoBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitName name)                                      (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Left $ ALegoBahngeschwindigkeitNameGeschwindigkeit name $ toPin pin
+    (Just pin)  -> Left $ ALegoBahngeschwindigkeitNameGeschwindigkeit name $ zuPin pin
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitNameGeschwindigkeit name geschwindigkeitsPin)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, geschwindigkeitsPin, fahrtrichtungsPin=toPin pin}
+    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, geschwindigkeitsPin, fahrtrichtungsPin=zuPin pin}
 anfrageBahngeschwindigkeitAktualisieren    (AMärklinBahngeschwindigkeit)                                                    (EingabeToken {eingabe})            = Left $ AMärklinBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitName name)                                   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, geschwindigkeitsPin=toPin pin}
+    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, geschwindigkeitsPin=zuPin pin}
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _ _)                                                       _token                              = Left anfrage
 -- | Eingabe eines Streckenabschnitts
 anfrageStreckenabschnittAktualisieren :: AnfrageStreckenabschnitt -> EingabeToken -> Either AnfrageStreckenabschnitt Streckenabschnitt
 anfrageStreckenabschnittAktualisieren   (AnfrageStreckenabschnitt)              (EingabeToken {eingabe})            = Left $ AStreckenabschnittName eingabe
 anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittName name)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ASTUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stromPin=toPin pin}
+    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stromPin=zuPin pin}
 anfrageStreckenabschnittAktualisieren   anfrage@(ASTUnbekannt _ _)              _token                              = Left anfrage
 -- | Eingabe einer Kupplung
 anfrageKupplungAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
 anfrageKupplungAktualisieren    (AnfrageKupplung)               (EingabeToken {eingabe})            = Left $ AKupplungName eingabe
 anfrageKupplungAktualisieren    anfrage@(AKupplungName name)    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ AKUUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Kupplung {kuName=name, kupplungsPin=toPin pin}
+    (Just pin)  -> Right $ Kupplung {kuName=name, kupplungsPin=zuPin pin}
 anfrageKupplungAktualisieren    anfrage@(AKUUnbekannt _ _)      _token                              = Left anfrage
 
 -- * Klasse für unvollständige Befehle
@@ -955,7 +955,7 @@ unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingab
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
 findByNameOrIndex   liste   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Just index)    | index >= 0, längerAls liste index     -> Just $ liste !! fromIntegral index
-    _maybeIndex                                             -> listToMaybe $ filter ((== eingabe) . getName) liste
+    _maybeIndex                                             -> listToMaybe $ filter ((== eingabe) . erhalteName) liste
 
 -- | Prüft, ob eine Liste mindestens von der Länge i ist, ohne die komplette Länge zu berechnen
 längerAls :: [a] -> Natural -> Bool
