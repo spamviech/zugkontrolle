@@ -68,3 +68,4 @@
 ## Unreleased changes
 - Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.
 - Bugfix (GTK-UI): Wegstrecken sorgen auch alleine dazu,  dass betroffene Aktionen angezeigt werden.
+- Verbliebene englische Namen, die nicht an bestehende Funktionen angelehnt sind ins deutsche übersetzt.

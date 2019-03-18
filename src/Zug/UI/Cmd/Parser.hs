@@ -170,15 +170,15 @@ anfragePlanAktualisieren :: AnfragePlan -> EingabeToken -> Either AnfragePlan Pl
 anfragePlanAktualisieren   (AnfragePlan)                                    (EingabeToken {eingabe})            = Left $ APlanName eingabe
 anfragePlanAktualisieren   anfrage@(APlanName name)                         (EingabeToken {eingabe, ganzzahl})  = Left $ case ganzzahl of
     (Nothing)       -> APUnbekannt anfrage eingabe
-    (Just anzahl)   -> APlanNameAnzahl name anzahl empty AnfrageAktion
+    (Just anzahl)   -> APlanNameAnzahl name anzahl leer AnfrageAktion
 anfragePlanAktualisieren   (APlanNameAnzahl name anzahl acc anfrageAktion)  token                               = case anfrageAktionAktualisieren anfrageAktion token of
     (Left (AAUnbekannt aAktion1 eingabe))                                   -> Left $ APUnbekannt (APlanNameAnzahl name anzahl acc aAktion1) eingabe
     (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> Left $ APlanIOStatus objektStatusAnfrage $ Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
-    (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))        -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1 then Left $ \objekt -> APlanNameAnzahl name anzahl (append (konstruktor objekt) acc) AnfrageAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ append (konstruktor objekt) acc}
-    (Left AARückgängig)                                                     -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in Left $ APlanNameAnzahl name (succ anzahl) prevAcc AnfrageAktion
+    (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))        -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1 then Left $ \objekt -> APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ anhängen (konstruktor objekt) acc}
+    (Left AARückgängig)                                                     -> let prevAcc = case zeigeLetztes acc of {(Leer) -> leer; (Gefüllt _l p) -> p} in Left $ APlanNameAnzahl name (succ anzahl) prevAcc AnfrageAktion
     (Left aAktion1)                                                         -> Left $ APlanNameAnzahl name anzahl acc aAktion1
-    (Right aktion)  | anzahl > 1                                            -> Left $ APlanNameAnzahl name (pred anzahl) (append aktion acc) AnfrageAktion
-                    | otherwise                                             -> Right $ Plan {plName=name, plAktionen=toList $ append aktion acc}
+    (Right aktion)  | anzahl > 1                                            -> Left $ APlanNameAnzahl name (pred anzahl) (anhängen aktion acc) AnfrageAktion
+                    | otherwise                                             -> Right $ Plan {plName=name, plAktionen=toList $ anhängen aktion acc}
 anfragePlanAktualisieren   (APStatusAnfrage anfrageKonstruktor eitherF)     token                               = Left $ APlanIOStatus (anfrageKonstruktor token) eitherF
 anfragePlanAktualisieren   anfrage                                          _token                              = Left anfrage
 -- | Eingabe einer Aktion
