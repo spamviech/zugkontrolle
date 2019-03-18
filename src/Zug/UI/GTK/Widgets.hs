@@ -306,7 +306,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets@(Dyn
     let bgWidgets = BGWidgets {bg=bahngeschwindigkeit, bgWidget=hBox, bgHinzPL=(hinzufügenPlanWidget, hinzufügenPlanWidgetZT), bgHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
-    runMVarBefehl (Hinzufügen $ OBahngeschwindigkeit bgWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OBahngeschwindigkeit bgWidgets) mvarStatus
     pure hBox
         where
             getGeschwindigkeitsPin :: Bahngeschwindigkeit -> Pin
@@ -369,7 +369,7 @@ instance BahngeschwindigkeitKlasse BGWidgets where
 hScaleGeschwindigkeitPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, LikeMVar lmvar) => b -> bg -> lmvar StatusGUI -> IO HScale
 hScaleGeschwindigkeitPackNew box bahngeschwindigkeit mvarStatus = do
     scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault $ widgetShowNew $ hScaleNewWithRange 0 100 1
-    on scale valueChanged $ get scale rangeValue >>= \wert -> runMVarAktion (Geschwindigkeit bahngeschwindigkeit $ fromIntegral $ fromEnum wert) mvarStatus
+    on scale valueChanged $ get scale rangeValue >>= \wert -> ausführenMVarAktion (Geschwindigkeit bahngeschwindigkeit $ fromIntegral $ fromEnum wert) mvarStatus
     pure scale
 
 -- | Füge 'Button' zum umdrehen zur Box hinzu
@@ -379,9 +379,9 @@ buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit mvarStatus = 
     if (zugtyp bahngeschwindigkeit == Lego)
         then do
             toggleButton <- boxPackWidgetNewDefault box $ toggleButtonNewWithLabel (Language.umdrehen :: Text)
-            on toggleButton toggled $ get toggleButton toggleButtonActive >>= \vorwärts -> runMVarAktion (Umdrehen bahngeschwindigkeit (Just $ if vorwärts then Vorwärts else Rückwärts)) mvarStatus
+            on toggleButton toggled $ get toggleButton toggleButtonActive >>= \vorwärts -> ausführenMVarAktion (Umdrehen bahngeschwindigkeit (Just $ if vorwärts then Vorwärts else Rückwärts)) mvarStatus
             pure $ Right toggleButton
-        else boxPackWidgetNewDefault box (buttonNewWithEventLabel Language.umdrehen $ runMVarAktion (Umdrehen bahngeschwindigkeit Nothing) mvarStatus) >>= pure . Left
+        else boxPackWidgetNewDefault box (buttonNewWithEventLabel Language.umdrehen $ ausführenMVarAktion (Umdrehen bahngeschwindigkeit Nothing) mvarStatus) >>= pure . Left
 
 -- | 'Streckenabschnitt' darstellen
 streckenabschnittPackNew :: (LikeMVar lmvar) => Streckenabschnitt -> lmvar StatusGUI -> DynamischeWidgets -> IO StreckenabschnittWidget
@@ -397,7 +397,7 @@ streckenabschnittPackNew streckenabschnitt@(Streckenabschnitt {stromPin}) mvarSt
     let stWidgets = STWidgets {st=streckenabschnitt, stWidget=hBox, stHinzPL=hinzufügenPlanWidget, stHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxStreckenabschnitte (entfernenStreckenabschnitt stWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
-    runMVarBefehl (Hinzufügen $ OStreckenabschnitt stWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OStreckenabschnitt stWidgets) mvarStatus
     pure hBox
 -- | Äußerstes Widget zur Darstellung eines 'Streckenabschnitt's
 type StreckenabschnittWidget = HBox
@@ -447,7 +447,7 @@ instance StreckenabschnittKlasse STWidgets where
 toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s, LikeMVar lmvar) => b -> s -> lmvar StatusGUI -> IO ToggleButton
 toggleButtonStromPackNew box streckenabschnitt mvarStatus = do
     toggleButton <- boxPackWidgetNewDefault box $ toggleButtonNewWithLabel (Language.strom :: Text)
-    on toggleButton toggled $ get toggleButton toggleButtonActive >>= \an -> runMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) mvarStatus
+    on toggleButton toggled $ get toggleButton toggleButtonActive >>= \an -> ausführenMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) mvarStatus
     pure toggleButton
 
 -- | 'Weiche' darstellen
@@ -476,15 +476,15 @@ weichePackNew weiche mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxWeiche
     let weWidgets = WEWidgets {we=weiche, weWidget=hBox, weHinzPL=hinzufügenPlanWidget, weHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxWeichen (entfernenWeiche weWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets weWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
-    runMVarBefehl (Hinzufügen $ OWeiche weWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OWeiche weWidgets) mvarStatus
     pure hBox
         where
             richtungsButtonsPackNew :: (BoxClass b) => Weiche -> b -> IO ()
             richtungsButtonsPackNew (LegoWeiche {richtungsPin, richtungen=(richtung1, richtung2)})    box = void $ do
                 boxPackWidgetNewDefault box $ pinLabelNew Language.richtung richtungsPin
-                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung1) $ runMVarAktion (Stellen weiche richtung1) mvarStatus
-                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung2) $ runMVarAktion (Stellen weiche richtung2) mvarStatus
-            richtungsButtonsPackNew (MärklinWeiche {richtungsPins})                                     box = mapM_ (\(richtung, pin) -> boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung <:> showText pin) $ runMVarAktion (Stellen weiche richtung) mvarStatus) richtungsPins
+                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung1) $ ausführenMVarAktion (Stellen weiche richtung1) mvarStatus
+                boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung2) $ ausführenMVarAktion (Stellen weiche richtung2) mvarStatus
+            richtungsButtonsPackNew (MärklinWeiche {richtungsPins})                                     box = mapM_ (\(richtung, pin) -> boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung <:> showText pin) $ ausführenMVarAktion (Stellen weiche richtung) mvarStatus) richtungsPins
 -- | Äußerstes Widget zur Darstellung einer 'Weiche'
 type WeicheWidget = HBox
 -- | Widget zum Hinzufügen einer 'Weiche' zu einer 'Wegstrecke'
@@ -549,7 +549,7 @@ kupplungPackNew kupplung@(Kupplung {kupplungsPin}) mvarStatus dynamischeWidgets@
     let kuWidgets = KUWidgets {ku=kupplung, kuWidget=hBox, kuHinzPL=hinzufügenPlanWidget, kuHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxKupplungen (entfernenKupplung kuWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
-    runMVarBefehl (Hinzufügen $ OKupplung kuWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OKupplung kuWidgets) mvarStatus
     pure hBox
 -- | Äußerstes Widget zur Darstellung einer 'Kupplung'
 type KupplungWidget = HBox
@@ -597,7 +597,7 @@ instance KupplungKlasse KUWidgets where
 
 -- | Füge 'Button' zum kuppeln zur Box hinzu
 buttonKuppelnPackNew :: (BoxClass b, KupplungKlasse k, LikeMVar lmvar) => b -> k -> lmvar StatusGUI -> IO Button
-buttonKuppelnPackNew box kupplung mvarStatus = boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.kuppeln $ runMVarAktion (Kuppeln kupplung) mvarStatus
+buttonKuppelnPackNew box kupplung mvarStatus = boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.kuppeln $ ausführenMVarAktion (Kuppeln kupplung) mvarStatus
 
 -- | 'Wegstrecke' darstellen
 wegstreckePackNew :: (LikeMVar lmvar) => Wegstrecke -> lmvar StatusGUI -> DynamischeWidgets -> IO WegstreckeWidget
@@ -630,14 +630,14 @@ wegstreckePackNew wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabs
         toggleButtonStromPackNew functionBox wegstrecke mvarStatus
     unless (null wsWeichenRichtungen) $ void $ do
         boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.weichen <:> foldl (\acc (weiche, richtung) -> appendName acc weiche <°> showText richtung) ("") wsWeichenRichtungen
-        boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.einstellen $ runMVarAktion (Einstellen wegstrecke) mvarStatus
+        boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.einstellen $ ausführenMVarAktion (Einstellen wegstrecke) mvarStatus
     unless (null wsKupplungen) $ void $ do
         boxPackWidgetNewDefault vBoxExpander $ labelNew $ Just $ Language.kupplungen <:> foldl appendName ("") wsKupplungen
         buttonKuppelnPackNew functionBox wegstrecke mvarStatus
     let wsWidgets = WSWidgets {ws=wegstrecke, wsWidget=frame, wsHinzPL=hinzufügenPlanWidget}
     buttonEntfernenPack functionBox (containerRemove vBoxWegstrecken frame >> entferneHinzufügenPlanWidgets wsWidgets dynamischeWidgets) (entfernenWegstrecke wsWidgets) mvarStatus
     -- Widgets merken
-    runMVarBefehl (Hinzufügen $ OWegstrecke wsWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OWegstrecke wsWidgets) mvarStatus
     pure frame
         where
             appendName :: (StreckenObjekt o) => Text -> o -> Text
@@ -707,11 +707,11 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
     vBoxExpander <- containerAddWidgetNew expander $ vBoxNew False 0
     mapM_ ((boxPackWidgetNewDefault vBoxExpander) . labelNew . Just . show) plAktionen
     functionBox <- boxPackWidgetNewDefault vBox hButtonBoxNew
-    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ runMVarPlan plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) mvarStatus
+    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ ausführenMVarPlan plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) mvarStatus
     let alleWidgets = PLWidgets {pl=plan, plWidget=frame}
     buttonEntfernenPack functionBox (containerRemove vBoxPläne frame) (entfernenPlan alleWidgets) mvarStatus
     -- Widgets merken
-    runMVarBefehl (Hinzufügen $ OPlan alleWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OPlan alleWidgets) mvarStatus
     pure frame
 -- | Äußerstes Widget zur Darstellung eines 'Plan's
 type PlanWidget = Frame

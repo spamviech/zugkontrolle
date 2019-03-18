@@ -48,7 +48,7 @@ import Zug.UI.GTK.FortfahrenWenn
 buttonSpeichernPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> IO Button
 buttonSpeichernPack windowMain box mvarStatus = do
     dialogSpeichern <- dialogSpeichernNew windowMain
-    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSpeichern >>= \antwort -> when (antwort == ResponseOk) $ fileChooserGetFilename dialogSpeichern >>= \(Just dateipfad) -> void $ runMVarBefehl (Speichern dateipfad) mvarStatus
+    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSpeichern >>= \antwort -> when (antwort == ResponseOk) $ fileChooserGetFilename dialogSpeichern >>= \(Just dateipfad) -> void $ ausführenMVarBefehl (Speichern dateipfad) mvarStatus
 
 dialogSpeichernNew :: Window -> IO FileChooserDialog
 dialogSpeichernNew window = do
