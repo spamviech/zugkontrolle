@@ -16,15 +16,15 @@ module Zug.UI.Befehl (
                     BefehlListe, BefehlListeAllgemein(..),
                     UIBefehl, UIBefehlAllgemein(..), Objekt, ObjektAllgemein(..),
                     -- * Funktionen
-                    runMVarPlan, runMVarAktion, runMVarBefehl) where
+                    ausführenMVarPlan, ausführenMVarAktion, ausführenMVarBefehl) where
 
 -- Bibliotheken
-import Control.Monad.Trans
-import Control.Monad.State
-import Control.Concurrent
+import Control.Monad.Trans (liftIO)
+import Control.Monad.State (get, put)
+import Control.Concurrent.MVar (takeMVar, putMVar)
 import Data.Aeson (ToJSON)
 import Data.Text (Text)
-import Numeric.Natural
+import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 import Zug.Klassen
@@ -34,19 +34,19 @@ import qualified Zug.UI.Save as Save
 import Zug.UI.Base
 
 -- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
-runMVarPlan :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
+ausführenMVarPlan :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
             => p -> (Natural -> IO ()) -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO ()
-runMVarPlan plan showAction mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenPlan plan showAction
+ausführenMVarPlan plan showAction mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenPlan plan showAction
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
-runMVarAktion   :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
+ausführenMVarAktion   :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
                 => p -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO ()
-runMVarAktion aktion = runMVarPlan aktion $ const $ pure ()
+ausführenMVarAktion aktion = ausführenMVarPlan aktion $ const $ pure ()
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
-runMVarBefehl   :: (BefehlKlasse b, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl, LikeMVar lmvar)
+ausführenMVarBefehl   :: (BefehlKlasse b, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl, LikeMVar lmvar)
                 => b bg st we ku ws pl -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO Bool
-runMVarBefehl befehl = auswertenMVarIOStatus $ ausführenBefehl befehl
+ausführenMVarBefehl befehl = auswertenMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
 class BefehlKlasse b where
