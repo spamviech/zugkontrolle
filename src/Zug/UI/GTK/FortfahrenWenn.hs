@@ -21,7 +21,7 @@ module Zug.UI.GTK.FortfahrenWenn (
 
 -- Bibliotheken
 import Graphics.UI.Gtk
-import Control.Monad
+import Control.Monad (foldM_, when)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (maybe)
 import Control.Lens (Traversal', Getter, Prism', Field2(..), (^.), (%%~))
@@ -29,7 +29,7 @@ import qualified Control.Lens as Lens
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
 
--- | Fortfahren nur möglich, wenn mindestens ein CheckButton aktiviert ist
+-- | Fortfahren nur möglich, wenn mindestens ein CheckButton aktiviert ist. Ansonsten wird die Sensitivität des 'Button's deaktiviert.
 data FortfahrenWennToggled f t = FortfahrenWennToggled {fortfahren :: Button, checkButtons :: f t}
 
 instance (Foldable f) => Foldable (FortfahrenWennToggled f) where
@@ -59,10 +59,10 @@ instance (MitCheckButton c) => MitCheckButton (a, c, b) where
 -- | Konstruktor, wenn alle CheckButtons beim erzeugen bekannt sind
 fortfahrenWennToggledNew :: (MitCheckButton c) => Button -> NonEmpty c -> IO (FortfahrenWennToggled NonEmpty c)
 fortfahrenWennToggledNew fortfahren checkButtons = do
-    let self = FortfahrenWennToggled {fortfahren, checkButtons}
-    mapM_ (\c -> on (c ^. checkButton) toggled $ aktiviereWennToggled self) checkButtons
-    aktiviereWennToggled self
-    pure self
+    let fortfahrenWennToggled = FortfahrenWennToggled {fortfahren, checkButtons}
+    mapM_ (\c -> on (c ^. checkButton) toggled $ aktiviereWennToggled fortfahrenWennToggled) checkButtons
+    aktiviereWennToggled fortfahrenWennToggled
+    pure fortfahrenWennToggled
 
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggled :: (MitCheckButton c, Foldable f) => FortfahrenWennToggled f c -> IO ()
@@ -77,7 +77,7 @@ aktiviereWennToggledAux button foldable = set button [widgetSensitive := False] 
 
 -- | Konstruktor, wenn zu überprüfende CheckButtons sich während der Laufzeit ändern können.
 -- 
--- Es wird eine neue 'LinkedMVar' erzeugt, welche bei jedem setzten die Button-Senitivität überprüft.
+-- Es wird eine neue 'LinkedMVar' erzeugt, welche bei jedem setzten die Button-Senitivität anpasst.
 fortfahrenWennToggledEmptyLinkedMVarNew :: (MitCheckButton c) => Button -> Traversal' a (VielleichtRegistrierterCheckButton c) -> Maybe (LinkedMVar a) -> IO (FortfahrenWennToggled LinkedMVar a)
 fortfahrenWennToggledEmptyLinkedMVarNew fortfahren traversal maybeLMVar = do
     checkButtons <- maybe newEmptyUnlinkedMVar pure maybeLMVar
@@ -111,18 +111,18 @@ type VRCheckButton = VielleichtRegistrierterCheckButton CheckButton
 
 -- Prism wie bei Either
 _Registriert :: Prism' (VielleichtRegistrierterCheckButton c) c
-_Registriert = Lens.prism Registriert updateRegistriert
+_Registriert = Lens.prism Registriert registriertAux
     where
-        updateRegistriert :: ((VielleichtRegistrierterCheckButton c) -> Either (VielleichtRegistrierterCheckButton c) c)
-        updateRegistriert   vielleicht@(Unregistriert _c)   = Left vielleicht
-        updateRegistriert   (Registriert c)                 = Right c
+        registriertAux :: ((VielleichtRegistrierterCheckButton c) -> Either (VielleichtRegistrierterCheckButton c) c)
+        registriertAux   vielleicht@(Unregistriert _c)   = Left vielleicht
+        registriertAux   (Registriert c)                 = Right c
 
 _Unregistriert :: Prism' (VielleichtRegistrierterCheckButton c) c
-_Unregistriert = Lens.prism Unregistriert updateUnregistriert
+_Unregistriert = Lens.prism Unregistriert unregistriertAux
     where
-        updateUnregistriert :: ((VielleichtRegistrierterCheckButton c) -> Either (VielleichtRegistrierterCheckButton c) c)
-        updateUnregistriert   vielleicht@(Registriert _rc)  = Left vielleicht
-        updateUnregistriert   (Unregistriert c)             = Right c
+        unregistriertAux :: ((VielleichtRegistrierterCheckButton c) -> Either (VielleichtRegistrierterCheckButton c) c)
+        unregistriertAux   vielleicht@(Registriert _rc)  = Left vielleicht
+        unregistriertAux   (Unregistriert c)             = Right c
 
 -- exportierte Konstruktoren
 -- | Setzte einen 'CheckButton' als unregistriert

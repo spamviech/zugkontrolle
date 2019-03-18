@@ -73,7 +73,7 @@ buttonLoadPack windowMain box mvarStatus dynamischeWidgets = do
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
 loadWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
-loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne, vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenWegstreckeKupplungen}) status = do
+loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne}) status = do
     evalMVarIOStatus löscheWidgets mvarStatus
     erstelleWidgets mvarStatus status
         where
@@ -81,12 +81,12 @@ loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindig
             löscheWidgets = State.get >>= liftIOFunction (löscheWidgetsAux) >> putBahngeschwindigkeiten [] >> putStreckenabschnitte [] >> putWeichen [] >> putKupplungen [] >> putWegstrecken [] >> putPläne []
             löscheWidgetsAux :: StatusGUI -> IO ()
             löscheWidgetsAux status = do
-                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w, bgHinzWS=hww}) -> containerRemove vBoxBahngeschwindigkeiten w >> containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hww) >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets) $ status ^. bahngeschwindigkeiten
-                mapM_ (\stWidgets@(STWidgets {stWidget=w, stHinzWS=hww}) -> containerRemove vBoxStreckenabschnitte w >> containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte (fst hww) >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets) $ status ^. streckenabschnitte
-                mapM_ (\weWidgets@(WEWidgets {weWidget=w, weHinzWS=hww}) -> containerRemove vBoxWeichen w >> containerRemove vBoxHinzufügenWegstreckeWeichen ((\(w,_,_) -> w) hww) >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets) $ status ^. weichen
-                mapM_ (\kuWidgets@(KUWidgets {kuWidget=w, kuHinzWS=hww}) -> containerRemove vBoxKupplungen w >> containerRemove vBoxHinzufügenWegstreckeKupplungen (fst hww) >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets) $ status ^. kupplungen
-                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w}) -> containerRemove vBoxWegstrecken w >> entferneHinzufügenPlanWidgets wsWidgets dynamischeWidgets) $ status ^. wegstrecken
-                mapM_ (\(PLWidgets {plWidget=w}) -> containerRemove vBoxPläne w) $ status ^. pläne
+                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w})  -> containerRemove vBoxBahngeschwindigkeiten w  >> entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets) $ status ^. bahngeschwindigkeiten
+                mapM_ (\stWidgets@(STWidgets {stWidget=w})  -> containerRemove vBoxStreckenabschnitte w     >> entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets) $ status ^. streckenabschnitte
+                mapM_ (\weWidgets@(WEWidgets {weWidget=w})  -> containerRemove vBoxWeichen w                >> entferneHinzufügenWegstreckeWidgets weWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets) $ status ^. weichen
+                mapM_ (\kuWidgets@(KUWidgets {kuWidget=w})  -> containerRemove vBoxKupplungen w             >> entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets) $ status ^. kupplungen
+                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w})  -> containerRemove vBoxWegstrecken w            >> entferneHinzufügenPlanWidgets wsWidgets dynamischeWidgets) $ status ^. wegstrecken
+                mapM_ (\(PLWidgets {plWidget=w})            -> containerRemove vBoxPläne w) $ status ^. pläne
             erstelleWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> Status -> IO StatusGUI
             erstelleWidgets mvarStatus status = do
                 mapM_ (\bahngeschwindigkeit -> bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets) $ reverse $ status ^. bahngeschwindigkeiten
