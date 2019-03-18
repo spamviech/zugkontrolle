@@ -61,34 +61,34 @@ mainStatus = do
 
 -- | Gesammter Auswerte-Prozess
 statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
-statusParser    eingabe = (uncurry statusParserAux) $ parser QBefehl eingabe
+statusParser    eingabe = (uncurry statusParserAux) $ parser AnfrageBefehl eingabe
     where
-        statusParserAux :: [Befehl] -> QErgebnis-> IOStatus Bool
+        statusParserAux :: [Befehl] -> AnfrageErgebnis-> IOStatus Bool
         statusParserAux befehle qErgebnis = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
-                (QEBefehl befehl)                                           -> ausführenBefehl befehl
-                (QEBefehlSofort befehlSofort eingabeRest)                   -> ausführenBefehlSofort befehlSofort >> statusParser eingabeRest
-                (QEBefehlQuery qObjektIOStatus eitherF backup eingabeRest)  -> state (runState $ statusQueryObjekt qObjektIOStatus) >>= \case
+                (AEBefehl befehl)                                           -> ausführenBefehl befehl
+                (AEBefehlSofort befehlSofort eingabeRest)                   -> ausführenBefehlSofort befehlSofort >> statusParser eingabeRest
+                (AEStatusAnfrage qObjektIOStatus eitherF backup eingabeRest)  -> state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
                     (Right objekt)  -> case eitherF of
                         (Right konstruktor)     -> ausführenBefehl (konstruktor objekt) >>= \beenden -> if beenden then pure True else statusParser eingabeRest
                         (Left qKonstruktor)     -> (uncurry statusParserAux) $ parser (qKonstruktor objekt) eingabeRest
-                    (Left query)    -> promptS (getQueryFailed query $ getEingabe query <!> showQuery query <:> "") >>= (uncurry statusParserAux).(parser backup).lexer
+                    (Left query)    -> promptS (zeigeAnfrageFehlgeschlagen query $ erhalteEingabe query <!> zeigeAnfrage query <:> "") >>= (uncurry statusParserAux).(parser backup).lexer
                         where
-                            getEingabe :: QObjektIOStatus -> Text
-                            getEingabe  (QOIOSUnbekannt eingabe)                            = eingabe
-                            getEingabe  (QOIOSPlan (EingabeToken {eingabe}))                = eingabe
-                            getEingabe  (QOIOSWegstrecke (EingabeToken {eingabe}))          = eingabe
-                            getEingabe  (QOIOSWeiche (EingabeToken {eingabe}))              = eingabe
-                            getEingabe  (QOIOSBahngeschwindigkeit (EingabeToken {eingabe})) = eingabe
-                            getEingabe  (QOIOSStreckenabschnitt (EingabeToken {eingabe}))   = eingabe
-                            getEingabe  (QOIOSKupplung (EingabeToken {eingabe}))            = eingabe
-                (QEQBefehl (QBefehl))                                       -> pure False
-                (QEQBefehl (QBUnbekannt QBefehl eingabe))                   -> liftIO (T.putStrLn $ unbekanntShowText QBefehl eingabe) >> pure False
-                (QEQBefehl (QBUnbekannt query eingabe))                     -> liftIO (setSGR [SetColor Foreground Vivid Red] >> T.putStr (unbekanntShowText query eingabe) >> setSGR [Reset]) >> promptS "" >>= (uncurry statusParserAux).(parser query).lexer
-                (QEQBefehl query)                                           -> do
-                    liftIO $ case getQueryOptions query of
+                            erhalteEingabe :: StatusAnfrageObjekt -> Text
+                            erhalteEingabe  (SAOUnbekannt eingabe)                            = eingabe
+                            erhalteEingabe  (SAOPlan (EingabeToken {eingabe}))                = eingabe
+                            erhalteEingabe  (SAOWegstrecke (EingabeToken {eingabe}))          = eingabe
+                            erhalteEingabe  (SAOWeiche (EingabeToken {eingabe}))              = eingabe
+                            erhalteEingabe  (SAOBahngeschwindigkeit (EingabeToken {eingabe})) = eingabe
+                            erhalteEingabe  (SAOStreckenabschnitt (EingabeToken {eingabe}))   = eingabe
+                            erhalteEingabe  (SAOKupplung (EingabeToken {eingabe}))            = eingabe
+                (AEAnfrageBefehl (AnfrageBefehl))                                 -> pure False
+                (AEAnfrageBefehl (ABUnbekannt AnfrageBefehl eingabe))             -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
+                (AEAnfrageBefehl (ABUnbekannt query eingabe))                     -> liftIO (setSGR [SetColor Foreground Vivid Red] >> T.putStr (unbekanntShowText query eingabe) >> setSGR [Reset]) >> promptS "" >>= (uncurry statusParserAux).(parser query).lexer
+                (AEAnfrageBefehl query)                                           -> do
+                    case zeigeAnfrageOptionen query of
                         (Nothing)           -> pure ()
-                        (Just queryOptions) -> setSGR [SetColor Foreground Dull Blue] >> putStrLn queryOptions >> setSGR [Reset]
-                    promptS (showQuery query <:> "") >>= (uncurry statusParserAux).(parser query).lexer
+                        (Just queryOptions) -> liftIO $ setSGR [SetColor Foreground Dull Blue] >> putStrLn queryOptions >> setSGR [Reset]
+                    promptS (zeigeAnfrage query <:> "") >>= (uncurry statusParserAux).(parser query).lexer
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus ()
