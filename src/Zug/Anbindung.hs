@@ -103,7 +103,7 @@ getPwmValue pwmGrenzeMax value = fromIntegral ergebnis
         wertBegrenzt :: Natural
         wertBegrenzt = min pwmEingabeMaximal $ fromIntegral value
 
--- | Maximaler Eingabewert für 'getPwmValue' und 'geschwindigkeit'.
+-- | Maximaler Eingabewert für 'geschwindigkeit'.
 pwmEingabeMaximal :: Natural
 pwmEingabeMaximal = 100
 
@@ -111,7 +111,7 @@ pwmEingabeMaximal = 100
 pwmGrenzeVoll :: Natural
 pwmGrenzeVoll = fromIntegral pwmGrenze
 
--- | Maximal erlaubter pwmGrenze für 'getPWMValue' um eine Effektivspannung von 16V zu erhalten.
+-- | Maximal erlaubter pwmGrenze um eine Effektivspannung von 16V zu erhalten.
 pwmGrenzeReduziert :: Natural
 pwmGrenzeReduziert = div (pwmGrenzeVoll * spannungFahrt * spannungFahrt) (spannungQuelle * spannungQuelle)
     -- Effektivspannung skaliert wie die Wurzel des PwmValues.

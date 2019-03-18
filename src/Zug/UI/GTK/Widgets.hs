@@ -35,7 +35,7 @@ module Zug.UI.GTK.Widgets (
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
 import Control.Concurrent.MVar
-import Control.Lens (Traversal', Lens', Getter, Fold, (%%~), (^.), (^..), Field2(..), Field3(..))
+import Control.Lens (Traversal', Lens', Getter, Fold, (%%~), (^.), (^..), Field1(..), Field2(..), Field3(..))
 import qualified Control.Lens as Lens
 import Control.Monad
 import Control.Monad.State (State, StateT)
@@ -101,6 +101,8 @@ data DynamischeWidgets = DynamischeWidgets {
 class WegstreckenElement s where
     -- | Linse auf CheckButton, ob 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll
     lensWegstrecke :: Lens' s VRCheckButton
+    -- | Entferne Widgets zum Hinzufügen zu einer Wegstrecke aus der entsprechenden Box
+    entferneHinzufügenWegstreckeWidgets :: s -> DynamischeWidgets -> IO ()
 
 -- | Klasse für GUI-Darstellungen von Typen, die zur Erstellung eines 'Plan's verwendet werden.
 class PlanElement s where
@@ -302,7 +304,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets@(Dyn
     fahrtrichtungsPinLabelPackNew hBox bahngeschwindigkeit
     buttonUmdrehenPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit mvarStatus
     let bgWidgets = BGWidgets {bg=bahngeschwindigkeit, bgWidget=hBox, bgHinzPL=(hinzufügenPlanWidget, hinzufügenPlanWidgetZT), bgHinzWS=hinzufügenWegstreckeWidget}
-    buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten (fst hinzufügenWegstreckeWidget) >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets)) mvarStatus
+    buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OBahngeschwindigkeit bgWidgets) mvarStatus
     pure hBox
@@ -330,6 +332,9 @@ data BGWidgets = BGWidgets {
 instance WegstreckenElement BGWidgets where
     lensWegstrecke :: Lens' BGWidgets VRCheckButton
     lensWegstrecke = (Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS=v})) . _2
+    entferneHinzufügenWegstreckeWidgets :: BGWidgets -> DynamischeWidgets -> IO ()
+    entferneHinzufügenWegstreckeWidgets (BGWidgets {bgHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten})
+        = containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten $ fst bgHinzWS
 
 instance PlanElement BGWidgets where
     foldPlan :: Fold BGWidgets (Maybe Button)
@@ -390,7 +395,7 @@ streckenabschnittPackNew streckenabschnitt@(Streckenabschnitt {stromPin}) mvarSt
     boxPackWidgetNewDefault hBox $ pinLabelNew Language.strom stromPin
     toggleButtonStromPackNew hBox streckenabschnitt mvarStatus
     let stWidgets = STWidgets {st=streckenabschnitt, stWidget=hBox, stHinzPL=hinzufügenPlanWidget, stHinzWS=hinzufügenWegstreckeWidget}
-    buttonEntfernenPackSimple hBox vBoxStreckenabschnitte (entfernenStreckenabschnitt stWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte (fst hinzufügenWegstreckeWidget) >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets)) mvarStatus
+    buttonEntfernenPackSimple hBox vBoxStreckenabschnitte (entfernenStreckenabschnitt stWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OStreckenabschnitt stWidgets) mvarStatus
     pure hBox
@@ -411,6 +416,9 @@ data STWidgets = STWidgets {
 instance WegstreckenElement STWidgets where
     lensWegstrecke :: Lens' STWidgets VRCheckButton
     lensWegstrecke = (Lens.lens stHinzWS (\st v -> st {stHinzWS=v})) . _2
+    entferneHinzufügenWegstreckeWidgets :: STWidgets -> DynamischeWidgets -> IO ()
+    entferneHinzufügenWegstreckeWidgets (STWidgets {stHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeStreckenabschnitte})
+        = containerRemove vBoxHinzufügenWegstreckeStreckenabschnitte $ fst stHinzWS
 
 instance PlanElement STWidgets where
     foldPlan :: Fold STWidgets (Maybe Button)
@@ -466,7 +474,7 @@ weichePackNew weiche mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxWeiche
     nameLabelPackNew hBox weiche
     richtungsButtonsPackNew weiche hBox
     let weWidgets = WEWidgets {we=weiche, weWidget=hBox, weHinzPL=hinzufügenPlanWidget, weHinzWS=hinzufügenWegstreckeWidget}
-    buttonEntfernenPackSimple hBox vBoxWeichen (entfernenWeiche weWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeWeichen ((\(w,_,_) -> w) hinzufügenWegstreckeWidget) >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets)) mvarStatus
+    buttonEntfernenPackSimple hBox vBoxWeichen (entfernenWeiche weWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets weWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OWeiche weWidgets) mvarStatus
     pure hBox
@@ -498,6 +506,9 @@ getterRichtungsRadioButtons = Lens.to $ \weWidgets -> (weHinzWS weWidgets) ^. _3
 instance WegstreckenElement WEWidgets where
     lensWegstrecke :: Lens' WEWidgets VRCheckButton
     lensWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v})) . _2
+    entferneHinzufügenWegstreckeWidgets :: WEWidgets -> DynamischeWidgets -> IO ()
+    entferneHinzufügenWegstreckeWidgets (WEWidgets {weHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeWeichen})
+        = containerRemove vBoxHinzufügenWegstreckeWeichen $ weHinzWS ^. _1
 
 instance PlanElement WEWidgets where
     foldPlan :: Fold WEWidgets (Maybe Button)
@@ -536,7 +547,7 @@ kupplungPackNew kupplung@(Kupplung {kupplungsPin}) mvarStatus dynamischeWidgets@
     boxPackWidgetNewDefault hBox $ pinLabelNew Language.kupplung kupplungsPin
     buttonKuppelnPackNew hBox kupplung mvarStatus
     let kuWidgets = KUWidgets {ku=kupplung, kuWidget=hBox, kuHinzPL=hinzufügenPlanWidget, kuHinzWS=hinzufügenWegstreckeWidget}
-    buttonEntfernenPackSimple hBox vBoxKupplungen (entfernenKupplung kuWidgets >> liftIO (containerRemove vBoxHinzufügenWegstreckeKupplungen (fst hinzufügenWegstreckeWidget) >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets)) mvarStatus
+    buttonEntfernenPackSimple hBox vBoxKupplungen (entfernenKupplung kuWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
     runMVarBefehl (Hinzufügen $ OKupplung kuWidgets) mvarStatus
     pure hBox
@@ -557,6 +568,9 @@ data KUWidgets = KUWidgets {
 instance WegstreckenElement KUWidgets where
     lensWegstrecke :: Lens' KUWidgets VRCheckButton
     lensWegstrecke = (Lens.lens kuHinzWS (\ku v -> ku {kuHinzWS=v})) . _2
+    entferneHinzufügenWegstreckeWidgets :: KUWidgets -> DynamischeWidgets -> IO ()
+    entferneHinzufügenWegstreckeWidgets (KUWidgets {kuHinzWS}) (DynamischeWidgets {vBoxHinzufügenWegstreckeKupplungen})
+        = containerRemove vBoxHinzufügenWegstreckeKupplungen $ fst kuHinzWS
 
 instance PlanElement KUWidgets where
     foldPlan :: Fold KUWidgets (Maybe Button)
