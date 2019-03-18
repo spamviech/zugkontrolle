@@ -14,10 +14,10 @@ module Zug.UI.GTK.Dialog (
                         -- * Dialog auswerten
                         dialogEval,
                         -- * Knöpfe mit zugehörigem Dialog erstellen
-                        buttonSavePack, buttonLoadPack, loadWidgets, buttonHinzufügenPack) where
+                        buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
 
 -- Bibliotheken
-import Control.Concurrent
+import Control.Concurrent (forkIO, newMVar)
 import Control.Lens ((^.))
 import Control.Monad (void, when, foldM)
 import Control.Monad.State (StateT, evalStateT)
@@ -45,35 +45,35 @@ import Zug.UI.GTK.Widgets
 import Zug.UI.GTK.FortfahrenWenn
 
 -- | Speichern des aktuellen 'StatusGUI'
-buttonSavePack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> IO Button
-buttonSavePack windowMain box mvarStatus = do
-    dialogSave <- dialogSaveNew windowMain
-    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSave >>= \response -> when (response == ResponseOk) $ fileChooserGetFilename dialogSave >>= \(Just dateipfad) -> void $ runMVarBefehl (Speichern dateipfad) mvarStatus
+buttonSpeichernPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> IO Button
+buttonSpeichernPack windowMain box mvarStatus = do
+    dialogSpeichern <- dialogSpeichernNew windowMain
+    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSpeichern >>= \antwort -> when (antwort == ResponseOk) $ fileChooserGetFilename dialogSpeichern >>= \(Just dateipfad) -> void $ runMVarBefehl (Speichern dateipfad) mvarStatus
 
-dialogSaveNew :: Window -> IO FileChooserDialog
-dialogSaveNew window = do
+dialogSpeichernNew :: Window -> IO FileChooserDialog
+dialogSpeichernNew window = do
     fileChooserDialog <- fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]
     set fileChooserDialog [fileChooserDoOverwriteConfirmation := True]
     pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGUI' aus einer Datei
-buttonLoadPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> DynamischeWidgets -> IO Button
-buttonLoadPack windowMain box mvarStatus dynamischeWidgets = do
-    dialogLoad <- dialogLoadNew windowMain
-    dialogLoadFail <- dialogLoadFailNew windowMain
+buttonLadenPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> DynamischeWidgets -> IO Button
+buttonLadenPack windowMain box mvarStatus dynamischeWidgets = do
+    dialogLaden <- dialogLadenNew windowMain
+    dialogLadenFehler <- dialogLadenFehlerNew windowMain
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.laden $ do
-        response <- dialogEval dialogLoad
-        when (response == ResponseOk) $ void $ do
-            fileChooserGetFilename dialogLoad >>= \case
-                (Nothing)           -> void $ set dialogLoadFail [windowTitle := (Language.nichtGefundeneDatei :: Text)] >> dialogEval dialogLoadFail
+        antwort <- dialogEval dialogLaden
+        when (antwort == ResponseOk) $ void $ do
+            fileChooserGetFilename dialogLaden >>= \case
+                (Nothing)           -> void $ set dialogLadenFehler [windowTitle := (Language.nichtGefundeneDatei :: Text)] >> dialogEval dialogLadenFehler
                 (Just dateipfad)    -> void $ do
                     statusInitial <- readLMVar mvarStatus
                     -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden
-                    evalStateT (ausführenBefehl $ Laden dateipfad (loadWidgets mvarStatus dynamischeWidgets) (liftIO $ void $ set dialogLoadFail [windowTitle := dateipfad] >> dialogEval dialogLoadFail)) statusInitial
+                    evalStateT (ausführenBefehl $ Laden dateipfad (ladeWidgets mvarStatus dynamischeWidgets) (liftIO $ void $ set dialogLadenFehler [windowTitle := dateipfad] >> dialogEval dialogLadenFehler)) statusInitial
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
-loadWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
-loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne}) status = do
+ladeWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
+ladeWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne}) status = do
     evalMVarIOStatus löscheWidgets mvarStatus
     erstelleWidgets mvarStatus status
         where
@@ -97,11 +97,11 @@ loadWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindig
                 mapM_ (\plan -> planPackNew plan mvarStatus dynamischeWidgets)                                              $ reverse $ status ^. pläne
                 readLMVar mvarStatus
 
-dialogLoadNew :: Window -> IO FileChooserDialog
-dialogLoadNew window = fileChooserDialogNew (Just Language.laden :: Maybe Text) (Just window) FileChooserActionOpen [(Language.laden, ResponseOk), (Language.abbrechen, ResponseCancel)]
+dialogLadenNew :: Window -> IO FileChooserDialog
+dialogLadenNew window = fileChooserDialogNew (Just Language.laden :: Maybe Text) (Just window) FileChooserActionOpen [(Language.laden, ResponseOk), (Language.abbrechen, ResponseCancel)]
 
-dialogLoadFailNew :: Window -> IO MessageDialog
-dialogLoadFailNew window = messageDialogNew (Just window) [] MessageError ButtonsOk (Language.nichtGefundeneDatei <!> "" :: Text)
+dialogLadenFehlerNew :: Window -> IO MessageDialog
+dialogLadenFehlerNew window = messageDialogNew (Just window) [] MessageError ButtonsOk (Language.nichtGefundeneDatei <!> "" :: Text)
 
 -- | Hinzufügen eines 'StreckenObjekt'
 buttonHinzufügenPack :: (WindowClass w, BoxClass b) => w -> b -> DynamischeWidgets -> IO (Button, LinkedMVar StatusGUI)
@@ -169,7 +169,7 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
             modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . const empty
         optionenAnzeigen    _page                                                                               _mvarStatus = pure ()
         zeigeNächsteSeite :: (LikeMVar lmvar) => PageHinzufügen -> DialogHinzufügen -> lmvar StatusGUI -> DynamischeWidgets -> IO ()
-        zeigeNächsteSeite   (PageStart {radioButtons})  dialogHinzufügen                    mvarStatus  dynamischeWidgets   = getToggled radioButtons >>= \pageNr -> runPage (succ pageNr) dialogHinzufügen mvarStatus dynamischeWidgets
+        zeigeNächsteSeite   (PageStart {radioButtons})  dialogHinzufügen                    mvarStatus  dynamischeWidgets   = erhalteToggledIndex radioButtons >>= \pageNr -> runPage (succ pageNr) dialogHinzufügen mvarStatus dynamischeWidgets
         zeigeNächsteSeite   _page                       (DialogHinzufügen {buttonWeiter})   _mvarStatus _dynamischeWidgets  = widgetHide buttonWeiter
         zeigeVorherigeSeite :: (LikeMVar lmvar) => PageHinzufügen -> DialogHinzufügen -> lmvar StatusGUI -> DynamischeWidgets -> IO ()
         zeigeVorherigeSeite _   dialogHinzufügen    = runPage 0 dialogHinzufügen
@@ -656,10 +656,12 @@ showNth i   queue   = case view queue of
             showNth (pred i) t
 
 -- | Gebe den Index des ersten eingeschalteten Radiobuttons an. Wenn kein RadioButton an ist, gebe 0 zurück.
-getToggled :: NonEmpty RadioButton -> IO Natural
-getToggled (h:|t) = do
-    toggled <- get h toggleButtonActive 
-    if toggled then pure 0 else succ <$> (maybe (pure 0) getToggled $ nonEmpty t)
+erhalteToggledIndex :: NonEmpty RadioButton -> IO Natural
+erhalteToggledIndex (h:|t) = do
+    toggled <- get h toggleButtonActive
+    if toggled
+        then pure 0
+        else succ <$> (maybe (pure 0) erhalteToggledIndex $ nonEmpty t)
 
 data PageHinzufügen = PageStart {widget :: VBox, radioButtons :: NonEmpty RadioButton}
                     | PageBahngeschwindigkeit {widget :: VBox, nameEntry :: Entry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton :: SpinButton}
@@ -696,9 +698,9 @@ data DialogHinzufügen = DialogHinzufügen {
 dialogEval :: (DialogClass d) => d -> IO ResponseId
 dialogEval dialog = do
     widgetShow dialog
-    response <- dialogRun dialog
+    antwort <- dialogRun dialog
     widgetHide dialog
-    pure response
+    pure antwort
 
 -- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
 dialogGetUpper :: (DialogClass d) => d -> IO Box
