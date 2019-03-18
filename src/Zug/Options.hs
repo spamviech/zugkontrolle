@@ -8,14 +8,14 @@ module Zug.Options (Options(..), getOptions, UI(..), PWM(..)) where
 -- Bibliotheken
 import Options.Applicative
 import Data.Semigroup (Semigroup(..))
-import System.Hardware.WiringPi
+import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeit von anderen Modulen
 import Zug.Language ((<~>), (<:>))
 import qualified Zug.Language as Language
 
 -- | Erhalte Kommandozeilen-Arguemente
 getOptions :: IO Options
-getOptions = execParser opts
+getOptions = execParser optionen
 
 -- | Unterstützte Kommandozeilen-Argumente
 data Options = Options {
@@ -26,9 +26,9 @@ data Options = Options {
                     fließend :: Value}
                         deriving Show
 
-opts :: ParserInfo Options
-opts = info
-        (helper <*> versionOpt <*> combinedOptions)
+optionen :: ParserInfo Options
+optionen = info
+        (helper <*> versionOpt <*> kombinierteOptionen)
         (fullDesc <>
             progDesc "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle." <>
             header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
@@ -36,8 +36,8 @@ opts = info
 versionOpt :: Parser (a -> a)
 versionOpt = infoOption (Language.zugkontrolle <~> "Version" <:> ZUGKONTROLLEVERSION) (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
 
-combinedOptions :: Parser Options
-combinedOptions = Options <$> printOpt <*> uiOpt <*> loadOpt <*> pwmOpt <*> fließendOpt
+kombinierteOptionen :: Parser Options
+kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> ladeOpt <*> pwmOpt <*> fließendOpt
 
 printOpt :: Parser Bool
 printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
@@ -54,8 +54,8 @@ uiOpt = option auto (
                 value GTK <>
                 help ("Verwende UI=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [UI]) ++ " als Benutzer-Schnittstelle."))
 
-loadOpt :: Parser String
-loadOpt = strOption (
+ladeOpt :: Parser String
+ladeOpt = strOption (
                 long "load" <>
                 short 'l' <>
                 metavar "DATEINAME" <>
