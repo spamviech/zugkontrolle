@@ -10,20 +10,20 @@ Description : Speichern und laden
 -}
 module Zug.UI.Save (
                 -- * Speichern & Laden
-                save, load) where
+                speichern, laden) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
-import Control.Concurrent.MVar
-import Control.Monad
-import Data.Aeson
-import Data.Aeson.Types
+import Control.Concurrent.MVar (MVar)
+import Control.Monad (MonadPlus(..))
+import Data.Aeson (encode, decode)
+import Data.Aeson.Types (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as ByteString
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
-import Numeric.Natural
-import System.Directory
+import Numeric.Natural (Natural)
+import System.Directory (doesFileExist)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen
 import Zug.Anbindung
@@ -31,14 +31,15 @@ import Zug.Plan
 import Zug.UI.Base
 
 -- | Speichere aktuellen Zustand in Datei
-save :: (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => StatusAllgemein bg st we ku ws pl -> FilePath -> IO ()
-save contents path = ByteString.writeFile path $ encode contents
+speichern :: (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => StatusAllgemein bg st we ku ws pl -> FilePath -> IO ()
+speichern contents path = ByteString.writeFile path $ encode contents
 
--- | Lade Datei
+-- | Lade Datei.
+-- 
 -- Dateifehler und nicht-existente Dateien geben Nothing zurück.
 -- Ansonsten wird ein Konstruktor für einen aus einem 'Status' konstruiertem Typ zurückgegeben. 
-load :: FilePath -> (Status -> IO s) -> IO (Maybe (MVar PinMap -> IO s))
-load path fromStatus = do
+laden :: FilePath -> (Status -> IO s) -> IO (Maybe (MVar PinMap -> IO s))
+laden path fromStatus = do
     fileExists <- doesFileExist path
     if fileExists
         then ByteString.readFile path >>= \byteString -> pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarPinMap)
@@ -96,7 +97,7 @@ rechtsJS = "Rechts"
 -- Instanz-Deklaration für Richtung
 instance FromJSON Richtung where
     parseJSON :: Value -> Parser Richtung
-    parseJSON = returnMatchingValue [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
 
 instance ToJSON Richtung where
     toJSON :: Richtung -> Value
@@ -116,7 +117,7 @@ legoJS = "Lego"
 -- Instanz-Deklaration für Zugtyp
 instance FromJSON Zugtyp where
     parseJSON :: Value -> Parser Zugtyp
-    parseJSON = returnMatchingValue [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
 
 instance ToJSON Zugtyp where
     toJSON :: Zugtyp -> Value
@@ -133,7 +134,7 @@ rückwärtsJS = "Rückwärts"
 -- Instanz-Deklaration für Fahrtrichtung
 instance FromJSON Fahrtrichtung where
     parseJSON :: Value -> Parser Fahrtrichtung
-    parseJSON = returnMatchingValue [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
 
 instance ToJSON Fahrtrichtung where
     toJSON :: Fahrtrichtung -> Value
@@ -149,7 +150,7 @@ gesperrtJS = "Gesperrt"
 -- Instanz-Deklaration für Strom
 instance FromJSON Strom where
     parseJSON :: Value -> Parser Strom
-    parseJSON = returnMatchingValue [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
 
 instance ToJSON Strom where
     toJSON :: Strom -> Value
@@ -356,8 +357,8 @@ instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (Plan
     toJSON  (Plan {plName, plAktionen}) = object [nameJS .= plName, aktionenJS .= plAktionen]
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen
-returnMatchingValue :: (ToJSON a) => [a] -> Value -> Parser a
-returnMatchingValue ([])    _v  = mzero
-returnMatchingValue (h:t)   v
+findeÜbereinstimmendenWert :: (ToJSON a) => [a] -> Value -> Parser a
+findeÜbereinstimmendenWert  ([])    _v  = mzero
+findeÜbereinstimmendenWert  (h:t)   v
     | v == toJSON h             = pure h
-    | otherwise                 = returnMatchingValue t v
+    | otherwise                 = findeÜbereinstimmendenWert t v
