@@ -30,7 +30,7 @@ data LinkedMVar a = LinkedMVar {linkedUpdate :: MVar (SEQueue (a -> IO a)), mvar
 -- Diese wird immer aufgerufen, wenn sich der Wert der 'LinkedMVar' ändert.
 -- Der neue Wert wird an die Update-Aktion übergeben.
 newEmptyLinkedMVar :: (a -> IO a)  -> IO (LinkedMVar a)
-newEmptyLinkedMVar update = LinkedMVar <$> newMVar (singleton update) <*> newEmptyMVar
+newEmptyLinkedMVar update = LinkedMVar <$> newMVar (einzelelement update) <*> newEmptyMVar
 
 -- | Erzeuge eine neue 'LinkedMVar' und fülle sie umgehend mit einem Wert.
 newLinkedMVar :: (a -> IO a) -> a -> IO (LinkedMVar a)
@@ -38,16 +38,16 @@ newLinkedMVar update a = newEmptyLinkedMVar update >>= \lmvar -> putLinkedMVar l
 
 -- | Erzeuge eine neue leere 'LinkedMVar' ohne Update-Aktion.
 newEmptyUnlinkedMVar :: IO (LinkedMVar a)
-newEmptyUnlinkedMVar = LinkedMVar <$> newMVar empty <*> newEmptyMVar
+newEmptyUnlinkedMVar = LinkedMVar <$> newMVar leer <*> newEmptyMVar
 
 -- | Erzeuge eine neue 'LinkedMVar' ohne Update-Aktion und fülle sie umgehen mit einem Wert.
 newUnlinkedMVar :: a -> IO (LinkedMVar a)
-newUnlinkedMVar a = LinkedMVar <$> newMVar empty <*> newMVar a
+newUnlinkedMVar a = LinkedMVar <$> newMVar leer <*> newMVar a
 
 -- | Füge einer LinkedMVar eine neue Update-Aktion hinzu. 
--- Die Update-Aktionen werden in append-Reihenfolge aufgerufen.
+-- Die Update-Aktionen werden in anhängen-Reihenfolge aufgerufen.
 appendLinkedMVar :: LinkedMVar a -> (a -> IO a) -> IO ()
-appendLinkedMVar (LinkedMVar {linkedUpdate}) newCommand = modifyMVar_ linkedUpdate $ pure . append newCommand
+appendLinkedMVar (LinkedMVar {linkedUpdate}) newCommand = modifyMVar_ linkedUpdate $ pure . anhängen newCommand
 
 -- * Funktionen
 -- | Lese den aktuellen Wert einer 'LinkedMVar', ohne diese zu verändern.
@@ -65,7 +65,7 @@ takeLinkedMVar (LinkedMVar {mvar}) = takeMVar mvar
 putLinkedMVar :: LinkedMVar a -> a -> IO ()
 putLinkedMVar (LinkedMVar {linkedUpdate, mvar}) v = do
     -- Stelle sicher, dass reverse nur einmal auf Update-Queue aufgerufen werden muss
-    updateQueue <- modifyMVar linkedUpdate $ (\a -> pure (a, a)) . fromList . toList
+    updateQueue <- modifyMVar linkedUpdate $ (\a -> pure (a, a)) . vonListe . toList
     vAfter <- foldM (&) v updateQueue
     putMVar mvar vAfter
 

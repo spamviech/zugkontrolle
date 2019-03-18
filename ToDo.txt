@@ -23,14 +23,6 @@ Unfinished Features:
         abbrechbar machen?
         Nur einen Plan gleichzeitig ausführen erlauben?
 Code verbessern:
-    englische Namen beseitigen:
-        PlanGeneral -> PlanAllgemein|Done
-        AktionGeneral -> AktionAllgemein|Done
-        StatusGeneral -> StatusAllgemein|Done
-            Status -> Zustand?
-        Weitere?
-    Imports einschränken:
-        bei wenigen Funktionen explizit benennen
     FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
         LinkedMVar benötigt dadurch Update-Aktion nicht mehr
         Konstruktor muss LinkedMVar kennen

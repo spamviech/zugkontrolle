@@ -166,7 +166,7 @@ buttonHinzufügenPack parentWindow box dynamischeWidgets = do
             widgetShowIf (not $ null (status ^. kupplungen) && null (status ^. wegstrecken)) kuFunktionen
             widgetShowIf (not $ null (status ^. wegstrecken) && null (status ^. wegstrecken)) wsFunktionen
             -- Aktionen zurücksetzen
-            modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . const empty
+            modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . const leer
         optionenAnzeigen    _page                                                                               _mvarStatus = pure ()
         zeigeNächsteSeite :: (LikeMVar lmvar) => PageHinzufügen -> DialogHinzufügen -> lmvar StatusGUI -> DynamischeWidgets -> IO ()
         zeigeNächsteSeite   (PageStart {radioButtons})  dialogHinzufügen                    mvarStatus  dynamischeWidgets   = erhalteToggledIndex radioButtons >>= \pageNr -> runPage (succ pageNr) dialogHinzufügen mvarStatus dynamischeWidgets
@@ -257,7 +257,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
     _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
     -- Seiten mit Einstellungs-Möglichkeiten
     contentBox <- dialogGetUpper dialog
-    (linkedMVar, pages) <- flip State.runStateT empty $ do
+    (linkedMVar, pages) <- flip State.runStateT leer $ do
         appendPage contentBox $ do
             vBox <- vBoxNew False 0
             rbBahngeschwindigkeit   <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabel (Language.bahngeschwindigkeit :: Text)
@@ -417,7 +417,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             spinButtonZeit <- spinButtonNewWithRange 0 (60*µsInS) (1*µsInS)
             boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.warten $ do
                 wertDouble <- get spinButtonZeit spinButtonValue
-                modifyLMVar_ lmvarElemente $ pure . (append (Warten $ fromIntegral $ fromEnum wertDouble))
+                modifyLMVar_ lmvarElemente $ pure . (anhängen (Warten $ fromIntegral $ fromEnum wertDouble))
             boxPackWidgetNewDefault functionBox $ pure spinButtonZeit
             boxPackWidgetNewDefault functionBox $ labelNew $ Just $ (Language.wartenEinheit :: Text)
             bgFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
@@ -438,8 +438,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                 let wert = fromIntegral $ fromEnum wertDouble
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OBahngeschwindigkeit bg))    -> modifyLMVar_ lmvarElemente $ pure . (append (ABahngeschwindigkeit (Geschwindigkeit bg wert)))
-                    (Just (OWegstrecke ws))             -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSBahngeschwindigkeit (Geschwindigkeit ws wert))))
+                    (Just (OBahngeschwindigkeit bg))    -> modifyLMVar_ lmvarElemente $ pure . (anhängen (ABahngeschwindigkeit (Geschwindigkeit bg wert)))
+                    (Just (OWegstrecke ws))             -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWegstrecke (AWSBahngeschwindigkeit (Geschwindigkeit ws wert))))
                     _objekt                             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNew bgFunktionen PackGrow paddingDefault positionDefault $ pure hScaleGeschwindigkeit
@@ -463,8 +463,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                         maybeFahrtrichtung <- case zugtyp bg of
                             (Lego)  -> get vorwärtsRadioButton toggleButtonActive >>= \toggled -> pure $ Just $ if toggled then Vorwärts else Rückwärts
                             _zugtyp -> pure Nothing
-                        modifyLMVar_ lmvarElemente $ pure . (append (ABahngeschwindigkeit (Umdrehen bg maybeFahrtrichtung)))
-                    (Just (OWegstrecke ws))             -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSBahngeschwindigkeit (Umdrehen ws Nothing))))
+                        modifyLMVar_ lmvarElemente $ pure . (anhängen (ABahngeschwindigkeit (Umdrehen bg maybeFahrtrichtung)))
+                    (Just (OWegstrecke ws))             -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWegstrecke (AWSBahngeschwindigkeit (Umdrehen ws Nothing))))
                     _objekt                             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             fahrtrichtungsVBox <- boxPackWidgetNewDefault bgFunktionen $ vBoxNew False 0
@@ -489,8 +489,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (append (AStreckenabschnitt (Strom st Fließend)))
-                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSStreckenabschnitt (Strom ws Fließend))))
+                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AStreckenabschnitt (Strom st Fließend)))
+                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWegstrecke (AWSStreckenabschnitt (Strom ws Fließend))))
                     _objekt                         -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.aus) $ void $ forkIO $ do
@@ -507,8 +507,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (append (AStreckenabschnitt (Strom st Gesperrt)))
-                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSStreckenabschnitt (Strom ws Gesperrt))))
+                    (Just (OStreckenabschnitt st))  -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AStreckenabschnitt (Strom st Gesperrt)))
+                    (Just (OWegstrecke ws))         -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWegstrecke (AWSStreckenabschnitt (Strom ws Gesperrt))))
                     _objekt                         -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             weFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
@@ -526,7 +526,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWeiche (Stellen we Gerade)))
+                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWeiche (Stellen we Gerade)))
                     _objekt             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $ void $ forkIO $ do
@@ -543,7 +543,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWeiche (Stellen we Kurve)))
+                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWeiche (Stellen we Kurve)))
                     _objekt             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.links) $ void $ forkIO $ do
@@ -560,7 +560,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWeiche (Stellen we Links)))
+                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWeiche (Stellen we Links)))
                     _objekt             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $ void $ forkIO $ do
@@ -577,7 +577,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWeiche (Stellen we Rechts)))
+                    (Just (OWeiche we)) -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWeiche (Stellen we Rechts)))
                     _objekt             -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             kuFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
@@ -595,8 +595,8 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetHide windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OKupplung ku))   -> modifyLMVar_ lmvarElemente $ pure . (append (AKupplung (Kuppeln ku)))
-                    (Just (OWegstrecke ws)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (AWSKupplung (Kuppeln ws))))
+                    (Just (OKupplung ku))   -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AKupplung (Kuppeln ku)))
+                    (Just (OWegstrecke ws)) -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWegstrecke (AWSKupplung (Kuppeln ws))))
                     _objekt                 -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             wsFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
@@ -614,14 +614,14 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                     widgetShow windowScrolledWindowWS
                 objekt <- takeLMVar mvarPlanObjekt
                 case objekt of
-                    (Just (OWegstrecke ws)) -> modifyLMVar_ lmvarElemente $ pure . (append (AWegstrecke (Einstellen ws)))
+                    (Just (OWegstrecke ws)) -> modifyLMVar_ lmvarElemente $ pure . (anhängen (AWegstrecke (Einstellen ws)))
                     _objekt                 -> pure ()
                 postGUIAsync (widgetHide windowObjekte)
             boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
             scrolledWidgetAddNew expanderAktionen $ widgetShow vBoxAktionen >> pure vBoxAktionen
             set vBoxAktionen [widgetExpand := True]
-            boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . (\acc -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in prevAcc)
-            putLMVar lmvarElemente empty
+            boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ modifyLMVar_ (aktionen ^. linkedMVarElemente) $ pure . (\acc -> let prevAcc = case zeigeLetztes acc of {(Leer) -> leer; (Gefüllt _l p) -> p} in prevAcc)
+            putLMVar lmvarElemente leer
             pure (PagePlan {widget, nameEntry, bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen, aktionen}, Nothing)
         pure linkedMVar
     -- Setze Wert der ComboBox am Ende um davon abhängige Widgets automatisch zu zeigen/verstecken
@@ -632,7 +632,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
             appendPage box konstruktor = do
                 (page, maybeLinkedMVar) <- lift konstruktor
                 liftIO $ boxPack box (widget page) PackGrow paddingDefault positionDefault
-                State.modify (append page)
+                State.modify (anhängen page)
                 pure maybeLinkedMVar
             showAktionen :: (BoxClass b, Foldable t, LikeMVar lmvar) => b -> Expander -> lmvar [Label] -> t Aktion -> IO ()
             showAktionen box expander mvarWidgets aktionen = do
@@ -644,9 +644,9 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
 
 -- | Zeige nur die n-te Seite (start bei n=0) an
 showNth :: Natural -> SEQueue PageHinzufügen -> IO (Maybe PageHinzufügen)
-showNth i   queue   = case view queue of
-    (Empty)        -> pure Nothing
-    (Filled h t)
+showNth i   queue   = case zeigeErstes queue of
+    (Leer)        -> pure Nothing
+    (Gefüllt h t)
         | i <= 0    -> do
             widgetShow $ widget h
             mapM_ (widgetHide . widget) t

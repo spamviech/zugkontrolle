@@ -54,6 +54,7 @@ setupGUI = void $ do
     -- Hauptfenster
     windowMain <- widgetShowNew windowNew
     set windowMain [windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480]
+    -- windowDefaultHeight wird aus irgendeinem Grund ignoriert. Wird hier trotzdem gesetzt für den Fall, dass sich das in einer neueren Version ändert.
     on windowMain deleteEvent $ liftIO $ mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ vBoxNew False 0
     -- Notebook mit aktuellen Elementen
