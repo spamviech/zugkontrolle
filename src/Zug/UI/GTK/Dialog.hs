@@ -74,7 +74,7 @@ buttonLadenPack windowMain box mvarStatus dynamischeWidgets = do
 -- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
 ladeWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
 ladeWidgets mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne}) status = do
-    evalMVarIOStatus löscheWidgets mvarStatus
+    auswertenMVarIOStatus löscheWidgets mvarStatus
     erstelleWidgets mvarStatus status
         where
             löscheWidgets :: IOStatusGUI ()

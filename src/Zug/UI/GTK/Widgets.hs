@@ -203,7 +203,7 @@ buttonNewWithEventLabel label = buttonNewWithEvent $ buttonNewWithLabel label
 
 -- | Entfernen-Knopf zu Box hinzufügen. Beim drücken werden /removeActionGUI/ und /removeAction/ ausgeführt.
 buttonEntfernenPack :: (BoxClass b, LikeMVar lmvar) => b -> IO () -> IOStatusGUI () -> lmvar StatusGUI -> IO Button
-buttonEntfernenPack box removeActionGUI removeAction mvarStatus = boxPackWidgetNew box PackNatural paddingDefault False $ buttonNewWithEventLabel Language.entfernen $ evalMVarIOStatus removeAction mvarStatus >> removeActionGUI
+buttonEntfernenPack box removeActionGUI removeAction mvarStatus = boxPackWidgetNew box PackNatural paddingDefault False $ buttonNewWithEventLabel Language.entfernen $ auswertenMVarIOStatus removeAction mvarStatus >> removeActionGUI
 
 -- | Entfernen-Knopf zu Box hinzufügen. Beim drücken wird /parent/ aus der /box/ entfernt und die 'IOStatusGUI'-Aktion ausgeführt.
 buttonEntfernenPackSimple :: (BoxClass b, ContainerClass c, LikeMVar lmvar) => b -> c -> IOStatusGUI () -> lmvar StatusGUI -> IO Button
