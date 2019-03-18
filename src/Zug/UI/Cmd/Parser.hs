@@ -10,23 +10,23 @@ In diesem Modul werden sämtliche Umwandlungen vorgenommen, für die nicht die I
 -}
 module Zug.UI.Cmd.Parser (
                         -- * Auswerten einer Text-Eingabe
-                        parser, statusQueryObjekt,
+                        parser, statusAnfrageObjekt,
                         -- * Ergebnis-Typen
-                        QErgebnis(..), QBefehl(..), BefehlSofort(..), QObjektIOStatus(..),
+                        AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..),
                         -- ** Unvollständige StreckenObjekte
-                        Query(..), getQueryFailedDefault, showQuery, showQueryFailed, unbekanntShowText,
-                        QPlan(..), QAktion(..), QAktionWegstrecke(..), QAktionWeiche(..), QAktionBahngeschwindigkeit(..), QAktionStreckenabschnitt(..), QAktionKupplung(..),
-                        QObjekt(..), QWegstrecke(..), QWeiche(..), QBahngeschwindigkeit(..), QStreckenabschnitt(..), QKupplung(..)) where
+                        Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
+                        AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..), AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
+                        AnfrageObjekt(..), AnfrageWegstrecke(..), AnfrageWeiche(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..), AnfrageKupplung(..)) where
 
 -- Bibliotheken
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe
+import Data.Maybe (listToMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text (Text, unpack)
-import Numeric.Natural
+import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.SEQueue
 import Zug.Klassen
@@ -41,892 +41,892 @@ import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token())
 
 -- * Auswerten einer Text-Eingabe
 -- | Erhalte ein im Status existierendes Objekt
-statusQueryObjekt :: QObjektIOStatus -> MStatus (Either QObjektIOStatus Objekt)
-statusQueryObjekt   query@(QOIOSUnbekannt _eingabe0)            = pure $ Left query
-statusQueryObjekt   query@(QOIOSPlan eingabe)                   = statusQueryObjektAux query eingabe getPläne OPlan
-statusQueryObjekt   query@(QOIOSWegstrecke eingabe)             = statusQueryObjektAux query eingabe getWegstrecken OWegstrecke
-statusQueryObjekt   query@(QOIOSWeiche eingabe)                 = statusQueryObjektAux query eingabe getWeichen OWeiche
-statusQueryObjekt   query@(QOIOSBahngeschwindigkeit eingabe)    = statusQueryObjektAux query eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
-statusQueryObjekt   query@(QOIOSStreckenabschnitt eingabe)      = statusQueryObjektAux query eingabe getStreckenabschnitte OStreckenabschnitt
-statusQueryObjekt   query@(QOIOSKupplung eingabe)               = statusQueryObjektAux query eingabe getKupplungen OKupplung
+statusAnfrageObjekt :: StatusAnfrageObjekt -> MStatus (Either StatusAnfrageObjekt Objekt)
+statusAnfrageObjekt   anfrage@(SAOUnbekannt _eingabe0)            = pure $ Left anfrage
+statusAnfrageObjekt   anfrage@(SAOPlan eingabe)                   = statusAnfrageObjektAux anfrage eingabe getPläne OPlan
+statusAnfrageObjekt   anfrage@(SAOWegstrecke eingabe)             = statusAnfrageObjektAux anfrage eingabe getWegstrecken OWegstrecke
+statusAnfrageObjekt   anfrage@(SAOWeiche eingabe)                 = statusAnfrageObjektAux anfrage eingabe getWeichen OWeiche
+statusAnfrageObjekt   anfrage@(SAOBahngeschwindigkeit eingabe)    = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
+statusAnfrageObjekt   anfrage@(SAOStreckenabschnitt eingabe)      = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte OStreckenabschnitt
+statusAnfrageObjekt   anfrage@(SAOKupplung eingabe)               = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
 
 -- | Hilfsfunktion
-statusQueryObjektAux :: (StreckenObjekt a) => QObjektIOStatus -> EingabeToken -> MStatus [a] -> (a -> Objekt) -> MStatus (Either QObjektIOStatus Objekt)
-statusQueryObjektAux    query   eingabe getFromStatus   konstruktor = getFromStatus >>= \objekte -> pure $ case findByNameOrIndex objekte eingabe of
-    (Nothing)       -> Left query
+statusAnfrageObjektAux :: (StreckenObjekt a) => StatusAnfrageObjekt -> EingabeToken -> MStatus [a] -> (a -> Objekt) -> MStatus (Either StatusAnfrageObjekt Objekt)
+statusAnfrageObjektAux    anfrage   eingabe getFromStatus   konstruktor = getFromStatus >>= \objekte -> pure $ case findByNameOrIndex objekte eingabe of
+    (Nothing)       -> Left anfrage
     (Just objekt)   -> Right $ konstruktor objekt
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
-parser :: QBefehl -> [EingabeTokenAllgemein] -> ([Befehl], QErgebnis)
+parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
 parser = parserAux []
     where
-        parserAux :: [Befehl] -> QBefehl -> [EingabeTokenAllgemein] -> ([Befehl], QErgebnis)
-        parserAux   acc (QBefehl)   ([])                    = parserErgebnisOk acc
-        parserAux   acc query       ([])                    = (reverse acc, QEQBefehl query)
-        parserAux   acc _query      (TkBeenden:_t)          = parserErgebnisOk (UI Beenden:acc)
-        parserAux   acc _query      (TkAbbrechen:_t)        = parserErgebnisOk (UI Abbrechen:acc)
-        parserAux   acc query       ((Tk h):t)              = case queryUpdate query h of
-            QEQBefehl qFehler@(QBUnbekannt _qb _b)      -> parserErgebnis acc $ QEQBefehl qFehler
-            QEQBefehl qBefehl                           -> parserAux acc qBefehl t
-            (QEBefehlSofort eingabe _)                  -> parserErgebnis acc $ QEBefehlSofort eingabe t
-            (QEBefehlQuery eingabe konstruktor query _) -> parserErgebnis acc $ QEBefehlQuery eingabe konstruktor query t
-            QEBefehl befehl                             -> parserAux (befehl:acc) QBefehl t
+        parserAux :: [Befehl] -> AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
+        parserAux   acc (AnfrageBefehl) ([])                = parserErgebnisOk acc
+        parserAux   acc anfrage         ([])                = (reverse acc, AEAnfrageBefehl anfrage)
+        parserAux   acc _anfrage        (TkBeenden:_t)      = parserErgebnisOk (UI Beenden:acc)
+        parserAux   acc _anfrage        (TkAbbrechen:_t)    = parserErgebnisOk (UI Abbrechen:acc)
+        parserAux   acc anfrage         ((Tk h):t)          = case anfrageAktualisieren anfrage h of
+            (AEAnfrageBefehl qFehler@(ABUnbekannt _ab _b))  -> parserErgebnis acc $ AEAnfrageBefehl qFehler
+            (AEAnfrageBefehl qBefehl)                       -> parserAux acc qBefehl t
+            (AEBefehlSofort eingabe _)                      -> parserErgebnis acc $ AEBefehlSofort eingabe t
+            (AEStatusAnfrage eingabe konstruktor anfrage _) -> parserErgebnis acc $ AEStatusAnfrage      eingabe konstruktor anfrage t
+            (AEBefehl befehl)                               -> parserAux (befehl:acc) AnfrageBefehl t
         -- | Ergebnis zurückgeben
-        parserErgebnis :: [Befehl] -> QErgebnis -> ([Befehl], QErgebnis)
-        parserErgebnis  acc query = (reverse acc, query)
-        parserErgebnisOk :: [Befehl] -> ([Befehl], QErgebnis)
-        parserErgebnisOk    ([])                = parserErgebnis [] $ QEQBefehl QBefehl
-        parserErgebnisOk    (befehl:befehle)    = parserErgebnis befehle $ QEBefehl befehl
+        parserErgebnis :: [Befehl] -> AnfrageErgebnis -> ([Befehl], AnfrageErgebnis)
+        parserErgebnis  acc anfrage = (reverse acc, anfrage)
+        parserErgebnisOk :: [Befehl] -> ([Befehl], AnfrageErgebnis)
+        parserErgebnisOk    ([])                = parserErgebnis [] $ AEAnfrageBefehl AnfrageBefehl
+        parserErgebnisOk    (befehl:befehle)    = parserErgebnis befehle $ AEBefehl befehl
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
-queryUpdate :: QBefehl -> EingabeToken -> QErgebnis
-queryUpdate query@(QBUnbekannt _ _)                         _token                          = QEQBefehl query
-queryUpdate (QBefehl)                                       token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Beenden              , QEBefehl $ UI Beenden),
-    (Lexer.Hinzufügen           , QEQBefehl $ QBHinzufügen QObjekt),
-    (Lexer.Entfernen            , QEQBefehl QBEntfernen),
-    (Lexer.Speichern            , QEQBefehl QBSpeichern),
-    (Lexer.Laden                , QEQBefehl QBLaden),
-    (Lexer.Plan                 , QEQBefehl $ QBBefehlQuery QOIOSPlan (Left $ \(OPlan plan) -> QBAktionPlan plan)),
-    (Lexer.Wegstrecke           , queryUpdate (QBAktion QAktion) token),
-    (Lexer.Weiche               , queryUpdate (QBAktion QAktion) token),
-    (Lexer.Bahngeschwindigkeit  , queryUpdate (QBAktion QAktion) token),
-    (Lexer.Streckenabschnitt    , queryUpdate (QBAktion QAktion) token),
-    (Lexer.Kupplung             , queryUpdate (QBAktion QAktion) token)]
-    $ QEQBefehl $ QBUnbekannt QBefehl eingabe
-queryUpdate query@(QBHinzufügen qObjekt)                    token                           = case queryObjekt qObjekt token of
-    (Left (QOUnbekannt query eingabe))                  -> QEQBefehl $ QBUnbekannt (QBHinzufügen query) eingabe
-    (Left (QOIOStatus statusQuery (Right konstruktor))) -> QEBefehlQuery statusQuery (Right $ \objekt -> Hinzufügen $ konstruktor objekt) query []
-    (Left (QOIOStatus statusQuery (Left qKonstruktor))) -> QEBefehlQuery statusQuery (Left $ \objekt -> QBHinzufügen $ qKonstruktor objekt) query []
-    (Left qObjekt1)                                     -> QEQBefehl $ QBHinzufügen qObjekt1
-    (Right objekt)                                      -> QEBefehl $ Hinzufügen objekt
-queryUpdate (QBEntfernen)                                   token@(EingabeToken {eingabe})  = case queryObjektExistierend token of
-    (Nothing)           -> QEQBefehl $ QBUnbekannt QBEntfernen eingabe
-    (Just qKonstruktor) -> QEQBefehl $ QBBefehlQuery qKonstruktor (Right Entfernen)
+anfrageAktualisieren :: AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
+anfrageAktualisieren    anfrage@(ABUnbekannt _ _)                               _token                          = AEAnfrageBefehl anfrage
+anfrageAktualisieren    (AnfrageBefehl)                                         token@(EingabeToken {eingabe})  = wähleBefehl token [
+    (Lexer.Beenden              , AEBefehl $ UI Beenden),
+    (Lexer.Hinzufügen           , AEAnfrageBefehl $ ABHinzufügen AnfrageObjekt),
+    (Lexer.Entfernen            , AEAnfrageBefehl ABEntfernen),
+    (Lexer.Speichern            , AEAnfrageBefehl ABSpeichern),
+    (Lexer.Laden                , AEAnfrageBefehl ABLaden),
+    (Lexer.Plan                 , AEAnfrageBefehl $ ABStatusAnfrage SAOPlan (Left $ \(OPlan plan) -> ABAktionPlan plan)),
+    (Lexer.Wegstrecke           , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+    (Lexer.Weiche               , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+    (Lexer.Bahngeschwindigkeit  , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+    (Lexer.Streckenabschnitt    , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+    (Lexer.Kupplung             , anfrageAktualisieren (ABAktion AnfrageAktion) token)]
+    $ AEAnfrageBefehl $ ABUnbekannt AnfrageBefehl eingabe
+anfrageAktualisieren    anfrage@(ABHinzufügen anfrageObjekt)                    token                           = case anfrageObjektAktualisieren anfrageObjekt token of
+    (Left (AOUnbekannt anfrage eingabe))                  -> AEAnfrageBefehl $ ABUnbekannt (ABHinzufügen anfrage) eingabe
+    (Left (AOStatusAnfrage statusanfrage (Right konstruktor))) -> AEStatusAnfrage        statusanfrage (Right $ \objekt -> Hinzufügen $ konstruktor objekt) anfrage []
+    (Left (AOStatusAnfrage statusanfrage (Left anfrageKonstruktor))) -> AEStatusAnfrage        statusanfrage (Left $ \objekt -> ABHinzufügen $ anfrageKonstruktor objekt) anfrage []
+    (Left qObjekt1)                                     -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+    (Right objekt)                                      -> AEBefehl $ Hinzufügen objekt
+anfrageAktualisieren    (ABEntfernen)                                           token@(EingabeToken {eingabe})  = case anfrageObjektExistierend token of
+    (Nothing)           -> AEAnfrageBefehl $ ABUnbekannt ABEntfernen eingabe
+    (Just anfrageKonstruktor) -> AEAnfrageBefehl $ ABStatusAnfrage anfrageKonstruktor (Right Entfernen)
     where
-        -- | Eingabe eines existirendes Objekts
-        queryObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> QObjektIOStatus)
-        queryObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
-            (Lexer.Plan                  , Just QOIOSPlan),
-            (Lexer.Wegstrecke            , Just QOIOSWegstrecke),
-            (Lexer.Weiche                , Just QOIOSWeiche),
-            (Lexer.Bahngeschwindigkeit   , Just QOIOSBahngeschwindigkeit),
-            (Lexer.Streckenabschnitt     , Just QOIOSStreckenabschnitt),
-            (Lexer.Kupplung              , Just QOIOSKupplung)]
-            $ Nothing
-queryUpdate (QBSpeichern)                                   (EingabeToken {eingabe})        = QEBefehl $ Speichern $ unpack eingabe
-queryUpdate (QBLaden)                                       (EingabeToken {eingabe})        = QEBefehlSofort (BSLaden $ unpack eingabe) []
-queryUpdate query@(QBAktionPlan plan@(Plan {plAktionen}))   token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Ausführen, QEBefehl $ Ausführen plan $ \i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double))] $ QEQBefehl $ QBUnbekannt query eingabe
-queryUpdate query@(QBAktion qAktion)                        token                           = case queryAktion qAktion token of
-    (Left (QAUnbekannt query eingabe))                              -> QEQBefehl $ QBUnbekannt (QBAktion query) eingabe
-    (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> QEBefehlQuery qObjektIOStatus (Left $ \objekt -> QBAktion $ qKonstruktor objekt) query []
-    (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> QEBefehlQuery qObjektIOStatus (Right $ \objekt -> AktionBefehl $ konstruktor objekt) query []
-    (Left qAktion)                                                  -> QEQBefehl $ QBAktion qAktion
-    (Right aktion)                                                  -> QEBefehl $ AktionBefehl aktion
-queryUpdate query@(QBBefehlQuery qKonstruktor eitherF)      token                           = QEBefehlQuery (qKonstruktor token) eitherF query []
+        -- | Eingabe eines existierendes Objekts
+        anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrageObjekt)
+        anfrageObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
+            (Lexer.Plan                  , Just SAOPlan),
+            (Lexer.Wegstrecke            , Just SAOWegstrecke),
+            (Lexer.Weiche                , Just SAOWeiche),
+            (Lexer.Bahngeschwindigkeit   , Just SAOBahngeschwindigkeit),
+            (Lexer.Streckenabschnitt     , Just SAOStreckenabschnitt),
+            (Lexer.Kupplung              , Just SAOKupplung)]
+            Nothing
+anfrageAktualisieren    (ABSpeichern)                                           (EingabeToken {eingabe})        = AEBefehl $ Speichern $ unpack eingabe
+anfrageAktualisieren    (ABLaden)                                               (EingabeToken {eingabe})        = AEBefehlSofort (BSLaden $ unpack eingabe) []
+anfrageAktualisieren    anfrage@(ABAktionPlan plan@(Plan {plAktionen}))         token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Ausführen, AEBefehl $ Ausführen plan $ \i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double))] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
+anfrageAktualisieren    anfrage@(ABAktion anfrageAktion)                        token                           = case anfrageAktionAktualisieren anfrageAktion token of
+    (Left (AAUnbekannt anfrage eingabe))                                    -> AEAnfrageBefehl $ ABUnbekannt (ABAktion anfrage) eingabe
+    (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> AEStatusAnfrage      objektStatusAnfrage (Left $ \objekt -> ABAktion $ anfrageKonstruktor objekt) anfrage []
+    (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))        -> AEStatusAnfrage      objektStatusAnfrage (Right $ \objekt -> AktionBefehl $ konstruktor objekt) anfrage []
+    (Left anfrageAktion)                                                    -> AEAnfrageBefehl $ ABAktion anfrageAktion
+    (Right aktion)                                                          -> AEBefehl $ AktionBefehl aktion
+anfrageAktualisieren    anfrage@(ABStatusAnfrage anfrageKonstruktor eitherF)    token                           = AEStatusAnfrage (anfrageKonstruktor token) eitherF anfrage []
 
 -- | Eingabe eines Objekts
-queryObjekt :: QObjekt -> EingabeToken -> Either QObjekt Objekt
-queryObjekt qFehler@(QOUnbekannt _ _)                       _token                          = Left qFehler
-queryObjekt qObjekt@(QOIOStatus _ _)                        _token                          = Left qObjekt
-queryObjekt (QObjekt)                                       token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Plan                  , Left $ QOPlan QPlan),
-    (Lexer.Wegstrecke            , Left $ QOWegstrecke QWegstrecke),
-    (Lexer.Weiche                , Left $ QOWeiche QWeiche),
-    (Lexer.Bahngeschwindigkeit   , Left $ QOBahngeschwindigkeit QBahngeschwindigkeit),
-    (Lexer.Streckenabschnitt     , Left $ QOStreckenabschnitt QStreckenabschnitt),
-    (Lexer.Kupplung              , Left $ QOKupplung QKupplung)]
-    $ Left $ QOUnbekannt QObjekt eingabe
-queryObjekt (QOPlan qPlan)                                  token                           = case queryPlan qPlan token of
-    (Left (QPUnbekannt query eingabe1))                         -> Left $ QOUnbekannt (QOPlan query) eingabe1
-    (Left (QPlanIOStatus qObjektIOStatus (Right konstruktor)))  -> Left $ QOIOStatus qObjektIOStatus $ Right $ \objekt -> OPlan $ konstruktor objekt
-    (Left (QPlanIOStatus qObjektIOStatus (Left qKonstruktor)))  -> Left $ QOIOStatus qObjektIOStatus $ Left $ \objekt -> QOPlan $ qKonstruktor objekt
-    (Left qPlan1)                                               -> Left $ QOPlan qPlan1
-    (Right plan)                                                -> Right $ OPlan plan
-queryObjekt (QOWegstrecke qWegstrecke0)                     token                           = case queryWegstrecke qWegstrecke0 token of
-    (Left (QWSUnbekannt query eingabe1))                                    -> Left $ QOUnbekannt (QOWegstrecke query) eingabe1
-    (Left (QWegstreckeIOStatus qObjektIOStatus (Right konstruktor)))        -> Left $ QOIOStatus qObjektIOStatus $ Right $ \objekt -> OWegstrecke $ konstruktor objekt
-    (Left (QWegstreckeIOStatus qObjektIOStatus (Left qKonstruktor)))        -> Left $ QOIOStatus qObjektIOStatus $ Left $ \objekt -> QOWegstrecke $ qKonstruktor objekt
-    (Left qWegstrecke1)                                                     -> Left $ QOWegstrecke qWegstrecke1
-    (Right wegstrecke)                                                      -> Right $ OWegstrecke wegstrecke
-queryObjekt (QOWeiche qWeiche)                              token                           = case queryWeiche qWeiche token of
-    (Left (QWUnbekannt query eingabe1)) -> Left $ QOUnbekannt (QOWeiche query) eingabe1
-    (Left qWeiche1)                     -> Left $ QOWeiche qWeiche1
-    (Right weiche)                      -> Right $ OWeiche weiche
-queryObjekt (QOBahngeschwindigkeit qBahngeschwindigkeit)    token                           = case queryBahngeschwindigkeit qBahngeschwindigkeit token of
-    (Left (QBGUnbekannt query eingabe1))    -> Left $ QOUnbekannt (QOBahngeschwindigkeit query) eingabe1
-    (Left qBahngeschwindigkeit1)            -> Left $ QOBahngeschwindigkeit qBahngeschwindigkeit1
+anfrageObjektAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt
+anfrageObjektAktualisieren qFehler@(AOUnbekannt _ _)                       _token                          = Left qFehler
+anfrageObjektAktualisieren anfrageObjekt@(AOStatusAnfrage _ _)             _token                          = Left anfrageObjekt
+anfrageObjektAktualisieren (AnfrageObjekt)                                 token@(EingabeToken {eingabe})  = wähleBefehl token [
+    (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
+    (Lexer.Wegstrecke            , Left $ AOWegstrecke AnfrageWegstrecke),
+    (Lexer.Weiche                , Left $ AOWeiche AnfrageWeiche),
+    (Lexer.Bahngeschwindigkeit   , Left $ AOBahngeschwindigkeit AnfrageBahngeschwindigkeit),
+    (Lexer.Streckenabschnitt     , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
+    (Lexer.Kupplung              , Left $ AOKupplung AnfrageKupplung)]
+    $ Left $ AOUnbekannt AnfrageObjekt eingabe
+anfrageObjektAktualisieren (AOPlan aPlan)                                  token                           = case anfragePlanAktualisieren aPlan token of
+    (Left (APUnbekannt anfrage eingabe1))                                   -> Left $ AOUnbekannt (AOPlan anfrage) eingabe1
+    (Left (APlanIOStatus objektStatusAnfrage (Right konstruktor)))          -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $ \objekt -> OPlan $ konstruktor objekt
+    (Left (APlanIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $ \objekt -> AOPlan $ anfrageKonstruktor objekt
+    (Left aPlan1)                                                           -> Left $ AOPlan aPlan1
+    (Right plan)                                                            -> Right $ OPlan plan
+anfrageObjektAktualisieren (AOWegstrecke aWegstrecke0)                     token                           = case anfrageWegstreckeAktualisieren aWegstrecke0 token of
+    (Left (AWSUnbekannt anfrage eingabe1))                                      -> Left $ AOUnbekannt (AOWegstrecke anfrage) eingabe1
+    (Left (AWegstreckeIOStatus objektStatusAnfrage (Right konstruktor)))        -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $ \objekt -> OWegstrecke $ konstruktor objekt
+    (Left (AWegstreckeIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))  -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $ \objekt -> AOWegstrecke $ anfrageKonstruktor objekt
+    (Left aWegstrecke1)                                                         -> Left $ AOWegstrecke aWegstrecke1
+    (Right wegstrecke)                                                          -> Right $ OWegstrecke wegstrecke
+anfrageObjektAktualisieren (AOWeiche aWeiche)                              token                           = case anfrageWeicheAktualisieren aWeiche token of
+    (Left (AWEUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOWeiche anfrage) eingabe1
+    (Left aWeiche1)                         -> Left $ AOWeiche aWeiche1
+    (Right weiche)                          -> Right $ OWeiche weiche
+anfrageObjektAktualisieren (AOBahngeschwindigkeit aBahngeschwindigkeit)    token                           = case anfrageBahngeschwindigkeitAktualisieren aBahngeschwindigkeit token of
+    (Left (ABGUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOBahngeschwindigkeit anfrage) eingabe1
+    (Left aBahngeschwindigkeit1)            -> Left $ AOBahngeschwindigkeit aBahngeschwindigkeit1
     (Right bahngeschwindigkeit)             -> Right $ OBahngeschwindigkeit bahngeschwindigkeit
-queryObjekt (QOStreckenabschnitt qStreckenabschnitt)        token                           = case queryStreckenabschnitt qStreckenabschnitt token of
-    (Left (QSUnbekannt query eingabe1)) -> Left $ QOUnbekannt (QOStreckenabschnitt query) eingabe1
-    (Left qStreckenabschnitt1)          -> Left $ QOStreckenabschnitt qStreckenabschnitt1
-    (Right streckenabschnitt)           -> Right $ OStreckenabschnitt streckenabschnitt
-queryObjekt (QOKupplung qKupplung)                          token                           = case queryKupplung qKupplung token of
-    (Left (QKUnbekannt query eingabe1)) -> Left $ QOUnbekannt (QOKupplung query) eingabe1
-    (Left qKupplung1)                   -> Left $ QOKupplung qKupplung1
-    (Right kupplung)                    -> Right $ OKupplung kupplung
+anfrageObjektAktualisieren (AOStreckenabschnitt aStreckenabschnitt)        token                           = case anfrageStreckenabschnittAktualisieren aStreckenabschnitt token of
+    (Left (ASTUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOStreckenabschnitt anfrage) eingabe1
+    (Left aStreckenabschnitt1)              -> Left $ AOStreckenabschnitt aStreckenabschnitt1
+    (Right streckenabschnitt)               -> Right $ OStreckenabschnitt streckenabschnitt
+anfrageObjektAktualisieren (AOKupplung aKupplung)                          token                           = case anfrageKupplungAktualisieren aKupplung token of
+    (Left (AKUUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOKupplung anfrage) eingabe1
+    (Left aKupplung1)                       -> Left $ AOKupplung aKupplung1
+    (Right kupplung)                        -> Right $ OKupplung kupplung
 -- | Eingabe eines Plans
-queryPlan :: QPlan -> EingabeToken -> Either QPlan Plan
-queryPlan   (QPlan)                                         (EingabeToken {eingabe})            = Left $ QPlanName eingabe
-queryPlan   query@(QPlanName name)                          (EingabeToken {eingabe, ganzzahl})  = Left $ case ganzzahl of
-    (Nothing)       -> QPUnbekannt query eingabe
-    (Just anzahl)   -> QPlanNameAnzahl name anzahl empty QAktion
-queryPlan   (QPlanNameAnzahl name anzahl acc qAktion)       token                               = case queryAktion qAktion token of
-    (Left (QAUnbekannt qAktion1 eingabe))                           -> Left $ QPUnbekannt (QPlanNameAnzahl name anzahl acc qAktion1) eingabe
-    (Left (QAktionIOStatus qObjektIOStatus (Left qKonstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ Left $ \objekt -> QPlanNameAnzahl name anzahl acc $ qKonstruktor objekt
-    (Left (QAktionIOStatus qObjektIOStatus (Right konstruktor)))    -> Left $ QPlanIOStatus qObjektIOStatus $ if anzahl > 1 then Left $ \objekt -> QPlanNameAnzahl name anzahl (append (konstruktor objekt) acc) QAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ append (konstruktor objekt) acc}
-    (Left QARückgängig)                                             -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in Left $ QPlanNameAnzahl name (succ anzahl) prevAcc QAktion
-    (Left qAktion1)                                                 -> Left $ QPlanNameAnzahl name anzahl acc qAktion1
-    (Right aktion)  | anzahl > 1                                    -> Left $ QPlanNameAnzahl name (pred anzahl) (append aktion acc) QAktion
-                    | otherwise                                     -> Right $ Plan {plName=name, plAktionen=toList $ append aktion acc}
-queryPlan   (QPlanBefehlQuery qKonstruktor eitherF)         token                               = Left $ QPlanIOStatus (qKonstruktor token) eitherF
-queryPlan   query                                           _token                              = Left query
+anfragePlanAktualisieren :: AnfragePlan -> EingabeToken -> Either AnfragePlan Plan
+anfragePlanAktualisieren   (AnfragePlan)                                    (EingabeToken {eingabe})            = Left $ APlanName eingabe
+anfragePlanAktualisieren   anfrage@(APlanName name)                         (EingabeToken {eingabe, ganzzahl})  = Left $ case ganzzahl of
+    (Nothing)       -> APUnbekannt anfrage eingabe
+    (Just anzahl)   -> APlanNameAnzahl name anzahl empty AnfrageAktion
+anfragePlanAktualisieren   (APlanNameAnzahl name anzahl acc anfrageAktion)  token                               = case anfrageAktionAktualisieren anfrageAktion token of
+    (Left (AAUnbekannt aAktion1 eingabe))                                   -> Left $ APUnbekannt (APlanNameAnzahl name anzahl acc aAktion1) eingabe
+    (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> Left $ APlanIOStatus objektStatusAnfrage $ Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
+    (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))        -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1 then Left $ \objekt -> APlanNameAnzahl name anzahl (append (konstruktor objekt) acc) AnfrageAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ append (konstruktor objekt) acc}
+    (Left AARückgängig)                                                     -> let prevAcc = case viewLast acc of {(Empty) -> empty; (Filled _l p) -> p} in Left $ APlanNameAnzahl name (succ anzahl) prevAcc AnfrageAktion
+    (Left aAktion1)                                                         -> Left $ APlanNameAnzahl name anzahl acc aAktion1
+    (Right aktion)  | anzahl > 1                                            -> Left $ APlanNameAnzahl name (pred anzahl) (append aktion acc) AnfrageAktion
+                    | otherwise                                             -> Right $ Plan {plName=name, plAktionen=toList $ append aktion acc}
+anfragePlanAktualisieren   (APStatusAnfrage anfrageKonstruktor eitherF)     token                               = Left $ APlanIOStatus (anfrageKonstruktor token) eitherF
+anfragePlanAktualisieren   anfrage                                          _token                              = Left anfrage
 -- | Eingabe einer Aktion
-queryAktion :: QAktion -> EingabeToken -> Either QAktion Aktion
-queryAktion (QAktion)                                   token                               = Left $ case queryAktionElement token of
-    (QAEUnbekannt eingabe)      -> QAUnbekannt QAktion eingabe
-    (QAERückgängig)             -> QARückgängig
-    (QAEWarten)                 -> QAWarten
-    (QAEWegstrecke)             -> QAktionBefehlQuery QOIOSWegstrecke $ Left $ \(OWegstrecke wegstrecke) -> QAWegstrecke $ QAktionWegstrecke wegstrecke
-    (QAEWeiche)                 -> QAktionBefehlQuery QOIOSWeiche $ Left $ \(OWeiche weiche) -> QAWeiche $ QAktionWeiche weiche
-    (QAEBahngeschwindigkeit)    -> QAktionBefehlQuery QOIOSBahngeschwindigkeit $ Left $ \(OBahngeschwindigkeit bahngeschwindigkeit) -> QABahngeschwindigkeit $ QAktionBahngeschwindigkeit bahngeschwindigkeit
-    (QAEStreckenabschnitt)      -> QAktionBefehlQuery QOIOSStreckenabschnitt $ Left $ \(OStreckenabschnitt streckenabschnitt) -> QAStreckenabschnitt $ QAktionStreckenabschnitt streckenabschnitt
-    (QAEKupplung)               -> QAktionBefehlQuery QOIOSKupplung $ Left $ \(OKupplung kupplung) -> QAKupplung $ QAktionKupplung kupplung
+anfrageAktionAktualisieren :: AnfrageAktion -> EingabeToken -> Either AnfrageAktion Aktion
+anfrageAktionAktualisieren (AnfrageAktion)                                  token                               = Left $ case anfrageAktionElement token of
+    (AAEUnbekannt eingabe)      -> AAUnbekannt AnfrageAktion eingabe
+    (AAERückgängig)             -> AARückgängig
+    (AAEWarten)                 -> AAWarten
+    (AAEWegstrecke)             -> AAKlassifizierung SAOWegstrecke $ Left $ \(OWegstrecke wegstrecke) -> AAWegstrecke $ AnfrageAktionWegstrecke wegstrecke
+    (AAEWeiche)                 -> AAKlassifizierung SAOWeiche $ Left $ \(OWeiche weiche) -> AAWeiche $ AnfrageAktionWeiche weiche
+    (AAEBahngeschwindigkeit)    -> AAKlassifizierung SAOBahngeschwindigkeit $ Left $ \(OBahngeschwindigkeit bahngeschwindigkeit) -> AABahngeschwindigkeit $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
+    (AAEStreckenabschnitt)      -> AAKlassifizierung SAOStreckenabschnitt $ Left $ \(OStreckenabschnitt streckenabschnitt) -> AAStreckenabschnitt $ AnfrageAktionStreckenabschnitt streckenabschnitt
+    (AAEKupplung)               -> AAKlassifizierung SAOKupplung $ Left $ \(OKupplung kupplung) -> AAKupplung $ AnfrageAktionKupplung kupplung
     where
-        queryAktionElement :: EingabeToken -> QAktionElement
-        queryAktionElement  token@(EingabeToken {eingabe})  = wähleBefehl token [
-            (Lexer.Rückgängig           , QAERückgängig),
-            (Lexer.Warten               , QAEWarten),
-            (Lexer.Wegstrecke           , QAEWegstrecke),
-            (Lexer.Weiche               , QAEWeiche),
-            (Lexer.Bahngeschwindigkeit  , QAEBahngeschwindigkeit),
-            (Lexer.Streckenabschnitt    , QAEStreckenabschnitt),
-            (Lexer.Kupplung             , QAEKupplung)]
-            $ QAEUnbekannt eingabe
-queryAktion _query                                      (EingabeToken {möglichkeiten})
-    | elem Lexer.Rückgängig möglichkeiten                                                   = Left QAktion
-queryAktion (QAWarten)                                  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QAUnbekannt QAWarten eingabe
+        anfrageAktionElement :: EingabeToken -> AnfrageAktionElement
+        anfrageAktionElement  token@(EingabeToken {eingabe})  = wähleBefehl token [
+            (Lexer.Rückgängig           , AAERückgängig),
+            (Lexer.Warten               , AAEWarten),
+            (Lexer.Wegstrecke           , AAEWegstrecke),
+            (Lexer.Weiche               , AAEWeiche),
+            (Lexer.Bahngeschwindigkeit  , AAEBahngeschwindigkeit),
+            (Lexer.Streckenabschnitt    , AAEStreckenabschnitt),
+            (Lexer.Kupplung             , AAEKupplung)]
+            $ AAEUnbekannt eingabe
+anfrageAktionAktualisieren _anfrage                                         (EingabeToken {möglichkeiten})
+    | elem Lexer.Rückgängig möglichkeiten                                                                       = Left AnfrageAktion
+anfrageAktionAktualisieren (AAWarten)                                       (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ AAUnbekannt AAWarten eingabe
     (Just zeit) -> Right $ Warten zeit
-queryAktion (QAktionBefehlQuery qKonstruktor eitherF)   token                               = Left $ QAktionIOStatus (qKonstruktor token) eitherF
-queryAktion (QAWegstrecke qAktion)                      token                               = case queryAktionWegstrecke qAktion token of
-    (Left (QAWSUnbekannt query eingabe))    -> Left $ QAUnbekannt (QAWegstrecke query) eingabe
-    (Left qAktionWegstrecke)                -> Left $ QAWegstrecke qAktionWegstrecke
+anfrageAktionAktualisieren (AAKlassifizierung anfrageKonstruktor eitherF)   token                               = Left $ AAStatusAnfrage (anfrageKonstruktor token) eitherF
+anfrageAktionAktualisieren (AAWegstrecke anfrageAktion)                     token                               = case anfrageAktionWegstreckeAktualisieren anfrageAktion token of
+    (Left (AAWSUnbekannt anfrage eingabe))    -> Left $ AAUnbekannt (AAWegstrecke anfrage) eingabe
+    (Left qAktionWegstrecke)                -> Left $ AAWegstrecke qAktionWegstrecke
     (Right aktionWegstrecke)                -> Right $ AWegstrecke aktionWegstrecke
-queryAktion (QAWeiche qAktion)                          token                               = case queryAktionWeiche qAktion token of
-    (Left (QAWUnbekannt query eingabe)) -> Left $ QAUnbekannt (QAWeiche query) eingabe
-    (Left qAktionWeiche)                -> Left $ QAWeiche qAktionWeiche
+anfrageAktionAktualisieren (AAWeiche anfrageAktion)                          token                               = case anfrageAktionWeicheAktualisieren anfrageAktion token of
+    (Left (AAWUnbekannt anfrage eingabe)) -> Left $ AAUnbekannt (AAWeiche anfrage) eingabe
+    (Left qAktionWeiche)                -> Left $ AAWeiche qAktionWeiche
     (Right aktionWeiche)                -> Right $ AWeiche aktionWeiche
-queryAktion (QABahngeschwindigkeit qAktion)             token                               = case queryAktionBahngeschwindigkeit qAktion token of
-    (Left (QABGUnbekannt query eingabe))    -> Left $ QAUnbekannt (QABahngeschwindigkeit query) eingabe
-    (Left qAktionBahngeschwindigkeit)       -> Left $ QABahngeschwindigkeit qAktionBahngeschwindigkeit
+anfrageAktionAktualisieren (AABahngeschwindigkeit anfrageAktion)            token                               = case anfrageAktionBahngeschwindigkeitAktualisieren anfrageAktion token of
+    (Left (AABGUnbekannt anfrage eingabe))    -> Left $ AAUnbekannt (AABahngeschwindigkeit anfrage) eingabe
+    (Left qAktionBahngeschwindigkeit)       -> Left $ AABahngeschwindigkeit qAktionBahngeschwindigkeit
     (Right aktionBahngeschwindigkeit)       -> Right $ ABahngeschwindigkeit aktionBahngeschwindigkeit
-queryAktion (QAStreckenabschnitt qAktion)               token                               = case queryAktionStreckenabschnitt qAktion token of
-    (Left (QASUnbekannt query eingabe)) -> Left $ QAUnbekannt (QAStreckenabschnitt query) eingabe
-    (Left qAktionStreckenabschnitt)     -> Left $ QAStreckenabschnitt qAktionStreckenabschnitt
+anfrageAktionAktualisieren (AAStreckenabschnitt anfrageAktion)              token                               = case anfrageAktionStreckenabschnittAktualisieren anfrageAktion token of
+    (Left (AASTUnbekannt anfrage eingabe)) -> Left $ AAUnbekannt (AAStreckenabschnitt anfrage) eingabe
+    (Left qAktionStreckenabschnitt)     -> Left $ AAStreckenabschnitt qAktionStreckenabschnitt
     (Right aktionStreckenabschnitt)     -> Right $ AStreckenabschnitt aktionStreckenabschnitt
-queryAktion (QAKupplung qAktion)                        token                               = case queryAktionKupplung qAktion token of
-    (Left (QAKUnbekannt query eingabe)) -> Left $ QAUnbekannt (QAKupplung query) eingabe
-    (Left qAktionKupplung)              -> Left $ QAKupplung qAktionKupplung
+anfrageAktionAktualisieren (AAKupplung anfrageAktion)                       token                               = case anfrageAktionKupplungAktualisieren anfrageAktion token of
+    (Left (AAKUUnbekannt anfrage eingabe)) -> Left $ AAUnbekannt (AAKupplung anfrage) eingabe
+    (Left qAktionKupplung)              -> Left $ AAKupplung qAktionKupplung
     (Right aktionKupplung)              -> Right $ AKupplung aktionKupplung
-queryAktion query                                       _token                              = Left query
+anfrageAktionAktualisieren anfrage                                          _token                              = Left anfrage
 -- | Eingabe einer Wegstrecken-Aktion
-queryAktionWegstrecke :: (WegstreckeKlasse w) => QAktionWegstrecke qw w -> EingabeToken -> Either (QAktionWegstrecke qw w) (AktionWegstrecke w)
-queryAktionWegstrecke   query@(QAWSUnbekannt _ _)               _token  = Left query
-queryAktionWegstrecke   query@(QAktionWegstrecke wegstrecke)    token@(EingabeToken {eingabe})  = wähleBefehl token [
+anfrageAktionWegstreckeAktualisieren :: (WegstreckeKlasse w) => AnfrageAktionWegstrecke aw w -> EingabeToken -> Either (AnfrageAktionWegstrecke aw w) (AktionWegstrecke w)
+anfrageAktionWegstreckeAktualisieren   anfrage@(AAWSUnbekannt _ _)                  _token                          = Left anfrage
+anfrageAktionWegstreckeAktualisieren   anfrage@(AnfrageAktionWegstrecke wegstrecke) token@(EingabeToken {eingabe})  = wähleBefehl token [
     (Lexer.Einstellen       , Right $ Einstellen wegstrecke),
-    (Lexer.Geschwindigkeit  , Left $ QAWSBahngeschwindigkeit $ QABGGeschwindigkeit wegstrecke),
-    (Lexer.Umdrehen         , Left $ QAWSBahngeschwindigkeit $ QABGUmdrehen wegstrecke),
-    (Lexer.Strom            , Left $ QAWSStreckenabschnitt $ QASStrom wegstrecke),
+    (Lexer.Geschwindigkeit  , Left $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke),
+    (Lexer.Umdrehen         , Left $ AAWSBahngeschwindigkeit $ AABGUmdrehen wegstrecke),
+    (Lexer.Strom            , Left $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
     (Lexer.Kuppeln          , Right $ AWSKupplung $ Kuppeln wegstrecke)]
-    $ Left $ QAWSUnbekannt query eingabe
-queryAktionWegstrecke   (QAWSBahngeschwindigkeit qAktion0)      token                           = case queryAktionBahngeschwindigkeit qAktion0 token of
-    (Left (QABGUnbekannt query eingabe))    -> Left $ QAWSUnbekannt (QAWSBahngeschwindigkeit query) eingabe
-    (Left qAktion1)                         -> Left $ QAWSBahngeschwindigkeit qAktion1
+    $ Left $ AAWSUnbekannt anfrage eingabe
+anfrageAktionWegstreckeAktualisieren   (AAWSBahngeschwindigkeit qAktion0)           token                           = case anfrageAktionBahngeschwindigkeitAktualisieren qAktion0 token of
+    (Left (AABGUnbekannt anfrage eingabe))  -> Left $ AAWSUnbekannt (AAWSBahngeschwindigkeit anfrage) eingabe
+    (Left aAktion1)                         -> Left $ AAWSBahngeschwindigkeit aAktion1
     (Right aktion)                          -> Right $ AWSBahngeschwindigkeit aktion
-queryAktionWegstrecke   (QAWSStreckenabschnitt qAktion0)        token                           = case queryAktionStreckenabschnitt qAktion0 token of
-    (Left (QASUnbekannt query eingabe)) -> Left $ QAWSUnbekannt (QAWSStreckenabschnitt query) eingabe
-    (Left qAktion1)                     -> Left $ QAWSStreckenabschnitt qAktion1
-    (Right aktion)                      -> Right $ AWSStreckenabschnitt aktion
-queryAktionWegstrecke   (QAWSKupplung qAktion0)                 token                           = case queryAktionKupplung qAktion0 token of
-    (Left (QAKUnbekannt query eingabe)) -> Left $ QAWSUnbekannt (QAWSKupplung query) eingabe
-    (Left qAktion1)                     -> Left $ QAWSKupplung qAktion1
-    (Right aktion)                      -> Right $ AWSKupplung aktion
+anfrageAktionWegstreckeAktualisieren   (AAWSStreckenabschnitt qAktion0)             token                           = case anfrageAktionStreckenabschnittAktualisieren qAktion0 token of
+    (Left (AASTUnbekannt anfrage eingabe))  -> Left $ AAWSUnbekannt (AAWSStreckenabschnitt anfrage) eingabe
+    (Left aAktion1)                         -> Left $ AAWSStreckenabschnitt aAktion1
+    (Right aktion)                          -> Right $ AWSStreckenabschnitt aktion
+anfrageAktionWegstreckeAktualisieren   (AAWSKupplung qAktion0)                      token                           = case anfrageAktionKupplungAktualisieren qAktion0 token of
+    (Left (AAKUUnbekannt anfrage eingabe))  -> Left $ AAWSUnbekannt (AAWSKupplung anfrage) eingabe
+    (Left aAktion1)                         -> Left $ AAWSKupplung aAktion1
+    (Right aktion)                          -> Right $ AWSKupplung aktion
 -- | Eingabe einer Weichen-Aktion
-queryAktionWeiche :: (Show qw, Show w, WeicheKlasse w) => QAktionWeiche qw w -> EingabeToken -> Either (QAktionWeiche qw w) (AktionWeiche w)
-queryAktionWeiche   query@(QAktionWeiche weiche)    token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Stellen  , Left $ QAWStellen weiche)] $ Left $ QAWUnbekannt query eingabe
-queryAktionWeiche   query@(QAWStellen _weiche)      token@(EingabeToken {eingabe})  = case wähleRichtung token of
-    (Nothing)       -> Left $ QAWUnbekannt query eingabe
-    (Just richtung) -> mitRichtung query richtung
+anfrageAktionWeicheAktualisieren :: (Show aw, Show w, WeicheKlasse w) => AnfrageAktionWeiche aw w -> EingabeToken -> Either (AnfrageAktionWeiche aw w) (AktionWeiche w)
+anfrageAktionWeicheAktualisieren   anfrage@(AnfrageAktionWeiche weiche) token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Stellen  , Left $ AAWStellen weiche)] $ Left $ AAWUnbekannt anfrage eingabe
+anfrageAktionWeicheAktualisieren   anfrage@(AAWStellen _weiche)         token@(EingabeToken {eingabe})  = case wähleRichtung token of
+    (Nothing)       -> Left $ AAWUnbekannt anfrage eingabe
+    (Just richtung) -> mitRichtung anfrage richtung
         where
-            mitRichtung :: (Show qw, Show w, WeicheKlasse w) => QAktionWeiche qw w -> Richtung -> Either (QAktionWeiche qw w) (AktionWeiche w)
-            mitRichtung  query@(QAWStellen weiche)  richtung
-                | hatRichtung weiche richtung                   = Right $ Stellen weiche richtung
-                | otherwise                                     = Left $ QAWUnbekannt query eingabe
-            mitRichtung query                       _richtung   = error $ "mitRichtung mit unbekannter query aufgerufen: " ++ show query
-queryAktionWeiche   query                           _token                                          = Left query
+            mitRichtung :: (Show aw, Show w, WeicheKlasse w) => AnfrageAktionWeiche aw w -> Richtung -> Either (AnfrageAktionWeiche aw w) (AktionWeiche w)
+            mitRichtung  anfrage@(AAWStellen weiche)  richtung
+                | hatRichtung weiche richtung                       = Right $ Stellen weiche richtung
+                | otherwise                                         = Left $ AAWUnbekannt anfrage eingabe
+            mitRichtung anfrage                       _richtung     = error $ "mitRichtung mit unbekannter anfrage aufgerufen: " ++ show anfrage
+anfrageAktionWeicheAktualisieren   anfrage                              _token                          = Left anfrage
 -- | Eingabe einer Bahngeschwindigkeit-Aktion
-queryAktionBahngeschwindigkeit :: (BahngeschwindigkeitKlasse b) => QAktionBahngeschwindigkeit qb b -> EingabeToken -> Either (QAktionBahngeschwindigkeit qb b) (AktionBahngeschwindigkeit b)
-queryAktionBahngeschwindigkeit  query@(QAktionBahngeschwindigkeit bahngeschwindigkeit)  token@(EingabeToken {eingabe})      = wähleBefehl token [
-    (Lexer.Geschwindigkeit  , Left $ QABGGeschwindigkeit bahngeschwindigkeit),
-    (Lexer.Umdrehen         , if zugtyp bahngeschwindigkeit == Märklin then Right $ Umdrehen bahngeschwindigkeit Nothing else Left $ QABGUmdrehen bahngeschwindigkeit)]
-    $ Left $ QABGUnbekannt query eingabe
-queryAktionBahngeschwindigkeit  query@(QABGGeschwindigkeit bahngeschwindigkeit)         (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QABGUnbekannt query eingabe
+anfrageAktionBahngeschwindigkeitAktualisieren :: (BahngeschwindigkeitKlasse b) => AnfrageAktionBahngeschwindigkeit ab b -> EingabeToken -> Either (AnfrageAktionBahngeschwindigkeit ab b) (AktionBahngeschwindigkeit b)
+anfrageAktionBahngeschwindigkeitAktualisieren  anfrage@(AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)   token@(EingabeToken {eingabe})      = wähleBefehl token [
+    (Lexer.Geschwindigkeit  , Left $ AABGGeschwindigkeit bahngeschwindigkeit),
+    (Lexer.Umdrehen         , if zugtyp bahngeschwindigkeit == Märklin then Right $ Umdrehen bahngeschwindigkeit Nothing else Left $ AABGUmdrehen bahngeschwindigkeit)]
+    $ Left $ AABGUnbekannt anfrage eingabe
+anfrageAktionBahngeschwindigkeitAktualisieren  anfrage@(AABGGeschwindigkeit bahngeschwindigkeit)                (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ AABGUnbekannt anfrage eingabe
     (Just wert) -> Right $ Geschwindigkeit bahngeschwindigkeit wert
-queryAktionBahngeschwindigkeit  query@(QABGUmdrehen bahngeschwindigkeit)                token@(EingabeToken {eingabe})      = wähleBefehl token [
+anfrageAktionBahngeschwindigkeitAktualisieren  anfrage@(AABGUmdrehen bahngeschwindigkeit)                       token@(EingabeToken {eingabe})      = wähleBefehl token [
     (Lexer.Vorwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Vorwärts),
     (Lexer.Rückwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Rückwärts)]
-    $ Left $ QABGUnbekannt query eingabe
-queryAktionBahngeschwindigkeit  query                                                   _token                              = Left $ query
+    $ Left $ AABGUnbekannt anfrage eingabe
+anfrageAktionBahngeschwindigkeitAktualisieren  anfrage                                                          _token                              = Left $ anfrage
 -- | Eingabe einer Streckenabschnitt-Aktion
-queryAktionStreckenabschnitt :: (StreckenabschnittKlasse s) => QAktionStreckenabschnitt qs s -> EingabeToken -> Either (QAktionStreckenabschnitt qs s) (AktionStreckenabschnitt s)
-queryAktionStreckenabschnitt    query@(QAktionStreckenabschnitt streckenabschnitt)  token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Strom, Left $ QASStrom streckenabschnitt)] $ Left $ QASUnbekannt query eingabe
-queryAktionStreckenabschnitt    query@(QASStrom streckenabschnitt)                  token@(EingabeToken {eingabe})  = wähleBefehl token [
+anfrageAktionStreckenabschnittAktualisieren :: (StreckenabschnittKlasse s) => AnfrageAktionStreckenabschnitt as s -> EingabeToken -> Either (AnfrageAktionStreckenabschnitt as s) (AktionStreckenabschnitt s)
+anfrageAktionStreckenabschnittAktualisieren anfrage@(AnfrageAktionStreckenabschnitt streckenabschnitt)  token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Strom, Left $ AASTStrom streckenabschnitt)] $ Left $ AASTUnbekannt anfrage eingabe
+anfrageAktionStreckenabschnittAktualisieren anfrage@(AASTStrom streckenabschnitt)                       token@(EingabeToken {eingabe})  = wähleBefehl token [
     (Lexer.Fließend , Right $ Strom streckenabschnitt Fließend),
     (Lexer.An       , Right $ Strom streckenabschnitt Fließend),
     (Lexer.Gesperrt , Right $ Strom streckenabschnitt Gesperrt),
     (Lexer.Aus      , Right $ Strom streckenabschnitt Gesperrt)]
-    $ Left $ QASUnbekannt query eingabe
-queryAktionStreckenabschnitt    query                                               _token                          = Left $ query
+    $ Left $ AASTUnbekannt anfrage eingabe
+anfrageAktionStreckenabschnittAktualisieren anfrage                                                     _token                          = Left $ anfrage
 -- | Eingabe einer Kupplung-Aktion
-queryAktionKupplung :: (KupplungKlasse k) => QAktionKupplung qk k -> EingabeToken -> Either (QAktionKupplung qk k) (AktionKupplung k)
-queryAktionKupplung query@(QAktionKupplung kupplung)    token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Kuppeln, Right $ Kuppeln kupplung)] $ Left $ QAKUnbekannt query eingabe
-queryAktionKupplung query                               _token                          = Left $ query
+anfrageAktionKupplungAktualisieren :: (KupplungKlasse k) => AnfrageAktionKupplung ak k -> EingabeToken -> Either (AnfrageAktionKupplung ak k) (AktionKupplung k)
+anfrageAktionKupplungAktualisieren anfrage@(AnfrageAktionKupplung kupplung) token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Kuppeln, Right $ Kuppeln kupplung)] $ Left $ AAKUUnbekannt anfrage eingabe
+anfrageAktionKupplungAktualisieren anfrage                                  _token                          = Left $ anfrage
 -- | Eingabe einer Wegstrecke
-queryWegstrecke :: QWegstrecke -> EingabeToken -> Either QWegstrecke Wegstrecke
-queryWegstrecke (QWegstrecke)                                                                                                   (EingabeToken {eingabe})            = Left $ QWegstreckeName eingabe
-queryWegstrecke query@(QWegstreckeName name)                                                                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)       -> Left $ QWSUnbekannt query eingabe
-    (Just anzahl)   -> Left $ QWegstreckeNameAnzahl (Wegstrecke {wsName=name, wsBahngeschwindigkeiten=[], wsStreckenabschnitte=[], wsWeichenRichtungen=[], wsKupplungen=[]}) anzahl
-queryWegstrecke query@(QWegstreckeNameAnzahl acc@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsKupplungen}) anzahl)   token                               = Left $ case queryWegstreckenElement token of
-    (QWEWeiche)                 -> QWegstreckeBefehlQuery QOIOSWeiche $ Left $ qWeicheAnhängen
-    (QWEBahngeschwindigkeit)    -> QWegstreckeBefehlQuery QOIOSBahngeschwindigkeit eitherObjektAnhängen
-    (QWEStreckenabschnitt)      -> QWegstreckeBefehlQuery QOIOSStreckenabschnitt eitherObjektAnhängen
-    (QWEKupplung)               -> QWegstreckeBefehlQuery QOIOSKupplung eitherObjektAnhängen
-    (QWEUnbekannt eingabe)      -> QWSUnbekannt query eingabe
+anfrageWegstreckeAktualisieren :: AnfrageWegstrecke -> EingabeToken -> Either AnfrageWegstrecke Wegstrecke
+anfrageWegstreckeAktualisieren (AnfrageWegstrecke)                                                                                  (EingabeToken {eingabe})            = Left $ AWegstreckeName eingabe
+anfrageWegstreckeAktualisieren anfrage@(AWegstreckeName name)                                                                       (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)       -> Left $ AWSUnbekannt anfrage eingabe
+    (Just anzahl)   -> Left $ AWegstreckeNameAnzahl (Wegstrecke {wsName=name, wsBahngeschwindigkeiten=[], wsStreckenabschnitte=[], wsWeichenRichtungen=[], wsKupplungen=[]}) anzahl
+anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc@(Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsKupplungen}) anzahl)   token                               = Left $ case anfrageWegstreckenElement token of
+    (AWSEWeiche)                 -> AWSStatusAnfrage SAOWeiche $ Left $ anfrageWeicheAnhängen
+    (AWSEBahngeschwindigkeit)    -> AWSStatusAnfrage SAOBahngeschwindigkeit eitherObjektAnhängen
+    (AWSEStreckenabschnitt)      -> AWSStatusAnfrage SAOStreckenabschnitt eitherObjektAnhängen
+    (AWSEKupplung)               -> AWSStatusAnfrage SAOKupplung eitherObjektAnhängen
+    (AWSEUnbekannt eingabe)      -> AWSUnbekannt anfrage eingabe
     where
-        queryWegstreckenElement :: EingabeToken -> QWegstreckenElement
-        queryWegstreckenElement token@(EingabeToken {eingabe})  = wähleBefehl token [
-            (Lexer.Weiche                , QWEWeiche),
-            (Lexer.Bahngeschwindigkeit   , QWEBahngeschwindigkeit),
-            (Lexer.Streckenabschnitt     , QWEStreckenabschnitt),
-            (Lexer.Kupplung              , QWEKupplung)]
-            $ QWEUnbekannt eingabe
-        eitherObjektAnhängen :: Either (Objekt -> QWegstrecke) (Objekt -> Wegstrecke)
-        eitherObjektAnhängen = if anzahl > 1 then Left qObjektAnhängen else Right objektAnhängen
+        anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
+        anfrageWegstreckenElement token@(EingabeToken {eingabe})  = wähleBefehl token [
+            (Lexer.Weiche                , AWSEWeiche),
+            (Lexer.Bahngeschwindigkeit   , AWSEBahngeschwindigkeit),
+            (Lexer.Streckenabschnitt     , AWSEStreckenabschnitt),
+            (Lexer.Kupplung              , AWSEKupplung)]
+            $ AWSEUnbekannt eingabe
+        eitherObjektAnhängen :: Either (Objekt -> AnfrageWegstrecke) (Objekt -> Wegstrecke)
+        eitherObjektAnhängen = if anzahl > 1 then Left anfrageObjektAnhängen else Right objektAnhängen
         objektAnhängen :: Objekt -> Wegstrecke
         objektAnhängen  (OBahngeschwindigkeit bahngeschwindigkeit)  = acc {wsBahngeschwindigkeiten=bahngeschwindigkeit:wsBahngeschwindigkeiten}
         objektAnhängen  (OStreckenabschnitt streckenabschnitt)      = acc {wsStreckenabschnitte=streckenabschnitt:wsStreckenabschnitte}
         objektAnhängen  (OKupplung kupplung)                        = acc {wsKupplungen=kupplung:wsKupplungen}
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         objektAnhängen  _                                           = acc
-        qObjektAnhängen :: Objekt -> QWegstrecke
-        qObjektAnhängen objekt = QWegstreckeNameAnzahl (objektAnhängen objekt) $ anzahl - 1
-        qWeicheAnhängen :: Objekt -> QWegstrecke
-        qWeicheAnhängen (OWeiche weiche)    = QWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche
+        anfrageObjektAnhängen :: Objekt -> AnfrageWegstrecke
+        anfrageObjektAnhängen objekt = AWegstreckeNameAnzahl (objektAnhängen objekt) $ pred anzahl
+        anfrageWeicheAnhängen :: Objekt -> AnfrageWegstrecke
+        anfrageWeicheAnhängen (OWeiche weiche)    = AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
-        qWeicheAnhängen _                   = query
-queryWegstrecke (QWegstreckeBefehlQuery qKonstruktor eitherF)                                                                   token                               = Left $ QWegstreckeIOStatus (qKonstruktor token) eitherF
-queryWegstrecke query@(QWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWeichenRichtungen}) anzahl weiche)                token@(EingabeToken {eingabe})      = case wähleRichtung token of
-    (Nothing)       -> Left $ QWSUnbekannt query eingabe
+        anfrageWeicheAnhängen _                   = anfrage
+anfrageWegstreckeAktualisieren (AWSStatusAnfrage anfrageKonstruktor eitherF)                                                        token                               = Left $ AWegstreckeIOStatus (anfrageKonstruktor token) eitherF
+anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahlWeicheRichtung acc@(Wegstrecke {wsWeichenRichtungen}) anzahl weiche)   token@(EingabeToken {eingabe})      = case wähleRichtung token of
+    (Nothing)       -> Left $ AWSUnbekannt anfrage eingabe
     (Just richtung) -> eitherWeicheRichtungAnhängen richtung
         where
-            eitherWeicheRichtungAnhängen :: Richtung -> Either QWegstrecke Wegstrecke
+            eitherWeicheRichtungAnhängen :: Richtung -> Either AnfrageWegstrecke Wegstrecke
             eitherWeicheRichtungAnhängen richtung = if anzahl > 1 then Left $ qWeicheRichtungAnhängen richtung else Right $ weicheRichtungAnhängen richtung
-            qWeicheRichtungAnhängen :: Richtung -> QWegstrecke
-            qWeicheRichtungAnhängen richtung = QWegstreckeNameAnzahl (weicheRichtungAnhängen richtung) $ anzahl - 1
+            qWeicheRichtungAnhängen :: Richtung -> AnfrageWegstrecke
+            qWeicheRichtungAnhängen richtung = AWegstreckeNameAnzahl (weicheRichtungAnhängen richtung) $ pred anzahl
             weicheRichtungAnhängen :: Richtung -> Wegstrecke
             weicheRichtungAnhängen richtung = acc {wsWeichenRichtungen=(weiche, richtung):wsWeichenRichtungen}
-queryWegstrecke query                                                                           _token                              = Left query
+anfrageWegstreckeAktualisieren anfrage                                                                                              _token                              = Left anfrage
 -- | Eingabe einer Weiche
-queryWeiche :: QWeiche -> EingabeToken -> Either QWeiche Weiche
-queryWeiche (QWeiche)                                                           token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
-    (Lexer.Märklin  , QMärklinWeiche),
-    (Lexer.Lego     , QLegoWeiche)]
-    $ QWUnbekannt QWeiche eingabe
-queryWeiche (QLegoWeiche)                                                       (EingabeToken {eingabe})            = Left $ QLegoWeicheName eingabe
-queryWeiche query@(QLegoWeicheName name)                                        token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
-    (Nothing)           -> QWUnbekannt query eingabe
-    (Just richtung1)    -> QLegoWeicheNameRichtung1 name richtung1
-queryWeiche query@(QLegoWeicheNameRichtung1 name richtung1)                     token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
-    (Nothing)           -> QWUnbekannt query eingabe
-    (Just richtung2)    -> QLegoWeicheNameRichtungen name richtung1 richtung2
-queryWeiche query@(QLegoWeicheNameRichtungen name richtung1 richtung2)          (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QWUnbekannt query eingabe
+anfrageWeicheAktualisieren :: AnfrageWeiche -> EingabeToken -> Either AnfrageWeiche Weiche
+anfrageWeicheAktualisieren (AnfrageWeiche)                                                      token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.Märklin  , AMärklinWeiche),
+    (Lexer.Lego     , ALegoWeiche)]
+    $ AWEUnbekannt AnfrageWeiche eingabe
+anfrageWeicheAktualisieren (ALegoWeiche)                                                        (EingabeToken {eingabe})            = Left $ ALegoWeicheName eingabe
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheName name)                                       token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Nothing)           -> AWEUnbekannt anfrage eingabe
+    (Just richtung1)    -> ALegoWeicheNameRichtung1 name richtung1
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameRichtung1 name richtung1)                    token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Nothing)           -> AWEUnbekannt anfrage eingabe
+    (Just richtung2)    -> ALegoWeicheNameRichtungen name richtung1 richtung2
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameRichtungen name richtung1 richtung2)         (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ AWEUnbekannt anfrage eingabe
     (Just pin)  -> Right $ LegoWeiche {weName=name, richtungsPin=toPin pin, richtungen=(richtung1,richtung2)}
-queryWeiche (QMärklinWeiche)                                                    (EingabeToken {eingabe})            = Left $ QMärklinWeicheName eingabe
-queryWeiche query@(QMärklinWeicheName name)                                     (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)       -> Left $ QWUnbekannt query eingabe
-    (Just anzahl)   -> Left $ QMärklinWeicheNameAnzahl name anzahl []
-queryWeiche query@(QMärklinWeicheNameAnzahl name anzahl acc)                    token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
-    (Nothing)       -> QWUnbekannt query eingabe
-    (Just richtung) -> QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung
-queryWeiche query@(QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)           -> Left $ QWUnbekannt query eingabe
+anfrageWeicheAktualisieren (AMärklinWeiche)                                                     (EingabeToken {eingabe})            = Left $ AMärklinWeicheName eingabe
+anfrageWeicheAktualisieren anfrage@(AMärklinWeicheName name)                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)       -> Left $ AWEUnbekannt anfrage eingabe
+    (Just anzahl)   -> Left $ AMärklinWeicheNameAnzahl name anzahl []
+anfrageWeicheAktualisieren anfrage@(AMärklinWeicheNameAnzahl name anzahl acc)                   token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Nothing)       -> AWEUnbekannt anfrage eingabe
+    (Just richtung) -> AMärklinWeicheNameAnzahlRichtung name anzahl acc richtung
+anfrageWeicheAktualisieren anfrage@(AMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)           -> Left $ AWEUnbekannt anfrage eingabe
     (Just pin)
-        | anzahl > 1    -> Left $ QMärklinWeicheNameAnzahl name (anzahl - 1) $ (richtung, toPin pin):acc
+        | anzahl > 1    -> Left $ AMärklinWeicheNameAnzahl name (pred anzahl) $ (richtung, toPin pin):acc
         | otherwise     -> Right $ MärklinWeiche {weName=name, richtungsPins=(richtung, toPin pin):|acc}
-queryWeiche query@(QWUnbekannt _ _)                                             _token                              = Left query
+anfrageWeicheAktualisieren anfrage@(AWEUnbekannt _ _)                                           _token                              = Left anfrage
 -- | Eingabe einer Bahngeschwindigkeit
-queryBahngeschwindigkeit :: QBahngeschwindigkeit -> EingabeToken -> Either QBahngeschwindigkeit Bahngeschwindigkeit
-queryBahngeschwindigkeit    (QBahngeschwindigkeit)                                                          token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
-    (Lexer.Märklin  , QMärklinBahngeschwindigkeit),
-    (Lexer.Lego     , QLegoBahngeschwindigkeit)]
-    $ QBGUnbekannt QBahngeschwindigkeit eingabe
-queryBahngeschwindigkeit    (QLegoBahngeschwindigkeit)                                                      (EingabeToken {eingabe})            = Left $ QLegoBahngeschwindigkeitName eingabe
-queryBahngeschwindigkeit    query@(QLegoBahngeschwindigkeitName name)                                       (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QBGUnbekannt query eingabe
-    (Just pin)  -> Left $ QLegoBahngeschwindigkeitNameGeschwindigkeit name $ toPin pin
-queryBahngeschwindigkeit    query@(QLegoBahngeschwindigkeitNameGeschwindigkeit name geschwindigkeitsPin)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QBGUnbekannt query eingabe
+anfrageBahngeschwindigkeitAktualisieren :: AnfrageBahngeschwindigkeit -> EingabeToken -> Either AnfrageBahngeschwindigkeit Bahngeschwindigkeit
+anfrageBahngeschwindigkeitAktualisieren    (AnfrageBahngeschwindigkeit)                                                          token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.Märklin  , AMärklinBahngeschwindigkeit),
+    (Lexer.Lego     , ALegoBahngeschwindigkeit)]
+    $ ABGUnbekannt AnfrageBahngeschwindigkeit eingabe
+anfrageBahngeschwindigkeitAktualisieren    (ALegoBahngeschwindigkeit)                                                       (EingabeToken {eingabe})            = Left $ ALegoBahngeschwindigkeitName eingabe
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitName name)                                      (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
+    (Just pin)  -> Left $ ALegoBahngeschwindigkeitNameGeschwindigkeit name $ toPin pin
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitNameGeschwindigkeit name geschwindigkeitsPin)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
     (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, geschwindigkeitsPin, fahrtrichtungsPin=toPin pin}
-queryBahngeschwindigkeit    (QMärklinBahngeschwindigkeit)                                                   (EingabeToken {eingabe})            = Left $ QMärklinBahngeschwindigkeitName eingabe
-queryBahngeschwindigkeit    query@(QMärklinBahngeschwindigkeitName name)                                    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QBGUnbekannt query eingabe
+anfrageBahngeschwindigkeitAktualisieren    (AMärklinBahngeschwindigkeit)                                                    (EingabeToken {eingabe})            = Left $ AMärklinBahngeschwindigkeitName eingabe
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitName name)                                   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
     (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, geschwindigkeitsPin=toPin pin}
-queryBahngeschwindigkeit    query@(QBGUnbekannt _ _)                                                        _token                              = Left query
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _ _)                                                       _token                              = Left anfrage
 -- | Eingabe eines Streckenabschnitts
-queryStreckenabschnitt :: QStreckenabschnitt -> EingabeToken -> Either QStreckenabschnitt Streckenabschnitt
-queryStreckenabschnitt  (QStreckenabschnitt)                (EingabeToken {eingabe})            = Left $ QStreckenabschnittName eingabe
-queryStreckenabschnitt  query@(QStreckenabschnittName name) (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QSUnbekannt query eingabe
+anfrageStreckenabschnittAktualisieren :: AnfrageStreckenabschnitt -> EingabeToken -> Either AnfrageStreckenabschnitt Streckenabschnitt
+anfrageStreckenabschnittAktualisieren   (AnfrageStreckenabschnitt)              (EingabeToken {eingabe})            = Left $ AStreckenabschnittName eingabe
+anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittName name)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ ASTUnbekannt anfrage eingabe
     (Just pin)  -> Right $ Streckenabschnitt {stName=name, stromPin=toPin pin}
-queryStreckenabschnitt  query@(QSUnbekannt _ _)             _token                              = Left query
+anfrageStreckenabschnittAktualisieren   anfrage@(ASTUnbekannt _ _)              _token                              = Left anfrage
 -- | Eingabe einer Kupplung
-queryKupplung :: QKupplung -> EingabeToken -> Either QKupplung Kupplung
-queryKupplung   (QKupplung)                 (EingabeToken {eingabe})            = Left $ QKupplungName eingabe
-queryKupplung   query@(QKupplungName name)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ QKUnbekannt query eingabe
+anfrageKupplungAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
+anfrageKupplungAktualisieren    (AnfrageKupplung)               (EingabeToken {eingabe})            = Left $ AKupplungName eingabe
+anfrageKupplungAktualisieren    anfrage@(AKupplungName name)    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Nothing)   -> Left $ AKUUnbekannt anfrage eingabe
     (Just pin)  -> Right $ Kupplung {kuName=name, kupplungsPin=toPin pin}
-queryKupplung   query@(QKUnbekannt _ _)     _token                       = Left query
+anfrageKupplungAktualisieren    anfrage@(AKUUnbekannt _ _)      _token                              = Left anfrage
 
 -- * Klasse für unvollständige Befehle
--- | Unvollständige Befehle/Objekte stellen Funktionen bereit, damit dem Nutzer angezeigt wird, was als nächstes benötigt wird.
-class Query q where
-    getQuery :: (IsString s, Semigroup s) => q -> s
-    getQueryFailed :: (IsString s, Semigroup s) => q -> s -> s
-    getQueryFailed = getQueryFailedDefault
-    getQueryOptions :: (IsString s, Semigroup s) => q -> Maybe s
-    getQueryOptions _query = Nothing
-    {-# MINIMAL getQuery #-}
+-- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
+class Anfrage a where
+    zeigeAnfrage :: (IsString s, Semigroup s) => a -> s
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => a -> s -> s
+    zeigeAnfrageFehlgeschlagen = zeigeAnfrageFehlgeschlagenStandard
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => a -> Maybe s
+    zeigeAnfrageOptionen _anfrage = Nothing
+    {-# MINIMAL zeigeAnfrage #-}
 
--- | Standard-Implementierung zum Anzeigen einer fehlgeschlagenen 'Query'
-getQueryFailedDefault :: (Query q, IsString s, Semigroup s) => q -> s -> s
-getQueryFailedDefault q eingabe = Language.unbekannt (getQuery q) <=> eingabe
+-- | Standard-Implementierung zum Anzeigen einer fehlgeschlagenen 'Anfrage'
+zeigeAnfrageFehlgeschlagenStandard :: (Anfrage a, IsString s, Semigroup s) => a -> s -> s
+zeigeAnfrageFehlgeschlagenStandard a eingabe = Language.unbekannt (zeigeAnfrage a) <=> eingabe
 
 -- | Zeige ein unvollständiges Objekt, gefolgt von der nächsten Nachfrage an
-showQuery :: (Show q, Query q, IsString s, Semigroup s) => q -> s
-showQuery q = showText q <^> getQuery q
+showMitAnfrage :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s
+showMitAnfrage a = showText a <^> zeigeAnfrage a
 
--- | Zeige Meldung für eine invalide Eingabe auf die Nachfrage einer 'Query' an
-showQueryFailed :: (Show q, Query q, IsString s, Semigroup s) => q -> s -> s
-showQueryFailed q eingabe = showText q <^> getQueryFailed q eingabe
+-- | Zeige Meldung für eine invalide Eingabe auf die Nachfrage einer 'Anfrage' an
+showMitAnfrageFehlgeschlagen :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
+showMitAnfrageFehlgeschlagen a eingabe = showText a <^> zeigeAnfrageFehlgeschlagen a eingabe
 
 -- | Rückgabe-Typen
-data QErgebnis  = QEBefehl          Befehl
-                | QEBefehlSofort    BefehlSofort    [EingabeTokenAllgemein]
-                | QEBefehlQuery     QObjektIOStatus (Either (Objekt -> QBefehl) (Objekt -> Befehl))    QBefehl  [EingabeTokenAllgemein]
-                | QEQBefehl         QBefehl
+data AnfrageErgebnis    = AEBefehl              Befehl
+                        | AEBefehlSofort        BefehlSofort        [EingabeTokenAllgemein]
+                        | AEStatusAnfrage       StatusAnfrageObjekt (Either (Objekt -> AnfrageBefehl) (Objekt -> Befehl))    AnfrageBefehl  [EingabeTokenAllgemein]
+                        | AEAnfrageBefehl       AnfrageBefehl
 
--- | Befehle, die sofort ausgführt werden müssen
-data BefehlSofort   = BSLaden           FilePath
+-- | Befehle, die sofort ausgeführt werden müssen
+data BefehlSofort   = BSLaden   FilePath
 
--- | Unvollständiger Befehl, für den zum Auswerten die IOStatus-Monade benötigt wird
-data QObjektIOStatus    = QOIOSUnbekannt            Text
-                        | QOIOSPlan                 EingabeToken
-                        | QOIOSWegstrecke           EingabeToken
-                        | QOIOSWeiche               EingabeToken
-                        | QOIOSBahngeschwindigkeit  EingabeToken
-                        | QOIOSStreckenabschnitt    EingabeToken
-                        | QOIOSKupplung             EingabeToken
+-- | Ein Objekt aus dem aktuellen Status wird benötigt
+data StatusAnfrageObjekt    = SAOUnbekannt              Text
+                            | SAOPlan                   EingabeToken
+                            | SAOWegstrecke             EingabeToken
+                            | SAOWeiche                 EingabeToken
+                            | SAOBahngeschwindigkeit    EingabeToken
+                            | SAOStreckenabschnitt      EingabeToken
+                            | SAOKupplung               EingabeToken
 
-instance Show QObjektIOStatus where
-    show :: QObjektIOStatus -> String
-    show    query@(QOIOSUnbekannt eingabe)      = unpack $ getQueryFailed query eingabe
-    show    (QOIOSPlan _token)                  = Language.plan
-    show    (QOIOSWegstrecke _token)            = Language.wegstrecke
-    show    (QOIOSWeiche _token)                = Language.weiche
-    show    (QOIOSBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
-    show    (QOIOSStreckenabschnitt _token)     = Language.streckenabschnitt
-    show    (QOIOSKupplung _token)              = Language.kupplung
-instance Query QObjektIOStatus where
-    getQuery :: (IsString s, Semigroup s) => QObjektIOStatus -> s
-    getQuery    (QOIOSUnbekannt _eingabe)           = Language.objekt
-    getQuery    (QOIOSPlan _token)                  = Language.indexOderName Language.plan
-    getQuery    (QOIOSWegstrecke _token)            = Language.indexOderName Language.wegstrecke
-    getQuery    (QOIOSWeiche _token)                = Language.indexOderName Language.weiche
-    getQuery    (QOIOSBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
-    getQuery    (QOIOSStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
-    getQuery    (QOIOSKupplung _token)              = Language.indexOderName Language.kupplung
+instance Show StatusAnfrageObjekt where
+    show :: StatusAnfrageObjekt -> String
+    show    anfrage@(SAOUnbekannt eingabe)    = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
+    show    (SAOPlan _token)                  = Language.plan
+    show    (SAOWegstrecke _token)            = Language.wegstrecke
+    show    (SAOWeiche _token)                = Language.weiche
+    show    (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
+    show    (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
+    show    (SAOKupplung _token)              = Language.kupplung
+instance Anfrage StatusAnfrageObjekt where
+    zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjekt -> s
+    zeigeAnfrage    (SAOUnbekannt _eingabe)           = Language.objekt
+    zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
+    zeigeAnfrage    (SAOWegstrecke _token)            = Language.indexOderName Language.wegstrecke
+    zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
+    zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
+    zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
+    zeigeAnfrage    (SAOKupplung _token)              = Language.indexOderName Language.kupplung
 
 -- | Unvollständige Befehle
-data QBefehl    = QBefehl
-                | QBUnbekannt   QBefehl                             Text
-                | QBHinzufügen  QObjekt
-                | QBEntfernen
-                | QBSpeichern
-                | QBLaden
-                | QBAktionPlan  Plan
-                | QBAktion      QAktion
-                | QBBefehlQuery (EingabeToken -> QObjektIOStatus)   (Either (Objekt -> QBefehl) (Objekt -> Befehl))
+data AnfrageBefehl  = AnfrageBefehl
+                    | ABUnbekannt       AnfrageBefehl                           Text
+                    | ABHinzufügen      AnfrageObjekt
+                    | ABEntfernen
+                    | ABSpeichern
+                    | ABLaden
+                    | ABAktionPlan      Plan
+                    | ABAktion          AnfrageAktion
+                    | ABStatusAnfrage   (EingabeToken -> StatusAnfrageObjekt)   (Either (Objekt -> AnfrageBefehl) (Objekt -> Befehl))
 
-instance Show QBefehl where
-    show :: QBefehl -> String
-    show    (QBefehl)                               = Language.befehl
-    show    (QBUnbekannt query eingabe)             = unpack $ unbekanntShowText query eingabe
-    show    (QBHinzufügen qObjekt)                  = Language.hinzufügen <^> showText qObjekt
-    show    (QBEntfernen)                           = Language.entfernen
-    show    (QBSpeichern)                           = Language.speichern
-    show    (QBLaden)                               = Language.laden
-    show    (QBAktionPlan plan)                     = Language.aktion <^> showText plan
-    show    (QBAktion qAktion)                      = showText qAktion
-    show    (QBBefehlQuery qKonstruktor _eitherF)   = showText $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-instance Query QBefehl where
-    getQuery :: (IsString s, Semigroup s) => QBefehl -> s
-    getQuery    (QBefehl)                               = Language.befehl
-    getQuery    (QBUnbekannt query _eingabe)            = getQuery query
-    getQuery    (QBHinzufügen qObjekt)                  = getQuery qObjekt
-    getQuery    (QBEntfernen)                           = Language.objekt
-    getQuery    (QBSpeichern)                           = Language.dateiname
-    getQuery    (QBLaden)                               = Language.dateiname
-    getQuery    (QBAktionPlan _plan)                    = Language.aktion
-    getQuery    (QBAktion qAktion)                      = getQuery qAktion
-    getQuery    (QBBefehlQuery qKonstruktor _eitherF)   = getQuery $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    getQueryOptions :: (IsString s, Semigroup s) => QBefehl -> Maybe s
-    getQueryOptions (QBUnbekannt query _eingabe)            = getQueryOptions query
-    getQueryOptions (QBHinzufügen qObjekt)                  = getQueryOptions qObjekt
-    getQueryOptions (QBAktionPlan _plan)                    = Just $ toBefehlsString Language.aktionPlan
-    getQueryOptions (QBAktion qAktion)                      = getQueryOptions qAktion
-    getQueryOptions (QBBefehlQuery qKonstruktor _eitherF)   = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    getQueryOptions _query  = Nothing
+instance Show AnfrageBefehl where
+    show :: AnfrageBefehl -> String
+    show    (AnfrageBefehl)                                 = Language.befehl
+    show    (ABUnbekannt anfrage eingabe)                   = unpack $ unbekanntShowText anfrage eingabe
+    show    (ABHinzufügen anfrageObjekt)                    = Language.hinzufügen <^> showText anfrageObjekt
+    show    (ABEntfernen)                                   = Language.entfernen
+    show    (ABSpeichern)                                   = Language.speichern
+    show    (ABLaden)                                       = Language.laden
+    show    (ABAktionPlan plan)                             = Language.aktion <^> showText plan
+    show    (ABAktion anfrageAktion)                        = showText anfrageAktion
+    show    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = showText $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+instance Anfrage AnfrageBefehl where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBefehl -> s
+    zeigeAnfrage    (AnfrageBefehl)                                 = Language.befehl
+    zeigeAnfrage    (ABUnbekannt anfrage _eingabe)                  = zeigeAnfrage anfrage
+    zeigeAnfrage    (ABHinzufügen anfrageObjekt)                    = zeigeAnfrage anfrageObjekt
+    zeigeAnfrage    (ABEntfernen)                                   = Language.objekt
+    zeigeAnfrage    (ABSpeichern)                                   = Language.dateiname
+    zeigeAnfrage    (ABLaden)                                       = Language.dateiname
+    zeigeAnfrage    (ABAktionPlan _plan)                            = Language.aktion
+    zeigeAnfrage    (ABAktion anfrageAktion)                        = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBefehl -> Maybe s
+    zeigeAnfrageOptionen (ABUnbekannt anfrage _eingabe)                 = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen (ABHinzufügen anfrageObjekt)                   = zeigeAnfrageOptionen anfrageObjekt
+    zeigeAnfrageOptionen (ABAktionPlan _plan)                           = Just $ toBefehlsString Language.aktionPlan
+    zeigeAnfrageOptionen (ABAktion anfrageAktion)                       = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (ABStatusAnfrage anfrageKonstruktor _eitherF)  = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen _anfrage                                       = Nothing
 
 -- | Unvollständige Objekte
-data QObjekt    = QObjekt
-                | QOUnbekannt           QObjekt                 Text
-                | QOPlan                QPlan
-                | QOWegstrecke          QWegstrecke
-                | QOWeiche              QWeiche
-                | QOBahngeschwindigkeit QBahngeschwindigkeit
-                | QOStreckenabschnitt   QStreckenabschnitt
-                | QOKupplung            QKupplung
-                | QOIOStatus            QObjektIOStatus                     (Either (Objekt -> QObjekt) (Objekt -> Objekt))
+data AnfrageObjekt  = AnfrageObjekt
+                    | AOUnbekannt           AnfrageObjekt               Text
+                    | AOPlan                AnfragePlan
+                    | AOWegstrecke          AnfrageWegstrecke
+                    | AOWeiche              AnfrageWeiche
+                    | AOBahngeschwindigkeit AnfrageBahngeschwindigkeit
+                    | AOStreckenabschnitt   AnfrageStreckenabschnitt
+                    | AOKupplung            AnfrageKupplung
+                    | AOStatusAnfrage       StatusAnfrageObjekt         (Either (Objekt -> AnfrageObjekt) (Objekt -> Objekt))
 
-instance Show QObjekt where
-    show :: QObjekt -> String
-    show    (QOUnbekannt qObjekt eingabe)                   = unpack $ unbekanntShowText qObjekt eingabe
-    show    (QObjekt)                                       = Language.objekt
-    show    (QOPlan qPlan)                                  = showText qPlan
-    show    (QOWegstrecke qWegstrecke)                      = showText qWegstrecke
-    show    (QOWeiche qWeiche)                              = showText qWeiche
-    show    (QOBahngeschwindigkeit qBahngeschwindigkeit)    = showText qBahngeschwindigkeit
-    show    (QOStreckenabschnitt qStreckenabschnitt)        = showText qStreckenabschnitt
-    show    (QOKupplung qKupplung)                          = showText qKupplung
-    show    (QOIOStatus qObjektIOStatus _eitherKonstruktor) = showText qObjektIOStatus
-instance Query QObjekt where
-    getQuery :: (IsString s, Semigroup s) => QObjekt -> s
-    getQuery    (QOUnbekannt qObjekt _eingabe)                  = getQuery qObjekt
-    getQuery    (QObjekt)                                       = Language.objekt
-    getQuery    (QOPlan qPlan)                                  = getQuery qPlan
-    getQuery    (QOWegstrecke qWegstrecke)                      = getQuery qWegstrecke
-    getQuery    (QOWeiche qWeiche)                              = getQuery qWeiche
-    getQuery    (QOBahngeschwindigkeit qBahngeschwindigkeit)    = getQuery qBahngeschwindigkeit
-    getQuery    (QOStreckenabschnitt qStreckenabschnitt)        = getQuery qStreckenabschnitt
-    getQuery    (QOKupplung qKupplung)                          = getQuery qKupplung
-    getQuery    (QOIOStatus qObjektIOStatus _eitherKonstruktor) = getQuery qObjektIOStatus
-    getQueryOptions :: (IsString s, Semigroup s) => QObjekt -> Maybe s
-    getQueryOptions (QOUnbekannt qObjekt _eingabe)                  = getQueryOptions qObjekt
-    getQueryOptions (QObjekt)                                       = Just $ toBefehlsString Language.befehlTypen
-    getQueryOptions (QOPlan qPlan)                                  = getQueryOptions qPlan
-    getQueryOptions (QOWegstrecke qWegstrecke)                      = getQueryOptions qWegstrecke
-    getQueryOptions (QOWeiche qWeiche)                              = getQueryOptions qWeiche
-    getQueryOptions (QOBahngeschwindigkeit qBahngeschwindigkeit)    = getQueryOptions qBahngeschwindigkeit
-    getQueryOptions (QOStreckenabschnitt qStreckenabschnitt)        = getQueryOptions qStreckenabschnitt
-    getQueryOptions (QOKupplung qKupplung)                          = getQueryOptions qKupplung
-    getQueryOptions (QOIOStatus qObjektIOStatus _eitherKonstruktor) = getQueryOptions qObjektIOStatus
+instance Show AnfrageObjekt where
+    show :: AnfrageObjekt -> String
+    show    (AOUnbekannt anfrageObjekt eingabe)                         = unpack $ unbekanntShowText anfrageObjekt eingabe
+    show    (AnfrageObjekt)                                             = Language.objekt
+    show    (AOPlan aPlan)                                              = showText aPlan
+    show    (AOWegstrecke qWegstrecke)                                  = showText qWegstrecke
+    show    (AOWeiche aWeiche)                                          = showText aWeiche
+    show    (AOBahngeschwindigkeit aBahngeschwindigkeit)                = showText aBahngeschwindigkeit
+    show    (AOStreckenabschnitt aStreckenabschnitt)                    = showText aStreckenabschnitt
+    show    (AOKupplung aKupplung)                                      = showText aKupplung
+    show    (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = showText objektStatusAnfrage
+instance Anfrage AnfrageObjekt where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageObjekt -> s
+    zeigeAnfrage    (AOUnbekannt anfrageObjekt _eingabe)                        = zeigeAnfrage anfrageObjekt
+    zeigeAnfrage    (AnfrageObjekt)                                             = Language.objekt
+    zeigeAnfrage    (AOPlan aPlan)                                              = zeigeAnfrage aPlan
+    zeigeAnfrage    (AOWegstrecke qWegstrecke)                                  = zeigeAnfrage qWegstrecke
+    zeigeAnfrage    (AOWeiche aWeiche)                                          = zeigeAnfrage aWeiche
+    zeigeAnfrage    (AOBahngeschwindigkeit aBahngeschwindigkeit)                = zeigeAnfrage aBahngeschwindigkeit
+    zeigeAnfrage    (AOStreckenabschnitt aStreckenabschnitt)                    = zeigeAnfrage aStreckenabschnitt
+    zeigeAnfrage    (AOKupplung aKupplung)                                      = zeigeAnfrage aKupplung
+    zeigeAnfrage    (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageObjekt -> Maybe s
+    zeigeAnfrageOptionen (AOUnbekannt anfrageObjekt _eingabe)                       = zeigeAnfrageOptionen anfrageObjekt
+    zeigeAnfrageOptionen (AnfrageObjekt)                                            = Just $ toBefehlsString Language.befehlTypen
+    zeigeAnfrageOptionen (AOPlan aPlan)                                             = zeigeAnfrageOptionen aPlan
+    zeigeAnfrageOptionen (AOWegstrecke qWegstrecke)                                 = zeigeAnfrageOptionen qWegstrecke
+    zeigeAnfrageOptionen (AOWeiche aWeiche)                                         = zeigeAnfrageOptionen aWeiche
+    zeigeAnfrageOptionen (AOBahngeschwindigkeit aBahngeschwindigkeit)               = zeigeAnfrageOptionen aBahngeschwindigkeit
+    zeigeAnfrageOptionen (AOStreckenabschnitt aStreckenabschnitt)                   = zeigeAnfrageOptionen aStreckenabschnitt
+    zeigeAnfrageOptionen (AOKupplung aKupplung)                                     = zeigeAnfrageOptionen aKupplung
+    zeigeAnfrageOptionen (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)   = zeigeAnfrageOptionen objektStatusAnfrage
 
 -- | 'Aktion'-Klassifizierungen
-data QAktionElement = QAEUnbekannt              Text
-                    | QAERückgängig
-                    | QAEWarten
-                    | QAEWegstrecke
-                    | QAEWeiche
-                    | QAEBahngeschwindigkeit
-                    | QAEStreckenabschnitt
-                    | QAEKupplung
+data AnfrageAktionElement   = AAEUnbekannt              Text
+                            | AAERückgängig
+                            | AAEWarten
+                            | AAEWegstrecke
+                            | AAEWeiche
+                            | AAEBahngeschwindigkeit
+                            | AAEStreckenabschnitt
+                            | AAEKupplung
 
 -- | Bekannte Teil-Typen einer 'Wegstrecke'
-data QWegstreckenElement    = QWEUnbekannt              Text
-                            | QWEWeiche
-                            | QWEBahngeschwindigkeit
-                            | QWEStreckenabschnitt
-                            | QWEKupplung
+data AnfrageWegstreckenElement  = AWSEUnbekannt             Text
+                                | AWSEWeiche
+                                | AWSEBahngeschwindigkeit
+                                | AWSEStreckenabschnitt
+                                | AWSEKupplung
 
 -- | Unvollständiger 'Plan'
-data QPlan  = QPlan
-            | QPUnbekannt       QPlan                               Text
-            | QPlanName         Text
-            | QPlanNameAnzahl   Text                                Natural                                     (SEQueue Aktion)    QAktion
-            | QPlanIOStatus     QObjektIOStatus                     (Either (Objekt -> QPlan) (Objekt -> Plan))
-            | QPlanBefehlQuery  (EingabeToken -> QObjektIOStatus)   (Either (Objekt -> QPlan) (Objekt -> Plan))
+data AnfragePlan    = AnfragePlan
+                    | APUnbekannt       AnfragePlan                             Text
+                    | APlanName         Text
+                    | APlanNameAnzahl   Text                                    Natural                                             (SEQueue Aktion)    AnfrageAktion
+                    | APlanIOStatus     StatusAnfrageObjekt                     (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
+                    | APStatusAnfrage   (EingabeToken -> StatusAnfrageObjekt)   (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
 
-instance Show QPlan where
-    show :: QPlan -> String
-    show    (QPUnbekannt qPlan eingabe)                         = unpack $ unbekanntShowText qPlan eingabe
-    show    (QPlan)                                             = Language.plan
-    show    (QPlanName name)                                    = unpack $ Language.plan <^> Language.name <=> name
-    show    (QPlanNameAnzahl name anzahl acc qAktion)           = unpack $ Language.plan <^> Language.name <=> name <^> Language.anzahl Language.aktionen <=> showText anzahl <^> showText acc <^> showText qAktion
-    show    (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = Language.plan <^> showText qObjektIOStatus
-    show    (QPlanBefehlQuery qKonstruktor _eitherF)            = Language.plan <^> Language.aktion <-> Language.objekt <^> showText (qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
-instance Query QPlan where
-    getQuery :: (IsString s, Semigroup s) => QPlan -> s
-    getQuery    (QPUnbekannt qPlan _eingabe)                        = getQuery qPlan
-    getQuery    (QPlan)                                             = Language.name
-    getQuery    (QPlanName _name)                                   = Language.anzahl Language.aktionen
-    getQuery    (QPlanNameAnzahl _name _anzahl _acc qAktion)        = getQuery qAktion
-    getQuery    (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = getQuery qObjektIOStatus
-    getQuery    (QPlanBefehlQuery qKonstruktor _eitherF)            = getQuery $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    getQueryFailed :: (IsString s, Semigroup s) => QPlan -> s -> s
-    getQueryFailed  q@(QPlanName _name) eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q                   eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QPlan -> Maybe s
-    getQueryOptions (QPUnbekannt qPlan _eingabe)                        = getQueryOptions qPlan
-    getQueryOptions (QPlan)                                             = Nothing
-    getQueryOptions (QPlanName _name)                                   = Nothing
-    getQueryOptions (QPlanNameAnzahl _name _anzahl _acc qAktion)        = getQueryOptions qAktion
-    getQueryOptions (QPlanIOStatus qObjektIOStatus _eitherKonstruktor)  = getQueryOptions qObjektIOStatus
-    getQueryOptions (QPlanBefehlQuery qKonstruktor _eitherF)            = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+instance Show AnfragePlan where
+    show :: AnfragePlan -> String
+    show    (APUnbekannt aPlan eingabe)                             = unpack $ unbekanntShowText aPlan eingabe
+    show    (AnfragePlan)                                           = Language.plan
+    show    (APlanName name)                                        = unpack $ Language.plan <^> Language.name <=> name
+    show    (APlanNameAnzahl name anzahl acc anfrageAktion)         = unpack $ Language.plan <^> Language.name <=> name <^> Language.anzahl Language.aktionen <=> showText anzahl <^> showText acc <^> showText anfrageAktion
+    show    (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)  = Language.plan <^> showText objektStatusAnfrage
+    show    (APStatusAnfrage anfrageKonstruktor _eitherF)           = Language.plan <^> Language.aktion <-> Language.objekt <^> showText (anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
+instance Anfrage AnfragePlan where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfragePlan -> s
+    zeigeAnfrage    (APUnbekannt aPlan _eingabe)                            = zeigeAnfrage aPlan
+    zeigeAnfrage    (AnfragePlan)                                           = Language.name
+    zeigeAnfrage    (APlanName _name)                                       = Language.anzahl Language.aktionen
+    zeigeAnfrage    (APlanNameAnzahl _name _anzahl _acc anfrageAktion)      = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)  = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage    (APStatusAnfrage anfrageKonstruktor _eitherF)           = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfragePlan -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(APlanName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfragePlan -> Maybe s
+    zeigeAnfrageOptionen (APUnbekannt aPlan _eingabe)                           = zeigeAnfrageOptionen aPlan
+    zeigeAnfrageOptionen (AnfragePlan)                                          = Nothing
+    zeigeAnfrageOptionen (APlanName _name)                                      = Nothing
+    zeigeAnfrageOptionen (APlanNameAnzahl _name _anzahl _acc anfrageAktion)     = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (APlanIOStatus objektStatusAnfrage _eitherKonstruktor) = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen (APStatusAnfrage anfrageKonstruktor _eitherF)          = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
 
 -- | Unvollständige 'Aktion'
-data QAktion    = QAktion
-                | QAUnbekannt           QAktion                                                                 Text
-                | QARückgängig
-                | QAWarten
-                | QAWegstrecke          (QAktionWegstrecke QWegstrecke Wegstrecke)
-                | QAWeiche              (QAktionWeiche QWeiche Weiche)
-                | QABahngeschwindigkeit (QAktionBahngeschwindigkeit QBahngeschwindigkeit Bahngeschwindigkeit)
-                | QAStreckenabschnitt   (QAktionStreckenabschnitt QStreckenabschnitt Streckenabschnitt)
-                | QAKupplung            (QAktionKupplung QKupplung Kupplung)
-                | QAktionIOStatus       QObjektIOStatus                                                         (Either (Objekt -> QAktion) (Objekt -> Aktion))
-                | QAktionBefehlQuery    (EingabeToken -> QObjektIOStatus)                                       (Either (Objekt -> QAktion) (Objekt -> Aktion))
+data AnfrageAktion  = AnfrageAktion
+                    | AAUnbekannt           AnfrageAktion                                                                       Text
+                    | AARückgängig
+                    | AAWarten
+                    | AAWegstrecke          (AnfrageAktionWegstrecke AnfrageWegstrecke Wegstrecke)
+                    | AAWeiche              (AnfrageAktionWeiche AnfrageWeiche Weiche)
+                    | AABahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit AnfrageBahngeschwindigkeit Bahngeschwindigkeit)
+                    | AAStreckenabschnitt   (AnfrageAktionStreckenabschnitt AnfrageStreckenabschnitt Streckenabschnitt)
+                    | AAKupplung            (AnfrageAktionKupplung AnfrageKupplung Kupplung)
+                    | AAStatusAnfrage       StatusAnfrageObjekt                                                                 (Either (Objekt -> AnfrageAktion) (Objekt -> Aktion))
+                    | AAKlassifizierung     (EingabeToken -> StatusAnfrageObjekt)                                               (Either (Objekt -> AnfrageAktion) (Objekt -> Aktion))
 
-instance Show QAktion where
-    show :: QAktion -> String
-    show    (QAUnbekannt qAktion eingabe)                           = unpack $ unbekanntShowText qAktion eingabe
-    show    (QAktion)                                               = Language.aktion
-    show    (QARückgängig)                                          = Language.rückgängig
-    show    (QAWarten)                                              = Language.aktion <^> Language.warten
-    show    (QAWegstrecke qAktionWegstrecke)                        = Language.aktion <^> showText qAktionWegstrecke
-    show    (QAWeiche qAktionWeiche)                                = Language.aktion <^> showText qAktionWeiche
-    show    (QABahngeschwindigkeit qAktionBahngeschwindigkeit)      = Language.aktion <^> showText qAktionBahngeschwindigkeit
-    show    (QAStreckenabschnitt qAktionStreckenabschnitt)          = Language.aktion <^> showText qAktionStreckenabschnitt
-    show    (QAKupplung qAktionKupplung)                            = Language.aktion <^> showText qAktionKupplung
-    show    (QAktionIOStatus qObjektIOStatus _eitherKonstruktor)    = Language.aktion <^> showText qObjektIOStatus
-    show    (QAktionBefehlQuery qKonstruktor _eitherF)              = Language.aktion <-> Language.objekt <^> showText (qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
-instance Query QAktion where
-    getQuery :: (IsString s, Semigroup s) => QAktion -> s
-    getQuery    (QAUnbekannt qAktion _eingabe)                          = getQuery qAktion
-    getQuery    (QAktion)                                               = Language.aktion
-    getQuery    (QARückgängig)                                          = Language.aktion
-    getQuery    (QAWarten)                                              = Language.zeit
-    getQuery    (QAWegstrecke qAktionWegstrecke)                        = getQuery qAktionWegstrecke
-    getQuery    (QAWeiche qAktionWeiche)                                = getQuery qAktionWeiche
-    getQuery    (QABahngeschwindigkeit qAktionBahngeschwindigkeit)      = getQuery qAktionBahngeschwindigkeit
-    getQuery    (QAStreckenabschnitt qAktionStreckenabschnitt)          = getQuery qAktionStreckenabschnitt
-    getQuery    (QAKupplung qAktionKupplung)                            = getQuery qAktionKupplung
-    getQuery    (QAktionIOStatus qObjektIOStatus _eitherKonstruktor)    = getQuery qObjektIOStatus
-    getQuery    (QAktionBefehlQuery qKonstruktor _eitherF)              = getQuery $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    getQueryFailed :: (IsString s, Semigroup s) => QAktion -> s -> s
-    getQueryFailed  q@(QAWarten)    eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q               eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QAktion -> Maybe s
-    getQueryOptions (QAUnbekannt qAktion _eingabe)                          = getQueryOptions qAktion
-    getQueryOptions (QAktion)                                               = Just $ toBefehlsString Language.aktionGruppen
-    getQueryOptions (QARückgängig)                                          = Nothing
-    getQueryOptions (QAWarten)                                              = Nothing
-    getQueryOptions (QAWegstrecke qAktionWegstrecke)                        = getQueryOptions qAktionWegstrecke
-    getQueryOptions (QAWeiche qAktionWeiche)                                = getQueryOptions qAktionWeiche
-    getQueryOptions (QABahngeschwindigkeit qAktionBahngeschwindigkeit)      = getQueryOptions qAktionBahngeschwindigkeit
-    getQueryOptions (QAStreckenabschnitt qAktionStreckenabschnitt)          = getQueryOptions qAktionStreckenabschnitt
-    getQueryOptions (QAKupplung qAktionKupplung)                            = getQueryOptions qAktionKupplung
-    getQueryOptions (QAktionIOStatus qObjektIOStatus _eitherKonstruktor)    = getQueryOptions qObjektIOStatus
-    getQueryOptions (QAktionBefehlQuery qKonstruktor _eitherF)              = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+instance Show AnfrageAktion where
+    show :: AnfrageAktion -> String
+    show    (AAUnbekannt anfrageAktion eingabe)                         = unpack $ unbekanntShowText anfrageAktion eingabe
+    show    (AnfrageAktion)                                             = Language.aktion
+    show    (AARückgängig)                                              = Language.rückgängig
+    show    (AAWarten)                                                  = Language.aktion <^> Language.warten
+    show    (AAWegstrecke qAktionWegstrecke)                            = Language.aktion <^> showText qAktionWegstrecke
+    show    (AAWeiche qAktionWeiche)                                    = Language.aktion <^> showText qAktionWeiche
+    show    (AABahngeschwindigkeit qAktionBahngeschwindigkeit)          = Language.aktion <^> showText qAktionBahngeschwindigkeit
+    show    (AAStreckenabschnitt qAktionStreckenabschnitt)              = Language.aktion <^> showText qAktionStreckenabschnitt
+    show    (AAKupplung qAktionKupplung)                                = Language.aktion <^> showText qAktionKupplung
+    show    (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = Language.aktion <^> showText objektStatusAnfrage
+    show    (AAKlassifizierung anfrageKonstruktor _eitherF)             = Language.aktion <-> Language.objekt <^> showText (anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
+instance Anfrage AnfrageAktion where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktion -> s
+    zeigeAnfrage    (AAUnbekannt anfrageAktion _eingabe)                        = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AnfrageAktion)                                             = Language.aktion
+    zeigeAnfrage    (AARückgängig)                                              = Language.aktion
+    zeigeAnfrage    (AAWarten)                                                  = Language.zeit
+    zeigeAnfrage    (AAWegstrecke qAktionWegstrecke)                            = zeigeAnfrage qAktionWegstrecke
+    zeigeAnfrage    (AAWeiche qAktionWeiche)                                    = zeigeAnfrage qAktionWeiche
+    zeigeAnfrage    (AABahngeschwindigkeit qAktionBahngeschwindigkeit)          = zeigeAnfrage qAktionBahngeschwindigkeit
+    zeigeAnfrage    (AAStreckenabschnitt qAktionStreckenabschnitt)              = zeigeAnfrage qAktionStreckenabschnitt
+    zeigeAnfrage    (AAKupplung qAktionKupplung)                                = zeigeAnfrage qAktionKupplung
+    zeigeAnfrage    (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage    (AAKlassifizierung anfrageKonstruktor _eitherF)             = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAktion -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(AAWarten)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a               eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktion -> Maybe s
+    zeigeAnfrageOptionen (AAUnbekannt anfrageAktion _eingabe)                       = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AnfrageAktion)                                            = Just $ toBefehlsString Language.aktionGruppen
+    zeigeAnfrageOptionen (AARückgängig)                                             = Nothing
+    zeigeAnfrageOptionen (AAWarten)                                                 = Nothing
+    zeigeAnfrageOptionen (AAWegstrecke qAktionWegstrecke)                           = zeigeAnfrageOptionen qAktionWegstrecke
+    zeigeAnfrageOptionen (AAWeiche qAktionWeiche)                                   = zeigeAnfrageOptionen qAktionWeiche
+    zeigeAnfrageOptionen (AABahngeschwindigkeit qAktionBahngeschwindigkeit)         = zeigeAnfrageOptionen qAktionBahngeschwindigkeit
+    zeigeAnfrageOptionen (AAStreckenabschnitt qAktionStreckenabschnitt)             = zeigeAnfrageOptionen qAktionStreckenabschnitt
+    zeigeAnfrageOptionen (AAKupplung qAktionKupplung)                               = zeigeAnfrageOptionen qAktionKupplung
+    zeigeAnfrageOptionen (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)   = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen (AAKlassifizierung anfrageKonstruktor _eitherF)            = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
 
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
-data QAktionWegstrecke qw w = QAktionWegstrecke         w
-                            | QAWSUnbekannt             (QAktionWegstrecke qw w)            Text
-                            | QAWSBahngeschwindigkeit   (QAktionBahngeschwindigkeit qw w)
-                            | QAWSStreckenabschnitt     (QAktionStreckenabschnitt qw w)
-                            | QAWSKupplung              (QAktionKupplung qw w)
+data AnfrageAktionWegstrecke aw w   = AnfrageAktionWegstrecke   w
+                                    | AAWSUnbekannt             (AnfrageAktionWegstrecke aw w)          Text
+                                    | AAWSBahngeschwindigkeit   (AnfrageAktionBahngeschwindigkeit aw w)
+                                    | AAWSStreckenabschnitt     (AnfrageAktionStreckenabschnitt aw w)
+                                    | AAWSKupplung              (AnfrageAktionKupplung aw w)
 
-instance (Show qw, Show w) => Show (QAktionWegstrecke qw w) where
-    show :: QAktionWegstrecke qw w -> String
-    show    (QAktionWegstrecke wegstrecke)      = Language.wegstrecke <=> showText wegstrecke
-    show    (QAWSUnbekannt qAktion eingabe)     = unpack $ unbekanntShowText qAktion eingabe
-    show    (QAWSBahngeschwindigkeit qAktion)   = showText qAktion
-    show    (QAWSStreckenabschnitt qAktion)     = showText qAktion
-    show    (QAWSKupplung qAktion)              = showText qAktion
-instance Query (QAktionWegstrecke qw w) where
-    getQuery :: (IsString s, Semigroup s) => QAktionWegstrecke qw w -> s
-    getQuery    (QAktionWegstrecke _wegstrecke)     = Language.aktion
-    getQuery    (QAWSUnbekannt qAktion _eingabe)    = getQuery qAktion
-    getQuery    (QAWSBahngeschwindigkeit qAktion)   = getQuery qAktion
-    getQuery    (QAWSStreckenabschnitt qAktion)     = getQuery qAktion
-    getQuery    (QAWSKupplung qAktion)              = getQuery qAktion
-    getQueryOptions :: (IsString s, Semigroup s) => QAktionWegstrecke qw w -> Maybe s
-    getQueryOptions (QAktionWegstrecke _wegstrecke)     = Just $ toBefehlsString Language.aktionWegstrecke
-    getQueryOptions (QAWSUnbekannt qAktion _eingabe)    = getQueryOptions qAktion
-    getQueryOptions (QAWSBahngeschwindigkeit qAktion)   = getQueryOptions qAktion
-    getQueryOptions (QAWSStreckenabschnitt qAktion)     = getQueryOptions qAktion
-    getQueryOptions (QAWSKupplung qAktion)              = getQueryOptions qAktion
+instance (Show aw, Show w) => Show (AnfrageAktionWegstrecke aw w) where
+    show :: AnfrageAktionWegstrecke aw w -> String
+    show    (AnfrageAktionWegstrecke wegstrecke)      = Language.wegstrecke <=> showText wegstrecke
+    show    (AAWSUnbekannt anfrageAktion eingabe)     = unpack $ unbekanntShowText anfrageAktion eingabe
+    show    (AAWSBahngeschwindigkeit anfrageAktion)   = showText anfrageAktion
+    show    (AAWSStreckenabschnitt anfrageAktion)     = showText anfrageAktion
+    show    (AAWSKupplung anfrageAktion)              = showText anfrageAktion
+instance Anfrage (AnfrageAktionWegstrecke aw w) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke aw w -> s
+    zeigeAnfrage    (AnfrageAktionWegstrecke _wegstrecke)     = Language.aktion
+    zeigeAnfrage    (AAWSUnbekannt anfrageAktion _eingabe)    = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AAWSBahngeschwindigkeit anfrageAktion)   = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AAWSStreckenabschnitt anfrageAktion)     = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AAWSKupplung anfrageAktion)              = zeigeAnfrage anfrageAktion
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke aw w -> Maybe s
+    zeigeAnfrageOptionen (AnfrageAktionWegstrecke _wegstrecke)     = Just $ toBefehlsString Language.aktionWegstrecke
+    zeigeAnfrageOptionen (AAWSUnbekannt anfrageAktion _eingabe)    = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AAWSBahngeschwindigkeit anfrageAktion)   = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AAWSStreckenabschnitt anfrageAktion)     = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AAWSKupplung anfrageAktion)              = zeigeAnfrageOptionen anfrageAktion
 
 -- | Unvollständige 'Aktion' einer 'Weiche'
-data QAktionWeiche qw w = QAktionWeiche         w
-                        | QAWUnbekannt          (QAktionWeiche qw w)    Text
-                        | QAWStellen            w
+data AnfrageAktionWeiche aw w   = AnfrageAktionWeiche   w
+                                | AAWUnbekannt          (AnfrageAktionWeiche aw w)  Text
+                                | AAWStellen            w
 
-instance (Show qw, Show w) => Show (QAktionWeiche qw w) where
-    show :: QAktionWeiche qw w -> String
-    show    (QAktionWeiche weiche)          = Language.weiche <=> showText weiche
-    show    (QAWUnbekannt qAktion eingabe)  = unpack $ unbekanntShowText qAktion eingabe
-    show    (QAWStellen weiche)             = Language.weiche <=> showText weiche <^> Language.stellen
-instance Query (QAktionWeiche qw w) where
-    getQuery :: (IsString s, Semigroup s) => QAktionWeiche qw w -> s
-    getQuery    (QAktionWeiche _weiche)         = Language.aktion
-    getQuery    (QAWUnbekannt qAktion _eingabe) = getQuery qAktion
-    getQuery    (QAWStellen _weiche)            = Language.richtung
-    getQueryOptions :: (IsString s, Semigroup s) => QAktionWeiche qw w -> Maybe s
-    getQueryOptions (QAktionWeiche _weiche)         = Just $ toBefehlsString Language.aktionWeiche
-    getQueryOptions (QAWUnbekannt qAktion _eingabe) = getQueryOptions qAktion
-    getQueryOptions (QAWStellen _weiche)            = Just $ toBefehlsString $ NE.toList $ fmap showText unterstützteRichtungen
+instance (Show aw, Show w) => Show (AnfrageAktionWeiche aw w) where
+    show :: AnfrageAktionWeiche aw w -> String
+    show    (AnfrageAktionWeiche weiche)            = Language.weiche <=> showText weiche
+    show    (AAWUnbekannt anfrageAktion eingabe)    = unpack $ unbekanntShowText anfrageAktion eingabe
+    show    (AAWStellen weiche)                     = Language.weiche <=> showText weiche <^> Language.stellen
+instance Anfrage (AnfrageAktionWeiche aw w) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionWeiche aw w -> s
+    zeigeAnfrage    (AnfrageAktionWeiche _weiche)           = Language.aktion
+    zeigeAnfrage    (AAWUnbekannt anfrageAktion _eingabe)   = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AAWStellen _weiche)                    = Language.richtung
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionWeiche aw w -> Maybe s
+    zeigeAnfrageOptionen (AnfrageAktionWeiche _weiche)          = Just $ toBefehlsString Language.aktionWeiche
+    zeigeAnfrageOptionen (AAWUnbekannt anfrageAktion _eingabe)  = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AAWStellen _weiche)                   = Just $ toBefehlsString $ NE.toList $ fmap showText unterstützteRichtungen
 
 -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
-data QAktionBahngeschwindigkeit qb b    = QAktionBahngeschwindigkeit            b
-                                        | QABGUnbekannt                         (QAktionBahngeschwindigkeit qb b)   Text
-                                        | QABGGeschwindigkeit                   b
-                                        | QABGUmdrehen                          b
+data AnfrageAktionBahngeschwindigkeit ab b  = AnfrageAktionBahngeschwindigkeit  b
+                                            | AABGUnbekannt                     (AnfrageAktionBahngeschwindigkeit ab b) Text
+                                            | AABGGeschwindigkeit               b
+                                            | AABGUmdrehen                      b
 
-instance (Show qb, Show b) => Show (QAktionBahngeschwindigkeit qb b) where
-    show :: QAktionBahngeschwindigkeit qb b -> String
-    show    (QAktionBahngeschwindigkeit bahngeschwindigkeit)    = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit
-    show    (QABGUnbekannt qAktion eingabe)                     = unpack $ unbekanntShowText qAktion eingabe
-    show    (QABGGeschwindigkeit bahngeschwindigkeit)           = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.geschwindigkeit
-    show    (QABGUmdrehen bahngeschwindigkeit)                  = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.umdrehen
-instance Query (QAktionBahngeschwindigkeit qb b) where
-    getQuery :: (IsString s, Semigroup s) => QAktionBahngeschwindigkeit qb b -> s
-    getQuery    (QAktionBahngeschwindigkeit _bahngeschwindigkeit)   = Language.aktion
-    getQuery    (QABGUnbekannt qAktion _eingabe)                    = getQuery qAktion
-    getQuery    (QABGGeschwindigkeit _bahngeschwindigkeit)          = Language.geschwindigkeit
-    getQuery    (QABGUmdrehen _bahngeschwindigkeit)                 = Language.fahrtrichtung
-    getQueryFailed :: (IsString s, Semigroup s) => QAktionBahngeschwindigkeit qb b -> s -> s
-    getQueryFailed  q@(QABGGeschwindigkeit _bahngeschwindigkeit)    eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed q                                                eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QAktionBahngeschwindigkeit bg b -> Maybe s
-    getQueryOptions (QAktionBahngeschwindigkeit _bahngeschwindigkeit)   = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
-    getQueryOptions (QABGUnbekannt qAktion _eingabe)                    = getQueryOptions qAktion
-    getQueryOptions (QABGGeschwindigkeit _bahngeschwindigkeit)          = Nothing
-    getQueryOptions (QABGUmdrehen _bahngeschwindigkeit)                 = Just $ toBefehlsString $ map showText $ NE.toList unterstützteFahrtrichtungen
+instance (Show ab, Show b) => Show (AnfrageAktionBahngeschwindigkeit ab b) where
+    show :: AnfrageAktionBahngeschwindigkeit ab b -> String
+    show    (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)  = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit
+    show    (AABGUnbekannt anfrageAktion eingabe)                   = unpack $ unbekanntShowText anfrageAktion eingabe
+    show    (AABGGeschwindigkeit bahngeschwindigkeit)               = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.geschwindigkeit
+    show    (AABGUmdrehen bahngeschwindigkeit)                      = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.umdrehen
+instance Anfrage (AnfrageAktionBahngeschwindigkeit ab b) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit ab b -> s
+    zeigeAnfrage    (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) = Language.aktion
+    zeigeAnfrage    (AABGUnbekannt anfrageAktion _eingabe)                  = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AABGGeschwindigkeit _bahngeschwindigkeit)              = Language.geschwindigkeit
+    zeigeAnfrage    (AABGUmdrehen _bahngeschwindigkeit)                     = Language.fahrtrichtung
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit ab b -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(AABGGeschwindigkeit _bahngeschwindigkeit)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen a                                                eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit bg b -> Maybe s
+    zeigeAnfrageOptionen (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)    = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
+    zeigeAnfrageOptionen (AABGUnbekannt anfrageAktion _eingabe)                     = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AABGGeschwindigkeit _bahngeschwindigkeit)                 = Nothing
+    zeigeAnfrageOptionen (AABGUmdrehen _bahngeschwindigkeit)                        = Just $ toBefehlsString $ map showText $ NE.toList unterstützteFahrtrichtungen
 
 -- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
-data QAktionStreckenabschnitt qs s  = QAktionStreckenabschnitt          s
-                                    | QASUnbekannt                      (QAktionStreckenabschnitt qs s) Text
-                                    | QASStrom                          s
+data AnfrageAktionStreckenabschnitt as s    = AnfrageAktionStreckenabschnitt    s
+                                            | AASTUnbekannt                     (AnfrageAktionStreckenabschnitt as s)   Text
+                                            | AASTStrom                         s
 
-instance (Show qs, Show s) => Show (QAktionStreckenabschnitt qs s) where
-    show :: QAktionStreckenabschnitt qs s -> String
-    show    (QAktionStreckenabschnitt streckenabschnitt)    = Language.streckenabschnitt <=> showText streckenabschnitt
-    show    (QASUnbekannt qAktion eingabe)                  = unpack $ unbekanntShowText qAktion eingabe
-    show    (QASStrom streckenabschnitt)                    = Language.streckenabschnitt <=> showText streckenabschnitt <^> Language.strom
-instance Query (QAktionStreckenabschnitt qst st) where
-    getQuery :: (IsString s, Semigroup s) => QAktionStreckenabschnitt qst st -> s
-    getQuery    (QAktionStreckenabschnitt _streckenabschnitt)   = Language.aktion
-    getQuery    (QASUnbekannt qAktion _eingabe)                 = getQuery qAktion
-    getQuery    (QASStrom _streckenabschnitt)                   = Language.fließend <|> Language.gesperrt
-    getQueryOptions :: (IsString s, Semigroup s) => QAktionStreckenabschnitt qst st -> Maybe s
-    getQueryOptions (QAktionStreckenabschnitt _streckenabschnitt)   = Just $ toBefehlsString Language.aktionStreckenabschnitt
-    getQueryOptions (QASUnbekannt qAktion _eingabe)                 = getQueryOptions qAktion
-    getQueryOptions (QASStrom _streckenabschnitt)                   = Just $ toBefehlsString [Language.an, Language.aus]
+instance (Show as, Show s) => Show (AnfrageAktionStreckenabschnitt as s) where
+    show :: AnfrageAktionStreckenabschnitt as s -> String
+    show    (AnfrageAktionStreckenabschnitt streckenabschnitt)  = Language.streckenabschnitt <=> showText streckenabschnitt
+    show    (AASTUnbekannt anfrageAktion eingabe)               = unpack $ unbekanntShowText anfrageAktion eingabe
+    show    (AASTStrom streckenabschnitt)                       = Language.streckenabschnitt <=> showText streckenabschnitt <^> Language.strom
+instance Anfrage (AnfrageAktionStreckenabschnitt qst st) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionStreckenabschnitt qst st -> s
+    zeigeAnfrage    (AnfrageAktionStreckenabschnitt _streckenabschnitt) = Language.aktion
+    zeigeAnfrage    (AASTUnbekannt anfrageAktion _eingabe)              = zeigeAnfrage anfrageAktion
+    zeigeAnfrage    (AASTStrom _streckenabschnitt)                      = Language.fließend <|> Language.gesperrt
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionStreckenabschnitt qst st -> Maybe s
+    zeigeAnfrageOptionen (AnfrageAktionStreckenabschnitt _streckenabschnitt)    = Just $ toBefehlsString Language.aktionStreckenabschnitt
+    zeigeAnfrageOptionen (AASTUnbekannt anfrageAktion _eingabe)                 = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen (AASTStrom _streckenabschnitt)                         = Just $ toBefehlsString [Language.an, Language.aus]
 
 -- | Unvollständige 'Aktion' einer 'Kupplung'
-data QAktionKupplung qk k   = QAktionKupplung           k
-                            | QAKUnbekannt              (QAktionKupplung qk k)  Text
+data AnfrageAktionKupplung ak k = AnfrageAktionKupplung k
+                                | AAKUUnbekannt             (AnfrageAktionKupplung ak k)    Text
 
-instance (Show qk, Show k) => Show (QAktionKupplung qk k) where
-    show :: QAktionKupplung qk k -> String
-    show    (QAktionKupplung kupplung)      = Language.kupplung <=> showText kupplung
-    show    (QAKUnbekannt qAktion eingabe)  = unpack $ unbekanntShowText qAktion eingabe
-instance Query (QAktionKupplung qk k) where
-    getQuery :: (IsString s, Semigroup s) => QAktionKupplung qk k -> s
-    getQuery    (QAktionKupplung _kupplung)     = Language.aktion
-    getQuery    (QAKUnbekannt qAktion _eingabe) = getQuery qAktion
-    getQueryOptions :: (IsString s, Semigroup s) => QAktionKupplung qk k -> Maybe s
-    getQueryOptions (QAktionKupplung _kupplung)     = Just $ toBefehlsString Language.aktionKupplung
-    getQueryOptions (QAKUnbekannt qAktion _eingabe) = getQueryOptions qAktion
+instance (Show ak, Show k) => Show (AnfrageAktionKupplung ak k) where
+    show :: AnfrageAktionKupplung ak k -> String
+    show    (AnfrageAktionKupplung kupplung)        = Language.kupplung <=> showText kupplung
+    show    (AAKUUnbekannt anfrageAktion eingabe)   = unpack $ unbekanntShowText anfrageAktion eingabe
+instance Anfrage (AnfrageAktionKupplung ak k) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionKupplung ak k -> s
+    zeigeAnfrage    (AnfrageAktionKupplung _kupplung)       = Language.aktion
+    zeigeAnfrage    (AAKUUnbekannt anfrageAktion _eingabe)  = zeigeAnfrage anfrageAktion
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionKupplung ak k -> Maybe s
+    zeigeAnfrageOptionen (AnfrageAktionKupplung _kupplung)      = Just $ toBefehlsString Language.aktionKupplung
+    zeigeAnfrageOptionen (AAKUUnbekannt anfrageAktion _eingabe) = zeigeAnfrageOptionen anfrageAktion
 
 -- | Unvollständige 'Wegstrecke'
-data QWegstrecke    = QWegstrecke
-                    | QWSUnbekannt                              QWegstrecke                         Text
-                    | QWegstreckeName                           Text
-                    | QWegstreckeNameAnzahl                     Wegstrecke                          Natural
-                    | QWegstreckeNameAnzahlWeicheRichtung       Wegstrecke                          Natural                                                 Weiche
-                    | QWegstreckeIOStatus                       QObjektIOStatus                     (Either (Objekt -> QWegstrecke) (Objekt -> Wegstrecke))
-                    | QWegstreckeBefehlQuery                    (EingabeToken -> QObjektIOStatus)   (Either (Objekt -> QWegstrecke) (Objekt -> Wegstrecke))
+data AnfrageWegstrecke  = AnfrageWegstrecke
+                        | AWSUnbekannt                          AnfrageWegstrecke                         Text
+                        | AWegstreckeName                       Text
+                        | AWegstreckeNameAnzahl                 Wegstrecke                              Natural
+                        | AWegstreckeNameAnzahlWeicheRichtung   Wegstrecke                              Natural                                                         Weiche
+                        | AWegstreckeIOStatus                   StatusAnfrageObjekt                     (Either (Objekt -> AnfrageWegstrecke) (Objekt -> Wegstrecke))
+                        | AWSStatusAnfrage                      (EingabeToken -> StatusAnfrageObjekt)   (Either (Objekt -> AnfrageWegstrecke) (Objekt -> Wegstrecke))
 
-instance Show QWegstrecke where
-    show :: QWegstrecke -> String
-    show    (QWSUnbekannt qWegstrecke eingabe)                              = unpack $ unbekanntShowText qWegstrecke eingabe
-    show    (QWegstrecke)                                                   = unpack $ Language.wegstrecke
-    show    (QWegstreckeName name)                                          = unpack $ Language.wegstrecke <^> Language.name <=> name
-    show    (QWegstreckeNameAnzahl acc anzahl)                              = unpack $ Language.wegstrecke <^> showText acc <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
-    show    (QWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche)         = unpack $ Language.wegstrecke <^> showText acc <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl <^> showText weiche
-    show    (QWegstreckeIOStatus qObjektIOStatus _eitherKonstruktor)        = Language.wegstrecke <^> showText qObjektIOStatus
-    show    (QWegstreckeBefehlQuery qKonstruktor _eitherF)                  = Language.wegstreckenElement <^> showText (qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
-instance Query QWegstrecke where
-    getQuery :: (IsString s, Semigroup s) => QWegstrecke -> s
-    getQuery    (QWSUnbekannt qWegstrecke _eingabe)                         = getQuery qWegstrecke
-    getQuery    (QWegstrecke)                                               = Language.name
-    getQuery    (QWegstreckeName _name)                                     = Language.anzahl Language.wegstreckenElemente
-    getQuery    (QWegstreckeNameAnzahl _acc _anzahl)                        = Language.wegstreckenElement
-    getQuery    (QWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)  = Language.richtung
-    getQuery    (QWegstreckeIOStatus qObjektIOStatus _eitherKonstruktor)    = getQuery qObjektIOStatus
-    getQuery    (QWegstreckeBefehlQuery qKonstruktor _eitherF)              = getQuery $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    getQueryOptions :: (IsString s, Semigroup s) => QWegstrecke -> Maybe s
-    getQueryOptions (QWSUnbekannt qWegstrecke _eingabe)                         = getQueryOptions qWegstrecke
-    getQueryOptions (QWegstreckeNameAnzahl _acc _anzahl)                        = Just $ toBefehlsString Language.befehlWegstreckenElemente
-    getQueryOptions (QWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)  = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
-    getQueryOptions (QWegstreckeIOStatus qObjektIOStatus _eitherKonstruktor)    = getQueryOptions qObjektIOStatus
-    getQueryOptions (QWegstreckeBefehlQuery qKonstruktor _eitherF)              = getQueryOptions $ qKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    getQueryOptions _query                                                      = Nothing
+instance Show AnfrageWegstrecke where
+    show :: AnfrageWegstrecke -> String
+    show    (AWSUnbekannt qWegstrecke eingabe)                              = unpack $ unbekanntShowText qWegstrecke eingabe
+    show    (AnfrageWegstrecke)                                             = unpack $ Language.wegstrecke
+    show    (AWegstreckeName name)                                          = unpack $ Language.wegstrecke <^> Language.name <=> name
+    show    (AWegstreckeNameAnzahl acc anzahl)                              = unpack $ Language.wegstrecke <^> showText acc <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
+    show    (AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche)         = unpack $ Language.wegstrecke <^> showText acc <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl <^> showText weiche
+    show    (AWegstreckeIOStatus objektStatusAnfrage _eitherKonstruktor)    = Language.wegstrecke <^> showText objektStatusAnfrage
+    show    (AWSStatusAnfrage anfrageKonstruktor _eitherF)                  = Language.wegstreckenElement <^> showText (anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
+instance Anfrage AnfrageWegstrecke where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke -> s
+    zeigeAnfrage    (AWSUnbekannt qWegstrecke _eingabe)                             = zeigeAnfrage qWegstrecke
+    zeigeAnfrage    (AnfrageWegstrecke)                                             = Language.name
+    zeigeAnfrage    (AWegstreckeName _name)                                         = Language.anzahl Language.wegstreckenElemente
+    zeigeAnfrage    (AWegstreckeNameAnzahl _acc _anzahl)                            = Language.wegstreckenElement
+    zeigeAnfrage    (AWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)      = Language.richtung
+    zeigeAnfrage    (AWegstreckeIOStatus objektStatusAnfrage _eitherKonstruktor)    = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage    (AWSStatusAnfrage anfrageKonstruktor _eitherF)                  = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWegstrecke -> Maybe s
+    zeigeAnfrageOptionen (AWSUnbekannt qWegstrecke _eingabe)                            = zeigeAnfrageOptionen qWegstrecke
+    zeigeAnfrageOptionen (AWegstreckeNameAnzahl _acc _anzahl)                           = Just $ toBefehlsString Language.befehlWegstreckenElemente
+    zeigeAnfrageOptionen (AWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)     = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen (AWegstreckeIOStatus objektStatusAnfrage _eitherKonstruktor)   = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen (AWSStatusAnfrage anfrageKonstruktor _eitherF)                 = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen _anfrage                                                       = Nothing
 
 -- | Unvollständige 'Weiche'
-data QWeiche    = QWeiche
-                | QWUnbekannt                       QWeiche Text
-                | QLegoWeiche
-                | QLegoWeicheName                   Text
-                | QLegoWeicheNameRichtung1          Text  Richtung
-                | QLegoWeicheNameRichtungen         Text  Richtung  Richtung
-                | QMärklinWeiche
-                | QMärklinWeicheName                Text
-                | QMärklinWeicheNameAnzahl          Text  Natural   [(Richtung, Pin)]
-                | QMärklinWeicheNameAnzahlRichtung  Text  Natural   [(Richtung, Pin)]   Richtung
+data AnfrageWeiche  = AnfrageWeiche
+                    | AWEUnbekannt                      AnfrageWeiche   Text
+                    | ALegoWeiche
+                    | ALegoWeicheName                   Text
+                    | ALegoWeicheNameRichtung1          Text            Richtung
+                    | ALegoWeicheNameRichtungen         Text            Richtung  Richtung
+                    | AMärklinWeiche
+                    | AMärklinWeicheName                Text
+                    | AMärklinWeicheNameAnzahl          Text            Natural   [(Richtung, Pin)]
+                    | AMärklinWeicheNameAnzahlRichtung  Text            Natural   [(Richtung, Pin)]   Richtung
 
-instance Show QWeiche where
-    show :: QWeiche -> String
-    show    (QWeiche)                                                       = Language.weiche
-    show    (QWUnbekannt query eingabe)                                     = unpack $ unbekanntShowText query eingabe
-    show    (QLegoWeiche)                                                   = Language.lego <-> Language.weiche
-    show    (QLegoWeicheName name)                                          = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
-    show    (QLegoWeicheNameRichtung1 name richtung1)                       = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> showText richtung1
-    show    (QLegoWeicheNameRichtungen name richtung1 richtung2)            = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> showText richtung1 <^> showText richtung2
-    show    (QMärklinWeiche)                                                = Language.märklin <-> Language.weiche
-    show    (QMärklinWeicheName name)                                       = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
-    show    (QMärklinWeicheNameAnzahl name anzahl acc)                      = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.erwartet Language.richtungen <=> showText anzahl <^> showText acc
-    show    (QMärklinWeicheNameAnzahlRichtung name anzahl acc richtung)     = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.erwartet Language.richtungen <=> showText anzahl <^> showText acc <> Language.richtung <=> showText richtung
-instance Query QWeiche where
-    getQuery :: (IsString s, Semigroup s) => QWeiche -> s
-    getQuery    (QWeiche)                                                       = Language.zugtyp
-    getQuery    (QWUnbekannt query _eingabe)                                    = getQuery query
-    getQuery    (QLegoWeiche)                                                   = Language.name
-    getQuery    (QLegoWeicheName _name)                                         = Language.richtung
-    getQuery    (QLegoWeicheNameRichtung1 _name _richtung1)                     = Language.richtung
-    getQuery    (QLegoWeicheNameRichtungen _name _richtung1 _richtung2)         = Language.pin
-    getQuery    (QMärklinWeiche)                                                = Language.name
-    getQuery    (QMärklinWeicheName _name)                                      = Language.anzahl Language.richtungen
-    getQuery    (QMärklinWeicheNameAnzahl _name _anzahl _acc)                   = Language.richtung
-    getQuery    (QMärklinWeicheNameAnzahlRichtung _name _anzahl _acc _richtung) = Language.pin
-    getQueryFailed :: (IsString s, Semigroup s) => QWeiche -> s -> s
-    getQueryFailed  q@(QLegoWeicheNameRichtungen _name _richtung1 _richtung2)           eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q@(QMärklinWeicheName _name)                                        eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q@(QMärklinWeicheNameAnzahlRichtung _name _anzahl _acc _richtung)   eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q                                                                   eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QWeiche -> Maybe s
-    getQueryOptions (QWeiche)                                       = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
-    getQueryOptions (QWUnbekannt query _eingabe)                    = getQueryOptions query
-    getQueryOptions (QLegoWeicheName _name)                         = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
-    getQueryOptions (QLegoWeicheNameRichtung1 _name _richtung1)     = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
-    getQueryOptions (QMärklinWeicheNameAnzahl _name _anzahl _acc)   = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
-    getQueryOptions _query                                          = Nothing
+instance Show AnfrageWeiche where
+    show :: AnfrageWeiche -> String
+    show    (AnfrageWeiche)                                             = Language.weiche
+    show    (AWEUnbekannt anfrage eingabe)                              = unpack $ unbekanntShowText anfrage eingabe
+    show    (ALegoWeiche)                                               = Language.lego <-> Language.weiche
+    show    (ALegoWeicheName name)                                      = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
+    show    (ALegoWeicheNameRichtung1 name richtung1)                   = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> showText richtung1
+    show    (ALegoWeicheNameRichtungen name richtung1 richtung2)        = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> showText richtung1 <^> showText richtung2
+    show    (AMärklinWeiche)                                            = Language.märklin <-> Language.weiche
+    show    (AMärklinWeicheName name)                                   = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
+    show    (AMärklinWeicheNameAnzahl name anzahl acc)                  = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.erwartet Language.richtungen <=> showText anzahl <^> showText acc
+    show    (AMärklinWeicheNameAnzahlRichtung name anzahl acc richtung) = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.erwartet Language.richtungen <=> showText anzahl <^> showText acc <> Language.richtung <=> showText richtung
+instance Anfrage AnfrageWeiche where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWeiche -> s
+    zeigeAnfrage    (AnfrageWeiche)                                                 = Language.zugtyp
+    zeigeAnfrage    (AWEUnbekannt anfrage _eingabe)                                 = zeigeAnfrage anfrage
+    zeigeAnfrage    (ALegoWeiche)                                                   = Language.name
+    zeigeAnfrage    (ALegoWeicheName _name)                                         = Language.richtung
+    zeigeAnfrage    (ALegoWeicheNameRichtung1 _name _richtung1)                     = Language.richtung
+    zeigeAnfrage    (ALegoWeicheNameRichtungen _name _richtung1 _richtung2)         = Language.pin
+    zeigeAnfrage    (AMärklinWeiche)                                                = Language.name
+    zeigeAnfrage    (AMärklinWeicheName _name)                                      = Language.anzahl Language.richtungen
+    zeigeAnfrage    (AMärklinWeicheNameAnzahl _name _anzahl _acc)                   = Language.richtung
+    zeigeAnfrage    (AMärklinWeicheNameAnzahlRichtung _name _anzahl _acc _richtung) = Language.pin
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(ALegoWeicheNameRichtungen _name _richtung1 _richtung2)           eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(AMärklinWeicheName _name)                                        eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(AMärklinWeicheNameAnzahlRichtung _name _anzahl _acc _richtung)   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a                                                                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWeiche -> Maybe s
+    zeigeAnfrageOptionen (AnfrageWeiche)                                = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
+    zeigeAnfrageOptionen (AWEUnbekannt anfrage _eingabe)                = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen (ALegoWeicheName _name)                        = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen (ALegoWeicheNameRichtung1 _name _richtung1)    = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen (AMärklinWeicheNameAnzahl _name _anzahl _acc)  = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen _anfrage                                       = Nothing
 
 -- | Unvollständige 'Bahngeschwindigkeit'
-data QBahngeschwindigkeit   = QBahngeschwindigkeit
-                            | QBGUnbekannt                                   QBahngeschwindigkeit    Text
-                            | QLegoBahngeschwindigkeit
-                            | QLegoBahngeschwindigkeitName                  Text
-                            | QLegoBahngeschwindigkeitNameGeschwindigkeit   Text                  Pin
-                            | QMärklinBahngeschwindigkeit
-                            | QMärklinBahngeschwindigkeitName               Text
+data AnfrageBahngeschwindigkeit = AnfrageBahngeschwindigkeit
+                                | ABGUnbekannt                                  AnfrageBahngeschwindigkeit  Text
+                                | ALegoBahngeschwindigkeit
+                                | ALegoBahngeschwindigkeitName                  Text
+                                | ALegoBahngeschwindigkeitNameGeschwindigkeit   Text                        Pin
+                                | AMärklinBahngeschwindigkeit
+                                | AMärklinBahngeschwindigkeitName               Text
 
-instance Show QBahngeschwindigkeit where
-    show :: QBahngeschwindigkeit -> String
-    show    (QBahngeschwindigkeit)                                      = Language.bahngeschwindigkeit
-    show    (QBGUnbekannt query eingabe)                                = unpack $ unbekanntShowText query eingabe
-    show    (QLegoBahngeschwindigkeit)                                  = Language.lego <-> Language.bahngeschwindigkeit
-    show    (QLegoBahngeschwindigkeitName name)                         = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
-    show    (QLegoBahngeschwindigkeitNameGeschwindigkeit name pin)      = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.pin <=> showText pin
-    show    (QMärklinBahngeschwindigkeit)                               = Language.märklin <-> Language.bahngeschwindigkeit
-    show    (QMärklinBahngeschwindigkeitName name)                      = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
-instance Query QBahngeschwindigkeit where
-    getQuery :: (IsString s, Semigroup s) => QBahngeschwindigkeit -> s
-    getQuery    (QBahngeschwindigkeit)                                      = Language.zugtyp
-    getQuery    (QBGUnbekannt query _eingabe)                               = getQuery query
-    getQuery    (QLegoBahngeschwindigkeit)                                  = Language.name
-    getQuery    (QLegoBahngeschwindigkeitName _name)                        = Language.pin
-    getQuery    (QLegoBahngeschwindigkeitNameGeschwindigkeit _name _pin)    = Language.pin
-    getQuery    (QMärklinBahngeschwindigkeit)                               = Language.name
-    getQuery    (QMärklinBahngeschwindigkeitName _name)                     = Language.pin
-    getQueryFailed :: (IsString s, Semigroup s) => QBahngeschwindigkeit -> s -> s
-    getQueryFailed  q@(QLegoBahngeschwindigkeitName _name)                      eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q@(QLegoBahngeschwindigkeitNameGeschwindigkeit _name _pin)  eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q@(QMärklinBahngeschwindigkeitName _name)                   eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q                                                           eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QBahngeschwindigkeit -> Maybe s
-    getQueryOptions (QBahngeschwindigkeit)          = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
-    getQueryOptions (QBGUnbekannt query _eingabe)   = getQueryOptions query
-    getQueryOptions _query                          = Nothing
+instance Show AnfrageBahngeschwindigkeit where
+    show :: AnfrageBahngeschwindigkeit -> String
+    show    (AnfrageBahngeschwindigkeit)                            = Language.bahngeschwindigkeit
+    show    (ABGUnbekannt anfrage eingabe)                          = unpack $ unbekanntShowText anfrage eingabe
+    show    (ALegoBahngeschwindigkeit)                              = Language.lego <-> Language.bahngeschwindigkeit
+    show    (ALegoBahngeschwindigkeitName name)                     = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    show    (ALegoBahngeschwindigkeitNameGeschwindigkeit name pin)  = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.pin <=> showText pin
+    show    (AMärklinBahngeschwindigkeit)                           = Language.märklin <-> Language.bahngeschwindigkeit
+    show    (AMärklinBahngeschwindigkeitName name)                  = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+instance Anfrage AnfrageBahngeschwindigkeit where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> s
+    zeigeAnfrage    (AnfrageBahngeschwindigkeit)                                = Language.zugtyp
+    zeigeAnfrage    (ABGUnbekannt anfrage _eingabe)                             = zeigeAnfrage anfrage
+    zeigeAnfrage    (ALegoBahngeschwindigkeit)                                  = Language.name
+    zeigeAnfrage    (ALegoBahngeschwindigkeitName _name)                        = Language.pin
+    zeigeAnfrage    (ALegoBahngeschwindigkeitNameGeschwindigkeit _name _pin)    = Language.pin
+    zeigeAnfrage    (AMärklinBahngeschwindigkeit)                               = Language.name
+    zeigeAnfrage    (AMärklinBahngeschwindigkeitName _name)                     = Language.pin
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitName _name)                      eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitNameGeschwindigkeit _name _pin)  eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(AMärklinBahngeschwindigkeitName _name)                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a                                                           eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> Maybe s
+    zeigeAnfrageOptionen (AnfrageBahngeschwindigkeit)       = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
+    zeigeAnfrageOptionen (ABGUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen _anfrage                           = Nothing
 
 -- | Unvollständiger 'Streckenabschnitt'
-data QStreckenabschnitt = QStreckenabschnitt
-                        | QSUnbekannt               QStreckenabschnitt  Text
-                        | QStreckenabschnittName    Text
+data AnfrageStreckenabschnitt   = AnfrageStreckenabschnitt
+                                | ASTUnbekannt              AnfrageStreckenabschnitt    Text
+                                | AStreckenabschnittName    Text
 
-instance Show QStreckenabschnitt where
-    show :: QStreckenabschnitt -> String
-    show    (QStreckenabschnitt)            = Language.streckenabschnitt
-    show    (QSUnbekannt query eingabe)     = unpack $ unbekanntShowText query eingabe
-    show    (QStreckenabschnittName name)   = unpack $ Language.streckenabschnitt <^> Language.name <=> name 
-instance Query QStreckenabschnitt where
-    getQuery :: (IsString s, Semigroup s) => QStreckenabschnitt -> s
-    getQuery    (QStreckenabschnitt)            = Language.name
-    getQuery    (QSUnbekannt query _eingabe)    = getQuery query
-    getQuery    (QStreckenabschnittName _name)  = Language.pin
-    getQueryFailed :: (IsString s, Semigroup s) => QStreckenabschnitt -> s -> s
-    getQueryFailed  q@(QStreckenabschnittName _name)    eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q                                   eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QStreckenabschnitt -> Maybe s
-    getQueryOptions (QSUnbekannt query _eingabe)    = getQueryOptions query
-    getQueryOptions _query                          = Nothing
+instance Show AnfrageStreckenabschnitt where
+    show :: AnfrageStreckenabschnitt -> String
+    show    (AnfrageStreckenabschnitt)      = Language.streckenabschnitt
+    show    (ASTUnbekannt anfrage eingabe)  = unpack $ unbekanntShowText anfrage eingabe
+    show    (AStreckenabschnittName name)   = unpack $ Language.streckenabschnitt <^> Language.name <=> name 
+instance Anfrage AnfrageStreckenabschnitt where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s
+    zeigeAnfrage    (AnfrageStreckenabschnitt)      = Language.name
+    zeigeAnfrage    (ASTUnbekannt anfrage _eingabe) = zeigeAnfrage anfrage
+    zeigeAnfrage    (AStreckenabschnittName _name)  = Language.pin
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(AStreckenabschnittName _name)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a                                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> Maybe s
+    zeigeAnfrageOptionen (ASTUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen _anfrage                           = Nothing
 
 -- | Unvollständige 'Kupplung'
-data QKupplung  = QKupplung
-                | QKUnbekannt   QKupplung   Text
-                | QKupplungName Text
+data AnfrageKupplung    = AnfrageKupplung
+                        | AKUUnbekannt      AnfrageKupplung Text
+                        | AKupplungName     Text
 
-instance Show QKupplung where
-    show :: QKupplung -> String
-    show    (QKupplung)                 = Language.kupplung
-    show    (QKUnbekannt query eingabe) = unpack $ unbekanntShowText query eingabe
-    show    (QKupplungName name)        = unpack $ Language.kupplung <^> Language.name <=> name 
-instance Query QKupplung where
-    getQuery :: (IsString s, Semigroup s) => QKupplung -> s
-    getQuery    (QKupplung)                     = Language.name
-    getQuery    (QKUnbekannt query _eingabe)    = getQuery query
-    getQuery    (QKupplungName _name)           = Language.pin
-    getQueryFailed :: (IsString s, Semigroup s) => QKupplung -> s -> s
-    getQueryFailed  q@(QKupplungName _name) eingabe = getQueryFailedDefault q eingabe <^> Language.integerErwartet
-    getQueryFailed  q                       eingabe = getQueryFailedDefault q eingabe
-    getQueryOptions :: (IsString s, Semigroup s) => QKupplung -> Maybe s
-    getQueryOptions (QKUnbekannt query _eingabe)    = getQueryOptions query
-    getQueryOptions _query                          = Nothing
+instance Show AnfrageKupplung where
+    show :: AnfrageKupplung -> String
+    show    (AnfrageKupplung)               = Language.kupplung
+    show    (AKUUnbekannt anfrage eingabe)  = unpack $ unbekanntShowText anfrage eingabe
+    show    (AKupplungName name)            = unpack $ Language.kupplung <^> Language.name <=> name 
+instance Anfrage AnfrageKupplung where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageKupplung -> s
+    zeigeAnfrage    (AnfrageKupplung)               = Language.name
+    zeigeAnfrage    (AKUUnbekannt anfrage _eingabe) = zeigeAnfrage anfrage
+    zeigeAnfrage    (AKupplungName _name)           = Language.pin
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageKupplung -> s -> s
+    zeigeAnfrageFehlgeschlagen  a@(AKupplungName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageKupplung -> Maybe s
+    zeigeAnfrageOptionen (AKUUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen _anfrage                           = Nothing
 
 -- * Hilfs-Befehle
 -- | Wähle aus möglichen Interpretationen der Eingabe die erste passende aus und gebe den daraus resultierenden Befehl zurück.
@@ -944,12 +944,12 @@ wähleRichtung token = wähleBefehl token [
     (Lexer.Kurve    , Just Kurve),
     (Lexer.Links    , Just Links),
     (Lexer.Rechts   , Just Rechts)]
-    $ Nothing
+    Nothing
 
 -- ** Text-Hilfsfunktionen
 -- | Fehlerhafte Eingabe anzeigen
-unbekanntShowText :: (Show q, Query q, IsString s, Semigroup s) => q -> s -> s
-unbekanntShowText q eingabe = fehlerText $ showQueryFailed q eingabe
+unbekanntShowText :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
+unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingabe
 
 -- | Element einer Liste anhand des Index oder Namens finden
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
@@ -961,4 +961,4 @@ findByNameOrIndex   liste   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl 
 längerAls :: [a] -> Natural -> Bool
 längerAls   ([])    i   = (i < 0)
 längerAls   _liste  0   = True
-längerAls   (_h:t)  i   = längerAls t $ i - 1
+längerAls   (_h:t)  i   = längerAls t $ pred i

@@ -16,13 +16,13 @@ import Zug.Language
 -- | Text-Eingabe in Token übersetzen
 lexer :: [Text] -> [EingabeTokenAllgemein]
 lexer   ([])    = []
-lexer   (h:t)   = (lexOne h):(lexer t)
+lexer   (h:t)   = (lexEinen h):(lexer t)
 
-lexOne :: Text -> EingabeTokenAllgemein
-lexOne  eingabe
+lexEinen :: Text -> EingabeTokenAllgemein
+lexEinen  eingabe
     | istGleich eingabe beenden     = TkBeenden
     | istGleich eingabe abbrechen   = TkAbbrechen
-lexOne  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, token) <- befehlToken, istBefehl eingabe befehl], ganzzahl=readMaybe $ unpack eingabe}
+lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, token) <- befehlToken, istBefehl eingabe befehl], ganzzahl=readMaybe $ unpack eingabe}
     where
         befehlToken :: [(Text, Token)]
         befehlToken = [
