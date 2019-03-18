@@ -65,7 +65,8 @@
 - Flag -v|--version hinzugefügt
 - Bugfix: getPWMValue reagiert nun richtig auf eine reduzierte PWMRange
 - PWMValue skaliert nur quadrisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
-## Unreleased changes
+1.0.0.12:
 - Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.
 - Bugfix (GTK-UI): Wegstrecken sorgen auch alleine dazu,  dass betroffene Aktionen angezeigt werden.
 - Verbliebene englische Namen, die nicht an bestehende Funktionen angelehnt sind ins deutsche übersetzt.
+## Unreleased changes
