@@ -10,14 +10,14 @@ Description : Starte Main-Loop für Kommandozeilen-basiertes UI.
 module Zug.UI.Cmd (main, mainStatus) where
 
 -- Bibliotheken
-import System.IO
+import System.IO (hFlush, stdout)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Text (Text, pack)
-import Control.Monad
-import Control.Monad.Trans
-import Control.Monad.State
-import Control.Concurrent
+import Control.Monad (void, unless)
+import Control.Monad.Trans (liftIO)
+import Control.Monad.State (evalStateT, get, state, runState)
+import Control.Concurrent.MVar (newMVar)
 -- Farbige Konsolenausgabe
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
@@ -38,12 +38,13 @@ main = do
     (Options {load=path}) <- getOptions
     Save.load path pure >>= \case
         (Nothing)           -> evalEmptyIOStatus mainStatus
-        (Just konstruktor)  -> newMVar pinMapEmpty >>= \mvarPinMap -> konstruktor mvarPinMap >>= evalStateT mainStatus
+        (Just konstruktor)  -> newMVar pinMapEmpty >>= konstruktor >>= evalStateT mainStatus
 
 -- | main loop
 mainStatus :: IOStatus ()
 mainStatus = do
-    ende <- get >>= \status -> do
+    ende <- do
+        status <- get
         liftIO $ do
             setSGR [SetColor Foreground Dull Green]
             putStr $ "" <\> Language.zugkontrolle
@@ -65,13 +66,13 @@ statusParser    eingabe = (uncurry statusParserAux) $ parser AnfrageBefehl einga
     where
         statusParserAux :: [Befehl] -> AnfrageErgebnis-> IOStatus Bool
         statusParserAux befehle qErgebnis = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
-                (AEBefehl befehl)                                           -> ausführenBefehl befehl
-                (AEBefehlSofort befehlSofort eingabeRest)                   -> ausführenBefehlSofort befehlSofort >> statusParser eingabeRest
-                (AEStatusAnfrage qObjektIOStatus eitherF backup eingabeRest)  -> state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
+                (AEBefehl befehl)                                               -> ausführenBefehl befehl
+                (AEBefehlSofort befehlSofort eingabeRest)                       -> ausführenBefehlSofort befehlSofort >> statusParser eingabeRest
+                (AEStatusAnfrage qObjektIOStatus eitherF backup eingabeRest)    -> state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
                     (Right objekt)  -> case eitherF of
                         (Right konstruktor)     -> ausführenBefehl (konstruktor objekt) >>= \beenden -> if beenden then pure True else statusParser eingabeRest
                         (Left qKonstruktor)     -> (uncurry statusParserAux) $ parser (qKonstruktor objekt) eingabeRest
-                    (Left query)    -> promptS (zeigeAnfrageFehlgeschlagen query $ erhalteEingabe query <!> zeigeAnfrage query <:> "") >>= (uncurry statusParserAux).(parser backup).lexer
+                    (Left anfrage)    -> promptS (zeigeAnfrageFehlgeschlagen anfrage $ erhalteEingabe anfrage <!> zeigeAnfrage anfrage <:> "") >>= (uncurry statusParserAux).(parser backup).lexer
                         where
                             erhalteEingabe :: StatusAnfrageObjekt -> Text
                             erhalteEingabe  (SAOUnbekannt eingabe)                            = eingabe
@@ -81,14 +82,14 @@ statusParser    eingabe = (uncurry statusParserAux) $ parser AnfrageBefehl einga
                             erhalteEingabe  (SAOBahngeschwindigkeit (EingabeToken {eingabe})) = eingabe
                             erhalteEingabe  (SAOStreckenabschnitt (EingabeToken {eingabe}))   = eingabe
                             erhalteEingabe  (SAOKupplung (EingabeToken {eingabe}))            = eingabe
-                (AEAnfrageBefehl (AnfrageBefehl))                                 -> pure False
-                (AEAnfrageBefehl (ABUnbekannt AnfrageBefehl eingabe))             -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
-                (AEAnfrageBefehl (ABUnbekannt query eingabe))                     -> liftIO (setSGR [SetColor Foreground Vivid Red] >> T.putStr (unbekanntShowText query eingabe) >> setSGR [Reset]) >> promptS "" >>= (uncurry statusParserAux).(parser query).lexer
-                (AEAnfrageBefehl query)                                           -> do
-                    case zeigeAnfrageOptionen query of
-                        (Nothing)           -> pure ()
-                        (Just queryOptions) -> liftIO $ setSGR [SetColor Foreground Dull Blue] >> putStrLn queryOptions >> setSGR [Reset]
-                    promptS (zeigeAnfrage query <:> "") >>= (uncurry statusParserAux).(parser query).lexer
+                (AEAnfrageBefehl (AnfrageBefehl))                               -> pure False
+                (AEAnfrageBefehl (ABUnbekannt AnfrageBefehl eingabe))           -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
+                (AEAnfrageBefehl (ABUnbekannt anfrage eingabe))                 -> liftIO (setSGR [SetColor Foreground Vivid Red] >> T.putStr (unbekanntShowText anfrage eingabe) >> setSGR [Reset]) >> promptS "" >>= (uncurry statusParserAux).(parser anfrage).lexer
+                (AEAnfrageBefehl anfrage)                                       -> do
+                    case zeigeAnfrageOptionen anfrage of
+                        (Nothing)               -> pure ()
+                        (Just anfrageOptionen)  -> liftIO $ setSGR [SetColor Foreground Dull Blue] >> putStrLn anfrageOptionen >> setSGR [Reset]
+                    promptS (zeigeAnfrage anfrage <:> "") >>= (uncurry statusParserAux).(parser anfrage).lexer
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus ()
