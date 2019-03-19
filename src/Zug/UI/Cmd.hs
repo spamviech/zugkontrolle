@@ -49,9 +49,9 @@ mainStatus = do
             setSGR [SetColor Foreground Dull Green]
             putStr $ "" <\> Language.zugkontrolle
             setSGR [Reset]
-            putStr $ "" <~> ZUGKONTROLLEVERSION
+            putStrLn $ "" <~> ZUGKONTROLLEVERSION
             setSGR [SetColor Foreground Dull Cyan]
-            putStrLn $ (const '-') <$> Language.zugkontrolle
+            putStrLn $ (const '-') <$> Language.zugkontrolle <~> ZUGKONTROLLEVERSION
             setSGR [Reset]
             putStrLn $ showText status
             setSGR [SetColor Foreground Dull Blue]
