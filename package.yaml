@@ -32,7 +32,7 @@ when:
       - gtk3
       - lens
     cpp-options:
-      -DZUGKONTROLLEGUI
+      - -DZUGKONTROLLEGUI
   - condition: os(linux)
     dependencies:
       - unix
