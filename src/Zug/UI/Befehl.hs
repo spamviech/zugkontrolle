@@ -59,8 +59,8 @@ data BefehlAllgemein bg st we ku ws pl  = UI            (UIBefehlAllgemein bg st
                                         | Hinzufügen    (ObjektAllgemein bg st we ku ws pl)
                                         | Entfernen     (ObjektAllgemein bg st we ku ws pl)
                                         | Speichern     FilePath
-                                        | Laden         FilePath                            (Status -> IO (StatusAllgemein bg st we ku ws pl))  (IOStatusAllgemein bg st we ku ws pl ())
-                                        | Ausführen     (PlanAllgemein bg st we ku ws)        (Natural -> IO ())
+                                        | Laden         FilePath                                (Status -> IO (StatusAllgemein bg st we ku ws pl))  (IOStatusAllgemein bg st we ku ws pl ())
+                                        | Ausführen     (PlanAllgemein bg st we ku ws)          (Natural -> IO ())
                                         | AktionBefehl  (AktionAllgemein  bg st we ku ws)
 -- | 'BefehlAllgemein' spezialisiert auf minimal spezialisierte Typen
 type Befehl = BefehlAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
