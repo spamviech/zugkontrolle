@@ -135,6 +135,24 @@
                     "Aktion": "Warten"
                 },
                 {
+                    "Richtung": "Links",
+                    "Weiche": {
+                        "RichtungsPins": [
+                            [
+                                "Rechts",
+                                6
+                            ],
+                            [
+                                "Links",
+                                5
+                            ]
+                        ],
+                        "Name": "S-Bahn",
+                        "Zugtyp": "Märklin"
+                    },
+                    "Aktion": "Stellen"
+                },
+                {
                     "Streckenabschnitt": {
                         "Name": "S-Bahn",
                         "StromPin": 13
@@ -156,7 +174,11 @@
                     "Aktion": "Umdrehen"
                 },
                 {
-                    "Wert": 75,
+                    "Wert": 250000,
+                    "Aktion": "Warten"
+                },
+                {
+                    "Wert": 85,
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
                         "Name": "Geschwindigkeit",
@@ -195,7 +217,7 @@
                     "Fließend": "Fließend"
                 },
                 {
-                    "Wert": 5000000,
+                    "Wert": 3500000,
                     "Aktion": "Warten"
                 },
                 {
@@ -206,6 +228,15 @@
                         "Zugtyp": "Märklin"
                     },
                     "Aktion": "Geschwindigkeit"
+                },
+                {
+                    "Bahngeschwindigkeit": {
+                        "GeschwindigkeitsPin": 14,
+                        "Name": "Geschwindigkeit",
+                        "Zugtyp": "Märklin"
+                    },
+                    "Fahrtrichtung": null,
+                    "Aktion": "Umdrehen"
                 },
                 {
                     "Wegstrecke": {
