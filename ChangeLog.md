@@ -2,13 +2,16 @@
 1.0.0.0:
 - Erste Version
 - Noch ohne UI-Unterstützung für Lego-Bahngeschwindigkeiten und -Weichen
+
 1.0.0.1:
 - Immer Fehlschlagende FromJSON-Parser entfernt. Zusätzliche Funktion bei Laden-Befehl verwendet.
 - Anfangs-Status für GTK-UI hinzugefügt.
+
 1.0.0.2:
 - Bugfix Hinzufügen Plan (Einstellen)
 - GTK-UI: Typ nicht mehr explizit erwähnt, kleiner Abstand nach Name hinzugefügt
 - Linux-Version bricht ab, wenn sie nicht mit Root-Rechten ausgeführt wird.
+
 1.0.0.3:
 - GTK-UI:
     - vBoxen beim hinzufügen von Wegstrecke & Plan skalieren
@@ -21,6 +24,7 @@
 - CMD-UI:
     - Bei endlicher Anzahl werden akzeptierte Eingaben angezeigt
     - Fehlerhafte Eingabe wird in roter Farbe gemeldet.
+
 1.0.0.4:
 - GTK-UI:
     - nameEntry erhält PlaceholderText (wird gezeigt, wenn Entry leer und nicht fokusiert)
@@ -28,12 +32,15 @@
     gtk3- und lens-Packete setzen Cabal-Packet vorraus, dessen Installation sehr lange (und viel Arbeitsspeicher) braucht.
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
+
 1.0.0.5:
 - Bugfix: Beim Hinzufügen einer Wegstrecke wurde immer die erste Richtung einer Weiche ausgewählt.
 - Lego-Weiche/Bahngeschwindigkeit von Cmd-UI unterstützt.
 - Lego-Weiche/Bahngeschwindigkeit von GTK-UI unterstützt.
+
 1.0.0.6:
 - Bugfix: Beim erstellen eines Plans mit dem Cmd-UI wurde die Error-Funktion aufgerufen.
+
 1.0.0.7:
 - Plan erstellen:
     - Letztes Element kann entfernt werden
@@ -44,13 +51,16 @@
 - LinkedMVar:
     - Update-Aktion nicht mehr als Argument übergeben
     - Hinzufügen einer zusätzlichen Update-Aktion erzeugt keine neue LinkedMVar, sondern verändert die aktuelle LinkedMVar
+
 1.0.0.9:
 - Zeit zum stellen einer Weiche reduziert
 - Bugfix: LinkedMVar merkt sich Änderungen wieder
+
 1.0.0.10:
 - HIGH/Low vertauscht (unverändert für PWM-Output)
     kann per Kommandozeilenargument "--fließend=<Value>" eingestellt werden
 - SoftwarePWM kann auf allen Pins per Kommandozeile "--pwm=SoftwarePWM" erzwungen werden
+
 1.0.0.11:
 - Bugfix (GTK-UI): Weiche werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben und nicht umgekehrt
 - GTK-UI:
@@ -65,6 +75,7 @@
 - Flag -v|--version hinzugefügt
 - Bugfix: getPWMValue reagiert nun richtig auf eine reduzierte PWMRange
 - PWMValue skaliert nur quadrisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
+
 1.0.0.12:
 - Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.
 - Bugfix (GTK-UI): Wegstrecken sorgen auch alleine dazu,  dass betroffene Aktionen angezeigt werden.
