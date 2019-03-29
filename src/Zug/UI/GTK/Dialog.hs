@@ -48,7 +48,7 @@ import Zug.UI.GTK.FortfahrenWenn
 buttonSpeichernPack :: (BoxClass b, LikeMVar lmvar) => Window -> b -> lmvar StatusGUI -> IO Button
 buttonSpeichernPack windowMain box mvarStatus = do
     dialogSpeichern <- dialogSpeichernNew windowMain
-    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSpeichern >>= \antwort -> when (antwort == ResponseOk) $ fileChooserGetFilename dialogSpeichern >>= \(Just dateipfad) -> void $ ausführenMVarBefehl (Speichern dateipfad) mvarStatus
+    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSpeichern >>= \antwort -> when (antwort == ResponseOk) $ fileChooserGetFilename dialogSpeichern >>= \(Just dateipfad) -> void $ ausführenMVarBefehl (Speichern dateipfad :: BefehlGUI) mvarStatus
 
 dialogSpeichernNew :: Window -> IO FileChooserDialog
 dialogSpeichernNew window = do
@@ -69,7 +69,7 @@ buttonLadenPack windowMain box mvarStatus dynamischeWidgets = do
                 (Just dateipfad)    -> void $ do
                     statusInitial <- readLMVar mvarStatus
                     -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden
-                    evalStateT (ausführenBefehl $ Laden dateipfad (ladeWidgets mvarStatus dynamischeWidgets) (liftIO $ void $ set dialogLadenFehler [windowTitle := dateipfad] >> dialogEval dialogLadenFehler)) statusInitial
+                    evalStateT (ausführenBefehl $ (Laden dateipfad (ladeWidgets mvarStatus dynamischeWidgets) (liftIO $ void $ set dialogLadenFehler [windowTitle := dateipfad] >> dialogEval dialogLadenFehler) :: BefehlGUI)) statusInitial
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
 ladeWidgets :: (LikeMVar lmvar) => lmvar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI

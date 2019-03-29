@@ -93,7 +93,7 @@ statusParser    eingabe = (uncurry statusParserAux) $ parser AnfrageBefehl einga
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus ()
-ausführenBefehlSofort   (BSLaden dateipfad) = void $ ausführenBefehl (Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad)
+ausführenBefehlSofort   (BSLaden dateipfad) = void $ ausführenBefehl (Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad :: Befehl)
 
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]
