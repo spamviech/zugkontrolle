@@ -27,7 +27,7 @@ import Zug.Anbindung
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 
--- | Sammel-Typen
+-- | Summen-Typ
 data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
                                         | OWegstrecke           ws
                                         | OWeiche               we
@@ -38,6 +38,7 @@ data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
+-- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where
     -- | Bahngeschwindigkeit
     type BG o :: Type
