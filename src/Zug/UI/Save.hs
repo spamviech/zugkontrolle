@@ -3,6 +3,8 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -31,7 +33,7 @@ import Zug.Plan
 import Zug.UI.Base
 
 -- | Speichere aktuellen Zustand in Datei
-speichern :: (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => StatusAllgemein bg st we ku ws pl -> FilePath -> IO ()
+speichern :: (ToJSON (BG o), ToJSON (ST o), ToJSON (WE o), ToJSON (KU o), ToJSON (WS o), ToJSON (PL o)) => StatusAllgemein o -> FilePath -> IO ()
 speichern contents path = ByteString.writeFile path $ encode contents
 
 -- | Lade Datei.
@@ -45,7 +47,7 @@ laden path fromStatus = do
         then ByteString.readFile path >>= \byteString -> pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarPinMap)
         else pure Nothing
 
-newtype AlmostStatus bg st we ku ws pl = AlmostStatus {getStatusFunction :: (MVar PinMap -> StatusAllgemein bg st we ku ws pl)}
+newtype AlmostStatus o = AlmostStatus {getStatusFunction :: (MVar PinMap -> StatusAllgemein o)}
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
 -- Definition hier und nicht in Language.hs, damit einmal erzeugte json-Dateien auch nach einer Sprachänderung gültig bleiben.
@@ -62,8 +64,8 @@ wegstreckenJS = "Wegstrecken"
 pläneJS :: Text
 pläneJS = "Pläne"
 
-instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJSON pl) => FromJSON (AlmostStatus bg st we ku ws pl) where
-    parseJSON :: Value -> Parser (AlmostStatus bg st we ku ws pl)
+instance (FromJSON (BG o), FromJSON (ST o), FromJSON (WE o), FromJSON (KU o), FromJSON (WS o), FromJSON (PL o)) => FromJSON (AlmostStatus o) where
+    parseJSON :: Value -> Parser (AlmostStatus o)
     parseJSON   (Object v)  = AlmostStatus
                             <$> (Status
                                 <$> ((v .: bahngeschwindigkeitenJS) <|> pure [])
@@ -74,8 +76,8 @@ instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJ
                                 <*> ((v .: pläneJS)                 <|> pure []))
     parseJSON   _           = mzero
 
-instance (ToJSON bahngeschwindigkeit, ToJSON streckenabschnitt, ToJSON weiche, ToJSON kupplung, ToJSON wegstrecke, ToJSON plan) => ToJSON (StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan) where
-    toJSON :: StatusAllgemein bahngeschwindigkeit streckenabschnitt weiche kupplung wegstrecke plan -> Value
+instance (ToJSON (BG o), ToJSON (ST o), ToJSON (WE o), ToJSON (KU o), ToJSON (WS o), ToJSON (PL o)) => ToJSON (StatusAllgemein o) where
+    toJSON :: StatusAllgemein o -> Value
     toJSON   status  = object [
                             bahngeschwindigkeitenJS .= _bahngeschwindigkeiten status,
                             streckenabschnitteJS    .= _streckenabschnitte status,
