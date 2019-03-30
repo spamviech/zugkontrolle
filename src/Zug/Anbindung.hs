@@ -194,12 +194,19 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
     umdrehen :: Bahngeschwindigkeit -> Maybe Fahrtrichtung -> PinMapIO ()
     umdrehen (LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin}) (Just fahrtrichtung)    mvarPinMap = befehlAusführen
-        (pwmSetzeWert geschwindigkeitsPin 0 mvarPinMap >> warteµs umdrehenZeitµx >> pwmServo fahrtrichtungsPin (if (fahrtrichtung == Vorwärts) then 100 else 0) mvarPinMap)
+        (umdrehenAux geschwindigkeitsPin mvarPinMap [pwmServo fahrtrichtungsPin (if (fahrtrichtung == Vorwärts) then 100 else 0)])
         ("Umdrehen (" <> showText geschwindigkeitsPin <^> showText fahrtrichtungsPin <> ")->" <> showText fahrtrichtung)
     umdrehen bahngeschwindigkeit@(LegoBahngeschwindigkeit {})                   (Nothing)               mvarPinMap = umdrehen bahngeschwindigkeit (Just Vorwärts) mvarPinMap
     umdrehen (MärklinBahngeschwindigkeit {geschwindigkeitsPin})                 _maybeRichtung  mvarPinMap = befehlAusführen
-        (pwmSetzeWert geschwindigkeitsPin 0 mvarPinMap >> warteµs umdrehenZeitµx >> pwmSetzeWert geschwindigkeitsPin pwmGrenze mvarPinMap >> warteµs umdrehenZeitµx >> pwmSetzeWert geschwindigkeitsPin 0 mvarPinMap)
+        (umdrehenAux geschwindigkeitsPin mvarPinMap [pwmSetzeWert geschwindigkeitsPin pwmGrenze, const $ warteµs umdrehenZeitµx, pwmSetzeWert geschwindigkeitsPin 0])
         ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
+
+umdrehenAux :: Pin -> MVar PinMap -> [PinMapIO ()] -> IO ()
+umdrehenAux geschwindigkeitsPin mvarPinMap umdrehenAktionen = do
+    pwmSetzeWert geschwindigkeitsPin 0 mvarPinMap
+    warteµs umdrehenZeitµx
+    mapM_ ($ mvarPinMap) umdrehenAktionen
+    warteµs umdrehenZeitµx
 
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt = Streckenabschnitt {stName :: Text, stromPin::Pin}

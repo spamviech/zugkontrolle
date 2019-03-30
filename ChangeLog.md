@@ -82,3 +82,4 @@
 - Verbliebene englische Namen, die nicht an bestehende Funktionen angelehnt sind ins deutsche übersetzt.
 ## Unreleased changes
 - Bugfix (Cmd-UI): Zeile zum Unterstreichen erscheint nun auch unter dem Titel und ist lang genug
+- Umdrehen erhält eine automatische Wartezeit nach der Umdreh-Aktion
