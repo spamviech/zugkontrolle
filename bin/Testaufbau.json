@@ -174,10 +174,6 @@
                     "Aktion": "Umdrehen"
                 },
                 {
-                    "Wert": 250000,
-                    "Aktion": "Warten"
-                },
-                {
                     "Wert": 85,
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
@@ -187,7 +183,7 @@
                     "Aktion": "Geschwindigkeit"
                 },
                 {
-                    "Wert": 7500000,
+                    "Wert": 8500000,
                     "Aktion": "Warten"
                 },
                 {
@@ -217,7 +213,7 @@
                     "Fließend": "Fließend"
                 },
                 {
-                    "Wert": 3500000,
+                    "Wert": 3000000,
                     "Aktion": "Warten"
                 },
                 {
