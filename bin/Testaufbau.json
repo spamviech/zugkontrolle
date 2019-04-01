@@ -118,8 +118,76 @@
                         ],
                         "Kupplungen": []
                     },
+                    "Aktion": "Einstellen"
+                },
+                {
+                    "Wegstrecke": {
+                        "Streckenabschnitte": [
+                            {
+                                "Name": "S-Bahn",
+                                "StromPin": 13
+                            },
+                            {
+                                "Name": "Hauptkreis",
+                                "StromPin": 26
+                            }
+                        ],
+                        "Bahngeschwindigkeiten": [
+                            {
+                                "GeschwindigkeitsPin": 14,
+                                "Name": "Geschwindigkeit",
+                                "Zugtyp": "Märklin"
+                            }
+                        ],
+                        "Name": "Abstellgleis S-Bahn",
+                        "Weichen-Richtungen": [
+                            [
+                                {
+                                    "RichtungsPins": [
+                                        [
+                                            "Rechts",
+                                            6
+                                        ],
+                                        [
+                                            "Links",
+                                            5
+                                        ]
+                                    ],
+                                    "Name": "S-Bahn",
+                                    "Zugtyp": "Märklin"
+                                },
+                                "Rechts"
+                            ],
+                            [
+                                {
+                                    "RichtungsPins": [
+                                        [
+                                            "Rechts",
+                                            21
+                                        ],
+                                        [
+                                            "Links",
+                                            20
+                                        ]
+                                    ],
+                                    "Name": "Sarasani",
+                                    "Zugtyp": "Märklin"
+                                },
+                                "Links"
+                            ]
+                        ],
+                        "Kupplungen": []
+                    },
                     "Aktion": "Strom",
                     "Fließend": "Fließend"
+                },
+                {
+                    "Streckenabschnitt": {
+                        "Name": "Sarasani",
+                        "StromPin": 16
+                    },
+                    "Aktion": "Strom",
+                    "Fließend": "Gesperrt"
                 },
                 {
                     "Wert": 100,
