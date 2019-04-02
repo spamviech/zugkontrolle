@@ -181,8 +181,8 @@ class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
     {-# MINIMAL geschwindigkeit, umdrehen #-}
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
-umdrehenZeitµx :: Natural
-umdrehenZeitµx = 250 * µsInms
+umdrehenZeitµs :: Natural
+umdrehenZeitµs = 250 * µsInms
 
 instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     geschwindigkeit :: Bahngeschwindigkeit -> Natural -> PinMapIO ()
@@ -198,15 +198,15 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         ("Umdrehen (" <> showText geschwindigkeitsPin <^> showText fahrtrichtungsPin <> ")->" <> showText fahrtrichtung)
     umdrehen bahngeschwindigkeit@(LegoBahngeschwindigkeit {})                   (Nothing)               mvarPinMap = umdrehen bahngeschwindigkeit (Just Vorwärts) mvarPinMap
     umdrehen (MärklinBahngeschwindigkeit {geschwindigkeitsPin})                 _maybeRichtung  mvarPinMap = befehlAusführen
-        (umdrehenAux geschwindigkeitsPin mvarPinMap [pwmSetzeWert geschwindigkeitsPin pwmGrenze, const $ warteµs umdrehenZeitµx, pwmSetzeWert geschwindigkeitsPin 0])
+        (umdrehenAux geschwindigkeitsPin mvarPinMap [pwmSetzeWert geschwindigkeitsPin pwmGrenze, const $ warteµs umdrehenZeitµs, pwmSetzeWert geschwindigkeitsPin 0])
         ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
 
 umdrehenAux :: Pin -> MVar PinMap -> [PinMapIO ()] -> IO ()
 umdrehenAux geschwindigkeitsPin mvarPinMap umdrehenAktionen = do
     pwmSetzeWert geschwindigkeitsPin 0 mvarPinMap
-    warteµs umdrehenZeitµx
+    warteµs umdrehenZeitµs
     mapM_ ($ mvarPinMap) umdrehenAktionen
-    warteµs umdrehenZeitµx
+    warteµs umdrehenZeitµs
 
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt = Streckenabschnitt {stName :: Text, stromPin::Pin}
@@ -267,16 +267,16 @@ class (StreckenObjekt w) => WeicheKlasse w where
     {-# MINIMAL stellen, erhalteRichtungen #-}
 
 -- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
-weicheZeitµx :: Natural
-weicheZeitµx = 500 * µsInms
+weicheZeitµs :: Natural
+weicheZeitµs = 500 * µsInms
 
 instance WeicheKlasse Weiche where
     stellen :: Weiche -> Richtung -> PinMapIO ()
     stellen (LegoWeiche {richtungsPin, richtungen}) richtung    mvarPinMap  | richtung == fst richtungen    = befehlAusführen
-        (pwmServo richtungsPin 25 mvarPinMap >> warteµs weicheZeitµx >> pwmServo richtungsPin 0 mvarPinMap)
+        (pwmServo richtungsPin 25 mvarPinMap >> warteµs weicheZeitµs >> pwmServo richtungsPin 0 mvarPinMap)
         ("Stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
                                                                             | richtung == snd richtungen    = befehlAusführen
-        (pwmServo richtungsPin 75 mvarPinMap >> warteµs weicheZeitµx >> pwmServo richtungsPin 0 mvarPinMap)
+        (pwmServo richtungsPin 75 mvarPinMap >> warteµs weicheZeitµs >> pwmServo richtungsPin 0 mvarPinMap)
         ("stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
                                                                             | otherwise                     = pure ()
     stellen (MärklinWeiche {richtungsPins})         richtung    _mvarPinMap = befehlAusführen
@@ -286,7 +286,7 @@ instance WeicheKlasse Weiche where
                 richtungStellen :: IO ()
                 richtungStellen = case getRichtungsPin richtung $ NE.toList richtungsPins of
                     (Nothing)           -> pure ()
-                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> stromStellen richtungsPin Fließend >> warteµs weicheZeitµx >> stromStellen richtungsPin Gesperrt
+                    (Just richtungsPin) -> pinMode richtungsPin OUTPUT >> stromStellen richtungsPin Fließend >> warteµs weicheZeitµs >> stromStellen richtungsPin Gesperrt
                 getRichtungsPin :: Richtung -> [(Richtung, Pin)] -> Maybe Pin
                 getRichtungsPin _richtung   []  = Nothing
                 getRichtungsPin richtung    ((ersteRichtung, ersterPin):andereRichtungen)
@@ -320,13 +320,13 @@ class (StreckenObjekt k) => KupplungKlasse k where
     {-# MINIMAL kuppeln #-}
 
 -- | Zeit, die Strom beim Kuppeln anliegt
-kuppelnZeitµx :: Natural
-kuppelnZeitµx = µsInS
+kuppelnZeitµs :: Natural
+kuppelnZeitµs = µsInS
 
 instance KupplungKlasse Kupplung where
     kuppeln :: Kupplung -> PinMapIO ()
     kuppeln (Kupplung {kupplungsPin})   _mvarPinMap = befehlAusführen
-        (pinMode kupplungsPin OUTPUT >> stromStellen kupplungsPin Fließend >> warteµs kuppelnZeitµx >> stromStellen kupplungsPin Gesperrt)
+        (pinMode kupplungsPin OUTPUT >> stromStellen kupplungsPin Fließend >> warteµs kuppelnZeitµs >> stromStellen kupplungsPin Gesperrt)
         ("Kuppeln (" <> showText kupplungsPin <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
