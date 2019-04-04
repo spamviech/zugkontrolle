@@ -39,15 +39,16 @@ when:
 
 dependencies:
   - base
-  - mtl
-  - containers
   - aeson
-  - bytestring
-  - directory
-  - optparse-applicative
-  - concurrency
-  - text
   - ansi-terminal
+  - bytestring
+  - concurrency
+  - containers
+  - directory
+  - mtl
+  - optparse-applicative
+  - template-haskell
+  - text
   - wiringPi
 
 ghc-options:

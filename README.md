@@ -115,3 +115,5 @@ Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\App
 * --fließend=LOW | HIGH  
     Gebe an bei welchen Output der Pins die verwendeten Relais auf fließend stehen.
     Diese flag hat __keinen__ Einfluss auf die Ausgabe von PWM-Signalen (HIGH wird immer als fließend interpretiert).
+* --sprache=Deutsch | Englisch  
+    Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.
