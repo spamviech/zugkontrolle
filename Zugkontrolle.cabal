@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 654cfdb97907e67f6ceae7c86a0eea1be5d51666ff28a5a9cc2055fa8ba3216a
+-- hash: 3dd88d3dcdca5c5b451066bc2cdbe994432376f6ad970c7fe21eb8f0881a76bb
 
 name:           Zugkontrolle
 version:        1.0.0.13
@@ -36,6 +36,10 @@ library
       Zug.Anbindung.SoftwarePWM
       Zug.Klassen
       Zug.Language
+      Zug.Language.DE
+      Zug.Language.EN
+      Zug.Language.Operatoren
+      Zug.Language.TemplateHaskell
       Zug.LinkedMVar
       Zug.Options
       Zug.Plan
@@ -67,6 +71,7 @@ library
     , directory
     , mtl
     , optparse-applicative
+    , template-haskell
     , text
     , wiringPi
   if flag(gui)
@@ -98,6 +103,7 @@ executable Zugkontrolle
     , directory
     , mtl
     , optparse-applicative
+    , template-haskell
     , text
     , wiringPi
   if flag(gui)
@@ -130,6 +136,7 @@ test-suite Zugkontrolle-test
     , directory
     , mtl
     , optparse-applicative
+    , template-haskell
     , text
     , wiringPi
   if flag(gui)

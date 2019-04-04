@@ -349,17 +349,17 @@ instance Show Wegstrecke where
 instance StreckenObjekt Wegstrecke where
     zugtyp :: Wegstrecke -> Zugtyp
     zugtyp wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten=(h:t)})    = case zugtyp h of
-        Undefiniert -> zugtyp $ wegstrecke {wsBahngeschwindigkeiten=t}
-        zugtypWert  -> zugtypWert
+        (Undefiniert)   -> zugtyp $ wegstrecke {wsBahngeschwindigkeiten=t}
+        zugtypWert      -> zugtypWert
     zugtyp wegstrecke@(Wegstrecke {wsStreckenabschnitte=(h:t)})       = case zugtyp h of
-        Undefiniert -> zugtyp $ wegstrecke {wsStreckenabschnitte=t}
-        zugtypWert  -> zugtypWert
+        (Undefiniert)   -> zugtyp $ wegstrecke {wsStreckenabschnitte=t}
+        zugtypWert      -> zugtypWert
     zugtyp wegstrecke@(Wegstrecke {wsWeichenRichtungen=(h:t)})        = case zugtyp $ fst h of
-        Undefiniert -> zugtyp $ wegstrecke {wsWeichenRichtungen=t}
-        zugtypWert  -> zugtypWert
+        (Undefiniert)   -> zugtyp $ wegstrecke {wsWeichenRichtungen=t}
+        zugtypWert      -> zugtypWert
     zugtyp wegstrecke@(Wegstrecke {wsKupplungen=(h:t)})               = case zugtyp h of
-        Undefiniert -> zugtyp $ wegstrecke {wsKupplungen=t}
-        zugtypWert  -> zugtypWert
+        (Undefiniert)   -> zugtyp $ wegstrecke {wsKupplungen=t}
+        zugtypWert      -> zugtypWert
     zugtyp _wegstrecke                                              = Undefiniert
     pins :: Wegstrecke -> [Pin]
     pins (Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})    = join $ (map pins wsBahngeschwindigkeiten) <> (map pins wsStreckenabschnitte) <> (map pins (map fst wsWeichenRichtungen)) <> (map pins wsKupplungen)
@@ -370,15 +370,15 @@ instance BahngeschwindigkeitKlasse Wegstrecke where
     geschwindigkeit :: Wegstrecke -> Natural -> PinMapIO ()
     geschwindigkeit (Wegstrecke {wsBahngeschwindigkeiten}) wert mvarPinMap = mapM_ (\bahngeschwindigkeit -> forkIO $ geschwindigkeit bahngeschwindigkeit wert mvarPinMap) wsBahngeschwindigkeiten
     umdrehen :: Wegstrecke -> Maybe Fahrtrichtung -> PinMapIO ()
-    umdrehen    (Wegstrecke {wsBahngeschwindigkeiten})    maybeFahrtrichtung  mvarPinMap  = mapM_ (\bahngeschwindigkeit -> forkIO $ umdrehen bahngeschwindigkeit maybeFahrtrichtung mvarPinMap) wsBahngeschwindigkeiten
+    umdrehen (Wegstrecke {wsBahngeschwindigkeiten}) maybeFahrtrichtung mvarPinMap = mapM_ (\bahngeschwindigkeit -> forkIO $ umdrehen bahngeschwindigkeit maybeFahrtrichtung mvarPinMap) wsBahngeschwindigkeiten
 
 instance StreckenabschnittKlasse Wegstrecke where
     strom :: Wegstrecke -> Strom -> PinMapIO ()
-    strom   (Wegstrecke {wsStreckenabschnitte})   an  mvarPinMap  = mapM_ (\streckenabschnitt -> forkIO $ strom streckenabschnitt an mvarPinMap) wsStreckenabschnitte
+    strom (Wegstrecke {wsStreckenabschnitte}) an mvarPinMap = mapM_ (\streckenabschnitt -> forkIO $ strom streckenabschnitt an mvarPinMap) wsStreckenabschnitte
 
 instance KupplungKlasse Wegstrecke where
     kuppeln :: Wegstrecke -> PinMapIO ()
-    kuppeln (Wegstrecke {wsKupplungen})  mvarPinMap  = mapM_ (\kupplung -> forkIO $ kuppeln kupplung mvarPinMap) wsKupplungen
+    kuppeln (Wegstrecke {wsKupplungen}) mvarPinMap = mapM_ (\kupplung -> forkIO $ kuppeln kupplung mvarPinMap) wsKupplungen
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
@@ -387,7 +387,7 @@ class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w,
 
 instance WegstreckeKlasse Wegstrecke where
     einstellen :: Wegstrecke -> PinMapIO ()
-    einstellen  (Wegstrecke {wsWeichenRichtungen})    mvarPinMap  = mapM_ (\(weiche, richtung) -> forkIO $ stellen weiche richtung mvarPinMap) wsWeichenRichtungen
+    einstellen (Wegstrecke {wsWeichenRichtungen}) mvarPinMap = mapM_ (\(weiche, richtung) -> forkIO $ stellen weiche richtung mvarPinMap) wsWeichenRichtungen
 
 -- | Ausführen einer IO-Aktion, bzw. Ausgabe eines Strings, abhängig vom Kommandozeilen-Argument
 befehlAusführen :: IO () -> Text -> IO ()
