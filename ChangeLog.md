@@ -84,3 +84,4 @@
 - Bugfix (Cmd-UI): Zeile zum Unterstreichen erscheint nun auch unter dem Titel und ist lang genug
 - Umdrehen erhält eine automatische Wartezeit nach der Umdreh-Aktion
 - Englische Sprache hinzugefügt. Sie kann über die Kommandozeilen-Option `--sprache=Englisch` ausgewählt werden.
+- Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
