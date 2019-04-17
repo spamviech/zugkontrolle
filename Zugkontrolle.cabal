@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3dd88d3dcdca5c5b451066bc2cdbe994432376f6ad970c7fe21eb8f0881a76bb
+-- hash: fb30c892e9d706df7ec86ac9292f5eb410c8cbe8da9791e6439267ef6ea1e936
 
 name:           Zugkontrolle
 version:        1.0.0.13
@@ -71,6 +71,7 @@ library
     , directory
     , mtl
     , optparse-applicative
+    , regex-tdfa
     , template-haskell
     , text
     , wiringPi
@@ -103,6 +104,7 @@ executable Zugkontrolle
     , directory
     , mtl
     , optparse-applicative
+    , regex-tdfa
     , template-haskell
     , text
     , wiringPi
@@ -136,6 +138,7 @@ test-suite Zugkontrolle-test
     , directory
     , mtl
     , optparse-applicative
+    , regex-tdfa
     , template-haskell
     , text
     , wiringPi

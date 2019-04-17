@@ -47,6 +47,7 @@ dependencies:
   - directory
   - mtl
   - optparse-applicative
+  - regex-tdfa
   - template-haskell
   - text
   - wiringPi
