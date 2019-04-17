@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e7439b526517d36414f6f1b9db12b8540fe210794b2d1d640c26d7bb469c652d
+-- hash: fb30c892e9d706df7ec86ac9292f5eb410c8cbe8da9791e6439267ef6ea1e936
 
 name:           Zugkontrolle
-version:        1.0.0.12
+version:        1.0.0.13
 description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 homepage:       https://github.com/spamviech/Zugkontrolle#readme
 bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
@@ -36,6 +36,10 @@ library
       Zug.Anbindung.SoftwarePWM
       Zug.Klassen
       Zug.Language
+      Zug.Language.DE
+      Zug.Language.EN
+      Zug.Language.Operatoren
+      Zug.Language.TemplateHaskell
       Zug.LinkedMVar
       Zug.Options
       Zug.Plan
@@ -56,7 +60,7 @@ library
   hs-source-dirs:
       src
   ghc-options: -Wall -Wno-name-shadowing -Wno-unused-do-bind
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.12"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.13"
   build-depends:
       aeson
     , ansi-terminal
@@ -67,6 +71,8 @@ library
     , directory
     , mtl
     , optparse-applicative
+    , regex-tdfa
+    , template-haskell
     , text
     , wiringPi
   if flag(gui)
@@ -86,7 +92,7 @@ executable Zugkontrolle
   hs-source-dirs:
       app
   ghc-options: -Wall -threaded
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.12"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.13"
   build-depends:
       Zugkontrolle
     , aeson
@@ -98,6 +104,8 @@ executable Zugkontrolle
     , directory
     , mtl
     , optparse-applicative
+    , regex-tdfa
+    , template-haskell
     , text
     , wiringPi
   if flag(gui)
@@ -118,7 +126,7 @@ test-suite Zugkontrolle-test
   hs-source-dirs:
       test
   ghc-options: -Wall -threaded
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.12"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.13"
   build-depends:
       Zugkontrolle
     , aeson
@@ -130,6 +138,8 @@ test-suite Zugkontrolle-test
     , directory
     , mtl
     , optparse-applicative
+    , regex-tdfa
+    , template-haskell
     , text
     , wiringPi
   if flag(gui)

@@ -29,7 +29,7 @@ module Zug.UI.GTK.Widgets (
                         BahngeschwindigkeitWidgetHinzufügenWegstrecke, StreckenabschnittWidgetHinzufügenWegstrecke, WeicheWidgetHinzufügenWegstrecke, KupplungWidgetHinzufügenWegstrecke,
                         BahngeschwindigkeitWidgetHinzufügenPlan, StreckenabschnittWidgetHinzufügenPlan, WeicheWidgetHinzufügenPlan, KupplungWidgetHinzufügenPlan, WegstreckeWidgetHinzufügenPlan,
                         -- * Verwaltung des aktuellen Zustands
-                        DynamischeWidgets(..), StatusGUI, IOStatusGUI, MStatusGUI, MonadMStatusGUI, BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
+                        DynamischeWidgets(..), StatusGUI, ObjektGUI, BefehlGUI, IOStatusGUI, MStatusGUI, MonadMStatusGUI, BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
                         traversalHinzufügenWegstrecke, WegstreckenElement(..), getterRichtungsRadioButtons, PlanElement(..), entferneHinzufügenPlanWidgets) where
 
 -- Bibliotheken
@@ -58,8 +58,12 @@ import Zug.UI.Befehl
 import Zug.UI.GTK.FortfahrenWenn
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
+-- | Sammel-Typ spezialiert auf GUI-Typen
+type ObjektGUI = ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets WSWidgets PLWidgets
+-- | Befehl spezialiert auf GUI-Typen
+type BefehlGUI = BefehlAllgemein ObjektGUI
 -- | Zustands-Typ der Zustands-Monade spezialisiert auf GUI-Typen
-type StatusGUI = StatusAllgemein BGWidgets STWidgets WEWidgets KUWidgets WSWidgets PLWidgets
+type StatusGUI = StatusAllgemein ObjektGUI
 -- | Zustands-Monaden-Transformer spezialisiert auf GUI-Typen in der IO-Monade
 type IOStatusGUI = StateT StatusGUI IO
 -- | Reine Zustands-Monade spezialiert auf GUI-Typen

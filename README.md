@@ -85,31 +85,35 @@ Nachdem auf nicht-RasperryPi-Systemen sämtliche IO-Funktionen des WiringPi-Modu
 
 ## GTK-Probleme mit stack und Windows
 Wenn das Programm unter Windows nicht startet, bzw. mit dll-Fehlern abbricht (Fehlermeldungen werden bei Start über Powershell nicht angezeigt) muss der Ordner der MSYS2-Installation weiter vorne im Path stehen.
-Bei einer eigenen MSYS2-Installation ist das normalerweise: `C:\msys64\mingw64\bin`.
-Für die von stack mitgelieferte Version ist der Pfad normalerweise: `\~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\`
+- Bei einer eigenen MSYS2-Installation ist das normalerweise: `C:\msys64\mingw64\bin`.
+- Für die von stack mitgelieferte Version ist der Pfad normalerweise: `\~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\`
+
 Falls das immer nocht nicht hilft (bei `stack exec ...` normalerweise der Fall) muss die `zlib1.dll` durch die neuere aus dem msys-Ordner ersetzt werden.  
 Durch den Befehl `stack exec -- where zlib1.dll` werden alle im Pfad befindlichen in Reihenfolge aufgelistet.
 Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werden.
+
 Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\AppData\Local\Programs\stack\x86_64-windows\ghc-8.2.2\mingw\bin\zlib1.dll\zlib1.dll`
 
 ## Unterstütze Kommandozeilen-Parameter
-* -h|--help  
+* -h | --help  
     Zeige den Hilfstext an. Dieser wird automatisch erzeugt, woduch Teile davon auf englisch sind.
-* -v|--version  
+* -v | --version  
     Zeige die aktuelle Version an.
-* -p|--print  
+* -p | --print  
     Wenn diese Flag gesetzt ist werden die Ausgaben der Raspberry Pi Ausgänge (Pins) nicht als Ausgang verwendet.
     Es wird stattdessen eine Konsolenausgabe erzeugt.  
     Diese Flag ist vor allem zum Testen auf anderen Systemen gedacht.
-* --ui=Cmd|GTK  
+* --ui=Cmd | GTK  
     Auswahl der Benutzer-Schnittstelle (Standard: GTK).
     Bei Installation mit "--flag Zugkontrolle:-gui" wird immer das Cmd-UI verwendet.
-* -lDATEI|--load=DATEI  
+* -lDATEI | --load=DATEI  
     Versuche den in DATEI gespeicherten Zustand zu laden.
     Wenn die Datei nicht existiert/das falsche Format hat wird ohne Fehlermeldung mit einem leeren Zustand gestartet.
-* --pwm=HardwarePWM|SoftwarePWM  
+* --pwm=HardwarePWM | SoftwarePWM  
     Gebe an, welche PWM-Funktion bevorzugt verwendet wird (Standard: SoftwarePWM).
     Nachdem nur das Einstellen der hardware-basierten PWM-Funktion Root-Rechte benötigt werden diese bei Verwendung von `--pwm=SoftwarePWM` nicht benötigt.
-* --fließend=LOW|HIGH  
+* --fließend=LOW | HIGH  
     Gebe an bei welchen Output der Pins die verwendeten Relais auf fließend stehen.
     Diese flag hat __keinen__ Einfluss auf die Ausgabe von PWM-Signalen (HIGH wird immer als fließend interpretiert).
+* --sprache=Deutsch | Englisch  
+    Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.

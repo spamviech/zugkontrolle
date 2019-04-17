@@ -49,9 +49,9 @@ mainStatus = do
             setSGR [SetColor Foreground Dull Green]
             putStr $ "" <\> Language.zugkontrolle
             setSGR [Reset]
-            putStr $ "" <~> ZUGKONTROLLEVERSION
+            putStrLn $ "" <~> ZUGKONTROLLEVERSION
             setSGR [SetColor Foreground Dull Cyan]
-            putStrLn $ (const '-') <$> Language.zugkontrolle
+            putStrLn $ (const '-') <$> Language.zugkontrolle <~> ZUGKONTROLLEVERSION
             setSGR [Reset]
             putStrLn $ showText status
             setSGR [SetColor Foreground Dull Blue]
@@ -93,7 +93,7 @@ statusParser    eingabe = (uncurry statusParserAux) $ parser AnfrageBefehl einga
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus ()
-ausführenBefehlSofort   (BSLaden dateipfad) = void $ ausführenBefehl (Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad)
+ausführenBefehlSofort   (BSLaden dateipfad) = void $ ausführenBefehl (Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad :: Befehl)
 
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]

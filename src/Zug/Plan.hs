@@ -1,5 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
@@ -9,13 +10,14 @@ Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, we
 -}
 module Zug.Plan (
     -- * Allgemeine Datentypen
-    PlanKlasse(..), Plan, PlanAllgemein(..), Aktion, AktionAllgemein(..),
+    PlanKlasse(..), Plan, PlanAllgemein(..), Aktion, AktionAllgemein(..), Objekt, ObjektAllgemein(..), ObjektKlasse(..),
     -- * Spezialisierte Aktionen
     AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionKupplung(..), AktionWegstrecke(..)) where
 
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Monad (void, foldM)
+import Data.Kind
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
@@ -24,6 +26,67 @@ import Zug.Klassen
 import Zug.Anbindung
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
+
+-- | Summen-Typ
+data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
+                                        | OWegstrecke           ws
+                                        | OWeiche               we
+                                        | OBahngeschwindigkeit  bg
+                                        | OStreckenabschnitt    st
+                                        | OKupplung             ku
+                                            deriving (Show)
+-- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
+type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+
+-- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
+class ObjektKlasse o where
+    -- | Bahngeschwindigkeit
+    type BG o :: Type
+    -- | Streckenabschnitt
+    type ST o :: Type
+    -- | Weiche
+    type WE o :: Type
+    -- | Kupplung
+    type KU o :: Type
+    -- | Wegstrecke
+    type WS o :: Type
+    -- | Plan
+    type PL o :: Type
+    -- | Mapping auf 'ObjektAllgemein'. Notwendig für Pattern-Matching.
+    erhalteObjekt :: o -> ObjektAllgemein (BG o) (ST o) (WE o) (KU o) (WS o) (PL o)
+
+instance ObjektKlasse (ObjektAllgemein bg st we ku ws pl) where
+    type BG (ObjektAllgemein bg st we ku ws pl) = bg
+    type ST (ObjektAllgemein bg st we ku ws pl) = st
+    type WE (ObjektAllgemein bg st we ku ws pl) = we
+    type KU (ObjektAllgemein bg st we ku ws pl) = ku
+    type WS (ObjektAllgemein bg st we ku ws pl) = ws
+    type PL (ObjektAllgemein bg st we ku ws pl) = pl
+    erhalteObjekt :: (ObjektAllgemein bg st we ku ws pl) -> (ObjektAllgemein bg st we ku ws pl)
+    erhalteObjekt = id
+
+instance (StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws, StreckenObjekt pl) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
+    erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
+    erhalteName (OPlan pl)                  = erhalteName pl
+    erhalteName (OWegstrecke ws)            = erhalteName ws
+    erhalteName (OWeiche we)                = erhalteName we
+    erhalteName (OBahngeschwindigkeit bg)   = erhalteName bg
+    erhalteName (OStreckenabschnitt st)     = erhalteName st
+    erhalteName (OKupplung ku)              = erhalteName ku
+    pins ::ObjektAllgemein bg st we ku ws pl -> [Pin]
+    pins (OPlan pl)                 = pins pl
+    pins (OWegstrecke ws)           = pins ws
+    pins (OWeiche we)               = pins we
+    pins (OBahngeschwindigkeit bg)  = pins bg
+    pins (OStreckenabschnitt st)    = pins st
+    pins (OKupplung ku)             = pins ku
+    zugtyp :: ObjektAllgemein bg st we ku ws pl -> Zugtyp
+    zugtyp (OPlan pl)                  = zugtyp pl
+    zugtyp (OWegstrecke ws)            = zugtyp ws
+    zugtyp (OWeiche we)                = zugtyp we
+    zugtyp (OBahngeschwindigkeit bg)   = zugtyp bg
+    zugtyp (OStreckenabschnitt st)     = zugtyp st
+    zugtyp (OKupplung ku)              = zugtyp ku
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).
 -- Sie können selbst entscheiden, ob sie die mitgegebene Update-Funktion über den Fortschritt informieren, oder nicht.
@@ -61,7 +124,7 @@ instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse
 
 -- | Eine Aktion eines 'StreckenObjekt's oder eine Wartezeit.
 -- Die Update-Funktion wird nicht aufgerufen.
-data AktionAllgemein bg st we ku ws   = Warten                Natural
+data AktionAllgemein bg st we ku ws = Warten                Natural
                                     | AWegstrecke           (AktionWegstrecke ws)
                                     | AWeiche               (AktionWeiche we)
                                     | ABahngeschwindigkeit  (AktionBahngeschwindigkeit bg)

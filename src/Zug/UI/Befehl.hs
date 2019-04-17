@@ -2,8 +2,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementierung.
@@ -14,7 +13,7 @@ module Zug.UI.Befehl (
                     -- * Typen
                     Befehl, BefehlAllgemein(..),
                     BefehlListe, BefehlListeAllgemein(..),
-                    UIBefehl, UIBefehlAllgemein(..), Objekt, ObjektAllgemein(..),
+                    UIBefehl, UIBefehlAllgemein(..),
                     -- * Funktionen
                     ausführenMVarPlan, ausführenMVarAktion, ausführenMVarBefehl) where
 
@@ -23,116 +22,112 @@ import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get, put)
 import Control.Concurrent.MVar (takeMVar, putMVar)
 import Data.Aeson (ToJSON)
-import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
-import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base
 
 -- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarPlan :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
-            => p -> (Natural -> IO ()) -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO ()
+ausführenMVarPlan :: (PlanKlasse p, BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), LikeMVar lmvar)
+            => p -> (Natural -> IO ()) -> lmvar (StatusAllgemein o) -> IO ()
 ausführenMVarPlan plan showAction mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenPlan plan showAction
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarAktion   :: (PlanKlasse p, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, LikeMVar lmvar)
-                => p -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO ()
+ausführenMVarAktion   :: (PlanKlasse p, BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), LikeMVar lmvar)
+                => p -> lmvar (StatusAllgemein o) -> IO ()
 ausführenMVarAktion aktion = ausführenMVarPlan aktion $ const $ pure ()
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarBefehl   :: (BefehlKlasse b, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl, LikeMVar lmvar)
-                => b bg st we ku ws pl -> lmvar (StatusAllgemein bg st we ku ws pl) -> IO Bool
+ausführenMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, LikeMVar lmvar
+                        , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                        , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                        , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                        , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                        , WegstreckeKlasse (WS o), ToJSON (WS o)
+                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                    => b o -> lmvar (StatusAllgemein o) -> IO Bool
 ausführenMVarBefehl befehl = auswertenMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
 class BefehlKlasse b where
     -- | Gibt True zurück, falls das UI beendet werden soll
-    ausführenBefehl ::(BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)
-                    => b bg st we ku ws pl -> IOStatusAllgemein bg st we ku ws pl Bool
+    ausführenBefehl :: (ObjektKlasse o
+                        , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                        , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                        , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                        , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                        , WegstreckeKlasse (WS o), ToJSON (WS o)
+                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                    => b o -> IOStatusAllgemein o Bool
 
 -- | Unterstütze Befehle
-data BefehlAllgemein bg st we ku ws pl  = UI            (UIBefehlAllgemein bg st we ku ws pl)
-                                        | Hinzufügen    (ObjektAllgemein bg st we ku ws pl)
-                                        | Entfernen     (ObjektAllgemein bg st we ku ws pl)
-                                        | Speichern     FilePath
-                                        | Laden         FilePath                            (Status -> IO (StatusAllgemein bg st we ku ws pl))  (IOStatusAllgemein bg st we ku ws pl ())
-                                        | Ausführen     (PlanAllgemein bg st we ku ws)        (Natural -> IO ())
-                                        | AktionBefehl  (AktionAllgemein  bg st we ku ws)
+data BefehlAllgemein o  = UI            (UIBefehlAllgemein o)
+                        | Hinzufügen    o
+                        | Entfernen     o
+                        | Speichern     FilePath
+                        | Laden         FilePath                                                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
+                        | Ausführen     (PlanAllgemein (BG o) (ST o) (WE o) (KU o) (WS o))      (Natural -> IO ())
+                        | AktionBefehl  (AktionAllgemein (BG o) (ST o) (WE o) (KU o) (WS o))
 -- | 'BefehlAllgemein' spezialisiert auf minimal spezialisierte Typen
-type Befehl = BefehlAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+type Befehl = BefehlAllgemein Objekt
 
--- | UI-spezifische Befehle. 6-facher Phantomtyp, um eine 'BefehlKlasse'-Instanz zu erhalten.
-data UIBefehlAllgemein bg st we ku ws pl = Beenden | Abbrechen
-                                            deriving (Show)
+-- | UI-spezifische Befehle. Phantomtyp, um eine 'BefehlKlasse'-Instanz zu erhalten.
+data UIBefehlAllgemein o = Beenden | Abbrechen
+                            deriving (Show)
 -- | 'UIBefehlAllgemein' spezialisiert auf minimal benötigte Typen
-type UIBefehl = UIBefehlAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
-
--- | Sammel-Typen
-data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
-                                        | OWegstrecke           ws
-                                        | OWeiche               we
-                                        | OBahngeschwindigkeit  bg
-                                        | OStreckenabschnitt    st
-                                        | OKupplung             ku
-                                            deriving (Show)
--- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
-type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
-
-instance (StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws, StreckenObjekt pl) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
-    erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
-    erhalteName (OPlan pl)                  = erhalteName pl
-    erhalteName (OWegstrecke ws)            = erhalteName ws
-    erhalteName (OWeiche we)                = erhalteName we
-    erhalteName (OBahngeschwindigkeit bg)   = erhalteName bg
-    erhalteName (OStreckenabschnitt st)     = erhalteName st
-    erhalteName (OKupplung ku)              = erhalteName ku
-    pins ::ObjektAllgemein bg st we ku ws pl -> [Pin]
-    pins (OPlan pl)                 = pins pl
-    pins (OWegstrecke ws)           = pins ws
-    pins (OWeiche we)               = pins we
-    pins (OBahngeschwindigkeit bg)  = pins bg
-    pins (OStreckenabschnitt st)    = pins st
-    pins (OKupplung ku)             = pins ku
-    zugtyp :: ObjektAllgemein bg st we ku ws pl -> Zugtyp
-    zugtyp (OPlan pl)                  = zugtyp pl
-    zugtyp (OWegstrecke ws)            = zugtyp ws
-    zugtyp (OWeiche we)                = zugtyp we
-    zugtyp (OBahngeschwindigkeit bg)   = zugtyp bg
-    zugtyp (OStreckenabschnitt st)     = zugtyp st
-    zugtyp (OKupplung ku)              = zugtyp ku
+type UIBefehl = UIBefehlAllgemein Objekt
 
 instance BefehlKlasse UIBefehlAllgemein where
-    ausführenBefehl :: (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)
-                    => UIBefehlAllgemein bg st we ku ws pl -> IOStatusAllgemein bg st we ku ws pl Bool
+    ausführenBefehl :: (ObjektKlasse o
+                        , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                        , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                        , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                        , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                        , WegstreckeKlasse (WS o), ToJSON (WS o)
+                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                    => UIBefehlAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl Beenden     = pure True
     ausführenBefehl Abbrechen   = pure False
 
 instance BefehlKlasse BefehlAllgemein where
-    ausführenBefehl :: (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)
-                    => BefehlAllgemein bg st we ku ws pl -> IOStatusAllgemein bg st we ku ws pl Bool
+    ausführenBefehl :: (ObjektKlasse o
+                        , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                        , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                        , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                        , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                        , WegstreckeKlasse (WS o), ToJSON (WS o)
+                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                    => BefehlAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl (UI Beenden)    = pure True
     ausführenBefehl (UI Abbrechen)  = pure False
     ausführenBefehl befehl          = ausführenBefehlAux befehl >> pure False
         where
-            ausführenBefehlAux  :: (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)
-                                => BefehlAllgemein bg st we ku ws pl -> IOStatusAllgemein bg st we ku ws pl ()
-            ausführenBefehlAux  (UI uiAction)                                           = error $ "Vergessene UI-Aktion: " ++ show uiAction
-            ausführenBefehlAux  (Hinzufügen (OPlan plan))                               = hinzufügenPlan plan
-            ausführenBefehlAux  (Hinzufügen (OWegstrecke wegstrecke))                   = hinzufügenWegstrecke wegstrecke
-            ausführenBefehlAux  (Hinzufügen (OWeiche weiche))                           = hinzufügenWeiche weiche
-            ausführenBefehlAux  (Hinzufügen (OBahngeschwindigkeit bahngeschwindigkeit)) = hinzufügenBahngeschwindigkeit bahngeschwindigkeit
-            ausführenBefehlAux  (Hinzufügen (OStreckenabschnitt streckenabschnitt))     = hinzufügenStreckenabschnitt streckenabschnitt
-            ausführenBefehlAux  (Hinzufügen (OKupplung kupplung))                       = hinzufügenKupplung kupplung
-            ausführenBefehlAux  (Entfernen (OPlan plan))                                = entfernenPlan plan
-            ausführenBefehlAux  (Entfernen (OWegstrecke wegstrecke))                    = entfernenWegstrecke wegstrecke
-            ausführenBefehlAux  (Entfernen (OWeiche weiche))                            = entfernenWeiche weiche
-            ausführenBefehlAux  (Entfernen (OBahngeschwindigkeit bahngeschwindigkeit))  = entfernenBahngeschwindigkeit bahngeschwindigkeit
-            ausführenBefehlAux  (Entfernen (OStreckenabschnitt streckenabschnitt))      = entfernenStreckenabschnitt streckenabschnitt
-            ausführenBefehlAux  (Entfernen (OKupplung kupplung))                        = entfernenKupplung kupplung
+            ausführenBefehlAux  :: (ObjektKlasse o
+                                    , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                                    , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                                    , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                                    , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                                    , WegstreckeKlasse (WS o), ToJSON (WS o)
+                                    , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                                => BefehlAllgemein o -> IOStatusAllgemein o ()
+            ausführenBefehlAux  (UI uiAction)       = error $ "Vergessene UI-Aktion: " ++ show uiAction
+            ausführenBefehlAux  (Hinzufügen objekt) = case erhalteObjekt objekt of
+                (OPlan plan)                                -> hinzufügenPlan plan
+                (OWegstrecke wegstrecke)                    -> hinzufügenWegstrecke wegstrecke
+                (OWeiche weiche)                            -> hinzufügenWeiche weiche
+                (OBahngeschwindigkeit bahngeschwindigkeit)  -> hinzufügenBahngeschwindigkeit bahngeschwindigkeit
+                (OStreckenabschnitt streckenabschnitt)      -> hinzufügenStreckenabschnitt streckenabschnitt
+                (OKupplung kupplung)                        -> hinzufügenKupplung kupplung
+            ausführenBefehlAux  (Entfernen objekt)  = case erhalteObjekt objekt of
+                (OPlan plan)                                -> entfernenPlan plan
+                (OWegstrecke wegstrecke)                    -> entfernenWegstrecke wegstrecke
+                (OWeiche weiche)                            -> entfernenWeiche weiche
+                (OBahngeschwindigkeit bahngeschwindigkeit)  -> entfernenBahngeschwindigkeit bahngeschwindigkeit
+                (OStreckenabschnitt streckenabschnitt)      -> entfernenStreckenabschnitt streckenabschnitt
+                (OKupplung kupplung)                        -> entfernenKupplung kupplung
             ausführenBefehlAux  (Speichern dateipfad)                                   = get >>= liftIOFunction (flip Save.speichern dateipfad)
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                 (Nothing)                   -> fehlerbehandlung
@@ -141,17 +136,29 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenPlan aktion $ \_ -> pure ()
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.
-newtype BefehlListeAllgemein bg st we ku ws pl = BefehlListe {getBefehlListe :: [BefehlAllgemein bg st we ku ws pl]}
+newtype BefehlListeAllgemein o = BefehlListe {getBefehlListe :: [BefehlAllgemein o]}
 -- | 'BefehlListeAllgemein' spezialisiert auf minimal benötigte Typen
-type BefehlListe = BefehlListeAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+type BefehlListe = BefehlListeAllgemein Objekt
 
 instance BefehlKlasse BefehlListeAllgemein where
-    ausführenBefehl ::(BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)
-                    => BefehlListeAllgemein bg st we ku ws pl -> IOStatusAllgemein bg st we ku ws pl Bool
+    ausführenBefehl ::(ObjektKlasse o
+                        , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                        , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                        , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                        , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                        , WegstreckeKlasse (WS o), ToJSON (WS o)
+                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                    => BefehlListeAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
-            ausführenBefehlAux  ::(BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws, Eq bg, Eq st, Eq we, Eq ku, Eq ws, Eq pl, ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl)
-                                => [BefehlAllgemein bg st we ku ws pl] -> IOStatusAllgemein bg st we ku ws pl Bool
+            ausführenBefehlAux  :: (ObjektKlasse o
+                                    , BahngeschwindigkeitKlasse (BG o), Eq (BG o), ToJSON (BG o)
+                                    , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
+                                    , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
+                                    , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
+                                    , WegstreckeKlasse (WS o), ToJSON (WS o)
+                                    , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                                => [BefehlAllgemein o] -> IOStatusAllgemein o Bool
             ausführenBefehlAux ([])    = pure False
             ausführenBefehlAux (h:[])  = ausführenBefehl h
             ausführenBefehlAux (h:t)   = ausführenBefehl h >>= \ende -> if ende then pure True else ausführenBefehlAux t
