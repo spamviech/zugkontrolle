@@ -4,6 +4,11 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 
+{-
+    Ein Großteil der Tests ist noch nicht fertig.
+    Mir ist wegen Krankheit leider die Zeit ausgegangen.
+-}
+
 -- Bibliotheken
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup(Semigroup(..))

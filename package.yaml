@@ -1,6 +1,6 @@
 name:                 Zugkontrolle
-version:              1.0.0.12
-cpp-options:          -DZUGKONTROLLEVERSION="1.0.0.12"
+version:              1.0.0.13
+cpp-options:          -DZUGKONTROLLEVERSION="1.0.0.13"
 github:               "spamviech/Zugkontrolle"
 license:              BSD3
 author:               "Wolfgang Witt"
@@ -32,22 +32,24 @@ when:
       - gtk3
       - lens
     cpp-options:
-      -DZUGKONTROLLEGUI
+      - -DZUGKONTROLLEGUI
   - condition: os(linux)
     dependencies:
       - unix
 
 dependencies:
   - base
-  - mtl
-  - containers
   - aeson
-  - bytestring
-  - directory
-  - optparse-applicative
-  - concurrency
-  - text
   - ansi-terminal
+  - bytestring
+  - concurrency
+  - containers
+  - directory
+  - mtl
+  - optparse-applicative
+  - regex-tdfa
+  - template-haskell
+  - text
   - wiringPi
 
 ghc-options:

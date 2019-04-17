@@ -3,15 +3,12 @@
 {-|
 Description : Kommandozeilen-Optionen
 -}
-module Zug.Options (Options(..), getOptions, UI(..), PWM(..)) where
+module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOptionen, Sprache(..), alleSprachen) where
 
 -- Bibliotheken
 import Options.Applicative
 import Data.Semigroup (Semigroup(..))
 import System.Hardware.WiringPi (Value(..))
--- Abhängigkeit von anderen Modulen
-import Zug.Language ((<~>), (<:>))
-import qualified Zug.Language as Language
 
 -- | Erhalte Kommandozeilen-Arguemente
 getOptions :: IO Options
@@ -21,10 +18,11 @@ getOptions = execParser optionen
 data Options = Options {
                     printCmd :: Bool,
                     ui :: UI,
+                    sprache :: Sprache,
                     load :: String,
                     pwm :: PWM,
                     fließend :: Value}
-                        deriving Show
+                        deriving (Show)
 
 optionen :: ParserInfo Options
 optionen = info
@@ -34,10 +32,10 @@ optionen = info
             header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
 
 versionOpt :: Parser (a -> a)
-versionOpt = infoOption (Language.zugkontrolle <~> "Version" <:> ZUGKONTROLLEVERSION) (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
+versionOpt = infoOption ("Zugkontrolle Version: " ++ ZUGKONTROLLEVERSION) (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
 
 kombinierteOptionen :: Parser Options
-kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> ladeOpt <*> pwmOpt <*> fließendOpt
+kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt <*> fließendOpt
 
 printOpt :: Parser Bool
 printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
@@ -46,13 +44,17 @@ printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe a
 data UI = GTK | Cmd
             deriving (Show, Read, Enum, Bounded)
 
+-- | Alle unterstützten UI-Optionen
+alleUI :: [UI]
+alleUI = [minBound..maxBound]
+
 uiOpt :: Parser UI
 uiOpt = option auto (
                 long "ui" <>
                 metavar "UI" <>
                 showDefault <>
                 value GTK <>
-                help ("Verwende UI=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [UI]) ++ " als Benutzer-Schnittstelle."))
+                help ("Verwende UI=" ++ zeigeMöglichkeiten alleUI ++ " als Benutzer-Schnittstelle."))
 
 ladeOpt :: Parser String
 ladeOpt = strOption (
@@ -67,13 +69,17 @@ ladeOpt = strOption (
 data PWM = SoftwarePWM | HardwarePWM
                 deriving (Show, Read, Enum, Bounded)
 
+-- | Alle unterstützten PWM-Optionen
+allePWMOptionen :: [PWM]
+allePWMOptionen = [minBound..maxBound]
+
 pwmOpt :: Parser PWM
 pwmOpt = option auto (
             long "pwm" <>
             metavar "PWMTYP" <>
             showDefault <>
             value SoftwarePWM <>
-            help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [PWM]) ++ " wenn möglich."))
+            help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich."))
 
 fließendOpt :: Parser Value
 fließendOpt = option auto (
@@ -82,6 +88,22 @@ fließendOpt = option auto (
                 showDefault <>
                 value LOW <>
                 help ("Bei welchem Pin-Output VALUE=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [Value]) ++ " fließt der Strom (PWM-Ausgabe unbeeinflusst)."))
+
+-- | Bekannte Sprachen
+data Sprache = Deutsch | Englisch
+                deriving (Show, Read, Bounded, Enum)
+
+-- | Alle unterstützten Sprachen
+alleSprachen :: [Sprache]
+alleSprachen = [minBound..maxBound]
+
+spracheOpt :: Parser Sprache
+spracheOpt = option auto (
+                long "sprache" <>
+                metavar "SPRACHE" <>
+                showDefault <>
+                value Deutsch <>
+                help ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?"))
 
 -- | Hilfsfunktion um mögliche Optionen anzuzeigen
 zeigeMöglichkeiten :: (Show a) => [a] -> String
