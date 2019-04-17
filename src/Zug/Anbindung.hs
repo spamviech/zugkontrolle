@@ -83,7 +83,7 @@ pwmFrequenzHzServo  = 50
 
 -- | Normale PWM-Frequenz
 pwmFrequenzHzNormal :: Natural
-pwmFrequenzHzNormal = 250
+pwmFrequenzHzNormal = 500
 
 -- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und 'pwmEingabeMaximal'.
 erhaltePwmWert :: (Integral i) => Natural -> i -> PwmValue

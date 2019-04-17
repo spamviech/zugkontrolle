@@ -80,8 +80,11 @@
 - Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.
 - Bugfix (GTK-UI): Wegstrecken sorgen auch alleine dazu,  dass betroffene Aktionen angezeigt werden.
 - Verbliebene englische Namen, die nicht an bestehende Funktionen angelehnt sind ins deutsche übersetzt.
-## Unreleased changes
+
+1.0.0.13:
 - Bugfix (Cmd-UI): Zeile zum Unterstreichen erscheint nun auch unter dem Titel und ist lang genug
 - Umdrehen erhält eine automatische Wartezeit nach der Umdreh-Aktion
 - Englische Sprache hinzugefügt. Sie kann über die Kommandozeilen-Option `--sprache=Englisch` ausgewählt werden.
 - Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
+- SoftwarePWM-Frequenz auf 500Hz erhöht.
+## Unreleased changes
