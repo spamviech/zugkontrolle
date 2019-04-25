@@ -289,6 +289,10 @@ hinzufügenWidgetWegstreckeNew objekt box = do
 hinzufügenWidgetPlanNew :: (BoxClass b, LikeMVar lmvar) => b -> Objekt -> lmvar (Maybe Objekt) -> IO Button
 hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $ putLMVar lmvar $ Just objekt
 
+-- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
+labelFließendValuePackNew :: (StreckenAtom s, BoxClass b) => b -> s -> IO Label
+labelFließendValuePackNew box s = boxPackWidgetNewDefault box $ labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
+
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
 bahngeschwindigkeitPackNew :: (LikeMVar lmvar) => Bahngeschwindigkeit -> lmvar StatusGUI -> DynamischeWidgets -> IO BahngeschwindigkeitWidget
@@ -307,6 +311,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets@(Dyn
     hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bahngeschwindigkeit mvarStatus
     fahrtrichtungsPinLabelPackNew hBox bahngeschwindigkeit
     buttonUmdrehenPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit mvarStatus
+    labelFließendValuePackNew hBox bahngeschwindigkeit
     let bgWidgets = BGWidgets {bg=bahngeschwindigkeit, bgWidget=hBox, bgHinzPL=(hinzufügenPlanWidget, hinzufügenPlanWidgetZT), bgHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -398,6 +403,7 @@ streckenabschnittPackNew streckenabschnitt@(Streckenabschnitt {stromPin}) mvarSt
     nameLabelPackNew hBox streckenabschnitt
     boxPackWidgetNewDefault hBox $ pinLabelNew Language.strom stromPin
     toggleButtonStromPackNew hBox streckenabschnitt mvarStatus
+    labelFließendValuePackNew hBox streckenabschnitt
     let stWidgets = STWidgets {st=streckenabschnitt, stWidget=hBox, stHinzPL=hinzufügenPlanWidget, stHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxStreckenabschnitte (entfernenStreckenabschnitt stWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -477,6 +483,7 @@ weichePackNew weiche mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxWeiche
     hBox <- boxPackWidgetNewDefault vBoxWeichen $ hBoxNew False 0
     nameLabelPackNew hBox weiche
     richtungsButtonsPackNew weiche hBox
+    labelFließendValuePackNew hBox weiche
     let weWidgets = WEWidgets {we=weiche, weWidget=hBox, weHinzPL=hinzufügenPlanWidget, weHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxWeichen (entfernenWeiche weWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets weWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -550,6 +557,7 @@ kupplungPackNew kupplung@(Kupplung {kupplungsPin}) mvarStatus dynamischeWidgets@
     nameLabelPackNew hBox kupplung
     boxPackWidgetNewDefault hBox $ pinLabelNew Language.kupplung kupplungsPin
     buttonKuppelnPackNew hBox kupplung mvarStatus
+    labelFließendValuePackNew hBox kupplung
     let kuWidgets = KUWidgets {ku=kupplung, kuWidget=hBox, kuHinzPL=hinzufügenPlanWidget, kuHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxKupplungen (entfernenKupplung kuWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
