@@ -833,59 +833,75 @@ anfrageWeicheAktualisieren anfrage@(AWEUnbekannt _ _)                           
 -- ** Bahngeschwindigkeit
 -- | Unvollständige 'Bahngeschwindigkeit'
 data AnfrageBahngeschwindigkeit = AnfrageBahngeschwindigkeit
-                                | ABGUnbekannt                                  AnfrageBahngeschwindigkeit  Text
+                                | ABGUnbekannt                                          AnfrageBahngeschwindigkeit  Text
                                 | ALegoBahngeschwindigkeit
-                                | ALegoBahngeschwindigkeitName                  Text
-                                | ALegoBahngeschwindigkeitNameGeschwindigkeit   Text                        Pin
+                                | ALegoBahngeschwindigkeitName                          Text
+                                | ALegoBahngeschwindigkeitNameFließend                  Text                        Value
+                                | ALegoBahngeschwindigkeitNameFließendGeschwindigkeit   Text                        Value   Pin
                                 | AMärklinBahngeschwindigkeit
-                                | AMärklinBahngeschwindigkeitName               Text
+                                | AMärklinBahngeschwindigkeitName                       Text
+                                | AMärklinBahngeschwindigkeitNameFließend               Text                        Value
 
 instance Show AnfrageBahngeschwindigkeit where
     show :: AnfrageBahngeschwindigkeit -> String
-    show    (AnfrageBahngeschwindigkeit)                            = Language.bahngeschwindigkeit
-    show    (ABGUnbekannt anfrage eingabe)                          = unpack $ unbekanntShowText anfrage eingabe
-    show    (ALegoBahngeschwindigkeit)                              = Language.lego <-> Language.bahngeschwindigkeit
-    show    (ALegoBahngeschwindigkeitName name)                     = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
-    show    (ALegoBahngeschwindigkeitNameGeschwindigkeit name pin)  = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.pin <=> showText pin
-    show    (AMärklinBahngeschwindigkeit)                           = Language.märklin <-> Language.bahngeschwindigkeit
-    show    (AMärklinBahngeschwindigkeitName name)                  = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    show    (AnfrageBahngeschwindigkeit)                                            = Language.bahngeschwindigkeit
+    show    (ABGUnbekannt anfrage eingabe)                                          = unpack $ unbekanntShowText anfrage eingabe
+    show    (ALegoBahngeschwindigkeit)                                              = Language.lego <-> Language.bahngeschwindigkeit
+    show    (ALegoBahngeschwindigkeitName name)                                     = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    show    (ALegoBahngeschwindigkeitNameFließend name fließend)                    = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
+    show    (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend pin) = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend <^> Language.pin <=> showText pin
+    show    (AMärklinBahngeschwindigkeit)                                           = Language.märklin <-> Language.bahngeschwindigkeit
+    show    (AMärklinBahngeschwindigkeitName name)                                  = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    show    (AMärklinBahngeschwindigkeitNameFließend name fließend)                 = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
 instance Anfrage AnfrageBahngeschwindigkeit where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> s
-    zeigeAnfrage    (AnfrageBahngeschwindigkeit)                                = Language.zugtyp
-    zeigeAnfrage    (ABGUnbekannt anfrage _eingabe)                             = zeigeAnfrage anfrage
-    zeigeAnfrage    (ALegoBahngeschwindigkeit)                                  = Language.name
-    zeigeAnfrage    (ALegoBahngeschwindigkeitName _name)                        = Language.pin
-    zeigeAnfrage    (ALegoBahngeschwindigkeitNameGeschwindigkeit _name _pin)    = Language.pin
-    zeigeAnfrage    (AMärklinBahngeschwindigkeit)                               = Language.name
-    zeigeAnfrage    (AMärklinBahngeschwindigkeitName _name)                     = Language.pin
+    zeigeAnfrage    (AnfrageBahngeschwindigkeit)                                                = Language.zugtyp
+    zeigeAnfrage    (ABGUnbekannt anfrage _eingabe)                                             = zeigeAnfrage anfrage
+    zeigeAnfrage    (ALegoBahngeschwindigkeit)                                                  = Language.name
+    zeigeAnfrage    (ALegoBahngeschwindigkeitName _name)                                        = Language.fließendValue
+    zeigeAnfrage    (ALegoBahngeschwindigkeitNameFließend _name _fließend)                      = Language.pin
+    zeigeAnfrage    (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _pin)  = Language.pin
+    zeigeAnfrage    (AMärklinBahngeschwindigkeit)                                               = Language.name
+    zeigeAnfrage    (AMärklinBahngeschwindigkeitName _name)                                     = Language.fließendValue
+    zeigeAnfrage    (AMärklinBahngeschwindigkeitNameFließend _name _fließend)                   = Language.pin
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> s -> s
-    zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitName _name)                      eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitNameGeschwindigkeit _name _pin)  eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen  a@(AMärklinBahngeschwindigkeitName _name)                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen  a                                                           eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitName _name)                                          eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _pin)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(AMärklinBahngeschwindigkeitName _name)                                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a                                                                               eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> Maybe s
-    zeigeAnfrageOptionen (AnfrageBahngeschwindigkeit)       = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
-    zeigeAnfrageOptionen (ABGUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
-    zeigeAnfrageOptionen _anfrage                           = Nothing
+    zeigeAnfrageOptionen (AnfrageBahngeschwindigkeit)               = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
+    zeigeAnfrageOptionen (ALegoBahngeschwindigkeitName _name)       = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (AMärklinBahngeschwindigkeitName _name)    = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (ABGUnbekannt anfrage _eingabe)            = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen _anfrage                                   = Nothing
 
 -- | Eingabe einer Bahngeschwindigkeit
 anfrageBahngeschwindigkeitAktualisieren :: AnfrageBahngeschwindigkeit -> EingabeToken -> Either AnfrageBahngeschwindigkeit Bahngeschwindigkeit
-anfrageBahngeschwindigkeitAktualisieren    (AnfrageBahngeschwindigkeit)                                                     token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+anfrageBahngeschwindigkeitAktualisieren    (AnfrageBahngeschwindigkeit)                                                                     token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
     (Lexer.Märklin  , AMärklinBahngeschwindigkeit),
     (Lexer.Lego     , ALegoBahngeschwindigkeit)]
     $ ABGUnbekannt AnfrageBahngeschwindigkeit eingabe
-anfrageBahngeschwindigkeitAktualisieren    (ALegoBahngeschwindigkeit)                                                       (EingabeToken {eingabe})            = Left $ ALegoBahngeschwindigkeitName eingabe
-anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitName name)                                      (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+anfrageBahngeschwindigkeitAktualisieren    (ALegoBahngeschwindigkeit)                                                                       (EingabeToken {eingabe})            = Left $ ALegoBahngeschwindigkeitName eingabe
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitName name)                                                      token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend name HIGH),
+    (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend name LOW)]
+    $ ABGUnbekannt anfrage eingabe
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend)                                     (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Left $ ALegoBahngeschwindigkeitNameGeschwindigkeit name $ zuPin pin
-anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitNameGeschwindigkeit name geschwindigkeitsPin)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Just pin)  -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend $ zuPin pin
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend geschwindigkeitsPin)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, geschwindigkeitsPin, fahrtrichtungsPin=zuPin pin}
-anfrageBahngeschwindigkeitAktualisieren    (AMärklinBahngeschwindigkeit)                                                    (EingabeToken {eingabe})            = Left $ AMärklinBahngeschwindigkeitName eingabe
-anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitName name)                                   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, bgFließend=fließend, geschwindigkeitsPin, fahrtrichtungsPin=zuPin pin}
+anfrageBahngeschwindigkeitAktualisieren    (AMärklinBahngeschwindigkeit)                                                                    (EingabeToken {eingabe})            = Left $ AMärklinBahngeschwindigkeitName eingabe
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitName name)                                                   token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend name HIGH),
+    (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend name LOW)]
+    $ ABGUnbekannt anfrage eingabe
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitNameFließend name fließend)                                 (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, geschwindigkeitsPin=zuPin pin}
-anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _ _)                                                       _token                              = Left anfrage
+    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, bgFließend=fließend, geschwindigkeitsPin=zuPin pin}
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _ _)                                                                       _token                              = Left anfrage
 
 -- ** Streckenabschnitt
 -- | Unvollständiger 'Streckenabschnitt'
