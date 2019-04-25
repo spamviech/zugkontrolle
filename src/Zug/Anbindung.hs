@@ -68,7 +68,7 @@ clockMöglich = (`elem` [Wpi 7, Wpi 21, Wpi 22, Wpi 29])
 
 -- * PWM-Funktion
 -- | pwmWrite mit alternativer Software-basierter PWM-Funktion
-pwmSetzeWert :: (StreckenAtom s) => s -> Pin -> PwmValue -> PinMapIO ()
+pwmSetzeWert :: (StreckenAtom s) => s -> Pin -> PwmValueUnmodifiziert -> PinMapIO ()
 pwmSetzeWert s pin pwmValue mvarPinMap = getOptions >>= \(Options {pwm}) -> case pwm of
     (HardwarePWM) | pwmMöglich pin  -> do
         pinMode pin PWM_OUTPUT
@@ -81,9 +81,12 @@ pwmSetzeWert s pin pwmValue mvarPinMap = getOptions >>= \(Options {pwm}) -> case
 pwmServo :: (StreckenAtom s) => s -> Pin -> Natural -> PinMapIO ()
 pwmServo s pin wert = pwmSoftwareSetzteWert pin pwmFrequenzHzServo $ pwmValueModifiziert s $ erhaltePwmWertVoll wert
 
+-- | newtype auf 'PwmValue' um ein noch bevorstehendes modifizieren bzgl. fließend-Value zu signalisieren
+newtype PwmValueUnmodifiziert = PwmValueUnmodifiziert PwmValue
+
 -- | Berechne den PWM-Wert abhängig davon, bei welchen 'Pin'-Output ('HIGH'/'LOW') der Strom fließt.
-pwmValueModifiziert :: (StreckenAtom s) => s -> PwmValue -> PwmValue
-pwmValueModifiziert s pwmValue = case fließend s of
+pwmValueModifiziert :: (StreckenAtom s) => s -> PwmValueUnmodifiziert -> PwmValue
+pwmValueModifiziert s (PwmValueUnmodifiziert pwmValue) = case fließend s of
     (HIGH)  -> pwmValue
     (LOW)   -> pwmGrenze - pwmValue
 
@@ -97,8 +100,8 @@ pwmFrequenzHzNormal :: Natural
 pwmFrequenzHzNormal = 500
 
 -- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und 'pwmEingabeMaximal'.
-erhaltePwmWert :: (Integral i) => Natural -> i -> PwmValue
-erhaltePwmWert pwmGrenzeMax wert = fromIntegral ergebnis
+erhaltePwmWert :: (Integral i) => Natural -> i -> PwmValueUnmodifiziert
+erhaltePwmWert pwmGrenzeMax wert = PwmValueUnmodifiziert $ fromIntegral ergebnis
     where
         {-
             Verwende Natural um Fehler wegen zu kleinem Wertebereich zu vermeiden.
@@ -133,11 +136,11 @@ pwmGrenzeReduziert = div (pwmGrenzeVoll * spannungFahrt * spannungFahrt) (spannu
         spannungQuelle = 25
 
 -- | Nutze komplette pwmGrenze
-erhaltePwmWertVoll :: (Integral i) => i -> PwmValue
+erhaltePwmWertVoll :: (Integral i) => i -> PwmValueUnmodifiziert
 erhaltePwmWertVoll = erhaltePwmWert pwmGrenzeVoll
 
 -- | Nutze einen reduzierten Bereich der pwmGrenze (maximal 16V von 24V Maximalspannung)
-erhaltePWMWertReduziert :: (Integral i) => i -> PwmValue
+erhaltePWMWertReduziert :: (Integral i) => i -> PwmValueUnmodifiziert
 erhaltePWMWertReduziert = erhaltePwmWert pwmGrenzeReduziert
 
 -- | µs in a second
@@ -221,12 +224,12 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         ("Umdrehen (" <> showText geschwindigkeitsPin <^> showText fahrtrichtungsPin <> ")->" <> showText fahrtrichtung)
     umdrehen bahngeschwindigkeit@(LegoBahngeschwindigkeit {})                       (Nothing)               mvarPinMap = umdrehen bahngeschwindigkeit (Just Vorwärts) mvarPinMap
     umdrehen bg@(MärklinBahngeschwindigkeit {geschwindigkeitsPin})                  _maybeRichtung  mvarPinMap = befehlAusführen
-        (umdrehenAux bg geschwindigkeitsPin mvarPinMap [pwmSetzeWert bg geschwindigkeitsPin pwmGrenze, const $ warteµs umdrehenZeitµs, pwmSetzeWert bg geschwindigkeitsPin 0])
+        (umdrehenAux bg geschwindigkeitsPin mvarPinMap [pwmSetzeWert bg geschwindigkeitsPin $ PwmValueUnmodifiziert pwmGrenze, const $ warteµs umdrehenZeitµs, pwmSetzeWert bg geschwindigkeitsPin $ PwmValueUnmodifiziert 0])
         ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
 
 umdrehenAux :: (StreckenAtom s) => s -> Pin -> MVar PinMap -> [PinMapIO ()] -> IO ()
 umdrehenAux s geschwindigkeitsPin mvarPinMap umdrehenAktionen = do
-    pwmSetzeWert s geschwindigkeitsPin 0 mvarPinMap
+    pwmSetzeWert s geschwindigkeitsPin (PwmValueUnmodifiziert 0) mvarPinMap
     warteµs umdrehenZeitµs
     mapM_ ($ mvarPinMap) umdrehenAktionen
     warteµs umdrehenZeitµs
