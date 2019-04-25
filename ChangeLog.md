@@ -88,3 +88,5 @@
 - Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
 - SoftwarePWM-Frequenz auf 500Hz erhöht.
 ## Unreleased changes
+- Fließend-Value (HIGH/LOW) ist jetzt eine Eigenschaft jedes Objekts.  
+    Das zugehörige Kommandozeilenargument `--fließend` wurde entsprechend entfernt.
