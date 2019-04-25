@@ -1,1 +1,112 @@
-{"Kupplungen":[],"Pläne":[],"Weichen":[],"Wegstrecken":[{"Name":"Außen & Berg","Kupplungen":[],"Weichen-Richtungen":[],"Streckenabschnitte":[{"Name":"O.St","StromPin":20},{"Name":"B.St","StromPin":5}],"Bahngeschwindigkeiten":[{"Name":"BG","Zugtyp":"Märklin","GeschwindigkeitsPin":14}]},{"Name":"Innen & Zentrum","Kupplungen":[],"Weichen-Richtungen":[],"Streckenabschnitte":[{"Name":"I.St","StromPin":21},{"Name":"Z.St","StromPin":26}],"Bahngeschwindigkeiten":[{"Name":"BG","Zugtyp":"Märklin","GeschwindigkeitsPin":14}]}],"Streckenabschnitte":[{"Name":"B.St","StromPin":5},{"Name":"A5.St","StromPin":0},{"Name":"A4.St","StromPin":16},{"Name":"A3.St","StromPin":13},{"Name":"A2.St","StromPin":6},{"Name":"A1.St","StromPin":12},{"Name":"Z.St","StromPin":26},{"Name":"O.St","StromPin":20},{"Name":"I.St","StromPin":21}],"Bahngeschwindigkeiten":[{"Name":"BG","Zugtyp":"Märklin","GeschwindigkeitsPin":14}]}
+{
+    "Streckenabschnitte": [
+        {
+            "Name": "B.St",
+            "StromPin": 5,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "A5.St",
+            "StromPin": 0,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "A4.St",
+            "StromPin": 16,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "A3.St",
+            "StromPin": 13,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "A2.St",
+            "StromPin": 6,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "A1.St",
+            "StromPin": 12,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "Z.St",
+            "StromPin": 26,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "O.St",
+            "StromPin": 20,
+            "Fließend": "LOW"
+        },
+        {
+            "Name": "I.St",
+            "StromPin": 21,
+            "Fließend": "LOW"
+        }
+    ],
+    "Bahngeschwindigkeiten": [
+        {
+            "GeschwindigkeitsPin": 14,
+            "Name": "BG",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        }
+    ],
+    "Kupplungen": [],
+    "Weichen": [],
+    "Pläne": [],
+    "Wegstrecken": [
+        {
+            "Streckenabschnitte": [
+                {
+                    "Name": "O.St",
+                    "StromPin": 20,
+                    "Fließend": "LOW"
+                },
+                {
+                    "Name": "B.St",
+                    "StromPin": 5,
+                    "Fließend": "LOW"
+                }
+            ],
+            "Bahngeschwindigkeiten": [
+                {
+                    "GeschwindigkeitsPin": 14,
+                    "Name": "BG",
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
+                }
+            ],
+            "Name": "Außen & Berg",
+            "Weichen-Richtungen": [],
+            "Kupplungen": []
+        },
+        {
+            "Streckenabschnitte": [
+                {
+                    "Name": "I.St",
+                    "StromPin": 21,
+                    "Fließend": "LOW"
+                },
+                {
+                    "Name": "Z.St",
+                    "StromPin": 26,
+                    "Fließend": "LOW"
+                }
+            ],
+            "Bahngeschwindigkeiten": [
+                {
+                    "GeschwindigkeitsPin": 14,
+                    "Name": "BG",
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
+                }
+            ],
+            "Name": "Innen & Zentrum",
+            "Weichen-Richtungen": [],
+            "Kupplungen": []
+        }
+    ]
+}

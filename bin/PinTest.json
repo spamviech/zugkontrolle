@@ -1,1 +1,298 @@
-{"Streckenabschnitte":[{"Name":"0","StromPin":0},{"Name":"1","StromPin":1},{"Name":"2","StromPin":2},{"Name":"3","StromPin":3},{"Name":"4","StromPin":4},{"Name":"5","StromPin":5},{"Name":"6","StromPin":6},{"Name":"7","StromPin":7},{"Name":"8","StromPin":8},{"Name":"9","StromPin":9},{"Name":"10","StromPin":10},{"Name":"11","StromPin":11},{"Name":"12","StromPin":12},{"Name":"13","StromPin":13},{"Name":"14","StromPin":14},{"Name":"15","StromPin":15},{"Name":"16","StromPin":16},{"Name":"17","StromPin":17},{"Name":"18","StromPin":18},{"Name":"19","StromPin":19},{"Name":"20","StromPin":20},{"Name":"21","StromPin":21},{"Name":"22","StromPin":22},{"Name":"23","StromPin":23},{"Name":"24","StromPin":24},{"Name":"25","StromPin":25},{"Name":"26","StromPin":26},{"Name":"27","StromPin":27}],"Bahngeschwindigkeiten":[],"Kupplungen":[],"Weichen":[],"Pläne":[],"Wegstrecken":[{"Streckenabschnitte":[{"Name":"0","StromPin":0},{"Name":"1","StromPin":1},{"Name":"2","StromPin":2},{"Name":"3","StromPin":3},{"Name":"4","StromPin":4},{"Name":"5","StromPin":5},{"Name":"6","StromPin":6},{"Name":"7","StromPin":7},{"Name":"8","StromPin":8},{"Name":"9","StromPin":9},{"Name":"10","StromPin":10},{"Name":"11","StromPin":11},{"Name":"12","StromPin":12},{"Name":"13","StromPin":13},{"Name":"14","StromPin":14},{"Name":"15","StromPin":15},{"Name":"16","StromPin":16},{"Name":"17","StromPin":17},{"Name":"18","StromPin":18},{"Name":"19","StromPin":19},{"Name":"20","StromPin":20},{"Name":"21","StromPin":21},{"Name":"22","StromPin":22},{"Name":"23","StromPin":23},{"Name":"24","StromPin":24},{"Name":"25","StromPin":25},{"Name":"26","StromPin":26},{"Name":"27","StromPin":27}],"Bahngeschwindigkeiten":[],"Name":"Alle Pins","Weichen-Richtungen":[],"Kupplungen":[]}]}
+{
+    "Streckenabschnitte": [
+        {
+            "Name": "0",
+            "StromPin": 0,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "1",
+            "StromPin": 1,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "2",
+            "StromPin": 2,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "3",
+            "StromPin": 3,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "4",
+            "StromPin": 4,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "5",
+            "StromPin": 5,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "6",
+            "StromPin": 6,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "7",
+            "StromPin": 7,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "8",
+            "StromPin": 8,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "9",
+            "StromPin": 9,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "10",
+            "StromPin": 10,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "11",
+            "StromPin": 11,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "12",
+            "StromPin": 12,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "13",
+            "StromPin": 13,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "14",
+            "StromPin": 14,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "15",
+            "StromPin": 15,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "16",
+            "StromPin": 16,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "17",
+            "StromPin": 17,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "18",
+            "StromPin": 18,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "19",
+            "StromPin": 19,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "20",
+            "StromPin": 20,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "21",
+            "StromPin": 21,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "22",
+            "StromPin": 22,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "23",
+            "StromPin": 23,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "24",
+            "StromPin": 24,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "25",
+            "StromPin": 25,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "26",
+            "StromPin": 26,
+            "Fließend": "HIGH"
+        },
+        {
+            "Name": "27",
+            "StromPin": 27,
+            "Fließend": "HIGH"
+        }
+    ],
+    "Bahngeschwindigkeiten": [],
+    "Kupplungen": [],
+    "Weichen": [],
+    "Pläne": [],
+    "Wegstrecken": [
+        {
+            "Streckenabschnitte": [
+                {
+                    "Name": "0",
+                    "StromPin": 0,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "1",
+                    "StromPin": 1,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "2",
+                    "StromPin": 2,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "3",
+                    "StromPin": 3,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "4",
+                    "StromPin": 4,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "5",
+                    "StromPin": 5,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "6",
+                    "StromPin": 6,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "7",
+                    "StromPin": 7,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "8",
+                    "StromPin": 8,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "9",
+                    "StromPin": 9,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "10",
+                    "StromPin": 10,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "11",
+                    "StromPin": 11,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "12",
+                    "StromPin": 12,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "13",
+                    "StromPin": 13,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "14",
+                    "StromPin": 14,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "15",
+                    "StromPin": 15,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "16",
+                    "StromPin": 16,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "17",
+                    "StromPin": 17,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "18",
+                    "StromPin": 18,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "19",
+                    "StromPin": 19,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "20",
+                    "StromPin": 20,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "21",
+                    "StromPin": 21,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "22",
+                    "StromPin": 22,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "23",
+                    "StromPin": 23,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "24",
+                    "StromPin": 24,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "25",
+                    "StromPin": 25,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "26",
+                    "StromPin": 26,
+                    "Fließend": "HIGH"
+                },
+                {
+                    "Name": "27",
+                    "StromPin": 27,
+                    "Fließend": "HIGH"
+                }
+            ],
+            "Bahngeschwindigkeiten": [],
+            "Name": "Alle Pins",
+            "Weichen-Richtungen": [],
+            "Kupplungen": []
+        }
+    ]
+}

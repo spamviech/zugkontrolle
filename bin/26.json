@@ -1,73 +1,81 @@
 {
+    "Streckenabschnitte": [
+        {
+            "Name": "st",
+            "StromPin": 26,
+            "Fließend": "LOW"
+        }
+    ],
+    "Bahngeschwindigkeiten": [
+        {
+            "GeschwindigkeitsPin": 26,
+            "Name": "bg",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        }
+    ],
     "Kupplungen": [
         {
             "Name": "ku",
-            "KupplungsPin": 26
+            "KupplungsPin": 26,
+            "Fließend": "LOW"
         }
     ],
-    "Pläne": [],
     "Weichen": [
         {
-            "Name": "we",
-            "Zugtyp": "Märklin",
             "RichtungsPins": [
                 [
                     "Gerade",
                     26
                 ]
-            ]
+            ],
+            "Name": "we",
+            "Zugtyp": "Märklin",
+            "Fließend": "LOW"
         }
     ],
+    "Pläne": [],
     "Wegstrecken": [
         {
-            "Name": "ws",
-            "Kupplungen": [
+            "Streckenabschnitte": [
                 {
-                    "Name": "ku",
-                    "KupplungsPin": 26
+                    "Name": "st",
+                    "StromPin": 26,
+                    "Fließend": "LOW"
                 }
             ],
+            "Bahngeschwindigkeiten": [
+                {
+                    "GeschwindigkeitsPin": 26,
+                    "Name": "bg",
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
+                }
+            ],
+            "Name": "ws",
             "Weichen-Richtungen": [
                 [
                     {
-                        "Name": "we",
-                        "Zugtyp": "Märklin",
                         "RichtungsPins": [
                             [
                                 "Gerade",
                                 26
                             ]
-                        ]
+                        ],
+                        "Name": "we",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Gerade"
                 ]
             ],
-            "Streckenabschnitte": [
+            "Kupplungen": [
                 {
-                    "Name": "st",
-                    "StromPin": 26
-                }
-            ],
-            "Bahngeschwindigkeiten": [
-                {
-                    "Name": "bg",
-                    "Zugtyp": "Märklin",
-                    "GeschwindigkeitsPin": 26
+                    "Name": "ku",
+                    "KupplungsPin": 26,
+                    "Fließend": "LOW"
                 }
             ]
-        }
-    ],
-    "Streckenabschnitte": [
-        {
-            "Name": "st",
-            "StromPin": 26
-        }
-    ],
-    "Bahngeschwindigkeiten": [
-        {
-            "Name": "bg",
-            "Zugtyp": "Märklin",
-            "GeschwindigkeitsPin": 26
         }
     ]
 }
