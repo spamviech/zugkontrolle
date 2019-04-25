@@ -205,8 +205,8 @@ instance FromJSON Bahngeschwindigkeit where
 
 instance ToJSON Bahngeschwindigkeit where
     toJSON :: Bahngeschwindigkeit -> Value
-    toJSON  (LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin})  = object [nameJS .= bgName, geschwindigkeitsPinJS .= vonPin geschwindigkeitsPin, zugtypJS .= Lego, fahrtrichtungsPinJS .= vonPin fahrtrichtungsPin]
-    toJSON  (MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin})                  = object [nameJS .= bgName, geschwindigkeitsPinJS .= vonPin geschwindigkeitsPin, zugtypJS .= Märklin]
+    toJSON  (LegoBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin, fahrtrichtungsPin})  = object [nameJS .= bgName, fließendJS .= bgFließend, geschwindigkeitsPinJS .= vonPin geschwindigkeitsPin, zugtypJS .= Lego, fahrtrichtungsPinJS .= vonPin fahrtrichtungsPin]
+    toJSON  (MärklinBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin})                  = object [nameJS .= bgName, fließendJS .= bgFließend, geschwindigkeitsPinJS .= vonPin geschwindigkeitsPin, zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 stromPinJS :: Text
@@ -224,7 +224,7 @@ instance FromJSON Streckenabschnitt where
 
 instance ToJSON Streckenabschnitt where
     toJSON :: Streckenabschnitt -> Value
-    toJSON  (Streckenabschnitt {stName, stromPin})  = object [nameJS .= stName, stromPinJS .= vonPin stromPin]
+    toJSON  (Streckenabschnitt {stName, stFließend, stromPin})  = object [nameJS .= stName, fließendJS .= stFließend, stromPinJS .= vonPin stromPin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 richtungsPinJS :: Text
@@ -254,8 +254,8 @@ instance FromJSON Weiche where
 
 instance ToJSON Weiche where
     toJSON :: Weiche -> Value
-    toJSON  (LegoWeiche {weName, richtungsPin, richtungen})   = object [nameJS .= weName, richtungsPinJS .= vonPin richtungsPin, richtungenJS .= richtungen, zugtypJS .= Lego]
-    toJSON  (MärklinWeiche {weName, richtungsPins})           = object [nameJS .= weName, richtungsPinsJS .= map (\(richtung, pin) -> (richtung, vonPin pin)) (NE.toList richtungsPins), zugtypJS .= Märklin]
+    toJSON  (LegoWeiche {weName, weFließend, richtungsPin, richtungen}) = object [nameJS .= weName, fließendJS .= weFließend, richtungsPinJS .= vonPin richtungsPin, richtungenJS .= richtungen, zugtypJS .= Lego]
+    toJSON  (MärklinWeiche {weName, weFließend, richtungsPins})         = object [nameJS .= weName, fließendJS .= weFließend, richtungsPinsJS .= map (\(richtung, pin) -> (richtung, vonPin pin)) (NE.toList richtungsPins), zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 kupplungsPinJS :: Text
@@ -273,7 +273,7 @@ instance FromJSON Kupplung where
 
 instance ToJSON Kupplung where
     toJSON :: Kupplung -> Value
-    toJSON  (Kupplung {kuName, kupplungsPin}) = object [nameJS .= kuName, kupplungsPinJS .= vonPin kupplungsPin]
+    toJSON  (Kupplung {kuName, kuFließend, kupplungsPin}) = object [nameJS .= kuName, fließendJS .= kuFließend, kupplungsPinJS .= vonPin kupplungsPin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 weichenRichtungenJS :: Text
