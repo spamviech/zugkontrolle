@@ -785,10 +785,10 @@ instance Anfrage AnfrageWeiche where
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWeiche -> Maybe s
     zeigeAnfrageOptionen (AnfrageWeiche)                                                    = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen (AWEUnbekannt anfrage _eingabe)                                    = zeigeAnfrageOptionen anfrage
-    zeigeAnfrageOptionen (ALegoWeicheName _name)                                            = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (ALegoWeicheName _name)                                            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen (ALegoWeicheNameFließend _name _fließend)                          = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1)      = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
-    zeigeAnfrageOptionen (AMärklinWeicheName _name)                                         = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (AMärklinWeicheName _name)                                         = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)    = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen _anfrage                                                           = Nothing
 
@@ -871,8 +871,8 @@ instance Anfrage AnfrageBahngeschwindigkeit where
     zeigeAnfrageFehlgeschlagen  a                                                                               eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> Maybe s
     zeigeAnfrageOptionen (AnfrageBahngeschwindigkeit)               = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
-    zeigeAnfrageOptionen (ALegoBahngeschwindigkeitName _name)       = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
-    zeigeAnfrageOptionen (AMärklinBahngeschwindigkeitName _name)    = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (ALegoBahngeschwindigkeitName _name)       = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+    zeigeAnfrageOptionen (AMärklinBahngeschwindigkeitName _name)    = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen (ABGUnbekannt anfrage _eingabe)            = zeigeAnfrageOptionen anfrage
     zeigeAnfrageOptionen _anfrage                                   = Nothing
 
@@ -926,7 +926,7 @@ instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrageFehlgeschlagen  a@(AStreckenabschnittName _name)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> Maybe s
-    zeigeAnfrageOptionen (AStreckenabschnittName _name)     = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (AStreckenabschnittName _name)     = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen (ASTUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
     zeigeAnfrageOptionen _anfrage                           = Nothing
 
@@ -965,7 +965,7 @@ instance Anfrage AnfrageKupplung where
     zeigeAnfrageFehlgeschlagen  a@(AKupplungName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageKupplung -> Maybe s
-    zeigeAnfrageOptionen (AKupplungName _name)              = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (AKupplungName _name)              = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen (AKUUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
     zeigeAnfrageOptionen _anfrage                           = Nothing
 
