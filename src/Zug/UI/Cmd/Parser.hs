@@ -906,64 +906,80 @@ anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _ _)           
 -- ** Streckenabschnitt
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt   = AnfrageStreckenabschnitt
-                                | ASTUnbekannt              AnfrageStreckenabschnitt    Text
-                                | AStreckenabschnittName    Text
+                                | ASTUnbekannt                      AnfrageStreckenabschnitt    Text
+                                | AStreckenabschnittName            Text
+                                | AStreckenabschnittNameFließend    Text                        Value
 
 instance Show AnfrageStreckenabschnitt where
     show :: AnfrageStreckenabschnitt -> String
-    show    (AnfrageStreckenabschnitt)      = Language.streckenabschnitt
-    show    (ASTUnbekannt anfrage eingabe)  = unpack $ unbekanntShowText anfrage eingabe
-    show    (AStreckenabschnittName name)   = unpack $ Language.streckenabschnitt <^> Language.name <=> name 
+    show    (AnfrageStreckenabschnitt)                      = Language.streckenabschnitt
+    show    (ASTUnbekannt anfrage eingabe)                  = unpack $ unbekanntShowText anfrage eingabe
+    show    (AStreckenabschnittName name)                   = unpack $ Language.streckenabschnitt <^> Language.name <=> name
+    show    (AStreckenabschnittNameFließend name fließend)  = unpack $ Language.streckenabschnitt <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
 instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s
-    zeigeAnfrage    (AnfrageStreckenabschnitt)      = Language.name
-    zeigeAnfrage    (ASTUnbekannt anfrage _eingabe) = zeigeAnfrage anfrage
-    zeigeAnfrage    (AStreckenabschnittName _name)  = Language.pin
+    zeigeAnfrage    (AnfrageStreckenabschnitt)                          = Language.name
+    zeigeAnfrage    (ASTUnbekannt anfrage _eingabe)                     = zeigeAnfrage anfrage
+    zeigeAnfrage    (AStreckenabschnittName _name)                      = Language.fließendValue
+    zeigeAnfrage    (AStreckenabschnittNameFließend _name _fließend)    = Language.pin
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s -> s
     zeigeAnfrageFehlgeschlagen  a@(AStreckenabschnittName _name)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> Maybe s
+    zeigeAnfrageOptionen (AStreckenabschnittName _name)     = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
     zeigeAnfrageOptionen (ASTUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
     zeigeAnfrageOptionen _anfrage                           = Nothing
 
     -- | Eingabe eines Streckenabschnitts
 anfrageStreckenabschnittAktualisieren :: AnfrageStreckenabschnitt -> EingabeToken -> Either AnfrageStreckenabschnitt Streckenabschnitt
-anfrageStreckenabschnittAktualisieren   (AnfrageStreckenabschnitt)              (EingabeToken {eingabe})            = Left $ AStreckenabschnittName eingabe
-anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittName name)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+anfrageStreckenabschnittAktualisieren   (AnfrageStreckenabschnitt)                              (EingabeToken {eingabe})            = Left $ AStreckenabschnittName eingabe
+anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittName name)                   token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH),
+    (Lexer.LOW  , AStreckenabschnittNameFließend name LOW)]
+    $ ASTUnbekannt anfrage eingabe
+anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittNameFließend name fließend)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ASTUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stromPin=zuPin pin}
-anfrageStreckenabschnittAktualisieren   anfrage@(ASTUnbekannt _ _)              _token                              = Left anfrage
+    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stFließend=fließend, stromPin=zuPin pin}
+anfrageStreckenabschnittAktualisieren   anfrage@(ASTUnbekannt _ _)                              _token                              = Left anfrage
 
 -- ** Kupplung
 -- | Unvollständige 'Kupplung'
 data AnfrageKupplung    = AnfrageKupplung
-                        | AKUUnbekannt      AnfrageKupplung Text
-                        | AKupplungName     Text
+                        | AKUUnbekannt          AnfrageKupplung Text
+                        | AKupplungName         Text
+                        | AKupplungNameFließend Text            Value
 
 instance Show AnfrageKupplung where
     show :: AnfrageKupplung -> String
-    show    (AnfrageKupplung)               = Language.kupplung
-    show    (AKUUnbekannt anfrage eingabe)  = unpack $ unbekanntShowText anfrage eingabe
-    show    (AKupplungName name)            = unpack $ Language.kupplung <^> Language.name <=> name 
+    show    (AnfrageKupplung)                       = Language.kupplung
+    show    (AKUUnbekannt anfrage eingabe)          = unpack $ unbekanntShowText anfrage eingabe
+    show    (AKupplungName name)                    = unpack $ Language.kupplung <^> Language.name <=> name
+    show    (AKupplungNameFließend name fließend)   = unpack $ Language.kupplung <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
 instance Anfrage AnfrageKupplung where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageKupplung -> s
-    zeigeAnfrage    (AnfrageKupplung)               = Language.name
-    zeigeAnfrage    (AKUUnbekannt anfrage _eingabe) = zeigeAnfrage anfrage
-    zeigeAnfrage    (AKupplungName _name)           = Language.pin
+    zeigeAnfrage    (AnfrageKupplung)                       = Language.name
+    zeigeAnfrage    (AKUUnbekannt anfrage _eingabe)         = zeigeAnfrage anfrage
+    zeigeAnfrage    (AKupplungName _name)                   = Language.fließendValue
+    zeigeAnfrage    (AKupplungNameFließend _name _fließend) = Language.pin
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageKupplung -> s -> s
     zeigeAnfrageFehlgeschlagen  a@(AKupplungName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageKupplung -> Maybe s
+    zeigeAnfrageOptionen (AKupplungName _name)              = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
     zeigeAnfrageOptionen (AKUUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
     zeigeAnfrageOptionen _anfrage                           = Nothing
 
 -- | Eingabe einer Kupplung
 anfrageKupplungAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
-anfrageKupplungAktualisieren    (AnfrageKupplung)               (EingabeToken {eingabe})            = Left $ AKupplungName eingabe
-anfrageKupplungAktualisieren    anfrage@(AKupplungName name)    (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+anfrageKupplungAktualisieren    (AnfrageKupplung)                               (EingabeToken {eingabe})            = Left $ AKupplungName eingabe
+anfrageKupplungAktualisieren    anfrage@(AKupplungName name)                    token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.HIGH , AKupplungNameFließend name HIGH),
+    (Lexer.LOW  , AKupplungNameFließend name LOW)]
+    $ AKUUnbekannt anfrage eingabe
+anfrageKupplungAktualisieren    anfrage@(AKupplungNameFließend name fließend)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ AKUUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Kupplung {kuName=name, kupplungsPin=zuPin pin}
-anfrageKupplungAktualisieren    anfrage@(AKUUnbekannt _ _)      _token                              = Left anfrage
+    (Just pin)  -> Right $ Kupplung {kuName=name, kuFließend=fließend, kupplungsPin=zuPin pin}
+anfrageKupplungAktualisieren    anfrage@(AKUUnbekannt _ _)                      _token                              = Left anfrage
 
 -- * Klasse für unvollständige Befehle
 -- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
