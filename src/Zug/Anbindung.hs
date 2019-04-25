@@ -9,6 +9,7 @@ Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.
 module Zug.Anbindung (
                     -- * Pin-Repräsentation
                     Pin(), zuPin, vonPin, pwmMöglich, clockMöglich, PinMap, pinMapEmpty, PinMapIO, warteµs,
+                    Value(..), alleValues,
                     -- * Strecken-Objekte
                     StreckenObjekt(..), StreckenAtom(..),
                     -- ** Bahngeschwindigkeiten
@@ -49,6 +50,10 @@ vonPin :: Pin -> Natural
 vonPin pin = case (pinToBcmGpio pin) of
     (Just gpio) -> fromIntegral gpio
     (Nothing)   -> 0
+
+-- | Alle Möglichen Werte von 'Value'
+alleValues :: NonEmpty Value
+alleValues = NE.fromList [minBound..maxBound]
 
 -- * Test-Funktionen, ob Pins bestimmte Funktionen unterstützen
 -- | Unterstützt der 'Pin'

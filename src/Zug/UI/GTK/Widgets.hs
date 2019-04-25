@@ -40,7 +40,7 @@ import qualified Control.Lens as Lens
 import Control.Monad (void, unless)
 import Control.Monad.State (State, StateT)
 import Control.Monad.Trans (liftIO)
-import Data.Aeson (ToJSON(..), Value)
+import qualified Data.Aeson as Aeson
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
@@ -291,7 +291,7 @@ hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ button
 
 -- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
 labelFließendValuePackNew :: (StreckenAtom s, BoxClass b) => b -> s -> IO Label
-labelFließendValuePackNew box s = boxPackWidgetNewDefault box $ labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
+labelFließendValuePackNew box s = boxPackWidgetNew box packingDefault 3 positionDefault $ labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
 
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
@@ -358,21 +358,21 @@ instance PlanElement BGWidgets where
 
 instance StreckenObjekt BGWidgets where
     zugtyp :: BGWidgets -> Zugtyp
-    zugtyp  (BGWidgets {bg})    = zugtyp bg
+    zugtyp (BGWidgets {bg}) = zugtyp bg
     pins :: BGWidgets -> [Pin]
-    pins    (BGWidgets {bg})    = pins bg
+    pins (BGWidgets {bg}) = pins bg
     erhalteName :: BGWidgets -> Text
-    erhalteName (BGWidgets {bg})    = erhalteName bg
+    erhalteName (BGWidgets {bg}) = erhalteName bg
 
-instance ToJSON BGWidgets where
-    toJSON :: BGWidgets -> Value
-    toJSON  (BGWidgets {bg})    = toJSON bg
+instance Aeson.ToJSON BGWidgets where
+    toJSON :: BGWidgets -> Aeson.Value
+    toJSON (BGWidgets {bg}) = Aeson.toJSON bg
 
 instance BahngeschwindigkeitKlasse BGWidgets where
     geschwindigkeit :: BGWidgets -> Natural -> PinMapIO ()
-    geschwindigkeit (BGWidgets {bg})    = geschwindigkeit bg
+    geschwindigkeit (BGWidgets {bg}) = geschwindigkeit bg
     umdrehen :: BGWidgets -> Maybe Fahrtrichtung -> PinMapIO ()
-    umdrehen    (BGWidgets {bg})    = umdrehen bg
+    umdrehen (BGWidgets {bg}) = umdrehen bg
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, LikeMVar lmvar) => b -> bg -> lmvar StatusGUI -> IO HScale
@@ -439,19 +439,19 @@ instance PlanElement STWidgets where
 
 instance StreckenObjekt STWidgets where
     zugtyp :: STWidgets -> Zugtyp
-    zugtyp  (STWidgets {st})    = zugtyp st
+    zugtyp (STWidgets {st}) = zugtyp st
     pins :: STWidgets -> [Pin]
-    pins    (STWidgets {st})    = pins st
+    pins (STWidgets {st}) = pins st
     erhalteName :: STWidgets -> Text
-    erhalteName (STWidgets {st})    = erhalteName st
+    erhalteName (STWidgets {st}) = erhalteName st
 
-instance ToJSON STWidgets where
-    toJSON :: STWidgets -> Value
-    toJSON  (STWidgets {st})    = toJSON st
+instance Aeson.ToJSON STWidgets where
+    toJSON :: STWidgets -> Aeson.Value
+    toJSON (STWidgets {st}) = Aeson.toJSON st
 
 instance StreckenabschnittKlasse STWidgets where
     strom :: STWidgets -> Strom -> MVar PinMap -> IO ()
-    strom   (STWidgets {st})    = strom st
+    strom (STWidgets {st}) = strom st
 
 -- | Füge 'ToggleButton' zum einstellen des Stroms zur Box hinzu
 toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s, LikeMVar lmvar) => b -> s -> lmvar StatusGUI -> IO ToggleButton
@@ -536,15 +536,15 @@ instance StreckenObjekt WEWidgets where
     erhalteName :: WEWidgets -> Text
     erhalteName (WEWidgets {we})    = erhalteName we
 
-instance ToJSON WEWidgets where
-    toJSON :: WEWidgets -> Value
-    toJSON  (WEWidgets {we})    = toJSON we
+instance Aeson.ToJSON WEWidgets where
+    toJSON :: WEWidgets -> Aeson.Value
+    toJSON (WEWidgets {we}) = Aeson.toJSON we
 
 instance WeicheKlasse WEWidgets where
     stellen :: WEWidgets -> Richtung -> PinMapIO ()
-    stellen (WEWidgets {we})    = stellen we
+    stellen (WEWidgets {we}) = stellen we
     erhalteRichtungen :: WEWidgets -> NonEmpty Richtung
-    erhalteRichtungen   (WEWidgets {we})    = erhalteRichtungen we
+    erhalteRichtungen (WEWidgets {we}) = erhalteRichtungen we
 
 -- | 'Kupplung' darstellen
 kupplungPackNew :: (LikeMVar lmvar) => Kupplung -> lmvar StatusGUI -> DynamischeWidgets -> IO KupplungWidget
@@ -593,19 +593,19 @@ instance PlanElement KUWidgets where
 
 instance StreckenObjekt KUWidgets where
     zugtyp :: KUWidgets -> Zugtyp
-    zugtyp  (KUWidgets {ku})    = zugtyp ku
+    zugtyp (KUWidgets {ku}) = zugtyp ku
     pins :: KUWidgets -> [Pin]
-    pins    (KUWidgets {ku})    = pins ku
+    pins (KUWidgets {ku}) = pins ku
     erhalteName :: KUWidgets -> Text
-    erhalteName (KUWidgets {ku})    = erhalteName ku
+    erhalteName (KUWidgets {ku}) = erhalteName ku
 
-instance ToJSON KUWidgets where
-    toJSON :: KUWidgets -> Value
-    toJSON  (KUWidgets {ku})    = toJSON ku
+instance Aeson.ToJSON KUWidgets where
+    toJSON :: KUWidgets -> Aeson.Value
+    toJSON (KUWidgets {ku}) = Aeson.toJSON ku
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: KUWidgets -> PinMapIO ()
-    kuppeln (KUWidgets {ku})    = kuppeln ku
+    kuppeln (KUWidgets {ku}) = kuppeln ku
 
 -- | Füge 'Button' zum kuppeln zur Box hinzu
 buttonKuppelnPackNew :: (BoxClass b, KupplungKlasse k, LikeMVar lmvar) => b -> k -> lmvar StatusGUI -> IO Button
@@ -680,33 +680,33 @@ instance PlanElement WSWidgets where
 
 instance StreckenObjekt WSWidgets where
     zugtyp :: WSWidgets -> Zugtyp
-    zugtyp  (WSWidgets {ws})    = zugtyp ws
+    zugtyp (WSWidgets {ws}) = zugtyp ws
     pins :: WSWidgets -> [Pin]
-    pins    (WSWidgets {ws})    = pins ws
+    pins (WSWidgets {ws}) = pins ws
     erhalteName :: WSWidgets -> Text
-    erhalteName (WSWidgets {ws})    = erhalteName ws
+    erhalteName (WSWidgets {ws}) = erhalteName ws
 
-instance ToJSON WSWidgets where
-    toJSON :: WSWidgets -> Value
-    toJSON  (WSWidgets {ws})    = toJSON ws
+instance Aeson.ToJSON WSWidgets where
+    toJSON :: WSWidgets -> Aeson.Value
+    toJSON (WSWidgets {ws}) = Aeson.toJSON ws
 
 instance BahngeschwindigkeitKlasse WSWidgets where
     geschwindigkeit :: WSWidgets -> Natural -> PinMapIO ()
-    geschwindigkeit (WSWidgets {ws})    = geschwindigkeit ws
+    geschwindigkeit (WSWidgets {ws}) = geschwindigkeit ws
     umdrehen :: WSWidgets -> Maybe Fahrtrichtung -> PinMapIO ()
-    umdrehen    (WSWidgets {ws})    = umdrehen ws
+    umdrehen (WSWidgets {ws}) = umdrehen ws
 
 instance StreckenabschnittKlasse WSWidgets where
     strom :: WSWidgets -> Strom -> MVar PinMap -> IO ()
-    strom   (WSWidgets {ws})    = strom ws
+    strom (WSWidgets {ws}) = strom ws
 
 instance KupplungKlasse WSWidgets where
     kuppeln :: WSWidgets -> PinMapIO ()
-    kuppeln (WSWidgets {ws})    = kuppeln ws
+    kuppeln (WSWidgets {ws}) = kuppeln ws
 
 instance WegstreckeKlasse WSWidgets where
     einstellen :: WSWidgets -> PinMapIO ()
-    einstellen  (WSWidgets {ws})    = einstellen ws
+    einstellen (WSWidgets {ws}) = einstellen ws
 
 -- | 'Plan' darstellen
 planPackNew :: (LikeMVar lmvar) => Plan -> lmvar StatusGUI -> DynamischeWidgets -> IO PlanWidget
@@ -735,17 +735,17 @@ data PLWidgets = PLWidgets {
 
 instance StreckenObjekt PLWidgets where
     zugtyp :: PLWidgets -> Zugtyp
-    zugtyp  (PLWidgets {pl})    = zugtyp pl
+    zugtyp (PLWidgets {pl}) = zugtyp pl
     pins :: PLWidgets -> [Pin]
-    pins    (PLWidgets {pl})    = pins pl
+    pins (PLWidgets {pl}) = pins pl
     erhalteName :: PLWidgets -> Text
-    erhalteName (PLWidgets {pl})    = erhalteName pl
+    erhalteName (PLWidgets {pl}) = erhalteName pl
 
-instance ToJSON PLWidgets where
-    toJSON :: PLWidgets -> Value
-    toJSON  (PLWidgets {pl})    = toJSON pl
+instance Aeson.ToJSON PLWidgets where
+    toJSON :: PLWidgets -> Aeson.Value
+    toJSON (PLWidgets {pl}) = Aeson.toJSON pl
 
 instance PlanKlasse PLWidgets where
     ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan   (PLWidgets {pl})    = ausführenPlan pl
+    ausführenPlan (PLWidgets {pl}) = ausführenPlan pl
 #endif
