@@ -347,15 +347,19 @@ anfrageWeicheAktualisieren (AnfrageWeiche)                                      
     (Lexer.Lego     , ALegoWeiche)]
     $ AWEUnbekannt AnfrageWeiche eingabe
 anfrageWeicheAktualisieren (ALegoWeiche)                                                                        (EingabeToken {eingabe})            = Left $ ALegoWeicheName eingabe
-anfrageWeicheAktualisieren anfrage@(ALegoWeicheName name)                                                       token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheName name)                                                       token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
+    (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
+    (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
+    $ AWEUnbekannt anfrage eingabe
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameFließend name fließend)                                      token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
     (Nothing)           -> AWEUnbekannt anfrage eingabe
-    (Just richtung1)    -> ALegoWeicheNameRichtung1 name richtung1
-anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameRichtung1 name richtung1)                                    token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
+    (Just richtung1)    -> ALegoWeicheNameFließendRichtung1 name fließend richtung1
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)                   token@(EingabeToken {eingabe})      = Left $ case wähleRichtung token of
     (Nothing)           -> AWEUnbekannt anfrage eingabe
-    (Just richtung2)    -> ALegoWeicheNameRichtungen name richtung1 richtung2
-anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameRichtungen name richtung1 richtung2)                         (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
+    (Just richtung2)    -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2
+anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2)        (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ AWEUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ LegoWeiche {weName=name, richtungsPin=zuPin pin, richtungen=(richtung1,richtung2)}
+    (Just pin)  -> Right $ LegoWeiche {weName=name, weFließend=fließend, richtungsPin=zuPin pin, richtungen=(richtung1,richtung2)}
 anfrageWeicheAktualisieren (AMärklinWeiche)                                                                     (EingabeToken {eingabe})            = Left $ AMärklinWeicheName eingabe
 anfrageWeicheAktualisieren anfrage@(AMärklinWeicheName name)                                                    token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
     (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
@@ -808,13 +812,14 @@ data AnfrageWeiche  = AnfrageWeiche
                     | AWEUnbekannt                              AnfrageWeiche   Text
                     | ALegoWeiche
                     | ALegoWeicheName                           Text
-                    | ALegoWeicheNameRichtung1                  Text            Richtung
-                    | ALegoWeicheNameRichtungen                 Text            Richtung    Richtung
+                    | ALegoWeicheNameFließend                   Text            Value
+                    | ALegoWeicheNameFließendRichtung1          Text            Value   Richtung
+                    | ALegoWeicheNameFließendRichtungen         Text            Value   Richtung    Richtung
                     | AMärklinWeiche
                     | AMärklinWeicheName                        Text
                     | AMärklinWeicheNameFließend                Text            Value
-                    | AMärklinWeicheNameFließendAnzahl          Text            Value       Natural   [(Richtung, Pin)]
-                    | AMärklinWeicheNameFließendAnzahlRichtung  Text            Value       Natural   [(Richtung, Pin)]   Richtung
+                    | AMärklinWeicheNameFließendAnzahl          Text            Value   Natural   [(Richtung, Pin)]
+                    | AMärklinWeicheNameFließendAnzahlRichtung  Text            Value   Natural   [(Richtung, Pin)]   Richtung
 
 instance Show AnfrageWeiche where
     show :: AnfrageWeiche -> String
@@ -822,8 +827,9 @@ instance Show AnfrageWeiche where
     show    (AWEUnbekannt anfrage eingabe)                                                  = unpack $ unbekanntShowText anfrage eingabe
     show    (ALegoWeiche)                                                                   = Language.lego <-> Language.weiche
     show    (ALegoWeicheName name)                                                          = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
-    show    (ALegoWeicheNameRichtung1 name richtung1)                                       = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> showText richtung1
-    show    (ALegoWeicheNameRichtungen name richtung1 richtung2)                            = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> showText richtung1 <^> showText richtung2
+    show    (ALegoWeicheNameFließend name fließend)                                         = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.fließend <=> showText fließend
+    show    (ALegoWeicheNameFließendRichtung1 name fließend richtung1)                      = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.fließend <=> showText fließend <^> showText richtung1
+    show    (ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2)           = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.fließend <=> showText fließend <^> showText richtung1 <^> showText richtung2
     show    (AMärklinWeiche)                                                                = Language.märklin <-> Language.weiche
     show    (AMärklinWeicheName name)                                                       = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
     show    (AMärklinWeicheNameFließend name fließend)                                      = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name <^> Language.fließend <=> showText fließend
@@ -834,24 +840,26 @@ instance Anfrage AnfrageWeiche where
     zeigeAnfrage    (AnfrageWeiche)                                                                     = Language.zugtyp
     zeigeAnfrage    (AWEUnbekannt anfrage _eingabe)                                                     = zeigeAnfrage anfrage
     zeigeAnfrage    (ALegoWeiche)                                                                       = Language.name
-    zeigeAnfrage    (ALegoWeicheName _name)                                                             = Language.richtung
-    zeigeAnfrage    (ALegoWeicheNameRichtung1 _name _richtung1)                                         = Language.richtung
-    zeigeAnfrage    (ALegoWeicheNameRichtungen _name _richtung1 _richtung2)                             = Language.pin
+    zeigeAnfrage    (ALegoWeicheName _name)                                                             = Language.fließendValue
+    zeigeAnfrage    (ALegoWeicheNameFließend _name _fließend)                                           = Language.richtung
+    zeigeAnfrage    (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1)                       = Language.richtung
+    zeigeAnfrage    (ALegoWeicheNameFließendRichtungen _name _fließen _richtung1 _richtung2)            = Language.pin
     zeigeAnfrage    (AMärklinWeiche)                                                                    = Language.name
     zeigeAnfrage    (AMärklinWeicheName _name)                                                          = Language.fließendValue
     zeigeAnfrage    (AMärklinWeicheNameFließend _name _fließend)                                        = Language.anzahl Language.richtungen
     zeigeAnfrage    (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)                     = Language.richtung
     zeigeAnfrage    (AMärklinWeicheNameFließendAnzahlRichtung _name _fließend _anzahl _acc _richtung)   = Language.pin
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche -> s -> s
-    zeigeAnfrageFehlgeschlagen  a@(ALegoWeicheNameRichtungen _name _richtung1 _richtung2)                           eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen  a@(ALegoWeicheNameFließendRichtungen _name _fließend _richtung1 _richtung2)         eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a@(AMärklinWeicheNameFließend _name _fließend)                                      eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a@(AMärklinWeicheNameFließendAnzahlRichtung _name _fließend _anzahl _acc _richtung) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                                                                                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWeiche -> Maybe s
     zeigeAnfrageOptionen (AnfrageWeiche)                                                    = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen (AWEUnbekannt anfrage _eingabe)                                    = zeigeAnfrageOptionen anfrage
-    zeigeAnfrageOptionen (ALegoWeicheName _name)                                            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
-    zeigeAnfrageOptionen (ALegoWeicheNameRichtung1 _name _richtung1)                        = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen (ALegoWeicheName _name)                                            = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
+    zeigeAnfrageOptionen (ALegoWeicheNameFließend _name _fließend)                          = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1)      = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen (AMärklinWeicheName _name)                                         = Just $ toBefehlsString $ map showText ([minBound..maxBound] :: [Value])
     zeigeAnfrageOptionen (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)    = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen _anfrage                                                           = Nothing
