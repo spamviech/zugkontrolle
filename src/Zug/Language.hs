@@ -48,7 +48,7 @@ erzeugeDeklaration "hinzufügen"
 erzeugeDeklaration "entfernen"
 -- | Save / Speichern
 erzeugeDeklaration "speichern"
--- |Load / Laden
+-- | Load / Laden
 erzeugeDeklaration "laden"
 
 -- * Spezielle Befehle / Special orders
@@ -82,6 +82,12 @@ erzeugeDeklaration "warten"
 erzeugeDeklaration "wartenEinheit"
 -- | Time / Zeit
 erzeugeDeklaration "zeit"
+-- | fließend <-> "Value"
+erzeugeDeklaration "fließendValue"
+-- | HIGH
+erzeugeDeklaration "high"
+-- | LOW
+erzeugeDeklaration "low"
 
 -- * Typ-Namen / Type names
 -- | Object / Objekt
@@ -237,12 +243,7 @@ erzeugeDeklaration "vorwärts"
 -- | Reverse / Rückwärts
 erzeugeDeklaration "rückwärts"
 
--- * Text-Hilfsfunktionen
--- | Show for 'IsString'
-showText :: (Show a, IsString s) => a -> s
-showText = fromString . show
-
--- ** Unbekannte Eingabe melden
+-- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_
 fehlerText :: (Semigroup s, IsString s) => s -> s
 fehlerText begründung = ungültigeEingabe <^> begründung <!> ""
@@ -250,8 +251,3 @@ fehlerText begründung = ungültigeEingabe <^> begründung <!> ""
 -- | Report an error due to _begründung_ and print it to the console.
 fehlerhafteEingabe :: Text -> IO ()
 fehlerhafteEingabe begründung = T.putStrLn $ fehlerText begründung
-
--- ** GUI
--- | Mnemonic-Markierung hinzufügen
-addMnemonic :: (Semigroup s, IsString s) => s -> s
-addMnemonic s   = "_" <> s
