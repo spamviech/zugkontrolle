@@ -9,6 +9,7 @@ module Zug.Language.DE where
 
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
+import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren
 
@@ -91,6 +92,15 @@ wartenEinheit                   = "µs"
 -- | Time
 zeit :: (Semigroup s, IsString s) => s
 zeit                            = "Zeit"
+-- | fließend <-> "Value"
+fließendValue :: (Semigroup s, IsString s) => s
+fließendValue = fließend <-> "Value"
+-- | HIGH
+high :: (Semigroup s, IsString s) => s
+high = showText HIGH
+-- | LOW
+low :: (Semigroup s, IsString s) => s
+low = showText LOW
 
 -- * Typ-Namen / Type names
 -- | Object

@@ -3,13 +3,14 @@
 {-|
 Description : Operatoren zur Verkettung von Strings.
 
-Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Lerrzeichen/Trennzeichen bereit.
+Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Leerzeichen/Trennzeichen bereit.
 -}
 module Zug.Language.Operatoren where
 
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 
+-- * Operatoren
 infixr 6 <~>
 -- | Verkette zwei Strings mit einem Leerzeichen.
 -- 
@@ -72,3 +73,12 @@ infixr 6 <\>
 -- Concatenate two strings with a new line.
 (<\>) :: (Semigroup s, IsString s) => s -> s -> s
 a <\> b = a <> "\n" <> b
+
+-- * Text-Hilfsfunktionen
+-- | Show for 'IsString'
+showText :: (Show a, IsString s) => a -> s
+showText = fromString . show
+
+-- | Mnemonic-Markierung hinzufügen
+addMnemonic :: (Semigroup s, IsString s) => s -> s
+addMnemonic s   = "_" <> s

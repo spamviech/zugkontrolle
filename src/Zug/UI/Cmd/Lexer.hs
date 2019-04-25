@@ -58,13 +58,15 @@ lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl,
             (links              , Links),
             (rechts             , Rechts),
             (vorwärts           , Vorwärts),
-            (rückwärts          , Rückwärts)]
+            (rückwärts          , Rückwärts),
+            (high               , HIGH),
+            (low                , LOW)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
-data EingabeTokenAllgemein    = Tk            EingabeToken
-                                | TkBeenden
-                                | TkAbbrechen
-                                    deriving (Show)
+data EingabeTokenAllgemein  = Tk            EingabeToken
+                            | TkBeenden
+                            | TkAbbrechen
+                                deriving (Show)
 
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken = EingabeToken {eingabe::Text, möglichkeiten::[Token], ganzzahl::Maybe Natural}
@@ -104,6 +106,8 @@ data Token  = Beenden
             | Rechts
             | Vorwärts
             | Rückwärts
+            | HIGH
+            | LOW
                 deriving (Eq, Show)
 
 -- * Hilfs-Befehle

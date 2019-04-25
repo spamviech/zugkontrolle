@@ -8,7 +8,6 @@ module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOpt
 -- Bibliotheken
 import Options.Applicative
 import Data.Semigroup (Semigroup(..))
-import System.Hardware.WiringPi (Value(..))
 
 -- | Erhalte Kommandozeilen-Arguemente
 getOptions :: IO Options
@@ -20,8 +19,7 @@ data Options = Options {
                     ui :: UI,
                     sprache :: Sprache,
                     load :: String,
-                    pwm :: PWM,
-                    fließend :: Value}
+                    pwm :: PWM}
                         deriving (Show)
 
 optionen :: ParserInfo Options
@@ -35,7 +33,7 @@ versionOpt :: Parser (a -> a)
 versionOpt = infoOption ("Zugkontrolle Version: " ++ ZUGKONTROLLEVERSION) (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
 
 kombinierteOptionen :: Parser Options
-kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt <*> fließendOpt
+kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt
 
 printOpt :: Parser Bool
 printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
@@ -80,14 +78,6 @@ pwmOpt = option auto (
             showDefault <>
             value SoftwarePWM <>
             help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich."))
-
-fließendOpt :: Parser Value
-fließendOpt = option auto (
-                long "fließend" <>
-                metavar "VALUE" <>
-                showDefault <>
-                value LOW <>
-                help ("Bei welchem Pin-Output VALUE=" ++ zeigeMöglichkeiten ([minBound..maxBound] :: [Value]) ++ " fließt der Strom (PWM-Ausgabe unbeeinflusst)."))
 
 -- | Bekannte Sprachen
 data Sprache = Deutsch | Englisch

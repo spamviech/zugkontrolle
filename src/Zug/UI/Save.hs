@@ -26,6 +26,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
+import qualified System.Hardware.WiringPi as WiringPi
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen
 import Zug.Anbindung
@@ -159,6 +160,21 @@ instance ToJSON Strom where
     toJSON  (Fließend)  = String fließendJS
     toJSON  (Gesperrt)  = String gesperrtJS
 
+-- Instanz-Deklaration für Value
+instance FromJSON WiringPi.Value where
+    parseJSON :: Value -> Parser WiringPi.Value
+    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+
+highJS :: Text
+highJS = "HIGH"
+lowJS :: Text
+lowJS = "LOW"
+
+instance ToJSON WiringPi.Value where
+    toJSON :: WiringPi.Value -> Value
+    toJSON  (WiringPi.HIGH) = String highJS
+    toJSON  (WiringPi.LOW)  = String lowJS
+
 -- neue Feld-Namen/Bezeichner in json-Datei
 nameJS :: Text
 nameJS = "Name"
@@ -174,16 +190,17 @@ instance FromJSON Bahngeschwindigkeit where
     parseJSON :: Value -> Parser Bahngeschwindigkeit
     parseJSON   (Object v)  = do
         name <- (v .: nameJS)
-        zugtyp <- (v .: zugtypJS) 
+        zugtyp <- (v .: zugtypJS)
         geschwindigkeitsPin <- (v.: geschwindigkeitsPinJS)
         maybeFahrtrichtungsPin <- (v .:? fahrtrichtungsPinJS)
-        createBahngeschwindigkeit zugtyp name geschwindigkeitsPin maybeFahrtrichtungsPin
+        bgFließend <- (v .: fließendJS) <|> pure WiringPi.HIGH
+        createBahngeschwindigkeit zugtyp name bgFließend geschwindigkeitsPin maybeFahrtrichtungsPin
             where
-                createBahngeschwindigkeit :: Zugtyp -> Text -> Natural -> Maybe Natural -> Parser Bahngeschwindigkeit
-                createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Nothing)                   = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin (0 :: Int)}
-                createBahngeschwindigkeit Lego      bgName  geschwindigkeitsPin     (Just fahrtrichtungsPin)    = pure LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin fahrtrichtungsPin}
-                createBahngeschwindigkeit Märklin   bgName  geschwindigkeitsPin     _maybeFahrtrichtungsPin     = pure MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin = zuPin geschwindigkeitsPin}
-                createBahngeschwindigkeit _zutyp    _name   _geschwindigkeitsPin    _maybeFahrtrichtungsPin     = mzero
+                createBahngeschwindigkeit :: Zugtyp -> Text -> WiringPi.Value -> Natural -> Maybe Natural -> Parser Bahngeschwindigkeit
+                createBahngeschwindigkeit Lego      bgName  bgFließend  geschwindigkeitsPin     (Nothing)                   = pure LegoBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin (0 :: Int)}
+                createBahngeschwindigkeit Lego      bgName  bgFließend  geschwindigkeitsPin     (Just fahrtrichtungsPin)    = pure LegoBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin fahrtrichtungsPin}
+                createBahngeschwindigkeit Märklin   bgName  bgFließend  geschwindigkeitsPin     _maybeFahrtrichtungsPin     = pure MärklinBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin = zuPin geschwindigkeitsPin}
+                createBahngeschwindigkeit _zutyp    _name   _bgFließend _geschwindigkeitsPin    _maybeFahrtrichtungsPin     = mzero
     parseJSON   _           = mzero
 
 instance ToJSON Bahngeschwindigkeit where
@@ -201,7 +218,8 @@ instance FromJSON Streckenabschnitt where
     parseJSON   (Object v)  = do
         stName <- (v .: nameJS)
         stromPin <- (v .: stromPinJS) :: Parser Natural
-        pure $ Streckenabschnitt {stName, stromPin=zuPin stromPin}
+        stFließend <- (v .: fließendJS) <|> pure WiringPi.LOW
+        pure Streckenabschnitt {stName, stFließend, stromPin=zuPin stromPin}
     parseJSON   _           = mzero
 
 instance ToJSON Streckenabschnitt where
@@ -225,12 +243,13 @@ instance FromJSON Weiche where
         maybeRichtungsPin <- (v .:? richtungsPinJS)
         maybeRichtungen <- (v .:? richtungenJS)
         maybeRichtungsPins <- (v .:? richtungsPinsJS)
-        createWeiche zugtyp name maybeRichtungsPin maybeRichtungen maybeRichtungsPins
+        fließend <- (v .: fließendJS) <|> pure WiringPi.LOW
+        erstelleWeiche zugtyp name maybeRichtungsPin maybeRichtungen maybeRichtungsPins fließend
             where
-                createWeiche :: Zugtyp -> Text -> Maybe Natural -> Maybe (Richtung, Richtung) -> Maybe [(Richtung, Natural)] -> Parser Weiche
-                createWeiche Lego       weName   (Just richtungsPin) (Just richtungen)   _maybeRichtungsPins                     = pure LegoWeiche {weName, richtungsPin=zuPin richtungsPin, richtungen}
-                createWeiche Märklin    weName   _maybeRichtungsPin  _maybeRichtungen    (Just ((richtung, pin):richtungsPins))  = pure MärklinWeiche {weName, richtungsPins=(richtung, zuPin pin):|map (\(richtung, pin) -> (richtung, zuPin pin)) richtungsPins}
-                createWeiche _zugtyp    _name   _maybeRichtungsPin  _maybeRichtungen    _maybeRichtungsPins                     = mzero
+                erstelleWeiche :: Zugtyp -> Text -> Maybe Natural -> Maybe (Richtung, Richtung) -> Maybe [(Richtung, Natural)] -> WiringPi.Value -> Parser Weiche
+                erstelleWeiche Lego       weName   (Just richtungsPin) (Just richtungen)   _maybeRichtungsPins                    weFließend   = pure LegoWeiche {weName, weFließend, richtungsPin=zuPin richtungsPin, richtungen}
+                erstelleWeiche Märklin    weName   _maybeRichtungsPin  _maybeRichtungen    (Just ((richtung, pin):richtungsPins)) weFließend   = pure MärklinWeiche {weName, weFließend, richtungsPins=(richtung, zuPin pin):|map (\(richtung, pin) -> (richtung, zuPin pin)) richtungsPins}
+                erstelleWeiche _zugtyp    _name   _maybeRichtungsPin  _maybeRichtungen    _maybeRichtungsPins                     _weFließend  = mzero
     parseJSON   _           = mzero
 
 instance ToJSON Weiche where
@@ -248,7 +267,8 @@ instance FromJSON Kupplung where
     parseJSON   (Object v)  = do
         kuName <- (v .: nameJS)
         kupplungsPin <- (v .: kupplungsPinJS) :: Parser Natural
-        pure $ Kupplung {kuName, kupplungsPin=zuPin kupplungsPin}
+        kuFließend <- (v .: fließendJS) <|> pure WiringPi.LOW
+        pure Kupplung {kuName, kuFließend, kupplungsPin=zuPin kupplungsPin}
     parseJSON   _           = mzero
 
 instance ToJSON Kupplung where
