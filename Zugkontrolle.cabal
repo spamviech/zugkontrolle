@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: efd755a789172a6f7312eb2fc020f714093b528aa49b61c8690fd88aad34f586
+-- hash: 8c7b62edc9473ac99752aecfe9a8fb933c698d9a62926f4d6a00e189806d9ad5
 
 name:           Zugkontrolle
 version:        1.0.0.14
@@ -136,6 +136,7 @@ test-suite Zugkontrolle-test
     , concurrency
     , containers
     , directory
+    , hspec
     , mtl
     , optparse-applicative
     , regex-tdfa

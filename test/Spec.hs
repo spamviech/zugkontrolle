@@ -16,6 +16,8 @@ import qualified Data.Text as T
 import Data.Text (Text, unpack)
 -- Bessere Konsolenausgabe
 import System.Console.ANSI
+-- Test-Suite
+import Test.Hspec
 -- Abhängigkeiten von anderen Modulen
 import Zug.SEQueue
 import Zug.LinkedMVar
@@ -23,9 +25,10 @@ import Zug.UI.Befehl
 import qualified Zug.Language as Language
 import Zug.Language ((<~>))
 import Zug.UI.Cmd ()
-import Zug.UI.Cmd.Parser (QErgebnis(..), BefehlSofort(..), QBefehl(..), parser)
+import Zug.UI.Cmd.Parser (AnfrageErgebnis(..), BefehlSofort(..), AnfrageBefehl(..), parser)
 import Zug.UI.Cmd.Lexer (lexer)
 import Zug.Anbindung
+import Zug.Plan
 import Zug.Klassen
 
 main :: IO ()
@@ -64,18 +67,18 @@ linkedMVarTests = do
 parseBefehl :: IO ()
 parseBefehl = do
     testMany "Befehl" [
-        (Language.beenden, QEBefehl (UI Beenden)),
-        (Language.abbrechen, QEBefehl (UI Abbrechen)),
-        (Language.hinzufügen <~> Language.abbrechen, QEBefehl (UI Abbrechen)),
-        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.abbrechen, QEBefehl (UI Abbrechen)),
-        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.märklin <~> "Name" <~> Language.beenden, QEBefehl (UI Beenden)),
-        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.märklin <~> "Name" <~> "3", (QEBefehl (Hinzufügen (OBahngeschwindigkeit (MärklinBahngeschwindigkeit {bgName="Name", geschwindigkeitsPin=toPin 3}))))),
-        (Language.hinzufügen <~> Language.kupplung <~> "Name" <~> "22", (QEBefehl (Hinzufügen (OKupplung (Kupplung {kuName="Name", kupplungsPin=toPin 22}))))),
-        (Language.hinzufügen <~> Language.streckenabschnitt <~> "Name" <~> "3245", (QEBefehl (Hinzufügen (OStreckenabschnitt (Streckenabschnitt {stName="Name", stromPin=toPin 3245}))))),
-        (Language.hinzufügen <~> Language.weiche <~> Language.märklin <~> "Name" <~> "1" <~> Language.rechts <~> "2", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", richtungsPins=(Rechts, toPin 2):|[]}))))),
-        (Language.hinzufügen <~> Language.weiche <~> Language.märklin <~> "Name" <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "4", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", richtungsPins=(Kurve, toPin (4)):|(Gerade, toPin 2):[]}))))),
-        ((T.take 4 Language.hinzufügen) <~> Language.weiche <~> Language.märklin <~> "Name" <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "4", (QEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", richtungsPins=(Kurve, toPin (4)):|(Gerade, toPin 2):[]}))))),
-        (Language.speichern <~> "Dateiname", (QEBefehl (Speichern "Dateiname")))]
+        (Language.beenden, AEBefehl (UI Beenden)),
+        (Language.abbrechen, AEBefehl (UI Abbrechen)),
+        (Language.hinzufügen <~> Language.abbrechen, AEBefehl (UI Abbrechen)),
+        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.abbrechen, AEBefehl (UI Abbrechen)),
+        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.märklin <~> "Name" <~> Language.beenden, AEBefehl (UI Beenden)),
+        (Language.hinzufügen <~> Language.bahngeschwindigkeit <~> Language.märklin <~> "Name" <~> Language.high <~> "3", (AEBefehl (Hinzufügen (OBahngeschwindigkeit (MärklinBahngeschwindigkeit {bgName="Name", bgFließend=HIGH, geschwindigkeitsPin=zuPin 3}))))),
+        (Language.hinzufügen <~> Language.kupplung <~> "Name" <~> Language.low <~> "22", (AEBefehl (Hinzufügen (OKupplung (Kupplung {kuName="Name", kuFließend=LOW, kupplungsPin=zuPin 22}))))),
+        (Language.hinzufügen <~> Language.streckenabschnitt <~> "Name" <~> Language.low <~> "3245", (AEBefehl (Hinzufügen (OStreckenabschnitt (Streckenabschnitt {stName="Name", stFließend=LOW, stromPin=zuPin 3245}))))),
+        (Language.hinzufügen <~> Language.weiche <~> Language.märklin <~> "Name" <~> Language.low <~> "1" <~> Language.rechts <~> "2", (AEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", weFließend=LOW, richtungsPins=(Rechts, zuPin 2):|[]}))))),
+        (Language.hinzufügen <~> Language.weiche <~> Language.märklin <~> "Name" <~> Language.low <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "4", (AEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", weFließend=LOW, richtungsPins=(Kurve, zuPin (4)):|(Gerade, zuPin 2):[]}))))),
+        ((T.take 4 Language.hinzufügen) <~> Language.weiche <~> Language.märklin <~> "Name" <~> Language.low <~> "2" <~> Language.gerade <~> "2" <~> Language.kurve <~> "4", (AEBefehl (Hinzufügen (OWeiche (MärklinWeiche {weName="Name", weFließend=LOW, richtungsPins=(Kurve, zuPin (4)):|(Gerade, zuPin 2):[]}))))),
+        (Language.speichern <~> "Dateiname", (AEBefehl (Speichern "Dateiname")))]
     setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite Befehl not yet fully implemented" >> setSGR [Reset]
 
 
@@ -96,12 +99,12 @@ parseBefehlSofort = setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suit
 
 -- Parser für Eingabe von unvollständigen Befehlen testen
 parseQBefehl :: IO ()
-parseQBefehl = setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite QBefehl not yet implemented" >> setSGR [Reset]
+parseQBefehl = setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite ABefehl not yet implemented" >> setSGR [Reset]
 
-testMany :: String -> [(Text, QErgebnis)] -> IO ()
+testMany :: String -> [(Text, AnfrageErgebnis)] -> IO ()
 testMany name testListe = putStrLn (name <> "\n" <> map (\_ -> '=') name) >> mapM_ (uncurry test) testListe
 
-test :: Text -> QErgebnis -> IO ()
+test :: Text -> AnfrageErgebnis -> IO ()
 test eingabe sollErgebnis = do
     putStr "Eingabe:\t"
     setSGR [SetColor Foreground Dull Cyan]
@@ -109,7 +112,7 @@ test eingabe sollErgebnis = do
     setSGR [Reset]
     putStr "Ergebnis:\t"
     setSGR [SetColor Foreground Dull Blue]
-    let istErgebnis = (snd . (parser QBefehl) . lexer . T.words $ eingabe)
+    let istErgebnis = (snd . (parser AnfrageBefehl) . lexer . T.words $ eingabe)
     putStrLn $ show istErgebnis
     setSGR [Reset]
     putStr "Erwartet:\t"
@@ -142,20 +145,20 @@ testResult eingabe ist soll = do
     setSGR [Reset]
     putStrLn $ "------------------"
 
-instance Show QErgebnis where
-    show :: QErgebnis -> String
-    show    (QEBefehl (UI Beenden))                                             = "Beenden"
-    show    (QEBefehl (UI Abbrechen))                                           = "Abbrechen"
-    show    (QEBefehl (Hinzufügen objekt))                                      = "Hinzufügen " <> show objekt
-    show    (QEBefehl (Entfernen objekt))                                       = "Entfernen " <> show objekt
-    show    (QEBefehl (Speichern dateipfad))                                    = "Speichern " <> dateipfad
-    show    (QEBefehl (Laden dateipfad _erfolgsAktion _fehlerbehandlung))       = "Laden " <> dateipfad
-    show    (QEBefehl (Ausführen plan _showAction))                             = "Ausführen " <> show plan
-    show    (QEBefehl (AktionBefehl aktion))                                    = "Aktion " <> show aktion
-    show    (QEBefehlSofort (BSLaden dateipfad) eingabeRest)                    = "Laden " <> dateipfad <> "=>" <> show eingabeRest
-    show    (QEBefehlQuery qObjektIOStatus eitherF _fallback eingabeRest)       = "Query " <> show qObjektIOStatus <> konstruktor eitherF <> "=>" <> show eingabeRest
+instance Show AnfrageErgebnis where
+    show :: AnfrageErgebnis -> String
+    show    (AEBefehl (UI Beenden))                                             = "Beenden"
+    show    (AEBefehl (UI Abbrechen))                                           = "Abbrechen"
+    show    (AEBefehl (Hinzufügen objekt))                                      = "Hinzufügen " <> show objekt
+    show    (AEBefehl (Entfernen objekt))                                       = "Entfernen " <> show objekt
+    show    (AEBefehl (Speichern dateipfad))                                    = "Speichern " <> dateipfad
+    show    (AEBefehl (Laden dateipfad _erfolgsAktion _fehlerbehandlung))       = "Laden " <> dateipfad
+    show    (AEBefehl (Ausführen plan _showAction))                             = "Ausführen " <> show plan
+    show    (AEBefehl (AktionBefehl aktion))                                    = "Aktion " <> show aktion
+    show    (AEBefehlSofort (BSLaden dateipfad) eingabeRest)                    = "Laden " <> dateipfad <> "=>" <> show eingabeRest
+    show    (AEStatusAnfrage qObjektIOStatus eitherF _fallback eingabeRest)     = "Query " <> show qObjektIOStatus <> konstruktor eitherF <> "=>" <> show eingabeRest
         where
             konstruktor :: Either a b -> String
             konstruktor (Left _qKonstruktor)    = " Konstruktor "
             konstruktor (Right _konstruktor)    = " qKonstruktor "
-    show    (QEQBefehl qBefehl)                                                 = show qBefehl
+    show    (AEAnfrageBefehl qBefehl)                                           = show qBefehl
