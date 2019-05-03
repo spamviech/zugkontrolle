@@ -29,7 +29,7 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeiten von anderen Modulen
-import Zug.SEQueue
+import Zug.Warteschlange
 import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
@@ -303,7 +303,7 @@ anfrageObjektAktualisieren (AOKupplung aKupplung)                          token
 data AnfragePlan    = AnfragePlan
                     | APUnbekannt       AnfragePlan                             Text
                     | APlanName         Text
-                    | APlanNameAnzahl   Text                                    Natural                                             (SEQueue Aktion)    AnfrageAktion
+                    | APlanNameAnzahl   Text                                    Natural                                             (Warteschlange Aktion)    AnfrageAktion
                     | APlanIOStatus     StatusAnfrageObjekt                     (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
                     | APStatusAnfrage   (EingabeToken -> StatusAnfrageObjekt)   (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
 
