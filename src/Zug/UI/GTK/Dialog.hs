@@ -33,7 +33,7 @@ import Graphics.UI.Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
-import Zug.SEQueue
+import Zug.Warteschlange
 import Zug.Klassen
 import Zug.Anbindung
 import Zug.Plan
@@ -648,7 +648,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
     comboBoxSetActive comboBoxZugtyp indexMärklin
     pure (DialogHinzufügen {dialog, pages, buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, buttonWeiter, buttonZurück, comboBoxZugtyp, indizesZugtyp, comboBoxFließend, indizesFließend}, linkedMVar)
         where
-            appendPage :: (BoxClass b, Monad m, MonadIO m) => b -> m (PageHinzufügen, Maybe (LinkedMVar StatusGUI)) -> StateT (SEQueue PageHinzufügen) m (Maybe (LinkedMVar StatusGUI))
+            appendPage :: (BoxClass b, Monad m, MonadIO m) => b -> m (PageHinzufügen, Maybe (LinkedMVar StatusGUI)) -> StateT (Warteschlange PageHinzufügen) m (Maybe (LinkedMVar StatusGUI))
             appendPage box konstruktor = do
                 (page, maybeLinkedMVar) <- lift konstruktor
                 liftIO $ boxPack box (widget page) PackGrow paddingDefault positionDefault
@@ -663,7 +663,7 @@ dialogHinzufügenNew parent (DynamischeWidgets {vBoxHinzufügenWegstreckeBahnges
                 putLMVar mvarWidgets widgetsNeu
 
 -- | Zeige nur die n-te Seite (start bei n=0) an
-showNth :: Natural -> SEQueue PageHinzufügen -> IO (Maybe PageHinzufügen)
+showNth :: Natural -> Warteschlange PageHinzufügen -> IO (Maybe PageHinzufügen)
 showNth i   queue   = case zeigeErstes queue of
     (Leer)        -> pure Nothing
     (Gefüllt h t)
@@ -689,7 +689,7 @@ data PageHinzufügen = PageStart {widget :: VBox, radioButtons :: NonEmpty Radio
                     | PageWeiche {widget :: VBox, nameEntry :: Entry, richtungsWidgetsMärklin :: FortfahrenWennToggled NonEmpty (Richtung, CheckButton, SpinButton), richtungsWidgetsLego :: (SpinButton, NonEmpty (Richtung, Richtung, RadioButton))}
                     | PageKupplung {widget :: VBox, nameEntry :: Entry, kupplungsPinSpinButton :: SpinButton}
                     | PageWegstrecke {widget :: VBox, nameEntry :: Entry, wegstreckenElemente :: FortfahrenWennToggled LinkedMVar StatusGUI}
-                    | PagePlan {widget :: VBox, nameEntry :: Entry, bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen :: HBox, aktionen :: FortfahrenWennGefüllt SEQueue Aktion}
+                    | PagePlan {widget :: VBox, nameEntry :: Entry, bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen :: HBox, aktionen :: FortfahrenWennGefüllt Warteschlange Aktion}
 
 instance Show PageHinzufügen where
     show (PageStart {})                 = "PageStart"
@@ -702,7 +702,7 @@ instance Show PageHinzufügen where
 
 data DialogHinzufügen = DialogHinzufügen {
                             dialog :: Dialog,
-                            pages :: SEQueue PageHinzufügen,
+                            pages :: Warteschlange PageHinzufügen,
                             buttonHinzufügen :: Button,
                             buttonHinzufügenWeicheMärklin :: Button,
                             buttonHinzufügenWeicheLego :: Button,

@@ -19,7 +19,7 @@ import System.Console.ANSI
 -- Test-Suite
 import Test.Hspec
 -- Abhängigkeiten von anderen Modulen
-import Zug.SEQueue
+import Zug.Warteschlange
 import Zug.LinkedMVar
 import Zug.UI.Befehl
 import qualified Zug.Language as Language
@@ -40,9 +40,9 @@ main = do
     parseBefehlSofort
     parseQBefehl
 
--- Tests für SEQueue
+-- Tests für Warteschlange
 seQueueTests :: IO ()
-seQueueTests = setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite SEQueue not yet implemented" >> setSGR [Reset]
+seQueueTests = setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite Warteschlange not yet implemented" >> setSGR [Reset]
 
 -- Tests für LinkedMVar
 linkedMVarTests :: IO ()

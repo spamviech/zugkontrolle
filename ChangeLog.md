@@ -90,3 +90,4 @@
 ## Unreleased changes
 - Fließend-Value (HIGH/LOW) ist jetzt eine Eigenschaft jedes Objekts.  
     Das zugehörige Kommandozeilenargument `--fließend` wurde entsprechend entfernt.
+- SEQueue umbenannt in Warteschlange

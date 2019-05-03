@@ -18,12 +18,12 @@ import Control.Monad (foldM)
 import Data.Foldable (toList)
 import Data.Function ((&))
 -- Abhängigkeit von anderen Modulen
-import Zug.SEQueue
+import Zug.Warteschlange
 
 -- | 'MVar', welche beim setzen des Werts eine Update-Aktion ausführt.
 -- Das Ergebnis der Update-Aktion wird der neue Wert der 'LinkedMVar', ohne ein erneuten Aufruf der Update-Aktion auszulösen.
 -- Wenn ein erneutes ausführen der Update-Aktion gewünscht wird kann dies mit der übergebenen IO-Aktion erzwungen werden.
-data LinkedMVar a = LinkedMVar {linkedUpdate :: MVar (SEQueue (a -> IO a)), mvar :: MVar a}
+data LinkedMVar a = LinkedMVar {linkedUpdate :: MVar (Warteschlange (a -> IO a)), mvar :: MVar a}
 
 -- * Konstruktoren
 -- | Erzeuge eine neue leere 'LinkedMVar', ausgehend von einer Update-Aktion.

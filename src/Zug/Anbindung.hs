@@ -8,7 +8,7 @@ Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.
 -}
 module Zug.Anbindung (
                     -- * Pin-Repräsentation
-                    Pin(), zuPin, vonPin, pwmMöglich, clockMöglich, PinMap, pinMapEmpty, PinMapIO, warteµs,
+                    Pin(), zuPin, vonPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert, PinMap, pinMapEmpty, PinMapIO, warteµs,
                     Value(..), alleValues,
                     -- * Strecken-Objekte
                     StreckenObjekt(..), StreckenAtom(..),
