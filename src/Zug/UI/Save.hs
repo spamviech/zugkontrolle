@@ -16,7 +16,7 @@ module Zug.UI.Save (
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
-import Control.Concurrent.MVar (MVar)
+import Control.Concurrent.MVar (MVar, newMVar)
 import Control.Monad (MonadPlus(..))
 import Data.Aeson (encode, decode)
 import Data.Aeson.Types (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
@@ -40,15 +40,18 @@ speichern contents path = ByteString.writeFile path $ encode contents
 -- | Lade Datei.
 -- 
 -- Dateifehler und nicht-existente Dateien geben Nothing zurück.
--- Ansonsten wird ein Konstruktor für einen aus einem 'Status' konstruiertem Typ zurückgegeben. 
-laden :: FilePath -> (Status -> IO s) -> IO (Maybe (MVar PinMap -> IO s))
+-- Ansonsten wird ein Konstruktor für einen aus einem 'Status' konstruiertem Typ zurückgegeben.
+laden :: FilePath -> (Status -> IO (s o)) -> IO (Maybe (MVar PinMap -> IO (s o)))
 laden path fromStatus = do
     fileExists <- doesFileExist path
     if fileExists
-        then ByteString.readFile path >>= \byteString -> pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarPinMap)
+        then do
+            byteString <- ByteString.readFile path
+            mvarTmp <- newMVar []
+            pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarTmp mvarPinMap)
         else pure Nothing
 
-newtype AlmostStatus o = AlmostStatus {getStatusFunction :: (MVar PinMap -> StatusAllgemein o)}
+newtype AlmostStatus o = AlmostStatus {getStatusFunction :: (MVar [Ausführend] -> MVar PinMap -> StatusAllgemein o)}
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
 -- Definition hier und nicht in Language.hs, damit einmal erzeugte json-Dateien auch nach einer Sprachänderung gültig bleiben.
@@ -328,8 +331,8 @@ aktionenJS :: Text
 aktionenJS = "Aktionen"
 
 -- Instanz-Deklaration für Plan
-instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (AktionAllgemein bg st we ku ws) where
-    parseJSON :: Value -> Parser (AktionAllgemein bg st we ku ws)
+instance FromJSON Aktion where
+    parseJSON :: Value -> Parser Aktion
     parseJSON   (Object v)  = ((v .: "Aktion") :: Parser Text) >>= \case
         s   | s == wartenJS             -> Warten <$> v .: "Wert"
             | s == einstellenJS         -> AWegstrecke <$> Einstellen <$> v .: wegstreckeJS
@@ -348,14 +351,14 @@ instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => Fr
                 (\v     -> AKupplung <$> Kuppeln <$> v .: kupplungJS)
             | otherwise                 -> mzero
         where
-            parseMaybeWegstrecke :: (FromJSON ws) => Object -> (ws -> Object -> Parser (AktionWegstrecke ws)) -> (Object -> Parser (AktionAllgemein bg st we ku ws)) -> Parser (AktionAllgemein bg st we ku ws)
+            parseMaybeWegstrecke :: Object -> (Wegstrecke -> Object -> Parser (AktionWegstrecke Wegstrecke)) -> (Object -> Parser Aktion) -> Parser Aktion
             parseMaybeWegstrecke    v   wsParser    altParser   = v .:? wegstreckeJS >>= \case
                 (Just w)    -> AWegstrecke <$> wsParser w v
                 (Nothing)   -> altParser v
     parseJSON   _           = mzero
 
-instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (AktionAllgemein bg st we ku ws) where
-    toJSON :: AktionAllgemein bg st we ku ws -> Value
+instance ToJSON Aktion where
+    toJSON :: Aktion -> Value
     toJSON  (Warten wert)                                                               = object [aktionJS .= wartenJS, wertJS .= wert]
     toJSON  (AWegstrecke (Einstellen w))                                                = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
     toJSON  (AWegstrecke (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))             = object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
@@ -369,13 +372,13 @@ instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (Akti
     toJSON  (AStreckenabschnitt (Strom s an))                                           = object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]
     toJSON  (AKupplung (Kuppeln k))                                                     = object [kupplungJS .= k, aktionJS .= kuppelnJS]
 
-instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws) => FromJSON (PlanAllgemein bg st we ku ws) where
-    parseJSON :: Value -> Parser (PlanAllgemein bg st we ku ws)
+instance FromJSON Plan where
+    parseJSON :: Value -> Parser Plan
     parseJSON   (Object v)  = Plan <$> (v .: nameJS) <*> (v .: aktionenJS)
     parseJSON   _           = mzero
 
-instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws) => ToJSON (PlanAllgemein bg st we ku ws) where
-    toJSON :: PlanAllgemein bg st we ku ws -> Value
+instance ToJSON Plan where
+    toJSON :: Plan -> Value
     toJSON  (Plan {plName, plAktionen}) = object [nameJS .= plName, aktionenJS .= plAktionen]
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen

@@ -122,7 +122,7 @@ entferneHinzufügenPlanWidgets p dynamischeWidgets = sequence_ $ containerRemove
 -- type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
 -- | Traversal über alle (evtl. unregistrierten) CheckButtons zum Hinzufügen einer Wegstrecke
 traversalHinzufügenWegstrecke :: Traversal' StatusGUI VRCheckButton
-traversalHinzufügenWegstrecke f status = Status <$> traverseList f (status ^. bahngeschwindigkeiten) <*> traverseList f (status ^. streckenabschnitte) <*> traverseList f (status ^. weichen) <*> traverseList f (status ^. kupplungen) <*> pure (status ^. wegstrecken) <*> pure (status ^. pläne) <*> pure (status ^. mvarPinMap)
+traversalHinzufügenWegstrecke f status = Status <$> traverseList f (status ^. bahngeschwindigkeiten) <*> traverseList f (status ^. streckenabschnitte) <*> traverseList f (status ^. weichen) <*> traverseList f (status ^. kupplungen) <*> pure (status ^. wegstrecken) <*> pure (status ^. pläne) <*> pure (status ^. mvarAusführend) <*> pure (status ^. mvarPinMap)
     where
         traverseList :: (Applicative f, WegstreckenElement s) => (VRCheckButton -> f VRCheckButton) -> [s] -> f [s]
         traverseList f list = traverse . lensWegstrecke %%~ f $ list
@@ -719,11 +719,11 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
     vBoxExpander <- containerAddWidgetNew expander $ vBoxNew False 0
     mapM_ ((boxPackWidgetNewDefault vBoxExpander) . labelNew . Just . show) plAktionen
     functionBox <- boxPackWidgetNewDefault vBox hButtonBoxNew
-    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ ausführenMVarPlan plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) mvarStatus
-    let alleWidgets = PLWidgets {pl=plan, plWidget=frame}
-    buttonEntfernenPack functionBox (containerRemove vBoxPläne frame) (entfernenPlan alleWidgets) mvarStatus
+    let plWidgets = PLWidgets {pl=plan, plWidget=frame}
+    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ ausführenMVarPlan plWidgets (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) mvarStatus
+    buttonEntfernenPack functionBox (containerRemove vBoxPläne frame) (entfernenPlan plWidgets) mvarStatus
     -- Widgets merken
-    ausführenMVarBefehl (Hinzufügen $ OPlan alleWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OPlan plWidgets) mvarStatus
     pure frame
 -- | Äußerstes Widget zur Darstellung eines 'Plan's
 type PlanWidget = Frame
@@ -746,6 +746,6 @@ instance Aeson.ToJSON PLWidgets where
     toJSON (PLWidgets {pl}) = Aeson.toJSON pl
 
 instance PlanKlasse PLWidgets where
-    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> PinMapIO ()
+    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> MVar [Ausführend] -> PinMapIO ()
     ausführenPlan (PLWidgets {pl}) = ausführenPlan pl
 #endif
