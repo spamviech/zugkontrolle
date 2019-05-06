@@ -22,11 +22,11 @@ import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get, put)
 import Control.Concurrent.MVar (MVar, takeMVar, putMVar, modifyMVar_)
 import Data.Aeson (ToJSON)
-import Data.List (delete)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
 import Zug.Anbindung
+import Zug.LinkedMVar
+import Zug.Menge
 import Zug.Plan
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base
@@ -38,7 +38,7 @@ ausführenMVarPlan plan showAction mvarStatus = do
     (mvarAusführend, mvarPinMap) <- auswertenMVarIOStatus getMVars mvarStatus
     ausführenPlan plan showAction mvarAusführend mvarPinMap
         where
-            getMVars :: IOStatusAllgemein o (MVar [Ausführend], MVar PinMap)
+            getMVars :: IOStatusAllgemein o (MVar (Menge Ausführend), MVar PinMap)
             getMVars = do
                 mvarAusführend <- getMVarAusführend
                 mvarPinMap <- getMVarPinMap
@@ -47,7 +47,7 @@ ausführenMVarPlan plan showAction mvarStatus = do
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
 ausführenMVarAktion   :: (AktionKlasse a, BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), LikeMVar lmvar)
                 => a -> lmvar (StatusAllgemein o) -> IO ()
-ausführenMVarAktion aktion = ausführenMVarAktion aktion
+ausführenMVarAktion aktion mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
 ausführenMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, LikeMVar lmvar
@@ -77,8 +77,8 @@ data BefehlAllgemein o  = UI                    (UIBefehlAllgemein o)
                         | Hinzufügen            o
                         | Entfernen             o
                         | Speichern             FilePath
-                        | Laden                 FilePath                                                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
-                        | Ausführen             Plan                                                    (Natural -> IO ())
+                        | Laden                 FilePath                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
+                        | Ausführen             Plan                    (Natural -> IO ())
                         | AusführenAbbrechen    Plan
                         | AktionBefehl          Aktion
 -- | 'BefehlAllgemein' spezialisiert auf minimal spezialisierte Typen
@@ -143,7 +143,7 @@ instance BefehlKlasse BefehlAllgemein where
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
             ausführenBefehlAux  (Ausführen plan showAction)                             = getMVarAusführend >>= \mvarAusführend -> übergebeMVarPinMap $ ausführenPlan plan showAction mvarAusführend
-            ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . delete (Ausführend plan)
+            ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
             ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenAktion aktion
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.

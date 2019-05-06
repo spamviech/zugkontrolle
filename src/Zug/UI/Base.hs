@@ -36,10 +36,11 @@ import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
+import Zug.Anbindung (PinMap, PinMapIO, pinMapEmpty)
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>), showText)
-import Zug.Anbindung (PinMap, PinMapIO, pinMapEmpty)
+import Zug.LinkedMVar
+import Zug.Menge
 import Zug.Plan
 
 -- | Aktueller Status
@@ -50,7 +51,7 @@ data StatusAllgemein o = Status {
     _kupplungen :: [KU o],
     _wegstrecken :: [WS o],
     _pläne :: [PL o],
-    _mvarAusführend :: MVar [Ausführend],
+    _mvarAusführend :: MVar (Menge Ausführend),
     _mvarPinMap :: MVar PinMap}
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
@@ -77,7 +78,7 @@ wegstrecken             = lens _wegstrecken             $ \status wss -> status 
 pläne :: Lens' (StatusAllgemein o) [PL o]
 pläne                   = lens _pläne                   $ \status pls -> status {_pläne=pls}
 -- | Aktuell ausführende Pläne ('PlanAllgemein')
-mvarAusführend :: Lens' (StatusAllgemein o) (MVar [Ausführend])
+mvarAusführend :: Lens' (StatusAllgemein o) (MVar (Menge Ausführend))
 mvarAusführend              = lens _mvarAusführend          $ \status mv -> status {_mvarAusführend=mv}
 -- | Aktuell aktive PWM-Funktionen
 mvarPinMap :: Lens' (StatusAllgemein o) (MVar PinMap)
@@ -106,10 +107,10 @@ liftIOFunction f = \a -> liftIO $ f a
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' (inklusive MVar)
 statusLeerNeu :: IO (StatusAllgemein o)
-statusLeerNeu = statusLeer <$> newMVar [] <*> newMVar pinMapEmpty
+statusLeerNeu = statusLeer <$> newMVar leer <*> newMVar pinMapEmpty
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'MVar's.
-statusLeer :: MVar [Ausführend] -> MVar PinMap -> (StatusAllgemein o)
+statusLeer :: MVar (Menge Ausführend) -> MVar PinMap -> (StatusAllgemein o)
 statusLeer mvarAusführend mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarAusführend=mvarAusführend, _mvarPinMap=mvarPinMap}
 
 -- | Übergebe mvarPinMap aus dem Status an eine 'PinMapIO'-Funktion
@@ -170,7 +171,7 @@ getWegstrecken = gets _wegstrecken
 getPläne :: (Monad m) => MonadMStatusAllgemein m o [PL o]
 getPläne = gets _pläne
 -- | Erhalte 'MVar' mit Liste der aktuell ausführenden Pläne ('PlanAllgmein')
-getMVarAusführend :: (Monad m) => MonadMStatusAllgemein m o (MVar [Ausführend])
+getMVarAusführend :: (Monad m) => MonadMStatusAllgemein m o (MVar (Menge Ausführend))
 getMVarAusführend = gets _mvarAusführend
 -- | Erhalte 'MVar' zur SoftwarePWM-Steuerung
 getMVarPinMap :: (Monad m) => MonadMStatusAllgemein m o (MVar PinMap)
@@ -198,7 +199,7 @@ putPläne pls = modify $ \status -> status {_pläne=pls}
 -- | Setzte 'MVar' mit Liste der aktuell ausgeführten Pläne ('PlanAllgemein').
 -- 
 -- __Achtung__: Die aktuelle Ausführung wird dadurch nicht beeinflusst!
-putMVarAusführend :: (Monad m) => MVar [Ausführend] -> MonadMStatusAllgemein m o ()
+putMVarAusführend :: (Monad m) => MVar (Menge Ausführend) -> MonadMStatusAllgemein m o ()
 putMVarAusführend mv = modify $ \status -> status {_mvarAusführend=mv}
 -- | Setzte 'MVar' zur SoftwarePWM-Kontrolle.
 -- 
