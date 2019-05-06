@@ -81,9 +81,10 @@ einstellen                      = "Einstellen"
 -- | Execute
 ausführen :: (Semigroup s, IsString s) => s
 ausführen                       = "Ausführen"
--- | Abort
+-- | Abort!  
+-- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
 ausführenAbbrechen :: (Semigroup s, IsString s) => s
-ausführenAbbrechen              = "Abbrechen"
+ausführenAbbrechen              = "Abbrechen!"
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Warten"

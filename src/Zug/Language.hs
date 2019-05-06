@@ -74,7 +74,7 @@ erzeugeDeklaration "kuppeln"
 erzeugeDeklaration "einstellen"
 -- | Execute / Ausführen
 erzeugeDeklaration "ausführen"
--- | Abort / Abbrechen
+-- | Abort! / Abbrechen!
 erzeugeDeklaration "ausführenAbbrechen"
 -- | Wait / Warten
 erzeugeDeklaration "warten"

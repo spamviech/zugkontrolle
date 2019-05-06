@@ -17,7 +17,7 @@ import Data.Text (Text, pack)
 import Control.Monad (unless)
 import Control.Monad.Trans (liftIO)
 import Control.Monad.State (evalStateT, get, state, runState)
-import Control.Concurrent.MVar (newMVar, readMVar)
+import Control.Concurrent.MVar (newMVar)
 -- Farbige Konsolenausgabe
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
@@ -26,7 +26,7 @@ import Zug.Language ((<~>), (<\>), (<=>), (<!>), (<:>), showText, fehlerhafteEin
 import Zug.Anbindung
 import qualified Zug.UI.Save as Save
 import Zug.Options
-import Zug.Plan (Ausführend (..), Objekt)
+import Zug.Plan (Objekt)
 import Zug.UI.Base
 import Zug.UI.Befehl
 import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
@@ -107,9 +107,8 @@ ausführenBefehlSofort   (BSLaden dateipfad)         = do
     ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad
     pure AnfrageBefehl
 ausführenBefehlSofort   (BSAusführenAbbrechen plan) = do
-    mvarAusführend <- getMVarAusführend
-    ausführend <- liftIO $ readMVar mvarAusführend
-    pure $ (if elem (Ausführend plan) ausführend then ABAktionPlanAusführend else ABAktionPlan) plan
+    ausführend <- wirdAusgeführt plan
+    pure $ (if ausführend then ABAktionPlanAusführend else ABAktionPlan) plan
 
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]
