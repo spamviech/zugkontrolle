@@ -36,7 +36,7 @@ data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
                                         | OBahngeschwindigkeit  bg
                                         | OStreckenabschnitt    st
                                         | OKupplung             ku
-                                            deriving (Show)
+                                            deriving (Eq, Show)
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
