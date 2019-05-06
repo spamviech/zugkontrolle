@@ -172,6 +172,9 @@ aktionGruppen = [warten] <> befehlObjekte
 -- | All supported actions for a 'Plan'
 aktionPlan :: (Semigroup s, IsString s) => [s]
 aktionPlan = [ausführen]
+-- | All supported actions for a currently executed 'Plan'
+aktionPlanAusführend :: (Semigroup s, IsString s) => [s]
+aktionPlanAusführend = [ausführenAbbrechen]
 -- | All supported actions for a train collection ('Wegstrecke')
 aktionWegstrecke :: (Semigroup s, IsString s) => [s]
 aktionWegstrecke = [einstellen] <> aktionBahngeschwindigkeit <> aktionStreckenabschnitt <> aktionKupplung
