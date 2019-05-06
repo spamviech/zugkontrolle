@@ -719,8 +719,11 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
     vBoxExpander <- containerAddWidgetNew expander $ vBoxNew False 0
     mapM_ ((boxPackWidgetNewDefault vBoxExpander) . labelNew . Just . show) plAktionen
     functionBox <- boxPackWidgetNewDefault vBox hButtonBoxNew
+    buttonAusführen <- boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ void $ ausführenMVarBefehl (Ausführen plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)])) mvarStatus
+    buttonAbbrechen <- boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführenAbbrechen $ void $ ausführenMVarBefehl (AusführenAbbrechen plan) mvarStatus
+    on buttonAusführen buttonActivated $ widgetHide buttonAusführen >> widgetShow buttonAbbrechen
+    on buttonAbbrechen buttonActivated $ widgetShow buttonAusführen >> widgetHide buttonAbbrechen
     let plWidgets = PLWidgets {pl=plan, plWidget=frame}
-    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ ausführenMVarPlan plWidgets (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) mvarStatus
     buttonEntfernenPack functionBox (containerRemove vBoxPläne frame) (entfernenPlan plWidgets) mvarStatus
     -- Widgets merken
     ausführenMVarBefehl (Hinzufügen $ OPlan plWidgets) mvarStatus
