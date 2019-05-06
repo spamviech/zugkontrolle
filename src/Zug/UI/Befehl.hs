@@ -78,7 +78,7 @@ data BefehlAllgemein o  = UI                    (UIBefehlAllgemein o)
                         | Entfernen             o
                         | Speichern             FilePath
                         | Laden                 FilePath                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
-                        | Ausführen             Plan                    (Natural -> IO ())
+                        | Ausführen             Plan                    (Natural -> IO ())                  (IO ())
                         | AusführenAbbrechen    Plan
                         | AktionBefehl          Aktion
 -- | 'BefehlAllgemein' spezialisiert auf minimal spezialisierte Typen
@@ -142,7 +142,10 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
-            ausführenBefehlAux  (Ausführen plan showAction)                             = getMVarAusführend >>= \mvarAusführend -> übergebeMVarPinMap $ ausführenPlan plan showAction mvarAusführend
+            ausführenBefehlAux  (Ausführen plan showAction endBefehl)                    = do
+                mvarAusführend <- getMVarAusführend
+                übergebeMVarPinMap $ ausführenPlan plan showAction mvarAusführend
+                liftIO endBefehl
             ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
             ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenAktion aktion
 

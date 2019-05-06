@@ -44,6 +44,7 @@ lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl,
             (kuppeln            , Kuppeln),
             (einstellen         , Einstellen),
             (ausführen          , Ausführen),
+            (ausführenAbbrechen , AusführenAbbrechen),
             (warten             , Warten),
             (plan               , Plan),
             (wegstrecke         , Wegstrecke),
@@ -91,6 +92,7 @@ data Token  = Beenden
             | Kuppeln
             | Einstellen
             | Ausführen
+            | AusführenAbbrechen
             | Warten
             | Plan
             | Wegstrecke
