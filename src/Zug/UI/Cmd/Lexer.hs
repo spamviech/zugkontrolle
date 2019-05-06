@@ -67,11 +67,11 @@ lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl,
 data EingabeTokenAllgemein  = Tk            EingabeToken
                             | TkBeenden
                             | TkAbbrechen
-                                deriving (Show)
+                                deriving (Eq, Show)
 
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken = EingabeToken {eingabe::Text, möglichkeiten::[Token], ganzzahl::Maybe Natural}
-                        deriving (Show)
+                        deriving (Eq, Show)
 
 -- | Bekannte Befehle
 data Token  = Beenden

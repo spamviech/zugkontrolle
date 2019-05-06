@@ -44,12 +44,12 @@ import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token())
 -- ** Suchen eines Objekt im aktuellen 'StatusAllgemein'
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt    = SAOUnbekannt              Text
-    | SAOPlan                   EingabeToken
-    | SAOWegstrecke             EingabeToken
-    | SAOWeiche                 EingabeToken
-    | SAOBahngeschwindigkeit    EingabeToken
-    | SAOStreckenabschnitt      EingabeToken
-    | SAOKupplung               EingabeToken
+                            | SAOPlan                   EingabeToken
+                            | SAOWegstrecke             EingabeToken
+                            | SAOWeiche                 EingabeToken
+                            | SAOBahngeschwindigkeit    EingabeToken
+                            | SAOStreckenabschnitt      EingabeToken
+                            | SAOKupplung               EingabeToken
 
 instance Show StatusAnfrageObjekt where
     show :: StatusAnfrageObjekt -> String
@@ -116,7 +116,7 @@ data AnfrageErgebnis    = AEBefehl              Befehl
 
 -- | Befehle, die sofort in 'IO' ausgeführt werden müssen
 data BefehlSofort   = BSLaden               FilePath
-                    | BSAusführenAbbrechen  Plan
+                    | BSAusführenMöglich    Plan
 
 -- | Unvollständige Befehle
 data AnfrageBefehl  = AnfrageBefehl
@@ -172,7 +172,7 @@ anfrageAktualisieren    (AnfrageBefehl)                                         
     (Lexer.Entfernen            , AEAnfrageBefehl ABEntfernen),
     (Lexer.Speichern            , AEAnfrageBefehl ABSpeichern),
     (Lexer.Laden                , AEAnfrageBefehl ABLaden),
-    (Lexer.Plan                 , AEAnfrageBefehl $ ABStatusAnfrage SAOPlan (\(OPlan plan) -> AEBefehlSofort (BSAusführenAbbrechen plan) [])),
+    (Lexer.Plan                 , AEAnfrageBefehl $ ABStatusAnfrage SAOPlan (\(OPlan plan) -> AEBefehlSofort (BSAusführenMöglich plan) [])),
     (Lexer.Wegstrecke           , anfrageAktualisieren (ABAktion AnfrageAktion) token),
     (Lexer.Weiche               , anfrageAktualisieren (ABAktion AnfrageAktion) token),
     (Lexer.Bahngeschwindigkeit  , anfrageAktualisieren (ABAktion AnfrageAktion) token),
