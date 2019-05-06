@@ -18,7 +18,6 @@ module Zug.Plan (
 import Control.Concurrent (forkIO, MVar, modifyMVar_, readMVar)
 import Control.Monad (void, when)
 import Data.Kind
-import Data.List (delete)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
@@ -27,6 +26,7 @@ import Zug.Klassen
 import Zug.Anbindung
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
+import Zug.Menge
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
@@ -93,7 +93,7 @@ instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjek
 -- Sie können selbst entscheiden, ob sie die mitgegebene Update-Funktion über den Fortschritt informieren, oder nicht.
 -- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der MVar-Liste vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: pl -> (Natural -> IO ()) -> MVar [Ausführend] -> PinMapIO ()
+    ausführenPlan :: pl -> (Natural -> IO ()) -> MVar (Menge Ausführend) -> PinMapIO ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -122,14 +122,14 @@ instance StreckenObjekt Plan where
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: Plan -> (Natural -> IO ()) -> MVar [Ausführend] -> PinMapIO ()
+    ausführenPlan :: Plan -> (Natural -> IO ()) -> MVar (Menge Ausführend) -> PinMapIO ()
     ausführenPlan plan@(Plan {plAktionen}) showAktion mvarAusführend mvarPinMap = void $ forkIO $ void $ do
-        modifyMVar_ mvarAusführend $ pure . ((Ausführend plan) :)
+        modifyMVar_ mvarAusführend $ pure . hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
         showAktion $ fromIntegral $ length plAktionen
             where
                 ausführenAux :: Natural -> [Aktion] ->IO ()
-                ausführenAux    _i  ([])    = modifyMVar_ mvarAusführend $ pure . delete (Ausführend plan)
+                ausführenAux    _i  ([])    = modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
                 ausführenAux    i   (h:t)   = do
                     ausführend <- readMVar mvarAusführend
                     when (elem (Ausführend plan) ausführend) $ showAktion i >> ausführenAktion h mvarPinMap >> ausführenAux (succ i) t

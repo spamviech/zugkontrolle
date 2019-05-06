@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f62046a6f6ee3ba4620dfa5c4c3bde35e88b8459310871e3e1c25d404b3fdd0c
+-- hash: fb8b3e3b648c1b8d5c82a5408837d513b883300331a8b6a0d25c3a1dbd4167ee
 
 name:           Zugkontrolle
 version:        1.0.0.14
@@ -41,6 +41,7 @@ library
       Zug.Language.Operatoren
       Zug.Language.TemplateHaskell
       Zug.LinkedMVar
+      Zug.Menge
       Zug.Options
       Zug.Plan
       Zug.UI

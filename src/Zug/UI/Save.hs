@@ -27,9 +27,10 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen
 import Zug.Anbindung (PinMap, Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..), zuPin, vonPin)
 import qualified Zug.Anbindung as Anbindung
+import Zug.Klassen
+import Zug.Menge
 import Zug.Plan
 import Zug.UI.Base
 
@@ -47,11 +48,11 @@ laden path fromStatus = do
     if fileExists
         then do
             byteString <- ByteString.readFile path
-            mvarTmp <- newMVar []
+            mvarTmp <- newMVar leer
             pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarTmp mvarPinMap)
         else pure Nothing
 
-newtype AlmostStatus o = AlmostStatus {getStatusFunction :: (MVar [Ausführend] -> MVar PinMap -> StatusAllgemein o)}
+newtype AlmostStatus o = AlmostStatus {getStatusFunction :: (MVar (Menge Ausführend) -> MVar PinMap -> StatusAllgemein o)}
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
 -- Definition hier und nicht in Language.hs, damit einmal erzeugte json-Dateien auch nach einer Sprachänderung gültig bleiben.

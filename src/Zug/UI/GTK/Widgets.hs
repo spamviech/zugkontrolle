@@ -47,11 +47,12 @@ import Data.Text (Text)
 import Graphics.UI.Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
+import Zug.Anbindung
+import Zug.Klassen
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<->), (<:>), (<°>), addMnemonic, showText)
-import Zug.Klassen
-import Zug.Anbindung
+import Zug.LinkedMVar
+import Zug.Menge
 import Zug.Plan
 import Zug.UI.Base
 import Zug.UI.Befehl
@@ -749,6 +750,6 @@ instance Aeson.ToJSON PLWidgets where
     toJSON (PLWidgets {pl}) = Aeson.toJSON pl
 
 instance PlanKlasse PLWidgets where
-    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> MVar [Ausführend] -> PinMapIO ()
+    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> MVar (Menge Ausführend) -> PinMapIO ()
     ausführenPlan (PLWidgets {pl}) = ausführenPlan pl
 #endif
