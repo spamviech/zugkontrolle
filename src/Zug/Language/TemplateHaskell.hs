@@ -20,8 +20,9 @@ sprachName :: Sprache -> Name
 sprachName  (Deutsch)   = mkName "Deutsch"
 sprachName  (Englisch)  = mkName "Englisch"
 
--- | Definiere einen Wert abhängig von der gewählten 'Sprache'.
--- Falls der Wert in der gewählten 'Sprache' nicht exisitert, versuche ihn in 'Deutsch' (aus dem Modul 'Zug.Language.DE') zu definieren.
+-- | Definiere einen Wert abhängig von der gewählten 'Sprache'.  
+-- Falls der Wert in der gewählten 'Sprache' nicht exisitert, versuche ihn in 'Deutsch' (aus dem Modul 'Zug.Language.DE') zu definieren.  
+-- Falls der Wert dort ebenfalls nicht existiert wird der Variablenname in Anführungszeichen verwendet.
 -- 
 -- Es wird erwartet, dass sich die gewählte Sprache in der Variable /gewählteSprache/ befindet.  
 -- Außerdem muss das Module "Zug.Language.DE", sowie das Modul mit der gewünschten Sprache importiert werden.
@@ -55,8 +56,13 @@ erzeugeDeklaration bezeichner = do
             funktionDeklaration :: Q Dec
             funktionDeklaration = do
                 sprachKlauseln <- mapM testeUndErzeugeKlausel alleSprachen
-                -- Erzeuge Wildcard-Pattern für Deutsche Variante
-                let klauseln = sprachKlauseln ++ [Just $ Clause [WildP] (NormalB $ VarE $ qualifizierterName Deutsch) []]
+                -- Erzeuge Wildcard-Pattern für Deutsche Variante (falls vorhanden), ansonsten verwende den Variablen-Namen in Anführungszeichen
+                wildcardKlausel <- recover (pure $ [Just $ Clause [WildP] (NormalB $ LitE $ StringL $ '"' : bezeichner ++ "\"") []]) $ do
+                    -- Überprüfe, ob der Name existiert
+                    reify $ qualifizierterName Deutsch
+                    -- Erzeuge Deklaration
+                    pure [Just $ Clause [WildP] (NormalB $ VarE $ qualifizierterName Deutsch) []]
+                let klauseln = sprachKlauseln ++ wildcardKlausel
                 -- Verwende nur valide Klauseln
                 pure $ FunD funktionName $ catMaybes klauseln
             testeUndErzeugeKlausel :: Sprache -> Q (Maybe Clause)
@@ -69,8 +75,9 @@ erzeugeDeklaration bezeichner = do
             qualifizierterName :: Sprache -> Name
             qualifizierterName sprache = mkName $ modulName sprache ++ '.':bezeichner
 
--- | Definiere einen Funktion abhängig von der gewählten 'Sprache'.
--- Falls die Funktion in der gewählten 'Sprache' nicht exisitert, versuche ihn in 'Deutsch' (aus dem Modul 'Zug.Language.DE') zu definieren.
+-- | Definiere einen Funktion abhängig von der gewählten 'Sprache'.  
+-- Falls die Funktion in der gewählten 'Sprache' nicht exisitert, versuche ihn in 'Deutsch' (aus dem Modul 'Zug.Language.DE') zu definieren.  
+-- Falls die Funktion dort ebenfalls nicht existiert werden Anführungszeichen vor und nach der Eingabe hinzugefügt.
 -- 
 -- Es wird erwartet, dass sich die gewählte Sprache in der Variable /gewählteSprache/ befindet.  
 -- Außerdem muss das Module "Zug.Language.DE", sowie das Modul mit der gewünschten Sprache importiert werden.
@@ -106,10 +113,19 @@ erzeugeFunktionDeklaration bezeichner = do
             funktionDeklaration :: Q Dec
             funktionDeklaration = do
                 sprachKlauseln <- mapM testeUndErzeugeKlausel alleSprachen
-                -- Erzeuge Wildcard-Pattern für Deutsche Variante
-                let klauseln = sprachKlauseln ++ [Just $ Clause [WildP] (NormalB $ VarE $ qualifizierterName Deutsch) []]
+                -- Erzeuge Wildcard-Pattern für Deutsche Variante (falls vorhanden), ansonsten verwende den Variablen-Namen in Anführungszeichen
+                wildcardKlausel <- recover (erzeugeFallback >>= pure . (: []) . Just) $ do
+                    -- Überprüfe, ob der Name existiert
+                    reify $ qualifizierterName Deutsch
+                    -- Erzeuge Deklaration
+                    pure [Just $ Clause [WildP] (NormalB $ VarE $ qualifizierterName Deutsch) []]
+                let klauseln = sprachKlauseln ++ wildcardKlausel
                 -- Verwende nur valide Klauseln
                 pure $ FunD funktionName $ catMaybes klauseln
+            erzeugeFallback :: Q Clause
+            erzeugeFallback = do
+                varName <- newName "eingabe"
+                pure $ Clause [WildP] (NormalB $ LamE [VarP varName] $ UInfixE (LitE $ StringL "\"") (VarE $ mkName "<>") $ UInfixE (VarE varName) (VarE $ mkName "<>") (LitE $ StringL "\"")) []
             testeUndErzeugeKlausel :: Sprache -> Q (Maybe Clause)
             testeUndErzeugeKlausel sprache = do
                 recover (pure Nothing) $ do

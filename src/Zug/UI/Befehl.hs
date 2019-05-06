@@ -20,8 +20,9 @@ module Zug.UI.Befehl (
 -- Bibliotheken
 import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get, put)
-import Control.Concurrent.MVar (MVar, takeMVar, putMVar)
+import Control.Concurrent.MVar (MVar, takeMVar, putMVar, modifyMVar_)
 import Data.Aeson (ToJSON)
+import Data.List (delete)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.LinkedMVar
@@ -72,13 +73,14 @@ class BefehlKlasse b where
                     => b o -> IOStatusAllgemein o Bool
 
 -- | Unterstütze Befehle
-data BefehlAllgemein o  = UI            (UIBefehlAllgemein o)
-                        | Hinzufügen    o
-                        | Entfernen     o
-                        | Speichern     FilePath
-                        | Laden         FilePath                                                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
-                        | Ausführen     Plan                                                    (Natural -> IO ())
-                        | AktionBefehl  Aktion
+data BefehlAllgemein o  = UI                    (UIBefehlAllgemein o)
+                        | Hinzufügen            o
+                        | Entfernen             o
+                        | Speichern             FilePath
+                        | Laden                 FilePath                                                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
+                        | Ausführen             Plan                                                    (Natural -> IO ())
+                        | AusführenAbbrechen    Plan
+                        | AktionBefehl          Aktion
 -- | 'BefehlAllgemein' spezialisiert auf minimal spezialisierte Typen
 type Befehl = BefehlAllgemein Objekt
 
@@ -141,6 +143,7 @@ instance BefehlKlasse BefehlAllgemein where
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
             ausführenBefehlAux  (Ausführen plan showAction)                             = getMVarAusführend >>= \mvarAusführend -> übergebeMVarPinMap $ ausführenPlan plan showAction mvarAusführend
+            ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . delete (Ausführend plan)
             ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenAktion aktion
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.

@@ -81,6 +81,9 @@ einstellen                      = "Einstellen"
 -- | Execute
 ausführen :: (Semigroup s, IsString s) => s
 ausführen                       = "Ausführen"
+-- | Abort
+ausführenAbbrechen :: (Semigroup s, IsString s) => s
+ausführenAbbrechen              = "Abbrechen"
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Warten"

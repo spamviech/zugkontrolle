@@ -81,6 +81,9 @@ einstellen                      = "Adjust the switches"
 -- | Execute
 ausführen :: (Semigroup s, IsString s) => s
 ausführen                       = "Execute"
+-- | Abort
+ausführenAbbrechen :: (Semigroup s, IsString s) => s
+ausführenAbbrechen              = "Abort"
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Wait"
