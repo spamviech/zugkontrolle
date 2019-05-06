@@ -22,7 +22,7 @@ module Zug.UI.Base (
     getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarAusführend, getMVarPinMap,
     putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarAusführend, putMVarPinMap,
     -- * Hilfsfunktionen
-    übergebeMVarPinMap, liftIOFunction) where
+    übergebeMVarPinMap, liftIOFunction, wirdAusgeführt) where
 
 -- Bibliotheken
 import Control.Concurrent.MVar (MVar, newMVar)
@@ -245,3 +245,10 @@ entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstreck
 -- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
 entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MonadMStatusAllgemein m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
+-- * Aktuell ausgeführte Pläne
+-- | Überprüfe, ob ein Plan momentan ausgeführt wird.
+wirdAusgeführt :: Plan -> IOStatusAllgemein o Bool
+wirdAusgeführt plan = do
+    mvarAusführend <- getMVarAusführend
+    ausführend <- liftIO $ readLMVar mvarAusführend
+    pure $ elem (Ausführend plan) ausführend

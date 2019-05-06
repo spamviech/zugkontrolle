@@ -81,14 +81,14 @@ einstellen                      = "Adjust the switches"
 -- | Execute
 ausführen :: (Semigroup s, IsString s) => s
 ausführen                       = "Execute"
--- | Abort
+-- | Abort  
+-- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
 ausführenAbbrechen :: (Semigroup s, IsString s) => s
-ausführenAbbrechen              = "Abort"
+ausführenAbbrechen              = "Abort!"
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Wait"
--- | µs
--- 
+-- | µs  
 -- Unit of time used to specify waiting time
 wartenEinheit :: (Semigroup s, IsString s) => s
 wartenEinheit                   = "µs"
