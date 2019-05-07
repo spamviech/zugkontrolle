@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiWayIf #-}
 
 {-|
 Description : Grundlegende UI-Funktionen.
@@ -22,7 +23,7 @@ module Zug.UI.Base (
     getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarAusführend, getMVarPinMap,
     putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarAusführend, putMVarPinMap,
     -- * Hilfsfunktionen
-    übergebeMVarPinMap, liftIOFunction, wirdAusgeführt) where
+    übergebeMVarPinMap, liftIOFunction, wirdAusgeführt, AusführenMöglich(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.MVar (MVar, newMVar)
@@ -31,12 +32,14 @@ import Control.Monad.State (StateT, State, evalStateT, runStateT, runState, gets
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens', lens)
 #endif
-import Data.List (delete)
+import Data.Foldable (Foldable(..))
+import Data.List (delete, intersect)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (PinMap, PinMapIO, pinMapEmpty)
+import Zug.Anbindung (Pin, PinMap, PinMapIO, pinMapEmpty, StreckenObjekt(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>), showText)
 import Zug.LinkedMVar
@@ -247,8 +250,19 @@ entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MonadMStatusAllgemein m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 -- * Aktuell ausgeführte Pläne
 -- | Überprüfe, ob ein Plan momentan ausgeführt wird.
-wirdAusgeführt :: Plan -> IOStatusAllgemein o Bool
+wirdAusgeführt :: Plan -> IOStatusAllgemein o AusführenMöglich
 wirdAusgeführt plan = do
     mvarAusführend <- getMVarAusführend
     ausführend <- liftIO $ readLMVar mvarAusführend
-    pure $ elem (Ausführend plan) ausführend
+    pure $ if
+        | elem (Ausführend plan) ausführend
+            -> WirdAusgeführt
+        | not $ null $ intersect (concat $ pins <$> ausführend) (pins plan)
+            -> PinsBelegt $ undefined
+        | otherwise
+            -> AusführenMöglich
+
+-- | Ist ein Ausführen eines Plans möglich?
+data AusführenMöglich   = AusführenMöglich
+                        | WirdAusgeführt
+                        | PinsBelegt (NonEmpty Pin)

@@ -127,6 +127,7 @@ data AnfrageBefehl  = AnfrageBefehl
                     | ABLaden
                     | ABAktionPlan              Plan
                     | ABAktionPlanAusführend    Plan
+                    | ABAktionPlanGesperrt      Plan                                    (NonEmpty Pin)
                     | ABAktion                  AnfrageAktion
                     | ABStatusAnfrage           (EingabeToken -> StatusAnfrageObjekt)   (Objekt -> AnfrageErgebnis)
 
@@ -140,6 +141,7 @@ instance Show AnfrageBefehl where
     show    (ABLaden)                                       = Language.laden
     show    (ABAktionPlan plan)                             = Language.aktion <^> showText plan
     show    (ABAktionPlanAusführend plan)                   = Language.aktion <^> showText plan
+    show    (ABAktionPlanGesperrt plan pins)                = Language.aktionGesperrt <:> show pins <^> showText plan
     show    (ABAktion anfrageAktion)                        = showText anfrageAktion
     show    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = showText $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
 instance Anfrage AnfrageBefehl where
@@ -152,6 +154,7 @@ instance Anfrage AnfrageBefehl where
     zeigeAnfrage    (ABLaden)                                       = Language.dateiname
     zeigeAnfrage    (ABAktionPlan _plan)                            = Language.aktion
     zeigeAnfrage    (ABAktionPlanAusführend _plan)                  = Language.aktion
+    zeigeAnfrage    (ABAktionPlanGesperrt _plan _pins)              = Language.aktionGesperrt
     zeigeAnfrage    (ABAktion anfrageAktion)                        = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBefehl -> Maybe s
@@ -159,6 +162,7 @@ instance Anfrage AnfrageBefehl where
     zeigeAnfrageOptionen (ABHinzufügen anfrageObjekt)                   = zeigeAnfrageOptionen anfrageObjekt
     zeigeAnfrageOptionen (ABAktionPlan _plan)                           = Just $ toBefehlsString Language.aktionPlan
     zeigeAnfrageOptionen (ABAktionPlanAusführend _plan)                 = Just $ toBefehlsString Language.aktionPlanAusführend
+    zeigeAnfrageOptionen (ABAktionPlanGesperrt _plan _pins)             = Just $ toBefehlsString Language.aktionPlanGesperrt
     zeigeAnfrageOptionen (ABAktion anfrageAktion)                       = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (ABStatusAnfrage anfrageKonstruktor _eitherF)  = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
     zeigeAnfrageOptionen _anfrage                                       = Nothing
@@ -203,6 +207,7 @@ anfrageAktualisieren    (ABSpeichern)                                           
 anfrageAktualisieren    (ABLaden)                                               (EingabeToken {eingabe})        = AEBefehlSofort (BSLaden $ unpack eingabe) []
 anfrageAktualisieren    anfrage@(ABAktionPlan plan@(Plan {plAktionen}))         token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Ausführen, AEBefehl $ Ausführen plan (\i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)) $ pure ())] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
 anfrageAktualisieren    anfrage@(ABAktionPlanAusführend plan)                   token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
+anfrageAktualisieren    anfrage@(ABAktionPlanGesperrt _plan _pins)              token@(EingabeToken {eingabe})  = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
 anfrageAktualisieren    anfrage@(ABAktion anfrageAktion)                        token                           = case anfrageAktionAktualisieren anfrageAktion token of
     (Left (AAUnbekannt anfrage eingabe))                                    -> AEAnfrageBefehl $ ABUnbekannt (ABAktion anfrage) eingabe
     (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> AEStatusAnfrage      objektStatusAnfrage (AEAnfrageBefehl . ABAktion . anfrageKonstruktor) anfrage []

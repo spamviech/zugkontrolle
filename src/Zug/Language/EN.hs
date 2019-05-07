@@ -104,6 +104,9 @@ high = showText HIGH
 -- | LOW
 low :: (Semigroup s, IsString s) => s
 low = showText LOW
+-- | aktion <~> "blocked"
+aktionGesperrt :: (Semigroup s, IsString s) => s
+aktionGesperrt = aktion <~> "blocked"
 
 -- * Typ-Namen / Type names
 -- | Object
