@@ -11,8 +11,6 @@ Description : Dialoge für GTK-UI.
 module Zug.UI.GTK.Dialog () where
 #else
 module Zug.UI.GTK.Dialog (
-                        -- * Dialog auswerten
-                        dialogEval,
                         -- * Knöpfe mit zugehörigem Dialog erstellen
                         buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
 
@@ -714,15 +712,6 @@ data DialogHinzufügen = DialogHinzufügen {
                             indizesZugtyp :: NonEmpty (Int, Zugtyp),
                             comboBoxFließend :: ComboBox,
                             indizesFließend :: NonEmpty (Int, Value)}
-
--- * Dialog-spezifische Funktionen
--- | Dialog anzeigen und auswerten
-dialogEval :: (DialogClass d) => d -> IO ResponseId
-dialogEval dialog = do
-    widgetShow dialog
-    antwort <- dialogRun dialog
-    widgetHide dialog
-    pure antwort
 
 -- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
 dialogGetUpper :: (DialogClass d) => d -> IO Box

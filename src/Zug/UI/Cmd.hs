@@ -106,7 +106,7 @@ ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl
 ausführenBefehlSofort   (BSLaden dateipfad)         = do
     ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad
     pure AnfrageBefehl
-ausführenBefehlSofort   (BSAusführenMöglich plan) = wirdAusgeführt plan >>= pure . \case
+ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >>= pure . \case
         (WirdAusgeführt)    -> ABAktionPlan plan
         (PinsBelegt pins)   -> ABAktionPlanGesperrt plan pins
         (AusführenMöglich)  -> ABAktionPlanAusführend plan
