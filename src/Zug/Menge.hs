@@ -14,12 +14,7 @@ newtype Menge a = Menge [a]
 
 instance (Show a) => Show (Menge a) where
     show :: Menge a -> String
-    show (Menge liste) = map tauscheKlammern $ show liste
-        where
-            tauscheKlammern :: Char -> Char
-            tauscheKlammern '[' = '{'
-            tauscheKlammern ']' = '}'
-            tauscheKlammern c   = c
+    show (Menge liste) = '{' : init (tail (show liste)) ++ "}"
 
 instance Foldable Menge where
     foldMap :: Monoid m => (a -> m) -> Menge a -> m 

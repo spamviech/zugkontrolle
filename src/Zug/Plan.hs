@@ -90,11 +90,12 @@ instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjek
     zugtyp (OStreckenabschnitt st)     = zugtyp st
     zugtyp (OKupplung ku)              = zugtyp ku
 
--- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).
--- Sie können selbst entscheiden, ob sie die mitgegebene Update-Funktion über den Fortschritt informieren, oder nicht.
+-- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
+-- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
+-- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
 -- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der MVar-Liste vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: pl -> (Natural -> IO ()) -> MVar (Menge Ausführend) -> PinMapIO ()
+    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -123,11 +124,12 @@ instance StreckenObjekt Plan where
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: Plan -> (Natural -> IO ()) -> MVar (Menge Ausführend) -> PinMapIO ()
-    ausführenPlan plan@(Plan {plAktionen}) showAktion mvarAusführend mvarPinMap = void $ forkIO $ void $ do
+    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
+    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion mvarAusführend mvarPinMap = void $ forkIO $ void $ do
         modifyMVar_ mvarAusführend $ pure . hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
         showAktion $ fromIntegral $ length plAktionen
+        endAktion
             where
                 ausführenAux :: Natural -> [Aktion] ->IO ()
                 ausführenAux    _i  ([])    = modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)

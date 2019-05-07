@@ -20,6 +20,7 @@ import System.Console.ANSI
 -- Test-Suite
 import Test.Hspec
 -- Abhängigkeiten von anderen Modulen
+import Zug.Menge
 import Zug.Warteschlange
 import Zug.LinkedMVar
 import Zug.UI.Befehl
@@ -34,12 +35,17 @@ import Zug.Klassen
 
 main :: IO ()
 main = hspec $ do
+    mengeTests
     warteschalngeTests
     linkedMVarTests
     parseBefehl
     parseQuery
     parseBefehlSofort
     parseQBefehl
+
+-- Test für Menge
+mengeTests :: Spec
+mengeTests = runIO $ setSGR [SetColor Foreground Dull Red] >> putStrLn "Test suite Menge not yet implemented" >> setSGR [Reset]
 
 -- Tests für Warteschlange
 warteschalngeTests :: Spec

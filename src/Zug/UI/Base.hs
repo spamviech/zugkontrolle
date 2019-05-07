@@ -23,7 +23,7 @@ module Zug.UI.Base (
     getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarAusführend, getMVarPinMap,
     putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarAusführend, putMVarPinMap,
     -- * Hilfsfunktionen
-    übergebeMVarPinMap, liftIOFunction, wirdAusgeführt, AusführenMöglich(..)) where
+    übergebeMVarPinMap, liftIOFunction, ausführenMöglich, AusführenMöglich(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.MVar (MVar, newMVar)
@@ -35,6 +35,7 @@ import Control.Lens (Lens', lens)
 import Data.Foldable (Foldable(..))
 import Data.List (delete, intersect)
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Numeric.Natural (Natural)
@@ -249,16 +250,17 @@ entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstreck
 entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MonadMStatusAllgemein m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 -- * Aktuell ausgeführte Pläne
--- | Überprüfe, ob ein Plan momentan ausgeführt wird.
-wirdAusgeführt :: Plan -> IOStatusAllgemein o AusführenMöglich
-wirdAusgeführt plan = do
+-- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
+ausführenMöglich :: Plan -> IOStatusAllgemein o AusführenMöglich
+ausführenMöglich plan = do
     mvarAusführend <- getMVarAusführend
     ausführend <- liftIO $ readLMVar mvarAusführend
+    let belegtePins = intersect (concat $ pins <$> ausführend) (pins plan)
     pure $ if
         | elem (Ausführend plan) ausführend
             -> WirdAusgeführt
-        | not $ null $ intersect (concat $ pins <$> ausführend) (pins plan)
-            -> PinsBelegt $ undefined
+        | not $ null belegtePins
+            -> PinsBelegt $ NE.fromList belegtePins
         | otherwise
             -> AusführenMöglich
 

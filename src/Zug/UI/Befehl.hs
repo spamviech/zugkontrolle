@@ -33,10 +33,10 @@ import Zug.UI.Base
 
 -- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
 ausführenMVarPlan :: (BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), PlanKlasse (PL o), LikeMVar lmvar)
-            => PL o -> (Natural -> IO ()) -> lmvar (StatusAllgemein o) -> IO ()
-ausführenMVarPlan plan showAction mvarStatus = do
+            => PL o -> (Natural -> IO ()) -> IO () -> lmvar (StatusAllgemein o) -> IO ()
+ausführenMVarPlan plan showAktion endAktion mvarStatus = do
     (mvarAusführend, mvarPinMap) <- auswertenMVarIOStatus getMVars mvarStatus
-    ausführenPlan plan showAction mvarAusführend mvarPinMap
+    ausführenPlan plan showAktion endAktion mvarAusführend mvarPinMap
         where
             getMVars :: IOStatusAllgemein o (MVar (Menge Ausführend), MVar PinMap)
             getMVars = do
@@ -142,10 +142,9 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
-            ausführenBefehlAux  (Ausführen plan showAction endBefehl)                    = do
+            ausführenBefehlAux  (Ausführen plan showAction endAktion)                   = do
                 mvarAusführend <- getMVarAusführend
-                übergebeMVarPinMap $ ausführenPlan plan showAction mvarAusführend
-                liftIO endBefehl
+                übergebeMVarPinMap $ ausführenPlan plan showAction endAktion mvarAusführend
             ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
             ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenAktion aktion
 

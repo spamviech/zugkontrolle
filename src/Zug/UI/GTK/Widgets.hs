@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -16,7 +17,7 @@ module Zug.UI.GTK.Widgets () where
 module Zug.UI.GTK.Widgets (
                         -- * Allgemeine Widget-Funktionen
                         widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
-                        boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault,
+                        boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault, dialogEval,
                         -- *`* Scrollbare Widgets
                         scrolledWidgetNew, scrolledWidgetPackNew, scrolledWidgetAddNew, scrolledWidgedNotebookAppendPageNew,
                         -- ** Knopf erstellen
@@ -100,6 +101,7 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxHinzufügenPlanWegstreckenWeiche :: VBox,
     vBoxHinzufügenPlanWegstreckenKupplung :: VBox,
     progressBarPlan :: ProgressBar,
+    windowMain :: Window,
     mvarPlanObjekt :: MVar (Maybe Objekt)}
 
 -- | Klasse für GUI-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
@@ -128,7 +130,7 @@ traversalHinzufügenWegstrecke f status = Status <$> traverseList f (status ^. b
         traverseList :: (Applicative f, WegstreckenElement s) => (VRCheckButton -> f VRCheckButton) -> [s] -> f [s]
         traverseList f list = traverse . lensWegstrecke %%~ f $ list
 
--- * Hilfsfunktionen um Unter-Widgets zu erstellen
+-- * Hilfsfunktionen
 -- | Widget erstellen und anzeigen
 widgetShowNew :: (WidgetClass w) => IO w -> IO w
 widgetShowNew konstruktor = do
@@ -189,6 +191,14 @@ containerRemoveJust container   (Just w)    = containerRemove container w
 -- | Zeige widget, falls eine Bedingung erfüllt ist
 widgetShowIf :: (WidgetClass w) => Bool -> w -> IO ()
 widgetShowIf visible widget = set widget [widgetVisible := visible]
+
+-- | Dialog anzeigen und auswerten
+dialogEval :: (DialogClass d) => d -> IO ResponseId
+dialogEval dialog = do
+    widgetShow dialog
+    antwort <- dialogRun dialog
+    widgetHide dialog
+    pure antwort
 
 -- ** Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
@@ -711,7 +721,7 @@ instance WegstreckeKlasse WSWidgets where
 
 -- | 'Plan' darstellen
 planPackNew :: (LikeMVar lmvar) => Plan -> lmvar StatusGUI -> DynamischeWidgets -> IO PlanWidget
-planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, progressBarPlan})= do
+planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain})= do
     -- Widget erstellen
     frame <- boxPackWidgetNewDefault vBoxPläne $ frameNew
     vBox <- containerAddWidgetNew frame $ vBoxNew False 0
@@ -722,10 +732,16 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
     functionBox <- boxPackWidgetNewDefault vBox hButtonBoxNew
     buttonAusführen <- boxPackWidgetNewDefault functionBox $ buttonNewWithLabel (Language.ausführen :: Text)
     buttonAbbrechen <- boxPackWidgetNewDefault functionBox $ buttonNewWithLabel (Language.ausführenAbbrechen :: Text)
+    widgetHide buttonAbbrechen
+    dialogGesperrt <- messageDialogNew (Just windowMain) [] MessageError ButtonsOk (Language.aktionGesperrt :: Text)
     on buttonAusführen buttonActivated $ do
-        ausführenMVarBefehl (Ausführen plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) $ widgetShow buttonAusführen >> widgetHide buttonAbbrechen) mvarStatus
-        widgetHide buttonAusführen
-        widgetShow buttonAbbrechen
+        auswertenMVarIOStatus (ausführenMöglich plan) mvarStatus >>= \case
+            (AusführenMöglich)  -> do
+                widgetHide buttonAusführen
+                widgetShow buttonAbbrechen
+                void $ ausführenMVarBefehl (Ausführen plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) $ widgetShow buttonAusführen >> widgetHide buttonAbbrechen) mvarStatus
+            (WirdAusgeführt)    -> error "Ausführen in GTK-UI erneut gestartet."
+            (PinsBelegt _pins)  -> void $ dialogEval dialogGesperrt
     on buttonAbbrechen buttonActivated $ do
         ausführenMVarBefehl (AusführenAbbrechen plan) mvarStatus
         widgetShow buttonAusführen
@@ -756,6 +772,6 @@ instance Aeson.ToJSON PLWidgets where
     toJSON (PLWidgets {pl}) = Aeson.toJSON pl
 
 instance PlanKlasse PLWidgets where
-    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> MVar (Menge Ausführend) -> PinMapIO ()
+    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
     ausführenPlan (PLWidgets {pl}) = ausführenPlan pl
 #endif

@@ -92,3 +92,4 @@
     Das zugehörige Kommandozeilenargument `--fließend` wurde entsprechend entfernt.
 - SEQueue umbenannt in Warteschlange
 - Pläne können jetzt abgebrochen werden
+- Pläne können nur ausgeführt werden, wenn kein Pins bei einem bereits ausgeführtem Plan verwendet wird.
