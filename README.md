@@ -112,8 +112,5 @@ Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\App
 * --pwm=HardwarePWM | SoftwarePWM  
     Gebe an, welche PWM-Funktion bevorzugt verwendet wird (Standard: SoftwarePWM).
     Nachdem nur das Einstellen der hardware-basierten PWM-Funktion Root-Rechte benötigt werden diese bei Verwendung von `--pwm=SoftwarePWM` nicht benötigt.
-* --fließend=LOW | HIGH  
-    Gebe an bei welchen Output der Pins die verwendeten Relais auf fließend stehen.
-    Diese flag hat __keinen__ Einfluss auf die Ausgabe von PWM-Signalen (HIGH wird immer als fließend interpretiert).
 * --sprache=Deutsch | Englisch  
     Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.

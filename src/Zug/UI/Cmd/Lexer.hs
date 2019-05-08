@@ -44,6 +44,7 @@ lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl,
             (kuppeln            , Kuppeln),
             (einstellen         , Einstellen),
             (ausführen          , Ausführen),
+            (ausführenAbbrechen , AusführenAbbrechen),
             (warten             , Warten),
             (plan               , Plan),
             (wegstrecke         , Wegstrecke),
@@ -58,17 +59,19 @@ lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl,
             (links              , Links),
             (rechts             , Rechts),
             (vorwärts           , Vorwärts),
-            (rückwärts          , Rückwärts)]
+            (rückwärts          , Rückwärts),
+            (high               , HIGH),
+            (low                , LOW)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
-data EingabeTokenAllgemein    = Tk            EingabeToken
-                                | TkBeenden
-                                | TkAbbrechen
-                                    deriving (Show)
+data EingabeTokenAllgemein  = Tk            EingabeToken
+                            | TkBeenden
+                            | TkAbbrechen
+                                deriving (Eq, Show)
 
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken = EingabeToken {eingabe::Text, möglichkeiten::[Token], ganzzahl::Maybe Natural}
-                        deriving (Show)
+                        deriving (Eq, Show)
 
 -- | Bekannte Befehle
 data Token  = Beenden
@@ -89,6 +92,7 @@ data Token  = Beenden
             | Kuppeln
             | Einstellen
             | Ausführen
+            | AusführenAbbrechen
             | Warten
             | Plan
             | Wegstrecke
@@ -104,6 +108,8 @@ data Token  = Beenden
             | Rechts
             | Vorwärts
             | Rückwärts
+            | HIGH
+            | LOW
                 deriving (Eq, Show)
 
 -- * Hilfs-Befehle

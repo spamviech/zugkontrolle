@@ -113,6 +113,7 @@ setupGUI = void $ do
         vBoxHinzufügenPlanWegstreckenWeiche,
         vBoxHinzufügenPlanWegstreckenKupplung,
         progressBarPlan,
+        windowMain,
         mvarPlanObjekt}
     -- Knopf-Leiste mit globalen Funktionen
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault False $ hBoxNew False 0

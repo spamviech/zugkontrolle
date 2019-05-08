@@ -20,25 +20,34 @@ module Zug.UI.Befehl (
 -- Bibliotheken
 import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get, put)
-import Control.Concurrent.MVar (takeMVar, putMVar)
+import Control.Concurrent.MVar (MVar, takeMVar, putMVar, modifyMVar_)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
 import Zug.Anbindung
+import Zug.LinkedMVar
+import Zug.Menge
 import Zug.Plan
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base
 
 -- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarPlan :: (PlanKlasse p, BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), LikeMVar lmvar)
-            => p -> (Natural -> IO ()) -> lmvar (StatusAllgemein o) -> IO ()
-ausführenMVarPlan plan showAction mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenPlan plan showAction
+ausführenMVarPlan :: (BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), PlanKlasse (PL o), LikeMVar lmvar)
+            => PL o -> (Natural -> IO ()) -> IO () -> lmvar (StatusAllgemein o) -> IO ()
+ausführenMVarPlan plan showAktion endAktion mvarStatus = do
+    (mvarAusführend, mvarPinMap) <- auswertenMVarIOStatus getMVars mvarStatus
+    ausführenPlan plan showAktion endAktion mvarAusführend mvarPinMap
+        where
+            getMVars :: IOStatusAllgemein o (MVar (Menge Ausführend), MVar PinMap)
+            getMVars = do
+                mvarAusführend <- getMVarAusführend
+                mvarPinMap <- getMVarPinMap
+                pure (mvarAusführend, mvarPinMap)
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarAktion   :: (PlanKlasse p, BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), LikeMVar lmvar)
-                => p -> lmvar (StatusAllgemein o) -> IO ()
-ausführenMVarAktion aktion = ausführenMVarPlan aktion $ const $ pure ()
+ausführenMVarAktion   :: (AktionKlasse a, BahngeschwindigkeitKlasse (BG o), StreckenabschnittKlasse (ST o), WeicheKlasse (WE o), KupplungKlasse (KU o), WegstreckeKlasse (WS o), LikeMVar lmvar)
+                => a -> lmvar (StatusAllgemein o) -> IO ()
+ausführenMVarAktion aktion mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
 ausführenMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, LikeMVar lmvar
@@ -46,8 +55,8 @@ ausführenMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, LikeMVar lmvar
                         , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                         , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                         , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                        , WegstreckeKlasse (WS o), ToJSON (WS o)
-                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                        , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                        , Eq (PL o), ToJSON (PL o))
                     => b o -> lmvar (StatusAllgemein o) -> IO Bool
 ausführenMVarBefehl befehl = auswertenMVarIOStatus $ ausführenBefehl befehl
 
@@ -59,18 +68,19 @@ class BefehlKlasse b where
                         , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                         , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                         , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                        , WegstreckeKlasse (WS o), ToJSON (WS o)
-                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                        , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                        , Eq (PL o), ToJSON (PL o))
                     => b o -> IOStatusAllgemein o Bool
 
 -- | Unterstütze Befehle
-data BefehlAllgemein o  = UI            (UIBefehlAllgemein o)
-                        | Hinzufügen    o
-                        | Entfernen     o
-                        | Speichern     FilePath
-                        | Laden         FilePath                                                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
-                        | Ausführen     (PlanAllgemein (BG o) (ST o) (WE o) (KU o) (WS o))      (Natural -> IO ())
-                        | AktionBefehl  (AktionAllgemein (BG o) (ST o) (WE o) (KU o) (WS o))
+data BefehlAllgemein o  = UI                    (UIBefehlAllgemein o)
+                        | Hinzufügen            o
+                        | Entfernen             o
+                        | Speichern             FilePath
+                        | Laden                 FilePath                (Status -> IO (StatusAllgemein o))  (IOStatusAllgemein o ())
+                        | Ausführen             Plan                    (Natural -> IO ())                  (IO ())
+                        | AusführenAbbrechen    Plan
+                        | AktionBefehl          Aktion
 -- | 'BefehlAllgemein' spezialisiert auf minimal spezialisierte Typen
 type Befehl = BefehlAllgemein Objekt
 
@@ -86,8 +96,8 @@ instance BefehlKlasse UIBefehlAllgemein where
                         , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                         , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                         , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                        , WegstreckeKlasse (WS o), ToJSON (WS o)
-                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                        , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                        , Eq (PL o), ToJSON (PL o))
                     => UIBefehlAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl Beenden     = pure True
     ausführenBefehl Abbrechen   = pure False
@@ -98,8 +108,8 @@ instance BefehlKlasse BefehlAllgemein where
                         , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                         , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                         , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                        , WegstreckeKlasse (WS o), ToJSON (WS o)
-                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                        , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                        , Eq (PL o), ToJSON (PL o))
                     => BefehlAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl (UI Beenden)    = pure True
     ausführenBefehl (UI Abbrechen)  = pure False
@@ -110,8 +120,8 @@ instance BefehlKlasse BefehlAllgemein where
                                     , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                                     , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                                     , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                                    , WegstreckeKlasse (WS o), ToJSON (WS o)
-                                    , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                                    , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                                    , Eq (PL o), ToJSON (PL o))
                                 => BefehlAllgemein o -> IOStatusAllgemein o ()
             ausführenBefehlAux  (UI uiAction)       = error $ "Vergessene UI-Aktion: " ++ show uiAction
             ausführenBefehlAux  (Hinzufügen objekt) = case erhalteObjekt objekt of
@@ -132,8 +142,11 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                 (Nothing)                   -> fehlerbehandlung
                 (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
-            ausführenBefehlAux  (Ausführen plan showAction)                             = übergebeMVarPinMap $ ausführenPlan plan showAction
-            ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenPlan aktion $ \_ -> pure ()
+            ausführenBefehlAux  (Ausführen plan showAction endAktion)                   = do
+                mvarAusführend <- getMVarAusführend
+                übergebeMVarPinMap $ ausführenPlan plan showAction endAktion mvarAusführend
+            ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
+            ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenAktion aktion
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.
 newtype BefehlListeAllgemein o = BefehlListe {getBefehlListe :: [BefehlAllgemein o]}
@@ -146,8 +159,8 @@ instance BefehlKlasse BefehlListeAllgemein where
                         , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                         , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                         , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                        , WegstreckeKlasse (WS o), ToJSON (WS o)
-                        , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                        , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                        , Eq (PL o), ToJSON (PL o))
                     => BefehlListeAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
@@ -156,8 +169,8 @@ instance BefehlKlasse BefehlListeAllgemein where
                                     , StreckenabschnittKlasse (ST o), Eq (ST o), ToJSON (ST o)
                                     , WeicheKlasse (WE o), Eq (WE o), ToJSON (WE o)
                                     , KupplungKlasse (KU o), Eq (KU o), ToJSON (KU o)
-                                    , WegstreckeKlasse (WS o), ToJSON (WS o)
-                                    , Eq (WS o), Eq (PL o), ToJSON (PL o))
+                                    , WegstreckeKlasse (WS o), Eq (WS o), ToJSON (WS o)
+                                    , Eq (PL o), ToJSON (PL o))
                                 => [BefehlAllgemein o] -> IOStatusAllgemein o Bool
             ausführenBefehlAux ([])    = pure False
             ausführenBefehlAux (h:[])  = ausführenBefehl h

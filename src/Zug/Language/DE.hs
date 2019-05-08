@@ -9,6 +9,7 @@ module Zug.Language.DE where
 
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
+import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren
 
@@ -80,6 +81,10 @@ einstellen                      = "Einstellen"
 -- | Execute
 ausführen :: (Semigroup s, IsString s) => s
 ausführen                       = "Ausführen"
+-- | Abort!  
+-- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
+ausführenAbbrechen :: (Semigroup s, IsString s) => s
+ausführenAbbrechen              = "Abbrechen!"
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Warten"
@@ -91,6 +96,18 @@ wartenEinheit                   = "µs"
 -- | Time
 zeit :: (Semigroup s, IsString s) => s
 zeit                            = "Zeit"
+-- | fließend <-> "Value"
+fließendValue :: (Semigroup s, IsString s) => s
+fließendValue = fließend <-> "Value"
+-- | HIGH
+high :: (Semigroup s, IsString s) => s
+high = showText HIGH
+-- | LOW
+low :: (Semigroup s, IsString s) => s
+low = showText LOW
+-- | aktion <~> "blocked"
+aktionGesperrt :: (Semigroup s, IsString s) => s
+aktionGesperrt = aktion <~> "gesperrt"
 
 -- * Typ-Namen / Type names
 -- | Object

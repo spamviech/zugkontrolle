@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fb30c892e9d706df7ec86ac9292f5eb410c8cbe8da9791e6439267ef6ea1e936
+-- hash: 82236f1015a4f8153a2d5b85aa88c868c41b629e2ccbdb1d8ac4b820b7c33c70
 
 name:           Zugkontrolle
-version:        1.0.0.13
+version:        1.0.0.14
 description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 homepage:       https://github.com/spamviech/Zugkontrolle#readme
 bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
@@ -41,9 +41,9 @@ library
       Zug.Language.Operatoren
       Zug.Language.TemplateHaskell
       Zug.LinkedMVar
+      Zug.Menge
       Zug.Options
       Zug.Plan
-      Zug.SEQueue
       Zug.UI
       Zug.UI.Base
       Zug.UI.Befehl
@@ -55,12 +55,13 @@ library
       Zug.UI.GTK.FortfahrenWenn
       Zug.UI.GTK.Widgets
       Zug.UI.Save
+      Zug.Warteschlange
   other-modules:
       Paths_Zugkontrolle
   hs-source-dirs:
       src
   ghc-options: -Wall -Wno-name-shadowing -Wno-unused-do-bind
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.13"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.14"
   build-depends:
       aeson
     , ansi-terminal
@@ -69,6 +70,7 @@ library
     , concurrency
     , containers
     , directory
+    , hspec
     , mtl
     , optparse-applicative
     , regex-tdfa
@@ -92,7 +94,7 @@ executable Zugkontrolle
   hs-source-dirs:
       app
   ghc-options: -Wall -threaded
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.13"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.14"
   build-depends:
       Zugkontrolle
     , aeson
@@ -102,6 +104,7 @@ executable Zugkontrolle
     , concurrency
     , containers
     , directory
+    , hspec
     , mtl
     , optparse-applicative
     , regex-tdfa
@@ -126,7 +129,7 @@ test-suite Zugkontrolle-test
   hs-source-dirs:
       test
   ghc-options: -Wall -threaded
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.13"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.14"
   build-depends:
       Zugkontrolle
     , aeson
@@ -136,6 +139,7 @@ test-suite Zugkontrolle-test
     , concurrency
     , containers
     , directory
+    , hspec
     , mtl
     , optparse-applicative
     , regex-tdfa
