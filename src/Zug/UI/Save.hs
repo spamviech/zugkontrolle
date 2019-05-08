@@ -3,8 +3,6 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -35,7 +33,7 @@ import Zug.Plan
 import Zug.UI.Base
 
 -- | Speichere aktuellen Zustand in Datei
-speichern :: (ToJSON (BG o), ToJSON (ST o), ToJSON (WE o), ToJSON (KU o), ToJSON (WS o), ToJSON (PL o)) => StatusAllgemein o -> FilePath -> IO ()
+speichern :: (ObjektKlasse o, ToJSON o) => StatusAllgemein o -> FilePath -> IO ()
 speichern contents path = ByteString.writeFile path $ encode contents
 
 -- | Lade Datei.
@@ -52,7 +50,7 @@ laden path fromStatus = do
             pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \mvarPinMap -> fromStatus (f mvarTmp mvarPinMap)
         else pure Nothing
 
-newtype AlmostStatus o = AlmostStatus {getStatusFunction :: (MVar (Menge Ausführend) -> MVar PinMap -> StatusAllgemein o)}
+newtype AlmostStatus = AlmostStatus {getStatusFunction :: (MVar (Menge Ausführend) -> MVar PinMap -> Status)}
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
 -- Definition hier und nicht in Language.hs, damit einmal erzeugte json-Dateien auch nach einer Sprachänderung gültig bleiben.
@@ -69,8 +67,26 @@ wegstreckenJS = "Wegstrecken"
 pläneJS :: Text
 pläneJS = "Pläne"
 
-instance (FromJSON (BG o), FromJSON (ST o), FromJSON (WE o), FromJSON (KU o), FromJSON (WS o), FromJSON (PL o)) => FromJSON (AlmostStatus o) where
-    parseJSON :: Value -> Parser (AlmostStatus o)
+instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJSON pl) => FromJSON (ObjektAllgemein bg st we ku ws pl) where
+    parseJSON :: Value -> Parser (ObjektAllgemein bg st we ku ws pl)
+    parseJSON value = OBahngeschwindigkeit <$> parseJSON value
+                    <|> OStreckenabschnitt <$> parseJSON value
+                    <|> OWeiche <$> parseJSON value
+                    <|> OKupplung <$> parseJSON value
+                    <|> OWegstrecke <$> parseJSON value
+                    <|> OPlan <$> parseJSON value
+
+instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => ToJSON (ObjektAllgemein bg st we ku ws pl) where
+    toJSON :: ObjektAllgemein bg st we ku ws pl -> Value
+    toJSON  (OBahngeschwindigkeit bg)   = toJSON bg
+    toJSON  (OStreckenabschnitt st)     = toJSON st
+    toJSON  (OWeiche we)                = toJSON we
+    toJSON  (OKupplung ku)              = toJSON ku
+    toJSON  (OWegstrecke ws)            = toJSON ws
+    toJSON  (OPlan pl)                  = toJSON pl
+
+instance FromJSON AlmostStatus where
+    parseJSON :: Value -> Parser AlmostStatus
     parseJSON   (Object v)  = AlmostStatus
                             <$> (Status
                                 <$> ((v .: bahngeschwindigkeitenJS) <|> pure [])
@@ -81,15 +97,15 @@ instance (FromJSON (BG o), FromJSON (ST o), FromJSON (WE o), FromJSON (KU o), Fr
                                 <*> ((v .: pläneJS)                 <|> pure []))
     parseJSON   _           = mzero
 
-instance (ToJSON (BG o), ToJSON (ST o), ToJSON (WE o), ToJSON (KU o), ToJSON (WS o), ToJSON (PL o)) => ToJSON (StatusAllgemein o) where
+instance (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) where
     toJSON :: StatusAllgemein o -> Value
-    toJSON   status  = object [
-                            bahngeschwindigkeitenJS .= _bahngeschwindigkeiten status,
-                            streckenabschnitteJS    .= _streckenabschnitte status,
-                            weichenJS               .= _weichen status,
-                            kupplungenJS            .= _kupplungen status,
-                            wegstreckenJS           .= _wegstrecken status,
-                            pläneJS                 .= _pläne status]
+    toJSON status = object [
+                    bahngeschwindigkeitenJS .= (ausBG (beispielListe status) <$> (_bahngeschwindigkeiten status)),
+                    streckenabschnitteJS    .= (ausST (beispielListe status) <$> (_streckenabschnitte status)),
+                    weichenJS               .= (ausWE (beispielListe status) <$> (_weichen status)),
+                    kupplungenJS            .= (ausKU (beispielListe status) <$> (_kupplungen status)),
+                    wegstreckenJS           .= (ausWS (beispielListe status) <$> (_wegstrecken status)),
+                    pläneJS                 .= (ausPL (beispielListe status) <$> (_pläne status))]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 geradeJS :: Text

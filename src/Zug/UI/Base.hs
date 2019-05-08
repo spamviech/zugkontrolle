@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiWayIf #-}
 
 {-|
@@ -10,7 +9,7 @@ Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusAllgemein(..), statusLeer, statusLeerNeu,
+    Status, StatusAllgemein(..), statusLeer, statusLeerNeu, beispielListe,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarAusführend, mvarPinMap,
 #endif
@@ -37,12 +36,11 @@ import Data.List (delete, intersect)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Semigroup (Semigroup(..))
-import Data.String (IsString(..))
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (Pin, PinMap, PinMapIO, pinMapEmpty, StreckenObjekt(..))
 import qualified Zug.Language as Language
-import Zug.Language ((<=>), (<\>), showText)
+import Zug.Language ((<=>), (<\>))
 import Zug.LinkedMVar
 import Zug.Menge
 import Zug.Plan
@@ -59,6 +57,10 @@ data StatusAllgemein o = Status {
     _mvarPinMap :: MVar PinMap}
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
+
+-- | Erzeuge eine leere Beispiel-Liste, um Typ-Inferenzen zu ermöglichen.
+beispielListe :: StatusAllgemein o -> [o]
+beispielListe _status = []
 
 #ifdef ZUGKONTROLLEGUI
 -- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusAllgemein wirft dll-Fehler unter Windows)
@@ -89,21 +91,21 @@ mvarPinMap :: Lens' (StatusAllgemein o) (MVar PinMap)
 mvarPinMap              = lens _mvarPinMap              $ \status mv  -> status {_mvarPinMap=mv}
 #endif
 
-instance (Show (BG o), Show (ST o), Show (WE o), Show (KU o), Show (WS o), Show (PL o)) => Show (StatusAllgemein o) where
+instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
     show :: StatusAllgemein o -> String
-    show status = Language.bahngeschwindigkeiten <=> (zeigeUnterliste $ _bahngeschwindigkeiten status)
-                <\> Language.streckenabschnitte <=> (zeigeUnterliste $ _streckenabschnitte status)
-                <\> Language.weichen <=> (zeigeUnterliste $ _weichen status)
-                <\> Language.kupplungen <=> (zeigeUnterliste $ _kupplungen status)
-                <\> Language.wegstrecken <=> (zeigeUnterliste $ _wegstrecken status)
-                <\> Language.pläne <=> (zeigeUnterliste $ _pläne status)
+    show status = Language.bahngeschwindigkeiten <=> (zeigeUnterliste $ ausBG (beispielListe status) <$> _bahngeschwindigkeiten status)
+                <\> Language.streckenabschnitte <=> (zeigeUnterliste $ ausST (beispielListe status) <$> _streckenabschnitte status)
+                <\> Language.weichen <=> (zeigeUnterliste $ ausWE (beispielListe status) <$> _weichen status)
+                <\> Language.kupplungen <=> (zeigeUnterliste $ ausKU (beispielListe status) <$> _kupplungen status)
+                <\> Language.wegstrecken <=> (zeigeUnterliste $ ausWS (beispielListe status) <$> _wegstrecken status)
+                <\> Language.pläne <=> (zeigeUnterliste $ ausPL (beispielListe status) <$> _pläne status)
         where
             -- | Zeige Liste besser Lesbar, als normale Show-Instanz (newlines und Index-Angabe).
-            zeigeUnterliste :: (Show a, Semigroup s, IsString s) => [a] -> s
-            zeigeUnterliste liste = "[" <> (zeigeUnterlisteAux "" 0 liste)
-            zeigeUnterlisteAux :: (Show a, Semigroup s, IsString s) => s -> Natural -> [a] -> s
+            zeigeUnterliste :: (Show a) => [a] -> String
+            zeigeUnterliste liste = '[' : zeigeUnterlisteAux "" 0 liste
+            zeigeUnterlisteAux :: (Show a) => String -> Natural -> [a] -> String
             zeigeUnterlisteAux  acc index   ([])    = acc <> if (index == 0) then "]" else "\n]"
-            zeigeUnterlisteAux  acc index   (h : t)   = zeigeUnterlisteAux (acc <\> "\t" <> (showText index) <> ") " <> (showText h)) (index+1) t
+            zeigeUnterlisteAux  acc index   (h : t) = zeigeUnterlisteAux (acc <\> "\t" <> (show index) <> ") " <> (show h)) (succ index) t
 
 -- | Hebe eine IO-Funktion mit Argument in eine 'MonadIO'-Monade
 liftIOFunction :: (MonadIO m) => (a -> IO b) -> (a -> m b)
