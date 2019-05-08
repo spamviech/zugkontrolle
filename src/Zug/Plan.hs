@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
@@ -10,13 +11,13 @@ Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, we
 -}
 module Zug.Plan (
     -- * Allgemeine Datentypen
-    PlanKlasse(..), Plan, PlanAllgemein(..), Aktion, AktionAllgemein(..), Objekt, ObjektAllgemein(..), ObjektKlasse(..),
+    PlanKlasse(..), Plan(..), AktionKlasse(..), Aktion(..), Objekt, ObjektAllgemein(..), ObjektKlasse(..), Ausführend(..),
     -- * Spezialisierte Aktionen
     AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionKupplung(..), AktionWegstrecke(..)) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO)
-import Control.Monad (void, foldM)
+import Control.Concurrent (forkIO, MVar, modifyMVar_, readMVar)
+import Control.Monad (void, when)
 import Data.Kind
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, unpack)
@@ -26,6 +27,7 @@ import Zug.Klassen
 import Zug.Anbindung
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
+import Zug.Menge
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
@@ -34,7 +36,7 @@ data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
                                         | OBahngeschwindigkeit  bg
                                         | OStreckenabschnitt    st
                                         | OKupplung             ku
-                                            deriving (Show)
+                                            deriving (Eq, Show)
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
@@ -62,10 +64,10 @@ instance ObjektKlasse (ObjektAllgemein bg st we ku ws pl) where
     type KU (ObjektAllgemein bg st we ku ws pl) = ku
     type WS (ObjektAllgemein bg st we ku ws pl) = ws
     type PL (ObjektAllgemein bg st we ku ws pl) = pl
-    erhalteObjekt :: (ObjektAllgemein bg st we ku ws pl) -> (ObjektAllgemein bg st we ku ws pl)
+    erhalteObjekt :: ObjektAllgemein bg st we ku ws pl -> ObjektAllgemein bg st we ku ws pl
     erhalteObjekt = id
 
-instance (StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws, StreckenObjekt pl) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
+instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
     erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
     erhalteName (OPlan pl)                  = erhalteName pl
     erhalteName (OWegstrecke ws)            = erhalteName ws
@@ -88,54 +90,69 @@ instance (StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjek
     zugtyp (OStreckenabschnitt st)     = zugtyp st
     zugtyp (OKupplung ku)              = zugtyp ku
 
--- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).
--- Sie können selbst entscheiden, ob sie die mitgegebene Update-Funktion über den Fortschritt informieren, oder nicht.
-class PlanKlasse a where
-    ausführenPlan :: a -> (Natural -> IO ()) -> PinMapIO ()
+-- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
+-- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
+-- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
+-- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der MVar-Liste vorhanden ist.
+class PlanKlasse pl where
+    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
-data PlanAllgemein bg st we ku ws = Plan {
+data Plan = Plan {
     plName :: Text,
-    plAktionen :: [AktionAllgemein bg st we ku ws]}
+    plAktionen :: [Aktion]}
         deriving (Eq)
 
--- | Spezialisierung eines 'PlanAllgemein' auf minimal benötigte Typen
-type Plan = PlanAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke
+-- | newtype für ausführende Pläne ('Plan')
+newtype Ausführend = Ausführend Plan
+                            deriving (Eq, StreckenObjekt)
 
-instance (Show bg, Show st, Show we, Show ku, Show ws, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => Show (PlanAllgemein bg st we ku ws) where
-    show :: PlanAllgemein bg st we ku ws -> String
-    show    (Plan {plName, plAktionen}) = Language.plan
+instance Show Plan where
+    show :: Plan -> String
+    show (Plan {plName, plAktionen})    = Language.plan
                                         <:> Language.name <=> unpack plName
                                         <^> Language.aktionen <=> show plAktionen
 
-instance (Show bg, Show st, Show we, Show ku, Show ws, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => StreckenObjekt (PlanAllgemein bg st we ku ws) where
-    pins :: PlanAllgemein bg st we ku ws -> [Pin]
-    pins    (Plan {plAktionen}) = foldMap pins plAktionen
-    zugtyp :: PlanAllgemein bg st we ku ws -> Zugtyp
-    zugtyp  (Plan {plAktionen}) = findeZugtyp plAktionen
-    erhalteName :: PlanAllgemein bg st we ku ws -> Text
-    erhalteName (Plan {plName})     = plName
+instance StreckenObjekt Plan where
+    pins :: Plan -> [Pin]
+    pins (Plan {plAktionen}) = foldMap pins plAktionen
+    zugtyp :: Plan -> Zugtyp
+    zugtyp (Plan {plAktionen}) = findeZugtyp plAktionen
+    erhalteName :: Plan -> Text
+    erhalteName (Plan {plName}) = plName
 
-instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => PlanKlasse (PlanAllgemein bg st we ku ws) where
-    ausführenPlan :: PlanAllgemein bg st we ku ws -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Plan {plAktionen})   showAktion    mvarPinMap  = void $ forkIO $ void $ foldM (\i aktion -> showAktion i >> ausführenPlan aktion showAktion mvarPinMap >> pure (succ i)) 0 plAktionen >> showAktion (fromIntegral $ length plAktionen)
+instance PlanKlasse Plan where
+    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
+    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion mvarAusführend mvarPinMap = void $ forkIO $ void $ do
+        modifyMVar_ mvarAusführend $ pure . hinzufügen (Ausführend plan)
+        ausführenAux 0 plAktionen
+        showAktion $ fromIntegral $ length plAktionen
+        endAktion
+            where
+                ausführenAux :: Natural -> [Aktion] ->IO ()
+                ausführenAux    _i  ([])    = modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
+                ausführenAux    i   (h:t)   = do
+                    ausführend <- readMVar mvarAusführend
+                    when (elem (Ausführend plan) ausführend) $ showAktion i >> ausführenAktion h mvarPinMap >> ausführenAux (succ i) t
+
+-- | Mitglieder dieser Klasse sind ausführbar.
+class AktionKlasse a where
+    ausführenAktion :: a -> PinMapIO ()
 
 -- | Eine Aktion eines 'StreckenObjekt's oder eine Wartezeit.
 -- Die Update-Funktion wird nicht aufgerufen.
-data AktionAllgemein bg st we ku ws = Warten                Natural
-                                    | AWegstrecke           (AktionWegstrecke ws)
-                                    | AWeiche               (AktionWeiche we)
-                                    | ABahngeschwindigkeit  (AktionBahngeschwindigkeit bg)
-                                    | AStreckenabschnitt    (AktionStreckenabschnitt st)
-                                    | AKupplung             (AktionKupplung ku)
-                                        deriving (Eq)
--- | Spezialisierung einer 'AktionAllgemein' auf minimal benötigte Typen
-type Aktion = AktionAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke
+data Aktion = Warten                Natural
+            | AWegstrecke           (AktionWegstrecke Wegstrecke)
+            | AWeiche               (AktionWeiche Weiche)
+            | ABahngeschwindigkeit  (AktionBahngeschwindigkeit Bahngeschwindigkeit)
+            | AStreckenabschnitt    (AktionStreckenabschnitt Streckenabschnitt)
+            | AKupplung             (AktionKupplung Kupplung)
+                deriving (Eq)
 
-instance (Show bg, Show st, Show we, Show ku, Show ws, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => Show (AktionAllgemein bg st we ku ws) where
-    show :: AktionAllgemein bg st we ku ws -> String
+instance Show Aktion where
+    show :: Aktion -> String
     show    (Warten time)               = Language.warten <:> show time <> Language.wartenEinheit
     show    (AWegstrecke a)             = Language.wegstrecke <~> show a
     show    (AWeiche a)                 = Language.weiche <~> show a
@@ -143,32 +160,32 @@ instance (Show bg, Show st, Show we, Show ku, Show ws, StreckenObjekt bg, Streck
     show    (AStreckenabschnitt a)      = Language.streckenabschnitt <~> show a
     show    (AKupplung a)               = Language.kupplung <~> show a
 
-instance (Show bg, Show st, Show we, Show ku, Show ws, BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => StreckenObjekt (AktionAllgemein bg st we ku ws) where
-    pins :: AktionAllgemein bg st we ku ws -> [Pin]
+instance StreckenObjekt Aktion where
+    pins :: Aktion -> [Pin]
     pins    (Warten _time)              = []
     pins    (AWegstrecke w)             = pins w
     pins    (AWeiche w)                 = pins w
     pins    (ABahngeschwindigkeit b)    = pins b
     pins    (AStreckenabschnitt s)      = pins s
     pins    (AKupplung k)               = pins k
-    zugtyp :: AktionAllgemein bg st we ku ws -> Zugtyp
+    zugtyp :: Aktion -> Zugtyp
     zugtyp  (Warten _time)              = Undefiniert
     zugtyp  (AWegstrecke w)             = zugtyp w
     zugtyp  (AWeiche w)                 = zugtyp w
     zugtyp  (ABahngeschwindigkeit b)    = zugtyp b
     zugtyp  (AStreckenabschnitt s)      = zugtyp s
     zugtyp  (AKupplung k)               = zugtyp k
-    erhalteName :: AktionAllgemein bg st we ku ws -> Text
+    erhalteName :: Aktion -> Text
     erhalteName = showText
 
-instance (BahngeschwindigkeitKlasse bg, StreckenabschnittKlasse st, WeicheKlasse we, KupplungKlasse ku, WegstreckeKlasse ws) => PlanKlasse (AktionAllgemein bg st we ku ws) where
-    ausführenPlan :: AktionAllgemein bg st we ku ws -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Warten time)                   _showAktion   = const $ warteµs time
-    ausführenPlan (AWegstrecke aktion)            showAktion    = ausführenPlan aktion showAktion
-    ausführenPlan (AWeiche aktion)                showAktion    = ausführenPlan aktion showAktion
-    ausführenPlan (ABahngeschwindigkeit aktion)   showAktion    = ausführenPlan aktion showAktion
-    ausführenPlan (AStreckenabschnitt aktion)     showAktion    = ausführenPlan aktion showAktion
-    ausführenPlan (AKupplung aktion)              showAktion    = ausführenPlan aktion showAktion
+instance AktionKlasse Aktion where
+    ausführenAktion :: Aktion -> PinMapIO ()
+    ausführenAktion (Warten time)                   = const $ warteµs time
+    ausführenAktion (AWegstrecke aktion)            = ausführenAktion aktion
+    ausführenAktion (AWeiche aktion)                = ausführenAktion aktion
+    ausführenAktion (ABahngeschwindigkeit aktion)   = ausführenAktion aktion
+    ausführenAktion (AStreckenabschnitt aktion)     = ausführenAktion aktion
+    ausführenAktion (AKupplung aktion)              = ausführenAktion aktion
 
 -- | Bekannte Aktionen einer Wegstrecke
 data AktionWegstrecke w = Einstellen w
@@ -198,12 +215,12 @@ instance (WegstreckeKlasse w, Show w) => StreckenObjekt (AktionWegstrecke w) whe
     erhalteName :: AktionWegstrecke w -> Text
     erhalteName = showText
 
-instance (WegstreckeKlasse w) => PlanKlasse (AktionWegstrecke w) where
-    ausführenPlan :: AktionWegstrecke w -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Einstellen w)                  _showAktion   = einstellen w
-    ausführenPlan (AWSBahngeschwindigkeit aktion) showAktion    = ausführenPlan aktion showAktion
-    ausführenPlan (AWSStreckenabschnitt aktion)   showAktion    = ausführenPlan aktion showAktion
-    ausführenPlan (AWSKupplung aktion)            showAktion    = ausführenPlan aktion showAktion
+instance (WegstreckeKlasse w) => AktionKlasse (AktionWegstrecke w) where
+    ausführenAktion :: AktionWegstrecke w -> PinMapIO ()
+    ausführenAktion (Einstellen w)                  = einstellen w
+    ausführenAktion (AWSBahngeschwindigkeit aktion) = ausführenAktion aktion
+    ausführenAktion (AWSStreckenabschnitt aktion)   = ausführenAktion aktion
+    ausführenAktion (AWSKupplung aktion)            = ausführenAktion aktion
 
 -- | Bekannte Aktionen einer Weiche
 data AktionWeiche w = Stellen w Richtung
@@ -211,19 +228,19 @@ data AktionWeiche w = Stellen w Richtung
 
 instance (StreckenObjekt w)  => Show (AktionWeiche w) where
     show :: AktionWeiche w -> String
-    show    (Stellen w richtung)    = unpack $ erhalteName w <°> Language.stellen <=> showText richtung
+    show (Stellen w richtung) = unpack $ erhalteName w <°> Language.stellen <=> showText richtung
 
 instance (WeicheKlasse w, Show w) => StreckenObjekt (AktionWeiche w) where
     pins :: AktionWeiche w -> [Pin]
-    pins    (Stellen w _richtung)   = pins w
+    pins (Stellen w _richtung) = pins w
     zugtyp :: AktionWeiche w -> Zugtyp
-    zugtyp  (Stellen w _richtung)   = zugtyp w
+    zugtyp (Stellen w _richtung) = zugtyp w
     erhalteName :: AktionWeiche w -> Text
     erhalteName = showText
 
-instance (WeicheKlasse w) => PlanKlasse (AktionWeiche w) where
-    ausführenPlan :: AktionWeiche w -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Stellen w richtung)    _showAktion   = stellen w richtung
+instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
+    ausführenAktion :: AktionWeiche w -> PinMapIO ()
+    ausführenAktion (Stellen w richtung) = stellen w richtung
 
 -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit b    = Geschwindigkeit b Natural
@@ -246,13 +263,13 @@ instance (BahngeschwindigkeitKlasse b, Show b) => StreckenObjekt (AktionBahngesc
     erhalteName :: AktionBahngeschwindigkeit b -> Text
     erhalteName = showText
 
-instance (BahngeschwindigkeitKlasse b) => PlanKlasse (AktionBahngeschwindigkeit b) where
-    ausführenPlan :: AktionBahngeschwindigkeit b -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Geschwindigkeit b wert)        _showAktion   = geschwindigkeit b wert
-    ausführenPlan (Umdrehen b maybeFahrtrichtung) _showAktion   = umdrehen b maybeFahrtrichtung
+instance (BahngeschwindigkeitKlasse b) => AktionKlasse (AktionBahngeschwindigkeit b) where
+    ausführenAktion :: AktionBahngeschwindigkeit b -> PinMapIO ()
+    ausführenAktion (Geschwindigkeit b wert)          = geschwindigkeit b wert
+    ausführenAktion (Umdrehen b maybeFahrtrichtung)   = umdrehen b maybeFahrtrichtung
 
 -- | Aktionen eines Streckenabschnitts
-data AktionStreckenabschnitt s   = Strom s Strom
+data AktionStreckenabschnitt s = Strom s Strom
                                     deriving (Eq)
 
 instance (StreckenObjekt s) => Show (AktionStreckenabschnitt s) where
@@ -262,35 +279,35 @@ instance (StreckenObjekt s) => Show (AktionStreckenabschnitt s) where
 
 instance (StreckenabschnittKlasse s, Show s) => StreckenObjekt (AktionStreckenabschnitt s) where
     pins :: AktionStreckenabschnitt s -> [Pin]
-    pins    (Strom s _an)   = pins s
+    pins (Strom s _an) = pins s
     zugtyp :: AktionStreckenabschnitt s -> Zugtyp
-    zugtyp  (Strom s _an)   = zugtyp s
+    zugtyp (Strom s _an) = zugtyp s
     erhalteName :: AktionStreckenabschnitt s -> Text
     erhalteName = showText
 
-instance (StreckenabschnittKlasse s) => PlanKlasse (AktionStreckenabschnitt s) where
-    ausführenPlan :: AktionStreckenabschnitt s -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Strom s an)    _showAktion   = strom s an
+instance (StreckenabschnittKlasse s) => AktionKlasse (AktionStreckenabschnitt s) where
+    ausführenAktion :: AktionStreckenabschnitt s -> PinMapIO ()
+    ausführenAktion (Strom s an) = strom s an
 
 -- | Aktionen einer Kupplung
-data AktionKupplung k   = Kuppeln k
+data AktionKupplung k = Kuppeln k
                             deriving (Eq)
 
 instance (StreckenObjekt k) => Show (AktionKupplung k) where
     show :: AktionKupplung k -> String
-    show    (Kuppeln k) = unpack $ erhalteName k <°> Language.kuppeln
+    show (Kuppeln k) = unpack $ erhalteName k <°> Language.kuppeln
 
 instance (KupplungKlasse k, Show k) => StreckenObjekt (AktionKupplung k) where
     pins :: AktionKupplung k -> [Pin]
-    pins    (Kuppeln k) = pins k
+    pins (Kuppeln k) = pins k
     zugtyp :: AktionKupplung k -> Zugtyp
-    zugtyp  (Kuppeln k) = zugtyp k
+    zugtyp (Kuppeln k) = zugtyp k
     erhalteName :: AktionKupplung k -> Text
     erhalteName = showText
 
-instance (KupplungKlasse k) => PlanKlasse (AktionKupplung k) where
-    ausführenPlan :: AktionKupplung k -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan (Kuppeln k) _showAktion   = kuppeln k
+instance (KupplungKlasse k) => AktionKlasse (AktionKupplung k) where
+    ausführenAktion :: AktionKupplung k -> PinMapIO ()
+    ausführenAktion (Kuppeln k) = kuppeln k
 
 -- | Hilfsfunktion um den ersten nicht-'Undefiniert'en 'Zugtyp' zu erhalten
 findeZugtyp :: (StreckenObjekt s) => [s] -> Zugtyp

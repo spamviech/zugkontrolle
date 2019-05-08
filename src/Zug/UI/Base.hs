@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiWayIf #-}
 
 {-|
 Description : Grundlegende UI-Funktionen.
@@ -11,7 +12,7 @@ module Zug.UI.Base (
     -- * Zustands-Typ
     Status, StatusAllgemein(..), statusLeer, statusLeerNeu,
 #ifdef ZUGKONTROLLEGUI
-    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarPinMap,
+    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarAusführend, mvarPinMap,
 #endif
     -- * Zustands-Monade
     IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, auswertenLeererIOStatus, auswertenMVarIOStatus, auswertenMVarMStatus,
@@ -19,10 +20,10 @@ module Zug.UI.Base (
     hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung, hinzufügenWegstrecke, hinzufügenPlan,
     entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan,
     -- ** Spezialisierte Funktionen der Zustands-Monade
-    getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarPinMap,
-    putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarPinMap,
+    getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarAusführend, getMVarPinMap,
+    putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarAusführend, putMVarPinMap,
     -- * Hilfsfunktionen
-    übergebeMVarPinMap, liftIOFunction) where
+    übergebeMVarPinMap, liftIOFunction, ausführenMöglich, AusführenMöglich(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.MVar (MVar, newMVar)
@@ -31,15 +32,19 @@ import Control.Monad.State (StateT, State, evalStateT, runStateT, runState, gets
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens', lens)
 #endif
-import Data.List (delete)
+import Data.Foldable (Foldable(..))
+import Data.List (delete, intersect)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
+import Zug.Anbindung (Pin, PinMap, PinMapIO, pinMapEmpty, StreckenObjekt(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>), showText)
-import Zug.Anbindung (PinMap, PinMapIO, pinMapEmpty)
+import Zug.LinkedMVar
+import Zug.Menge
 import Zug.Plan
 
 -- | Aktueller Status
@@ -50,6 +55,7 @@ data StatusAllgemein o = Status {
     _kupplungen :: [KU o],
     _wegstrecken :: [WS o],
     _pläne :: [PL o],
+    _mvarAusführend :: MVar (Menge Ausführend),
     _mvarPinMap :: MVar PinMap}
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
@@ -63,18 +69,21 @@ bahngeschwindigkeiten   = lens _bahngeschwindigkeiten   $ \status bgs -> status 
 -- | 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
 streckenabschnitte :: Lens' (StatusAllgemein o) [ST o]
 streckenabschnitte      = lens _streckenabschnitte      $ \status sts -> status {_streckenabschnitte=sts}
--- | 'Weiche'en im aktuellen 'StatusAllgemein'
+-- | 'Weiche'n im aktuellen 'StatusAllgemein'
 weichen :: Lens' (StatusAllgemein o) [WE o]
 weichen                 = lens _weichen                 $ \status wes -> status {_weichen=wes}
 -- | 'Kupplung'en im aktuellen 'StatusAllgemein'
 kupplungen :: Lens' (StatusAllgemein o) [KU o]
 kupplungen              = lens _kupplungen              $ \status kus -> status {_kupplungen=kus}
--- | 'Wegstrecke'en im aktuellen 'StatusAllgemein'
+-- | 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 wegstrecken :: Lens' (StatusAllgemein o) [WS o]
 wegstrecken             = lens _wegstrecken             $ \status wss -> status {_wegstrecken=wss}
--- | 'Plän'e im aktuellen 'StatusAllgemein'
+-- | Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 pläne :: Lens' (StatusAllgemein o) [PL o]
 pläne                   = lens _pläne                   $ \status pls -> status {_pläne=pls}
+-- | Aktuell ausführende Pläne ('PlanAllgemein')
+mvarAusführend :: Lens' (StatusAllgemein o) (MVar (Menge Ausführend))
+mvarAusführend              = lens _mvarAusführend          $ \status mv -> status {_mvarAusführend=mv}
 -- | Aktuell aktive PWM-Funktionen
 mvarPinMap :: Lens' (StatusAllgemein o) (MVar PinMap)
 mvarPinMap              = lens _mvarPinMap              $ \status mv  -> status {_mvarPinMap=mv}
@@ -94,7 +103,7 @@ instance (Show (BG o), Show (ST o), Show (WE o), Show (KU o), Show (WS o), Show 
             zeigeUnterliste liste = "[" <> (zeigeUnterlisteAux "" 0 liste)
             zeigeUnterlisteAux :: (Show a, Semigroup s, IsString s) => s -> Natural -> [a] -> s
             zeigeUnterlisteAux  acc index   ([])    = acc <> if (index == 0) then "]" else "\n]"
-            zeigeUnterlisteAux  acc index   (h:t)   = zeigeUnterlisteAux (acc <\> "\t" <> (showText index) <> ") " <> (showText h)) (index+1) t
+            zeigeUnterlisteAux  acc index   (h : t)   = zeigeUnterlisteAux (acc <\> "\t" <> (showText index) <> ") " <> (showText h)) (index+1) t
 
 -- | Hebe eine IO-Funktion mit Argument in eine 'MonadIO'-Monade
 liftIOFunction :: (MonadIO m) => (a -> IO b) -> (a -> m b)
@@ -102,15 +111,15 @@ liftIOFunction f = \a -> liftIO $ f a
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' (inklusive MVar)
 statusLeerNeu :: IO (StatusAllgemein o)
-statusLeerNeu = newMVar pinMapEmpty >>= pure . statusLeer
+statusLeerNeu = statusLeer <$> newMVar leer <*> newMVar pinMapEmpty
 
--- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung einer existieren 'MVar'
-statusLeer :: MVar PinMap -> (StatusAllgemein o)
-statusLeer mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarPinMap=mvarPinMap}
+-- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'MVar's.
+statusLeer :: MVar (Menge Ausführend) -> MVar PinMap -> (StatusAllgemein o)
+statusLeer mvarAusführend mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarAusführend=mvarAusführend, _mvarPinMap=mvarPinMap}
 
 -- | Übergebe mvarPinMap aus dem Status an eine 'PinMapIO'-Funktion
 übergebeMVarPinMap :: PinMapIO a -> IOStatusAllgemein o a
-übergebeMVarPinMap  f   = getMVarPinMap >>= liftIOFunction f
+übergebeMVarPinMap f = getMVarPinMap >>= liftIOFunction f
 
 -- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus
 auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO a
@@ -162,9 +171,12 @@ getKupplungen = gets _kupplungen
 -- | Erhalte 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 getWegstrecken :: (Monad m) => MonadMStatusAllgemein m o [WS o]
 getWegstrecken = gets _wegstrecken
--- | Erhalte Pläne ('Plan') im aktuellen 'StatusAllgemein'
+-- | Erhalte Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 getPläne :: (Monad m) => MonadMStatusAllgemein m o [PL o]
 getPläne = gets _pläne
+-- | Erhalte 'MVar' mit Liste der aktuell ausführenden Pläne ('PlanAllgmein')
+getMVarAusführend :: (Monad m) => MonadMStatusAllgemein m o (MVar (Menge Ausführend))
+getMVarAusführend = gets _mvarAusführend
 -- | Erhalte 'MVar' zur SoftwarePWM-Steuerung
 getMVarPinMap :: (Monad m) => MonadMStatusAllgemein m o (MVar PinMap)
 getMVarPinMap = gets _mvarPinMap
@@ -185,34 +197,39 @@ putKupplungen kus = modify $ \status -> status{_kupplungen=kus}
 -- | Setze 'Kupplung'en im akutellen 'StatusAllgemein'
 putWegstrecken :: (Monad m) => [WS o] -> MonadMStatusAllgemein m o ()
 putWegstrecken wss = modify $ \status -> status{_wegstrecken=wss}
--- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'
+-- | Setze Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 putPläne :: (Monad m) => [PL o] -> MonadMStatusAllgemein m o ()
-putPläne pls = modify $ \status -> status{_pläne=pls}
+putPläne pls = modify $ \status -> status {_pläne=pls}
+-- | Setzte 'MVar' mit Liste der aktuell ausgeführten Pläne ('PlanAllgemein').
+-- 
+-- __Achtung__: Die aktuelle Ausführung wird dadurch nicht beeinflusst!
+putMVarAusführend :: (Monad m) => MVar (Menge Ausführend) -> MonadMStatusAllgemein m o ()
+putMVarAusführend mv = modify $ \status -> status {_mvarAusführend=mv}
 -- | Setzte 'MVar' zur SoftwarePWM-Kontrolle.
 -- 
--- __Achtung__: Aktuell laufende SoftwarePWM wird dadurch nicht beeinflusst.
+-- __Achtung__ : Aktuell laufende SoftwarePWM wird dadurch nicht beeinflusst.
 putMVarPinMap :: (Monad m) => MVar PinMap -> MonadMStatusAllgemein m o ()
 putMVarPinMap mv = modify $ \status -> status{_mvarPinMap=mv}
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
 hinzufügenBahngeschwindigkeit :: (Monad m) => BG o -> MonadMStatusAllgemein m o ()
-hinzufügenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten -> putBahngeschwindigkeiten $ bahngeschwindigkeit:bahngeschwindigkeiten
+hinzufügenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten -> putBahngeschwindigkeiten $ bahngeschwindigkeit : bahngeschwindigkeiten
 -- | Füge einen 'Streckenabschnitt' zum aktuellen 'StatusAllgemein' hinzu
 hinzufügenStreckenabschnitt :: (Monad m) => ST o -> MonadMStatusAllgemein m o ()
-hinzufügenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte -> putStreckenabschnitte $ streckenabschnitt:streckenabschnitte
+hinzufügenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte -> putStreckenabschnitte $ streckenabschnitt : streckenabschnitte
 -- | Füge eine 'Weiche' zum aktuellen 'StatusAllgemein' hinzu
 hinzufügenWeiche :: (Monad m) => WE o -> MonadMStatusAllgemein m o ()
-hinzufügenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ weiche:weichen
+hinzufügenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ weiche : weichen
 -- | Füge eine 'Kupplung' zum aktuellen 'StatusAllgemein' hinzu
 hinzufügenKupplung :: (Monad m) => KU o -> MonadMStatusAllgemein m o ()
-hinzufügenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ kupplung:kupplungen
+hinzufügenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ kupplung : kupplungen
 -- | Füge eine 'Wegstrecke' zum aktuellen 'StatusAllgemein' hinzu
 hinzufügenWegstrecke :: (Monad m) => WS o -> MonadMStatusAllgemein m o ()
-hinzufügenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ wegstrecke:wegstrecken
+hinzufügenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ wegstrecke : wegstrecken
 -- | Füge einen 'Plan' zum aktuellen 'StatusAllgemein' hinzu
 hinzufügenPlan :: (Monad m) => PL o -> MonadMStatusAllgemein m o ()
-hinzufügenPlan plan = getPläne >>= \pläne -> putPläne $ plan:pläne
+hinzufügenPlan plan = getPläne >>= \pläne -> putPläne $ plan : pläne
 -- * Elemente entfernen
 -- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'
 entfernenBahngeschwindigkeit :: (Monad m, Eq (BG o)) => BG o -> MonadMStatusAllgemein m o ()
@@ -232,3 +249,22 @@ entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstreck
 -- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
 entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MonadMStatusAllgemein m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
+-- * Aktuell ausgeführte Pläne
+-- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
+ausführenMöglich :: Plan -> IOStatusAllgemein o AusführenMöglich
+ausführenMöglich plan = do
+    mvarAusführend <- getMVarAusführend
+    ausführend <- liftIO $ readLMVar mvarAusführend
+    let belegtePins = intersect (concat $ pins <$> ausführend) (pins plan)
+    pure $ if
+        | elem (Ausführend plan) ausführend
+            -> WirdAusgeführt
+        | not $ null belegtePins
+            -> PinsBelegt $ NE.fromList belegtePins
+        | otherwise
+            -> AusführenMöglich
+
+-- | Ist ein Ausführen eines Plans möglich?
+data AusführenMöglich   = AusführenMöglich
+                        | WirdAusgeführt
+                        | PinsBelegt (NonEmpty Pin)

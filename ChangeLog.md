@@ -87,4 +87,10 @@
 - Englische Sprache hinzugefügt. Sie kann über die Kommandozeilen-Option `--sprache=Englisch` ausgewählt werden.
 - Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
 - SoftwarePWM-Frequenz auf 500Hz erhöht.
+1.0.0.14:
+- Fließend-Value (HIGH/LOW) ist jetzt eine Eigenschaft jedes Objekts.  
+    Das zugehörige Kommandozeilenargument `--fließend` wurde entsprechend entfernt.
+- SEQueue umbenannt in Warteschlange
+- Pläne können jetzt abgebrochen werden
+- Pläne können nur ausgeführt werden, wenn kein Pins bei einem bereits ausgeführtem Plan verwendet wird.
 ## Unreleased changes

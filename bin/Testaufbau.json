@@ -2,28 +2,33 @@
     "Streckenabschnitte": [
         {
             "Name": "Sarasani",
-            "StromPin": 16
+            "StromPin": 16,
+            "Fließend": "LOW"
         },
         {
             "Name": "S-Bahn",
-            "StromPin": 13
+            "StromPin": 13,
+            "Fließend": "LOW"
         },
         {
             "Name": "Hauptkreis",
-            "StromPin": 26
+            "StromPin": 26,
+            "Fließend": "LOW"
         }
     ],
     "Bahngeschwindigkeiten": [
         {
             "GeschwindigkeitsPin": 14,
             "Name": "Geschwindigkeit",
-            "Zugtyp": "Märklin"
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
         }
     ],
     "Kupplungen": [
         {
             "Name": "Sarasani",
-            "KupplungsPin": 12
+            "KupplungsPin": 12,
+            "Fließend": "LOW"
         }
     ],
     "Weichen": [
@@ -39,7 +44,8 @@
                 ]
             ],
             "Name": "S-Bahn",
-            "Zugtyp": "Märklin"
+            "Zugtyp": "Märklin",
+            "Fließend": "LOW"
         },
         {
             "RichtungsPins": [
@@ -53,7 +59,8 @@
                 ]
             ],
             "Name": "Sarasani",
-            "Zugtyp": "Märklin"
+            "Zugtyp": "Märklin",
+            "Fließend": "LOW"
         }
     ],
     "Pläne": [
@@ -65,18 +72,21 @@
                         "Streckenabschnitte": [
                             {
                                 "Name": "S-Bahn",
-                                "StromPin": 13
+                                "StromPin": 13,
+                                "Fließend": "LOW"
                             },
                             {
                                 "Name": "Hauptkreis",
-                                "StromPin": 26
+                                "StromPin": 26,
+                                "Fließend": "LOW"
                             }
                         ],
                         "Bahngeschwindigkeiten": [
                             {
                                 "GeschwindigkeitsPin": 14,
                                 "Name": "Geschwindigkeit",
-                                "Zugtyp": "Märklin"
+                                "Zugtyp": "Märklin",
+                                "Fließend": "HIGH"
                             }
                         ],
                         "Name": "Abstellgleis S-Bahn",
@@ -94,7 +104,8 @@
                                         ]
                                     ],
                                     "Name": "S-Bahn",
-                                    "Zugtyp": "Märklin"
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "LOW"
                                 },
                                 "Rechts"
                             ],
@@ -111,7 +122,8 @@
                                         ]
                                     ],
                                     "Name": "Sarasani",
-                                    "Zugtyp": "Märklin"
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "LOW"
                                 },
                                 "Links"
                             ]
@@ -125,18 +137,21 @@
                         "Streckenabschnitte": [
                             {
                                 "Name": "S-Bahn",
-                                "StromPin": 13
+                                "StromPin": 13,
+                                "Fließend": "LOW"
                             },
                             {
                                 "Name": "Hauptkreis",
-                                "StromPin": 26
+                                "StromPin": 26,
+                                "Fließend": "LOW"
                             }
                         ],
                         "Bahngeschwindigkeiten": [
                             {
                                 "GeschwindigkeitsPin": 14,
                                 "Name": "Geschwindigkeit",
-                                "Zugtyp": "Märklin"
+                                "Zugtyp": "Märklin",
+                                "Fließend": "HIGH"
                             }
                         ],
                         "Name": "Abstellgleis S-Bahn",
@@ -154,7 +169,8 @@
                                         ]
                                     ],
                                     "Name": "S-Bahn",
-                                    "Zugtyp": "Märklin"
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "LOW"
                                 },
                                 "Rechts"
                             ],
@@ -171,7 +187,8 @@
                                         ]
                                     ],
                                     "Name": "Sarasani",
-                                    "Zugtyp": "Märklin"
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "LOW"
                                 },
                                 "Links"
                             ]
@@ -184,7 +201,8 @@
                 {
                     "Streckenabschnitt": {
                         "Name": "Sarasani",
-                        "StromPin": 16
+                        "StromPin": 16,
+                        "Fließend": "LOW"
                     },
                     "Aktion": "Strom",
                     "Fließend": "Gesperrt"
@@ -194,7 +212,8 @@
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
                         "Name": "Geschwindigkeit",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
                     },
                     "Aktion": "Geschwindigkeit"
                 },
@@ -216,14 +235,16 @@
                             ]
                         ],
                         "Name": "S-Bahn",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Aktion": "Stellen"
                 },
                 {
                     "Streckenabschnitt": {
                         "Name": "S-Bahn",
-                        "StromPin": 13
+                        "StromPin": 13,
+                        "Fließend": "LOW"
                     },
                     "Aktion": "Strom",
                     "Fließend": "Gesperrt"
@@ -236,7 +257,8 @@
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
                         "Name": "Geschwindigkeit",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
                     },
                     "Fahrtrichtung": null,
                     "Aktion": "Umdrehen"
@@ -246,7 +268,8 @@
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
                         "Name": "Geschwindigkeit",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
                     },
                     "Aktion": "Geschwindigkeit"
                 },
@@ -268,14 +291,16 @@
                             ]
                         ],
                         "Name": "S-Bahn",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Aktion": "Stellen"
                 },
                 {
                     "Streckenabschnitt": {
                         "Name": "S-Bahn",
-                        "StromPin": 13
+                        "StromPin": 13,
+                        "Fließend": "LOW"
                     },
                     "Aktion": "Strom",
                     "Fließend": "Fließend"
@@ -289,7 +314,8 @@
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
                         "Name": "Geschwindigkeit",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
                     },
                     "Aktion": "Geschwindigkeit"
                 },
@@ -297,7 +323,8 @@
                     "Bahngeschwindigkeit": {
                         "GeschwindigkeitsPin": 14,
                         "Name": "Geschwindigkeit",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
                     },
                     "Fahrtrichtung": null,
                     "Aktion": "Umdrehen"
@@ -307,18 +334,21 @@
                         "Streckenabschnitte": [
                             {
                                 "Name": "S-Bahn",
-                                "StromPin": 13
+                                "StromPin": 13,
+                                "Fließend": "LOW"
                             },
                             {
                                 "Name": "Hauptkreis",
-                                "StromPin": 26
+                                "StromPin": 26,
+                                "Fließend": "LOW"
                             }
                         ],
                         "Bahngeschwindigkeiten": [
                             {
                                 "GeschwindigkeitsPin": 14,
                                 "Name": "Geschwindigkeit",
-                                "Zugtyp": "Märklin"
+                                "Zugtyp": "Märklin",
+                                "Fließend": "HIGH"
                             }
                         ],
                         "Name": "Abstellgleis S-Bahn",
@@ -336,7 +366,8 @@
                                         ]
                                     ],
                                     "Name": "S-Bahn",
-                                    "Zugtyp": "Märklin"
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "LOW"
                                 },
                                 "Rechts"
                             ],
@@ -353,7 +384,8 @@
                                         ]
                                     ],
                                     "Name": "Sarasani",
-                                    "Zugtyp": "Märklin"
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "LOW"
                                 },
                                 "Links"
                             ]
@@ -371,14 +403,16 @@
             "Streckenabschnitte": [
                 {
                     "Name": "Hauptkreis",
-                    "StromPin": 26
+                    "StromPin": 26,
+                    "Fließend": "LOW"
                 }
             ],
             "Bahngeschwindigkeiten": [
                 {
                     "GeschwindigkeitsPin": 14,
                     "Name": "Geschwindigkeit",
-                    "Zugtyp": "Märklin"
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
                 }
             ],
             "Name": "Hauptkreis",
@@ -396,7 +430,8 @@
                             ]
                         ],
                         "Name": "Sarasani",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Links"
                 ],
@@ -413,7 +448,8 @@
                             ]
                         ],
                         "Name": "S-Bahn",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Links"
                 ]
@@ -424,18 +460,21 @@
             "Streckenabschnitte": [
                 {
                     "Name": "Sarasani",
-                    "StromPin": 16
+                    "StromPin": 16,
+                    "Fließend": "LOW"
                 },
                 {
                     "Name": "Hauptkreis",
-                    "StromPin": 26
+                    "StromPin": 26,
+                    "Fließend": "LOW"
                 }
             ],
             "Bahngeschwindigkeiten": [
                 {
                     "GeschwindigkeitsPin": 14,
                     "Name": "Geschwindigkeit",
-                    "Zugtyp": "Märklin"
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
                 }
             ],
             "Name": "Abstellgleis Sarasani",
@@ -453,7 +492,8 @@
                             ]
                         ],
                         "Name": "S-Bahn",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Links"
                 ],
@@ -470,7 +510,8 @@
                             ]
                         ],
                         "Name": "Sarasani",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Rechts"
                 ]
@@ -478,7 +519,8 @@
             "Kupplungen": [
                 {
                     "Name": "Sarasani",
-                    "KupplungsPin": 12
+                    "KupplungsPin": 12,
+                    "Fließend": "LOW"
                 }
             ]
         },
@@ -486,18 +528,21 @@
             "Streckenabschnitte": [
                 {
                     "Name": "S-Bahn",
-                    "StromPin": 13
+                    "StromPin": 13,
+                    "Fließend": "LOW"
                 },
                 {
                     "Name": "Hauptkreis",
-                    "StromPin": 26
+                    "StromPin": 26,
+                    "Fließend": "LOW"
                 }
             ],
             "Bahngeschwindigkeiten": [
                 {
                     "GeschwindigkeitsPin": 14,
                     "Name": "Geschwindigkeit",
-                    "Zugtyp": "Märklin"
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
                 }
             ],
             "Name": "Abstellgleis S-Bahn",
@@ -515,7 +560,8 @@
                             ]
                         ],
                         "Name": "S-Bahn",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Rechts"
                 ],
@@ -532,7 +578,8 @@
                             ]
                         ],
                         "Name": "Sarasani",
-                        "Zugtyp": "Märklin"
+                        "Zugtyp": "Märklin",
+                        "Fließend": "LOW"
                     },
                     "Links"
                 ]

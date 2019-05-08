@@ -3,6 +3,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -16,7 +17,7 @@ module Zug.UI.GTK.Widgets () where
 module Zug.UI.GTK.Widgets (
                         -- * Allgemeine Widget-Funktionen
                         widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
-                        boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault,
+                        boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault, dialogEval,
                         -- *`* Scrollbare Widgets
                         scrolledWidgetNew, scrolledWidgetPackNew, scrolledWidgetAddNew, scrolledWidgedNotebookAppendPageNew,
                         -- ** Knopf erstellen
@@ -40,18 +41,19 @@ import qualified Control.Lens as Lens
 import Control.Monad (void, unless)
 import Control.Monad.State (State, StateT)
 import Control.Monad.Trans (liftIO)
-import Data.Aeson (ToJSON(..), Value)
+import qualified Data.Aeson as Aeson
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
+import Zug.Anbindung
+import Zug.Klassen
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<->), (<:>), (<°>), addMnemonic, showText)
-import Zug.Klassen
-import Zug.Anbindung
+import Zug.LinkedMVar
+import Zug.Menge
 import Zug.Plan
 import Zug.UI.Base
 import Zug.UI.Befehl
@@ -99,6 +101,7 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxHinzufügenPlanWegstreckenWeiche :: VBox,
     vBoxHinzufügenPlanWegstreckenKupplung :: VBox,
     progressBarPlan :: ProgressBar,
+    windowMain :: Window,
     mvarPlanObjekt :: MVar (Maybe Objekt)}
 
 -- | Klasse für GUI-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
@@ -122,12 +125,12 @@ entferneHinzufügenPlanWidgets p dynamischeWidgets = sequence_ $ containerRemove
 -- type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
 -- | Traversal über alle (evtl. unregistrierten) CheckButtons zum Hinzufügen einer Wegstrecke
 traversalHinzufügenWegstrecke :: Traversal' StatusGUI VRCheckButton
-traversalHinzufügenWegstrecke f status = Status <$> traverseList f (status ^. bahngeschwindigkeiten) <*> traverseList f (status ^. streckenabschnitte) <*> traverseList f (status ^. weichen) <*> traverseList f (status ^. kupplungen) <*> pure (status ^. wegstrecken) <*> pure (status ^. pläne) <*> pure (status ^. mvarPinMap)
+traversalHinzufügenWegstrecke f status = Status <$> traverseList f (status ^. bahngeschwindigkeiten) <*> traverseList f (status ^. streckenabschnitte) <*> traverseList f (status ^. weichen) <*> traverseList f (status ^. kupplungen) <*> pure (status ^. wegstrecken) <*> pure (status ^. pläne) <*> pure (status ^. mvarAusführend) <*> pure (status ^. mvarPinMap)
     where
         traverseList :: (Applicative f, WegstreckenElement s) => (VRCheckButton -> f VRCheckButton) -> [s] -> f [s]
         traverseList f list = traverse . lensWegstrecke %%~ f $ list
 
--- * Hilfsfunktionen um Unter-Widgets zu erstellen
+-- * Hilfsfunktionen
 -- | Widget erstellen und anzeigen
 widgetShowNew :: (WidgetClass w) => IO w -> IO w
 widgetShowNew konstruktor = do
@@ -188,6 +191,14 @@ containerRemoveJust container   (Just w)    = containerRemove container w
 -- | Zeige widget, falls eine Bedingung erfüllt ist
 widgetShowIf :: (WidgetClass w) => Bool -> w -> IO ()
 widgetShowIf visible widget = set widget [widgetVisible := visible]
+
+-- | Dialog anzeigen und auswerten
+dialogEval :: (DialogClass d) => d -> IO ResponseId
+dialogEval dialog = do
+    widgetShow dialog
+    antwort <- dialogRun dialog
+    widgetHide dialog
+    pure antwort
 
 -- ** Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
@@ -289,6 +300,10 @@ hinzufügenWidgetWegstreckeNew objekt box = do
 hinzufügenWidgetPlanNew :: (BoxClass b, LikeMVar lmvar) => b -> Objekt -> lmvar (Maybe Objekt) -> IO Button
 hinzufügenWidgetPlanNew box objekt lmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $ putLMVar lmvar $ Just objekt
 
+-- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
+labelFließendValuePackNew :: (StreckenAtom s, BoxClass b) => b -> s -> IO Label
+labelFließendValuePackNew box s = boxPackWidgetNew box packingDefault 3 positionDefault $ labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
+
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
 bahngeschwindigkeitPackNew :: (LikeMVar lmvar) => Bahngeschwindigkeit -> lmvar StatusGUI -> DynamischeWidgets -> IO BahngeschwindigkeitWidget
@@ -307,6 +322,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit mvarStatus dynamischeWidgets@(Dyn
     hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bahngeschwindigkeit mvarStatus
     fahrtrichtungsPinLabelPackNew hBox bahngeschwindigkeit
     buttonUmdrehenPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit mvarStatus
+    labelFließendValuePackNew hBox bahngeschwindigkeit
     let bgWidgets = BGWidgets {bg=bahngeschwindigkeit, bgWidget=hBox, bgHinzPL=(hinzufügenPlanWidget, hinzufügenPlanWidgetZT), bgHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten (entfernenBahngeschwindigkeit bgWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -353,21 +369,21 @@ instance PlanElement BGWidgets where
 
 instance StreckenObjekt BGWidgets where
     zugtyp :: BGWidgets -> Zugtyp
-    zugtyp  (BGWidgets {bg})    = zugtyp bg
+    zugtyp (BGWidgets {bg}) = zugtyp bg
     pins :: BGWidgets -> [Pin]
-    pins    (BGWidgets {bg})    = pins bg
+    pins (BGWidgets {bg}) = pins bg
     erhalteName :: BGWidgets -> Text
-    erhalteName (BGWidgets {bg})    = erhalteName bg
+    erhalteName (BGWidgets {bg}) = erhalteName bg
 
-instance ToJSON BGWidgets where
-    toJSON :: BGWidgets -> Value
-    toJSON  (BGWidgets {bg})    = toJSON bg
+instance Aeson.ToJSON BGWidgets where
+    toJSON :: BGWidgets -> Aeson.Value
+    toJSON (BGWidgets {bg}) = Aeson.toJSON bg
 
 instance BahngeschwindigkeitKlasse BGWidgets where
     geschwindigkeit :: BGWidgets -> Natural -> PinMapIO ()
-    geschwindigkeit (BGWidgets {bg})    = geschwindigkeit bg
+    geschwindigkeit (BGWidgets {bg}) = geschwindigkeit bg
     umdrehen :: BGWidgets -> Maybe Fahrtrichtung -> PinMapIO ()
-    umdrehen    (BGWidgets {bg})    = umdrehen bg
+    umdrehen (BGWidgets {bg}) = umdrehen bg
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, LikeMVar lmvar) => b -> bg -> lmvar StatusGUI -> IO HScale
@@ -398,6 +414,7 @@ streckenabschnittPackNew streckenabschnitt@(Streckenabschnitt {stromPin}) mvarSt
     nameLabelPackNew hBox streckenabschnitt
     boxPackWidgetNewDefault hBox $ pinLabelNew Language.strom stromPin
     toggleButtonStromPackNew hBox streckenabschnitt mvarStatus
+    labelFließendValuePackNew hBox streckenabschnitt
     let stWidgets = STWidgets {st=streckenabschnitt, stWidget=hBox, stHinzPL=hinzufügenPlanWidget, stHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxStreckenabschnitte (entfernenStreckenabschnitt stWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -433,19 +450,19 @@ instance PlanElement STWidgets where
 
 instance StreckenObjekt STWidgets where
     zugtyp :: STWidgets -> Zugtyp
-    zugtyp  (STWidgets {st})    = zugtyp st
+    zugtyp (STWidgets {st}) = zugtyp st
     pins :: STWidgets -> [Pin]
-    pins    (STWidgets {st})    = pins st
+    pins (STWidgets {st}) = pins st
     erhalteName :: STWidgets -> Text
-    erhalteName (STWidgets {st})    = erhalteName st
+    erhalteName (STWidgets {st}) = erhalteName st
 
-instance ToJSON STWidgets where
-    toJSON :: STWidgets -> Value
-    toJSON  (STWidgets {st})    = toJSON st
+instance Aeson.ToJSON STWidgets where
+    toJSON :: STWidgets -> Aeson.Value
+    toJSON (STWidgets {st}) = Aeson.toJSON st
 
 instance StreckenabschnittKlasse STWidgets where
     strom :: STWidgets -> Strom -> MVar PinMap -> IO ()
-    strom   (STWidgets {st})    = strom st
+    strom (STWidgets {st}) = strom st
 
 -- | Füge 'ToggleButton' zum einstellen des Stroms zur Box hinzu
 toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s, LikeMVar lmvar) => b -> s -> lmvar StatusGUI -> IO ToggleButton
@@ -477,6 +494,7 @@ weichePackNew weiche mvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxWeiche
     hBox <- boxPackWidgetNewDefault vBoxWeichen $ hBoxNew False 0
     nameLabelPackNew hBox weiche
     richtungsButtonsPackNew weiche hBox
+    labelFließendValuePackNew hBox weiche
     let weWidgets = WEWidgets {we=weiche, weWidget=hBox, weHinzPL=hinzufügenPlanWidget, weHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxWeichen (entfernenWeiche weWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets weWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -529,15 +547,15 @@ instance StreckenObjekt WEWidgets where
     erhalteName :: WEWidgets -> Text
     erhalteName (WEWidgets {we})    = erhalteName we
 
-instance ToJSON WEWidgets where
-    toJSON :: WEWidgets -> Value
-    toJSON  (WEWidgets {we})    = toJSON we
+instance Aeson.ToJSON WEWidgets where
+    toJSON :: WEWidgets -> Aeson.Value
+    toJSON (WEWidgets {we}) = Aeson.toJSON we
 
 instance WeicheKlasse WEWidgets where
     stellen :: WEWidgets -> Richtung -> PinMapIO ()
-    stellen (WEWidgets {we})    = stellen we
+    stellen (WEWidgets {we}) = stellen we
     erhalteRichtungen :: WEWidgets -> NonEmpty Richtung
-    erhalteRichtungen   (WEWidgets {we})    = erhalteRichtungen we
+    erhalteRichtungen (WEWidgets {we}) = erhalteRichtungen we
 
 -- | 'Kupplung' darstellen
 kupplungPackNew :: (LikeMVar lmvar) => Kupplung -> lmvar StatusGUI -> DynamischeWidgets -> IO KupplungWidget
@@ -550,6 +568,7 @@ kupplungPackNew kupplung@(Kupplung {kupplungsPin}) mvarStatus dynamischeWidgets@
     nameLabelPackNew hBox kupplung
     boxPackWidgetNewDefault hBox $ pinLabelNew Language.kupplung kupplungsPin
     buttonKuppelnPackNew hBox kupplung mvarStatus
+    labelFließendValuePackNew hBox kupplung
     let kuWidgets = KUWidgets {ku=kupplung, kuWidget=hBox, kuHinzPL=hinzufügenPlanWidget, kuHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxKupplungen (entfernenKupplung kuWidgets >> liftIO (entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets)) mvarStatus
     -- Widgets merken
@@ -585,19 +604,19 @@ instance PlanElement KUWidgets where
 
 instance StreckenObjekt KUWidgets where
     zugtyp :: KUWidgets -> Zugtyp
-    zugtyp  (KUWidgets {ku})    = zugtyp ku
+    zugtyp (KUWidgets {ku}) = zugtyp ku
     pins :: KUWidgets -> [Pin]
-    pins    (KUWidgets {ku})    = pins ku
+    pins (KUWidgets {ku}) = pins ku
     erhalteName :: KUWidgets -> Text
-    erhalteName (KUWidgets {ku})    = erhalteName ku
+    erhalteName (KUWidgets {ku}) = erhalteName ku
 
-instance ToJSON KUWidgets where
-    toJSON :: KUWidgets -> Value
-    toJSON  (KUWidgets {ku})    = toJSON ku
+instance Aeson.ToJSON KUWidgets where
+    toJSON :: KUWidgets -> Aeson.Value
+    toJSON (KUWidgets {ku}) = Aeson.toJSON ku
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: KUWidgets -> PinMapIO ()
-    kuppeln (KUWidgets {ku})    = kuppeln ku
+    kuppeln (KUWidgets {ku}) = kuppeln ku
 
 -- | Füge 'Button' zum kuppeln zur Box hinzu
 buttonKuppelnPackNew :: (BoxClass b, KupplungKlasse k, LikeMVar lmvar) => b -> k -> lmvar StatusGUI -> IO Button
@@ -672,37 +691,37 @@ instance PlanElement WSWidgets where
 
 instance StreckenObjekt WSWidgets where
     zugtyp :: WSWidgets -> Zugtyp
-    zugtyp  (WSWidgets {ws})    = zugtyp ws
+    zugtyp (WSWidgets {ws}) = zugtyp ws
     pins :: WSWidgets -> [Pin]
-    pins    (WSWidgets {ws})    = pins ws
+    pins (WSWidgets {ws}) = pins ws
     erhalteName :: WSWidgets -> Text
-    erhalteName (WSWidgets {ws})    = erhalteName ws
+    erhalteName (WSWidgets {ws}) = erhalteName ws
 
-instance ToJSON WSWidgets where
-    toJSON :: WSWidgets -> Value
-    toJSON  (WSWidgets {ws})    = toJSON ws
+instance Aeson.ToJSON WSWidgets where
+    toJSON :: WSWidgets -> Aeson.Value
+    toJSON (WSWidgets {ws}) = Aeson.toJSON ws
 
 instance BahngeschwindigkeitKlasse WSWidgets where
     geschwindigkeit :: WSWidgets -> Natural -> PinMapIO ()
-    geschwindigkeit (WSWidgets {ws})    = geschwindigkeit ws
+    geschwindigkeit (WSWidgets {ws}) = geschwindigkeit ws
     umdrehen :: WSWidgets -> Maybe Fahrtrichtung -> PinMapIO ()
-    umdrehen    (WSWidgets {ws})    = umdrehen ws
+    umdrehen (WSWidgets {ws}) = umdrehen ws
 
 instance StreckenabschnittKlasse WSWidgets where
     strom :: WSWidgets -> Strom -> MVar PinMap -> IO ()
-    strom   (WSWidgets {ws})    = strom ws
+    strom (WSWidgets {ws}) = strom ws
 
 instance KupplungKlasse WSWidgets where
     kuppeln :: WSWidgets -> PinMapIO ()
-    kuppeln (WSWidgets {ws})    = kuppeln ws
+    kuppeln (WSWidgets {ws}) = kuppeln ws
 
 instance WegstreckeKlasse WSWidgets where
     einstellen :: WSWidgets -> PinMapIO ()
-    einstellen  (WSWidgets {ws})    = einstellen ws
+    einstellen (WSWidgets {ws}) = einstellen ws
 
 -- | 'Plan' darstellen
 planPackNew :: (LikeMVar lmvar) => Plan -> lmvar StatusGUI -> DynamischeWidgets -> IO PlanWidget
-planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, progressBarPlan})= do
+planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain})= do
     -- Widget erstellen
     frame <- boxPackWidgetNewDefault vBoxPläne $ frameNew
     vBox <- containerAddWidgetNew frame $ vBoxNew False 0
@@ -711,11 +730,26 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
     vBoxExpander <- containerAddWidgetNew expander $ vBoxNew False 0
     mapM_ ((boxPackWidgetNewDefault vBoxExpander) . labelNew . Just . show) plAktionen
     functionBox <- boxPackWidgetNewDefault vBox hButtonBoxNew
-    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.ausführen $ ausführenMVarPlan plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) mvarStatus
-    let alleWidgets = PLWidgets {pl=plan, plWidget=frame}
-    buttonEntfernenPack functionBox (containerRemove vBoxPläne frame) (entfernenPlan alleWidgets) mvarStatus
+    buttonAusführen <- boxPackWidgetNewDefault functionBox $ buttonNewWithLabel (Language.ausführen :: Text)
+    buttonAbbrechen <- boxPackWidgetNewDefault functionBox $ buttonNewWithLabel (Language.ausführenAbbrechen :: Text)
+    widgetHide buttonAbbrechen
+    dialogGesperrt <- messageDialogNew (Just windowMain) [] MessageError ButtonsOk (Language.aktionGesperrt :: Text)
+    on buttonAusführen buttonActivated $ do
+        auswertenMVarIOStatus (ausführenMöglich plan) mvarStatus >>= \case
+            (AusführenMöglich)  -> do
+                widgetHide buttonAusführen
+                widgetShow buttonAbbrechen
+                void $ ausführenMVarBefehl (Ausführen plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) $ widgetShow buttonAusführen >> widgetHide buttonAbbrechen) mvarStatus
+            (WirdAusgeführt)    -> error "Ausführen in GTK-UI erneut gestartet."
+            (PinsBelegt _pins)  -> void $ dialogEval dialogGesperrt
+    on buttonAbbrechen buttonActivated $ do
+        ausführenMVarBefehl (AusführenAbbrechen plan) mvarStatus
+        widgetShow buttonAusführen
+        widgetHide buttonAbbrechen
+    let plWidgets = PLWidgets {pl=plan, plWidget=frame}
+    buttonEntfernenPack functionBox (containerRemove vBoxPläne frame) (entfernenPlan plWidgets) mvarStatus
     -- Widgets merken
-    ausführenMVarBefehl (Hinzufügen $ OPlan alleWidgets) mvarStatus
+    ausführenMVarBefehl (Hinzufügen $ OPlan plWidgets) mvarStatus
     pure frame
 -- | Äußerstes Widget zur Darstellung eines 'Plan's
 type PlanWidget = Frame
@@ -727,17 +761,17 @@ data PLWidgets = PLWidgets {
 
 instance StreckenObjekt PLWidgets where
     zugtyp :: PLWidgets -> Zugtyp
-    zugtyp  (PLWidgets {pl})    = zugtyp pl
+    zugtyp (PLWidgets {pl}) = zugtyp pl
     pins :: PLWidgets -> [Pin]
-    pins    (PLWidgets {pl})    = pins pl
+    pins (PLWidgets {pl}) = pins pl
     erhalteName :: PLWidgets -> Text
-    erhalteName (PLWidgets {pl})    = erhalteName pl
+    erhalteName (PLWidgets {pl}) = erhalteName pl
 
-instance ToJSON PLWidgets where
-    toJSON :: PLWidgets -> Value
-    toJSON  (PLWidgets {pl})    = toJSON pl
+instance Aeson.ToJSON PLWidgets where
+    toJSON :: PLWidgets -> Aeson.Value
+    toJSON (PLWidgets {pl}) = Aeson.toJSON pl
 
 instance PlanKlasse PLWidgets where
-    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> PinMapIO ()
-    ausführenPlan   (PLWidgets {pl})    = ausführenPlan pl
+    ausführenPlan :: PLWidgets -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
+    ausführenPlan (PLWidgets {pl}) = ausführenPlan pl
 #endif
