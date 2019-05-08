@@ -12,6 +12,7 @@ Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, we
 module Zug.Plan (
     -- * Allgemeine Datentypen
     PlanKlasse(..), Plan(..), AktionKlasse(..), Aktion(..), Objekt, ObjektAllgemein(..), ObjektKlasse(..), Ausführend(..),
+    ausBG, ausST, ausWE, ausKU, ausWS, ausPL,
     -- * Spezialisierte Aktionen
     AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionKupplung(..), AktionWegstrecke(..)) where
 
@@ -56,6 +57,21 @@ class ObjektKlasse o where
     type PL o :: Type
     -- | Mapping auf 'ObjektAllgemein'. Notwendig für Pattern-Matching.
     erhalteObjekt :: o -> ObjektAllgemein (BG o) (ST o) (WE o) (KU o) (WS o) (PL o)
+    -- | Inverses Mapping auf 'ObjektAllgemein'. Ermöglicht Instanz-Nutzung von o.
+    ausObjekt :: ObjektAllgemein (BG o) (ST o) (WE o) (KU o) (WS o) (PL o) -> o
+
+ausBG :: (ObjektKlasse o) => [o] -> BG o -> o
+ausBG _ = ausObjekt . OBahngeschwindigkeit
+ausST :: (ObjektKlasse o) => [o] -> ST o -> o
+ausST _ = ausObjekt . OStreckenabschnitt
+ausWE :: (ObjektKlasse o) => [o] -> WE o -> o
+ausWE _ = ausObjekt . OWeiche
+ausKU :: (ObjektKlasse o) => [o] -> KU o -> o
+ausKU _ = ausObjekt . OKupplung
+ausWS :: (ObjektKlasse o) => [o] -> WS o -> o
+ausWS _ = ausObjekt . OWegstrecke
+ausPL :: (ObjektKlasse o) => [o] -> PL o -> o
+ausPL _ = ausObjekt . OPlan
 
 instance ObjektKlasse (ObjektAllgemein bg st we ku ws pl) where
     type BG (ObjektAllgemein bg st we ku ws pl) = bg
@@ -66,6 +82,8 @@ instance ObjektKlasse (ObjektAllgemein bg st we ku ws pl) where
     type PL (ObjektAllgemein bg st we ku ws pl) = pl
     erhalteObjekt :: ObjektAllgemein bg st we ku ws pl -> ObjektAllgemein bg st we ku ws pl
     erhalteObjekt = id
+    ausObjekt :: ObjektAllgemein bg st we ku ws pl -> ObjektAllgemein bg st we ku ws pl
+    ausObjekt = id
 
 instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
     erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
