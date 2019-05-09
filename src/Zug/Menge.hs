@@ -5,9 +5,10 @@ Description : Ungeordnete Mengen.
 
 Mengen enthalten jedes Element höchstens einmal. Die Implementierung ist nicht effizient, dafür werden keine weiteren Anforderungen an die Elemente gestellt.
 -}
-module Zug.Menge (Menge(), leer, hinzufügen, entfernen, mitglied, vereinigung, schnittmenge) where
+module Zug.Menge (Menge(), leer, ausFoldable, hinzufügen, entfernen, mitglied, vereinigung, schnittmenge) where
 
-import Data.List (delete, union, intersect)
+import Data.Foldable (Foldable(..))
+import Data.List (delete, union, intersect, nub)
 
 -- | Eine 'Menge' ist eine Sammlung an Elementen, bei denen jedes Element höchstens einmal vorkommt.
 newtype Menge a = Menge [a]
@@ -27,6 +28,10 @@ instance Functor Menge where
 -- | Die leere Menge.
 leer :: Menge a
 leer = Menge []
+
+-- | Erstelle eine 'Menge' aus einem 'Foldable'
+ausFoldable :: (Eq a, Foldable f) => f a -> Menge a
+ausFoldable foldable = Menge $ nub $ toList foldable
 
 -- | Füge ein Element zu einer 'Menge' hinzu.
 hinzufügen :: (Eq a) => a -> Menge a -> Menge a

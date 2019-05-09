@@ -74,8 +74,14 @@ erzeugeDeklaration "kuppeln"
 erzeugeDeklaration "einstellen"
 -- | Execute / Ausführen
 erzeugeDeklaration "ausführen"
+-- | /s/ <~> "in execution" / "wird ausgeführt"
+erzeugeFunktionDeklaration "wirdAusgeführt"
 -- | Abort! / Abbrechen!
 erzeugeDeklaration "ausführenAbbrechen"
+-- | aktion <~> "blocked" / "gesperrt"
+erzeugeDeklaration "aktionGesperrt"
+-- | ausführen <~> "blocked" / "gesperrt" <!> "Pins" / "Die Pins" <~> /s/ <~> "are already in use." / "werden bereits verwendet."
+erzeugeFunktionDeklaration "ausführenGesperrt"
 -- | Wait / Warten
 erzeugeDeklaration "warten"
 -- | µs
@@ -90,8 +96,6 @@ erzeugeDeklaration "fließendValue"
 erzeugeDeklaration "high"
 -- | LOW
 erzeugeDeklaration "low"
--- | aktion <~> "blocked" / "gesperrt"
-erzeugeDeklaration "aktionGesperrt"
 
 -- * Typ-Namen / Type names
 -- | Object / Objekt
@@ -198,7 +202,7 @@ aktionKupplung = [kuppeln]
 
 -- | Concatenate a list of strings to an eye-pleasing format
 toBefehlsString :: (Semigroup s, IsString s) => [s] -> s
-toBefehlsString ([])    = ""
+toBefehlsString ([])    = "[]"
 toBefehlsString ([s])   = s
 toBefehlsString (h:t)   = h <^> toBefehlsString t
 
@@ -224,13 +228,13 @@ erzeugeDeklaration "richtungZuWenig"
 -- | mindestens $ "one" / "ein" <~> wegstreckenElement
 erzeugeDeklaration "wegstreckeLeer"
 
--- | s <~> "not recognized" / "nicht erkannt"
+-- | /s/ <~> "not recognized" / "nicht erkannt"
 erzeugeFunktionDeklaration "unbekannt"
 
--- | s <~> "expected" / "erwartet"
+-- | /s/ <~> "expected" / "erwartet"
 erzeugeFunktionDeklaration "erwartet"
 
--- | "At least" / "Mindestens" <~> s <~> "required" / "benötigt"
+-- | "At least" / "Mindestens" <~> /s/ <~> "required" / "benötigt"
 erzeugeFunktionDeklaration "mindestens"
 
 -- * Typ-namen / Type names

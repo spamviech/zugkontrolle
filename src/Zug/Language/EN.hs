@@ -85,6 +85,15 @@ ausführen                       = "Execute"
 -- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
 ausführenAbbrechen :: (Semigroup s, IsString s) => s
 ausführenAbbrechen              = "Abort!"
+-- | /s/ <~> "in execution"
+wirdAusgeführt :: (Semigroup s, IsString s) => s -> s
+wirdAusgeführt s = s <~> "in execution"
+-- | aktion <~> "blocked"
+aktionGesperrt :: (Semigroup s, IsString s) => s
+aktionGesperrt = aktion <~> "blocked"
+-- | ausführen <~> "blocked" <!> "Pins" <~> /s/ <~> "are already in use."
+ausführenGesperrt :: (Semigroup s, IsString s) => s -> s
+ausführenGesperrt s = ausführen <~> "blocked" <!> "Pins" <~> s <~> "are already in use."
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Wait"
@@ -104,9 +113,6 @@ high = showText HIGH
 -- | LOW
 low :: (Semigroup s, IsString s) => s
 low = showText LOW
--- | aktion <~> "blocked"
-aktionGesperrt :: (Semigroup s, IsString s) => s
-aktionGesperrt = aktion <~> "blocked"
 
 -- * Typ-Namen / Type names
 -- | Object
@@ -229,17 +235,17 @@ richtungZuWenig                 = mindestens $ "one" <~> richtung
 wegstreckeLeer :: (Semigroup s, IsString s) => s
 wegstreckeLeer                  = mindestens $ "one" <~> wegstreckenElement
 
--- | s <~> "not recognized"
+-- | /s/ <~> "not recognized"
 unbekannt :: (Semigroup s, IsString s) => s -> s
-unbekannt   s   = s <~> "not recognized"
+unbekannt s = s <~> "not recognized"
 
--- | s <~> "expected"
+-- | /s/ <~> "expected"
 erwartet :: (Semigroup s, IsString s) => s -> s
-erwartet    s   = s <~> "expected"
+erwartet s = s <~> "expected"
 
--- | "At least" <~> s <~> "required"
+-- | "At least" <~> /s/ <~> "required"
 mindestens :: (Semigroup s, IsString s) => s -> s
-mindestens  s   = "At least" <~> s <~> "required"
+mindestens s = "At least" <~> s <~> "required"
 
 -- * Typ-namen / Type names
 -- | Undefined

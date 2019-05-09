@@ -81,10 +81,19 @@ einstellen                      = "Einstellen"
 -- | Execute
 ausführen :: (Semigroup s, IsString s) => s
 ausführen                       = "Ausführen"
+-- | /s/ <~> "in execution"
+wirdAusgeführt :: (Semigroup s, IsString s) => s -> s
+wirdAusgeführt s = s <~> "wird ausgeführt"
 -- | Abort!  
 -- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
 ausführenAbbrechen :: (Semigroup s, IsString s) => s
 ausführenAbbrechen              = "Abbrechen!"
+-- | aktion <~> "blocked"
+aktionGesperrt :: (Semigroup s, IsString s) => s
+aktionGesperrt = aktion <~> "gesperrt"
+-- | ausführen <~> "blocked" <!> "Pins" <~> /s/ <~> "are already in use."
+ausführenGesperrt :: (Semigroup s, IsString s) => s -> s
+ausführenGesperrt s = ausführen <~> "gesperrt" <!> "Die Pins" <~> s <~> "werden bereits verwendet."
 -- | Wait
 warten :: (Semigroup s, IsString s) => s
 warten                          = "Warten"
@@ -105,9 +114,6 @@ high = showText HIGH
 -- | LOW
 low :: (Semigroup s, IsString s) => s
 low = showText LOW
--- | aktion <~> "blocked"
-aktionGesperrt :: (Semigroup s, IsString s) => s
-aktionGesperrt = aktion <~> "gesperrt"
 
 -- * Typ-Namen / Type names
 -- | Object
@@ -230,17 +236,17 @@ richtungZuWenig                 = mindestens $ "eine" <~> richtung
 wegstreckeLeer :: (Semigroup s, IsString s) => s
 wegstreckeLeer                  = mindestens $ "ein" <~> wegstreckenElement
 
--- | s <~> "not recognized"
+-- | /s/ <~> "not recognized"
 unbekannt :: (Semigroup s, IsString s) => s -> s
-unbekannt   s   = s <~> "nicht erkannt"
+unbekannt s = s <~> "nicht erkannt"
 
--- | s <~> "expected"
+-- | /s/ <~> "expected"
 erwartet :: (Semigroup s, IsString s) => s -> s
-erwartet    s   = s <~> "erwartet"
+erwartet s = s <~> "erwartet"
 
--- | "At least" <~> s <~> "required"
+-- | "At least" <~> /s/ <~> "required"
 mindestens :: (Semigroup s, IsString s) => s -> s
-mindestens  s   = "Mindestens" <~> s <~> "benötigt"
+mindestens s = "Mindestens" <~> s <~> "benötigt"
 
 -- * Typ-namen / Type names
 -- | Undefined

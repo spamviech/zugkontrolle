@@ -42,6 +42,7 @@ import Control.Monad (void, unless)
 import Control.Monad.State (State, StateT)
 import Control.Monad.Trans (liftIO)
 import qualified Data.Aeson as Aeson
+import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
@@ -733,7 +734,8 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
     buttonAusführen <- boxPackWidgetNewDefault functionBox $ buttonNewWithLabel (Language.ausführen :: Text)
     buttonAbbrechen <- boxPackWidgetNewDefault functionBox $ buttonNewWithLabel (Language.ausführenAbbrechen :: Text)
     widgetHide buttonAbbrechen
-    dialogGesperrt <- messageDialogNew (Just windowMain) [] MessageError ButtonsOk (Language.aktionGesperrt :: Text)
+    dialogGesperrt <- messageDialogNew (Just windowMain) [] MessageError ButtonsOk ("" :: Text)
+    set dialogGesperrt [windowTitle := (Language.aktionGesperrt :: Text)]
     on buttonAusführen buttonActivated $ do
         auswertenMVarIOStatus (ausführenMöglich plan) mvarStatus >>= \case
             (AusführenMöglich)  -> do
@@ -741,7 +743,9 @@ planPackNew plan@(Plan {plAktionen}) mvarStatus (DynamischeWidgets {vBoxPläne, 
                 widgetShow buttonAbbrechen
                 void $ ausführenMVarBefehl (Ausführen plan (\wert -> set progressBarPlan [progressBarFraction := (toEnum $ fromIntegral wert) / (toEnum $ length plAktionen)]) $ widgetShow buttonAusführen >> widgetHide buttonAbbrechen) mvarStatus
             (WirdAusgeführt)    -> error "Ausführen in GTK-UI erneut gestartet."
-            (PinsBelegt _pins)  -> void $ dialogEval dialogGesperrt
+            (PinsBelegt pins)   -> do
+                set dialogGesperrt [messageDialogText := Just (Language.ausführenGesperrt $ show $ ausFoldable pins)]
+                void $ dialogEval dialogGesperrt
     on buttonAbbrechen buttonActivated $ do
         ausführenMVarBefehl (AusführenAbbrechen plan) mvarStatus
         widgetShow buttonAusführen
