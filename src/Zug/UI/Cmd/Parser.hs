@@ -12,7 +12,7 @@ module Zug.UI.Cmd.Parser (
                         -- * Auswerten einer Text-Eingabe
                         parser, statusAnfrageObjekt,
                         -- * Ergebnis-Typen
-                        AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..),
+                        AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..), AnfrageNeu(..),
                         -- ** Unvollständige StreckenObjekte
                         Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
                         AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..), AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
@@ -29,12 +29,13 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeiten von anderen Modulen
-import Zug.Warteschlange
-import Zug.Klassen
 import Zug.Anbindung
-import Zug.Plan
+import Zug.Klassen
 import qualified Zug.Language as Language
-import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), showText, fehlerText, toBefehlsString)
+import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), (<\>), showText, fehlerText, toBefehlsString)
+import qualified Zug.Menge as Menge
+import Zug.Plan
+import Zug.Warteschlange
 import Zug.UI.Base
 import Zug.UI.Befehl
 import qualified Zug.UI.Cmd.Lexer as Lexer
@@ -90,15 +91,19 @@ parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis
 parser = parserAux []
     where
         parserAux :: [Befehl] -> AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
-        parserAux   acc (AnfrageBefehl) ([])                = parserErgebnisOk acc
-        parserAux   acc anfrage         ([])                = (reverse acc, AEAnfrageBefehl anfrage)
-        parserAux   acc _anfrage        (TkBeenden:_t)      = parserErgebnisOk (UI Beenden:acc)
-        parserAux   acc _anfrage        (TkAbbrechen:_t)    = parserErgebnisOk (UI Abbrechen:acc)
-        parserAux   acc anfrage         ((Tk h):t)          = case anfrageAktualisieren anfrage h of
+        parserAux   acc (AnfrageBefehl)                         ([])                = parserErgebnisOk acc
+        parserAux   acc (ABAktionPlanAusführend plan (Neu))     ([])                = (reverse acc, AEAnfrageBefehl (ABAktionPlanAusführend plan (Alt)))
+        parserAux   acc (ABAktionPlanGesperrt plan (Neu) pins)  ([])                = (reverse acc, AEAnfrageBefehl (ABAktionPlanGesperrt plan (Alt) pins))
+        parserAux   acc (ABAktionPlanAusführend plan (Alt))     ([])                = (reverse acc, AEBefehlSofort (BSAusführenMöglich plan) [])
+        parserAux   acc (ABAktionPlanGesperrt plan (Alt) _pins) ([])                = (reverse acc, AEBefehlSofort (BSAusführenMöglich plan) [])
+        parserAux   acc anfrage                                 ([])                = (reverse acc, AEAnfrageBefehl anfrage)
+        parserAux   acc _anfrage                                (TkBeenden:_t)      = parserErgebnisOk (UI Beenden:acc)
+        parserAux   acc _anfrage                                (TkAbbrechen:_t)    = parserErgebnisOk (UI Abbrechen:acc)
+        parserAux   acc anfrage                                 ((Tk h):t)          = case anfrageAktualisieren anfrage h of
             (AEAnfrageBefehl qFehler@(ABUnbekannt _ab _b))  -> parserErgebnis acc $ AEAnfrageBefehl qFehler
             (AEAnfrageBefehl qBefehl)                       -> parserAux acc qBefehl t
-            (AEBefehlSofort eingabe _)                      -> parserErgebnis acc $ AEBefehlSofort eingabe t
-            (AEStatusAnfrage eingabe konstruktor anfrage _) -> parserErgebnis acc $ AEStatusAnfrage eingabe konstruktor anfrage t
+            (AEBefehlSofort eingabe r)                      -> parserErgebnis acc $ AEBefehlSofort eingabe $ r ++ t
+            (AEStatusAnfrage eingabe konstruktor anfrage r) -> parserErgebnis acc $ AEStatusAnfrage eingabe konstruktor anfrage $ r ++ t
             (AEBefehl befehl)                               -> parserAux (befehl:acc) AnfrageBefehl t
         -- | Ergebnis zurückgeben
         parserErgebnis :: [Befehl] -> AnfrageErgebnis -> ([Befehl], AnfrageErgebnis)
@@ -118,18 +123,34 @@ data AnfrageErgebnis    = AEBefehl              Befehl
 data BefehlSofort   = BSLaden               FilePath
                     | BSAusführenMöglich    Plan
 
+-- | Ist eine 'Anfrage' das erste mal zu sehen
+data AnfrageNeu = Neu | Alt
+            deriving (Show, Eq)
+
 -- | Unvollständige Befehle
 data AnfrageBefehl  = AnfrageBefehl
-                    | ABUnbekannt               AnfrageBefehl                           Text
-                    | ABHinzufügen              AnfrageObjekt
+                    | ABUnbekannt
+                        AnfrageBefehl
+                        Text
+                    | ABHinzufügen
+                        AnfrageObjekt
                     | ABEntfernen
                     | ABSpeichern
                     | ABLaden
-                    | ABAktionPlan              Plan
-                    | ABAktionPlanAusführend    Plan
-                    | ABAktionPlanGesperrt      Plan                                    (NonEmpty Pin)
-                    | ABAktion                  AnfrageAktion
-                    | ABStatusAnfrage           (EingabeToken -> StatusAnfrageObjekt)   (Objekt -> AnfrageErgebnis)
+                    | ABAktionPlan
+                        Plan
+                    | ABAktionPlanAusführend
+                        Plan
+                        AnfrageNeu
+                    | ABAktionPlanGesperrt
+                        Plan
+                        AnfrageNeu
+                        (NonEmpty Pin)
+                    | ABAktion
+                        AnfrageAktion
+                    | ABStatusAnfrage
+                        (EingabeToken -> StatusAnfrageObjekt)
+                        (Objekt -> AnfrageErgebnis)
 
 instance Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
@@ -140,8 +161,8 @@ instance Show AnfrageBefehl where
     show    (ABSpeichern)                                   = Language.speichern
     show    (ABLaden)                                       = Language.laden
     show    (ABAktionPlan plan)                             = Language.aktion <^> showText plan
-    show    (ABAktionPlanAusführend plan)                   = Language.aktion <^> showText plan
-    show    (ABAktionPlanGesperrt plan pins)                = Language.aktionGesperrt <:> show pins <^> showText plan
+    show    (ABAktionPlanAusführend plan _neu)              = Language.wirdAusgeführt $ showText plan
+    show    (ABAktionPlanGesperrt plan _neu pins)           = Language.ausführenGesperrt (show $ Menge.ausFoldable pins) <\> showText plan
     show    (ABAktion anfrageAktion)                        = showText anfrageAktion
     show    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = showText $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
 instance Anfrage AnfrageBefehl where
@@ -153,16 +174,16 @@ instance Anfrage AnfrageBefehl where
     zeigeAnfrage    (ABSpeichern)                                   = Language.dateiname
     zeigeAnfrage    (ABLaden)                                       = Language.dateiname
     zeigeAnfrage    (ABAktionPlan _plan)                            = Language.aktion
-    zeigeAnfrage    (ABAktionPlanAusführend _plan)                  = Language.aktion
-    zeigeAnfrage    (ABAktionPlanGesperrt _plan _pins)              = Language.aktionGesperrt
+    zeigeAnfrage    anfrage@(ABAktionPlanAusführend _plan _neu)     = showText anfrage <^> Language.aktion
+    zeigeAnfrage    anfrage@(ABAktionPlanGesperrt _plan _neu _pins) = showText anfrage <^> Language.aktion
     zeigeAnfrage    (ABAktion anfrageAktion)                        = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBefehl -> Maybe s
     zeigeAnfrageOptionen (ABUnbekannt anfrage _eingabe)                 = zeigeAnfrageOptionen anfrage
     zeigeAnfrageOptionen (ABHinzufügen anfrageObjekt)                   = zeigeAnfrageOptionen anfrageObjekt
     zeigeAnfrageOptionen (ABAktionPlan _plan)                           = Just $ toBefehlsString Language.aktionPlan
-    zeigeAnfrageOptionen (ABAktionPlanAusführend _plan)                 = Just $ toBefehlsString Language.aktionPlanAusführend
-    zeigeAnfrageOptionen (ABAktionPlanGesperrt _plan _pins)             = Just $ toBefehlsString Language.aktionPlanGesperrt
+    zeigeAnfrageOptionen (ABAktionPlanAusführend _plan _neu)            = Just $ toBefehlsString Language.aktionPlanAusführend
+    zeigeAnfrageOptionen (ABAktionPlanGesperrt _plan _neu _pins)        = Just $ toBefehlsString Language.aktionPlanGesperrt
     zeigeAnfrageOptionen (ABAktion anfrageAktion)                       = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (ABStatusAnfrage anfrageKonstruktor _eitherF)  = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
     zeigeAnfrageOptionen _anfrage                                       = Nothing
@@ -206,8 +227,8 @@ anfrageAktualisieren    (ABEntfernen)                                           
 anfrageAktualisieren    (ABSpeichern)                                           (EingabeToken {eingabe})        = AEBefehl $ Speichern $ unpack eingabe
 anfrageAktualisieren    (ABLaden)                                               (EingabeToken {eingabe})        = AEBefehlSofort (BSLaden $ unpack eingabe) []
 anfrageAktualisieren    anfrage@(ABAktionPlan plan@(Plan {plAktionen}))         token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Ausführen, AEBefehl $ Ausführen plan (\i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)) $ pure ())] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
-anfrageAktualisieren    anfrage@(ABAktionPlanAusführend plan)                   token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
-anfrageAktualisieren    anfrage@(ABAktionPlanGesperrt _plan _pins)              token@(EingabeToken {eingabe})  = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
+anfrageAktualisieren    (ABAktionPlanAusführend plan _neu)                      token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanAusführend plan Alt) eingabe
+anfrageAktualisieren    (ABAktionPlanGesperrt plan _neu pins)                   token@(EingabeToken {eingabe})  = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanGesperrt plan Alt pins) eingabe
 anfrageAktualisieren    anfrage@(ABAktion anfrageAktion)                        token                           = case anfrageAktionAktualisieren anfrageAktion token of
     (Left (AAUnbekannt anfrage eingabe))                                    -> AEAnfrageBefehl $ ABUnbekannt (ABAktion anfrage) eingabe
     (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> AEStatusAnfrage      objektStatusAnfrage (AEAnfrageBefehl . ABAktion . anfrageKonstruktor) anfrage []

@@ -44,21 +44,20 @@ main = do
 -- | main loop
 mainStatus :: IOStatus ()
 mainStatus = do
-    ende <- do
-        status <- get
-        liftIO $ do
-            setSGR [SetColor Foreground Dull Green]
-            putStr $ "" <\> Language.zugkontrolle
-            setSGR [Reset]
-            putStrLn $ "" <~> ZUGKONTROLLEVERSION
-            setSGR [SetColor Foreground Dull Cyan]
-            putStrLn $ (const '-') <$> Language.zugkontrolle <~> ZUGKONTROLLEVERSION
-            setSGR [Reset]
-            putStrLn $ showText status
-            setSGR [SetColor Foreground Dull Blue]
-            putStrLn $ toBefehlsString Language.befehlAlle
-            setSGR [Reset]
-        promptS "\n" >>= statusParser . lexer
+    status <- get
+    liftIO $ do
+        setSGR [SetColor Foreground Dull Green]
+        putStr $ "" <\> Language.zugkontrolle
+        setSGR [Reset]
+        putStrLn $ "" <~> ZUGKONTROLLEVERSION
+        setSGR [SetColor Foreground Dull Cyan]
+        putStrLn $ (const '-') <$> Language.zugkontrolle <~> ZUGKONTROLLEVERSION
+        setSGR [Reset]
+        putStrLn $ showText status
+        setSGR [SetColor Foreground Dull Blue]
+        putStrLn $ toBefehlsString Language.befehlAlle
+        setSGR [Reset]
+    ende <- promptS "\n" >>= statusParser . lexer
     unless ende mainStatus
 
 -- | Gesammter Auswerte-Prozess
@@ -79,7 +78,7 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
                     case zeigeAnfrageOptionen anfrage of
                         (Nothing)               -> pure ()
                         (Just anfrageOptionen)  -> liftIO $ setSGR [SetColor Foreground Dull Blue] >> putStrLn anfrageOptionen >> setSGR [Reset]
-                    promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux.(parser anfrage).lexer
+                    promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
         statusAnfrage :: StatusAnfrageObjekt -> (Objekt -> AnfrageErgebnis) -> AnfrageBefehl -> [EingabeTokenAllgemein] -> IOStatus Bool
         statusAnfrage qObjektIOStatus konstruktor backup eingabeRest = state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
             (Right objekt)  -> case konstruktor objekt of
@@ -107,9 +106,9 @@ ausführenBefehlSofort   (BSLaden dateipfad)         = do
     ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad
     pure AnfrageBefehl
 ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >>= pure . \case
-        (WirdAusgeführt)    -> ABAktionPlan plan
-        (PinsBelegt pins)   -> ABAktionPlanGesperrt plan pins
-        (AusführenMöglich)  -> ABAktionPlanAusführend plan
+        (AusführenMöglich)  -> ABAktionPlan plan
+        (WirdAusgeführt)    -> ABAktionPlanAusführend plan Neu
+        (PinsBelegt pins)   -> ABAktionPlanGesperrt plan Neu pins
 
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]

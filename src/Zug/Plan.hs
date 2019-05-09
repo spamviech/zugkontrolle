@@ -31,15 +31,24 @@ import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Menge
 
 -- | Summen-Typ
-data ObjektAllgemein bg st we ku ws pl  = OPlan                 pl
-                                        | OWegstrecke           ws
-                                        | OWeiche               we
-                                        | OBahngeschwindigkeit  bg
+data ObjektAllgemein bg st we ku ws pl  = OBahngeschwindigkeit  bg
                                         | OStreckenabschnitt    st
                                         | OKupplung             ku
-                                            deriving (Eq, Show)
+                                        | OWeiche               we
+                                        | OWegstrecke           ws
+                                        | OPlan                 pl
+                                            deriving (Eq)
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+
+instance (Show bg, Show st, Show we, Show ku, Show ws, Show pl) => Show (ObjektAllgemein bg st we ku ws pl) where
+    show :: ObjektAllgemein bg st we ku ws pl -> String
+    show    (OBahngeschwindigkeit bg)   = show bg
+    show    (OStreckenabschnitt st)     = show st
+    show    (OWeiche we)                = show we
+    show    (OKupplung ku)              = show ku
+    show    (OWegstrecke ws)            = show ws
+    show    (OPlan pl)                  = show pl
 
 -- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where
