@@ -9,7 +9,7 @@ Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusAllgemein(..), statusLeer, statusLeerNeu, beispielListe,
+    Status, StatusAllgemein(..), statusLeer, statusLeerNeu, phantom,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarAusführend, mvarPinMap,
 #endif
@@ -58,9 +58,9 @@ data StatusAllgemein o = Status {
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
 
--- | Erzeuge eine leere Beispiel-Liste, um Typ-Inferenzen zu ermöglichen.
-beispielListe :: StatusAllgemein o -> [o]
-beispielListe _status = []
+-- | Erzeuge eine Phantom-Typ, um Typ-Inferenzen zu ermöglichen.
+phantom :: StatusAllgemein o -> Phantom o
+phantom _status = Phantom
 
 #ifdef ZUGKONTROLLEGUI
 -- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusAllgemein wirft dll-Fehler unter Windows)
@@ -93,12 +93,12 @@ mvarPinMap              = lens _mvarPinMap              $ \status mv  -> status 
 
 instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
     show :: StatusAllgemein o -> String
-    show status = Language.bahngeschwindigkeiten <=> (zeigeUnterliste $ ausBG (beispielListe status) <$> _bahngeschwindigkeiten status)
-                <\> Language.streckenabschnitte <=> (zeigeUnterliste $ ausST (beispielListe status) <$> _streckenabschnitte status)
-                <\> Language.weichen <=> (zeigeUnterliste $ ausWE (beispielListe status) <$> _weichen status)
-                <\> Language.kupplungen <=> (zeigeUnterliste $ ausKU (beispielListe status) <$> _kupplungen status)
-                <\> Language.wegstrecken <=> (zeigeUnterliste $ ausWS (beispielListe status) <$> _wegstrecken status)
-                <\> Language.pläne <=> (zeigeUnterliste $ ausPL (beispielListe status) <$> _pläne status)
+    show status = Language.bahngeschwindigkeiten <=> (zeigeUnterliste $ ausBG (phantom status) <$> _bahngeschwindigkeiten status)
+                <\> Language.streckenabschnitte <=> (zeigeUnterliste $ ausST (phantom status) <$> _streckenabschnitte status)
+                <\> Language.weichen <=> (zeigeUnterliste $ ausWE (phantom status) <$> _weichen status)
+                <\> Language.kupplungen <=> (zeigeUnterliste $ ausKU (phantom status) <$> _kupplungen status)
+                <\> Language.wegstrecken <=> (zeigeUnterliste $ ausWS (phantom status) <$> _wegstrecken status)
+                <\> Language.pläne <=> (zeigeUnterliste $ ausPL (phantom status) <$> _pläne status)
         where
             -- | Zeige Liste besser Lesbar, als normale Show-Instanz (newlines und Index-Angabe).
             zeigeUnterliste :: (Show a) => [a] -> String

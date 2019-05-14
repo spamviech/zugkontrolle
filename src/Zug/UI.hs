@@ -11,13 +11,13 @@ module Zug.UI (main) where
 #endif
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Options
+import Zug.Options (getOptions, Options(..), UI(..))
 import qualified Zug.UI.Cmd as Cmd
 import qualified Zug.UI.GTK as GTK
 #ifdef ZUGKONTROLLERASPI
 -- Überprüfe, ob das Programm mit Root-Rechten aufgeführt wird
-import System.Console.ANSI
-import System.Posix.User
+import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
+import System.Posix.User (getRealUserID)
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
 #endif
@@ -37,8 +37,8 @@ ausführenWennRoot :: IO () -> IO ()
 ausführenWennRoot action = do
     (Options {pwm}) <- getOptions
     case pwm of
-        (SoftwarePWM)   -> action
-        (HardwarePWM)   -> do
+        SoftwarePWM -> action
+        HardwarePWM -> do
             uid <- getRealUserID
             if (uid == 0)
                 then action
