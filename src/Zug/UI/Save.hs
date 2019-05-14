@@ -100,12 +100,12 @@ instance FromJSON AlmostStatus where
 instance (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) where
     toJSON :: StatusAllgemein o -> Value
     toJSON status = object [
-                    bahngeschwindigkeitenJS .= (ausBG (beispielListe status) <$> (_bahngeschwindigkeiten status)),
-                    streckenabschnitteJS    .= (ausST (beispielListe status) <$> (_streckenabschnitte status)),
-                    weichenJS               .= (ausWE (beispielListe status) <$> (_weichen status)),
-                    kupplungenJS            .= (ausKU (beispielListe status) <$> (_kupplungen status)),
-                    wegstreckenJS           .= (ausWS (beispielListe status) <$> (_wegstrecken status)),
-                    pläneJS                 .= (ausPL (beispielListe status) <$> (_pläne status))]
+                    bahngeschwindigkeitenJS .= (ausBG (phantom status) <$> (_bahngeschwindigkeiten status)),
+                    streckenabschnitteJS    .= (ausST (phantom status) <$> (_streckenabschnitte status)),
+                    weichenJS               .= (ausWE (phantom status) <$> (_weichen status)),
+                    kupplungenJS            .= (ausKU (phantom status) <$> (_kupplungen status)),
+                    wegstreckenJS           .= (ausWS (phantom status) <$> (_wegstrecken status)),
+                    pläneJS                 .= (ausPL (phantom status) <$> (_pläne status))]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 geradeJS :: Text
