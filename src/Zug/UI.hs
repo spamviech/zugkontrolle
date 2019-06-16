@@ -11,7 +11,12 @@ module Zug.UI (main) where
 #endif
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Options (getOptions, Options(..), UI(..))
+import Zug.Options (
+    getOptions, Options(..), UI(..)
+#ifdef ZUGKONTROLLERASPI
+    , PWM(SoftwarePWM, HardwarePWM)
+#endif
+    )
 import qualified Zug.UI.Cmd as Cmd
 import qualified Zug.UI.GTK as GTK
 #ifdef ZUGKONTROLLERASPI
