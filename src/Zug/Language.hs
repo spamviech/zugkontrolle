@@ -9,6 +9,7 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 -}
 module Zug.Language (module Zug.Language, module Zug.Language.Operatoren) where
 
+import MonadUtils (concatMapM)
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text (Text)
@@ -27,137 +28,31 @@ import System.IO.Unsafe (unsafePerformIO)
 gewählteSprache :: Sprache
 gewählteSprache = unsafePerformIO $ getOptions >>= pure . sprache
 
--- * Titel / Title
--- | Title of the program / Zugkontrolle
-erzeugeDeklaration "zugkontrolle"
+concatMapM erzeugeDeklaration [
+    -- * Titel / Title
+    "zugkontrolle", 
+    -- * Haupt-Befehle / Main Orders
+    "beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden",
+    -- * Spezielle Befehle / Special orders
+    "geschwindigkeit", "umdrehen", "stellen", "strom", "an", "aus", "fließend", "gesperrt", "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit", "fließendValue", "high", "low",
+    -- * Typ-Namen / Type names
+    "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte", "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne",
+    -- * Eigenschafts/Feld-Namen / Attributes/Field names
+    "dateiname", "pin", "name", "richtung", "richtungen", "fahrtrichtung",
+    -- * Query-Abfragen / Queries
+    "wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp",
+    -- * Fehlermeldungen / Error Messages
+    "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt", "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer",
+    -- * Typ-namen / Type names
+    "undefiniert", "märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 
--- * Haupt-Befehle / Main Orders
--- | Quit / Beenden
-erzeugeDeklaration "beenden"
--- | Cancel / Abbrechen
-erzeugeDeklaration "abbrechen"
--- | Undo / Rückgängig
-erzeugeDeklaration "rückgängig"
--- | Continue / Weiter
-erzeugeDeklaration "weiter"
--- | Back / Zurück
-erzeugeDeklaration "zurück"
--- | Add / Hinzufügen
-erzeugeDeklaration "hinzufügen"
--- | Remove / Entfernen
-erzeugeDeklaration "entfernen"
--- | Save / Speichern
-erzeugeDeklaration "speichern"
--- | Load / Laden
-erzeugeDeklaration "laden"
-
--- * Spezielle Befehle / Special orders
--- | Speed / Geschwindigkeit
-erzeugeDeklaration "geschwindigkeit"
--- | Turn around / Umdrehen
-erzeugeDeklaration "umdrehen"
--- | Change / Stellen
-erzeugeDeklaration "stellen"
--- | Current / Strom
-erzeugeDeklaration "strom"
--- | On / An
-erzeugeDeklaration "an"
--- | Off / Aus
-erzeugeDeklaration "aus"
--- | Flowing / Fließend
-erzeugeDeklaration "fließend"
--- | blocked / Gesperrt
-erzeugeDeklaration "gesperrt"
--- | Uncouple / Kuppeln
-erzeugeDeklaration "kuppeln"
--- | Adjust the Switches / Einstellen
-erzeugeDeklaration "einstellen"
--- | Execute / Ausführen
-erzeugeDeklaration "ausführen"
--- | /s/ <~> "in execution" / "wird ausgeführt"
-erzeugeFunktionDeklaration "wirdAusgeführt"
--- | Abort! / Abbrechen!
-erzeugeDeklaration "ausführenAbbrechen"
--- | aktion <~> "blocked" / "gesperrt"
-erzeugeDeklaration "aktionGesperrt"
--- | ausführen <~> "blocked" / "gesperrt" <!> "Pins" / "Die Pins" <~> /s/ <~> "are already in use." / "werden bereits verwendet."
-erzeugeFunktionDeklaration "ausführenGesperrt"
--- | Wait / Warten
-erzeugeDeklaration "warten"
--- | µs
--- 
--- Unit of time used to specify waiting time / µs
-erzeugeDeklaration "wartenEinheit"
--- | Time / Zeit
-erzeugeDeklaration "zeit"
--- | fließend <-> "Value"
-erzeugeDeklaration "fließendValue"
--- | HIGH
-erzeugeDeklaration "high"
--- | LOW
-erzeugeDeklaration "low"
-
--- * Typ-Namen / Type names
--- | Object / Objekt
-erzeugeDeklaration "objekt"
--- | Order / Befehl
-erzeugeDeklaration "befehl"
--- | Train speed / Bahngeschwindigkeit
-erzeugeDeklaration "bahngeschwindigkeit"
--- | Train speeds / Bahngeschwindigkeiten
-erzeugeDeklaration "bahngeschwindigkeiten"
--- | Rail section / Streckenabschnitt
-erzeugeDeklaration "streckenabschnitt"
--- | Rail sections / Streckenabschnitte
-erzeugeDeklaration "streckenabschnitte"
--- | Switch / Weiche
-erzeugeDeklaration "weiche"
--- | Switches / Weichen
-erzeugeDeklaration "weichen"
--- | Coupler / Kupplung
-erzeugeDeklaration "kupplung"
--- | Couplers / Kupplungen
-erzeugeDeklaration "kupplungen"
--- | Rail collection / Wegstrecke
-erzeugeDeklaration "wegstrecke"
--- | Rail collections / Wegstrecken
-erzeugeDeklaration "wegstrecken"
--- | Plan / Plan
-erzeugeDeklaration "plan"
--- | Plans / Pläne
-erzeugeDeklaration "pläne"
-
--- * Eigenschafts/Feld-Namen / Attributes/Field names
--- | File path / Dateiname
-erzeugeDeklaration "dateiname"
--- | Pin / Pin
-erzeugeDeklaration "pin"
--- | Name / Name
-erzeugeDeklaration "name"
--- | Direction / Richtung
-erzeugeDeklaration "richtung"
--- | Directions / Richtungen
-erzeugeDeklaration "richtungen"
--- | Direction of travel / Fahrtrichtung
-erzeugeDeklaration "fahrtrichtung"
-
--- * Query-Abfragen / Queries
--- | Rail collection element / Wegstrecken-Element
-erzeugeDeklaration "wegstreckenElement"
--- | Rail collection elements / Wegstrecken-Elemente
-erzeugeDeklaration "wegstreckenElemente"
--- | action / Aktion
-erzeugeDeklaration "aktion"
--- | actions / Aktionen
-erzeugeDeklaration "aktionen"
--- | Train model / Zugtyp
-erzeugeDeklaration "zugtyp"
-
--- | Ask to specify the object (type indicated by /s/) either by its index or name
-erzeugeFunktionDeklaration "indexOderName"
-
--- | Ask to specify the count of the object (indicated by /s/)
-erzeugeFunktionDeklaration "anzahl"
+concatMapM erzeugeFunktionDeklaration [
+    -- * Spezielle Befehle / Special orders
+    "wirdAusgeführt", "ausführenGesperrt",
+    -- * Query-Abfragen / Queries
+    "indexOderName", "anzahl",
+    -- * Fehlermeldungen / Error Messages
+    "unbekannt", "erwartet", "mindestens"]
 
 -- * Befehlsgruppen / Order classifications
 -- | All supported Orders in the main menu
@@ -205,57 +100,6 @@ toBefehlsString :: (Semigroup s, IsString s) => [s] -> s
 toBefehlsString ([])    = "[]"
 toBefehlsString ([s])   = s
 toBefehlsString (h:t)   = h <^> toBefehlsString t
-
--- * Fehlermeldungen / Error Messages
--- | zugkontrolle <:> "Execution requires root priviledges." / "Ausführung benötigt Root-Rechte!"
-erzeugeDeklaration "nichtRoot"
--- | Not implemented: ToDo!!! / Nicht implementiert: ToDo!!!
-erzeugeDeklaration "toDo"
--- | Invalid input / Ungültige Eingabe
-erzeugeDeklaration "ungültigeEingabe"
--- | Action not supported / Aktion nicht unterstützt
-erzeugeDeklaration "nichtUnterstützteAktion"
--- | File not found / Datei nicht gefunden/Format nicht erkannt
-erzeugeDeklaration "nichtGefundeneDatei"
--- | Selected UI not supported. Cmd-UI is used instead. / Gewählte UI-Option nicht unterstützt! Nutze stattdessen Cmd-UI.
-erzeugeDeklaration "uiNichtUnterstützt"
--- | erwartet "Integer"
-erzeugeDeklaration "integerErwartet"
--- | erwartet richtung
-erzeugeDeklaration "richtungErwartet"
--- | mindestens $ "one" / "eine" <~> richtung
-erzeugeDeklaration "richtungZuWenig"
--- | mindestens $ "one" / "ein" <~> wegstreckenElement
-erzeugeDeklaration "wegstreckeLeer"
-
--- | /s/ <~> "not recognized" / "nicht erkannt"
-erzeugeFunktionDeklaration "unbekannt"
-
--- | /s/ <~> "expected" / "erwartet"
-erzeugeFunktionDeklaration "erwartet"
-
--- | "At least" / "Mindestens" <~> /s/ <~> "required" / "benötigt"
-erzeugeFunktionDeklaration "mindestens"
-
--- * Typ-namen / Type names
--- | Undefined / Undefiniert
-erzeugeDeklaration "undefiniert"
--- | Märklin / Märklin
-erzeugeDeklaration "märklin"
--- | Lego / Lego
-erzeugeDeklaration "lego"
--- | Straight / Gerade
-erzeugeDeklaration "gerade"
--- | Turn / Kurve
-erzeugeDeklaration "kurve"
--- | Left / Links
-erzeugeDeklaration "links"
--- | Right / Rechts
-erzeugeDeklaration "rechts"
--- | Forward / Vorwärts
-erzeugeDeklaration "vorwärts"
--- | Reverse / Rückwärts
-erzeugeDeklaration "rückwärts"
 
 -- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_

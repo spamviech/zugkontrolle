@@ -39,6 +39,7 @@ when:
 
 dependencies:
   - base
+  - ghc
   - aeson
   - ansi-terminal
   - bytestring

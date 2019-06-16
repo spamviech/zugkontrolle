@@ -1,12 +1,8 @@
---{-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-
 {-|
 Description : Template-Haskell Funktionen um die Sprachauswahl zu automatisieren.
 -}
 module Zug.Language.TemplateHaskell (Sprache(..), erzeugeDeklaration, erzeugeFunktionDeklaration) where
 
-import Control.Monad (foldM)
 import Data.Maybe (catMaybes)
 import Language.Haskell.TH
 -- Abhängigkeit von anderen Modulen

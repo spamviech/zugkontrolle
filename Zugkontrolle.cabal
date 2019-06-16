@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bd4b6c03394efe34624a094b4bf7cbfd27145954f65091ac85cfe2a7ee124a2e
+-- hash: fb8d673cfa37b31e281d423db95e10357ae77732abd7d396a96b618b3c580b6e
 
 name:           Zugkontrolle
 version:        1.0.0.16
@@ -70,6 +70,7 @@ library
     , concurrency
     , containers
     , directory
+    , ghc
     , hspec
     , mtl
     , optparse-applicative
@@ -104,6 +105,7 @@ executable Zugkontrolle
     , concurrency
     , containers
     , directory
+    , ghc
     , hspec
     , mtl
     , optparse-applicative
@@ -139,6 +141,7 @@ test-suite Zugkontrolle-test
     , concurrency
     , containers
     , directory
+    , ghc
     , hspec
     , mtl
     , optparse-applicative
