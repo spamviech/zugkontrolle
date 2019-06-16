@@ -93,6 +93,7 @@
 - SEQueue umbenannt in Warteschlange
 - Pläne können jetzt abgebrochen werden
 - Pläne können nur ausgeführt werden, wenn kein Pins bei einem bereits ausgeführtem Plan verwendet wird.
-## Unreleased changes
+1.0.0.15:
 - Bugfix: Cmd-UI erkennt wieder, wann ein Plan ausgeführt wird (war invertiert).
 - Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist. Man muss nicht erst ins Hauptmenü zurückkehren.
+## Unreleased changes
