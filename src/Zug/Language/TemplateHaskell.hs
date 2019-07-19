@@ -1,3 +1,6 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 {-|
 Description : Template-Haskell Funktionen um die Sprachauswahl zu automatisieren.
 -}
@@ -9,12 +12,12 @@ import Language.Haskell.TH
 import Zug.Options
 
 modulName :: Sprache -> String
-modulName (Deutsch)     = "Zug.Language.DE"
-modulName (Englisch)    = "Zug.Language.EN"
+modulName   Deutsch     = "Zug.Language.DE"
+modulName   Englisch    = "Zug.Language.EN"
 
 sprachName :: Sprache -> Name
-sprachName  (Deutsch)   = mkName "Deutsch"
-sprachName  (Englisch)  = mkName "Englisch"
+sprachName  Deutsch     = 'Deutsch
+sprachName  Englisch    = 'Englisch
 
 -- | Definiere einen Wert abhängig von der gewählten 'Sprache'.  
 -- Falls der Wert in der gewählten 'Sprache' nicht exisitert, versuche ihn in 'Deutsch' (aus dem Modul 'Zug.Language.DE') zu definieren.  
@@ -53,23 +56,34 @@ erzeugeDeklaration bezeichner = do
             funktionDeklaration = do
                 sprachKlauseln <- mapM testeUndErzeugeKlausel alleSprachen
                 -- Erzeuge Wildcard-Pattern für Deutsche Variante (falls vorhanden), ansonsten verwende den Variablen-Namen in Anführungszeichen
-                wildcardKlausel <- recover (pure $ [Just $ Clause [WildP] (NormalB $ LitE $ StringL $ '"' : bezeichner ++ "\"") []]) $ do
+                wildcardKlausel <- do
                     -- Überprüfe, ob der Name existiert
-                    reify $ qualifizierterName Deutsch
-                    -- Erzeuge Deklaration
-                    pure [Just $ Clause [WildP] (NormalB $ VarE $ qualifizierterName Deutsch) []]
+                    lookupValueName (qualifizierterName Deutsch) >>= \case
+                        Nothing
+                            -- Erzeuge Dummy-Deklaration und werfe Warnung
+                            -> do
+                                reportWarning $ "\"" ++ bezeichner ++ "\" kein bekannter Wert in \"" ++ modulName Deutsch ++ "\". Erzeuge stattdessen eine Dummy-Definition."
+                                pure $ [Just $ fallback]
+                        Just deutscherName
+                            -- Erzeuge Deklaration
+                            -> pure [Just $ Clause [WildP] (NormalB $ VarE deutscherName) []]
                 let klauseln = sprachKlauseln ++ wildcardKlausel
                 -- Verwende nur valide Klauseln
                 pure $ FunD funktionName $ catMaybes klauseln
             testeUndErzeugeKlausel :: Sprache -> Q (Maybe Clause)
             testeUndErzeugeKlausel sprache = do
-                recover (pure Nothing) $ do
-                    -- Überprüfe, ob der Name existiert
-                    reify $ qualifizierterName sprache
-                    -- Erzeuge Deklarationen
-                    pure $ Just $ Clause [ConP (sprachName sprache) []] (NormalB $ VarE $ qualifizierterName sprache) []
-            qualifizierterName :: Sprache -> Name
-            qualifizierterName sprache = mkName $ modulName sprache ++ '.':bezeichner
+                -- Überprüfe, ob der Name existiert
+                lookupValueName (qualifizierterName sprache) >>= \case
+                    Nothing
+                        -- Erzeuge keine Deklaration für diese Sprache
+                        -> pure Nothing
+                    Just qualifizierterSprachName
+                        -- Erzeuge Deklarationen
+                        -> pure $ Just $ Clause [ConP (sprachName sprache) []] (NormalB $ VarE qualifizierterSprachName) []
+            fallback :: Clause
+            fallback = Clause [WildP] (NormalB $ LitE $ StringL $ '"' : bezeichner ++ "\"") []
+            qualifizierterName :: Sprache -> String
+            qualifizierterName sprache = modulName sprache ++ '.' : bezeichner
 
 -- | Definiere einen Funktion abhängig von der gewählten 'Sprache'.  
 -- Falls die Funktion in der gewählten 'Sprache' nicht exisitert, versuche ihn in 'Deutsch' (aus dem Modul 'Zug.Language.DE') zu definieren.  
@@ -110,11 +124,17 @@ erzeugeFunktionDeklaration bezeichner = do
             funktionDeklaration = do
                 sprachKlauseln <- mapM testeUndErzeugeKlausel alleSprachen
                 -- Erzeuge Wildcard-Pattern für Deutsche Variante (falls vorhanden), ansonsten verwende den Variablen-Namen in Anführungszeichen
-                wildcardKlausel <- recover (erzeugeFallback >>= pure . (: []) . Just) $ do
+                wildcardKlausel <- do
                     -- Überprüfe, ob der Name existiert
-                    reify $ qualifizierterName Deutsch
-                    -- Erzeuge Deklaration
-                    pure [Just $ Clause [WildP] (NormalB $ VarE $ qualifizierterName Deutsch) []]
+                    lookupValueName (qualifizierterName Deutsch) >>= \case
+                        Nothing
+                        -- Erzeuge Dummy-Deklaration und werfe Warnung
+                            -> do
+                                reportWarning $ "\"" ++ bezeichner ++ "\" kein bekannter Wert in \"" ++ modulName Deutsch ++ "\". Erzeuge stattdessen eine Dummy-Definition."
+                                erzeugeFallback >>= pure . (:[]) . Just
+                        Just qualifizierterSprachName
+                            -- Erzeuge Deklaration
+                            -> pure [Just $ Clause [WildP] (NormalB $ VarE qualifizierterSprachName) []]
                 let klauseln = sprachKlauseln ++ wildcardKlausel
                 -- Verwende nur valide Klauseln
                 pure $ FunD funktionName $ catMaybes klauseln
@@ -124,10 +144,13 @@ erzeugeFunktionDeklaration bezeichner = do
                 pure $ Clause [WildP] (NormalB $ LamE [VarP varName] $ UInfixE (LitE $ StringL "\"") (VarE $ mkName "<>") $ UInfixE (VarE varName) (VarE $ mkName "<>") (LitE $ StringL "\"")) []
             testeUndErzeugeKlausel :: Sprache -> Q (Maybe Clause)
             testeUndErzeugeKlausel sprache = do
-                recover (pure Nothing) $ do
-                    -- Überprüfe, ob der Name existiert
-                    reify $ qualifizierterName sprache
+                -- Überprüfe, ob der Name existiert
+                lookupValueName (qualifizierterName sprache) >>= \case
+                    Nothing
+                        -- Erzeuge keine Deklaration für diese Sprache
+                        -> pure Nothing
+                    Just qualifizierterSprachName
                     -- Erzeuge Deklarationen
-                    pure $ Just $ Clause [ConP (sprachName sprache) []] (NormalB $ VarE $ qualifizierterName sprache) []
-            qualifizierterName :: Sprache -> Name
-            qualifizierterName sprache = mkName $ modulName sprache ++ '.':bezeichner
+                        -> pure $ Just $ Clause [ConP (sprachName sprache) []] (NormalB $ VarE qualifizierterSprachName) []
+            qualifizierterName :: Sprache -> String
+            qualifizierterName sprache = modulName sprache ++ '.' : bezeichner

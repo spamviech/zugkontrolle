@@ -30,7 +30,7 @@ gewählteSprache = unsafePerformIO $ getOptions >>= pure . sprache
 
 concatMapM erzeugeDeklaration [
     -- * Titel / Title
-    "zugkontrolle", 
+    "zugkontrolle",
     -- * Haupt-Befehle / Main Orders
     "beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden",
     -- * Spezielle Befehle / Special orders
