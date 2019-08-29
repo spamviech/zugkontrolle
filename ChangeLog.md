@@ -16,20 +16,20 @@
 - GTK-UI:
     - vBoxen beim hinzufügen von Wegstrecke & Plan skalieren
     - vBoxen beim hinzufügen von Plan scrollbar
-    - Bugfix: RadioButtons für Richtung einer Weiche beim Hinzufügen einer Wegstrecke hängen jetzt zusammmen
+    - Bugfix: RadioButtons für Richtung einer Weiche beim Hinzufügen einer Wegstrecke hängen jetzt zusammen
     - CheckBox immer am Anfang beim Hinzufügen einer Wegstrecke
     - Bugfix: Hinzufügen-Wegstrecke-Knopf ist nicht permanent ausgegraut
     - PinSpinBox skaliert nicht mehr horizontal
-    - Beim Hinzufügen wird das Namen-Entry fokusiert
+    - Beim Hinzufügen wird das Namen-Entry fokussiert
 - CMD-UI:
     - Bei endlicher Anzahl werden akzeptierte Eingaben angezeigt
     - Fehlerhafte Eingabe wird in roter Farbe gemeldet.
 
 1.0.0.4:
 - GTK-UI:
-    - nameEntry erhält PlaceholderText (wird gezeigt, wenn Entry leer und nicht fokusiert)
+    - nameEntry erhält PlaceholderText (wird gezeigt, wenn Entry leer und nicht fokussiert)
 - Erlaube Kompilation ohne GTK-UI:
-    gtk3- und lens-Packete setzen Cabal-Packet vorraus, dessen Installation sehr lange (und viel Arbeitsspeicher) braucht.
+    gtk3- und lens-Pakete setzen Cabal-Packet vorraus, dessen Installation sehr lange (und viel Arbeitsspeicher) braucht.
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
 
@@ -68,13 +68,13 @@
     - Laden dreht nicht mehr die Reihenfolge um
 - Aktionen einer Wegstrecke (z.B. Weichen einstellen) laufen nun parallel ab
 - Bei Verwenden von --pwm=SoftwarePWM werden keine Root-Rechte benötigt
-- Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl. Es werden nun alle korrekt vormatierten Teilestücke geladen.
+- Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl. Es werden nun alle korrekt formatierten Teilestücke geladen.
 - Zum Laden werden immer deutsche Namen (unabhängig von Language.hs) verwendet.
     Einmal erzeugte json-Dateien können somit unabhängig von der Sprache verwendet werden.
 - Beim Hilfe-Text werden unterstützte Optionen angezeigt.
 - Flag -v|--version hinzugefügt
 - Bugfix: getPWMValue reagiert nun richtig auf eine reduzierte PWMRange
-- PWMValue skaliert nur quadrisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
+- PWMValue skaliert nur quadratisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
 
 1.0.0.12:
 - Bugfix (GTK-UI): Objekte werden nur vollständig und nicht nur graphisch entfernt.
@@ -83,7 +83,7 @@
 
 1.0.0.13:
 - Bugfix (Cmd-UI): Zeile zum Unterstreichen erscheint nun auch unter dem Titel und ist lang genug
-- Umdrehen erhält eine automatische Wartezeit nach der Umdreh-Aktion
+- Umdrehen erhält eine automatische Wartezeit nach der Umdrehen-Aktion
 - Englische Sprache hinzugefügt. Sie kann über die Kommandozeilen-Option `--sprache=Englisch` ausgewählt werden.
 - Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
 - SoftwarePWM-Frequenz auf 500Hz erhöht.
@@ -97,3 +97,4 @@
 - Bugfix: Cmd-UI erkennt wieder, wann ein Plan ausgeführt wird (war invertiert).
 - Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist. Man muss nicht erst ins Hauptmenü zurückkehren.
 ## Unreleased changes
+- Support für PCF8574 hinzugefügt (bisher keine Integration in UIs)

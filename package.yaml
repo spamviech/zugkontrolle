@@ -50,6 +50,7 @@ dependencies:
   - mtl
   - optparse-applicative
   - regex-tdfa
+  - stm
   - template-haskell
   - text
   - wiringPi
@@ -71,6 +72,10 @@ executables:
       - -threaded
     dependencies:
       - Zugkontrolle
+    when:
+      - condition: os(linux)
+        extra-libraries:
+        - wiringPi
 
 tests:
   Zugkontrolle-test:
@@ -80,3 +85,7 @@ tests:
       - -threaded
     dependencies:
       - Zugkontrolle
+    when:
+      - condition: os(linux)
+        extra-libraries:
+        - wiringPi

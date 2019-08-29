@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fb8d673cfa37b31e281d423db95e10357ae77732abd7d396a96b618b3c580b6e
+-- hash: 30634f7afbbf42b48626c4618cd74698048d9f428547a19bd612d6e963578602
 
 name:           Zugkontrolle
 version:        1.0.0.16
@@ -33,6 +33,7 @@ flag gui
 library
   exposed-modules:
       Zug.Anbindung
+      Zug.Anbindung.PCF8574
       Zug.Anbindung.SoftwarePWM
       Zug.Klassen
       Zug.Language
@@ -75,6 +76,7 @@ library
     , mtl
     , optparse-applicative
     , regex-tdfa
+    , stm
     , template-haskell
     , text
     , wiringPi
@@ -110,6 +112,7 @@ executable Zugkontrolle
     , mtl
     , optparse-applicative
     , regex-tdfa
+    , stm
     , template-haskell
     , text
     , wiringPi
@@ -121,6 +124,9 @@ executable Zugkontrolle
   if os(linux)
     build-depends:
         unix
+  if os(linux)
+    extra-libraries:
+        wiringPi
   default-language: Haskell2010
 
 test-suite Zugkontrolle-test
@@ -146,6 +152,7 @@ test-suite Zugkontrolle-test
     , mtl
     , optparse-applicative
     , regex-tdfa
+    , stm
     , template-haskell
     , text
     , wiringPi
@@ -157,4 +164,7 @@ test-suite Zugkontrolle-test
   if os(linux)
     build-depends:
         unix
+  if os(linux)
+    extra-libraries:
+        wiringPi
   default-language: Haskell2010
