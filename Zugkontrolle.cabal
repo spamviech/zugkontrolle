@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 30634f7afbbf42b48626c4618cd74698048d9f428547a19bd612d6e963578602
+-- hash: a224dec33fe51ddf8210e5554a55f4c2f0127d13a80818cf3f372ef33e55aa47
 
 name:           Zugkontrolle
 version:        1.0.0.16
@@ -41,7 +41,6 @@ library
       Zug.Language.EN
       Zug.Language.Operatoren
       Zug.Language.TemplateHaskell
-      Zug.LinkedMVar
       Zug.Menge
       Zug.Options
       Zug.Plan
@@ -53,8 +52,8 @@ library
       Zug.UI.Cmd.Parser
       Zug.UI.GTK
       Zug.UI.GTK.Dialog
-      Zug.UI.GTK.FortfahrenWenn
-      Zug.UI.GTK.Widgets
+      Zug.UI.GTK.FortfahrenWennToggled
+      Zug.UI.GTK.Widget
       Zug.UI.Save
       Zug.Warteschlange
   other-modules:

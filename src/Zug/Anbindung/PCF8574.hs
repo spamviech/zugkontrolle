@@ -10,6 +10,8 @@
 Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstelle
 -}
 module Zug.Anbindung.PCF8574 (
+        -- * Map über aktuelle I2C-Kanäle
+        I2CMap, I2CMapIO, i2cMapEmpty,
         -- * I2CAddresse des PCF8574
         PCF8574(..), PCF8574Variant(..), Value(..),
         -- * Read-/Write-Aktionen
@@ -19,16 +21,15 @@ module Zug.Anbindung.PCF8574 (
         PCF8574Port(..), pcf8574PortWrite, pcf8574PortRead) where
 
 -- Bibliotheken
-import Foreign.C.Types
-import System.IO.Unsafe (unsafePerformIO)
+import Foreign.C.Types (CInt)
 import Control.Applicative (Alternative(..))
-import Control.Concurrent.STM.TVar
+import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar, modifyTVar)
 import Control.Monad.STM (atomically)
-import Data.Bits
+import Data.Bits (Bits, bit, (.|.), (.&.), testBit, complement, zeroBits)
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as Map
-import Data.Word
-import System.Hardware.WiringPi
+import Data.Word (Word8)
+import System.Hardware.WiringPi (Value(..))
 import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
 import Text.Read.Lex (numberToInteger, Lexeme(..))
 import qualified Text.ParserCombinators.ReadPrec as ReadPrec
@@ -36,12 +37,16 @@ import Text.ParserCombinators.ReadP (ReadP())
 import qualified Text.ParserCombinators.ReadP as ReadP
 
 -- | 'FileHandle' und aktuell gesetzter 'BitValue' eines I2C-Kanals
-tvarI2CKanäle :: TVar (Map I2CAddress (FileHandle, BitValue))
-tvarI2CKanäle = unsafePerformIO $ newTVarIO Map.empty
+type I2CMap = Map I2CAddress (FileHandle, BitValue)
+-- | Abkürzung für Funktionen, die die aktuelle 'I2CMap' benötigen
+type I2CMapIO a = TVar I2CMap -> IO a
+-- | Leere 'I2CMap'
+i2cMapEmpty :: I2CMap
+i2cMapEmpty = Map.empty
 
 -- | Stelle sicher, dass eine 'I2CAddress' registriert ist und gebe ihre aktuellen Werte zurück.
-i2cKanalLookup :: I2CAddress -> IO (FileHandle, BitValue)
-i2cKanalLookup i2cAddress = do
+i2cKanalLookup :: I2CAddress -> I2CMapIO (FileHandle, BitValue)
+i2cKanalLookup i2cAddress tvarI2CKanäle = do
     i2cKanäle <- readTVarIO tvarI2CKanäle
     case Map.lookup i2cAddress i2cKanäle of
         Nothing         -> do
@@ -152,18 +157,18 @@ fullBitValue = complement zeroBits
 newtype FileHandle = FileHandle {fromFileHandle::CInt}
 
 -- | Wert eines /PCF8574/ komplett setzten
-pcf8574Write :: PCF8574 -> BitValue -> IO ()
-pcf8574Write pcf8574 bitValue = do
+pcf8574Write :: PCF8574 -> BitValue -> I2CMapIO ()
+pcf8574Write pcf8574 bitValue tvarI2CKanäle = do
     let i2cAddress = toI2CAddress pcf8574
-    (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress
+    (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress tvarI2CKanäle
     atomically $ modifyTVar tvarI2CKanäle $
         Map.adjust (\(fileHandle, _oldBitValue) -> (fileHandle, bitValue)) i2cAddress
     c_wiringPiI2CWrite (fromFileHandle fileHandle) (fromIntegral $ fromBitValue $ bitValue)
 
 -- | Wert eines /PCF8574/ auslesen
-pcf8574Read :: PCF8574 -> IO BitValue
-pcf8574Read pcf8574 = do
-    (fileHandle, _setBitValue) <- i2cKanalLookup $ toI2CAddress pcf8574
+pcf8574Read :: PCF8574 -> I2CMapIO BitValue
+pcf8574Read pcf8574 tvarI2CKanäle = do
+    (fileHandle, _setBitValue) <- i2cKanalLookup (toI2CAddress pcf8574) tvarI2CKanäle
     c_wiringPiI2CRead (fromFileHandle fileHandle) >>= pure . BitValue . fromIntegral
 
 
@@ -200,19 +205,19 @@ instance Read PCF8574Port where
     readListPrec = readListPrecDefault
 
 -- | Wert einzelner Ports eines /PCF8574/ setzen
-pcf8574PortWrite :: PCF8574Port -> Value -> IO ()
-pcf8574PortWrite (PCF8574Port {pcf8574, port}) value  = do
+pcf8574PortWrite :: PCF8574Port -> Value -> I2CMapIO ()
+pcf8574PortWrite (PCF8574Port {pcf8574, port}) value tvarI2CKanäle = do
     let i2cAddress = toI2CAddress pcf8574
-    (_fileHandle, oldBitValue) <- i2cKanalLookup i2cAddress
+    (_fileHandle, oldBitValue) <- i2cKanalLookup i2cAddress tvarI2CKanäle
     let newBitValue
             | (value == HIGH)   = oldBitValue .|. toBitValue port
             | otherwise         = oldBitValue .&. complement (toBitValue port)
-    pcf8574Write pcf8574 newBitValue
+    pcf8574Write pcf8574 newBitValue tvarI2CKanäle
 
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
-pcf8574PortRead :: PCF8574Port -> IO Value
-pcf8574PortRead (PCF8574Port {pcf8574, port}) = do
-    fullBitValue <- pcf8574Read pcf8574
+pcf8574PortRead :: PCF8574Port -> I2CMapIO Value
+pcf8574PortRead (PCF8574Port {pcf8574, port}) tvarI2CKanäle = do
+    fullBitValue <- pcf8574Read pcf8574 tvarI2CKanäle
     pure $ if (testBit fullBitValue $ fromIntegral port) then HIGH else LOW
 
 

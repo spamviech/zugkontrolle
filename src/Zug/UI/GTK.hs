@@ -9,7 +9,7 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 #ifndef ZUGKONTROLLEGUI
 module Zug.UI.GTK (main) where
 
-import System.Console.ANSI
+import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 import qualified Zug.Language as Language
 import qualified Zug.UI.Cmd as Cmd
 
@@ -20,21 +20,26 @@ main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnters
 module Zug.UI.GTK (main, setupGUI) where
 
 -- Bibliotheken
-import Control.Concurrent
+import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO)
 import Control.Monad (void)
+import qualified Control.Monad.State as State
 import Control.Monad.Trans (liftIO)
 import Data.Text (Text)
-import Graphics.UI.Gtk
+import Graphics.UI.Gtk (initGUI, mainGUI, mainQuit, set, on, AttrOp(..), vBoxNew, hBoxNew,
+                    windowTitle, windowDefaultWidth, windowDefaultHeight, deleteEvent,
+                    windowNew, Packing(..), notebookNew, progressBarNew, buttonNewWithLabel)
 -- Abhängigkeiten von anderen Modulen
-import Zug.LinkedMVar
-import Zug.Options
-import Zug.Anbindung (pinMapEmpty)
+import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>))
 import qualified Zug.Language as Language
-import Zug.UI.Base
-import qualified Zug.UI.Save as Save
-import Zug.UI.GTK.Widgets
-import Zug.UI.GTK.Dialog
+import Zug.UI.Base (Status, statusLeerNeu)
+import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
+import Zug.UI.GTK.Widget (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
+                        widgetShowNew, containerAddWidgetNew, boxPack, boxPackWidgetNew,
+                        paddingDefault, positionDefault, packingDefault,
+                        buttonNewWithEventMnemonic, scrolledWidgedNotebookAppendPageNew)
+import Zug.UI.GTK.FortfahrenWennToggled (fortfahrenWennToggledTMVar)
+import Zug.UI.GTK.Dialog (buttonHinzufügenPack, buttonSpeichernPack, buttonLadenPack, ladeWidgets)
 
 -- | main loop
 main :: IO ()
@@ -53,39 +58,74 @@ setupGUI :: IO ()
 setupGUI = void $ do
     -- Hauptfenster
     windowMain <- widgetShowNew windowNew
-    set windowMain [windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text), windowDefaultWidth := 640, windowDefaultHeight := 480]
+    set windowMain [
+        windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text),
+        windowDefaultWidth := 640,
+        windowDefaultHeight := 480]
     -- windowDefaultHeight wird aus irgendeinem Grund ignoriert. Wird hier trotzdem gesetzt für den Fall, dass sich das in einer neueren Version ändert.
     on windowMain deleteEvent $ liftIO $ mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ vBoxNew False 0
+    statusInitial <- statusLeerNeu
+    tmvarStatus <- newTMVarIO statusInitial
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault notebookNew
-    (_scrolledWindow, vBoxBahngeschwindigkeiten)    <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.bahngeschwindigkeiten $ vBoxNew False 0
-    (_scrolledWindow, vBoxStreckenabschnitte)       <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.streckenabschnitte $ vBoxNew False 0
-    (_scrolledWindow, vBoxWeichen)                  <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.weichen $ vBoxNew False 0
-    (_scrolledWindow, vBoxKupplungen)               <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.kupplungen $ vBoxNew False 0
-    (_scrolledWindow, vBoxWegstrecken)              <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.wegstrecken $ vBoxNew False 0
-    (_scrolledWindow, vBoxPläne)                    <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.pläne $ vBoxNew False 0
-    progressBarPlan                                         <- widgetShowNew progressBarNew
-    vBoxHinzufügenWegstreckeBahngeschwindigkeiten           <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanBahngeschwindigkeiten                 <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanBahngeschwindigkeitenLego             <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanBahngeschwindigkeitenMärklin          <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenWegstreckeStreckenabschnitte              <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanStreckenabschnitte                    <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenWegstreckeWeichen                         <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenGerade                         <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenKurve                          <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenLinks                          <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWeichenRechts                         <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenWegstreckeKupplungen                      <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanKupplungen                            <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit        <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego    <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenStreckenabschnitt          <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenWeiche                     <- widgetShowNew $ vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenKupplung                   <- widgetShowNew $ vBoxNew False 0
-    mvarPlanObjekt                                          <- newEmptyMVar
+    (_scrolledWindow, vBoxBahngeschwindigkeiten)
+        <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.bahngeschwindigkeiten $ vBoxNew False 0
+    (_scrolledWindow, vBoxStreckenabschnitte)
+        <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.streckenabschnitte $ vBoxNew False 0
+    (_scrolledWindow, vBoxWeichen)
+        <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.weichen $ vBoxNew False 0
+    (_scrolledWindow, vBoxKupplungen)
+        <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.kupplungen $ vBoxNew False 0
+    (_scrolledWindow, vBoxWegstrecken)
+        <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.wegstrecken $ vBoxNew False 0
+    (_scrolledWindow, vBoxPläne)
+        <- scrolledWidgedNotebookAppendPageNew notebookElemente Language.pläne $ vBoxNew False 0
+    progressBarPlan
+        <- widgetShowNew progressBarNew
+    vBoxHinzufügenWegstreckeBahngeschwindigkeiten
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanBahngeschwindigkeiten
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanBahngeschwindigkeitenLego
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenWegstreckeStreckenabschnitte
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanStreckenabschnitte
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenWegstreckeWeichen
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenGerade
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenKurve
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenLinks
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWeichenRechts
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenWegstreckeKupplungen
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanKupplungen
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenStreckenabschnitt
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenWeiche
+        <- widgetShowNew $ vBoxNew False 0
+    vBoxHinzufügenPlanWegstreckenKupplung
+        <- widgetShowNew $ vBoxNew False 0
+    buttonHinzufügenWegstrecke
+        <- buttonNewWithLabel (Language.hinzufügen :: Text)
+    fortfahrenWennToggledWegstrecke <- fortfahrenWennToggledTMVar buttonHinzufügenWegstrecke tmvarStatus
+    tmvarPlanObjekt
+        <- newEmptyTMVarIO
     let dynamischeWidgets = DynamischeWidgets {
         vBoxBahngeschwindigkeiten,
         vBoxStreckenabschnitte,
@@ -114,19 +154,24 @@ setupGUI = void $ do
         vBoxHinzufügenPlanWegstreckenKupplung,
         progressBarPlan,
         windowMain,
-        mvarPlanObjekt}
+        fortfahrenWennToggledWegstrecke,
+        tmvarPlanObjekt}
     -- Knopf-Leiste mit globalen Funktionen
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault False $ hBoxNew False 0
-    (_button, mvarStatus) <- buttonHinzufügenPack windowMain functionBox dynamischeWidgets
+    _buttonHinzufügen <- buttonHinzufügenPack windowMain functionBox tmvarStatus dynamischeWidgets
     boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
-    buttonSpeichernPack windowMain functionBox mvarStatus
-    buttonLadenPack windowMain functionBox mvarStatus dynamischeWidgets
-    boxPackWidgetNew functionBox packingDefault paddingDefault False $ buttonNewWithEventMnemonic Language.beenden $ mainQuit
-    statusLeerNeu >>= putLMVar mvarStatus
+    buttonSpeichernPack windowMain functionBox tmvarStatus
+    buttonLadenPack windowMain functionBox tmvarStatus dynamischeWidgets
+    boxPackWidgetNew functionBox packingDefault paddingDefault False $
+        buttonNewWithEventMnemonic Language.beenden $ mainQuit
     -- Lade Datei angegeben in Kommandozeilenargument
     (Options {load=dateipfad}) <- getOptions
-    -- neuer Status ist schon in mvarStatus gespeichert und muss nicht mehr neu gesetzt werden
-    Save.laden dateipfad (ladeWidgets mvarStatus dynamischeWidgets) >>= \case
-        (Nothing)           -> pure ()
-        (Just konstruktor)  -> void $ newMVar pinMapEmpty >>= konstruktor
+    -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
+    let
+        ladeAktion :: Status -> IO StatusGUI
+        ladeAktion = ladeWidgets tmvarStatus dynamischeWidgets
+        fehlerBehandlung :: IOStatusGUI ()
+        fehlerBehandlung = State.put statusInitial
+    flip State.evalStateT statusInitial $ ausführenBefehl $
+                        Laden dateipfad ladeAktion fehlerBehandlung
 #endif

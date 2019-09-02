@@ -9,59 +9,58 @@ module Zug.UI.Cmd.Lexer (lexer, Token(..), EingabeTokenAllgemein(..), EingabeTok
 import Text.Read
 import qualified Data.Text as T
 import Data.Text (Text, unpack)
-import Numeric.Natural
+import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Language
+import qualified Zug.Language as Language
 
 -- | Text-Eingabe in Token übersetzen
 lexer :: [Text] -> [EingabeTokenAllgemein]
-lexer   ([])    = []
-lexer   (h:t)   = (lexEinen h):(lexer t)
+lexer = map lexEinen
 
 lexEinen :: Text -> EingabeTokenAllgemein
 lexEinen  eingabe
-    | istGleich eingabe beenden     = TkBeenden
-    | istGleich eingabe abbrechen   = TkAbbrechen
+    | istGleich eingabe Language.beenden    = TkBeenden
+    | istGleich eingabe Language.abbrechen  = TkAbbrechen
 lexEinen  eingabe = Tk $ EingabeToken {eingabe, möglichkeiten=[token | (befehl, token) <- befehlToken, istBefehl eingabe befehl], ganzzahl=readMaybe $ unpack eingabe}
     where
         befehlToken :: [(Text, Token)]
         befehlToken = [
-            (beenden            , Beenden),
-            (abbrechen          , Abbrechen),
-            (rückgängig         , Rückgängig),
-            (hinzufügen         , Hinzufügen),
-            (entfernen          , Entfernen),
-            (speichern          , Speichern),
-            (laden              , Laden),
-            (geschwindigkeit    , Geschwindigkeit),
-            (umdrehen           , Umdrehen),
-            (stellen            , Stellen),
-            (strom              , Strom),
-            (fließend           , Fließend),
-            (gesperrt           , Gesperrt),
-            (an                 , An),
-            (aus                , Aus),
-            (kuppeln            , Kuppeln),
-            (einstellen         , Einstellen),
-            (ausführen          , Ausführen),
-            (ausführenAbbrechen , AusführenAbbrechen),
-            (warten             , Warten),
-            (plan               , Plan),
-            (wegstrecke         , Wegstrecke),
-            (weiche             , Weiche),
-            (bahngeschwindigkeit, Bahngeschwindigkeit),
-            (streckenabschnitt  , Streckenabschnitt),
-            (kupplung           , Kupplung),
-            (märklin            , Märklin),
-            (lego               , Lego),
-            (gerade             , Gerade),
-            (kurve              , Kurve),
-            (links              , Links),
-            (rechts             , Rechts),
-            (vorwärts           , Vorwärts),
-            (rückwärts          , Rückwärts),
-            (high               , HIGH),
-            (low                , LOW)]
+            (Language.beenden               , Beenden),
+            (Language.abbrechen             , Abbrechen),
+            (Language.rückgängig            , Rückgängig),
+            (Language.hinzufügen            , Hinzufügen),
+            (Language.entfernen             , Entfernen),
+            (Language.speichern             , Speichern),
+            (Language.laden                 , Laden),
+            (Language.geschwindigkeit       , Geschwindigkeit),
+            (Language.umdrehen              , Umdrehen),
+            (Language.stellen               , Stellen),
+            (Language.strom                 , Strom),
+            (Language.fließend              , Fließend),
+            (Language.gesperrt              , Gesperrt),
+            (Language.an                    , An),
+            (Language.aus                   , Aus),
+            (Language.kuppeln               , Kuppeln),
+            (Language.einstellen            , Einstellen),
+            (Language.ausführen             , Ausführen),
+            (Language.ausführenAbbrechen    , AusführenAbbrechen),
+            (Language.warten                , Warten),
+            (Language.plan                  , Plan),
+            (Language.wegstrecke            , Wegstrecke),
+            (Language.weiche                , Weiche),
+            (Language.bahngeschwindigkeit   , Bahngeschwindigkeit),
+            (Language.streckenabschnitt     , Streckenabschnitt),
+            (Language.kupplung              , Kupplung),
+            (Language.märklin               , Märklin),
+            (Language.lego                  , Lego),
+            (Language.gerade                , Gerade),
+            (Language.kurve                 , Kurve),
+            (Language.links                 , Links),
+            (Language.rechts                , Rechts),
+            (Language.vorwärts              , Vorwärts),
+            (Language.rückwärts             , Rückwärts),
+            (Language.high                  , HIGH),
+            (Language.low                   , LOW)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
 data EingabeTokenAllgemein  = Tk            EingabeToken

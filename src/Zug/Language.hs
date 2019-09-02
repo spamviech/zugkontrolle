@@ -15,10 +15,10 @@ import Data.String (IsString(..))
 import Data.Text (Text)
 import qualified Data.Text.IO as T
 -- Abhängigkeit von anderen Modulen
-import Zug.Language.Operatoren
-import Zug.Options
+import Zug.Language.Operatoren ((<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), showText, addMnemonic)
+import Zug.Options (getOptions, Options(..), Sprache())
 -- TH-Auswahl der Sprache
-import Zug.Language.TemplateHaskell
+import Zug.Language.TemplateHaskell (erzeugeDeklaration, erzeugeFunktionDeklaration)
 import qualified Zug.Language.DE
 import qualified Zug.Language.EN
 -- Unsafe-IO
@@ -26,6 +26,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 -- | Gewählte Sprache
 gewählteSprache :: Sprache
+{-# NOINLINE gewählteSprache #-}
 gewählteSprache = unsafePerformIO $ getOptions >>= pure . sprache
 
 concatMapM erzeugeDeklaration [
@@ -97,8 +98,8 @@ aktionKupplung = [kuppeln]
 
 -- | Concatenate a list of strings to an eye-pleasing format
 toBefehlsString :: (Semigroup s, IsString s) => [s] -> s
-toBefehlsString ([])    = "[]"
-toBefehlsString ([s])   = s
+toBefehlsString []      = "[]"
+toBefehlsString [s]     = s
 toBefehlsString (h:t)   = h <^> toBefehlsString t
 
 -- * Unbekannte Eingabe melden

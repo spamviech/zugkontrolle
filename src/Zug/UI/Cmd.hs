@@ -17,20 +17,22 @@ import Data.Text (Text, pack)
 import Control.Monad (unless)
 import Control.Monad.Trans (liftIO)
 import Control.Monad.State (evalStateT, get, state, runState)
-import Control.Concurrent.MVar (newMVar)
+import Control.Concurrent.STM.TVar (newTVarIO)
 -- Farbige Konsolenausgabe
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
 import Zug.Language ((<~>), (<\>), (<=>), (<!>), (<:>), showText, fehlerhafteEingabe, toBefehlsString)
-import Zug.Anbindung
+import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
 import qualified Zug.UI.Save as Save
-import Zug.Options
+import Zug.Options (Options(..), getOptions)
 import Zug.Plan (Objekt)
-import Zug.UI.Base
-import Zug.UI.Befehl
+import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, liftIOFunction, AusführenMöglich(..), ausführenMöglich)
+import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
-import Zug.UI.Cmd.Parser
+import Zug.UI.Cmd.Parser (AnfrageErgebnis(..), AnfrageBefehl(..), StatusAnfrageObjekt(..),
+                        BefehlSofort(..), AnfrageNeu(..), parser, statusAnfrageObjekt,
+                        unbekanntShowText, zeigeAnfrage, zeigeAnfrageOptionen, zeigeAnfrageFehlgeschlagen)
 
 -- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
 main :: IO ()
@@ -38,8 +40,12 @@ main = do
     -- Lade Datei angegeben in Kommandozeilenargument
     (Options {load=path}) <- getOptions
     Save.laden path pure >>= \case
-        (Nothing)           -> auswertenLeererIOStatus mainStatus
-        (Just konstruktor)  -> newMVar pinMapEmpty >>= konstruktor >>= evalStateT mainStatus
+        Nothing             -> auswertenLeererIOStatus mainStatus
+        (Just konstruktor)  -> do
+            tvarPwmMap <- newTVarIO pwmMapEmpty
+            tvarI2CMap <- newTVarIO i2cMapEmpty
+            anfangsZustand <- konstruktor tvarPwmMap tvarI2CMap
+            evalStateT mainStatus anfangsZustand
 
 -- | main loop
 mainStatus :: IOStatus ()
@@ -66,31 +72,49 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
     where
         statusParserAux :: ([Befehl], AnfrageErgebnis)-> IOStatus Bool
         statusParserAux (befehle, qErgebnis) = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
-                (AEBefehl befehl)                                                   -> ausführenBefehl befehl
-                (AEBefehlSofort befehlSofort eingabeRest)                           -> do
-                    ergebnis <- ausführenBefehlSofort befehlSofort
-                    statusParserAux $ parser ergebnis eingabeRest
-                (AEStatusAnfrage qObjektIOStatus konstruktor backup eingabeRest)    -> statusAnfrage qObjektIOStatus konstruktor backup eingabeRest
-                (AEAnfrageBefehl (AnfrageBefehl))                                   -> pure False
-                (AEAnfrageBefehl (ABUnbekannt AnfrageBefehl eingabe))               -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
-                (AEAnfrageBefehl (ABUnbekannt anfrage eingabe))                     -> liftIO (setSGR [SetColor Foreground Vivid Red] >> T.putStr (unbekanntShowText anfrage eingabe) >> setSGR [Reset]) >> promptS "" >>= statusParserAux.(parser anfrage).lexer
-                (AEAnfrageBefehl anfrage)                                           -> do
-                    case zeigeAnfrageOptionen anfrage of
-                        (Nothing)               -> pure ()
-                        (Just anfrageOptionen)  -> liftIO $ setSGR [SetColor Foreground Dull Blue] >> putStrLn anfrageOptionen >> setSGR [Reset]
-                    promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
-        statusAnfrage :: StatusAnfrageObjekt -> (Objekt -> AnfrageErgebnis) -> AnfrageBefehl -> [EingabeTokenAllgemein] -> IOStatus Bool
-        statusAnfrage qObjektIOStatus konstruktor backup eingabeRest = state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
-            (Right objekt)  -> case konstruktor objekt of
                 (AEBefehl befehl)
-                    -> ausführenBefehl befehl >> statusParser eingabeRest
-                (AEBefehlSofort befehl eingabeRest1)
-                    -> statusParserAux ([], AEBefehlSofort befehl $ eingabeRest1 ++ eingabeRest)
-                (AEStatusAnfrage qObjektIOStatus1 konstruktor1 backup1 eingabeRest1)
-                    -> statusAnfrage qObjektIOStatus1 konstruktor1 backup1 $ eingabeRest1 ++ eingabeRest
+                    -> ausführenBefehl befehl
+                (AEBefehlSofort befehlSofort eingabeRest)
+                    -> do
+                        ergebnis <- ausführenBefehlSofort befehlSofort
+                        statusParserAux $ parser ergebnis eingabeRest
+                (AEStatusAnfrage qObjektIOStatus konstruktor backup eingabeRest)
+                    -> statusAnfrage qObjektIOStatus konstruktor backup eingabeRest
+                (AEAnfrageBefehl (AnfrageBefehl))
+                    -> pure False
+                (AEAnfrageBefehl (ABUnbekannt AnfrageBefehl eingabe))
+                    -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
+                (AEAnfrageBefehl (ABUnbekannt anfrage eingabe))
+                    -> do
+                        liftIO $ do
+                            setSGR [SetColor Foreground Vivid Red]
+                            T.putStr $ unbekanntShowText anfrage eingabe
+                            setSGR [Reset]
+                        promptS "" >>= statusParserAux . parser anfrage . lexer
                 (AEAnfrageBefehl anfrage)
-                    -> statusParserAux $ parser anfrage eingabe
-            (Left anfrage)  -> promptS (zeigeAnfrageFehlgeschlagen anfrage $ erhalteEingabe anfrage <!> zeigeAnfrage anfrage <:> "") >>= statusParserAux.(parser backup).lexer
+                    -> do
+                        case zeigeAnfrageOptionen anfrage of
+                            (Nothing)               -> pure ()
+                            (Just anfrageOptionen)  -> liftIO $ do
+                                setSGR [SetColor Foreground Dull Blue]
+                                putStrLn anfrageOptionen
+                                setSGR [Reset]
+                        promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
+        statusAnfrage :: StatusAnfrageObjekt -> (Objekt -> AnfrageErgebnis) -> AnfrageBefehl -> [EingabeTokenAllgemein] -> IOStatus Bool
+        statusAnfrage qObjektIOStatus konstruktor backup eingabeRest
+            = state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
+                (Right objekt)
+                    -> case konstruktor objekt of
+                        (AEBefehl befehl)
+                            -> ausführenBefehl befehl >> statusParser eingabeRest
+                        (AEBefehlSofort befehl eingabeRest1)
+                            -> statusParserAux ([], AEBefehlSofort befehl $ eingabeRest1 ++ eingabeRest)
+                        (AEStatusAnfrage qObjektIOStatus1 konstruktor1 backup1 eingabeRest1)
+                            -> statusAnfrage qObjektIOStatus1 konstruktor1 backup1 $ eingabeRest1 ++ eingabeRest
+                        (AEAnfrageBefehl anfrage)
+                            -> statusParserAux $ parser anfrage eingabe
+                (Left anfrage)
+                    -> promptS (zeigeAnfrageFehlgeschlagen anfrage $ erhalteEingabe anfrage <!> zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser backup . lexer
         erhalteEingabe :: StatusAnfrageObjekt -> Text
         erhalteEingabe  (SAOUnbekannt eingabe)                            = eingabe
         erhalteEingabe  (SAOPlan (EingabeToken {eingabe}))                = eingabe
@@ -103,7 +127,8 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl
 ausführenBefehlSofort   (BSLaden dateipfad)         = do
-    ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> pack dateipfad
+    ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $
+        Language.nichtGefundeneDatei <=> pack dateipfad
     pure AnfrageBefehl
 ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >>= pure . \case
         (AusführenMöglich)  -> ABAktionPlan plan

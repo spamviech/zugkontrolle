@@ -29,15 +29,24 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung
-import Zug.Klassen
+import Zug.Anbindung (Pin(), StreckenObjekt(..), alleValues, zuPin,
+                    Wegstrecke(..), WegstreckeKlasse(),
+                    Weiche(..), WeicheKlasse(..),
+                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(),
+                    Streckenabschnitt(..), StreckenabschnittKlasse(),
+                    Kupplung(..), KupplungKlasse())
+import Zug.Klassen (Richtung(..), unterstützteRichtungen, Fahrtrichtung(..), unterstützteFahrtrichtungen,
+                    Zugtyp(..), unterstützteZugtypen , Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), (<\>), showText, fehlerText, toBefehlsString)
 import qualified Zug.Menge as Menge
-import Zug.Plan
-import Zug.Warteschlange
-import Zug.UI.Base
-import Zug.UI.Befehl
+import Zug.Plan (Objekt, Plan, ObjektAllgemein(..), Plan(..), Aktion(..),
+                AktionWegstrecke(..), AktionWeiche(..), AktionBahngeschwindigkeit(..),
+                AktionStreckenabschnitt(..), AktionKupplung(..))
+import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes)
+import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
+                    getStreckenabschnitte, getKupplungen)
+import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token())
 

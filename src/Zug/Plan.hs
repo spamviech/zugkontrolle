@@ -17,7 +17,8 @@ module Zug.Plan (
     AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionKupplung(..), AktionWegstrecke(..)) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO, MVar, modifyMVar_, readMVar)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
 import Data.Kind (Type)
 import Data.Semigroup (Semigroup(..))
@@ -25,26 +26,20 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen (Zugtyp(..), Richtung(), Fahrtrichtung(), Strom(..))
-import Zug.Anbindung (StreckenObjekt(..), Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), Pin(), PinMapIO, warteµs)
+import Zug.Anbindung (StreckenObjekt(..), Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), Pin(), PwmMapIO, warteµs)
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ws pl
-    = OBahngeschwindigkeit
-        bg
-    | OStreckenabschnitt
-        st
-    | OKupplung
-        ku
-    | OWeiche
-        we
-    | OWegstrecke
-        ws
-    | OPlan
-        pl
-            deriving (Eq)
+    = OBahngeschwindigkeit bg
+    | OStreckenabschnitt st
+    | OKupplung ku
+    | OWeiche we
+    | OWegstrecke ws
+    | OPlan pl
+        deriving (Eq)
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
@@ -135,9 +130,9 @@ instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjek
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
--- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der MVar-Liste vorhanden ist.
+-- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-Liste vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
+    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapIO ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -166,22 +161,25 @@ instance StreckenObjekt Plan where
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> MVar (Menge Ausführend) -> PinMapIO ()
-    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion mvarAusführend mvarPinMap = void $ forkIO $ void $ do
-        modifyMVar_ mvarAusführend $ pure . hinzufügen (Ausführend plan)
+    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapIO ()
+    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion tvarAusführend tvarPwmMap = void $ forkIO $ void $ do
+        atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
         showAktion $ fromIntegral $ length plAktionen
         endAktion
             where
                 ausführenAux :: Natural -> [Aktion] ->IO ()
-                ausführenAux    _i  ([])    = modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
+                ausführenAux    _i  ([])    = atomically $ modifyTVar tvarAusführend $ entfernen (Ausführend plan)
                 ausführenAux    i   (h:t)   = do
-                    ausführend <- readMVar mvarAusführend
-                    when (elem (Ausführend plan) ausführend) $ showAktion i >> ausführenAktion h mvarPinMap >> ausführenAux (succ i) t
+                    ausführend <- readTVarIO tvarAusführend
+                    when (elem (Ausführend plan) ausführend) $ do
+                        showAktion i
+                        ausführenAktion h tvarPwmMap
+                        ausführenAux (succ i) t
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where
-    ausführenAktion :: a -> PinMapIO ()
+    ausführenAktion :: a -> PwmMapIO ()
 
 -- | Eine Aktion eines 'StreckenObjekt's oder eine Wartezeit.
 -- Die Update-Funktion wird nicht aufgerufen.
@@ -227,7 +225,7 @@ instance StreckenObjekt Aktion where
     erhalteName = showText
 
 instance AktionKlasse Aktion where
-    ausführenAktion :: Aktion -> PinMapIO ()
+    ausführenAktion :: Aktion -> PwmMapIO ()
     ausführenAktion (Warten time)                   = const $ warteµs time
     ausführenAktion (AWegstrecke aktion)            = ausführenAktion aktion
     ausführenAktion (AWeiche aktion)                = ausführenAktion aktion
@@ -268,7 +266,7 @@ instance (WegstreckeKlasse ws, Show ws) => StreckenObjekt (AktionWegstrecke ws) 
     erhalteName = showText
 
 instance (WegstreckeKlasse ws) => AktionKlasse (AktionWegstrecke ws) where
-    ausführenAktion :: AktionWegstrecke ws -> PinMapIO ()
+    ausführenAktion :: AktionWegstrecke ws -> PwmMapIO ()
     ausführenAktion (Einstellen ws)                 = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit aktion) = ausführenAktion aktion
     ausführenAktion (AWSStreckenabschnitt aktion)   = ausführenAktion aktion
@@ -293,7 +291,7 @@ instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
     erhalteName = showText
 
 instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
-    ausführenAktion :: AktionWeiche w -> PinMapIO ()
+    ausführenAktion :: AktionWeiche w -> PwmMapIO ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg   = Geschwindigkeit
@@ -321,7 +319,7 @@ instance (BahngeschwindigkeitKlasse bg, Show bg) => StreckenObjekt (AktionBahnge
     erhalteName = showText
 
 instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigkeit bg) where
-    ausführenAktion :: AktionBahngeschwindigkeit bg -> PinMapIO ()
+    ausführenAktion :: AktionBahngeschwindigkeit bg -> PwmMapIO ()
     ausführenAktion (Geschwindigkeit bg wert)           = geschwindigkeit bg wert
     ausführenAktion (Umdrehen bg maybeFahrtrichtung)    = umdrehen bg maybeFahrtrichtung
 
@@ -345,7 +343,7 @@ instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStrecken
     erhalteName = showText
 
 instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt st) where
-    ausführenAktion :: AktionStreckenabschnitt st -> PinMapIO ()
+    ausführenAktion :: AktionStreckenabschnitt st -> PwmMapIO ()
     ausführenAktion (Strom st an) = strom st an
 
 -- | Aktionen einer Kupplung
@@ -366,7 +364,7 @@ instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) wher
     erhalteName = showText
 
 instance (KupplungKlasse ku) => AktionKlasse (AktionKupplung ku) where
-    ausführenAktion :: AktionKupplung ku -> PinMapIO ()
+    ausführenAktion :: AktionKupplung ku -> PwmMapIO ()
     ausführenAktion (Kuppeln ku) = kuppeln ku
 
 -- | Hilfsfunktion um den ersten nicht-'Undefiniert'en 'Zugtyp' zu erhalten

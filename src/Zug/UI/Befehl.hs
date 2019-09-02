@@ -15,44 +15,52 @@ module Zug.UI.Befehl (
                     BefehlListe, BefehlListeAllgemein(..),
                     UIBefehl, UIBefehlAllgemein(..),
                     -- * Funktionen
-                    ausführenMVarPlan, ausführenMVarAktion, ausführenMVarBefehl) where
+                    ausführenTMVarPlan, ausführenTMVarAktion, ausführenTMVarBefehl) where
 
 -- Bibliotheken
 import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get, put)
-import Control.Concurrent.MVar (MVar, takeMVar, putMVar, modifyMVar_)
+import Control.Concurrent.STM (atomically, TVar, writeTVar, modifyTVar, TMVar)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung
-import Zug.LinkedMVar
-import Zug.Menge
-import Zug.Plan
+import Zug.Anbindung (PwmMap, pwmMapEmpty, i2cMapEmpty)
+import Zug.Menge (Menge, entfernen)
+import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(), Plan(),
+                Ausführend(..), AktionKlasse(), Aktion(), ausführenPlan, ausführenAktion)
 import qualified Zug.UI.Save as Save
-import Zug.UI.Base
+import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein,
+                    auswertenTMVarIOStatus, übergebeTVarPwmMap, liftIOFunction,
+                    getTVarAusführend, getTVarPwmMap, getTVarI2CMap,
+                    hinzufügenPlan, entfernenPlan,
+                    hinzufügenWegstrecke, entfernenWegstrecke,
+                    hinzufügenWeiche, entfernenWeiche,
+                    hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit,
+                    hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
+                    hinzufügenKupplung, entfernenKupplung)
 
 -- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarPlan :: (PlanKlasse (PL o), LikeMVar lmvar)
-            => PL o -> (Natural -> IO ()) -> IO () -> lmvar (StatusAllgemein o) -> IO ()
-ausführenMVarPlan plan showAktion endAktion mvarStatus = do
-    (mvarAusführend, mvarPinMap) <- auswertenMVarIOStatus getMVars mvarStatus
+ausführenTMVarPlan :: (PlanKlasse (PL o))
+            => PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> IO ()
+ausführenTMVarPlan plan showAktion endAktion tmvarStatus = do
+    (mvarAusführend, mvarPinMap) <- auswertenTMVarIOStatus getTVars tmvarStatus
     ausführenPlan plan showAktion endAktion mvarAusführend mvarPinMap
         where
-            getMVars :: IOStatusAllgemein o (MVar (Menge Ausführend), MVar PinMap)
-            getMVars = do
-                mvarAusführend <- getMVarAusführend
-                mvarPinMap <- getMVarPinMap
-                pure (mvarAusführend, mvarPinMap)
+            getTVars :: IOStatusAllgemein o (TVar (Menge Ausführend), TVar PwmMap)
+            getTVars = do
+                tvarAusführend <- getTVarAusführend
+                tvarPwmMap <- getTVarPwmMap
+                pure (tvarAusführend, tvarPwmMap)
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarAktion   :: (AktionKlasse a, LikeMVar lmvar)
-                => a -> lmvar (StatusAllgemein o) -> IO ()
-ausführenMVarAktion aktion mvarStatus = auswertenMVarIOStatus getMVarPinMap mvarStatus >>= ausführenAktion aktion
+ausführenTMVarAktion   :: (AktionKlasse a)
+                => a -> TMVar (StatusAllgemein o) -> IO ()
+ausführenTMVarAktion aktion tmvarStatus = auswertenTMVarIOStatus getTVarPwmMap tmvarStatus >>= ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
-ausführenMVarBefehl :: (BefehlKlasse b, LikeMVar lmvar, ObjektKlasse o, ToJSON o, Eq (BG o) , Eq (ST o) , Eq (WE o) , Eq (KU o) , Eq (WS o) , Eq (PL o))
-                    => b o -> lmvar (StatusAllgemein o) -> IO Bool
-ausführenMVarBefehl befehl = auswertenMVarIOStatus $ ausführenBefehl befehl
+ausführenTMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, ToJSON o, Eq (BG o) , Eq (ST o) , Eq (WE o) , Eq (KU o) , Eq (WS o) , Eq (PL o))
+                    => b o -> TMVar (StatusAllgemein o) -> IO Bool
+ausführenTMVarBefehl befehl = auswertenTMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
 class BefehlKlasse b where
@@ -93,30 +101,47 @@ instance BefehlKlasse BefehlAllgemein where
         where
             ausführenBefehlAux :: (ObjektKlasse o, ToJSON o, Eq (BG o) , Eq (ST o) , Eq (WE o) , Eq (KU o) , Eq (WS o) , Eq (PL o))
                                 => BefehlAllgemein o -> IOStatusAllgemein o ()
-            ausführenBefehlAux  (UI uiAction)       = error $ "Vergessene UI-Aktion: " ++ show uiAction
-            ausführenBefehlAux  (Hinzufügen objekt) = case erhalteObjekt objekt of
-                (OPlan plan)                                -> hinzufügenPlan plan
-                (OWegstrecke wegstrecke)                    -> hinzufügenWegstrecke wegstrecke
-                (OWeiche weiche)                            -> hinzufügenWeiche weiche
-                (OBahngeschwindigkeit bahngeschwindigkeit)  -> hinzufügenBahngeschwindigkeit bahngeschwindigkeit
-                (OStreckenabschnitt streckenabschnitt)      -> hinzufügenStreckenabschnitt streckenabschnitt
-                (OKupplung kupplung)                        -> hinzufügenKupplung kupplung
-            ausführenBefehlAux  (Entfernen objekt)  = case erhalteObjekt objekt of
-                (OPlan plan)                                -> entfernenPlan plan
-                (OWegstrecke wegstrecke)                    -> entfernenWegstrecke wegstrecke
-                (OWeiche weiche)                            -> entfernenWeiche weiche
-                (OBahngeschwindigkeit bahngeschwindigkeit)  -> entfernenBahngeschwindigkeit bahngeschwindigkeit
-                (OStreckenabschnitt streckenabschnitt)      -> entfernenStreckenabschnitt streckenabschnitt
-                (OKupplung kupplung)                        -> entfernenKupplung kupplung
-            ausführenBefehlAux  (Speichern dateipfad)                                   = get >>= liftIOFunction (flip Save.speichern dateipfad)
-            ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)        = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
-                (Nothing)                   -> fehlerbehandlung
-                (Just konstruktor)          -> getMVarPinMap >>= \mvarPinMap -> liftIO (takeMVar mvarPinMap >> putMVar mvarPinMap pinMapEmpty >> konstruktor mvarPinMap) >>= put
-            ausführenBefehlAux  (Ausführen plan showAction endAktion)                   = do
-                mvarAusführend <- getMVarAusführend
-                übergebeMVarPinMap $ ausführenPlan plan showAction endAktion mvarAusführend
-            ausführenBefehlAux  (AusführenAbbrechen plan)                               = getMVarAusführend >>= \mvarAusführend -> liftIO $ modifyMVar_ mvarAusführend $ pure . entfernen (Ausführend plan)
-            ausführenBefehlAux  (AktionBefehl aktion)                                   = übergebeMVarPinMap $ ausführenAktion aktion
+            ausführenBefehlAux  (UI uiAction)
+                = error $ "Vergessene UI-Aktion: " ++ show uiAction
+            ausführenBefehlAux  (Hinzufügen objekt)
+                = case erhalteObjekt objekt of
+                    (OPlan plan)                                -> hinzufügenPlan plan
+                    (OWegstrecke wegstrecke)                    -> hinzufügenWegstrecke wegstrecke
+                    (OWeiche weiche)                            -> hinzufügenWeiche weiche
+                    (OBahngeschwindigkeit bahngeschwindigkeit)  -> hinzufügenBahngeschwindigkeit bahngeschwindigkeit
+                    (OStreckenabschnitt streckenabschnitt)      -> hinzufügenStreckenabschnitt streckenabschnitt
+                    (OKupplung kupplung)                        -> hinzufügenKupplung kupplung
+            ausführenBefehlAux  (Entfernen objekt)
+                = case erhalteObjekt objekt of
+                    (OPlan plan)                                -> entfernenPlan plan
+                    (OWegstrecke wegstrecke)                    -> entfernenWegstrecke wegstrecke
+                    (OWeiche weiche)                            -> entfernenWeiche weiche
+                    (OBahngeschwindigkeit bahngeschwindigkeit)  -> entfernenBahngeschwindigkeit bahngeschwindigkeit
+                    (OStreckenabschnitt streckenabschnitt)      -> entfernenStreckenabschnitt streckenabschnitt
+                    (OKupplung kupplung)                        -> entfernenKupplung kupplung
+            ausführenBefehlAux  (Speichern dateipfad)
+                = get >>= liftIOFunction (flip Save.speichern dateipfad)
+            ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
+                = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
+                    Nothing             -> fehlerbehandlung
+                    (Just konstruktor)  -> do
+                        tvarPwmMap <- getTVarPwmMap
+                        tvarI2CMap <- getTVarI2CMap
+                        statusNeu <- liftIO $ do
+                            atomically $ writeTVar tvarPwmMap pwmMapEmpty
+                            atomically $ writeTVar tvarI2CMap i2cMapEmpty
+                            konstruktor tvarPwmMap tvarI2CMap
+                        put statusNeu
+            ausführenBefehlAux  (Ausführen plan showAction endAktion)
+                = do
+                    tvarAusführend <- getTVarAusführend
+                    übergebeTVarPwmMap $ ausführenPlan plan showAction endAktion tvarAusführend
+            ausführenBefehlAux  (AusführenAbbrechen plan)
+                = do
+                    tvarAusführend <- getTVarAusführend
+                    liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+            ausführenBefehlAux  (AktionBefehl aktion)
+                = übergebeTVarPwmMap $ ausführenAktion aktion
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten. Daher wird ein newtype benötigt.
 newtype BefehlListeAllgemein o = BefehlListe {getBefehlListe :: [BefehlAllgemein o]}
@@ -130,6 +155,6 @@ instance BefehlKlasse BefehlListeAllgemein where
         where
             ausführenBefehlAux  :: (ObjektKlasse o, ToJSON o , Eq (BG o) , Eq (ST o) , Eq (WE o) , Eq (KU o) , Eq (WS o) , Eq (PL o))
                                 =>  [BefehlAllgemein o] -> IOStatusAllgemein o Bool
-            ausführenBefehlAux ([])    = pure False
+            ausführenBefehlAux []      = pure False
             ausführenBefehlAux (h:[])  = ausführenBefehl h
             ausführenBefehlAux (h:t)   = ausführenBefehl h >>= \ende -> if ende then pure True else ausführenBefehlAux t

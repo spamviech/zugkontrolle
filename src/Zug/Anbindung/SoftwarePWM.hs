@@ -7,25 +7,27 @@ Im Gegensatz zu Hardware-basierter PWM, die nur von einigen Pins des Raspberry P
 -}
 module Zug.Anbindung.SoftwarePWM (
     -- * Map über aktuell laufende PWM-Ausgabe
-    PinMap, PinMapIO, pinMapEmpty,
+    PwmMap, PwmMapIO, pwmMapEmpty,
     -- * Aufruf der PWM-Funktion und zugehörige Hilfsfunktionen
     pwmSoftwareSetzteWert, pwmGrenze, warteµs) where
 
 -- Bibliotheken
-import qualified Data.Map.Strict as Map
-import System.Hardware.WiringPi
-import Control.Concurrent
+import Data.Map.Lazy (Map)
+import qualified Data.Map.Lazy as Map
+import System.Hardware.WiringPi (Pin(), PwmValue(), Value(..), Mode(..), pinMode, digitalWrite)
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
 import Control.Monad (void, when)
 import Data.Maybe (isNothing)
 import Numeric.Natural (Natural)
 
 -- | Welche Pins haben aktuell Software-PWM
-type PinMap = Map.Map Pin (PwmValue, Natural)
--- | Abkürzung für Funktionen, die die aktuelle PinMap benötigen
-type PinMapIO a = MVar PinMap -> IO a
--- | Leere PinMap
-pinMapEmpty :: PinMap
-pinMapEmpty = Map.empty
+type PwmMap = Map Pin (PwmValue, Natural)
+-- | Abkürzung für Funktionen, die die aktuelle 'PwmMap' benötigen
+type PwmMapIO a = TVar PwmMap -> IO a
+-- | Leere 'PwmMap'
+pwmMapEmpty :: PwmMap
+pwmMapEmpty = Map.empty
 
 -- | Maximaler Range-Wert der PWM-Funktion
 pwmGrenze :: PwmValue
@@ -33,7 +35,7 @@ pwmGrenze = 1024
 
 -- | Erhalte Zeit in µs, die der Strom während einer PWM-Periode (an, aus) ist.
 pwmBerechneZeiten :: Natural -> PwmValue -> (Natural, Natural)
-pwmBerechneZeiten   pwmFrequenzHz   pwmWert = (zeitAnµs, zeitAusµs)
+pwmBerechneZeiten pwmFrequenzHz pwmWert = (zeitAnµs, zeitAusµs)
     where
         zeitAnµs :: Natural
         zeitAnµs = div (pwmPeriodendauerµs * (fromIntegral pwmWert)) (fromIntegral pwmGrenze)
@@ -45,21 +47,24 @@ pwmBerechneZeiten   pwmFrequenzHz   pwmWert = (zeitAnµs, zeitAusµs)
         pwmPeriodendauerµs = div µsInS pwmFrequenzHz
 
 -- | Nutze Haskell-Module um ein Software-generiertes PWM-Signal zu erzeugen
-pwmSoftwareSetzteWert :: Pin -> Natural -> PwmValue -> PinMapIO ()
-pwmSoftwareSetzteWert pin _pwmFrequency  0           mvarPinMap = modifyMVar_ mvarPinMap $ pure . Map.delete pin
-pwmSoftwareSetzteWert pin pwmFrequenz   pwmWert    mvarPinMap = do
-    pinMapAlt <- modifyMVar mvarPinMap $ \pinMapAlt -> pure (Map.insert pin (pwmWert, pwmFrequenz) pinMapAlt, pinMapAlt)
+pwmSoftwareSetzteWert :: Pin -> Natural -> PwmValue -> PwmMapIO ()
+pwmSoftwareSetzteWert pin _pwmFrequency 0          tvarPwmMap = atomically $ modifyTVar tvarPwmMap $ Map.delete pin
+pwmSoftwareSetzteWert pin pwmFrequenz   pwmWert    tvarPwmMap = do
+    pwmMapAlt <- atomically $ do
+        pwmMapAlt <- readTVar tvarPwmMap
+        writeTVar tvarPwmMap $ Map.insert pin (pwmWert, pwmFrequenz) pwmMapAlt
+        pure pwmMapAlt
     -- Starte neuen Pwm-Thread, falls er noch nicht existiert
-    when (isNothing $ Map.lookup pin pinMapAlt) $ void $ forkIO $ pwmSoftwarePinMain pin mvarPinMap
+    when (isNothing $ Map.lookup pin pwmMapAlt) $ void $ forkIO $ pwmSoftwarePinMain pin tvarPwmMap
 
 -- | PWM-Funktion für einen 'Pin'. Sollte in einem eigenem Thread laufen.
 -- 
--- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Pin' in der übergebenen 'MVar' 'PinMap' nicht mehr vorkommt.
-pwmSoftwarePinMain :: Pin -> PinMapIO ()
-pwmSoftwarePinMain pin mvarPinMap = do
-    pinMap <- readMVar mvarPinMap
-    case Map.lookup pin pinMap of
-        (Nothing)                       -> pure ()
+-- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Pin' in der übergebenen 'TVar' 'PwmMap' nicht mehr vorkommt.
+pwmSoftwarePinMain :: Pin -> PwmMapIO ()
+pwmSoftwarePinMain pin tvarPwmMap = do
+    pwmMap <- readTVarIO tvarPwmMap
+    case Map.lookup pin pwmMap of
+        Nothing                         -> pure ()
         (Just (pwmWert, pwmFrequenz))   -> do
             pinMode pin OUTPUT
             digitalWrite pin HIGH
@@ -67,7 +72,7 @@ pwmSoftwarePinMain pin mvarPinMap = do
             warteµs zeitAnµs
             digitalWrite pin LOW
             warteµs zeitAusµs
-            pwmSoftwarePinMain pin mvarPinMap
+            pwmSoftwarePinMain pin tvarPwmMap
 
 -- | Warte mindestens das Argument in µs.
 -- 

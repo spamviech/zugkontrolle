@@ -63,8 +63,8 @@ data Strom = Fließend | Gesperrt
 -- | Anzeigen von 'Strom'
 instance Show Strom where
     show :: Strom -> String
-    show    (Fließend)  = Language.fließend
-    show    (Gesperrt)  = Language.gesperrt
+    show    Fließend    = Language.fließend
+    show    Gesperrt    = Language.gesperrt
 
 -- | Alle Einstellmöglichkeiten eines Stroms
 unterstützteStromeinstellungen :: NonEmpty Strom

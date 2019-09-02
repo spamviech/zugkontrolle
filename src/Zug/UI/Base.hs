@@ -11,21 +11,21 @@ module Zug.UI.Base (
     -- * Zustands-Typ
     Status, StatusAllgemein(..), statusLeer, statusLeerNeu, phantom,
 #ifdef ZUGKONTROLLEGUI
-    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, mvarAusführend, mvarPinMap,
+    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, tvarAusführend, tvarPwmMap, tvarI2CMap,
 #endif
     -- * Zustands-Monade
-    IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, auswertenLeererIOStatus, auswertenMVarIOStatus, auswertenMVarMStatus,
+    IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, auswertenLeererIOStatus, auswertenTMVarIOStatus, auswertenTMVarMStatus,
     -- ** Anpassen des aktuellen Zustands
     hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung, hinzufügenWegstrecke, hinzufügenPlan,
     entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan,
     -- ** Spezialisierte Funktionen der Zustands-Monade
-    getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getMVarAusführend, getMVarPinMap,
-    putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putMVarAusführend, putMVarPinMap,
+    getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getTVarAusführend, getTVarPwmMap, getTVarI2CMap,
+    putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putTVarAusführend, putTVarPwmMap, putTVarI2CMap,
     -- * Hilfsfunktionen
-    übergebeMVarPinMap, liftIOFunction, ausführenMöglich, AusführenMöglich(..)) where
+    übergebeTVarPwmMap, liftIOFunction, ausführenMöglich, AusführenMöglich(..)) where
 
 -- Bibliotheken
-import Control.Concurrent.MVar (MVar, newMVar)
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, takeTMVar, putTMVar)
 import Control.Monad.Trans (MonadIO(..))
 import Control.Monad.State (StateT, State, evalStateT, runStateT, runState, gets, modify)
 #ifdef ZUGKONTROLLEGUI
@@ -38,12 +38,11 @@ import qualified Data.List.NonEmpty as NE
 import Data.Semigroup (Semigroup(..))
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Pin, PinMap, PinMapIO, pinMapEmpty, StreckenObjekt(..))
+import Zug.Anbindung (Pin, PwmMap, PwmMapIO, pwmMapEmpty, I2CMap, i2cMapEmpty, StreckenObjekt(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>))
-import Zug.LinkedMVar
-import Zug.Menge
-import Zug.Plan
+import Zug.Menge (Menge, leer)
+import Zug.Plan (ObjektKlasse(..), Objekt, Phantom(..), Ausführend(..), Plan, ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
 
 -- | Aktueller Status
 data StatusAllgemein o = Status {
@@ -53,8 +52,9 @@ data StatusAllgemein o = Status {
     _kupplungen :: [KU o],
     _wegstrecken :: [WS o],
     _pläne :: [PL o],
-    _mvarAusführend :: MVar (Menge Ausführend),
-    _mvarPinMap :: MVar PinMap}
+    _tvarAusführend :: TVar (Menge Ausführend),
+    _tvarPwmMap :: TVar PwmMap,
+    _tvarI2CMap :: TVar I2CMap}
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
 
@@ -67,28 +67,31 @@ phantom _status = Phantom
 -- Linsen werden daher per Hand erstellt
 -- | 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
 bahngeschwindigkeiten :: Lens' (StatusAllgemein o) [BG o]
-bahngeschwindigkeiten   = lens _bahngeschwindigkeiten   $ \status bgs -> status {_bahngeschwindigkeiten=bgs}
+bahngeschwindigkeiten   = lens _bahngeschwindigkeiten   $ \status bgs   -> status {_bahngeschwindigkeiten=bgs}
 -- | 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
 streckenabschnitte :: Lens' (StatusAllgemein o) [ST o]
-streckenabschnitte      = lens _streckenabschnitte      $ \status sts -> status {_streckenabschnitte=sts}
+streckenabschnitte      = lens _streckenabschnitte      $ \status sts   -> status {_streckenabschnitte=sts}
 -- | 'Weiche'n im aktuellen 'StatusAllgemein'
 weichen :: Lens' (StatusAllgemein o) [WE o]
-weichen                 = lens _weichen                 $ \status wes -> status {_weichen=wes}
+weichen                 = lens _weichen                 $ \status wes   -> status {_weichen=wes}
 -- | 'Kupplung'en im aktuellen 'StatusAllgemein'
 kupplungen :: Lens' (StatusAllgemein o) [KU o]
-kupplungen              = lens _kupplungen              $ \status kus -> status {_kupplungen=kus}
+kupplungen              = lens _kupplungen              $ \status kus   -> status {_kupplungen=kus}
 -- | 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 wegstrecken :: Lens' (StatusAllgemein o) [WS o]
-wegstrecken             = lens _wegstrecken             $ \status wss -> status {_wegstrecken=wss}
+wegstrecken             = lens _wegstrecken             $ \status wss   -> status {_wegstrecken=wss}
 -- | Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 pläne :: Lens' (StatusAllgemein o) [PL o]
-pläne                   = lens _pläne                   $ \status pls -> status {_pläne=pls}
+pläne                   = lens _pläne                   $ \status pls   -> status {_pläne=pls}
 -- | Aktuell ausführende Pläne ('PlanAllgemein')
-mvarAusführend :: Lens' (StatusAllgemein o) (MVar (Menge Ausführend))
-mvarAusführend              = lens _mvarAusführend          $ \status mv -> status {_mvarAusführend=mv}
+tvarAusführend :: Lens' (StatusAllgemein o) (TVar (Menge Ausführend))
+tvarAusführend          = lens _tvarAusführend          $ \status tv    -> status {_tvarAusführend=tv}
 -- | Aktuell aktive PWM-Funktionen
-mvarPinMap :: Lens' (StatusAllgemein o) (MVar PinMap)
-mvarPinMap              = lens _mvarPinMap              $ \status mv  -> status {_mvarPinMap=mv}
+tvarPwmMap :: Lens' (StatusAllgemein o) (TVar PwmMap)
+tvarPwmMap              = lens _tvarPwmMap              $ \status tv    -> status {_tvarPwmMap=tv}
+-- | Aktuelle I2C-Ausgabe
+tvarI2CMap :: Lens' (StatusAllgemein o) (TVar I2CMap)
+tvarI2CMap              = lens _tvarI2CMap              $ \status tv    -> status {_tvarI2CMap=tv}
 #endif
 
 instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
@@ -104,43 +107,43 @@ instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
             zeigeUnterliste :: (Show a) => [a] -> String
             zeigeUnterliste liste = '[' : zeigeUnterlisteAux "" 0 liste
             zeigeUnterlisteAux :: (Show a) => String -> Natural -> [a] -> String
-            zeigeUnterlisteAux  acc index   ([])    = acc <> if (index == 0) then "]" else "\n]"
+            zeigeUnterlisteAux  acc index   []      = acc <> if (index == 0) then "]" else "\n]"
             zeigeUnterlisteAux  acc index   (h : t) = zeigeUnterlisteAux (acc <\> "\t" <> (show index) <> ") " <> (show h)) (succ index) t
 
 -- | Hebe eine IO-Funktion mit Argument in eine 'MonadIO'-Monade
 liftIOFunction :: (MonadIO m) => (a -> IO b) -> (a -> m b)
 liftIOFunction f = \a -> liftIO $ f a
 
--- | Erzeuge einen neuen, leeren 'StatusAllgemein' (inklusive MVar)
+-- | Erzeuge einen neuen, leeren 'StatusAllgemein' (inklusive 'TVar')
 statusLeerNeu :: IO (StatusAllgemein o)
-statusLeerNeu = statusLeer <$> newMVar leer <*> newMVar pinMapEmpty
+statusLeerNeu = statusLeer <$> newTVarIO leer <*> newTVarIO pwmMapEmpty <*> newTVarIO i2cMapEmpty
 
--- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'MVar's.
-statusLeer :: MVar (Menge Ausführend) -> MVar PinMap -> (StatusAllgemein o)
-statusLeer mvarAusführend mvarPinMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _mvarAusführend=mvarAusführend, _mvarPinMap=mvarPinMap}
+-- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
+statusLeer :: TVar (Menge Ausführend) -> TVar PwmMap -> TVar I2CMap -> (StatusAllgemein o)
+statusLeer tvarAusführend tvarPwmMap tvarI2CMap = Status {_bahngeschwindigkeiten=[], _streckenabschnitte=[], _weichen=[], _kupplungen=[], _wegstrecken=[], _pläne=[], _tvarAusführend=tvarAusführend, _tvarPwmMap=tvarPwmMap, _tvarI2CMap=tvarI2CMap}
 
--- | Übergebe mvarPinMap aus dem Status an eine 'PinMapIO'-Funktion
-übergebeMVarPinMap :: PinMapIO a -> IOStatusAllgemein o a
-übergebeMVarPinMap f = getMVarPinMap >>= liftIOFunction f
+-- | Übergebe 'tvarPwmMap' aus dem Status an eine 'PwmMapIO'-Funktion
+übergebeTVarPwmMap :: PwmMapIO a -> IOStatusAllgemein o a
+übergebeTVarPwmMap f = getTVarPwmMap >>= liftIOFunction f
 
 -- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus
 auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO a
 auswertenLeererIOStatus ioStatus = statusLeerNeu >>= evalStateT ioStatus
 
--- | Führe IO-Aktion mit 'StatusAllgemein' in 'LikeMVar' aus
-auswertenMVarIOStatus :: (LikeMVar lmvar) => IOStatusAllgemein o a -> lmvar (StatusAllgemein o) -> IO a
-auswertenMVarIOStatus action mvarStatus = do
-    status0 <- takeLMVar mvarStatus
+-- | Führe IO-Aktion mit 'StatusAllgemein' in 'TMVar' aus
+auswertenTMVarIOStatus :: IOStatusAllgemein o a -> TMVar (StatusAllgemein o) -> IO a
+auswertenTMVarIOStatus action mvarStatus = do
+    status0 <- atomically $ takeTMVar mvarStatus
     (a, status1) <- runStateT action status0
-    putLMVar mvarStatus status1
+    atomically $ putTMVar mvarStatus status1
     pure a
 
--- | Führe Aktion mit 'StatusAllgemein' in 'LikeMVar' aus
-auswertenMVarMStatus :: (LikeMVar lmvar) => MStatusAllgemein o a -> lmvar (StatusAllgemein o) -> IO a
-auswertenMVarMStatus action mvarStatus = do
-    status0 <- takeLMVar mvarStatus
+-- | Führe Aktion mit 'StatusAllgemein' in 'TMVar' aus
+auswertenTMVarMStatus :: MStatusAllgemein o a -> TMVar (StatusAllgemein o) -> IO a
+auswertenTMVarMStatus action mvarStatus = do
+    status0 <- atomically $ takeTMVar mvarStatus
     let (a, status1) = runState action status0
-    putLMVar mvarStatus status1
+    atomically $ putTMVar mvarStatus status1
     pure a
 
 -- * Zustands-Monade mit Status als aktuellem Zustand
@@ -176,12 +179,15 @@ getWegstrecken = gets _wegstrecken
 -- | Erhalte Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 getPläne :: (Monad m) => MonadMStatusAllgemein m o [PL o]
 getPläne = gets _pläne
--- | Erhalte 'MVar' mit Liste der aktuell ausführenden Pläne ('PlanAllgmein')
-getMVarAusführend :: (Monad m) => MonadMStatusAllgemein m o (MVar (Menge Ausführend))
-getMVarAusführend = gets _mvarAusführend
--- | Erhalte 'MVar' zur SoftwarePWM-Steuerung
-getMVarPinMap :: (Monad m) => MonadMStatusAllgemein m o (MVar PinMap)
-getMVarPinMap = gets _mvarPinMap
+-- | Erhalte 'TVar' mit Liste der aktuell ausführenden Pläne ('PlanAllgmein')
+getTVarAusführend :: (Monad m) => MonadMStatusAllgemein m o (TVar (Menge Ausführend))
+getTVarAusführend = gets _tvarAusführend
+-- | Erhalte 'TVar' zur SoftwarePWM-Steuerung
+getTVarPwmMap :: (Monad m) => MonadMStatusAllgemein m o (TVar PwmMap)
+getTVarPwmMap = gets _tvarPwmMap
+-- | Erhalte 'TVar' zur I2C-Steuerung
+getTVarI2CMap :: (Monad m) => MonadMStatusAllgemein m o (TVar I2CMap)
+getTVarI2CMap = gets _tvarI2CMap
 
 -- * Ändere aktuellen Status
 -- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
@@ -202,16 +208,22 @@ putWegstrecken wss = modify $ \status -> status{_wegstrecken=wss}
 -- | Setze Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 putPläne :: (Monad m) => [PL o] -> MonadMStatusAllgemein m o ()
 putPläne pls = modify $ \status -> status {_pläne=pls}
--- | Setzte 'MVar' mit Liste der aktuell ausgeführten Pläne ('PlanAllgemein').
+-- | Setzte 'TVar' mit Liste der aktuell ausgeführten Pläne ('PlanAllgemein').
 -- 
 -- __Achtung__: Die aktuelle Ausführung wird dadurch nicht beeinflusst!
-putMVarAusführend :: (Monad m) => MVar (Menge Ausführend) -> MonadMStatusAllgemein m o ()
-putMVarAusführend mv = modify $ \status -> status {_mvarAusführend=mv}
--- | Setzte 'MVar' zur SoftwarePWM-Kontrolle.
+putTVarAusführend :: (Monad m) => TVar (Menge Ausführend) -> MonadMStatusAllgemein m o ()
+putTVarAusführend tv = modify $ \status -> status {_tvarAusführend=tv}
+-- | Setzte 'TVar' zur SoftwarePWM-Kontrolle.
 -- 
 -- __Achtung__ : Aktuell laufende SoftwarePWM wird dadurch nicht beeinflusst.
-putMVarPinMap :: (Monad m) => MVar PinMap -> MonadMStatusAllgemein m o ()
-putMVarPinMap mv = modify $ \status -> status{_mvarPinMap=mv}
+putTVarPwmMap :: (Monad m) => TVar PwmMap -> MonadMStatusAllgemein m o ()
+putTVarPwmMap tv = modify $ \status -> status{_tvarPwmMap=tv}
+-- | Setzte 'TVar' zur I2C-Kontrolle.
+-- 
+-- __Achtung__ : Aktuell laufende I2C-Ausgabe wird dadurch nicht beeinflusst.
+-- Ein Effekt wird erst bei neu setzen des I2C-Kanals sichtbar.
+putTVarI2CMap :: (Monad m) => TVar I2CMap -> MonadMStatusAllgemein m o ()
+putTVarI2CMap tv = modify $ \status -> status{_tvarI2CMap=tv}
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
@@ -255,8 +267,8 @@ entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 -- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
 ausführenMöglich :: Plan -> IOStatusAllgemein o AusführenMöglich
 ausführenMöglich plan = do
-    mvarAusführend <- getMVarAusführend
-    ausführend <- liftIO $ readLMVar mvarAusführend
+    tvarAusführend <- getTVarAusführend
+    ausführend <- liftIO $ readTVarIO tvarAusführend
     let belegtePins = intersect (concat $ pins <$> ausführend) (pins plan)
     pure $ if
         | elem (Ausführend plan) ausführend

@@ -7,9 +7,10 @@ Description : Template-Haskell Funktionen um die Sprachauswahl zu automatisieren
 module Zug.Language.TemplateHaskell (Sprache(..), erzeugeDeklaration, erzeugeFunktionDeklaration) where
 
 import Data.Maybe (catMaybes)
-import Language.Haskell.TH
+import Language.Haskell.TH (Q, Dec(..), Type(..), Name, Cxt, Clause(..), Pat(..), Body(..), Exp(..), Lit(..),
+                            mkName, newName, lookupValueName, reportWarning)
 -- Abhängigkeit von anderen Modulen
-import Zug.Options
+import Zug.Options (Sprache(..), alleSprachen)
 
 modulName :: Sprache -> String
 modulName   Deutsch     = "Zug.Language.DE"

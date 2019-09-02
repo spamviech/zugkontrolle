@@ -6,7 +6,9 @@ Description : Kommandozeilen-Optionen
 module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOptionen, Sprache(..), alleSprachen) where
 
 -- Bibliotheken
-import Options.Applicative
+import Options.Applicative (ParserInfo(), Parser(), execParser,
+                            info, helper, fullDesc, progDesc, header, infoOption, long, short, help,
+                            switch, option, auto, metavar, showDefault, value, strOption)
 import Data.Semigroup (Semigroup(..))
 
 -- | Erhalte Kommandozeilen-Arguemente
@@ -97,6 +99,6 @@ spracheOpt = option auto (
 
 -- | Hilfsfunktion um mögliche Optionen anzuzeigen
 zeigeMöglichkeiten :: (Show a) => [a] -> String
-zeigeMöglichkeiten  ([])    = ""
+zeigeMöglichkeiten  []      = ""
 zeigeMöglichkeiten  (h:[])  = show h
 zeigeMöglichkeiten  (h:t)   = show h ++ '|' : zeigeMöglichkeiten t

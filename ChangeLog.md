@@ -98,3 +98,5 @@
 - Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist. Man muss nicht erst ins Hauptmenü zurückkehren.
 ## Unreleased changes
 - Support für PCF8574 hinzugefügt (bisher keine Integration in UIs)
+- MVar durch TVar/TMVar ersetzt, LinkedMVar entfernt
+- unqualifizierter wird Import immer explizit angegeben
