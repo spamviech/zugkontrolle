@@ -1,10 +1,6 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TupleSections #-}
 
 {-|
 Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstelle
@@ -21,13 +17,8 @@ module Zug.Anbindung.PCF8574 (
         PCF8574Port(..), pcf8574PortWrite, pcf8574PortRead) where
 
 -- Bibliotheken
-import Foreign.C.Types (CInt)
 import Control.Applicative (Alternative(..))
-import Control.Concurrent.STM.TVar (TVar, readTVarIO, writeTVar, modifyTVar)
-import Control.Monad.STM (atomically)
-import Data.Bits (Bits, bit, (.|.), (.&.), testBit, complement, zeroBits)
-import Data.Map.Lazy (Map)
-import qualified Data.Map.Lazy as Map
+import Data.Bits ( bit, (.|.), (.&.), testBit, complement)
 import Data.Word (Word8)
 import System.Hardware.WiringPi (Value(..))
 import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
@@ -35,26 +26,9 @@ import Text.Read.Lex (numberToInteger, Lexeme(..))
 import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.ParserCombinators.ReadP (ReadP())
 import qualified Text.ParserCombinators.ReadP as ReadP
-
--- | 'FileHandle' und aktuell gesetzter 'BitValue' eines I2C-Kanals
-type I2CMap = Map I2CAddress (FileHandle, BitValue)
--- | Abkürzung für Funktionen, die die aktuelle 'I2CMap' benötigen
-type I2CMapIO a = TVar I2CMap -> IO a
--- | Leere 'I2CMap'
-i2cMapEmpty :: I2CMap
-i2cMapEmpty = Map.empty
-
--- | Stelle sicher, dass eine 'I2CAddress' registriert ist und gebe ihre aktuellen Werte zurück.
-i2cKanalLookup :: I2CAddress -> I2CMapIO (FileHandle, BitValue)
-i2cKanalLookup i2cAddress tvarI2CKanäle = do
-    i2cKanäle <- readTVarIO tvarI2CKanäle
-    case Map.lookup i2cAddress i2cKanäle of
-        Nothing         -> do
-            fileHandle <- c_wiringPiI2CSetup $ fromIntegral $ fromI2CAddress i2cAddress
-            let current = (FileHandle fileHandle, fullBitValue)
-            atomically $ writeTVar tvarI2CKanäle $ Map.insert i2cAddress current i2cKanäle
-            pure current
-        (Just current)  -> pure current
+-- Abhängigkeiten von anderen Modulen
+import Zug.Anbindung.I2C (I2CMap, I2CMapIO, i2cMapEmpty, I2CAddress(..),
+                        i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
 
 {-
 -- | Alle Möglichkeiten, die Addresse eines PCF8574 einzustellen
@@ -66,14 +40,6 @@ addressMöglichkeiten = (,,) <$> [minBound..maxBound] <*> [minBound..maxBound] <
 minI2CAddress :: PCF8574Variant -> I2CAddress
 minI2CAddress VariantNormal = I2CAddress $ bit 5
 minI2CAddress VariantA      = I2CAddress $ bit 5 .|. bit 4 .|. bit 3
-
--- | I2C-Adresse eines /PCF8574/
-newtype I2CAddress = I2CAddress {fromI2CAddress :: Word8}
-                        deriving (Eq, Ord)
-
-instance Show I2CAddress where
-    show :: I2CAddress -> String
-    show = show . fromI2CAddress
 
 -- Memoisieren?
 -- | Berechne die 'I2CAddress' eines /PCF8574/ anhand der variablen Address-Bits.
@@ -137,39 +103,17 @@ instance Read PCF8574 where
     readListPrec :: ReadPrec [PCF8574] 
     readListPrec = readListPrecDefault
 
--- | Ein-/Ausgabe von 'pcf8574Write'/'pcf8574Read'
-newtype BitValue = BitValue {fromBitValue::Word8}
-                                deriving (Eq, Bits)
-
-instance Show BitValue where
-    show :: BitValue -> String
-    show = show . fromBitValue
-
 -- | Umwandeln des Anschluss-Ports in den entsprechenden 'BitValue'
 toBitValue :: Word8 -> BitValue
 toBitValue port = BitValue $ bit $ fromIntegral $ min port $ pred numPorts
 
--- | 'BitValue' with ever Bit set
-fullBitValue :: BitValue
-fullBitValue = complement zeroBits
-
--- | File Handle eines I2C-Channel
-newtype FileHandle = FileHandle {fromFileHandle::CInt}
-
 -- | Wert eines /PCF8574/ komplett setzten
 pcf8574Write :: PCF8574 -> BitValue -> I2CMapIO ()
-pcf8574Write pcf8574 bitValue tvarI2CKanäle = do
-    let i2cAddress = toI2CAddress pcf8574
-    (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress tvarI2CKanäle
-    atomically $ modifyTVar tvarI2CKanäle $
-        Map.adjust (\(fileHandle, _oldBitValue) -> (fileHandle, bitValue)) i2cAddress
-    c_wiringPiI2CWrite (fromFileHandle fileHandle) (fromIntegral $ fromBitValue $ bitValue)
+pcf8574Write pcf8574 = i2cWrite $ toI2CAddress pcf8574
 
 -- | Wert eines /PCF8574/ auslesen
 pcf8574Read :: PCF8574 -> I2CMapIO BitValue
-pcf8574Read pcf8574 tvarI2CKanäle = do
-    (fileHandle, _setBitValue) <- i2cKanalLookup (toI2CAddress pcf8574) tvarI2CKanäle
-    c_wiringPiI2CRead (fromFileHandle fileHandle) >>= pure . BitValue . fromIntegral
+pcf8574Read pcf8574 = i2cRead $ toI2CAddress pcf8574
 
 
 
@@ -206,50 +150,15 @@ instance Read PCF8574Port where
 
 -- | Wert einzelner Ports eines /PCF8574/ setzen
 pcf8574PortWrite :: PCF8574Port -> Value -> I2CMapIO ()
-pcf8574PortWrite (PCF8574Port {pcf8574, port}) value tvarI2CKanäle = do
-    let i2cAddress = toI2CAddress pcf8574
-    (_fileHandle, oldBitValue) <- i2cKanalLookup i2cAddress tvarI2CKanäle
-    let newBitValue
+pcf8574PortWrite (PCF8574Port {pcf8574, port}) value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
+    where
+        bitValueFunktion :: BitValue -> BitValue
+        bitValueFunktion oldBitValue
             | (value == HIGH)   = oldBitValue .|. toBitValue port
             | otherwise         = oldBitValue .&. complement (toBitValue port)
-    pcf8574Write pcf8574 newBitValue tvarI2CKanäle
 
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
 pcf8574PortRead :: PCF8574Port -> I2CMapIO Value
 pcf8574PortRead (PCF8574Port {pcf8574, port}) tvarI2CKanäle = do
     fullBitValue <- pcf8574Read pcf8574 tvarI2CKanäle
     pure $ if (testBit fullBitValue $ fromIntegral port) then HIGH else LOW
-
-
-
-
-
-#if linux_HOST_OS
-foreign import ccall "wiringPiI2CSetup" c_wiringPiI2CSetup :: CInt -> IO CInt
-foreign import ccall "wiringPiI2CRead" c_wiringPiI2CRead :: CInt -> IO CInt
-foreign import ccall "wiringPiI2CWrite" c_wiringPiI2CWrite :: CInt -> CInt -> IO ()
-{-
-foreign import ccall "wiringPiI2CReadReg8" c_wiringPiI2CReadReg8 :: CInt -> CInt -> IO CInt
-foreign import ccall "wiringPiI2CReadReg16" c_wiringPiI2CReadReg16 :: CInt -> CInt -> IO CInt
-foreign import ccall "wiringPiI2CWriteReg8" c_wiringPiI2CWriteReg8 :: CInt -> CInt -> CInt -> IO CInt
-foreign import ccall "wiringPiI2CWriteReg16" c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO CInt
--}
-#else
--- wiringPi-Bibliothek nicht auf Windows vorhanden -> verwende stattdessen print-Befehle zum einfacheren Debugging
-c_wiringPiI2CSetup :: CInt -> IO CInt
-c_wiringPiI2CSetup  = \i2cAdresse -> putStrLn ("I2CSetup " ++ show i2cAdresse) >> pure (-1)
-c_wiringPiI2CRead :: CInt -> IO CInt
-c_wiringPiI2CRead   = \fileHandle -> putStrLn ("I2CRead " ++ show fileHandle) >> pure 0
-c_wiringPiI2CWrite :: CInt -> CInt -> IO ()
-c_wiringPiI2CWrite  = \fileHandle value -> putStrLn $ "I2CWrite " ++ show fileHandle ++ " -> " ++ show value
-{-
-c_wiringPiI2CReadReg8 :: CInt -> CInt -> IO CInt
-c_wiringPiI2CReadReg8   fileHandle register         = putStrLn ("I2CReadReg8 " ++ show fileHandle ++ " r" ++ show register) >> pure 0
-c_wiringPiI2CReadReg16 :: CInt -> CInt -> IO CInt
-c_wiringPiI2CReadReg16  fileHandle register         = putStrLn ("I2CReadReg16 " ++ show fileHandle ++ " r" ++ show register) >> pure 0
-c_wiringPiI2CWriteReg8 :: CInt -> CInt -> CInt -> IO ()
-c_wiringPiI2CWriteReg8  fileHandle register value   = putStrLn $ "I2CWriteReg8 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
-c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO ()
-c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
--}
-#endif

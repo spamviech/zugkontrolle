@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a224dec33fe51ddf8210e5554a55f4c2f0127d13a80818cf3f372ef33e55aa47
+-- hash: be303361bed16b0f343fac7f3ac973f20b4851ad242b01ce1f44a6072ab1b971
 
 name:           Zugkontrolle
 version:        1.0.0.16
@@ -33,6 +33,7 @@ flag gui
 library
   exposed-modules:
       Zug.Anbindung
+      Zug.Anbindung.I2C
       Zug.Anbindung.PCF8574
       Zug.Anbindung.SoftwarePWM
       Zug.Klassen
