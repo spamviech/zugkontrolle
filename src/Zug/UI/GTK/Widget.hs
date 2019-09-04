@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -17,7 +18,8 @@ module Zug.UI.GTK.Widget () where
 module Zug.UI.GTK.Widget (
     -- * Allgemeine Widget-Funktionen
     widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
-    boxPack, boxPackDefault, boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault, dialogEval,
+    dialogEval, boxPack, boxPackDefault, boxPackWidgetNewDefault,
+    packingDefault, Padding(..), paddingDefault, positionDefault, Position(..),
     -- *`* Scrollbare Widgets
     scrolledWidgetNew, scrolledWidgetPackNew, scrolledWidgetAddNew, scrolledWidgedNotebookAppendPageNew,
     -- ** Knopf erstellen
@@ -179,11 +181,12 @@ containerAddWidgetNew container konstruktor = do
     pure widget
 
 -- | 'Widget' in eine 'Box' packen
-boxPack :: (BoxClass b, WidgetClass w) => b -> w -> Packing -> Int -> Bool -> IO ()
-boxPack box widget packing padding start = (if start then boxPackStart else boxPackEnd) box widget packing padding
+boxPack :: (BoxClass b, WidgetClass w) => b -> w -> Packing -> Padding -> Position -> IO ()
+boxPack box widget packing padding First    = boxPackStart box widget packing $ fromPadding padding
+boxPack box widget packing padding Last     = boxPackEnd box widget packing $ fromPadding padding
 
 -- | Neu erstelltes Widget in eine Box packen
-boxPackWidgetNew :: (BoxClass b, WidgetClass w) => b -> Packing -> Int -> Bool -> IO w -> IO w
+boxPackWidgetNew :: (BoxClass b, WidgetClass w) => b -> Packing -> Padding -> Position -> IO w -> IO w
 boxPackWidgetNew box packing padding start konstruktor = do
     widget <- widgetShowNew konstruktor
     boxPack box widget packing padding start
@@ -193,13 +196,21 @@ boxPackWidgetNew box packing padding start konstruktor = do
 packingDefault :: Packing
 packingDefault = PackNatural
 
--- | Standart-Abstand zwischen Widgets in einer Box
-paddingDefault :: Int
+-- | Abstand zwischen 'Widget's
+newtype Padding = Padding {fromPadding :: Int}
+    deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
+
+-- | Standart-Abstand zwischen 'Widget's in einer 'Box'
+paddingDefault :: Padding
 paddingDefault = 0
 
--- | Standart-Position zum Hinzufügen zu einer Box
-positionDefault :: Bool
-positionDefault = True
+-- | Position zum Hinzufügen zu einer 'Box'
+data Position = First | Last
+    deriving (Show, Read, Eq, Ord)
+
+-- | Standart-Position zum Hinzufügen zu einer 'Box'
+positionDefault :: Position
+positionDefault = First
 
 -- | Neu erstelltes Widget mit Standard Packing, Padding und Positionierung in eine Box packen
 boxPackWidgetNewDefault :: (BoxClass b, WidgetClass w) => b -> IO w -> IO w
@@ -252,7 +263,7 @@ buttonNewWithEventLabel label = buttonNewWithEvent $ buttonNewWithLabel label
 -- | Entfernen-Knopf zu 'Box' hinzufügen. Beim drücken werden /removeActionGUI/ und /removeAction/ ausgeführt.
 buttonEntfernenPack :: (BoxClass b) => b -> IO () -> IOStatusGUI () -> TMVar StatusGUI -> IO Button
 buttonEntfernenPack box removeActionGUI removeAction tmvarStatus
-    = boxPackWidgetNew box PackNatural paddingDefault False $
+    = boxPackWidgetNew box PackNatural paddingDefault Last $
         buttonNewWithEventLabel Language.entfernen $ auswertenTMVarIOStatus removeAction tmvarStatus >> removeActionGUI
 
 -- | Entfernen-Knopf zu Box hinzufügen. Beim drücken wird /parent/ aus der /box/ entfernt und die 'IOStatusGUI'-Aktion ausgeführt.

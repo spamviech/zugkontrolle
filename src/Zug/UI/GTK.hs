@@ -36,7 +36,7 @@ import Zug.UI.Base (Status, statusLeerNeu)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
 import Zug.UI.GTK.Widget (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
                         widgetShowNew, containerAddWidgetNew, boxPack, boxPackWidgetNew,
-                        paddingDefault, positionDefault, packingDefault,
+                        Position(..), positionDefault, paddingDefault, packingDefault,
                         buttonNewWithEventMnemonic, scrolledWidgedNotebookAppendPageNew)
 import Zug.UI.GTK.FortfahrenWennToggled (fortfahrenWennToggledTMVar)
 import Zug.UI.GTK.Dialog (buttonHinzufügenPack, buttonSpeichernPack, buttonLadenPack, ladeWidgets)
@@ -157,12 +157,12 @@ setupGUI = void $ do
         fortfahrenWennToggledWegstrecke,
         tmvarPlanObjekt}
     -- Knopf-Leiste mit globalen Funktionen
-    functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault False $ hBoxNew False 0
+    functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault Last $ hBoxNew False 0
     _buttonHinzufügen <- buttonHinzufügenPack windowMain functionBox tmvarStatus dynamischeWidgets
     boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
     buttonSpeichernPack windowMain functionBox tmvarStatus
     buttonLadenPack windowMain functionBox tmvarStatus dynamischeWidgets
-    boxPackWidgetNew functionBox packingDefault paddingDefault False $
+    boxPackWidgetNew functionBox packingDefault paddingDefault Last $
         buttonNewWithEventMnemonic Language.beenden $ mainQuit
     -- Lade Datei angegeben in Kommandozeilenargument
     (Options {load=dateipfad}) <- getOptions
