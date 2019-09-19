@@ -99,4 +99,4 @@
 ## Unreleased changes
 - Support für PCF8574 hinzugefügt (bisher keine Integration in UIs)
 - MVar durch TVar/TMVar ersetzt, LinkedMVar entfernt
-- unqualifizierter wird Import immer explizit angegeben
+- unqualifizierter Import wird immer explizit angegeben
