@@ -6,14 +6,15 @@ Description : Kommandozeilen-Optionen
 module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOptionen, Sprache(..), alleSprachen) where
 
 -- Bibliotheken
+import Control.Monad.Trans (MonadIO, liftIO)
 import Options.Applicative (ParserInfo(), Parser(), execParser,
                             info, helper, fullDesc, progDesc, header, infoOption, long, short, help,
                             switch, option, auto, metavar, showDefault, value, strOption)
 import Data.Semigroup (Semigroup(..))
 
 -- | Erhalte Kommandozeilen-Arguemente
-getOptions :: IO Options
-getOptions = execParser optionen
+getOptions :: (MonadIO m) => m Options
+getOptions = liftIO $ execParser optionen
 
 -- | Unterstützte Kommandozeilen-Argumente
 data Options = Options {
@@ -42,7 +43,7 @@ printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe a
 
 -- | Unterstützte Benutzer-Schnittstellen
 data UI = GTK | Cmd
-            deriving (Show, Read, Enum, Bounded)
+            deriving (Show, Read, Enum, Bounded, Eq)
 
 -- | Alle unterstützten UI-Optionen
 alleUI :: [UI]
@@ -67,7 +68,7 @@ ladeOpt = strOption (
 
 -- | Verwende Hardware-PWM wenn möglich?
 data PWM = SoftwarePWM | HardwarePWM
-                deriving (Show, Read, Enum, Bounded)
+                deriving (Show, Read, Enum, Bounded, Eq)
 
 -- | Alle unterstützten PWM-Optionen
 allePWMOptionen :: [PWM]
@@ -83,7 +84,7 @@ pwmOpt = option auto (
 
 -- | Bekannte Sprachen
 data Sprache = Deutsch | Englisch
-                deriving (Show, Read, Bounded, Enum)
+                deriving (Show, Read, Bounded, Enum, Eq)
 
 -- | Alle unterstützten Sprachen
 alleSprachen :: [Sprache]

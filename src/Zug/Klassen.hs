@@ -6,23 +6,21 @@ Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer We
 module Zug.Klassen where
 
 -- Bibliotheken
-import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..), fromList)
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
 
--- | Zugtyp eines Elements (sofern ein Unterschied besteht)
-data Zugtyp = Undefiniert | Märklin | Lego
+-- | Zugtyp eines Elements
+data Zugtyp = Märklin | Lego
                 deriving (Eq, Bounded, Enum)
 
 -- | Unterstützte 'Zugtyp'en
 unterstützteZugtypen :: NonEmpty Zugtyp
-unterstützteZugtypen = fromList $ delete Undefiniert [minBound..maxBound]
+unterstützteZugtypen = fromList $ [minBound..maxBound]
 
 -- | Anzeigen eines 'Zugtyp'
 instance Show Zugtyp where
     show :: Zugtyp -> String
-    show Undefiniert    = Language.undefiniert
     show Märklin        = Language.märklin
     show Lego           = Language.lego
 

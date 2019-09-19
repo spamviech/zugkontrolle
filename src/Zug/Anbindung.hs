@@ -2,15 +2,22 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
-Description : Low-Level-Definition der unterstützen Aktionen auf Pin-Ebene.
+Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Ebene.
 -}
 module Zug.Anbindung (
-                    -- * Pin-Repräsentation
-                    Pin(), zuPin, vonPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert,
-                    PwmMap, pwmMapEmpty, PwmMapIO, I2CMap, i2cMapEmpty, I2CMapIO, warteµs,
+                    -- * Anschluss-Repräsentation
+                    Anschluss(), vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
+                    PwmMap, pwmMapEmpty, PwmMapT, I2CMap, i2cMapEmpty, I2CMapT,
+                    runPwmMapT, liftI2CMapT, runI2CMapT,
                     Value(..), alleValues,
+                    Pin(), vonPin, zuPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert,
                     -- * Strecken-Objekte
                     StreckenObjekt(..), StreckenAtom(..),
                     -- ** Bahngeschwindigkeiten
@@ -22,75 +29,68 @@ module Zug.Anbindung (
                     -- ** Kupplungen
                     Kupplung(..), KupplungKlasse(..),
                     -- ** Wegstrecken
-                    Wegstrecke(..), WegstreckeKlasse(..)) where
+                    Wegstrecke(..), WegstreckeKlasse(..),
+                    -- * Allgemeine Funktionen
+                    warteµs) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO)
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad (join)
+import Control.Monad.Trans (MonadIO, liftIO)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, unpack)
 import qualified Data.Text.IO as T
 import Numeric.Natural (Natural)
-import System.Hardware.WiringPi (Value(..), Pin(..), PwmValue(), Mode(..),
-                                pinToBcmGpio, pinMode, pwmSetRange, pwmWrite, digitalWrite)
+import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..),
+                                pinMode, pwmSetRange, pwmWrite)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen (Zugtyp(..), Strom(..), Fahrtrichtung(..), Richtung(..))
 import Zug.Options (Options(..), PWM(..), getOptions)
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
-import Zug.Anbindung.SoftwarePWM (PwmMapIO, PwmMap, pwmMapEmpty, pwmGrenze, pwmSoftwareSetzteWert, warteµs)
-import Zug.Anbindung.PCF8574 (I2CMapIO, I2CMap, i2cMapEmpty)
-
--- * Repräsentation von Pins
--- | Funktion um ein Pin-Objekt erstellen zu können, ohne WiringPi importieren zu müssen
-zuPin :: (Enum n) => n -> Pin
-zuPin = Gpio . fromEnum
-
--- | Funktion um Gpio-Zahl eines Pins zu erhalten, ohne WiringPi importieren zu müssen; Rückgabewert ist 0 falls der Pin nicht existiert
-vonPin :: Pin -> Natural
-vonPin pin = case pinToBcmGpio pin of
-    (Just gpio) -> fromIntegral gpio
-    Nothing     -> 0
+import Zug.Anbindung.Anschluss (Anschluss(..), vonPin, zuPin, vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
+                                anschlussWrite, Value(..), I2CMapT, I2CMap, i2cMapEmpty, runI2CMapT, forkI2CMapT, warteµs)
+import Zug.Anbindung.SoftwarePWM (PwmMapT, PwmMap, pwmMapEmpty, pwmGrenze, pwmSoftwareSetzteWert, liftI2CMapT, runPwmMapT, forkPwmMapT)
 
 -- | Alle Möglichen Werte von 'Value'
 alleValues :: NonEmpty Value
 alleValues = NE.fromList [minBound..maxBound]
 
--- * Test-Funktionen, ob Pins bestimmte Funktionen unterstützen
+-- * Test-Funktionen, ob Anschlusss bestimmte Funktionen unterstützen
 -- | Unterstützt der 'Pin'
--- >'pinMode' pin PWM_OUTPUT
+-- >'pinMode' pin 'PWM_OUTPUT'
 pwmMöglich :: Pin -> Bool
-pwmMöglich = (`elem` [Wpi 1, Wpi 23, Wpi 24, Wpi 26])
+pwmMöglich = flip elem [Wpi 1, Wpi 23, Wpi 24, Wpi 26]
 
 -- | Unterstützt der 'Pin'
--- >'pinMode' pin GPIO_CLOCK
+-- >'pinMode' pin 'GPIO_CLOCK'
 clockMöglich :: Pin -> Bool
-clockMöglich = (`elem` [Wpi 7, Wpi 21, Wpi 22, Wpi 29])
+clockMöglich = flip elem [Wpi 7, Wpi 21, Wpi 22, Wpi 29]
 
 -- * PWM-Funktion
--- | pwmWrite mit alternativer Software-basierter PWM-Funktion
-pwmSetzeWert :: (StreckenAtom s) => s -> Pin -> PwmValueUnmodifiziert -> PwmMapIO ()
-pwmSetzeWert s pin pwmValue tvarPwmMap = getOptions >>= \(Options {pwm}) -> case pwm of
-    HardwarePWM | pwmMöglich pin
-        -> do
-            pinMode pin PWM_OUTPUT
-            pwmSetRange pwmGrenze
-            pwmWrite pin $ pwmValueModifiziert s pwmValue
-    _otherwise
-        -> pwmSoftwareSetzteWert pin pwmFrequenzHzNormal (pwmValueModifiziert s pwmValue) tvarPwmMap
+-- | 'pwmWrite' mit alternativer Software-basierter PWM-Funktion
+pwmSetzeWert :: (StreckenAtom s) => s -> Anschluss -> PwmValueUnmodifiziert -> PwmMapT IO ()
+pwmSetzeWert s anschluss pwmValue = do
+    Options {pwm} <- getOptions
+    case zuPin anschluss of
+        (Just pin) | (pwm == HardwarePWM) && pwmMöglich pin
+            -> liftIO $ do
+                pinMode pin PWM_OUTPUT
+                pwmSetRange pwmGrenze
+                pwmWrite pin $ pwmValueModifiziert s pwmValue
+        _otherwise
+            -> pwmSoftwareSetzteWert anschluss pwmFrequenzHzNormal $ pwmValueModifiziert s pwmValue
 
 -- | Erzeuge PWM-Funktion für einen Servo-Motor
 --   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmGrenze und pwmValue)
-pwmServo :: (StreckenAtom s) => s -> Pin -> Natural -> PwmMapIO ()
-pwmServo s pin wert = pwmSoftwareSetzteWert pin pwmFrequenzHzServo $ pwmValueModifiziert s $ erhaltePwmWertVoll wert
+pwmServo :: (StreckenAtom s) => s -> Anschluss -> Natural -> PwmMapT IO ()
+pwmServo s anschluss = pwmSoftwareSetzteWert anschluss pwmFrequenzHzServo . pwmValueModifiziert s . erhaltePwmWertVoll
 
 -- | newtype auf 'PwmValue' um ein noch bevorstehendes modifizieren bzgl. fließend-Value zu signalisieren
 newtype PwmValueUnmodifiziert = PwmValueUnmodifiziert PwmValue
 
--- | Berechne den PWM-Wert abhängig davon, bei welchen 'Pin'-Output ('HIGH'/'LOW') der Strom fließt.
+-- | Berechne den PWM-Wert abhängig davon, bei welchen 'Anschluss'-Output ('HIGH'/'LOW') der Strom fließt.
 pwmValueModifiziert :: (StreckenAtom s) => s -> PwmValueUnmodifiziert -> PwmValue
 pwmValueModifiziert s (PwmValueUnmodifiziert pwmValue) = case fließend s of
     HIGH    -> pwmValue
@@ -160,11 +160,9 @@ erhaltePWMWertReduziert = erhaltePwmWert pwmGrenzeReduziert
 -- * Repräsentation von StreckenObjekten
 -- | Klassen-Definitionen
 class StreckenObjekt s where
-    zugtyp :: s -> Zugtyp
-    zugtyp  _s  = Undefiniert
-    pins :: s -> [Pin]
+    anschlüsse :: s -> [Anschluss]
     erhalteName :: s -> Text
-    {-# MINIMAL pins, erhalteName #-}
+    {-# MINIMAL anschlüsse, erhalteName #-}
 
 -- | Eine Klasse für alle Typen, die direkt mit wiringPi interagieren.
 class StreckenAtom s where
@@ -180,91 +178,119 @@ class StreckenAtom s where
     {-# MINIMAL fließend | erhalteValue #-}
 
 -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
-data Bahngeschwindigkeit    = LegoBahngeschwindigkeit {bgName :: Text, bgFließend :: Value, geschwindigkeitsPin::Pin, fahrtrichtungsPin::Pin}
-                            | MärklinBahngeschwindigkeit {bgName :: Text, bgFließend :: Value, geschwindigkeitsPin::Pin}
-                                        deriving (Eq)
+data Bahngeschwindigkeit (z :: Zugtyp) where
+    LegoBahngeschwindigkeit :: {
+        bglName :: Text,
+        bglFließend :: Value,
+        bglGeschwindigkeitsAnschluss :: Anschluss,
+        bglFahrtrichtungsAnschluss :: Anschluss}
+            -> Bahngeschwindigkeit 'Lego
+    MärklinBahngeschwindigkeit :: {
+        bgmName :: Text,
+        bgmFließend :: Value,
+        bgmGeschwindigkeitsAnschluss :: Anschluss}
+            -> Bahngeschwindigkeit 'Märklin
 
-instance Show Bahngeschwindigkeit where
-    show :: Bahngeschwindigkeit -> String
-    show    (LegoBahngeschwindigkeit {bgName, geschwindigkeitsPin, fahrtrichtungsPin})
+deriving instance Eq (Bahngeschwindigkeit z)
+
+instance Show (Bahngeschwindigkeit z) where
+    show :: Bahngeschwindigkeit z -> String
+    show    (LegoBahngeschwindigkeit {bglName, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
         = Language.lego <-> Language.bahngeschwindigkeit <:>
-            Language.name <=> unpack bgName <^>
-            Language.geschwindigkeit <-> Language.pin <=> show geschwindigkeitsPin <^>
-            Language.fahrtrichtung <-> Language.pin <=> show fahrtrichtungsPin
-    show    (MärklinBahngeschwindigkeit {bgName, geschwindigkeitsPin})
+            Language.name <=> unpack bglName <^>
+            Language.geschwindigkeit <-> Language.pin <=> show bglGeschwindigkeitsAnschluss <^>
+            Language.fahrtrichtung <-> Language.pin <=> show bglFahrtrichtungsAnschluss
+    show    (MärklinBahngeschwindigkeit {bgmName, bgmGeschwindigkeitsAnschluss})
         = Language.märklin <-> Language.bahngeschwindigkeit <:>
-            Language.name <=> unpack bgName <^>
-            Language.geschwindigkeit <-> Language.pin <=> show geschwindigkeitsPin
+            Language.name <=> unpack bgmName <^>
+            Language.geschwindigkeit <-> Language.pin <=> show bgmGeschwindigkeitsAnschluss
 
-instance StreckenObjekt Bahngeschwindigkeit where
-    zugtyp :: Bahngeschwindigkeit -> Zugtyp
-    zugtyp  (LegoBahngeschwindigkeit {})    = Lego
-    zugtyp  (MärklinBahngeschwindigkeit {}) = Märklin
-    pins :: Bahngeschwindigkeit -> [Pin]
-    pins    (LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin})
-        = [geschwindigkeitsPin, fahrtrichtungsPin]
-    pins    (MärklinBahngeschwindigkeit {geschwindigkeitsPin})
-        = [geschwindigkeitsPin]
-    erhalteName :: Bahngeschwindigkeit -> Text
-    erhalteName (LegoBahngeschwindigkeit {bgName})    = bgName
-    erhalteName (MärklinBahngeschwindigkeit {bgName}) = bgName
+instance StreckenObjekt (Bahngeschwindigkeit z) where
+    anschlüsse :: Bahngeschwindigkeit z -> [Anschluss]
+    anschlüsse  (LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
+        = [bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss]
+    anschlüsse  (MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss})
+        = [bgmGeschwindigkeitsAnschluss]
+    erhalteName :: Bahngeschwindigkeit z -> Text
+    erhalteName (LegoBahngeschwindigkeit {bglName})    = bglName
+    erhalteName (MärklinBahngeschwindigkeit {bgmName}) = bgmName
 
-instance StreckenAtom Bahngeschwindigkeit where
-    fließend :: Bahngeschwindigkeit -> Value
-    fließend = bgFließend
+instance StreckenAtom (Bahngeschwindigkeit z) where
+    fließend :: Bahngeschwindigkeit z -> Value
+    fließend    (LegoBahngeschwindigkeit {bglFließend})     = bglFließend
+    fließend    (MärklinBahngeschwindigkeit {bgmFließend})  = bgmFließend
 
 -- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen
 class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
-    geschwindigkeit :: b -> Natural -> PwmMapIO ()
+    geschwindigkeit :: b -> Natural -> PwmMapT IO ()
     -- | Gebe allen Zügen den Befehl zum Umdrehen/in einer bestimmen Richtung zu fahren
-    umdrehen :: b -> Maybe Fahrtrichtung -> PwmMapIO ()
+    umdrehen :: b -> Maybe Fahrtrichtung -> PwmMapT IO ()
     {-# MINIMAL geschwindigkeit, umdrehen #-}
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
 umdrehenZeitµs :: Natural
 umdrehenZeitµs = 250 * µsInms
 
-instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
-    geschwindigkeit :: Bahngeschwindigkeit -> Natural -> PwmMapIO ()
-    geschwindigkeit bg@(LegoBahngeschwindigkeit {geschwindigkeitsPin})      geschwindigkeit tvarPwmMap  = befehlAusführen
-        (pwmSetzeWert bg geschwindigkeitsPin (erhaltePwmWertVoll geschwindigkeit) tvarPwmMap)
-        ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
-    geschwindigkeit bg@(MärklinBahngeschwindigkeit {geschwindigkeitsPin})   geschwindigkeit tvarPwmMap  = befehlAusführen
-        (pwmSetzeWert bg geschwindigkeitsPin (erhaltePWMWertReduziert geschwindigkeit) tvarPwmMap)
-        ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText geschwindigkeit)
-    umdrehen :: Bahngeschwindigkeit -> Maybe Fahrtrichtung -> PwmMapIO ()
-    umdrehen bg@(LegoBahngeschwindigkeit {geschwindigkeitsPin, fahrtrichtungsPin})  (Just fahrtrichtung)    tvarPwmMap = befehlAusführen
-        (umdrehenAux bg geschwindigkeitsPin tvarPwmMap [const $ digitalWrite fahrtrichtungsPin $ (if (fahrtrichtung == Vorwärts) then fließend else gesperrt) bg])
-        ("Umdrehen (" <> showText geschwindigkeitsPin <^> showText fahrtrichtungsPin <> ")->" <> showText fahrtrichtung)
-    umdrehen bahngeschwindigkeit@(LegoBahngeschwindigkeit {})                       (Nothing)               tvarPwmMap = umdrehen bahngeschwindigkeit (Just Vorwärts) tvarPwmMap
-    umdrehen bg@(MärklinBahngeschwindigkeit {geschwindigkeitsPin})                  _maybeRichtung  tvarPwmMap = befehlAusführen
-        (umdrehenAux bg geschwindigkeitsPin tvarPwmMap [pwmSetzeWert bg geschwindigkeitsPin $ PwmValueUnmodifiziert pwmGrenze, const $ warteµs umdrehenZeitµs, pwmSetzeWert bg geschwindigkeitsPin $ PwmValueUnmodifiziert 0])
-        ("Umdrehen (" <> showText geschwindigkeitsPin <> ")")
+instance BahngeschwindigkeitKlasse (Bahngeschwindigkeit z) where
+    geschwindigkeit :: Bahngeschwindigkeit z -> Natural -> PwmMapT IO ()
+    geschwindigkeit
+        bg@(LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss})
+        geschwindigkeit
+            = befehlAusführen
+                (pwmSetzeWert bg bglGeschwindigkeitsAnschluss $ erhaltePwmWertVoll geschwindigkeit)
+                ("Geschwindigkeit (" <> showText bglGeschwindigkeitsAnschluss <> ")->" <> showText geschwindigkeit)
+    geschwindigkeit
+        bg@(MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss})
+        geschwindigkeit
+            = befehlAusführen
+                (pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ erhaltePWMWertReduziert geschwindigkeit)
+                ("Geschwindigkeit (" <> showText bgmGeschwindigkeitsAnschluss <> ")->" <> showText geschwindigkeit)
+    umdrehen :: Bahngeschwindigkeit z -> Maybe Fahrtrichtung -> PwmMapT IO ()
+    umdrehen
+        bg@(LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
+        (Just fahrtrichtung)
+            = befehlAusführen
+                (umdrehenAux bg bglGeschwindigkeitsAnschluss [
+                    liftI2CMapT $ anschlussWrite bglFahrtrichtungsAnschluss $ (if (fahrtrichtung == Vorwärts) then fließend else gesperrt) bg])
+                ("Umdrehen (" <> showText bglGeschwindigkeitsAnschluss <^> showText bglFahrtrichtungsAnschluss <> ")->" <> showText fahrtrichtung)
+    umdrehen
+        bahngeschwindigkeit@(LegoBahngeschwindigkeit {})
+        (Nothing)
+            = umdrehen bahngeschwindigkeit (Just Vorwärts)
+    umdrehen
+        bg@(MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss})
+        _maybeRichtung
+            = befehlAusführen
+                (umdrehenAux bg bgmGeschwindigkeitsAnschluss [
+                    pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert pwmGrenze,
+                    warteµs umdrehenZeitµs,
+                    pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0])
+                ("Umdrehen (" <> showText bgmGeschwindigkeitsAnschluss <> ")")
 
-umdrehenAux :: (StreckenAtom s) => s -> Pin -> TVar PwmMap -> [PwmMapIO ()] -> IO ()
-umdrehenAux s geschwindigkeitsPin tvarPwmMap umdrehenAktionen = do
-    pwmSetzeWert s geschwindigkeitsPin (PwmValueUnmodifiziert 0) tvarPwmMap
+umdrehenAux :: (StreckenAtom s) => s -> Anschluss -> [PwmMapT IO ()] -> PwmMapT IO ()
+umdrehenAux s geschwindigkeitsAnschluss umdrehenAktionen = do
+    pwmSetzeWert s geschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0
     warteµs umdrehenZeitµs
-    mapM_ ($ tvarPwmMap) umdrehenAktionen
+    sequence_ umdrehenAktionen
     warteµs umdrehenZeitµs
 
 -- | Steuere die Stromzufuhr einer Schiene
-data Streckenabschnitt = Streckenabschnitt {stName :: Text, stFließend :: Value, stromPin::Pin}
+data Streckenabschnitt = Streckenabschnitt {stName :: Text, stFließend :: Value, stromAnschluss::Anschluss}
                             deriving (Eq)
 
 instance Show Streckenabschnitt where
     show :: Streckenabschnitt -> String
-    show    (Streckenabschnitt {stName, stromPin})
+    show (Streckenabschnitt {stName, stromAnschluss})
         = Language.streckenabschnitt <:>
             Language.name <=> unpack stName <^>
-            Language.strom <-> Language.pin <=> show stromPin
+            Language.strom <-> Language.pin <=> show stromAnschluss
 
 instance StreckenObjekt Streckenabschnitt where
-    pins :: Streckenabschnitt -> [Pin]
-    pins (Streckenabschnitt {stromPin})    = [stromPin]
+    anschlüsse :: Streckenabschnitt -> [Anschluss]
+    anschlüsse (Streckenabschnitt {stromAnschluss}) = [stromAnschluss]
     erhalteName :: Streckenabschnitt -> Text
-    erhalteName (Streckenabschnitt {stName})  = stName
+    erhalteName (Streckenabschnitt {stName}) = stName
 
 instance StreckenAtom Streckenabschnitt where
     fließend :: Streckenabschnitt -> Value
@@ -273,51 +299,60 @@ instance StreckenAtom Streckenabschnitt where
 -- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
-    strom :: s -> Strom -> PwmMapIO ()
+    strom :: s -> Strom -> I2CMapT IO ()
     {-# MINIMAL strom #-}
 
 instance StreckenabschnittKlasse Streckenabschnitt where
-    strom :: Streckenabschnitt -> Strom -> PwmMapIO ()
-    strom st@(Streckenabschnitt {stromPin}) an _tvarPwmMap = befehlAusführen
-        (pinMode stromPin OUTPUT >> digitalWrite stromPin (erhalteValue an st))
-        ("Strom (" <> showText stromPin <> ")->" <> showText an)
+    strom :: Streckenabschnitt -> Strom -> I2CMapT IO ()
+    strom st@(Streckenabschnitt {stromAnschluss}) an = befehlAusführen
+        (anschlussWrite stromAnschluss $ erhalteValue an st)
+        ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
 
 -- | Stellen einer 'Weiche'
-data Weiche = LegoWeiche {weName :: Text, weFließend :: Value, richtungsPin :: Pin, richtungen::(Richtung,Richtung)}
-            | MärklinWeiche {weName :: Text, weFließend :: Value, richtungsPins :: NonEmpty (Richtung, Pin)}
-                    deriving (Eq)
+data Weiche (z :: Zugtyp) where
+    LegoWeiche :: {
+        welName :: Text,
+        welFließend :: Value,
+        welRichtungsAnschluss :: Anschluss,
+        welRichtungen :: (Richtung,Richtung)}
+            -> Weiche 'Lego
+    MärklinWeiche :: {
+        wemName :: Text,
+        wemFließend :: Value,
+        wemRichtungsAnschluss :: NonEmpty (Richtung, Anschluss)}
+            -> Weiche 'Märklin
 
-instance Show Weiche where
-    show :: Weiche -> String
-    show    (LegoWeiche {weName, richtungsPin, richtungen=(richtung1, richtung2)})
+deriving instance Eq (Weiche z)
+
+instance Show (Weiche z) where
+    show :: Weiche z -> String
+    show    (LegoWeiche {welName, welRichtungsAnschluss, welRichtungen=(richtung1, richtung2)})
         = Language.lego <-> Language.weiche <:>
-            Language.name <=> unpack weName <^>
-            Language.richtung <-> Language.pin <=> show richtungsPin <^>
+            Language.name <=> unpack welName <^>
+            Language.richtung <-> Language.pin <=> show welRichtungsAnschluss <^>
             Language.richtungen <=> show richtung1 <|> show richtung2
-    show    (MärklinWeiche {weName, richtungsPins})
+    show    (MärklinWeiche {wemName, wemRichtungsAnschluss})
         = Language.märklin <-> Language.weiche <:>
-            Language.name <=> unpack weName <^>
-            foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" richtungsPins
+            Language.name <=> unpack wemName <^>
+            foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" wemRichtungsAnschluss
 
-instance StreckenObjekt Weiche where
-    zugtyp :: Weiche -> Zugtyp
-    zugtyp (LegoWeiche {})      = Lego
-    zugtyp (MärklinWeiche {})   = Märklin
-    pins :: Weiche -> [Pin]
-    pins (LegoWeiche {richtungsPin})        = [richtungsPin]
-    pins (MärklinWeiche {richtungsPins})    = map snd $ NE.toList richtungsPins
-    erhalteName :: Weiche -> Text
-    erhalteName (LegoWeiche {weName})     = weName
-    erhalteName (MärklinWeiche {weName})  = weName
+instance StreckenObjekt (Weiche z) where
+    anschlüsse :: Weiche z -> [Anschluss]
+    anschlüsse  (LegoWeiche {welRichtungsAnschluss})       = [welRichtungsAnschluss]
+    anschlüsse  (MärklinWeiche {wemRichtungsAnschluss})   = map snd $ NE.toList wemRichtungsAnschluss
+    erhalteName :: Weiche z -> Text
+    erhalteName (LegoWeiche {welName})     = welName
+    erhalteName (MärklinWeiche {wemName})  = wemName
 
-instance StreckenAtom Weiche where
-    fließend :: Weiche -> Value
-    fließend = weFließend
+instance StreckenAtom (Weiche z) where
+    fließend :: Weiche z -> Value
+    fließend    (LegoWeiche {welFließend})      = welFließend
+    fließend    (MärklinWeiche {wemFließend})   = wemFließend
 
 -- | Sammel-Klasse für 'Weiche'n-artige Typen
 class (StreckenObjekt w) => WeicheKlasse w where
     -- | Weiche einstellen
-    stellen :: w -> Richtung -> PwmMapIO ()
+    stellen :: w -> Richtung -> PwmMapT IO ()
     -- | Überprüfe, ob Weiche eine Richtung unterstützt
     hatRichtung :: w -> Richtung -> Bool
     hatRichtung weiche richtung = elem richtung $ erhalteRichtungen weiche
@@ -329,56 +364,55 @@ class (StreckenObjekt w) => WeicheKlasse w where
 weicheZeitµs :: Natural
 weicheZeitµs = 500 * µsInms
 
-instance WeicheKlasse Weiche where
-    stellen :: Weiche -> Richtung -> PwmMapIO ()
-    stellen we@(LegoWeiche {richtungsPin, richtungen})  richtung    tvarPwmMap
-        | richtung == fst richtungen    = befehlAusführen
-            (pwmServo we richtungsPin 25 tvarPwmMap >> warteµs weicheZeitµs >> pwmServo we richtungsPin 0 tvarPwmMap)
-            ("Stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
-        | richtung == snd richtungen    = befehlAusführen
-            (pwmServo we richtungsPin 75 tvarPwmMap >> warteµs weicheZeitµs >> pwmServo we richtungsPin 0 tvarPwmMap)
-            ("stellen (" <> showText richtungsPin <> ") -> " <> showText richtung)
+instance WeicheKlasse (Weiche z) where
+    stellen :: Weiche z -> Richtung -> PwmMapT IO ()
+    stellen we@(LegoWeiche {welRichtungsAnschluss, welRichtungen})  richtung
+        | richtung == fst welRichtungen = befehlAusführen
+            (pwmServo we welRichtungsAnschluss 25 >> warteµs weicheZeitµs >> pwmServo we welRichtungsAnschluss 0)
+            ("Stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
+        | richtung == snd welRichtungen = befehlAusführen
+            (pwmServo we welRichtungsAnschluss 75 >> warteµs weicheZeitµs >> pwmServo we welRichtungsAnschluss 0)
+            ("stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
         | otherwise                     = pure ()
-    stellen we@(MärklinWeiche {richtungsPins})          richtung    _tvarPwmMap = befehlAusführen
+    stellen we@(MärklinWeiche {wemRichtungsAnschluss})              richtung = liftI2CMapT $ befehlAusführen
         richtungStellen
-        ("Stellen (" <> showText (getRichtungsPin richtung $ NE.toList richtungsPins) <> ") -> " <> showText richtung)
+        ("Stellen (" <> showText (getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschluss) <> ") -> " <> showText richtung)
             where
-                richtungStellen :: IO ()
-                richtungStellen = case getRichtungsPin richtung $ NE.toList richtungsPins of
+                richtungStellen :: I2CMapT IO ()
+                richtungStellen = case getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschluss of
                     (Nothing)           -> pure ()
-                    (Just richtungsPin) -> do
-                        pinMode richtungsPin OUTPUT
-                        digitalWrite richtungsPin $ fließend we
+                    (Just richtungsAnschluss) -> do
+                        anschlussWrite richtungsAnschluss $ fließend we
                         warteµs weicheZeitµs
-                        digitalWrite richtungsPin $ gesperrt we
-                getRichtungsPin :: Richtung -> [(Richtung, Pin)] -> Maybe Pin
-                getRichtungsPin _richtung   []  = Nothing
-                getRichtungsPin richtung    ((ersteRichtung, ersterPin):andereRichtungen)
-                    | richtung == ersteRichtung = Just ersterPin
-                    | otherwise                 = getRichtungsPin richtung andereRichtungen
-    hatRichtung :: Weiche -> Richtung -> Bool
-    hatRichtung (LegoWeiche {richtungen=(erste, zweite)})   richtung
+                        anschlussWrite richtungsAnschluss $ gesperrt we
+                getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
+                getRichtungsAnschluss _richtung   []  = Nothing
+                getRichtungsAnschluss richtung    ((ersteRichtung, ersterAnschluss):andereRichtungen)
+                    | richtung == ersteRichtung = Just ersterAnschluss
+                    | otherwise                 = getRichtungsAnschluss richtung andereRichtungen
+    hatRichtung :: Weiche z -> Richtung -> Bool
+    hatRichtung (LegoWeiche {welRichtungen=(erste, zweite)})    richtung
         = (erste == richtung) || (zweite == richtung)
-    hatRichtung (MärklinWeiche {richtungsPins})             richtung
-        = any (\(richtung0, _pin0) -> (richtung0 == richtung)) richtungsPins
-    erhalteRichtungen :: Weiche -> NonEmpty Richtung
-    erhalteRichtungen   (LegoWeiche {richtungen=(richtung1, richtung2)})    = richtung1 :| [richtung2]
-    erhalteRichtungen   (MärklinWeiche {richtungsPins})                     = fst <$> richtungsPins
+    hatRichtung (MärklinWeiche {wemRichtungsAnschluss})         richtung
+        = any (\(richtung0, _pin0) -> (richtung0 == richtung))  wemRichtungsAnschluss
+    erhalteRichtungen :: Weiche z -> NonEmpty Richtung
+    erhalteRichtungen   (LegoWeiche {welRichtungen=(richtung1, richtung2)}) = richtung1 :| [richtung2]
+    erhalteRichtungen   (MärklinWeiche {wemRichtungsAnschluss})             = fst <$> wemRichtungsAnschluss
 
 -- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekuppelt werden
-data Kupplung = Kupplung {kuName :: Text, kuFließend :: Value, kupplungsPin::Pin}
+data Kupplung = Kupplung {kuName :: Text, kuFließend :: Value, kupplungsAnschluss::Anschluss}
                     deriving (Eq)
 
 instance Show Kupplung where
     show :: Kupplung -> String
-    show (Kupplung {kuName, kupplungsPin})
+    show (Kupplung {kuName, kupplungsAnschluss})
         = Language.kupplung <:>
             Language.name <=> unpack kuName <^>
-            Language.kupplung <-> Language.pin <=> show kupplungsPin
+            Language.kupplung <-> Language.pin <=> show kupplungsAnschluss
 
 instance StreckenObjekt Kupplung where
-    pins :: Kupplung -> [Pin]
-    pins (Kupplung {kupplungsPin}) = [kupplungsPin]
+    anschlüsse :: Kupplung -> [Anschluss]
+    anschlüsse (Kupplung {kupplungsAnschluss}) = [kupplungsAnschluss]
     erhalteName :: Kupplung -> Text
     erhalteName (Kupplung {kuName}) = kuName
 
@@ -389,7 +423,7 @@ instance StreckenAtom Kupplung where
 -- | Sammel-Klasse für 'Kupplung'-artige Typen
 class (StreckenObjekt k) => KupplungKlasse k where
     -- | Kupplung betätigen
-    kuppeln :: k -> PwmMapIO ()
+    kuppeln :: k -> I2CMapT IO ()
     {-# MINIMAL kuppeln #-}
 
 -- | Zeit, die Strom beim Kuppeln anliegt
@@ -397,75 +431,67 @@ kuppelnZeitµs :: Natural
 kuppelnZeitµs = µsInS
 
 instance KupplungKlasse Kupplung where
-    kuppeln :: Kupplung -> PwmMapIO ()
-    kuppeln ku@(Kupplung {kupplungsPin}) _tvarPwmMap = befehlAusführen
-        (pinMode kupplungsPin OUTPUT >> digitalWrite kupplungsPin (fließend ku) >> warteµs kuppelnZeitµs >> digitalWrite kupplungsPin (gesperrt ku))
-        ("Kuppeln (" <> showText kupplungsPin <> ")")
+    kuppeln :: Kupplung -> I2CMapT IO ()
+    kuppeln ku@(Kupplung {kupplungsAnschluss}) = befehlAusführen
+        (anschlussWrite kupplungsAnschluss (fließend ku) >> warteµs kuppelnZeitµs >> anschlussWrite kupplungsAnschluss (gesperrt ku))
+        ("Kuppeln (" <> showText kupplungsAnschluss <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
-data Wegstrecke = Wegstrecke {
+data Wegstrecke (z :: Zugtyp) = Wegstrecke {
     wsName :: Text,
-    wsBahngeschwindigkeiten :: [Bahngeschwindigkeit],
+    wsBahngeschwindigkeiten :: [Bahngeschwindigkeit z],
     wsStreckenabschnitte :: [Streckenabschnitt],
-    wsWeichenRichtungen :: [(Weiche, Richtung)],
+    wsWeichenRichtungen :: [(Weiche z, Richtung)],
     wsKupplungen :: [Kupplung]}
                     deriving (Eq)
 
-instance Show Wegstrecke where
-    show :: Wegstrecke -> String
-    show    (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) = Language.wegstrecke <:> Language.name <=> unpack wsName
-                                                                                                                    <^> Language.bahngeschwindigkeiten <=> show wsBahngeschwindigkeiten
-                                                                                                                    <^> Language.streckenabschnitte <=> show wsStreckenabschnitte
-                                                                                                                    <^> Language.weichen <=> "[" <> foldl (\acc (weiche, richtung) -> (if null acc then id else (acc <^>)) $ show weiche <°> show richtung) "" wsWeichenRichtungen <> "]"
-                                                                                                                    <^> Language.kupplungen <=> show wsKupplungen
+instance Show (Wegstrecke z) where
+    show :: Wegstrecke z -> String
+    show    (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})
+        = Language.wegstrecke <:> Language.name <=> unpack wsName
+        <^> Language.bahngeschwindigkeiten <=> show wsBahngeschwindigkeiten
+        <^> Language.streckenabschnitte <=> show wsStreckenabschnitte
+        <^> Language.weichen
+            <=> "[" <> foldl (\acc (weiche, richtung) -> (if null acc then id else (acc <^>)) $ show weiche <°> show richtung) "" wsWeichenRichtungen <> "]"
+        <^> Language.kupplungen <=> show wsKupplungen
 
-instance StreckenObjekt Wegstrecke where
-    zugtyp :: Wegstrecke -> Zugtyp
-    zugtyp wegstrecke@(Wegstrecke {wsBahngeschwindigkeiten=(h:t)})    = case zugtyp h of
-        (Undefiniert)   -> zugtyp $ wegstrecke {wsBahngeschwindigkeiten=t}
-        zugtypWert      -> zugtypWert
-    zugtyp wegstrecke@(Wegstrecke {wsStreckenabschnitte=(h:t)})       = case zugtyp h of
-        (Undefiniert)   -> zugtyp $ wegstrecke {wsStreckenabschnitte=t}
-        zugtypWert      -> zugtypWert
-    zugtyp wegstrecke@(Wegstrecke {wsWeichenRichtungen=(h:t)})        = case zugtyp $ fst h of
-        (Undefiniert)   -> zugtyp $ wegstrecke {wsWeichenRichtungen=t}
-        zugtypWert      -> zugtypWert
-    zugtyp wegstrecke@(Wegstrecke {wsKupplungen=(h:t)})               = case zugtyp h of
-        (Undefiniert)   -> zugtyp $ wegstrecke {wsKupplungen=t}
-        zugtypWert      -> zugtypWert
-    zugtyp _wegstrecke                                              = Undefiniert
-    pins :: Wegstrecke -> [Pin]
-    pins (Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})    = join $ (map pins wsBahngeschwindigkeiten) <> (map pins wsStreckenabschnitte) <> (map pins (map fst wsWeichenRichtungen)) <> (map pins wsKupplungen)
-    erhalteName :: Wegstrecke -> Text
+instance StreckenObjekt (Wegstrecke z) where
+    anschlüsse :: Wegstrecke z -> [Anschluss]
+    anschlüsse (Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})
+        = join $ (map anschlüsse wsBahngeschwindigkeiten)
+                <> (map anschlüsse wsStreckenabschnitte)
+                <> (map anschlüsse (map fst wsWeichenRichtungen))
+                <> (map anschlüsse wsKupplungen)
+    erhalteName :: Wegstrecke z -> Text
     erhalteName (Wegstrecke {wsName}) = wsName
 
-instance BahngeschwindigkeitKlasse Wegstrecke where
-    geschwindigkeit :: Wegstrecke -> Natural -> PwmMapIO ()
-    geschwindigkeit (Wegstrecke {wsBahngeschwindigkeiten}) wert tvarPwmMap = mapM_ (\bahngeschwindigkeit -> forkIO $ geschwindigkeit bahngeschwindigkeit wert tvarPwmMap) wsBahngeschwindigkeiten
-    umdrehen :: Wegstrecke -> Maybe Fahrtrichtung -> PwmMapIO ()
-    umdrehen (Wegstrecke {wsBahngeschwindigkeiten}) maybeFahrtrichtung tvarPwmMap = mapM_ (\bahngeschwindigkeit -> forkIO $ umdrehen bahngeschwindigkeit maybeFahrtrichtung tvarPwmMap) wsBahngeschwindigkeiten
+instance BahngeschwindigkeitKlasse (Wegstrecke z) where
+    geschwindigkeit :: Wegstrecke z -> Natural -> PwmMapT IO ()
+    geschwindigkeit (Wegstrecke {wsBahngeschwindigkeiten}) wert = mapM_ (forkPwmMapT . flip geschwindigkeit wert) wsBahngeschwindigkeiten
+    umdrehen :: Wegstrecke z -> Maybe Fahrtrichtung -> PwmMapT IO ()
+    umdrehen (Wegstrecke {wsBahngeschwindigkeiten}) maybeFahrtrichtung = mapM_ (forkPwmMapT . flip umdrehen maybeFahrtrichtung) wsBahngeschwindigkeiten
 
-instance StreckenabschnittKlasse Wegstrecke where
-    strom :: Wegstrecke -> Strom -> PwmMapIO ()
-    strom (Wegstrecke {wsStreckenabschnitte}) an tvarPwmMap = mapM_ (\streckenabschnitt -> forkIO $ strom streckenabschnitt an tvarPwmMap) wsStreckenabschnitte
+instance StreckenabschnittKlasse (Wegstrecke z) where
+    strom :: Wegstrecke z -> Strom -> I2CMapT IO ()
+    strom (Wegstrecke {wsStreckenabschnitte}) an = mapM_ (forkI2CMapT . flip strom an) wsStreckenabschnitte
 
-instance KupplungKlasse Wegstrecke where
-    kuppeln :: Wegstrecke -> PwmMapIO ()
-    kuppeln (Wegstrecke {wsKupplungen}) tvarPwmMap = mapM_ (\kupplung -> forkIO $ kuppeln kupplung tvarPwmMap) wsKupplungen
+instance KupplungKlasse (Wegstrecke z) where
+    kuppeln :: Wegstrecke z -> I2CMapT IO ()
+    kuppeln (Wegstrecke {wsKupplungen}) = mapM_ (forkI2CMapT . kuppeln) wsKupplungen
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
-    einstellen :: w -> PwmMapIO ()
+    einstellen :: w -> PwmMapT IO ()
     {-# MINIMAL einstellen #-}
 
-instance WegstreckeKlasse Wegstrecke where
-    einstellen :: Wegstrecke -> PwmMapIO ()
-    einstellen (Wegstrecke {wsWeichenRichtungen}) tvarPwmMap = mapM_ (\(weiche, richtung) -> forkIO $ stellen weiche richtung tvarPwmMap) wsWeichenRichtungen
+instance WegstreckeKlasse (Wegstrecke z) where
+    einstellen :: Wegstrecke z -> PwmMapT IO ()
+    einstellen (Wegstrecke {wsWeichenRichtungen}) = mapM_ (forkPwmMapT . uncurry stellen) wsWeichenRichtungen
 
 -- | Ausführen einer IO-Aktion, bzw. Ausgabe eines Strings, abhängig vom Kommandozeilen-Argument
-befehlAusführen :: IO () -> Text -> IO ()
+befehlAusführen :: (MonadIO m) => m () -> Text -> m ()
 befehlAusführen ioAction ersatzNachricht = do
-    (Options {printCmd}) <- getOptions
+    Options {printCmd} <- getOptions
     if printCmd
-        then T.putStrLn ersatzNachricht
+        then liftIO $ T.putStrLn ersatzNachricht
         else ioAction

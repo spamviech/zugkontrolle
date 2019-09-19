@@ -7,7 +7,7 @@ Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstell
 -}
 module Zug.Anbindung.PCF8574 (
         -- * Map über aktuelle I2C-Kanäle
-        I2CMap, I2CMapIO, i2cMapEmpty,
+        I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT,
         -- * I2CAddresse des PCF8574
         PCF8574(..), PCF8574Variant(..), Value(..),
         -- * Read-/Write-Aktionen
@@ -27,8 +27,8 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.ParserCombinators.ReadP (ReadP())
 import qualified Text.ParserCombinators.ReadP as ReadP
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.I2C (I2CMap, I2CMapIO, i2cMapEmpty, I2CAddress(..),
-                        i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
+import Zug.Anbindung.I2C (I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT,
+                        I2CAddress(..), i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
 
 {-
 -- | Alle Möglichkeiten, die Addresse eines PCF8574 einzustellen
@@ -108,17 +108,12 @@ toBitValue :: Word8 -> BitValue
 toBitValue port = BitValue $ bit $ fromIntegral $ min port $ pred numPorts
 
 -- | Wert eines /PCF8574/ komplett setzten
-pcf8574Write :: PCF8574 -> BitValue -> I2CMapIO ()
+pcf8574Write :: PCF8574 -> BitValue -> I2CMapT IO ()
 pcf8574Write pcf8574 = i2cWrite $ toI2CAddress pcf8574
 
 -- | Wert eines /PCF8574/ auslesen
-pcf8574Read :: PCF8574 -> I2CMapIO BitValue
+pcf8574Read :: PCF8574 -> I2CMapT IO BitValue
 pcf8574Read pcf8574 = i2cRead $ toI2CAddress pcf8574
-
-
-
-
-
 
 -- | Anzahl IO-Ports eines /PCF8574/
 numPorts :: Word8
@@ -149,7 +144,7 @@ instance Read PCF8574Port where
     readListPrec = readListPrecDefault
 
 -- | Wert einzelner Ports eines /PCF8574/ setzen
-pcf8574PortWrite :: PCF8574Port -> Value -> I2CMapIO ()
+pcf8574PortWrite :: PCF8574Port -> Value -> I2CMapT IO ()
 pcf8574PortWrite (PCF8574Port {pcf8574, port}) value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
     where
         bitValueFunktion :: BitValue -> BitValue
@@ -158,7 +153,7 @@ pcf8574PortWrite (PCF8574Port {pcf8574, port}) value = i2cWriteAdjust (toI2CAddr
             | otherwise         = oldBitValue .&. complement (toBitValue port)
 
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
-pcf8574PortRead :: PCF8574Port -> I2CMapIO Value
-pcf8574PortRead (PCF8574Port {pcf8574, port}) tvarI2CKanäle = do
-    fullBitValue <- pcf8574Read pcf8574 tvarI2CKanäle
+pcf8574PortRead :: PCF8574Port -> I2CMapT IO Value
+pcf8574PortRead (PCF8574Port {pcf8574, port}) = do
+    fullBitValue <- pcf8574Read pcf8574
     pure $ if (testBit fullBitValue $ fromIntegral port) then HIGH else LOW
