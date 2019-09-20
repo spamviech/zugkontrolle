@@ -1,0 +1,91 @@
+aktuellste Version: https://github.com/spamviech/Zugkontrolle/issues
+--------------------------------------------------------------------
+Fix tests
+    Änderungen berücksichtigen
+
+GTK-UI: Gleichzeitiges Anzeigen mehrerer Kategorien ermöglichen
+    optional?
+    VPaned/HPaned verwenden
+
+Anzeige über eigene Klasse regeln
+    default-Implementierung aus Show-Instanz
+        DefaultSignatures
+    anzeige :: Sprache -> Text
+    Sprache in aktuellem Zustand speichern
+        änderbar im Programm
+
+Code-Stil vereinheitlichen:
+    hlint berücksichtigen(?)
+    Konstruktoren nur wenn notwendig in Klammern setzten
+    Argumente von Typkonstruktoren eingerückt, jeweils in neuer Zeile
+    Funktionen ohne Pattern match (nur ein Variablen-Pattern) ohne extra Leerzeichen
+    Alle (auch eigene) Module mit Import-Liste
+    Namen auf Deutsch
+    Verwendung der Spracherweiterungen
+        ScopedTypeVariables
+            explizites `forall a.` in Deklaration bindet a als festen Typ für die gesamte Funktion (auch let/where-Deklarationen)
+            erlaubt vorher teilweise unmögliche Typ-Deklarationen (z.B. res :: a in einem where-Binding als Rückgabewert der Funktion verwendbar)
+        OverlappableInstances
+            {-# Overlappable #-}/{-# Overlapping #-} bei Instanz-Deklaration
+            allgemeinen Fall abdeckbar, ohne Spezial-Instanzen zu verhindern
+            Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
+    etc.
+
+Erlaube "Warten auf Signal"
+    Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
+    Zeit-basierte Lösung wird weiterhin unterstützt.
+    Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
+
+gi-gtk/gi-gtk-declarative verwenden?
+    gi-gtk scheint neuer und besser gewartet zu sein.
+    Wirft auf Raspberry Pi bisher Fehlermeldungen.
+
+Beispiel-Schaltpläne erstellen
+    Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
+    In der ReadMe erwähnen/verlinken.
+
+Test-Suite vervollständigen
+    Fehlende Tests erstellen.
+    Test-Bibliothek verwenden (hspec)?
+        'shouldBe' und 'shouldSatisfy'
+
+Hilfetext von optparse-applicative übersetzten
+    Eigene helper-Funktion erstellen.
+    Außerdem sämtliche Hilfetexte in Language.hs auslagern.
+
+---------------------------Gelöst--------------------------
+Zugtyp-Mischformen von Wegstrecken
+    Mischformen können aktuell zu potentiell unerwartetem Verhalten führen:
+        Wenn als Märklin interpretiert: alle Lego-Bahngeschwindigkeiten werden auf Vorwärts gestellt
+        Wenn als Lego interpretiert: alle Märklin-Bahngeschwindigkeiten drehen um
+    Mögliche Lösungen:
+        Smart-Constructor für Wegstrecken um (wenn nötig) einen eindeutigen Zugtyp sicherzustellen?
+        wegstrecke :: Text -> [Bahngeschwindigkeit] -> [Streckenabschnitt] -> [(Weiche, Richtung)] -> [Kupplung] -> Maybe Wegstrecke
+            stelle smart-Destructor zum Pattern Matching bereit
+            Selector-Funktionen exportieren?
+            PatternSynonyms verwenden?
+                https://haskell-explained.gitlab.io/blog/posts/2019/08/27/pattern-synonyms/index.html
+        Identischer View-Datentyp mit exportiertem Konstruktor?
+        Alternativ Umdrehen bei unklarem Zugtyp der verwendeten Bahngeschwindigkeiten verbieten?
+    Gelöst über Zugtyp-Phantomtyp (DataKinds)
+
+PCF8574Port als alternative zu Pin erlauben
+    Summentyp Anschluss
+    definiert in PCF8574.hs?
+    eigenes Modul verwenden (Anschluss.hs) für einfache Erweiterung?
+        Done
+MVar durch TVar ersetzen
+    sollen sowieso immer gefüllt sein
+        Done
+
+VRCheckbutton durch abstrakten Datentyp RegistrierterCheckButton ersetzen
+    FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
+        LinkedMVar benötigt dadurch Update-Aktion nicht mehr
+        Konstruktor muss LinkedMVar kennen
+    LinkeMVar entfernen?
+        Done
+
+Widget.hs: eigenen bool-like Datentyp für Position erstellen
+    data Position = First | Last
+    newtype für Padding
+        Done
