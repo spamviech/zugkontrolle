@@ -23,7 +23,8 @@ import Control.Monad.Trans (liftIO, lift)
 import Data.Maybe (isNothing)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung.Anschluss (Anschluss(), anschlussWrite, warteµs, I2CMap, I2CMapT, runI2CMapT)
+import Zug.Anbindung.Anschluss (Anschluss(), anschlussWrite, I2CMap, I2CMapT, runI2CMapT)
+import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), differenz, multiplizieren, dividieren)
 
 -- | Welche Pins haben aktuell Software-PWM
 type PwmMap = Map Anschluss (PwmValue, Natural)
@@ -50,17 +51,17 @@ pwmGrenze :: PwmValue
 pwmGrenze = 1024
 
 -- | Erhalte Zeit in µs, die der Strom während einer PWM-Periode (an, aus) ist.
-pwmBerechneZeiten :: Natural -> PwmValue -> (Natural, Natural)
-pwmBerechneZeiten pwmFrequenzHz pwmWert = (zeitAnµs, zeitAusµs)
+pwmBerechneZeiten :: Natural -> PwmValue -> (Wartezeit, Wartezeit)
+pwmBerechneZeiten pwmFrequenzHz pwmWert = (zeitAn, zeitAus)
     where
-        zeitAnµs :: Natural
-        zeitAnµs = div (pwmPeriodendauerµs * (fromIntegral pwmWert)) (fromIntegral pwmGrenze)
-        zeitAusµs :: Natural
-        zeitAusµs = pwmPeriodendauerµs - zeitAnµs
+        zeitAn :: Wartezeit
+        zeitAn = dividieren (multiplizieren pwmPeriodendauer $ fromIntegral pwmWert) $ fromIntegral pwmGrenze
+        zeitAus :: Wartezeit
+        zeitAus = differenz pwmPeriodendauer zeitAn
         µsInS :: Natural
         µsInS = 1000000
-        pwmPeriodendauerµs :: Natural
-        pwmPeriodendauerµs = div µsInS pwmFrequenzHz
+        pwmPeriodendauer :: Wartezeit
+        pwmPeriodendauer = MikroSekunden $ div µsInS pwmFrequenzHz
 
 -- | Nutze Haskell-Module um ein Software-generiertes PWM-Signal zu erzeugen
 pwmSoftwareSetzteWert :: Anschluss -> Natural -> PwmValue -> PwmMapT IO ()
@@ -87,8 +88,8 @@ pwmSoftwareSetzteWert anschluss pwmFrequenz   pwmWert    = do
                     Nothing                         -> pure ()
                     (Just (pwmWert, pwmFrequenz))   -> do
                         liftI2CMapT $ anschlussWrite anschluss HIGH
-                        let (zeitAnµs, zeitAusµs) = pwmBerechneZeiten pwmFrequenz pwmWert
-                        warteµs zeitAnµs
+                        let (zeitAn, zeitAus) = pwmBerechneZeiten pwmFrequenz pwmWert
+                        warte zeitAn
                         liftI2CMapT $ anschlussWrite anschluss LOW
-                        warteµs zeitAusµs
+                        warte zeitAus
                         pwmSoftwareAnschlussMain anschluss
