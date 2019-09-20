@@ -1,4 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer Weiche) repräsentieren.
@@ -13,6 +16,16 @@ import qualified Zug.Language as Language
 -- | Zugtyp eines Elements
 data Zugtyp = Märklin | Lego
                 deriving (Eq, Bounded, Enum)
+
+-- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datantypen
+data ZugtypEither a
+    = ZugtypMärklin (a 'Märklin)
+    | ZugtypLego (a 'Lego)
+deriving instance (Eq (a 'Märklin), Eq (a 'Lego)) => Eq (ZugtypEither a)
+instance (Show (a 'Märklin), Show (a 'Lego)) => Show (ZugtypEither a) where
+    show :: ZugtypEither a -> String
+    show    (ZugtypMärklin a)   = show a
+    show    (ZugtypLego a)      = show a
 
 -- | Unterstützte 'Zugtyp'en
 unterstützteZugtypen :: NonEmpty Zugtyp

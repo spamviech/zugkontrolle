@@ -32,7 +32,7 @@ import qualified Zug.Language as Language
 -- Falls es nicht verfügbar ist, starte stattdessen den Cmd-UI main loop.
 main :: IO ()
 main = ausführenWennRoot $ do
-    (Options {ui}) <- getOptions
+    Options {ui} <- getOptions
     case ui of
         GTK -> GTK.main
         Cmd -> Cmd.main

@@ -7,6 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Ebene.
@@ -15,7 +16,7 @@ module Zug.Anbindung (
                     -- * Anschluss-Repräsentation
                     Anschluss(), vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
                     PwmMap, pwmMapEmpty, PwmMapT, I2CMap, i2cMapEmpty, I2CMapT,
-                    runPwmMapT, liftI2CMapT, runI2CMapT,
+                    runPwmMapT, forkPwmMapT, liftI2CMapT, runI2CMapT, forkI2CMapT,
                     Value(..), alleValues,
                     Pin(), vonPin, zuPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert,
                     -- * Strecken-Objekte
@@ -45,7 +46,7 @@ import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..),
                                 pinMode, pwmSetRange, pwmWrite)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), Strom(..), Fahrtrichtung(..), Richtung(..))
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), Richtung(..))
 import Zug.Options (Options(..), PWM(..), getOptions)
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
@@ -157,6 +158,14 @@ class StreckenObjekt s where
     erhalteName :: s -> Text
     {-# MINIMAL anschlüsse, erhalteName #-}
 
+instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego)) => StreckenObjekt (ZugtypEither a) where
+    anschlüsse :: ZugtypEither a -> [Anschluss]
+    anschlüsse  (ZugtypMärklin a)   = anschlüsse a
+    anschlüsse  (ZugtypLego a)      = anschlüsse a
+    erhalteName :: ZugtypEither a -> Text
+    erhalteName (ZugtypMärklin a)   = erhalteName a
+    erhalteName (ZugtypLego a)      = erhalteName a
+
 -- | Eine Klasse für alle Typen, die direkt mit wiringPi interagieren.
 class StreckenAtom s where
     fließend :: s -> Value
@@ -169,6 +178,11 @@ class StreckenAtom s where
     erhalteValue    Fließend    = fließend
     erhalteValue    Gesperrt    = gesperrt
     {-# MINIMAL fließend | erhalteValue #-}
+
+instance (StreckenAtom (a 'Märklin), StreckenAtom (a 'Lego)) => StreckenAtom (ZugtypEither a) where
+    fließend :: ZugtypEither a -> Value
+    fließend    (ZugtypMärklin a)   = fließend a
+    fließend    (ZugtypLego a)      = fließend a
 
 -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
 data Bahngeschwindigkeit (z :: Zugtyp) where
@@ -214,18 +228,20 @@ instance StreckenAtom (Bahngeschwindigkeit z) where
     fließend    (MärklinBahngeschwindigkeit {bgmFließend})  = bgmFließend
 
 -- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen
-class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
+class (StreckenObjekt (b 'Märklin), StreckenObjekt (b 'Lego)) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
-    geschwindigkeit :: b -> Natural -> PwmMapT IO ()
-    -- | Gebe allen Zügen den Befehl zum Umdrehen/in einer bestimmen Richtung zu fahren
-    umdrehen :: b -> Maybe Fahrtrichtung -> PwmMapT IO ()
-    {-# MINIMAL geschwindigkeit, umdrehen #-}
+    geschwindigkeit :: b z -> Natural -> PwmMapT IO ()
+    -- | Gebe allen Zügen den Befehl zum Umdrehen
+    umdrehen :: b 'Märklin -> PwmMapT IO ()
+    -- | Gebe allen Zugen den Befehl in einer bestimmen Richtung zu fahren
+    fahrtrichtungEinstellen :: b 'Lego -> Fahrtrichtung -> PwmMapT IO ()
+    {-# MINIMAL geschwindigkeit, umdrehen, fahrtrichtungEinstellen #-}
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
 umdrehenZeit :: Wartezeit
 umdrehenZeit = MilliSekunden 250
 
-instance BahngeschwindigkeitKlasse (Bahngeschwindigkeit z) where
+instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     geschwindigkeit :: Bahngeschwindigkeit z -> Natural -> PwmMapT IO ()
     geschwindigkeit
         bg@(LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss})
@@ -239,27 +255,23 @@ instance BahngeschwindigkeitKlasse (Bahngeschwindigkeit z) where
             = befehlAusführen
                 (pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ erhaltePWMWertReduziert geschwindigkeit)
                 ("Geschwindigkeit (" <> showText bgmGeschwindigkeitsAnschluss <> ")->" <> showText geschwindigkeit)
-    umdrehen :: Bahngeschwindigkeit z -> Maybe Fahrtrichtung -> PwmMapT IO ()
-    umdrehen
-        bg@(LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
-        (Just fahrtrichtung)
-            = befehlAusführen
-                (umdrehenAux bg bglGeschwindigkeitsAnschluss [
-                    liftI2CMapT $ anschlussWrite bglFahrtrichtungsAnschluss $ (if (fahrtrichtung == Vorwärts) then fließend else gesperrt) bg])
-                ("Umdrehen (" <> showText bglGeschwindigkeitsAnschluss <^> showText bglFahrtrichtungsAnschluss <> ")->" <> showText fahrtrichtung)
-    umdrehen
-        bahngeschwindigkeit@(LegoBahngeschwindigkeit {})
-        (Nothing)
-            = umdrehen bahngeschwindigkeit (Just Vorwärts)
+    umdrehen :: Bahngeschwindigkeit 'Märklin -> PwmMapT IO ()
     umdrehen
         bg@(MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss})
-        _maybeRichtung
             = befehlAusführen
                 (umdrehenAux bg bgmGeschwindigkeitsAnschluss [
                     pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert pwmGrenze,
                     warte umdrehenZeit,
                     pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0])
                 ("Umdrehen (" <> showText bgmGeschwindigkeitsAnschluss <> ")")
+    fahrtrichtungEinstellen :: Bahngeschwindigkeit 'Lego -> Fahrtrichtung -> PwmMapT IO ()
+    fahrtrichtungEinstellen
+        bg@(LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
+        fahrtrichtung
+            = befehlAusführen
+                (umdrehenAux bg bglGeschwindigkeitsAnschluss [
+                    liftI2CMapT $ anschlussWrite bglFahrtrichtungsAnschluss $ (if (fahrtrichtung == Vorwärts) then fließend else gesperrt) bg])
+                ("Umdrehen (" <> showText bglGeschwindigkeitsAnschluss <^> showText bglFahrtrichtungsAnschluss <> ")->" <> showText fahrtrichtung)
 
 umdrehenAux :: (StreckenAtom s) => s -> Anschluss -> [PwmMapT IO ()] -> PwmMapT IO ()
 umdrehenAux s geschwindigkeitsAnschluss umdrehenAktionen = do
@@ -294,6 +306,11 @@ class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
     strom :: s -> Strom -> I2CMapT IO ()
     {-# MINIMAL strom #-}
+
+instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Lego)) => StreckenabschnittKlasse (ZugtypEither s) where
+    strom :: ZugtypEither s -> Strom -> I2CMapT IO ()
+    strom   (ZugtypMärklin a)   = strom a
+    strom   (ZugtypLego a)      = strom a
 
 instance StreckenabschnittKlasse Streckenabschnitt where
     strom :: Streckenabschnitt -> Strom -> I2CMapT IO ()
@@ -352,6 +369,14 @@ class (StreckenObjekt w) => WeicheKlasse w where
     -- | Erhalte alle Richtungen einer Weiche
     erhalteRichtungen :: w -> NonEmpty Richtung
     {-# MINIMAL stellen, erhalteRichtungen #-}
+
+instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego)) => WeicheKlasse (ZugtypEither we) where
+    stellen :: ZugtypEither we -> Richtung -> PwmMapT IO ()
+    stellen (ZugtypMärklin a)   = stellen a
+    stellen (ZugtypLego a)      = stellen a
+    erhalteRichtungen :: ZugtypEither we -> NonEmpty Richtung
+    erhalteRichtungen   (ZugtypMärklin a)   = erhalteRichtungen a
+    erhalteRichtungen   (ZugtypLego a)      = erhalteRichtungen a
 
 -- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
 weicheZeit :: Wartezeit
@@ -419,6 +444,11 @@ class (StreckenObjekt k) => KupplungKlasse k where
     kuppeln :: k -> I2CMapT IO ()
     {-# MINIMAL kuppeln #-}
 
+instance (KupplungKlasse (ku 'Märklin), KupplungKlasse (ku 'Lego)) => KupplungKlasse (ZugtypEither ku) where
+    kuppeln :: ZugtypEither ku -> I2CMapT IO ()
+    kuppeln (ZugtypMärklin a)   = kuppeln a
+    kuppeln (ZugtypLego a)      = kuppeln a
+
 -- | Zeit, die Strom beim Kuppeln anliegt
 kuppelnZeit :: Wartezeit
 kuppelnZeit = MilliSekunden 500
@@ -458,11 +488,14 @@ instance StreckenObjekt (Wegstrecke z) where
     erhalteName :: Wegstrecke z -> Text
     erhalteName (Wegstrecke {wsName}) = wsName
 
-instance BahngeschwindigkeitKlasse (Wegstrecke z) where
+instance BahngeschwindigkeitKlasse Wegstrecke where
     geschwindigkeit :: Wegstrecke z -> Natural -> PwmMapT IO ()
     geschwindigkeit (Wegstrecke {wsBahngeschwindigkeiten}) wert = mapM_ (forkPwmMapT . flip geschwindigkeit wert) wsBahngeschwindigkeiten
-    umdrehen :: Wegstrecke z -> Maybe Fahrtrichtung -> PwmMapT IO ()
-    umdrehen (Wegstrecke {wsBahngeschwindigkeiten}) maybeFahrtrichtung = mapM_ (forkPwmMapT . flip umdrehen maybeFahrtrichtung) wsBahngeschwindigkeiten
+    umdrehen :: Wegstrecke 'Märklin -> PwmMapT IO ()
+    umdrehen (Wegstrecke {wsBahngeschwindigkeiten}) = mapM_ (forkPwmMapT . umdrehen) wsBahngeschwindigkeiten
+    fahrtrichtungEinstellen :: Wegstrecke 'Lego -> Fahrtrichtung -> PwmMapT IO ()
+    fahrtrichtungEinstellen (Wegstrecke {wsBahngeschwindigkeiten}) neueFahrtrichtung
+        = mapM_ (forkPwmMapT . flip fahrtrichtungEinstellen neueFahrtrichtung) wsBahngeschwindigkeiten
 
 instance StreckenabschnittKlasse (Wegstrecke z) where
     strom :: Wegstrecke z -> Strom -> I2CMapT IO ()
@@ -473,9 +506,14 @@ instance KupplungKlasse (Wegstrecke z) where
     kuppeln (Wegstrecke {wsKupplungen}) = mapM_ (forkI2CMapT . kuppeln) wsKupplungen
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
-class (StreckenObjekt w, BahngeschwindigkeitKlasse w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
+class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
     einstellen :: w -> PwmMapT IO ()
     {-# MINIMAL einstellen #-}
+
+instance (WegstreckeKlasse (w 'Märklin), WegstreckeKlasse (w 'Lego)) => WegstreckeKlasse (ZugtypEither w) where
+    einstellen :: ZugtypEither w -> PwmMapT IO ()
+    einstellen  (ZugtypMärklin a)   = einstellen a
+    einstellen  (ZugtypLego a)      = einstellen a
 
 instance WegstreckeKlasse (Wegstrecke z) where
     einstellen :: Wegstrecke z -> PwmMapT IO ()

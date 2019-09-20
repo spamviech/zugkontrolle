@@ -2,6 +2,10 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
@@ -17,33 +21,44 @@ module Zug.Plan (
     AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionKupplung(..), AktionWegstrecke(..)) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
+import Control.Monad.Trans (MonadIO(..))
 import Data.Kind (Type)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), Richtung(), Fahrtrichtung(), Strom(..))
-import Zug.Anbindung (StreckenObjekt(..), Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), Pin(), PwmMapIO, warteµs)
+import Zug.Klassen (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
+                    PwmMapT, forkPwmMapT, liftI2CMapT,
+                    Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..),
+                    Streckenabschnitt(), StreckenabschnittKlasse(..),
+                    Weiche(), WeicheKlasse(..),
+                    Kupplung(), KupplungKlasse(..),
+                    Wegstrecke(), WegstreckeKlasse(..),
+                    warte, Wartezeit(..))
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ws pl
-    = OBahngeschwindigkeit bg
+    = OBahngeschwindigkeit (ZugtypEither bg)
     | OStreckenabschnitt st
     | OKupplung ku
-    | OWeiche we
-    | OWegstrecke ws
+    | OWeiche (ZugtypEither we)
+    | OWegstrecke (ZugtypEither ws)
     | OPlan pl
-        deriving (Eq)
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
-type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
+type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Weiche Plan
 
-instance (Show bg, Show st, Show we, Show ku, Show ws, Show pl) => Show (ObjektAllgemein bg st we ku ws pl) where
+deriving instance (Eq st, Eq ku, Eq pl, Eq (bg 'Märklin), Eq (bg 'Lego),
+                    Eq (we 'Märklin), Eq (we 'Lego), Eq (ws 'Märklin), Eq (ws 'Lego))
+                    => Eq (ObjektAllgemein bg st we ku ws pl)
+
+instance (Show (bg 'Märklin), Show (bg 'Lego), Show st, Show (we 'Märklin), Show (we 'Lego),
+        Show ku, Show (ws 'Märklin), Show (ws 'Lego), Show pl) => Show (ObjektAllgemein bg st we ku ws pl) where
     show :: ObjektAllgemein bg st we ku ws pl -> String
     show    (OBahngeschwindigkeit bg)   = show bg
     show    (OStreckenabschnitt st)     = show st
@@ -55,15 +70,15 @@ instance (Show bg, Show st, Show we, Show ku, Show ws, Show pl) => Show (ObjektA
 -- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where
     -- | Bahngeschwindigkeit
-    type BG o :: Type
+    type BG o :: Zugtyp -> Type
     -- | Streckenabschnitt
     type ST o :: Type
     -- | Weiche
-    type WE o :: Type
+    type WE o :: Zugtyp -> Type
     -- | Kupplung
     type KU o :: Type
     -- | Wegstrecke
-    type WS o :: Type
+    type WS o :: Zugtyp -> Type
     -- | Plan
     type PL o :: Type
     -- | Mapping auf 'ObjektAllgemein'. Notwendig für Pattern-Matching.
@@ -71,22 +86,22 @@ class ObjektKlasse o where
     -- | Inverses Mapping auf 'ObjektAllgemein'. Ermöglicht Instanz-Nutzung von o.
     ausObjekt :: ObjektAllgemein (BG o) (ST o) (WE o) (KU o) (WS o) (PL o) -> o
 
--- | Erzeuge 'ObjektKlasse' aus einer 'Bahngeschwindigkeit'. Die Liste ist nur zur Typ-Inferenz notwendig und wird nicht verwendet.
-ausBG :: (ObjektKlasse o) => Phantom o -> BG o -> o
+-- | Erzeuge 'ObjektKlasse' aus einer 'Bahngeschwindigkeit'.
+ausBG :: (ObjektKlasse o) => Phantom o -> ZugtypEither (BG o) -> o
 ausBG _ = ausObjekt . OBahngeschwindigkeit
--- | Erzeuge 'ObjektKlasse' aus einem 'Streckenabschnitt'. Die Liste ist nur zur Typ-Inferenz notwendig und wird nicht verwendet.
+-- | Erzeuge 'ObjektKlasse' aus einem 'Streckenabschnitt'.
 ausST :: (ObjektKlasse o) => Phantom o -> ST o -> o
 ausST _ = ausObjekt . OStreckenabschnitt
--- | Erzeuge 'ObjektKlasse' aus einer 'Weiche'. Die Liste ist nur zur Typ-Inferenz notwendig und wird nicht verwendet.
-ausWE :: (ObjektKlasse o) => Phantom o -> WE o -> o
+-- | Erzeuge 'ObjektKlasse' aus einer 'Weiche'.
+ausWE :: (ObjektKlasse o) => Phantom o -> ZugtypEither (WE o) -> o
 ausWE _ = ausObjekt . OWeiche
--- | Erzeuge 'ObjektKlasse' aus einer 'Kupplung'. Die Liste ist nur zur Typ-Inferenz notwendig und wird nicht verwendet.
+-- | Erzeuge 'ObjektKlasse' aus einer 'Kupplung'.
 ausKU :: (ObjektKlasse o) => Phantom o -> KU o -> o
 ausKU _ = ausObjekt . OKupplung
--- | Erzeuge 'ObjektKlasse' aus einer 'Wegstrecke'. Die Liste ist nur zur Typ-Inferenz notwendig und wird nicht verwendet.
-ausWS :: (ObjektKlasse o) => Phantom o -> WS o -> o
+-- | Erzeuge 'ObjektKlasse' aus einer 'Wegstrecke'.
+ausWS :: (ObjektKlasse o) => Phantom o -> ZugtypEither (WS o) -> o
 ausWS _ = ausObjekt . OWegstrecke
--- | Erzeuge 'ObjektKlasse' aus einem 'Plan'. Die Liste ist nur zur Typ-Inferenz notwendig und wird nicht verwendet.
+-- | Erzeuge 'ObjektKlasse' aus einem 'Plan'.
 ausPL :: (ObjektKlasse o) => Phantom o -> PL o -> o
 ausPL _ = ausObjekt . OPlan
 -- | Wie 'Nothing' aus 'Maybe' o. Wird für Typ-Inferenz benötigt.
@@ -104,7 +119,9 @@ instance ObjektKlasse (ObjektAllgemein bg st we ku ws pl) where
     ausObjekt :: ObjektAllgemein bg st we ku ws pl -> ObjektAllgemein bg st we ku ws pl
     ausObjekt = id
 
-instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjekt we, StreckenObjekt ku, StreckenObjekt ws) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
+instance (StreckenObjekt pl, StreckenObjekt (bg 'Märklin), StreckenObjekt (bg 'Lego), StreckenObjekt st, StreckenObjekt ku,
+        StreckenObjekt (we 'Märklin), StreckenObjekt (we 'Lego), StreckenObjekt (ws 'Märklin), StreckenObjekt (ws 'Lego))
+    => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
     erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
     erhalteName (OPlan pl)                  = erhalteName pl
     erhalteName (OWegstrecke ws)            = erhalteName ws
@@ -112,27 +129,20 @@ instance (StreckenObjekt pl, StreckenObjekt bg, StreckenObjekt st, StreckenObjek
     erhalteName (OBahngeschwindigkeit bg)   = erhalteName bg
     erhalteName (OStreckenabschnitt st)     = erhalteName st
     erhalteName (OKupplung ku)              = erhalteName ku
-    pins ::ObjektAllgemein bg st we ku ws pl -> [Pin]
-    pins (OPlan pl)                 = pins pl
-    pins (OWegstrecke ws)           = pins ws
-    pins (OWeiche we)               = pins we
-    pins (OBahngeschwindigkeit bg)  = pins bg
-    pins (OStreckenabschnitt st)    = pins st
-    pins (OKupplung ku)             = pins ku
-    zugtyp :: ObjektAllgemein bg st we ku ws pl -> Zugtyp
-    zugtyp (OPlan pl)                  = zugtyp pl
-    zugtyp (OWegstrecke ws)            = zugtyp ws
-    zugtyp (OWeiche we)                = zugtyp we
-    zugtyp (OBahngeschwindigkeit bg)   = zugtyp bg
-    zugtyp (OStreckenabschnitt st)     = zugtyp st
-    zugtyp (OKupplung ku)              = zugtyp ku
+    anschlüsse ::ObjektAllgemein bg st we ku ws pl -> [Anschluss]
+    anschlüsse  (OPlan pl)                  = anschlüsse pl
+    anschlüsse  (OWegstrecke ws)            = anschlüsse ws
+    anschlüsse  (OWeiche we)                = anschlüsse we
+    anschlüsse  (OBahngeschwindigkeit bg)   = anschlüsse bg
+    anschlüsse  (OStreckenabschnitt st)     = anschlüsse st
+    anschlüsse  (OKupplung ku)              = anschlüsse ku
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
 -- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-Liste vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapIO ()
+    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapT IO ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -143,8 +153,9 @@ data Plan = Plan {
         deriving (Eq)
 
 -- | newtype für ausführende Pläne ('Plan')
-newtype Ausführend = Ausführend Plan
-                        deriving (Eq, StreckenObjekt)
+newtype Ausführend
+    = Ausführend Plan
+        deriving (Eq, StreckenObjekt)
 
 instance Show Plan where
     show :: Plan -> String
@@ -153,120 +164,120 @@ instance Show Plan where
                                     <^> Language.aktionen <=> show plAktionen
 
 instance StreckenObjekt Plan where
-    pins :: Plan -> [Pin]
-    pins (Plan {plAktionen}) = foldMap pins plAktionen
-    zugtyp :: Plan -> Zugtyp
-    zugtyp (Plan {plAktionen}) = findeZugtyp plAktionen
+    anschlüsse :: Plan -> [Anschluss]
+    anschlüsse (Plan {plAktionen}) = foldMap anschlüsse plAktionen
     erhalteName :: Plan -> Text
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapIO ()
-    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion tvarAusführend tvarPwmMap = void $ forkIO $ void $ do
-        atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
+    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapT IO ()
+    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion tvarAusführend = void $ forkPwmMapT $ void $ do
+        liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
-        showAktion $ fromIntegral $ length plAktionen
-        endAktion
-            where
-                ausführenAux :: Natural -> [Aktion] ->IO ()
-                ausführenAux    _i  ([])    = atomically $ modifyTVar tvarAusführend $ entfernen (Ausführend plan)
-                ausführenAux    i   (h:t)   = do
-                    ausführend <- readTVarIO tvarAusführend
-                    when (elem (Ausführend plan) ausführend) $ do
-                        showAktion i
-                        ausführenAktion h tvarPwmMap
-                        ausführenAux (succ i) t
+        liftIO $ do
+            showAktion $ fromIntegral $ length plAktionen
+            endAktion
+                where
+                    ausführenAux :: Natural -> [Aktion] -> PwmMapT IO ()
+                    ausführenAux    _i  []      = liftIO $ atomically $
+                                                    modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+                    ausführenAux    i   (h:t)   = do
+                        ausführend <- liftIO $ readTVarIO tvarAusführend
+                        when (elem (Ausführend plan) ausführend) $ do
+                            liftIO $ showAktion i
+                            ausführenAktion h
+                            ausführenAux (succ i) t
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where
-    ausführenAktion :: a -> PwmMapIO ()
+    ausführenAktion :: a -> PwmMapT IO ()
 
 -- | Eine Aktion eines 'StreckenObjekt's oder eine Wartezeit.
 -- Die Update-Funktion wird nicht aufgerufen.
-data Aktion = Warten
-                Natural
-            | AWegstrecke
-                (AktionWegstrecke Wegstrecke)
-            | AWeiche
-                (AktionWeiche Weiche)
-            | ABahngeschwindigkeit
-                (AktionBahngeschwindigkeit Bahngeschwindigkeit)
-            | AStreckenabschnitt
-                (AktionStreckenabschnitt Streckenabschnitt)
-            | AKupplung
-                (AktionKupplung Kupplung)
-                    deriving (Eq)
+data Aktion
+    = Warten
+        Wartezeit
+    | AWegstreckeMärklin
+        (AktionWegstrecke Wegstrecke 'Märklin)
+    | AWegstreckeLego
+        (AktionWegstrecke Wegstrecke 'Lego)
+    | AWeiche
+        (AktionWeiche (ZugtypEither Weiche))
+    | ABahngeschwindigkeitMärklin
+        (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Märklin)
+    | ABahngeschwindigkeitLego
+        (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Lego)
+    | AStreckenabschnitt
+        (AktionStreckenabschnitt Streckenabschnitt)
+    | AKupplung
+        (AktionKupplung Kupplung)
+            deriving (Eq)
 
 instance Show Aktion where
     show :: Aktion -> String
-    show    (Warten time)                   = Language.warten <:> show time <> Language.wartenEinheit
-    show    (AWegstrecke aktion)            = Language.wegstrecke <~> show aktion
-    show    (AWeiche aktion)                = Language.weiche <~> show aktion
-    show    (ABahngeschwindigkeit aktion)   = Language.bahngeschwindigkeit <~> show aktion
-    show    (AStreckenabschnitt aktion)     = Language.streckenabschnitt <~> show aktion
-    show    (AKupplung aktion)              = Language.kupplung <~> show aktion
+    show    (Warten time)                           = Language.warten <:> show time <> Language.wartenEinheit
+    show    (AWegstreckeMärklin aktion)             = Language.wegstrecke <~> show aktion
+    show    (AWegstreckeLego aktion)                = Language.wegstrecke <~> show aktion
+    show    (AWeiche aktion)                        = Language.weiche <~> show aktion
+    show    (ABahngeschwindigkeitMärklin aktion)    = Language.bahngeschwindigkeit <~> show aktion
+    show    (ABahngeschwindigkeitLego aktion)       = Language.bahngeschwindigkeit <~> show aktion
+    show    (AStreckenabschnitt aktion)             = Language.streckenabschnitt <~> show aktion
+    show    (AKupplung aktion)                      = Language.kupplung <~> show aktion
 
 instance StreckenObjekt Aktion where
-    pins :: Aktion -> [Pin]
-    pins    (Warten _zeit)                  = []
-    pins    (AWegstrecke aktion)            = pins aktion
-    pins    (AWeiche aktion)                = pins aktion
-    pins    (ABahngeschwindigkeit aktion)   = pins aktion
-    pins    (AStreckenabschnitt aktion)     = pins aktion
-    pins    (AKupplung aktion)              = pins aktion
-    zugtyp :: Aktion -> Zugtyp
-    zugtyp  (Warten _zeit)                  = Undefiniert
-    zugtyp  (AWegstrecke aktion)            = zugtyp aktion
-    zugtyp  (AWeiche aktion)                = zugtyp aktion
-    zugtyp  (ABahngeschwindigkeit aktion)   = zugtyp aktion
-    zugtyp  (AStreckenabschnitt aktion)     = zugtyp aktion
-    zugtyp  (AKupplung aktion)              = zugtyp aktion
+    anschlüsse :: Aktion -> [Anschluss]
+    anschlüsse  (Warten _zeit)                          = []
+    anschlüsse  (AWegstreckeMärklin aktion)             = anschlüsse aktion
+    anschlüsse  (AWegstreckeLego aktion)                = anschlüsse aktion
+    anschlüsse  (AWeiche aktion)                        = anschlüsse aktion
+    anschlüsse  (ABahngeschwindigkeitMärklin aktion)    = anschlüsse aktion
+    anschlüsse  (ABahngeschwindigkeitLego aktion)       = anschlüsse aktion
+    anschlüsse  (AStreckenabschnitt aktion)             = anschlüsse aktion
+    anschlüsse  (AKupplung aktion)                      = anschlüsse aktion
     erhalteName :: Aktion -> Text
     erhalteName = showText
 
 instance AktionKlasse Aktion where
-    ausführenAktion :: Aktion -> PwmMapIO ()
-    ausführenAktion (Warten time)                   = const $ warteµs time
-    ausführenAktion (AWegstrecke aktion)            = ausführenAktion aktion
-    ausführenAktion (AWeiche aktion)                = ausführenAktion aktion
-    ausführenAktion (ABahngeschwindigkeit aktion)   = ausführenAktion aktion
-    ausführenAktion (AStreckenabschnitt aktion)     = ausführenAktion aktion
-    ausführenAktion (AKupplung aktion)              = ausführenAktion aktion
+    ausführenAktion :: Aktion -> PwmMapT IO ()
+    ausführenAktion (Warten time)                           = warte time
+    ausführenAktion (AWegstreckeMärklin aktion)             = ausführenAktion aktion
+    ausführenAktion (AWegstreckeLego aktion)                = ausführenAktion aktion
+    ausführenAktion (AWeiche aktion)                        = ausführenAktion aktion
+    ausführenAktion (ABahngeschwindigkeitMärklin aktion)    = ausführenAktion aktion
+    ausführenAktion (ABahngeschwindigkeitLego aktion)       = ausführenAktion aktion
+    ausführenAktion (AStreckenabschnitt aktion)             = ausführenAktion aktion
+    ausführenAktion (AKupplung aktion)                      = ausführenAktion aktion
 
 -- | Bekannte 'Aktion'en einer 'Wegstrecke'
-data AktionWegstrecke ws    = Einstellen
-                                ws
-                            | AWSBahngeschwindigkeit
-                                (AktionBahngeschwindigkeit ws)
-                            | AWSStreckenabschnitt
-                                (AktionStreckenabschnitt ws)
-                            | AWSKupplung
-                                (AktionKupplung ws)
-                                    deriving (Eq)
+data AktionWegstrecke ws (z :: Zugtyp)
+    = Einstellen
+        (ws z)
+    | AWSBahngeschwindigkeit
+        (AktionBahngeschwindigkeit ws z)
+    | AWSStreckenabschnitt
+        (AktionStreckenabschnitt (ws z))
+    | AWSKupplung
+        (AktionKupplung (ws z))
+            deriving (Eq)
 
-instance (StreckenObjekt ws)  => Show (AktionWegstrecke ws) where
-    show :: AktionWegstrecke ws -> String
+instance (StreckenObjekt (ws z))  => Show (AktionWegstrecke ws z) where
+    show :: AktionWegstrecke ws z -> String
     show    (Einstellen wegstrecke)         = unpack $ erhalteName wegstrecke <°> Language.einstellen
     show    (AWSBahngeschwindigkeit aktion) = show aktion
     show    (AWSStreckenabschnitt aktion)   = show aktion
     show    (AWSKupplung aktion)            = show aktion
 
-instance (WegstreckeKlasse ws, Show ws) => StreckenObjekt (AktionWegstrecke ws) where
-    pins :: AktionWegstrecke ws -> [Pin]
-    pins    (Einstellen ws)                 = pins ws
-    pins    (AWSBahngeschwindigkeit aktion) = pins aktion
-    pins    (AWSStreckenabschnitt aktion)   = pins aktion
-    pins    (AWSKupplung aktion)            = pins aktion
-    zugtyp :: AktionWegstrecke ws -> Zugtyp
-    zugtyp  (Einstellen ws)                 = zugtyp ws
-    zugtyp  (AWSBahngeschwindigkeit aktion) = zugtyp aktion
-    zugtyp  (AWSStreckenabschnitt aktion)   = zugtyp aktion
-    zugtyp  (AWSKupplung aktion)            = zugtyp aktion
-    erhalteName :: AktionWegstrecke ws -> Text
+instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z), Show (ws z)) => StreckenObjekt (AktionWegstrecke ws z) where
+    anschlüsse :: AktionWegstrecke ws z -> [Anschluss]
+    anschlüsse  (Einstellen ws)                 = anschlüsse ws
+    anschlüsse  (AWSBahngeschwindigkeit aktion) = anschlüsse aktion
+    anschlüsse  (AWSStreckenabschnitt aktion)   = anschlüsse aktion
+    anschlüsse  (AWSKupplung aktion)            = anschlüsse aktion
+    erhalteName :: AktionWegstrecke ws z -> Text
     erhalteName = showText
 
-instance (WegstreckeKlasse ws) => AktionKlasse (AktionWegstrecke ws) where
-    ausführenAktion :: AktionWegstrecke ws -> PwmMapIO ()
+instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z)) => AktionKlasse (AktionWegstrecke ws z) where
+    ausführenAktion :: AktionWegstrecke ws z -> PwmMapT IO ()
     ausführenAktion (Einstellen ws)                 = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit aktion) = ausführenAktion aktion
     ausführenAktion (AWSStreckenabschnitt aktion)   = ausführenAktion aktion
@@ -283,45 +294,57 @@ instance (StreckenObjekt we)  => Show (AktionWeiche we) where
     show (Stellen we richtung) = unpack $ erhalteName we <°> Language.stellen <=> showText richtung
 
 instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
-    pins :: AktionWeiche we -> [Pin]
-    pins (Stellen we _richtung) = pins we
-    zugtyp :: AktionWeiche we -> Zugtyp
-    zugtyp (Stellen we _richtung) = zugtyp we
+    anschlüsse :: AktionWeiche we -> [Anschluss]
+    anschlüsse (Stellen we _richtung) = anschlüsse we
     erhalteName :: AktionWeiche we -> Text
     erhalteName = showText
 
 instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
-    ausführenAktion :: AktionWeiche w -> PwmMapIO ()
+    ausführenAktion :: AktionWeiche w -> PwmMapT IO ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
+
 -- | Aktionen einer Bahngeschwindigkeit
-data AktionBahngeschwindigkeit bg   = Geschwindigkeit
-                                        bg
-                                        Natural
-                                    | Umdrehen
-                                        bg
-                                        (Maybe Fahrtrichtung)
-                                            deriving (Eq)
+data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
+    Geschwindigkeit ::
+        bg z ->
+        Natural ->
+            AktionBahngeschwindigkeit bg z
+    Umdrehen ::
+        bg 'Märklin ->
+            AktionBahngeschwindigkeit bg 'Märklin
+    FahrtrichtungEinstellen ::
+        bg 'Lego ->
+        Fahrtrichtung ->
+            AktionBahngeschwindigkeit bg 'Lego
 
-instance (StreckenObjekt bg) => Show (AktionBahngeschwindigkeit bg) where
-    show :: AktionBahngeschwindigkeit bg -> String
-    show    (Geschwindigkeit bg wert)           = unpack $ erhalteName bg <°> Language.geschwindigkeit <=> showText wert
-    show    (Umdrehen bg (Just fahrtrichtung))  = unpack $ erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
-    show    (Umdrehen bg Nothing)               = unpack $ erhalteName bg <°> Language.umdrehen
+deriving instance (Eq (bg z)) => (Eq (AktionBahngeschwindigkeit bg z))
 
-instance (BahngeschwindigkeitKlasse bg, Show bg) => StreckenObjekt (AktionBahngeschwindigkeit bg) where
-    pins :: AktionBahngeschwindigkeit bg -> [Pin]
-    pins    (Geschwindigkeit bg _wert)  = pins bg
-    pins    (Umdrehen bg _maybe)        = pins bg
-    zugtyp :: AktionBahngeschwindigkeit bg -> Zugtyp
-    zugtyp  (Geschwindigkeit bg _wert)  = zugtyp bg
-    zugtyp  (Umdrehen bg _maybe)        = zugtyp bg
-    erhalteName :: AktionBahngeschwindigkeit bg -> Text
+instance (StreckenObjekt (bg z)) => Show (AktionBahngeschwindigkeit bg z) where
+    show :: AktionBahngeschwindigkeit bg  z-> String
+    show
+        (Geschwindigkeit bg wert)
+            = unpack $ erhalteName bg <°> Language.geschwindigkeit <=> showText wert
+    show
+        (Umdrehen bg)
+            = unpack $ erhalteName bg <°> Language.umdrehen
+    show
+        (FahrtrichtungEinstellen bg fahrtrichtung)
+            = unpack $ erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
+
+instance (BahngeschwindigkeitKlasse bg, Show (bg z), StreckenObjekt (bg 'Märklin), StreckenObjekt (bg 'Lego), StreckenObjekt (bg z))
+            => StreckenObjekt (AktionBahngeschwindigkeit bg z) where
+    anschlüsse :: AktionBahngeschwindigkeit bg z -> [Anschluss]
+    anschlüsse  (Geschwindigkeit bg _wert)                  = anschlüsse bg
+    anschlüsse  (Umdrehen bg)                               = anschlüsse bg
+    anschlüsse  (FahrtrichtungEinstellen bg _fahrtrichtung) = anschlüsse bg
+    erhalteName :: AktionBahngeschwindigkeit bg z -> Text
     erhalteName = showText
 
-instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigkeit bg) where
-    ausführenAktion :: AktionBahngeschwindigkeit bg -> PwmMapIO ()
-    ausführenAktion (Geschwindigkeit bg wert)           = geschwindigkeit bg wert
-    ausführenAktion (Umdrehen bg maybeFahrtrichtung)    = umdrehen bg maybeFahrtrichtung
+instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigkeit bg z) where
+    ausführenAktion :: AktionBahngeschwindigkeit bg z -> PwmMapT IO ()
+    ausführenAktion (Geschwindigkeit bg wert)                   = geschwindigkeit bg wert
+    ausführenAktion (Umdrehen bg)                               = umdrehen bg
+    ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung)  = fahrtrichtungEinstellen bg fahrtrichtung
 
 -- | Aktionen eines Streckenabschnitts
 data AktionStreckenabschnitt st = Strom
@@ -335,16 +358,14 @@ instance (StreckenObjekt st) => Show (AktionStreckenabschnitt st) where
     show    (Strom st Gesperrt)  = unpack $ erhalteName st <°> Language.strom <=> Language.aus
 
 instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStreckenabschnitt st) where
-    pins :: AktionStreckenabschnitt st -> [Pin]
-    pins (Strom st _an) = pins st
-    zugtyp :: AktionStreckenabschnitt st -> Zugtyp
-    zugtyp (Strom st _an) = zugtyp st
+    anschlüsse :: AktionStreckenabschnitt st -> [Anschluss]
+    anschlüsse (Strom st _an) = anschlüsse st
     erhalteName :: AktionStreckenabschnitt st -> Text
     erhalteName = showText
 
 instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt st) where
-    ausführenAktion :: AktionStreckenabschnitt st -> PwmMapIO ()
-    ausführenAktion (Strom st an) = strom st an
+    ausführenAktion :: AktionStreckenabschnitt st -> PwmMapT IO ()
+    ausführenAktion (Strom st an) = liftI2CMapT $ strom st an
 
 -- | Aktionen einer Kupplung
 data AktionKupplung ku = Kuppeln
@@ -356,21 +377,11 @@ instance (StreckenObjekt ku) => Show (AktionKupplung ku) where
     show (Kuppeln ku) = unpack $ erhalteName ku <°> Language.kuppeln
 
 instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) where
-    pins :: AktionKupplung ku -> [Pin]
-    pins (Kuppeln ku) = pins ku
-    zugtyp :: AktionKupplung ku -> Zugtyp
-    zugtyp (Kuppeln ku) = zugtyp ku
+    anschlüsse :: AktionKupplung ku -> [Anschluss]
+    anschlüsse (Kuppeln ku) = anschlüsse ku
     erhalteName :: AktionKupplung ku -> Text
     erhalteName = showText
 
 instance (KupplungKlasse ku) => AktionKlasse (AktionKupplung ku) where
-    ausführenAktion :: AktionKupplung ku -> PwmMapIO ()
-    ausführenAktion (Kuppeln ku) = kuppeln ku
-
--- | Hilfsfunktion um den ersten nicht-'Undefiniert'en 'Zugtyp' zu erhalten
-findeZugtyp :: (StreckenObjekt s) => [s] -> Zugtyp
-findeZugtyp liste = foldr foldZugtypAux Undefiniert liste
-    where
-        foldZugtypAux :: (StreckenObjekt s) => s -> Zugtyp -> Zugtyp
-        foldZugtypAux   s   (Undefiniert)   = zugtyp s
-        foldZugtypAux   _s  zugtypWert      = zugtypWert
+    ausführenAktion :: AktionKupplung ku -> PwmMapT IO ()
+    ausführenAktion (Kuppeln ku) = liftI2CMapT $ kuppeln ku
