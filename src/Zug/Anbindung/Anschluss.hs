@@ -7,16 +7,11 @@ module Zug.Anbindung.Anschluss (
     -- * Anschluss-Datentyp
     Anschluss(..), vonPin, zuPin, zuPinGpio, vonPinGpio, vonPCF8574Port, zuPCF8574Port,
     -- * Schreibe/Lese-Aktionen
-    Value(..), anschlussWrite, anschlussRead, I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT,
-    -- * Allgemeine Funktionen
-    warteµs) where
+    Value(..), anschlussWrite, anschlussRead, I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
-import Control.Concurrent (threadDelay)
-import Control.Monad (when)
-import Control.Monad.Trans (MonadIO, liftIO)
-import Numeric.Natural (Natural)
+import Control.Monad.Trans (MonadIO(..))
 import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 -- Abhängigkeiten von anderen Modulen
@@ -77,9 +72,3 @@ anschlussWrite (AnschlussPCF8574Port port)  = pcf8574PortWrite port
 anschlussRead :: Anschluss -> I2CMapT IO Value
 anschlussRead   (AnschlussPin pin)          = liftIO $ pinMode pin INPUT >> digitalRead pin
 anschlussRead   (AnschlussPCF8574Port port) = pcf8574PortRead port
-
--- | Warte mindestens das Argument in µs.
--- 
--- Die Wartezeit kann länger sein (bedingt durch 'threadDelay'), allerdings kommt es nicht zu einem divide-by-zero error für 0-Argumente.
-warteµs :: (MonadIO m) => Natural -> m ()
-warteµs time = liftIO $ when (time > 0) $ threadDelay $ fromIntegral time

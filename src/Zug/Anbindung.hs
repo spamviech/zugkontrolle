@@ -30,8 +30,8 @@ module Zug.Anbindung (
                     Kupplung(..), KupplungKlasse(..),
                     -- ** Wegstrecken
                     Wegstrecke(..), WegstreckeKlasse(..),
-                    -- * Allgemeine Funktionen
-                    warteµs) where
+                    -- * Wartezeit
+                    warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren) where
 
 -- Bibliotheken
 import Control.Monad (join)
@@ -50,8 +50,9 @@ import Zug.Options (Options(..), PWM(..), getOptions)
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
 import Zug.Anbindung.Anschluss (Anschluss(..), vonPin, zuPin, vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
-                                anschlussWrite, Value(..), I2CMapT, I2CMap, i2cMapEmpty, runI2CMapT, forkI2CMapT, warteµs)
+                                anschlussWrite, Value(..), I2CMapT, I2CMap, i2cMapEmpty, runI2CMapT, forkI2CMapT)
 import Zug.Anbindung.SoftwarePWM (PwmMapT, PwmMap, pwmMapEmpty, pwmGrenze, pwmSoftwareSetzteWert, liftI2CMapT, runPwmMapT, forkPwmMapT)
+import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
 
 -- | Alle Möglichen Werte von 'Value'
 alleValues :: NonEmpty Value
@@ -149,14 +150,6 @@ erhaltePwmWertVoll = erhaltePwmWert pwmGrenzeVoll
 erhaltePWMWertReduziert :: (Integral i) => i -> PwmValueUnmodifiziert
 erhaltePWMWertReduziert = erhaltePwmWert pwmGrenzeReduziert
 
--- | µs in a second
-µsInS :: Natural
-µsInS = 1000 * µsInms
-
--- | µs in a millisecond
-µsInms :: Natural
-µsInms = 1000
-
 -- * Repräsentation von StreckenObjekten
 -- | Klassen-Definitionen
 class StreckenObjekt s where
@@ -229,8 +222,8 @@ class (StreckenObjekt b) => BahngeschwindigkeitKlasse b where
     {-# MINIMAL geschwindigkeit, umdrehen #-}
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
-umdrehenZeitµs :: Natural
-umdrehenZeitµs = 250 * µsInms
+umdrehenZeit :: Wartezeit
+umdrehenZeit = MilliSekunden 250
 
 instance BahngeschwindigkeitKlasse (Bahngeschwindigkeit z) where
     geschwindigkeit :: Bahngeschwindigkeit z -> Natural -> PwmMapT IO ()
@@ -264,16 +257,16 @@ instance BahngeschwindigkeitKlasse (Bahngeschwindigkeit z) where
             = befehlAusführen
                 (umdrehenAux bg bgmGeschwindigkeitsAnschluss [
                     pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert pwmGrenze,
-                    warteµs umdrehenZeitµs,
+                    warte umdrehenZeit,
                     pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0])
                 ("Umdrehen (" <> showText bgmGeschwindigkeitsAnschluss <> ")")
 
 umdrehenAux :: (StreckenAtom s) => s -> Anschluss -> [PwmMapT IO ()] -> PwmMapT IO ()
 umdrehenAux s geschwindigkeitsAnschluss umdrehenAktionen = do
     pwmSetzeWert s geschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0
-    warteµs umdrehenZeitµs
+    warte umdrehenZeit
     sequence_ umdrehenAktionen
-    warteµs umdrehenZeitµs
+    warte umdrehenZeit
 
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt = Streckenabschnitt {stName :: Text, stFließend :: Value, stromAnschluss::Anschluss}
@@ -361,17 +354,17 @@ class (StreckenObjekt w) => WeicheKlasse w where
     {-# MINIMAL stellen, erhalteRichtungen #-}
 
 -- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
-weicheZeitµs :: Natural
-weicheZeitµs = 500 * µsInms
+weicheZeit :: Wartezeit
+weicheZeit = MilliSekunden 500
 
 instance WeicheKlasse (Weiche z) where
     stellen :: Weiche z -> Richtung -> PwmMapT IO ()
     stellen we@(LegoWeiche {welRichtungsAnschluss, welRichtungen})  richtung
         | richtung == fst welRichtungen = befehlAusführen
-            (pwmServo we welRichtungsAnschluss 25 >> warteµs weicheZeitµs >> pwmServo we welRichtungsAnschluss 0)
+            (pwmServo we welRichtungsAnschluss 25 >> warte weicheZeit >> pwmServo we welRichtungsAnschluss 0)
             ("Stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
         | richtung == snd welRichtungen = befehlAusführen
-            (pwmServo we welRichtungsAnschluss 75 >> warteµs weicheZeitµs >> pwmServo we welRichtungsAnschluss 0)
+            (pwmServo we welRichtungsAnschluss 75 >> warte weicheZeit >> pwmServo we welRichtungsAnschluss 0)
             ("stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
         | otherwise                     = pure ()
     stellen we@(MärklinWeiche {wemRichtungsAnschluss})              richtung = liftI2CMapT $ befehlAusführen
@@ -383,7 +376,7 @@ instance WeicheKlasse (Weiche z) where
                     (Nothing)           -> pure ()
                     (Just richtungsAnschluss) -> do
                         anschlussWrite richtungsAnschluss $ fließend we
-                        warteµs weicheZeitµs
+                        warte weicheZeit
                         anschlussWrite richtungsAnschluss $ gesperrt we
                 getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
                 getRichtungsAnschluss _richtung   []  = Nothing
@@ -427,13 +420,13 @@ class (StreckenObjekt k) => KupplungKlasse k where
     {-# MINIMAL kuppeln #-}
 
 -- | Zeit, die Strom beim Kuppeln anliegt
-kuppelnZeitµs :: Natural
-kuppelnZeitµs = µsInS
+kuppelnZeit :: Wartezeit
+kuppelnZeit = MilliSekunden 500
 
 instance KupplungKlasse Kupplung where
     kuppeln :: Kupplung -> I2CMapT IO ()
     kuppeln ku@(Kupplung {kupplungsAnschluss}) = befehlAusführen
-        (anschlussWrite kupplungsAnschluss (fließend ku) >> warteµs kuppelnZeitµs >> anschlussWrite kupplungsAnschluss (gesperrt ku))
+        (anschlussWrite kupplungsAnschluss (fließend ku) >> warte kuppelnZeit >> anschlussWrite kupplungsAnschluss (gesperrt ku))
         ("Kuppeln (" <> showText kupplungsAnschluss <> ")")
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
