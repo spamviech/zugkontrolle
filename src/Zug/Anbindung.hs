@@ -14,7 +14,8 @@ Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Eben
 -}
 module Zug.Anbindung (
                     -- * Anschluss-Repräsentation
-                    Anschluss(), vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
+                    Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
+                    vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
                     PwmMap, pwmMapEmpty, PwmMapT, I2CMap, i2cMapEmpty, I2CMapT,
                     runPwmMapT, forkPwmMapT, liftI2CMapT, runI2CMapT, forkI2CMapT,
                     Value(..), alleValues,
@@ -50,7 +51,8 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), 
 import Zug.Options (Options(..), PWM(..), getOptions)
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
-import Zug.Anbindung.Anschluss (Anschluss(..), vonPin, zuPin, vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
+import Zug.Anbindung.Anschluss (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
+                                vonPin, zuPin, vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
                                 anschlussWrite, Value(..), I2CMapT, I2CMap, i2cMapEmpty, runI2CMapT, forkI2CMapT)
 import Zug.Anbindung.SoftwarePWM (PwmMapT, PwmMap, pwmMapEmpty, pwmGrenze, pwmSoftwareSetzteWert, liftI2CMapT, runPwmMapT, forkPwmMapT)
 import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
@@ -329,7 +331,7 @@ data Weiche (z :: Zugtyp) where
     MärklinWeiche :: {
         wemName :: Text,
         wemFließend :: Value,
-        wemRichtungsAnschluss :: NonEmpty (Richtung, Anschluss)}
+        wemRichtungsAnschlüsse :: NonEmpty (Richtung, Anschluss)}
             -> Weiche 'Märklin
 
 deriving instance Eq (Weiche z)
@@ -341,15 +343,15 @@ instance Show (Weiche z) where
             Language.name <=> unpack welName <^>
             Language.richtung <-> Language.pin <=> show welRichtungsAnschluss <^>
             Language.richtungen <=> show richtung1 <|> show richtung2
-    show    (MärklinWeiche {wemName, wemRichtungsAnschluss})
+    show    (MärklinWeiche {wemName, wemRichtungsAnschlüsse})
         = Language.märklin <-> Language.weiche <:>
             Language.name <=> unpack wemName <^>
-            foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" wemRichtungsAnschluss
+            foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" wemRichtungsAnschlüsse
 
 instance StreckenObjekt (Weiche z) where
     anschlüsse :: Weiche z -> [Anschluss]
-    anschlüsse  (LegoWeiche {welRichtungsAnschluss})       = [welRichtungsAnschluss]
-    anschlüsse  (MärklinWeiche {wemRichtungsAnschluss})   = map snd $ NE.toList wemRichtungsAnschluss
+    anschlüsse  (LegoWeiche {welRichtungsAnschluss})        = [welRichtungsAnschluss]
+    anschlüsse  (MärklinWeiche {wemRichtungsAnschlüsse})    = map snd $ NE.toList wemRichtungsAnschlüsse
     erhalteName :: Weiche z -> Text
     erhalteName (LegoWeiche {welName})     = welName
     erhalteName (MärklinWeiche {wemName})  = wemName
@@ -384,38 +386,43 @@ weicheZeit = MilliSekunden 500
 
 instance WeicheKlasse (Weiche z) where
     stellen :: Weiche z -> Richtung -> PwmMapT IO ()
-    stellen we@(LegoWeiche {welRichtungsAnschluss, welRichtungen})  richtung
-        | richtung == fst welRichtungen = befehlAusführen
-            (pwmServo we welRichtungsAnschluss 25 >> warte weicheZeit >> pwmServo we welRichtungsAnschluss 0)
-            ("Stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
-        | richtung == snd welRichtungen = befehlAusführen
-            (pwmServo we welRichtungsAnschluss 75 >> warte weicheZeit >> pwmServo we welRichtungsAnschluss 0)
-            ("stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
-        | otherwise                     = pure ()
-    stellen we@(MärklinWeiche {wemRichtungsAnschluss})              richtung = liftI2CMapT $ befehlAusführen
-        richtungStellen
-        ("Stellen (" <> showText (getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschluss) <> ") -> " <> showText richtung)
-            where
-                richtungStellen :: I2CMapT IO ()
-                richtungStellen = case getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschluss of
-                    (Nothing)           -> pure ()
-                    (Just richtungsAnschluss) -> do
-                        anschlussWrite richtungsAnschluss $ fließend we
-                        warte weicheZeit
-                        anschlussWrite richtungsAnschluss $ gesperrt we
-                getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
-                getRichtungsAnschluss _richtung   []  = Nothing
-                getRichtungsAnschluss richtung    ((ersteRichtung, ersterAnschluss):andereRichtungen)
-                    | richtung == ersteRichtung = Just ersterAnschluss
-                    | otherwise                 = getRichtungsAnschluss richtung andereRichtungen
+    stellen
+        we@(LegoWeiche {welRichtungsAnschluss, welRichtungen})
+        richtung
+            | richtung == fst welRichtungen = befehlAusführen
+                (pwmServo we welRichtungsAnschluss 25 >> warte weicheZeit >> pwmServo we welRichtungsAnschluss 0)
+                ("Stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
+            | richtung == snd welRichtungen = befehlAusführen
+                (pwmServo we welRichtungsAnschluss 75 >> warte weicheZeit >> pwmServo we welRichtungsAnschluss 0)
+                ("stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
+            | otherwise                     = pure ()
+    stellen
+        we@(MärklinWeiche {wemRichtungsAnschlüsse})
+        richtung
+            = liftI2CMapT $ befehlAusführen
+                richtungStellen
+                ("Stellen (" <> showText (getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschlüsse) <> ") -> " <> showText richtung)
+                    where
+                        richtungStellen :: I2CMapT IO ()
+                        richtungStellen = case getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschlüsse of
+                            (Nothing)           -> pure ()
+                            (Just richtungsAnschluss) -> do
+                                anschlussWrite richtungsAnschluss $ fließend we
+                                warte weicheZeit
+                                anschlussWrite richtungsAnschluss $ gesperrt we
+                        getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
+                        getRichtungsAnschluss _richtung   []  = Nothing
+                        getRichtungsAnschluss richtung    ((ersteRichtung, ersterAnschluss) : andereRichtungen)
+                            | richtung == ersteRichtung = Just ersterAnschluss
+                            | otherwise                 = getRichtungsAnschluss richtung andereRichtungen
     hatRichtung :: Weiche z -> Richtung -> Bool
     hatRichtung (LegoWeiche {welRichtungen=(erste, zweite)})    richtung
         = (erste == richtung) || (zweite == richtung)
-    hatRichtung (MärklinWeiche {wemRichtungsAnschluss})         richtung
-        = any (\(richtung0, _pin0) -> (richtung0 == richtung))  wemRichtungsAnschluss
+    hatRichtung (MärklinWeiche {wemRichtungsAnschlüsse})         richtung
+        = any (\(richtung0, _pin0) -> (richtung0 == richtung)) wemRichtungsAnschlüsse
     erhalteRichtungen :: Weiche z -> NonEmpty Richtung
     erhalteRichtungen   (LegoWeiche {welRichtungen=(richtung1, richtung2)}) = richtung1 :| [richtung2]
-    erhalteRichtungen   (MärklinWeiche {wemRichtungsAnschluss})             = fst <$> wemRichtungsAnschluss
+    erhalteRichtungen   (MärklinWeiche {wemRichtungsAnschlüsse})            = fst <$> wemRichtungsAnschlüsse
 
 -- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekuppelt werden
 data Kupplung = Kupplung {kuName :: Text, kuFließend :: Value, kupplungsAnschluss::Anschluss}

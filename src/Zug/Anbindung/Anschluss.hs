@@ -5,7 +5,8 @@ Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichke
 -}
 module Zug.Anbindung.Anschluss (
     -- * Anschluss-Datentyp
-    Anschluss(..), vonPin, zuPin, zuPinGpio, vonPinGpio, vonPCF8574Port, zuPCF8574Port,
+    Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
+    vonPin, zuPin, zuPinGpio, vonPinGpio, vonPCF8574Port, zuPCF8574Port,
     -- * Schreibe/Lese-Aktionen
     Value(..), anschlussWrite, anschlussRead, I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT) where
 
@@ -15,7 +16,8 @@ import Control.Monad.Trans (MonadIO(..))
 import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.PCF8574 (PCF8574Port(..), pcf8574PortWrite, pcf8574PortRead, I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT)
+import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead,
+                            I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT)
 
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss
