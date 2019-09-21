@@ -338,23 +338,24 @@ richtungsPinsJS :: Text
 richtungsPinsJS = "RichtungsPins"
 
 -- Instanz-Deklarationen für Weiche
-instance FromJSON (Weiche z) where
-    parseJSON :: Value -> Parser (Weiche z)
+instance FromJSON (Weiche 'Märklin) where
+    parseJSON :: Value -> Parser (Weiche 'Märklin)
     parseJSON   (Object v)  = do
-        name <- (v .: nameJS)
-        zugtyp <- (v .: zugtypJS)
-        maybeRichtungsPin <- (v .:? richtungsPinJS)
-        maybeRichtungen <- (v .:? richtungenJS)
-        maybeRichtungsPins <- (v .:? richtungsPinsJS)
-        fließend <- parseFließend
-        erstelleWeiche zugtyp name maybeRichtungsPin maybeRichtungen maybeRichtungsPins fließend
-            where
-                erstelleWeiche :: Zugtyp -> Text -> Maybe Natural -> Maybe (Richtung, Richtung) -> Maybe [(Richtung, Natural)] -> Anbindung.Value -> Parser (Weiche z)
-                -- Märklin/Lego benötigen unteschiedliche Funktionen!!!
-                erstelleWeiche = _erstelleWeiche
-                -- erstelleWeiche Lego       weName   (Just richtungsPin) (Just richtungen)   _maybeRichtungsPins                    weFließend   = pure LegoWeiche {weName, weFließend, richtungsPin=zuPin richtungsPin, richtungen}
-                -- erstelleWeiche Märklin    weName   _maybeRichtungsPin  _maybeRichtungen    (Just ((richtung, pin):richtungsPins)) weFließend   = pure MärklinWeiche {weName, weFließend, richtungsPins=(richtung, zuPin pin):|map (\(richtung, pin) -> (richtung, zuPin pin)) richtungsPins}
-                -- erstelleWeiche _zugtyp    _name   _maybeRichtungsPin  _maybeRichtungen    _maybeRichtungsPins                     _weFließend  = mzero
+        Märklin <- v .: zugtypJS
+        wemName <- v .: nameJS
+        wemRichtungsAnschlüsse <- v .: richtungsPinsJS
+        wemFließend <- parseFließend
+        pure MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse}
+    parseJSON   _value      = mzero
+instance FromJSON (Weiche 'Lego) where
+    parseJSON :: Value -> Parser (Weiche 'Lego)
+    parseJSON   (Object v)  = do
+        Lego <- v .: zugtypJS
+        welName <- v .: nameJS
+        welRichtungsAnschluss <- v .: richtungsPinJS
+        welRichtungen <- v .: richtungenJS
+        welFließend <- parseFließend
+        pure LegoWeiche {welName, welFließend, welRichtungsAnschluss, welRichtungen}
     parseJSON   _value      = mzero
 
 instance ToJSON (Weiche z) where
@@ -370,7 +371,7 @@ instance ToJSON (Weiche z) where
         = object [
             nameJS .= wemName,
             fließendJS .= wemFließend,
-            richtungsPinsJS .= NE.toList richtungsPins,
+            richtungsPinsJS .= NE.toList wemRichtungsAnschlüsse,
             zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
