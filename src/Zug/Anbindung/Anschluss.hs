@@ -49,12 +49,14 @@ zuPin   _anschluss          = Nothing
 vonPinGpio :: (Integral n) => n -> Anschluss
 vonPinGpio = vonPin . Gpio . fromIntegral
 
--- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Num'. Der Wert entspricht der GPIO-Nummerirung.
+-- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Num'.
+-- Der Wert entspricht der GPIO-Nummerierung. Invalide Werte werden auf 0 normiert.
+-- Nothing wird dementsprechend nur bei einer anderen Anschlussart zurückgegeben.
 zuPinGpio :: (Num n) => Anschluss -> Maybe n
-zuPinGpio anschluss = do
-    pin <- zuPin anschluss
-    gpio <- pinToBcmGpio pin
-    pure $ fromIntegral gpio
+zuPinGpio (AnschlussPin pin)    = Just $ case pinToBcmGpio pin of
+    (Just gpio) -> fromIntegral gpio
+    Nothing     -> 0
+zuPinGpio _anschluss            = Nothing
 
 -- | Konvertiere einen 'PCF8574Port' in einen 'Anschluss'.
 vonPCF8574Port :: PCF8574Port -> Anschluss

@@ -24,14 +24,13 @@ import Data.Aeson (encode, decode)
 import Data.Aeson.Types (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
 import qualified Data.ByteString.Lazy as ByteString
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (isJust, fromJust)
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (PwmMap, I2CMap, Wartezeit(..),
-            Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio,
+            Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio, zuPinGpio,
             Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Klassen (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
@@ -131,13 +130,23 @@ instance (ToJSON (a 'Märklin), ToJSON (a 'Lego)) => ToJSON (ZugtypEither a) whe
     toJSON  (ZugtypMärklin a)   = toJSON a
     toJSON  (ZugtypLego a)      = toJSON a
 
+-- neue Feld-Namen/Bezeichner in json-Datei
+pinJS :: Text
+pinJS = "Pin"
+portJS :: Text
+portJS = "PCF8574Port"
+
+-- Instanz-Deklarationen für Anschluss
 instance FromJSON Anschluss where
     parseJSON :: Value -> Parser Anschluss
-    parseJSON = _parseJSON_Anschluss
+    parseJSON   (Object v)  = (vonPinGpio <$> (v .: pinJS :: Parser Int))
+                            <|> (AnschlussPCF8574Port <$> v .: portJS)
+    parseJSON   _value      = mzero
 
 instance ToJSON Anschluss where
     toJSON :: Anschluss -> Value
-    toJSON = _toJSON_Anschluss
+    toJSON  anschluss@(AnschlussPin _pin)   = object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
+    toJSON  (AnschlussPCF8574Port port)     = object [portJS .= port]
 
 instance FromJSON PCF8574Port where
     parseJSON :: Value -> Parser PCF8574Port
@@ -147,6 +156,7 @@ instance  ToJSON PCF8574Port where
     toJSON :: PCF8574Port -> Value
     toJSON = _toJSON_PCF8574Port
 
+-- Instanz-Deklarationen für Wartezeit
 instance FromJSON Wartezeit where
     parseJSON :: Value -> Parser Wartezeit
     parseJSON = _parseJSON_Wartezeit
@@ -178,8 +188,6 @@ instance ToJSON Richtung where
     toJSON  Kurve   = String kurveJS
 
 -- neue Feld-Namen/Bezeichner in json-Datei
-undefiniertJS :: Text
-undefiniertJS = "Undefiniert"
 märklinJS :: Text
 märklinJS = "Märklin"
 legoJS :: Text

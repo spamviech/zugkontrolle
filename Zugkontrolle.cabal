@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f71123a678748ef4fb8b3d00149d34aae9e719829474f2c8fdc5b9890604a97d
+-- hash: 7d0ff8b013fa411927a87ecf041e1d1d73fb57469f36c9f0c6b17606c94cd915
 
 name:           Zugkontrolle
-version:        1.0.0.16
+version:        1.0.1.0
 description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 homepage:       https://github.com/spamviech/Zugkontrolle#readme
 bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
@@ -64,7 +64,7 @@ library
   hs-source-dirs:
       src
   ghc-options: -Wall -Wno-name-shadowing -Wno-unused-do-bind
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.16"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.1.0"
   build-depends:
       aeson
     , ansi-terminal
@@ -99,7 +99,7 @@ executable Zugkontrolle
   hs-source-dirs:
       app
   ghc-options: -Wall -threaded
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.16"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.1.0"
   build-depends:
       Zugkontrolle
     , aeson
@@ -139,7 +139,7 @@ test-suite Zugkontrolle-test
   hs-source-dirs:
       test
   ghc-options: -Wall -threaded
-  cpp-options: -DZUGKONTROLLEVERSION="1.0.0.16"
+  cpp-options: -DZUGKONTROLLEVERSION="1.0.1.0"
   build-depends:
       Zugkontrolle
     , aeson
