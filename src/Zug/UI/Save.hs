@@ -4,6 +4,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -96,7 +98,9 @@ instance (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) where
         wegstreckenJS           .= (ausWS (phantom status) <$> (_wegstrecken status)),
         pläneJS                 .= (ausPL (phantom status) <$> (_pläne status))]
 
-instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJSON pl) => FromJSON (ObjektAllgemein bg st we ku ws pl) where
+instance (FromJSON (bg 'Märklin), FromJSON (bg 'Lego), FromJSON st, FromJSON (we 'Märklin), FromJSON (we 'Lego),
+        FromJSON ku, FromJSON (ws 'Lego), FromJSON (ws 'Märklin), FromJSON pl)
+            => FromJSON (ObjektAllgemein bg st we ku ws pl) where
     parseJSON :: Value -> Parser (ObjektAllgemein bg st we ku ws pl)
     parseJSON value = OBahngeschwindigkeit <$> parseJSON value
         <|> OStreckenabschnitt <$> parseJSON value
@@ -105,7 +109,9 @@ instance (FromJSON bg, FromJSON st, FromJSON we, FromJSON ku, FromJSON ws, FromJ
         <|> OWegstrecke <$> parseJSON value
         <|> OPlan <$> parseJSON value
 
-instance (ToJSON bg, ToJSON st, ToJSON we, ToJSON ku, ToJSON ws, ToJSON pl) => ToJSON (ObjektAllgemein bg st we ku ws pl) where
+instance (ToJSON (bg 'Märklin), ToJSON (bg 'Lego), ToJSON st, ToJSON (we 'Märklin), ToJSON (we 'Lego),
+        ToJSON ku, ToJSON (ws 'Märklin), ToJSON (ws 'Lego), ToJSON pl)
+            => ToJSON (ObjektAllgemein bg st we ku ws pl) where
     toJSON :: ObjektAllgemein bg st we ku ws pl -> Value
     toJSON  (OBahngeschwindigkeit bg)   = toJSON bg
     toJSON  (OStreckenabschnitt st)     = toJSON st
@@ -261,8 +267,8 @@ parseFließend :: Parser Value
 parseFließend = (v .: fließendJS) <|> pure Anbindung.HIGH
 
 -- Instanz-Deklarationen für Bahngeschwindigkeit
-instance FromJSON Bahngeschwindigkeit where
-    parseJSON :: Value -> Parser Bahngeschwindigkeit
+instance FromJSON (Bahngeschwindigkeit z) where
+    parseJSON :: Value -> Parser (Bahngeschwindigkeit z)
     parseJSON   (Object v)  = do
         name <- (v .: nameJS)
         zugtyp <- (v .: zugtypJS)
@@ -284,8 +290,8 @@ instance FromJSON Bahngeschwindigkeit where
                 --     = mzero
     parseJSON   _value      = mzero
 
-instance ToJSON Bahngeschwindigkeit where
-    toJSON :: Bahngeschwindigkeit -> Value
+instance ToJSON (Bahngeschwindigkeit z) where
+    toJSON :: Bahngeschwindigkeit z -> Value
     toJSON  (LegoBahngeschwindigkeit {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
         = object [
             nameJS .= bglName,
@@ -334,8 +340,8 @@ richtungsPinsJS :: Text
 richtungsPinsJS = "RichtungsPins"
 
 -- Instanz-Deklarationen für Weiche
-instance FromJSON Weiche where
-    parseJSON :: Value -> Parser Weiche
+instance FromJSON (Weiche z) where
+    parseJSON :: Value -> Parser (Weiche z)
     parseJSON   (Object v)  = do
         name <- (v .: nameJS)
         zugtyp <- (v .: zugtypJS)
@@ -353,8 +359,8 @@ instance FromJSON Weiche where
                 -- erstelleWeiche _zugtyp    _name   _maybeRichtungsPin  _maybeRichtungen    _maybeRichtungsPins                     _weFließend  = mzero
     parseJSON   _value      = mzero
 
-instance ToJSON Weiche where
-    toJSON :: Weiche -> Value
+instance ToJSON (Weiche z) where
+    toJSON :: Weiche z -> Value
     toJSON  (LegoWeiche {welName, welFließend, welRichtungsAnschluss, welRichtungen})
         = object [
             nameJS .= welName,
@@ -399,8 +405,8 @@ weichenRichtungenJS :: Text
 weichenRichtungenJS = "Weichen-Richtungen"
 
 -- Instanz-Deklaration für Wegstrecke
-instance FromJSON Wegstrecke where
-    parseJSON :: Value -> Parser Wegstrecke
+instance FromJSON (Wegstrecke z) where
+    parseJSON :: Value -> Parser (Wegstrecke z)
     parseJSON   (Object v)
         = Wegstrecke
             <$> (v .: nameJS)
@@ -411,8 +417,8 @@ instance FromJSON Wegstrecke where
     parseJSON   _value
         = mzero
 
-instance ToJSON Wegstrecke where
-    toJSON :: Wegstrecke -> Value
+instance ToJSON (Wegstrecke z) where
+    toJSON :: Wegstrecke z -> Value
     toJSON (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})
         = object [
             nameJS .= wsName,
