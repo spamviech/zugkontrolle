@@ -54,6 +54,9 @@ geschwindigkeit                 = "Geschwindigkeit"
 -- | Turn around
 umdrehen :: (Semigroup s, IsString s) => s
 umdrehen                        = "Umdrehen"
+-- | Direction of Travel
+fahrtrichtungEinstellen :: (Semigroup s, IsString s) => s
+fahrtrichtungEinstellen         = "Fahrtrichtung"
 -- | Change
 stellen :: (Semigroup s, IsString s) => s
 stellen                         = "Stellen"
@@ -163,9 +166,15 @@ pläne                           = "Pläne"
 -- | File path
 dateiname :: (Semigroup s, IsString s) => s
 dateiname                       = "Dateiname"
+-- | Connection
+anschluss :: (Semigroup s, IsString s) => s
+anschluss                       = "Anschluss"
 -- | Pin
 pin :: (Semigroup s, IsString s) => s
 pin                             = "Pin"
+-- | PCF8574Port
+pcf8574Port :: (Semigroup s, IsString s) => s
+pcf8574Port                     = "PCF8574Port"
 -- | Name
 name :: (Semigroup s, IsString s) => s
 name                            = "Name"
@@ -249,9 +258,6 @@ mindestens :: (Semigroup s, IsString s) => s -> s
 mindestens s = "Mindestens" <~> s <~> "benötigt"
 
 -- * Typ-namen / Type names
--- | Undefined
-undefiniert :: (Semigroup s, IsString s) => s
-undefiniert                     = "Undefiniert"
 -- | Märklin
 märklin :: (Semigroup s, IsString s) => s
 märklin                         = "Märklin"

@@ -61,10 +61,8 @@ erzeugeDeklaration bezeichner = do
                     -- Überprüfe, ob der Name existiert
                     lookupValueName (qualifizierterName Deutsch) >>= \case
                         Nothing
-                            -- Erzeuge Dummy-Deklaration und werfe Warnung
-                            -> do
-                                reportWarning $ "\"" ++ bezeichner ++ "\" kein bekannter Wert in \"" ++ modulName Deutsch ++ "\". Erzeuge stattdessen eine Dummy-Definition."
-                                pure $ [Just $ fallback]
+                            -- Erzeuge Dummy-Deklaration
+                            -> pure $ [Just $ fallback]
                         Just deutscherName
                             -- Erzeuge Deklaration
                             -> pure [Just $ Clause [WildP] (NormalB $ VarE deutscherName) []]
@@ -76,8 +74,10 @@ erzeugeDeklaration bezeichner = do
                 -- Überprüfe, ob der Name existiert
                 lookupValueName (qualifizierterName sprache) >>= \case
                     Nothing
-                        -- Erzeuge keine Deklaration für diese Sprache
-                        -> pure Nothing
+                        -- Erzeuge keine Deklaration für diese Sprache und werfe Warnung
+                        -> do
+                            reportWarning $ "\"" ++ bezeichner ++ "\" kein bekannter Wert in \"" ++ modulName sprache ++ "\". Erzeuge stattdessen eine Dummy-Definition."
+                            pure Nothing
                     Just qualifizierterSprachName
                         -- Erzeuge Deklarationen
                         -> pure $ Just $ Clause [ConP (sprachName sprache) []] (NormalB $ VarE qualifizierterSprachName) []

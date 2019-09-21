@@ -35,17 +35,19 @@ concatMapM erzeugeDeklaration [
     -- * Haupt-Befehle / Main Orders
     "beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden",
     -- * Spezielle Befehle / Special orders
-    "geschwindigkeit", "umdrehen", "stellen", "strom", "an", "aus", "fließend", "gesperrt", "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit", "fließendValue", "high", "low",
+    "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
+    "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
+    "fließendValue", "high", "low",
     -- * Typ-Namen / Type names
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte", "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne",
     -- * Eigenschafts/Feld-Namen / Attributes/Field names
-    "dateiname", "pin", "name", "richtung", "richtungen", "fahrtrichtung",
+    "dateiname", "anschluss", "pin", "pcf8574Port", "name", "richtung", "richtungen", "fahrtrichtung",
     -- * Query-Abfragen / Queries
     "wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp",
     -- * Fehlermeldungen / Error Messages
     "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt", "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer",
     -- * Typ-namen / Type names
-    "undefiniert", "märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
+    "märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 
 concatMapM erzeugeFunktionDeklaration [
     -- * Spezielle Befehle / Special orders
