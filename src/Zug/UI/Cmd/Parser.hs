@@ -441,96 +441,214 @@ anfrageAktualisieren
 
 -- ** Objekt
 -- | Unvollständige Objekte
-data AnfrageObjekt  = AnfrageObjekt
-    | AOUnbekannt           AnfrageObjekt               Text
-    | AOPlan                AnfragePlan
-    | AOWegstrecke          AnfrageWegstrecke
-    | AOWeiche              AnfrageWeiche
-    | AOBahngeschwindigkeit AnfrageBahngeschwindigkeit
-    | AOStreckenabschnitt   AnfrageStreckenabschnitt
-    | AOKupplung            AnfrageKupplung
-    | AOStatusAnfrage       StatusAnfrageObjekt         (Either (Objekt -> AnfrageObjekt) (Objekt -> Objekt))
+data AnfrageObjekt
+    = AnfrageObjekt
+    | AOUnbekannt
+        AnfrageObjekt
+        Text
+    | AOPlan
+        AnfragePlan
+    | AOWegstrecke
+        AnfrageWegstrecke
+    | AOWeiche
+        AnfrageWeiche
+    | AOBahngeschwindigkeit
+        AnfrageBahngeschwindigkeit
+    | AOStreckenabschnitt
+        AnfrageStreckenabschnitt
+    | AOKupplung
+        AnfrageKupplung
+    | AOStatusAnfrage
+        StatusAnfrageObjekt
+        (Either (Objekt -> AnfrageObjekt) (Objekt -> Objekt))
 
 instance Show AnfrageObjekt where
     show :: AnfrageObjekt -> String
-    show    (AOUnbekannt anfrageObjekt eingabe)                         = unpack $ unbekanntShowText anfrageObjekt eingabe
-    show    (AnfrageObjekt)                                             = Language.objekt
-    show    (AOPlan aPlan)                                              = showText aPlan
-    show    (AOWegstrecke qWegstrecke)                                  = showText qWegstrecke
-    show    (AOWeiche aWeiche)                                          = showText aWeiche
-    show    (AOBahngeschwindigkeit aBahngeschwindigkeit)                = showText aBahngeschwindigkeit
-    show    (AOStreckenabschnitt aStreckenabschnitt)                    = showText aStreckenabschnitt
-    show    (AOKupplung aKupplung)                                      = showText aKupplung
-    show    (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = showText objektStatusAnfrage
+    show
+        (AOUnbekannt anfrageObjekt eingabe)
+            = unpack $ unbekanntShowText anfrageObjekt eingabe
+    show
+        AnfrageObjekt
+            = Language.objekt
+    show
+        (AOPlan aPlan)
+            = showText aPlan
+    show
+        (AOWegstrecke qWegstrecke)
+            = showText qWegstrecke
+    show
+        (AOWeiche aWeiche)
+            = showText aWeiche
+    show
+        (AOBahngeschwindigkeit aBahngeschwindigkeit)
+            = showText aBahngeschwindigkeit
+    show
+        (AOStreckenabschnitt aStreckenabschnitt)
+            = showText aStreckenabschnitt
+    show
+        (AOKupplung aKupplung)
+            = showText aKupplung
+    show
+        (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
+            = showText objektStatusAnfrage
 instance Anfrage AnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageObjekt -> s
-    zeigeAnfrage    (AOUnbekannt anfrageObjekt _eingabe)                        = zeigeAnfrage anfrageObjekt
-    zeigeAnfrage    (AnfrageObjekt)                                             = Language.objekt
-    zeigeAnfrage    (AOPlan aPlan)                                              = zeigeAnfrage aPlan
-    zeigeAnfrage    (AOWegstrecke qWegstrecke)                                  = zeigeAnfrage qWegstrecke
-    zeigeAnfrage    (AOWeiche aWeiche)                                          = zeigeAnfrage aWeiche
-    zeigeAnfrage    (AOBahngeschwindigkeit aBahngeschwindigkeit)                = zeigeAnfrage aBahngeschwindigkeit
-    zeigeAnfrage    (AOStreckenabschnitt aStreckenabschnitt)                    = zeigeAnfrage aStreckenabschnitt
-    zeigeAnfrage    (AOKupplung aKupplung)                                      = zeigeAnfrage aKupplung
-    zeigeAnfrage    (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage
+        (AOUnbekannt anfrageObjekt _eingabe)
+            = zeigeAnfrage anfrageObjekt
+    zeigeAnfrage
+        (AnfrageObjekt)
+            = Language.objekt
+    zeigeAnfrage
+        (AOPlan aPlan)
+            = zeigeAnfrage aPlan
+    zeigeAnfrage
+        (AOWegstrecke qWegstrecke)
+            = zeigeAnfrage qWegstrecke
+    zeigeAnfrage
+        (AOWeiche aWeiche)
+            = zeigeAnfrage aWeiche
+    zeigeAnfrage
+        (AOBahngeschwindigkeit aBahngeschwindigkeit)
+            = zeigeAnfrage aBahngeschwindigkeit
+    zeigeAnfrage
+        (AOStreckenabschnitt aStreckenabschnitt)
+            = zeigeAnfrage aStreckenabschnitt
+    zeigeAnfrage
+        (AOKupplung aKupplung)
+            = zeigeAnfrage aKupplung
+    zeigeAnfrage
+        (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrage objektStatusAnfrage
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageObjekt -> Maybe s
-    zeigeAnfrageOptionen (AOUnbekannt anfrageObjekt _eingabe)                       = zeigeAnfrageOptionen anfrageObjekt
-    zeigeAnfrageOptionen (AnfrageObjekt)                                            = Just $ toBefehlsString Language.befehlTypen
-    zeigeAnfrageOptionen (AOPlan aPlan)                                             = zeigeAnfrageOptionen aPlan
-    zeigeAnfrageOptionen (AOWegstrecke qWegstrecke)                                 = zeigeAnfrageOptionen qWegstrecke
-    zeigeAnfrageOptionen (AOWeiche aWeiche)                                         = zeigeAnfrageOptionen aWeiche
-    zeigeAnfrageOptionen (AOBahngeschwindigkeit aBahngeschwindigkeit)               = zeigeAnfrageOptionen aBahngeschwindigkeit
-    zeigeAnfrageOptionen (AOStreckenabschnitt aStreckenabschnitt)                   = zeigeAnfrageOptionen aStreckenabschnitt
-    zeigeAnfrageOptionen (AOKupplung aKupplung)                                     = zeigeAnfrageOptionen aKupplung
-    zeigeAnfrageOptionen (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)   = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen
+        (AOUnbekannt anfrageObjekt _eingabe)
+            = zeigeAnfrageOptionen anfrageObjekt
+    zeigeAnfrageOptionen
+        AnfrageObjekt
+            = Just $ toBefehlsString Language.befehlTypen
+    zeigeAnfrageOptionen
+        (AOPlan aPlan)
+            = zeigeAnfrageOptionen aPlan
+    zeigeAnfrageOptionen
+        (AOWegstrecke qWegstrecke)
+            = zeigeAnfrageOptionen qWegstrecke
+    zeigeAnfrageOptionen
+        (AOWeiche aWeiche)
+            = zeigeAnfrageOptionen aWeiche
+    zeigeAnfrageOptionen
+        (AOBahngeschwindigkeit aBahngeschwindigkeit)
+            = zeigeAnfrageOptionen aBahngeschwindigkeit
+    zeigeAnfrageOptionen
+        (AOStreckenabschnitt aStreckenabschnitt)
+            = zeigeAnfrageOptionen aStreckenabschnitt
+    zeigeAnfrageOptionen
+        (AOKupplung aKupplung)
+            = zeigeAnfrageOptionen aKupplung
+    zeigeAnfrageOptionen
+        (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrageOptionen objektStatusAnfrage
 
 -- | Bekannte Teil-Typen einer 'Wegstrecke'
-data AnfrageWegstreckenElement  = AWSEUnbekannt             Text
-                                | AWSEWeiche
-                                | AWSEBahngeschwindigkeit
-                                | AWSEStreckenabschnitt
-                                | AWSEKupplung
+data AnfrageWegstreckenElement
+    = AWSEUnbekannt
+        Text
+    | AWSEWeiche
+    | AWSEBahngeschwindigkeit
+    | AWSEStreckenabschnitt
+    | AWSEKupplung
 
 -- | Eingabe eines Objekts
 anfrageObjektAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt
-anfrageObjektAktualisieren qFehler@(AOUnbekannt _ _)                       _token                          = Left qFehler
-anfrageObjektAktualisieren anfrageObjekt@(AOStatusAnfrage _ _)             _token                          = Left anfrageObjekt
-anfrageObjektAktualisieren (AnfrageObjekt)                                 token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
-    (Lexer.Wegstrecke            , Left $ AOWegstrecke AnfrageWegstrecke),
-    (Lexer.Weiche                , Left $ AOWeiche AnfrageWeiche),
-    (Lexer.Bahngeschwindigkeit   , Left $ AOBahngeschwindigkeit AnfrageBahngeschwindigkeit),
-    (Lexer.Streckenabschnitt     , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
-    (Lexer.Kupplung              , Left $ AOKupplung AnfrageKupplung)]
-    $ Left $ AOUnbekannt AnfrageObjekt eingabe
-anfrageObjektAktualisieren (AOPlan aPlan)                                  token                           = case anfragePlanAktualisieren aPlan token of
-    (Left (APUnbekannt anfrage eingabe1))                                   -> Left $ AOUnbekannt (AOPlan anfrage) eingabe1
-    (Left (APlanIOStatus objektStatusAnfrage (Right konstruktor)))          -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $ \objekt -> OPlan $ konstruktor objekt
-    (Left (APlanIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $ \objekt -> AOPlan $ anfrageKonstruktor objekt
-    (Left aPlan1)                                                           -> Left $ AOPlan aPlan1
-    (Right plan)                                                            -> Right $ OPlan plan
-anfrageObjektAktualisieren (AOWegstrecke aWegstrecke0)                     token                           = case anfrageWegstreckeAktualisieren aWegstrecke0 token of
-    (Left (AWSUnbekannt anfrage eingabe1))                                      -> Left $ AOUnbekannt (AOWegstrecke anfrage) eingabe1
-    (Left (AWegstreckeIOStatus objektStatusAnfrage (Right konstruktor)))        -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $ \objekt -> OWegstrecke $ konstruktor objekt
-    (Left (AWegstreckeIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))  -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $ \objekt -> AOWegstrecke $ anfrageKonstruktor objekt
-    (Left aWegstrecke1)                                                         -> Left $ AOWegstrecke aWegstrecke1
-    (Right wegstrecke)                                                          -> Right $ OWegstrecke wegstrecke
-anfrageObjektAktualisieren (AOWeiche aWeiche)                              token                           = case anfrageWeicheAktualisieren aWeiche token of
-    (Left (AWEUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOWeiche anfrage) eingabe1
-    (Left aWeiche1)                         -> Left $ AOWeiche aWeiche1
-    (Right weiche)                          -> Right $ OWeiche weiche
-anfrageObjektAktualisieren (AOBahngeschwindigkeit aBahngeschwindigkeit)    token                           = case anfrageBahngeschwindigkeitAktualisieren aBahngeschwindigkeit token of
-    (Left (ABGUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOBahngeschwindigkeit anfrage) eingabe1
-    (Left aBahngeschwindigkeit1)            -> Left $ AOBahngeschwindigkeit aBahngeschwindigkeit1
-    (Right bahngeschwindigkeit)             -> Right $ OBahngeschwindigkeit bahngeschwindigkeit
-anfrageObjektAktualisieren (AOStreckenabschnitt aStreckenabschnitt)        token                           = case anfrageStreckenabschnittAktualisieren aStreckenabschnitt token of
-    (Left (ASTUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOStreckenabschnitt anfrage) eingabe1
-    (Left aStreckenabschnitt1)              -> Left $ AOStreckenabschnitt aStreckenabschnitt1
-    (Right streckenabschnitt)               -> Right $ OStreckenabschnitt streckenabschnitt
-anfrageObjektAktualisieren (AOKupplung aKupplung)                          token                           = case anfrageKupplungAktualisieren aKupplung token of
-    (Left (AKUUnbekannt anfrage eingabe1))  -> Left $ AOUnbekannt (AOKupplung anfrage) eingabe1
-    (Left aKupplung1)                       -> Left $ AOKupplung aKupplung1
-    (Right kupplung)                        -> Right $ OKupplung kupplung
+anfrageObjektAktualisieren
+    qFehler@(AOUnbekannt _anfrage _eingabe)
+    _token
+        = Left qFehler
+anfrageObjektAktualisieren
+    anfrageObjekt@(AOStatusAnfrage _ _)
+    _token
+        = Left anfrageObjekt
+anfrageObjektAktualisieren
+    AnfrageObjekt
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
+            (Lexer.Wegstrecke            , Left $ AOWegstrecke AnfrageWegstrecke),
+            (Lexer.Weiche                , Left $ AOWeiche AnfrageWeiche),
+            (Lexer.Bahngeschwindigkeit   , Left $ AOBahngeschwindigkeit AnfrageBahngeschwindigkeit),
+            (Lexer.Streckenabschnitt     , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
+            (Lexer.Kupplung              , Left $ AOKupplung AnfrageKupplung)]
+            $ Left $ AOUnbekannt AnfrageObjekt eingabe
+anfrageObjektAktualisieren
+    (AOPlan aPlan)
+    token
+        = case anfragePlanAktualisieren aPlan token of
+            (Left (APUnbekannt anfrage eingabe1))
+                -> Left $ AOUnbekannt (AOPlan anfrage) eingabe1
+            (Left (APlanIOStatus objektStatusAnfrage (Right konstruktor)))
+                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $ \objekt -> OPlan $ konstruktor objekt
+            (Left (APlanIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))
+                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $ \objekt -> AOPlan $ anfrageKonstruktor objekt
+            (Left aPlan1)
+                -> Left $ AOPlan aPlan1
+            (Right plan)
+                -> Right $ OPlan plan
+anfrageObjektAktualisieren
+    (AOWegstrecke aWegstrecke0)
+    token
+        = case anfrageWegstreckeAktualisieren aWegstrecke0 token of
+            (Left (AWSUnbekannt anfrage eingabe1))
+                -> Left $ AOUnbekannt (AOWegstrecke anfrage) eingabe1
+            (Left (AWegstreckeIOStatus objektStatusAnfrage (Right konstruktor)))
+                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $
+                    \objekt -> OWegstrecke $ konstruktor objekt
+            (Left (AWegstreckeIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))
+                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $
+                    \objekt -> AOWegstrecke $ anfrageKonstruktor objekt
+            (Left aWegstrecke1)
+                -> Left $ AOWegstrecke aWegstrecke1
+            (Right wegstrecke)
+                -> Right $ OWegstrecke wegstrecke
+anfrageObjektAktualisieren
+    (AOWeiche aWeiche)
+    token
+        = case anfrageWeicheAktualisieren aWeiche token of
+            (Left (AWEUnbekannt anfrage eingabe1))
+                -> Left $ AOUnbekannt (AOWeiche anfrage) eingabe1
+            (Left aWeiche1)
+                -> Left $ AOWeiche aWeiche1
+            (Right weiche)
+                -> Right $ OWeiche weiche
+anfrageObjektAktualisieren
+    (AOBahngeschwindigkeit aBahngeschwindigkeit)
+    token
+        = case anfrageBahngeschwindigkeitAktualisieren aBahngeschwindigkeit token of
+            (Left (ABGUnbekannt anfrage eingabe1))
+                -> Left $ AOUnbekannt (AOBahngeschwindigkeit anfrage) eingabe1
+            (Left aBahngeschwindigkeit1)
+                -> Left $ AOBahngeschwindigkeit aBahngeschwindigkeit1
+            (Right bahngeschwindigkeit)
+                -> Right $ OBahngeschwindigkeit bahngeschwindigkeit
+anfrageObjektAktualisieren
+    (AOStreckenabschnitt aStreckenabschnitt)
+    token
+        = case anfrageStreckenabschnittAktualisieren aStreckenabschnitt token of
+            (Left (ASTUnbekannt anfrage eingabe1))
+                -> Left $ AOUnbekannt (AOStreckenabschnitt anfrage) eingabe1
+            (Left aStreckenabschnitt1)
+                -> Left $ AOStreckenabschnitt aStreckenabschnitt1
+            (Right streckenabschnitt)
+                -> Right $ OStreckenabschnitt streckenabschnitt
+anfrageObjektAktualisieren
+    (AOKupplung aKupplung)
+    token
+        = case anfrageKupplungAktualisieren aKupplung token of
+            (Left (AKUUnbekannt anfrage eingabe1))
+                -> Left $ AOUnbekannt (AOKupplung anfrage) eingabe1
+            (Left aKupplung1)
+                -> Left $ AOKupplung aKupplung1
+            (Right kupplung)
+                -> Right $ OKupplung kupplung
 
 -- ** Plan
 -- | Unvollständiger 'Plan'
