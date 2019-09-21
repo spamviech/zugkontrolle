@@ -331,52 +331,113 @@ instance Anfrage AnfrageBefehl where
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
 anfrageAktualisieren :: AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
-anfrageAktualisieren    anfrage@(ABUnbekannt _ _)                               _token                          = AEAnfrageBefehl anfrage
-anfrageAktualisieren    (AnfrageBefehl)                                         token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Beenden              , AEBefehl $ UI Beenden),
-    (Lexer.Hinzufügen           , AEAnfrageBefehl $ ABHinzufügen AnfrageObjekt),
-    (Lexer.Entfernen            , AEAnfrageBefehl ABEntfernen),
-    (Lexer.Speichern            , AEAnfrageBefehl ABSpeichern),
-    (Lexer.Laden                , AEAnfrageBefehl ABLaden),
-    (Lexer.Plan                 , AEAnfrageBefehl $ ABStatusAnfrage SAOPlan (\(OPlan plan) -> AEBefehlSofort (BSAusführenMöglich plan) [])),
-    (Lexer.Wegstrecke           , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-    (Lexer.Weiche               , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-    (Lexer.Bahngeschwindigkeit  , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-    (Lexer.Streckenabschnitt    , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-    (Lexer.Kupplung             , anfrageAktualisieren (ABAktion AnfrageAktion) token)]
-    $ AEAnfrageBefehl $ ABUnbekannt AnfrageBefehl eingabe
-anfrageAktualisieren    anfrage@(ABHinzufügen anfrageObjekt)                    token                           = case anfrageObjektAktualisieren anfrageObjekt token of
-    (Left (AOUnbekannt anfrage eingabe))                                -> AEAnfrageBefehl $ ABUnbekannt (ABHinzufügen anfrage) eingabe
-    (Left (AOStatusAnfrage statusanfrage (Right konstruktor)))          -> AEStatusAnfrage statusanfrage (AEBefehl . Hinzufügen . konstruktor) anfrage []
-    (Left (AOStatusAnfrage statusanfrage (Left anfrageKonstruktor)))    -> AEStatusAnfrage statusanfrage (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor) anfrage []
-    (Left qObjekt1)                                                     -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
-    (Right objekt)                                                      -> AEBefehl $ Hinzufügen objekt
-anfrageAktualisieren    (ABEntfernen)                                           token@(EingabeToken {eingabe})  = case anfrageObjektExistierend token of
-    (Nothing)           -> AEAnfrageBefehl $ ABUnbekannt ABEntfernen eingabe
-    (Just anfrageKonstruktor) -> AEAnfrageBefehl $ ABStatusAnfrage anfrageKonstruktor $ AEBefehl . Entfernen
-    where
-        -- | Eingabe eines existierendes Objekts
-        anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrageObjekt)
-        anfrageObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
-            (Lexer.Plan                  , Just SAOPlan),
-            (Lexer.Wegstrecke            , Just SAOWegstrecke),
-            (Lexer.Weiche                , Just SAOWeiche),
-            (Lexer.Bahngeschwindigkeit   , Just SAOBahngeschwindigkeit),
-            (Lexer.Streckenabschnitt     , Just SAOStreckenabschnitt),
-            (Lexer.Kupplung              , Just SAOKupplung)]
+anfrageAktualisieren
+    anfrage@(ABUnbekannt _anfrage _eingabe)
+    _token
+        = AEAnfrageBefehl anfrage
+anfrageAktualisieren
+    AnfrageBefehl
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Beenden              , AEBefehl $ UI Beenden),
+            (Lexer.Hinzufügen           , AEAnfrageBefehl $ ABHinzufügen AnfrageObjekt),
+            (Lexer.Entfernen            , AEAnfrageBefehl ABEntfernen),
+            (Lexer.Speichern            , AEAnfrageBefehl ABSpeichern),
+            (Lexer.Laden                , AEAnfrageBefehl ABLaden),
+            (Lexer.Plan                 , AEAnfrageBefehl $ ABStatusAnfrage SAOPlan planWählen),
+            (Lexer.Wegstrecke           , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Weiche               , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Bahngeschwindigkeit  , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Streckenabschnitt    , anfrageAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Kupplung             , anfrageAktualisieren (ABAktion AnfrageAktion) token)]
+            $ AEAnfrageBefehl $ ABUnbekannt AnfrageBefehl eingabe
+                where
+                    planWählen :: Objekt -> AnfrageErgebnis
+                    planWählen (OPlan plan) = AEBefehlSofort (BSAusführenMöglich plan) []
+                    planWählen  objekt      = error $
+                        "planWählen aus anfrageAktualisieren erwartet einen Plan. Stattdessen \"" ++
+                        show objekt ++
+                        "\" erhalten."
+anfrageAktualisieren
+    anfrage@(ABHinzufügen anfrageObjekt)
+    token
+        = case anfrageObjektAktualisieren anfrageObjekt token of
+            (Left (AOUnbekannt anfrage eingabe))
+                -> AEAnfrageBefehl $ ABUnbekannt (ABHinzufügen anfrage) eingabe
+            (Left (AOStatusAnfrage statusanfrage (Right konstruktor)))
+                -> AEStatusAnfrage statusanfrage (AEBefehl . Hinzufügen . konstruktor) anfrage []
+            (Left (AOStatusAnfrage statusanfrage (Left anfrageKonstruktor)))
+                -> AEStatusAnfrage statusanfrage (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor) anfrage []
+            (Left qObjekt1)
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Right objekt)
+                -> AEBefehl $ Hinzufügen objekt
+anfrageAktualisieren
+    ABEntfernen
+    token@(EingabeToken {eingabe})
+        = case anfrageObjektExistierend token of
             Nothing
-anfrageAktualisieren    (ABSpeichern)                                           (EingabeToken {eingabe})        = AEBefehl $ Speichern $ unpack eingabe
-anfrageAktualisieren    (ABLaden)                                               (EingabeToken {eingabe})        = AEBefehlSofort (BSLaden $ unpack eingabe) []
-anfrageAktualisieren    anfrage@(ABAktionPlan plan@(Plan {plAktionen}))         token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Ausführen, AEBefehl $ Ausführen plan (\i -> putStrLn $ showText plan <:> showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)) $ pure ())] $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
-anfrageAktualisieren    (ABAktionPlanAusführend plan _neu)                      token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanAusführend plan Alt) eingabe
-anfrageAktualisieren    (ABAktionPlanGesperrt plan _neu pins)                   token@(EingabeToken {eingabe})  = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanGesperrt plan Alt pins) eingabe
-anfrageAktualisieren    anfrage@(ABAktion anfrageAktion)                        token                           = case anfrageAktionAktualisieren anfrageAktion token of
-    (Left (AAUnbekannt anfrage eingabe))                                    -> AEAnfrageBefehl $ ABUnbekannt (ABAktion anfrage) eingabe
-    (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> AEStatusAnfrage      objektStatusAnfrage (AEAnfrageBefehl . ABAktion . anfrageKonstruktor) anfrage []
-    (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))        -> AEStatusAnfrage      objektStatusAnfrage (AEBefehl . AktionBefehl . konstruktor) anfrage []
-    (Left anfrageAktion)                                                    -> AEAnfrageBefehl $ ABAktion anfrageAktion
-    (Right aktion)                                                          -> AEBefehl $ AktionBefehl aktion
-anfrageAktualisieren    anfrage@(ABStatusAnfrage anfrageKonstruktor eitherF)    token                           = AEStatusAnfrage (anfrageKonstruktor token) eitherF anfrage []
+                -> AEAnfrageBefehl $ ABUnbekannt ABEntfernen eingabe
+            (Just anfrageKonstruktor)
+                -> AEAnfrageBefehl $ ABStatusAnfrage anfrageKonstruktor $ AEBefehl . Entfernen
+                where
+                    -- | Eingabe eines existierendes Objekts
+                    anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrageObjekt)
+                    anfrageObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
+                        (Lexer.Plan                  , Just SAOPlan),
+                        (Lexer.Wegstrecke            , Just SAOWegstrecke),
+                        (Lexer.Weiche                , Just SAOWeiche),
+                        (Lexer.Bahngeschwindigkeit   , Just SAOBahngeschwindigkeit),
+                        (Lexer.Streckenabschnitt     , Just SAOStreckenabschnitt),
+                        (Lexer.Kupplung              , Just SAOKupplung)]
+                        Nothing
+anfrageAktualisieren
+    ABSpeichern
+    EingabeToken {eingabe}
+        = AEBefehl $ Speichern $ unpack eingabe
+anfrageAktualisieren
+    ABLaden
+    EingabeToken {eingabe}
+        = AEBefehlSofort (BSLaden $ unpack eingabe) []
+anfrageAktualisieren
+    anfrage@(ABAktionPlan plan@(Plan {plAktionen}))
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Ausführen, AEBefehl $ Ausführen plan zeigeFortschritt $ pure ())]
+            $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
+                where
+                    zeigeFortschritt :: Natural -> IO ()
+                    zeigeFortschritt i = putStrLn $
+                        showText plan <:>
+                        showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)
+anfrageAktualisieren
+    (ABAktionPlanAusführend plan _neu)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)]
+            $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanAusführend plan Alt) eingabe
+anfrageAktualisieren
+    (ABAktionPlanGesperrt plan _neu pins)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanGesperrt plan Alt pins) eingabe
+anfrageAktualisieren
+    anfrage@(ABAktion anfrageAktion)
+    token
+        = case anfrageAktionAktualisieren anfrageAktion token of
+            (Left (AAUnbekannt anfrage eingabe))
+                -> AEAnfrageBefehl $ ABUnbekannt (ABAktion anfrage) eingabe
+            (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))
+                -> AEStatusAnfrage  objektStatusAnfrage (AEAnfrageBefehl . ABAktion . anfrageKonstruktor) anfrage []
+            (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))
+                -> AEStatusAnfrage objektStatusAnfrage (AEBefehl . AktionBefehl . konstruktor) anfrage []
+            (Left anfrageAktion)
+                -> AEAnfrageBefehl $ ABAktion anfrageAktion
+            (Right aktion)
+                -> AEBefehl $ AktionBefehl aktion
+anfrageAktualisieren
+    anfrage@(ABStatusAnfrage anfrageKonstruktor eitherF)
+    token
+        = AEStatusAnfrage (anfrageKonstruktor token) eitherF anfrage []
 
 -- ** Objekt
 -- | Unvollständige Objekte
