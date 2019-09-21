@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -29,7 +30,7 @@ import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (PwmMap, I2CMap, Wartezeit(..),
-            Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
+            Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio,
             Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Klassen (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
@@ -122,7 +123,7 @@ instance (ToJSON (bg 'Märklin), ToJSON (bg 'Lego), ToJSON st, ToJSON (we 'Märk
 
 instance (FromJSON (a 'Märklin), FromJSON (a 'Lego)) => FromJSON (ZugtypEither a) where
     parseJSON :: Value -> Parser (ZugtypEither a)
-    parseJSON value = (ZugtypMärklin <$> parseJSON) <|> (ZugtypLego <$> parseJSON)
+    parseJSON value = (ZugtypMärklin <$> parseJSON value) <|> (ZugtypLego <$> parseJSON value)
 
 instance (ToJSON (a 'Märklin), ToJSON (a 'Lego)) => ToJSON (ZugtypEither a) where
     toJSON :: ZugtypEither a -> Value
@@ -263,31 +264,28 @@ parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (vonPinGpio <$> (v .
 -- | Parse das Fließend-Feld.
 -- Dabei wird eine Rückwärtskompatibilität zu Versionen <1.0.0.14 berücksichtigt.
 -- Bei diesen wurde intern immer 'HIGH' angenommen.
-parseFließend :: Parser Value
+parseFließend :: Parser Anbindung.Value
 parseFließend = (v .: fließendJS) <|> pure Anbindung.HIGH
 
 -- Instanz-Deklarationen für Bahngeschwindigkeit
-instance FromJSON (Bahngeschwindigkeit z) where
-    parseJSON :: Value -> Parser (Bahngeschwindigkeit z)
+instance FromJSON (Bahngeschwindigkeit 'Märklin) where
+    parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Märklin)
     parseJSON   (Object v)  = do
-        name <- (v .: nameJS)
-        zugtyp <- (v .: zugtypJS)
-        geschwindigkeitsAnschluss <- parseAnschluss geschwindigkeitsAnschlussJS geschwindigkeitsPinJS v
-        maybeFahrtrichtungsPin <- (v .:? fahrtrichtungsPinJS)
-        bgFließend <- parseFließend
-        createBahngeschwindigkeit zugtyp name bgFließend geschwindigkeitsPin maybeFahrtrichtungsPin
-            where
-                createBahngeschwindigkeit :: Zugtyp -> Text -> Anbindung.Value -> Natural -> Maybe Natural -> Parser (Bahngeschwindigkeit z)
-                -- Märklin/Lego benötigen unteschiedliche Funktionen!!!
-                createBahngeschwindigkeit = _createBahngeschwindigkeit
-                -- createBahngeschwindigkeit Lego      bgName  bgFließend  geschwindigkeitsPin     Nothing
-                --     = pure LegoBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin (0 :: Int)}
-                -- createBahngeschwindigkeit Lego      bgName  bgFließend  geschwindigkeitsPin     (Just fahrtrichtungsPin)
-                --     = pure LegoBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin = zuPin geschwindigkeitsPin, fahrtrichtungsPin = zuPin fahrtrichtungsPin}
-                -- createBahngeschwindigkeit Märklin   bgName  bgFließend  geschwindigkeitsPin     _maybeFahrtrichtungsPin
-                --     = pure MärklinBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin = zuPin geschwindigkeitsPin}
-                -- createBahngeschwindigkeit _zutyp    _name   _bgFließend _geschwindigkeitsPin    _maybeFahrtrichtungsPin
-                --     = mzero
+        Märklin <- v .: zugtypJS
+        bgmName <- v .: nameJS
+        bgmGeschwindigkeitsAnschluss <- parseAnschluss v geschwindigkeitsAnschlussJS geschwindigkeitsPinJS
+        bgmFließend <- parseFließend
+        pure MärklinBahngeschwindigkeit {bgmName, bgmFließend, bgmGeschwindigkeitsAnschluss}
+    parseJSON   _value      = mzero
+instance FromJSON (Bahngeschwindigkeit 'Lego) where
+    parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Lego)
+    parseJSON   (Object v)  = do
+        Lego <- v .: zugtypJS
+        bglName <- v .: nameJS
+        bglGeschwindigkeitsAnschluss <- parseAnschluss v geschwindigkeitsAnschlussJS geschwindigkeitsPinJS
+        bglFahrtrichtungsAnschluss <- parseAnschluss v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
+        bglFließend <- parseFließend
+        pure LegoBahngeschwindigkeit {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss}
     parseJSON   _value      = mzero
 
 instance ToJSON (Bahngeschwindigkeit z) where
