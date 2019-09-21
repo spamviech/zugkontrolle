@@ -509,24 +509,40 @@ instance ToJSON Aktion where
     toJSON :: Aktion -> Value
     toJSON  (Warten wert)
         = object [aktionJS .= wartenJS, wertJS .= wert]
-    toJSON  (AWegstrecke (Einstellen w))
+    toJSON  (AWegstreckeMärklin (Einstellen w))
         = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
-    toJSON  (AWegstrecke (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))
+    toJSON  (AWegstreckeLego (Einstellen w))
+        = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
+    toJSON  (AWegstreckeMärklin (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))
         = object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-    toJSON  (AWegstrecke (AWSBahngeschwindigkeit (Umdrehen w Nothing)))
+    toJSON  (AWegstreckeLego (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))
+        = object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
+    toJSON  (AWegstreckeMärklin (AWSBahngeschwindigkeit (Umdrehen w Nothing)))
         = object [wegstreckeJS .= w, aktionJS .= umdrehenJS]
-    toJSON  (AWegstrecke (AWSBahngeschwindigkeit (Umdrehen w (Just fahrtrichtung))))
+    toJSON  (AWegstreckeLego (AWSBahngeschwindigkeit (Umdrehen w Nothing)))
+        = object [wegstreckeJS .= w, aktionJS .= umdrehenJS]
+    toJSON  (AWegstreckeMärklin (AWSBahngeschwindigkeit (Umdrehen w (Just fahrtrichtung))))
         = object [wegstreckeJS .= w, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
-    toJSON  (AWegstrecke (AWSStreckenabschnitt (Strom w an)))
+    toJSON  (AWegstreckeLego (AWSBahngeschwindigkeit (Umdrehen w (Just fahrtrichtung))))
+        = object [wegstreckeJS .= w, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
+    toJSON  (AWegstreckeMärklin (AWSStreckenabschnitt (Strom w an)))
         = object [wegstreckeJS .= w, aktionJS .= stromJS, anJS .= an]
-    toJSON  (AWegstrecke (AWSKupplung (Kuppeln w)))
+    toJSON  (AWegstreckeLego (AWSStreckenabschnitt (Strom w an)))
+        = object [wegstreckeJS .= w, aktionJS .= stromJS, anJS .= an]
+    toJSON  (AWegstreckeMärklin (AWSKupplung (Kuppeln w)))
+        = object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
+    toJSON  (AWegstreckeLego (AWSKupplung (Kuppeln w)))
         = object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
     toJSON  (AWeiche (Stellen w richtung))
         = object [weicheJS .= w, aktionJS .= stellenJS, richtungJS .= richtung]
-    toJSON  (ABahngeschwindigkeit (Geschwindigkeit b wert))
+    toJSON  (ABahngeschwindigkeitMärklin (Geschwindigkeit b wert))
         = object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-    toJSON  (ABahngeschwindigkeit (Umdrehen b maybeFahrtrichtung))
-        = object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS, fahrtrichtungJS .= maybeFahrtrichtung]
+    toJSON  (ABahngeschwindigkeitLego (Geschwindigkeit b wert))
+        = object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
+    toJSON  (ABahngeschwindigkeitMärklin (Umdrehen b))
+        = object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS]
+    toJSON  (ABahngeschwindigkeitLego (FahrtrichtungEinstellen b fahrtrichtung))
+        = object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
     toJSON  (AStreckenabschnitt (Strom s an))
         = object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]
     toJSON  (AKupplung (Kuppeln k))
@@ -535,7 +551,7 @@ instance ToJSON Aktion where
 instance FromJSON Plan where
     parseJSON :: Value -> Parser Plan
     parseJSON   (Object v)  = Plan <$> (v .: nameJS) <*> (v .: aktionenJS)
-    parseJSON   _           = mzero
+    parseJSON   _value      = mzero
 
 instance ToJSON Plan where
     toJSON :: Plan -> Value
