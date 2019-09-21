@@ -377,8 +377,8 @@ instance ToJSON (Weiche z) where
 -- neue Feld-Namen/Bezeichner in json-Datei
 kupplungsPinJS :: Text
 kupplungsPinJS = "KupplungsPin"
-kupplungAnschlussJS :: Text
-kupplungAnschlussJS = "KupplungsAnschluss"
+kupplungsAnschlussJS :: Text
+kupplungsAnschlussJS = "KupplungsAnschluss"
 
 -- Instanz-Deklarationen für Kupplung
 instance FromJSON Kupplung where
@@ -387,7 +387,7 @@ instance FromJSON Kupplung where
         = Kupplung
             <$> v .: nameJS
             <*> parseFließend
-            <*> parseAnschluss kupplungAnschlussJS kupplungsPinJS v
+            <*> parseAnschluss v kupplungsAnschlussJS kupplungsPinJS
     parseJSON   _value
         = mzero
 
@@ -404,8 +404,19 @@ weichenRichtungenJS :: Text
 weichenRichtungenJS = "Weichen-Richtungen"
 
 -- Instanz-Deklaration für Wegstrecke
-instance FromJSON (Wegstrecke z) where
-    parseJSON :: Value -> Parser (Wegstrecke z)
+instance FromJSON (Wegstrecke 'Märklin) where
+    parseJSON :: Value -> Parser (Wegstrecke 'Märklin)
+    parseJSON   (Object v)
+        = Wegstrecke
+            <$> (v .: nameJS)
+            <*> (v .: bahngeschwindigkeitenJS)
+            <*> (v .: streckenabschnitteJS)
+            <*> (v .: weichenRichtungenJS)
+            <*> (v .: kupplungenJS)
+    parseJSON   _value
+        = mzero
+instance FromJSON (Wegstrecke 'Lego) where
+    parseJSON :: Value -> Parser (Wegstrecke 'Lego)
     parseJSON   (Object v)
         = Wegstrecke
             <$> (v .: nameJS)
@@ -502,7 +513,7 @@ instance FromJSON Aktion where
         | otherwise
             -> mzero
         where
-            parseMaybeWegstrecke :: Object -> (Wegstrecke -> Object -> Parser (AktionWegstrecke Wegstrecke)) -> (Object -> Parser Aktion) -> Parser Aktion
+            parseMaybeWegstrecke :: Object -> (Wegstrecke z -> Object -> Parser (AktionWegstrecke Wegstrecke z)) -> (Object -> Parser Aktion) -> Parser Aktion
             parseMaybeWegstrecke    v   wsParser    altParser   = v .:? wegstreckeJS >>= \case
                 (Just w)    -> (AWegstreckeMärklin <$> wsParser w v) <|> (AWegstreckeLego <$> wsParser w v)
                 (Nothing)   -> altParser v
