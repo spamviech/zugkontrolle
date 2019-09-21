@@ -3,9 +3,10 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 {-|
 Description : Grundlegende UI-Funktionen.
@@ -18,7 +19,8 @@ module Zug.UI.Base (
     tvarAusführend, tvarPwmMap, tvarI2CMap,
 #endif
     -- * Zustands-Monade
-    IOStatus, MStatus, MonadMStatus, IOStatusAllgemein, MStatusAllgemein, MonadMStatusAllgemein, auswertenLeererIOStatus, auswertenTMVarIOStatus, auswertenTMVarMStatus,
+    IOStatus, MStatus, MStatusT, RStatus, IOStatusAllgemein, MStatusAllgemein, MStatusTAllgemein, RStatusAllgemein,
+    auswertenLeererIOStatus, auswertenTMVarIOStatus, auswertenTMVarMStatus,
     -- ** Anpassen des aktuellen Zustands
     hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung, hinzufügenWegstrecke, hinzufügenPlan,
     entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan,
@@ -31,6 +33,7 @@ module Zug.UI.Base (
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, takeTMVar, putTMVar)
 import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Reader.Class (MonadReader)
 import Control.Monad.State (StateT, State, evalStateT, runStateT, runState, get, gets, modify)
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens', lens)
@@ -173,125 +176,129 @@ auswertenTMVarMStatus action mvarStatus = do
 
 -- * Zustands-Monade mit Status als aktuellem Zustand
 -- | Zustands-Monaden-Transformer spezialisiert auf 'Status' in der IO-Monade
-type IOStatus = StateT Status IO
+type IOStatus = IOStatusAllgemein Objekt
 -- | Reine Zustands-Monade spezialisiert auf 'Status'
-type MStatus = State Status
+type MStatus = MStatusAllgemein Objekt
 -- | Zustands-Monaden-Transformer spezialiert auf 'Status'
-type MonadMStatus m a = StateT Status m a
+type MStatusT = MStatusAllgemein Objekt
+-- | 'MonadReader' spezialisiert auf 'Status'
+type RStatus a = RStatusAllgemein Objekt a
 -- | Zustands-Monaden-Transformer spezialisiert auf 'StatusAllgemein' in der IO-Monade
 type IOStatusAllgemein o = StateT (StatusAllgemein o) IO
 -- | Reine Zustands-Monade spezialiert auf 'StatusAllgemein'
 type MStatusAllgemein o = State (StatusAllgemein o)
 -- | Zustands-Monaden-Transformer spezialiert auf 'StatusAllgemein'
-type MonadMStatusAllgemein m o a = StateT (StatusAllgemein o) m a
+type MStatusTAllgemein m o a = StateT (StatusAllgemein o) m a
+-- | 'MonadReader' spezialisiert aus 'StatusAllgemein'
+type RStatusAllgemein o a = MonadReader (StatusAllgemein o) a
 
 -- * Erhalte aktuellen Status.
 -- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
-getBahngeschwindigkeiten :: (Monad m) => MonadMStatusAllgemein m o [ZugtypEither (BG o)]
+getBahngeschwindigkeiten :: (Monad m) => MStatusTAllgemein m o [ZugtypEither (BG o)]
 getBahngeschwindigkeiten = gets _bahngeschwindigkeiten
 -- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
-getStreckenabschnitte :: (Monad m) => MonadMStatusAllgemein m o [ST o]
+getStreckenabschnitte :: (Monad m) => MStatusTAllgemein m o [ST o]
 getStreckenabschnitte = gets _streckenabschnitte
 -- | Erhalte 'Weiche'n im aktuellen 'StatusAllgemein'
-getWeichen :: (Monad m) => MonadMStatusAllgemein m o [ZugtypEither (WE o)]
+getWeichen :: (Monad m) => MStatusTAllgemein m o [ZugtypEither (WE o)]
 getWeichen = gets _weichen
 -- | Erhalte 'Kupplung'en im aktuellen 'StatusAllgemein'
-getKupplungen :: (Monad m) => MonadMStatusAllgemein m o [KU o]
+getKupplungen :: (Monad m) => MStatusTAllgemein m o [KU o]
 getKupplungen = gets _kupplungen
 -- | Erhalte 'Wegstrecke'n im aktuellen 'StatusAllgemein'
-getWegstrecken :: (Monad m) => MonadMStatusAllgemein m o [ZugtypEither (WS o)]
+getWegstrecken :: (Monad m) => MStatusTAllgemein m o [ZugtypEither (WS o)]
 getWegstrecken = gets _wegstrecken
 -- | Erhalte Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
-getPläne :: (Monad m) => MonadMStatusAllgemein m o [PL o]
+getPläne :: (Monad m) => MStatusTAllgemein m o [PL o]
 getPläne = gets _pläne
 -- | Erhalte 'TVar' mit Liste der aktuell ausführenden Pläne ('PlanAllgmein')
-getTVarAusführend :: (Monad m) => MonadMStatusAllgemein m o (TVar (Menge Ausführend))
+getTVarAusführend :: (Monad m) => MStatusTAllgemein m o (TVar (Menge Ausführend))
 getTVarAusführend = gets _tvarAusführend
 -- | Erhalte 'TVar' zur SoftwarePWM-Steuerung
-getTVarPwmMap :: (Monad m) => MonadMStatusAllgemein m o (TVar PwmMap)
+getTVarPwmMap :: (Monad m) => MStatusTAllgemein m o (TVar PwmMap)
 getTVarPwmMap = gets _tvarPwmMap
 -- | Erhalte 'TVar' zur I2C-Steuerung
-getTVarI2CMap :: (Monad m) => MonadMStatusAllgemein m o (TVar I2CMap)
+getTVarI2CMap :: (Monad m) => MStatusTAllgemein m o (TVar I2CMap)
 getTVarI2CMap = gets _tvarI2CMap
 -- | Kombination aus 'getTVarPwmMap' und 'getTVarI2CMap'
-getTVarMaps :: (Monad m) => MonadMStatusAllgemein m o (TVar PwmMap, TVar I2CMap)
+getTVarMaps :: (Monad m) => MStatusTAllgemein m o (TVar PwmMap, TVar I2CMap)
 getTVarMaps = do
     Status {_tvarPwmMap, _tvarI2CMap} <- get
     pure (_tvarPwmMap, _tvarI2CMap)
 
 -- * Ändere aktuellen Status
 -- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
-putBahngeschwindigkeiten :: (Monad m) => [ZugtypEither (BG o)] -> MonadMStatusAllgemein m o ()
+putBahngeschwindigkeiten :: (Monad m) => [ZugtypEither (BG o)] -> MStatusTAllgemein m o ()
 putBahngeschwindigkeiten bgs = modify $ \status -> status {_bahngeschwindigkeiten=bgs}
 -- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
-putStreckenabschnitte :: (Monad m) => [ST o] -> MonadMStatusAllgemein m o ()
+putStreckenabschnitte :: (Monad m) => [ST o] -> MStatusTAllgemein m o ()
 putStreckenabschnitte sts = modify $ \status -> status {_streckenabschnitte=sts}
 -- | Setze 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
-putWeichen :: (Monad m) => [ZugtypEither (WE o)] -> MonadMStatusAllgemein m o ()
+putWeichen :: (Monad m) => [ZugtypEither (WE o)] -> MStatusTAllgemein m o ()
 putWeichen wes = modify $ \status -> status{_weichen=wes}
 -- | Setze 'Weiche'n im aktuellen 'StatusAllgemein'
-putKupplungen :: (Monad m) => [KU o] -> MonadMStatusAllgemein m o ()
+putKupplungen :: (Monad m) => [KU o] -> MStatusTAllgemein m o ()
 putKupplungen kus = modify $ \status -> status{_kupplungen=kus}
 -- | Setze 'Kupplung'en im akutellen 'StatusAllgemein'
-putWegstrecken :: (Monad m) => [ZugtypEither (WS o)] -> MonadMStatusAllgemein m o ()
+putWegstrecken :: (Monad m) => [ZugtypEither (WS o)] -> MStatusTAllgemein m o ()
 putWegstrecken wss = modify $ \status -> status{_wegstrecken=wss}
 -- | Setze Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
-putPläne :: (Monad m) => [PL o] -> MonadMStatusAllgemein m o ()
+putPläne :: (Monad m) => [PL o] -> MStatusTAllgemein m o ()
 putPläne pls = modify $ \status -> status {_pläne=pls}
 -- | Setzte 'TVar' mit Liste der aktuell ausgeführten Pläne ('PlanAllgemein').
 -- 
 -- __Achtung__: Die aktuelle Ausführung wird dadurch nicht beeinflusst!
-putTVarAusführend :: (Monad m) => TVar (Menge Ausführend) -> MonadMStatusAllgemein m o ()
+putTVarAusführend :: (Monad m) => TVar (Menge Ausführend) -> MStatusTAllgemein m o ()
 putTVarAusführend tv = modify $ \status -> status {_tvarAusführend=tv}
 -- | Setzte 'TVar' zur SoftwarePWM-Kontrolle.
 -- 
 -- __Achtung__ : Aktuell laufende SoftwarePWM wird dadurch nicht beeinflusst.
-putTVarPwmMap :: (Monad m) => TVar PwmMap -> MonadMStatusAllgemein m o ()
+putTVarPwmMap :: (Monad m) => TVar PwmMap -> MStatusTAllgemein m o ()
 putTVarPwmMap tv = modify $ \status -> status{_tvarPwmMap=tv}
 -- | Setzte 'TVar' zur I2C-Kontrolle.
 -- 
 -- __Achtung__ : Aktuell laufende I2C-Ausgabe wird dadurch nicht beeinflusst.
 -- Ein Effekt wird erst bei neu setzen des I2C-Kanals sichtbar.
-putTVarI2CMap :: (Monad m) => TVar I2CMap -> MonadMStatusAllgemein m o ()
+putTVarI2CMap :: (Monad m) => TVar I2CMap -> MStatusTAllgemein m o ()
 putTVarI2CMap tv = modify $ \status -> status{_tvarI2CMap=tv}
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenBahngeschwindigkeit :: (Monad m) => ZugtypEither (BG o) -> MonadMStatusAllgemein m o ()
+hinzufügenBahngeschwindigkeit :: (Monad m) => ZugtypEither (BG o) -> MStatusTAllgemein m o ()
 hinzufügenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten -> putBahngeschwindigkeiten $ bahngeschwindigkeit : bahngeschwindigkeiten
 -- | Füge einen 'Streckenabschnitt' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenStreckenabschnitt :: (Monad m) => ST o -> MonadMStatusAllgemein m o ()
+hinzufügenStreckenabschnitt :: (Monad m) => ST o -> MStatusTAllgemein m o ()
 hinzufügenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte -> putStreckenabschnitte $ streckenabschnitt : streckenabschnitte
 -- | Füge eine 'Weiche' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenWeiche :: (Monad m) => ZugtypEither (WE o) -> MonadMStatusAllgemein m o ()
+hinzufügenWeiche :: (Monad m) => ZugtypEither (WE o) -> MStatusTAllgemein m o ()
 hinzufügenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ weiche : weichen
 -- | Füge eine 'Kupplung' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenKupplung :: (Monad m) => KU o -> MonadMStatusAllgemein m o ()
+hinzufügenKupplung :: (Monad m) => KU o -> MStatusTAllgemein m o ()
 hinzufügenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ kupplung : kupplungen
 -- | Füge eine 'Wegstrecke' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenWegstrecke :: (Monad m) => ZugtypEither (WS o) -> MonadMStatusAllgemein m o ()
+hinzufügenWegstrecke :: (Monad m) => ZugtypEither (WS o) -> MStatusTAllgemein m o ()
 hinzufügenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ wegstrecke : wegstrecken
 -- | Füge einen 'Plan' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenPlan :: (Monad m) => PL o -> MonadMStatusAllgemein m o ()
+hinzufügenPlan :: (Monad m) => PL o -> MStatusTAllgemein m o ()
 hinzufügenPlan plan = getPläne >>= \pläne -> putPläne $ plan : pläne
 -- * Elemente entfernen
 -- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'
-entfernenBahngeschwindigkeit :: (Monad m, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego)) => ZugtypEither (BG o) -> MonadMStatusAllgemein m o ()
+entfernenBahngeschwindigkeit :: (Monad m, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego)) => ZugtypEither (BG o) -> MStatusTAllgemein m o ()
 entfernenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten -> putBahngeschwindigkeiten $ delete bahngeschwindigkeit bahngeschwindigkeiten
 -- | Entferne einen 'Streckenabschnitt' aus dem aktuellen 'StatusAllgemein'
-entfernenStreckenabschnitt :: (Monad m, Eq (ST o)) => ST o -> MonadMStatusAllgemein m o ()
+entfernenStreckenabschnitt :: (Monad m, Eq (ST o)) => ST o -> MStatusTAllgemein m o ()
 entfernenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte -> putStreckenabschnitte $ delete streckenabschnitt streckenabschnitte
 -- | Entferne eine 'Weiche' aus dem aktuellen 'StatusAllgemein'
-entfernenWeiche :: (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego)) => ZugtypEither (WE o) -> MonadMStatusAllgemein m o ()
+entfernenWeiche :: (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego)) => ZugtypEither (WE o) -> MStatusTAllgemein m o ()
 entfernenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ delete weiche weichen
 -- | Entferne eine 'Kupplung' aus dem aktuellen 'StatusAllgemein'
-entfernenKupplung :: (Monad m, Eq (KU o)) => KU o -> MonadMStatusAllgemein m o ()
+entfernenKupplung :: (Monad m, Eq (KU o)) => KU o -> MStatusTAllgemein m o ()
 entfernenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ delete kupplung kupplungen
 -- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusAllgemein'
-entfernenWegstrecke :: (Monad m, Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego)) => ZugtypEither (WS o) -> MonadMStatusAllgemein m o ()
+entfernenWegstrecke :: (Monad m, Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego)) => ZugtypEither (WS o) -> MStatusTAllgemein m o ()
 entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ delete wegstrecke wegstrecken
 -- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
-entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MonadMStatusAllgemein m o ()
+entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MStatusTAllgemein m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 -- * Aktuell ausgeführte Pläne
 -- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.

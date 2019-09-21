@@ -3,7 +3,7 @@
 {-|
 Description : Umwandeln einer Text-Eingabe in Token.
 -}
-module Zug.UI.Cmd.Lexer (lexer, Token(..), EingabeTokenAllgemein(..), EingabeToken(..)) where
+module Zug.UI.Cmd.Lexer (lexer, Token(..), leeresToken, EingabeTokenAllgemein(..), EingabeToken(..)) where
 
 -- Bibliotheken
 import Text.Read
@@ -78,6 +78,9 @@ data EingabeTokenAllgemein  = Tk            EingabeToken
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken = EingabeToken {eingabe :: Text, möglichkeiten :: [Token], ganzzahl :: Maybe Natural}
                         deriving (Eq, Show)
+
+leeresToken :: EingabeToken
+leeresToken = EingabeToken {eingabe = T.pack "", möglichkeiten = [], ganzzahl = Nothing}
 
 -- | Bekannte Befehle
 data Token  = Beenden
