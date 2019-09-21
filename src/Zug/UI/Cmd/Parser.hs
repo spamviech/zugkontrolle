@@ -9,14 +9,14 @@ Description : Verarbeiten von Token.
 In diesem Modul werden sämtliche Umwandlungen vorgenommen, für die nicht die IO-Monade benötigt wird.
 -}
 module Zug.UI.Cmd.Parser (
-                        -- * Auswerten einer Text-Eingabe
-                        parser, statusAnfrageObjekt,
-                        -- * Ergebnis-Typen
-                        AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..), AnfrageNeu(..),
-                        -- ** Unvollständige StreckenObjekte
-                        Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
-                        AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..), AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
-                        AnfrageObjekt(..), AnfrageWegstrecke(..), AnfrageWeiche(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..), AnfrageKupplung(..)) where
+    -- * Auswerten einer Text-Eingabe
+    parser, statusAnfrageObjekt,
+    -- * Ergebnis-Typen
+    AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..), AnfrageNeu(..),
+    -- ** Unvollständige StreckenObjekte
+    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
+    AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..), AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
+    AnfrageObjekt(..), AnfrageWegstrecke(..), AnfrageWeiche(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..), AnfrageKupplung(..)) where
 
 -- Bibliotheken
 import Data.Foldable (toList)
@@ -48,7 +48,7 @@ import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngesch
                     getStreckenabschnitte, getKupplungen)
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
-import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token())
+import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token(), leeresToken)
 
 -- * Auswerten einer Text-Eingabe
 -- ** Suchen eines Objekt im aktuellen 'StatusAllgemein'
@@ -81,52 +81,123 @@ instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage    (SAOKupplung _token)              = Language.indexOderName Language.kupplung
 -- | Erhalte ein im Status existierendes Objekt
 statusAnfrageObjekt :: StatusAnfrageObjekt -> MStatus (Either StatusAnfrageObjekt Objekt)
-statusAnfrageObjekt   anfrage@(SAOUnbekannt _eingabe0)            = pure $ Left anfrage
-statusAnfrageObjekt   anfrage@(SAOPlan eingabe)                   = statusAnfrageObjektAux anfrage eingabe getPläne OPlan
-statusAnfrageObjekt   anfrage@(SAOWegstrecke eingabe)             = statusAnfrageObjektAux anfrage eingabe getWegstrecken OWegstrecke
-statusAnfrageObjekt   anfrage@(SAOWeiche eingabe)                 = statusAnfrageObjektAux anfrage eingabe getWeichen OWeiche
-statusAnfrageObjekt   anfrage@(SAOBahngeschwindigkeit eingabe)    = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
-statusAnfrageObjekt   anfrage@(SAOStreckenabschnitt eingabe)      = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte OStreckenabschnitt
-statusAnfrageObjekt   anfrage@(SAOKupplung eingabe)               = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
+statusAnfrageObjekt
+    anfrage@(SAOUnbekannt _eingabe0)
+        = pure $ Left anfrage
+statusAnfrageObjekt
+    anfrage@(SAOPlan eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getPläne OPlan
+statusAnfrageObjekt
+    anfrage@(SAOWegstrecke eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getWegstrecken OWegstrecke
+statusAnfrageObjekt
+    anfrage@(SAOWeiche eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getWeichen OWeiche
+statusAnfrageObjekt
+    anfrage@(SAOBahngeschwindigkeit eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
+statusAnfrageObjekt
+    anfrage@(SAOStreckenabschnitt eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte OStreckenabschnitt
+statusAnfrageObjekt
+    anfrage@(SAOKupplung eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
 
 -- | Hilfsfunktion
-statusAnfrageObjektAux :: (StreckenObjekt a) => StatusAnfrageObjekt -> EingabeToken -> MStatus [a] -> (a -> Objekt) -> MStatus (Either StatusAnfrageObjekt Objekt)
-statusAnfrageObjektAux    anfrage   eingabe getFromStatus   konstruktor = getFromStatus >>= \objekte -> pure $ case findByNameOrIndex objekte eingabe of
-    (Nothing)       -> Left anfrage
-    (Just objekt)   -> Right $ konstruktor objekt
+statusAnfrageObjektAux :: (StreckenObjekt a)
+    => StatusAnfrageObjekt
+    -> EingabeToken
+    -> MStatus [a]
+    -> (a -> Objekt)
+        -> MStatus (Either StatusAnfrageObjekt Objekt)
+statusAnfrageObjektAux anfrage eingabe getFromStatus konstruktor = do
+    objekte <- getFromStatus
+    pure $ case findByNameOrIndex objekte eingabe of
+        Nothing         -> Left anfrage
+        (Just objekt)   -> Right $ konstruktor objekt
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
 parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
 parser = parserAux []
     where
         parserAux :: [Befehl] -> AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
-        parserAux   acc (AnfrageBefehl)                         ([])                = parserErgebnisOk acc
-        parserAux   acc (ABAktionPlanAusführend plan (Neu))     ([])                = (reverse acc, AEAnfrageBefehl (ABAktionPlanAusführend plan (Alt)))
-        parserAux   acc (ABAktionPlanGesperrt plan (Neu) pins)  ([])                = (reverse acc, AEAnfrageBefehl (ABAktionPlanGesperrt plan (Alt) pins))
-        parserAux   acc (ABAktionPlanAusführend plan (Alt))     ([])                = (reverse acc, AEBefehlSofort (BSAusführenMöglich plan) [])
-        parserAux   acc (ABAktionPlanGesperrt plan (Alt) _pins) ([])                = (reverse acc, AEBefehlSofort (BSAusführenMöglich plan) [])
-        parserAux   acc anfrage                                 ([])                = (reverse acc, AEAnfrageBefehl anfrage)
-        parserAux   acc _anfrage                                (TkBeenden:_t)      = parserErgebnisOk (UI Beenden:acc)
-        parserAux   acc _anfrage                                (TkAbbrechen:_t)    = parserErgebnisOk (UI Abbrechen:acc)
-        parserAux   acc anfrage                                 ((Tk h):t)          = case anfrageAktualisieren anfrage h of
-            (AEAnfrageBefehl qFehler@(ABUnbekannt _ab _b))  -> parserErgebnis acc $ AEAnfrageBefehl qFehler
-            (AEAnfrageBefehl qBefehl)                       -> parserAux acc qBefehl t
-            (AEBefehlSofort eingabe r)                      -> parserErgebnis acc $ AEBefehlSofort eingabe $ r ++ t
-            (AEStatusAnfrage eingabe konstruktor anfrage r) -> parserErgebnis acc $ AEStatusAnfrage eingabe konstruktor anfrage $ r ++ t
-            (AEBefehl befehl)                               -> parserAux (befehl:acc) AnfrageBefehl t
+        parserAux
+            acc
+            AnfrageBefehl
+            []
+                = parserErgebnisOk acc
+        parserAux
+            acc
+            (ABAktionPlanAusführend plan Neu)
+            []
+                = (reverse acc, AEAnfrageBefehl (ABAktionPlanAusführend plan Alt))
+        parserAux
+            acc
+            (ABAktionPlanGesperrt plan Neu pins)
+            []
+                = (reverse acc, AEAnfrageBefehl (ABAktionPlanGesperrt plan Alt pins))
+        parserAux
+            acc
+            (ABAktionPlanAusführend plan Alt)
+            []
+                = (reverse acc, AEBefehlSofort (BSAusführenMöglich plan) [])
+        parserAux
+            acc
+            (ABAktionPlanGesperrt plan Alt _pins)
+            []
+                = (reverse acc, AEBefehlSofort (BSAusführenMöglich plan) [])
+        parserAux
+            acc
+            anfrage
+            []
+                = (reverse acc, AEAnfrageBefehl anfrage)
+        parserAux
+            acc
+            _anfrage
+            (TkBeenden:_t)
+                = parserErgebnisOk (UI Beenden:acc)
+        parserAux
+            acc
+            _anfrage
+            (TkAbbrechen:_t)
+                = parserErgebnisOk (UI Abbrechen:acc)
+        parserAux
+            acc
+            anfrage
+            ((Tk h):t)
+                = case anfrageAktualisieren anfrage h of
+                    (AEAnfrageBefehl qFehler@(ABUnbekannt _ab _b))
+                        -> parserErgebnis acc $ AEAnfrageBefehl qFehler
+                    (AEAnfrageBefehl qBefehl)
+                        -> parserAux acc qBefehl t
+                    (AEBefehlSofort eingabe r)
+                        -> parserErgebnis acc $ AEBefehlSofort eingabe $ r ++ t
+                    (AEStatusAnfrage eingabe konstruktor anfrage r)
+                        -> parserErgebnis acc $ AEStatusAnfrage eingabe konstruktor anfrage $ r ++ t
+                    (AEBefehl befehl)
+                        -> parserAux (befehl:acc) AnfrageBefehl t
         -- | Ergebnis zurückgeben
         parserErgebnis :: [Befehl] -> AnfrageErgebnis -> ([Befehl], AnfrageErgebnis)
         parserErgebnis acc anfrage = (reverse acc, anfrage)
         parserErgebnisOk :: [Befehl] -> ([Befehl], AnfrageErgebnis)
-        parserErgebnisOk    ([])                = parserErgebnis [] $ AEAnfrageBefehl AnfrageBefehl
+        parserErgebnisOk    []                  = parserErgebnis [] $ AEAnfrageBefehl AnfrageBefehl
         parserErgebnisOk    (befehl:befehle)    = parserErgebnis befehle $ AEBefehl befehl
 
 -- ** Anfrage
 -- | Rückgabe-Typen
-data AnfrageErgebnis    = AEBefehl              Befehl
-                        | AEBefehlSofort        BefehlSofort        [EingabeTokenAllgemein]
-                        | AEStatusAnfrage       StatusAnfrageObjekt (Objekt -> AnfrageErgebnis) AnfrageBefehl  [EingabeTokenAllgemein]
-                        | AEAnfrageBefehl       AnfrageBefehl
+data AnfrageErgebnis
+    = AEBefehl
+        Befehl
+    | AEBefehlSofort
+        BefehlSofort                -- ^ Sofort auszuführender Befehl (z.B. IO-Aktion)
+        [EingabeTokenAllgemein]     -- ^ Nachfolge-Token
+    | AEStatusAnfrage
+        StatusAnfrageObjekt         -- ^ Wonach wird gefragt?
+        (Objekt -> AnfrageErgebnis) -- ^ Wozu wird das Objekt benötigt
+        AnfrageBefehl               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
+        [EingabeTokenAllgemein]     -- ^ Nachfolge-Token
+    | AEAnfrageBefehl
+        AnfrageBefehl
 
 -- | Befehle, die sofort in 'IO' ausgeführt werden müssen
 data BefehlSofort   = BSLaden               FilePath
@@ -137,65 +208,126 @@ data AnfrageNeu = Neu | Alt
             deriving (Show, Eq)
 
 -- | Unvollständige Befehle
-data AnfrageBefehl  = AnfrageBefehl
-                    | ABUnbekannt
-                        AnfrageBefehl
-                        Text
-                    | ABHinzufügen
-                        AnfrageObjekt
-                    | ABEntfernen
-                    | ABSpeichern
-                    | ABLaden
-                    | ABAktionPlan
-                        Plan
-                    | ABAktionPlanAusführend
-                        Plan
-                        AnfrageNeu
-                    | ABAktionPlanGesperrt
-                        Plan
-                        AnfrageNeu
-                        (NonEmpty Pin)
-                    | ABAktion
-                        AnfrageAktion
-                    | ABStatusAnfrage
-                        (EingabeToken -> StatusAnfrageObjekt)
-                        (Objekt -> AnfrageErgebnis)
+data AnfrageBefehl
+    = AnfrageBefehl
+    | ABUnbekannt
+        AnfrageBefehl
+        Text
+    | ABHinzufügen
+        AnfrageObjekt
+    | ABEntfernen
+    | ABSpeichern
+    | ABLaden
+    | ABAktionPlan
+        Plan
+    | ABAktionPlanAusführend
+        Plan
+        AnfrageNeu
+    | ABAktionPlanGesperrt
+        Plan
+        AnfrageNeu
+        (NonEmpty Pin)
+    | ABAktion
+        AnfrageAktion
+    | ABStatusAnfrage
+        (EingabeToken -> StatusAnfrageObjekt)
+        (Objekt -> AnfrageErgebnis)
 
 instance Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
-    show    (AnfrageBefehl)                                 = Language.befehl
-    show    (ABUnbekannt anfrage eingabe)                   = unpack $ unbekanntShowText anfrage eingabe
-    show    (ABHinzufügen anfrageObjekt)                    = Language.hinzufügen <^> showText anfrageObjekt
-    show    (ABEntfernen)                                   = Language.entfernen
-    show    (ABSpeichern)                                   = Language.speichern
-    show    (ABLaden)                                       = Language.laden
-    show    (ABAktionPlan plan)                             = Language.aktion <^> showText plan
-    show    (ABAktionPlanAusführend plan _neu)              = Language.wirdAusgeführt $ showText plan
-    show    (ABAktionPlanGesperrt plan _neu pins)           = Language.ausführenGesperrt (show $ Menge.ausFoldable pins) <\> showText plan
-    show    (ABAktion anfrageAktion)                        = showText anfrageAktion
-    show    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = showText $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    show
+        AnfrageBefehl
+            = Language.befehl
+    show
+        (ABUnbekannt anfrage eingabe)
+            = unpack $ unbekanntShowText anfrage eingabe
+    show
+        (ABHinzufügen anfrageObjekt)
+            = Language.hinzufügen <^> showText anfrageObjekt
+    show
+        ABEntfernen
+            = Language.entfernen
+    show
+        ABSpeichern
+            = Language.speichern
+    show
+        ABLaden
+            = Language.laden
+    show
+        (ABAktionPlan plan)
+            = Language.aktion <^> showText plan
+    show
+        (ABAktionPlanAusführend plan _neu)
+            = Language.wirdAusgeführt $ showText plan
+    show
+        (ABAktionPlanGesperrt plan _neu pins)
+            = Language.ausführenGesperrt (show $ Menge.ausFoldable pins) <\> showText plan
+    show
+        (ABAktion anfrageAktion)
+            = showText anfrageAktion
+    show
+        (ABStatusAnfrage anfrageKonstruktor _eitherF)
+            = showText $ anfrageKonstruktor leeresToken
 instance Anfrage AnfrageBefehl where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBefehl -> s
-    zeigeAnfrage    (AnfrageBefehl)                                 = Language.befehl
-    zeigeAnfrage    (ABUnbekannt anfrage _eingabe)                  = zeigeAnfrage anfrage
-    zeigeAnfrage    (ABHinzufügen anfrageObjekt)                    = zeigeAnfrage anfrageObjekt
-    zeigeAnfrage    (ABEntfernen)                                   = Language.objekt
-    zeigeAnfrage    (ABSpeichern)                                   = Language.dateiname
-    zeigeAnfrage    (ABLaden)                                       = Language.dateiname
-    zeigeAnfrage    (ABAktionPlan _plan)                            = Language.aktion
-    zeigeAnfrage    anfrage@(ABAktionPlanAusführend _plan _neu)     = showText anfrage <^> Language.aktion
-    zeigeAnfrage    anfrage@(ABAktionPlanGesperrt _plan _neu _pins) = showText anfrage <^> Language.aktion
-    zeigeAnfrage    (ABAktion anfrageAktion)                        = zeigeAnfrage anfrageAktion
-    zeigeAnfrage    (ABStatusAnfrage anfrageKonstruktor _eitherF)   = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrage
+        AnfrageBefehl
+            = Language.befehl
+    zeigeAnfrage
+        (ABUnbekannt anfrage _eingabe)
+            = zeigeAnfrage anfrage
+    zeigeAnfrage
+        (ABHinzufügen anfrageObjekt)
+            = zeigeAnfrage anfrageObjekt
+    zeigeAnfrage
+        ABEntfernen
+            = Language.objekt
+    zeigeAnfrage
+        ABSpeichern
+            = Language.dateiname
+    zeigeAnfrage
+        ABLaden
+            = Language.dateiname
+    zeigeAnfrage
+        (ABAktionPlan _plan)
+            = Language.aktion
+    zeigeAnfrage
+        anfrage@(ABAktionPlanAusführend _plan _neu)
+            = showText anfrage <^> Language.aktion
+    zeigeAnfrage
+        anfrage@(ABAktionPlanGesperrt _plan _neu _pins)
+            = showText anfrage <^> Language.aktion
+    zeigeAnfrage
+        (ABAktion anfrageAktion)
+            = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (ABStatusAnfrage anfrageKonstruktor _eitherF)
+            = zeigeAnfrage $ anfrageKonstruktor leeresToken
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBefehl -> Maybe s
-    zeigeAnfrageOptionen (ABUnbekannt anfrage _eingabe)                 = zeigeAnfrageOptionen anfrage
-    zeigeAnfrageOptionen (ABHinzufügen anfrageObjekt)                   = zeigeAnfrageOptionen anfrageObjekt
-    zeigeAnfrageOptionen (ABAktionPlan _plan)                           = Just $ toBefehlsString Language.aktionPlan
-    zeigeAnfrageOptionen (ABAktionPlanAusführend _plan _neu)            = Just $ toBefehlsString Language.aktionPlanAusführend
-    zeigeAnfrageOptionen (ABAktionPlanGesperrt _plan _neu _pins)        = Just $ toBefehlsString Language.aktionPlanGesperrt
-    zeigeAnfrageOptionen (ABAktion anfrageAktion)                       = zeigeAnfrageOptionen anfrageAktion
-    zeigeAnfrageOptionen (ABStatusAnfrage anfrageKonstruktor _eitherF)  = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
-    zeigeAnfrageOptionen _anfrage                                       = Nothing
+    zeigeAnfrageOptionen
+        (ABUnbekannt anfrage _eingabe)
+            = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen
+        (ABHinzufügen anfrageObjekt)
+            = zeigeAnfrageOptionen anfrageObjekt
+    zeigeAnfrageOptionen
+        (ABAktionPlan _plan)
+            = Just $ toBefehlsString Language.aktionPlan
+    zeigeAnfrageOptionen
+        (ABAktionPlanAusführend _plan _neu)
+            = Just $ toBefehlsString Language.aktionPlanAusführend
+    zeigeAnfrageOptionen
+        (ABAktionPlanGesperrt _plan _neu _pins)
+            = Just $ toBefehlsString Language.aktionPlanGesperrt
+    zeigeAnfrageOptionen
+        (ABAktion anfrageAktion)
+            = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (ABStatusAnfrage anfrageKonstruktor _eitherF)
+            = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
+    zeigeAnfrageOptionen
+        _anfrage
+            = Nothing
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
 anfrageAktualisieren :: AnfrageBefehl -> EingabeToken -> AnfrageErgebnis

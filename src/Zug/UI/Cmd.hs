@@ -16,6 +16,7 @@ import qualified Data.Text.IO as T
 import Data.Text (Text, pack)
 import Control.Monad (unless)
 import Control.Monad.Trans (liftIO)
+import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.State (evalStateT, get, state, runState)
 import Control.Concurrent.STM.TVar (newTVarIO)
 -- Farbige Konsolenausgabe
@@ -100,7 +101,7 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
                                 putStrLn anfrageOptionen
                                 setSGR [Reset]
                         promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
-        statusAnfrage :: StatusAnfrageObjekt -> (Objekt -> AnfrageErgebnis) -> AnfrageBefehl -> [EingabeTokenAllgemein] -> IOStatus Bool
+        statusAnfrage :: StatusAnfrageObjekt -> (Objekt -> AnfrageErgebnis) -> AnfrageBefehl -> [EingabeTokenAllgemein] -> RStatus Bool
         statusAnfrage qObjektIOStatus konstruktor backup eingabeRest
             = state (runState $ statusAnfrageObjekt qObjektIOStatus) >>= \case
                 (Right objekt)
