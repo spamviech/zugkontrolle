@@ -652,56 +652,144 @@ anfrageObjektAktualisieren
 
 -- ** Plan
 -- | Unvollständiger 'Plan'
-data AnfragePlan    = AnfragePlan
-                    | APUnbekannt       AnfragePlan                             Text
-                    | APlanName         Text
-                    | APlanNameAnzahl   Text                                    Natural                                             (Warteschlange Aktion)    AnfrageAktion
-                    | APlanIOStatus     StatusAnfrageObjekt                     (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
-                    | APStatusAnfrage   (EingabeToken -> StatusAnfrageObjekt)   (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
+data AnfragePlan
+    = AnfragePlan
+    | APUnbekannt
+        AnfragePlan             -- ^ Anfrage
+        Text                    -- ^ Eingabe
+    | APlanName
+        Text                    -- ^ Name
+    | APlanNameAnzahl
+        Text                    -- ^ Name
+        Natural                 -- ^ Verbleibende Aktionen
+        (Warteschlange Aktion)  -- ^ Bekannte Aktionen
+        AnfrageAktion           -- ^ Nächste Aktion
+    | APlanIOStatus
+        StatusAnfrageObjekt
+        (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
+    | APStatusAnfrage
+        (EingabeToken -> StatusAnfrageObjekt)
+        (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
 
 instance Show AnfragePlan where
     show :: AnfragePlan -> String
-    show    (APUnbekannt aPlan eingabe)                             = unpack $ unbekanntShowText aPlan eingabe
-    show    (AnfragePlan)                                           = Language.plan
-    show    (APlanName name)                                        = unpack $ Language.plan <^> Language.name <=> name
-    show    (APlanNameAnzahl name anzahl acc anfrageAktion)         = unpack $ Language.plan <^> Language.name <=> name <^> Language.anzahl Language.aktionen <=> showText anzahl <^> showText acc <^> showText anfrageAktion
-    show    (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)  = Language.plan <^> showText objektStatusAnfrage
-    show    (APStatusAnfrage anfrageKonstruktor _eitherF)           = Language.plan <^> Language.aktion <-> Language.objekt <^> showText (anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
+    show
+        (APUnbekannt aPlan eingabe)
+            = unpack $ unbekanntShowText aPlan eingabe
+    show
+        AnfragePlan
+            = Language.plan
+    show
+        (APlanName name)
+            = unpack $ Language.plan <^> Language.name <=> name
+    show
+        (APlanNameAnzahl name anzahl acc anfrageAktion)
+            = unpack $ Language.plan
+                <^> Language.name <=> name
+                <^> Language.anzahl Language.aktionen <=> showText anzahl
+                <^> showText acc
+                <^> showText anfrageAktion
+    show
+        (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
+            = Language.plan <^> showText objektStatusAnfrage
+    show
+        (APStatusAnfrage anfrageKonstruktor _eitherF)
+            = Language.plan
+                <^> Language.aktion <-> Language.objekt
+                <^> showText (anfrageKonstruktor leeresToken)
 instance Anfrage AnfragePlan where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfragePlan -> s
-    zeigeAnfrage    (APUnbekannt aPlan _eingabe)                            = zeigeAnfrage aPlan
-    zeigeAnfrage    (AnfragePlan)                                           = Language.name
-    zeigeAnfrage    (APlanName _name)                                       = Language.anzahl Language.aktionen
-    zeigeAnfrage    (APlanNameAnzahl _name _anzahl _acc anfrageAktion)      = zeigeAnfrage anfrageAktion
-    zeigeAnfrage    (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)  = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage    (APStatusAnfrage anfrageKonstruktor _eitherF)           = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrage
+        (APUnbekannt aPlan _eingabe)
+            = zeigeAnfrage aPlan
+    zeigeAnfrage
+        AnfragePlan
+            = Language.name
+    zeigeAnfrage
+        (APlanName _name)
+            = Language.anzahl Language.aktionen
+    zeigeAnfrage
+        (APlanNameAnzahl _name _anzahl _acc anfrageAktion)
+            = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage
+        (APStatusAnfrage anfrageKonstruktor _eitherF)
+            = zeigeAnfrage $ anfrageKonstruktor leeresToken
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfragePlan -> s -> s
-    zeigeAnfrageFehlgeschlagen  a@(APlanName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen  a                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(APlanName _name)
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfragePlan -> Maybe s
-    zeigeAnfrageOptionen (APUnbekannt aPlan _eingabe)                           = zeigeAnfrageOptionen aPlan
-    zeigeAnfrageOptionen (AnfragePlan)                                          = Nothing
-    zeigeAnfrageOptionen (APlanName _name)                                      = Nothing
-    zeigeAnfrageOptionen (APlanNameAnzahl _name _anzahl _acc anfrageAktion)     = zeigeAnfrageOptionen anfrageAktion
-    zeigeAnfrageOptionen (APlanIOStatus objektStatusAnfrage _eitherKonstruktor) = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen (APStatusAnfrage anfrageKonstruktor _eitherF)          = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen
+        (APUnbekannt aPlan _eingabe)
+            = zeigeAnfrageOptionen aPlan
+    zeigeAnfrageOptionen
+        AnfragePlan
+            = Nothing
+    zeigeAnfrageOptionen
+        (APlanName _name)
+            = Nothing
+    zeigeAnfrageOptionen
+        (APlanNameAnzahl _name _anzahl _acc anfrageAktion)
+            = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen
+        (APStatusAnfrage anfrageKonstruktor _eitherF)
+            = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
 
 -- | Eingabe eines Plans
 anfragePlanAktualisieren :: AnfragePlan -> EingabeToken -> Either AnfragePlan Plan
-anfragePlanAktualisieren   (AnfragePlan)                                    (EingabeToken {eingabe})            = Left $ APlanName eingabe
-anfragePlanAktualisieren   anfrage@(APlanName name)                         (EingabeToken {eingabe, ganzzahl})  = Left $ case ganzzahl of
-    (Nothing)       -> APUnbekannt anfrage eingabe
-    (Just anzahl)   -> APlanNameAnzahl name anzahl leer AnfrageAktion
-anfragePlanAktualisieren   (APlanNameAnzahl name anzahl acc anfrageAktion)  token                               = case anfrageAktionAktualisieren anfrageAktion token of
-    (Left (AAUnbekannt aAktion1 eingabe))                                   -> Left $ APUnbekannt (APlanNameAnzahl name anzahl acc aAktion1) eingabe
-    (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))  -> Left $ APlanIOStatus objektStatusAnfrage $ Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
-    (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))        -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1 then Left $ \objekt -> APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ anhängen (konstruktor objekt) acc}
-    (Left AARückgängig)                                                     -> let prevAcc = case zeigeLetztes acc of {(Leer) -> leer; (Gefüllt _l p) -> p} in Left $ APlanNameAnzahl name (succ anzahl) prevAcc AnfrageAktion
-    (Left aAktion1)                                                         -> Left $ APlanNameAnzahl name anzahl acc aAktion1
-    (Right aktion)  | anzahl > 1                                            -> Left $ APlanNameAnzahl name (pred anzahl) (anhängen aktion acc) AnfrageAktion
-                    | otherwise                                             -> Right $ Plan {plName=name, plAktionen=toList $ anhängen aktion acc}
-anfragePlanAktualisieren   (APStatusAnfrage anfrageKonstruktor eitherF)     token                               = Left $ APlanIOStatus (anfrageKonstruktor token) eitherF
-anfragePlanAktualisieren   anfrage                                          _token                              = Left anfrage
+anfragePlanAktualisieren
+    AnfragePlan
+    (EingabeToken {eingabe})
+        = Left $ APlanName eingabe
+anfragePlanAktualisieren
+    anfrage@(APlanName name)
+    (EingabeToken {eingabe, ganzzahl})
+        = Left $ case ganzzahl of
+            (Nothing)       -> APUnbekannt anfrage eingabe
+            (Just anzahl)   -> APlanNameAnzahl name anzahl leer AnfrageAktion
+anfragePlanAktualisieren
+    (APlanNameAnzahl name anzahl acc anfrageAktion)
+    token
+        = case anfrageAktionAktualisieren anfrageAktion token of
+            (Left (AAUnbekannt aAktion1 eingabe))
+                -> Left $ APUnbekannt (APlanNameAnzahl name anzahl acc aAktion1) eingabe
+            (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))
+                -> Left $ APlanIOStatus objektStatusAnfrage $ Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
+            (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))
+                -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1 then Left $ \objekt -> APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ anhängen (konstruktor objekt) acc}
+            (Left AARückgängig)
+                -> Left $ APlanNameAnzahl name (succ anzahl) (löscheLetztes acc) AnfrageAktion
+            (Left aAktion1)
+                -> Left $ APlanNameAnzahl name anzahl acc aAktion1
+            (Right aktion)
+                | anzahl > 1
+                    -> Left $ APlanNameAnzahl name (pred anzahl) (anhängen aktion acc) AnfrageAktion
+                | otherwise
+                    -> Right $ Plan {plName=name, plAktionen=toList $ anhängen aktion acc}
+        where
+            löscheLetztes :: Warteschlange a -> Warteschlange a
+            löscheLetztes warteschlange = case zeigeLetztes warteschlange of
+                Leer            -> p
+                (Gefüllt _l p)  -> p
+anfragePlanAktualisieren
+    (APStatusAnfrage anfrageKonstruktor eitherF)
+    token
+        = Left $ APlanIOStatus (anfrageKonstruktor token) eitherF
+anfragePlanAktualisieren
+    anfrage
+    _token
+        = Left anfrage
 
 -- *** Aktion
 -- | Unvollständige 'Aktion'
@@ -729,7 +817,7 @@ instance Show AnfrageAktion where
     show    (AAStreckenabschnitt qAktionStreckenabschnitt)              = Language.aktion <^> showText qAktionStreckenabschnitt
     show    (AAKupplung qAktionKupplung)                                = Language.aktion <^> showText qAktionKupplung
     show    (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = Language.aktion <^> showText objektStatusAnfrage
-    show    (AAKlassifizierung anfrageKonstruktor _eitherF)             = Language.aktion <-> Language.objekt <^> showText (anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
+    show    (AAKlassifizierung anfrageKonstruktor _eitherF)             = Language.aktion <-> Language.objekt <^> showText (anfrageKonstruktor leeresToken)
 instance Anfrage AnfrageAktion where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktion -> s
     zeigeAnfrage    (AAUnbekannt anfrageAktion _eingabe)                        = zeigeAnfrage anfrageAktion
@@ -742,7 +830,7 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrage    (AAStreckenabschnitt qAktionStreckenabschnitt)              = zeigeAnfrage qAktionStreckenabschnitt
     zeigeAnfrage    (AAKupplung qAktionKupplung)                                = zeigeAnfrage qAktionKupplung
     zeigeAnfrage    (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)    = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage    (AAKlassifizierung anfrageKonstruktor _eitherF)             = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrage    (AAKlassifizierung anfrageKonstruktor _eitherF)             = zeigeAnfrage $ anfrageKonstruktor leeresToken
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAktion -> s -> s
     zeigeAnfrageFehlgeschlagen  a@(AAWarten)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a               eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
@@ -757,7 +845,7 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrageOptionen (AAStreckenabschnitt qAktionStreckenabschnitt)             = zeigeAnfrageOptionen qAktionStreckenabschnitt
     zeigeAnfrageOptionen (AAKupplung qAktionKupplung)                               = zeigeAnfrageOptionen qAktionKupplung
     zeigeAnfrageOptionen (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)   = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen (AAKlassifizierung anfrageKonstruktor _eitherF)            = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen (AAKlassifizierung anfrageKonstruktor _eitherF)            = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
 
 -- | 'Aktion'-Klassifizierungen
 data AnfrageAktionElement   = AAEUnbekannt              Text
@@ -1021,7 +1109,7 @@ instance Show AnfrageWegstrecke where
     show    (AWegstreckeNameAnzahl acc anzahl)                              = unpack $ Language.wegstrecke <^> showText acc <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
     show    (AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche)         = unpack $ Language.wegstrecke <^> showText acc <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl <^> showText weiche
     show    (AWegstreckeIOStatus objektStatusAnfrage _eitherKonstruktor)    = Language.wegstrecke <^> showText objektStatusAnfrage
-    show    (AWSStatusAnfrage anfrageKonstruktor _eitherF)                  = Language.wegstreckenElement <^> showText (anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing})
+    show    (AWSStatusAnfrage anfrageKonstruktor _eitherF)                  = Language.wegstreckenElement <^> showText (anfrageKonstruktor leeresToken)
 instance Anfrage AnfrageWegstrecke where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke -> s
     zeigeAnfrage    (AWSUnbekannt qWegstrecke _eingabe)                             = zeigeAnfrage qWegstrecke
@@ -1030,13 +1118,13 @@ instance Anfrage AnfrageWegstrecke where
     zeigeAnfrage    (AWegstreckeNameAnzahl _acc _anzahl)                            = Language.wegstreckenElement
     zeigeAnfrage    (AWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)      = Language.richtung
     zeigeAnfrage    (AWegstreckeIOStatus objektStatusAnfrage _eitherKonstruktor)    = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage    (AWSStatusAnfrage anfrageKonstruktor _eitherF)                  = zeigeAnfrage $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrage    (AWSStatusAnfrage anfrageKonstruktor _eitherF)                  = zeigeAnfrage $ anfrageKonstruktor leeresToken
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWegstrecke -> Maybe s
     zeigeAnfrageOptionen (AWSUnbekannt qWegstrecke _eingabe)                            = zeigeAnfrageOptionen qWegstrecke
     zeigeAnfrageOptionen (AWegstreckeNameAnzahl _acc _anzahl)                           = Just $ toBefehlsString Language.befehlWegstreckenElemente
     zeigeAnfrageOptionen (AWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)     = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen (AWegstreckeIOStatus objektStatusAnfrage _eitherKonstruktor)   = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen (AWSStatusAnfrage anfrageKonstruktor _eitherF)                 = zeigeAnfrageOptionen $ anfrageKonstruktor $ EingabeToken {eingabe="", möglichkeiten=[], ganzzahl=Nothing}
+    zeigeAnfrageOptionen (AWSStatusAnfrage anfrageKonstruktor _eitherF)                 = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
     zeigeAnfrageOptionen _anfrage                                                       = Nothing
 
 -- | Eingabe einer Wegstrecke
