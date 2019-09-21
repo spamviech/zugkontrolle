@@ -57,7 +57,7 @@ toI2CAddress (PCF8574 {variant, a0, a1, a2})
 
 -- | Variante des /PCF8574/ (beeinflusst 'I2CAddress')
 data PCF8574Variant = VariantNormal | VariantA
-                        deriving (Show, Read, Eq, Ord, Enum)
+                        deriving (Show, Read, Eq, Ord, Bounded, Enum)
 
 -- | Variante und variable Adress-Bits eines /PCF8574/
 data PCF8574 = PCF8574 {variant :: PCF8574Variant, a0, a1, a2 :: Value}

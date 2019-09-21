@@ -148,22 +148,88 @@ instance ToJSON Anschluss where
     toJSON  anschluss@(AnschlussPin _pin)   = object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
     toJSON  (AnschlussPCF8574Port port)     = object [portJS .= port]
 
+-- neue Feld-Namen/Bezeichner in json-Datei
+variantJS :: Text
+variantJS = "Variante"
+a0JS :: Text
+a0JS = "a0"
+a1JS :: Text
+a1JS = "a1"
+a2JS :: Text
+a2JS = "a2"
+
+-- Instanz-Deklarationen für PCF8574Port
 instance FromJSON PCF8574Port where
     parseJSON :: Value -> Parser PCF8574Port
-    parseJSON = _parseJSON_PCF8574Port
+    parseJSON   (Object v)  = PCF8574Port
+                            <$> (PCF8574 <$> v .: variantJS <*> v .: a0JS <*> v .: a1JS <*> v .: a2JS)
+                            <*> (v .: portJS)
+    parseJSON   _anschluss  = mzero
 
 instance  ToJSON PCF8574Port where
     toJSON :: PCF8574Port -> Value
-    toJSON = _toJSON_PCF8574Port
+    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port}= object [
+        variantJS .= variant,
+        a0JS .= a0,
+        a1JS .= a1,
+        a2JS .= a2,
+        portJS .= port]
+
+-- neue Feld-Namen/Bezeichner in json-Datei
+variantNormalJS :: Text
+variantNormalJS = "Normal"
+variantAJS :: Text
+variantAJS = "A"
+
+-- Instanz-Deklarationen für PCF8574Variant
+instance FromJSON PCF8574Variant where
+    parseJSON :: Value -> Parser PCF8574Variant
+    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+
+instance ToJSON PCF8574Variant where
+    toJSON :: PCF8574Variant -> Value
+    toJSON  VariantNormal   = String variantNormalJS
+    toJSON  VariantA        = String variantAJS
+
+-- neue Feld-Namen/Bezeichner in json-Datei
+nsJS :: Text
+nsJS = "ns"
+µsJS :: Text
+µsJS = "µs"
+msJS :: Text
+msJS = "ms"
+sJS :: Text
+sJS = "s"
+minJS :: Text
+minJS = "min"
+hJS :: Text
+hJS = "h"
+dJS :: Text
+dJS = "d"
 
 -- Instanz-Deklarationen für Wartezeit
 instance FromJSON Wartezeit where
     parseJSON :: Value -> Parser Wartezeit
-    parseJSON = _parseJSON_Wartezeit
+    parseJSON   (Object v)
+        = (NanoSekunden <$> v .: nsJS)
+        <|> (MikroSekunden <$> v .: µsJS)
+        <|> (MilliSekunden <$> v .: msJS)
+        <|> (Sekunden <$> v .: sJS)
+        <|> (Minuten <$> v .: minJS)
+        <|> (Stunden <$> v .: hJS)
+        <|> (Tage <$> v .: dJS)
+    parseJSON   _value
+        = mzero
 
 instance ToJSON Wartezeit where
     toJSON :: Wartezeit -> Value
-    toJSON = _toJSON_Wartezeit
+    toJSON  (NanoSekunden ns)   = object [nsJS .= ns]
+    toJSON  (MikroSekunden µs)  = object [µsJS .= µs]
+    toJSON  (MilliSekunden ms)  = object [msJS .= ms]
+    toJSON  (Sekunden s)        = object [sJS .= s]
+    toJSON  (Minuten min)       = object [minJS .= min]
+    toJSON  (Stunden h)         = object [hJS .= h]
+    toJSON  (Tage d)            = object [dJS .= d]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 geradeJS :: Text
@@ -493,37 +559,37 @@ instance FromJSON Aktion where
         | s == wartenJS
             -> Warten <$> v .: "Wert"
         | s == einstellenJS
-            -> (AWegstreckeMärklin <$> Einstellen <$> v .: wegstreckeJS)
-                <|> (AWegstreckeLego <$> Einstellen <$> v .: wegstreckeJS)
+            -> (AWegstreckeMärklin . Einstellen <$> v .: wegstreckeJS)
+                <|> (AWegstreckeLego . Einstellen <$> v .: wegstreckeJS)
         | s == stellenJS
             -> AWeiche <$> (Stellen <$> v .: weicheJS <*> v .: richtungJS)
         | s == geschwindigkeitJS
             -> parseMaybeWegstrecke v
-                (\w v   -> AWSBahngeschwindigkeit <$> Geschwindigkeit w <$> v .: wertJS)
-                (\w v   -> AWSBahngeschwindigkeit <$> Geschwindigkeit w <$> v .: wertJS)
+                (\w v   -> AWSBahngeschwindigkeit . Geschwindigkeit w <$> v .: wertJS)
+                (\w v   -> AWSBahngeschwindigkeit . Geschwindigkeit w <$> v .: wertJS)
                 (\v     -> (ABahngeschwindigkeitMärklin <$> geschwindigkeitParserMärklin v)
-                            <|> (ABahngeschwindigkeitLego <$> geschwindigkeitParserLego v))
+                        <|> (ABahngeschwindigkeitLego <$> geschwindigkeitParserLego v))
         | s == umdrehenJS
             -> parseMaybeWegstrecke v
                 (\w _v  -> pure $ AWSBahngeschwindigkeit $ Umdrehen w)
                 parseFail
-                (\v     -> ABahngeschwindigkeitMärklin <$> Umdrehen <$> v .: bahngeschwindigkeitJS)
+                (\v     -> ABahngeschwindigkeitMärklin . Umdrehen <$> v .: bahngeschwindigkeitJS)
         | s == fahrtrichtungEinstellenJS
             -> parseMaybeWegstrecke v
                 parseFail
-                (\w v   -> AWSBahngeschwindigkeit <$> FahrtrichtungEinstellen w <$> v .: fahrtrichtungJS)
-                (\v     -> ABahngeschwindigkeitLego <$>
-                            (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS <*> v .: fahrtrichtungJS))
+                (\w v   -> AWSBahngeschwindigkeit . FahrtrichtungEinstellen w <$> v .: fahrtrichtungJS)
+                (\v     -> ABahngeschwindigkeitLego
+                        <$> (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS <*> v .: fahrtrichtungJS))
         | s == stromJS
             -> parseMaybeWegstrecke v
-                (\w v   -> AWSStreckenabschnitt <$> Strom w <$> v .: anJS)
-                (\w v   -> AWSStreckenabschnitt <$> Strom w <$> v .: anJS)
+                (\w v   -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
+                (\w v   -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
                 (\v     -> AStreckenabschnitt <$> (Strom <$> v .: streckenabschnittJS <*> v .: anJS))
         | s == kuppelnJS
             -> parseMaybeWegstrecke v
                 (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
                 (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
-                (\v     -> AKupplung <$> Kuppeln <$> v .: kupplungJS)
+                (\v     -> AKupplung . Kuppeln <$> v .: kupplungJS)
         | otherwise
             -> mzero
         where
