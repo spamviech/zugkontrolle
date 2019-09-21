@@ -13,27 +13,27 @@
 Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Ebene.
 -}
 module Zug.Anbindung (
-                    -- * Anschluss-Repräsentation
-                    Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
-                    vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
-                    PwmMap, pwmMapEmpty, PwmMapT, I2CMap, i2cMapEmpty, I2CMapT,
-                    runPwmMapT, forkPwmMapT, liftI2CMapT, runI2CMapT, forkI2CMapT,
-                    Value(..), alleValues,
-                    Pin(), vonPin, zuPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert,
-                    -- * Strecken-Objekte
-                    StreckenObjekt(..), StreckenAtom(..),
-                    -- ** Bahngeschwindigkeiten
-                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), pwmEingabeMaximal, erhaltePwmWertVoll, erhaltePWMWertReduziert,
-                    -- ** Streckenabschnitte
-                    Streckenabschnitt(..), StreckenabschnittKlasse(..),
-                    -- ** Weichen
-                    Weiche(..), WeicheKlasse(..),
-                    -- ** Kupplungen
-                    Kupplung(..), KupplungKlasse(..),
-                    -- ** Wegstrecken
-                    Wegstrecke(..), WegstreckeKlasse(..),
-                    -- * Wartezeit
-                    warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren) where
+    -- * Anschluss-Repräsentation
+    Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
+    vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
+    PwmMap, pwmMapEmpty, PwmMapT, I2CMap, i2cMapEmpty, I2CMapT,
+    runPwmMapT, forkPwmMapT, liftI2CMapT, runI2CMapT, forkI2CMapT,
+    Value(..), alleValues,
+    Pin(), vonPin, zuPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert,
+    -- * Strecken-Objekte
+    StreckenObjekt(..), StreckenAtom(..),
+    -- ** Bahngeschwindigkeiten
+    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), pwmEingabeMaximal, erhaltePwmWertVoll, erhaltePWMWertReduziert,
+    -- ** Streckenabschnitte
+    Streckenabschnitt(..), StreckenabschnittKlasse(..),
+    -- ** Weichen
+    Weiche(..), WeicheKlasse(..),
+    -- ** Kupplungen
+    Kupplung(..), KupplungKlasse(..),
+    -- ** Wegstrecken
+    Wegstrecke(..), WegstreckeKlasse(..),
+    -- * Wartezeit
+    warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren) where
 
 -- Bibliotheken
 import Control.Monad (join)
