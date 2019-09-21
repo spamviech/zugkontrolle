@@ -9,14 +9,14 @@
 Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementierung.
 -}
 module Zug.UI.Befehl (
-                    -- * Klasse
-                    BefehlKlasse(..),
-                    -- * Typen
-                    Befehl, BefehlAllgemein(..),
-                    BefehlListe, BefehlListeAllgemein(..),
-                    UIBefehl, UIBefehlAllgemein(..),
-                    -- * Funktionen
-                    ausführenTMVarPlan, ausführenTMVarAktion, ausführenTMVarBefehl) where
+    -- * Klasse
+    BefehlKlasse(..),
+    -- * Typen
+    Befehl, BefehlAllgemein(..),
+    BefehlListe, BefehlListeAllgemein(..),
+    UIBefehl, UIBefehlAllgemein(..),
+    -- * Funktionen
+    ausführenTMVarPlan, ausführenTMVarAktion, ausführenTMVarBefehl) where
 
 -- Bibliotheken
 import Control.Monad.Trans (liftIO)
@@ -25,7 +25,7 @@ import Control.Concurrent.STM (atomically, TVar, writeTVar, modifyTVar, TMVar)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (PwmMap, pwmMapEmpty, i2cMapEmpty)
+import Zug.Anbindung (PwmMap, I2CMap, runPwmMapT, pwmMapEmpty, i2cMapEmpty)
 import Zug.Klassen (Zugtyp(..))
 import Zug.Menge (Menge, entfernen)
 import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(), Plan(),
@@ -33,7 +33,7 @@ import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(), Pl
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein,
                     auswertenTMVarIOStatus, übergebeTVarMaps, liftIOFunction,
-                    getTVarAusführend, getTVarPwmMap, getTVarI2CMap,
+                    getTVarAusführend, getTVarMaps,
                     hinzufügenPlan, entfernenPlan,
                     hinzufügenWegstrecke, entfernenWegstrecke,
                     hinzufügenWeiche, entfernenWeiche,
@@ -45,19 +45,21 @@ import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein,
 ausführenTMVarPlan :: (PlanKlasse (PL o))
             => PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> IO ()
 ausführenTMVarPlan plan showAktion endAktion tmvarStatus = do
-    (mvarAusführend, mvarPinMap) <- auswertenTMVarIOStatus getTVars tmvarStatus
-    ausführenPlan plan showAktion endAktion mvarAusführend mvarPinMap
+    (tvarAusführend, tvarMaps) <- auswertenTMVarIOStatus getTVars tmvarStatus
+    flip runPwmMapT tvarMaps $ ausführenPlan plan showAktion endAktion tvarAusführend
         where
-            getTVars :: IOStatusAllgemein o (TVar (Menge Ausführend), TVar PwmMap)
+            getTVars :: IOStatusAllgemein o (TVar (Menge Ausführend), (TVar PwmMap, TVar I2CMap))
             getTVars = do
                 tvarAusführend <- getTVarAusführend
-                tvarPwmMap <- getTVarPwmMap
-                pure (tvarAusführend, tvarPwmMap)
+                tvarMaps <- getTVarMaps
+                pure (tvarAusführend, tvarMaps)
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
 ausführenTMVarAktion   :: (AktionKlasse a)
                 => a -> TMVar (StatusAllgemein o) -> IO ()
-ausführenTMVarAktion aktion tmvarStatus = auswertenTMVarIOStatus getTVarPwmMap tmvarStatus >>= ausführenAktion aktion
+ausführenTMVarAktion aktion tmvarStatus = do
+    tvarMaps <- auswertenTMVarIOStatus getTVarMaps tmvarStatus
+    runPwmMapT (ausführenAktion aktion) tvarMaps
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
 ausführenTMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
@@ -124,7 +126,7 @@ instance BefehlKlasse BefehlAllgemein where
                                     Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                                     Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o))
                                         => BefehlAllgemein o -> IOStatusAllgemein o ()
-            ausführenBefehlAux  (UI uiAction)
+            ausführenBefehlAux  (UI _uiAction)
                 = pure ()
             ausführenBefehlAux  (Hinzufügen objekt)
                 = case erhalteObjekt objekt of
@@ -148,8 +150,7 @@ instance BefehlKlasse BefehlAllgemein where
                 = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                     Nothing             -> fehlerbehandlung
                     (Just konstruktor)  -> do
-                        tvarPwmMap <- getTVarPwmMap
-                        tvarI2CMap <- getTVarI2CMap
+                        (tvarPwmMap, tvarI2CMap) <- getTVarMaps
                         statusNeu <- liftIO $ do
                             atomically $ writeTVar tvarPwmMap pwmMapEmpty
                             atomically $ writeTVar tvarI2CMap i2cMapEmpty
