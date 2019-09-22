@@ -1076,10 +1076,10 @@ anfrageAktionAktualisieren
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
 data AnfrageAktionWegstrecke w
     = AnfrageAktionWegstrecke
-        w
+        w                                       -- ^ Wegstrecke
     | AAWSUnbekannt
-        (AnfrageAktionWegstrecke w)
-        Text
+        (AnfrageAktionWegstrecke w)             -- ^ Anfrage
+        Text                                    -- ^ Eingabe
     | AAWSBahngeschwindigkeit
         (AnfrageAktionBahngeschwindigkeit w)
     | AAWSStreckenabschnitt
@@ -1162,12 +1162,12 @@ anfrageAktionWegstreckeAktualisieren
 -- | Unvollständige 'Aktion' einer 'Weiche'
 data AnfrageAktionWeiche w
     = AnfrageAktionWeiche
-        w
+        w                           -- ^ Weiche
     | AAWUnbekannt
-        (AnfrageAktionWeiche w)
-        Text
+        (AnfrageAktionWeiche w)     -- ^ Anfrage
+        Text                        -- ^ Eingabe
     | AAWStellen
-        w
+        w                           -- ^ Weiche
 
 type instance AnfrageFamilie AktionWeiche = AnfrageAktionWeiche
 
@@ -1243,14 +1243,14 @@ anfrageAktionWeicheAktualisieren
 -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
 data AnfrageAktionBahngeschwindigkeit b
     = AnfrageAktionBahngeschwindigkeit
-        b
+        b                                       -- ^ Bahngeschwindigkeit
     | AABGUnbekannt
-        (AnfrageAktionBahngeschwindigkeit b)
-        Text
+        (AnfrageAktionBahngeschwindigkeit b)    -- ^ Anfrage
+        Text                                    -- ^ Eingabe
     | AABGGeschwindigkeit
-        b
+        b                                       -- ^ Bahngeschwindigkeit
     | AABGUmdrehen
-        b
+        b                                       -- ^ Bahngeschwindigkeit
 
 type instance AnfrageFamilie AktionBahngeschwindigkeit = AnfrageAktionBahngeschwindigkeit
 
@@ -1342,50 +1342,79 @@ anfrageAktionBahngeschwindigkeitAktualisieren
 -- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
 data AnfrageAktionStreckenabschnitt s
     = AnfrageAktionStreckenabschnitt
-        s
+        s                                   -- ^ Streckenabschnitt
     | AASTUnbekannt
-        (AnfrageAktionStreckenabschnitt s)
-        Text
+        (AnfrageAktionStreckenabschnitt s)  -- ^ Anfrage
+        Text                                -- ^ Eingabe
     | AASTStrom
-        s
+        s                                   -- ^ Streckenabschnitt
 
 type instance AnfrageFamilie AktionStreckenabschnitt = AnfrageAktionStreckenabschnitt
 
 instance (Show (AnfrageFamilie s), Show s) => Show (AnfrageAktionStreckenabschnitt s) where
     show :: AnfrageAktionStreckenabschnitt as s -> String
-    show    (AnfrageAktionStreckenabschnitt streckenabschnitt)  = Language.streckenabschnitt <=> showText streckenabschnitt
-    show    (AASTUnbekannt anfrageAktion eingabe)               = unpack $ unbekanntShowText anfrageAktion eingabe
-    show    (AASTStrom streckenabschnitt)                       = Language.streckenabschnitt <=> showText streckenabschnitt <^> Language.strom
+    show
+        (AnfrageAktionStreckenabschnitt streckenabschnitt)
+            = Language.streckenabschnitt <=> showText streckenabschnitt
+    show
+        (AASTUnbekannt anfrageAktion eingabe)
+            = unpack $ unbekanntShowText anfrageAktion eingabe
+    show
+        (AASTStrom streckenabschnitt)
+            = Language.streckenabschnitt <=> showText streckenabschnitt <^> Language.strom
 instance Anfrage (AnfrageAktionStreckenabschnitt st) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionStreckenabschnitt qst st -> s
-    zeigeAnfrage    (AnfrageAktionStreckenabschnitt _streckenabschnitt) = Language.aktion
-    zeigeAnfrage    (AASTUnbekannt anfrageAktion _eingabe)              = zeigeAnfrage anfrageAktion
-    zeigeAnfrage    (AASTStrom _streckenabschnitt)                      = Language.fließend <|> Language.gesperrt
+    zeigeAnfrage
+        (AnfrageAktionStreckenabschnitt _streckenabschnitt)
+            = Language.aktion
+    zeigeAnfrage
+        (AASTUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (AASTStrom _streckenabschnitt)
+            = Language.fließend <|> Language.gesperrt
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionStreckenabschnitt st -> Maybe s
-    zeigeAnfrageOptionen (AnfrageAktionStreckenabschnitt _streckenabschnitt)    = Just $ toBefehlsString Language.aktionStreckenabschnitt
-    zeigeAnfrageOptionen (AASTUnbekannt anfrageAktion _eingabe)                 = zeigeAnfrageOptionen anfrageAktion
-    zeigeAnfrageOptionen (AASTStrom _streckenabschnitt)                         = Just $ toBefehlsString [Language.an, Language.aus]
+    zeigeAnfrageOptionen
+        (AnfrageAktionStreckenabschnitt _streckenabschnitt)
+            = Just $ toBefehlsString Language.aktionStreckenabschnitt
+    zeigeAnfrageOptionen
+        (AASTUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (AASTStrom _streckenabschnitt)
+            = Just $ toBefehlsString [Language.an, Language.aus]
 
 -- | Eingabe einer Streckenabschnitt-Aktion
 anfrageAktionStreckenabschnittAktualisieren :: (StreckenabschnittKlasse s)
-    => AnfrageAktionStreckenabschnitt s -> EingabeToken -> Either (AnfrageAktionStreckenabschnitt s) (AktionStreckenabschnitt s)
-anfrageAktionStreckenabschnittAktualisieren anfrage@(AnfrageAktionStreckenabschnitt streckenabschnitt)  token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Strom, Left $ AASTStrom streckenabschnitt)] $ Left $ AASTUnbekannt anfrage eingabe
-anfrageAktionStreckenabschnittAktualisieren anfrage@(AASTStrom streckenabschnitt)                       token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Fließend , Right $ Strom streckenabschnitt Fließend),
-    (Lexer.An       , Right $ Strom streckenabschnitt Fließend),
-    (Lexer.Gesperrt , Right $ Strom streckenabschnitt Gesperrt),
-    (Lexer.Aus      , Right $ Strom streckenabschnitt Gesperrt)]
-    $ Left $ AASTUnbekannt anfrage eingabe
-anfrageAktionStreckenabschnittAktualisieren anfrage                                                     _token                          = Left $ anfrage
+    => AnfrageAktionStreckenabschnitt s -> EingabeToken
+        -> Either (AnfrageAktionStreckenabschnitt s) (AktionStreckenabschnitt s)
+anfrageAktionStreckenabschnittAktualisieren
+    anfrage@(AnfrageAktionStreckenabschnitt streckenabschnitt)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [(Lexer.Strom, Left $ AASTStrom streckenabschnitt)] $
+            Left $ AASTUnbekannt anfrage eingabe
+anfrageAktionStreckenabschnittAktualisieren
+    anfrage@(AASTStrom streckenabschnitt)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Fließend , Right $ Strom streckenabschnitt Fließend),
+            (Lexer.An       , Right $ Strom streckenabschnitt Fließend),
+            (Lexer.Gesperrt , Right $ Strom streckenabschnitt Gesperrt),
+            (Lexer.Aus      , Right $ Strom streckenabschnitt Gesperrt)]
+            $ Left $ AASTUnbekannt anfrage eingabe
+anfrageAktionStreckenabschnittAktualisieren
+    anfrage
+    _token
+        = Left $ anfrage
 
 -- *** KupplungAktion
 -- | Unvollständige 'Aktion' einer 'Kupplung'
 data AnfrageAktionKupplung k
     = AnfrageAktionKupplung
-        k
+        k                           -- ^ Kupplung
     | AAKUUnbekannt
-        (AnfrageAktionKupplung k)
-        Text
+        (AnfrageAktionKupplung k)   -- ^ Anfrage
+        Text                        -- ^ Eingabe
 
 type instance AnfrageFamilie AktionKupplung = AnfrageAktionKupplung
 
