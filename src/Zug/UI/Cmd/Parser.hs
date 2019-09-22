@@ -1420,20 +1420,39 @@ type instance AnfrageFamilie AktionKupplung = AnfrageAktionKupplung
 
 instance (Show (AnfrageFamilie k), Show k) => Show (AnfrageAktionKupplung k) where
     show :: AnfrageAktionKupplung ak k -> String
-    show    (AnfrageAktionKupplung kupplung)        = Language.kupplung <=> showText kupplung
-    show    (AAKUUnbekannt anfrageAktion eingabe)   = unpack $ unbekanntShowText anfrageAktion eingabe
+    show
+        (AnfrageAktionKupplung kupplung)
+            = Language.kupplung <=> showText kupplung
+    show
+        (AAKUUnbekannt anfrageAktion eingabe)
+            = unpack $ unbekanntShowText anfrageAktion eingabe
 instance Anfrage (AnfrageAktionKupplung k) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionKupplung k -> s
-    zeigeAnfrage    (AnfrageAktionKupplung _kupplung)       = Language.aktion
-    zeigeAnfrage    (AAKUUnbekannt anfrageAktion _eingabe)  = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (AnfrageAktionKupplung _kupplung)
+            = Language.aktion
+    zeigeAnfrage
+        (AAKUUnbekannt anfrageAktion _eingabe)  = zeigeAnfrage anfrageAktion
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionKupplung k -> Maybe s
-    zeigeAnfrageOptionen (AnfrageAktionKupplung _kupplung)      = Just $ toBefehlsString Language.aktionKupplung
-    zeigeAnfrageOptionen (AAKUUnbekannt anfrageAktion _eingabe) = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (AnfrageAktionKupplung _kupplung)
+            = Just $ toBefehlsString Language.aktionKupplung
+    zeigeAnfrageOptionen
+        (AAKUUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrageOptionen anfrageAktion
 
 -- | Eingabe einer Kupplung-Aktion
-anfrageAktionKupplungAktualisieren :: (KupplungKlasse k) => AnfrageAktionKupplung k -> EingabeToken -> Either (AnfrageAktionKupplung k) (AktionKupplung k)
-anfrageAktionKupplungAktualisieren anfrage@(AnfrageAktionKupplung kupplung) token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Kuppeln, Right $ Kuppeln kupplung)] $ Left $ AAKUUnbekannt anfrage eingabe
-anfrageAktionKupplungAktualisieren anfrage                                  _token                          = Left $ anfrage
+anfrageAktionKupplungAktualisieren :: (KupplungKlasse k)
+    => AnfrageAktionKupplung k -> EingabeToken -> Either (AnfrageAktionKupplung k) (AktionKupplung k)
+anfrageAktionKupplungAktualisieren
+    anfrage@(AnfrageAktionKupplung kupplung)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [(Lexer.Kuppeln, Right $ Kuppeln kupplung)] $
+            Left $ AAKUUnbekannt anfrage eingabe
+anfrageAktionKupplungAktualisieren
+    anfrage
+    _token
+        = Left $ anfrage
 
 -- ** Wegstrecke
 -- | Unvollständige 'Wegstrecke'
