@@ -16,8 +16,10 @@ module Zug.UI.Cmd.Parser (
     AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..), AnfrageNeu(..),
     -- ** Unvollständige StreckenObjekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
-    AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..), AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
-    AnfrageObjekt(..), AnfrageWegstrecke(..), AnfrageWeiche(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..), AnfrageKupplung(..)) where
+    AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..),
+    AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
+    AnfrageObjekt(..), AnfrageWegstrecke(..), AnfrageWeiche(..), AnfrageBahngeschwindigkeit(..),
+    AnfrageStreckenabschnitt(..), AnfrageKupplung(..)) where
 
 -- Bibliotheken
 import Data.Foldable (toList)
@@ -767,9 +769,12 @@ anfragePlanAktualisieren
             (Left (AAUnbekannt aAktion1 eingabe))
                 -> Left $ APUnbekannt (APlanNameAnzahl name anzahl acc aAktion1) eingabe
             (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))
-                -> Left $ APlanIOStatus objektStatusAnfrage $ Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
+                -> Left $ APlanIOStatus objektStatusAnfrage $
+                    Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
             (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))
-                -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1 then Left $ \objekt -> APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ anhängen (konstruktor objekt) acc}
+                -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1
+                    then Left $ \objekt -> APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion
+                    else Right $ \objekt -> Plan {plName=name, plAktionen=toList $ anhängen (konstruktor objekt) acc}
             (Left AARückgängig)
                 -> Left $ APlanNameAnzahl name (succ anzahl) (löscheLetztes acc) AnfrageAktion
             (Left aAktion1)
