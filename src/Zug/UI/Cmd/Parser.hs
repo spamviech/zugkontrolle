@@ -1256,39 +1256,87 @@ type instance AnfrageFamilie AktionBahngeschwindigkeit = AnfrageAktionBahngeschw
 
 instance (Show (AnfrageFamilie b), Show b) => Show (AnfrageAktionBahngeschwindigkeit b) where
     show :: AnfrageAktionBahngeschwindigkeit ab b -> String
-    show    (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)  = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit
-    show    (AABGUnbekannt anfrageAktion eingabe)                   = unpack $ unbekanntShowText anfrageAktion eingabe
-    show    (AABGGeschwindigkeit bahngeschwindigkeit)               = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.geschwindigkeit
-    show    (AABGUmdrehen bahngeschwindigkeit)                      = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.umdrehen
+    show
+        (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
+            = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit
+    show
+        (AABGUnbekannt anfrageAktion eingabe)
+            = unpack $ unbekanntShowText anfrageAktion eingabe
+    show
+        (AABGGeschwindigkeit bahngeschwindigkeit)
+            = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.geschwindigkeit
+    show
+        (AABGUmdrehen bahngeschwindigkeit)
+            = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.umdrehen
 instance Anfrage (AnfrageAktionBahngeschwindigkeit b) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b -> s
-    zeigeAnfrage    (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) = Language.aktion
-    zeigeAnfrage    (AABGUnbekannt anfrageAktion _eingabe)                  = zeigeAnfrage anfrageAktion
-    zeigeAnfrage    (AABGGeschwindigkeit _bahngeschwindigkeit)              = Language.geschwindigkeit
-    zeigeAnfrage    (AABGUmdrehen _bahngeschwindigkeit)                     = Language.fahrtrichtung
+    zeigeAnfrage
+        (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)
+            = Language.aktion
+    zeigeAnfrage
+        (AABGUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (AABGGeschwindigkeit _bahngeschwindigkeit)
+            = Language.geschwindigkeit
+    zeigeAnfrage
+        (AABGUmdrehen _bahngeschwindigkeit)
+            = Language.fahrtrichtung
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b -> s -> s
-    zeigeAnfrageFehlgeschlagen  a@(AABGGeschwindigkeit _bahngeschwindigkeit)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen a                                                eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(AABGGeschwindigkeit _bahngeschwindigkeit)
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b -> Maybe s
-    zeigeAnfrageOptionen (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)    = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
-    zeigeAnfrageOptionen (AABGUnbekannt anfrageAktion _eingabe)                     = zeigeAnfrageOptionen anfrageAktion
-    zeigeAnfrageOptionen (AABGGeschwindigkeit _bahngeschwindigkeit)                 = Nothing
-    zeigeAnfrageOptionen (AABGUmdrehen _bahngeschwindigkeit)                        = Just $ toBefehlsString $ map showText $ NE.toList unterstützteFahrtrichtungen
+    zeigeAnfrageOptionen
+        (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)
+            = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
+    zeigeAnfrageOptionen
+        (AABGUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (AABGGeschwindigkeit _bahngeschwindigkeit)
+            = Nothing
+    zeigeAnfrageOptionen
+        (AABGUmdrehen _bahngeschwindigkeit)
+            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteFahrtrichtungen
 
 -- | Eingabe einer Bahngeschwindigkeit-Aktion
-anfrageAktionBahngeschwindigkeitAktualisieren :: (BahngeschwindigkeitKlasse b) => AnfrageAktionBahngeschwindigkeit b -> EingabeToken -> Either (AnfrageAktionBahngeschwindigkeit b) (AktionBahngeschwindigkeit b)
-anfrageAktionBahngeschwindigkeitAktualisieren  anfrage@(AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)   token@(EingabeToken {eingabe})      = wähleBefehl token [
-    (Lexer.Geschwindigkeit  , Left $ AABGGeschwindigkeit bahngeschwindigkeit),
-    (Lexer.Umdrehen         , if zugtyp bahngeschwindigkeit == Märklin then Right $ Umdrehen bahngeschwindigkeit Nothing else Left $ AABGUmdrehen bahngeschwindigkeit)]
-    $ Left $ AABGUnbekannt anfrage eingabe
-anfrageAktionBahngeschwindigkeitAktualisieren  anfrage@(AABGGeschwindigkeit bahngeschwindigkeit)                (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Nothing)   -> Left $ AABGUnbekannt anfrage eingabe
-    (Just wert) -> Right $ Geschwindigkeit bahngeschwindigkeit wert
-anfrageAktionBahngeschwindigkeitAktualisieren  anfrage@(AABGUmdrehen bahngeschwindigkeit)                       token@(EingabeToken {eingabe})      = wähleBefehl token [
-    (Lexer.Vorwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Vorwärts),
-    (Lexer.Rückwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Rückwärts)]
-    $ Left $ AABGUnbekannt anfrage eingabe
-anfrageAktionBahngeschwindigkeitAktualisieren  anfrage                                                          _token                              = Left $ anfrage
+anfrageAktionBahngeschwindigkeitAktualisieren :: (BahngeschwindigkeitKlasse b)
+    => AnfrageAktionBahngeschwindigkeit b -> EingabeToken
+        -> Either (AnfrageAktionBahngeschwindigkeit b) (AktionBahngeschwindigkeit b)
+anfrageAktionBahngeschwindigkeitAktualisieren
+    anfrage@(AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Geschwindigkeit  , Left $ AABGGeschwindigkeit bahngeschwindigkeit),
+            (Lexer.Umdrehen         , if zugtyp bahngeschwindigkeit == Märklin
+                    then Right $ Umdrehen bahngeschwindigkeit Nothing
+                    else Left $ AABGUmdrehen bahngeschwindigkeit)]
+            $ Left $ AABGUnbekannt anfrage eingabe
+anfrageAktionBahngeschwindigkeitAktualisieren
+    anfrage@(AABGGeschwindigkeit bahngeschwindigkeit)
+    (EingabeToken {eingabe, ganzzahl})
+        = case ganzzahl of
+            (Nothing)
+                -> Left $ AABGUnbekannt anfrage eingabe
+            (Just wert)
+                -> Right $ Geschwindigkeit bahngeschwindigkeit wert
+anfrageAktionBahngeschwindigkeitAktualisieren
+    anfrage@(AABGUmdrehen bahngeschwindigkeit)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Vorwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Vorwärts),
+            (Lexer.Rückwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Rückwärts)]
+            $ Left $ AABGUnbekannt anfrage eingabe
+anfrageAktionBahngeschwindigkeitAktualisieren
+    anfrage
+    _token
+        = Left $ anfrage
 
 -- *** Streckenabschnitt-Aktion
 -- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
