@@ -1111,27 +1111,52 @@ instance Anfrage (AnfrageAktionWegstrecke w) where
     zeigeAnfrageOptionen (AAWSKupplung anfrageAktion)              = zeigeAnfrageOptionen anfrageAktion
 
 -- | Eingabe einer Wegstrecken-Aktion
-anfrageAktionWegstreckeAktualisieren :: (WegstreckeKlasse w) => AnfrageAktionWegstrecke w -> EingabeToken -> Either (AnfrageAktionWegstrecke w) (AktionWegstrecke w)
-anfrageAktionWegstreckeAktualisieren   anfrage@(AAWSUnbekannt _ _)                  _token                          = Left anfrage
-anfrageAktionWegstreckeAktualisieren   anfrage@(AnfrageAktionWegstrecke wegstrecke) token@(EingabeToken {eingabe})  = wähleBefehl token [
-    (Lexer.Einstellen       , Right $ Einstellen wegstrecke),
-    (Lexer.Geschwindigkeit  , Left $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke),
-    (Lexer.Umdrehen         , Left $ AAWSBahngeschwindigkeit $ AABGUmdrehen wegstrecke),
-    (Lexer.Strom            , Left $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
-    (Lexer.Kuppeln          , Right $ AWSKupplung $ Kuppeln wegstrecke)]
-    $ Left $ AAWSUnbekannt anfrage eingabe
-anfrageAktionWegstreckeAktualisieren   (AAWSBahngeschwindigkeit qAktion0)           token                           = case anfrageAktionBahngeschwindigkeitAktualisieren qAktion0 token of
-    (Left (AABGUnbekannt anfrage eingabe))  -> Left $ AAWSUnbekannt (AAWSBahngeschwindigkeit anfrage) eingabe
-    (Left aAktion1)                         -> Left $ AAWSBahngeschwindigkeit aAktion1
-    (Right aktion)                          -> Right $ AWSBahngeschwindigkeit aktion
-anfrageAktionWegstreckeAktualisieren   (AAWSStreckenabschnitt qAktion0)             token                           = case anfrageAktionStreckenabschnittAktualisieren qAktion0 token of
-    (Left (AASTUnbekannt anfrage eingabe))  -> Left $ AAWSUnbekannt (AAWSStreckenabschnitt anfrage) eingabe
-    (Left aAktion1)                         -> Left $ AAWSStreckenabschnitt aAktion1
-    (Right aktion)                          -> Right $ AWSStreckenabschnitt aktion
-anfrageAktionWegstreckeAktualisieren   (AAWSKupplung qAktion0)                      token                           = case anfrageAktionKupplungAktualisieren qAktion0 token of
-    (Left (AAKUUnbekannt anfrage eingabe))  -> Left $ AAWSUnbekannt (AAWSKupplung anfrage) eingabe
-    (Left aAktion1)                         -> Left $ AAWSKupplung aAktion1
-    (Right aktion)                          -> Right $ AWSKupplung aktion
+anfrageAktionWegstreckeAktualisieren :: (WegstreckeKlasse w)
+    => AnfrageAktionWegstrecke w -> EingabeToken -> Either (AnfrageAktionWegstrecke w) (AktionWegstrecke w)
+anfrageAktionWegstreckeAktualisieren
+    anfrage@(AAWSUnbekannt _anfrage _eingabe)
+    _token
+        = Left anfrage
+anfrageAktionWegstreckeAktualisieren
+    anfrage@(AnfrageAktionWegstrecke wegstrecke)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [
+            (Lexer.Einstellen       , Right $ Einstellen wegstrecke),
+            (Lexer.Geschwindigkeit  , Left $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke),
+            (Lexer.Umdrehen         , Left $ AAWSBahngeschwindigkeit $ AABGUmdrehen wegstrecke),
+            (Lexer.Strom            , Left $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
+            (Lexer.Kuppeln          , Right $ AWSKupplung $ Kuppeln wegstrecke)]
+            $ Left $ AAWSUnbekannt anfrage eingabe
+anfrageAktionWegstreckeAktualisieren
+    (AAWSBahngeschwindigkeit qAktion0)
+    token
+        = case anfrageAktionBahngeschwindigkeitAktualisieren qAktion0 token of
+            (Left (AABGUnbekannt anfrage eingabe))
+                -> Left $ AAWSUnbekannt (AAWSBahngeschwindigkeit anfrage) eingabe
+            (Left aAktion1)
+                -> Left $ AAWSBahngeschwindigkeit aAktion1
+            (Right aktion)
+                -> Right $ AWSBahngeschwindigkeit aktion
+anfrageAktionWegstreckeAktualisieren
+    (AAWSStreckenabschnitt qAktion0)
+    token
+        = case anfrageAktionStreckenabschnittAktualisieren qAktion0 token of
+            (Left (AASTUnbekannt anfrage eingabe))
+                -> Left $ AAWSUnbekannt (AAWSStreckenabschnitt anfrage) eingabe
+            (Left aAktion1)
+                -> Left $ AAWSStreckenabschnitt aAktion1
+            (Right aktion)
+                -> Right $ AWSStreckenabschnitt aktion
+anfrageAktionWegstreckeAktualisieren
+    (AAWSKupplung qAktion0)
+    token
+        = case anfrageAktionKupplungAktualisieren qAktion0 token of
+            (Left (AAKUUnbekannt anfrage eingabe))
+                -> Left $ AAWSUnbekannt (AAWSKupplung anfrage) eingabe
+            (Left aAktion1)
+                -> Left $ AAWSKupplung aAktion1
+            (Right aktion)
+                -> Right $ AWSKupplung aktion
 
 -- *** Weichen-Aktion
 -- | Unvollständige 'Aktion' einer 'Weiche'
