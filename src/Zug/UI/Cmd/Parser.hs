@@ -233,7 +233,7 @@ data AnfrageBefehl
     | ABAktionPlanGesperrt
         Plan
         AnfrageNeu
-        (NonEmpty Pin)
+        (NonEmpty Anschluss)
     | ABAktion
         AnfrageAktion
     | ABStatusAnfrage
@@ -1497,7 +1497,7 @@ anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameFließendRichtung1 name flie�
     (Just richtung2)    -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2
 anfrageWeicheAktualisieren anfrage@(ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2)        (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ AWEUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ LegoWeiche {weName=name, weFließend=fließend, richtungsPin=zuPin pin, richtungen=(richtung1,richtung2)}
+    (Just pin)  -> Right $ LegoWeiche {welName=name, welFließend=fließend, welRichtungsAnschluss=zuPin pin, welRichtungen=(richtung1,richtung2)}
 anfrageWeicheAktualisieren (AMärklinWeiche)                                                                     (EingabeToken {eingabe})            = Left $ AMärklinWeicheName eingabe
 anfrageWeicheAktualisieren anfrage@(AMärklinWeicheName name)                                                    token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
     (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
@@ -1513,7 +1513,7 @@ anfrageWeicheAktualisieren anfrage@(AMärklinWeicheNameFließendAnzahlRichtung n
     (Nothing)           -> Left $ AWEUnbekannt anfrage eingabe
     (Just pin)
         | anzahl > 1    -> Left $ AMärklinWeicheNameFließendAnzahl name fließend (pred anzahl) $ (richtung, zuPin pin):acc
-        | otherwise     -> Right MärklinWeiche {weName=name, weFließend=fließend, richtungsPins=(richtung, zuPin pin):|acc}
+        | otherwise     -> Right MärklinWeiche {wemName=name, wemFließend=fließend, wemRichtungsAnschlüsse=(richtung, zuPin pin):|acc}
 anfrageWeicheAktualisieren anfrage@(AWEUnbekannt _ _)                                                           _token                              = Left anfrage
 
 -- ** Bahngeschwindigkeit
@@ -1592,7 +1592,7 @@ anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitName
     (Just pin)  -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend $ zuPin pin
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend geschwindigkeitsPin)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bgName=name, bgFließend=fließend, geschwindigkeitsPin, fahrtrichtungsPin=zuPin pin}
+    (Just pin)  -> Right $ LegoBahngeschwindigkeit {bglName=name, bglFließend=fließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss=zuPin pin}
 anfrageBahngeschwindigkeitAktualisieren    (AMärklinBahngeschwindigkeit)                                                                    (EingabeToken {eingabe})            = Left $ AMärklinBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitName name)                                                   token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
     (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend name HIGH),
@@ -1600,8 +1600,8 @@ anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeit
     $ ABGUnbekannt anfrage eingabe
 anfrageBahngeschwindigkeitAktualisieren    anfrage@(AMärklinBahngeschwindigkeitNameFließend name fließend)                                 (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ABGUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgName=name, bgFließend=fließend, geschwindigkeitsPin=zuPin pin}
-anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _ _)                                                                       _token                              = Left anfrage
+    (Just pin)  -> Right $ MärklinBahngeschwindigkeit {bgmName=name, bgmFließend=fließend, bgmGeschwindigkeitsAnschluss=zuPin pin}
+anfrageBahngeschwindigkeitAktualisieren    anfrage@(ABGUnbekannt _anfrage _eingabe)                                                                       _token                              = Left anfrage
 
 -- ** Streckenabschnitt
 -- | Unvollständiger 'Streckenabschnitt'
@@ -1647,7 +1647,7 @@ anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittName name)   
     $ ASTUnbekannt anfrage eingabe
 anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittNameFließend name fließend)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
     (Nothing)   -> Left $ ASTUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stFließend=fließend, stromPin=zuPin pin}
+    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stFließend=fließend, stromAnschluss=zuPin pin}
 anfrageStreckenabschnittAktualisieren   anfrage@(ASTUnbekannt _ _)                              _token                              = Left anfrage
 
 -- ** Kupplung
