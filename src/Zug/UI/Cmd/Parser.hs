@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
 
 {-|
 Description : Verarbeiten von Token.
@@ -53,13 +54,14 @@ import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token(), l
 -- * Auswerten einer Text-Eingabe
 -- ** Suchen eines Objekt im aktuellen 'StatusAllgemein'
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
-data StatusAnfrageObjekt    = SAOUnbekannt              Text
-                            | SAOPlan                   EingabeToken
-                            | SAOWegstrecke             EingabeToken
-                            | SAOWeiche                 EingabeToken
-                            | SAOBahngeschwindigkeit    EingabeToken
-                            | SAOStreckenabschnitt      EingabeToken
-                            | SAOKupplung               EingabeToken
+data StatusAnfrageObjekt o where
+    SAOUnbekannt            :: Text         -> StatusAnfrageObjekt o
+    SAOPlan                 :: EingabeToken -> StatusAnfrageObjekt Plan
+    SAOWegstrecke           :: EingabeToken -> StatusAnfrageObjekt (Wegstrecke z)
+    SAOWeiche               :: EingabeToken -> StatusAnfrageObjekt (Weiche z)
+    SAOBahngeschwindigkeit  :: EingabeToken -> StatusAnfrageObjekt (Bahngeschwindigkeit z)
+    SAOStreckenabschnitt    :: EingabeToken -> StatusAnfrageObjekt Streckenabschnitt
+    SAOKupplung             :: EingabeToken -> StatusAnfrageObjekt Kupplung
 
 instance Show StatusAnfrageObjekt where
     show :: StatusAnfrageObjekt -> String
