@@ -1172,34 +1172,72 @@ data AnfrageAktionWeiche w
 type instance AnfrageFamilie AktionWeiche = AnfrageAktionWeiche
 
 instance (Show (AnfrageFamilie w), Show w) => Show (AnfrageAktionWeiche w) where
-    show :: AnfrageAktionWeiche aw w -> String
-    show    (AnfrageAktionWeiche weiche)            = Language.weiche <=> showText weiche
-    show    (AAWUnbekannt anfrageAktion eingabe)    = unpack $ unbekanntShowText anfrageAktion eingabe
-    show    (AAWStellen weiche)                     = Language.weiche <=> showText weiche <^> Language.stellen
+    show :: AnfrageAktionWeiche w -> String
+    show
+        (AnfrageAktionWeiche weiche)
+            = Language.weiche <=> showText weiche
+    show
+        (AAWUnbekannt anfrageAktion eingabe)
+            = unpack $ unbekanntShowText anfrageAktion eingabe
+    show
+        (AAWStellen weiche)
+            = Language.weiche <=> showText weiche <^> Language.stellen
 instance Anfrage (AnfrageAktionWeiche w) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionWeiche w -> s
-    zeigeAnfrage    (AnfrageAktionWeiche _weiche)           = Language.aktion
-    zeigeAnfrage    (AAWUnbekannt anfrageAktion _eingabe)   = zeigeAnfrage anfrageAktion
-    zeigeAnfrage    (AAWStellen _weiche)                    = Language.richtung
+    zeigeAnfrage
+        (AnfrageAktionWeiche _weiche)
+            = Language.aktion
+    zeigeAnfrage
+        (AAWUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (AAWStellen _weiche)
+            = Language.richtung
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionWeiche w -> Maybe s
-    zeigeAnfrageOptionen (AnfrageAktionWeiche _weiche)          = Just $ toBefehlsString Language.aktionWeiche
-    zeigeAnfrageOptionen (AAWUnbekannt anfrageAktion _eingabe)  = zeigeAnfrageOptionen anfrageAktion
-    zeigeAnfrageOptionen (AAWStellen _weiche)                   = Just $ toBefehlsString $ NE.toList $ fmap showText unterstützteRichtungen
+    zeigeAnfrageOptionen
+        (AnfrageAktionWeiche _weiche)
+            = Just $ toBefehlsString Language.aktionWeiche
+    zeigeAnfrageOptionen
+        (AAWUnbekannt anfrageAktion _eingabe)
+            = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (AAWStellen _weiche)
+            = Just $ toBefehlsString $ NE.toList $ fmap showText unterstützteRichtungen
 
 -- | Eingabe einer Weichen-Aktion
 anfrageAktionWeicheAktualisieren :: (Show (AnfrageFamilie w), Show w, WeicheKlasse w)
-    => AnfrageAktionWeiche aw w -> EingabeToken -> Either (AnfrageAktionWeiche aw w) (AktionWeiche w)
-anfrageAktionWeicheAktualisieren   anfrage@(AnfrageAktionWeiche weiche) token@(EingabeToken {eingabe})  = wähleBefehl token [(Lexer.Stellen  , Left $ AAWStellen weiche)] $ Left $ AAWUnbekannt anfrage eingabe
-anfrageAktionWeicheAktualisieren   anfrage@(AAWStellen _weiche)         token@(EingabeToken {eingabe})  = case wähleRichtung token of
-    (Nothing)       -> Left $ AAWUnbekannt anfrage eingabe
-    (Just richtung) -> mitRichtung anfrage richtung
-        where
-            mitRichtung :: (Show aw, Show w, WeicheKlasse w) => AnfrageAktionWeiche aw w -> Richtung -> Either (AnfrageAktionWeiche aw w) (AktionWeiche w)
-            mitRichtung  anfrage@(AAWStellen weiche)  richtung
-                | hatRichtung weiche richtung                       = Right $ Stellen weiche richtung
-                | otherwise                                         = Left $ AAWUnbekannt anfrage eingabe
-            mitRichtung anfrage                       _richtung     = error $ "mitRichtung mit unbekannter anfrage aufgerufen: " ++ show anfrage
-anfrageAktionWeicheAktualisieren   anfrage                              _token                          = Left anfrage
+    => AnfrageAktionWeiche w -> EingabeToken -> Either (AnfrageAktionWeiche w) (AktionWeiche w)
+anfrageAktionWeicheAktualisieren
+    anfrage@(AnfrageAktionWeiche weiche)
+    token@(EingabeToken {eingabe})
+        = wähleBefehl token [(Lexer.Stellen  , Left $ AAWStellen weiche)] $
+            Left $ AAWUnbekannt anfrage eingabe
+anfrageAktionWeicheAktualisieren
+    anfrage@(AAWStellen _weiche)
+    token@(EingabeToken {eingabe})
+        = case wähleRichtung token of
+            Nothing
+                -> Left $ AAWUnbekannt anfrage eingabe
+            (Just richtung)
+                -> mitRichtung anfrage richtung
+    where
+        mitRichtung :: (Show (AnfrageFamilie w), Show w, WeicheKlasse w)
+            => AnfrageAktionWeiche aw w -> Richtung -> Either (AnfrageAktionWeiche aw w) (AktionWeiche w)
+        mitRichtung
+            anfrage@(AAWStellen weiche)
+            richtung
+                | hatRichtung weiche richtung
+                    = Right $ Stellen weiche richtung
+                | otherwise
+                    = Left $ AAWUnbekannt anfrage eingabe
+        mitRichtung
+            anfrage
+            _richtung
+                = error $ "mitRichtung mit unbekannter anfrage aufgerufen: " ++ show anfrage
+anfrageAktionWeicheAktualisieren
+    anfrage
+    _token
+        = Left anfrage
 
 -- *** Bahngeschwindigkeit-Aktion
 -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
