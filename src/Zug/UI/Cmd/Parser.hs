@@ -2419,10 +2419,19 @@ showMitAnfrageFehlgeschlagen a eingabe = showText a <^> zeigeAnfrageFehlgeschlag
 -- | Wähle aus möglichen Interpretationen der Eingabe die erste passende aus und gebe den daraus resultierenden Befehl zurück.
 -- Falls keine Möglichkeit passend ist, gebe wird das Ersatz-Ergebnis zurückgegeben.
 wähleBefehl :: EingabeToken -> [(Token, a)] -> a -> a
-wähleBefehl _eingabe                                ([])                    ersatz  = ersatz
-wähleBefehl eingabe@(EingabeToken {möglichkeiten})  ((befehl,ergebnis):t)   ersatz
-    | elem befehl möglichkeiten                                                     = ergebnis
-    | otherwise                                                                     = wähleBefehl eingabe t ersatz
+wähleBefehl
+    _eingabe
+    []
+    ersatz
+        = ersatz
+wähleBefehl
+    eingabe@(EingabeToken {möglichkeiten})
+    ((befehl, ergebnis) : t)
+    ersatz
+        | elem befehl möglichkeiten
+            = ergebnis
+        | otherwise
+            = wähleBefehl eingabe t ersatz
 
 -- | Gebe (falls möglich) die zur Eingabe passende 'Richtung' zurück.
 wähleRichtung :: EingabeToken -> Maybe Richtung
