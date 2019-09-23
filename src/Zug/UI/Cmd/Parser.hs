@@ -45,7 +45,7 @@ import Zug.Anbindung (Anschluss(..), StreckenObjekt(..), alleValues, zuPin,
                     Streckenabschnitt(..), StreckenabschnittKlasse(),
                     Kupplung(..), KupplungKlasse())
 import Zug.Klassen (Richtung(..), unterstützteRichtungen, Fahrtrichtung(..), unterstützteFahrtrichtungen,
-                    Zugtyp(..), ZugtypEither(), unterstützteZugtypen , Strom(..))
+                    Zugtyp(..), ZugtypEither(..), unterstützteZugtypen , Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), (<\>), showText, fehlerText, toBefehlsString)
 import qualified Zug.Menge as Menge
@@ -58,6 +58,7 @@ import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngesch
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token(), leeresToken)
+import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), AnfrageFamilie, showMitAnfrage, showMitAnfrageFehlgeschlagen)
 
 -- * Auswerten einer Text-Eingabe
 -- ** Suchen eines Objekt im aktuellen 'StatusAllgemein'
@@ -399,17 +400,17 @@ anfrageAktualisieren
                 -> AEAnfrageBefehl $ ABUnbekannt ABEntfernen eingabe
             (Just anfrageKonstruktor)
                 -> AEAnfrageBefehl $ ABStatusAnfrage anfrageKonstruktor $ AEBefehl . Entfernen
-                where
-                    -- | Eingabe eines existierendes Objekts
-                    anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrageObjekt)
-                    anfrageObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
-                        (Lexer.Plan                  , Just SAOPlan),
-                        (Lexer.Wegstrecke            , Just SAOWegstrecke),
-                        (Lexer.Weiche                , Just SAOWeiche),
-                        (Lexer.Bahngeschwindigkeit   , Just SAOBahngeschwindigkeit),
-                        (Lexer.Streckenabschnitt     , Just SAOStreckenabschnitt),
-                        (Lexer.Kupplung              , Just SAOKupplung)]
-                        Nothing
+    where
+        -- | Eingabe eines existierendes Objekts
+        anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrageObjekt)
+        anfrageObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
+            (Lexer.Plan                  , Just SAOPlan),
+            (Lexer.Wegstrecke            , Just SAOWegstrecke),
+            (Lexer.Weiche                , Just SAOWeiche),
+            (Lexer.Bahngeschwindigkeit   , Just SAOBahngeschwindigkeit),
+            (Lexer.Streckenabschnitt     , Just SAOStreckenabschnitt),
+            (Lexer.Kupplung              , Just SAOKupplung)]
+            Nothing
 anfrageAktualisieren
     ABSpeichern
     EingabeToken {eingabe}
@@ -463,8 +464,8 @@ anfrageAktualisieren
 data AnfrageObjekt
     = AnfrageObjekt
     | AOUnbekannt
-        AnfrageObjekt
-        Text
+        AnfrageObjekt   -- ^ Anfrage
+        Text            -- ^ Eingabe
     | AOPlan
         AnfragePlan
     | AOWegstrecke
@@ -2388,32 +2389,6 @@ anfrageKupplungAktualisieren
     anfrage@(AKUUnbekannt _anfrage _eingabe)
     _token
         = Left anfrage
-
-
--- * Klasse für unvollständige Befehle
--- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
-class Anfrage a where
-    zeigeAnfrage :: (IsString s, Semigroup s) => a -> s
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => a -> s -> s
-    zeigeAnfrageFehlgeschlagen = zeigeAnfrageFehlgeschlagenStandard
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => a -> Maybe s
-    zeigeAnfrageOptionen _anfrage = Nothing
-    {-# MINIMAL zeigeAnfrage #-}
-
--- | Typfamilie für den assoziierten Anfragetyp
-type family AnfrageFamilie a :: Type
-
--- | Standard-Implementierung zum Anzeigen einer fehlgeschlagenen 'Anfrage'
-zeigeAnfrageFehlgeschlagenStandard :: (Anfrage a, IsString s, Semigroup s) => a -> s -> s
-zeigeAnfrageFehlgeschlagenStandard a eingabe = Language.unbekannt (zeigeAnfrage a) <=> eingabe
-
--- | Zeige ein unvollständiges Objekt, gefolgt von der nächsten Nachfrage an
-showMitAnfrage :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s
-showMitAnfrage a = showText a <^> zeigeAnfrage a
-
--- | Zeige Meldung für eine invalide Eingabe auf die Nachfrage einer 'Anfrage' an
-showMitAnfrageFehlgeschlagen :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
-showMitAnfrageFehlgeschlagen a eingabe = showText a <^> zeigeAnfrageFehlgeschlagen a eingabe
 
 -- * Hilfs-Befehle
 -- | Wähle aus möglichen Interpretationen der Eingabe die erste passende aus und gebe den daraus resultierenden Befehl zurück.
