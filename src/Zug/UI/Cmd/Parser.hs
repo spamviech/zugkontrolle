@@ -5,6 +5,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Description : Verarbeiten von Token.
@@ -466,11 +468,11 @@ data AnfrageObjekt
     | AOPlan
         AnfragePlan
     | AOWegstrecke
-        AnfrageWegstrecke
+        (ZugtypEither AnfrageWegstrecke)
     | AOWeiche
-        AnfrageWeiche
+        (ZugtypEither AnfrageWeiche)
     | AOBahngeschwindigkeit
-        AnfrageBahngeschwindigkeit
+        (ZugtypEither AnfrageBahngeschwindigkeit)
     | AOStreckenabschnitt
         AnfrageStreckenabschnitt
     | AOKupplung
@@ -1124,36 +1126,36 @@ anfrageAktionAktualisieren
 
 -- *** Wegstrecken-Aktion
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
-data AnfrageAktionWegstrecke w
+data AnfrageAktionWegstrecke w (z :: Zugtyp)
     = AnfrageAktionWegstrecke
-        w                                       -- ^ Wegstrecke
+        (w z)                                   -- ^ Wegstrecke
     | AAWSUnbekannt
-        (AnfrageAktionWegstrecke w)             -- ^ Anfrage
+        (AnfrageAktionWegstrecke w z)           -- ^ Anfrage
         Text                                    -- ^ Eingabe
     | AAWSBahngeschwindigkeit
-        (AnfrageAktionBahngeschwindigkeit w)
+        (AnfrageAktionBahngeschwindigkeit w z)
     | AAWSStreckenabschnitt
-        (AnfrageAktionStreckenabschnitt w)
+        (AnfrageAktionStreckenabschnitt (w z))
     | AAWSKupplung
-        (AnfrageAktionKupplung w)
+        (AnfrageAktionKupplung (w z))
 
-type instance AnfrageFamilie AktionWegstrecke = AnfrageAktionWegstrecke
+type instance AnfrageFamilie (AktionWegstrecke w z) = AnfrageAktionWegstrecke w z
 
-instance (Show (AnfrageFamilie w), Show w) => Show (AnfrageAktionWegstrecke w) where
+instance (Show (AnfrageFamilie (w z)), Show (w z)) => Show (AnfrageAktionWegstrecke w z) where
     show :: AnfrageAktionWegstrecke aw w -> String
     show    (AnfrageAktionWegstrecke wegstrecke)      = Language.wegstrecke <=> showText wegstrecke
     show    (AAWSUnbekannt anfrageAktion eingabe)     = unpack $ unbekanntShowText anfrageAktion eingabe
     show    (AAWSBahngeschwindigkeit anfrageAktion)   = showText anfrageAktion
     show    (AAWSStreckenabschnitt anfrageAktion)     = showText anfrageAktion
     show    (AAWSKupplung anfrageAktion)              = showText anfrageAktion
-instance Anfrage (AnfrageAktionWegstrecke w) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke aw w -> s
+instance Anfrage (AnfrageAktionWegstrecke w z) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke w z -> s
     zeigeAnfrage    (AnfrageAktionWegstrecke _wegstrecke)     = Language.aktion
     zeigeAnfrage    (AAWSUnbekannt anfrageAktion _eingabe)    = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (AAWSBahngeschwindigkeit anfrageAktion)   = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (AAWSStreckenabschnitt anfrageAktion)     = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (AAWSKupplung anfrageAktion)              = zeigeAnfrage anfrageAktion
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke aw w -> Maybe s
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke w z -> Maybe s
     zeigeAnfrageOptionen (AnfrageAktionWegstrecke _wegstrecke)     = Just $ toBefehlsString Language.aktionWegstrecke
     zeigeAnfrageOptionen (AAWSUnbekannt anfrageAktion _eingabe)    = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (AAWSBahngeschwindigkeit anfrageAktion)   = zeigeAnfrageOptionen anfrageAktion
@@ -1161,8 +1163,8 @@ instance Anfrage (AnfrageAktionWegstrecke w) where
     zeigeAnfrageOptionen (AAWSKupplung anfrageAktion)              = zeigeAnfrageOptionen anfrageAktion
 
 -- | Eingabe einer Wegstrecken-Aktion
-anfrageAktionWegstreckeAktualisieren :: (WegstreckeKlasse w)
-    => AnfrageAktionWegstrecke w -> EingabeToken -> Either (AnfrageAktionWegstrecke w) (AktionWegstrecke w)
+anfrageAktionWegstreckeAktualisieren :: (WegstreckeKlasse (w z))
+    => AnfrageAktionWegstrecke w z -> EingabeToken -> Either (AnfrageAktionWegstrecke w z) (AktionWegstrecke w z)
 anfrageAktionWegstreckeAktualisieren
     anfrage@(AAWSUnbekannt _anfrage _eingabe)
     _token
@@ -1219,7 +1221,7 @@ data AnfrageAktionWeiche w
     | AAWStellen
         w                           -- ^ Weiche
 
-type instance AnfrageFamilie AktionWeiche = AnfrageAktionWeiche
+type instance AnfrageFamilie (AktionWeiche w) = AnfrageAktionWeiche w
 
 instance (Show (AnfrageFamilie w), Show w) => Show (AnfrageAktionWeiche w) where
     show :: AnfrageAktionWeiche w -> String
@@ -1291,21 +1293,25 @@ anfrageAktionWeicheAktualisieren
 
 -- *** Bahngeschwindigkeit-Aktion
 -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
-data AnfrageAktionBahngeschwindigkeit b
-    = AnfrageAktionBahngeschwindigkeit
-        b                                       -- ^ Bahngeschwindigkeit
-    | AABGUnbekannt
-        (AnfrageAktionBahngeschwindigkeit b)    -- ^ Anfrage
-        Text                                    -- ^ Eingabe
-    | AABGGeschwindigkeit
-        b                                       -- ^ Bahngeschwindigkeit
-    | AABGUmdrehen
-        b                                       -- ^ Bahngeschwindigkeit
+data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where
+    AnfrageAktionBahngeschwindigkeit
+        :: (b z)                                    -- ^ Bahngeschwindigkeit
+            -> AnfrageAktionBahngeschwindigkeit b z
+    AABGUnbekannt
+        :: (AnfrageAktionBahngeschwindigkeit b z)   -- ^ Anfrage
+        -> Text                                     -- ^ Eingabe
+            -> AnfrageAktionBahngeschwindigkeit b z
+    AABGGeschwindigkeit
+        :: (b z)                                -- ^ Bahngeschwindigkeit
+            -> AnfrageAktionBahngeschwindigkeit b z
+    AABGFahrtrichtungEinstellen
+        :: (b z)                                -- ^ Bahngeschwindigkeit
+            -> AnfrageAktionBahngeschwindigkeit b 'Lego
 
-type instance AnfrageFamilie AktionBahngeschwindigkeit = AnfrageAktionBahngeschwindigkeit
+type instance AnfrageFamilie (AktionBahngeschwindigkeit b z) = AnfrageAktionBahngeschwindigkeit b z
 
-instance (Show (AnfrageFamilie b), Show b) => Show (AnfrageAktionBahngeschwindigkeit b) where
-    show :: AnfrageAktionBahngeschwindigkeit ab b -> String
+instance (Show (AnfrageFamilie (b z)), Show (b z)) => Show (AnfrageAktionBahngeschwindigkeit b z) where
+    show :: AnfrageAktionBahngeschwindigkeit b z -> String
     show
         (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
             = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit
@@ -1316,10 +1322,10 @@ instance (Show (AnfrageFamilie b), Show b) => Show (AnfrageAktionBahngeschwindig
         (AABGGeschwindigkeit bahngeschwindigkeit)
             = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.geschwindigkeit
     show
-        (AABGUmdrehen bahngeschwindigkeit)
-            = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.umdrehen
-instance Anfrage (AnfrageAktionBahngeschwindigkeit b) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b -> s
+        (AABGFahrtrichtungEinstellen bahngeschwindigkeit)
+            = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.fahrtrichtungEinstellen
+instance Anfrage (AnfrageAktionBahngeschwindigkeit b z) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b z -> s
     zeigeAnfrage
         (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)
             = Language.aktion
@@ -1330,9 +1336,9 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b) where
         (AABGGeschwindigkeit _bahngeschwindigkeit)
             = Language.geschwindigkeit
     zeigeAnfrage
-        (AABGUmdrehen _bahngeschwindigkeit)
+        (AABGFahrtrichtungEinstellen _bahngeschwindigkeit)
             = Language.fahrtrichtung
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b -> s -> s
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b z -> s -> s
     zeigeAnfrageFehlgeschlagen
         anfrage@(AABGGeschwindigkeit _bahngeschwindigkeit)
         eingabe
@@ -1341,7 +1347,7 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b) where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b -> Maybe s
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionBahngeschwindigkeit b z -> Maybe s
     zeigeAnfrageOptionen
         (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)
             = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
@@ -1352,13 +1358,13 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b) where
         (AABGGeschwindigkeit _bahngeschwindigkeit)
             = Nothing
     zeigeAnfrageOptionen
-        (AABGUmdrehen _bahngeschwindigkeit)
+        (AABGFahrtrichtungEinstellen _bahngeschwindigkeit)
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteFahrtrichtungen
 
 -- | Eingabe einer Bahngeschwindigkeit-Aktion
 anfrageAktionBahngeschwindigkeitAktualisieren :: (BahngeschwindigkeitKlasse b)
-    => AnfrageAktionBahngeschwindigkeit b -> EingabeToken
-        -> Either (AnfrageAktionBahngeschwindigkeit b) (AktionBahngeschwindigkeit b)
+    => AnfrageAktionBahngeschwindigkeit b z -> EingabeToken
+        -> Either (AnfrageAktionBahngeschwindigkeit b z) (AktionBahngeschwindigkeit b z)
 anfrageAktionBahngeschwindigkeitAktualisieren
     anfrage@(AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
     token@(EingabeToken {eingabe})
@@ -1377,7 +1383,7 @@ anfrageAktionBahngeschwindigkeitAktualisieren
             (Just wert)
                 -> Right $ Geschwindigkeit bahngeschwindigkeit wert
 anfrageAktionBahngeschwindigkeitAktualisieren
-    anfrage@(AABGUmdrehen bahngeschwindigkeit)
+    anfrage@(AABGFahrtrichtungEinstellen bahngeschwindigkeit)
     token@(EingabeToken {eingabe})
         = wähleBefehl token [
             (Lexer.Vorwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Vorwärts),
@@ -1399,7 +1405,7 @@ data AnfrageAktionStreckenabschnitt s
     | AASTStrom
         s                                   -- ^ Streckenabschnitt
 
-type instance AnfrageFamilie AktionStreckenabschnitt = AnfrageAktionStreckenabschnitt
+type instance AnfrageFamilie (AktionStreckenabschnitt s) = AnfrageAktionStreckenabschnitt s
 
 instance (Show (AnfrageFamilie s), Show s) => Show (AnfrageAktionStreckenabschnitt s) where
     show :: AnfrageAktionStreckenabschnitt as s -> String
@@ -1466,7 +1472,7 @@ data AnfrageAktionKupplung k
         (AnfrageAktionKupplung k)   -- ^ Anfrage
         Text                        -- ^ Eingabe
 
-type instance AnfrageFamilie AktionKupplung = AnfrageAktionKupplung
+type instance AnfrageFamilie (AktionKupplung k) = AnfrageAktionKupplung k
 
 instance (Show (AnfrageFamilie k), Show k) => Show (AnfrageAktionKupplung k) where
     show :: AnfrageAktionKupplung ak k -> String
@@ -1527,10 +1533,10 @@ data AnfrageWegstrecke (z :: Zugtyp)
         (EingabeToken -> StatusAnfrageObjekt)
         (Either (Objekt -> (AnfrageWegstrecke z)) (Objekt -> (Wegstrecke z)))
 
-type instance AnfrageFamilie Wegstrecke = AnfrageWegstrecke
+type instance AnfrageFamilie (Wegstrecke z) = AnfrageWegstrecke z
 
-instance Show AnfrageWegstrecke where
-    show :: AnfrageWegstrecke -> String
+instance Show (AnfrageWegstrecke z) where
+    show :: AnfrageWegstrecke z -> String
     show
         (AWSUnbekannt qWegstrecke eingabe)
             = unpack $ unbekanntShowText qWegstrecke eingabe
@@ -1557,8 +1563,8 @@ instance Show AnfrageWegstrecke where
     show
         (AWSStatusAnfrage anfrageKonstruktor _eitherF)
             = Language.wegstreckenElement <^> showText (anfrageKonstruktor leeresToken)
-instance Anfrage AnfrageWegstrecke where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke -> s
+instance Anfrage (AnfrageWegstrecke z) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> s
     zeigeAnfrage
         (AWSUnbekannt qWegstrecke _eingabe)
             = zeigeAnfrage qWegstrecke
@@ -1601,7 +1607,7 @@ instance Anfrage AnfrageWegstrecke where
             = Nothing
 
 -- | Eingabe einer Wegstrecke
-anfrageWegstreckeAktualisieren :: AnfrageWegstrecke -> EingabeToken -> Either AnfrageWegstrecke Wegstrecke
+anfrageWegstreckeAktualisieren :: (AnfrageWegstrecke z) -> EingabeToken -> Either (AnfrageWegstrecke z) (Wegstrecke z)
 anfrageWegstreckeAktualisieren
     AnfrageWegstrecke
     EingabeToken {eingabe}
@@ -1645,13 +1651,13 @@ anfrageWegstreckeAktualisieren
             (Lexer.Streckenabschnitt     , AWSEStreckenabschnitt),
             (Lexer.Kupplung              , AWSEKupplung)]
             $ AWSEUnbekannt eingabe
-        eitherObjektAnhängen :: Either (Objekt -> AnfrageWegstrecke) (Objekt -> Wegstrecke)
+        eitherObjektAnhängen :: Either (Objekt -> (AnfrageWegstrecke z)) (Objekt -> (Wegstrecke z))
         eitherObjektAnhängen
             | anzahl > 1
                 = Left anfrageObjektAnhängen
             | otherwise
                 = Right objektAnhängen
-        objektAnhängen :: Objekt -> Wegstrecke
+        objektAnhängen :: Objekt -> (Wegstrecke z)
         objektAnhängen
             (OBahngeschwindigkeit bahngeschwindigkeit)
                 = acc {wsBahngeschwindigkeiten=bahngeschwindigkeit:wsBahngeschwindigkeiten}
@@ -1665,9 +1671,9 @@ anfrageWegstreckeAktualisieren
         objektAnhängen
             _objekt
                 = acc
-        anfrageObjektAnhängen :: Objekt -> AnfrageWegstrecke
+        anfrageObjektAnhängen :: Objekt -> (AnfrageWegstrecke z)
         anfrageObjektAnhängen objekt = AWegstreckeNameAnzahl (objektAnhängen objekt) $ pred anzahl
-        anfrageWeicheAnhängen :: Objekt -> AnfrageWegstrecke
+        anfrageWeicheAnhängen :: Objekt -> (AnfrageWegstrecke z)
         anfrageWeicheAnhängen (OWeiche weiche)  = AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         anfrageWeicheAnhängen _objekt           = anfrage
@@ -1687,16 +1693,16 @@ anfrageWegstreckeAktualisieren
             (Just richtung)
                 -> eitherWeicheRichtungAnhängen richtung
     where
-        eitherWeicheRichtungAnhängen :: Richtung -> Either AnfrageWegstrecke Wegstrecke
+        eitherWeicheRichtungAnhängen :: Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke z)
         eitherWeicheRichtungAnhängen richtung
             | anzahl > 1
                 = Left $ qWeicheRichtungAnhängen richtung
             | otherwise
                 = Right $ weicheRichtungAnhängen richtung
-        qWeicheRichtungAnhängen :: Richtung -> AnfrageWegstrecke
+        qWeicheRichtungAnhängen :: Richtung -> (AnfrageWegstrecke z)
         qWeicheRichtungAnhängen richtung = AWegstreckeNameAnzahl (weicheRichtungAnhängen richtung) $ pred anzahl
-        weicheRichtungAnhängen :: Richtung -> Wegstrecke
-        weicheRichtungAnhängen richtung = acc {wsWeichenRichtungen=(weiche, richtung):wsWeichenRichtungen}
+        weicheRichtungAnhängen :: Richtung -> (Wegstrecke z)
+        weicheRichtungAnhängen richtung = acc {wsWeichenRichtungen = (weiche, richtung) : wsWeichenRichtungen}
 anfrageWegstreckeAktualisieren
     anfrage
     _token
@@ -1704,48 +1710,57 @@ anfrageWegstreckeAktualisieren
 
 -- ** Weiche
 -- | Unvollständige 'Weiche'
-data AnfrageWeiche
-    = AnfrageWeiche
-    | AWEUnbekannt
-        AnfrageWeiche                   -- ^ Anfrage
-        Text                            -- ^ Eingabe
-    | ALegoWeiche
-    | ALegoWeicheName
-        Text                            -- ^ Name
-    | ALegoWeicheNameFließend
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
-    | ALegoWeicheNameFließendRichtung1
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
-        Richtung                        -- ^ Richtung1
-    | ALegoWeicheNameFließendRichtungen
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
-        Richtung                        -- ^ Richtung1
-        Richtung                        -- ^ Richtung2
-    | AMärklinWeiche
-    | AMärklinWeicheName
-        Text                            -- ^ Name
-    | AMärklinWeicheNameFließend
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
-    | AMärklinWeicheNameFließendAnzahl
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
-        Natural                         -- ^ Verbleibende Richtungen
-        [(Richtung, Anschluss)]         -- ^ RichtungsAnschlüsse
-    | AMärklinWeicheNameFließendAnzahlRichtung
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
-        Natural                         -- ^ Verbleibende Richtungen
-        [(Richtung, Anschluss)]         -- ^ RichtungsAnschlüsse
-        Richtung                        -- ^ nächste Richtung
+data AnfrageWeiche (z :: Zugtyp) where
+    AnfrageWeiche :: AnfrageWeiche z
+    AWEUnbekannt
+        :: AnfrageWeiche z              -- ^ Anfrage
+        -> Text                         -- ^ Eingabe
+            -> AnfrageWeiche z
+    ALegoWeiche :: AnfrageWeiche 'Lego
+    ALegoWeicheName
+        :: Text                         -- ^ Name
+            -> AnfrageWeiche 'Lego
+    ALegoWeicheNameFließend
+        :: Text                         -- ^ Name
+        -> Value                        -- ^ Fließend
+            -> AnfrageWeiche 'Lego
+    ALegoWeicheNameFließendRichtung1
+        :: Text                         -- ^ Name
+        -> Value                        -- ^ Fließend
+        -> Richtung                     -- ^ Richtung1
+            -> AnfrageWeiche 'Lego
+    ALegoWeicheNameFließendRichtungen
+        :: Text                         -- ^ Name
+        -> Value                        -- ^ Fließend
+        -> Richtung                     -- ^ Richtung1
+        -> Richtung                     -- ^ Richtung2
+            -> AnfrageWeiche 'Lego
+    AMärklinWeiche :: AnfrageWeiche 'Märklin
+    AMärklinWeicheName
+        :: Text                         -- ^ Name
+            -> AnfrageWeiche 'Märklin
+    AMärklinWeicheNameFließend
+        :: Text                         -- ^ Name
+        -> Value                        -- ^ Fließend
+            -> AnfrageWeiche 'Märklin
+    AMärklinWeicheNameFließendAnzahl
+        :: Text                         -- ^ Name
+        -> Value                        -- ^ Fließend
+        -> Natural                      -- ^ Verbleibende Richtungen
+        -> [(Richtung, Anschluss)]      -- ^ RichtungsAnschlüsse
+            -> AnfrageWeiche 'Märklin
+    AMärklinWeicheNameFließendAnzahlRichtung
+        :: Text                         -- ^ Name
+        -> Value                        -- ^ Fließend
+        -> Natural                      -- ^ Verbleibende Richtungen
+        -> [(Richtung, Anschluss)]      -- ^ RichtungsAnschlüsse
+        -> Richtung                     -- ^ nächste Richtung
+            -> AnfrageWeiche 'Märklin
 
-type instance AnfrageFamilie Weiche = AnfrageWeiche
+type instance AnfrageFamilie (Weiche z) = AnfrageWeiche z
 
-instance Show AnfrageWeiche where
-    show :: AnfrageWeiche -> String
+instance Show (AnfrageWeiche z) where
+    show :: AnfrageWeiche z -> String
     show
         AnfrageWeiche
             = Language.weiche
@@ -1801,8 +1816,8 @@ instance Show AnfrageWeiche where
                 <^> Language.fließend <=> showText fließend
                 <^> Language.erwartet Language.richtungen <=> showText anzahl
                 <^> showText acc <> Language.richtung <=> showText richtung
-instance Anfrage AnfrageWeiche where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWeiche -> s
+instance Anfrage (AnfrageWeiche z) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWeiche z -> s
     zeigeAnfrage
         AnfrageWeiche
             = Language.zugtyp
@@ -1839,7 +1854,7 @@ instance Anfrage AnfrageWeiche where
     zeigeAnfrage
         (AMärklinWeicheNameFließendAnzahlRichtung _name _fließend _anzahl _acc _richtung)
             = Language.pin
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche -> s -> s
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche z -> s -> s
     zeigeAnfrageFehlgeschlagen
         anfrage@(ALegoWeicheNameFließendRichtungen _name _fließend _richtung1 _richtung2)
         eingabe
@@ -1856,7 +1871,7 @@ instance Anfrage AnfrageWeiche where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWeiche -> Maybe s
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWeiche z -> Maybe s
     zeigeAnfrageOptionen
         AnfrageWeiche
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
@@ -1883,7 +1898,7 @@ instance Anfrage AnfrageWeiche where
             = Nothing
 
 -- | Eingabe einer Weiche
-anfrageWeicheAktualisieren :: AnfrageWeiche -> EingabeToken -> Either AnfrageWeiche Weiche
+anfrageWeicheAktualisieren :: AnfrageWeiche z -> EingabeToken -> Either (AnfrageWeiche z) (Weiche z)
 anfrageWeicheAktualisieren
     AnfrageWeiche
     token@(EingabeToken {eingabe})
@@ -1982,10 +1997,10 @@ anfrageWeicheAktualisieren
 
 -- ** Bahngeschwindigkeit
 -- | Unvollständige 'Bahngeschwindigkeit'
-data AnfrageBahngeschwindigkeit
+data AnfrageBahngeschwindigkeit (z :: Zugtyp)
     = AnfrageBahngeschwindigkeit
     | ABGUnbekannt
-        AnfrageBahngeschwindigkeit                          -- ^ Anfrage
+        (AnfrageBahngeschwindigkeit z)                      -- ^ Anfrage
         Text                                                -- ^ Eingabe
     | ALegoBahngeschwindigkeit
     | ALegoBahngeschwindigkeitName
@@ -2004,9 +2019,9 @@ data AnfrageBahngeschwindigkeit
         Text                                                -- ^ Name
         Value                                               -- ^ Fließend
 
-type instance AnfrageFamilie Bahngeschwindigkeit = AnfrageBahngeschwindigkeit
+type instance AnfrageFamilie (Bahngeschwindigkeit z) = AnfrageBahngeschwindigkeit z
 
-instance Show AnfrageBahngeschwindigkeit where
+instance Show (AnfrageBahngeschwindigkeit z) where
     show :: AnfrageBahngeschwindigkeit -> String
     show    (AnfrageBahngeschwindigkeit)                                            = Language.bahngeschwindigkeit
     show    (ABGUnbekannt anfrage eingabe)                                          = unpack $ unbekanntShowText anfrage eingabe
@@ -2017,8 +2032,8 @@ instance Show AnfrageBahngeschwindigkeit where
     show    (AMärklinBahngeschwindigkeit)                                           = Language.märklin <-> Language.bahngeschwindigkeit
     show    (AMärklinBahngeschwindigkeitName name)                                  = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
     show    (AMärklinBahngeschwindigkeitNameFließend name fließend)                 = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
-instance Anfrage AnfrageBahngeschwindigkeit where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> s
+instance Anfrage (AnfrageBahngeschwindigkeit z) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s
     zeigeAnfrage    (AnfrageBahngeschwindigkeit)                                                = Language.zugtyp
     zeigeAnfrage    (ABGUnbekannt anfrage _eingabe)                                             = zeigeAnfrage anfrage
     zeigeAnfrage    (ALegoBahngeschwindigkeit)                                                  = Language.name
@@ -2028,12 +2043,12 @@ instance Anfrage AnfrageBahngeschwindigkeit where
     zeigeAnfrage    (AMärklinBahngeschwindigkeit)                                               = Language.name
     zeigeAnfrage    (AMärklinBahngeschwindigkeitName _name)                                     = Language.fließendValue
     zeigeAnfrage    (AMärklinBahngeschwindigkeitNameFließend _name _fließend)                   = Language.pin
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> s -> s
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s -> s
     zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitName _name)                                          eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _pin)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a@(AMärklinBahngeschwindigkeitName _name)                                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                                                                               eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit -> Maybe s
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> Maybe s
     zeigeAnfrageOptionen (AnfrageBahngeschwindigkeit)               = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen (ALegoBahngeschwindigkeitName _name)       = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen (AMärklinBahngeschwindigkeitName _name)    = Just $ toBefehlsString $ map showText $ NE.toList alleValues
@@ -2041,7 +2056,7 @@ instance Anfrage AnfrageBahngeschwindigkeit where
     zeigeAnfrageOptionen _anfrage                                   = Nothing
 
 -- | Eingabe einer Bahngeschwindigkeit
-anfrageBahngeschwindigkeitAktualisieren :: AnfrageBahngeschwindigkeit -> EingabeToken -> Either AnfrageBahngeschwindigkeit Bahngeschwindigkeit
+anfrageBahngeschwindigkeitAktualisieren :: AnfrageBahngeschwindigkeit z -> EingabeToken -> Either (AnfrageBahngeschwindigkeit z) (Bahngeschwindigkeit z)
 anfrageBahngeschwindigkeitAktualisieren    (AnfrageBahngeschwindigkeit)                                                                     token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
     (Lexer.Märklin  , AMärklinBahngeschwindigkeit),
     (Lexer.Lego     , ALegoBahngeschwindigkeit)]
