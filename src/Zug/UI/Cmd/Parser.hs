@@ -1841,7 +1841,7 @@ instance Anfrage (AnfrageWeiche z) where
             = Language.richtung
     zeigeAnfrage
         (ALegoWeicheNameFließendRichtungen _name _fließen _richtung1 _richtung2)
-            = Language.pin
+            = Language.anschluss
     zeigeAnfrage
         AMärklinWeiche
             = Language.name
@@ -1856,7 +1856,7 @@ instance Anfrage (AnfrageWeiche z) where
             = Language.richtung
     zeigeAnfrage
         (AMärklinWeicheNameFließendAnzahlRichtung _name _fließend _anzahl _acc _richtung)
-            = Language.pin
+            = Language.anschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche z -> s -> s
     zeigeAnfrageFehlgeschlagen
         anfrage@(ALegoWeicheNameFließendRichtungen _name _fließend _richtung1 _richtung2)
@@ -2085,10 +2085,10 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
             = Language.fließendValue
     zeigeAnfrage
         (ALegoBahngeschwindigkeitNameFließend _name _fließend)
-            = Language.pin
+            = Language.anschluss
     zeigeAnfrage
         (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _pin)
-            = Language.pin
+            = Language.anschluss
     zeigeAnfrage
         AMärklinBahngeschwindigkeit
             = Language.name
@@ -2097,7 +2097,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
             = Language.fließendValue
     zeigeAnfrage
         (AMärklinBahngeschwindigkeitNameFließend _name _fließend)
-            = Language.pin
+            = Language.anschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s -> s
     zeigeAnfrageFehlgeschlagen
         anfrage@(ALegoBahngeschwindigkeitName _name)
@@ -2219,35 +2219,82 @@ type instance AnfrageFamilie Streckenabschnitt = AnfrageStreckenabschnitt
 
 instance Show AnfrageStreckenabschnitt where
     show :: AnfrageStreckenabschnitt -> String
-    show    (AnfrageStreckenabschnitt)                      = Language.streckenabschnitt
-    show    (ASTUnbekannt anfrage eingabe)                  = unpack $ unbekanntShowText anfrage eingabe
-    show    (AStreckenabschnittName name)                   = unpack $ Language.streckenabschnitt <^> Language.name <=> name
-    show    (AStreckenabschnittNameFließend name fließend)  = unpack $ Language.streckenabschnitt <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
+    show
+        AnfrageStreckenabschnitt
+            = Language.streckenabschnitt
+    show
+        (ASTUnbekannt anfrage eingabe)
+            = unpack $ unbekanntShowText anfrage eingabe
+    show
+        (AStreckenabschnittName name)
+            = unpack $ Language.streckenabschnitt <^> Language.name <=> name
+    show
+        (AStreckenabschnittNameFließend name fließend)
+            = unpack $ Language.streckenabschnitt
+                <^> Language.name <=> name
+                <^> Language.fließendValue <=> showText fließend
 instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s
-    zeigeAnfrage    (AnfrageStreckenabschnitt)                          = Language.name
-    zeigeAnfrage    (ASTUnbekannt anfrage _eingabe)                     = zeigeAnfrage anfrage
-    zeigeAnfrage    (AStreckenabschnittName _name)                      = Language.fließendValue
-    zeigeAnfrage    (AStreckenabschnittNameFließend _name _fließend)    = Language.pin
+    zeigeAnfrage
+        AnfrageStreckenabschnitt
+            = Language.name
+    zeigeAnfrage
+        (ASTUnbekannt anfrage _eingabe)
+            = zeigeAnfrage anfrage
+    zeigeAnfrage
+        (AStreckenabschnittName _name)
+            = Language.fließendValue
+    zeigeAnfrage
+        (AStreckenabschnittNameFließend _name _fließend)
+            = Language.anschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s -> s
-    zeigeAnfrageFehlgeschlagen  a@(AStreckenabschnittName _name)    eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen  a                                   eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(AStreckenabschnittName _name)
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> Maybe s
-    zeigeAnfrageOptionen (AStreckenabschnittName _name)     = Just $ toBefehlsString $ map showText $ NE.toList alleValues
-    zeigeAnfrageOptionen (ASTUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
-    zeigeAnfrageOptionen _anfrage                           = Nothing
+    zeigeAnfrageOptionen
+        (AStreckenabschnittName _name)
+            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+    zeigeAnfrageOptionen
+        (ASTUnbekannt anfrage _eingabe)
+            = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen
+        _anfrage
+            = Nothing
 
     -- | Eingabe eines Streckenabschnitts
 anfrageStreckenabschnittAktualisieren :: AnfrageStreckenabschnitt -> EingabeToken -> Either AnfrageStreckenabschnitt Streckenabschnitt
-anfrageStreckenabschnittAktualisieren   (AnfrageStreckenabschnitt)                              (EingabeToken {eingabe})            = Left $ AStreckenabschnittName eingabe
-anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittName name)                   token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
-    (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH),
-    (Lexer.LOW  , AStreckenabschnittNameFließend name LOW)]
-    $ ASTUnbekannt anfrage eingabe
-anfrageStreckenabschnittAktualisieren   anfrage@(AStreckenabschnittNameFließend name fließend)  (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    Nothing   -> Left $ ASTUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Streckenabschnitt {stName=name, stFließend=fließend, stromAnschluss=zuPin pin}
-anfrageStreckenabschnittAktualisieren   anfrage@(ASTUnbekannt _ _)                              _token                              = Left anfrage
+anfrageStreckenabschnittAktualisieren
+    AnfrageStreckenabschnitt
+    EingabeToken {eingabe}
+        = Left $ AStreckenabschnittName eingabe
+anfrageStreckenabschnittAktualisieren
+    anfrage@(AStreckenabschnittName name)
+    token@(EingabeToken {eingabe})
+        = Left $ wähleBefehl token [
+            (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH),
+            (Lexer.LOW  , AStreckenabschnittNameFließend name LOW)]
+            $ ASTUnbekannt anfrage eingabe
+anfrageStreckenabschnittAktualisieren
+    anfrage@(AStreckenabschnittNameFließend stName stFließend)
+    EingabeToken {eingabe, ganzzahl}
+        = case ganzzahl of
+            Nothing
+                -> Left $ ASTUnbekannt anfrage eingabe
+            (Just pin)
+                -> Right $ Streckenabschnitt {
+                    stName,
+                    stFließend,
+                    stromAnschluss = zuPin pin}
+anfrageStreckenabschnittAktualisieren
+    anfrage@(ASTUnbekannt _anfrage _eingabe)
+    _token
+        = Left anfrage
 
 -- ** Kupplung
 -- | Unvollständige 'Kupplung'
@@ -2275,7 +2322,7 @@ instance Anfrage AnfrageKupplung where
     zeigeAnfrage    (AnfrageKupplung)                       = Language.name
     zeigeAnfrage    (AKUUnbekannt anfrage _eingabe)         = zeigeAnfrage anfrage
     zeigeAnfrage    (AKupplungName _name)                   = Language.fließendValue
-    zeigeAnfrage    (AKupplungNameFließend _name _fließend) = Language.pin
+    zeigeAnfrage    (AKupplungNameFließend _name _fließend) = Language.anschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageKupplung -> s -> s
     zeigeAnfrageFehlgeschlagen  a@(AKupplungName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen  a                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
