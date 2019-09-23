@@ -2313,39 +2313,84 @@ type instance AnfrageFamilie Kupplung = AnfrageKupplung
 
 instance Show AnfrageKupplung where
     show :: AnfrageKupplung -> String
-    show    (AnfrageKupplung)                       = Language.kupplung
-    show    (AKUUnbekannt anfrage eingabe)          = unpack $ unbekanntShowText anfrage eingabe
-    show    (AKupplungName name)                    = unpack $ Language.kupplung <^> Language.name <=> name
-    show    (AKupplungNameFließend name fließend)   = unpack $ Language.kupplung <^> Language.name <=> name <^> Language.fließendValue <=> showText fließend
+    show 
+        AnfrageKupplung
+            = Language.kupplung
+    show 
+        (AKUUnbekannt anfrage eingabe)
+            = unpack $ unbekanntShowText anfrage eingabe
+    show 
+        (AKupplungName name)
+            = unpack $ Language.kupplung <^> Language.name <=> name
+    show 
+        (AKupplungNameFließend name fließend)
+            = unpack $ Language.kupplung <^> Language.name <=> name
+                <^> Language.fließendValue <=> showText fließend
 instance Anfrage AnfrageKupplung where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageKupplung -> s
-    zeigeAnfrage    (AnfrageKupplung)                       = Language.name
-    zeigeAnfrage    (AKUUnbekannt anfrage _eingabe)         = zeigeAnfrage anfrage
-    zeigeAnfrage    (AKupplungName _name)                   = Language.fließendValue
-    zeigeAnfrage    (AKupplungNameFließend _name _fließend) = Language.anschluss
+    zeigeAnfrage
+        AnfrageKupplung
+            = Language.name
+    zeigeAnfrage
+        (AKUUnbekannt anfrage _eingabe)
+            = zeigeAnfrage anfrage
+    zeigeAnfrage
+        (AKupplungName _name)
+            = Language.fließendValue
+    zeigeAnfrage
+        (AKupplungNameFließend _name _fließend)
+            = Language.anschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageKupplung -> s -> s
-    zeigeAnfrageFehlgeschlagen  a@(AKupplungName _name) eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen  a                       eingabe = zeigeAnfrageFehlgeschlagenStandard a eingabe
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(AKupplungName _name)
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageKupplung -> Maybe s
-    zeigeAnfrageOptionen (AKupplungName _name)              = Just $ toBefehlsString $ map showText $ NE.toList alleValues
-    zeigeAnfrageOptionen (AKUUnbekannt anfrage _eingabe)    = zeigeAnfrageOptionen anfrage
-    zeigeAnfrageOptionen _anfrage                           = Nothing
+    zeigeAnfrageOptionen
+        (AKupplungName _name)
+            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+    zeigeAnfrageOptionen
+        (AKUUnbekannt anfrage _eingabe)
+            = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen
+        _anfrage
+            = Nothing
 
 -- | Eingabe einer Kupplung
 anfrageKupplungAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
-anfrageKupplungAktualisieren    (AnfrageKupplung)                               (EingabeToken {eingabe})            = Left $ AKupplungName eingabe
-anfrageKupplungAktualisieren    anfrage@(AKupplungName name)                    token@(EingabeToken {eingabe})      = Left $ wähleBefehl token [
-    (Lexer.HIGH , AKupplungNameFließend name HIGH),
-    (Lexer.LOW  , AKupplungNameFließend name LOW)]
-    $ AKUUnbekannt anfrage eingabe
-anfrageKupplungAktualisieren    anfrage@(AKupplungNameFließend name fließend)   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    Nothing   -> Left $ AKUUnbekannt anfrage eingabe
-    (Just pin)  -> Right $ Kupplung {kuName=name, kuFließend=fließend, kupplungsAnschluss=zuPin pin}
-anfrageKupplungAktualisieren    anfrage@(AKUUnbekannt _ _)                      _token                              = Left anfrage
+anfrageKupplungAktualisieren
+    AnfrageKupplung
+    EingabeToken {eingabe}
+        = Left $ AKupplungName eingabe
+anfrageKupplungAktualisieren
+    anfrage@(AKupplungName name)
+    token@(EingabeToken {eingabe})
+        = Left $ wähleBefehl token [
+            (Lexer.HIGH , AKupplungNameFließend name HIGH),
+            (Lexer.LOW  , AKupplungNameFließend name LOW)]
+            $ AKUUnbekannt anfrage eingabe
+anfrageKupplungAktualisieren
+    anfrage@(AKupplungNameFließend kuName kuFließend)
+    EingabeToken {eingabe, ganzzahl}
+        = case ganzzahl of
+            Nothing
+                -> Left $ AKUUnbekannt anfrage eingabe
+            (Just pin)
+                -> Right $ Kupplung {
+                    kuName,
+                    kuFließend,
+                    kupplungsAnschluss = zuPin pin}
+anfrageKupplungAktualisieren
+    anfrage@(AKUUnbekannt _anfrage _eingabe)
+    _token
+        = Left anfrage
 
 
 -- * Klasse für unvollständige Befehle
-
 -- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
 class Anfrage a where
     zeigeAnfrage :: (IsString s, Semigroup s) => a -> s
