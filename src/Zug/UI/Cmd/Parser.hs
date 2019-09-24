@@ -58,81 +58,8 @@ import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngesch
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token(), leeresToken)
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), AnfrageFamilie, showMitAnfrage, showMitAnfrageFehlgeschlagen)
-
--- * Auswerten einer Text-Eingabe
--- ** Suchen eines Objekt im aktuellen 'StatusAllgemein'
--- | Ein Objekt aus dem aktuellen Status wird benötigt
-data StatusAnfrageObjekt
-    = SAOUnbekannt
-        Text
-    | SAOPlan
-        EingabeToken
-    | SAOWegstrecke
-        EingabeToken
-    | SAOWeiche
-        EingabeToken
-    | SAOBahngeschwindigkeit
-        EingabeToken
-    | SAOStreckenabschnitt
-        EingabeToken
-    | SAOKupplung
-        EingabeToken
-
-instance Show StatusAnfrageObjekt where
-    show :: StatusAnfrageObjekt -> String
-    show    anfrage@(SAOUnbekannt eingabe)    = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
-    show    (SAOPlan _token)                  = Language.plan
-    show    (SAOWegstrecke _token)            = Language.wegstrecke
-    show    (SAOWeiche _token)                = Language.weiche
-    show    (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
-    show    (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
-    show    (SAOKupplung _token)              = Language.kupplung
-instance Anfrage StatusAnfrageObjekt where
-    zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjekt -> s
-    zeigeAnfrage    (SAOUnbekannt _eingabe)           = Language.objekt
-    zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
-    zeigeAnfrage    (SAOWegstrecke _token)            = Language.indexOderName Language.wegstrecke
-    zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
-    zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
-    zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
-    zeigeAnfrage    (SAOKupplung _token)              = Language.indexOderName Language.kupplung
--- | Erhalte ein im Status existierendes Objekt
-statusAnfrageObjekt :: StatusAnfrageObjekt -> MStatus (Either StatusAnfrageObjekt Objekt)
-statusAnfrageObjekt
-    anfrage@(SAOUnbekannt _eingabe0)
-        = pure $ Left anfrage
-statusAnfrageObjekt
-    anfrage@(SAOPlan eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getPläne OPlan
-statusAnfrageObjekt
-    anfrage@(SAOWegstrecke eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWegstrecken OWegstrecke
-statusAnfrageObjekt
-    anfrage@(SAOWeiche eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWeichen OWeiche
-statusAnfrageObjekt
-    anfrage@(SAOBahngeschwindigkeit eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
-statusAnfrageObjekt
-    anfrage@(SAOStreckenabschnitt eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte OStreckenabschnitt
-statusAnfrageObjekt
-    anfrage@(SAOKupplung eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
-
--- | Hilfsfunktion
-statusAnfrageObjektAux :: (StreckenObjekt a)
-    => StatusAnfrageObjekt
-    -> EingabeToken
-    -> MStatus [a]
-    -> (a -> Objekt)
-        -> MStatus (Either StatusAnfrageObjekt Objekt)
-statusAnfrageObjektAux anfrage eingabe getFromStatus konstruktor = do
-    objekte <- getFromStatus
-    pure $ case findByNameOrIndex objekte eingabe of
-        Nothing         -> Left anfrage
-        (Just objekt)   -> Right $ konstruktor objekt
+import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), AnfrageFamilie, showMitAnfrage, showMitAnfrageFehlgeschlagen,
+                                StatusAnfrageObjekt(..), statusAnfrageObjekt)
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
 parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
@@ -357,7 +284,7 @@ anfrageAktualisieren
         = AEAnfrageBefehl anfrage
 anfrageAktualisieren
     AnfrageBefehl
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Beenden              , AEBefehl $ UI Beenden),
             (Lexer.Hinzufügen           , AEAnfrageBefehl $ ABHinzufügen AnfrageObjekt),
@@ -394,7 +321,7 @@ anfrageAktualisieren
                 -> AEBefehl $ Hinzufügen objekt
 anfrageAktualisieren
     ABEntfernen
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = case anfrageObjektExistierend token of
             Nothing
                 -> AEAnfrageBefehl $ ABUnbekannt ABEntfernen eingabe
@@ -421,7 +348,7 @@ anfrageAktualisieren
         = AEBefehlSofort (BSLaden $ unpack eingabe) []
 anfrageAktualisieren
     anfrage@(ABAktionPlan plan@(Plan {plAktionen}))
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Ausführen, AEBefehl $ Ausführen plan zeigeFortschritt $ pure ())]
             $ AEAnfrageBefehl $ ABUnbekannt anfrage eingabe
@@ -432,13 +359,13 @@ anfrageAktualisieren
                         showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)
 anfrageAktualisieren
     (ABAktionPlanAusführend plan _neu)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)]
             $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanAusführend plan Alt) eingabe
 anfrageAktualisieren
     (ABAktionPlanGesperrt plan _neu pins)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanGesperrt plan Alt pins) eingabe
 anfrageAktualisieren
     anfrage@(ABAktion anfrageAktion)
@@ -592,7 +519,7 @@ anfrageObjektAktualisieren
         = Left anfrageObjekt
 anfrageObjektAktualisieren
     AnfrageObjekt
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
             (Lexer.Wegstrecke            , Left $ AOWegstrecke AnfrageWegstrecke),
@@ -776,11 +703,11 @@ instance Anfrage AnfragePlan where
 anfragePlanAktualisieren :: AnfragePlan -> EingabeToken -> Either AnfragePlan Plan
 anfragePlanAktualisieren
     AnfragePlan
-    (EingabeToken {eingabe})
+    EingabeToken {eingabe}
         = Left $ APlanName eingabe
 anfragePlanAktualisieren
     anfrage@(APlanName name)
-    (EingabeToken {eingabe, ganzzahl})
+    EingabeToken {eingabe, ganzzahl}
         = Left $ case ganzzahl of
             Nothing       -> APUnbekannt anfrage eingabe
             (Just anzahl)   -> APlanNameAnzahl name anzahl leer AnfrageAktion
@@ -1026,7 +953,7 @@ anfrageAktionAktualisieren
                     \(OKupplung kupplung) -> AAKupplung $ AnfrageAktionKupplung kupplung
     where
         anfrageAktionElement :: EingabeToken -> AnfrageAktionElement
-        anfrageAktionElement  token@(EingabeToken {eingabe})  = wähleBefehl token [
+        anfrageAktionElement  token@EingabeToken {eingabe}  = wähleBefehl token [
             (Lexer.Rückgängig           , AAERückgängig),
             (Lexer.Warten               , AAEWarten),
             (Lexer.Wegstrecke           , AAEWegstrecke),
@@ -1172,7 +1099,7 @@ anfrageAktionWegstreckeAktualisieren
         = Left anfrage
 anfrageAktionWegstreckeAktualisieren
     anfrage@(AnfrageAktionWegstrecke wegstrecke)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Einstellen       , Right $ Einstellen wegstrecke),
             (Lexer.Geschwindigkeit  , Left $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke),
@@ -1262,12 +1189,12 @@ anfrageAktionWeicheAktualisieren :: (Show (AnfrageFamilie w), Show w, WeicheKlas
     => AnfrageAktionWeiche w -> EingabeToken -> Either (AnfrageAktionWeiche w) (AktionWeiche w)
 anfrageAktionWeicheAktualisieren
     anfrage@(AnfrageAktionWeiche weiche)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [(Lexer.Stellen  , Left $ AAWStellen weiche)] $
             Left $ AAWUnbekannt anfrage eingabe
 anfrageAktionWeicheAktualisieren
     anfrage@(AAWStellen _weiche)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = case wähleRichtung token of
             Nothing
                 -> Left $ AAWUnbekannt anfrage eingabe
@@ -1368,7 +1295,7 @@ anfrageAktionBahngeschwindigkeitAktualisieren :: (BahngeschwindigkeitKlasse b)
         -> Either (AnfrageAktionBahngeschwindigkeit b z) (AktionBahngeschwindigkeit b z)
 anfrageAktionBahngeschwindigkeitAktualisieren
     anfrage@(AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Geschwindigkeit  , Left $ AABGGeschwindigkeit bahngeschwindigkeit),
             (Lexer.Umdrehen         , if zugtyp bahngeschwindigkeit == Märklin
@@ -1377,7 +1304,7 @@ anfrageAktionBahngeschwindigkeitAktualisieren
             $ Left $ AABGUnbekannt anfrage eingabe
 anfrageAktionBahngeschwindigkeitAktualisieren
     anfrage@(AABGGeschwindigkeit bahngeschwindigkeit)
-    (EingabeToken {eingabe, ganzzahl})
+    EingabeToken {eingabe, ganzzahl}
         = case ganzzahl of
             Nothing
                 -> Left $ AABGUnbekannt anfrage eingabe
@@ -1385,7 +1312,7 @@ anfrageAktionBahngeschwindigkeitAktualisieren
                 -> Right $ Geschwindigkeit bahngeschwindigkeit wert
 anfrageAktionBahngeschwindigkeitAktualisieren
     anfrage@(AABGFahrtrichtungEinstellen bahngeschwindigkeit)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Vorwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Vorwärts),
             (Lexer.Rückwärts , Right $ Umdrehen bahngeschwindigkeit $ Just Rückwärts)]
@@ -1447,12 +1374,12 @@ anfrageAktionStreckenabschnittAktualisieren :: (StreckenabschnittKlasse s)
         -> Either (AnfrageAktionStreckenabschnitt s) (AktionStreckenabschnitt s)
 anfrageAktionStreckenabschnittAktualisieren
     anfrage@(AnfrageAktionStreckenabschnitt streckenabschnitt)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [(Lexer.Strom, Left $ AASTStrom streckenabschnitt)] $
             Left $ AASTUnbekannt anfrage eingabe
 anfrageAktionStreckenabschnittAktualisieren
     anfrage@(AASTStrom streckenabschnitt)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Fließend , Right $ Strom streckenabschnitt Fließend),
             (Lexer.An       , Right $ Strom streckenabschnitt Fließend),
@@ -1503,7 +1430,7 @@ anfrageAktionKupplungAktualisieren :: (KupplungKlasse k)
     => AnfrageAktionKupplung k -> EingabeToken -> Either (AnfrageAktionKupplung k) (AktionKupplung k)
 anfrageAktionKupplungAktualisieren
     anfrage@(AnfrageAktionKupplung kupplung)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = wähleBefehl token [(Lexer.Kuppeln, Right $ Kuppeln kupplung)] $
             Left $ AAKUUnbekannt anfrage eingabe
 anfrageAktionKupplungAktualisieren
@@ -1646,7 +1573,7 @@ anfrageWegstreckeAktualisieren
                 -> AWSUnbekannt anfrage eingabe
     where
         anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
-        anfrageWegstreckenElement token@(EingabeToken {eingabe}) = wähleBefehl token [
+        anfrageWegstreckenElement token@EingabeToken {eingabe} = wähleBefehl token [
             (Lexer.Weiche                , AWSEWeiche),
             (Lexer.Bahngeschwindigkeit   , AWSEBahngeschwindigkeit),
             (Lexer.Streckenabschnitt     , AWSEStreckenabschnitt),
@@ -1687,7 +1614,7 @@ anfrageWegstreckeAktualisieren
         acc@(Wegstrecke {wsWeichenRichtungen})
         anzahl
         weiche)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = case wähleRichtung token of
             Nothing
                 -> Left $ AWSUnbekannt anfrage eingabe
@@ -1905,7 +1832,7 @@ instance Anfrage (AnfrageWeiche z) where
 anfrageWeicheAktualisieren :: AnfrageWeiche z -> EingabeToken -> Either (AnfrageWeiche z) (Weiche z)
 anfrageWeicheAktualisieren
     AnfrageWeiche
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.Märklin  , AMärklinWeiche),
             (Lexer.Lego     , ALegoWeiche)]
@@ -1916,14 +1843,14 @@ anfrageWeicheAktualisieren
         = Left $ ALegoWeicheName eingabe
 anfrageWeicheAktualisieren
     anfrage@(ALegoWeicheName name)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
             (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
             $ AWEUnbekannt anfrage eingabe
 anfrageWeicheAktualisieren
     anfrage@(ALegoWeicheNameFließend name fließend)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ case wähleRichtung token of
             Nothing
                 -> AWEUnbekannt anfrage eingabe
@@ -1931,7 +1858,7 @@ anfrageWeicheAktualisieren
                 -> ALegoWeicheNameFließendRichtung1 name fließend richtung1
 anfrageWeicheAktualisieren
     anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ case wähleRichtung token of
             Nothing
                 -> AWEUnbekannt anfrage eingabe
@@ -1955,7 +1882,7 @@ anfrageWeicheAktualisieren
         = Left $ AMärklinWeicheName eingabe
 anfrageWeicheAktualisieren
     anfrage@(AMärklinWeicheName name)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
             (Lexer.LOW  , AMärklinWeicheNameFließend name LOW)]
@@ -1970,7 +1897,7 @@ anfrageWeicheAktualisieren
                 -> Left $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
 anfrageWeicheAktualisieren
     anfrage@(AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ case wähleRichtung token of
             Nothing
                 -> AWEUnbekannt anfrage eingabe
@@ -2140,7 +2067,7 @@ anfrageBahngeschwindigkeitAktualisieren ::
         Either (AnfrageBahngeschwindigkeit z) (Bahngeschwindigkeit z)
 anfrageBahngeschwindigkeitAktualisieren
     AnfrageBahngeschwindigkeit
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.Märklin  , AMärklinBahngeschwindigkeit),
             (Lexer.Lego     , ALegoBahngeschwindigkeit)]
@@ -2151,7 +2078,7 @@ anfrageBahngeschwindigkeitAktualisieren
         = Left $ ALegoBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitAktualisieren
     anfrage@(ALegoBahngeschwindigkeitName name)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend name HIGH),
             (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend name LOW)]
@@ -2182,7 +2109,7 @@ anfrageBahngeschwindigkeitAktualisieren
         = Left $ AMärklinBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitAktualisieren
     anfrage@(AMärklinBahngeschwindigkeitName name)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend name HIGH),
             (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend name LOW)]
@@ -2276,7 +2203,7 @@ anfrageStreckenabschnittAktualisieren
         = Left $ AStreckenabschnittName eingabe
 anfrageStreckenabschnittAktualisieren
     anfrage@(AStreckenabschnittName name)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH),
             (Lexer.LOW  , AStreckenabschnittNameFließend name LOW)]
@@ -2369,7 +2296,7 @@ anfrageKupplungAktualisieren
         = Left $ AKupplungName eingabe
 anfrageKupplungAktualisieren
     anfrage@(AKupplungName name)
-    token@(EingabeToken {eingabe})
+    token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , AKupplungNameFließend name HIGH),
             (Lexer.LOW  , AKupplungNameFließend name LOW)]
@@ -2421,15 +2348,3 @@ wähleRichtung token = wähleBefehl token [
 -- | Fehlerhafte Eingabe anzeigen
 unbekanntShowText :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
 unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingabe
-
--- | Element einer Liste anhand des Index oder Namens finden
-findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
-findByNameOrIndex   liste   (EingabeToken {eingabe, ganzzahl})  = case ganzzahl of
-    (Just index)    | index >= 0, längerAls liste index     -> Just $ liste !! fromIntegral index
-    _maybeIndex                                             -> listToMaybe $ filter ((== eingabe) . erhalteName) liste
-
--- | Prüft, ob eine Liste mindestens von der Länge i ist, ohne die komplette Länge zu berechnen
-längerAls :: [a] -> Natural -> Bool
-längerAls   []      i   = i < 0
-längerAls   _liste  0   = True
-längerAls   (_h:t)  i   = längerAls t $ pred i
