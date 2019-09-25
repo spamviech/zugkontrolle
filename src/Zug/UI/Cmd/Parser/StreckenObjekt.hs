@@ -1128,3 +1128,9 @@ anfrageKupplungAktualisieren
     anfrage@(AKUUnbekannt _anfrage _eingabe)
     _token
         = Left anfrage
+
+-- | Unvollständiger 'Anschluss'
+data AnfrageAnschluss
+    = AnfrageAnschluss
+
+type instance AnfrageFamilie Anschluss = AnfrageAnschluss
