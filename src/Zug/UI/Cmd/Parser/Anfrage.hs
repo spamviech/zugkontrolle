@@ -8,9 +8,13 @@
 Description : Klasse und Typfamilie für unvollständige Objekte.
 -}
 module Zug.UI.Cmd.Parser.Anfrage (
+    -- * Unvollständige Befehle/Objekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, AnfrageFamilie,
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
-    StatusAnfrageObjekt(..), statusAnfrageObjekt) where
+    -- * Suche ein existierendes Objekt im Status
+    StatusAnfrageObjekt(..), statusAnfrageObjekt,
+    -- * Hilfsfunktionen
+    wähleBefehl, wähleRichtung, unbekanntShowText) where
 
 import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
@@ -20,13 +24,14 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..))
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..))
-import Zug.Language ((<=>), (<^>), showText)
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Richtung(..))
+import Zug.Language ((<=>), (<^>), showText, fehlerText)
 import qualified Zug.Language as Language
 import Zug.Plan (ObjektAllgemein(..), Objekt)
 import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
                     getStreckenabschnitte, getKupplungen)
-import Zug.UI.Cmd.Lexer (EingabeToken(..))
+import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
+import qualified Zug.UI.Cmd.Lexer as Lexer
 
 -- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
 class Anfrage a where
@@ -150,3 +155,33 @@ längerAls :: [a] -> Natural -> Bool
 längerAls   []      i   = i < 0
 längerAls   _liste  0   = True
 längerAls   (_h:t)  i   = längerAls t $ pred i
+
+-- | Wähle aus möglichen Interpretationen der Eingabe die erste passende aus und gebe den daraus resultierenden Befehl zurück.
+-- Falls keine Möglichkeit passend ist, gebe wird das Ersatz-Ergebnis zurückgegeben.
+wähleBefehl :: EingabeToken -> [(Token, a)] -> a -> a
+wähleBefehl
+    _eingabe
+    []
+    ersatz
+        = ersatz
+wähleBefehl
+    eingabe@(EingabeToken {möglichkeiten})
+    ((befehl, ergebnis) : t)
+    ersatz
+        | elem befehl möglichkeiten
+            = ergebnis
+        | otherwise
+            = wähleBefehl eingabe t ersatz
+
+-- | Gebe (falls möglich) die zur Eingabe passende 'Richtung' zurück.
+wähleRichtung :: EingabeToken -> Maybe Richtung
+wähleRichtung token = wähleBefehl token [
+    (Lexer.Gerade   , Just Gerade),
+    (Lexer.Kurve    , Just Kurve),
+    (Lexer.Links    , Just Links),
+    (Lexer.Rechts   , Just Rechts)]
+    Nothing
+
+-- | Fehlerhafte Eingabe anzeigen
+unbekanntShowText :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
+unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingabe
