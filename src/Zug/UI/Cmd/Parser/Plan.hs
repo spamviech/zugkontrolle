@@ -11,7 +11,14 @@ Description: Parsen von 'Plan' und 'Aktion'
 -}
 module Zug.UI.Cmd.Parser.Plan (
     AnfragePlan(..), anfragePlanAktualisieren,
-    AnfrageAktion(..), anfrageAktionAktualisieren) where
+    AnfrageAktion(..), anfrageAktionAktualisieren,
+    AnfrageAktionWegstrecke(..), anfrageAktionWegstreckeAktualisieren,
+    AktionWegstreckeZugtyp(..),
+    AnfrageAktionBahngeschwindigkeit(..), anfrageAktionBahngeschwindigkeitAktualisieren,
+    AktionBahngeschwindigkeitZugtyp(..),
+    AnfrageAktionStreckenabschnitt(..), anfrageAktionStreckenabschnittAktualisieren,
+    AnfrageAktionWeiche(..), anfrageAktionWeicheAktualisieren,
+    AnfrageAktionKupplung(..), anfrageAktionKupplungAktualisieren) where
 
 import Data.Foldable (Foldable(..))
 import qualified Data.List.NonEmpty as NE
