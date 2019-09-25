@@ -51,7 +51,7 @@ data ObjektAllgemein bg st we ku ws pl
     | OWegstrecke (ZugtypEither ws)
     | OPlan pl
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
-type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Weiche Plan
+type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
 deriving instance (Eq st, Eq ku, Eq pl, Eq (bg 'Märklin), Eq (bg 'Lego),
                     Eq (we 'Märklin), Eq (we 'Lego), Eq (ws 'Märklin), Eq (ws 'Lego))
