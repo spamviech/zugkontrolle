@@ -15,7 +15,8 @@ module Zug.UI.Cmd.Parser.StreckenObjekt (
     AnfrageWeiche(..), anfrageWeicheAktualisieren,
     AnfrageBahngeschwindigkeit(..), anfrageBahngeschwindigkeitAktualisieren,
     AnfrageStreckenabschnitt(..), anfrageStreckenabschnittAktualisieren,
-    AnfrageKupplung(..), anfrageKupplungAktualisieren) where
+    AnfrageKupplung(..), anfrageKupplungAktualisieren,
+    AnfrageAnschluss(..), anfrageAnschlussAktualisieren) where
 
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString())
@@ -25,7 +26,8 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..),
-                    Anschluss(), Value(..), alleValues)
+                    Anschluss(..), Value(..), alleValues, PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
+                    vonPinGpio, vonPCF8574Port)
 import Zug.Klassen (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, Richtung(..), unterstützteRichtungen)
 import Zug.Language ((<^>), (<=>), (<->), showText, toBefehlsString)
 import qualified Zug.Language as Language
@@ -33,7 +35,7 @@ import Zug.Plan (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, AnfrageFamilie,
-                                StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung)
+                                StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue)
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), anfragePlanAktualisieren)
 
 -- | Unvollständige Objekte
@@ -1132,5 +1134,205 @@ anfrageKupplungAktualisieren
 -- | Unvollständiger 'Anschluss'
 data AnfrageAnschluss
     = AnfrageAnschluss
+    | AnfrageAnschlussUnbekannt
+        AnfrageAnschluss        -- ^ Anfrage
+        Text                    -- ^ Eingabe
+    | APin
+    | APCF8574Port
+    | APCF8574PortVariant
+        PCF8574Variant          -- ^ Variante
+    | APCF8574PortVariantA0
+        PCF8574Variant          -- ^ Variante
+        Value                   -- ^ a0
+    | APCF8574PortVariantA0A1
+        PCF8574Variant          -- ^ Variante
+        Value                   -- ^ a0
+        Value                   -- ^ a1
+    | APCF8574PortVariantA0A1A2
+        PCF8574Variant          -- ^ Variante
+        Value                   -- ^ a0
+        Value                   -- ^ a1
+        Value                   -- ^ a2
 
 type instance AnfrageFamilie Anschluss = AnfrageAnschluss
+
+instance Show AnfrageAnschluss where
+    show :: AnfrageAnschluss -> String
+    show
+        AnfrageAnschluss
+            = Language.anschluss
+    show 
+        (AnfrageAnschlussUnbekannt anfrage eingabe)
+            = unpack $ unbekanntShowText anfrage eingabe
+    show 
+        APin
+            = unpack $ Language.anschluss <-> Language.pin
+    show 
+        APCF8574Port
+            = unpack $ Language.anschluss <-> Language.pcf8574Port
+    show
+        (APCF8574PortVariant variante)
+            = unpack $ Language.anschluss <-> Language.pcf8574Port
+                <^> Language.variante <=> if (variante == VariantNormal)
+                    then Language.normal
+                    else Language.a
+    show
+        (APCF8574PortVariantA0 variante a0)
+            = unpack $ Language.anschluss <-> Language.pcf8574Port
+                <^> Language.variante <=> (if (variante == VariantNormal)
+                    then Language.normal
+                    else Language.a)
+                <^> Language.a0 <=> showText a0
+    show
+        (APCF8574PortVariantA0A1 variante a0 a1)
+            = unpack $ Language.anschluss <-> Language.pcf8574Port
+                <^> Language.variante <=> (if (variante == VariantNormal)
+                    then Language.normal
+                    else Language.a)
+                <^> Language.a0 <=> showText a0
+                <^> Language.a1 <=> showText a1
+    show
+        (APCF8574PortVariantA0A1A2 variante a0 a1 a2)
+            = unpack $ Language.anschluss <-> Language.pcf8574Port
+                <^> Language.variante <=> (if (variante == VariantNormal)
+                    then Language.normal
+                    else Language.a)
+                <^> Language.a0 <=> showText a0
+                <^> Language.a1 <=> showText a1
+                <^> Language.a2 <=> showText a2
+instance Anfrage AnfrageAnschluss where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAnschluss -> s
+    zeigeAnfrage
+        AnfrageAnschluss
+            = Language.anschluss
+    zeigeAnfrage 
+        (AnfrageAnschlussUnbekannt anfrage _eingabe)
+            = zeigeAnfrage anfrage
+    zeigeAnfrage
+        APin
+            = Language.pin
+    zeigeAnfrage
+        APCF8574Port
+            = Language.pcf8574 <-> Language.variante
+    zeigeAnfrage
+        (APCF8574PortVariant variante)
+            = Language.a0
+    zeigeAnfrage
+        (APCF8574PortVariantA0 variante a0)
+            = Language.a1
+    zeigeAnfrage
+        (APCF8574PortVariantA0A1 variante a0 a1)
+            = Language.a2
+    zeigeAnfrage
+        (APCF8574PortVariantA0A1A2 variante a0 a1 a2)
+            = Language.port
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAnschluss -> s -> s
+    zeigeAnfrageFehlgeschlagen
+        anfrage@APin
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(APCF8574PortVariant _variante)
+        eingabe
+            = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(APCF8574PortVariantA0 _variante a0)
+        eingabe
+            = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(APCF8574PortVariantA0A1 _variante a0 a2)
+        eingabe
+            = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage@(APCF8574PortVariantA0A1A2 _variante a0 a1 a2)
+        eingabe
+            = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        anfrage
+        eingabe
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAnschluss -> Maybe s
+    zeigeAnfrageOptionen
+        AnfrageAnschluss
+            = Just $ toBefehlsString [Language.pin, Language.pcf8574Port]
+    zeigeAnfrageOptionen
+        (AnfrageAnschlussUnbekannt anfrage _eingabe)
+            = zeigeAnfrageOptionen anfrage
+    zeigeAnfrageOptionen
+        APCF8574Port
+            = Just $ toBefehlsString [Language.normal, Language.a]
+    zeigeAnfrageOptionen
+        (APCF8574PortVariant _variante)
+            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+    zeigeAnfrageOptionen
+        (APCF8574PortVariantA0 _variante _a0)
+            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+    zeigeAnfrageOptionen
+        (APCF8574PortVariantA0A1 _variante _a0 _a1)
+            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+    zeigeAnfrageOptionen
+        _anfrage
+            = Nothing
+
+-- | Eingabe eines 'Anschluss'
+anfrageAnschlussAktualisieren :: AnfrageAnschluss -> EingabeToken -> Either AnfrageAnschluss Anschluss
+anfrageAnschlussAktualisieren
+    AnfrageAnschluss
+    token@EingabeToken {eingabe}
+        = Left $ wähleBefehl token [
+            (Lexer.Pin          , APin),
+            (Lexer.PCF8574Port  , APCF8574Port)]
+            $ AnfrageAnschlussUnbekannt AnfrageAnschluss eingabe
+anfrageAnschlussAktualisieren 
+    (AnfrageAnschlussUnbekannt anfrage _eingabe)
+    token
+        = Left anfrage
+anfrageAnschlussAktualisieren 
+    APin
+    EingabeToken {eingabe, ganzzahl}
+        = case ganzzahl of
+            (Just pin)
+                -> Right $ vonPinGpio pin
+            Nothing
+                -> Left $ AnfrageAnschlussUnbekannt APin eingabe
+anfrageAnschlussAktualisieren
+    APCF8574Port
+    token@EingabeToken {eingabe}
+        = Left $ wähleBefehl token [
+            (Lexer.A        , APCF8574PortVariant VariantA),
+            (Lexer.Normal   , APCF8574PortVariant VariantNormal)]
+            $ AnfrageAnschlussUnbekannt APCF8574Port eingabe
+anfrageAnschlussAktualisieren
+    anfrage@(APCF8574PortVariant variante)
+    token@EingabeToken {eingabe}
+        = Left $ case wähleValue token of
+            (Just a0)
+                -> APCF8574PortVariantA0 variante a0
+            Nothing
+                -> AnfrageAnschlussUnbekannt anfrage eingabe
+anfrageAnschlussAktualisieren
+    anfrage@(APCF8574PortVariantA0 variante a0)
+    token@EingabeToken {eingabe}
+        = Left $ case wähleValue token of
+            (Just a1)
+                -> APCF8574PortVariantA0A1 variante a0 a1
+            Nothing
+                -> AnfrageAnschlussUnbekannt anfrage eingabe
+anfrageAnschlussAktualisieren
+    anfrage@(APCF8574PortVariantA0A1 variante a0 a1)
+    token@EingabeToken {eingabe}
+        = Left $ case wähleValue token of
+            (Just a2)
+                -> APCF8574PortVariantA0A1A2 variante a0 a1 a2
+            Nothing
+                -> AnfrageAnschlussUnbekannt anfrage eingabe
+anfrageAnschlussAktualisieren
+    anfrage@(APCF8574PortVariantA0A1A2 variant a0 a1 a2)
+    token@EingabeToken {eingabe, ganzzahl}
+        = case ganzzahl of
+            (Just port)
+                -> Right $ AnschlussPCF8574Port $ PCF8574Port {
+                    pcf8574 = PCF8574 {variant, a0, a1, a2},
+                    port = fromIntegral port}
+            Nothing
+                -> Left $ AnfrageAnschlussUnbekannt anfrage eingabe

@@ -14,7 +14,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     -- * Suche ein existierendes Objekt im Status
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
     -- * Hilfsfunktionen
-    wähleBefehl, wähleRichtung, unbekanntShowText) where
+    wähleBefehl, wähleRichtung, wähleValue, unbekanntShowText) where
 
 import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
@@ -23,7 +23,7 @@ import Data.String (IsString())
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..))
+import Zug.Anbindung (StreckenObjekt(..), Value(..))
 import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Richtung(..))
 import Zug.Language ((<=>), (<^>), showText, fehlerText)
 import qualified Zug.Language as Language
@@ -180,6 +180,13 @@ wähleRichtung token = wähleBefehl token [
     (Lexer.Kurve    , Just Kurve),
     (Lexer.Links    , Just Links),
     (Lexer.Rechts   , Just Rechts)]
+    Nothing
+
+-- | Gebe (falls möglich) den zur Eingabe passenden 'Value' zurück.
+wähleValue :: EingabeToken -> Maybe Value
+wähleValue token = wähleBefehl token [
+    (Lexer.HIGH , Just HIGH),
+    (Lexer.LOW  , Just LOW)]
     Nothing
 
 -- | Fehlerhafte Eingabe anzeigen

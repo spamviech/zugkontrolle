@@ -60,6 +60,8 @@ lexEinen eingabe
                     (Language.lego                      , Lego),
                     (Language.pin                       , Pin),
                     (Language.pcf8574Port               , PCF8574Port),
+                    (Language.normal                    , Normal),
+                    (Language.a                         , A),
                     (Language.gerade                    , Gerade),
                     (Language.kurve                     , Kurve),
                     (Language.links                     , Links),
@@ -114,6 +116,8 @@ data Token  = Beenden
             | Lego
             | Pin
             | PCF8574Port
+            | Normal
+            | A
             | Gerade
             | Kurve
             | Links

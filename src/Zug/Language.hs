@@ -29,25 +29,31 @@ gewählteSprache :: Sprache
 {-# NOINLINE gewählteSprache #-}
 gewählteSprache = unsafePerformIO $ getOptions >>= pure . sprache
 
+-- * Titel / Title
+erzeugeDeklaration "zugkontrolle"
+-- * Haupt-Befehle / Main Orders
+concatMapM erzeugeDeklaration
+    ["beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden"]
+-- * Spezielle Befehle / Special order
 concatMapM erzeugeDeklaration [
-    -- * Titel / Title
-    "zugkontrolle",
-    -- * Haupt-Befehle / Main Orders
-    "beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden",
-    -- * Spezielle Befehle / Special orders
     "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
     "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
-    "fließendValue", "high", "low",
-    -- * Typ-Namen / Type names
-    "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte", "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne",
-    -- * Eigenschafts/Feld-Namen / Attributes/Field names
-    "dateiname", "anschluss", "pin", "pcf8574Port", "name", "richtung", "richtungen", "fahrtrichtung",
-    -- * Query-Abfragen / Queries
-    "wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp",
-    -- * Fehlermeldungen / Error Messages
-    "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt", "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer",
-    -- * Typ-namen / Type names
-    "märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
+    "fließendValue", "high", "low"]
+-- * Typ-Namen / Type names
+concatMapM erzeugeDeklaration [
+    "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",
+    "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne"]
+-- * Eigenschafts/Feld-Namen / Attributes/Field names
+concatMapM erzeugeDeklaration ["dateiname", "name", "richtung", "richtungen", "fahrtrichtung"]
+concatMapM erzeugeDeklaration ["anschluss", "pin", "pcf8574Port", "pcf8574", "variante", "normal", "a", "a0", "a1", "a2", "port"]
+-- * Query-Abfragen / Queries
+concatMapM erzeugeDeklaration ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
+-- * Fehlermeldungen / Error Messages
+concatMapM erzeugeDeklaration [
+    "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt",
+    "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer", "valueErwartet"]
+-- * Typ-namen / Type names
+concatMapM erzeugeDeklaration ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 
 concatMapM erzeugeFunktionDeklaration [
     -- * Spezielle Befehle / Special orders
