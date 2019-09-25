@@ -30,8 +30,7 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
-import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
-                    PwmMapT, forkPwmMapT, liftI2CMapT,
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..),
                     Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..),
                     Streckenabschnitt(), StreckenabschnittKlasse(..),
                     Weiche(), WeicheKlasse(..),
@@ -142,7 +141,7 @@ instance (StreckenObjekt pl, StreckenObjekt (bg 'Märklin), StreckenObjekt (bg '
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
 -- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-Liste vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: pl -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapT IO ()
+    ausführenPlan :: (PwmReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> m ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -170,15 +169,15 @@ instance StreckenObjekt Plan where
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: Plan -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> PwmMapT IO ()
-    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion tvarAusführend = void $ forkPwmMapT $ void $ do
+    ausführenPlan :: (PwmReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> m ()
+    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion tvarAusführend = void $ forkI2CReader $ void $ do
         liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
         liftIO $ do
             showAktion $ fromIntegral $ length plAktionen
             endAktion
                 where
-                    ausführenAux :: Natural -> [Aktion] -> PwmMapT IO ()
+                    ausführenAux :: (PwmReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
                     ausführenAux    _i  []      = liftIO $ atomically $
                                                     modifyTVar tvarAusführend $ entfernen $ Ausführend plan
                     ausführenAux    i   (h:t)   = do
@@ -190,7 +189,7 @@ instance PlanKlasse Plan where
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where
-    ausführenAktion :: a -> PwmMapT IO ()
+    ausführenAktion :: (PwmReader r m, MonadIO m) => a -> m ()
 
 -- | Eine Aktion eines 'StreckenObjekt's oder eine Wartezeit.
 -- Die Update-Funktion wird nicht aufgerufen.
@@ -238,7 +237,7 @@ instance StreckenObjekt Aktion where
     erhalteName = showText
 
 instance AktionKlasse Aktion where
-    ausführenAktion :: Aktion -> PwmMapT IO ()
+    ausführenAktion :: (PwmReader r m, MonadIO m) => Aktion -> m ()
     ausführenAktion (Warten time)                           = warte time
     ausführenAktion (AWegstreckeMärklin aktion)             = ausführenAktion aktion
     ausführenAktion (AWegstreckeLego aktion)                = ausführenAktion aktion
@@ -277,7 +276,7 @@ instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z), Show (ws z)) =>
     erhalteName = showText
 
 instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z)) => AktionKlasse (AktionWegstrecke ws z) where
-    ausführenAktion :: AktionWegstrecke ws z -> PwmMapT IO ()
+    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
     ausführenAktion (Einstellen ws)                 = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit aktion) = ausführenAktion aktion
     ausführenAktion (AWSStreckenabschnitt aktion)   = ausführenAktion aktion
@@ -300,7 +299,7 @@ instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
     erhalteName = showText
 
 instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
-    ausführenAktion :: AktionWeiche w -> PwmMapT IO ()
+    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
 -- | Aktionen einer Bahngeschwindigkeit
@@ -341,7 +340,7 @@ instance (BahngeschwindigkeitKlasse bg, Show (bg z), StreckenObjekt (bg 'Märkli
     erhalteName = showText
 
 instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigkeit bg z) where
-    ausführenAktion :: AktionBahngeschwindigkeit bg z -> PwmMapT IO ()
+    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg z -> m ()
     ausführenAktion (Geschwindigkeit bg wert)                   = geschwindigkeit bg wert
     ausführenAktion (Umdrehen bg)                               = umdrehen bg
     ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung)  = fahrtrichtungEinstellen bg fahrtrichtung
@@ -364,8 +363,8 @@ instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStrecken
     erhalteName = showText
 
 instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt st) where
-    ausführenAktion :: AktionStreckenabschnitt st -> PwmMapT IO ()
-    ausführenAktion (Strom st an) = liftI2CMapT $ strom st an
+    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionStreckenabschnitt st -> m ()
+    ausführenAktion (Strom st an) = strom st an
 
 -- | Aktionen einer Kupplung
 data AktionKupplung ku = Kuppeln
@@ -383,5 +382,5 @@ instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) wher
     erhalteName = showText
 
 instance (KupplungKlasse ku) => AktionKlasse (AktionKupplung ku) where
-    ausführenAktion :: AktionKupplung ku -> PwmMapT IO ()
-    ausführenAktion (Kuppeln ku) = liftI2CMapT $ kuppeln ku
+    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionKupplung ku -> m ()
+    ausführenAktion (Kuppeln ku) = kuppeln ku

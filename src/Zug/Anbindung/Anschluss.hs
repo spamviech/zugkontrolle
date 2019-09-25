@@ -8,7 +8,7 @@ module Zug.Anbindung.Anschluss (
     Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
     vonPin, zuPin, zuPinGpio, vonPinGpio, vonPCF8574Port, zuPCF8574Port,
     -- * Schreibe/Lese-Aktionen
-    Value(..), anschlussWrite, anschlussRead, I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT) where
+    Value(..), anschlussWrite, anschlussRead, I2CMap, i2cMapEmpty, I2CReader(..)) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
@@ -17,7 +17,7 @@ import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, dig
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead,
-                            I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT)
+                            I2CMap, i2cMapEmpty, I2CReader(..))
 
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss
@@ -68,11 +68,11 @@ zuPCF8574Port   (AnschlussPCF8574Port port) = Just port
 zuPCF8574Port   _anschluss                  = Nothing
 
 -- | Schreibe einen 'Value' in einen Anschlussmöglichkeit
-anschlussWrite :: Anschluss -> Value -> I2CMapT IO ()
+anschlussWrite :: (I2CReader r m, MonadIO m) => Anschluss -> Value -> m ()
 anschlussWrite (AnschlussPin pin)           = liftIO . (pinMode pin OUTPUT >>) . digitalWrite pin
 anschlussWrite (AnschlussPCF8574Port port)  = pcf8574PortWrite port
 
 -- | Lese einen 'Value' aus einem 'Anschluss'
-anschlussRead :: Anschluss -> I2CMapT IO Value
+anschlussRead :: (I2CReader r m, MonadIO m) => Anschluss -> m Value
 anschlussRead   (AnschlussPin pin)          = liftIO $ pinMode pin INPUT >> digitalRead pin
 anschlussRead   (AnschlussPCF8574Port port) = pcf8574PortRead port

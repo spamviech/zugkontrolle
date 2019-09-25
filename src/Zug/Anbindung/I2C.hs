@@ -2,21 +2,23 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 {-|
 Description : Funktionen zur Verwendung der I2C-Schnittstelle
 -}
 module Zug.Anbindung.I2C (
     -- * Map über aktuelle I2C-Kanäle
-    I2CMap, I2CMapT, i2cMapEmpty, runI2CMapT, forkI2CMapT,
+    I2CMap, i2cMapEmpty, I2CReader(..),
     -- * Read-/Write-Aktionen
     i2cWrite, i2cWriteAdjust, i2cRead, I2CAddress(..), BitValue(..)) where
 
 import Foreign.C.Types (CInt)
-import Control.Concurrent (forkIO, ThreadId)
+import Control.Concurrent (ThreadId)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
-import Control.Monad.Reader (ReaderT, runReaderT, ask)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Reader.Class (MonadReader(..))
+import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (Bits, complement, zeroBits)
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as Map
@@ -24,24 +26,20 @@ import Data.Word (Word8)
 
 -- | 'FileHandle' und aktuell gesetzter 'BitValue' eines I2C-Kanals
 type I2CMap = Map I2CAddress (FileHandle, BitValue)
--- | Abkürzung für Funktionen, die die aktuelle 'I2CMap' benötigen
-type I2CMapT = ReaderT (TVar I2CMap)
 -- | Leere 'I2CMap'
 i2cMapEmpty :: I2CMap
 i2cMapEmpty = Map.empty
--- | Führe eine 'I2CMapT'-Aktion in der angegebenen Umbebung aus.
-runI2CMapT :: I2CMapT m a -> TVar I2CMap -> m a
-runI2CMapT = runReaderT
--- | 'forkIO' in den 'I2CMapT'-Monaden Transformer gelifted; Die 'TVar' aus der aktuellen Umgebung wird übergeben.
-forkI2CMapT :: I2CMapT IO () -> I2CMapT IO ThreadId
-forkI2CMapT aktion = do
-    tvarI2CMap <- ask
-    liftIO $ forkIO $ flip runI2CMapT tvarI2CMap $ aktion
+-- | Abkürzung für Funktionen, die die aktuelle 'I2CMap' benötigen
+class (MonadReader r m) => I2CReader r m | m -> r where
+    -- | Erhalte die aktuelle 'I2CMap' aus der Umgebung.
+    erhalteI2CMap :: m (TVar I2CMap)
+    -- | 'forkIO' in die 'I2CReader'-Monade gelifted; Die aktuellen Umgebung soll übergeben werden.
+    forkI2CReader :: (MonadIO m) => m () -> m ThreadId
 
 -- | Stelle sicher, dass eine 'I2CAddress' registriert ist und gebe ihre aktuellen Werte zurück.
-i2cKanalLookup :: I2CAddress -> I2CMapT IO (FileHandle, BitValue)
+i2cKanalLookup :: (I2CReader r m, MonadIO m) => I2CAddress -> m (FileHandle, BitValue)
 i2cKanalLookup i2cAddress = do
-    tvarI2CKanäle <- ask
+    tvarI2CKanäle <- erhalteI2CMap
     liftIO $ do
         i2cKanäle <- readTVarIO tvarI2CKanäle
         case Map.lookup i2cAddress i2cKanäle of
@@ -73,9 +71,9 @@ fullBitValue :: BitValue
 fullBitValue = complement zeroBits
 
 -- | Schreibe einen 'BitValue' in einen I2C-Kanal
-i2cWrite :: I2CAddress -> BitValue -> I2CMapT IO ()
+i2cWrite :: (I2CReader r m, MonadIO m) => I2CAddress -> BitValue -> m ()
 i2cWrite i2cAddress bitValue = do
-    tvarI2CKanäle <- ask
+    tvarI2CKanäle <- erhalteI2CMap
     (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress
     liftIO $ do
         atomically $ modifyTVar tvarI2CKanäle $
@@ -84,13 +82,13 @@ i2cWrite i2cAddress bitValue = do
 
 -- | Ändere den geschriebenen 'BitValue' in einem I2C-Kanal.
 -- Die aktuelle Ausgabe wird über der übergebenen Funktion angepasst und neu gesetzt.
-i2cWriteAdjust :: I2CAddress -> (BitValue -> BitValue) -> I2CMapT IO ()
+i2cWriteAdjust :: (I2CReader r m, MonadIO m) => I2CAddress -> (BitValue -> BitValue) -> m ()
 i2cWriteAdjust i2cAddress bitValueFunktion = do
     (_fileHandle, oldBitValue) <- i2cKanalLookup i2cAddress
     i2cWrite i2cAddress (bitValueFunktion oldBitValue)
 
 -- | Lese den aktuellen Wert aus einem I2C-Kanal
-i2cRead :: I2CAddress -> I2CMapT IO BitValue
+i2cRead :: (I2CReader r m, MonadIO m) => I2CAddress -> m BitValue
 i2cRead i2cAddress = do
     (fileHandle, _setBitValue) <- i2cKanalLookup i2cAddress
     liftIO $ do
