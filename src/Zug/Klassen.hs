@@ -1,5 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -26,6 +27,20 @@ instance (Show (a 'Märklin), Show (a 'Lego)) => Show (ZugtypEither a) where
     show :: ZugtypEither a -> String
     show    (ZugtypMärklin a)   = show a
     show    (ZugtypLego a)      = show a
+
+-- | Klasse zur Extraktion aus 'ZugtypEither'
+class ZugtypKlasse (z :: Zugtyp) where
+    vonZugtypEither :: ZugtypEither a -> Maybe (a z)
+
+instance ZugtypKlasse 'Märklin where
+    vonZugtypEither :: ZugtypEither a -> Maybe (a 'Märklin)
+    vonZugtypEither (ZugtypMärklin a)   = Just a
+    vonZugtypEither _zugtypEither       = Nothing
+
+instance ZugtypKlasse 'Lego where
+    vonZugtypEither :: ZugtypEither a -> Maybe (a 'Lego)
+    vonZugtypEither (ZugtypLego a)  = Just a
+    vonZugtypEither _zugtypEither   = Nothing
 
 -- | Unterstützte 'Zugtyp'en
 unterstützteZugtypen :: NonEmpty Zugtyp

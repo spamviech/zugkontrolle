@@ -13,6 +13,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
     -- * Suche ein existierendes Objekt im Status
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
+    ObjektZugtyp(..), StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp,
     -- * Hilfsfunktionen
     wähleBefehl, wähleRichtung, wähleValue, unbekanntShowText) where
 
@@ -23,8 +24,8 @@ import Data.String (IsString())
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..), Value(..))
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Richtung(..))
+import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Weiche(), Wegstrecke())
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language ((<=>), (<^>), showText, fehlerText)
 import qualified Zug.Language as Language
 import Zug.Plan (ObjektAllgemein(..), Objekt)
@@ -107,26 +108,26 @@ instance Anfrage StatusAnfrageObjekt where
 -- | Erhalte ein im Status existierendes Objekt
 statusAnfrageObjekt :: StatusAnfrageObjekt -> MStatus (Either StatusAnfrageObjekt Objekt)
 statusAnfrageObjekt
-    anfrage@(SAOUnbekannt _eingabe0)
+    anfrage@(SAOUnbekannt _eingabe)
         = pure $ Left anfrage
 statusAnfrageObjekt
     anfrage@(SAOPlan eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getPläne OPlan
+        = statusAnfrageObjektAux anfrage eingabe getPläne $ Just . OPlan
 statusAnfrageObjekt
     anfrage@(SAOWegstrecke eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWegstrecken OWegstrecke
+        = statusAnfrageObjektAux anfrage eingabe getWegstrecken $ Just . OWegstrecke
 statusAnfrageObjekt
     anfrage@(SAOWeiche eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWeichen OWeiche
+        = statusAnfrageObjektAux anfrage eingabe getWeichen $ Just . OWeiche
 statusAnfrageObjekt
     anfrage@(SAOBahngeschwindigkeit eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
+        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
 statusAnfrageObjekt
     anfrage@(SAOStreckenabschnitt eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte OStreckenabschnitt
+        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte $ Just . OStreckenabschnitt
 statusAnfrageObjekt
     anfrage@(SAOKupplung eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
+        = statusAnfrageObjektAux anfrage eingabe getKupplungen $ Just . OKupplung
 
 -- | Ein Objekt mit bestimmten Zugtyp
 data ObjektZugtyp (z :: Zugtyp)
@@ -148,19 +149,36 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
     | SAOZBahngeschwindigkeit
         EingabeToken
 
+-- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
+statusAnfrageObjektZugtyp :: (ZugtypKlasse z) =>
+    StatusAnfrageObjektZugtyp z ->
+        MStatus (Either (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
+statusAnfrageObjektZugtyp
+        anfrage@(SAOZUnbekannt _eingabe)
+            = pure $ Left anfrage
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZWegstrecke eingabe)
+        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getWegstrecken) $ fmap OZWegstrecke
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZWeiche eingabe)
+        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getWeichen) $ fmap OZWeiche
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZBahngeschwindigkeit eingabe)
+        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $ fmap OZBahngeschwindigkeit
+
 -- Hilfsfunktion
 -- | Finde ein Objekt anhand seines Namens/Indizes
 statusAnfrageObjektAux :: (StreckenObjekt a)
-    => StatusAnfrageObjekt
+    => statusAnfrageObjekt
     -> EingabeToken
     -> MStatus [a]
-    -> (a -> Objekt)
-        -> MStatus (Either StatusAnfrageObjekt Objekt)
+    -> (a -> Maybe o)
+        -> MStatus (Either statusAnfrageObjekt o)
 statusAnfrageObjektAux anfrage eingabe getFromStatus konstruktor = do
     objekte <- getFromStatus
-    pure $ case findByNameOrIndex objekte eingabe of
+    pure $ case findByNameOrIndex objekte eingabe >>= konstruktor of
         Nothing         -> Left anfrage
-        (Just objekt)   -> Right $ konstruktor objekt
+        (Just objekt)   -> Right objekt
 
 -- | Element einer Liste anhand des Index oder Namens finden
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
