@@ -165,7 +165,7 @@ wähleBefehl
     ersatz
         = ersatz
 wähleBefehl
-    eingabe@(EingabeToken {möglichkeiten})
+    eingabe@EingabeToken {möglichkeiten}
     ((befehl, ergebnis) : t)
     ersatz
         | elem befehl möglichkeiten

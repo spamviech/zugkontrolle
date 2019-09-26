@@ -206,12 +206,12 @@ instance Show (Bahngeschwindigkeit z) where
     show    (LegoBahngeschwindigkeit {bglName, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
         = Language.lego <-> Language.bahngeschwindigkeit <:>
             Language.name <=> unpack bglName <^>
-            Language.geschwindigkeit <-> Language.pin <=> show bglGeschwindigkeitsAnschluss <^>
-            Language.fahrtrichtung <-> Language.pin <=> show bglFahrtrichtungsAnschluss
+            Language.geschwindigkeit <-> Language.anschluss <=> show bglGeschwindigkeitsAnschluss <^>
+            Language.fahrtrichtung <-> Language.anschluss <=> show bglFahrtrichtungsAnschluss
     show    (MärklinBahngeschwindigkeit {bgmName, bgmGeschwindigkeitsAnschluss})
         = Language.märklin <-> Language.bahngeschwindigkeit <:>
             Language.name <=> unpack bgmName <^>
-            Language.geschwindigkeit <-> Language.pin <=> show bgmGeschwindigkeitsAnschluss
+            Language.geschwindigkeit <-> Language.anschluss <=> show bgmGeschwindigkeitsAnschluss
 
 instance StreckenObjekt (Bahngeschwindigkeit z) where
     anschlüsse :: Bahngeschwindigkeit z -> [Anschluss]
@@ -290,7 +290,7 @@ instance Show Streckenabschnitt where
     show (Streckenabschnitt {stName, stromAnschluss})
         = Language.streckenabschnitt <:>
             Language.name <=> unpack stName <^>
-            Language.strom <-> Language.pin <=> show stromAnschluss
+            Language.strom <-> Language.anschluss <=> show stromAnschluss
 
 instance StreckenObjekt Streckenabschnitt where
     anschlüsse :: Streckenabschnitt -> [Anschluss]
@@ -340,12 +340,12 @@ instance Show (Weiche z) where
     show    (LegoWeiche {welName, welRichtungsAnschluss, welRichtungen=(richtung1, richtung2)})
         = Language.lego <-> Language.weiche <:>
             Language.name <=> unpack welName <^>
-            Language.richtung <-> Language.pin <=> show welRichtungsAnschluss <^>
+            Language.richtung <-> Language.anschluss <=> show welRichtungsAnschluss <^>
             Language.richtungen <=> show richtung1 <|> show richtung2
     show    (MärklinWeiche {wemName, wemRichtungsAnschlüsse})
         = Language.märklin <-> Language.weiche <:>
             Language.name <=> unpack wemName <^>
-            foldl (\acc (pin, richtung) -> acc <^> show richtung <=> show pin) "" wemRichtungsAnschlüsse
+            foldl (\acc (anschluss, richtung) -> acc <^> show richtung <=> show anschluss) "" wemRichtungsAnschlüsse
 
 instance StreckenObjekt (Weiche z) where
     anschlüsse :: Weiche z -> [Anschluss]
@@ -432,7 +432,7 @@ instance Show Kupplung where
     show (Kupplung {kuName, kupplungsAnschluss})
         = Language.kupplung <:>
             Language.name <=> unpack kuName <^>
-            Language.kupplung <-> Language.pin <=> show kupplungsAnschluss
+            Language.kupplung <-> Language.anschluss <=> show kupplungsAnschluss
 
 instance StreckenObjekt Kupplung where
     anschlüsse :: Kupplung -> [Anschluss]
