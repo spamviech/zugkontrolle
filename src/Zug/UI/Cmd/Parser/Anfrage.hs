@@ -128,7 +128,28 @@ statusAnfrageObjekt
     anfrage@(SAOKupplung eingabe)
         = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
 
--- | Hilfsfunktion
+-- | Ein Objekt mit bestimmten Zugtyp
+data ObjektZugtyp (z :: Zugtyp)
+    = OZWegstrecke
+        (Wegstrecke z)
+    | OZWeiche
+        (Weiche z)
+    | OZBahngeschwindigkeit
+        (Bahngeschwindigkeit z)
+
+-- | Ein Objekt mit bestimmten Zugtyp aus dem aktullen Status wird benötigt
+data StatusAnfrageObjektZugtyp (z :: Zugtyp)
+    = SAOZUnbekannt
+        Text
+    | SAOZWegstrecke
+        EingabeToken
+    | SAOZWeiche
+        EingabeToken
+    | SAOZBahngeschwindigkeit
+        EingabeToken
+
+-- Hilfsfunktion
+-- | Finde ein Objekt anhand seines Namens/Indizes
 statusAnfrageObjektAux :: (StreckenObjekt a)
     => StatusAnfrageObjekt
     -> EingabeToken
