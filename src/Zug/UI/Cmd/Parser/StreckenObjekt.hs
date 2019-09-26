@@ -273,35 +273,35 @@ data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
 data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
     AnfrageBahngeschwindigkeit
         :: AnfrageBahngeschwindigkeit 'AnfrageZugtyp
-    ABGUnbekannt
-        :: (AnfrageBahngeschwindigkeit z)               -- ^ Anfrage
-        -> Text                                         -- ^ Eingabe
+    ABGUnbekannt :: {
+        abgAnfrage :: (AnfrageBahngeschwindigkeit z),
+        abgEingabe :: Text}
             -> AnfrageBahngeschwindigkeit z
     AMärklinBahngeschwindigkeit
         :: AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
-    AMärklinBahngeschwindigkeitName
-        :: Text                                         -- ^ Name
+    AMärklinBahngeschwindigkeitName :: {
+        abgmName :: Text}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
-    AMärklinBahngeschwindigkeitNameFließend
-        :: Text                                         -- ^ Name
-        -> Value                                        -- ^ Fließend
-        -> AnfrageAnschluss                             -- ^ Anschluss
+    AMärklinBahngeschwindigkeitNameFließend :: {
+        abgmName :: Text,
+        abgmFließend :: Value,
+        abgmGeschwindigkeitsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
     ALegoBahngeschwindigkeit
         :: AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
-    ALegoBahngeschwindigkeitName
-        :: Text                                         -- ^ Name
+    ALegoBahngeschwindigkeitName :: {
+        abglName :: Text}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
-    ALegoBahngeschwindigkeitNameFließend
-        :: Text                                         -- ^ Name
-        -> Value                                        -- ^ Fließend
-        -> AnfrageAnschluss                             -- ^ Anschluss
+    ALegoBahngeschwindigkeitNameFließend :: {
+        abglName :: Text,
+        abglFließend :: Value,
+        abglGeschwindigkeitsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
-    ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-        :: Text                                         -- ^ Name
-        -> Value                                        -- ^ Fließend
-        -> Anschluss                                    -- ^ Geschwindigkeit-Anschluss
-        -> AnfrageAnschluss                             -- ^ AnfrageAnschluss
+    ALegoBahngeschwindigkeitNameFließendGeschwindigkeit :: {
+        abglName :: Text,
+        abglFließend :: Value,
+        abglGeschwindigkeitsAnschluss :: Anschluss,
+        abglFahrtrichtungsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
 
 type instance AnfrageFamilie (Bahngeschwindigkeit 'Märklin) = AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
@@ -352,50 +352,50 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
         AnfrageBahngeschwindigkeit
             = Language.zugtyp
     zeigeAnfrage
-        (ABGUnbekannt anfrage _eingabe)
-            = zeigeAnfrage anfrage
+        ABGUnbekannt {abgAnfrage}
+            = zeigeAnfrage abgAnfrage
     zeigeAnfrage
         AMärklinBahngeschwindigkeit
             = Language.name
     zeigeAnfrage
-        (AMärklinBahngeschwindigkeitName _name)
+        AMärklinBahngeschwindigkeitName {}
             = Language.fließendValue
     zeigeAnfrage
-        (AMärklinBahngeschwindigkeitNameFließend _name _fließend geschwindigkeitsAnschluss)
-            = zeigeAnfrage geschwindigkeitsAnschluss
+        AMärklinBahngeschwindigkeitNameFließend {abgmGeschwindigkeitsAnfrageAnschluss}
+            = zeigeAnfrage abgmGeschwindigkeitsAnfrageAnschluss
     zeigeAnfrage
         ALegoBahngeschwindigkeit
             = Language.name
     zeigeAnfrage
-        (ALegoBahngeschwindigkeitName _name)
+        ALegoBahngeschwindigkeitName {}
             = Language.fließendValue
     zeigeAnfrage
-        (ALegoBahngeschwindigkeitNameFließend _name _fließend geschwindigkeitsAnschluss)
-            = zeigeAnfrage geschwindigkeitsAnschluss
+        ALegoBahngeschwindigkeitNameFließend {abglGeschwindigkeitsAnfrageAnschluss}
+            = zeigeAnfrage abglGeschwindigkeitsAnfrageAnschluss
     zeigeAnfrage
-        (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _geschwindigkeitsAnschluss fahrtrichtungsAnschluss)
-            = zeigeAnfrage fahrtrichtungsAnschluss
+        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
+            = zeigeAnfrage abglFahrtrichtungsAnfrageAnschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s -> s
     zeigeAnfrageFehlgeschlagen
-        anfrage@(AMärklinBahngeschwindigkeitName _name)
+        anfrage@AMärklinBahngeschwindigkeitName {}
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen
-        (AMärklinBahngeschwindigkeitNameFließend _name _fließend geschwindigkeitsAnschluss)
+        AMärklinBahngeschwindigkeitNameFließend {abgmGeschwindigkeitsAnfrageAnschluss}
         eingabe
-            = zeigeAnfrageFehlgeschlagen geschwindigkeitsAnschluss eingabe
+            = zeigeAnfrageFehlgeschlagen abgmGeschwindigkeitsAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
-        anfrage@(ALegoBahngeschwindigkeitName _name)
+        anfrage@ALegoBahngeschwindigkeitName {}
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen
-        (AMärklinBahngeschwindigkeitNameFließend _name _fließend geschwindigkeitsAnschluss)
+        ALegoBahngeschwindigkeitNameFließend {abglGeschwindigkeitsAnfrageAnschluss}
         eingabe
-            = zeigeAnfrageFehlgeschlagen geschwindigkeitsAnschluss eingabe
+            = zeigeAnfrageFehlgeschlagen abglGeschwindigkeitsAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
-        anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _geschwindigkeitsAnschluss fahrtrichtungsAnschluss)
+        anfrage@ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
         eingabe
-            = zeigeAnfrageFehlgeschlagen fahrtrichtungsAnschluss eingabe
+            = zeigeAnfrageFehlgeschlagen abglFahrtrichtungsAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
         anfrage
         eingabe
@@ -405,23 +405,23 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
         AnfrageBahngeschwindigkeit
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen
-        (AMärklinBahngeschwindigkeitName _name)
+        AMärklinBahngeschwindigkeitName {}
             = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen
-        (AMärklinBahngeschwindigkeitNameFließend _name _fließend geschwindigkeitsAnschluss)
-            = zeigeAnfrageOptionen geschwindigkeitsAnschluss
+        AMärklinBahngeschwindigkeitNameFließend {abgmGeschwindigkeitsAnfrageAnschluss}
+            = zeigeAnfrageOptionen abgmGeschwindigkeitsAnfrageAnschluss
     zeigeAnfrageOptionen
-        (ALegoBahngeschwindigkeitName _name)
+        ALegoBahngeschwindigkeitName {}
             = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen
-        (ALegoBahngeschwindigkeitNameFließend _name _fließend geschwindigkeitsAnschluss)
-            = zeigeAnfrageOptionen geschwindigkeitsAnschluss
+        ALegoBahngeschwindigkeitNameFließend {abglGeschwindigkeitsAnfrageAnschluss}
+            = zeigeAnfrageOptionen abglGeschwindigkeitsAnfrageAnschluss
     zeigeAnfrageOptionen
-        (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit _name _fließend _geschwindigkeitsAnschluss fahrtrichtungsAnschluss)
-            = zeigeAnfrageOptionen fahrtrichtungsAnschluss
+        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
+            = zeigeAnfrageOptionen abglFahrtrichtungsAnfrageAnschluss
     zeigeAnfrageOptionen
-        (ABGUnbekannt anfrage _eingabe)
-            = zeigeAnfrageOptionen anfrage
+        ABGUnbekannt {abgAnfrage}
+            = zeigeAnfrageOptionen abgAnfrage
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
@@ -449,25 +449,27 @@ anfrageBahngeschwindigkeitMärklin
     EingabeToken {eingabe}
         = Left $ AMärklinBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitMärklin
-    anfrage@(AMärklinBahngeschwindigkeitName name)
+    anfrage@AMärklinBahngeschwindigkeitName {abgmName}
     token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
-            (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend name HIGH),
-            (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend name LOW)]
+            (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
+            (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
             $ ABGUnbekannt anfrage eingabe
 anfrageBahngeschwindigkeitMärklin
-    anfrage@(AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend)
+    anfrage@(AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend geschwindigkeitsAnschluss)
     token
-        = case anfrageAnschlussAktualisieren AnfrageAnschluss token of
-            Nothing
-                -> Left $ ABGUnbekannt anfrage eingabe
-            (Just pin)
+        = case anfrageAnschlussAktualisieren geschwindigkeitsAnschluss token of
+            (Left (AnfrageAnschlussUnbekannt abgmGeschwindigkeitsAnfrageAnschluss eingabe))
+                -> Left $ ABGUnbekannt (anfrage {abgmGeschwindigkeitsAnfrageAnschluss}) eingabe
+            (Left abgmGeschwindigkeitsAnfrageAnschluss)
+                -> Left anfrage {abgmGeschwindigkeitsAnfrageAnschluss}
+            (Right bgmGeschwindigkeitsAnschluss)
                 -> Right $ MärklinBahngeschwindigkeit {
                     bgmName,
                     bgmFließend,
-                    bgmGeschwindigkeitsAnschluss = zuPin pin}
+                    bgmGeschwindigkeitsAnschluss}
 anfrageBahngeschwindigkeitMärklin
-    anfrage@(ABGUnbekannt _anfrage _eingabe)
+    anfrage@ABGUnbekannt {}
     _token
         = Left anfrage
 
@@ -481,32 +483,40 @@ anfrageBahngeschwindigkeitLego
     EingabeToken {eingabe}
         = Left $ ALegoBahngeschwindigkeitName eingabe
 anfrageBahngeschwindigkeitLego
-    anfrage@(ALegoBahngeschwindigkeitName name)
+    anfrage@ALegoBahngeschwindigkeitName {abglName}
     token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
-            (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend name HIGH),
-            (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend name LOW)]
+            (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
+            (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
             $ ABGUnbekannt anfrage eingabe
 anfrageBahngeschwindigkeitLego
-    anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ ABGUnbekannt anfrage eingabe
-            (Just pin)
-                -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend $ zuPin pin
+    anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
+    token
+        = case anfrageAnschlussAktualisieren geschwindigkeitsAnschluss token of
+            (Left (AnfrageAnschlussUnbekannt abglGeschwindigkeitsAnfrageAnschluss eingabe))
+                -> Left $ ABGUnbekannt (anfrage {abglGeschwindigkeitsAnfrageAnschluss}) eingabe
+            (Left abglGeschwindigkeitsAnfrageAnschluss)
+                -> Left $ anfrage {abglGeschwindigkeitsAnfrageAnschluss}
+            (Right anschluss)
+                -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
 anfrageBahngeschwindigkeitLego
-    anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit bglName bglFließend bglGeschwindigkeitsAnschluss)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ ABGUnbekannt anfrage eingabe
-            (Just pin)
-                -> Right $ LegoBahngeschwindigkeit {
+    anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
+        bglName
+        bglFließend
+        bglGeschwindigkeitsAnschluss
+        fahrtrichtungsAnschluss)
+    token
+    = case anfrageAnschlussAktualisieren fahrtrichtungsAnschluss token of
+        (Left (AnfrageAnschlussUnbekannt abglFahrtrichtungsAnfrageAnschluss eingabe1))
+            -> Left $ ABGUnbekannt anfrage {abglFahrtrichtungsAnfrageAnschluss} eingabe1
+        (Left abglFahrtrichtungsAnfrageAnschluss)
+            -> Left $ anfrage {abglFahrtrichtungsAnfrageAnschluss}
+        (Right bglFahrtrichtungsAnschluss)
+            -> Right $ LegoBahngeschwindigkeit {
                     bglName,
                     bglFließend,
                     bglGeschwindigkeitsAnschluss,
-                    bglFahrtrichtungsAnschluss = zuPin pin}
+                    bglFahrtrichtungsAnschluss}
 anfrageBahngeschwindigkeitLego
     anfrage@(ABGUnbekannt _anfrage _eingabe)
     _token
@@ -515,14 +525,15 @@ anfrageBahngeschwindigkeitLego
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
     = AnfrageStreckenabschnitt
-    | ASTUnbekannt
-        AnfrageStreckenabschnitt        -- ^ Anfrage
-        Text                            -- ^ Eingabe
-    | AStreckenabschnittName
-        Text                            -- ^ Name
-    | AStreckenabschnittNameFließend
-        Text                            -- ^ Name
-        Value                           -- ^ Fließend
+    | ASTUnbekannt {
+        astAnfrage :: AnfrageStreckenabschnitt,
+        astEingabe :: Text}
+    | AStreckenabschnittName {
+        astName :: Text}
+    | AStreckenabschnittNameFließend {
+        astName ::Text,
+        astFließend :: Value,
+        astStromAnfrageAnschluss :: AnfrageAnschluss}
 
 type instance AnfrageFamilie Streckenabschnitt = AnfrageStreckenabschnitt
 
@@ -538,46 +549,57 @@ instance Show AnfrageStreckenabschnitt where
         (AStreckenabschnittName name)
             = unpack $ Language.streckenabschnitt <^> Language.name <=> name
     show
-        (AStreckenabschnittNameFließend name fließend)
+        (AStreckenabschnittNameFließend name fließend stromAnschluss)
             = unpack $ Language.streckenabschnitt
                 <^> Language.name <=> name
                 <^> Language.fließendValue <=> showText fließend
+                <^> Language.strom <-> Language.anschluss <=> showText stromAnschluss
 instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s
     zeigeAnfrage
         AnfrageStreckenabschnitt
             = Language.name
     zeigeAnfrage
-        (ASTUnbekannt anfrage _eingabe)
-            = zeigeAnfrage anfrage
+        ASTUnbekannt {astAnfrage}
+            = zeigeAnfrage astAnfrage
     zeigeAnfrage
-        (AStreckenabschnittName _name)
+        AStreckenabschnittName {}
             = Language.fließendValue
     zeigeAnfrage
-        (AStreckenabschnittNameFließend _name _fließend)
-            = Language.anschluss
+        AStreckenabschnittNameFließend {astStromAnfrageAnschluss}
+            = zeigeAnfrage astStromAnfrageAnschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s -> s
     zeigeAnfrageFehlgeschlagen
-        anfrage@(AStreckenabschnittName _name)
+        anfrage@AStreckenabschnittName {}
         eingabe
-            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
+    zeigeAnfrageFehlgeschlagen
+        AStreckenabschnittNameFließend {astStromAnfrageAnschluss}
+        eingabe
+            = zeigeAnfrageFehlgeschlagen astStromAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> Maybe s
     zeigeAnfrageOptionen
-        (AStreckenabschnittName _name)
+        AStreckenabschnittName {}
             = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen
-        (ASTUnbekannt anfrage _eingabe)
-            = zeigeAnfrageOptionen anfrage
+        AStreckenabschnittNameFließend {astStromAnfrageAnschluss}
+            = zeigeAnfrageOptionen astStromAnfrageAnschluss
+    zeigeAnfrageOptionen
+        ASTUnbekannt {astAnfrage}
+            = zeigeAnfrageOptionen astAnfrage
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
 
     -- | Eingabe eines Streckenabschnitts
-anfrageStreckenabschnittAktualisieren :: AnfrageStreckenabschnitt -> EingabeToken -> Either AnfrageStreckenabschnitt Streckenabschnitt
+anfrageStreckenabschnittAktualisieren ::
+    AnfrageStreckenabschnitt ->
+        EingabeToken ->
+            Either AnfrageStreckenabschnitt Streckenabschnitt
 anfrageStreckenabschnittAktualisieren
     AnfrageStreckenabschnitt
     EingabeToken {eingabe}
@@ -586,20 +608,22 @@ anfrageStreckenabschnittAktualisieren
     anfrage@(AStreckenabschnittName name)
     token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
-            (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH),
-            (Lexer.LOW  , AStreckenabschnittNameFließend name LOW)]
+            (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
+            (Lexer.LOW  , AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
             $ ASTUnbekannt anfrage eingabe
 anfrageStreckenabschnittAktualisieren
-    anfrage@(AStreckenabschnittNameFließend stName stFließend)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ ASTUnbekannt anfrage eingabe
-            (Just pin)
+    anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
+    token
+        = case anfrageAnschlussAktualisieren stromAnschluss token of
+            (Left (AnfrageAnschlussUnbekannt astStromAnfrageAnschluss eingabe))
+                -> Left $ ASTUnbekannt (anfrage {astStromAnfrageAnschluss}) eingabe
+            (Left astStromAnfrageAnschluss)
+                -> Left $ anfrage {astStromAnfrageAnschluss}
+            (Right stromAnschluss)
                 -> Right $ Streckenabschnitt {
                     stName,
                     stFließend,
-                    stromAnschluss = zuPin pin}
+                    stromAnschluss}
 anfrageStreckenabschnittAktualisieren
     anfrage@(ASTUnbekannt _anfrage _eingabe)
     _token
@@ -609,51 +633,53 @@ anfrageStreckenabschnittAktualisieren
 data AnfrageWeiche (z :: AnfrageZugtyp) where
     AnfrageWeiche
         :: AnfrageWeiche 'AnfrageZugtyp
-    AWEUnbekannt
-        :: AnfrageWeiche z              -- ^ Anfrage
-        -> Text                         -- ^ Eingabe
+    AWEUnbekannt :: {
+        aweAnfrage :: AnfrageWeiche z,
+        aweEingabe :: Text}
             -> AnfrageWeiche z
     AMärklinWeiche
         :: AnfrageWeiche 'AnfrageZugtypMärklin
-    AMärklinWeicheName
-        :: Text                         -- ^ Name
+    AMärklinWeicheName :: {
+        awemName :: Text}
             -> AnfrageWeiche 'AnfrageZugtypMärklin
-    AMärklinWeicheNameFließend
-        :: Text                         -- ^ Name
-        -> Value                        -- ^ Fließend
+    AMärklinWeicheNameFließend :: {
+        awemName :: Text,
+        awemFließend :: Value}
             -> AnfrageWeiche 'AnfrageZugtypMärklin
-    AMärklinWeicheNameFließendAnzahl
-        :: Text                         -- ^ Name
-        -> Value                        -- ^ Fließend
-        -> Natural                      -- ^ Verbleibende Richtungen
-        -> [(Richtung, Anschluss)]      -- ^ RichtungsAnschlüsse
+    AMärklinWeicheNameFließendAnzahl :: {
+        awemName :: Text,
+        awemFließend :: Value,
+        awemAnzahl :: Natural,
+        awemRichtungsAnschlüsse :: [(Richtung, Anschluss)]}
             -> AnfrageWeiche 'AnfrageZugtypMärklin
-    AMärklinWeicheNameFließendAnzahlRichtung
-        :: Text                         -- ^ Name
-        -> Value                        -- ^ Fließend
-        -> Natural                      -- ^ Verbleibende Richtungen
-        -> [(Richtung, Anschluss)]      -- ^ RichtungsAnschlüsse
-        -> Richtung                     -- ^ nächste Richtung
+    AMärklinWeicheNameFließendAnzahlRichtung  :: {
+        awemName :: Text,
+        awemFließend :: Value,
+        awemAnzahl :: Natural,
+        awemRichtungsAnschlüsse :: [(Richtung, Anschluss)],
+        awemRichtung :: Richtung,
+        awemAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageWeiche 'AnfrageZugtypMärklin
     ALegoWeiche
         :: AnfrageWeiche 'AnfrageZugtypLego
-    ALegoWeicheName
-        :: Text                         -- ^ Name
+    ALegoWeicheName :: {
+        awelName :: Text}
             -> AnfrageWeiche 'AnfrageZugtypLego
-    ALegoWeicheNameFließend
-        :: Text                         -- ^ Name
-        -> Value                        -- ^ Fließend
+    ALegoWeicheNameFließend :: {
+        awelName :: Text,
+        awelFließend :: Value}
             -> AnfrageWeiche 'AnfrageZugtypLego
-    ALegoWeicheNameFließendRichtung1
-        :: Text                         -- ^ Name
-        -> Value                        -- ^ Fließend
-        -> Richtung                     -- ^ Richtung1
+    ALegoWeicheNameFließendRichtung1 :: {
+        awelName :: Text,
+        awelFließend :: Value,
+        awelRichtung1 :: Richtung}
             -> AnfrageWeiche 'AnfrageZugtypLego
-    ALegoWeicheNameFließendRichtungen
-        :: Text                         -- ^ Name
-        -> Value                        -- ^ Fließend
-        -> Richtung                     -- ^ Richtung1
-        -> Richtung                     -- ^ Richtung2
+    ALegoWeicheNameFließendRichtungen :: {
+        awelName :: Text,
+        awelFließend :: Value,
+        awelRichtung1 :: Richtung,
+        awelRichtung2 :: Richtung,
+        awelRichtungsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageWeiche 'AnfrageZugtypLego
 
 type instance AnfrageFamilie (Weiche 'Märklin) = AnfrageWeiche 'AnfrageZugtypMärklin
@@ -686,12 +712,14 @@ instance Show (AnfrageWeiche z) where
                 <^> Language.erwartet Language.richtungen <=> showText anzahl
                 <^> showText acc
     show
-        (AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung)
+        (AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung anschluss)
             = unpack $ Language.lego <-> Language.weiche
                 <^> Language.name <=> name
                 <^> Language.fließend <=> showText fließend
                 <^> Language.erwartet Language.richtungen <=> showText anzahl
-                <^> showText acc <> Language.richtung <=> showText richtung
+                <^> showText acc
+                <^> Language.richtung <=> showText richtung
+                <^> Language.anschluss <=> showText anschluss
     show
         ALegoWeiche
             = Language.lego <-> Language.weiche
@@ -710,20 +738,21 @@ instance Show (AnfrageWeiche z) where
                 <^> Language.fließend <=> showText fließend
                 <^> showText richtung1
     show
-        (ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2)
+        (ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 anschluss)
             = unpack $ Language.lego <-> Language.weiche
                 <^> Language.name <=> name
                 <^> Language.fließend <=> showText fließend
                 <^> showText richtung1
                 <^> showText richtung2
+                <^> Language.richtung <-> Language.anschluss <=> showText anschluss
 instance Anfrage (AnfrageWeiche z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWeiche z -> s
     zeigeAnfrage
         AnfrageWeiche
             = Language.zugtyp
     zeigeAnfrage
-        (AWEUnbekannt anfrage _eingabe)
-            = zeigeAnfrage anfrage
+        AWEUnbekannt {aweAnfrage}
+            = zeigeAnfrage aweAnfrage
     zeigeAnfrage
         AMärklinWeiche
             = Language.name
@@ -737,36 +766,36 @@ instance Anfrage (AnfrageWeiche z) where
         (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)
             = Language.richtung
     zeigeAnfrage
-        (AMärklinWeicheNameFließendAnzahlRichtung _name _fließend _anzahl _acc _richtung)
-            = Language.anschluss
+        AMärklinWeicheNameFließendAnzahlRichtung {awemAnfrageAnschluss}
+            = zeigeAnfrage awemAnfrageAnschluss
     zeigeAnfrage
         ALegoWeiche
             = Language.name
     zeigeAnfrage
-        (ALegoWeicheName _name)
+        ALegoWeicheName {}
             = Language.fließendValue
     zeigeAnfrage
-        (ALegoWeicheNameFließend _name _fließend)
+        ALegoWeicheNameFließend {}
             = Language.richtung
     zeigeAnfrage
-        (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1)
+        ALegoWeicheNameFließendRichtung1 {}
             = Language.richtung
     zeigeAnfrage
-        (ALegoWeicheNameFließendRichtungen _name _fließen _richtung1 _richtung2)
-            = Language.anschluss
+        ALegoWeicheNameFließendRichtungen {awelRichtungsAnfrageAnschluss}
+            = zeigeAnfrage awelRichtungsAnfrageAnschluss
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche z -> s -> s
     zeigeAnfrageFehlgeschlagen
         anfrage@(AMärklinWeicheNameFließend _name _fließend)
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen
-        anfrage@(AMärklinWeicheNameFließendAnzahlRichtung _name _fließend _anzahl _acc _richtung)
+        AMärklinWeicheNameFließendAnzahlRichtung {awemAnfrageAnschluss}
         eingabe
-            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+            = zeigeAnfrageFehlgeschlagen awemAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
-        anfrage@(ALegoWeicheNameFließendRichtungen _name _fließend _richtung1 _richtung2)
+        ALegoWeicheNameFließendRichtungen {awelRichtungsAnfrageAnschluss}
         eingabe
-            = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+            = zeigeAnfrageFehlgeschlagen awelRichtungsAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
         anfrage
         eingabe
@@ -785,6 +814,9 @@ instance Anfrage (AnfrageWeiche z) where
         (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
+        AMärklinWeicheNameFließendAnzahlRichtung {awemAnfrageAnschluss}
+            = zeigeAnfrageOptionen awemAnfrageAnschluss
+    zeigeAnfrageOptionen
         (ALegoWeicheName _name)
             = Just $ toBefehlsString $ map showText $ NE.toList alleValues
     zeigeAnfrageOptionen
@@ -793,6 +825,9 @@ instance Anfrage (AnfrageWeiche z) where
     zeigeAnfrageOptionen
         (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1)
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+    zeigeAnfrageOptionen
+        ALegoWeicheNameFließendRichtungen {awelRichtungsAnfrageAnschluss}
+            = zeigeAnfrageOptionen awelRichtungsAnfrageAnschluss
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
@@ -810,23 +845,23 @@ anfrageWeicheZugtyp
             (Lexer.Lego     , AnfrageLego ALegoWeiche)]
             $ AnfrageNothing $ AWEUnbekannt AnfrageWeiche eingabe
 
--- | Eingabe einer Weiche
-anfrageWeicheAktualisieren ::
-    AnfrageFamilie (Weiche z) ->
+-- | Eingabe einer 'Märklin'-'Weiche'
+anfrageWeicheMärklin ::
+    AnfrageFamilie (Weiche 'Märklin) ->
     EingabeToken ->
-        Either (AnfrageFamilie (Weiche z)) (Weiche z)
-anfrageWeicheAktualisieren
+        Either (AnfrageFamilie (Weiche 'Märklin)) (Weiche 'Märklin)
+anfrageWeicheMärklin
     AMärklinWeiche
     EingabeToken {eingabe}
         = Left $ AMärklinWeicheName eingabe
-anfrageWeicheAktualisieren
+anfrageWeicheMärklin
     anfrage@(AMärklinWeicheName name)
     token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
             (Lexer.LOW  , AMärklinWeicheNameFließend name LOW)]
             $ AWEUnbekannt anfrage eingabe
-anfrageWeicheAktualisieren
+anfrageWeicheMärklin
     anfrage@(AMärklinWeicheNameFließend name fließend)
     EingabeToken {eingabe, ganzzahl}
         = case ganzzahl of
@@ -834,44 +869,56 @@ anfrageWeicheAktualisieren
                 -> Left $ AWEUnbekannt anfrage eingabe
             (Just anzahl)
                 -> Left $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
-anfrageWeicheAktualisieren
+anfrageWeicheMärklin
     anfrage@(AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
     token@EingabeToken {eingabe}
         = Left $ case wähleRichtung token of
             Nothing
                 -> AWEUnbekannt anfrage eingabe
             (Just richtung)
-                -> AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung
-anfrageWeicheAktualisieren
-    anfrage@(AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ AWEUnbekannt anfrage eingabe
-            (Just pin)
+                -> AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
+anfrageWeicheMärklin
+    anfrage@(AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung anfrageAnschluss)
+    token
+        = case anfrageAnschlussAktualisieren anfrageAnschluss token of
+            (Left (AnfrageAnschlussUnbekannt awemAnfrageAnschluss eingabe))
+                -> Left $ AWEUnbekannt (anfrage {awemAnfrageAnschluss}) eingabe
+            (Left awemAnfrageAnschluss)
+                -> Left anfrage {awemAnfrageAnschluss}
+            (Right anschluss)
                 | anzahl > 1
                     -> Left $ AMärklinWeicheNameFließendAnzahl
                         wemName
                         wemFließend
                         (pred anzahl)
-                        ((richtung, zuPin pin) : acc)
+                        ((richtung, anschluss) : acc)
                 | otherwise
                     -> Right MärklinWeiche {
                         wemName,
                         wemFließend,
-                        wemRichtungsAnschlüsse = (richtung, zuPin pin) :| acc}
-anfrageWeicheAktualisieren
+                        wemRichtungsAnschlüsse = (richtung, anschluss) :| acc}
+anfrageWeicheMärklin
+    anfrage@(AWEUnbekannt _anfrage _eingabe)
+    _token
+        = Left anfrage
+
+-- | Eingabe einer 'Lego'-'Weiche'
+anfrageWeicheLego ::
+    AnfrageFamilie (Weiche 'Lego) ->
+    EingabeToken ->
+        Either (AnfrageFamilie (Weiche 'Lego)) (Weiche 'Lego)
+anfrageWeicheLego
     ALegoWeiche
     EingabeToken {eingabe}
         = Left $ ALegoWeicheName eingabe
-anfrageWeicheAktualisieren
+anfrageWeicheLego
     anfrage@(ALegoWeicheName name)
     token@EingabeToken {eingabe}
         = Left $ wähleBefehl token [
             (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
             (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
             $ AWEUnbekannt anfrage eingabe
-anfrageWeicheAktualisieren
+anfrageWeicheLego
     anfrage@(ALegoWeicheNameFließend name fließend)
     token@EingabeToken {eingabe}
         = Left $ case wähleRichtung token of
@@ -879,27 +926,29 @@ anfrageWeicheAktualisieren
                 -> AWEUnbekannt anfrage eingabe
             (Just richtung1)
                 -> ALegoWeicheNameFließendRichtung1 name fließend richtung1
-anfrageWeicheAktualisieren
+anfrageWeicheLego
     anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)
     token@EingabeToken {eingabe}
         = Left $ case wähleRichtung token of
             Nothing
                 -> AWEUnbekannt anfrage eingabe
             (Just richtung2)
-                -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2
-anfrageWeicheAktualisieren
-    anfrage@(ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ AWEUnbekannt anfrage eingabe
-            (Just pin)
+                -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
+anfrageWeicheLego
+    anfrage@(ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2 anfrageAnschluss)
+    token
+        = case anfrageAnschlussAktualisieren anfrageAnschluss token of
+            (Left (AnfrageAnschlussUnbekannt awelRichtungsAnfrageAnschluss eingabe))
+                -> Left $ AWEUnbekannt (anfrage {awelRichtungsAnfrageAnschluss}) eingabe
+            (Left awelRichtungsAnfrageAnschluss)
+                -> Left anfrage {awelRichtungsAnfrageAnschluss}
+            (Right welRichtungsAnschluss)
                 -> Right $ LegoWeiche {
                     welName,
                     welFließend,
-                    welRichtungsAnschluss = zuPin pin,
+                    welRichtungsAnschluss,
                     welRichtungen = (richtung1,richtung2)}
-anfrageWeicheAktualisieren
+anfrageWeicheLego
     anfrage@(AWEUnbekannt _anfrage _eingabe)
     _token
         = Left anfrage
