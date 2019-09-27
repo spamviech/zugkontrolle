@@ -18,7 +18,6 @@ module Zug.UI.Save (
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
-import Control.Concurrent.STM.TVar (TVar, newTVarIO)
 import Control.Monad (MonadPlus(..))
 import Data.Aeson (encode, decode)
 import Data.Aeson.Types (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
@@ -29,13 +28,12 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (PwmMap, I2CMap, Wartezeit(..),
+import Zug.Anbindung (Wartezeit(..),
             Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio, zuPinGpio,
             Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Klassen (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
-import Zug.Menge (Menge, leer)
-import Zug.Plan (ObjektKlasse(), ausBG, ausST, ausWE, ausKU, ausWS, ausPL, Ausführend(), ObjektAllgemein(..),
+import Zug.Plan (ObjektKlasse(), ausBG, ausST, ausWE, ausKU, ausWS, ausPL, ObjektAllgemein(..),
                 Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
                 AktionWeiche(..), AktionKupplung(..), Plan(..))
 import Zug.UI.Base (StatusAllgemein(..), Status, phantom)
@@ -48,18 +46,14 @@ speichern contents path = ByteString.writeFile path $ encode contents
 -- 
 -- Dateifehler und nicht-existente Dateien geben Nothing zurück.
 -- Ansonsten wird ein Konstruktor für einen aus einem 'Status' konstruiertem Typ zurückgegeben.
-laden :: FilePath -> (Status -> IO (s o)) -> IO (Maybe (TVar PwmMap -> TVar I2CMap -> IO (s o)))
+laden :: FilePath -> (Status -> IO (s o)) -> IO (Maybe (s o))
 laden path fromStatus = do
     fileExists <- doesFileExist path
     if fileExists
         then do
             byteString <- ByteString.readFile path
-            tvarAusführend <- newTVarIO leer
-            pure $ getStatusFunction <$> decode byteString >>= \f -> Just $ \tvarPwmMap tvarI2CMap -> fromStatus (f tvarAusführend tvarPwmMap tvarI2CMap)
+            maybe (pure Nothing) (fmap Just . fromStatus) $ decode byteString
         else pure Nothing
-
-newtype AlmostStatus = AlmostStatus {
-    getStatusFunction :: (TVar (Menge Ausführend) -> TVar PwmMap -> TVar I2CMap -> Status)}
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
 -- Definition hier und nicht in Language.hs, damit einmal erzeugte json-Dateien auch nach einer Sprachänderung gültig bleiben.
@@ -76,16 +70,16 @@ wegstreckenJS = "Wegstrecken"
 pläneJS :: Text
 pläneJS = "Pläne"
 
-instance FromJSON AlmostStatus where
-    parseJSON :: Value -> Parser AlmostStatus
+instance FromJSON Status where
+    parseJSON :: Value -> Parser Status
     parseJSON   (Object v)
-        = AlmostStatus <$> (Status
+        = Status
             <$> ((v .: bahngeschwindigkeitenJS) <|> pure [])
             <*> ((v .: streckenabschnitteJS)    <|> pure [])
             <*> ((v .: weichenJS)               <|> pure [])
             <*> ((v .: kupplungenJS)            <|> pure [])
             <*> ((v .: wegstreckenJS)           <|> pure [])
-            <*> ((v .: pläneJS)                 <|> pure []))
+            <*> ((v .: pläneJS)                 <|> pure [])
     parseJSON _value
         = mzero
 
