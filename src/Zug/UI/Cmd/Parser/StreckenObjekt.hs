@@ -6,7 +6,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 {-|
 Description: Parsen von 'StreckenObjekt'en
@@ -48,6 +47,7 @@ import Zug.Plan (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, MitAnfrage(..),
+                                AnfrageZugtyp(..), AnfrageZugtypEither(..), MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
                                 StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue,
                                 StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..), statusAnfrageObjektZugtyp)
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
@@ -119,6 +119,7 @@ instance Show AnfrageAnschluss where
                 <^> Language.a0 <=> showText a0
                 <^> Language.a1 <=> showText a1
                 <^> Language.a2 <=> showText a2
+
 instance Anfrage AnfrageAnschluss where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAnschluss -> s
     zeigeAnfrage
@@ -258,43 +259,6 @@ instance MitAnfrage Anschluss where
                 Nothing
                     -> Left $ AnfrageAnschlussUnbekannt anfrage eingabe
 
--- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'
-data AnfrageZugtyp
-    = AnfrageZugtyp
-    | AnfrageZugtypMärklin
-    | AnfrageZugtypLego
-
--- | Analog zu 'ZugtypEither' für 'AnfrageZugtyp'
-data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
-    = AnfrageNothing
-        (a 'AnfrageZugtyp)
-    | AnfrageMärklin
-        (a 'AnfrageZugtypMärklin)
-    | AnfrageLego
-        (a 'AnfrageZugtypLego)
-deriving instance (Eq (a 'AnfrageZugtyp), Eq (a 'AnfrageZugtypMärklin), Eq (a 'AnfrageZugtypLego))
-    => Eq (AnfrageZugtypEither a)
-instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'AnfrageZugtypLego))
-    => Show (AnfrageZugtypEither a) where
-    show :: AnfrageZugtypEither a -> String
-    show    (AnfrageNothing a)  = show a
-    show    (AnfrageMärklin a)  = show a
-    show    (AnfrageLego a)     = show a
-instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrage (a 'AnfrageZugtypLego))
-    => Anfrage (AnfrageZugtypEither a) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s
-    zeigeAnfrage    (AnfrageNothing a)  = zeigeAnfrage a
-    zeigeAnfrage    (AnfrageMärklin a)  = zeigeAnfrage a
-    zeigeAnfrage    (AnfrageLego a)     = zeigeAnfrage a
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s -> s
-    zeigeAnfrageFehlgeschlagen  (AnfrageNothing a)  = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageFehlgeschlagen  (AnfrageMärklin a)  = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageFehlgeschlagen  (AnfrageLego a)     = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> Maybe s
-    zeigeAnfrageOptionen    (AnfrageNothing a)  = zeigeAnfrageOptionen a
-    zeigeAnfrageOptionen    (AnfrageMärklin a)  = zeigeAnfrageOptionen a
-    zeigeAnfrageOptionen    (AnfrageLego a)     = zeigeAnfrageOptionen a
-
 -- | Unvollständige 'Bahngeschwindigkeit'
 data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
     AnfrageBahngeschwindigkeit
@@ -369,6 +333,7 @@ instance Show (AnfrageBahngeschwindigkeit z) where
                 <^> Language.fließendValue <=> showText fließend
                 <^> Language.geschwindigkeit <-> Language.anschluss <=> showText geschwindigkeitsAnschluss
                 <^> Language.fahrtrichtung <-> Language.anschluss <=> showText fahrtrichtungsAnschluss
+
 instance Anfrage (AnfrageBahngeschwindigkeit z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s
     zeigeAnfrage
@@ -449,18 +414,13 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
         _anfrage
             = Nothing
 
--- | Eingabe des 'Bahngeschwindigkeit'-'Zugtyp's
-anfrageBahngeschwindigkeitZugtyp ::
-    AnfrageBahngeschwindigkeit 'AnfrageZugtyp ->
-    EingabeToken ->
-        AnfrageZugtypEither AnfrageBahngeschwindigkeit
-anfrageBahngeschwindigkeitZugtyp
-    AnfrageBahngeschwindigkeit
-    token@EingabeToken {eingabe}
-        = wähleBefehl token [
-            (Lexer.Märklin  , AnfrageMärklin $ AMärklinBahngeschwindigkeit),
-            (Lexer.Lego     , AnfrageLego $ ALegoBahngeschwindigkeit)]
-            $ AnfrageNothing $ ABGUnbekannt AnfrageBahngeschwindigkeit eingabe
+instance MitAnfrageZugtyp AnfrageBahngeschwindigkeit where
+    anfrageUnbekannt :: AnfrageBahngeschwindigkeit z -> Text -> AnfrageBahngeschwindigkeit z
+    anfrageUnbekannt = ABGUnbekannt
+    anfrageMärklin :: AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
+    anfrageMärklin = AMärklinBahngeschwindigkeit
+    anfrageLego :: AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
+    anfrageLego = ALegoBahngeschwindigkeit
 
 instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
     type AnfrageTyp (Bahngeschwindigkeit 'Märklin) = AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
@@ -579,6 +539,7 @@ instance Show AnfrageStreckenabschnitt where
                 <^> Language.name <=> name
                 <^> Language.fließendValue <=> showText fließend
                 <^> Language.strom <-> Language.anschluss <=> showText stromAnschluss
+
 instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s
     zeigeAnfrage
@@ -769,6 +730,7 @@ instance Show (AnfrageWeiche z) where
                 <^> showText richtung1
                 <^> showText richtung2
                 <^> Language.richtung <-> Language.anschluss <=> showText anschluss
+
 instance Anfrage (AnfrageWeiche z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWeiche z -> s
     zeigeAnfrage
@@ -855,19 +817,6 @@ instance Anfrage (AnfrageWeiche z) where
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
-
--- | Eingabe des 'Weiche'-'Zugtyp's
-anfrageWeicheZugtyp ::
-    AnfrageWeiche 'AnfrageZugtyp ->
-    EingabeToken ->
-        AnfrageZugtypEither AnfrageWeiche
-anfrageWeicheZugtyp
-    AnfrageWeiche
-    token@EingabeToken {eingabe}
-        = wähleBefehl token [
-            (Lexer.Märklin  , AnfrageMärklin AMärklinWeiche),
-            (Lexer.Lego     , AnfrageLego ALegoWeiche)]
-            $ AnfrageNothing $ AWEUnbekannt AnfrageWeiche eingabe
 
 instance MitAnfrage (Weiche 'Märklin) where
     type AnfrageTyp (Weiche 'Märklin) = AnfrageWeiche 'AnfrageZugtypMärklin
@@ -981,6 +930,14 @@ instance MitAnfrage (Weiche 'Lego) where
         _token
             = Left anfrage
 
+instance MitAnfrageZugtyp AnfrageWeiche where
+    anfrageUnbekannt :: AnfrageWeiche z -> Text -> AnfrageWeiche z
+    anfrageUnbekannt = AWEUnbekannt
+    anfrageMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
+    anfrageMärklin = AMärklinWeiche
+    anfrageLego :: AnfrageWeiche 'AnfrageZugtypLego
+    anfrageLego = ALegoWeiche
+
 -- | Unvollständige 'Kupplung'
 data AnfrageKupplung
     = AnfrageKupplung
@@ -1010,6 +967,7 @@ instance Show AnfrageKupplung where
             = unpack $ Language.kupplung <^> Language.name <=> name
                 <^> Language.fließendValue <=> showText fließend
                 <^> Language.kupplung <-> Language.anschluss <=> showText anschluss
+
 instance Anfrage AnfrageKupplung where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageKupplung -> s
     zeigeAnfrage
@@ -1134,6 +1092,7 @@ instance Show (AnfrageWegstrecke z) where
     show
         (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
             = Language.wegstrecke <^> showText objektStatusAnfrage
+
 instance Anfrage (AnfrageWegstrecke z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> s
     zeigeAnfrage
@@ -1365,6 +1324,7 @@ instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageObjekt where
     show
         (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
             = showText objektStatusAnfrage
+
 instance Anfrage AnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageObjekt -> s
     zeigeAnfrage

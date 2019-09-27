@@ -3,14 +3,17 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 {-|
 Description : Klasse und Typfamilie für unvollständige Objekte.
 -}
 module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
-    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
+    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
+    MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..),
+    MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
     -- * Suche ein existierendes Objekt im Status
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
     ObjektZugtyp(..), StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp,
@@ -59,13 +62,6 @@ instance (Anfrage (a 'Märklin), Anfrage (a 'Lego)) => Anfrage (ZugtypEither a) 
     zeigeAnfrageOptionen    (ZugtypMärklin a)   = zeigeAnfrageOptionen a
     zeigeAnfrageOptionen    (ZugtypLego a)      = zeigeAnfrageOptionen a
 
--- | Klasse für Typen mit assiziiertem 'Anfrage'-Type
-class MitAnfrage a where
-    -- | Typfamilie für den assoziierten 'Anfrage'typ
-    type family AnfrageTyp a :: Type
-    -- | Eingabe eines Typs mit 'AnfrageTyp'
-    anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> Either (AnfrageTyp a) a
-
 -- | Zeige ein unvollständiges Objekt, gefolgt von der nächsten Nachfrage an
 showMitAnfrage :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s
 showMitAnfrage a = showText a <^> zeigeAnfrage a
@@ -73,6 +69,68 @@ showMitAnfrage a = showText a <^> zeigeAnfrage a
 -- | Zeige Meldung für eine invalide Eingabe auf die Nachfrage einer 'Anfrage' an
 showMitAnfrageFehlgeschlagen :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
 showMitAnfrageFehlgeschlagen a eingabe = showText a <^> zeigeAnfrageFehlgeschlagen a eingabe
+
+-- | Klasse für Typen mit assiziiertem 'Anfrage'-Type
+class MitAnfrage a where
+    -- | Typfamilie für den assoziierten 'Anfrage'typ
+    type family AnfrageTyp a :: Type
+    -- | Eingabe eines Typs mit 'AnfrageTyp'
+    anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> Either (AnfrageTyp a) a
+
+-- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'
+data AnfrageZugtyp
+    = AnfrageZugtyp
+    | AnfrageZugtypMärklin
+    | AnfrageZugtypLego
+
+-- | Analog zu 'ZugtypEither' für 'AnfrageZugtyp'
+data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
+    = AnfrageNothing
+        (a 'AnfrageZugtyp)
+    | AnfrageMärklin
+        (a 'AnfrageZugtypMärklin)
+    | AnfrageLego
+        (a 'AnfrageZugtypLego)
+deriving instance (Eq (a 'AnfrageZugtyp), Eq (a 'AnfrageZugtypMärklin), Eq (a 'AnfrageZugtypLego))
+    => Eq (AnfrageZugtypEither a)
+instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'AnfrageZugtypLego))
+    => Show (AnfrageZugtypEither a) where
+    show :: AnfrageZugtypEither a -> String
+    show    (AnfrageNothing a)  = show a
+    show    (AnfrageMärklin a)  = show a
+    show    (AnfrageLego a)     = show a
+instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrage (a 'AnfrageZugtypLego))
+    => Anfrage (AnfrageZugtypEither a) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s
+    zeigeAnfrage    (AnfrageNothing a)  = zeigeAnfrage a
+    zeigeAnfrage    (AnfrageMärklin a)  = zeigeAnfrage a
+    zeigeAnfrage    (AnfrageLego a)     = zeigeAnfrage a
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s -> s
+    zeigeAnfrageFehlgeschlagen  (AnfrageNothing a)  = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen  (AnfrageMärklin a)  = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen  (AnfrageLego a)     = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> Maybe s
+    zeigeAnfrageOptionen    (AnfrageNothing a)  = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen    (AnfrageMärklin a)  = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen    (AnfrageLego a)     = zeigeAnfrageOptionen a
+
+-- | Klasse für 'AnfrageTyp'en mit 'AnfrageZugtyp'
+class MitAnfrageZugtyp (a :: AnfrageZugtyp -> Type) where
+    anfrageUnbekannt :: a z -> Text -> a z
+    anfrageMärklin :: a 'AnfrageZugtypMärklin
+    anfrageLego :: a 'AnfrageZugtypLego
+
+anfrageAktualisierenZugtyp :: (MitAnfrageZugtyp a) =>
+    a 'AnfrageZugtyp ->
+    EingabeToken ->
+        AnfrageZugtypEither a
+anfrageAktualisierenZugtyp
+    anfrage
+    token@EingabeToken {eingabe}
+        = wähleBefehl token [
+            (Lexer.Märklin  , AnfrageMärklin $ anfrageMärklin),
+            (Lexer.Lego     , AnfrageLego $ anfrageLego)]
+            $ AnfrageNothing $ anfrageUnbekannt anfrage eingabe
 
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
