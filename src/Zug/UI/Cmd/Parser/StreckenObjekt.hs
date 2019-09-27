@@ -5,6 +5,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 {-|
 Description: Parsen von 'StreckenObjekt'en
@@ -38,14 +39,16 @@ import Numeric.Natural (Natural)
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..),
                     Kupplung(..), Wegstrecke(..), Anschluss(..), Value(..), alleValues,
                     PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio, vonPCF8574Port)
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, Richtung(..), unterstützteRichtungen)
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), unterstützteZugtypen,
+                    Richtung(..), unterstützteRichtungen)
 import Zug.Language ((<^>), (<=>), (<->), showText, toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Plan (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, AnfrageFamilie,
-                                StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue)
+                                StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue,
+                                StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..), statusAnfrageObjektZugtyp)
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), anfragePlanAktualisieren)
 
 -- | Unvollständiger 'Anschluss'
@@ -268,6 +271,28 @@ data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
         (a 'AnfrageZugtypMärklin)
     | AnfrageLego
         (a 'AnfrageZugtypLego)
+deriving instance (Eq (a 'AnfrageZugtyp), Eq (a 'AnfrageZugtypMärklin), Eq (a 'AnfrageZugtypLego))
+    => Eq (AnfrageZugtypEither a)
+instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'AnfrageZugtypLego))
+    => Show (AnfrageZugtypEither a) where
+    show :: AnfrageZugtypEither a -> String
+    show    (AnfrageNothing a)  = show a
+    show    (AnfrageMärklin a)  = show a
+    show    (AnfrageLego a)     = show a
+instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrage (a 'AnfrageZugtypLego))
+    => Anfrage (AnfrageZugtypEither a) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s
+    zeigeAnfrage    (AnfrageNothing a)  = zeigeAnfrage a
+    zeigeAnfrage    (AnfrageMärklin a)  = zeigeAnfrage a
+    zeigeAnfrage    (AnfrageLego a)     = zeigeAnfrage a
+    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s -> s
+    zeigeAnfrageFehlgeschlagen  (AnfrageNothing a)  = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen  (AnfrageMärklin a)  = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen  (AnfrageLego a)     = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> Maybe s
+    zeigeAnfrageOptionen    (AnfrageNothing a)  = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen    (AnfrageMärklin a)  = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen    (AnfrageLego a)     = zeigeAnfrageOptionen a
 
 -- | Unvollständige 'Bahngeschwindigkeit'
 data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
@@ -1071,12 +1096,12 @@ data AnfrageWegstrecke (z :: Zugtyp)
         (Wegstrecke z)          -- ^ Akkumulator
         Natural                 -- ^ Anzahl zusätzliche Elemente
         (Weiche z)              -- ^ Weiche für Richtung-Angabe
-    | AWegstreckeMStatus
-        StatusAnfrageObjekt
-        (Either (Objekt -> (AnfrageWegstrecke z)) (Objekt -> (Wegstrecke z)))
     | AWSStatusAnfrage
-        (EingabeToken -> StatusAnfrageObjekt)
-        (Either (Objekt -> (AnfrageWegstrecke z)) (Objekt -> (Wegstrecke z)))
+        (EingabeToken -> StatusAnfrageObjektZugtyp z)
+        (Either (ObjektZugtyp z -> (AnfrageWegstrecke z)) (ObjektZugtyp z -> (Wegstrecke z)))
+    | AWegstreckeMStatus
+        (StatusAnfrageObjektZugtyp z)
+        (Either (ObjektZugtyp z -> (AnfrageWegstrecke z)) (ObjektZugtyp z -> (Wegstrecke z)))
 
 type instance AnfrageFamilie (Wegstrecke z) = AnfrageWegstrecke z
 
@@ -1103,11 +1128,11 @@ instance Show (AnfrageWegstrecke z) where
                 <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
                 <^> showText weiche
     show
-        (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
-            = Language.wegstrecke <^> showText objektStatusAnfrage
-    show
         (AWSStatusAnfrage anfrageKonstruktor _eitherF)
             = Language.wegstreckenElement <^> showText (anfrageKonstruktor leeresToken)
+    show
+        (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
+            = Language.wegstrecke <^> showText objektStatusAnfrage
 instance Anfrage (AnfrageWegstrecke z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> s
     zeigeAnfrage
@@ -1126,11 +1151,11 @@ instance Anfrage (AnfrageWegstrecke z) where
         (AWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)
             = Language.richtung
     zeigeAnfrage
-        (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage
         (AWSStatusAnfrage anfrageKonstruktor _eitherF)
             = zeigeAnfrage $ anfrageKonstruktor leeresToken
+    zeigeAnfrage
+        (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrage objektStatusAnfrage
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> Maybe s
     zeigeAnfrageOptionen
         (AWSUnbekannt qWegstrecke _eingabe)
@@ -1142,21 +1167,17 @@ instance Anfrage (AnfrageWegstrecke z) where
         (AWegstreckeNameAnzahlWeicheRichtung _acc _anzahl _weiche)
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
-        (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen
         (AWSStatusAnfrage anfrageKonstruktor _eitherF)
             = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
+    zeigeAnfrageOptionen
+        (AWegstreckeMStatus objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrageOptionen objektStatusAnfrage
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
 
-class AnfrageWegstreckeZugtyp (z :: Zugtyp) where
-    eitherObjektAhängen :: AnfrageWegstrecke z -> Either (Objekt -> (AnfrageWegstrecke z)) (Objekt -> (Wegstrecke z))
-    eitherWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke z)
-
 -- | Eingabe einer Wegstrecke
-anfrageWegstreckeAktualisieren :: (AnfrageWegstreckeZugtyp z) =>
+anfrageWegstreckeAktualisieren :: (ZugtypKlasse z) =>
     (AnfrageWegstrecke z) ->
     EingabeToken ->
         Either (AnfrageWegstrecke z) (Wegstrecke z)
@@ -1186,13 +1207,13 @@ anfrageWegstreckeAktualisieren
     token
         = Left $ case anfrageWegstreckenElement token of
             AWSEWeiche
-                -> AWSStatusAnfrage SAOWeiche $ Left $ anfrageWeicheAnhängen
+                -> AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
             AWSEBahngeschwindigkeit
-                -> AWSStatusAnfrage SAOBahngeschwindigkeit eitherObjektAnhängen
+                -> AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
             AWSEStreckenabschnitt
-                -> AWSStatusAnfrage SAOStreckenabschnitt eitherObjektAnhängen
+                -> AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
             AWSEKupplung
-                -> AWSStatusAnfrage SAOKupplung eitherObjektAnhängen
+                -> AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
             (AWSEUnbekannt eingabe)
                 -> AWSUnbekannt anfrage eingabe
     where
@@ -1203,32 +1224,47 @@ anfrageWegstreckeAktualisieren
             (Lexer.Streckenabschnitt     , AWSEStreckenabschnitt),
             (Lexer.Kupplung              , AWSEKupplung)]
             $ AWSEUnbekannt eingabe
-        eitherObjektAnhängen :: Either (Objekt -> (AnfrageWegstrecke z)) (Objekt -> (Wegstrecke z))
+        eitherObjektAnhängen :: Wegstrecke z ->
+                Either (ObjektZugtyp z -> (AnfrageWegstrecke z)) (ObjektZugtyp z -> (Wegstrecke z))
         eitherObjektAnhängen
-            | anzahl > 1
-                = Left anfrageObjektAnhängen
-            | otherwise
-                = Right objektAnhängen
-        objektAnhängen :: Objekt -> (Wegstrecke z)
+            wegstrecke
+                | anzahl > 1
+                    = Left $ anfrageObjektAnhängen wegstrecke
+                | otherwise
+                    = Right $ objektAnhängen wegstrecke
+        objektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> Wegstrecke z
         objektAnhängen
-            (OBahngeschwindigkeit bahngeschwindigkeit)
-                = acc {wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten}
+            wegstrecke@Wegstrecke {wsBahngeschwindigkeiten}
+            (OZBahngeschwindigkeit bahngeschwindigkeit)
+                = wegstrecke {wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten}
         objektAnhängen
-            (OStreckenabschnitt streckenabschnitt)
-                = acc {wsStreckenabschnitte=streckenabschnitt:wsStreckenabschnitte}
+            wegstrecke@Wegstrecke {wsStreckenabschnitte}
+            (OZStreckenabschnitt streckenabschnitt)
+                = wegstrecke {wsStreckenabschnitte = streckenabschnitt : wsStreckenabschnitte}
         objektAnhängen
-            (OKupplung kupplung)
-                = acc {wsKupplungen=kupplung:wsKupplungen}
+            wegstrecke@Wegstrecke {wsKupplungen}
+            (OZKupplung kupplung)
+                = wegstrecke {wsKupplungen = kupplung : wsKupplungen}
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         objektAnhängen
+            wegstrecke
             _objekt
-                = acc
-        anfrageObjektAnhängen :: Objekt -> (AnfrageWegstrecke z)
-        anfrageObjektAnhängen objekt = AWegstreckeNameAnzahl (objektAnhängen objekt) $ pred anzahl
-        anfrageWeicheAnhängen :: Objekt -> (AnfrageWegstrecke z)
-        anfrageWeicheAnhängen (OWeiche weiche)  = AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche
+                = wegstrecke
+        anfrageObjektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> AnfrageWegstrecke z
+        anfrageObjektAnhängen
+            wegstrecke
+            objekt
+                = AWegstreckeNameAnzahl (objektAnhängen wegstrecke objekt) $ pred anzahl
+        anfrageWeicheAnhängen :: AnfrageWegstrecke z -> ObjektZugtyp z -> AnfrageWegstrecke z
+        anfrageWeicheAnhängen
+            (AWegstreckeNameAnzahl wegstrecke anzahl)
+            (OZWeiche weiche)
+                = AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
-        anfrageWeicheAnhängen _objekt           = anfrage
+        anfrageWeicheAnhängen
+            anfrageWegstrecke
+            _objekt
+                = anfrageWegstrecke
 anfrageWegstreckeAktualisieren
     (AWSStatusAnfrage anfrageKonstruktor eitherF)
     token
@@ -1242,22 +1278,30 @@ anfrageWegstreckeAktualisieren
         = case wähleRichtung token of
             (Just richtung)
                 | hatRichtung weiche richtung
-                    -> eitherWeicheRichtungAnhängen richtung
+                    -> eitherWeicheRichtungAnhängen anfrage richtung
             Nothing
                 -> Left $ AWSUnbekannt anfrage eingabe
     where
-        eitherWeicheRichtungAnhängen :: Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke z)
-        eitherWeicheRichtungAnhängen richtung
-            | anzahl > 1
-                = Left $ qWeicheRichtungAnhängen richtung
-            | otherwise
-                = Right $ weicheRichtungAnhängen richtung
-        qWeicheRichtungAnhängen :: Richtung -> (AnfrageWegstrecke z)
-        qWeicheRichtungAnhängen richtung = AWegstreckeNameAnzahl (weicheRichtungAnhängen richtung) $ pred anzahl
-        weicheRichtungAnhängen :: Richtung -> (Wegstrecke z)
-        weicheRichtungAnhängen richtung = acc {wsWeichenRichtungen = (weiche, richtung) : wsWeichenRichtungen}
+        eitherWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke z)
+        eitherWeicheRichtungAnhängen
+            anfrageWegstrecke
+            richtung
+                | anzahl > 1
+                    = Left $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
+                | otherwise
+                    = Right $ weicheRichtungAnhängen anfrageWegstrecke richtung
+        qWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> (AnfrageWegstrecke z)
+        qWeicheRichtungAnhängen
+            anfrageWegstrecke
+            richtung
+                = AWegstreckeNameAnzahl (weicheRichtungAnhängen anfrageWegstrecke richtung) $ pred anzahl
+        weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> (Wegstrecke z)
+        weicheRichtungAnhängen
+            (AWegstreckeNameAnzahlWeicheRichtung wegstrecke@(Wegstrecke {wsWeichenRichtungen}) _anzahl weiche)
+            richtung
+                = wegstrecke {wsWeichenRichtungen = (weiche, richtung) : wsWeichenRichtungen}
 anfrageWegstreckeAktualisieren
-    anfrage
+    anfrage@AWSUnbekannt {}
     _token
         = Left anfrage
 

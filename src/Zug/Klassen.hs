@@ -10,6 +10,7 @@ Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer We
 module Zug.Klassen where
 
 -- Bibliotheken
+import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..), fromList)
 -- Abhängigkeiten von anderen Modulen
 import qualified Zug.Language as Language
@@ -19,7 +20,7 @@ data Zugtyp = Märklin | Lego
                 deriving (Eq, Bounded, Enum)
 
 -- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datantypen
-data ZugtypEither a
+data ZugtypEither (a :: Zugtyp -> Type)
     = ZugtypMärklin (a 'Märklin)
     | ZugtypLego (a 'Lego)
 deriving instance (Eq (a 'Märklin), Eq (a 'Lego)) => Eq (ZugtypEither a)

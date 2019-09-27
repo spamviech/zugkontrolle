@@ -45,8 +45,8 @@ import Zug.Menge (Menge(), hinzufügen, entfernen)
 data ObjektAllgemein bg st we ku ws pl
     = OBahngeschwindigkeit (ZugtypEither bg)
     | OStreckenabschnitt st
-    | OKupplung ku
     | OWeiche (ZugtypEither we)
+    | OKupplung ku
     | OWegstrecke (ZugtypEither ws)
     | OPlan pl
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
@@ -118,9 +118,10 @@ instance ObjektKlasse (ObjektAllgemein bg st we ku ws pl) where
     ausObjekt :: ObjektAllgemein bg st we ku ws pl -> ObjektAllgemein bg st we ku ws pl
     ausObjekt = id
 
-instance (StreckenObjekt pl, StreckenObjekt (bg 'Märklin), StreckenObjekt (bg 'Lego), StreckenObjekt st, StreckenObjekt ku,
-        StreckenObjekt (we 'Märklin), StreckenObjekt (we 'Lego), StreckenObjekt (ws 'Märklin), StreckenObjekt (ws 'Lego))
-    => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
+instance (StreckenObjekt pl, StreckenObjekt (bg 'Märklin), StreckenObjekt (bg 'Lego),
+        StreckenObjekt st, StreckenObjekt ku, StreckenObjekt (we 'Märklin), StreckenObjekt (we 'Lego),
+        StreckenObjekt (ws 'Märklin), StreckenObjekt (ws 'Lego))
+            => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
     erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
     erhalteName (OPlan pl)                  = erhalteName pl
     erhalteName (OWegstrecke ws)            = erhalteName ws
