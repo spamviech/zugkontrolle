@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
 Description: Parsen von 'StreckenObjekt'en
@@ -28,7 +29,6 @@ module Zug.UI.Cmd.Parser.StreckenObjekt (
     -- ** Objekt
     AnfrageObjekt(..)) where
 
-import Data.Kind (Type)
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString())
 import Data.List.NonEmpty (NonEmpty(..))
@@ -38,8 +38,8 @@ import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..),
                     Kupplung(..), Wegstrecke(..), Anschluss(..), Value(..), alleValues,
-                    PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio, vonPCF8574Port)
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), unterstützteZugtypen,
+                    PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen,
                     Richtung(..), unterstützteRichtungen)
 import Zug.Language ((<^>), (<=>), (<->), showText, toBefehlsString)
 import qualified Zug.Language as Language
@@ -49,7 +49,7 @@ import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, MitAnfrage(..),
                                 AnfrageZugtyp(..), AnfrageZugtypEither(..), MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
                                 StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue,
-                                StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..), statusAnfrageObjektZugtyp)
+                                StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..))
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
 
 -- | Unvollständiger 'Anschluss'
@@ -135,16 +135,16 @@ instance Anfrage AnfrageAnschluss where
         APCF8574Port
             = Language.pcf8574 <-> Language.variante
     zeigeAnfrage
-        (APCF8574PortVariant variante)
+        (APCF8574PortVariant _variante)
             = Language.a0
     zeigeAnfrage
-        (APCF8574PortVariantA0 variante a0)
+        (APCF8574PortVariantA0 _variante _a0)
             = Language.a1
     zeigeAnfrage
-        (APCF8574PortVariantA0A1 variante a0 a1)
+        (APCF8574PortVariantA0A1 _variante _a0 _a1)
             = Language.a2
     zeigeAnfrage
-        (APCF8574PortVariantA0A1A2 variante a0 a1 a2)
+        (APCF8574PortVariantA0A1A2 _variante _a0 _a1 _a2)
             = Language.port
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAnschluss -> s -> s
     zeigeAnfrageFehlgeschlagen
@@ -156,15 +156,15 @@ instance Anfrage AnfrageAnschluss where
         eingabe
             = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen
-        anfrage@(APCF8574PortVariantA0 _variante a0)
+        anfrage@(APCF8574PortVariantA0 _variante _a0)
         eingabe
             = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen
-        anfrage@(APCF8574PortVariantA0A1 _variante a0 a2)
+        anfrage@(APCF8574PortVariantA0A1 _variante _a0 _a2)
         eingabe
             = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen
-        anfrage@(APCF8574PortVariantA0A1A2 _variante a0 a1 a2)
+        anfrage@(APCF8574PortVariantA0A1A2 _variante _a0 _a1 _a2)
         eingabe
             = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen
@@ -207,7 +207,7 @@ instance MitAnfrage Anschluss where
                 $ AnfrageAnschlussUnbekannt AnfrageAnschluss eingabe
     anfrageAktualisieren 
         (AnfrageAnschlussUnbekannt anfrage _eingabe)
-        token
+        _token
             = Left anfrage
     anfrageAktualisieren 
         APin
@@ -250,7 +250,7 @@ instance MitAnfrage Anschluss where
                     -> AnfrageAnschlussUnbekannt anfrage eingabe
     anfrageAktualisieren
         anfrage@(APCF8574PortVariantA0A1A2 variant a0 a1 a2)
-        token@EingabeToken {eingabe, ganzzahl}
+        EingabeToken {eingabe, ganzzahl}
             = case ganzzahl of
                 (Just port)
                     -> Right $ AnschlussPCF8574Port $ PCF8574Port {
@@ -381,7 +381,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
         eingabe
             = zeigeAnfrageFehlgeschlagen abglGeschwindigkeitsAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
-        anfrage@ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
+        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
         eingabe
             = zeigeAnfrageFehlgeschlagen abglFahrtrichtungsAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
@@ -1044,8 +1044,8 @@ instance MitAnfrage Kupplung where
 
 type family FixerZugtyp (z :: AnfrageZugtyp) :: Zugtyp
 
-type instance FixerZugtyp AnfrageZugtypMärklin = Märklin
-type instance FixerZugtyp AnfrageZugtypLego = Lego
+type instance FixerZugtyp 'AnfrageZugtypMärklin = 'Märklin
+type instance FixerZugtyp 'AnfrageZugtypLego = 'Lego
 
 -- | Unvollständige 'Wegstrecke'
 data AnfrageWegstrecke (z :: AnfrageZugtyp) where
@@ -1191,6 +1191,14 @@ instance MitAnfrage (Wegstrecke 'Lego) where
 -- | Eingabe einer Wegstrecke
 anfrageWegstreckeAktualisieren :: AnfrageWegstrecke z -> EingabeToken -> Either (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
 anfrageWegstreckeAktualisieren
+    anfrage@AnfrageWegstreckeZugtyp
+    _token
+        = Left anfrage
+anfrageWegstreckeAktualisieren
+    anfrage@AWegstreckeMStatus {}
+    _token
+        = Left anfrage
+anfrageWegstreckeAktualisieren
     AnfrageWegstrecke
     EingabeToken {eingabe}
         = Left $ AWegstreckeName eingabe
@@ -1210,9 +1218,7 @@ anfrageWegstreckeAktualisieren
                         wsKupplungen = []}
                     anzahl
 anfrageWegstreckeAktualisieren
-    anfrage@(AWegstreckeNameAnzahl
-        acc@Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsKupplungen}
-        anzahl)
+    anfrage@(AWegstreckeNameAnzahl acc anzahl)
     token
         = Left $ case anfrageWegstreckenElement token of
             AWSEWeiche
@@ -1283,7 +1289,7 @@ anfrageWegstreckeAktualisieren
         = Left $ AWegstreckeMStatus (anfrageKonstruktor token) eitherF
 anfrageWegstreckeAktualisieren
     anfrage@(AWegstreckeNameAnzahlWeicheRichtung
-        acc@Wegstrecke {wsWeichenRichtungen}
+        Wegstrecke {}
         anzahl
         weiche)
     token@EingabeToken {eingabe}
@@ -1291,7 +1297,7 @@ anfrageWegstreckeAktualisieren
             (Just richtung)
                 | hatRichtung weiche richtung
                     -> eitherWeicheRichtungAnhängen anfrage richtung
-            Nothing
+            _otherwise
                 -> Left $ AWSUnbekannt anfrage eingabe
     where
         eitherWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
@@ -1312,6 +1318,10 @@ anfrageWegstreckeAktualisieren
             AWegstreckeNameAnzahlWeicheRichtung {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
             richtung
                 = wegstrecke {wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen}
+        weicheRichtungAnhängen
+            anfrageWegstrecke
+            _richtung
+                = error $ "weicheRichtungAnhängen mit unbekannter anfrageWegstrecke aufgerufen: " ++ show anfrageWegstrecke
 anfrageWegstreckeAktualisieren
     anfrage@AWSUnbekannt {}
     _token
@@ -1382,6 +1392,12 @@ instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageObjekt where
     show
         (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
             = showText objektStatusAnfrage
+    show
+        (AOStatusAnfrageMärklin objektStatusAnfrage _eitherKonstruktor)
+            = showText objektStatusAnfrage
+    show
+        (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
+            = showText objektStatusAnfrage
 
 instance Anfrage AnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageObjekt -> s
@@ -1412,6 +1428,12 @@ instance Anfrage AnfrageObjekt where
     zeigeAnfrage
         (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
             = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage
+        (AOStatusAnfrageMärklin objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrage objektStatusAnfrage
+    zeigeAnfrage
+        (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrage objektStatusAnfrage
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageObjekt -> Maybe s
     zeigeAnfrageOptionen
         (AOUnbekannt anfrageObjekt _eingabe)
@@ -1440,8 +1462,14 @@ instance Anfrage AnfrageObjekt where
     zeigeAnfrageOptionen
         (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
             = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen
+        (AOStatusAnfrageMärklin objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrageOptionen objektStatusAnfrage
+    zeigeAnfrageOptionen
+        (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
+            = zeigeAnfrageOptionen objektStatusAnfrage
 
-instance MitAnfrage Objekt where
+instance (Show (AnfrageTyp (ZugtypEither Weiche))) => MitAnfrage Objekt where
     type AnfrageTyp Objekt = AnfrageObjekt
     -- | Eingabe eines Objekts
     anfrageAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt
@@ -1451,6 +1479,14 @@ instance MitAnfrage Objekt where
             = Left aFehler
     anfrageAktualisieren
         anfrageObjekt@(AOStatusAnfrage _objektStatusAnfrage _eitherKonstruktor)
+        _token
+            = Left anfrageObjekt
+    anfrageAktualisieren
+        anfrageObjekt@(AOStatusAnfrageMärklin _objektStatusAnfrage _eitherKonstruktor)
+        _token
+            = Left anfrageObjekt
+    anfrageAktualisieren
+        anfrageObjekt@(AOStatusAnfrageLego _objektStatusAnfrage _eitherKonstruktor)
         _token
             = Left anfrageObjekt
     anfrageAktualisieren
@@ -1466,7 +1502,7 @@ instance MitAnfrage Objekt where
                 $ Left $ AOUnbekannt AnfrageObjekt eingabe
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageNothing aBahngeschwindigkeit))
-        token@EingabeToken {eingabe}
+        token
             = Left $ AOBahngeschwindigkeit $ anfrageAktualisierenZugtyp aBahngeschwindigkeit token
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageMärklin aBahngeschwindigkeit))
