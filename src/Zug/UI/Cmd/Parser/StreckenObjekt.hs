@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -13,20 +14,20 @@ Description: Parsen von 'StreckenObjekt'en
 module Zug.UI.Cmd.Parser.StreckenObjekt (
     -- * Hilfstypen
     AnfrageZugtyp(..), AnfrageZugtypEither(..),
-    AnfrageAnschluss(..), anfrageAnschlussAktualisieren,
+    AnfrageAnschluss(..),
     -- * StreckenObjekte
     -- ** Bahngeschwindigkeit
-    AnfrageBahngeschwindigkeit(..), anfrageBahngeschwindigkeitAktualisieren,
+    AnfrageBahngeschwindigkeit(..),
     -- ** Weiche
-    AnfrageWeiche(..), anfrageWeicheAktualisieren,
+    AnfrageWeiche(..),
     -- ** Streckenabschnitt
-    AnfrageStreckenabschnitt(..), anfrageStreckenabschnittAktualisieren,
+    AnfrageStreckenabschnitt(..),
     -- ** Kupplung
-    AnfrageKupplung(..), anfrageKupplungAktualisieren,
+    AnfrageKupplung(..),
     -- ** Wegstrecke
-    AnfrageWegstrecke(..), anfrageWegstreckeAktualisieren,
+    AnfrageWegstrecke(..),
     -- ** Objekt
-    AnfrageObjekt(..), anfrageObjektAktualisieren) where
+    AnfrageObjekt(..)) where
 
 import Data.Kind (Type)
 import Data.Semigroup (Semigroup(..))
@@ -46,10 +47,10 @@ import qualified Zug.Language as Language
 import Zug.Plan (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, AnfrageFamilie,
+import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, MitAnfrage(..),
                                 StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue,
                                 StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..), statusAnfrageObjektZugtyp)
-import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), anfragePlanAktualisieren)
+import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
 
 -- | Unvollständiger 'Anschluss'
 data AnfrageAnschluss
@@ -73,8 +74,6 @@ data AnfrageAnschluss
         Value                   -- ^ a0
         Value                   -- ^ a1
         Value                   -- ^ a2
-
-type instance AnfrageFamilie Anschluss = AnfrageAnschluss
 
 instance Show AnfrageAnschluss where
     show :: AnfrageAnschluss -> String
@@ -194,68 +193,70 @@ instance Anfrage AnfrageAnschluss where
         _anfrage
             = Nothing
 
--- | Eingabe eines 'Anschluss'
-anfrageAnschlussAktualisieren :: AnfrageAnschluss -> EingabeToken -> Either AnfrageAnschluss Anschluss
-anfrageAnschlussAktualisieren
-    AnfrageAnschluss
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.Pin          , APin),
-            (Lexer.PCF8574Port  , APCF8574Port)]
-            $ AnfrageAnschlussUnbekannt AnfrageAnschluss eingabe
-anfrageAnschlussAktualisieren 
-    (AnfrageAnschlussUnbekannt anfrage _eingabe)
-    token
-        = Left anfrage
-anfrageAnschlussAktualisieren 
-    APin
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            (Just pin)
-                -> Right $ vonPinGpio pin
-            Nothing
-                -> Left $ AnfrageAnschlussUnbekannt APin eingabe
-anfrageAnschlussAktualisieren
-    APCF8574Port
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.A        , APCF8574PortVariant VariantA),
-            (Lexer.Normal   , APCF8574PortVariant VariantNormal)]
-            $ AnfrageAnschlussUnbekannt APCF8574Port eingabe
-anfrageAnschlussAktualisieren
-    anfrage@(APCF8574PortVariant variante)
-    token@EingabeToken {eingabe}
-        = Left $ case wähleValue token of
-            (Just a0)
-                -> APCF8574PortVariantA0 variante a0
-            Nothing
-                -> AnfrageAnschlussUnbekannt anfrage eingabe
-anfrageAnschlussAktualisieren
-    anfrage@(APCF8574PortVariantA0 variante a0)
-    token@EingabeToken {eingabe}
-        = Left $ case wähleValue token of
-            (Just a1)
-                -> APCF8574PortVariantA0A1 variante a0 a1
-            Nothing
-                -> AnfrageAnschlussUnbekannt anfrage eingabe
-anfrageAnschlussAktualisieren
-    anfrage@(APCF8574PortVariantA0A1 variante a0 a1)
-    token@EingabeToken {eingabe}
-        = Left $ case wähleValue token of
-            (Just a2)
-                -> APCF8574PortVariantA0A1A2 variante a0 a1 a2
-            Nothing
-                -> AnfrageAnschlussUnbekannt anfrage eingabe
-anfrageAnschlussAktualisieren
-    anfrage@(APCF8574PortVariantA0A1A2 variant a0 a1 a2)
-    token@EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            (Just port)
-                -> Right $ AnschlussPCF8574Port $ PCF8574Port {
-                    pcf8574 = PCF8574 {variant, a0, a1, a2},
-                    port = fromIntegral port}
-            Nothing
-                -> Left $ AnfrageAnschlussUnbekannt anfrage eingabe
+instance MitAnfrage Anschluss where
+    type AnfrageTyp Anschluss = AnfrageAnschluss
+    -- | Eingabe eines 'Anschluss'
+    anfrageAktualisieren :: AnfrageAnschluss -> EingabeToken -> Either AnfrageAnschluss Anschluss
+    anfrageAktualisieren
+        AnfrageAnschluss
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.Pin          , APin),
+                (Lexer.PCF8574Port  , APCF8574Port)]
+                $ AnfrageAnschlussUnbekannt AnfrageAnschluss eingabe
+    anfrageAktualisieren 
+        (AnfrageAnschlussUnbekannt anfrage _eingabe)
+        token
+            = Left anfrage
+    anfrageAktualisieren 
+        APin
+        EingabeToken {eingabe, ganzzahl}
+            = case ganzzahl of
+                (Just pin)
+                    -> Right $ vonPinGpio pin
+                Nothing
+                    -> Left $ AnfrageAnschlussUnbekannt APin eingabe
+    anfrageAktualisieren
+        APCF8574Port
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.A        , APCF8574PortVariant VariantA),
+                (Lexer.Normal   , APCF8574PortVariant VariantNormal)]
+                $ AnfrageAnschlussUnbekannt APCF8574Port eingabe
+    anfrageAktualisieren
+        anfrage@(APCF8574PortVariant variante)
+        token@EingabeToken {eingabe}
+            = Left $ case wähleValue token of
+                (Just a0)
+                    -> APCF8574PortVariantA0 variante a0
+                Nothing
+                    -> AnfrageAnschlussUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(APCF8574PortVariantA0 variante a0)
+        token@EingabeToken {eingabe}
+            = Left $ case wähleValue token of
+                (Just a1)
+                    -> APCF8574PortVariantA0A1 variante a0 a1
+                Nothing
+                    -> AnfrageAnschlussUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(APCF8574PortVariantA0A1 variante a0 a1)
+        token@EingabeToken {eingabe}
+            = Left $ case wähleValue token of
+                (Just a2)
+                    -> APCF8574PortVariantA0A1A2 variante a0 a1 a2
+                Nothing
+                    -> AnfrageAnschlussUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(APCF8574PortVariantA0A1A2 variant a0 a1 a2)
+        token@EingabeToken {eingabe, ganzzahl}
+            = case ganzzahl of
+                (Just port)
+                    -> Right $ AnschlussPCF8574Port $ PCF8574Port {
+                        pcf8574 = PCF8574 {variant, a0, a1, a2},
+                        port = fromIntegral port}
+                Nothing
+                    -> Left $ AnfrageAnschlussUnbekannt anfrage eingabe
 
 -- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'
 data AnfrageZugtyp
@@ -328,9 +329,6 @@ data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
         abglGeschwindigkeitsAnschluss :: Anschluss,
         abglFahrtrichtungsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
-
-type instance AnfrageFamilie (Bahngeschwindigkeit 'Märklin) = AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
-type instance AnfrageFamilie (Bahngeschwindigkeit 'Lego) = AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
 
 instance Show (AnfrageBahngeschwindigkeit z) where
     show :: AnfrageBahngeschwindigkeit z -> String
@@ -464,88 +462,92 @@ anfrageBahngeschwindigkeitZugtyp
             (Lexer.Lego     , AnfrageLego $ ALegoBahngeschwindigkeit)]
             $ AnfrageNothing $ ABGUnbekannt AnfrageBahngeschwindigkeit eingabe
 
--- | Eingabe einer 'Märklin'-'Bahngeschwindigkeit'
-anfrageBahngeschwindigkeitMärklin ::
-    AnfrageFamilie (Bahngeschwindigkeit 'Märklin) ->
-    EingabeToken ->
-        Either (AnfrageFamilie (Bahngeschwindigkeit 'Märklin)) (Bahngeschwindigkeit 'Märklin)
-anfrageBahngeschwindigkeitMärklin
-    AMärklinBahngeschwindigkeit
-    EingabeToken {eingabe}
-        = Left $ AMärklinBahngeschwindigkeitName eingabe
-anfrageBahngeschwindigkeitMärklin
-    anfrage@AMärklinBahngeschwindigkeitName {abgmName}
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
-            (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
-            $ ABGUnbekannt anfrage eingabe
-anfrageBahngeschwindigkeitMärklin
-    anfrage@(AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend geschwindigkeitsAnschluss)
-    token
-        = case anfrageAnschlussAktualisieren geschwindigkeitsAnschluss token of
-            (Left (AnfrageAnschlussUnbekannt abgmGeschwindigkeitsAnfrageAnschluss eingabe))
-                -> Left $ ABGUnbekannt (anfrage {abgmGeschwindigkeitsAnfrageAnschluss}) eingabe
-            (Left abgmGeschwindigkeitsAnfrageAnschluss)
-                -> Left anfrage {abgmGeschwindigkeitsAnfrageAnschluss}
-            (Right bgmGeschwindigkeitsAnschluss)
-                -> Right $ MärklinBahngeschwindigkeit {
-                    bgmName,
-                    bgmFließend,
-                    bgmGeschwindigkeitsAnschluss}
-anfrageBahngeschwindigkeitMärklin
-    anfrage@ABGUnbekannt {}
-    _token
-        = Left anfrage
+instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
+    type AnfrageTyp (Bahngeschwindigkeit 'Märklin) = AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
+    -- | Eingabe einer 'Märklin'-'Bahngeschwindigkeit'
+    anfrageAktualisieren ::
+        AnfrageTyp (Bahngeschwindigkeit 'Märklin) ->
+        EingabeToken ->
+            Either (AnfrageTyp (Bahngeschwindigkeit 'Märklin)) (Bahngeschwindigkeit 'Märklin)
+    anfrageAktualisieren
+        AMärklinBahngeschwindigkeit
+        EingabeToken {eingabe}
+            = Left $ AMärklinBahngeschwindigkeitName eingabe
+    anfrageAktualisieren
+        anfrage@AMärklinBahngeschwindigkeitName {abgmName}
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
+                $ ABGUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend geschwindigkeitsAnschluss)
+        token
+            = case anfrageAktualisieren geschwindigkeitsAnschluss token of
+                (Left (AnfrageAnschlussUnbekannt abgmGeschwindigkeitsAnfrageAnschluss eingabe))
+                    -> Left $ ABGUnbekannt (anfrage {abgmGeschwindigkeitsAnfrageAnschluss}) eingabe
+                (Left abgmGeschwindigkeitsAnfrageAnschluss)
+                    -> Left anfrage {abgmGeschwindigkeitsAnfrageAnschluss}
+                (Right bgmGeschwindigkeitsAnschluss)
+                    -> Right $ MärklinBahngeschwindigkeit {
+                        bgmName,
+                        bgmFließend,
+                        bgmGeschwindigkeitsAnschluss}
+    anfrageAktualisieren
+        anfrage@ABGUnbekannt {}
+        _token
+            = Left anfrage
 
--- | Eingabe einer 'Lego'-'Bahngeschwindigkeit'
-anfrageBahngeschwindigkeitLego ::
-    AnfrageFamilie (Bahngeschwindigkeit 'Lego) ->
-    EingabeToken ->
-        Either (AnfrageFamilie (Bahngeschwindigkeit 'Lego)) (Bahngeschwindigkeit 'Lego)
-anfrageBahngeschwindigkeitLego
-    ALegoBahngeschwindigkeit
-    EingabeToken {eingabe}
-        = Left $ ALegoBahngeschwindigkeitName eingabe
-anfrageBahngeschwindigkeitLego
-    anfrage@ALegoBahngeschwindigkeitName {abglName}
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
-            (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
-            $ ABGUnbekannt anfrage eingabe
-anfrageBahngeschwindigkeitLego
-    anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
-    token
-        = case anfrageAnschlussAktualisieren geschwindigkeitsAnschluss token of
-            (Left (AnfrageAnschlussUnbekannt abglGeschwindigkeitsAnfrageAnschluss eingabe))
-                -> Left $ ABGUnbekannt (anfrage {abglGeschwindigkeitsAnfrageAnschluss}) eingabe
-            (Left abglGeschwindigkeitsAnfrageAnschluss)
-                -> Left $ anfrage {abglGeschwindigkeitsAnfrageAnschluss}
-            (Right anschluss)
-                -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
-anfrageBahngeschwindigkeitLego
-    anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-        bglName
-        bglFließend
-        bglGeschwindigkeitsAnschluss
-        fahrtrichtungsAnschluss)
-    token
-    = case anfrageAnschlussAktualisieren fahrtrichtungsAnschluss token of
-        (Left (AnfrageAnschlussUnbekannt abglFahrtrichtungsAnfrageAnschluss eingabe1))
-            -> Left $ ABGUnbekannt anfrage {abglFahrtrichtungsAnfrageAnschluss} eingabe1
-        (Left abglFahrtrichtungsAnfrageAnschluss)
-            -> Left $ anfrage {abglFahrtrichtungsAnfrageAnschluss}
-        (Right bglFahrtrichtungsAnschluss)
-            -> Right $ LegoBahngeschwindigkeit {
-                    bglName,
-                    bglFließend,
-                    bglGeschwindigkeitsAnschluss,
-                    bglFahrtrichtungsAnschluss}
-anfrageBahngeschwindigkeitLego
-    anfrage@(ABGUnbekannt _anfrage _eingabe)
-    _token
-        = Left anfrage
+instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
+    type AnfrageTyp (Bahngeschwindigkeit 'Lego) = AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
+    -- | Eingabe einer 'Lego'-'Bahngeschwindigkeit'
+    anfrageAktualisieren ::
+        AnfrageTyp (Bahngeschwindigkeit 'Lego) ->
+        EingabeToken ->
+            Either (AnfrageTyp (Bahngeschwindigkeit 'Lego)) (Bahngeschwindigkeit 'Lego)
+    anfrageAktualisieren
+        ALegoBahngeschwindigkeit
+        EingabeToken {eingabe}
+            = Left $ ALegoBahngeschwindigkeitName eingabe
+    anfrageAktualisieren
+        anfrage@ALegoBahngeschwindigkeitName {abglName}
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
+                (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
+                $ ABGUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
+        token
+            = case anfrageAktualisieren geschwindigkeitsAnschluss token of
+                (Left (AnfrageAnschlussUnbekannt abglGeschwindigkeitsAnfrageAnschluss eingabe))
+                    -> Left $ ABGUnbekannt (anfrage {abglGeschwindigkeitsAnfrageAnschluss}) eingabe
+                (Left abglGeschwindigkeitsAnfrageAnschluss)
+                    -> Left $ anfrage {abglGeschwindigkeitsAnfrageAnschluss}
+                (Right anschluss)
+                    -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
+    anfrageAktualisieren
+        anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
+            bglName
+            bglFließend
+            bglGeschwindigkeitsAnschluss
+            fahrtrichtungsAnschluss)
+        token
+        = case anfrageAktualisieren fahrtrichtungsAnschluss token of
+            (Left (AnfrageAnschlussUnbekannt abglFahrtrichtungsAnfrageAnschluss eingabe1))
+                -> Left $ ABGUnbekannt anfrage {abglFahrtrichtungsAnfrageAnschluss} eingabe1
+            (Left abglFahrtrichtungsAnfrageAnschluss)
+                -> Left $ anfrage {abglFahrtrichtungsAnfrageAnschluss}
+            (Right bglFahrtrichtungsAnschluss)
+                -> Right $ LegoBahngeschwindigkeit {
+                        bglName,
+                        bglFließend,
+                        bglGeschwindigkeitsAnschluss,
+                        bglFahrtrichtungsAnschluss}
+    anfrageAktualisieren
+        anfrage@(ABGUnbekannt _anfrage _eingabe)
+        _token
+            = Left anfrage
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -559,8 +561,6 @@ data AnfrageStreckenabschnitt
         astName ::Text,
         astFließend :: Value,
         astStromAnfrageAnschluss :: AnfrageAnschluss}
-
-type instance AnfrageFamilie Streckenabschnitt = AnfrageStreckenabschnitt
 
 instance Show AnfrageStreckenabschnitt where
     show :: AnfrageStreckenabschnitt -> String
@@ -620,39 +620,41 @@ instance Anfrage AnfrageStreckenabschnitt where
         _anfrage
             = Nothing
 
-    -- | Eingabe eines Streckenabschnitts
-anfrageStreckenabschnittAktualisieren ::
-    AnfrageStreckenabschnitt ->
-        EingabeToken ->
-            Either AnfrageStreckenabschnitt Streckenabschnitt
-anfrageStreckenabschnittAktualisieren
-    AnfrageStreckenabschnitt
-    EingabeToken {eingabe}
-        = Left $ AStreckenabschnittName eingabe
-anfrageStreckenabschnittAktualisieren
-    anfrage@(AStreckenabschnittName name)
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
-            (Lexer.LOW  , AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
-            $ ASTUnbekannt anfrage eingabe
-anfrageStreckenabschnittAktualisieren
-    anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
-    token
-        = case anfrageAnschlussAktualisieren stromAnschluss token of
-            (Left (AnfrageAnschlussUnbekannt astStromAnfrageAnschluss eingabe))
-                -> Left $ ASTUnbekannt (anfrage {astStromAnfrageAnschluss}) eingabe
-            (Left astStromAnfrageAnschluss)
-                -> Left $ anfrage {astStromAnfrageAnschluss}
-            (Right stromAnschluss)
-                -> Right $ Streckenabschnitt {
-                    stName,
-                    stFließend,
-                    stromAnschluss}
-anfrageStreckenabschnittAktualisieren
-    anfrage@(ASTUnbekannt _anfrage _eingabe)
-    _token
-        = Left anfrage
+instance MitAnfrage Streckenabschnitt where
+    type AnfrageTyp Streckenabschnitt = AnfrageStreckenabschnitt
+        -- | Eingabe eines Streckenabschnitts
+    anfrageAktualisieren ::
+        AnfrageStreckenabschnitt ->
+            EingabeToken ->
+                Either AnfrageStreckenabschnitt Streckenabschnitt
+    anfrageAktualisieren
+        AnfrageStreckenabschnitt
+        EingabeToken {eingabe}
+            = Left $ AStreckenabschnittName eingabe
+    anfrageAktualisieren
+        anfrage@(AStreckenabschnittName name)
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
+                $ ASTUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
+        token
+            = case anfrageAktualisieren stromAnschluss token of
+                (Left (AnfrageAnschlussUnbekannt astStromAnfrageAnschluss eingabe))
+                    -> Left $ ASTUnbekannt (anfrage {astStromAnfrageAnschluss}) eingabe
+                (Left astStromAnfrageAnschluss)
+                    -> Left $ anfrage {astStromAnfrageAnschluss}
+                (Right stromAnschluss)
+                    -> Right $ Streckenabschnitt {
+                        stName,
+                        stFließend,
+                        stromAnschluss}
+    anfrageAktualisieren
+        anfrage@(ASTUnbekannt _anfrage _eingabe)
+        _token
+            = Left anfrage
 
 -- | Unvollständige 'Weiche'
 data AnfrageWeiche (z :: AnfrageZugtyp) where
@@ -706,9 +708,6 @@ data AnfrageWeiche (z :: AnfrageZugtyp) where
         awelRichtung2 :: Richtung,
         awelRichtungsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageWeiche 'AnfrageZugtypLego
-
-type instance AnfrageFamilie (Weiche 'Märklin) = AnfrageWeiche 'AnfrageZugtypMärklin
-type instance AnfrageFamilie (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
 
 instance Show (AnfrageWeiche z) where
     show :: AnfrageWeiche z -> String
@@ -870,113 +869,117 @@ anfrageWeicheZugtyp
             (Lexer.Lego     , AnfrageLego ALegoWeiche)]
             $ AnfrageNothing $ AWEUnbekannt AnfrageWeiche eingabe
 
--- | Eingabe einer 'Märklin'-'Weiche'
-anfrageWeicheMärklin ::
-    AnfrageFamilie (Weiche 'Märklin) ->
-    EingabeToken ->
-        Either (AnfrageFamilie (Weiche 'Märklin)) (Weiche 'Märklin)
-anfrageWeicheMärklin
-    AMärklinWeiche
-    EingabeToken {eingabe}
-        = Left $ AMärklinWeicheName eingabe
-anfrageWeicheMärklin
-    anfrage@(AMärklinWeicheName name)
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
-            (Lexer.LOW  , AMärklinWeicheNameFließend name LOW)]
-            $ AWEUnbekannt anfrage eingabe
-anfrageWeicheMärklin
-    anfrage@(AMärklinWeicheNameFließend name fließend)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ AWEUnbekannt anfrage eingabe
-            (Just anzahl)
-                -> Left $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
-anfrageWeicheMärklin
-    anfrage@(AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
-    token@EingabeToken {eingabe}
-        = Left $ case wähleRichtung token of
-            Nothing
-                -> AWEUnbekannt anfrage eingabe
-            (Just richtung)
-                -> AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
-anfrageWeicheMärklin
-    anfrage@(AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung anfrageAnschluss)
-    token
-        = case anfrageAnschlussAktualisieren anfrageAnschluss token of
-            (Left (AnfrageAnschlussUnbekannt awemAnfrageAnschluss eingabe))
-                -> Left $ AWEUnbekannt (anfrage {awemAnfrageAnschluss}) eingabe
-            (Left awemAnfrageAnschluss)
-                -> Left anfrage {awemAnfrageAnschluss}
-            (Right anschluss)
-                | anzahl > 1
-                    -> Left $ AMärklinWeicheNameFließendAnzahl
-                        wemName
-                        wemFließend
-                        (pred anzahl)
-                        ((richtung, anschluss) : acc)
-                | otherwise
-                    -> Right MärklinWeiche {
-                        wemName,
-                        wemFließend,
-                        wemRichtungsAnschlüsse = (richtung, anschluss) :| acc}
-anfrageWeicheMärklin
-    anfrage@(AWEUnbekannt _anfrage _eingabe)
-    _token
-        = Left anfrage
+instance MitAnfrage (Weiche 'Märklin) where
+    type AnfrageTyp (Weiche 'Märklin) = AnfrageWeiche 'AnfrageZugtypMärklin
+    -- | Eingabe einer 'Märklin'-'Weiche'
+    anfrageAktualisieren ::
+        AnfrageTyp (Weiche 'Märklin) ->
+        EingabeToken ->
+            Either (AnfrageTyp (Weiche 'Märklin)) (Weiche 'Märklin)
+    anfrageAktualisieren
+        AMärklinWeiche
+        EingabeToken {eingabe}
+            = Left $ AMärklinWeicheName eingabe
+    anfrageAktualisieren
+        anfrage@(AMärklinWeicheName name)
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
+                (Lexer.LOW  , AMärklinWeicheNameFließend name LOW)]
+                $ AWEUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(AMärklinWeicheNameFließend name fließend)
+        EingabeToken {eingabe, ganzzahl}
+            = case ganzzahl of
+                Nothing
+                    -> Left $ AWEUnbekannt anfrage eingabe
+                (Just anzahl)
+                    -> Left $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
+    anfrageAktualisieren
+        anfrage@(AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
+        token@EingabeToken {eingabe}
+            = Left $ case wähleRichtung token of
+                Nothing
+                    -> AWEUnbekannt anfrage eingabe
+                (Just richtung)
+                    -> AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
+    anfrageAktualisieren
+        anfrage@(AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung anfrageAnschluss)
+        token
+            = case anfrageAktualisieren anfrageAnschluss token of
+                (Left (AnfrageAnschlussUnbekannt awemAnfrageAnschluss eingabe))
+                    -> Left $ AWEUnbekannt (anfrage {awemAnfrageAnschluss}) eingabe
+                (Left awemAnfrageAnschluss)
+                    -> Left anfrage {awemAnfrageAnschluss}
+                (Right anschluss)
+                    | anzahl > 1
+                        -> Left $ AMärklinWeicheNameFließendAnzahl
+                            wemName
+                            wemFließend
+                            (pred anzahl)
+                            ((richtung, anschluss) : acc)
+                    | otherwise
+                        -> Right MärklinWeiche {
+                            wemName,
+                            wemFließend,
+                            wemRichtungsAnschlüsse = (richtung, anschluss) :| acc}
+    anfrageAktualisieren
+        anfrage@(AWEUnbekannt _anfrage _eingabe)
+        _token
+            = Left anfrage
 
--- | Eingabe einer 'Lego'-'Weiche'
-anfrageWeicheLego ::
-    AnfrageFamilie (Weiche 'Lego) ->
-    EingabeToken ->
-        Either (AnfrageFamilie (Weiche 'Lego)) (Weiche 'Lego)
-anfrageWeicheLego
-    ALegoWeiche
-    EingabeToken {eingabe}
-        = Left $ ALegoWeicheName eingabe
-anfrageWeicheLego
-    anfrage@(ALegoWeicheName name)
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
-            (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
-            $ AWEUnbekannt anfrage eingabe
-anfrageWeicheLego
-    anfrage@(ALegoWeicheNameFließend name fließend)
-    token@EingabeToken {eingabe}
-        = Left $ case wähleRichtung token of
-            Nothing
-                -> AWEUnbekannt anfrage eingabe
-            (Just richtung1)
-                -> ALegoWeicheNameFließendRichtung1 name fließend richtung1
-anfrageWeicheLego
-    anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)
-    token@EingabeToken {eingabe}
-        = Left $ case wähleRichtung token of
-            Nothing
-                -> AWEUnbekannt anfrage eingabe
-            (Just richtung2)
-                -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
-anfrageWeicheLego
-    anfrage@(ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2 anfrageAnschluss)
-    token
-        = case anfrageAnschlussAktualisieren anfrageAnschluss token of
-            (Left (AnfrageAnschlussUnbekannt awelRichtungsAnfrageAnschluss eingabe))
-                -> Left $ AWEUnbekannt (anfrage {awelRichtungsAnfrageAnschluss}) eingabe
-            (Left awelRichtungsAnfrageAnschluss)
-                -> Left anfrage {awelRichtungsAnfrageAnschluss}
-            (Right welRichtungsAnschluss)
-                -> Right $ LegoWeiche {
-                    welName,
-                    welFließend,
-                    welRichtungsAnschluss,
-                    welRichtungen = (richtung1,richtung2)}
-anfrageWeicheLego
-    anfrage@(AWEUnbekannt _anfrage _eingabe)
-    _token
-        = Left anfrage
+instance MitAnfrage (Weiche 'Lego) where
+    type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
+    -- | Eingabe einer 'Lego'-'Weiche'
+    anfrageAktualisieren ::
+        AnfrageTyp (Weiche 'Lego) ->
+        EingabeToken ->
+            Either (AnfrageTyp (Weiche 'Lego)) (Weiche 'Lego)
+    anfrageAktualisieren
+        ALegoWeiche
+        EingabeToken {eingabe}
+            = Left $ ALegoWeicheName eingabe
+    anfrageAktualisieren
+        anfrage@(ALegoWeicheName name)
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
+                (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
+                $ AWEUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(ALegoWeicheNameFließend name fließend)
+        token@EingabeToken {eingabe}
+            = Left $ case wähleRichtung token of
+                Nothing
+                    -> AWEUnbekannt anfrage eingabe
+                (Just richtung1)
+                    -> ALegoWeicheNameFließendRichtung1 name fließend richtung1
+    anfrageAktualisieren
+        anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)
+        token@EingabeToken {eingabe}
+            = Left $ case wähleRichtung token of
+                Nothing
+                    -> AWEUnbekannt anfrage eingabe
+                (Just richtung2)
+                    -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
+    anfrageAktualisieren
+        anfrage@(ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2 anfrageAnschluss)
+        token
+            = case anfrageAktualisieren anfrageAnschluss token of
+                (Left (AnfrageAnschlussUnbekannt awelRichtungsAnfrageAnschluss eingabe))
+                    -> Left $ AWEUnbekannt (anfrage {awelRichtungsAnfrageAnschluss}) eingabe
+                (Left awelRichtungsAnfrageAnschluss)
+                    -> Left anfrage {awelRichtungsAnfrageAnschluss}
+                (Right welRichtungsAnschluss)
+                    -> Right $ LegoWeiche {
+                        welName,
+                        welFließend,
+                        welRichtungsAnschluss,
+                        welRichtungen = (richtung1,richtung2)}
+    anfrageAktualisieren
+        anfrage@(AWEUnbekannt _anfrage _eingabe)
+        _token
+            = Left anfrage
 
 -- | Unvollständige 'Kupplung'
 data AnfrageKupplung
@@ -990,8 +993,6 @@ data AnfrageKupplung
         akuName ::Text,
         akuFließend ::Value,
         akuKupplungsAnfrageAnschluss :: AnfrageAnschluss}
-
-type instance AnfrageFamilie Kupplung = AnfrageKupplung
 
 instance Show AnfrageKupplung where
     show :: AnfrageKupplung -> String
@@ -1050,36 +1051,38 @@ instance Anfrage AnfrageKupplung where
         _anfrage
             = Nothing
 
--- | Eingabe einer Kupplung
-anfrageKupplungAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
-anfrageKupplungAktualisieren
-    AnfrageKupplung
-    EingabeToken {eingabe}
-        = Left $ AKupplungName eingabe
-anfrageKupplungAktualisieren
-    anfrage@(AKupplungName name)
-    token@EingabeToken {eingabe}
-        = Left $ wähleBefehl token [
-            (Lexer.HIGH , AKupplungNameFließend name HIGH AnfrageAnschluss),
-            (Lexer.LOW  , AKupplungNameFließend name LOW AnfrageAnschluss)]
-            $ AKUUnbekannt anfrage eingabe
-anfrageKupplungAktualisieren
-    anfrage@(AKupplungNameFließend kuName kuFließend anfrageAnschluss)
-    token
-        = case anfrageAnschlussAktualisieren anfrageAnschluss token of
-            (Left (AnfrageAnschlussUnbekannt akuKupplungsAnfrageAnschluss eingabe))
-                -> Left $ AKUUnbekannt (anfrage {akuKupplungsAnfrageAnschluss}) eingabe
-            (Left akuKupplungsAnfrageAnschluss)
-                -> Left anfrage {akuKupplungsAnfrageAnschluss}
-            (Right kupplungsAnschluss)
-                -> Right $ Kupplung {
-                    kuName,
-                    kuFließend,
-                    kupplungsAnschluss}
-anfrageKupplungAktualisieren
-    anfrage@AKUUnbekannt {}
-    _token
-        = Left anfrage
+instance MitAnfrage Kupplung where
+    type AnfrageTyp Kupplung = AnfrageKupplung
+    -- | Eingabe einer Kupplung
+    anfrageAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
+    anfrageAktualisieren
+        AnfrageKupplung
+        EingabeToken {eingabe}
+            = Left $ AKupplungName eingabe
+    anfrageAktualisieren
+        anfrage@(AKupplungName name)
+        token@EingabeToken {eingabe}
+            = Left $ wähleBefehl token [
+                (Lexer.HIGH , AKupplungNameFließend name HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AKupplungNameFließend name LOW AnfrageAnschluss)]
+                $ AKUUnbekannt anfrage eingabe
+    anfrageAktualisieren
+        anfrage@(AKupplungNameFließend kuName kuFließend anfrageAnschluss)
+        token
+            = case anfrageAktualisieren anfrageAnschluss token of
+                (Left (AnfrageAnschlussUnbekannt akuKupplungsAnfrageAnschluss eingabe))
+                    -> Left $ AKUUnbekannt (anfrage {akuKupplungsAnfrageAnschluss}) eingabe
+                (Left akuKupplungsAnfrageAnschluss)
+                    -> Left anfrage {akuKupplungsAnfrageAnschluss}
+                (Right kupplungsAnschluss)
+                    -> Right $ Kupplung {
+                        kuName,
+                        kuFließend,
+                        kupplungsAnschluss}
+    anfrageAktualisieren
+        anfrage@AKUUnbekannt {}
+        _token
+            = Left anfrage
 
 -- | Unvollständige 'Wegstrecke'
 data AnfrageWegstrecke (z :: Zugtyp)
@@ -1102,8 +1105,6 @@ data AnfrageWegstrecke (z :: Zugtyp)
     | AWegstreckeMStatus
         (StatusAnfrageObjektZugtyp z)
         (Either (ObjektZugtyp z -> (AnfrageWegstrecke z)) (ObjektZugtyp z -> (Wegstrecke z)))
-
-type instance AnfrageFamilie (Wegstrecke z) = AnfrageWegstrecke z
 
 instance Show (AnfrageWegstrecke z) where
     show :: AnfrageWegstrecke z -> String
@@ -1185,134 +1186,133 @@ data AnfrageWegstreckenElement
     | AWSEStreckenabschnitt
     | AWSEKupplung
 
--- | Eingabe einer Wegstrecke
-anfrageWegstreckeAktualisieren :: (ZugtypKlasse z) =>
-    (AnfrageWegstrecke z) ->
-    EingabeToken ->
-        Either (AnfrageWegstrecke z) (Wegstrecke z)
-anfrageWegstreckeAktualisieren
-    AnfrageWegstrecke
-    EingabeToken {eingabe}
-        = Left $ AWegstreckeName eingabe
-anfrageWegstreckeAktualisieren
-    anfrage@(AWegstreckeName wsName)
-    EingabeToken {eingabe, ganzzahl}
-        = case ganzzahl of
-            Nothing
-                -> Left $ AWSUnbekannt anfrage eingabe
-            (Just anzahl)
-                -> Left $ AWegstreckeNameAnzahl
-                    Wegstrecke {
-                        wsName,
-                        wsBahngeschwindigkeiten = [],
-                        wsStreckenabschnitte = [],
-                        wsWeichenRichtungen = [],
-                        wsKupplungen = []}
-                    anzahl
-anfrageWegstreckeAktualisieren
-    anfrage@(AWegstreckeNameAnzahl
-        acc@Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsKupplungen}
-        anzahl)
-    token
-        = Left $ case anfrageWegstreckenElement token of
-            AWSEWeiche
-                -> AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
-            AWSEBahngeschwindigkeit
-                -> AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
-            AWSEStreckenabschnitt
-                -> AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
-            AWSEKupplung
-                -> AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
-            (AWSEUnbekannt eingabe)
-                -> AWSUnbekannt anfrage eingabe
-    where
-        anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
-        anfrageWegstreckenElement token@EingabeToken {eingabe} = wähleBefehl token [
-            (Lexer.Weiche                , AWSEWeiche),
-            (Lexer.Bahngeschwindigkeit   , AWSEBahngeschwindigkeit),
-            (Lexer.Streckenabschnitt     , AWSEStreckenabschnitt),
-            (Lexer.Kupplung              , AWSEKupplung)]
-            $ AWSEUnbekannt eingabe
-        eitherObjektAnhängen :: Wegstrecke z ->
-                Either (ObjektZugtyp z -> (AnfrageWegstrecke z)) (ObjektZugtyp z -> (Wegstrecke z))
-        eitherObjektAnhängen
-            wegstrecke
-                | anzahl > 1
-                    = Left $ anfrageObjektAnhängen wegstrecke
-                | otherwise
-                    = Right $ objektAnhängen wegstrecke
-        objektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> Wegstrecke z
-        objektAnhängen
-            wegstrecke@Wegstrecke {wsBahngeschwindigkeiten}
-            (OZBahngeschwindigkeit bahngeschwindigkeit)
-                = wegstrecke {wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten}
-        objektAnhängen
-            wegstrecke@Wegstrecke {wsStreckenabschnitte}
-            (OZStreckenabschnitt streckenabschnitt)
-                = wegstrecke {wsStreckenabschnitte = streckenabschnitt : wsStreckenabschnitte}
-        objektAnhängen
-            wegstrecke@Wegstrecke {wsKupplungen}
-            (OZKupplung kupplung)
-                = wegstrecke {wsKupplungen = kupplung : wsKupplungen}
-        -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
-        objektAnhängen
-            wegstrecke
-            _objekt
-                = wegstrecke
-        anfrageObjektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> AnfrageWegstrecke z
-        anfrageObjektAnhängen
-            wegstrecke
-            objekt
-                = AWegstreckeNameAnzahl (objektAnhängen wegstrecke objekt) $ pred anzahl
-        anfrageWeicheAnhängen :: AnfrageWegstrecke z -> ObjektZugtyp z -> AnfrageWegstrecke z
-        anfrageWeicheAnhängen
-            (AWegstreckeNameAnzahl wegstrecke anzahl)
-            (OZWeiche weiche)
-                = AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
-        -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
-        anfrageWeicheAnhängen
-            anfrageWegstrecke
-            _objekt
-                = anfrageWegstrecke
-anfrageWegstreckeAktualisieren
-    (AWSStatusAnfrage anfrageKonstruktor eitherF)
-    token
-        = Left $ AWegstreckeMStatus (anfrageKonstruktor token) eitherF
-anfrageWegstreckeAktualisieren
-    anfrage@(AWegstreckeNameAnzahlWeicheRichtung
-        acc@Wegstrecke {wsWeichenRichtungen}
-        anzahl
-        weiche)
-    token@EingabeToken {eingabe}
-        = case wähleRichtung token of
-            (Just richtung)
-                | hatRichtung weiche richtung
-                    -> eitherWeicheRichtungAnhängen anfrage richtung
-            Nothing
-                -> Left $ AWSUnbekannt anfrage eingabe
-    where
-        eitherWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke z)
-        eitherWeicheRichtungAnhängen
-            anfrageWegstrecke
-            richtung
-                | anzahl > 1
-                    = Left $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
-                | otherwise
-                    = Right $ weicheRichtungAnhängen anfrageWegstrecke richtung
-        qWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> (AnfrageWegstrecke z)
-        qWeicheRichtungAnhängen
-            anfrageWegstrecke
-            richtung
-                = AWegstreckeNameAnzahl (weicheRichtungAnhängen anfrageWegstrecke richtung) $ pred anzahl
-        weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> (Wegstrecke z)
-        weicheRichtungAnhängen
-            (AWegstreckeNameAnzahlWeicheRichtung wegstrecke@(Wegstrecke {wsWeichenRichtungen}) _anzahl weiche)
-            richtung
-                = wegstrecke {wsWeichenRichtungen = (weiche, richtung) : wsWeichenRichtungen}
-anfrageWegstreckeAktualisieren
-    anfrage@AWSUnbekannt {}
-    _token
-        = Left anfrage
+instance (ZugtypKlasse z) => MitAnfrage (Wegstrecke z) where
+    type AnfrageTyp (Wegstrecke z) = AnfrageWegstrecke z
+    -- | Eingabe einer Wegstrecke
+    anfrageAktualisieren :: (AnfrageWegstrecke z) -> EingabeToken -> Either (AnfrageWegstrecke z) (Wegstrecke z)
+    anfrageAktualisieren
+        AnfrageWegstrecke
+        EingabeToken {eingabe}
+            = Left $ AWegstreckeName eingabe
+    anfrageAktualisieren
+        anfrage@(AWegstreckeName wsName)
+        EingabeToken {eingabe, ganzzahl}
+            = case ganzzahl of
+                Nothing
+                    -> Left $ AWSUnbekannt anfrage eingabe
+                (Just anzahl)
+                    -> Left $ AWegstreckeNameAnzahl
+                        Wegstrecke {
+                            wsName,
+                            wsBahngeschwindigkeiten = [],
+                            wsStreckenabschnitte = [],
+                            wsWeichenRichtungen = [],
+                            wsKupplungen = []}
+                        anzahl
+    anfrageAktualisieren
+        anfrage@(AWegstreckeNameAnzahl
+            acc@Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsKupplungen}
+            anzahl)
+        token
+            = Left $ case anfrageWegstreckenElement token of
+                AWSEWeiche
+                    -> AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
+                AWSEBahngeschwindigkeit
+                    -> AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
+                AWSEStreckenabschnitt
+                    -> AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
+                AWSEKupplung
+                    -> AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
+                (AWSEUnbekannt eingabe)
+                    -> AWSUnbekannt anfrage eingabe
+        where
+            anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
+            anfrageWegstreckenElement token@EingabeToken {eingabe} = wähleBefehl token [
+                (Lexer.Weiche                , AWSEWeiche),
+                (Lexer.Bahngeschwindigkeit   , AWSEBahngeschwindigkeit),
+                (Lexer.Streckenabschnitt     , AWSEStreckenabschnitt),
+                (Lexer.Kupplung              , AWSEKupplung)]
+                $ AWSEUnbekannt eingabe
+            eitherObjektAnhängen :: Wegstrecke z ->
+                    Either (ObjektZugtyp z -> (AnfrageWegstrecke z)) (ObjektZugtyp z -> (Wegstrecke z))
+            eitherObjektAnhängen
+                wegstrecke
+                    | anzahl > 1
+                        = Left $ anfrageObjektAnhängen wegstrecke
+                    | otherwise
+                        = Right $ objektAnhängen wegstrecke
+            objektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> Wegstrecke z
+            objektAnhängen
+                wegstrecke@Wegstrecke {wsBahngeschwindigkeiten}
+                (OZBahngeschwindigkeit bahngeschwindigkeit)
+                    = wegstrecke {wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten}
+            objektAnhängen
+                wegstrecke@Wegstrecke {wsStreckenabschnitte}
+                (OZStreckenabschnitt streckenabschnitt)
+                    = wegstrecke {wsStreckenabschnitte = streckenabschnitt : wsStreckenabschnitte}
+            objektAnhängen
+                wegstrecke@Wegstrecke {wsKupplungen}
+                (OZKupplung kupplung)
+                    = wegstrecke {wsKupplungen = kupplung : wsKupplungen}
+            -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
+            objektAnhängen
+                wegstrecke
+                _objekt
+                    = wegstrecke
+            anfrageObjektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> AnfrageWegstrecke z
+            anfrageObjektAnhängen
+                wegstrecke
+                objekt
+                    = AWegstreckeNameAnzahl (objektAnhängen wegstrecke objekt) $ pred anzahl
+            anfrageWeicheAnhängen :: AnfrageWegstrecke z -> ObjektZugtyp z -> AnfrageWegstrecke z
+            anfrageWeicheAnhängen
+                (AWegstreckeNameAnzahl wegstrecke anzahl)
+                (OZWeiche weiche)
+                    = AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
+            -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
+            anfrageWeicheAnhängen
+                anfrageWegstrecke
+                _objekt
+                    = anfrageWegstrecke
+    anfrageAktualisieren
+        (AWSStatusAnfrage anfrageKonstruktor eitherF)
+        token
+            = Left $ AWegstreckeMStatus (anfrageKonstruktor token) eitherF
+    anfrageAktualisieren
+        anfrage@(AWegstreckeNameAnzahlWeicheRichtung
+            acc@Wegstrecke {wsWeichenRichtungen}
+            anzahl
+            weiche)
+        token@EingabeToken {eingabe}
+            = case wähleRichtung token of
+                (Just richtung)
+                    | hatRichtung weiche richtung
+                        -> eitherWeicheRichtungAnhängen anfrage richtung
+                Nothing
+                    -> Left $ AWSUnbekannt anfrage eingabe
+        where
+            eitherWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke z)
+            eitherWeicheRichtungAnhängen
+                anfrageWegstrecke
+                richtung
+                    | anzahl > 1
+                        = Left $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
+                    | otherwise
+                        = Right $ weicheRichtungAnhängen anfrageWegstrecke richtung
+            qWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> (AnfrageWegstrecke z)
+            qWeicheRichtungAnhängen
+                anfrageWegstrecke
+                richtung
+                    = AWegstreckeNameAnzahl (weicheRichtungAnhängen anfrageWegstrecke richtung) $ pred anzahl
+            weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> (Wegstrecke z)
+            weicheRichtungAnhängen
+                (AWegstreckeNameAnzahlWeicheRichtung wegstrecke@(Wegstrecke {wsWeichenRichtungen}) _anzahl weiche)
+                richtung
+                    = wegstrecke {wsWeichenRichtungen = (weiche, richtung) : wsWeichenRichtungen}
+    anfrageAktualisieren
+        anfrage@AWSUnbekannt {}
+        _token
+            = Left anfrage
 
 -- | Unvollständige Objekte
 data AnfrageObjekt
@@ -1336,9 +1336,7 @@ data AnfrageObjekt
         StatusAnfrageObjekt
         (Either (Objekt -> AnfrageObjekt) (Objekt -> Objekt))
 
-type instance AnfrageFamilie Objekt = AnfrageObjekt
-
-instance (Show (AnfrageFamilie (ZugtypEither Weiche))) => Show AnfrageObjekt where
+instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageObjekt where
     show :: AnfrageObjekt -> String
     show
         (AOUnbekannt anfrageObjekt eingabe)
@@ -1425,96 +1423,98 @@ instance Anfrage AnfrageObjekt where
         (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
             = zeigeAnfrageOptionen objektStatusAnfrage
 
--- | Eingabe eines Objekts
-anfrageObjektAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt
-anfrageObjektAktualisieren
-    aFehler@(AOUnbekannt _anfrage _eingabe)
-    _token
-        = Left aFehler
-anfrageObjektAktualisieren
-    anfrageObjekt@(AOStatusAnfrage _objektStatusAnfrage _eitherKonstruktor)
-    _token
-        = Left anfrageObjekt
-anfrageObjektAktualisieren
-    AnfrageObjekt
-    token@EingabeToken {eingabe}
-        = wähleBefehl token [
-            (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
-            (Lexer.Wegstrecke            , Left $ AOWegstrecke $ AnfrageNothing AnfrageWegstrecke),
-            (Lexer.Weiche                , Left $ AOWeiche $ AnfrageNothing AnfrageWeiche),
-            (Lexer.Bahngeschwindigkeit   , Left $ AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit),
-            (Lexer.Streckenabschnitt     , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
-            (Lexer.Kupplung              , Left $ AOKupplung AnfrageKupplung)]
-            $ Left $ AOUnbekannt AnfrageObjekt eingabe
-anfrageObjektAktualisieren
-    (AOBahngeschwindigkeit aBahngeschwindigkeit)
-    token
-        = case anfrageBahngeschwindigkeitAktualisieren aBahngeschwindigkeit token of
-            (Left (ABGUnbekannt anfrage eingabe1))
-                -> Left $ AOUnbekannt (AOBahngeschwindigkeit anfrage) eingabe1
-            (Left aBahngeschwindigkeit1)
-                -> Left $ AOBahngeschwindigkeit aBahngeschwindigkeit1
-            (Right bahngeschwindigkeit)
-                -> Right $ OBahngeschwindigkeit bahngeschwindigkeit
-anfrageObjektAktualisieren
-    (AOStreckenabschnitt aStreckenabschnitt)
-    token
-        = case anfrageStreckenabschnittAktualisieren aStreckenabschnitt token of
-            (Left (ASTUnbekannt anfrage eingabe1))
-                -> Left $ AOUnbekannt (AOStreckenabschnitt anfrage) eingabe1
-            (Left aStreckenabschnitt1)
-                -> Left $ AOStreckenabschnitt aStreckenabschnitt1
-            (Right streckenabschnitt)
-                -> Right $ OStreckenabschnitt streckenabschnitt
-anfrageObjektAktualisieren
-    (AOWeiche aWeiche)
-    token
-        = case anfrageWeicheAktualisieren aWeiche token of
-            (Left (AWEUnbekannt anfrage eingabe1))
-                -> Left $ AOUnbekannt (AOWeiche anfrage) eingabe1
-            (Left aWeiche1)
-                -> Left $ AOWeiche aWeiche1
-            (Right weiche)
-                -> Right $ OWeiche weiche
-anfrageObjektAktualisieren
-    (AOKupplung aKupplung)
-    token
-        = case anfrageKupplungAktualisieren aKupplung token of
-            (Left (AKUUnbekannt anfrage eingabe1))
-                -> Left $ AOUnbekannt (AOKupplung anfrage) eingabe1
-            (Left aKupplung1)
-                -> Left $ AOKupplung aKupplung1
-            (Right kupplung)
-                -> Right $ OKupplung kupplung
-anfrageObjektAktualisieren
-    (AOWegstrecke aWegstrecke0)
-    token
-        = case anfrageWegstreckeAktualisieren aWegstrecke0 token of
-            (Left (AWSUnbekannt anfrage eingabe1))
-                -> Left $ AOUnbekannt (AOWegstrecke anfrage) eingabe1
-            (Left (AWegstreckeMStatus objektStatusAnfrage (Right konstruktor)))
-                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $
-                    \objekt -> OWegstrecke $ konstruktor objekt
-            (Left (AWegstreckeMStatus objektStatusAnfrage (Left anfrageKonstruktor)))
-                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $
-                    \objekt -> AOWegstrecke $ anfrageKonstruktor objekt
-            (Left aWegstrecke1)
-                -> Left $ AOWegstrecke aWegstrecke1
-            (Right wegstrecke)
-                -> Right $ OWegstrecke wegstrecke
-anfrageObjektAktualisieren
-    (AOPlan aPlan)
-    token
-        = case anfragePlanAktualisieren aPlan token of
-            (Left (APUnbekannt anfrage eingabe1))
-                -> Left $ AOUnbekannt (AOPlan anfrage) eingabe1
-            (Left (APlanIOStatus objektStatusAnfrage (Right konstruktor)))
-                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $
-                    \objekt -> OPlan $ konstruktor objekt
-            (Left (APlanIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))
-                -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $
-                    \objekt -> AOPlan $ anfrageKonstruktor objekt
-            (Left aPlan1)
-                -> Left $ AOPlan aPlan1
-            (Right plan)
-                -> Right $ OPlan plan
+instance MitAnfrage Objekt where
+    type AnfrageTyp Objekt = AnfrageObjekt
+    -- | Eingabe eines Objekts
+    anfrageAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt
+    anfrageAktualisieren
+        aFehler@(AOUnbekannt _anfrage _eingabe)
+        _token
+            = Left aFehler
+    anfrageAktualisieren
+        anfrageObjekt@(AOStatusAnfrage _objektStatusAnfrage _eitherKonstruktor)
+        _token
+            = Left anfrageObjekt
+    anfrageAktualisieren
+        AnfrageObjekt
+        token@EingabeToken {eingabe}
+            = wähleBefehl token [
+                (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
+                (Lexer.Wegstrecke            , Left $ AOWegstrecke $ AnfrageNothing AnfrageWegstrecke),
+                (Lexer.Weiche                , Left $ AOWeiche $ AnfrageNothing AnfrageWeiche),
+                (Lexer.Bahngeschwindigkeit   , Left $ AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit),
+                (Lexer.Streckenabschnitt     , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
+                (Lexer.Kupplung              , Left $ AOKupplung AnfrageKupplung)]
+                $ Left $ AOUnbekannt AnfrageObjekt eingabe
+    anfrageAktualisieren
+        (AOBahngeschwindigkeit aBahngeschwindigkeit)
+        token
+            = case anfrageBahngeschwindigkeitAktualisieren aBahngeschwindigkeit token of
+                (Left (ABGUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOBahngeschwindigkeit anfrage) eingabe1
+                (Left aBahngeschwindigkeit1)
+                    -> Left $ AOBahngeschwindigkeit aBahngeschwindigkeit1
+                (Right bahngeschwindigkeit)
+                    -> Right $ OBahngeschwindigkeit bahngeschwindigkeit
+    anfrageAktualisieren
+        (AOStreckenabschnitt aStreckenabschnitt)
+        token
+            = case anfrageAktualisieren aStreckenabschnitt token of
+                (Left (ASTUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOStreckenabschnitt anfrage) eingabe1
+                (Left aStreckenabschnitt1)
+                    -> Left $ AOStreckenabschnitt aStreckenabschnitt1
+                (Right streckenabschnitt)
+                    -> Right $ OStreckenabschnitt streckenabschnitt
+    anfrageAktualisieren
+        (AOWeiche aWeiche)
+        token
+            = case anfrageWeicheAktualisieren aWeiche token of
+                (Left (AWEUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOWeiche anfrage) eingabe1
+                (Left aWeiche1)
+                    -> Left $ AOWeiche aWeiche1
+                (Right weiche)
+                    -> Right $ OWeiche weiche
+    anfrageAktualisieren
+        (AOKupplung aKupplung)
+        token
+            = case anfrageAktualisieren aKupplung token of
+                (Left (AKUUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOKupplung anfrage) eingabe1
+                (Left aKupplung1)
+                    -> Left $ AOKupplung aKupplung1
+                (Right kupplung)
+                    -> Right $ OKupplung kupplung
+    anfrageAktualisieren
+        (AOWegstrecke aWegstrecke0)
+        token
+            = case anfrageAktualisieren aWegstrecke0 token of
+                (Left (AWSUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOWegstrecke anfrage) eingabe1
+                (Left (AWegstreckeMStatus objektStatusAnfrage (Right konstruktor)))
+                    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $
+                        \objekt -> OWegstrecke $ konstruktor objekt
+                (Left (AWegstreckeMStatus objektStatusAnfrage (Left anfrageKonstruktor)))
+                    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $
+                        \objekt -> AOWegstrecke $ anfrageKonstruktor objekt
+                (Left aWegstrecke1)
+                    -> Left $ AOWegstrecke aWegstrecke1
+                (Right wegstrecke)
+                    -> Right $ OWegstrecke wegstrecke
+    anfrageAktualisieren
+        (AOPlan aPlan)
+        token
+            = case anfragePlanAktualisieren aPlan token of
+                (Left (APUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOPlan anfrage) eingabe1
+                (Left (APlanIOStatus objektStatusAnfrage (Right konstruktor)))
+                    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $
+                        \objekt -> OPlan $ konstruktor objekt
+                (Left (APlanIOStatus objektStatusAnfrage (Left anfrageKonstruktor)))
+                    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $
+                        \objekt -> AOPlan $ anfrageKonstruktor objekt
+                (Left aPlan1)
+                    -> Left $ AOPlan aPlan1
+                (Right plan)
+                    -> Right $ OPlan plan

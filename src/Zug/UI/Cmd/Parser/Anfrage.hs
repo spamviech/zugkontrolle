@@ -9,7 +9,7 @@ Description : Klasse und Typfamilie für unvollständige Objekte.
 -}
 module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
-    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, AnfrageFamilie,
+    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
     -- * Suche ein existierendes Objekt im Status
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
@@ -59,8 +59,12 @@ instance (Anfrage (a 'Märklin), Anfrage (a 'Lego)) => Anfrage (ZugtypEither a) 
     zeigeAnfrageOptionen    (ZugtypMärklin a)   = zeigeAnfrageOptionen a
     zeigeAnfrageOptionen    (ZugtypLego a)      = zeigeAnfrageOptionen a
 
--- | Typfamilie für den assoziierten 'Anfrage'typ
-type family AnfrageFamilie a :: Type
+-- | Klasse für Typen mit assiziiertem 'Anfrage'-Type
+class MitAnfrage a where
+    -- | Typfamilie für den assoziierten 'Anfrage'typ
+    type family AnfrageTyp a :: Type
+    -- | Eingabe eines Typs mit 'AnfrageTyp'
+    anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> Either (AnfrageTyp a) a
 
 -- | Zeige ein unvollständiges Objekt, gefolgt von der nächsten Nachfrage an
 showMitAnfrage :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s
