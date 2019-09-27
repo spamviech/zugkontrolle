@@ -20,15 +20,15 @@ module Zug.UI.Befehl (
 
 -- Bibliotheken
 import Control.Monad.Trans (liftIO)
-import Control.Monad.Reader.Class (MonadReader(..), asks)
+import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.State (get, put)
-import Control.Concurrent.STM (atomically, TVar, writeTVar, modifyTVar, TMVar)
+import Control.Concurrent.STM (atomically, writeTVar, modifyTVar, TMVar)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (PwmMap, I2CMap, pwmMapEmpty, i2cMapEmpty)
+import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
 import Zug.Klassen (Zugtyp(..))
-import Zug.Menge (Menge, entfernen)
+import Zug.Menge (entfernen)
 import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(..), Plan(), PlanReader(..),
                 Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
@@ -44,14 +44,12 @@ import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, TVarMaps(..),
 -- | Führe einen Plan mit einem in einer 'TMVar' gespeichertem Zustand aus
 ausführenTMVarPlan :: (PlanKlasse (PL o))
             => PL o -> (Natural -> IO ()) -> IO () -> TVarMaps -> TMVar (StatusAllgemein o) -> IO ()
-ausführenTMVarPlan plan showAktion endAktion tvarMaps@(TVarMaps {tvarAusführend}) tmvarStatus
-    = auswertenTMVarIOStatus (ausführenPlan plan showAktion endAktion) tvarMaps tmvarStatus
+ausführenTMVarPlan plan showAktion endAktion = auswertenTMVarIOStatus $ ausführenPlan plan showAktion endAktion
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
 ausführenTMVarAktion   :: (AktionKlasse a)
                 => a -> TVarMaps -> TMVar (StatusAllgemein o) -> IO ()
-ausführenTMVarAktion aktion tvarMaps tmvarStatus
-    = auswertenTMVarIOStatus (ausführenAktion aktion) tvarMaps tmvarStatus
+ausführenTMVarAktion aktion = auswertenTMVarIOStatus $ ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
 ausführenTMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),

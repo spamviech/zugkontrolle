@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
 Description : Verarbeiten von Token.
@@ -15,60 +16,46 @@ In diesem Modul werden sämtliche Umwandlungen vorgenommen, für die nicht die I
 -}
 module Zug.UI.Cmd.Parser (
     -- * Auswerten einer Text-Eingabe
-    parser, statusAnfrageObjekt,
+    parser, statusAnfrageObjekt, statusAnfrageObjektZugtyp,
     -- * Ergebnis-Typen
-    AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), StatusAnfrageObjekt(..), AnfrageNeu(..),
+    AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), AnfrageNeu(..),
+    StatusAnfrageObjekt(..), StatusAnfrageObjektZugtyp(..),
     -- ** Unvollständige StreckenObjekte
-    Anfrage(..), AnfrageFamilie(..), zeigeAnfrageFehlgeschlagenStandard,
+    Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
     AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..),
     AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
-    AnfrageObjekt(..), AnfrageWegstrecke(..), AnfrageWeiche(..), AnfrageBahngeschwindigkeit(..),
-    AnfrageStreckenabschnitt(..), AnfrageKupplung(..)) where
+    AnfrageObjekt(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..),
+    AnfrageWeiche(..), AnfrageKupplung(..), AnfrageWegstrecke(..)) where
 
 -- Bibliotheken
-import Data.Foldable (toList)
-import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List.NonEmpty as NE
-import Data.Maybe (listToMaybe)
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
-import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Anschluss(..), StreckenObjekt(..), alleValues, zuPin,
-                    Wegstrecke(..), WegstreckeKlasse(),
-                    Weiche(..), WeicheKlasse(..),
-                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(),
-                    Streckenabschnitt(..), StreckenabschnittKlasse(),
-                    Kupplung(..), KupplungKlasse())
-import Zug.Klassen (Richtung(..), unterstützteRichtungen, Fahrtrichtung(..), unterstützteFahrtrichtungen,
-                    Zugtyp(..), ZugtypEither(..), unterstützteZugtypen , Strom(..))
+import Zug.Anbindung (Anschluss(..), Weiche(..))
+import Zug.Klassen (ZugtypEither(..))
 import qualified Zug.Language as Language
-import Zug.Language ((<^>), (<=>), (<->), (<|>), (<:>), (<\>), showText, fehlerText, toBefehlsString)
+import Zug.Language ((<^>), (<:>), (<\>), showText, toBefehlsString)
 import qualified Zug.Menge as Menge
-import Zug.Plan (Objekt, Plan, ObjektAllgemein(..), Plan(..), Aktion(..),
-                AktionWegstrecke(..), AktionWeiche(..), AktionBahngeschwindigkeit(..),
-                AktionStreckenabschnitt(..), AktionKupplung(..))
-import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes)
-import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
-                    getStreckenabschnitte, getKupplungen)
+import Zug.Plan (Objekt, Plan, ObjektAllgemein(..), Plan(..))
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
-import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), Token(), leeresToken)
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), AnfrageFamilie, showMitAnfrage, showMitAnfrageFehlgeschlagen,
+import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)
+import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), showMitAnfrage, showMitAnfrageFehlgeschlagen,
                                 StatusAnfrageObjekt(..), statusAnfrageObjekt,
-                                wähleBefehl, wähleRichtung, unbekanntShowText)
-import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), anfragePlanAktualisieren,
-                                AnfrageAktion(..), anfrageAktionAktualisieren,
-                                AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
-                                AktionWeiche(..), AktionKupplung(..), AktionWegstrecke(..))
-import Zug.UI.Cmd.Parser.StreckenObjekt (AnfrageObjekt(..), anfrageObjektAktualisieren)
+                                StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp,
+                                wähleBefehl, unbekanntShowText, zeigeAnfrageFehlgeschlagenStandard)
+import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), AnfrageAktion(..),
+                                AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..),
+                                AnfrageAktionWeiche(..), AnfrageAktionKupplung(..), AnfrageAktionWegstrecke(..))
+import Zug.UI.Cmd.Parser.StreckenObjekt (AnfrageObjekt(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..),
+                                        AnfrageWeiche(..), AnfrageKupplung(..), AnfrageWegstrecke(..))
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
-parser :: (Show (AnfrageFamilie (ZugtypEither Weiche)))
+parser :: (Show (AnfrageTyp (ZugtypEither Weiche)))
     => AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
 parser = parserAux []
     where
@@ -117,7 +104,7 @@ parser = parserAux []
             acc
             anfrage
             ((Tk h):t)
-                = case anfrageAktualisieren anfrage h of
+                = case anfrageBefehlAktualisieren anfrage h of
                     (AEAnfrageBefehl qFehler@(ABUnbekannt _ab _b))
                         -> parserErgebnis acc $ AEAnfrageBefehl qFehler
                     (AEAnfrageBefehl qBefehl)
@@ -185,9 +172,7 @@ data AnfrageBefehl
         (EingabeToken -> StatusAnfrageObjekt)
         (Objekt -> AnfrageErgebnis)
 
-type instance AnfrageFamilie Befehl = AnfrageBefehl
-
-instance (Show (AnfrageFamilie (ZugtypEither Weiche))) => Show AnfrageBefehl where
+instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
     show
         AnfrageBefehl
@@ -222,7 +207,8 @@ instance (Show (AnfrageFamilie (ZugtypEither Weiche))) => Show AnfrageBefehl whe
     show
         (ABStatusAnfrage anfrageKonstruktor _eitherF)
             = showText $ anfrageKonstruktor leeresToken
-instance (Show (AnfrageFamilie (ZugtypEither Weiche))) => Anfrage AnfrageBefehl where
+
+instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Anfrage AnfrageBefehl where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBefehl -> s
     zeigeAnfrage
         AnfrageBefehl
@@ -284,13 +270,12 @@ instance (Show (AnfrageFamilie (ZugtypEither Weiche))) => Anfrage AnfrageBefehl 
             = Nothing
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
-anfrageAktualisieren :: (Show (AnfrageFamilie (ZugtypEither Weiche)))
-    => AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
-anfrageAktualisieren
+anfrageBefehlAktualisieren :: (Show (AnfrageTyp (ZugtypEither Weiche))) => AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
+anfrageBefehlAktualisieren
     anfrage@(ABUnbekannt _anfrage _eingabe)
     _token
         = AEAnfrageBefehl anfrage
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     AnfrageBefehl
     token@EingabeToken {eingabe}
         = wähleBefehl token [
@@ -300,23 +285,23 @@ anfrageAktualisieren
             (Lexer.Speichern            , AEAnfrageBefehl ABSpeichern),
             (Lexer.Laden                , AEAnfrageBefehl ABLaden),
             (Lexer.Plan                 , AEAnfrageBefehl $ ABStatusAnfrage SAOPlan planWählen),
-            (Lexer.Wegstrecke           , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-            (Lexer.Weiche               , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-            (Lexer.Bahngeschwindigkeit  , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-            (Lexer.Streckenabschnitt    , anfrageAktualisieren (ABAktion AnfrageAktion) token),
-            (Lexer.Kupplung             , anfrageAktualisieren (ABAktion AnfrageAktion) token)]
+            (Lexer.Wegstrecke           , anfrageBefehlAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Weiche               , anfrageBefehlAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Bahngeschwindigkeit  , anfrageBefehlAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Streckenabschnitt    , anfrageBefehlAktualisieren (ABAktion AnfrageAktion) token),
+            (Lexer.Kupplung             , anfrageBefehlAktualisieren (ABAktion AnfrageAktion) token)]
             $ AEAnfrageBefehl $ ABUnbekannt AnfrageBefehl eingabe
                 where
                     planWählen :: Objekt -> AnfrageErgebnis
                     planWählen (OPlan plan) = AEBefehlSofort (BSAusführenMöglich plan) []
                     planWählen  objekt      = error $
-                        "planWählen aus anfrageAktualisieren erwartet einen Plan. Stattdessen \"" ++
+                        "planWählen aus anfrageBefehlAktualisieren erwartet einen Plan. Stattdessen \"" ++
                         show objekt ++
                         "\" erhalten."
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     anfrage@(ABHinzufügen anfrageObjekt)
     token
-        = case anfrageObjektAktualisieren anfrageObjekt token of
+        = case anfrageAktualisieren anfrageObjekt token of
             (Left (AOUnbekannt anfrage eingabe))
                 -> AEAnfrageBefehl $ ABUnbekannt (ABHinzufügen anfrage) eingabe
             (Left (AOStatusAnfrage statusanfrage (Right konstruktor)))
@@ -327,7 +312,7 @@ anfrageAktualisieren
                 -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
             (Right objekt)
                 -> AEBefehl $ Hinzufügen objekt
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     ABEntfernen
     token@EingabeToken {eingabe}
         = case anfrageObjektExistierend token of
@@ -346,15 +331,15 @@ anfrageAktualisieren
             (Lexer.Streckenabschnitt     , Just SAOStreckenabschnitt),
             (Lexer.Kupplung              , Just SAOKupplung)]
             Nothing
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     ABSpeichern
     EingabeToken {eingabe}
         = AEBefehl $ Speichern $ unpack eingabe
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     ABLaden
     EingabeToken {eingabe}
         = AEBefehlSofort (BSLaden $ unpack eingabe) []
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     anfrage@(ABAktionPlan plan@(Plan {plAktionen}))
     token@EingabeToken {eingabe}
         = wähleBefehl token [
@@ -365,20 +350,20 @@ anfrageAktualisieren
                     zeigeFortschritt i = putStrLn $
                         showText plan <:>
                         showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     (ABAktionPlanAusführend plan _neu)
     token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.AusführenAbbrechen, AEBefehl $ AusführenAbbrechen plan)]
             $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanAusführend plan Alt) eingabe
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     (ABAktionPlanGesperrt plan _neu pins)
     token@EingabeToken {eingabe}
         = wähleBefehl token [] $ AEAnfrageBefehl $ ABUnbekannt (ABAktionPlanGesperrt plan Alt pins) eingabe
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     anfrage@(ABAktion anfrageAktion)
     token
-        = case anfrageAktionAktualisieren anfrageAktion token of
+        = case anfrageAktualisieren anfrageAktion token of
             (Left (AAUnbekannt anfrage eingabe))
                 -> AEAnfrageBefehl $ ABUnbekannt (ABAktion anfrage) eingabe
             (Left (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor)))
@@ -389,7 +374,7 @@ anfrageAktualisieren
                 -> AEAnfrageBefehl $ ABAktion anfrageAktion
             (Right aktion)
                 -> AEBefehl $ AktionBefehl aktion
-anfrageAktualisieren
+anfrageBefehlAktualisieren
     anfrage@(ABStatusAnfrage anfrageKonstruktor eitherF)
     token
         = AEStatusAnfrage (anfrageKonstruktor token) eitherF anfrage []
