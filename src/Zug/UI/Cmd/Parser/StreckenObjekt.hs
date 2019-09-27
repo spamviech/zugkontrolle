@@ -1309,9 +1309,9 @@ anfrageWegstreckeAktualisieren
                 = AWegstreckeNameAnzahl (weicheRichtungAnhängen anfrageWegstrecke richtung) $ pred anzahl
         weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Wegstrecke (FixerZugtyp z)
         weicheRichtungAnhängen
-            (AWegstreckeNameAnzahlWeicheRichtung wegstrecke@(Wegstrecke {wsWeichenRichtungen}) _anzahl weiche)
+            AWegstreckeNameAnzahlWeicheRichtung {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
             richtung
-                = wegstrecke {wsWeichenRichtungen = (weiche, richtung) : wsWeichenRichtungen}
+                = wegstrecke {wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen}
 anfrageWegstreckeAktualisieren
     anfrage@AWSUnbekannt {}
     _token
@@ -1346,6 +1346,12 @@ data AnfrageObjekt
     | AOStatusAnfrage
         StatusAnfrageObjekt
         (Either (Objekt -> AnfrageObjekt) (Objekt -> Objekt))
+    | AOStatusAnfrageMärklin
+        (StatusAnfrageObjektZugtyp 'Märklin)
+        (Either (ObjektZugtyp 'Märklin -> AnfrageObjekt) (ObjektZugtyp 'Märklin -> ObjektZugtyp 'Märklin))
+    | AOStatusAnfrageLego
+        (StatusAnfrageObjektZugtyp 'Lego)
+        (Either (ObjektZugtyp 'Lego -> AnfrageObjekt) (ObjektZugtyp 'Lego -> ObjektZugtyp 'Lego))
 
 instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageObjekt where
     show :: AnfrageObjekt -> String
@@ -1451,23 +1457,37 @@ instance MitAnfrage Objekt where
         AnfrageObjekt
         token@EingabeToken {eingabe}
             = wähleBefehl token [
-                (Lexer.Plan                  , Left $ AOPlan AnfragePlan),
-                (Lexer.Wegstrecke            , Left $ AOWegstrecke $ AnfrageNothing AnfrageWegstrecke),
-                (Lexer.Weiche                , Left $ AOWeiche $ AnfrageNothing AnfrageWeiche),
-                (Lexer.Bahngeschwindigkeit   , Left $ AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit),
-                (Lexer.Streckenabschnitt     , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
-                (Lexer.Kupplung              , Left $ AOKupplung AnfrageKupplung)]
+                (Lexer.Bahngeschwindigkeit  , Left $ AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit),
+                (Lexer.Streckenabschnitt    , Left $ AOStreckenabschnitt AnfrageStreckenabschnitt),
+                (Lexer.Weiche               , Left $ AOWeiche $ AnfrageNothing AnfrageWeiche),
+                (Lexer.Wegstrecke           , Left $ AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp),
+                (Lexer.Kupplung             , Left $ AOKupplung AnfrageKupplung),
+                (Lexer.Plan                 , Left $ AOPlan AnfragePlan)]
                 $ Left $ AOUnbekannt AnfrageObjekt eingabe
     anfrageAktualisieren
-        (AOBahngeschwindigkeit aBahngeschwindigkeit)
+        (AOBahngeschwindigkeit (AnfrageNothing aBahngeschwindigkeit))
+        token@EingabeToken {eingabe}
+            = Left $ AOBahngeschwindigkeit $ anfrageAktualisierenZugtyp aBahngeschwindigkeit token
+    anfrageAktualisieren
+        (AOBahngeschwindigkeit (AnfrageMärklin aBahngeschwindigkeit))
         token
-            = case anfrageBahngeschwindigkeitAktualisieren aBahngeschwindigkeit token of
+            = case anfrageAktualisieren aBahngeschwindigkeit token of
                 (Left (ABGUnbekannt anfrage eingabe1))
-                    -> Left $ AOUnbekannt (AOBahngeschwindigkeit anfrage) eingabe1
+                    -> Left $ AOUnbekannt (AOBahngeschwindigkeit $ AnfrageMärklin anfrage) eingabe1
                 (Left aBahngeschwindigkeit1)
-                    -> Left $ AOBahngeschwindigkeit aBahngeschwindigkeit1
+                    -> Left $ AOBahngeschwindigkeit $ AnfrageMärklin aBahngeschwindigkeit1
                 (Right bahngeschwindigkeit)
-                    -> Right $ OBahngeschwindigkeit bahngeschwindigkeit
+                    -> Right $ OBahngeschwindigkeit $ ZugtypMärklin bahngeschwindigkeit
+    anfrageAktualisieren
+        (AOBahngeschwindigkeit (AnfrageLego aBahngeschwindigkeit))
+        token
+            = case anfrageAktualisieren aBahngeschwindigkeit token of
+                (Left (ABGUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOBahngeschwindigkeit $ AnfrageLego anfrage) eingabe1
+                (Left aBahngeschwindigkeit1)
+                    -> Left $ AOBahngeschwindigkeit $ AnfrageLego aBahngeschwindigkeit1
+                (Right bahngeschwindigkeit)
+                    -> Right $ OBahngeschwindigkeit $ ZugtypLego bahngeschwindigkeit
     anfrageAktualisieren
         (AOStreckenabschnitt aStreckenabschnitt)
         token
@@ -1479,15 +1499,29 @@ instance MitAnfrage Objekt where
                 (Right streckenabschnitt)
                     -> Right $ OStreckenabschnitt streckenabschnitt
     anfrageAktualisieren
-        (AOWeiche aWeiche)
+        (AOWeiche (AnfrageNothing aWeiche))
         token
-            = case anfrageWeicheAktualisieren aWeiche token of
+            = Left $ AOWeiche $ anfrageAktualisierenZugtyp aWeiche token
+    anfrageAktualisieren
+        (AOWeiche (AnfrageMärklin aWeiche))
+        token
+            = case anfrageAktualisieren aWeiche token of
                 (Left (AWEUnbekannt anfrage eingabe1))
-                    -> Left $ AOUnbekannt (AOWeiche anfrage) eingabe1
+                    -> Left $ AOUnbekannt (AOWeiche $ AnfrageMärklin anfrage) eingabe1
                 (Left aWeiche1)
-                    -> Left $ AOWeiche aWeiche1
+                    -> Left $ AOWeiche $ AnfrageMärklin aWeiche1
                 (Right weiche)
-                    -> Right $ OWeiche weiche
+                    -> Right $ OWeiche $ ZugtypMärklin weiche
+    anfrageAktualisieren
+        (AOWeiche (AnfrageLego aWeiche))
+        token
+            = case anfrageAktualisieren aWeiche token of
+                (Left (AWEUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOWeiche $ AnfrageLego anfrage) eingabe1
+                (Left aWeiche1)
+                    -> Left $ AOWeiche $ AnfrageLego aWeiche1
+                (Right weiche)
+                    -> Right $ OWeiche $ ZugtypLego weiche
     anfrageAktualisieren
         (AOKupplung aKupplung)
         token
@@ -1499,25 +1533,45 @@ instance MitAnfrage Objekt where
                 (Right kupplung)
                     -> Right $ OKupplung kupplung
     anfrageAktualisieren
-        (AOWegstrecke aWegstrecke0)
+        (AOWegstrecke (AnfrageNothing aWegstrecke))
         token
-            = case anfrageAktualisieren aWegstrecke0 token of
+            = Left $ AOWegstrecke $ anfrageAktualisierenZugtyp aWegstrecke token
+    anfrageAktualisieren
+        (AOWegstrecke (AnfrageMärklin aWegstrecke))
+        token
+            = case anfrageAktualisieren aWegstrecke token of
                 (Left (AWSUnbekannt anfrage eingabe1))
-                    -> Left $ AOUnbekannt (AOWegstrecke anfrage) eingabe1
+                    -> Left $ AOUnbekannt (AOWegstrecke $ AnfrageMärklin anfrage) eingabe1
                 (Left (AWegstreckeMStatus objektStatusAnfrage (Right konstruktor)))
-                    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Right $
-                        \objekt -> OWegstrecke $ konstruktor objekt
+                    -> Left $ AOStatusAnfrageMärklin objektStatusAnfrage $ Right $
+                        \objekt -> OZWegstrecke $ konstruktor objekt
                 (Left (AWegstreckeMStatus objektStatusAnfrage (Left anfrageKonstruktor)))
-                    -> Left $ AOStatusAnfrage objektStatusAnfrage $ Left $
-                        \objekt -> AOWegstrecke $ anfrageKonstruktor objekt
+                    -> Left $ AOStatusAnfrageMärklin objektStatusAnfrage $ Left $
+                        \objekt -> AOWegstrecke $ AnfrageMärklin $ anfrageKonstruktor objekt
                 (Left aWegstrecke1)
-                    -> Left $ AOWegstrecke aWegstrecke1
+                    -> Left $ AOWegstrecke $ AnfrageMärklin aWegstrecke1
                 (Right wegstrecke)
-                    -> Right $ OWegstrecke wegstrecke
+                    -> Right $ OWegstrecke $ ZugtypMärklin wegstrecke
+    anfrageAktualisieren
+        (AOWegstrecke (AnfrageLego aWegstrecke))
+        token
+            = case anfrageAktualisieren aWegstrecke token of
+                (Left (AWSUnbekannt anfrage eingabe1))
+                    -> Left $ AOUnbekannt (AOWegstrecke $ AnfrageLego anfrage) eingabe1
+                (Left (AWegstreckeMStatus objektStatusAnfrage (Right konstruktor)))
+                    -> Left $ AOStatusAnfrageLego objektStatusAnfrage $ Right $
+                        \objekt -> OZWegstrecke $ konstruktor objekt
+                (Left (AWegstreckeMStatus objektStatusAnfrage (Left anfrageKonstruktor)))
+                    -> Left $ AOStatusAnfrageLego objektStatusAnfrage $ Left $
+                        \objekt -> AOWegstrecke $ AnfrageLego $ anfrageKonstruktor objekt
+                (Left aWegstrecke1)
+                    -> Left $ AOWegstrecke $ AnfrageLego aWegstrecke1
+                (Right wegstrecke)
+                    -> Right $ OWegstrecke $ ZugtypLego wegstrecke
     anfrageAktualisieren
         (AOPlan aPlan)
         token
-            = case anfragePlanAktualisieren aPlan token of
+            = case anfrageAktualisieren aPlan token of
                 (Left (APUnbekannt anfrage eingabe1))
                     -> Left $ AOUnbekannt (AOPlan anfrage) eingabe1
                 (Left (APlanIOStatus objektStatusAnfrage (Right konstruktor)))
