@@ -20,20 +20,20 @@ module Zug.UI.Befehl (
 
 -- Bibliotheken
 import Control.Monad.Trans (liftIO)
+import Control.Monad.Reader.Class (MonadReader(..), asks)
 import Control.Monad.State (get, put)
 import Control.Concurrent.STM (atomically, TVar, writeTVar, modifyTVar, TMVar)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (PwmMap, I2CMap, runPwmMapT, pwmMapEmpty, i2cMapEmpty)
+import Zug.Anbindung (PwmMap, I2CMap, pwmMapEmpty, i2cMapEmpty)
 import Zug.Klassen (Zugtyp(..))
 import Zug.Menge (Menge, entfernen)
-import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(), Plan(),
-                Ausführend(..), AktionKlasse(), Aktion(), ausführenPlan, ausführenAktion)
+import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(..), Plan(), PlanReader(..),
+                Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
-import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein,
-                    auswertenTMVarIOStatus, übergebeTVarMaps, liftIOFunction,
-                    getTVarAusführend, getTVarMaps,
+import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, TVarMaps(..),
+                    auswertenTMVarIOStatus, liftIOFunction,
                     hinzufügenPlan, entfernenPlan,
                     hinzufügenWegstrecke, entfernenWegstrecke,
                     hinzufügenWeiche, entfernenWeiche,
@@ -41,31 +41,23 @@ import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein,
                     hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
                     hinzufügenKupplung, entfernenKupplung)
 
--- | Führe einen Plan mit einem in einer MVar gespeichertem Zustand aus
+-- | Führe einen Plan mit einem in einer 'TMVar' gespeichertem Zustand aus
 ausführenTMVarPlan :: (PlanKlasse (PL o))
-            => PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> IO ()
-ausführenTMVarPlan plan showAktion endAktion tmvarStatus = do
-    (tvarAusführend, tvarMaps) <- auswertenTMVarIOStatus getTVars tmvarStatus
-    flip runPwmMapT tvarMaps $ ausführenPlan plan showAktion endAktion tvarAusführend
-        where
-            getTVars :: IOStatusAllgemein o (TVar (Menge Ausführend), (TVar PwmMap, TVar I2CMap))
-            getTVars = do
-                tvarAusführend <- getTVarAusführend
-                tvarMaps <- getTVarMaps
-                pure (tvarAusführend, tvarMaps)
+            => PL o -> (Natural -> IO ()) -> IO () -> TVarMaps -> TMVar (StatusAllgemein o) -> IO ()
+ausführenTMVarPlan plan showAktion endAktion tvarMaps@(TVarMaps {tvarAusführend}) tmvarStatus
+    = auswertenTMVarIOStatus (ausführenPlan plan showAktion endAktion) tvarMaps tmvarStatus
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
 ausführenTMVarAktion   :: (AktionKlasse a)
-                => a -> TMVar (StatusAllgemein o) -> IO ()
-ausführenTMVarAktion aktion tmvarStatus = do
-    tvarMaps <- auswertenTMVarIOStatus getTVarMaps tmvarStatus
-    runPwmMapT (ausführenAktion aktion) tvarMaps
+                => a -> TVarMaps -> TMVar (StatusAllgemein o) -> IO ()
+ausführenTMVarAktion aktion tvarMaps tmvarStatus
+    = auswertenTMVarIOStatus (ausführenAktion aktion) tvarMaps tmvarStatus
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
 ausführenTMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
                         Eq (ST o), Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                         Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o))
-                            => b o -> TMVar (StatusAllgemein o) -> IO Bool
+                            => b o -> TVarMaps -> TMVar (StatusAllgemein o) -> IO Bool
 ausführenTMVarBefehl befehl = auswertenTMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
@@ -149,23 +141,20 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
                 = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                     Nothing             -> fehlerbehandlung
-                    (Just konstruktor)  -> do
-                        (tvarPwmMap, tvarI2CMap) <- getTVarMaps
-                        statusNeu <- liftIO $ do
+                    (Just statusNeu)  -> do
+                        TVarMaps {tvarPwmMap, tvarI2CMap} <- ask
+                        liftIO $ do
                             atomically $ writeTVar tvarPwmMap pwmMapEmpty
                             atomically $ writeTVar tvarI2CMap i2cMapEmpty
-                            konstruktor tvarPwmMap tvarI2CMap
                         put statusNeu
             ausführenBefehlAux  (Ausführen plan showAction endAktion)
-                = do
-                    tvarAusführend <- getTVarAusführend
-                    übergebeTVarMaps $ ausführenPlan plan showAction endAktion tvarAusführend
+                = ausführenPlan plan showAction endAktion
             ausführenBefehlAux  (AusführenAbbrechen plan)
                 = do
-                    tvarAusführend <- getTVarAusführend
+                    tvarAusführend <- erhalteMengeAusführend
                     liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
             ausführenBefehlAux  (AktionBefehl aktion)
-                = übergebeTVarMaps $ ausführenAktion aktion
+                = ausführenAktion aktion
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten.
 -- Der hier bereitgestellte ein newtype löst das Problem über einen Phantomtyp.

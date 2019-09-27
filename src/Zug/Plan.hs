@@ -6,6 +6,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
@@ -15,10 +16,12 @@ Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, we
 -}
 module Zug.Plan (
     -- * Allgemeine Datentypen
-    PlanKlasse(..), Plan(..), AktionKlasse(..), Aktion(..), Objekt, ObjektAllgemein(..), ObjektKlasse(..), Ausführend(..),
+    PlanKlasse(..), PlanReader(..), Plan(..), AktionKlasse(..), Aktion(..),
+    Objekt, ObjektAllgemein(..), ObjektKlasse(..), Ausführend(..),
     ausBG, ausST, ausWE, ausKU, ausWS, ausPL, Phantom(..),
     -- * Spezialisierte Aktionen
-    AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionKupplung(..), AktionWegstrecke(..)) where
+    AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
+    AktionKupplung(..), AktionWegstrecke(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
@@ -137,12 +140,17 @@ instance (StreckenObjekt pl, StreckenObjekt (bg 'Märklin), StreckenObjekt (bg '
     anschlüsse  (OStreckenabschnitt st)     = anschlüsse st
     anschlüsse  (OKupplung ku)              = anschlüsse ku
 
+-- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Menge' benötigen
+class (PwmReader r m) => PlanReader r m where
+    -- | Erhalte die aktuelle 'Ausführend'-'Menge' aus der Umgebung.
+    erhalteMengeAusführend :: m (TVar (Menge Ausführend))
+
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
--- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-Liste vorhanden ist.
+-- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-'Menge' vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: (PwmReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> m ()
+    ausführenPlan :: (PlanReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -170,23 +178,26 @@ instance StreckenObjekt Plan where
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: (PwmReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> TVar (Menge Ausführend) -> m ()
-    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion tvarAusführend = void $ forkI2CReader $ void $ do
+    ausführenPlan :: (PlanReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
+    ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion = void $ forkI2CReader $ void $ do
+        tvarAusführend <- erhalteMengeAusführend
         liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
         liftIO $ do
             showAktion $ fromIntegral $ length plAktionen
             endAktion
-                where
-                    ausführenAux :: (PwmReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
-                    ausführenAux    _i  []      = liftIO $ atomically $
-                                                    modifyTVar tvarAusführend $ entfernen $ Ausführend plan
-                    ausführenAux    i   (h:t)   = do
-                        ausführend <- liftIO $ readTVarIO tvarAusführend
-                        when (elem (Ausführend plan) ausführend) $ do
-                            liftIO $ showAktion i
-                            ausführenAktion h
-                            ausführenAux (succ i) t
+        where
+            ausführenAux :: (PlanReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
+            ausführenAux    _i  []      = do
+                tvarAusführend <- erhalteMengeAusführend
+                liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+            ausführenAux    i   (h:t)   = do
+                tvarAusführend <- erhalteMengeAusführend
+                ausführend <- liftIO $ readTVarIO tvarAusführend
+                when (elem (Ausführend plan) ausführend) $ do
+                    liftIO $ showAktion i
+                    ausführenAktion h
+                    ausführenAux (succ i) t
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where

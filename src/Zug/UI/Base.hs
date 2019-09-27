@@ -53,7 +53,8 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>))
 import Zug.Menge (Menge, leer)
-import Zug.Plan (ObjektKlasse(..), Objekt, Phantom(..), Ausführend(..), Plan, ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
+import Zug.Plan (ObjektKlasse(..), Objekt, Phantom(..), Ausführend(..), Plan, PlanReader(..),
+                ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
 
 -- | Aktueller Status
 data StatusAllgemein o = Status {
@@ -196,6 +197,10 @@ instance  I2CReader TVarMaps (RWST TVarMaps () (StatusAllgemein o) IO) where
 instance PwmReader TVarMaps (RWST TVarMaps () (StatusAllgemein o) IO) where
     erhaltePwmMap :: RWST TVarMaps () (StatusAllgemein o) IO (TVar PwmMap)
     erhaltePwmMap = asks tvarPwmMap
+
+instance PlanReader TVarMaps (RWST TVarMaps () (StatusAllgemein o) IO) where
+    erhalteMengeAusführend :: RWST TVarMaps () (StatusAllgemein o) IO (TVar (Menge Ausführend))
+    erhalteMengeAusführend = asks tvarAusführend
 
 -- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus
 auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO a
