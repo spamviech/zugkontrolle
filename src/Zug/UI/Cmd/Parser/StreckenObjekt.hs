@@ -1428,9 +1428,9 @@ instance Anfrage AnfrageObjekt where
 -- | Eingabe eines Objekts
 anfrageObjektAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt
 anfrageObjektAktualisieren
-    qFehler@(AOUnbekannt _anfrage _eingabe)
+    aFehler@(AOUnbekannt _anfrage _eingabe)
     _token
-        = Left qFehler
+        = Left aFehler
 anfrageObjektAktualisieren
     anfrageObjekt@(AOStatusAnfrage _objektStatusAnfrage _eitherKonstruktor)
     _token
