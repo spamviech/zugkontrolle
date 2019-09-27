@@ -1363,7 +1363,7 @@ data AnfrageObjekt
         (StatusAnfrageObjektZugtyp 'Lego)
         (Either (ObjektZugtyp 'Lego -> AnfrageObjekt) (ObjektZugtyp 'Lego -> ObjektZugtyp 'Lego))
 
-instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageObjekt where
+instance Show AnfrageObjekt where
     show :: AnfrageObjekt -> String
     show
         (AOUnbekannt anfrageObjekt eingabe)
@@ -1469,7 +1469,7 @@ instance Anfrage AnfrageObjekt where
         (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
             = zeigeAnfrageOptionen objektStatusAnfrage
 
-instance (Show (AnfrageTyp (ZugtypEither Weiche))) => MitAnfrage Objekt where
+instance MitAnfrage Objekt where
     type AnfrageTyp Objekt = AnfrageObjekt
     -- | Eingabe eines Objekts
     anfrageAktualisieren :: AnfrageObjekt -> EingabeToken -> Either AnfrageObjekt Objekt

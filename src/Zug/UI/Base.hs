@@ -174,7 +174,7 @@ type IOStatus a = IOStatusAllgemein Objekt a
 -- | Reine Zustands-Monade spezialisiert auf 'Status'
 type MStatus a = MStatusAllgemein Objekt a
 -- | Zustands-Monaden-Transformer spezialiert auf 'Status'
-type MStatusT a = MStatusAllgemein Objekt a
+type MStatusT m a = MStatusAllgemeinT m Objekt a
 -- | Zustands-Monaden-Transformer spezialisiert auf 'StatusAllgemein' in der IO-Monade
 type IOStatusAllgemein o a = MStatusAllgemeinT IO o a
 -- | Reine Zustands-Monade spezialiert auf 'StatusAllgemein'

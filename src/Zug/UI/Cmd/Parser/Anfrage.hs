@@ -33,7 +33,7 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..)
 import Zug.Language ((<=>), (<^>), showText, fehlerText)
 import qualified Zug.Language as Language
 import Zug.Plan (ObjektAllgemein(..), Objekt, Plan())
-import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
+import Zug.UI.Base (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
                     getStreckenabschnitte, getKupplungen)
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
 import qualified Zug.UI.Cmd.Lexer as Lexer
@@ -169,7 +169,7 @@ instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt
-statusAnfrageObjekt :: StatusAnfrageObjekt -> MStatus (Either StatusAnfrageObjekt Objekt)
+statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (Either StatusAnfrageObjekt Objekt)
 statusAnfrageObjekt
     anfrage@(SAOUnbekannt _eingabe)
         = pure $ Left anfrage
@@ -266,9 +266,9 @@ instance Anfrage (StatusAnfrageObjektZugtyp z) where
     zeigeAnfrage    (SAOZPlan _token)                   = Language.indexOderName Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
-statusAnfrageObjektZugtyp :: (ZugtypKlasse z) =>
+statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z) =>
     StatusAnfrageObjektZugtyp z ->
-        MStatus (Either (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
+        MStatusT m (Either (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
 statusAnfrageObjektZugtyp
         anfrage@(SAOZUnbekannt _eingabe)
             = pure $ Left anfrage
@@ -299,12 +299,12 @@ statusAnfrageObjektZugtyp
 
 -- Hilfsfunktion
 -- | Finde ein Objekt anhand seines Namens/Indizes
-statusAnfrageObjektAux :: (StreckenObjekt a)
+statusAnfrageObjektAux :: (Monad m, StreckenObjekt a)
     => statusAnfrageObjekt
     -> EingabeToken
-    -> MStatus [a]
+    -> MStatusT m [a]
     -> (a -> Maybe o)
-        -> MStatus (Either statusAnfrageObjekt o)
+        -> MStatusT m (Either statusAnfrageObjekt o)
 statusAnfrageObjektAux anfrage eingabe getFromStatus konstruktor = do
     objekte <- getFromStatus
     pure $ case findByNameOrIndex objekte eingabe >>= konstruktor of

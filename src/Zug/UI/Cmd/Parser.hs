@@ -35,8 +35,7 @@ import Data.String (IsString(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Anschluss(..), Weiche(..))
-import Zug.Klassen (ZugtypEither(..))
+import Zug.Anbindung (Anschluss(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<:>), (<\>), showText, toBefehlsString)
 import qualified Zug.Menge as Menge
@@ -55,8 +54,7 @@ import Zug.UI.Cmd.Parser.StreckenObjekt (AnfrageObjekt(..), AnfrageBahngeschwind
                                         AnfrageWeiche(..), AnfrageKupplung(..), AnfrageWegstrecke(..))
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
-parser :: (Show (AnfrageTyp (ZugtypEither Weiche)))
-    => AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
+parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
 parser = parserAux []
     where
         parserAux :: [Befehl] -> AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
@@ -172,7 +170,7 @@ data AnfrageBefehl
         (EingabeToken -> StatusAnfrageObjekt)
         (Objekt -> AnfrageErgebnis)
 
-instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageBefehl where
+instance Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
     show
         AnfrageBefehl
@@ -208,7 +206,7 @@ instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Show AnfrageBefehl where
         (ABStatusAnfrage anfrageKonstruktor _eitherF)
             = showText $ anfrageKonstruktor leeresToken
 
-instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Anfrage AnfrageBefehl where
+instance Anfrage AnfrageBefehl where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBefehl -> s
     zeigeAnfrage
         AnfrageBefehl
@@ -270,7 +268,7 @@ instance (Show (AnfrageTyp (ZugtypEither Weiche))) => Anfrage AnfrageBefehl wher
             = Nothing
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
-anfrageBefehlAktualisieren :: (Show (AnfrageTyp (ZugtypEither Weiche))) => AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
+anfrageBefehlAktualisieren :: AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
 anfrageBefehlAktualisieren
     anfrage@(ABUnbekannt _anfrage _eingabe)
     _token
