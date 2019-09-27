@@ -13,6 +13,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
     -- * Suche ein existierendes Objekt im Status
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
+    ObjektZugtyp(..), StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp,
     -- * Hilfsfunktionen
     wähleBefehl, wähleRichtung, wähleValue, unbekanntShowText) where
 
@@ -23,11 +24,12 @@ import Data.String (IsString())
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..), Value(..))
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Richtung(..))
+import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(),
+                    Weiche(), Kupplung(), Wegstrecke())
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language ((<=>), (<^>), showText, fehlerText)
 import qualified Zug.Language as Language
-import Zug.Plan (ObjektAllgemein(..), Objekt)
+import Zug.Plan (ObjektAllgemein(..), Objekt, Plan())
 import Zug.UI.Base (MStatus, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
                     getStreckenabschnitte, getKupplungen)
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
@@ -72,74 +74,180 @@ showMitAnfrageFehlgeschlagen a eingabe = showText a <^> zeigeAnfrageFehlgeschlag
 data StatusAnfrageObjekt
     = SAOUnbekannt
         Text
-    | SAOPlan
-        EingabeToken
-    | SAOWegstrecke
-        EingabeToken
-    | SAOWeiche
-        EingabeToken
     | SAOBahngeschwindigkeit
         EingabeToken
     | SAOStreckenabschnitt
         EingabeToken
+    | SAOWeiche
+        EingabeToken
     | SAOKupplung
+        EingabeToken
+    | SAOWegstrecke
+        EingabeToken
+    | SAOPlan
         EingabeToken
 
 instance Show StatusAnfrageObjekt where
     show :: StatusAnfrageObjekt -> String
     show    anfrage@(SAOUnbekannt eingabe)    = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
-    show    (SAOPlan _token)                  = Language.plan
-    show    (SAOWegstrecke _token)            = Language.wegstrecke
-    show    (SAOWeiche _token)                = Language.weiche
     show    (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
     show    (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
+    show    (SAOWeiche _token)                = Language.weiche
     show    (SAOKupplung _token)              = Language.kupplung
+    show    (SAOWegstrecke _token)            = Language.wegstrecke
+    show    (SAOPlan _token)                  = Language.plan
 instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjekt -> s
     zeigeAnfrage    (SAOUnbekannt _eingabe)           = Language.objekt
-    zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
-    zeigeAnfrage    (SAOWegstrecke _token)            = Language.indexOderName Language.wegstrecke
-    zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
     zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
     zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
+    zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
     zeigeAnfrage    (SAOKupplung _token)              = Language.indexOderName Language.kupplung
+    zeigeAnfrage    (SAOWegstrecke _token)            = Language.indexOderName Language.wegstrecke
+    zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt
 statusAnfrageObjekt :: StatusAnfrageObjekt -> MStatus (Either StatusAnfrageObjekt Objekt)
 statusAnfrageObjekt
-    anfrage@(SAOUnbekannt _eingabe0)
+    anfrage@(SAOUnbekannt _eingabe)
         = pure $ Left anfrage
 statusAnfrageObjekt
-    anfrage@(SAOPlan eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getPläne OPlan
-statusAnfrageObjekt
-    anfrage@(SAOWegstrecke eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWegstrecken OWegstrecke
-statusAnfrageObjekt
-    anfrage@(SAOWeiche eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWeichen OWeiche
-statusAnfrageObjekt
     anfrage@(SAOBahngeschwindigkeit eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten OBahngeschwindigkeit
+        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
 statusAnfrageObjekt
     anfrage@(SAOStreckenabschnitt eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte OStreckenabschnitt
+        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte $ Just . OStreckenabschnitt
+statusAnfrageObjekt
+    anfrage@(SAOWeiche eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getWeichen $ Just . OWeiche
 statusAnfrageObjekt
     anfrage@(SAOKupplung eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getKupplungen OKupplung
+        = statusAnfrageObjektAux anfrage eingabe getKupplungen $ Just . OKupplung
+statusAnfrageObjekt
+    anfrage@(SAOWegstrecke eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getWegstrecken $ Just . OWegstrecke
+statusAnfrageObjekt
+    anfrage@(SAOPlan eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getPläne $ Just . OPlan
 
--- | Hilfsfunktion
+-- | Ein Objekt mit bestimmten Zugtyp
+data ObjektZugtyp (z :: Zugtyp)
+    = OZBahngeschwindigkeit
+        (Bahngeschwindigkeit z)
+    | OZStreckenabschnitt
+        Streckenabschnitt
+    | OZWeiche
+        (Weiche z)
+    | OZKupplung
+        Kupplung
+    | OZWegstrecke
+        (Wegstrecke z)
+    | OZPlan
+        Plan
+    deriving (Eq)
+
+instance Show (ObjektZugtyp z) where
+    show :: ObjektZugtyp z -> String
+    show
+        (OZBahngeschwindigkeit bahngeschwindigkeit)
+            = show bahngeschwindigkeit
+    show
+        (OZStreckenabschnitt streckenabschnitt)
+            = show streckenabschnitt
+    show
+        (OZWeiche weiche)
+            = show weiche
+    show
+        (OZKupplung kupplung)
+            = show kupplung
+    show
+        (OZWegstrecke wegstrecke)
+            = show wegstrecke
+    show
+        (OZPlan plan)
+            = show plan
+
+-- | Ein Objekt mit bestimmten Zugtyp aus dem aktullen Status wird benötigt
+data StatusAnfrageObjektZugtyp (z :: Zugtyp)
+    = SAOZUnbekannt
+        Text
+    | SAOZBahngeschwindigkeit
+        EingabeToken
+    | SAOZStreckenabschnitt
+        EingabeToken
+    | SAOZWeiche
+        EingabeToken
+    | SAOZKupplung
+        EingabeToken
+    | SAOZWegstrecke
+        EingabeToken
+    | SAOZPlan
+        EingabeToken
+
+instance Show (StatusAnfrageObjektZugtyp z) where
+    show :: StatusAnfrageObjektZugtyp z -> String
+    show    anfrage@(SAOZUnbekannt eingabe)     = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
+    show    (SAOZBahngeschwindigkeit _token)    = Language.bahngeschwindigkeit
+    show    (SAOZStreckenabschnitt _token)      = Language.streckenabschnitt
+    show    (SAOZWeiche _token)                 = Language.weiche
+    show    (SAOZKupplung _token)               = Language.kupplung
+    show    (SAOZWegstrecke _token)             = Language.wegstrecke
+    show    (SAOZPlan _token)                   = Language.plan
+instance Anfrage (StatusAnfrageObjektZugtyp z) where
+    zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjektZugtyp z -> s
+    zeigeAnfrage    (SAOZUnbekannt _eingabe)            = Language.objekt
+    zeigeAnfrage    (SAOZBahngeschwindigkeit _token)    = Language.indexOderName Language.bahngeschwindigkeit
+    zeigeAnfrage    (SAOZStreckenabschnitt _token)      = Language.indexOderName Language.streckenabschnitt 
+    zeigeAnfrage    (SAOZWeiche _token)                 = Language.indexOderName Language.weiche
+    zeigeAnfrage    (SAOZKupplung _token)               = Language.indexOderName Language.kupplung
+    zeigeAnfrage    (SAOZWegstrecke _token)             = Language.indexOderName Language.wegstrecke
+    zeigeAnfrage    (SAOZPlan _token)                   = Language.indexOderName Language.plan
+
+-- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
+statusAnfrageObjektZugtyp :: (ZugtypKlasse z) =>
+    StatusAnfrageObjektZugtyp z ->
+        MStatus (Either (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
+statusAnfrageObjektZugtyp
+        anfrage@(SAOZUnbekannt _eingabe)
+            = pure $ Left anfrage
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZBahngeschwindigkeit eingabe)
+        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $
+            fmap OZBahngeschwindigkeit
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZStreckenabschnitt eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte $
+            Just . OZStreckenabschnitt
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZWeiche eingabe)
+        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getWeichen) $
+            fmap OZWeiche
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZKupplung eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getKupplungen $
+            Just . OZKupplung
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZWegstrecke eingabe)
+        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getWegstrecken) $
+            fmap OZWegstrecke
+statusAnfrageObjektZugtyp
+    anfrage@(SAOZPlan eingabe)
+        = statusAnfrageObjektAux anfrage eingabe getPläne $
+            Just . OZPlan
+
+-- Hilfsfunktion
+-- | Finde ein Objekt anhand seines Namens/Indizes
 statusAnfrageObjektAux :: (StreckenObjekt a)
-    => StatusAnfrageObjekt
+    => statusAnfrageObjekt
     -> EingabeToken
     -> MStatus [a]
-    -> (a -> Objekt)
-        -> MStatus (Either StatusAnfrageObjekt Objekt)
+    -> (a -> Maybe o)
+        -> MStatus (Either statusAnfrageObjekt o)
 statusAnfrageObjektAux anfrage eingabe getFromStatus konstruktor = do
     objekte <- getFromStatus
-    pure $ case findByNameOrIndex objekte eingabe of
+    pure $ case findByNameOrIndex objekte eingabe >>= konstruktor of
         Nothing         -> Left anfrage
-        (Just objekt)   -> Right $ konstruktor objekt
+        (Just objekt)   -> Right objekt
 
 -- | Element einer Liste anhand des Index oder Namens finden
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a

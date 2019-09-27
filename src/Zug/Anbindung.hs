@@ -167,6 +167,13 @@ instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego)) => StreckenObj
     erhalteName (ZugtypMärklin a)   = erhalteName a
     erhalteName (ZugtypLego a)      = erhalteName a
 
+instance (StreckenObjekt a) => StreckenObjekt (Maybe a) where
+    anschlüsse :: Maybe a -> [Anschluss]
+    anschlüsse  (Just a)    = anschlüsse a
+    anschlüsse  Nothing     = []
+    erhalteName (Just a)    = erhalteName a
+    erhalteName Nothing     = ""
+
 -- | Eine Klasse für alle Typen, die direkt mit wiringPi interagieren.
 class StreckenAtom s where
     fließend :: s -> Value
