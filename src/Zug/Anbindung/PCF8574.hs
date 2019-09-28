@@ -126,7 +126,7 @@ data PCF8574Port = PCF8574Port {pcf8574 :: PCF8574, port::Word8}
 
 instance Show PCF8574Port where
     show :: PCF8574Port -> String
-    show (PCF8574Port {pcf8574, port}) = show pcf8574 ++ ('-' : show port)
+    show PCF8574Port {pcf8574, port} = show pcf8574 ++ ('-' : show port)
 
 instance Read PCF8574Port where
     readPrec :: ReadPrec PCF8574Port

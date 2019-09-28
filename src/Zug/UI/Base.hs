@@ -14,7 +14,7 @@ Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusAllgemein(..), statusLeer, TVarMaps(..), tvarMapsNeu, phantom,
+    Status, StatusAllgemein(..), statusLeer, TVarMaps(..), TVarMapsReader(..), tvarMapsNeu, phantom,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
 #endif
@@ -209,21 +209,33 @@ auswertenLeererIOStatus ioStatus = do
     (a, ()) <- evalRWST ioStatus tvarMaps statusLeer
     pure a
 
+-- | Abkürzung für Funktionen, die 'TMVarMaps' benötigen
+class (MonadReader r m) => TVarMapsReader r m where
+    erhalteTVarMaps :: m TVarMaps
+
+instance (Monad m, Monoid a) => TVarMapsReader TVarMaps (RWST TVarMaps a b m) where
+    erhalteTVarMaps :: RWST TVarMaps a b m TVarMaps
+    erhalteTVarMaps = ask
+
 -- | Führe IO-Aktion mit 'StatusAllgemein' in 'TMVar' aus
-auswertenTMVarIOStatus :: IOStatusAllgemein o a -> TVarMaps -> TMVar (StatusAllgemein o) -> IO a
-auswertenTMVarIOStatus action tvarMaps mvarStatus = do
-    status0 <- atomically $ takeTMVar mvarStatus
-    (a, status1, ()) <- runRWST action tvarMaps status0
-    atomically $ putTMVar mvarStatus status1
-    pure a
+auswertenTMVarIOStatus :: (TVarMapsReader r m, MonadIO m) => IOStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
+auswertenTMVarIOStatus action tmvarStatus = do
+    tvarMaps <- erhalteTVarMaps
+    liftIO $ do
+        status0 <- atomically $ takeTMVar tmvarStatus
+        (a, status1, ()) <- runRWST action tvarMaps status0
+        atomically $ putTMVar tmvarStatus status1
+        pure a
 
 -- | Führe Aktion mit 'StatusAllgemein' in 'TMVar' aus
-auswertenTMVarMStatus :: MStatusAllgemein o a -> TVarMaps -> TMVar (StatusAllgemein o) -> IO a
-auswertenTMVarMStatus action tvarMaps mvarStatus = atomically $ do
-    status0 <- takeTMVar mvarStatus
-    let (a, status1, ()) = runRWS action tvarMaps status0
-    putTMVar mvarStatus status1
-    pure a
+auswertenTMVarMStatus :: (TVarMapsReader r m, MonadIO m) => MStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
+auswertenTMVarMStatus action tmvarStatus = do
+    tvarMaps <- erhalteTVarMaps
+    liftIO $ atomically $ do
+        status0 <- takeTMVar tmvarStatus
+        let (a, status1, ()) = runRWS action tvarMaps status0
+        putTMVar tmvarStatus status1
+        pure a
 
 -- * Erhalte aktuellen Status.
 -- | Erhalte 'Phantom' passend zum zugehörigem Objekt

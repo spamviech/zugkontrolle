@@ -19,9 +19,9 @@ module Zug.UI.Befehl (
     ausführenTMVarPlan, ausführenTMVarAktion, ausführenTMVarBefehl) where
 
 -- Bibliotheken
-import Control.Monad.Trans (liftIO)
 import Control.Monad.Reader.Class (MonadReader(..))
-import Control.Monad.State (get, put)
+import Control.Monad.State.Class (MonadState(..))
+import Control.Monad.Trans (MonadIO(..))
 import Control.Concurrent.STM (atomically, writeTVar, modifyTVar, TMVar)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
@@ -32,7 +32,7 @@ import Zug.Menge (entfernen)
 import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(..), Plan(), PlanReader(..),
                 Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
-import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, TVarMaps(..),
+import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, TVarMaps(..), TVarMapsReader(),
                     auswertenTMVarIOStatus, liftIOFunction,
                     hinzufügenPlan, entfernenPlan,
                     hinzufügenWegstrecke, entfernenWegstrecke,
@@ -42,20 +42,21 @@ import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, TVarMaps(..),
                     hinzufügenKupplung, entfernenKupplung)
 
 -- | Führe einen Plan mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarPlan :: (PlanKlasse (PL o))
-            => PL o -> (Natural -> IO ()) -> IO () -> TVarMaps -> TMVar (StatusAllgemein o) -> IO ()
+ausführenTMVarPlan :: (TVarMapsReader r m, MonadIO m, PlanKlasse (PL o))
+                        => PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> m ()
 ausführenTMVarPlan plan showAktion endAktion = auswertenTMVarIOStatus $ ausführenPlan plan showAktion endAktion
 
 -- | Führe eine Aktion mit einem in einer MVar gespeichertem Zustand aus
-ausführenTMVarAktion   :: (AktionKlasse a)
-                => a -> TVarMaps -> TMVar (StatusAllgemein o) -> IO ()
+ausführenTMVarAktion   :: (TVarMapsReader r m, MonadIO m, AktionKlasse a)
+                            => a -> TMVar (StatusAllgemein o) -> m ()
 ausführenTMVarAktion aktion = auswertenTMVarIOStatus $ ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer MVar gespeichertem Zustand aus
-ausführenTMVarBefehl :: (BefehlKlasse b, ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
+ausführenTMVarBefehl :: (TVarMapsReader r m, MonadIO m, BefehlKlasse b,
+                        ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
                         Eq (ST o), Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                         Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o))
-                            => b o -> TVarMaps -> TMVar (StatusAllgemein o) -> IO Bool
+                            => b o -> TMVar (StatusAllgemein o) -> m Bool
 ausführenTMVarBefehl befehl = auswertenTMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
