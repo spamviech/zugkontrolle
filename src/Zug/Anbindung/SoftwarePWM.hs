@@ -1,5 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description : PWM-Implementierung über Software.
@@ -10,13 +14,14 @@ Im Gegensatz zu Hardware-basierter PWM, die nur von einigen Pins des Raspberry P
 -}
 module Zug.Anbindung.SoftwarePWM (
     -- * Map über aktuell laufende PWM-Ausgabe
-    PwmMap, pwmMapEmpty, PwmReader(..),
+    PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..),
     -- * Aufruf der PWM-Funktionen
     pwmSoftwareSetzteWert, pwmGrenze) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
 import Control.Monad (void, when)
+import Control.Monad.Reader (ReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as Map
@@ -24,7 +29,7 @@ import Data.Maybe (isNothing)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (PwmValue(), Value(..))
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung.Anschluss (Anschluss(), anschlussWrite, I2CReader(..))
+import Zug.Anbindung.Anschluss (Anschluss(), anschlussWrite, MitI2CMap(), I2CReader(..))
 import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), differenz, multiplizieren, dividieren)
 
 -- | Welche Pins haben aktuell Software-PWM
@@ -32,10 +37,15 @@ type PwmMap = Map Anschluss (PwmValue, Natural)
 -- | Leere 'PwmMap'
 pwmMapEmpty :: PwmMap
 pwmMapEmpty = Map.empty
+-- | Klasse für Typen mit der aktellen 'PwmMap'
+class MitPwmMap r where
+    pwmMap :: r -> TVar PwmMap
 -- | Abkürzung für Funktionen, die die aktuelle 'PwmMap' benötigen
-class (I2CReader r m) => PwmReader r m | m -> r where
+class (I2CReader r m, MitPwmMap r) => PwmReader r m | m -> r where
     -- | Erhalte die aktuelle 'PwmMap' aus der Umgebung.
     erhaltePwmMap :: m (TVar PwmMap)
+    erhaltePwmMap = asks pwmMap
+instance (MitPwmMap r, I2CReader r m) => PwmReader r m
 
 -- | Maximaler Range-Wert der PWM-Funktion
 pwmGrenze :: PwmValue
@@ -71,7 +81,7 @@ pwmSoftwareSetzteWert anschluss pwmFrequenz   pwmWert    = do
             -- | PWM-Funktion für einen 'Anschluss'. Läuft in einem eigenem Thread.
             -- 
             -- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Anschluss' in der übergebenen 'TVar' 'PwmMap' nicht mehr vorkommt.
-            pwmSoftwareAnschlussMain :: (PwmReader r m, MonadIO m) => Anschluss -> m ()
+            pwmSoftwareAnschlussMain :: (MitPwmMap r, MitI2CMap r) => Anschluss -> ReaderT r IO ()
             pwmSoftwareAnschlussMain anschluss = do
                 tvarPwmMap <- erhaltePwmMap
                 pwmMap <- liftIO $ readTVarIO tvarPwmMap

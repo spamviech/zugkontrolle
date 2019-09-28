@@ -7,6 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
@@ -16,7 +17,7 @@ Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, we
 -}
 module Zug.Plan (
     -- * Allgemeine Datentypen
-    PlanKlasse(..), PlanReader(..), Plan(..), AktionKlasse(..), Aktion(..),
+    PlanKlasse(..), MitAusführend(..), AusführendReader(..), Plan(..), AktionKlasse(..), Aktion(..),
     Objekt, ObjektAllgemein(..), ObjektKlasse(..), Ausführend(..),
     ausBG, ausST, ausWE, ausKU, ausWS, ausPL, Phantom(..),
     -- * Spezialisierte Aktionen
@@ -26,6 +27,7 @@ module Zug.Plan (
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
+import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Kind (Type)
 import Data.Semigroup (Semigroup(..))
@@ -33,7 +35,8 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
-import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..),
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
+                    PwmReader(..), I2CReader(..),
                     Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..),
                     Streckenabschnitt(), StreckenabschnittKlasse(..),
                     Weiche(), WeicheKlasse(..),
@@ -140,17 +143,22 @@ instance (StreckenObjekt pl, StreckenObjekt (bg 'Märklin), StreckenObjekt (bg '
     anschlüsse  (OStreckenabschnitt st)     = anschlüsse st
     anschlüsse  (OKupplung ku)              = anschlüsse ku
 
+-- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
+class MitAusführend r where
+    mengeAusführend :: r -> TVar (Menge Ausführend)
 -- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Menge' benötigen
-class (PwmReader r m) => PlanReader r m where
+class (PwmReader r m, MitAusführend r) => AusführendReader r m where
     -- | Erhalte die aktuelle 'Ausführend'-'Menge' aus der Umgebung.
     erhalteMengeAusführend :: m (TVar (Menge Ausführend))
+    erhalteMengeAusführend = asks mengeAusführend
+instance (PwmReader r m, MitAusführend r) => AusführendReader r m
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
 -- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-'Menge' vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: (PlanReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
+    ausführenPlan :: (AusführendReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
@@ -178,7 +186,7 @@ instance StreckenObjekt Plan where
     erhalteName (Plan {plName}) = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: (PlanReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
+    ausführenPlan :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
     ausführenPlan plan@(Plan {plAktionen}) showAktion endAktion = void $ forkI2CReader $ void $ do
         tvarAusführend <- erhalteMengeAusführend
         liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
@@ -187,7 +195,7 @@ instance PlanKlasse Plan where
             showAktion $ fromIntegral $ length plAktionen
             endAktion
         where
-            ausführenAux :: (PlanReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
+            ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
             ausführenAux    _i  []      = do
                 tvarAusführend <- erhalteMengeAusführend
                 liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan

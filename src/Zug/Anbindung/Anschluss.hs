@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichkeiten zur Verfügung.
@@ -8,7 +9,7 @@ module Zug.Anbindung.Anschluss (
     Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
     vonPin, zuPin, zuPinGpio, vonPinGpio, vonPCF8574Port, zuPCF8574Port,
     -- * Schreibe/Lese-Aktionen
-    Value(..), anschlussWrite, anschlussRead, I2CMap, i2cMapEmpty, I2CReader(..)) where
+    Value(..), anschlussWrite, anschlussRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..)) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
@@ -17,7 +18,7 @@ import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, dig
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead,
-                            I2CMap, i2cMapEmpty, I2CReader(..))
+                            I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
 
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss

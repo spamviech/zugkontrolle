@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
@@ -16,7 +15,8 @@ module Zug.Anbindung (
     -- * Anschluss-Repräsentation
     Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
     vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
-    PwmMap, pwmMapEmpty, PwmReader(..), I2CMap, i2cMapEmpty, I2CReader(..),
+    PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..),
+    I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..),
     Value(..), alleValues,
     Pin(), vonPin, zuPin, pwmMöglich, clockMöglich, PwmValueUnmodifiziert,
     -- * Strecken-Objekte
@@ -52,8 +52,8 @@ import qualified Zug.Language as Language
 import Zug.Language (showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
 import Zug.Anbindung.Anschluss (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..),
                                 vonPin, zuPin, vonPinGpio, zuPinGpio, vonPCF8574Port, zuPCF8574Port,
-                                anschlussWrite, Value(..), I2CMap, i2cMapEmpty, I2CReader(..))
-import Zug.Anbindung.SoftwarePWM (PwmMap, pwmMapEmpty, PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
+                                anschlussWrite, Value(..), I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
+import Zug.Anbindung.SoftwarePWM (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
 import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
 
 -- | Alle Möglichen Werte von 'Value'

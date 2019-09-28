@@ -5,16 +5,19 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
 Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusAllgemein(..), statusLeer, TVarMaps(..), TVarMapsReader(..), tvarMapsNeu, phantom,
+    Status, StatusAllgemein(..), statusLeer, ReaderFamilie, ObjektReader,
+    TVarMaps(..), MitTVarMaps(..), TVarMapsReader(..), tvarMapsNeu, phantom,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
 #endif
@@ -31,9 +34,7 @@ module Zug.UI.Base (
     liftIOFunction, ausführenMöglich, AusführenMöglich(..)) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO, ThreadId)
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, takeTMVar, putTMVar)
-import Control.Monad (void)
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS, runRWS)
 import Control.Monad.Trans (MonadIO(..))
 import Control.Monad.Reader.Class (MonadReader(..), asks)
@@ -48,12 +49,12 @@ import qualified Data.List.NonEmpty as NE
 import Data.Semigroup (Semigroup(..))
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, PwmReader(..), I2CMap, i2cMapEmpty, I2CReader(..), StreckenObjekt(..))
+import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..), StreckenObjekt(..))
 import Zug.Klassen (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>))
 import Zug.Menge (Menge, leer)
-import Zug.Plan (ObjektKlasse(..), Objekt, Phantom(..), Ausführend(..), Plan, PlanReader(..),
+import Zug.Plan (ObjektKlasse(..), Objekt, Phantom(..), Ausführend(..), Plan, MitAusführend(..), AusführendReader(..),
                 ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
 
 -- | Aktueller Status
@@ -168,6 +169,14 @@ data TVarMaps = TVarMaps {
 tvarMapsNeu :: IO TVarMaps
 tvarMapsNeu = TVarMaps <$> newTVarIO leer <*> newTVarIO pwmMapEmpty <*> newTVarIO i2cMapEmpty
 
+-- | Typ-Familie für Reader-Typ aus der 'RWST'-Monade
+type family ReaderFamilie o
+
+type instance ReaderFamilie Objekt = TVarMaps
+
+-- | Abkürzung für Funktionen, die die zum Objekt gehörige 'ReaderFamilie' benötigen
+class (MonadReader (ReaderFamilie o) m) => ObjektReader o m
+
 -- * Zustands-Monade mit Status als aktuellem Zustand
 -- | Zustands-Monaden-Transformer spezialisiert auf 'Status' in der IO-Monade
 type IOStatus a = IOStatusAllgemein Objekt a
@@ -178,62 +187,58 @@ type MStatusT m a = MStatusAllgemeinT m Objekt a
 -- | Zustands-Monaden-Transformer spezialisiert auf 'StatusAllgemein' in der IO-Monade
 type IOStatusAllgemein o a = MStatusAllgemeinT IO o a
 -- | Reine Zustands-Monade spezialiert auf 'StatusAllgemein'
-type MStatusAllgemein o a = RWS TVarMaps () (StatusAllgemein o) a
+type MStatusAllgemein o a = RWS (ReaderFamilie o) () (StatusAllgemein o) a
 -- | Zustands-Monaden-Transformer spezialiert auf 'StatusAllgemein'
-type MStatusAllgemeinT m o a = RWST TVarMaps () (StatusAllgemein o) m a
-
--- *Reader-Instances für MStatusAllgemeinT IO o
--- wenn beliebige Monaden-Instanz benötigt wird: unliftIO könnte helfen
--- ansonsten mach forkI2CReader Probleme
-instance  I2CReader TVarMaps (RWST TVarMaps () (StatusAllgemein o) IO) where
-    erhalteI2CMap :: RWST TVarMaps () (StatusAllgemein o) IO (TVar I2CMap)
-    erhalteI2CMap = asks tvarI2CMap
-    forkI2CReader :: RWST TVarMaps () (StatusAllgemein o) IO () -> RWST TVarMaps () (StatusAllgemein o) IO ThreadId
-    forkI2CReader action = do
-        tvarMaps <- ask
-        status <- get
-        liftIO $ forkIO $ void $ runRWST action tvarMaps status
-
-instance PwmReader TVarMaps (RWST TVarMaps () (StatusAllgemein o) IO) where
-    erhaltePwmMap :: RWST TVarMaps () (StatusAllgemein o) IO (TVar PwmMap)
-    erhaltePwmMap = asks tvarPwmMap
-
-instance PlanReader TVarMaps (RWST TVarMaps () (StatusAllgemein o) IO) where
-    erhalteMengeAusführend :: RWST TVarMaps () (StatusAllgemein o) IO (TVar (Menge Ausführend))
-    erhalteMengeAusführend = asks tvarAusführend
+type MStatusAllgemeinT m o a = RWST (ReaderFamilie o) () (StatusAllgemein o) m a
 
 -- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus
-auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO a
-auswertenLeererIOStatus ioStatus = do
-    tvarMaps <- tvarMapsNeu
+auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO (ReaderFamilie o) -> IO a
+auswertenLeererIOStatus ioStatus readerNeu = do
+    tvarMaps <- readerNeu
     (a, ()) <- evalRWST ioStatus tvarMaps statusLeer
     pure a
 
+-- | Klasse für Typen mit 'TVarMaps'
+class MitTVarMaps r where
+    tvarMaps :: r -> TVarMaps
 -- | Abkürzung für Funktionen, die 'TMVarMaps' benötigen
-class (MonadReader r m) => TVarMapsReader r m where
+class (MonadReader r m, MitTVarMaps r) => TVarMapsReader r m | m -> r where
     erhalteTVarMaps :: m TVarMaps
+    erhalteTVarMaps = asks tvarMaps
+instance (MonadReader r m, MitTVarMaps r) => TVarMapsReader r m
 
-instance (Monad m, Monoid a) => TVarMapsReader TVarMaps (RWST TVarMaps a b m) where
-    erhalteTVarMaps :: RWST TVarMaps a b m TVarMaps
-    erhalteTVarMaps = ask
+instance MitTVarMaps TVarMaps where
+    tvarMaps :: TVarMaps -> TVarMaps
+    tvarMaps = id
+instance (MitTVarMaps r) => MitI2CMap r where
+    i2cMap :: r -> TVar I2CMap
+    i2cMap = tvarI2CMap . tvarMaps
+instance (MitTVarMaps r) => MitPwmMap r where
+    pwmMap :: r -> TVar PwmMap
+    pwmMap = tvarPwmMap . tvarMaps
+instance (MitTVarMaps r) => MitAusführend r where
+    mengeAusführend :: r -> TVar (Menge Ausführend)
+    mengeAusführend = tvarAusführend . tvarMaps
+
+instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
 
 -- | Führe IO-Aktion mit 'StatusAllgemein' in 'TMVar' aus
-auswertenTMVarIOStatus :: (TVarMapsReader r m, MonadIO m) => IOStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
+auswertenTMVarIOStatus :: (MonadReader (ReaderFamilie o) m, MonadIO m) => IOStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
 auswertenTMVarIOStatus action tmvarStatus = do
-    tvarMaps <- erhalteTVarMaps
+    reader <- ask
     liftIO $ do
         status0 <- atomically $ takeTMVar tmvarStatus
-        (a, status1, ()) <- runRWST action tvarMaps status0
+        (a, status1, ()) <- runRWST action reader status0
         atomically $ putTMVar tmvarStatus status1
         pure a
 
 -- | Führe Aktion mit 'StatusAllgemein' in 'TMVar' aus
-auswertenTMVarMStatus :: (TVarMapsReader r m, MonadIO m) => MStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
+auswertenTMVarMStatus :: (MonadReader (ReaderFamilie o) m, MonadIO m) => MStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
 auswertenTMVarMStatus action tmvarStatus = do
-    tvarMaps <- erhalteTVarMaps
+    reader <- ask
     liftIO $ atomically $ do
         status0 <- takeTMVar tmvarStatus
-        let (a, status1, ()) = runRWS action tvarMaps status0
+        let (a, status1, ()) = runRWS action reader status0
         putTMVar tmvarStatus status1
         pure a
 
@@ -330,9 +335,10 @@ entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MStatusAllgemeinT m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 -- * Aktuell ausgeführte Pläne
 -- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
-ausführenMöglich :: Plan -> IOStatusAllgemein o AusführenMöglich
+ausführenMöglich :: (MitAusführend (ReaderFamilie o), MitPwmMap (ReaderFamilie o), MitI2CMap (ReaderFamilie o))
+                        => Plan -> IOStatusAllgemein o AusführenMöglich
 ausführenMöglich plan = do
-    tvarAusführend <- asks tvarAusführend
+    tvarAusführend <- erhalteMengeAusführend
     ausführend <- liftIO $ readTVarIO tvarAusführend
     let belegtePins = intersect (concat $ anschlüsse <$> ausführend) (anschlüsse plan)
     pure $ if

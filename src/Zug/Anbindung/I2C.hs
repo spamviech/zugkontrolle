@@ -4,20 +4,24 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description : Funktionen zur Verwendung der I2C-Schnittstelle
 -}
 module Zug.Anbindung.I2C (
     -- * Map über aktuelle I2C-Kanäle
-    I2CMap, i2cMapEmpty, I2CReader(..),
+    I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..),
     -- * Read-/Write-Aktionen
     i2cWrite, i2cWriteAdjust, i2cRead, I2CAddress(..), BitValue(..)) where
 
 import Foreign.C.Types (CInt)
-import Control.Concurrent (ThreadId)
+import Control.Concurrent (forkIO, ThreadId)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
-import Control.Monad.Reader.Class (MonadReader(..))
+import Control.Monad (void)
+import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (Bits, complement, zeroBits)
 import Data.Map.Lazy (Map)
@@ -29,12 +33,20 @@ type I2CMap = Map I2CAddress (FileHandle, BitValue)
 -- | Leere 'I2CMap'
 i2cMapEmpty :: I2CMap
 i2cMapEmpty = Map.empty
+-- | Klasse für Typen mit der aktuellen 'I2CMap'
+class MitI2CMap r where
+    i2cMap :: r -> TVar I2CMap
 -- | Abkürzung für Funktionen, die die aktuelle 'I2CMap' benötigen
-class (MonadReader r m) => I2CReader r m | m -> r where
+class (MonadReader r m, MitI2CMap r) => I2CReader r m | m -> r where
     -- | Erhalte die aktuelle 'I2CMap' aus der Umgebung.
     erhalteI2CMap :: m (TVar I2CMap)
+    erhalteI2CMap = asks i2cMap
     -- | 'forkIO' in die 'I2CReader'-Monade gelifted; Die aktuellen Umgebung soll übergeben werden.
-    forkI2CReader :: (MonadIO m) => m () -> m ThreadId
+    forkI2CReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
+    forkI2CReader action = do
+        reader <- ask
+        liftIO $ forkIO $ void $ runReaderT action reader
+instance (MonadReader r m, MitI2CMap r) => I2CReader r m
 
 -- | Stelle sicher, dass eine 'I2CAddress' registriert ist und gebe ihre aktuellen Werte zurück.
 i2cKanalLookup :: (I2CReader r m, MonadIO m) => I2CAddress -> m (FileHandle, BitValue)

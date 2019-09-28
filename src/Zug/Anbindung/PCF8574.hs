@@ -1,13 +1,14 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstelle
 -}
 module Zug.Anbindung.PCF8574 (
         -- * Map über aktuelle I2C-Kanäle
-        I2CMap, i2cMapEmpty, I2CReader(..),
+        I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..),
         -- * I2CAddresse des PCF8574
         PCF8574(..), PCF8574Variant(..), Value(..),
         -- * Read-/Write-Aktionen
@@ -28,7 +29,7 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.ParserCombinators.ReadP (ReadP())
 import qualified Text.ParserCombinators.ReadP as ReadP
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, I2CReader(..),
+import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..),
                         I2CAddress(..), i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
 
 {-
