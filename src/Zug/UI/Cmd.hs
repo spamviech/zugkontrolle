@@ -41,7 +41,7 @@ main = do
     Options {load = path} <- getOptions
     Save.laden path pure >>= \case
         Nothing
-            -> auswertenLeererIOStatus mainStatus
+            -> auswertenLeererIOStatus mainStatus tvarMapsNeu
         (Just anfangsZustand)
             -> do
                 tvarMaps <- tvarMapsNeu
