@@ -16,13 +16,12 @@ erzeugeKlasse abhängigkeiten name = do
     istTyp name >>= flip unless (reportError $ '"' : name ++ "\" ist kein bekannter Name.")
     typName <- lookupTypeName name >>= pure . fromJust
     variablenName <- newName "widget"
-    mitFunktionSignatur <- erzeugeMitFunktionSignatur
+    mitFunktionSignatur <- erzeugeMitFunktionSignatur variablenName
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
     pure $ [
-        ClassD (context variablenName) klassenName [PlainTV $ variablenName] funDeps $ deklarationen variablenName typName,
-        instanzDeklaration variablenName,
-        mitFunktionSignatur,
-        mitFunktionDeklaration]
+        ClassD (context variablenName) klassenName [PlainTV $ variablenName] funDeps $
+            deklarationen variablenName typName ++ [mitFunktionSignatur, mitFunktionDeklaration],
+        instanzDeklaration variablenName]
     where
         istTyp :: String -> Q Bool
         istTyp name = lookupTypeName name >>= \case
@@ -65,21 +64,20 @@ erzeugeKlasse abhängigkeiten name = do
             = InstanceD (Just Overlappable) [AppT (ConT klassenNameGtk) $ VarT variablenName] (AppT (ConT klassenName) $ VarT variablenName) []
         mitFunktionName :: Name
         mitFunktionName = mkName $ "mit" ++ name
-        erzeugeMitFunktionSignatur :: Q Dec
-        erzeugeMitFunktionSignatur = do
+        erzeugeMitFunktionSignatur :: Name -> Q Dec
+        erzeugeMitFunktionSignatur variablenName = do
             m <- newName "m"
             a <- newName "a"
             isW <- newName "isW"
-            hasW <- newName "hasW"
             pure
                 $ SigD mitFunktionName
                     $ ForallT
-                        [PlainTV m, PlainTV hasW, PlainTV a]
-                        [AppT (ConT klassenName) $ VarT hasW]
+                        [PlainTV m, PlainTV a]
+                        []
                         $ AppT
                             (AppT ArrowT (ForallT [PlainTV isW] [AppT (ConT klassenNameGtk) (VarT isW)] $ AppT (AppT ArrowT $ VarT isW) $ AppT (VarT m) (VarT a)))
                             $ AppT
-                                (AppT ArrowT (VarT hasW))
+                                (AppT ArrowT (VarT variablenName))
                                 $ AppT (VarT m) (VarT a)
         erzeugeMitFunktionDeklaration :: Q Dec
         erzeugeMitFunktionDeklaration = do

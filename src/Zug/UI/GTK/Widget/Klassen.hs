@@ -14,24 +14,24 @@ module Zug.UI.GTK.Widget.Klassen () where
 #else
 module Zug.UI.GTK.Widget.Klassen (
     -- * Widget
-    MitWidget(..), mitWidget, mitWidgetShow, mitWidgetHide,
+    MitWidget(..), mitWidgetShow, mitWidgetHide,
     -- * Container
-    MitContainer(..), mitContainer, mitContainerAdd, mitContainerRemove,
+    MitContainer(..), mitContainerAdd, mitContainerRemove,
     -- ** Box
-    MitBox(..), mitBox, mitBoxPackStart, mitBoxPackEnd,
+    MitBox(..), mitBoxPackStart, mitBoxPackEnd,
     -- ** Grid
-    MitGrid(..), mitGrid, mitGridAttach, mitGridAttachNextTo,
+    MitGrid(..), mitGridAttach, mitGridAttachNextTo,
     -- ** Fixed
-    MitFixed(..), mitFixed, mitFixedPut, mitFixedMove,
+    MitFixed(..), mitFixedPut, mitFixedMove,
     -- ** Notebook
-    MitNotebook(..), mitNotebook, mitNotebookAppendPage, mitNotebookPrependPage,
+    MitNotebook(..), mitNotebookAppendPage, mitNotebookPrependPage,
     mitNotebookRemovePage, mitNotebookSetCurrentPage,
     -- ** Paned
-    MitPaned(..), mitPaned,
+    MitPaned(..),
     -- * Window
-    MitWindow(..), mitWindow,
+    MitWindow(..),
     -- ** Dialog
-    MitDialog(..), mitDialog) where
+    MitDialog(..)) where
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
