@@ -4,7 +4,7 @@
 {-|
 Description: Erzeuge Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
 -}
-module Zug.UI.GTK.Widget.TemplateHaskell (erzeugeKlasse) where
+module Zug.UI.Gtk.Widget.TemplateHaskell (erzeugeKlasse) where
 
 import Data.Maybe (fromJust)
 import Control.Monad (unless)

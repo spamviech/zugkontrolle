@@ -7,7 +7,7 @@
 Description : Erstelle GUI und starte den GTK-Main-Loop.
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.GTK (main) where
+module Zug.UI.Gtk (main) where
 
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 import qualified Zug.Language as Language
@@ -17,7 +17,7 @@ import qualified Zug.UI.Cmd as Cmd
 main :: IO ()
 main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnterstützt >> setSGR [Reset] >> Cmd.main
 #else
-module Zug.UI.GTK (main, setupGUI) where
+module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO)
@@ -34,12 +34,12 @@ import Zug.Language ((<~>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeerNeu)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
-import Zug.UI.GTK.Widget (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
+import Zug.UI.Gtk.Widget (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
                         widgetShowNew, containerAddWidgetNew, boxPack, boxPackWidgetNew,
                         Position(..), positionDefault, paddingDefault, packingDefault,
                         buttonNewWithEventMnemonic, scrolledWidgedNotebookAppendPageNew)
-import Zug.UI.GTK.FortfahrenWennToggled (fortfahrenWennToggledTMVar)
-import Zug.UI.GTK.Dialog (buttonHinzufügenPack, buttonSpeichernPack, buttonLadenPack, ladeWidgets)
+import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVar)
+import Zug.UI.Gtk.Dialog (buttonHinzufügenPack, buttonSpeichernPack, buttonLadenPack, ladeWidgets)
 
 -- | main loop
 main :: IO ()

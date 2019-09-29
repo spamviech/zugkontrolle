@@ -10,9 +10,9 @@
 Description: Erweiterbare Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.GTK.Widget.Klassen () where
+module Zug.UI.Gtk.Widget.Klassen () where
 #else
-module Zug.UI.GTK.Widget.Klassen (
+module Zug.UI.Gtk.Widget.Klassen (
     -- * Widget
     MitWidget(..), mitWidgetShow, mitWidgetHide,
     -- * Container
@@ -28,22 +28,38 @@ module Zug.UI.GTK.Widget.Klassen (
     mitNotebookRemovePage, mitNotebookSetCurrentPage,
     -- ** Paned
     MitPaned(..),
+    -- ** ComboBox
+    MitComboBox(..),
     -- * Window
     MitWindow(..),
     -- ** Dialog
-    MitDialog(..)) where
+    MitDialog(..),
+    -- * Label
+    MitLabel(..),
+    -- * Button
+    MitButton(..),
+    -- ** ToggleButton
+    MitToggleButton(..),
+    -- ** CheckButton
+    MitCheckButton(..),
+    -- ** RadioButton
+    MitRadioButton(..)) where
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk (Widget, WidgetClass(), toWidget, Container, ContainerClass(), toContainer,
                         Box, BoxClass(), toBox, Grid, GridClass(), toGrid,
                         Fixed, FixedClass(), toFixed, Notebook, NotebookClass(), toNotebook,
-                        Paned, PanedClass(), toPaned, Window, WindowClass(), toWindow,
-                        Dialog, DialogClass(), toDialog)
+                        Paned, PanedClass(), toPaned, ComboBox, ComboBoxClass(), toComboBox,
+                        Window, WindowClass(), toWindow, Dialog, DialogClass(), toDialog,
+                        Label, LabelClass(), toLabel,
+                        Button, ButtonClass(), toButton, ToggleButton, ToggleButtonClass(), toToggleButton,
+                        CheckButton, CheckButtonClass(), toCheckButton, RadioButton, RadioButtonClass(), toRadioButton)
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
-import Zug.UI.GTK.Widget.TemplateHaskell (erzeugeKlasse)
+import Zug.UI.Gtk.Widget.TemplateHaskell (erzeugeKlasse)
 
+-- * Widget
 erzeugeKlasse [] "Widget"
 
 -- | Zeige ein 'MitWidget'
@@ -56,6 +72,7 @@ mitWidgetHide = liftIO . mitWidget Gtk.widgetHide
 
 erzeugeKlasse [''MitWidget] "Container"
 
+-- * Container
 -- | Füge ein 'MitWidget' zu einem 'MitContainer' hinzu
 mitContainerAdd :: (MonadIO m, MitContainer c, MitWidget w) => c -> w -> m ()
 mitContainerAdd container widget = liftIO $ Gtk.containerAdd (erhalteContainer container) (erhalteWidget widget)
@@ -127,7 +144,22 @@ mitNotebookSetCurrentPage notebook
 
 erzeugeKlasse [''MitContainer] "Paned"
 
+erzeugeKlasse [''MitContainer] "ComboBox"
+
+-- * Window
 erzeugeKlasse [''MitContainer] "Window"
 
 erzeugeKlasse [''MitWindow] "Dialog"
+
+-- * Label
+erzeugeKlasse [''MitWidget] "Label"
+
+-- * Button
+erzeugeKlasse [''MitContainer] "Button"
+
+erzeugeKlasse [''MitButton] "ToggleButton"
+
+erzeugeKlasse [''MitToggleButton] "CheckButton"
+
+erzeugeKlasse [''MitCheckButton] "RadioButton"
 #endif

@@ -7,9 +7,9 @@
 Description : Erzeuge Buttons die nur sensitiv sind, wenn eine Bedingung erfüllt ist.
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.GTK.FortfahrenWennToggled () where
+module Zug.UI.Gtk.FortfahrenWennToggled () where
 #else
-module Zug.UI.GTK.FortfahrenWennToggled (
+module Zug.UI.Gtk.FortfahrenWennToggled (
     -- * Datentyp
     FortfahrenWennToggled(), fortfahrenButton,
     -- * Feste Anzahl an 'CheckButton's

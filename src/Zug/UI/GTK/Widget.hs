@@ -13,9 +13,9 @@ Description : Erstelle zusammengesetzte Widgets.
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.GTK.Widget () where
+module Zug.UI.Gtk.Widget () where
 #else
-module Zug.UI.GTK.Widget (
+module Zug.UI.Gtk.Widget (
     -- * Allgemeine Widget-Funktionen
     widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
     dialogEval, boxPack, boxPackDefault, boxPackWidgetNewDefault,
@@ -87,8 +87,11 @@ import Zug.UI.Base (StatusAllgemein(..), AusführenMöglich(..), ReaderFamilie,
                     entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
-import Zug.UI.GTK.FortfahrenWennToggled (FortfahrenWennToggled, RCheckButton, registrieren)
-import Zug.UI.GTK.Widget.Hilfsfunktionen ()
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, RCheckButton, registrieren)
+import Zug.UI.Gtk.Widget.Anschluss ()
+import Zug.UI.Gtk.Widget.BoundedEnumAnschluss ()
+import Zug.UI.Gtk.Widget.Hilfsfunktionen ()
+import Zug.UI.Gtk.Widget.ScrollbaresWidget ()
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -207,6 +210,21 @@ buttonEntfernenPack box removeActionGui removeAction = do
 -- | Entfernen-Knopf zu Box hinzufügen. Beim drücken wird /parent/ aus der /box/ entfernt und die 'IOStatusGui'-Aktion ausgeführt.
 buttonEntfernenPackSimple :: (MitBox b, MitContainer c, StatusReader r m, MonadIO m) => b -> c -> IOStatusGui () -> m Button
 buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ containerRemove parent box
+
+-- ** Widget mit Name und CheckButton erstellen
+-- | Füge einen 'RCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
+hinzufügenWidgetWegstreckeNew :: (StreckenObjekt o, MitBox b) => o -> b -> FortfahrenWennToggled TMVar StatusGui -> IO (HBox, RCheckButton)
+hinzufügenWidgetWegstreckeNew objekt box fortfahrenWennToggled = do
+    hBoxHinzufügen <- boxPackWidgetNewDefault box $ hBoxNew False 0
+    checkButton <- boxPackWidgetNewDefault hBoxHinzufügen checkButtonNew
+    boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ erhalteName objekt
+    registrierterCheckButton <- registrieren checkButton fortfahrenWennToggled traversalHinzufügenWegstrecke
+    pure (hBoxHinzufügen, registrierterCheckButton)
+
+-- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
+hinzufügenWidgetPlanNew :: (MitBox b) => b -> Objekt -> TMVar (Maybe Objekt) -> IO Button
+hinzufügenWidgetPlanNew box objekt tmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $
+    atomically $ putTMVar tmvar $ Just objekt
 
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen

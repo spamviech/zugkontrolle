@@ -36,6 +36,12 @@ Erlaube "Warten auf Signal"
     Zeit-basierte Lösung wird weiterhin unterstützt.
     Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
 
+Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
+    Strom an/aus
+        permanent
+        auf Zeit
+    PWM
+
 gi-gtk/gi-gtk-declarative verwenden?
     gi-gtk scheint neuer und besser gewartet zu sein.
     Wirft auf Raspberry Pi bisher Fehlermeldungen.

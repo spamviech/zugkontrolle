@@ -8,9 +8,9 @@
 Description : Dialoge für GTK-UI.
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.GTK.Dialog () where
+module Zug.UI.Gtk.Dialog () where
 #else
-module Zug.UI.GTK.Dialog (
+module Zug.UI.Gtk.Dialog (
                         -- * Knöpfe mit zugehörigem Dialog erstellen
                         buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
 
@@ -65,7 +65,7 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus, liftIOFunction,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
-import Zug.UI.GTK.Widget (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(..), WegstreckenElement(..),
+import Zug.UI.Gtk.Widget (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(..), WegstreckenElement(..),
                         BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
                         widgetShowIf, containerAddWidgetNew, boxPackDefault, boxPack,
                         boxPackWidgetNewDefault, boxPackWidgetNew, paddingDefault, positionDefault,
@@ -74,7 +74,7 @@ import Zug.UI.GTK.Widget (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(.
                         weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
                         getterRichtungsRadioButtons, nameEntryPackNew, pinSpinBoxNew, traversalHinzufügenWegstrecke,
                         scrolledWidgedNotebookAppendPageNew, scrolledWidgetPackNew, scrolledWidgetAddNew)
-import Zug.UI.GTK.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons, fortfahrenButton,
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons, fortfahrenButton,
                                         MitCheckButton(..), fortfahrenWennToggledNew, aktiviereWennToggledTMVar)
 
 -- | Speichern des aktuellen 'StatusGUI'

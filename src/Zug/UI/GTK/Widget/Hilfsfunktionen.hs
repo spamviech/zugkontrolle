@@ -1,49 +1,64 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE CPP #-}
 
 {-|
 Description: Allgemeine Hilfsfunktionen
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.GTK.Widget.Hilfsfunktionen () where
+module Zug.UI.Gtk.Widget.Hilfsfunktionen () where
 #else
-module Zug.UI.GTK.Widget.Hilfsfunktionen (
-    widgetShowNew, containerAddWidgetNew, containerRemoveJust, widgetShowIf,
+module Zug.UI.Gtk.Widget.Hilfsfunktionen (
+    -- * Widget
+    widgetShowNew, widgetShowIf,
+    -- * Container
+    containerAddWidgetNew, containerRemoveJust,
+    -- * Box
     boxPack, boxPackDefault, boxPackWidgetNew, boxPackWidgetNewDefault,
     Packing(..), packingDefault, Padding(..), paddingDefault, Position(..), positionDefault,
-    notebookAppendPageNew, dialogEval, ResponseId) where
+    -- * Notebook
+    notebookAppendPageNew, dialogEval, ResponseId,
+    -- * Button
+    buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
+    -- * Name / Fließend-Value
+    nameEntryPackNew, nameLabelPackNew, labelFließendValuePackNew) where
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk (Packing(..), ResponseId)
+import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
+import Zug.Anbindung (StreckenObjekt(..), StreckenAtom(..))
+import Zug.Language ((<:>), showText)
 import qualified Zug.Language as Language
-import Zug.UI.GTK.Widget.Klassen
+import Zug.UI.Gtk.Widget.Klassen
 
 -- | 'Widget' erstellen und anzeigen
-widgetShowNew :: (MitWidget w) => IO w -> IO w
+widgetShowNew :: (MonadIO m, MitWidget w) => m w -> m w
 widgetShowNew konstruktor = do
     widget <- konstruktor
     mitWidgetShow widget
     pure widget
 
 -- | Neu erstelltes 'Widget' zu 'Container' hinzufügen
-containerAddWidgetNew :: (MitContainer c, MitWidget w) => c -> IO w -> IO w
+containerAddWidgetNew :: (MonadIO m, MitContainer c, MitWidget w) => c -> m w -> m w
 containerAddWidgetNew container konstruktor = do
     widget <- widgetShowNew konstruktor
     mitContainerAdd container widget
     pure widget
 
 -- | 'Widget' in eine 'Box' packen
-boxPack :: (MitBox b, MitWidget w) => b -> w -> Packing -> Padding -> Position -> IO ()
-boxPack box widget packing padding position = boxPackPosition position box widget packing $ fromPadding padding
+boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Packing -> Padding -> Position -> m ()
+boxPack box widget packing padding position = liftIO $ boxPackPosition position box widget packing $ fromPadding padding
     where
         boxPackPosition :: (MitBox b, MitWidget w) => Position -> b -> w -> Packing -> Int -> IO ()
         boxPackPosition Start   = mitBoxPackStart
         boxPackPosition End     = mitBoxPackEnd
 
 -- | Neu erstelltes Widget in eine Box packen
-boxPackWidgetNew :: (MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> IO w -> IO w
+boxPackWidgetNew :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
 boxPackWidgetNew box packing padding start konstruktor = do
     widget <- widgetShowNew konstruktor
     boxPack box widget packing padding start
@@ -70,27 +85,27 @@ positionDefault :: Position
 positionDefault = Start
 
 -- | Neu erstelltes Widget mit Standard Packing, Padding und Positionierung in eine Box packen
-boxPackWidgetNewDefault :: (MitBox b, MitWidget w) => b -> IO w -> IO w
+boxPackWidgetNewDefault :: (MonadIO m, MitBox b, MitWidget w) => b -> m w -> m w
 boxPackWidgetNewDefault box = boxPackWidgetNew box packingDefault paddingDefault positionDefault
 
 -- | Widget mit Standard Packing, Padding und Positionierung in eine Box packen
-boxPackDefault :: (MitBox b, MitWidget w) => b -> w -> IO ()
+boxPackDefault :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> m ()
 boxPackDefault box widget = boxPack box widget packingDefault paddingDefault positionDefault
 
 -- | Neu erstelltes 'MitWidget' zu einem 'MitNotebook' hinzufügen
-notebookAppendPageNew :: (MitNotebook n, MitWidget w) => n -> Text -> IO w -> IO w
+notebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) => n -> Text -> m w -> m w
 notebookAppendPageNew notebook name konstruktor = do
     widget <- widgetShowNew konstruktor
     mitNotebookAppendPage notebook widget name
     pure widget
 
 -- | Entferne ein vielleicht vorhandenes 'MitWidget' aus einem 'MitContainer'
-containerRemoveJust :: (MitContainer c, MitWidget w) => c -> Maybe w -> IO ()
+containerRemoveJust :: (MonadIO m, MitContainer c, MitWidget w) => c -> Maybe w -> m ()
 containerRemoveJust _container  Nothing     = pure ()
 containerRemoveJust container   (Just w)    = mitContainerRemove container w
 
 -- | Zeige widget, falls eine Bedingung erfüllt ist
-widgetShowIf :: (MitWidget w) => Bool -> w -> IO ()
+widgetShowIf :: (MonadIO m, MitWidget w) => Bool -> w -> m ()
 widgetShowIf    True    = mitWidgetShow
 widgetShowIf    False   = mitWidgetHide
 
@@ -98,110 +113,52 @@ widgetShowIf    False   = mitWidgetHide
 dialogEval :: (MonadIO m, MitDialog d) => d -> m ResponseId
 dialogEval dialog = liftIO $ do
     mitWidgetShow dialog
-    antwort <- mitDialog dialogRun dialog
+    antwort <- mitDialog Gtk.dialogRun dialog
     mitWidgetHide dialog
     pure antwort
 
 -- ** Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
-buttonNewWithEvent :: IO Button -> IO () -> IO Button
+buttonNewWithEvent :: (MonadIO m, MitButton b) => m b -> IO () -> m b
 buttonNewWithEvent konstruktor action = do
     button <- widgetShowNew konstruktor
-    on button buttonActivated action
+    liftIO $ Gtk.on (erhalteButton button) Gtk.buttonActivated action
     pure button
 
 -- | Knopf mit Mnemonic-Label und Funktion erstellen
-buttonNewWithEventMnemonic :: Text -> IO () -> IO Button
-buttonNewWithEventMnemonic label = buttonNewWithEvent $ buttonNewWithMnemonic $ addMnemonic label
+buttonNewWithEventMnemonic :: (MonadIO m) => Text -> IO () -> m Gtk.Button
+buttonNewWithEventMnemonic label = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithMnemonic $ Language.addMnemonic label)
 
 -- | Knopf mit Label und Funktion erstellen
-buttonNewWithEventLabel :: Text -> IO () -> IO Button
-buttonNewWithEventLabel label = buttonNewWithEvent $ buttonNewWithLabel label
-
--- ** Darstellung von Anschlüssen
--- | 'Label' für 'Anschluss' erstellen
-anschlussLabelNew :: Text -> Anschluss -> IO Label
-anschlussLabelNew name anschluss = labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss
-
--- | 'SpinBox' zur Pin-Abfrage erstellen
-pinSpinBoxNew :: Text -> IO (HBox, SpinButton)
-pinSpinBoxNew name = do
-    hBox <- hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ labelNew $ Just $ name <-> Language.pin <:> ""
-    spinButton <- boxPackWidgetNewDefault hBox $ spinButtonNewWithRange 0 27 1
-    pure (hBox, spinButton)
-
-anschlussAuswahlNew :: Text -> IO AnschlussAuswahlWidget
-anschlussAuswahlNew name = do
-    _
+buttonNewWithEventLabel :: (MonadIO m) => Text -> IO () -> m Gtk.Button
+buttonNewWithEventLabel label = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithLabel label)
 
 -- ** Namen
 -- | Name abfragen
-nameEntryPackNew :: (MitBox b) => b -> IO Entry
-nameEntryPackNew box = do
-    hBox <- boxPackWidgetNewDefault box $ hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ labelNew $ Just $ (Language.name <:> "" :: Text)
-    entry <- boxPackWidgetNewDefault hBox entryNew
-    set entry [entryPlaceholderText := Just (Language.name :: Text)]
+nameEntryPackNew :: (MonadIO m, MitBox b) => b -> m Gtk.Entry
+nameEntryPackNew box = liftIO $ do
+    hBox <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+    boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just $ (Language.name <:> "" :: Text)
+    entry <- boxPackWidgetNewDefault hBox Gtk.entryNew
+    Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name :: Text)]
     pure entry
 
 -- | Name anzeigen
-nameLabelPackNew :: (MitBox b, StreckenObjekt s) => b -> s -> IO Label
-nameLabelPackNew box objekt = do
-    label <- boxPackWidgetNewDefault box $ labelNew $ Just $ erhalteName objekt
-    set label [widgetMarginRight := 5]
+nameLabelPackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m Gtk.Label
+nameLabelPackNew box objekt = liftIO $ do
+    label <- boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ erhalteName objekt
+    Gtk.set label [Gtk.widgetMarginRight := 5]
     pure label
 
--- ** Scrollbare Widgets erstellen
--- | Erstelle neues ScrolledWindow mit automatisch erstelltem Viewport
-scrolledWidgetNew :: (MitWidget w) => IO w -> IO (ScrolledWindow, w)
-scrolledWidgetNew konstruktor = do
-    widget <- widgetShowNew konstruktor
-    scrolledWindow <- widgetShowNew $ scrolledWindowNew Nothing Nothing
-    set scrolledWindow [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways]
-    scrolledWindowAddWithViewport scrolledWindow widget
-    pure (scrolledWindow, widget)
-
--- | Erstelle neues 'ScrolledWindow' mit automatisch erstelltem Viewport und packe sie in eine 'Box'
-scrolledWidgetPackNew :: (MitBox b, MitWidget w) => b -> IO w -> IO (ScrolledWindow, w)
-scrolledWidgetPackNew box konstruktor = do
-    (scrolledWindow, widget) <- scrolledWidgetNew konstruktor
-    boxPackWidgetNew box PackGrow paddingDefault positionDefault $ pure scrolledWindow
-    pure (scrolledWindow, widget)
-
--- | Erstelle neues 'ScrolledWindow' mit automatisch erstelltem Viewport und füge sie zu 'Container' hinzu
-scrolledWidgetAddNew :: (MitContainer c, MitWidget w) => c -> IO w -> IO (ScrolledWindow, w)
-scrolledWidgetAddNew container konstruktor = do
-    (scrolledWindow, widget) <- scrolledWidgetNew konstruktor
-    containerAddWidgetNew container $ pure scrolledWindow
-    pure (scrolledWindow, widget)
-
--- | Seite mit scrollbarer VBox einem Notebook hinzufügen
-scrolledWidgedNotebookAppendPageNew :: (MitNotebook n, MitWidget w) => n -> Text -> IO w -> IO (ScrolledWindow, w)
-scrolledWidgedNotebookAppendPageNew notebook name konstruktor = do
-    widget <- widgetShowNew konstruktor
-    scrolledWindow <- notebookAppendPageNew notebook name $ widgetShowNew $ scrolledWindowNew Nothing Nothing
-    set scrolledWindow [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways]
-    scrolledWindowAddWithViewport scrolledWindow widget
-    pure (scrolledWindow, widget)
-
--- ** Widget mit Name und CheckButton erstellen
--- | Füge einen 'RCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
-hinzufügenWidgetWegstreckeNew :: (StreckenObjekt o, MitBox b) => o -> b -> FortfahrenWennToggled TMVar StatusGui -> IO (HBox, RCheckButton)
-hinzufügenWidgetWegstreckeNew objekt box fortfahrenWennToggled = do
-    hBoxHinzufügen <- boxPackWidgetNewDefault box $ hBoxNew False 0
-    checkButton <- boxPackWidgetNewDefault hBoxHinzufügen checkButtonNew
-    boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ erhalteName objekt
-    registrierterCheckButton <- registrieren checkButton fortfahrenWennToggled traversalHinzufügenWegstrecke
-    pure (hBoxHinzufügen, registrierterCheckButton)
-
--- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
-hinzufügenWidgetPlanNew :: (MitBox b) => b -> Objekt -> TMVar (Maybe Objekt) -> IO Button
-hinzufügenWidgetPlanNew box objekt tmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $
-    atomically $ putTMVar tmvar $ Just objekt
-
+-- * Fließend-Value
 -- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
-labelFließendValuePackNew :: (StreckenAtom s, MitBox b) => b -> s -> IO Label
-labelFließendValuePackNew box s = boxPackWidgetNew box packingDefault 3 positionDefault $ labelNew $ Just $
-    (Language.fließendValue <:> showText (fließend s) :: Text)
+labelFließendValuePackNew :: (MonadIO m, StreckenAtom s, MitBox b) => b -> s -> m Gtk.Label
+labelFließendValuePackNew box s
+    = liftIO $ boxPackWidgetNew
+        box
+        packingDefault
+        3
+        positionDefault
+            $ Gtk.labelNew $ Just $
+                (Language.fließendValue <:> showText (fließend s) :: Text)
 #endif
