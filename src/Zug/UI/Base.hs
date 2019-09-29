@@ -31,7 +31,7 @@ module Zug.UI.Base (
     getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getPhantom,
     putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne,
     -- * Hilfsfunktionen
-    liftIOFunction, ausführenMöglich, AusführenMöglich(..)) where
+    ausführenMöglich, AusführenMöglich(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, takeTMVar, putTMVar)
@@ -144,10 +144,6 @@ instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
                 index
                 (h : t)
                     = zeigeUnterlisteAux (acc <\> "\t" <> (show index) <> ") " <> (show h)) (succ index) t
-
--- | Hebe eine IO-Funktion mit Argument in eine 'MonadIO'-Monade
-liftIOFunction :: (MonadIO m) => (a -> IO b) -> (a -> m b)
-liftIOFunction f = liftIO . f
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
 statusLeer :: StatusAllgemein o

@@ -4,7 +4,7 @@
 {-|
 Description: Erzeuge Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
 -}
-module Zug.UI.GTK.Klassen.TemplateHaskell (erzeugeKlasse) where
+module Zug.UI.GTK.Widget.TemplateHaskell (erzeugeKlasse) where
 
 import Data.Maybe (fromJust)
 import Control.Monad (unless)
@@ -75,7 +75,7 @@ erzeugeKlasse abhängigkeiten name = do
                 $ SigD mitFunktionName
                     $ ForallT
                         [PlainTV m, PlainTV hasW, PlainTV a]
-                        [AppT (ConT $ mkName "MonadIO") $ VarT m, AppT (ConT klassenName) $ VarT hasW]
+                        [AppT (ConT klassenName) $ VarT hasW]
                         $ AppT
                             (AppT ArrowT (ForallT [PlainTV isW] [AppT (ConT klassenNameGtk) (VarT isW)] $ AppT (AppT ArrowT $ VarT isW) $ AppT (VarT m) (VarT a)))
                             $ AppT

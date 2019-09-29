@@ -32,8 +32,7 @@ import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(..), 
                 AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, ObjektReader, ReaderFamilie,
-                    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..),
-                    auswertenTMVarIOStatus, liftIOFunction,
+                    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus,
                     hinzufügenPlan, entfernenPlan,
                     hinzufügenWegstrecke, entfernenWegstrecke,
                     hinzufügenWeiche, entfernenWeiche,
@@ -141,7 +140,7 @@ instance BefehlKlasse BefehlAllgemein where
                     (OStreckenabschnitt streckenabschnitt)      -> entfernenStreckenabschnitt streckenabschnitt
                     (OKupplung kupplung)                        -> entfernenKupplung kupplung
             ausführenBefehlAux  (Speichern dateipfad)
-                = get >>= liftIOFunction (flip Save.speichern dateipfad)
+                = get >>= liftIO . flip Save.speichern dateipfad
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
                 = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                     Nothing             -> fehlerbehandlung

@@ -19,7 +19,7 @@ module Zug.UI.GTK.Widget (
     -- * Allgemeine Widget-Funktionen
     widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
     dialogEval, boxPack, boxPackDefault, boxPackWidgetNewDefault,
-    packingDefault, Padding(..), paddingDefault, positionDefault, Position(..),
+    Packing(..), packingDefault, Padding(..), paddingDefault, positionDefault, Position(..),
     -- *`* Scrollbare Widgets
     scrolledWidgetNew, scrolledWidgetPackNew, scrolledWidgetAddNew, scrolledWidgedNotebookAppendPageNew,
     -- ** Knopf erstellen
@@ -29,12 +29,15 @@ module Zug.UI.GTK.Widget (
     -- ** Spezifisches StreckenObjekt darstellen
     bahngeschwindigkeitPackNew, streckenabschnittPackNew, weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
     BahngeschwindigkeitWidget, StreckenabschnittWidget, WeicheWidget, KupplungWidget, WegstreckeWidget, PlanWidget,
-    BahngeschwindigkeitWidgetHinzufügenWegstrecke, StreckenabschnittWidgetHinzufügenWegstrecke, WeicheWidgetHinzufügenWegstrecke, KupplungWidgetHinzufügenWegstrecke,
-    BahngeschwindigkeitWidgetHinzufügenPlan, StreckenabschnittWidgetHinzufügenPlan, WeicheWidgetHinzufügenPlan, KupplungWidgetHinzufügenPlan, WegstreckeWidgetHinzufügenPlan,
+    BahngeschwindigkeitWidgetHinzufügenWegstrecke, StreckenabschnittWidgetHinzufügenWegstrecke,
+    WeicheWidgetHinzufügenWegstrecke, KupplungWidgetHinzufügenWegstrecke,
+    BahngeschwindigkeitWidgetHinzufügenPlan, StreckenabschnittWidgetHinzufügenPlan,
+    WeicheWidgetHinzufügenPlan, KupplungWidgetHinzufügenPlan, WegstreckeWidgetHinzufügenPlan,
     -- * Verwaltung des aktuellen Zustands
     DynamischeWidgets(..), WidgetReader(..), StatusGui, StatusReader(..), ObjektGui, BefehlGui, IOStatusGui, MStatusGui,
     MStatusGuiT, BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
-    traversalHinzufügenWegstrecke, WegstreckenElement(..), getterRichtungsRadioButtons, PlanElement(..), entferneHinzufügenPlanWidgets) where
+    traversalHinzufügenWegstrecke, WegstreckenElement(..), getterRichtungsRadioButtons,
+    PlanElement(..), entferneHinzufügenPlanWidgets) where
 
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
@@ -50,9 +53,8 @@ import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
-import Graphics.UI.Gtk (VBox, HBox, ProgressBar, Window, Button, WidgetClass, ContainerClass, BoxClass,
-                        NotebookClass, DialogClass, ResponseId, Label, SpinButton, Entry, ScrolledWindow,
-                        HScale, RangeClass, ToggleButton, RadioButton, Frame,
+import Graphics.UI.Gtk (VBox, HBox, ProgressBar, Window, Button, ResponseId, Label, SpinButton, Entry,
+                        ScrolledWindow, HScale, RangeClass, ToggleButton, RadioButton, Frame,
                         MessageType(..), ButtonsType(..), PolicyType(..), Packing(..),
                         widgetShow, widgetHide, containerAdd, containerRemove, boxPackStart, boxPackEnd,
                         notebookAppendPage, set, get, AttrOp(..), widgetVisible, dialogRun, on, buttonActivated,
@@ -86,6 +88,7 @@ import Zug.UI.Base (StatusAllgemein(..), AusführenMöglich(..), ReaderFamilie,
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
 import Zug.UI.GTK.FortfahrenWennToggled (FortfahrenWennToggled, RCheckButton, registrieren)
+import Zug.UI.GTK.Widget.Hilfsfunktionen ()
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -193,106 +196,8 @@ traversalHinzufügenWegstrecke f status = Status <$>
             traverseList :: (Applicative f, WegstreckenElement s) => (RCheckButton -> f RCheckButton) -> [s] -> f [s]
             traverseList f list = traverse . lensWegstrecke %%~ f $ list
 
--- * Hilfsfunktionen
--- | 'Widget' erstellen und anzeigen
-widgetShowNew :: (WidgetClass w) => IO w -> IO w
-widgetShowNew konstruktor = do
-    widget <- konstruktor
-    widgetShow widget
-    pure widget
-
--- | Neu erstelltes 'Widget' zu 'Container' hinzufügen
-containerAddWidgetNew :: (ContainerClass c, WidgetClass w) => c -> IO w -> IO w
-containerAddWidgetNew container konstruktor = do
-    widget <- widgetShowNew konstruktor
-    containerAdd container widget
-    pure widget
-
--- | 'Widget' in eine 'Box' packen
-boxPack :: (BoxClass b, WidgetClass w) => b -> w -> Packing -> Padding -> Position -> IO ()
-boxPack box widget packing padding position = boxPackPosition position box widget packing $ fromPadding padding
-    where
-        boxPackPosition :: (BoxClass b, WidgetClass w) => Position -> b -> w -> Packing -> Padding -> IO ()
-        boxPackPosition Start   = boxPackStart
-        boxPackPosition End     = boxPackEnd
-
--- | Neu erstelltes Widget in eine Box packen
-boxPackWidgetNew :: (BoxClass b, WidgetClass w) => b -> Packing -> Padding -> Position -> IO w -> IO w
-boxPackWidgetNew box packing padding start konstruktor = do
-    widget <- widgetShowNew konstruktor
-    boxPack box widget packing padding start
-    pure widget
-
--- | Normale Packing-Einstellung
-packingDefault :: Packing
-packingDefault = PackNatural
-
--- | Abstand zwischen 'Widget's
-newtype Padding = Padding {fromPadding :: Int}
-    deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
-
--- | Standart-Abstand zwischen 'Widget's in einer 'Box'
-paddingDefault :: Padding
-paddingDefault = 0
-
--- | Position zum Hinzufügen zu einer 'Box'
-data Position = Start | End
-    deriving (Show, Read, Eq, Ord)
-
--- | Standart-Position zum Hinzufügen zu einer 'Box'
-positionDefault :: Position
-positionDefault = Start
-
--- | Neu erstelltes Widget mit Standard Packing, Padding und Positionierung in eine Box packen
-boxPackWidgetNewDefault :: (BoxClass b, WidgetClass w) => b -> IO w -> IO w
-boxPackWidgetNewDefault box = boxPackWidgetNew box packingDefault paddingDefault positionDefault
-
--- | Widget mit Standard Packing, Padding und Positionierung in eine Box packen
-boxPackDefault :: (BoxClass b, WidgetClass w) => b -> w -> IO ()
-boxPackDefault box widget = boxPack box widget packingDefault paddingDefault positionDefault
-
--- | Neu erstelltes 'Widget' zu 'Notebook' hinzufügen
-notebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> Text -> IO w -> IO w
-notebookAppendPageNew notebook name konstruktor = do
-    widget <- widgetShowNew konstruktor
-    notebookAppendPage notebook widget name
-    pure widget
-
--- | Entferne ein vielleicht vorhandenes Widget aus einem Container
-containerRemoveJust :: (ContainerClass c, WidgetClass w) => c -> Maybe w -> IO ()
-containerRemoveJust _container  Nothing     = pure ()
-containerRemoveJust container   (Just w)    = containerRemove container w
-
--- | Zeige widget, falls eine Bedingung erfüllt ist
-widgetShowIf :: (WidgetClass w) => Bool -> w -> IO ()
-widgetShowIf visible widget = set widget [widgetVisible := visible]
-
--- | Dialog anzeigen und auswerten
-dialogEval :: (DialogClass d) => d -> IO ResponseId
-dialogEval dialog = do
-    widgetShow dialog
-    antwort <- dialogRun dialog
-    widgetHide dialog
-    pure antwort
-
--- ** Knöpfe mit einer Funktion
--- | Knopf mit Funktion erstellen
-buttonNewWithEvent :: IO Button -> IO () -> IO Button
-buttonNewWithEvent konstruktor action = do
-    button <- widgetShowNew konstruktor
-    on button buttonActivated action
-    pure button
-
--- | Knopf mit Mnemonic-Label und Funktion erstellen
-buttonNewWithEventMnemonic :: Text -> IO () -> IO Button
-buttonNewWithEventMnemonic label = buttonNewWithEvent $ buttonNewWithMnemonic $ addMnemonic label
-
--- | Knopf mit Label und Funktion erstellen
-buttonNewWithEventLabel :: Text -> IO () -> IO Button
-buttonNewWithEventLabel label = buttonNewWithEvent $ buttonNewWithLabel label
-
 -- | Entfernen-Knopf zu 'Box' hinzufügen. Beim drücken werden /removeActionGui/ und /removeAction/ ausgeführt.
-buttonEntfernenPack :: (BoxClass b, StatusReader r m, TVarMapsReader r m, MonadIO m) => b -> IO () -> IOStatusGui () -> m Button
+buttonEntfernenPack :: (MitBox b, StatusReader r m, TVarMapsReader r m, MonadIO m) => b -> IO () -> IOStatusGui () -> m Button
 buttonEntfernenPack box removeActionGui removeAction = do
     tvarMaps <- erhalteTVarMaps
     tmvarStatus <- erhalteStatus
@@ -300,95 +205,8 @@ buttonEntfernenPack box removeActionGui removeAction = do
         buttonNewWithEventLabel Language.entfernen $ auswertenTMVarIOStatus removeAction tmvarStatus tvarMaps >> removeActionGui
 
 -- | Entfernen-Knopf zu Box hinzufügen. Beim drücken wird /parent/ aus der /box/ entfernt und die 'IOStatusGui'-Aktion ausgeführt.
-buttonEntfernenPackSimple :: (BoxClass b, ContainerClass c, StatusReader r m, MonadIO m) => b -> c -> IOStatusGui () -> m Button
+buttonEntfernenPackSimple :: (MitBox b, MitContainer c, StatusReader r m, MonadIO m) => b -> c -> IOStatusGui () -> m Button
 buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ containerRemove parent box
-
--- ** Darstellung von Anschlüssen
--- | 'Label' für 'Anschluss' erstellen
-anschlussLabelNew :: Text -> Anschluss -> IO Label
-anschlussLabelNew name anschluss = labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss
-
--- | 'SpinBox' zur Pin-Abfrage erstellen
-pinSpinBoxNew :: Text -> IO (HBox, SpinButton)
-pinSpinBoxNew name = do
-    hBox <- hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ labelNew $ Just $ name <-> Language.pin <:> ""
-    spinButton <- boxPackWidgetNewDefault hBox $ spinButtonNewWithRange 0 27 1
-    pure (hBox, spinButton)
-
-anschlussAuswahlNew :: Text -> IO AnschlussAuswahlWidget
-anschlussAuswahlNew name = do
-    _
-
--- ** Namen
--- | Name abfragen
-nameEntryPackNew :: (BoxClass b) => b -> IO Entry
-nameEntryPackNew box = do
-    hBox <- boxPackWidgetNewDefault box $ hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ labelNew $ Just $ (Language.name <:> "" :: Text)
-    entry <- boxPackWidgetNewDefault hBox entryNew
-    set entry [entryPlaceholderText := Just (Language.name :: Text)]
-    pure entry
-
--- | Name anzeigen
-nameLabelPackNew :: (BoxClass b, StreckenObjekt s) => b -> s -> IO Label
-nameLabelPackNew box objekt = do
-    label <- boxPackWidgetNewDefault box $ labelNew $ Just $ erhalteName objekt
-    set label [widgetMarginRight := 5]
-    pure label
-
--- ** Scrollbare Widgets erstellen
--- | Erstelle neues ScrolledWindow mit automatisch erstelltem Viewport
-scrolledWidgetNew :: (WidgetClass w) => IO w -> IO (ScrolledWindow, w)
-scrolledWidgetNew konstruktor = do
-    widget <- widgetShowNew konstruktor
-    scrolledWindow <- widgetShowNew $ scrolledWindowNew Nothing Nothing
-    set scrolledWindow [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways]
-    scrolledWindowAddWithViewport scrolledWindow widget
-    pure (scrolledWindow, widget)
-
--- | Erstelle neues 'ScrolledWindow' mit automatisch erstelltem Viewport und packe sie in eine 'Box'
-scrolledWidgetPackNew :: (BoxClass b, WidgetClass w) => b -> IO w -> IO (ScrolledWindow, w)
-scrolledWidgetPackNew box konstruktor = do
-    (scrolledWindow, widget) <- scrolledWidgetNew konstruktor
-    boxPackWidgetNew box PackGrow paddingDefault positionDefault $ pure scrolledWindow
-    pure (scrolledWindow, widget)
-
--- | Erstelle neues 'ScrolledWindow' mit automatisch erstelltem Viewport und füge sie zu 'Container' hinzu
-scrolledWidgetAddNew :: (ContainerClass c, WidgetClass w) => c -> IO w -> IO (ScrolledWindow, w)
-scrolledWidgetAddNew container konstruktor = do
-    (scrolledWindow, widget) <- scrolledWidgetNew konstruktor
-    containerAddWidgetNew container $ pure scrolledWindow
-    pure (scrolledWindow, widget)
-
--- | Seite mit scrollbarer VBox einem Notebook hinzufügen
-scrolledWidgedNotebookAppendPageNew :: (NotebookClass n, WidgetClass w) => n -> Text -> IO w -> IO (ScrolledWindow, w)
-scrolledWidgedNotebookAppendPageNew notebook name konstruktor = do
-    widget <- widgetShowNew konstruktor
-    scrolledWindow <- notebookAppendPageNew notebook name $ widgetShowNew $ scrolledWindowNew Nothing Nothing
-    set scrolledWindow [scrolledWindowHscrollbarPolicy := PolicyNever, scrolledWindowVscrollbarPolicy := PolicyAlways]
-    scrolledWindowAddWithViewport scrolledWindow widget
-    pure (scrolledWindow, widget)
-
--- ** Widget mit Name und CheckButton erstellen
--- | Füge einen 'RCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
-hinzufügenWidgetWegstreckeNew :: (StreckenObjekt o, BoxClass b) => o -> b -> FortfahrenWennToggled TMVar StatusGui -> IO (HBox, RCheckButton)
-hinzufügenWidgetWegstreckeNew objekt box fortfahrenWennToggled = do
-    hBoxHinzufügen <- boxPackWidgetNewDefault box $ hBoxNew False 0
-    checkButton <- boxPackWidgetNewDefault hBoxHinzufügen checkButtonNew
-    boxPackWidgetNewDefault hBoxHinzufügen $ labelNew $ Just $ erhalteName objekt
-    registrierterCheckButton <- registrieren checkButton fortfahrenWennToggled traversalHinzufügenWegstrecke
-    pure (hBoxHinzufügen, registrierterCheckButton)
-
--- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
-hinzufügenWidgetPlanNew :: (BoxClass b) => b -> Objekt -> TMVar (Maybe Objekt) -> IO Button
-hinzufügenWidgetPlanNew box objekt tmvar = boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $
-    atomically $ putTMVar tmvar $ Just objekt
-
--- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
-labelFließendValuePackNew :: (StreckenAtom s, BoxClass b) => b -> s -> IO Label
-labelFließendValuePackNew box s = boxPackWidgetNew box packingDefault 3 positionDefault $ labelNew $ Just $
-    (Language.fließendValue <:> showText (fließend s) :: Text)
 
 -- * Darstellung von Streckenobjekten
 -- | 'Bahngeschwindigkeit' darstellen
@@ -417,7 +235,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit tmvarStatus dynamischeWidgets@(Dy
             getGeschwindigkeitsAnschluss :: Bahngeschwindigkeit z -> Anschluss
             getGeschwindigkeitsAnschluss    MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss}   = bgmGeschwindigkeitsAnschluss
             getGeschwindigkeitsAnschluss    LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss}      = bglGeschwindigkeitsAnschluss
-            fahrtrichtungsAnschlussLabelPackNew :: (BoxClass b) => b -> Bahngeschwindigkeit z -> IO ()
+            fahrtrichtungsAnschlussLabelPackNew :: (MitBox b) => b -> Bahngeschwindigkeit z -> IO ()
             fahrtrichtungsAnschlussLabelPackNew
                 box
                 LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss}
@@ -477,14 +295,14 @@ instance BahngeschwindigkeitKlasse BGWidgets where
     umdrehen (BGWidgets {bg}) = umdrehen bg
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
-hScaleGeschwindigkeitPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg) => b -> bg -> TMVar StatusGui -> IO HScale
+hScaleGeschwindigkeitPackNew :: (MitBox b, BahngeschwindigkeitKlasse bg) => b -> bg -> TMVar StatusGui -> IO HScale
 hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tmvarStatus = do
     scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault $ widgetShowNew $ hScaleNewWithRange 0 100 1
     on scale valueChanged $ get scale rangeValue >>= \wert -> ausführenTMVarAktion (Geschwindigkeit bahngeschwindigkeit $ fromIntegral $ fromEnum wert) tmvarStatus
     pure scale
 
 -- | Füge 'Button' zum umdrehen zur Box hinzu
-buttonUmdrehenPackNew :: (BoxClass b, BahngeschwindigkeitKlasse bg, RangeClass r) => b -> bg -> r -> TMVar StatusGui -> IO (Either Button ToggleButton)
+buttonUmdrehenPackNew :: (MitBox b, BahngeschwindigkeitKlasse bg, RangeClass r) => b -> bg -> r -> TMVar StatusGui -> IO (Either Button ToggleButton)
 buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit tmvarStatus = do
     set rangeGeschwindigkeit [rangeValue := 0]
     if (zugtyp bahngeschwindigkeit == Lego)
@@ -556,7 +374,7 @@ instance StreckenabschnittKlasse STWidgets where
     strom (STWidgets {st}) = strom st
 
 -- | Füge 'ToggleButton' zum einstellen des Stroms zur Box hinzu
-toggleButtonStromPackNew :: (BoxClass b, StreckenabschnittKlasse s) => b -> s -> TMVar StatusGui -> IO ToggleButton
+toggleButtonStromPackNew :: (MitBox b, StreckenabschnittKlasse s) => b -> s -> TMVar StatusGui -> IO ToggleButton
 toggleButtonStromPackNew box streckenabschnitt tmvarStatus = do
     toggleButton <- boxPackWidgetNewDefault box $ toggleButtonNewWithLabel (Language.strom :: Text)
     on toggleButton toggled $ get toggleButton toggleButtonActive >>= \an -> ausführenTMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) tmvarStatus
@@ -593,7 +411,7 @@ weichePackNew weiche tmvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxWeich
     ausführenTMVarBefehl (Hinzufügen $ OWeiche weWidgets) tmvarStatus
     pure hBox
         where
-            richtungsButtonsPackNew :: (BoxClass b) => Weiche -> b -> IO ()
+            richtungsButtonsPackNew :: (MitBox b) => Weiche -> b -> IO ()
             richtungsButtonsPackNew (LegoWeiche {richtungsPin, richtungen=(richtung1, richtung2)})    box = void $ do
                 boxPackWidgetNewDefault box $ pinLabelNew Language.richtung richtungsPin
                 boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung1) $ ausführenTMVarAktion (Stellen weiche richtung1) tmvarStatus
@@ -711,7 +529,7 @@ instance KupplungKlasse KUWidgets where
     kuppeln (KUWidgets {ku}) = kuppeln ku
 
 -- | Füge 'Button' zum kuppeln zur Box hinzu
-buttonKuppelnPackNew :: (BoxClass b, KupplungKlasse k) => b -> k -> TMVar StatusGui -> IO Button
+buttonKuppelnPackNew :: (MitBox b, KupplungKlasse k) => b -> k -> TMVar StatusGui -> IO Button
 buttonKuppelnPackNew box kupplung tmvarStatus = boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.kuppeln $ ausführenTMVarAktion (Kuppeln kupplung) tmvarStatus
 
 -- | 'Wegstrecke' darstellen
