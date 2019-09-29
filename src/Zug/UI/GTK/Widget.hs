@@ -78,7 +78,8 @@ import Zug.Menge (Menge, ausFoldable)
 import Zug.Plan (PlanKlasse(..), Plan(..), ObjektAllgemein(..), Objekt, Ausführend(),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
                 AktionKupplung(..), AktionWegstrecke(..))
-import Zug.UI.Base (StatusAllgemein(..), AusführenMöglich(..), TVarMaps(..), TVarMapsReader(..),
+import Zug.UI.Base (StatusAllgemein(..), AusführenMöglich(..), ReaderFamilie,
+                    TVarMaps(..), TVarMapsReader(..), MitTVarMaps(..),
                     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
                     auswertenTMVarIOStatus, ausführenMöglich, entfernenBahngeschwindigkeit,
                     entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
@@ -132,13 +133,28 @@ data DynamischeWidgets = DynamischeWidgets {
     fortfahrenWennToggledWegstrecke :: FortfahrenWennToggled TMVar StatusGui,
     tmvarPlanObjekt :: TMVar (Maybe Objekt)}
 
+-- | Klasse für Typen mit 'DynamischeWidgets'
+class MitWidgets r where
+    dynamischeWidgets :: r -> DynamischeWidgets
 -- | Abkürzung für Funktionen, die 'DynamischeWidgets' benötigen
-class (MonadReader r m) => WidgetReader r m where
+class (MonadReader r m) => WidgetsReader r m where
     erhalteDynamischeWidgets :: m DynamischeWidgets
+instance (MonadReader r m, MitWidgets r) => WidgetsReader r m where
+    erhalteDynamischeWidgets :: m DynamischeWidgets
+    erhalteDynamischeWidgets = asks dynamischeWidgets
 
 -- | Abkürzung für Funktionen, die den aktuell in einer 'TMVar' gespeicherten 'StatusAllgemein' benötigen.
 class (MonadReader r m) => StatusReader r m where
     erhalteStatus :: m (TMVar StatusGui)
+
+type instance ReaderFamilie ObjektGui = (DynamischeWidgets, TVarMaps)
+
+instance MitTVarMaps (DynamischeWidgets, TVarMaps) where
+    tvarMaps :: (DynamischeWidgets, TVarMaps) -> TVarMaps
+    tvarMaps = snd
+instance MitWidgets (DynamischeWidgets, TVarMaps) where
+    dynamischeWidgets :: (DynamischeWidgets, TVarMaps) -> DynamischeWidgets
+    dynamischeWidgets = fst
 
 -- | Klasse für Gui-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
 class WegstreckenElement s where
@@ -155,8 +171,10 @@ class PlanElement s where
     vBoxenHinzufügenPlan :: s -> DynamischeWidgets -> ZipList VBox
 
 -- | Entferne 'Widget's zum 'Plan' erstellen aus den entsprechenden 'Box'en.
-entferneHinzufügenPlanWidgets :: (PlanElement p) => p -> DynamischeWidgets -> IO ()
-entferneHinzufügenPlanWidgets p dynamischeWidgets = sequence_ $ containerRemoveJust <$> vBoxenHinzufügenPlan p dynamischeWidgets <*> ZipList (p ^.. foldPlan)
+entferneHinzufügenPlanWidgets :: (PlanElement p, WidgetsReader r m, MonadIO m) => p -> m ()
+entferneHinzufügenPlanWidgets plan = do
+    dynamischeWidgets <- erhalteDynamischeWidgets
+    sequence_ $ containerRemoveJust <$> vBoxenHinzufügenPlan plan dynamischeWidgets <*> ZipList (plan ^.. foldPlan)
 
 -- type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
 -- | 'Traversal'' über alle 'CheckButton's zum Hinzufügen einer 'Wegstrecke'
@@ -195,8 +213,8 @@ boxPack :: (BoxClass b, WidgetClass w) => b -> w -> Packing -> Padding -> Positi
 boxPack box widget packing padding position = boxPackPosition position box widget packing $ fromPadding padding
     where
         boxPackPosition :: (BoxClass b, WidgetClass w) => Position -> b -> w -> Packing -> Padding -> IO ()
-        boxPackPosition First   = boxPackStart
-        boxPackPosition Last    = boxPackEnd
+        boxPackPosition Start   = boxPackStart
+        boxPackPosition End     = boxPackEnd
 
 -- | Neu erstelltes Widget in eine Box packen
 boxPackWidgetNew :: (BoxClass b, WidgetClass w) => b -> Packing -> Padding -> Position -> IO w -> IO w
@@ -218,12 +236,12 @@ paddingDefault :: Padding
 paddingDefault = 0
 
 -- | Position zum Hinzufügen zu einer 'Box'
-data Position = First | Last
+data Position = Start | End
     deriving (Show, Read, Eq, Ord)
 
 -- | Standart-Position zum Hinzufügen zu einer 'Box'
 positionDefault :: Position
-positionDefault = First
+positionDefault = Start
 
 -- | Neu erstelltes Widget mit Standard Packing, Padding und Positionierung in eine Box packen
 boxPackWidgetNewDefault :: (BoxClass b, WidgetClass w) => b -> IO w -> IO w
@@ -285,7 +303,7 @@ buttonEntfernenPack box removeActionGui removeAction = do
 buttonEntfernenPackSimple :: (BoxClass b, ContainerClass c, StatusReader r m, MonadIO m) => b -> c -> IOStatusGui () -> m Button
 buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ containerRemove parent box
 
--- ** Darstellung von Anschlüsse
+-- ** Darstellung von Anschlüssen
 -- | 'Label' für 'Anschluss' erstellen
 anschlussLabelNew :: Text -> Anschluss -> IO Label
 anschlussLabelNew name anschluss = labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss
@@ -297,6 +315,10 @@ pinSpinBoxNew name = do
     boxPackWidgetNewDefault hBox $ labelNew $ Just $ name <-> Language.pin <:> ""
     spinButton <- boxPackWidgetNewDefault hBox $ spinButtonNewWithRange 0 27 1
     pure (hBox, spinButton)
+
+anschlussAuswahlNew :: Text -> IO AnschlussAuswahlWidget
+anschlussAuswahlNew name = do
+    _
 
 -- ** Namen
 -- | Name abfragen
