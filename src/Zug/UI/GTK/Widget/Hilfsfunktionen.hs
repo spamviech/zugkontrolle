@@ -93,11 +93,11 @@ boxPackDefault :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> m ()
 boxPackDefault box widget = boxPack box widget packingDefault paddingDefault positionDefault
 
 -- | Neu erstelltes 'MitWidget' zu einem 'MitNotebook' hinzufügen
-notebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) => n -> Text -> m w -> m w
+notebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) => n -> Text -> m w -> m (w, Int)
 notebookAppendPageNew notebook name konstruktor = do
     widget <- widgetShowNew konstruktor
-    mitNotebookAppendPage notebook widget name
-    pure widget
+    page <- mitNotebookAppendPage notebook widget name
+    pure (widget, page)
 
 -- | Entferne ein vielleicht vorhandenes 'MitWidget' aus einem 'MitContainer'
 containerRemoveJust :: (MonadIO m, MitContainer c, MitWidget w) => c -> Maybe w -> m ()

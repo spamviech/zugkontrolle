@@ -15,7 +15,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Text (Text, pack)
 import Control.Monad (unless, void)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Trans (MonadIO (..))
 import Control.Monad.RWS (evalRWST)
 import Control.Monad.State.Class (MonadState(..))
 -- Farbige Konsolenausgabe
@@ -27,7 +27,7 @@ import qualified Zug.UI.Save as Save
 import Zug.Options (Options(..), getOptions)
 import Zug.Plan (Objekt)
 import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
-                    liftIOFunction, AusführenMöglich(..), ausführenMöglich)
+                    AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
 import Zug.UI.Cmd.Parser (AnfrageErgebnis(..), AnfrageBefehl(..), StatusAnfrageObjekt(..),
@@ -150,7 +150,7 @@ prompt text = do
     T.getLine >>= pure . T.words
 
 promptS :: Text -> IOStatus [Text]
-promptS = liftIOFunction prompt
+promptS = liftIO . prompt
 
 fehlerhafteEingabeS :: Text -> IOStatus ()
-fehlerhafteEingabeS = liftIOFunction fehlerhafteEingabe
+fehlerhafteEingabeS = liftIO . fehlerhafteEingabe
