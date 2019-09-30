@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -21,8 +22,8 @@ module Zug.UI.Gtk.Widget.Hilfsfunktionen (
     notebookAppendPageNew, dialogEval, ResponseId,
     -- * Button
     buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
-    -- * Name / Fließend-Value
-    nameEntryPackNew, nameLabelPackNew, labelFließendValuePackNew) where
+    -- * Name
+    NameWidget(), namePackNew, NameAuswahlWidget(), nameAuswahlPackNew, aktuellerName) where
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
@@ -30,10 +31,12 @@ import Graphics.UI.Gtk (Packing(..), ResponseId)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..), StreckenAtom(..))
-import Zug.Language ((<:>), showText)
+import Zug.Anbindung (StreckenObjekt(..))
+import Zug.Language ((<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Widget.Klassen
+import Zug.UI.Gtk.Widget.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..),
+                                    MitContainer(..), mitContainerAdd, mitContainerRemove, MitButton(..), MitDialog(..),
+                                    MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
 
 -- | 'Widget' erstellen und anzeigen
 widgetShowNew :: (MonadIO m, MitWidget w) => m w -> m w
@@ -134,31 +137,31 @@ buttonNewWithEventLabel :: (MonadIO m) => Text -> IO () -> m Gtk.Button
 buttonNewWithEventLabel label = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithLabel label)
 
 -- ** Namen
+-- | Widget zur Anzeige eines Namen
+newtype NameWidget = NameWidget Gtk.Label
+                        deriving (Eq, MitWidget, MitLabel)
+
+-- | Name anzeigen
+namePackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m NameWidget
+namePackNew box objekt = liftIO $ do
+    label <- boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ erhalteName objekt
+    Gtk.set label [Gtk.widgetMarginRight := 5]
+    pure $ NameWidget label
+
+-- | Widget zur Eingabe eines Namen
+newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
+                                deriving (Eq, MitWidget, MitEntry)
+
 -- | Name abfragen
-nameEntryPackNew :: (MonadIO m, MitBox b) => b -> m Gtk.Entry
-nameEntryPackNew box = liftIO $ do
+nameAuswahlPackNew :: (MonadIO m, MitBox b) => b -> m NameAuswahlWidget
+nameAuswahlPackNew box = liftIO $ do
     hBox <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just $ (Language.name <:> "" :: Text)
     entry <- boxPackWidgetNewDefault hBox Gtk.entryNew
     Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name :: Text)]
-    pure entry
+    pure $ NameAuswahlWidget entry
 
--- | Name anzeigen
-nameLabelPackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m Gtk.Label
-nameLabelPackNew box objekt = liftIO $ do
-    label <- boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ erhalteName objekt
-    Gtk.set label [Gtk.widgetMarginRight := 5]
-    pure label
-
--- * Fließend-Value
--- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
-labelFließendValuePackNew :: (MonadIO m, StreckenAtom s, MitBox b) => b -> s -> m Gtk.Label
-labelFließendValuePackNew box s
-    = liftIO $ boxPackWidgetNew
-        box
-        packingDefault
-        3
-        positionDefault
-            $ Gtk.labelNew $ Just $
-                (Language.fließendValue <:> showText (fließend s) :: Text)
+-- | Erhalte den aktuell gewählten Namen
+aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
+aktuellerName = liftIO . mitEntry Gtk.entryGetText
 #endif

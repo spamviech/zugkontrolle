@@ -8,6 +8,12 @@
 
 {-|
 Description: Erweiterbare Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
+
+Typklassen aus "Graphics.UI.Gtk" lassen eine Instanziierung eigener Typen nicht ohne Probleme zu.
+Diese Modul stellt via Template Haskell erstellte alternative Mit-Typklassen um dieses Problem zu umgehen.
+
+Außerdem wird eine /Overlappable/-Standard Instanz für "Graphics.UI.Gtk"-Typen bereitgestellt.
+Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden die Verwendung der Spracherweiterung /MonoLocalBinds/ empfohlen.
 -}
 #ifndef ZUGKONTROLLEGUI
 module Zug.UI.Gtk.Widget.Klassen () where
@@ -15,6 +21,10 @@ module Zug.UI.Gtk.Widget.Klassen () where
 module Zug.UI.Gtk.Widget.Klassen (
     -- * Widget
     MitWidget(..), mitWidgetShow, mitWidgetHide,
+    -- ** Label
+    MitLabel(..),
+    -- ** Entry
+    MitEntry(..),
     -- * Container
     MitContainer(..), mitContainerAdd, mitContainerRemove,
     -- ** Box
@@ -34,8 +44,6 @@ module Zug.UI.Gtk.Widget.Klassen (
     MitWindow(..),
     -- ** Dialog
     MitDialog(..),
-    -- * Label
-    MitLabel(..),
     -- * Button
     MitButton(..),
     -- ** ToggleButton
@@ -47,14 +55,6 @@ module Zug.UI.Gtk.Widget.Klassen (
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
-import Graphics.UI.Gtk (Widget, WidgetClass(), toWidget, Container, ContainerClass(), toContainer,
-                        Box, BoxClass(), toBox, Grid, GridClass(), toGrid,
-                        Fixed, FixedClass(), toFixed, Notebook, NotebookClass(), toNotebook,
-                        Paned, PanedClass(), toPaned, ComboBox, ComboBoxClass(), toComboBox,
-                        Window, WindowClass(), toWindow, Dialog, DialogClass(), toDialog,
-                        Label, LabelClass(), toLabel,
-                        Button, ButtonClass(), toButton, ToggleButton, ToggleButtonClass(), toToggleButton,
-                        CheckButton, CheckButtonClass(), toCheckButton, RadioButton, RadioButtonClass(), toRadioButton)
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.UI.Gtk.Widget.TemplateHaskell (erzeugeKlasse)
@@ -70,9 +70,15 @@ mitWidgetShow = liftIO . mitWidget Gtk.widgetShow
 mitWidgetHide :: (MonadIO m, MitWidget w) => w -> m ()
 mitWidgetHide = liftIO . mitWidget Gtk.widgetHide
 
-erzeugeKlasse [''MitWidget] "Container"
+-- ** Label
+erzeugeKlasse [''MitWidget] "Label"
+
+-- ** Entry
+erzeugeKlasse [''MitWidget] "Entry"
 
 -- * Container
+erzeugeKlasse [''MitWidget] "Container"
+
 -- | Füge ein 'MitWidget' zu einem 'MitContainer' hinzu
 mitContainerAdd :: (MonadIO m, MitContainer c, MitWidget w) => c -> w -> m ()
 mitContainerAdd container widget = liftIO $ Gtk.containerAdd (erhalteContainer container) (erhalteWidget widget)
@@ -150,9 +156,6 @@ erzeugeKlasse [''MitContainer] "ComboBox"
 erzeugeKlasse [''MitContainer] "Window"
 
 erzeugeKlasse [''MitWindow] "Dialog"
-
--- * Label
-erzeugeKlasse [''MitWidget] "Label"
 
 -- * Button
 erzeugeKlasse [''MitContainer] "Button"

@@ -13,8 +13,8 @@ import Language.Haskell.TH
 -- | Erzeuge Klasse /Mit<name>/, sowie eine default-Implementierung über /DefaultSignatures/.
 erzeugeKlasse :: [Name] -> String -> Q [Dec]
 erzeugeKlasse abhängigkeiten name = do
-    istTyp name >>= flip unless (reportError $ '"' : name ++ "\" ist kein bekannter Name.")
-    typName <- lookupTypeName name >>= pure . fromJust
+    istTyp nameMitPräfixGtk >>= flip unless (reportError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name.")
+    typName <- lookupTypeName nameMitPräfixGtk >>= pure . fromJust
     variablenName <- newName "widget"
     mitFunktionSignatur <- erzeugeMitFunktionSignatur variablenName
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
@@ -33,6 +33,10 @@ erzeugeKlasse abhängigkeiten name = do
                         -> True
                     _info
                         -> False
+        namePräfixGtk :: String
+        namePräfixGtk = "Gtk."
+        nameMitPräfixGtk :: String
+        nameMitPräfixGtk = namePräfixGtk ++ name
         klassenName :: Name
         klassenName = mkName $ "Mit" ++ name
         context :: Name -> Cxt
@@ -49,13 +53,13 @@ erzeugeKlasse abhängigkeiten name = do
         funktionSignatur :: Name -> Name -> Dec
         funktionSignatur variablenName typName = SigD funktionName $ funktionTyp variablenName typName
         klassenNameGtk :: Name
-        klassenNameGtk = mkName $ name ++ "Class"
+        klassenNameGtk = mkName $ namePräfixGtk ++ name ++ "Class"
         defaultSignatur :: Name -> Name -> Dec
         defaultSignatur variablenName typName
             = DefaultSigD funktionName $ ForallT [] [AppT (ConT klassenNameGtk) $ VarT variablenName] $
                 funktionTyp variablenName typName
         defaultNameGtk :: Name
-        defaultNameGtk = mkName $ "to" ++ name
+        defaultNameGtk = mkName $ namePräfixGtk ++ "to" ++ name
         defaultImplementierung :: Name -> Name -> Dec
         defaultImplementierung _variablenName _typName
             = ValD (VarP funktionName) (NormalB $ VarE defaultNameGtk) []

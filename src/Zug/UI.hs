@@ -18,7 +18,7 @@ import Zug.Options (
 #endif
     )
 import qualified Zug.UI.Cmd as Cmd
-import qualified Zug.UI.GTK as GTK
+import qualified Zug.UI.Gtk as Gtk
 #ifdef ZUGKONTROLLERASPI
 -- Überprüfe, ob das Programm mit Root-Rechten aufgeführt wird
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))

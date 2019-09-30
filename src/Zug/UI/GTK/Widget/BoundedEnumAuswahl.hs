@@ -31,6 +31,7 @@ data BoundedEnumAuswahlWidget e
         widget :: Gtk.Widget,
         comboBox :: Gtk.ComboBox,
         enumIndizes :: [(e, Int)]}
+            deriving (Eq)
 
 instance MitWidget (BoundedEnumAuswahlWidget e) where
     erhalteWidget :: BoundedEnumAuswahlWidget e -> Gtk.Widget
