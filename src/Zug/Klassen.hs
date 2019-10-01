@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 
 {-|
 Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer Weiche) repräsentieren.
@@ -42,6 +43,11 @@ instance ZugtypKlasse 'Lego where
     vonZugtypEither :: ZugtypEither a -> Maybe (a 'Lego)
     vonZugtypEither (ZugtypLego a)  = Just a
     vonZugtypEither _zugtypEither   = Nothing
+
+-- | Führe eine 'Zugtyp'-generische Funktion auf einem 'ZugtypEither' aus
+mapZugtypEither :: (forall z. a z -> b z) -> ZugtypEither a -> ZugtypEither b
+mapZugtypEither f   (ZugtypMärklin a)   = ZugtypMärklin $ f a
+mapZugtypEither f   (ZugtypLego a)      = ZugtypLego $ f a
 
 -- | Unterstützte 'Zugtyp'en
 unterstützteZugtypen :: NonEmpty Zugtyp
