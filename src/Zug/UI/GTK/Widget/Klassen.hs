@@ -25,6 +25,8 @@ module Zug.UI.Gtk.Widget.Klassen (
     MitLabel(..),
     -- ** Entry
     MitEntry(..),
+    -- ** Range
+    MitRange(..),
     -- * Container
     MitContainer(..), mitContainerAdd, mitContainerRemove,
     -- ** Box
@@ -75,6 +77,9 @@ erzeugeKlasse [''MitWidget] "Label"
 
 -- ** Entry
 erzeugeKlasse [''MitWidget] "Entry"
+
+-- ** Range
+erzeugeKlasse [''MitWidget] "Range"
 
 -- * Container
 erzeugeKlasse [''MitWidget] "Container"

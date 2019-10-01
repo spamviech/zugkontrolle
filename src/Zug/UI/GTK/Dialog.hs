@@ -81,7 +81,11 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButton
 buttonSpeichernPack :: (BoxClass b) => Window -> b -> TMVar StatusGUI -> IO Button
 buttonSpeichernPack windowMain box tmvarStatus = do
     dialogSpeichern <- dialogSpeichernNew windowMain
-    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ dialogEval dialogSpeichern >>= \antwort -> when (antwort == ResponseOk) $ fileChooserGetFilename dialogSpeichern >>= \(Just dateipfad) -> void $ ausführenTMVarBefehl (Speichern dateipfad :: BefehlGUI) tmvarStatus
+    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ do
+        antwort <- dialogEval dialogSpeichern
+        when (antwort == ResponseOk) $ void $ do
+            (Just dateipfad) <- fileChooserGetFilename dialogSpeichern
+            ausführenTMVarBefehl (Speichern dateipfad :: BefehlGUI) tmvarStatus
 
 dialogSpeichernNew :: Window -> IO FileChooserDialog
 dialogSpeichernNew window = do
