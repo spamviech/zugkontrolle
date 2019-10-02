@@ -85,12 +85,13 @@ import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MS
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, RCheckButton, registrieren)
+import Zug.UI.Gtk.Klassen (MitWidget(), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..),
+                                    MitButton(), MitCheckButton(), MitToggleButton())
 import Zug.UI.Gtk.Widget.Anschluss ()
 import Zug.UI.Gtk.Widget.BoundedEnumAuswahl ()
 import Zug.UI.Gtk.Widget.Hilfsfunktionen (containerRemoveJust, packingDefault, paddingDefault, positionDefault,
                                         boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), Padding(..), Position(..),
                                         buttonNewWithEventLabel)
-import Zug.UI.Gtk.Widget.Klassen (MitWidget(), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
 import Zug.UI.Gtk.Widget.ScrollbaresWidget ()
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
@@ -108,12 +109,20 @@ type MStatusGui a = MStatusAllgemein ObjektGui a
 type MStatusGuiT m a = MStatusAllgemeinT m ObjektGui a
 
 -- | Box zur Auswahl der 'Wegstrecke'n-Elemente
-newtype BoxWegstreckeHinzufügen a = BoxWegstreckeHinzufügen {boxWegstreckeHinzufügen :: Gtk.VBox}
-                                        deriving (Eq, MitWidget, MitContainer, MitBox)
+newtype WidgetWegstreckeHinzufügen w a
+    = WidgetWegstreckeHinzufügen {widgetWegstreckeHinzufügen :: w}
+        deriving (Eq, MitWidget, MitContainer, MitBox, MitButton, MitToggleButton, MitCheckButton)
+
+type BoxWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen Gtk.VBox a
+type CheckButtonWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen Gtk.CheckButton a
 
 -- | Box zur Auswahl der 'Plan'-Aktionen
-newtype BoxPlanHinzufügen a = BoxPlanHinzufügen {boxPlanHinzufügen :: Gtk.VBox}
-                                deriving (Eq, MitWidget, MitContainer, MitBox)
+newtype WidgetPlanHinzufügen w a
+    = WidgetPlanHinzufügen {widgetPlanHinzufügen :: w}
+        deriving (Eq, MitWidget, MitContainer, MitBox, MitButton, MitToggleButton)
+
+type BoxPlanHinzufügen a = WidgetPlanHinzufügen Gtk.VBox a
+type ButtonPlanHinzufügen a = WidgetPlanHinzufügen Gtk.Button a
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets = DynamischeWidgets {

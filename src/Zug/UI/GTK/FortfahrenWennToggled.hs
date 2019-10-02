@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -14,7 +15,6 @@ module Zug.UI.Gtk.FortfahrenWennToggled (
     FortfahrenWennToggled(), fortfahrenButton,
     -- * Feste Anzahl an 'CheckButton's
     fortfahrenWennToggledNew, aktiviereWennToggled,
-    MitCheckButton(..),
     -- * Variable Anzahl an 'CheckButton's
     fortfahrenWennToggledTMVar, tmvarCheckButtons, aktiviereWennToggledTMVar,
     RegistrierterCheckButton(), RCheckButton, registrieren, erhalteWidget) where
@@ -24,8 +24,10 @@ import Graphics.UI.Gtk (Button, CheckButton, set, get, AttrOp(..), toggleButtonA
 import Control.Concurrent.STM (atomically, TMVar, readTMVar)
 import Control.Monad (foldM_, forM_, when)
 import Data.List.NonEmpty (NonEmpty(..))
-import Control.Lens (Fold, Getter, Field2(..), (^.), toListOf)
+import Control.Lens (Fold, Getter, toListOf)
 import qualified Control.Lens as Lens
+-- Abhängigkeit von anderen Modulen
+import Zug.UI.Gtk.Klassen (MitWidget(), MitContainer(), MitButton(), MitToggleButton(), MitCheckButton(..))
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist. Ansonsten wird die Sensitivität des 'Button's deaktiviert.
 data FortfahrenWennToggled f t = FortfahrenWennToggled {fortfahren :: Button, checkButtons :: f t}
@@ -38,31 +40,11 @@ instance (Foldable f) => Foldable (FortfahrenWennToggled f) where
     foldMap :: Monoid m => (a -> m) -> FortfahrenWennToggled f a -> m
     foldMap f (FortfahrenWennToggled {checkButtons}) = foldMap f checkButtons
 
--- | Klasse für Typen, die einen ausgezeichneten 'CheckButton' haben
-class MitCheckButton c where
-    checkButton :: Getter c CheckButton
-
-instance MitCheckButton CheckButton where
-    checkButton :: Getter CheckButton CheckButton
-    checkButton = Lens.to id
-
-instance (MitCheckButton c) => MitCheckButton (RegistrierterCheckButton c) where
-    checkButton :: Getter (RegistrierterCheckButton c) CheckButton
-    checkButton = erhalteWidget . checkButton
-
-instance (MitCheckButton c) => MitCheckButton (a, c) where
-    checkButton :: Getter (a, c) CheckButton
-    checkButton = _2 . checkButton
-
-instance (MitCheckButton c) => MitCheckButton (a, c, b) where
-    checkButton :: Getter (a, c, b) CheckButton
-    checkButton = _2 . checkButton
-
 -- | Konstruktor, wenn alle 'CheckButton's beim erzeugen bekannt sind.
 fortfahrenWennToggledNew :: (MitCheckButton c) => Button -> NonEmpty c -> IO (FortfahrenWennToggled NonEmpty c)
 fortfahrenWennToggledNew fortfahren checkButtons = do
     let fortfahrenWennToggled = FortfahrenWennToggled {fortfahren, checkButtons}
-    forM_ checkButtons $ \c -> on (c ^. checkButton) toggled $ aktiviereWennToggled fortfahrenWennToggled
+    forM_ checkButtons $ \c -> on (erhalteCheckButton c) toggled $ aktiviereWennToggled fortfahrenWennToggled
     aktiviereWennToggled fortfahrenWennToggled
     pure fortfahrenWennToggled
 
@@ -79,7 +61,7 @@ aktiviereWennToggledAux button foldable = do
             aktiviereWennToggledCheckButton :: (MitCheckButton c) => Button -> Bool -> c -> IO Bool
             aktiviereWennToggledCheckButton _button True    _c  = pure True
             aktiviereWennToggledCheckButton button  False   c   = do
-                toggled <- get (c ^. checkButton) toggleButtonActive
+                toggled <- get (erhalteCheckButton c) toggleButtonActive
                 when toggled $ set button [widgetSensitive := True]
                 pure toggled
 
@@ -100,15 +82,16 @@ aktiviereWennToggledTMVar (FortfahrenWennToggled {fortfahren, checkButtons}) tra
     aktiviereWennToggledAux fortfahren $ toListOf traversal currentCheckButtons
 
 -- | 'MitCheckButton', der vielleicht schon registriert wurde
-newtype RegistrierterCheckButton c = RegistrierterCheckButton {registrierterCheckButton :: c}
-                                        deriving (Show, Eq)
+newtype RegistrierterCheckButton c
+    = RegistrierterCheckButton {registrierterCheckButton :: c}
+        deriving (Show, Eq, MitWidget, MitContainer, MitButton, MitToggleButton, MitCheckButton)
 -- | 'RegistrierterCheckButton' spezialisiert auf 'CheckButton'
 type RCheckButton = RegistrierterCheckButton CheckButton
 
 -- | Konstruktor für 'RegistrierterCheckButton'
 registrieren :: (MitCheckButton c) => c -> FortfahrenWennToggled TMVar a -> Fold a (RegistrierterCheckButton c) -> IO (RegistrierterCheckButton c)
 registrieren c fortfahrenWennToggled fold = do
-    on (c ^. checkButton) toggled $ aktiviereWennToggledTMVar fortfahrenWennToggled fold
+    on (erhalteCheckButton c) toggled $ aktiviereWennToggledTMVar fortfahrenWennToggled fold
     pure $ RegistrierterCheckButton c
 
 -- | Erhalte Widget eines 'RegistierterCheckButton', z.B. um es einem 'Container' hinzuzufügen

@@ -34,7 +34,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenObjekt(..))
 import Zug.Language ((<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Widget.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..),
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..),
                                     MitContainer(..), mitContainerAdd, mitContainerRemove, MitButton(..), MitDialog(..),
                                     MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
 

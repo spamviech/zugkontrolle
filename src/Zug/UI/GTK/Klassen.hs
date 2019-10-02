@@ -16,9 +16,9 @@ Außerdem wird eine /Overlappable/-Standard Instanz für "Graphics.UI.Gtk"-Typen
 Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden die Verwendung der Spracherweiterung /MonoLocalBinds/ empfohlen.
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widget.Klassen () where
+module Zug.UI.Gtk.Klassen () where
 #else
-module Zug.UI.Gtk.Widget.Klassen (
+module Zug.UI.Gtk.Klassen (
     -- * Widget
     MitWidget(..), mitWidgetShow, mitWidgetHide,
     -- ** Label
@@ -59,7 +59,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
-import Zug.UI.Gtk.Widget.TemplateHaskell (erzeugeKlasse)
+import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
 
 -- * Widget
 erzeugeKlasse [] "Widget"

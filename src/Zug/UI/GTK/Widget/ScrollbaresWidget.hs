@@ -18,11 +18,11 @@ import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
-import Zug.UI.Gtk.Widget.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew,
-                                        boxPackWidgetNew, Packing(..), paddingDefault, positionDefault, notebookAppendPageNew)
-import Zug.UI.Gtk.Widget.Klassen (MitWidget(..),  MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..),
+import Zug.UI.Gtk.Klassen (MitWidget(..),  MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..),
                                     MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..),
                                     MitButton(..), MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
+import Zug.UI.Gtk.Widget.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew,
+                                        boxPackWidgetNew, Packing(..), paddingDefault, positionDefault, notebookAppendPageNew)
 
 -- | ScrolledWindow mit automatisch erstelltem Viewport
 data ScrollbaresWidget w = ScrollbaresWidget {swScrolledWindow :: Gtk.ScrolledWindow, swWidget :: w}
