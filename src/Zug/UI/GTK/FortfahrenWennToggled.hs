@@ -2,6 +2,8 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -16,8 +18,8 @@ module Zug.UI.Gtk.FortfahrenWennToggled (
     -- * Feste Anzahl an 'CheckButton's
     fortfahrenWennToggledNew, aktiviereWennToggled,
     -- * Variable Anzahl an 'CheckButton's
-    fortfahrenWennToggledTMVar, tmvarCheckButtons, aktiviereWennToggledTMVar,
-    RegistrierterCheckButton(), RCheckButton, registrieren) where
+    fortfahrenWennToggledTMVarNew, tmvarCheckButtons, aktiviereWennToggledTMVar,
+    RegistrierterCheckButton(), registrierterCheckButtonNew) where
 
 -- Bibliotheken
 import qualified Control.Lens as Lens
@@ -25,7 +27,7 @@ import Control.Monad (foldM_, forM_, when)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk (Widget, Button, CheckButton, set, get, AttrOp(..),
-                        toggleButtonActive, widgetSensitive, on, toggled)
+                        toggleButtonActive, widgetSensitive, on, toggled, checkButtonNew)
 import Control.Concurrent.STM (atomically, TMVar, readTMVar)
 -- Abhängigkeit von anderen Modulen
 import Zug.UI.Gtk.Hilfsfunktionen (buttonNewWithEventLabel)
@@ -33,16 +35,28 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitButton(..), MitTo
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
-data FortfahrenWennToggled f t = FortfahrenWennToggled {fortfahren :: Button, checkButtons :: f t}
-                                    deriving (Eq)
+data FortfahrenWennToggled f a where
+    FortfahrenWennToggled :: {
+        fortfahren :: Button,
+        checkButtons :: NonEmpty a}
+            -> FortfahrenWennToggled NonEmpty a
+    FortfahrenWennToggledTMVar :: {
+        fortfahrenTMVar :: Button,
+        tmvarCheckButtons :: TMVar a,
+        fold :: Lens.Fold a RegistrierterCheckButton}
+            -> FortfahrenWennToggled TMVar a 
 
 instance MitWidget (FortfahrenWennToggled f t) where
     erhalteWidget :: FortfahrenWennToggled f t -> Widget
-    erhalteWidget = erhalteWidget . fortfahren
+    erhalteWidget   FortfahrenWennToggled {fortfahren}              = erhalteWidget fortfahren
+    erhalteWidget   FortfahrenWennToggledTMVar {fortfahrenTMVar}    = erhalteWidget fortfahrenTMVar
 
-instance (Foldable f) => Foldable (FortfahrenWennToggled f) where
-    foldMap :: Monoid m => (a -> m) -> FortfahrenWennToggled f a -> m
-    foldMap f (FortfahrenWennToggled {checkButtons}) = foldMap f checkButtons
+instance Foldable (FortfahrenWennToggled NonEmpty) where
+    foldMap :: Monoid m => (a -> m) -> FortfahrenWennToggled NonEmpty a -> m
+    foldMap
+        funktion
+        FortfahrenWennToggled {checkButtons}
+            = foldMap funktion checkButtons
 
 -- | Konstruktor, wenn alle 'CheckButton's beim erzeugen bekannt sind.
 fortfahrenWennToggledNew :: (MitCheckButton c) => Text -> IO () -> NonEmpty c -> IO (FortfahrenWennToggled NonEmpty c)
@@ -54,7 +68,7 @@ fortfahrenWennToggledNew label action checkButtons = do
     pure fortfahrenWennToggled
 
 -- | Funktion zum manuellen überprüfen
-aktiviereWennToggled :: (MitCheckButton c, Foldable f) => FortfahrenWennToggled f c -> IO ()
+aktiviereWennToggled :: (MitCheckButton c) => FortfahrenWennToggled NonEmpty c -> IO ()
 aktiviereWennToggled
     FortfahrenWennToggled {fortfahren, checkButtons}
         = aktiviereWennToggledAux fortfahren checkButtons
@@ -72,33 +86,26 @@ aktiviereWennToggledAux button foldable = do
                 pure toggled
 
 -- | Konstruktor, wenn zu überprüfende 'CheckButton's sich während der Laufzeit ändern können.
-fortfahrenWennToggledTMVar :: Text -> IO () -> TMVar a -> IO (FortfahrenWennToggled TMVar a)
-fortfahrenWennToggledTMVar label action checkButtons = do
-    fortfahren <- buttonNewWithEventLabel label action
-    set fortfahren [widgetSensitive := False]
-    pure FortfahrenWennToggled {fortfahren, checkButtons}
-
--- | Erhalte 'TVar' in der 'CheckButton's gespeichert werden
-tmvarCheckButtons :: FortfahrenWennToggled TMVar a -> TMVar a
-tmvarCheckButtons = checkButtons
+fortfahrenWennToggledTMVarNew :: Text -> IO () -> Lens.Fold a RegistrierterCheckButton -> TMVar a -> IO (FortfahrenWennToggled TMVar a)
+fortfahrenWennToggledTMVarNew label action fold tmvarCheckButtons = do
+    fortfahrenTMVar <- buttonNewWithEventLabel label action
+    set fortfahrenTMVar [widgetSensitive := False]
+    pure FortfahrenWennToggledTMVar {fortfahrenTMVar, tmvarCheckButtons, fold}
 
 -- | Funktion zum manuellen überprüfen
-aktiviereWennToggledTMVar :: (MitCheckButton c) => FortfahrenWennToggled TMVar a -> Lens.Fold a (RegistrierterCheckButton c) -> IO ()
-aktiviereWennToggledTMVar (FortfahrenWennToggled {fortfahren, checkButtons}) traversal = do
-    currentCheckButtons <- atomically $ readTMVar checkButtons
-    aktiviereWennToggledAux fortfahren $ Lens.toListOf traversal currentCheckButtons
+aktiviereWennToggledTMVar :: FortfahrenWennToggled TMVar a -> IO ()
+aktiviereWennToggledTMVar FortfahrenWennToggledTMVar {fortfahrenTMVar, tmvarCheckButtons, fold} = do
+    checkButtons <- atomically $ readTMVar tmvarCheckButtons
+    aktiviereWennToggledAux fortfahrenTMVar $ Lens.toListOf fold checkButtons
 
 -- | 'MitCheckButton', der vielleicht schon registriert wurde
-newtype RegistrierterCheckButton c
-    = RegistrierterCheckButton c
-        deriving (Show, Eq, MitWidget, MitContainer, MitButton, MitToggleButton, MitCheckButton)
--- | 'RegistrierterCheckButton' spezialisiert auf 'CheckButton'
-type RCheckButton = RegistrierterCheckButton CheckButton
+newtype RegistrierterCheckButton = RegistrierterCheckButton CheckButton
+        deriving (Eq, MitWidget, MitContainer, MitButton, MitToggleButton, MitCheckButton)
 
--- | Konstruktor für 'RegistrierterCheckButton'
-registrieren :: (MitCheckButton c) =>
-    c -> FortfahrenWennToggled TMVar a -> Lens.Fold a (RegistrierterCheckButton c) -> IO (RegistrierterCheckButton c)
-registrieren c fortfahrenWennToggled fold = do
-    on (erhalteCheckButton c) toggled $ aktiviereWennToggledTMVar fortfahrenWennToggled fold
-    pure $ RegistrierterCheckButton c
+-- | Konstruktor für neuen 'RegistrierterCheckButton'
+registrierterCheckButtonNew :: FortfahrenWennToggled TMVar a -> IO RegistrierterCheckButton
+registrierterCheckButtonNew fortfahrenWennToggled = do
+    checkButton <- checkButtonNew
+    on checkButton toggled $ aktiviereWennToggledTMVar fortfahrenWennToggled
+    pure $ RegistrierterCheckButton checkButton
 #endif

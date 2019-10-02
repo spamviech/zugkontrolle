@@ -84,7 +84,7 @@ import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MS
                     entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, RCheckButton, registrieren)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, RegistrierterCheckButton, registrierterCheckButtonNew)
 import Zug.UI.Gtk.Hilfsfunktionen (containerRemoveJust, packingDefault, paddingDefault, positionDefault,
                                     boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), Padding(..), Position(..),
                                     buttonNewWithEventLabel)
@@ -114,7 +114,7 @@ newtype WidgetWegstreckeHinzufügen w a
         deriving (Eq, MitWidget, MitContainer, MitBox, MitButton, MitToggleButton, MitCheckButton)
 
 type BoxWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen Gtk.VBox a
-type CheckButtonWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen Gtk.CheckButton a
+type CheckButtonWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen RegistrierterCheckButton a
 
 -- | Box zur Auswahl der 'Plan'-Aktionen
 newtype WidgetPlanHinzufügen w a
@@ -184,20 +184,20 @@ instance MitDynamischeWidgets (DynamischeWidgets, TVarMaps) where
 -- | Klasse für Gui-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
 class WegstreckenElement s where
     -- | Linse auf 'CheckButton', ob 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll
-    lensWegstrecke :: Lens' s RCheckButton
+    lensWegstrecke :: Lens' s RegistrierterCheckButton
     -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => s -> m ()
 
 instance (WegstreckenElement (s 'Märklin), WegstreckenElement (s 'Lego)) => WegstreckenElement (ZugtypEither s) where
-    lensWegstrecke :: Lens' (ZugtypEither s) RCheckButton
+    lensWegstrecke :: Lens' (ZugtypEither s) RegistrierterCheckButton
     lensWegstrecke = Lens.lens vonFunktion zuFunktion
         where
             vonFunktion :: (WegstreckenElement (s 'Märklin), WegstreckenElement (s 'Lego)) =>
-                ZugtypEither s -> RCheckButton
+                ZugtypEither s -> RegistrierterCheckButton
             vonFunktion (ZugtypMärklin s)   = s ^. lensWegstrecke
             vonFunktion (ZugtypLego s)      = s ^. lensWegstrecke
             zuFunktion :: (WegstreckenElement (s 'Märklin), WegstreckenElement (s 'Lego)) =>
-                ZugtypEither s -> RCheckButton -> ZugtypEither s
+                ZugtypEither s -> RegistrierterCheckButton -> ZugtypEither s
             zuFunktion  (ZugtypMärklin s)   rCheckButton    = ZugtypMärklin $ lensWegstrecke .~ rCheckButton $ s
             zuFunktion  (ZugtypLego s)      rCheckButton    = ZugtypLego $ lensWegstrecke .~ rCheckButton $ s
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => ZugtypEither s -> m ()
@@ -219,7 +219,7 @@ entferneHinzufügenPlanWidgets plan = do
 
 -- type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
 -- | 'Traversal'' über alle 'CheckButton's zum Hinzufügen einer 'Wegstrecke'
-traversalHinzufügenWegstrecke :: Traversal' StatusGui RCheckButton
+traversalHinzufügenWegstrecke :: Traversal' StatusGui RegistrierterCheckButton
 traversalHinzufügenWegstrecke f status = Status <$>
     traverseList f (status ^. bahngeschwindigkeiten) <*>
     traverseList f (status ^. streckenabschnitte) <*>
@@ -228,7 +228,7 @@ traversalHinzufügenWegstrecke f status = Status <$>
     pure (status ^. wegstrecken) <*>
     pure (status ^. pläne)
         where
-            traverseList :: (Applicative f, WegstreckenElement s) => (RCheckButton -> f RCheckButton) -> [s] -> f [s]
+            traverseList :: (Applicative f, WegstreckenElement s) => (RegistrierterCheckButton -> f RegistrierterCheckButton) -> [s] -> f [s]
             traverseList f list = traverse . lensWegstrecke %%~ f $ list
 
 -- | Entfernen-Knopf zu 'Box' hinzufügen. Beim drücken werden /removeActionGui/ und /removeAction/ ausgeführt.
@@ -250,15 +250,14 @@ buttonEntfernenPackSimple ::
 buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ mitContainerRemove parent box
 
 -- ** Widget mit Name und CheckButton erstellen
--- | Füge einen 'RCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
+-- | Füge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
 hinzufügenWidgetWegstreckeNew ::
     (StreckenObjekt o, MitBox b) =>
-        o -> b -> FortfahrenWennToggled TMVar StatusGui -> IO (Gtk.HBox, RCheckButton)
+        o -> b -> FortfahrenWennToggled TMVar StatusGui -> IO (Gtk.HBox, RegistrierterCheckButton)
 hinzufügenWidgetWegstreckeNew objekt box fortfahrenWennToggled = do
     hBoxHinzufügen <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-    checkButton <- boxPackWidgetNewDefault hBoxHinzufügen Gtk.checkButtonNew
+    registrierterCheckButton <- boxPackWidgetNewDefault hBoxHinzufügen $ registrierterCheckButtonNew fortfahrenWennToggled
     boxPackWidgetNewDefault hBoxHinzufügen $ Gtk.labelNew $ Just $ erhalteName objekt
-    registrierterCheckButton <- registrieren checkButton fortfahrenWennToggled traversalHinzufügenWegstrecke
     pure (hBoxHinzufügen, registrierterCheckButton)
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
@@ -323,7 +322,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
 -- | Äußerstes Widget zur Darstellung einer 'Bahngeschwindigkeit'
 type BahngeschwindigkeitWidget = Gtk.HBox
 -- | Widgets zum Hinzufügen einer 'Bahngeschwindigkeit' zu einer 'Wegstrecke'
-type BahngeschwindigkeitWidgetHinzufügenWegstrecke = (Gtk.HBox, RCheckButton)
+type BahngeschwindigkeitWidgetHinzufügenWegstrecke = (Gtk.HBox, RegistrierterCheckButton)
 -- | Widgets zum Hinzufügen einer 'Bahngeschwindigkeit' zu einem 'Plan'
 type BahngeschwindigkeitWidgetHinzufügenPlan = (Gtk.Button, Either Gtk.Button Gtk.Button)
 -- | 'Bahngeschwindigkeit' mit zugehörigen Widgets
@@ -336,14 +335,14 @@ data BGWidgets (z :: Zugtyp)
     deriving (Eq)
 
 instance WegstreckenElement (BGWidgets 'Märklin) where
-    lensWegstrecke :: Lens' (BGWidgets 'Märklin) RCheckButton
+    lensWegstrecke :: Lens' (BGWidgets 'Märklin) RegistrierterCheckButton
     lensWegstrecke = (Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => BGWidgets 'Märklin -> m ()
     entferneHinzufügenWegstreckeWidgets BGWidgets {bgHinzWS} = do
         DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin} <- erhalteDynamischeWidgets
         containerRemove vBoxHinzufügenWegstreckeBahngeschwindigkeiten $ bgHinzWS ^. _1
 instance WegstreckenElement (BGWidgets 'Lego) where
-    lensWegstrecke :: Lens' (BGWidgets 'Lego) RCheckButton
+    lensWegstrecke :: Lens' (BGWidgets 'Lego) RegistrierterCheckButton
     lensWegstrecke = (Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => BGWidgets 'Lego -> m ()
     entferneHinzufügenWegstreckeWidgets BGWidgets {bgHinzWS} = do
@@ -440,7 +439,7 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
 -- | Äußerstes Widget zur Darstellung eines 'Streckenabschnitt's
 type StreckenabschnittWidget = Gtk.HBox
 -- | Widget zum Hinzufügen eines 'Streckenabschnitt's zu einer 'Wegstrecke'
-type StreckenabschnittWidgetHinzufügenWegstrecke = (Gtk.HBox, RCheckButton)
+type StreckenabschnittWidgetHinzufügenWegstrecke = (Gtk.HBox, RegistrierterCheckButton)
 -- | Widget zum Hinzufügen eines 'Streckenabschnitt's zu einem 'Plan'
 type StreckenabschnittWidgetHinzufügenPlan = Gtk.Button
 -- | 'Streckenabschnitt' mit zugehörigen Widgets
@@ -453,7 +452,7 @@ data STWidgets
             deriving (Eq)
 
 instance WegstreckenElement STWidgets where
-    lensWegstrecke :: Lens' STWidgets RCheckButton
+    lensWegstrecke :: Lens' STWidgets RegistrierterCheckButton
     lensWegstrecke = (Lens.lens stHinzWS (\st v -> st {stHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => STWidgets -> m ()
     entferneHinzufügenWegstreckeWidgets STWidgets {stHinzWS} = do
@@ -558,7 +557,7 @@ weichePackNew weiche = do
 -- | Äußerstes Widget zur Darstellung einer 'Weiche'
 type WeicheWidget = Gtk.HBox
 -- | Widget zum Hinzufügen einer 'Weiche' zu einer 'Wegstrecke'
-type WeicheWidgetHinzufügenWegstrecke = (Gtk.HBox, RCheckButton, NonEmpty (Richtung, Gtk.RadioButton))
+type WeicheWidgetHinzufügenWegstrecke = (Gtk.HBox, RegistrierterCheckButton, NonEmpty (Richtung, Gtk.RadioButton))
 -- | Widget zum Hinzufügen einer 'Weiche' zu einem 'Plan'
 type WeicheWidgetHinzufügenPlan = (Maybe Gtk.Button, Maybe Gtk.Button, Maybe Gtk.Button, Maybe Gtk.Button)
 -- | 'Weiche' mit zugehörigen Widgets
@@ -575,7 +574,7 @@ getterRichtungsRadioButtons :: Getter (WEWidgets z) (NonEmpty (Richtung, Gtk.Rad
 getterRichtungsRadioButtons = Lens.to $ \weWidgets -> (weHinzWS weWidgets) ^. _3
 
 instance WegstreckenElement (WEWidgets 'Märklin) where
-    lensWegstrecke :: Lens' (WEWidgets 'Märklin) RCheckButton
+    lensWegstrecke :: Lens' (WEWidgets 'Märklin) RegistrierterCheckButton
     lensWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) =>
         WEWidgets 'Märklin -> m ()
@@ -583,7 +582,7 @@ instance WegstreckenElement (WEWidgets 'Märklin) where
         DynamischeWidgets {vBoxHinzufügenWegstreckeWeichenMärklin} <- erhalteDynamischeWidgets
         liftIO $ containerRemove vBoxHinzufügenWegstreckeWeichen $ weHinzWS ^. _1
 instance WegstreckenElement (WEWidgets 'Lego) where
-    lensWegstrecke :: Lens' (WEWidgets 'Lego) RCheckButton
+    lensWegstrecke :: Lens' (WEWidgets 'Lego) RegistrierterCheckButton
     lensWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) =>
         WEWidgets 'Lego -> m ()
@@ -654,7 +653,7 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
 -- | Äußerstes Widget zur Darstellung einer 'Kupplung'
 type KupplungWidget = Gtk.HBox
 -- | Widget zum Hinzufügen einer 'Kupplung' zu einer 'Wegstrecke'
-type KupplungWidgetHinzufügenWegstrecke = (Gtk.HBox, RCheckButton)
+type KupplungWidgetHinzufügenWegstrecke = (Gtk.HBox, RegistrierterCheckButton)
 -- | Widget zum Hinzufügen einer 'Kupplung' zu einem 'Plan'
 type KupplungWidgetHinzufügenPlan = Gtk.Button
 -- | 'Kupplung' mit zugehörigen Widgets
@@ -667,7 +666,7 @@ data KUWidgets
     deriving (Eq)
 
 instance WegstreckenElement KUWidgets where
-    lensWegstrecke :: Lens' KUWidgets RCheckButton
+    lensWegstrecke :: Lens' KUWidgets RegistrierterCheckButton
     lensWegstrecke = (Lens.lens kuHinzWS (\ku v -> ku {kuHinzWS=v})) . _2
     entferneHinzufügenWegstreckeWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => KUWidgets -> m ()
     entferneHinzufügenWegstreckeWidgets KUWidgets {kuHinzWS} = do
