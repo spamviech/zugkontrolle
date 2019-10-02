@@ -6,9 +6,9 @@
 Description: Widget zur Auswahl eines Bounded Enums
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widget.BoundedEnumAuswahl () where
+module Zug.UI.Gtk.Widgets.BoundedEnumAuswahl () where
 #else
-module Zug.UI.Gtk.Widget.BoundedEnumAuswahl (
+module Zug.UI.Gtk.Widgets.BoundedEnumAuswahl (
     BoundedEnumAuswahlWidget(), aktuellerEnum,
     boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew) where
 
@@ -19,8 +19,8 @@ import Data.Text (Text)
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (showText)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
-import Zug.UI.Gtk.Widget.Hilfsfunktionen (boxPackWidgetNewDefault)
 
 -- | Auswahl-Widget für ein 'Bounded' 'Enum'
 data BoundedEnumAuswahlWidget e

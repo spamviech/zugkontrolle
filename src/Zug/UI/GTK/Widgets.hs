@@ -19,9 +19,9 @@ Description : Erstelle zusammengesetzte Widgets.
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widget () where
+module Zug.UI.Gtk.Widgets () where
 #else
-module Zug.UI.Gtk.Widget (
+module Zug.UI.Gtk.Widgets (
     -- * Allgemeine Widget-Funktionen
     widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
     dialogEval, boxPack, boxPackDefault, boxPackWidgetNewDefault,
@@ -85,14 +85,14 @@ import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MS
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, RCheckButton, registrieren)
+import Zug.UI.Gtk.Hilfsfunktionen (containerRemoveJust, packingDefault, paddingDefault, positionDefault,
+                                    boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), Padding(..), Position(..),
+                                    buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..),
                                     MitButton(), MitCheckButton(), MitToggleButton())
-import Zug.UI.Gtk.Widget.Anschluss ()
-import Zug.UI.Gtk.Widget.BoundedEnumAuswahl ()
-import Zug.UI.Gtk.Widget.Hilfsfunktionen (containerRemoveJust, packingDefault, paddingDefault, positionDefault,
-                                        boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), Padding(..), Position(..),
-                                        buttonNewWithEventLabel)
-import Zug.UI.Gtk.Widget.ScrollbaresWidget ()
+import Zug.UI.Gtk.Widgets.Anschluss ()
+import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl ()
+import Zug.UI.Gtk.Widgets.ScrollbaresWidget ()
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen

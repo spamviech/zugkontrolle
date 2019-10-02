@@ -8,9 +8,9 @@
 Description: Widget zur Darstellung und Auswahl eines Anschluss
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widget.Anschluss () where
+module Zug.UI.Gtk.Widgets.Anschluss () where
 #else
-module Zug.UI.Gtk.Widget.Anschluss (
+module Zug.UI.Gtk.Widgets.Anschluss (
     AnschlussWidget(), anschlussLabelNew,
     AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss) where
 
@@ -22,9 +22,9 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), PCF8574(..), PCF8574Variant(..), Value(..))
 import Zug.Language ((<->), (<:>), showText)
 import qualified Zug.Language as Language
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitNotebook(..))
-import Zug.UI.Gtk.Widget.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
-import Zug.UI.Gtk.Widget.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, aktuellerEnum,
+import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, aktuellerEnum,
                                                 boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 
 -- | Anzeige eines 'Anschluss'

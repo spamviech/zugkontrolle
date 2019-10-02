@@ -53,7 +53,8 @@ import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetz
 import Zug.Klassen (Zugtyp(..), Richtung(..), unterstützteRichtungen, Strom(..), Fahrtrichtung(..))
 import Zug.Anbindung (Value(..), Pin(), zuPin, Bahngeschwindigkeit(..), Streckenabschnitt(..),
                     Weiche(..), Kupplung(..), Wegstrecke(..), StreckenObjekt(..))
-import Zug.Plan (Plan(..), ObjektAllgemein(..), Aktion(..), AktionWegstrecke(..),
+import Zug.Objekt (ObjektAllgemein(..))
+import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<!>), (<:>), (<^>))
@@ -65,7 +66,7 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus, liftIOFunction,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
-import Zug.UI.Gtk.Widget (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(..), WegstreckenElement(..),
+import Zug.UI.Gtk.Widgets (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(..), WegstreckenElement(..),
                         BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
                         widgetShowIf, containerAddWidgetNew, boxPackDefault, boxPack,
                         boxPackWidgetNewDefault, boxPackWidgetNew, paddingDefault, positionDefault,

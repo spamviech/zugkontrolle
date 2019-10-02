@@ -8,9 +8,9 @@
 Description: Allgemeine Hilfsfunktionen
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widget.Hilfsfunktionen () where
+module Zug.UI.Gtk.Hilfsfunktionen () where
 #else
-module Zug.UI.Gtk.Widget.Hilfsfunktionen (
+module Zug.UI.Gtk.Hilfsfunktionen (
     -- * Widget
     widgetShowNew, widgetShowIf,
     -- * Container

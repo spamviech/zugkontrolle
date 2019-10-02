@@ -8,9 +8,9 @@
 Description: Anzeige und Auswahl des Fließend-Value
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widget.Fliessend () where
+module Zug.UI.Gtk.Widgets.Fliessend () where
 #else
-module Zug.UI.Gtk.Widget.Fliessend (
+module Zug.UI.Gtk.Widgets.Fliessend (
     FließendWidget(), fließendPackNew,
     FließendAuswahlWidget(), fließendAuswahlPackNew, aktuellerFließendValue) where
 
@@ -21,9 +21,9 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenAtom(..), Value(..))
 import Zug.Language ((<:>), showText)
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Widget.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuellerEnum)
-import Zug.UI.Gtk.Widget.Hilfsfunktionen (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
-import Zug.UI.Gtk.Widget.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
+import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuellerEnum)
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
