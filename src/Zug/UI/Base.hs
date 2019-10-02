@@ -54,8 +54,8 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language ((<=>), (<\>))
 import Zug.Menge (Menge, leer)
-import Zug.Plan (ObjektKlasse(..), Objekt, Phantom(..), Ausführend(..), Plan, MitAusführend(..), AusführendReader(..),
-                ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
+import Zug.Objekt (ObjektKlasse(..), Objekt, Phantom(..), ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
+import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
 
 -- | Aktueller Status
 data StatusAllgemein o = Status {

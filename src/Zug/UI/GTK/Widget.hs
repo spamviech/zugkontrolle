@@ -72,7 +72,8 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), mapZugtypEit
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<->), (<:>), (<°>), addMnemonic, showText)
 import Zug.Menge (Menge, ausFoldable)
-import Zug.Plan (PlanKlasse(..), Plan(..), ObjektAllgemein(..), ObjektElement(..), Objekt, Ausführend(), AusführendReader(),
+import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt)
+import Zug.Plan (PlanKlasse(..), Plan(..), Ausführend(), AusführendReader(),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
                 AktionKupplung(..), AktionWegstrecke(..))
 import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,

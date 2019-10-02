@@ -28,8 +28,8 @@ import Numeric.Natural (Natural)
 import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
 import Zug.Klassen (Zugtyp(..))
 import Zug.Menge (entfernen)
-import Zug.Plan (ObjektKlasse(..), ObjektAllgemein(..), Objekt, PlanKlasse(..), Plan(),
-                AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
+import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
+import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, ObjektReader, ReaderFamilie,
                     TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus,

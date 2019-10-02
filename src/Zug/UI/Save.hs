@@ -33,8 +33,8 @@ import Zug.Anbindung (Wartezeit(..),
             Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Klassen (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
-import Zug.Plan (ObjektKlasse(), ausBG, ausST, ausWE, ausKU, ausWS, ausPL, ObjektAllgemein(..),
-                Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
+import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..), ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
+import Zug.Plan (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
                 AktionWeiche(..), AktionKupplung(..), Plan(..))
 import Zug.UI.Base (StatusAllgemein(..), Status, phantom)
 
