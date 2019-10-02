@@ -18,7 +18,7 @@ Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, we
 module Zug.Plan (
     -- * Allgemeine Datentypen
     PlanKlasse(..), MitAusführend(..), AusführendReader(..), Plan(..), AktionKlasse(..), Aktion(..),
-    Objekt, ObjektAllgemein(..), ObjektKlasse(..), Ausführend(..),
+    Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(..), Ausführend(..),
     ausBG, ausST, ausWE, ausKU, ausWS, ausPL, Phantom(..),
     -- * Spezialisierte Aktionen
     AktionWeiche(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
@@ -34,7 +34,7 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
+import Zug.Klassen (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..), Richtung(), Fahrtrichtung(), Strom(..))
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
                     PwmReader(..), I2CReader(..),
                     Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..),
@@ -71,6 +71,34 @@ instance (Show (bg 'Märklin), Show (bg 'Lego), Show st, Show (we 'Märklin), Sh
     show    (OKupplung ku)              = show ku
     show    (OWegstrecke ws)            = show ws
     show    (OPlan pl)                  = show pl
+
+-- | Klasse für Typen die sich in ein 'Objekt' transformieren lassen
+class ObjektElement e where
+    zuObjekt :: e -> Objekt
+
+instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit z) where
+    zuObjekt :: Bahngeschwindigkeit z -> Objekt
+    zuObjekt = OBahngeschwindigkeit . zuZugtypEither
+
+instance ObjektElement Streckenabschnitt where
+    zuObjekt :: Streckenabschnitt -> Objekt
+    zuObjekt = OStreckenabschnitt
+
+instance (ZugtypKlasse z) => ObjektElement (Weiche z) where
+    zuObjekt :: Weiche z -> Objekt
+    zuObjekt = OWeiche . zuZugtypEither
+
+instance ObjektElement Kupplung where
+    zuObjekt :: Kupplung -> Objekt
+    zuObjekt = OKupplung
+
+instance (ZugtypKlasse z) => ObjektElement (Wegstrecke z) where
+    zuObjekt :: Wegstrecke z -> Objekt
+    zuObjekt = OWegstrecke . zuZugtypEither
+
+instance ObjektElement Plan where
+    zuObjekt :: Plan -> Objekt
+    zuObjekt = OPlan
 
 -- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where

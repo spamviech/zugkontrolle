@@ -33,16 +33,21 @@ instance (Show (a 'Märklin), Show (a 'Lego)) => Show (ZugtypEither a) where
 -- | Klasse zur Extraktion aus 'ZugtypEither'
 class ZugtypKlasse (z :: Zugtyp) where
     vonZugtypEither :: ZugtypEither a -> Maybe (a z)
+    zuZugtypEither :: a z -> ZugtypEither a
 
 instance ZugtypKlasse 'Märklin where
     vonZugtypEither :: ZugtypEither a -> Maybe (a 'Märklin)
     vonZugtypEither (ZugtypMärklin a)   = Just a
     vonZugtypEither _zugtypEither       = Nothing
+    zuZugtypEither :: a 'Märklin -> ZugtypEither a
+    zuZugtypEither = ZugtypMärklin
 
 instance ZugtypKlasse 'Lego where
     vonZugtypEither :: ZugtypEither a -> Maybe (a 'Lego)
     vonZugtypEither (ZugtypLego a)  = Just a
     vonZugtypEither _zugtypEither   = Nothing
+    zuZugtypEither :: a 'Lego -> ZugtypEither a
+    zuZugtypEither = ZugtypLego
 
 -- | Führe eine 'Zugtyp'-generische Funktion auf einem 'ZugtypEither' aus
 mapZugtypEither :: (forall z. a z -> b z) -> ZugtypEither a -> ZugtypEither b
