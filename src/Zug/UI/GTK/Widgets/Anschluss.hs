@@ -11,7 +11,7 @@ Description: Widget zur Darstellung und Auswahl eines Anschluss
 module Zug.UI.Gtk.Widgets.Anschluss () where
 #else
 module Zug.UI.Gtk.Widgets.Anschluss (
-    AnschlussWidget(), anschlussLabelNew,
+    AnschlussWidget(), anschlussNew,
     AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss) where
 
 import Control.Monad.Trans (MonadIO(..))
@@ -40,8 +40,8 @@ instance MitLabel AnschlussWidget where
     erhalteLabel (AnschlussWidget label) = label
 
 -- | 'Label' für 'Anschluss' erstellen
-anschlussLabelNew :: Text -> Anschluss -> IO AnschlussWidget
-anschlussLabelNew name anschluss = AnschlussWidget <$>
+anschlussNew :: Text -> Anschluss -> IO AnschlussWidget
+anschlussNew name anschluss = AnschlussWidget <$>
     (Gtk.labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss)
 
 -- | Widgets zum erzeugen eines 'Anschluss'
