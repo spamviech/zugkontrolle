@@ -189,59 +189,70 @@ instance MitDynamischeWidgets (DynamischeWidgets, TVarMaps) where
 -- | Klasse für Gui-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
 class WegstreckenElement s where
     -- | Linse auf 'RegistrierterCheckButton', ob 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll
-    lensWegstrecke :: Lens' s (CheckButtonWegstreckeHinzufügen s)
-    -- | Zugehörige 'BoxWegstreckeHinzufügen' in der 'MitRegistrierterCheckButton' gepackt ist.
-    boxWegstrecke :: (DynamischeWidgetsReader r m, Monad m) => s -> m (BoxWegstreckeHinzufügen s)
+    getterWegstrecke :: Getter s (CheckButtonWegstreckeHinzufügen s)
+    -- | Assoziierte 'BoxWegstreckeHinzufügen', in der 'MitRegistrierterCheckButton' gepackt ist.
+    boxWegstrecke :: s -> Getter DynamischeWidgets (BoxWegstreckeHinzufügen s)
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets :: (WegstreckenElement s, DynamischeWidgetsReader r m, MonadIO m) => s -> m ()
 entferneHinzufügenWegstreckeWidgets wegsteckenElement = do
-    box <- boxWegstrecke wegsteckenElement
-    mitContainerRemove box $ wegsteckenElement ^. lensWegstrecke
+    box <- Lens.view (boxWegstrecke wegsteckenElement) <$> erhalteDynamischeWidgets
+    mitContainerRemove box $ wegsteckenElement ^. getterWegstrecke
 
 instance (WegstreckenElement (s 'Märklin), WegstreckenElement (s 'Lego)) => WegstreckenElement (ZugtypEither s) where
-    lensWegstrecke :: Lens' (ZugtypEither s) (CheckButtonWegstreckeHinzufügen (ZugtypEither s))
-    lensWegstrecke = Lens.lens vonFunktion zuFunktion
+    getterWegstrecke :: Getter (ZugtypEither s) (CheckButtonWegstreckeHinzufügen (ZugtypEither s))
+    getterWegstrecke = Lens.to vonFunktion
         where
             vonFunktion :: (WegstreckenElement (s 'Märklin), WegstreckenElement (s 'Lego)) =>
                 ZugtypEither s -> (CheckButtonWegstreckeHinzufügen (ZugtypEither s))
-            vonFunktion (ZugtypMärklin s)   = s ^. lensWegstrecke
-            vonFunktion (ZugtypLego s)      = s ^. lensWegstrecke
-            zuFunktion :: (WegstreckenElement (s 'Märklin), WegstreckenElement (s 'Lego)) =>
-                ZugtypEither s -> (CheckButtonWegstreckeHinzufügen (ZugtypEither s)) -> ZugtypEither s
-            zuFunktion  (ZugtypMärklin s)   rCheckButton    = ZugtypMärklin $ lensWegstrecke .~ rCheckButton $ s
-            zuFunktion  (ZugtypLego s)      rCheckButton    = ZugtypLego $ lensWegstrecke .~ rCheckButton $ s
-    boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) => ZugtypEither s -> m (BoxWegstreckeHinzufügen s)
-    boxWegstrecke   (ZugtypMärklin s)   = boxWegstrecke s
-    boxWegstrecke   (ZugtypLego s)      = boxWegstrecke s
+            vonFunktion
+                (ZugtypMärklin s)
+                    = WidgetWegstreckeHinzufügen $ widgetWegstreckeHinzufügen $ s ^. getterWegstrecke
+            vonFunktion
+                (ZugtypLego s)
+                    = WidgetWegstreckeHinzufügen $ widgetWegstreckeHinzufügen $ s ^. getterWegstrecke
+    boxWegstrecke :: ZugtypEither s -> Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither s))
+    boxWegstrecke   (ZugtypMärklin s)   = boxWegstrecke s . Lens.to (WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen)
+    boxWegstrecke   (ZugtypLego s)      = boxWegstrecke s . Lens.to (WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen)
 
 -- | Klasse für Gui-Darstellungen von Typen, die zur Erstellung eines 'Plan's verwendet werden.
 class PlanElement s where
     -- | Faltung auf 'Gtk.Button's (falls vorhanden), welches 'StreckenObjekt' für eine 'Aktion' verwendet werden soll
     foldPlan :: Fold s (Maybe (ButtonPlanHinzufügen s))
-    -- | 'ZipList' aller 'Gtk.VBox'en, in denen Widgets angezeigt werden.
-    -- Die Reihenfolge muss zum Ergebnis von 'foldPlan' passe.
+    -- | Aller assoziierten 'BoxPlanHinzufügen', in denen jeweiliger 'ButtonPlanHinzufügen' gepackt ist.
+    -- Die Reihenfolge muss zum Ergebnis von 'foldPlan' passen.
     -- Wird für 'entferneHinzufügenPlanWidgets' benötigt.
-    boxenPlan :: (DynamischeWidgetsReader r m, Monad m) => s -> m (ZipList (BoxPlanHinzufügen s))
+    boxenPlan :: s -> Fold DynamischeWidgets (BoxPlanHinzufügen s)
 
 -- | Entferne 'Widget's zum 'Plan' erstellen aus den entsprechenden 'Box'en.
 entferneHinzufügenPlanWidgets :: (PlanElement s, DynamischeWidgetsReader r m, MonadIO m) => s -> m ()
 entferneHinzufügenPlanWidgets planElement = do
-    boxenPlan <- boxenPlan planElement
-    sequence_ $ containerRemoveJust <$> boxenPlan <*> ZipList (planElement ^.. foldPlan)
+    boxenPlan <- Lens.toListOf (boxenPlan planElement) <$> erhalteDynamischeWidgets
+    sequence_ $ containerRemoveJust <$> ZipList boxenPlan <*> ZipList (planElement ^.. foldPlan)
 
 instance (PlanElement (s 'Märklin), PlanElement (s 'Lego)) => PlanElement (ZugtypEither s) where
-    foldPlan :: Fold (ZugtypEither s) (Maybe (ButtonPlanHinzufügen s))
+    foldPlan :: Fold (ZugtypEither s) (Maybe (ButtonPlanHinzufügen (ZugtypEither s)))
     foldPlan = Lens.folding erhalteListe
         where
             erhalteListe :: (PlanElement (s 'Märklin), PlanElement (s 'Lego)) =>
-                ZugtypEither s -> [Maybe (ButtonPlanHinzufügen s)]
-            erhalteListe    (ZugtypMärklin s)   = Lens.toListOf foldPlan s
-            erhalteListe    (ZugtypLego s)      = Lens.toListOf foldPlan s
-    boxenPlan :: (DynamischeWidgetsReader r m, MonadIO m) =>
-        ZugtypEither s -> m (ZipList (BoxPlanHinzufügen (ZugtypEither s)))
-    boxenPlan   (ZugtypMärklin s)   = boxenPlan s
-    boxenPlan   (ZugtypLego s)      = boxenPlan s
+                ZugtypEither s -> [Maybe (ButtonPlanHinzufügen (ZugtypEither s))]
+            erhalteListe
+                (ZugtypMärklin s)
+                    = fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) <$> Lens.toListOf foldPlan s
+            erhalteListe
+                (ZugtypLego s)
+                    = fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) <$> Lens.toListOf foldPlan s
+    boxenPlan :: ZugtypEither s -> Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither s))
+    boxenPlan = Lens.folding . erhalteListe
+        where
+            erhalteListe :: (PlanElement (s 'Märklin), PlanElement (s 'Lego)) =>
+                ZugtypEither s -> DynamischeWidgets -> [BoxPlanHinzufügen (ZugtypEither s)]
+            erhalteListe
+                (ZugtypMärklin s)
+                    = fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . Lens.toListOf (boxenPlan s)
+            erhalteListe
+                (ZugtypLego s)
+                    = fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . Lens.toListOf (boxenPlan s)
 
 -- type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
 -- | 'Traversal'' über alle 'CheckButton's zum Hinzufügen einer 'Wegstrecke'
@@ -256,7 +267,7 @@ traversalHinzufügenWegstrecke f status = Status <$>
         where
             traverseList :: (Applicative f, WegstreckenElement s) =>
                 (RegistrierterCheckButton -> f RegistrierterCheckButton) -> [s] -> f [s]
-            traverseList f list = traverse . lensWegstrecke %%~ f $ list
+            traverseList f list = traverse . getterWegstrecke %%~ f $ list
 
 -- | Entfernen-Knopf zu 'Box' hinzufügen. Beim drücken werden /removeActionGui/ und /removeAction/ ausgeführt.
 buttonEntfernenPack :: (MitBox b, StatusReader r m, TVarMapsReader r m, DynamischeWidgetsReader r m, MonadIO m) =>
@@ -357,14 +368,14 @@ data BGWidgets (z :: Zugtyp)
     deriving (Eq)
 
 instance WegstreckenElement (BGWidgets 'Märklin) where
-    lensWegstrecke :: Lens' (BGWidgets 'Märklin) RegistrierterCheckButton
-    lensWegstrecke = Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS = v})
+    getterWegstrecke :: Lens' (BGWidgets 'Märklin) RegistrierterCheckButton
+    getterWegstrecke = Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS = v})
     boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) =>
         BGWidgets 'Märklin -> m (BoxWegstreckeHinzufügen (BGWidgets 'Märklin))
     boxWegstrecke _bgWidgets = vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin <$> erhalteDynamischeWidgets
 instance WegstreckenElement (BGWidgets 'Lego) where
-    lensWegstrecke :: Lens' (BGWidgets 'Lego) RegistrierterCheckButton
-    lensWegstrecke = (Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS=v})) . _2
+    getterWegstrecke :: Lens' (BGWidgets 'Lego) RegistrierterCheckButton
+    getterWegstrecke = (Lens.lens bgHinzWS (\bg v -> bg {bgHinzWS=v})) . _2
     boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) =>
         BGWidgets 'Lego -> m (BoxWegstreckeHinzufügen (BGWidgets 'Lego))
     boxWegstrecke _bgWidgets = vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego <$> erhalteDynamischeWidgets
@@ -464,8 +475,8 @@ data STWidgets
             deriving (Eq)
 
 instance WegstreckenElement STWidgets where
-    lensWegstrecke :: Lens' STWidgets RegistrierterCheckButton
-    lensWegstrecke = (Lens.lens stHinzWS (\st v -> st {stHinzWS=v})) . _2
+    getterWegstrecke :: Lens' STWidgets RegistrierterCheckButton
+    getterWegstrecke = (Lens.lens stHinzWS (\st v -> st {stHinzWS=v})) . _2
     boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) => STWidgets -> m ()
     boxWegstrecke _stWidgets = vBoxHinzufügenWegstreckeStreckenabschnitte <$> erhalteDynamischeWidgets
 
@@ -585,14 +596,14 @@ getterRichtungsRadioButtons :: Getter (WEWidgets z) (NonEmpty (Richtung, Gtk.Rad
 getterRichtungsRadioButtons = Lens.to $ \weWidgets -> (weHinzWS weWidgets) ^. _3
 
 instance WegstreckenElement (WEWidgets 'Märklin) where
-    lensWegstrecke :: Lens' (WEWidgets 'Märklin) RegistrierterCheckButton
-    lensWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v}))
+    getterWegstrecke :: Lens' (WEWidgets 'Märklin) RegistrierterCheckButton
+    getterWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v}))
     boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) =>
         WEWidgets 'Märklin -> m ()
     boxWegstrecke _weWidgets = vBoxHinzufügenWegstreckeWeichenMärklin <$> erhalteDynamischeWidgets
 instance WegstreckenElement (WEWidgets 'Lego) where
-    lensWegstrecke :: Lens' (WEWidgets 'Lego) RegistrierterCheckButton
-    lensWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v})) . _2
+    getterWegstrecke :: Lens' (WEWidgets 'Lego) RegistrierterCheckButton
+    getterWegstrecke = (Lens.lens weHinzWS (\we v -> we {weHinzWS=v})) . _2
     boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) =>
         WEWidgets 'Lego -> m ()
     boxWegstrecke _weWidgets = vBoxHinzufügenWegstreckeWeichenLego <$> erhalteDynamischeWidgets
@@ -684,8 +695,8 @@ data KUWidgets
     deriving (Eq)
 
 instance WegstreckenElement KUWidgets where
-    lensWegstrecke :: Lens' KUWidgets RegistrierterCheckButton
-    lensWegstrecke = (Lens.lens kuHinzWS (\ku v -> ku {kuHinzWS=v}))
+    getterWegstrecke :: Lens' KUWidgets RegistrierterCheckButton
+    getterWegstrecke = (Lens.lens kuHinzWS (\ku v -> ku {kuHinzWS=v}))
     boxWegstrecke :: (DynamischeWidgetsReader r m, MonadIO m) => KUWidgets -> m ()
     boxWegstrecke _kuWidgets = vBoxHinzufügenWegstreckeKupplungen <$> erhalteDynamischeWidgets
 
