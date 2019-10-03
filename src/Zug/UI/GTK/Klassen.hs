@@ -15,46 +15,10 @@ Diese Modul stellt via Template Haskell erstellte alternative Mit-Typklassen um 
 Außerdem wird eine /Overlappable/-Standard Instanz für "Graphics.UI.Gtk"-Typen bereitgestellt.
 Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden die Verwendung der Spracherweiterung /MonoLocalBinds/ empfohlen.
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Klassen () where
-#else
-module Zug.UI.Gtk.Klassen (
-    -- * Widget
-    MitWidget(..), mitWidgetShow, mitWidgetHide,
-    -- ** Label
-    MitLabel(..),
-    -- ** Entry
-    MitEntry(..),
-    -- ** Range
-    MitRange(..),
-    -- * Container
-    MitContainer(..), mitContainerAdd, mitContainerRemove,
-    -- ** Box
-    MitBox(..), mitBoxPackStart, mitBoxPackEnd,
-    -- ** Grid
-    MitGrid(..), mitGridAttach, mitGridAttachNextTo,
-    -- ** Fixed
-    MitFixed(..), mitFixedPut, mitFixedMove,
-    -- ** Notebook
-    MitNotebook(..), mitNotebookAppendPage, mitNotebookPrependPage,
-    mitNotebookRemovePage, mitNotebookSetCurrentPage,
-    -- ** Paned
-    MitPaned(..),
-    -- ** ComboBox
-    MitComboBox(..),
-    -- * Window
-    MitWindow(..),
-    -- ** Dialog
-    MitDialog(..),
-    -- * Button
-    MitButton(..),
-    -- ** ToggleButton
-    MitToggleButton(..),
-    -- ** CheckButton
-    MitCheckButton(..),
-    -- ** RadioButton
-    MitRadioButton(..)) where
+module Zug.UI.Gtk.Klassen where
+#ifdef ZUGKONTROLLEGUI
 
+import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Graphics.UI.Gtk as Gtk

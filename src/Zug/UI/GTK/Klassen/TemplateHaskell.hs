@@ -6,6 +6,7 @@ Description: Erzeuge Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
 -}
 module Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse) where
 
+import Data.Char (toLower)
 import Data.Maybe (fromJust)
 import Control.Monad (unless)
 import Language.Haskell.TH
@@ -14,14 +15,18 @@ import Language.Haskell.TH
 erzeugeKlasse :: [Name] -> String -> Q [Dec]
 erzeugeKlasse abhängigkeiten name = do
     istTyp nameMitPräfixGtk >>= flip unless (reportError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name.")
-    typName <- lookupTypeName nameMitPräfixGtk >>= pure . fromJust
+    typName <- fromJust <$> lookupTypeName nameMitPräfixGtk
     variablenName <- newName "widget"
-    mitFunktionSignatur <- erzeugeMitFunktionSignatur variablenName
+    mitFunktionSignatur <- erzeugeMitFunktionSignatur
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
+    getterSignatur <- erzeugeGetterSignatur typName
     pure $ [
-        ClassD (context variablenName) klassenName [PlainTV $ variablenName] funDeps $
-            deklarationen variablenName typName ++ [mitFunktionSignatur, mitFunktionDeklaration],
-        instanzDeklaration variablenName]
+        ClassD (context variablenName) klassenName [PlainTV $ variablenName] funDeps $ deklarationen variablenName typName,
+        instanzDeklaration variablenName,
+        mitFunktionSignatur,
+        mitFunktionDeklaration,
+        getterSignatur,
+        getterDeklaration]
     where
         istTyp :: String -> Q Bool
         istTyp name = lookupTypeName name >>= \case
@@ -68,16 +73,17 @@ erzeugeKlasse abhängigkeiten name = do
             = InstanceD (Just Overlappable) [AppT (ConT klassenNameGtk) $ VarT variablenName] (AppT (ConT klassenName) $ VarT variablenName) []
         mitFunktionName :: Name
         mitFunktionName = mkName $ "mit" ++ name
-        erzeugeMitFunktionSignatur :: Name -> Q Dec
-        erzeugeMitFunktionSignatur variablenName = do
+        erzeugeMitFunktionSignatur :: Q Dec
+        erzeugeMitFunktionSignatur = do
             m <- newName "m"
             a <- newName "a"
             isW <- newName "isW"
+            variablenName <- newName "w"
             pure
                 $ SigD mitFunktionName
                     $ ForallT
-                        [PlainTV m, PlainTV a]
-                        []
+                        [PlainTV m, PlainTV a, PlainTV variablenName]
+                        [AppT (ConT klassenName) $ VarT variablenName]
                         $ AppT
                             (AppT ArrowT (ForallT [PlainTV isW] [AppT (ConT klassenNameGtk) (VarT isW)] $ AppT (AppT ArrowT $ VarT isW) $ AppT (VarT m) (VarT a)))
                             $ AppT
@@ -87,3 +93,19 @@ erzeugeKlasse abhängigkeiten name = do
         erzeugeMitFunktionDeklaration = do
             fun <- newName "fun"
             pure $ FunD mitFunktionName [Clause [VarP fun] (NormalB $ UInfixE (VarE fun) (VarE $ mkName ".") (VarE funktionName)) []]
+        firstToLower :: String -> String
+        firstToLower    []      = []
+        firstToLower    (h : t) = toLower h : t
+        getterName :: Name
+        getterName = mkName $ firstToLower name
+        erzeugeGetterSignatur :: Name -> Q Dec
+        erzeugeGetterSignatur typName = do
+            variablenName <- newName "s"
+            pure
+                $ SigD getterName
+                    $ ForallT
+                        [PlainTV variablenName]
+                        [AppT (ConT klassenName) $ VarT variablenName]
+                        $ AppT (AppT (ConT $ mkName "Lens.Getter") (VarT variablenName)) (ConT typName)
+        getterDeklaration :: Dec
+        getterDeklaration = ValD (VarP getterName) (NormalB $ AppE (VarE $ mkName "Lens.to") (VarE funktionName)) []

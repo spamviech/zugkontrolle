@@ -23,7 +23,7 @@ import Zug.Anbindung (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), 
 import Zug.Language ((<->), (<:>), showText)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitNotebook(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitNotebook(..), mitNotebook)
 import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, aktuellerEnum,
                                                 boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 
