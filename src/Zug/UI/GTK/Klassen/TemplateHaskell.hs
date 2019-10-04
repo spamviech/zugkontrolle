@@ -75,20 +75,24 @@ erzeugeKlasse abhängigkeiten name = do
         mitFunktionName = mkName $ "mit" ++ name
         erzeugeMitFunktionSignatur :: Q Dec
         erzeugeMitFunktionSignatur = do
-            m <- newName "m"
-            a <- newName "a"
+            b <- newName "b"
             isW <- newName "isW"
             variablenName <- newName "w"
             pure
                 $ SigD mitFunktionName
                     $ ForallT
-                        [PlainTV m, PlainTV a, PlainTV variablenName]
+                        [PlainTV b, PlainTV variablenName]
                         [AppT (ConT klassenName) $ VarT variablenName]
                         $ AppT
-                            (AppT ArrowT (ForallT [PlainTV isW] [AppT (ConT klassenNameGtk) (VarT isW)] $ AppT (AppT ArrowT $ VarT isW) $ AppT (VarT m) (VarT a)))
+                            (AppT
+                                ArrowT
+                                $ ForallT [PlainTV isW] [AppT (ConT klassenNameGtk) (VarT isW)]
+                                    $ AppT
+                                        (AppT ArrowT $ VarT isW)
+                                        (VarT b))
                             $ AppT
                                 (AppT ArrowT (VarT variablenName))
-                                $ AppT (VarT m) (VarT a)
+                                (VarT b)
         erzeugeMitFunktionDeklaration :: Q Dec
         erzeugeMitFunktionDeklaration = do
             fun <- newName "fun"

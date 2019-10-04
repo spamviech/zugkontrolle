@@ -123,7 +123,7 @@ class (MitWidget c) => MitRegistrierterCheckButton c where
     erhalteRegistrierterCheckButton :: c -> RegistrierterCheckButton
 
 -- | Führe eine Aktion mit einem 'MitRegistrierterCheckButton' aus
-mitRegistrierterCheckButton :: (MitRegistrierterCheckButton c, MonadIO m) => (RegistrierterCheckButton -> m a) -> c -> m a
+mitRegistrierterCheckButton :: (MitRegistrierterCheckButton c) => (RegistrierterCheckButton -> b) -> c -> b
 mitRegistrierterCheckButton funktion = funktion . erhalteRegistrierterCheckButton
 -- | 'Lens.Getter' analog zu 'erhalteRegistrierterCheckButton'
 registrierterCheckButton :: (MitRegistrierterCheckButton c) => Lens.Getter c RegistrierterCheckButton
