@@ -84,14 +84,15 @@ import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MS
                     entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, RegistrierterCheckButton, registrierterCheckButtonNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, registrierterCheckButtonNew,
+                                        RegistrierterCheckButton, MitRegistrierterCheckButton(..))
 import Zug.UI.Gtk.Hilfsfunktionen (containerRemoveJust, packingDefault, paddingDefault, positionDefault,
                                     boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), Padding(..), Position(..),
                                     buttonNewWithEventLabel)
-import Zug.UI.Gtk.Klassen (MitWidget(), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..),
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..),
                                     MitButton(), MitCheckButton(), MitToggleButton())
 import Zug.UI.Gtk.Widgets.Anschluss (anschlussNew)
-import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl ()
+import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget, auswahlRadioButtonNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Widgets.ScrollbaresWidget ()
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
@@ -114,7 +115,26 @@ newtype WidgetWegstreckeHinzufügen w a
         deriving (Eq, MitWidget, MitContainer, MitBox, MitButton, MitToggleButton, MitCheckButton)
 
 type BoxWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen Gtk.VBox a
-type CheckButtonWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen RegistrierterCheckButton a
+type CheckButtonWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen WegstreckeCheckButton a
+
+-- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
+data WegstreckeCheckButton
+    = WegstreckeCheckButton {
+        wcbRegistrierterCheckButton :: RegistrierterCheckButton}
+    | WegstreckeCheckButtonRichtung {
+        wcbWidget :: Gtk.Widget,
+        wcbRegistrierterCheckButton :: RegistrierterCheckButton,
+        wcbRichtungsAuswahl :: AuswahlWidget Richtung}
+    deriving (Eq)
+
+instance MitWidget WegstreckeCheckButton where
+    erhalteWidget :: WegstreckeCheckButton -> Gtk.Widget
+    erhalteWidget   WegstreckeCheckButton {wcbRegistrierterCheckButton} = erhalteWidget wcbRegistrierterCheckButton
+    erhalteWidget   WegstreckeCheckButtonRichtung {wcbWidget}           = wcbWidget
+
+instance MitRegistrierterCheckButton WegstreckeCheckButton where
+    erhalteRegistrierterCheckButton :: WegstreckeCheckButton -> RegistrierterCheckButton
+    erhalteRegistrierterCheckButton = wcbRegistrierterCheckButton
 
 -- | Box zur Auswahl der 'Plan'-Aktionen
 newtype WidgetPlanHinzufügen w a
@@ -160,7 +180,7 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
     progressBarPlan :: Gtk.ProgressBar,
     windowMain :: Gtk.Window,
-    fortfahrenWennToggledWegstrecke :: FortfahrenWennToggled TMVar StatusGui,
+    fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButton,
     tmvarPlanObjekt :: TMVar (Maybe Objekt)}
 
 -- | Klasse für Typen mit 'DynamischeWidgets'
@@ -290,14 +310,25 @@ buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ mitContainerRem
 -- ** Widget mit Name und CheckButton erstellen
 -- | Füge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen zur Box hinzu.
 hinzufügenWidgetWegstreckeNew ::
-    (StreckenObjekt o, MitBox b, MonadIO m) =>
-        o -> b -> FortfahrenWennToggled TMVar StatusGui -> m RegistrierterCheckButton
+    (StreckenObjekt o, MonadIO m) =>
+        o -> Maybe (NonEmpty Richtung) -> FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButton -> m WegstreckeCheckButton
 hinzufügenWidgetWegstreckeNew
     objekt
-    box
+    Nothing
     fortfahrenWennToggled
-        = liftIO $ boxPackWidgetNewDefault hBoxHinzufügen $
-            registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggled
+        = liftIO $ do
+            wcbRegistrierterCheckButton <- registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggled
+            pure WegstreckeCheckButton {wcbRegistrierterCheckButton}
+hinzufügenWidgetWegstreckeNew
+    objekt
+    (Just richtungen)
+    fortfahrenWennToggled
+        = liftIO $ do
+            hBox <- Gtk.hBoxNew False 0
+            wcbRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
+                registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggled
+            wcbRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen
+            pure WegstreckeCheckButtonRichtung {wcbRegistrierterCheckButton, wcbRichtungsAuswahl}
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 hinzufügenWidgetPlanNew :: (DynamischeWidgetsReader r m, MitWidget o, StreckenObjekt o, ObjektElement o, MonadIO m) =>

@@ -24,8 +24,8 @@ import Zug.Language ((<->), (<:>), showText)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), mitNotebook)
-import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, aktuellerEnum,
-                                                boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
+import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget, aktuelleAuswahl,
+                                    boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 
 -- | Anzeige eines 'Anschluss'
 newtype AnschlussWidget = AnschlussWidget Gtk.Label
@@ -51,10 +51,10 @@ data AnschlussAuswahlWidget = AnschlussAuswahlWidget {
     aawPinPage :: Int,
     aawPin :: Gtk.SpinButton,
     aawPCF8574PortPage :: Int,
-    aawPCF8574PortVariante :: BoundedEnumAuswahlWidget PCF8574Variant,
-    aawPCF8574PortA0 :: BoundedEnumAuswahlWidget Value,
-    aawPCF8574PortA1 :: BoundedEnumAuswahlWidget Value,
-    aawPCF8574PortA2 :: BoundedEnumAuswahlWidget Value,
+    aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant,
+    aawPCF8574PortA0 :: AuswahlWidget Value,
+    aawPCF8574PortA1 :: AuswahlWidget Value,
+    aawPCF8574PortA2 :: AuswahlWidget Value,
     aawPCF8574Port :: Gtk.SpinButton}
 
 instance MitWidget AnschlussAuswahlWidget where
@@ -108,10 +108,10 @@ aktuellerAnschluss
                     page
                         | page == aawPCF8574PortPage
                             -> liftIO $ do
-                                variant <- aktuellerEnum aawPCF8574PortVariante
-                                a0 <- aktuellerEnum aawPCF8574PortA0
-                                a1 <- aktuellerEnum aawPCF8574PortA1
-                                a2 <- aktuellerEnum aawPCF8574PortA2
+                                variant <- aktuelleAuswahl aawPCF8574PortVariante
+                                a0 <- aktuelleAuswahl aawPCF8574PortA0
+                                a1 <- aktuelleAuswahl aawPCF8574PortA1
+                                a2 <- aktuelleAuswahl aawPCF8574PortA2
                                 port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
                                 pure $ vonPCF8574Port $ PCF8574Port {
                                     pcf8574 = PCF8574 {variant, a0, a1, a2},
