@@ -40,9 +40,9 @@ instance MitLabel AnschlussWidget where
     erhalteLabel (AnschlussWidget label) = label
 
 -- | 'Label' für 'Anschluss' erstellen
-anschlussNew :: Text -> Anschluss -> IO AnschlussWidget
-anschlussNew name anschluss = AnschlussWidget <$>
-    (Gtk.labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss)
+anschlussNew :: (MonadIO m) => Text -> Anschluss -> m AnschlussWidget
+anschlussNew name anschluss = liftIO $ fmap AnschlussWidget $
+    Gtk.labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss
 
 -- | Widgets zum erzeugen eines 'Anschluss'
 data AnschlussAuswahlWidget = AnschlussAuswahlWidget {

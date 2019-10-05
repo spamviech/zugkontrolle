@@ -1,5 +1,8 @@
-aktuellste Version: https://github.com/spamviech/Zugkontrolle/issues
---------------------------------------------------------------------
+Cmd-UI:
+    *Unbekannt aus Datentypen entfernen und eigenen (ParseError a)-Datentyp verwenden
+        *Unbekannt hat überall identische Struktur
+    Analog zu Either als Fehler-Monade
+
 Fix tests
     Änderungen berücksichtigen
 

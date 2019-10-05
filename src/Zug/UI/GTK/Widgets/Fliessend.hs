@@ -23,7 +23,7 @@ import Zug.Language ((<:>), showText)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
-import Zug.UI.Gtk.Widgets.BoundedEnumAuswahl (BoundedEnumAuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuellerEnum)
+import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
@@ -40,7 +40,7 @@ fließendPackNew box s
         $ fmap FließendWidget $ Gtk.labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
 
 -- | Widget zur Eingabe des Fließend-Value
-newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget :: (BoundedEnumAuswahlWidget Value)}
+newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget :: AuswahlWidget Value}
                                     deriving (Eq, MitWidget)
 
 -- | Erstelle ein Widget zur Auswahl des Fließend-Value
@@ -50,5 +50,5 @@ fließendAuswahlPackNew
 
 -- | Erhalte den aktuell gewählten Fließend-Value
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
-aktuellerFließendValue = aktuellerEnum . erhalteAuswahlWidget
+aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif

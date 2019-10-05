@@ -32,7 +32,8 @@ import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Stre
 import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language ((<=>), (<^>), showText, fehlerText)
 import qualified Zug.Language as Language
-import Zug.Plan (ObjektAllgemein(..), Objekt, Plan())
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
+import Zug.Plan (Plan())
 import Zug.UI.Base (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
                     getStreckenabschnitte, getKupplungen)
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())

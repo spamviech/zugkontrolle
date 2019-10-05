@@ -47,7 +47,7 @@ instance (Show (bg 'Märklin), Show (bg 'Lego), Show st, Show (we 'Märklin), Sh
     show    (OWegstrecke ws)            = show ws
     show    (OPlan pl)                  = show pl
 
--- | Klasse für Typen die sich in ein 'Objekt' transformieren lassen
+-- | Klasse für Typen, die ein 'Objekt' enthalten
 class ObjektElement e where
     zuObjekt :: e -> Objekt
 
