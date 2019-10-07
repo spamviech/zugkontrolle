@@ -43,7 +43,7 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen,
                     Richtung(..), unterstützteRichtungen)
 import Zug.Language ((<^>), (<=>), (<->), showText, toBefehlsString)
 import qualified Zug.Language as Language
-import Zug.Plan (Objekt, ObjektAllgemein(..))
+import Zug.Objekt (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, unbekanntShowText, MitAnfrage(..),

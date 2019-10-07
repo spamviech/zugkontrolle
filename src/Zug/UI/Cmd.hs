@@ -25,7 +25,7 @@ import qualified Zug.Language as Language
 import Zug.Language ((<~>), (<\>), (<=>), (<!>), (<:>), showText, fehlerhafteEingabe, toBefehlsString)
 import qualified Zug.UI.Save as Save
 import Zug.Options (Options(..), getOptions)
-import Zug.Plan (Objekt)
+import Zug.Objekt (Objekt)
 import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
                     AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
@@ -138,9 +138,9 @@ ausführenBefehlSofort   (BSLaden dateipfad)         = do
         Language.nichtGefundeneDatei <=> pack dateipfad
     pure AnfrageBefehl
 ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >>= pure . \case
-        (AusführenMöglich)  -> ABAktionPlan plan
-        (WirdAusgeführt)    -> ABAktionPlanAusführend plan Neu
-        (PinsBelegt pins)   -> ABAktionPlanGesperrt plan Neu pins
+        AusführenMöglich                -> ABAktionPlan plan
+        WirdAusgeführt                  -> ABAktionPlanAusführend plan Neu
+        (AnschlüsseBelegt anschlüsse)   -> ABAktionPlanGesperrt plan Neu anschlüsse
 
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]

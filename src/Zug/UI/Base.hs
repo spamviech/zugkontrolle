@@ -341,11 +341,11 @@ ausführenMöglich plan = do
         | elem (Ausführend plan) ausführend
             -> WirdAusgeführt
         | not $ null belegtePins
-            -> PinsBelegt $ NE.fromList belegtePins
+            -> AnschlüsseBelegt $ NE.fromList belegtePins
         | otherwise
             -> AusführenMöglich
 
 -- | Ist ein Ausführen eines Plans möglich?
 data AusführenMöglich   = AusführenMöglich
                         | WirdAusgeführt
-                        | PinsBelegt (NonEmpty Anschluss)
+                        | AnschlüsseBelegt (NonEmpty Anschluss)

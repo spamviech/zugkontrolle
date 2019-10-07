@@ -32,8 +32,9 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRic
                     Fahrtrichtung(..), unterstützteFahrtrichtungen)
 import Zug.Language ((<^>), (<=>), (<->), (<|>), showText, toBefehlsString)
 import qualified Zug.Language as Language
-import Zug.Plan (ObjektAllgemein(..), Objekt, Plan(..), Aktion(..), AktionStreckenabschnitt(..),
-                AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionWeiche(..), AktionKupplung(..))
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
+import Zug.Plan (Plan(..), Aktion(..), AktionStreckenabschnitt(..), AktionWegstrecke(..),
+                AktionBahngeschwindigkeit(..), AktionWeiche(..), AktionKupplung(..))
 import Zug.Warteschlange (Warteschlange, leer, anhängen, zeigeLetztes, Anzeige(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer

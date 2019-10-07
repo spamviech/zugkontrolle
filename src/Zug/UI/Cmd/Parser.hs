@@ -39,7 +39,8 @@ import Zug.Anbindung (Anschluss(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<:>), (<\>), showText, toBefehlsString)
 import qualified Zug.Menge as Menge
-import Zug.Plan (Objekt, Plan, ObjektAllgemein(..), Plan(..))
+import Zug.Objekt (Objekt, ObjektAllgemein(..))
+import Zug.Plan (Plan, Plan(..))
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)
