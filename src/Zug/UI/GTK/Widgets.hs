@@ -447,9 +447,7 @@ instance BahngeschwindigkeitKlasse BGWidgets where
 
 -- | 'Bahngeschwindigkeit' darstellen und zum Status hinzufügen
 bahngeschwindigkeitPackNew ::
-    (ObjektReader ObjektGui m, MitStatus (ReaderFamilie ObjektGui), MitDynamischeWidgets (ReaderFamilie ObjektGui),
-    MitTVarMaps (ReaderFamilie ObjektGui), MonadIO m, ZugtypKlasse z, WegstreckenElement (BGWidgets z),
-    PlanElement (BGWidgets z)) =>
+    (ObjektReader ObjektGui m, MonadIO m, ZugtypKlasse z, WegstreckenElement (BGWidgets z), PlanElement (BGWidgets z)) =>
         ObjektTyp (BGWidgets z) -> m (BGWidgets z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     tmvarStatus <- erhalteStatus
@@ -467,7 +465,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         bgHinzPL = hinzufügenWidgetPlan}
     namePackNew hBox bahngeschwindigkeit
     boxPackWidgetNewDefault hBox $ anschlussNew Language.geschwindigkeit $ getGeschwindigkeitsAnschluss bahngeschwindigkeit
-    hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew phantomGui hBox bgWidgets
+    hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bgWidgets
     fahrtrichtungsWidgetsPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit
     fließendPackNew hBox bahngeschwindigkeit
     buttonEntfernenPackSimple hBox vBoxBahngeschwindigkeiten $ do
@@ -475,7 +473,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         entferneHinzufügenWegstreckeWidgets bgWidgets
         entferneHinzufügenPlanWidgets bgWidgets
     -- Widgets merken
-    _ausführenTMVarBefehl (Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets) tmvarStatus
+    ausführenTMVarBefehl (Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets) tmvarStatus
     pure bgWidgets
         where
             getGeschwindigkeitsAnschluss :: Bahngeschwindigkeit z -> Anschluss
@@ -485,26 +483,26 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             getGeschwindigkeitsAnschluss
                 LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss}
                     = bglGeschwindigkeitsAnschluss
-            fahrtrichtungsWidgetsPackNew :: (StatusReader s m, MonadIO m, MitBox b, MitRange r) =>
+            fahrtrichtungsWidgetsPackNew :: (ObjektReader ObjektGui m, MonadIO m, MitBox b, MitRange r) =>
                 b -> Bahngeschwindigkeit z -> r -> m ()
             fahrtrichtungsWidgetsPackNew
                 box
                 bgMärklin@MärklinBahngeschwindigkeit {}
                 range
-                    = liftIO $ void $ _buttonUmdrehenPackNew box bgMärklin range
+                    = void $ buttonUmdrehenPackNew box bgMärklin range
             fahrtrichtungsWidgetsPackNew
                 box
                 bgLego@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss}
                 range
-                    = liftIO $ void $ do
-                        boxPackWidgetNewDefault box $ anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
-                        _buttonFahrtrichtungEinstellenPackNew box bgLego range
+                    = void $ do
+                        liftIO $ boxPackWidgetNewDefault box $ anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
+                        buttonFahrtrichtungEinstellenPackNew box bgLego range
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew ::
-    (MitBox b, BahngeschwindigkeitKlasse (BG o), ObjektReader o m, MitStatus (ReaderFamilie o), MonadIO m) =>
-        Phantom o -> b -> (BG o) z -> m Gtk.HScale
-hScaleGeschwindigkeitPackNew _phantom box bahngeschwindigkeit = do
+    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektReader ObjektGui m, MonadIO m) =>
+        b -> bg z -> m Gtk.HScale
+hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
     tmvarStatus <- erhalteStatus
     objektReader <- ask
     liftIO $ do
@@ -512,30 +510,35 @@ hScaleGeschwindigkeitPackNew _phantom box bahngeschwindigkeit = do
         Gtk.on scale Gtk.valueChanged $ do
             wert <- Gtk.get scale Gtk.rangeValue
             flip runReaderT objektReader $
-                _ausführenTMVarAktion (Geschwindigkeit bahngeschwindigkeit $ fromIntegral $ fromEnum wert) tmvarStatus
+                ausführenTMVarAktion (Geschwindigkeit bahngeschwindigkeit $ floor wert) tmvarStatus
         pure scale
 
 -- | Füge 'Gtk.Button' zum umdrehen/ zur Box hinzu
-buttonUmdrehenPackNew :: (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, StatusReader s m, MonadIO m) =>
+buttonUmdrehenPackNew :: (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
     b -> bg 'Märklin -> r -> m Gtk.Button
 buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
     tmvarStatus <- erhalteStatus
+    objektReader <- ask
     liftIO $ do
         boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.umdrehen $ do
             Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
-            _ausführenTMVarAktion (Umdrehen bahngeschwindigkeit) tmvarStatus
+            flip runReaderT objektReader $
+                ausführenTMVarAktion (Umdrehen bahngeschwindigkeit) tmvarStatus
 -- | Füge 'Gtk.Button' zum Fahrtrichtung einstellen zur Box hinzu
-buttonFahrtrichtungEinstellenPackNew :: (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, StatusReader s m, MonadIO m) =>
-    b -> bg 'Lego -> r -> m Gtk.ToggleButton
+buttonFahrtrichtungEinstellenPackNew ::
+    (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
+        b -> bg 'Lego -> r -> m Gtk.ToggleButton
 buttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
     tmvarStatus <- erhalteStatus
+    objektReader <- ask
     liftIO $ do
         toggleButton <- boxPackWidgetNewDefault box $ Gtk.toggleButtonNewWithLabel (Language.umdrehen :: Text)
         Gtk.on toggleButton Gtk.toggled $ do
             Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
             vorwärts <- Gtk.get toggleButton Gtk.toggleButtonActive
             let fahrtrichtung = if vorwärts then Vorwärts else Rückwärts
-            _ausführenTMVarAktion (FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung) tmvarStatus
+            flip runReaderT objektReader $
+                ausführenTMVarAktion (FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung) tmvarStatus
         pure toggleButton
 
 -- ** Streckenabschnitt

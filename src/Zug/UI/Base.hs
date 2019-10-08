@@ -173,6 +173,8 @@ type instance ReaderFamilie Objekt = TVarMaps
 -- | Abkürzung für Funktionen, die die zum Objekt gehörige 'ReaderFamilie' benötigen
 class (MonadReader (ReaderFamilie o) m) => ObjektReader o m
 
+instance (MonadReader (ReaderFamilie o) m) => ObjektReader o m
+
 -- * Zustands-Monade mit Status als aktuellem Zustand
 -- | Zustands-Monaden-Transformer spezialisiert auf 'Status' in der IO-Monade
 type IOStatus a = IOStatusAllgemein Objekt a
