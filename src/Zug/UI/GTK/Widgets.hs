@@ -80,7 +80,7 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEit
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<:>), (<°>), showText)
 import Zug.Menge (ausFoldable)
-import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt, Phantom(..), ObjektKlasse(..))
+import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt, Phantom(..))
 import Zug.Plan (PlanKlasse(..), Plan(..), AusführendReader(),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
                 AktionKupplung(..), AktionWegstrecke(..))
@@ -308,20 +308,20 @@ entferneHinzufügenPlanWidgets planElement = do
     sequence_ $ containerRemoveJust <$> ZipList boxenPlan <*> ZipList (planElement ^.. foldPlan)
 
 -- | Entfernen-Knopf zu 'Box' hinzufügen. Beim drücken werden /removeActionGui/ und /removeAction/ ausgeführt.
-buttonEntfernenPack :: (MitBox b, StatusReader r m, TVarMapsReader r m, DynamischeWidgetsReader r m, MonadIO m) =>
+buttonEntfernenPack :: (MitBox b, ObjektReader ObjektGui m, MonadIO m) =>
     b -> IO () -> IOStatusGui () -> m Gtk.Button
 buttonEntfernenPack box removeActionGui removeAction = do
-    tvarMaps <- erhalteTVarMaps
-    dynamischeWidgets <- erhalteDynamischeWidgets
     tmvarStatus <- erhalteStatus
+    objektReader <- ask
     liftIO $ boxPackWidgetNew box PackNatural paddingDefault End $
         buttonNewWithEventLabel Language.entfernen $ do
-            runReaderT (auswertenTMVarIOStatus removeAction tmvarStatus) (tvarMaps, dynamischeWidgets, tmvarStatus)
+            flip runReaderT objektReader $ auswertenTMVarIOStatus removeAction tmvarStatus
             removeActionGui
 
--- | Entfernen-Knopf zu Box hinzufügen. Beim drücken wird /parent/ aus der /box/ entfernt und die 'IOStatusGui'-Aktion ausgeführt.
+-- | Entfernen-Knopf zu Box hinzufügen.
+-- Beim drücken wird die /box/ aus /parent/ entfernt und die 'IOStatusGui'-Aktion ausgeführt.
 buttonEntfernenPackSimple ::
-    (MitBox b, MitContainer c, StatusReader r m, TVarMapsReader r m, DynamischeWidgetsReader r m, MonadIO m) =>
+    (MitBox b, MitContainer c, ObjektReader ObjektGui m, MonadIO m) =>
         b -> c -> IOStatusGui () -> m Gtk.Button
 buttonEntfernenPackSimple box parent = buttonEntfernenPack box $ mitContainerRemove parent box
 
@@ -418,9 +418,9 @@ instance PlanElement (ZugtypEither BGWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither BGWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither BGWidgets)))
     foldPlan = Lens.to $ ausZugtypEither $ Just . WidgetPlanHinzufügen . widgetPlanHinzufügen . bgHinzPL
     boxenPlan :: ZugtypEither Bahngeschwindigkeit -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither BGWidgets))
-    boxenPlan (ZugtypMärklin _bgWidgets) = Lens.to $
+    boxenPlan   (ZugtypMärklin _bahngeschwindigkeit)    = Lens.to $
         WidgetPlanHinzufügen . widgetPlanHinzufügen . vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-    boxenPlan (ZugtypLego _bgWidgets) = Lens.to $
+    boxenPlan   (ZugtypLego _bahngeschwindigkeit)   = Lens.to $
         WidgetPlanHinzufügen . widgetPlanHinzufügen . vBoxHinzufügenPlanBahngeschwindigkeitenLego
 
 instance StreckenObjekt (BGWidgets z) where
@@ -497,7 +497,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 range
                     = void $ do
                         liftIO $ boxPackWidgetNewDefault box $ anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
-                        buttonFahrtrichtungEinstellenPackNew box bgLego range
+                        togglebuttonFahrtrichtungEinstellenPackNew box bgLego range
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew ::
@@ -525,11 +525,11 @@ buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
             Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
             flip runReaderT objektReader $
                 ausführenTMVarAktion (Umdrehen bahngeschwindigkeit) tmvarStatus
--- | Füge 'Gtk.Button' zum Fahrtrichtung einstellen zur Box hinzu
-buttonFahrtrichtungEinstellenPackNew ::
+-- | Füge 'Gtk.ToggleButton' zum Fahrtrichtung einstellen zur Box hinzu
+togglebuttonFahrtrichtungEinstellenPackNew ::
     (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
         b -> bg 'Lego -> r -> m Gtk.ToggleButton
-buttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
+togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
     tmvarStatus <- erhalteStatus
     objektReader <- ask
     liftIO $ do
@@ -706,12 +706,12 @@ instance PlanElement (ZugtypEither WEWidgets) where
         \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
             -> fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) <$> [gerade, kurve, links, rechts]
     boxenPlan :: ZugtypEither Weiche -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WEWidgets))
-    boxenPlan (ZugtypMärklin _bgWidgets) = Lens.folding $ fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+    boxenPlan   (ZugtypMärklin _weiche) = Lens.folding $ fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
         vBoxHinzufügenPlanWeichenGeradeMärklin,
         vBoxHinzufügenPlanWeichenKurveMärklin,
         vBoxHinzufügenPlanWeichenLinksMärklin,
         vBoxHinzufügenPlanWeichenRechtsMärklin]
-    boxenPlan (ZugtypLego _bgWidgets) = Lens.folding $ fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+    boxenPlan   (ZugtypLego _weiche)    = Lens.folding $ fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
         vBoxHinzufügenPlanWeichenGeradeLego,
         vBoxHinzufügenPlanWeichenKurveLego,
         vBoxHinzufügenPlanWeichenLinksLego,
@@ -928,8 +928,25 @@ instance PlanElement (WSWidgets 'Märklin) where
 instance PlanElement (WSWidgets 'Lego) where
     foldPlan :: Lens.Fold (WSWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WSWidgets 'Lego)))
     foldPlan = Lens.folding $ (??) [bahngeschwindigkeit, streckenabschnitt, kupplung, wegstrecke] . wsHinzPL
-    boxenPlan :: Wegstrecke z -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WSWidgets 'Lego))
+    boxenPlan :: Wegstrecke 'Lego -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WSWidgets 'Lego))
     boxenPlan _wsWidgets = Lens.folding $ (??) [
+        vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
+        vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
+        vBoxHinzufügenPlanWegstreckenKupplungLego,
+        vBoxHinzufügenPlanWegstreckenLego]
+instance PlanElement (ZugtypEither WSWidgets) where
+    foldPlan :: Lens.Fold (ZugtypEither WSWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WSWidgets)))
+    foldPlan = Lens.folding $ ausZugtypEither $
+        map (fmap $ WidgetPlanHinzufügen . widgetPlanHinzufügen) .
+        (??) [bahngeschwindigkeit, streckenabschnitt, kupplung, wegstrecke] .
+        wsHinzPL
+    boxenPlan :: ZugtypEither Wegstrecke -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WSWidgets))
+    boxenPlan   (ZugtypMärklin _wegstrecke) = Lens.folding $ map (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+        vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
+        vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
+        vBoxHinzufügenPlanWegstreckenKupplungMärklin,
+        vBoxHinzufügenPlanWegstreckenMärklin]
+    boxenPlan   (ZugtypLego _wegstrecke)    = Lens.folding $ map (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
         vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
         vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
         vBoxHinzufügenPlanWegstreckenKupplungLego,
@@ -966,7 +983,7 @@ instance WegstreckeKlasse (WSWidgets z) where
     einstellen WSWidgets {ws} = einstellen ws
 
 -- | 'Wegstrecke' darstellen
-wegstreckePackNew :: (StatusReader r m, DynamischeWidgetsReader r m, MonadIO m, ZugtypKlasse z) =>
+wegstreckePackNew :: (ObjektReader ObjektGui m, MonadIO m, ZugtypKlasse z, PlanElement (WSWidgets z)) =>
     Wegstrecke z -> m (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke {
@@ -976,43 +993,32 @@ wegstreckePackNew
         wsKupplungen}
             = do
                 tmvarStatus <- erhalteStatus
-                dynamischeWidgets@DynamischeWidgets {
-                    vBoxWegstrecken,
-                    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
-                    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
-                    vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
-                    vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
-                    vBoxHinzufügenPlanWegstreckenKupplungMärklin,
-                    vBoxHinzufügenPlanWegstreckenKupplungLego,
-                    vBoxHinzufügenPlanWegstreckenMärklin,
-                    vBoxHinzufügenPlanWegstreckenLego,
-                    tmvarPlanObjekt}
-                        <- erhalteDynamischeWidgets
+                objektReader <- ask
+                dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
                 -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
+                let
+                    [boxBahngeschwindigkeit, boxStreckenabschnitt, boxKupplung, boxWegstrecke]
+                        = dynamischeWidgets ^.. boxenPlan wegstrecke
                 hinzufügenPlanWidgetBG  <- if null wsBahngeschwindigkeiten
                     then pure Nothing
-                    else Just <$> _hinzufügenWidgetPlanPackNew
-                        _vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
-                        (OWegstrecke $ zuZugtypEither wegstrecke)
-                        tmvarPlanObjekt
+                    else Just <$> hinzufügenWidgetPlanPackNew
+                        boxBahngeschwindigkeit
+                        wegstrecke
                 hinzufügenPlanWidgetST <- if null wsStreckenabschnitte
                     then pure Nothing
-                    else Just <$> _hinzufügenWidgetPlanPackNew
-                        _vBoxHinzufügenPlanWegstreckenStreckenabschnitt
-                        (OWegstrecke $ zuZugtypEither wegstrecke)
-                        tmvarPlanObjekt
+                    else Just <$> hinzufügenWidgetPlanPackNew
+                        boxStreckenabschnitt
+                        wegstrecke
                 hinzufügenPlanWidgetKU <- if null wsKupplungen
                     then pure Nothing
-                    else Just <$> _hinzufügenWidgetPlanPackNew
-                        _vBoxHinzufügenPlanWegstreckenKupplung
-                        (OWegstrecke $ zuZugtypEither wegstrecke)
-                        tmvarPlanObjekt
+                    else Just <$> hinzufügenWidgetPlanPackNew
+                        boxKupplung
+                        wegstrecke
                 hinzufügenPlanWidgetWS <- if null wsWeichenRichtungen
                     then pure Nothing
-                    else Just <$> _hinzufügenWidgetPlanPackNew
-                        _vBoxHinzufügenPlanWegstreckenWeiche
-                        (OWegstrecke $ zuZugtypEither wegstrecke)
-                        tmvarPlanObjekt
+                    else Just <$> hinzufügenWidgetPlanPackNew
+                        boxWegstrecke
+                        wegstrecke
                 let hinzufügenPlanWidget = WegstreckePlanHinzufügenWidget {
                     bahngeschwindigkeit = hinzufügenPlanWidgetBG,
                     streckenabschnitt = hinzufügenPlanWidgetST,
@@ -1025,35 +1031,50 @@ wegstreckePackNew
                 expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew (Language.wegstreckenElemente :: Text)
                 vBoxExpander <- liftIO $ containerAddWidgetNew expander $ Gtk.vBoxNew False 0
                 functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-                unless (null wsBahngeschwindigkeiten) $ liftIO $ void $ do
-                    boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
+                unless (null wsBahngeschwindigkeiten) $ void $ do
+                    liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
                         Language.bahngeschwindigkeiten <:> foldl appendName "" wsBahngeschwindigkeiten
-                    hScaleGeschwindigkeit <- _hScaleGeschwindigkeitPackNew functionBox wegstrecke
-                    _buttonUmdrehenPackNew functionBox wegstrecke hScaleGeschwindigkeit tmvarStatus
+                    hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew functionBox wegstrecke
+                    case zuZugtypEither wegstrecke of
+                        (ZugtypMärklin wsMärklin)
+                            -> void $ buttonUmdrehenPackNew
+                                functionBox
+                                wsMärklin
+                                hScaleGeschwindigkeit
+                        (ZugtypLego wsLego)
+                            -> void $ togglebuttonFahrtrichtungEinstellenPackNew
+                                functionBox
+                                wsLego
+                                hScaleGeschwindigkeit
                 unless (null wsStreckenabschnitte) $ void $ do
                     liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
                         Language.streckenabschnitte <:> foldl appendName "" wsStreckenabschnitte
-                    _toggleButtonStromPackNew functionBox wegstrecke
+                    toggleButtonStromPackNew functionBox wegstrecke
                 unless (null wsWeichenRichtungen) $ void $ do
                     liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
                         Language.weichen <:>
                         foldl (\acc (weiche, richtung) -> appendName acc weiche <°> showText richtung) "" wsWeichenRichtungen
                     boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.einstellen $
-                        _ausführenTMVarAktion (Einstellen wegstrecke) tmvarStatus
-                unless (null wsKupplungen) $ liftIO $ void $ do
-                    boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
+                        flip runReaderT objektReader $
+                            ausführenTMVarAktion (Einstellen wegstrecke) tmvarStatus
+                unless (null wsKupplungen) $ void $ do
+                    liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
                         Language.kupplungen <:> foldl appendName "" wsKupplungen
-                    _buttonKuppelnPackNew functionBox wegstrecke
+                    buttonKuppelnPackNew functionBox wegstrecke
                 let wsWidgets = WSWidgets {
                         ws = wegstrecke,
                         wsWidget = frame,
                         wsHinzPL = hinzufügenPlanWidget}
-                _buttonEntfernenPack
+                    entferneWidgets :: IO ()
+                    entferneWidgets = do
+                        Gtk.containerRemove vBoxWegstrecken frame
+                        flip runReaderT objektReader $ entferneHinzufügenPlanWidgets wsWidgets
+                buttonEntfernenPack
                     functionBox
-                    (Gtk.containerRemove vBoxWegstrecken frame >> _entferneHinzufügenPlanWidgets wsWidgets)
-                    (_entfernenWegstrecke $ zuZugtypEither wsWidgets)
+                    entferneWidgets
+                    (entfernenWegstrecke $ zuZugtypEither wsWidgets)
                 -- Widgets merken
-                _ausführenTMVarBefehl (Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets) tmvarStatus
+                ausführenTMVarBefehl (Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets) tmvarStatus
                 pure wsWidgets
     where
         appendName :: (StreckenObjekt o) => Text -> o -> Text
@@ -1066,7 +1087,7 @@ data PLWidgets
     = PLWidgets {
         pl :: Plan,
         plWidget :: Gtk.Frame}
-            deriving (Eq)
+    deriving (Eq)
 
 instance StreckenObjekt PLWidgets where
     anschlüsse :: PLWidgets -> [Anschluss]
