@@ -55,7 +55,7 @@ uiOpt = option auto (
                 long "ui" <>
                 metavar "UI" <>
                 showDefault <>
-                value GTK <>
+                value Gtk <>
                 help ("Verwende UI=" ++ zeigeMöglichkeiten alleUI ++ " als Benutzer-Schnittstelle."))
 
 ladeOpt :: Parser String
