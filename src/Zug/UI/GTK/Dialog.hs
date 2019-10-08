@@ -29,24 +29,8 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe (maybe, fromJust)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
-import Graphics.UI.Gtk (Box, HBox, VBox, BoxClass(), Window, WindowClass(),
-                        Button, CheckButton, SpinButton, RadioButton,
-                        Expander, Label, Entry, ComboBox,
-                        Dialog, FileChooserDialog, MessageDialog, DialogClass(),
-                        ResponseId(..), FileChooserAction(..),
-                        AttrOp(..), set, get, on, widgetGetParent,
-                        windowTitle, containerRemove, widgetShow, widgetHide,
-                        fileChooserGetFilename, fileChooserDialogNew, fileChooserDoOverwriteConfirmation,
-                        messageDialogNew, MessageType(..), ButtonsType(..), dialogRun,
-                        comboBoxActive, entryText, widgetHasFocus, widgetSensitive, spinButtonValue,
-                        toggleButtonActive, windowTransientFor, windowDefaultHeight,
-                        dialogNew, dialogAddButton, dialogAddActionWidget, castToBox,
-                        comboBoxNewText, comboBoxAppendText, vBoxNew, hBoxNew, labelNew,
-                        radioButtonNewWithLabel, radioButtonNewWithLabelFromWidget,
-                        changed, checkButtonNew, widgetVisible, Packing(..), expanderNew,
-                        notebookNew, windowNew, windowModal, deleteEvent, spinButtonNewWithRange,
-                        hScaleNewWithRange, postGUIAsync, rangeValue,
-                        widgetExpand, comboBoxSetActive, expanderLabel, dialogGetActionArea)
+import Graphics.UI.Gtk (AttrOp(..))
+import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes, zeigeErstes)
@@ -58,7 +42,7 @@ import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<!>), (<:>), (<^>))
-import Zug.UI.Base (Status, auswertenTMVarIOStatus, liftIOFunction,
+import Zug.UI.Base (Status, auswertenTMVarIOStatus,
                     putBahngeschwindigkeiten, bahngeschwindigkeiten,
                     putStreckenabschnitte, streckenabschnitte,
                     putWeichen, weichen,
@@ -66,7 +50,7 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus, liftIOFunction,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
-import Zug.UI.Gtk.Widgets (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(..), WegstreckenElement(..),
+import Zug.UI.Gtk.Widgets (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(..), WegstreckenElement(..),
                         BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
                         widgetShowIf, containerAddWidgetNew, boxPackDefault, boxPack,
                         boxPackWidgetNewDefault, boxPackWidgetNew, paddingDefault, positionDefault,
@@ -75,18 +59,18 @@ import Zug.UI.Gtk.Widgets (StatusGUI, BefehlGUI, IOStatusGUI, DynamischeWidgets(
                         weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
                         getterRichtungsRadioButtons, nameEntryPackNew, pinSpinBoxNew, traversalHinzufügenWegstrecke,
                         scrolledWidgedNotebookAppendPageNew, scrolledWidgetPackNew, scrolledWidgetAddNew)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons, fortfahrenButton,
-                                        MitCheckButton(..), fortfahrenWennToggledNew, aktiviereWennToggledTMVar)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons,
+                                        fortfahrenWennToggledNew, aktiviereWennToggledTMVar)
 
--- | Speichern des aktuellen 'StatusGUI'
-buttonSpeichernPack :: (BoxClass b) => Window -> b -> TMVar StatusGUI -> IO Button
+-- | Speichern des aktuellen 'StatusGui'
+buttonSpeichernPack :: (BoxClass b) => Window -> b -> TMVar StatusGui -> IO Button
 buttonSpeichernPack windowMain box tmvarStatus = do
     dialogSpeichern <- dialogSpeichernNew windowMain
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ do
         antwort <- dialogEval dialogSpeichern
         when (antwort == ResponseOk) $ void $ do
             (Just dateipfad) <- fileChooserGetFilename dialogSpeichern
-            ausführenTMVarBefehl (Speichern dateipfad :: BefehlGUI) tmvarStatus
+            ausführenTMVarBefehl (Speichern dateipfad :: BefehlGui) tmvarStatus
 
 dialogSpeichernNew :: Window -> IO FileChooserDialog
 dialogSpeichernNew window = do
@@ -94,8 +78,8 @@ dialogSpeichernNew window = do
     set fileChooserDialog [fileChooserDoOverwriteConfirmation := True]
     pure fileChooserDialog
 
--- | Laden eines neuen 'StatusGUI' aus einer Datei
-buttonLadenPack :: (BoxClass b) => Window -> b -> TMVar StatusGUI -> DynamischeWidgets -> IO Button
+-- | Laden eines neuen 'StatusGui' aus einer Datei
+buttonLadenPack :: (BoxClass b) => Window -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Button
 buttonLadenPack windowMain box tmvarStatus dynamischeWidgets = do
     dialogLaden <- dialogLadenNew windowMain
     dialogLadenFehler <- dialogLadenFehlerNew windowMain
@@ -108,24 +92,24 @@ buttonLadenPack windowMain box tmvarStatus dynamischeWidgets = do
                     statusInitial <- atomically $ readTMVar tmvarStatus
                     -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
                     let
-                        ladeAktion :: Status -> IO StatusGUI
+                        ladeAktion :: Status -> IO StatusGui
                         ladeAktion = ladeWidgets tmvarStatus dynamischeWidgets
-                        fehlerBehandlung :: IOStatusGUI ()
+                        fehlerBehandlung :: IOStatusGui ()
                         fehlerBehandlung = liftIO $ void $ do
                             set dialogLadenFehler [windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
                     flip State.evalStateT statusInitial $ ausführenBefehl $
                         Laden dateipfad ladeAktion fehlerBehandlung
 
--- | Passe angezeigte Widgets (inkl. 'StatusGUI' in 'LikeMVar') an reinen 'Status' an.
-ladeWidgets :: TMVar StatusGUI -> DynamischeWidgets -> Status -> IO StatusGUI
+-- | Passe angezeigte Widgets (inkl. 'StatusGui' in 'LikeMVar') an reinen 'Status' an.
+ladeWidgets :: TMVar StatusGui -> DynamischeWidgets -> Status -> IO StatusGui
 ladeWidgets tmvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne}) status = do
     auswertenTMVarIOStatus löscheWidgets tmvarStatus
     erstelleWidgets tmvarStatus status
         where
-            löscheWidgets :: IOStatusGUI ()
+            löscheWidgets :: IOStatusGui ()
             löscheWidgets = State.get >>= liftIOFunction (löscheWidgetsAux) >> putBahngeschwindigkeiten [] >> putStreckenabschnitte [] >> putWeichen [] >> putKupplungen [] >> putWegstrecken [] >> putPläne []
-            löscheWidgetsAux :: StatusGUI -> IO ()
+            löscheWidgetsAux :: StatusGui -> IO ()
             löscheWidgetsAux status = do
                 mapM_ (\bgWidgets@(BGWidgets {bgWidget=w})  -> containerRemove vBoxBahngeschwindigkeiten w  >> entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets) $ status ^. bahngeschwindigkeiten
                 mapM_ (\stWidgets@(STWidgets {stWidget=w})  -> containerRemove vBoxStreckenabschnitte w     >> entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets) $ status ^. streckenabschnitte
@@ -133,7 +117,7 @@ ladeWidgets tmvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindi
                 mapM_ (\kuWidgets@(KUWidgets {kuWidget=w})  -> containerRemove vBoxKupplungen w             >> entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets) $ status ^. kupplungen
                 mapM_ (\wsWidgets@(WSWidgets {wsWidget=w})  -> containerRemove vBoxWegstrecken w            >> entferneHinzufügenPlanWidgets wsWidgets dynamischeWidgets) $ status ^. wegstrecken
                 mapM_ (\(PLWidgets {plWidget=w})            -> containerRemove vBoxPläne w) $ status ^. pläne
-            erstelleWidgets :: TMVar StatusGUI -> Status -> IO StatusGUI
+            erstelleWidgets :: TMVar StatusGui -> Status -> IO StatusGui
             erstelleWidgets tmvarStatus status = do
                 mapM_ (\bahngeschwindigkeit -> bahngeschwindigkeitPackNew bahngeschwindigkeit tmvarStatus dynamischeWidgets) $ reverse $ status ^. bahngeschwindigkeiten
                 mapM_ (\streckenabschnitt -> streckenabschnittPackNew streckenabschnitt tmvarStatus dynamischeWidgets)       $ reverse $ status ^. streckenabschnitte
@@ -150,7 +134,7 @@ dialogLadenFehlerNew :: Window -> IO MessageDialog
 dialogLadenFehlerNew window = messageDialogNew (Just window) [] MessageError ButtonsOk (Language.nichtGefundeneDatei <!> "" :: Text)
 
 -- | Hinzufügen eines 'StreckenObjekt'
-buttonHinzufügenPack :: (WindowClass w, BoxClass b) => w -> b -> TMVar StatusGUI -> DynamischeWidgets -> IO Button
+buttonHinzufügenPack :: (WindowClass w, BoxClass b) => w -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Button
 buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
     dialogHinzufügen@(DialogHinzufügen {dialog}) <- dialogHinzufügenNew parentWindow dynamischeWidgets
     button <- liftIO $ boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.hinzufügen $ do
@@ -158,7 +142,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
         runPage 0 dialogHinzufügen tmvarStatus dynamischeWidgets
     pure button
         where
-            runPage :: Natural -> DialogHinzufügen -> TMVar StatusGUI -> DynamischeWidgets -> IO ()
+            runPage :: Natural -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             runPage
                 i
                 dialogHinzufügen@(DialogHinzufügen {dialog, pages, buttonWeiter, buttonZurück})
@@ -266,7 +250,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                                 showAktionen pgButtonHinzufügenPlan vBoxAktionen expanderAktionen tvarLabelAktionen leer
                         _page
                             -> pure ()
-            optionenAnzeigen :: PageHinzufügen -> TMVar StatusGUI -> IO ()
+            optionenAnzeigen :: PageHinzufügen -> TMVar StatusGui -> IO ()
             optionenAnzeigen
                 (PagePlan {bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen})
                 tmvarStatus
@@ -282,7 +266,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                 _page
                 _mvarStatus
                     = pure ()
-            zeigeNächsteSeite :: PageHinzufügen -> DialogHinzufügen -> TMVar StatusGUI -> DynamischeWidgets -> IO ()
+            zeigeNächsteSeite :: PageHinzufügen -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             zeigeNächsteSeite
                 (PageStart {radioButtons})
                 dialogHinzufügen
@@ -297,7 +281,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                 _mvarStatus
                 _dynamischeWidgets
                     = widgetHide buttonWeiter
-            zeigeVorherigeSeite :: PageHinzufügen -> DialogHinzufügen -> TMVar StatusGUI -> DynamischeWidgets -> IO ()
+            zeigeVorherigeSeite :: PageHinzufügen -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             zeigeVorherigeSeite _page dialogHinzufügen = runPage 0 dialogHinzufügen
             erhalteFließendValue :: DialogHinzufügen -> IO Value
             erhalteFließendValue (DialogHinzufügen {comboBoxFließend, indizesFließend})
@@ -309,7 +293,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                             -> pure LOW
                         | otherwise
                             -> error "Unbekannter Fließend-Value ausgewählt."
-            objektHinzufügen :: DialogHinzufügen -> PageHinzufügen -> TMVar StatusGUI -> DynamischeWidgets -> IO ()
+            objektHinzufügen :: DialogHinzufügen -> PageHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             objektHinzufügen
                 dialogHinzufügen@(DialogHinzufügen {comboBoxZugtyp, indizesZugtyp})
                 (PageBahngeschwindigkeit {nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton})
@@ -683,7 +667,7 @@ dialogHinzufügenNew
                     bgFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                     hScaleGeschwindigkeit <- hScaleNewWithRange 0 100 1
                     boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.geschwindigkeit $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetShow windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -706,14 +690,14 @@ dialogHinzufügenNew
                                     AWegstrecke $ AWSBahngeschwindigkeit $ Geschwindigkeit ws wert
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     boxPackWidgetNew bgFunktionen PackGrow paddingDefault positionDefault $ pure hScaleGeschwindigkeit
                     vorwärtsRadioButton <- radioButtonNewWithLabel (Language.vorwärts :: Text)
                     rückwärtsRadioButton <- radioButtonNewWithLabelFromWidget vorwärtsRadioButton (Language.rückwärts :: Text)
                     boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.umdrehen $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetShow windowScrolledWindowBGUmdrehen
@@ -740,7 +724,7 @@ dialogHinzufügenNew
                                     AWegstrecke $ AWSBahngeschwindigkeit $ Umdrehen ws Nothing
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     fahrtrichtungsVBox <- boxPackWidgetNewDefault bgFunktionen $ vBoxNew False 0
@@ -757,7 +741,7 @@ dialogHinzufügenNew
                     boxPackWidgetNewDefault fahrtrichtungsVBox $ pure rückwärtsRadioButton
                     stFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                     boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.an) $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -778,11 +762,11 @@ dialogHinzufügenNew
                                     AWegstrecke $ AWSStreckenabschnitt $ Strom ws Fließend
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.aus) $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -803,12 +787,12 @@ dialogHinzufügenNew
                                     AWegstrecke $ AWSStreckenabschnitt $ Strom ws Gesperrt
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     weFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                     boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -826,11 +810,11 @@ dialogHinzufügenNew
                                     AWeiche $ Stellen we Gerade
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -848,11 +832,11 @@ dialogHinzufügenNew
                                     AWeiche $ Stellen we Kurve
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.links) $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -870,11 +854,11 @@ dialogHinzufügenNew
                                     AWeiche $ Stellen we Links
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -892,12 +876,12 @@ dialogHinzufügenNew
                                     AWeiche $ Stellen we Rechts
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     kuFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                     boxPackWidgetNewDefault kuFunktionen $ buttonNewWithEventLabel Language.kuppeln $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -918,12 +902,12 @@ dialogHinzufügenNew
                                     AWegstrecke $ AWSKupplung $ Kuppeln ws
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     wsFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                     boxPackWidgetNewDefault wsFunktionen $ buttonNewWithEventLabel Language.einstellen $ void $ forkIO $ do
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetShow windowObjekte
                             widgetHide windowScrolledWindowBGGeschw
                             widgetHide windowScrolledWindowBGUmdrehen
@@ -941,7 +925,7 @@ dialogHinzufügenNew
                                     AWegstrecke $ Einstellen ws
                             _objekt
                                 -> pure ()
-                        postGUIAsync $ do
+                        postGuiAsync $ do
                             widgetHide windowObjekte
                             showAktionenSpezifisch
                     boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
@@ -1036,7 +1020,7 @@ data PageHinzufügen
     | PageWegstrecke {
         widget :: VBox,
         nameEntry :: Entry,
-        wegstreckenElemente :: FortfahrenWennToggled TMVar StatusGUI}
+        wegstreckenElemente :: FortfahrenWennToggled TMVar StatusGui}
     | PagePlan {
         widget :: VBox,
         nameEntry :: Entry,

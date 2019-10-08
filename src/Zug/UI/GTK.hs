@@ -32,9 +32,9 @@ import Graphics.UI.Gtk (initGUI, mainGUI, mainQuit, set, on, AttrOp(..), vBoxNew
 import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>))
 import qualified Zug.Language as Language
-import Zug.UI.Base (Status, statusLeerNeu)
+import Zug.UI.Base (Status, statusLeer)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
-import Zug.UI.Gtk.Widget (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
+import Zug.UI.Gtk.Widgets (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
                         widgetShowNew, containerAddWidgetNew, boxPack, boxPackWidgetNew,
                         Position(..), positionDefault, paddingDefault, packingDefault,
                         buttonNewWithEventMnemonic, scrolledWidgedNotebookAppendPageNew)

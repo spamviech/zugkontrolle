@@ -17,13 +17,14 @@ getOptions :: (MonadIO m) => m Options
 getOptions = liftIO $ execParser optionen
 
 -- | Unterstützte Kommandozeilen-Argumente
-data Options = Options {
-                    printCmd :: Bool,
-                    ui :: UI,
-                    sprache :: Sprache,
-                    load :: String,
-                    pwm :: PWM}
-                        deriving (Show)
+data Options
+    = Options {
+        printCmd :: Bool,
+        ui :: UI,
+        sprache :: Sprache,
+        load :: String,
+        pwm :: PWM}
+    deriving (Show)
 
 optionen :: ParserInfo Options
 optionen = info
@@ -42,7 +43,7 @@ printOpt :: Parser Bool
 printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
 
 -- | Unterstützte Benutzer-Schnittstellen
-data UI = GTK | Cmd
+data UI = Gtk | Cmd
             deriving (Show, Read, Enum, Bounded, Eq)
 
 -- | Alle unterstützten UI-Optionen
