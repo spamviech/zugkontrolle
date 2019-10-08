@@ -49,6 +49,10 @@ module Zug.UI.Gtk.Widgets (
     -- * Verwaltung des aktuellen Zustands
     DynamischeWidgets(..), DynamischeWidgetsReader(..), StatusGui, StatusReader(..),
     ObjektGui, BefehlGui, IOStatusGui, MStatusGui, MStatusGuiT,
+    -- * Hinzufügen zu einem Plan/einer Wegstrecke
+    WidgetHinzufügen, HinzufügenZiel(..),
+    CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen, ButtonPlanHinzufügen, BoxPlanHinzufügen,
+    widgetHinzufügenZugtypEither,widgetHinzufügenRegistrierterCheckButtonVoid, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenToggled, widgetHinzufügenContainerRemoveJust, widgetHinzufügenBoxPackNew,
     foldWegstreckeHinzufügen, WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets,
     PlanElement(..), entferneHinzufügenPlanWidgets) where
 
@@ -62,6 +66,7 @@ import Control.Monad.Reader (MonadReader(..), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Aeson as Aeson
 import Data.Foldable (Foldable(..))
+import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
 import Data.Void (Void)
@@ -80,27 +85,26 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEit
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<:>), (<°>), showText)
 import Zug.Menge (ausFoldable)
-import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt, Phantom(..))
+import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt)
 import Zug.Plan (PlanKlasse(..), Plan(..), AusführendReader(),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
                 AktionKupplung(..), AktionWegstrecke(..))
 import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
-                    AusführenMöglich(..), ReaderFamilie, ObjektReader,
-                    TVarMaps(..), TVarMapsReader(..), MitTVarMaps(..),
-                    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
+                    AusführenMöglich(..), ReaderFamilie, ObjektReader, TVarMaps(..), MitTVarMaps(..),
+                    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen,
                     auswertenTMVarIOStatus, ausführenMöglich, entfernenBahngeschwindigkeit,
                     entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
                     entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledTMVar, registrierterCheckButtonNew,
-                                        RegistrierterCheckButton, MitRegistrierterCheckButton(..))
-import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew, boxPackWidgetNewDefault,
-                                    packingDefault, paddingDefault, positionDefault, boxPackDefault, boxPack,
-                                    Packing(..), Padding(..), Position(..), dialogEval,
+                                        RegistrierterCheckButton, MitRegistrierterCheckButton(..),
+                                        registrierterCheckButtonToggled)
+import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew,
+                                    boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault,
+                                    boxPackDefault, boxPack, Packing(..), Padding(..), Position(..), dialogEval,
                                     buttonNewWithEventLabel, namePackNew, widgetShowNew, widgetShowIf,
                                     notebookAppendPageNew, buttonNewWithEvent, buttonNewWithEventMnemonic)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..),
-                                    MitButton(), MitCheckButton(), MitToggleButton())
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
 import Zug.UI.Gtk.Widgets.Anschluss (AnschlussWidget(), anschlussNew,
                                         AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, auswahlComboBoxNew,
@@ -109,10 +113,6 @@ import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadi
 import Zug.UI.Gtk.Widgets.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.Widgets.ScrollbaresWidget (ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
                                             scrollbaresWidgetPackNew, scrollbaresWidgetNotebookAppendPageNew)
-
--- | 'Phantom' spezialisiert auf 'ObjektGui'
-phantomGui :: Phantom ObjektGui
-phantomGui = Phantom
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -128,17 +128,44 @@ type MStatusGui a = MStatusAllgemein ObjektGui a
 -- | Zustands-Monaden-Transformer spezialiert auf Gui-Typen
 type MStatusGuiT m a = MStatusAllgemeinT m ObjektGui a
 
+-- | Auswahlmöglichkeiten zu 'WidgetHinzufügen'
+data HinzufügenZiel = HinzufügenWegstrecke | HinzufügenPlan
+
+-- | Widget zum Hinzufügen einer Wegstrecke/eines Plans
+newtype WidgetHinzufügen (e :: HinzufügenZiel) (w :: Type) (a :: Type) = WidgetHinzufügen {widgetHinzufügen :: w}
+    deriving (Eq)
+
+-- | Konvertiere ein 'WidgetHinzufügen' in das zugehörige 'ZugtypEither'-Äquivalent
+widgetHinzufügenZugtypEither :: WidgetHinzufügen e w (a z) -> WidgetHinzufügen e w (ZugtypEither a)
+widgetHinzufügenZugtypEither = WidgetHinzufügen . widgetHinzufügen
+
+-- | Konvertiere ein 'WidgetHinzufügen'-'MitRegistrierterCheckButton' in den zugehörigen 'Void'-Typ
+widgetHinzufügenRegistrierterCheckButtonVoid :: (MitRegistrierterCheckButton r) =>
+    WidgetHinzufügen e r a  -> WidgetHinzufügen e RegistrierterCheckButton Void
+widgetHinzufügenRegistrierterCheckButtonVoid = WidgetHinzufügen . erhalteRegistrierterCheckButton . widgetHinzufügen
+
+-- | Erhalte die aktuelle Auswahl des inkludierten 'MitAuswahlWidget'
+widgetHinzufügenAktuelleAuswahl :: (Eq b, MitAuswahlWidget w b, MonadIO m) => WidgetHinzufügen e w a -> m b
+widgetHinzufügenAktuelleAuswahl = aktuelleAuswahl . erhalteAuswahlWidget . widgetHinzufügen
+
+-- | Überprüfe, ob der inkludierte 'MitRegistrierterCheckButton' aktuell gedrückt ist.
+widgetHinzufügenToggled :: (MitRegistrierterCheckButton t, MonadIO m) => WidgetHinzufügen e t a -> m Bool
+widgetHinzufügenToggled = registrierterCheckButtonToggled . erhalteRegistrierterCheckButton . widgetHinzufügen
+
+-- | Entferne ein 'WidgetHinzufügen' (falls vorhanden) aus dem zugehörigen Container
+widgetHinzufügenContainerRemoveJust :: (MitContainer c, MitWidget w, MonadIO m) =>
+    WidgetHinzufügen e c a -> Maybe (WidgetHinzufügen e w a) -> m ()
+widgetHinzufügenContainerRemoveJust c w = containerRemoveJust (widgetHinzufügen c) $ widgetHinzufügen <$> w
+
+-- | Füge ein 'WidgetHinzufügen' zu einer zugehörigen Box hinzu
+widgetHinzufügenBoxPackNew :: (MitBox b, MitWidget w, MonadIO m) =>
+    WidgetHinzufügen e b a -> m w -> m (WidgetHinzufügen e w a)
+widgetHinzufügenBoxPackNew b = fmap WidgetHinzufügen . boxPackWidgetNewDefault (widgetHinzufügen b)
+
+-- | CheckButton zum hinzufügen zu einer Wegstrecke
+type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstrecke (WegstreckeCheckButton e) a
 -- | Box zur Auswahl der 'Wegstrecke'n-Elemente
-newtype WidgetWegstreckeHinzufügen w a
-    = WidgetWegstreckeHinzufügen {widgetWegstreckeHinzufügen :: w}
-        deriving (Eq, MitWidget, MitContainer, MitBox, MitButton, MitToggleButton, MitCheckButton, MitRegistrierterCheckButton)
-
-instance (MitAuswahlWidget w e) => MitAuswahlWidget (WidgetWegstreckeHinzufügen w a) e where
-    erhalteAuswahlWidget :: WidgetWegstreckeHinzufügen w a -> AuswahlWidget e
-    erhalteAuswahlWidget = erhalteAuswahlWidget . widgetWegstreckeHinzufügen
-
-type BoxWegstreckeHinzufügen a = WidgetWegstreckeHinzufügen Gtk.VBox a
-type CheckButtonWegstreckeHinzufügen e a = WidgetWegstreckeHinzufügen (WegstreckeCheckButton e) a
+type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke Gtk.VBox a
 
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
 data WegstreckeCheckButton e where
@@ -171,13 +198,10 @@ instance MitAuswahlWidget (WegstreckeCheckButton Richtung) Richtung where
     erhalteAuswahlWidget :: WegstreckeCheckButton Richtung -> AuswahlWidget Richtung
     erhalteAuswahlWidget WegstreckeCheckButtonRichtung {wcbrRichtungsAuswahl} = wcbrRichtungsAuswahl
 
--- | Box zur Auswahl der 'Plan'-Aktionen
-newtype WidgetPlanHinzufügen w a
-    = WidgetPlanHinzufügen {widgetPlanHinzufügen :: w}
-        deriving (Eq, MitWidget, MitContainer, MitBox, MitButton, MitToggleButton)
-
-type BoxPlanHinzufügen a = WidgetPlanHinzufügen Gtk.VBox a
-type ButtonPlanHinzufügen a = WidgetPlanHinzufügen Gtk.Button a
+-- | Button zum hinzufügen eines Plans
+type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
+-- | Box zum hinzufügen eines Plans
+type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.VBox a
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets = DynamischeWidgets {
@@ -278,18 +302,29 @@ entferneHinzufügenWegstreckeWidgets :: forall s r m. (WegstreckenElement s, Dyn
 entferneHinzufügenWegstreckeWidgets wegsteckenElement = do
     box <- Lens.view (boxWegstrecke $ erhalteObjektTyp wegsteckenElement) <$> erhalteDynamischeWidgets
         :: m (BoxWegstreckeHinzufügen s)
-    mitContainerRemove box $ wegsteckenElement ^. getterWegstrecke
+    widgetHinzufügenContainerRemoveJust box $ Just $ wegsteckenElement ^. getterWegstrecke
 
--- type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
-foldWegstreckeHinzufügen :: Lens.Fold StatusGui RegistrierterCheckButton
+-- | Typ-unspezifischer 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke
+type WegstreckeCheckButtonVoid = WidgetHinzufügen 'HinzufügenWegstrecke RegistrierterCheckButton Void
+
+-- | Alle 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke im aktuellen 'StatusGui'
+foldWegstreckeHinzufügen :: Lens.Fold StatusGui WegstreckeCheckButtonVoid
 foldWegstreckeHinzufügen = Lens.folding registrierteCheckButtons
     where
-        registrierteCheckButtons :: StatusGui -> [RegistrierterCheckButton]
+        registrierteCheckButtons :: StatusGui -> [WegstreckeCheckButtonVoid]
         registrierteCheckButtons status
-            = map (erhalteRegistrierterCheckButton . Lens.view getterWegstrecke) (status ^. bahngeschwindigkeiten)
-            ++ map (erhalteRegistrierterCheckButton . Lens.view getterWegstrecke) (status ^. streckenabschnitte)
-            ++ map (erhalteRegistrierterCheckButton . Lens.view getterWegstrecke) (status ^. weichen)
-            ++ map (erhalteRegistrierterCheckButton . Lens.view getterWegstrecke) (status ^. kupplungen)
+            = map
+                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
+                (status ^. bahngeschwindigkeiten)
+            ++ map
+                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
+                (status ^. streckenabschnitte)
+            ++ map
+                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
+                (status ^. weichen)
+            ++ map
+                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
+                (status ^. kupplungen)
 
 -- | Klasse für Gui-Darstellungen von Typen, die zur Erstellung eines 'Plan's verwendet werden.
 class (WidgetsTyp s) => PlanElement s where
@@ -305,7 +340,7 @@ entferneHinzufügenPlanWidgets :: forall s r m. (PlanElement s, DynamischeWidget
 entferneHinzufügenPlanWidgets planElement = do
     boxenPlan <- Lens.toListOf (boxenPlan $ erhalteObjektTyp planElement) <$> erhalteDynamischeWidgets
         :: m [BoxPlanHinzufügen s]
-    sequence_ $ containerRemoveJust <$> ZipList boxenPlan <*> ZipList (planElement ^.. foldPlan)
+    sequence_ $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlan <*> ZipList (planElement ^.. foldPlan)
 
 -- | Entfernen-Knopf zu 'Box' hinzufügen. Beim drücken werden /removeActionGui/ und /removeAction/ ausgeführt.
 buttonEntfernenPack :: (MitBox b, ObjektReader ObjektGui m, MonadIO m) =>
@@ -333,7 +368,7 @@ hinzufügenWidgetWegstreckePackNew :: forall o r m.
 hinzufügenWidgetWegstreckePackNew objekt = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
-    fmap (WidgetWegstreckeHinzufügen . WegstreckeCheckButton) $ boxPackWidgetNewDefault box $
+    widgetHinzufügenBoxPackNew box $ WegstreckeCheckButton <$>
         registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
 hinzufügenWidgetWegstreckeRichtungPackNew :: forall o r m.
@@ -342,17 +377,15 @@ hinzufügenWidgetWegstreckeRichtungPackNew :: forall o r m.
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
-    liftIO $ do
-        hBox <- Gtk.hBoxNew False 0
-        wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
-            registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
-        wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen ""
-        let wegstreckeCheckButton = WidgetWegstreckeHinzufügen WegstreckeCheckButtonRichtung {
-            wcbrWidget = erhalteWidget hBox,
-            wcbrRegistrierterCheckButton,
-            wcbrRichtungsAuswahl}
-        boxPackDefault box wegstreckeCheckButton
-        pure wegstreckeCheckButton
+    liftIO $ widgetHinzufügenBoxPackNew box $ do
+            hBox <- Gtk.hBoxNew False 0
+            wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
+                registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
+            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen ""
+            pure WegstreckeCheckButtonRichtung {
+                wcbrWidget = erhalteWidget hBox,
+                wcbrRegistrierterCheckButton,
+                wcbrRichtungsAuswahl}
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 hinzufügenWidgetPlanPackNew ::
@@ -360,7 +393,7 @@ hinzufügenWidgetPlanPackNew ::
         BoxPlanHinzufügen o -> ObjektTyp o -> m (ButtonPlanHinzufügen o)
 hinzufügenWidgetPlanPackNew box objekt = do
     DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
-    fmap WidgetPlanHinzufügen $ boxPackWidgetNewDefault box $ buttonNewWithEventLabel (erhalteName objekt) $
+    widgetHinzufügenBoxPackNew box $ buttonNewWithEventLabel (erhalteName objekt) $
         atomically $ putTMVar tmvarPlanObjekt $ Just $ zuObjekt objekt
 
 -- * Darstellung von Streckenobjekten
@@ -397,12 +430,12 @@ instance WegstreckenElement (BGWidgets 'Lego) where
     boxWegstrecke _bgWidgets = Lens.to vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
 instance WegstreckenElement (ZugtypEither BGWidgets) where
     getterWegstrecke :: Lens.Getter (ZugtypEither BGWidgets) (CheckButtonWegstreckeHinzufügen Void (ZugtypEither BGWidgets))
-    getterWegstrecke = Lens.to $ ausZugtypEither $ WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen . bgHinzWS
+    getterWegstrecke = Lens.to $ ausZugtypEither $ widgetHinzufügenZugtypEither . bgHinzWS
     boxWegstrecke :: ZugtypEither Bahngeschwindigkeit -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither BGWidgets))
     boxWegstrecke (ZugtypMärklin _bgWidgets) = Lens.to $
-        WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen . vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+        widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
     boxWegstrecke (ZugtypLego _bgWidgets) = Lens.to $
-        WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen . vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+        widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
 
 instance PlanElement (BGWidgets 'Märklin) where
     foldPlan :: Lens.Fold (BGWidgets 'Märklin) (Maybe (ButtonPlanHinzufügen (BGWidgets 'Märklin)))
@@ -416,12 +449,12 @@ instance PlanElement (BGWidgets 'Lego) where
     boxenPlan _bgWidgets = Lens.to vBoxHinzufügenPlanBahngeschwindigkeitenLego
 instance PlanElement (ZugtypEither BGWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither BGWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither BGWidgets)))
-    foldPlan = Lens.to $ ausZugtypEither $ Just . WidgetPlanHinzufügen . widgetPlanHinzufügen . bgHinzPL
+    foldPlan = Lens.to $ ausZugtypEither $ Just . widgetHinzufügenZugtypEither . bgHinzPL
     boxenPlan :: ZugtypEither Bahngeschwindigkeit -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither BGWidgets))
     boxenPlan   (ZugtypMärklin _bahngeschwindigkeit)    = Lens.to $
-        WidgetPlanHinzufügen . widgetPlanHinzufügen . vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+        widgetHinzufügenZugtypEither . vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
     boxenPlan   (ZugtypLego _bahngeschwindigkeit)   = Lens.to $
-        WidgetPlanHinzufügen . widgetPlanHinzufügen . vBoxHinzufügenPlanBahngeschwindigkeitenLego
+        widgetHinzufügenZugtypEither . vBoxHinzufügenPlanBahngeschwindigkeitenLego
 
 instance StreckenObjekt (BGWidgets z) where
     anschlüsse :: BGWidgets z -> [Anschluss]
@@ -669,12 +702,12 @@ instance WegstreckenElement (WEWidgets 'Lego) where
 instance WegstreckenElement (ZugtypEither WEWidgets) where
     type CheckButtonAuswahl (ZugtypEither WEWidgets) = Richtung
     getterWegstrecke :: Lens.Getter (ZugtypEither WEWidgets) (CheckButtonWegstreckeHinzufügen Richtung (ZugtypEither WEWidgets))
-    getterWegstrecke = Lens.to $ ausZugtypEither $ WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen . weHinzWS
+    getterWegstrecke = Lens.to $ ausZugtypEither $ widgetHinzufügenZugtypEither . weHinzWS
     boxWegstrecke :: ZugtypEither Weiche -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither WEWidgets))
     boxWegstrecke (ZugtypMärklin _weWidgets) = Lens.to $
-        WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen . vBoxHinzufügenWegstreckeWeichenMärklin
+        widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenMärklin
     boxWegstrecke (ZugtypLego _weWidgets) = Lens.to $
-        WidgetWegstreckeHinzufügen . widgetWegstreckeHinzufügen . vBoxHinzufügenWegstreckeWeichenLego
+        widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenLego
 
 instance PlanElement (WEWidgets 'Märklin) where
     foldPlan :: Lens.Fold (WEWidgets 'Märklin) (Maybe (ButtonPlanHinzufügen (WEWidgets 'Märklin)))
@@ -704,14 +737,14 @@ instance PlanElement (ZugtypEither WEWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither WEWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WEWidgets)))
     foldPlan = Lens.folding $ ausZugtypEither $
         \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
-            -> fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) <$> [gerade, kurve, links, rechts]
+            -> fmap widgetHinzufügenZugtypEither <$> [gerade, kurve, links, rechts]
     boxenPlan :: ZugtypEither Weiche -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WEWidgets))
-    boxenPlan   (ZugtypMärklin _weiche) = Lens.folding $ fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+    boxenPlan   (ZugtypMärklin _weiche) = Lens.folding $ fmap widgetHinzufügenZugtypEither . (??) [
         vBoxHinzufügenPlanWeichenGeradeMärklin,
         vBoxHinzufügenPlanWeichenKurveMärklin,
         vBoxHinzufügenPlanWeichenLinksMärklin,
         vBoxHinzufügenPlanWeichenRechtsMärklin]
-    boxenPlan   (ZugtypLego _weiche)    = Lens.folding $ fmap (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+    boxenPlan   (ZugtypLego _weiche)    = Lens.folding $ fmap widgetHinzufügenZugtypEither . (??) [
         vBoxHinzufügenPlanWeichenGeradeLego,
         vBoxHinzufügenPlanWeichenKurveLego,
         vBoxHinzufügenPlanWeichenLinksLego,
@@ -937,16 +970,16 @@ instance PlanElement (WSWidgets 'Lego) where
 instance PlanElement (ZugtypEither WSWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither WSWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WSWidgets)))
     foldPlan = Lens.folding $ ausZugtypEither $
-        map (fmap $ WidgetPlanHinzufügen . widgetPlanHinzufügen) .
+        map (fmap widgetHinzufügenZugtypEither) .
         (??) [bahngeschwindigkeit, streckenabschnitt, kupplung, wegstrecke] .
         wsHinzPL
     boxenPlan :: ZugtypEither Wegstrecke -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WSWidgets))
-    boxenPlan   (ZugtypMärklin _wegstrecke) = Lens.folding $ map (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+    boxenPlan   (ZugtypMärklin _wegstrecke) = Lens.folding $ map widgetHinzufügenZugtypEither . (??) [
         vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
         vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
         vBoxHinzufügenPlanWegstreckenKupplungMärklin,
         vBoxHinzufügenPlanWegstreckenMärklin]
-    boxenPlan   (ZugtypLego _wegstrecke)    = Lens.folding $ map (WidgetPlanHinzufügen . widgetPlanHinzufügen) . (??) [
+    boxenPlan   (ZugtypLego _wegstrecke)    = Lens.folding $ map widgetHinzufügenZugtypEither . (??) [
         vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
         vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
         vBoxHinzufügenPlanWegstreckenKupplungLego,
@@ -1104,10 +1137,11 @@ instance PlanKlasse PLWidgets where
     ausführenPlan PLWidgets {pl} = ausführenPlan pl
 
 -- | 'Plan' darstellen
-planPackNew :: (StatusReader r m, DynamischeWidgetsReader r m, MonadIO m) => Plan -> m PLWidgets
+planPackNew :: (ObjektReader ObjektGui m, MonadIO m) => Plan -> m PLWidgets
 planPackNew plan@Plan {plAktionen} = do
-    tmvarStatus <- _erhalteStatus
-    DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain} <- _erhalteDynamischeWidgets
+    tmvarStatus <- erhalteStatus
+    objektReader <- ask
+    DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain} <- erhalteDynamischeWidgets
     -- Widget erstellen
     frame <- liftIO $ boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
     vBox <- liftIO $ containerAddWidgetNew frame $ Gtk.vBoxNew False 0
@@ -1121,12 +1155,13 @@ planPackNew plan@Plan {plAktionen} = do
     liftIO $ Gtk.widgetHide buttonAbbrechen
     dialogGesperrt <- liftIO $ Gtk.messageDialogNew (Just windowMain) [] Gtk.MessageError Gtk.ButtonsOk ("" :: Text)
     liftIO $ Gtk.set dialogGesperrt [Gtk.windowTitle := (Language.aktionGesperrt :: Text)]
-    liftIO $ Gtk.on buttonAusführen Gtk.buttonActivated $ do
-        _auswertenTMVarIOStatus (_ausführenMöglich plan) tmvarStatus >>= \case
-            AusführenMöglich                -> do
-                Gtk.widgetHide buttonAusführen
-                Gtk.widgetShow buttonAbbrechen
-                void $ _ausführenTMVarBefehl (Ausführen plan anzeigeAktion abschlussAktion) tmvarStatus
+    liftIO $ Gtk.on buttonAusführen Gtk.buttonActivated $ flip runReaderT objektReader $
+        auswertenTMVarIOStatus (ausführenMöglich plan) tmvarStatus >>= \case
+            AusführenMöglich                -> void $ do
+                liftIO $ do
+                    Gtk.widgetHide buttonAusführen
+                    Gtk.widgetShow buttonAbbrechen
+                ausführenTMVarBefehl (Ausführen plan anzeigeAktion abschlussAktion) tmvarStatus
                 where
                     anzeigeAktion :: Natural -> IO ()
                     anzeigeAktion wert = Gtk.set progressBarPlan [
@@ -1136,17 +1171,18 @@ planPackNew plan@Plan {plAktionen} = do
                         Gtk.widgetShow buttonAusführen
                         Gtk.widgetHide buttonAbbrechen
             WirdAusgeführt                  -> error "Ausführen in GTK-UI erneut gestartet."
-            (AnschlüsseBelegt anschlüsse)   -> do
+            (AnschlüsseBelegt anschlüsse)   -> liftIO $ do
                 Gtk.set dialogGesperrt 
                     [Gtk.messageDialogText := Just (Language.ausführenGesperrt $ show $ ausFoldable anschlüsse)]
                 void $ dialogEval dialogGesperrt
     liftIO $ Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
-        _ausführenTMVarBefehl (AusführenAbbrechen plan) tmvarStatus
+        flip runReaderT objektReader $
+            ausführenTMVarBefehl (AusführenAbbrechen plan) tmvarStatus
         Gtk.widgetShow buttonAusführen
         Gtk.widgetHide buttonAbbrechen
     let plWidgets = PLWidgets {pl = plan, plWidget = frame}
-    _buttonEntfernenPack functionBox (Gtk.containerRemove vBoxPläne frame) (_entfernenPlan plWidgets)
+    buttonEntfernenPack functionBox (Gtk.containerRemove vBoxPläne frame) (entfernenPlan plWidgets)
     -- Widgets merken
-    _ausführenTMVarBefehl (Hinzufügen $ OPlan plWidgets) tmvarStatus
+    ausführenTMVarBefehl (Hinzufügen $ OPlan plWidgets) tmvarStatus
     pure plWidgets
 #endif
