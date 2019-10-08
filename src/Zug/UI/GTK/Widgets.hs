@@ -545,11 +545,11 @@ buttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkei
 -- | 'Streckenabschnitt' mit zugehörigen Widgets
 data STWidgets
     = STWidgets {
-        st :: ObjektTyp STWidgets,
+        st :: Streckenabschnitt,
         stWidget :: Gtk.HBox,
         stHinzWS :: CheckButtonWegstreckeHinzufügen Void STWidgets,
         stHinzPL :: ButtonPlanHinzufügen STWidgets}
-            deriving (Eq)
+    deriving (Eq)
 
 instance WidgetsTyp STWidgets where
     type ObjektTyp STWidgets = Streckenabschnitt
@@ -583,45 +583,45 @@ instance StreckenabschnittKlasse STWidgets where
     strom STWidgets {st} = strom st
 
 -- | 'Streckenabschnitt' darstellen und zum Status hinzufügen
-streckenabschnittPackNew :: (StatusReader r m, DynamischeWidgetsReader r m, TVarMapsReader r m, MonadIO m) =>
+streckenabschnittPackNew :: (ObjektReader ObjektGui m, MonadIO m) =>
     Streckenabschnitt -> m STWidgets
 streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = do
     tmvarStatus <- erhalteStatus
     DynamischeWidgets {
         vBoxStreckenabschnitte,
-        vBoxHinzufügenWegstreckeStreckenabschnitte,
-        vBoxHinzufügenPlanStreckenabschnitte,
-        fortfahrenWennToggledWegstrecke,
-        tmvarPlanObjekt}
+        vBoxHinzufügenPlanStreckenabschnitte}
             <- erhalteDynamischeWidgets
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- _hinzufügenWidgetWegstreckePackNew streckenabschnitt vBoxHinzufügenWegstreckeStreckenabschnitte fortfahrenWennToggledWegstrecke
-    hinzufügenPlanWidget <- _hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanStreckenabschnitte (OStreckenabschnitt streckenabschnitt)
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew streckenabschnitt
+    hinzufügenPlanWidget <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanStreckenabschnitte streckenabschnitt
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ liftIO $ Gtk.hBoxNew False 0
     namePackNew hBox streckenabschnitt
     boxPackWidgetNewDefault hBox $ anschlussNew Language.strom stromAnschluss
-    _toggleButtonStromPackNew hBox streckenabschnitt
+    toggleButtonStromPackNew hBox streckenabschnitt
     fließendPackNew hBox streckenabschnitt
     let stWidgets = STWidgets {st=streckenabschnitt, stWidget=hBox, stHinzPL=hinzufügenPlanWidget, stHinzWS=hinzufügenWegstreckeWidget}
     buttonEntfernenPackSimple hBox vBoxStreckenabschnitte $ do
-        _entfernenStreckenabschnitt stWidgets
-        _entferneHinzufügenWegstreckeWidgets stWidgets
-        _entferneHinzufügenPlanWidgets stWidgets
+        entfernenStreckenabschnitt stWidgets
+        entferneHinzufügenWegstreckeWidgets stWidgets
+        entferneHinzufügenPlanWidgets stWidgets
     -- Widgets merken
-    _ausführenTMVarBefehl (Hinzufügen $ OStreckenabschnitt stWidgets) tmvarStatus
+    ausführenTMVarBefehl (Hinzufügen $ OStreckenabschnitt stWidgets) tmvarStatus
     pure stWidgets
 
 -- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu
-toggleButtonStromPackNew :: (StatusReader r m, MonadIO m, MitBox b, StreckenabschnittKlasse s) =>
+toggleButtonStromPackNew :: (ObjektReader ObjektGui m, MonadIO m, MitBox b, StreckenabschnittKlasse s) =>
     b -> s -> m Gtk.ToggleButton
 toggleButtonStromPackNew box streckenabschnitt = do
     tmvarStatus <- erhalteStatus
+    objektReader <- ask
     liftIO $ do
         toggleButton <- boxPackWidgetNewDefault box $ Gtk.toggleButtonNewWithLabel (Language.strom :: Text)
         Gtk.on toggleButton Gtk.toggled $ do
             an <- Gtk.get toggleButton Gtk.toggleButtonActive
-            _ausführenTMVarAktion (Strom streckenabschnitt $ if an then Fließend else Gesperrt) tmvarStatus
+            let fließend = if an then Fließend else Gesperrt
+            flip runReaderT objektReader $
+                ausführenTMVarAktion (Strom streckenabschnitt fließend) tmvarStatus
         pure toggleButton
 
 -- ** Weiche
