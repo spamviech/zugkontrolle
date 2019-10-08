@@ -848,20 +848,17 @@ instance KupplungKlasse KUWidgets where
     kuppeln KUWidgets {ku} = kuppeln ku
 
 -- | 'Kupplung' darstellen und zum Status hinzufügen
-kupplungPackNew :: (StatusReader r m, DynamischeWidgetsReader r m, TVarMapsReader r m, ObjektReader ObjektGui m, MonadIO m) =>
+kupplungPackNew :: (ObjektReader ObjektGui m, MonadIO m) =>
     Kupplung -> m KUWidgets
 kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
-    tmvarStatus <- _erhalteStatus
-    dynamischeWidgets@DynamischeWidgets {
+    tmvarStatus <- erhalteStatus
+    DynamischeWidgets {
         vBoxKupplungen,
-        vBoxHinzufügenWegstreckeKupplungen,
-        vBoxHinzufügenPlanKupplungen,
-        fortfahrenWennToggledWegstrecke,
-        tmvarPlanObjekt}
-            <- _erhalteDynamischeWidgets
+        vBoxHinzufügenPlanKupplungen}
+            <- erhalteDynamischeWidgets
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- _hinzufügenWidgetWegstreckePackNew kupplung vBoxHinzufügenWegstreckeKupplungen fortfahrenWennToggledWegstrecke
-    hinzufügenPlanWidget <- _hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen (OKupplung kupplung) tmvarPlanObjekt
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew kupplung
+    hinzufügenPlanWidget <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.hBoxNew False 0
     namePackNew hBox kupplung
@@ -878,15 +875,18 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
         entferneHinzufügenWegstreckeWidgets kuWidgets
         entferneHinzufügenPlanWidgets kuWidgets
     -- Widgets merken
-    _ausführenTMVarBefehl (Hinzufügen $ OKupplung kuWidgets) tmvarStatus
+    ausführenTMVarBefehl (Hinzufügen $ OKupplung kuWidgets) tmvarStatus
     pure kuWidgets
 
 -- | Füge 'Gtk.Button' zum kuppeln zur Box hinzu
-buttonKuppelnPackNew :: (MitBox b, KupplungKlasse k, StatusReader r m, ObjektReader ObjektGui m, MonadIO m) => b -> k -> m Gtk.Button
+buttonKuppelnPackNew :: (MitBox b, KupplungKlasse k, ObjektReader ObjektGui m, MonadIO m) =>
+    b -> k -> m Gtk.Button
 buttonKuppelnPackNew box kupplung = do
     tmvarStatus <- erhalteStatus
+    objektReader <- ask
     boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.kuppeln $
-        _ausführenTMVarAktion (Kuppeln kupplung) tmvarStatus
+        flip runReaderT objektReader $
+            ausführenTMVarAktion (Kuppeln kupplung) tmvarStatus
 
 -- ** Wegstrecke
 -- | 'Wegstrecke' mit zugehörigen Widgets
