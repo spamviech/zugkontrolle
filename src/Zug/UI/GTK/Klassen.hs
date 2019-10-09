@@ -1,4 +1,6 @@
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -23,10 +25,16 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..))
 import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
 
 -- * Widget
 erzeugeKlasse [] "Widget"
+
+instance (MitWidget (a 'Märklin), MitWidget (a 'Lego)) => MitWidget (ZugtypEither a) where
+    erhalteWidget :: ZugtypEither a -> Gtk.Widget
+    erhalteWidget   (ZugtypMärklin a)   = erhalteWidget a
+    erhalteWidget   (ZugtypLego a)      = erhalteWidget a
 
 -- | Zeige ein 'MitWidget'
 mitWidgetShow :: (MonadIO m, MitWidget w) => w -> m ()

@@ -397,11 +397,6 @@ hinzufügenWidgetPlanPackNew box objekt = do
     widgetHinzufügenBoxPackNew box $ buttonNewWithEventLabel (erhalteName objekt) $
         atomically $ putTMVar tmvarPlanObjekt $ Just $ zuObjekt objekt
 
-instance (MitWidget (a 'Märklin), MitWidget (a 'Lego)) => MitWidget (ZugtypEither a) where
-    erhalteWidget :: ZugtypEither a -> Gtk.Widget
-    erhalteWidget   (ZugtypMärklin a)   = erhalteWidget a
-    erhalteWidget   (ZugtypLego a)      = erhalteWidget a
-
 -- * Darstellung von Streckenobjekten
 -- ** Bahngeschwindigkeit
 -- | 'Bahngeschwindigkeit' mit zugehörigen Widgets
@@ -438,6 +433,9 @@ instance WidgetsTyp (ZugtypEither BGWidgets) where
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => ZugtypEither BGWidgets -> m ()
     entferneWidgets (ZugtypMärklin bgWidgets)   = entferneWidgets bgWidgets
     entferneWidgets (ZugtypLego bgWidgets)      = entferneWidgets bgWidgets
+    boxButtonEntfernen :: ZugtypEither BGWidgets -> Gtk.Box
+    boxButtonEntfernen  (ZugtypMärklin bgWidgets)   = boxButtonEntfernen bgWidgets
+    boxButtonEntfernen  (ZugtypLego bgWidgets)      = boxButtonEntfernen bgWidgets
 
 instance WegstreckenElement (BGWidgets 'Märklin) where
     getterWegstrecke :: Lens.Getter (BGWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Void (BGWidgets 'Märklin))
@@ -728,6 +726,9 @@ instance WidgetsTyp (ZugtypEither WEWidgets) where
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => ZugtypEither WEWidgets -> m ()
     entferneWidgets (ZugtypMärklin weWidgets)   = entferneWidgets weWidgets
     entferneWidgets (ZugtypLego weWidgets)      = entferneWidgets weWidgets
+    boxButtonEntfernen :: ZugtypEither WEWidgets -> Gtk.Box
+    boxButtonEntfernen  (ZugtypMärklin weWidgets)   = boxButtonEntfernen weWidgets
+    boxButtonEntfernen  (ZugtypLego weWidgets)      = boxButtonEntfernen weWidgets
 
 instance WegstreckenElement (WEWidgets 'Märklin) where
     type CheckButtonAuswahl (WEWidgets 'Märklin) = Richtung
@@ -1011,6 +1012,9 @@ instance WidgetsTyp (ZugtypEither WSWidgets) where
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => ZugtypEither WSWidgets -> m ()
     entferneWidgets (ZugtypMärklin wsWidgets)   = entferneWidgets wsWidgets
     entferneWidgets (ZugtypLego wsWidgets)      = entferneWidgets wsWidgets
+    boxButtonEntfernen :: ZugtypEither WSWidgets -> Gtk.Box
+    boxButtonEntfernen  (ZugtypMärklin wsWidgets)   = boxButtonEntfernen wsWidgets
+    boxButtonEntfernen  (ZugtypLego wsWidgets)      = boxButtonEntfernen wsWidgets
 
 instance PlanElement (WSWidgets 'Märklin) where
     foldPlan :: Lens.Fold (WSWidgets 'Märklin) (Maybe (ButtonPlanHinzufügen (WSWidgets 'Märklin)))
@@ -1162,10 +1166,6 @@ wegstreckePackNew
                         wsWidget = frame,
                         wsFunktionBox = erhalteBox functionBox,
                         wsHinzPL = hinzufügenPlanWidget}
-                    entferneWidgets :: IO ()
-                    entferneWidgets = do
-                        Gtk.containerRemove vBoxWegstrecken frame
-                        flip runReaderT objektReader $ entferneHinzufügenPlanWidgets wsWidgets
                 buttonEntfernenPackNew wsWidgets $ entfernenWegstrecke $ zuZugtypEither wsWidgets
                 -- Widgets merken
                 ausführenTMVarBefehl (Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets) tmvarStatus
