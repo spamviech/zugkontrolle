@@ -45,7 +45,7 @@ module Zug.UI.Gtk.Widgets (
     -- ** Name darstellen
     namePackNew,
     -- ** Spezifisches StreckenObjekt darstellen
-    BGWidgets(), STWidgets(), WEWidgets(), KUWidgets(), WSWidgets(), PLWidgets(),
+    BGWidgets(), STWidgets(), WEWidgets(), KUWidgets(), WSWidgets(), PLWidgets(), WidgetsTyp(..),
     bahngeschwindigkeitPackNew, streckenabschnittPackNew, weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
     -- * Verwaltung des aktuellen Zustands
     DynamischeWidgets(..), DynamischeWidgetsReader(..), StatusGui, StatusReader(..),

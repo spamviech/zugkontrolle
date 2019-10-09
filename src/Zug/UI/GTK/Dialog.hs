@@ -34,7 +34,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes, zeigeErstes)
-import Zug.Klassen (Zugtyp(..), Richtung(..), unterstützteRichtungen, Strom(..), Fahrtrichtung(..))
+import Zug.Klassen (Zugtyp(..), Richtung(..), unterstützteRichtungen, Strom(..), Fahrtrichtung(..), ZugtypEither(..))
 import Zug.Anbindung (Value(..), Pin(), zuPin, Bahngeschwindigkeit(..), Streckenabschnitt(..),
                     Weiche(..), Kupplung(..), Wegstrecke(..), StreckenObjekt(..))
 import Zug.Objekt (ObjektAllgemein(..))
@@ -50,10 +50,12 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons,
-                                        fortfahrenWennToggledNew, aktiviereWennToggledTMVar)
-import Zug.UI.Gtk.Klassen (MitBox())
-import Zug.UI.Gtk.Widgets (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(..), WegstreckenElement(..),
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
+                                        fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
+                                        RegistrierterCheckButton)
+import Zug.UI.Gtk.Klassen (MitBox(), MitWindow(), MitDialog())
+import Zug.UI.Gtk.Widgets (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(..), WidgetsTyp(..),
+                        WegstreckenElement(..), DynamischeWidgetsReader,
                         BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
                         widgetShowIf, containerAddWidgetNew, boxPackDefault, boxPack,
                         boxPackWidgetNewDefault, boxPackWidgetNew, paddingDefault, positionDefault,
@@ -69,14 +71,14 @@ buttonSpeichernPack windowMain box tmvarStatus = do
     dialogSpeichern <- dialogSpeichernNew windowMain
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ do
         antwort <- dialogEval dialogSpeichern
-        when (antwort == ResponseOk) $ void $ do
-            (Just dateipfad) <- fileChooserGetFilename dialogSpeichern
-            ausführenTMVarBefehl (Speichern dateipfad :: BefehlGui) tmvarStatus
+        when (antwort == Gtk.ResponseOk) $ void $ do
+            (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
+            _ausführenTMVarBefehl (Speichern dateipfad :: BefehlGui) tmvarStatus
 
 dialogSpeichernNew :: (MonadIO m) => Gtk.Window -> m Gtk.FileChooserDialog
-dialogSpeichernNew window = do
-    fileChooserDialog <- fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]
-    set fileChooserDialog [fileChooserDoOverwriteConfirmation := True]
+dialogSpeichernNew window = liftIO $ do
+    fileChooserDialog <- Gtk.fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) Gtk.FileChooserActionSave [(Language.speichern, Gtk.ResponseOk), (Language.abbrechen, Gtk.ResponseCancel)]
+    Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
     pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGui' aus einer Datei
@@ -86,9 +88,11 @@ buttonLadenPack windowMain box tmvarStatus dynamischeWidgets = do
     dialogLadenFehler <- dialogLadenFehlerNew windowMain
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.laden $ do
         antwort <- dialogEval dialogLaden
-        when (antwort == ResponseOk) $ void $ do
-            fileChooserGetFilename dialogLaden >>= \case
-                (Nothing)           -> void $ set dialogLadenFehler [windowTitle := (Language.nichtGefundeneDatei :: Text)] >> dialogEval dialogLadenFehler
+        when (antwort == Gtk.ResponseOk) $ void $ do
+            Gtk.fileChooserGetFilename dialogLaden >>= \case
+                (Nothing)           -> void $ do
+                    Gtk.set dialogLadenFehler [Gtk.windowTitle := (Language.nichtGefundeneDatei :: Text)]
+                    dialogEval dialogLadenFehler
                 (Just dateipfad)    -> void $ do
                     statusInitial <- atomically $ readTMVar tmvarStatus
                     -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
@@ -97,49 +101,56 @@ buttonLadenPack windowMain box tmvarStatus dynamischeWidgets = do
                         ladeAktion = ladeWidgets tmvarStatus dynamischeWidgets
                         fehlerBehandlung :: IOStatusGui ()
                         fehlerBehandlung = liftIO $ void $ do
-                            set dialogLadenFehler [windowTitle := dateipfad]
+                            Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
-                    flip State.evalStateT statusInitial $ ausführenBefehl $
+                    flip State.evalStateT statusInitial $ _ausführenBefehl $
                         Laden dateipfad ladeAktion fehlerBehandlung
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui' in 'LikeMVar') an reinen 'Status' an.
 ladeWidgets :: TMVar StatusGui -> DynamischeWidgets -> Status -> IO StatusGui
 ladeWidgets tmvarStatus dynamischeWidgets@(DynamischeWidgets {vBoxBahngeschwindigkeiten, vBoxStreckenabschnitte, vBoxWeichen, vBoxKupplungen, vBoxWegstrecken, vBoxPläne}) status = do
-    auswertenTMVarIOStatus löscheWidgets tmvarStatus
+    _auswertenTMVarIOStatus löscheWidgets tmvarStatus
     erstelleWidgets tmvarStatus status
         where
             löscheWidgets :: IOStatusGui ()
-            löscheWidgets = State.get >>= liftIOFunction (löscheWidgetsAux) >> putBahngeschwindigkeiten [] >> putStreckenabschnitte [] >> putWeichen [] >> putKupplungen [] >> putWegstrecken [] >> putPläne []
-            löscheWidgetsAux :: StatusGui -> IO ()
+            löscheWidgets = do
+                State.get >>= löscheWidgetsAux
+                putBahngeschwindigkeiten []
+                putStreckenabschnitte []
+                putWeichen []
+                putKupplungen []
+                putWegstrecken []
+                putPläne []
+            löscheWidgetsAux :: (DynamischeWidgetsReader r m, MonadIO m) => StatusGui -> m ()
             löscheWidgetsAux status = do
-                mapM_ (\bgWidgets@(BGWidgets {bgWidget=w})  -> containerRemove vBoxBahngeschwindigkeiten w  >> entferneHinzufügenWegstreckeWidgets bgWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets bgWidgets dynamischeWidgets) $ status ^. bahngeschwindigkeiten
-                mapM_ (\stWidgets@(STWidgets {stWidget=w})  -> containerRemove vBoxStreckenabschnitte w     >> entferneHinzufügenWegstreckeWidgets stWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets stWidgets dynamischeWidgets) $ status ^. streckenabschnitte
-                mapM_ (\weWidgets@(WEWidgets {weWidget=w})  -> containerRemove vBoxWeichen w                >> entferneHinzufügenWegstreckeWidgets weWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets weWidgets dynamischeWidgets) $ status ^. weichen
-                mapM_ (\kuWidgets@(KUWidgets {kuWidget=w})  -> containerRemove vBoxKupplungen w             >> entferneHinzufügenWegstreckeWidgets kuWidgets dynamischeWidgets >> entferneHinzufügenPlanWidgets kuWidgets dynamischeWidgets) $ status ^. kupplungen
-                mapM_ (\wsWidgets@(WSWidgets {wsWidget=w})  -> containerRemove vBoxWegstrecken w            >> entferneHinzufügenPlanWidgets wsWidgets dynamischeWidgets) $ status ^. wegstrecken
-                mapM_ (\(PLWidgets {plWidget=w})            -> containerRemove vBoxPläne w) $ status ^. pläne
+                mapM_ entferneWidgets $ status ^. bahngeschwindigkeiten
+                mapM_ entferneWidgets $ status ^. streckenabschnitte
+                mapM_ entferneWidgets $ status ^. weichen
+                mapM_ entferneWidgets $ status ^. kupplungen
+                mapM_ entferneWidgets $ status ^. wegstrecken
+                mapM_ entferneWidgets $ status ^. pläne
             erstelleWidgets :: TMVar StatusGui -> Status -> IO StatusGui
             erstelleWidgets tmvarStatus status = do
-                mapM_ (\bahngeschwindigkeit -> bahngeschwindigkeitPackNew bahngeschwindigkeit tmvarStatus dynamischeWidgets) $ reverse $ status ^. bahngeschwindigkeiten
-                mapM_ (\streckenabschnitt -> streckenabschnittPackNew streckenabschnitt tmvarStatus dynamischeWidgets)       $ reverse $ status ^. streckenabschnitte
-                mapM_ (\weiche -> weichePackNew weiche tmvarStatus dynamischeWidgets)                                        $ reverse $ status ^. weichen
-                mapM_ (\kupplung -> kupplungPackNew kupplung tmvarStatus dynamischeWidgets)                                  $ reverse $ status ^. kupplungen
-                mapM_ (\wegstrecke -> wegstreckePackNew wegstrecke tmvarStatus dynamischeWidgets)                            $ reverse $ status ^. wegstrecken
-                mapM_ (\plan -> planPackNew plan tmvarStatus dynamischeWidgets)                                              $ reverse $ status ^. pläne
+                mapM_ (\bahngeschwindigkeit -> _bahngeschwindigkeitPackNew bahngeschwindigkeit tmvarStatus dynamischeWidgets) $ reverse $ status ^. bahngeschwindigkeiten
+                mapM_ (\streckenabschnitt -> _streckenabschnittPackNew streckenabschnitt tmvarStatus dynamischeWidgets)       $ reverse $ status ^. streckenabschnitte
+                mapM_ (\weiche -> _weichePackNew weiche tmvarStatus dynamischeWidgets)                                        $ reverse $ status ^. weichen
+                mapM_ (\kupplung -> _kupplungPackNew kupplung tmvarStatus dynamischeWidgets)                                  $ reverse $ status ^. kupplungen
+                mapM_ (\wegstrecke -> _wegstreckePackNew wegstrecke tmvarStatus dynamischeWidgets)                            $ reverse $ status ^. wegstrecken
+                mapM_ (\plan -> _planPackNew plan tmvarStatus dynamischeWidgets)                                              $ reverse $ status ^. pläne
                 atomically $ readTMVar tmvarStatus
 
-dialogLadenNew :: Window -> IO FileChooserDialog
-dialogLadenNew window = fileChooserDialogNew (Just Language.laden :: Maybe Text) (Just window) FileChooserActionOpen [(Language.laden, ResponseOk), (Language.abbrechen, ResponseCancel)]
+dialogLadenNew :: Gtk.Window -> IO Gtk.FileChooserDialog
+dialogLadenNew window = Gtk.fileChooserDialogNew (Just Language.laden :: Maybe Text) (Just window) Gtk.FileChooserActionOpen [(Language.laden, Gtk.ResponseOk), (Language.abbrechen, Gtk.ResponseCancel)]
 
-dialogLadenFehlerNew :: Window -> IO MessageDialog
-dialogLadenFehlerNew window = messageDialogNew (Just window) [] MessageError ButtonsOk (Language.nichtGefundeneDatei <!> "" :: Text)
+dialogLadenFehlerNew :: Gtk.Window -> IO Gtk.MessageDialog
+dialogLadenFehlerNew window = Gtk.messageDialogNew (Just window) [] Gtk.MessageError Gtk.ButtonsOk (Language.nichtGefundeneDatei <!> "" :: Text)
 
 -- | Hinzufügen eines 'StreckenObjekt'
-buttonHinzufügenPack :: (WindowClass w, BoxClass b) => w -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Button
+buttonHinzufügenPack :: (MitWindow w, MitBox b) => w -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Gtk.Button
 buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
     dialogHinzufügen@(DialogHinzufügen {dialog}) <- dialogHinzufügenNew parentWindow dynamischeWidgets
     button <- liftIO $ boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.hinzufügen $ do
-        widgetShow dialog
+        Gtk.widgetShow dialog
         runPage 0 dialogHinzufügen tmvarStatus dynamischeWidgets
     pure button
         where
@@ -154,75 +165,102 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                             (Nothing)   -> error $ "Seite beim Hinzufügen nicht gefunden: " ++ show i
                             (Just page) -> do
                                 hinzufügenAktivieren dialogHinzufügen page
-                                (if istLetzteSeite page then widgetHide else widgetShow) buttonWeiter
-                                (if istErsteSeite page then widgetHide else widgetShow) buttonZurück
+                                widgetShowIf (istLetzteSeite page) buttonWeiter
+                                widgetShowIf (istErsteSeite page) buttonZurück
                                 reset page
                                 optionenAnzeigen page tmvarStatus
-                                dialogRun dialog >>= \case
-                                    ResponseOk
+                                Gtk.dialogRun dialog >>= \case
+                                    Gtk.ResponseOk
                                         -> do
-                                            widgetHide dialog
+                                            Gtk.widgetHide dialog
                                             objektHinzufügen dialogHinzufügen page tmvarStatus dynamischeWidgets
-                                    ResponseApply
+                                    Gtk.ResponseApply
                                         -> zeigeNächsteSeite page dialogHinzufügen tmvarStatus dynamischeWidgets
-                                    ResponseReject
+                                    Gtk.ResponseReject
                                         -> zeigeVorherigeSeite page dialogHinzufügen tmvarStatus dynamischeWidgets
                                     -- erwartete Rückgabewerte: ResponseCancel, ResponseDeleteEvent -> Breche Hinzufügen ab
                                     _response
-                                        -> widgetHide dialog
+                                        -> Gtk.widgetHide dialog
             istErsteSeite :: PageHinzufügen -> Bool
-            istErsteSeite   (PageStart {})  = True
+            istErsteSeite   PageStart {}    = True
             istErsteSeite   _               = False
             istLetzteSeite :: PageHinzufügen -> Bool
-            istLetzteSeite  (PageStart {})  = False
+            istLetzteSeite  PageStart {}    = False
             istLetzteSeite  _               = True
             hinzufügenAktivieren :: DialogHinzufügen -> PageHinzufügen -> IO ()
             hinzufügenAktivieren
-                (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, comboBoxZugtyp, indizesZugtyp})
-                (PageWeiche {})
+                DialogHinzufügen {
+                    buttonHinzufügen,
+                    buttonHinzufügenWeicheMärklin,
+                    buttonHinzufügenWeicheLego,
+                    buttonHinzufügenWegstrecke,
+                    buttonHinzufügenPlan,
+                    comboBoxZugtyp,
+                    indizesZugtyp}
+                PageWeiche {}
                     = do
-                        widgetHide buttonHinzufügen
-                        index <- get comboBoxZugtyp comboBoxActive
+                        Gtk.widgetHide buttonHinzufügen
+                        index <- Gtk.get comboBoxZugtyp Gtk.comboBoxActive
                         widgetShowIf (indexStimmtÜberein indizesZugtyp Märklin index) buttonHinzufügenWeicheMärklin
                         widgetShowIf (indexStimmtÜberein indizesZugtyp Lego index) buttonHinzufügenWeicheLego
-                        widgetHide buttonHinzufügenWegstrecke
-                        widgetHide buttonHinzufügenPlan
+                        Gtk.widgetHide buttonHinzufügenWegstrecke
+                        Gtk.widgetHide buttonHinzufügenPlan
             hinzufügenAktivieren
-                (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})
-                (PageWegstrecke {})
+                DialogHinzufügen {
+                    buttonHinzufügen,
+                    buttonHinzufügenWeicheMärklin,
+                    buttonHinzufügenWeicheLego,
+                    buttonHinzufügenWegstrecke,
+                    buttonHinzufügenPlan}
+                PageWegstrecke {}
                     = do
-                        widgetHide buttonHinzufügen
-                        widgetHide buttonHinzufügenWeicheMärklin
-                        widgetHide buttonHinzufügenWeicheLego
-                        widgetShow buttonHinzufügenWegstrecke
-                        widgetHide buttonHinzufügenPlan
+                        Gtk.widgetHide buttonHinzufügen
+                        Gtk.widgetHide buttonHinzufügenWeicheMärklin
+                        Gtk.widgetHide buttonHinzufügenWeicheLego
+                        Gtk.widgetShow buttonHinzufügenWegstrecke
+                        Gtk.widgetHide buttonHinzufügenPlan
             hinzufügenAktivieren
-                (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})
-                (PagePlan {})
+                DialogHinzufügen {
+                    buttonHinzufügen,
+                    buttonHinzufügenWeicheMärklin,
+                    buttonHinzufügenWeicheLego,
+                    buttonHinzufügenWegstrecke,
+                    buttonHinzufügenPlan}
+                PagePlan {}
                     = do
-                        widgetHide buttonHinzufügen
-                        widgetHide buttonHinzufügenWeicheMärklin
-                        widgetHide buttonHinzufügenWeicheLego
-                        widgetHide buttonHinzufügenWegstrecke
-                        widgetShow buttonHinzufügenPlan
+                        Gtk.widgetHide buttonHinzufügen
+                        Gtk.widgetHide buttonHinzufügenWeicheMärklin
+                        Gtk.widgetHide buttonHinzufügenWeicheLego
+                        Gtk.widgetHide buttonHinzufügenWegstrecke
+                        Gtk.widgetShow buttonHinzufügenPlan
             hinzufügenAktivieren
-                (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})
-                (PageStart {})
+                DialogHinzufügen {
+                    buttonHinzufügen,
+                    buttonHinzufügenWeicheMärklin,
+                    buttonHinzufügenWeicheLego,
+                    buttonHinzufügenWegstrecke,
+                    buttonHinzufügenPlan}
+                PageStart {}
                     = do
-                        widgetHide buttonHinzufügen
-                        widgetHide buttonHinzufügenWeicheMärklin
-                        widgetHide buttonHinzufügenWeicheLego
-                        widgetHide buttonHinzufügenWegstrecke
-                        widgetHide buttonHinzufügenPlan
+                        Gtk.widgetHide buttonHinzufügen
+                        Gtk.widgetHide buttonHinzufügenWeicheMärklin
+                        Gtk.widgetHide buttonHinzufügenWeicheLego
+                        Gtk.widgetHide buttonHinzufügenWegstrecke
+                        Gtk.widgetHide buttonHinzufügenPlan
             hinzufügenAktivieren
-                (DialogHinzufügen {buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan})
+                DialogHinzufügen {
+                    buttonHinzufügen,
+                    buttonHinzufügenWeicheMärklin,
+                    buttonHinzufügenWeicheLego,
+                    buttonHinzufügenWegstrecke,
+                    buttonHinzufügenPlan}
                 _page
                     = do
-                        widgetShow buttonHinzufügen
-                        widgetHide buttonHinzufügenWeicheMärklin
-                        widgetHide buttonHinzufügenWeicheLego
-                        widgetHide buttonHinzufügenWegstrecke
-                        widgetHide buttonHinzufügenPlan
+                        Gtk.widgetShow buttonHinzufügen
+                        Gtk.widgetHide buttonHinzufügenWeicheMärklin
+                        Gtk.widgetHide buttonHinzufügenWeicheLego
+                        Gtk.widgetHide buttonHinzufügenWegstrecke
+                        Gtk.widgetHide buttonHinzufügenPlan
             indexStimmtÜberein :: (Eq a) => NonEmpty (Int, a) -> a -> Int -> Bool
             indexStimmtÜberein ne a index = foldr (indexStimmtÜbereinAux a index) False ne
                 where
@@ -235,16 +273,16 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
             reset page = do
                     -- Name zurücksetzten
                     case page of
-                        (PageStart {})
+                        PageStart {}
                             -> pure ()
                         _page
-                            -> set (nameEntry page) [entryText := ("" :: Text), widgetHasFocus := True]
+                            -> Gtk.set (nameEntry page) [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
                     case page of
-                        (PageWegstrecke {wegstreckenElemente})
+                        PageWegstrecke {wegstreckenElemente}
                             -> do
                                 -- Hinzufügen-Sensitivity neu setzen
-                                aktiviereWennToggledTMVar wegstreckenElemente traversalHinzufügenWegstrecke
-                        (PagePlan {tvarAktionen, vBoxAktionen, expanderAktionen, tvarLabelAktionen, pgButtonHinzufügenPlan})
+                                _aktiviereWennToggledTMVar wegstreckenElemente
+                        PagePlan {tvarAktionen, vBoxAktionen, expanderAktionen, tvarLabelAktionen, pgButtonHinzufügenPlan}
                             -> do
                                 -- Aktionen zurücksetzen
                                 atomically $ writeTVar tvarAktionen leer
@@ -253,7 +291,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                             -> pure ()
             optionenAnzeigen :: PageHinzufügen -> TMVar StatusGui -> IO ()
             optionenAnzeigen
-                (PagePlan {bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen})
+                PagePlan {bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen}
                 tmvarStatus
                     = do
                         -- Zeige nur verfügbare Aktionen an
@@ -281,12 +319,12 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                 (DialogHinzufügen {buttonWeiter})
                 _mvarStatus
                 _dynamischeWidgets
-                    = widgetHide buttonWeiter
+                    = Gtk.widgetHide buttonWeiter
             zeigeVorherigeSeite :: PageHinzufügen -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             zeigeVorherigeSeite _page dialogHinzufügen = runPage 0 dialogHinzufügen
             erhalteFließendValue :: DialogHinzufügen -> IO Value
             erhalteFließendValue (DialogHinzufügen {comboBoxFließend, indizesFließend})
-                = get comboBoxFließend comboBoxActive >>= \case
+                = Gtk.get comboBoxFließend Gtk.comboBoxActive >>= \case
                     index
                         | indexStimmtÜberein indizesFließend HIGH index
                             -> pure HIGH
@@ -297,95 +335,113 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
             objektHinzufügen :: DialogHinzufügen -> PageHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             objektHinzufügen
                 dialogHinzufügen@(DialogHinzufügen {comboBoxZugtyp, indizesZugtyp})
-                (PageBahngeschwindigkeit {nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton})
+                PageBahngeschwindigkeit {nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton}
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        bgName <- get nameEntry entryText
-                        bgFließend <- erhalteFließendValue dialogHinzufügen
-                        geschwindigkeitsPin <- get geschwindigkeitsPinSpinButton spinButtonValue >>= pure . zuPin
-                        bahngeschwindigkeit <- get comboBoxZugtyp comboBoxActive >>= \case
+                        name <- Gtk.get nameEntry Gtk.entryText
+                        fließend <- erhalteFließendValue dialogHinzufügen
+                        geschwindigkeitsAnschluss <- _zuPin <$> Gtk.get geschwindigkeitsPinSpinButton Gtk.spinButtonValue
+                        bahngeschwindigkeit <- Gtk.get comboBoxZugtyp Gtk.comboBoxActive >>= \case
                             index
                                 | indexStimmtÜberein indizesZugtyp Märklin index
-                                    -> pure MärklinBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin}
+                                    -> pure $ ZugtypMärklin MärklinBahngeschwindigkeit {
+                                        bgmName = name,
+                                        bgmFließend = fließend,
+                                        bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss}
                                 | indexStimmtÜberein indizesZugtyp Lego index
                                     -> do
-                                        fahrtrichtungsPin <- get fahrtrichtungsPinSpinButton spinButtonValue >>= pure . zuPin
-                                        pure LegoBahngeschwindigkeit {bgName, bgFließend, geschwindigkeitsPin, fahrtrichtungsPin}
+                                        fahrtrichtungsAnschluss
+                                            <- _zuPin <$> Gtk.get fahrtrichtungsPinSpinButton Gtk.spinButtonValue
+                                        pure $ ZugtypLego LegoBahngeschwindigkeit {
+                                            bglName = name,
+                                            bglFließend = fließend,
+                                            bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss,
+                                            bglFahrtrichtungsAnschluss = fahrtrichtungsAnschluss}
                                 | otherwise
                                     -> error $ "Unbekannter Zugtyp beim Hinzufügen einer Bahngeschwindigkeit ausgewählt: " ++ show index
-                        bahngeschwindigkeitPackNew bahngeschwindigkeit tmvarStatus dynamischeWidgets
+                        _bahngeschwindigkeitPackNew bahngeschwindigkeit tmvarStatus dynamischeWidgets
             objektHinzufügen
                 dialogHinzufügen
-                (PageStreckenabschnitt {nameEntry, stromPinSpinButton})
+                PageStreckenabschnitt {nameEntry, stromPinSpinButton}
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        stName <- get nameEntry entryText
+                        stName <- Gtk.get nameEntry Gtk.entryText
                         stFließend <- erhalteFließendValue dialogHinzufügen
-                        stromPin <- get stromPinSpinButton spinButtonValue >>= pure . zuPin
-                        streckenabschnittPackNew (Streckenabschnitt {stName, stFließend, stromPin}) tmvarStatus dynamischeWidgets
+                        stromAnschluss <- _zuPin <$> Gtk.get stromPinSpinButton Gtk.spinButtonValue
+                        _streckenabschnittPackNew (Streckenabschnitt {stName, stFließend, stromAnschluss}) tmvarStatus dynamischeWidgets
             objektHinzufügen
                 dialogHinzufügen@(DialogHinzufügen {comboBoxZugtyp, indizesZugtyp})
-                (PageWeiche {nameEntry, richtungsWidgetsMärklin, richtungsWidgetsLego})
+                PageWeiche {nameEntry, richtungsWidgetsMärklin, richtungsWidgetsLego}
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        weName <- get nameEntry entryText
+                        weName <- Gtk.get nameEntry Gtk.entryText
                         weFließend <- erhalteFließendValue dialogHinzufügen
-                        weiche <- get comboBoxZugtyp comboBoxActive >>= \case
+                        weiche <- Gtk.get comboBoxZugtyp Gtk.comboBoxActive >>= \case
                             index
                                 | indexStimmtÜberein indizesZugtyp Märklin index
                                     -> do
                                         let
-                                            erhalteToggledRichtungen :: [(Richtung, Pin)] -> (Richtung, CheckButton, SpinButton) -> IO [(Richtung, Pin)]
+                                            erhalteToggledRichtungen
+                                                :: [(Richtung, Pin)]
+                                                -> (Richtung, Gtk.CheckButton, Gtk.SpinButton)
+                                                    -> IO [(Richtung, Pin)]
                                             erhalteToggledRichtungen acc (richtung, checkButton, spinButton) = do
-                                                get checkButton toggleButtonActive >>= \case
+                                                Gtk.get checkButton Gtk.toggleButtonActive >>= \case
                                                     True    -> do
-                                                        pin <- get spinButton spinButtonValue
-                                                        pure $ (richtung, zuPin pin) : acc
+                                                        pin <- Gtk.get spinButton Gtk.spinButtonValue
+                                                        pure $ (richtung, _zuPin pin) : acc
                                                     False   -> pure acc
-                                        richtungsPins <- foldM erhalteToggledRichtungen [] richtungsWidgetsMärklin
+                                        richtungsPins <- foldM _erhalteToggledRichtungen [] _richtungsWidgetsMärklin
                                         case richtungsPins of
-                                            ([])    -> error "Keine Richtung beim Hinzufügen einer Märklin-Weiche ausgewählt."
-                                            (h:t)   -> pure MärklinWeiche {weName, weFließend, richtungsPins=h:|t}
+                                            []      -> error "Keine Richtung beim Hinzufügen einer Märklin-Weiche ausgewählt."
+                                            (h : t) -> pure $ ZugtypMärklin MärklinWeiche {
+                                                wemName = _,
+                                                wemFließend = _,
+                                                wemRichtungsAnschlüsse = h :| t}
                                 | indexStimmtÜberein indizesZugtyp Lego index
                                     -> do
                                         let (richtungsPinSpinButton, richtungenRadioButtons) = richtungsWidgetsLego
-                                        richtungsPin <- get richtungsPinSpinButton spinButtonValue >>= pure . zuPin
+                                        richtungsPin <- _zuPin <$> Gtk.get richtungsPinSpinButton Gtk.spinButtonValue
                                         let
-                                            erhalteGewählteRichtungen :: (Richtung, Richtung) -> (Richtung, Richtung, RadioButton) -> IO (Richtung, Richtung)
+                                            erhalteGewählteRichtungen :: (Richtung, Richtung) -> (Richtung, Richtung, Gtk.RadioButton) -> IO (Richtung, Richtung)
                                             erhalteGewählteRichtungen acc (r1, r2, rb) = do
-                                                toggled <- get rb toggleButtonActive
+                                                toggled <- Gtk.get rb Gtk.toggleButtonActive
                                                 pure $ if toggled then (r1, r2) else acc
                                         richtungen <- foldM erhalteGewählteRichtungen (Gerade, Gerade) richtungenRadioButtons
-                                        pure LegoWeiche {weName, weFließend, richtungsPin, richtungen}
+                                        pure $ ZugtypLego LegoWeiche {
+                                            welName = _,
+                                            welFließend = _,
+                                            welRichtungsAnschluss = _,
+                                            welRichtungen = _}
                                 | otherwise
                                     -> error $ "Unbekannter Zugtyp beim Hinzufügen einer Weiche ausgewählt: " ++ show index
-                        weichePackNew weiche tmvarStatus dynamischeWidgets
+                        _weichePackNew weiche tmvarStatus dynamischeWidgets
             objektHinzufügen
                 dialogHinzufügen
-                (PageKupplung {nameEntry, kupplungsPinSpinButton})
+                PageKupplung {nameEntry, kupplungsPinSpinButton}
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        kuName <- get nameEntry entryText
+                        kuName <- Gtk.get nameEntry Gtk.entryText
                         kuFließend <- erhalteFließendValue dialogHinzufügen
-                        kupplungsPin <- get kupplungsPinSpinButton spinButtonValue >>= pure . zuPin
-                        kupplungPackNew (Kupplung {kuName, kuFließend, kupplungsPin}) tmvarStatus dynamischeWidgets
+                        kupplungsAnschluss <- _zuPin <$> Gtk.get kupplungsPinSpinButton Gtk.spinButtonValue
+                        _kupplungPackNew (Kupplung {kuName, kuFließend, kupplungsAnschluss}) tmvarStatus dynamischeWidgets
             objektHinzufügen
                 _dialogHinzufügen
-                (PageWegstrecke {nameEntry, wegstreckenElemente})
+                PageWegstrecke {nameEntry, wegstreckenElemente}
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        wsName <- get nameEntry entryText
-                        wegstreckenElementeCurrent <- atomically $ readTMVar $ wegstreckenElemente ^. tmvarCheckButtons
-                        wsBahngeschwindigkeiten <- foldM (getToggledWegstreckenElemente $ pure . bg) [] $ wegstreckenElementeCurrent ^. bahngeschwindigkeiten
-                        wsStreckenabschnitte <- foldM (getToggledWegstreckenElemente $ pure . st) [] $  wegstreckenElementeCurrent ^. streckenabschnitte
-                        wsWeichenRichtungen <- foldM (getToggledWegstreckenElemente getWeichenRichtung) [] $ wegstreckenElementeCurrent ^. weichen
-                        wsKupplungen <- foldM (getToggledWegstreckenElemente $ pure . ku) [] $ wegstreckenElementeCurrent ^. kupplungen
-                        wegstreckePackNew (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) tmvarStatus dynamischeWidgets
+                        wsName <- Gtk.get nameEntry Gtk.entryText
+                        wegstreckenElementeCurrent <- atomically $ readTMVar $ wegstreckenElemente ^. _tmvarCheckButtons
+                        wsBahngeschwindigkeiten <- foldM (getToggledWegstreckenElemente $ pure . _bg) [] $ wegstreckenElementeCurrent ^. bahngeschwindigkeiten
+                        wsStreckenabschnitte <- foldM (getToggledWegstreckenElemente $ pure . _st) [] $  wegstreckenElementeCurrent ^. streckenabschnitte
+                        wsWeichenRichtungen <- foldM (getToggledWegstreckenElemente getWeichenRichtung) [] $ wegstreckenElementeCurrent ^. _weichen
+                        wsKupplungen <- foldM (getToggledWegstreckenElemente $ pure . _ku) [] $ wegstreckenElementeCurrent ^. kupplungen
+                        _wegstreckePackNew (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) tmvarStatus dynamischeWidgets
                             where
                                 getToggledWegstreckenElemente :: (WegstreckenElement s) => (s -> IO a) -> [a] -> s -> IO [a]
                                 getToggledWegstreckenElemente
@@ -393,32 +449,32 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                                     acc
                                     element
                                         = do
-                                            get (element ^. lensWegstrecke . checkButton) toggleButtonActive >>= \case
+                                            Gtk.get (element ^. getterWegstrecke . _checkButton) Gtk.toggleButtonActive >>= \case
                                                 True    -> do
                                                     h <- selector element
                                                     pure $ h : acc
                                                 False   -> pure acc
-                                getWeichenRichtung :: WEWidgets -> IO (Weiche, Richtung)
+                                getWeichenRichtung :: WEWidgets z -> IO (Weiche z, Richtung)
                                 getWeichenRichtung weWidgets = do
-                                    richtung <- getToggledRichtung (weWidgets ^. getterRichtungsRadioButtons)
-                                    pure (we weWidgets, richtung)
-                                getToggledRichtung :: NonEmpty (Richtung, RadioButton) -> IO Richtung
+                                    richtung <- getToggledRichtung (weWidgets ^. _getterRichtungsRadioButtons)
+                                    pure (erhalteObjektTyp weWidgets, richtung)
+                                getToggledRichtung :: NonEmpty (Richtung, Gtk.RadioButton) -> IO Richtung
                                 getToggledRichtung  ((richtung, radioButton):|tail) = do
-                                    toggled <- get radioButton toggleButtonActive
+                                    toggled <- Gtk.get radioButton Gtk.toggleButtonActive
                                     if toggled
                                         then pure richtung
                                         else case tail of
-                                            (h:t)   -> getToggledRichtung $ h:|t
-                                            []      -> error "getToggledRichtung ohne ausgewählten RadioButton aufgerufen."
+                                            (h : t) -> getToggledRichtung $ h:|t
+                                            []      -> error "getToggledRichtung ohne ausgewählten Gtk.RadioButton aufgerufen."
             objektHinzufügen
                 _dialogHinzufügen
-                (PagePlan {nameEntry, tvarAktionen})
+                PagePlan {nameEntry, tvarAktionen}
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        plName <- get nameEntry entryText
+                        plName <- Gtk.get nameEntry Gtk.entryText
                         aktionenQueue <- readTVarIO tvarAktionen
-                        planPackNew (Plan {plName, plAktionen=toList aktionenQueue}) tmvarStatus dynamischeWidgets
+                        _planPackNew (Plan {plName, plAktionen = toList aktionenQueue}) tmvarStatus dynamischeWidgets
             objektHinzufügen
                 _dialogHinzufügen
                 page
@@ -426,10 +482,10 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                 _dynamischeWidgets
                     = error $ "Unbekannte Seite während dem Hinzufügen angezeigt: " ++ show page
 
-dialogHinzufügenNew :: (WindowClass w) => w -> DynamischeWidgets -> IO DialogHinzufügen
+dialogHinzufügenNew :: (MitWindow w) => w -> DynamischeWidgets -> IO DialogHinzufügen
 dialogHinzufügenNew
     parent
-    (DynamischeWidgets {vBoxHinzufügenWegstreckeBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeiten, vBoxHinzufügenPlanBahngeschwindigkeitenLego, vBoxHinzufügenPlanBahngeschwindigkeitenMärklin, vBoxHinzufügenWegstreckeStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte, vBoxHinzufügenWegstreckeWeichen, vBoxHinzufügenPlanWeichenGerade, vBoxHinzufügenPlanWeichenKurve, vBoxHinzufügenPlanWeichenLinks, vBoxHinzufügenPlanWeichenRechts, vBoxHinzufügenWegstreckeKupplungen, vBoxHinzufügenPlanKupplungen, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego, vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin, vBoxHinzufügenPlanWegstreckenStreckenabschnitt, vBoxHinzufügenPlanWegstreckenWeiche, vBoxHinzufügenPlanWegstreckenKupplung, fortfahrenWennToggledWegstrecke, tmvarPlanObjekt})
+    dynamischeWidgets
         = do
             dialog <- dialogNew
             set dialog [
@@ -437,12 +493,12 @@ dialogHinzufügenNew
                 windowTransientFor := parent,
                 windowDefaultHeight := 320]
             -- Eigene Hinzufügen-Knöpfe für Seiten, bei denen er temporär deaktiert sein kann
-            buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
-            buttonHinzufügenWeicheMärklin <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
-            buttonHinzufügenWeicheLego <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
+            buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
+            buttonHinzufügenWeicheMärklin <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
+            buttonHinzufügenWeicheLego <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
             let buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke ^. fortfahrenButton
-            dialogAddActionWidget dialog buttonHinzufügenWegstrecke ResponseOk
-            buttonHinzufügenPlan <- dialogAddButton dialog (Language.hinzufügen :: Text) ResponseOk
+            dialogAddActionWidget dialog buttonHinzufügenWegstrecke Gtk.ResponseOk
+            buttonHinzufügenPlan <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
             -- ComboBox zur Zugtyp-Auswahl
             buttonBox <- widgetGetParent buttonHinzufügen >>= pure . castToBox . fromJust
             comboBoxFließend <- boxPackWidgetNewDefault buttonBox comboBoxNewText
@@ -454,8 +510,8 @@ dialogHinzufügenNew
             indexLego <-comboBoxAppendText comboBoxZugtyp Language.lego
             let indizesZugtyp = (indexMärklin, Märklin) :| (indexLego, Lego) : []
             -- Fluss-Kontrolle des Dialogs
-            buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) ResponseApply
-            buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) ResponseReject
+            buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) Gtk.ResponseApply
+            buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) Gtk.ResponseReject
             _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
             -- Seiten mit Einstellungs-Möglichkeiten
             contentBox <- dialogGetUpper dialog
@@ -469,7 +525,7 @@ dialogHinzufügenNew
                     rbWegstrecke            <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.wegstrecke :: Text)
                     rbPlan                  <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.plan :: Text)
                     let 
-                        radioButtons :: NonEmpty RadioButton
+                        radioButtons :: NonEmpty Gtk.RadioButton
                         radioButtons
                             = rbBahngeschwindigkeit :|
                                 rbStreckenabschnitt :
@@ -508,14 +564,14 @@ dialogHinzufügenNew
                     (richtungsPinWidget, richtungsPinSpinButton) <- pinSpinBoxNew Language.richtung
                     boxPackWidgetNewDefault widget $ pure richtungsPinWidget
                     let
-                        createRichtungsPin :: Richtung -> IO (Richtung, HBox, CheckButton, SpinButton)
+                        createRichtungsPin :: Richtung -> IO (Richtung, Gtk.HBox, Gtk.CheckButton, Gtk.SpinButton)
                         createRichtungsPin richtung = do
                             hBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
                             checkButton <- boxPackWidgetNewDefault hBox checkButtonNew
                             (pinWidget, spinButton) <- pinSpinBoxNew $ showText richtung
                             boxPackWidgetNewDefault hBox $ pure pinWidget
                             pure (richtung, hBox, checkButton, spinButton)
-                        createRichtungenRadioButton :: Maybe (NonEmpty (Richtung, Richtung, RadioButton)) -> (Richtung, Richtung) -> IO (Maybe (NonEmpty (Richtung, Richtung, RadioButton)))
+                        createRichtungenRadioButton :: Maybe (NonEmpty (Richtung, Richtung, Gtk.RadioButton)) -> (Richtung, Richtung) -> IO (Maybe (NonEmpty (Richtung, Richtung, Gtk.RadioButton)))
                         createRichtungenRadioButton (Nothing)               richtungen@(richtung1, richtung2)   = do
                             radioButton <- boxPackWidgetNewDefault widget $ radioButtonNewWithLabel $ getRichtungenText richtungen
                             pure $ Just $ (richtung1, richtung2, radioButton):|[]
@@ -959,14 +1015,14 @@ dialogHinzufügenNew
             comboBoxSetActive comboBoxZugtyp indexMärklin
             pure DialogHinzufügen {dialog, pages, buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, buttonWeiter, buttonZurück, comboBoxZugtyp, indizesZugtyp, comboBoxFließend, indizesFließend}
                 where
-                    appendPage :: (BoxClass b, Monad m, MonadIO m) => b -> m PageHinzufügen -> StateT (Warteschlange PageHinzufügen) m ()
+                    appendPage :: (MitBox b, Monad m, MonadIO m) => b -> m PageHinzufügen -> StateT (Warteschlange PageHinzufügen) m ()
                     appendPage box konstruktor = do
                         page <- lift konstruktor
                         liftIO $ boxPack box (widget page) PackGrow paddingDefault positionDefault
                         State.modify $ anhängen page
 
 -- | Zeige 'Aktion'en richtig an.
-showAktionen :: (BoxClass b, Foldable t) => Button -> b -> Expander -> TVar [Label] -> t Aktion -> IO ()
+showAktionen :: (MitBox b, Foldable t) => Gtk.Button -> b -> Gtk.Expander -> TVar [Gtk.Label] -> t Aktion -> IO ()
 showAktionen buttonHinzufügen box expander tvarWidgets aktionen = do
     widgets <- readTVarIO tvarWidgets
     forM_ widgets $ containerRemove box
@@ -988,8 +1044,8 @@ showNth i queue = case zeigeErstes queue of
             widgetHide $ widget h
             showNth (pred i) t
 
--- | Gebe den Index des ersten eingeschalteten Radiobuttons an. Wenn kein RadioButton an ist, gebe 0 zurück.
-erhalteToggledIndex :: NonEmpty RadioButton -> IO Natural
+-- | Gebe den Index des ersten eingeschalteten Radiobuttons an. Wenn kein Gtk.RadioButton an ist, gebe 0 zurück.
+erhalteToggledIndex :: NonEmpty Gtk.RadioButton -> IO Natural
 erhalteToggledIndex (h:|t) = do
     toggled <- get h toggleButtonActive
     if toggled
@@ -998,39 +1054,39 @@ erhalteToggledIndex (h:|t) = do
 
 data PageHinzufügen
     = PageStart {
-        widget :: VBox,
-        radioButtons :: NonEmpty RadioButton}
+        widget :: Gtk.VBox,
+        radioButtons :: NonEmpty Gtk.RadioButton}
     | PageBahngeschwindigkeit {
-        widget :: VBox,
-        nameEntry :: Entry,
+        widget :: Gtk.VBox,
+        nameEntry :: Gtk.Entry,
         geschwindigkeitsPinSpinButton,
-        fahrtrichtungsPinSpinButton :: SpinButton}
+        fahrtrichtungsPinSpinButton :: Gtk.SpinButton}
     | PageStreckenabschnitt {
-        widget :: VBox,
-        nameEntry :: Entry,
-        stromPinSpinButton :: SpinButton}
+        widget :: Gtk.VBox,
+        nameEntry :: Gtk.Entry,
+        stromPinSpinButton :: Gtk.SpinButton}
     | PageWeiche {
-        widget :: VBox,
-        nameEntry :: Entry,
-        richtungsWidgetsMärklin :: FortfahrenWennToggled NonEmpty (Richtung, CheckButton, SpinButton),
-        richtungsWidgetsLego :: (SpinButton, NonEmpty (Richtung, Richtung, RadioButton))}
+        widget :: Gtk.VBox,
+        nameEntry :: Gtk.Entry,
+        richtungsWidgetsMärklin :: FortfahrenWennToggled,
+        richtungsWidgetsLego :: (Gtk.SpinButton, NonEmpty (Richtung, Richtung, Gtk.RadioButton))}
     | PageKupplung {
-        widget :: VBox,
-        nameEntry :: Entry,
-        kupplungsPinSpinButton :: SpinButton}
+        widget :: Gtk.VBox,
+        nameEntry :: Gtk.Entry,
+        kupplungsPinSpinButton :: Gtk.SpinButton}
     | PageWegstrecke {
-        widget :: VBox,
-        nameEntry :: Entry,
-        wegstreckenElemente :: FortfahrenWennToggled TMVar StatusGui}
+        widget :: Gtk.VBox,
+        nameEntry :: Gtk.Entry,
+        wegstreckenElemente :: FortfahrenWennToggledTMVar StatusGui RegistrierterCheckButton}
     | PagePlan {
-        widget :: VBox,
-        nameEntry :: Entry,
-        bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen :: HBox,
+        widget :: Gtk.VBox,
+        nameEntry :: Gtk.Entry,
+        bgFunktionen, stFunktionen, weFunktionen, kuFunktionen, wsFunktionen :: Gtk.HBox,
         tvarAktionen :: TVar (Warteschlange Aktion),
-        vBoxAktionen :: VBox,
-        expanderAktionen :: Expander,
-        tvarLabelAktionen :: TVar [Label],
-        pgButtonHinzufügenPlan :: Button}
+        vBoxAktionen :: Gtk.VBox,
+        expanderAktionen :: Gtk.Expander,
+        tvarLabelAktionen :: TVar [Gtk.Label],
+        pgButtonHinzufügenPlan :: Gtk.Button}
 
 instance Show PageHinzufügen where
     show (PageStart {})                 = "PageStart"
@@ -1042,21 +1098,21 @@ instance Show PageHinzufügen where
     show (PagePlan {})                  = "PagePlan"
 
 data DialogHinzufügen = DialogHinzufügen {
-                            dialog :: Dialog,
+                            dialog :: Gtk.Dialog,
                             pages :: Warteschlange PageHinzufügen,
-                            buttonHinzufügen :: Button,
-                            buttonHinzufügenWeicheMärklin :: Button,
-                            buttonHinzufügenWeicheLego :: Button,
-                            buttonHinzufügenWegstrecke :: Button,
-                            buttonHinzufügenPlan :: Button,
-                            buttonWeiter :: Button,
-                            buttonZurück :: Button,
-                            comboBoxZugtyp :: ComboBox,
+                            buttonHinzufügen :: Gtk.Button,
+                            buttonHinzufügenWeicheMärklin :: Gtk.Button,
+                            buttonHinzufügenWeicheLego :: Gtk.Button,
+                            buttonHinzufügenWegstrecke :: Gtk.Button,
+                            buttonHinzufügenPlan :: Gtk.Button,
+                            buttonWeiter :: Gtk.Button,
+                            buttonZurück :: Gtk.Button,
+                            comboBoxZugtyp :: Gtk.ComboBox,
                             indizesZugtyp :: NonEmpty (Int, Zugtyp),
-                            comboBoxFließend :: ComboBox,
+                            comboBoxFließend :: Gtk.ComboBox,
                             indizesFließend :: NonEmpty (Int, Value)}
 
 -- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
-dialogGetUpper :: (DialogClass d) => d -> IO Box
+dialogGetUpper :: (MitDialog d) => d -> IO Gtk.Box
 dialogGetUpper dialog = dialogGetActionArea dialog >>= pure . castToBox
 #endif
