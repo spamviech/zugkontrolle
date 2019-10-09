@@ -50,6 +50,9 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons,
+                                        fortfahrenWennToggledNew, aktiviereWennToggledTMVar)
+import Zug.UI.Gtk.Klassen (MitBox())
 import Zug.UI.Gtk.Widgets (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(..), WegstreckenElement(..),
                         BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
                         widgetShowIf, containerAddWidgetNew, boxPackDefault, boxPack,
@@ -57,13 +60,11 @@ import Zug.UI.Gtk.Widgets (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(
                         buttonNewWithEventMnemonic, buttonNewWithEventLabel, dialogEval,
                         entferneHinzufügenPlanWidgets, bahngeschwindigkeitPackNew, streckenabschnittPackNew,
                         weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
-                        getterRichtungsRadioButtons, nameEntryPackNew, pinSpinBoxNew, traversalHinzufügenWegstrecke,
-                        scrolledWidgedNotebookAppendPageNew, scrolledWidgetPackNew, scrolledWidgetAddNew)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, tmvarCheckButtons,
-                                        fortfahrenWennToggledNew, aktiviereWennToggledTMVar)
+                        aktuelleAuswahl, namePackNew, anschlussAuswahlNew, foldWegstreckeHinzufügen,
+                        scrollbaresWidgetNotebookAppendPageNew, scrollbaresWidgetPackNew, scrollbaresWidgetAddNew)
 
 -- | Speichern des aktuellen 'StatusGui'
-buttonSpeichernPack :: (BoxClass b) => Window -> b -> TMVar StatusGui -> IO Button
+buttonSpeichernPack :: (MitBox b, MonadIO m) => Gtk.Window -> b -> TMVar StatusGui -> m Gtk.Button
 buttonSpeichernPack windowMain box tmvarStatus = do
     dialogSpeichern <- dialogSpeichernNew windowMain
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ do
@@ -72,14 +73,14 @@ buttonSpeichernPack windowMain box tmvarStatus = do
             (Just dateipfad) <- fileChooserGetFilename dialogSpeichern
             ausführenTMVarBefehl (Speichern dateipfad :: BefehlGui) tmvarStatus
 
-dialogSpeichernNew :: Window -> IO FileChooserDialog
+dialogSpeichernNew :: (MonadIO m) => Gtk.Window -> m Gtk.FileChooserDialog
 dialogSpeichernNew window = do
     fileChooserDialog <- fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) FileChooserActionSave [(Language.speichern, ResponseOk), (Language.abbrechen, ResponseCancel)]
     set fileChooserDialog [fileChooserDoOverwriteConfirmation := True]
     pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGui' aus einer Datei
-buttonLadenPack :: (BoxClass b) => Window -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Button
+buttonLadenPack :: (MitBox b) => Gtk.Window -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Gtk.Button
 buttonLadenPack windowMain box tmvarStatus dynamischeWidgets = do
     dialogLaden <- dialogLadenNew windowMain
     dialogLadenFehler <- dialogLadenFehlerNew windowMain
