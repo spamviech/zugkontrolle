@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE CPP #-}
 
 {-|
 Description: Erzeuge Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
@@ -9,32 +8,37 @@ module Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse) where
 import Data.Char (toLower)
 import Data.Maybe (fromJust)
 import Control.Monad (unless)
-import Language.Haskell.TH
+import qualified Language.Haskell.TH as TH
 
 -- | Erzeuge Klasse /Mit<name>/, sowie eine default-Implementierung über /DefaultSignatures/.
-erzeugeKlasse :: [Name] -> String -> Q [Dec]
+erzeugeKlasse :: [TH.Name] -> String -> TH.Q [TH.Dec]
 erzeugeKlasse abhängigkeiten name = do
-    istTyp nameMitPräfixGtk >>= flip unless (reportError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name.")
-    typName <- fromJust <$> lookupTypeName nameMitPräfixGtk
-    variablenName <- newName "widget"
+    istTyp nameMitPräfixGtk >>= flip unless (TH.reportError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name.")
+    typName <- fromJust <$> TH.lookupTypeName nameMitPräfixGtk
+    variablenName <- TH.newName "widget"
     mitFunktionSignatur <- erzeugeMitFunktionSignatur
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
     getterSignatur <- erzeugeGetterSignatur typName
     pure $ [
-        ClassD (context variablenName) klassenName [PlainTV $ variablenName] funDeps $ deklarationen variablenName typName,
+        TH.ClassD
+            (context variablenName)
+            klassenName
+            [TH.PlainTV $ variablenName]
+            funDeps
+            (deklarationen variablenName typName),
         instanzDeklaration variablenName,
         mitFunktionSignatur,
         mitFunktionDeklaration,
         getterSignatur,
         getterDeklaration]
     where
-        istTyp :: String -> Q Bool
-        istTyp name = lookupTypeName name >>= \case
+        istTyp :: String -> TH.Q Bool
+        istTyp name = TH.lookupTypeName name >>= \case
             Nothing
                 -> pure False
             (Just typName)
-                -> reify typName >>= pure . \case
-                    (TyConI _dec)
+                -> TH.reify typName >>= pure . \case
+                    (TH.TyConI _dec)
                         -> True
                     _info
                         -> False
@@ -42,74 +46,83 @@ erzeugeKlasse abhängigkeiten name = do
         namePräfixGtk = "Gtk."
         nameMitPräfixGtk :: String
         nameMitPräfixGtk = namePräfixGtk ++ name
-        klassenName :: Name
-        klassenName = mkName $ "Mit" ++ name
-        context :: Name -> Cxt
-        context variablenName = flip AppT (VarT variablenName) . ConT <$> abhängigkeiten
-        funDeps :: [FunDep]
+        klassenName :: TH.Name
+        klassenName = TH.mkName $ "Mit" ++ name
+        context :: TH.Name -> TH.Cxt
+        context variablenName = flip TH.AppT (TH.VarT variablenName) . TH.ConT <$> abhängigkeiten
+        funDeps :: [TH.FunDep]
         funDeps = []
-        deklarationen :: Name -> Name -> [Dec]
+        deklarationen :: TH.Name -> TH.Name -> [TH.Dec]
         deklarationen variablenName typName
             = [funktionSignatur, defaultSignatur, defaultImplementierung] <*> [variablenName] <*> [typName]
-        funktionName :: Name
-        funktionName = mkName $ "erhalte" ++ name
-        funktionTyp :: Name -> Name -> Type
-        funktionTyp variablenName typName = AppT (AppT ArrowT $ VarT variablenName) $ ConT typName
-        funktionSignatur :: Name -> Name -> Dec
-        funktionSignatur variablenName typName = SigD funktionName $ funktionTyp variablenName typName
-        klassenNameGtk :: Name
-        klassenNameGtk = mkName $ namePräfixGtk ++ name ++ "Class"
-        defaultSignatur :: Name -> Name -> Dec
+        funktionName :: TH.Name
+        funktionName = TH.mkName $ "erhalte" ++ name
+        funktionTyp :: TH.Name -> TH.Name -> TH.Type
+        funktionTyp variablenName typName = TH.AppT (TH.AppT TH.ArrowT $ TH.VarT variablenName) $ TH.ConT typName
+        funktionSignatur :: TH.Name -> TH.Name -> TH.Dec
+        funktionSignatur variablenName typName = TH.SigD funktionName $ funktionTyp variablenName typName
+        klassenNameGtk :: TH.Name
+        klassenNameGtk = TH.mkName $ namePräfixGtk ++ name ++ "Class"
+        defaultSignatur :: TH.Name -> TH.Name -> TH.Dec
         defaultSignatur variablenName typName
-            = DefaultSigD funktionName $ ForallT [] [AppT (ConT klassenNameGtk) $ VarT variablenName] $
+            = TH.DefaultSigD funktionName $ TH.ForallT [] [TH.AppT (TH.ConT klassenNameGtk) $ TH.VarT variablenName] $
                 funktionTyp variablenName typName
-        defaultNameGtk :: Name
-        defaultNameGtk = mkName $ namePräfixGtk ++ "to" ++ name
-        defaultImplementierung :: Name -> Name -> Dec
+        defaultNameGtk :: TH.Name
+        defaultNameGtk = TH.mkName $ namePräfixGtk ++ "to" ++ name
+        defaultImplementierung :: TH.Name -> TH.Name -> TH.Dec
         defaultImplementierung _variablenName _typName
-            = ValD (VarP funktionName) (NormalB $ VarE defaultNameGtk) []
-        instanzDeklaration :: Name -> Dec
+            = TH.ValD (TH.VarP funktionName) (TH.NormalB $ TH.VarE defaultNameGtk) []
+        instanzDeklaration :: TH.Name -> TH.Dec
         instanzDeklaration variablenName
-            = InstanceD (Just Overlappable) [AppT (ConT klassenNameGtk) $ VarT variablenName] (AppT (ConT klassenName) $ VarT variablenName) []
-        mitFunktionName :: Name
-        mitFunktionName = mkName $ "mit" ++ name
-        erzeugeMitFunktionSignatur :: Q Dec
+            = TH.InstanceD
+                (Just TH.Overlappable)
+                [TH.AppT (TH.ConT klassenNameGtk) $ TH.VarT variablenName]
+                (TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName)
+                []
+        mitFunktionName :: TH.Name
+        mitFunktionName = TH.mkName $ "mit" ++ name
+        erzeugeMitFunktionSignatur :: TH.Q TH.Dec
         erzeugeMitFunktionSignatur = do
-            b <- newName "b"
-            isW <- newName "isW"
-            variablenName <- newName "w"
+            b <- TH.newName "b"
+            isW <- TH.newName "isW"
+            variablenName <- TH.newName "w"
             pure
-                $ SigD mitFunktionName
-                    $ ForallT
-                        [PlainTV b, PlainTV variablenName]
-                        [AppT (ConT klassenName) $ VarT variablenName]
-                        $ AppT
-                            (AppT
-                                ArrowT
-                                $ ForallT [PlainTV isW] [AppT (ConT klassenNameGtk) (VarT isW)]
-                                    $ AppT
-                                        (AppT ArrowT $ VarT isW)
-                                        (VarT b))
-                            $ AppT
-                                (AppT ArrowT (VarT variablenName))
-                                (VarT b)
-        erzeugeMitFunktionDeklaration :: Q Dec
+                $ TH.SigD mitFunktionName
+                    $ TH.ForallT
+                        [TH.PlainTV b, TH.PlainTV variablenName]
+                        [TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName]
+                        $ TH.AppT
+                            (TH.AppT
+                                TH.ArrowT
+                                $ TH.ForallT [TH.PlainTV isW] [TH.AppT (TH.ConT klassenNameGtk) (TH.VarT isW)]
+                                    $ TH.AppT
+                                        (TH.AppT TH.ArrowT $ TH.VarT isW)
+                                        (TH.VarT b))
+                            $ TH.AppT
+                                (TH.AppT TH.ArrowT (TH.VarT variablenName))
+                                (TH.VarT b)
+        erzeugeMitFunktionDeklaration :: TH.Q TH.Dec
         erzeugeMitFunktionDeklaration = do
-            fun <- newName "fun"
-            pure $ FunD mitFunktionName [Clause [VarP fun] (NormalB $ UInfixE (VarE fun) (VarE $ mkName ".") (VarE funktionName)) []]
+            fun <- TH.newName "fun"
+            pure $ TH.FunD
+                mitFunktionName
+                [TH.Clause
+                    [TH.VarP fun]
+                    (TH.NormalB $ TH.UInfixE (TH.VarE fun) (TH.VarE $ TH.mkName ".") (TH.VarE funktionName))
+                    []]
         firstToLower :: String -> String
         firstToLower    []      = []
         firstToLower    (h : t) = toLower h : t
-        getterName :: Name
-        getterName = mkName $ firstToLower name
-        erzeugeGetterSignatur :: Name -> Q Dec
+        getterName :: TH.Name
+        getterName = TH.mkName $ firstToLower name
+        erzeugeGetterSignatur :: TH.Name -> TH.Q TH.Dec
         erzeugeGetterSignatur typName = do
-            variablenName <- newName "s"
+            variablenName <- TH.newName "s"
             pure
-                $ SigD getterName
-                    $ ForallT
-                        [PlainTV variablenName]
-                        [AppT (ConT klassenName) $ VarT variablenName]
-                        $ AppT (AppT (ConT $ mkName "Lens.Getter") (VarT variablenName)) (ConT typName)
-        getterDeklaration :: Dec
-        getterDeklaration = ValD (VarP getterName) (NormalB $ AppE (VarE $ mkName "Lens.to") (VarE funktionName)) []
+                $ TH.SigD getterName
+                    $ TH.ForallT
+                        [TH.PlainTV variablenName]
+                        [TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName]
+                        $ TH.AppT (TH.AppT (TH.ConT $ TH.mkName "Lens.Getter") (TH.VarT variablenName)) (TH.ConT typName)
+        getterDeklaration :: TH.Dec
+        getterDeklaration = TH.ValD (TH.VarP getterName) (TH.NormalB $ TH.AppE (TH.VarE $ TH.mkName "Lens.to") (TH.VarE funktionName)) []
