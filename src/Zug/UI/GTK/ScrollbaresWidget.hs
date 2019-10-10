@@ -7,9 +7,9 @@
 Description: Scrollbare Widgetw
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widgets.ScrollbaresWidget () where
+module Zug.UI.Gtk.ScrollbaresWidget () where
 #else
-module Zug.UI.Gtk.Widgets.ScrollbaresWidget (
+module Zug.UI.Gtk.ScrollbaresWidget (
     ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
     scrollbaresWidgetPackNew, scrollbaresWidgetNotebookAppendPageNew) where
 

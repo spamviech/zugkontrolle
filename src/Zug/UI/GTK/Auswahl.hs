@@ -8,9 +8,9 @@
 Description: Widget zur Auswahl eines Bounded Enums
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widgets.Auswahl () where
+module Zug.UI.Gtk.Auswahl () where
 #else
-module Zug.UI.Gtk.Widgets.Auswahl (
+module Zug.UI.Gtk.Auswahl (
     -- * Datentyp
     AuswahlWidget(), aktuelleAuswahl,
     -- * Konstruktoren

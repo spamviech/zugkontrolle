@@ -19,31 +19,14 @@
 {-# LANGUAGE CPP #-}
 
 {-|
-Description : Erstelle zusammengesetzte Widgets.
+Description : Erstelle zusammengesetzte 
 
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widgets () where
+module Zug.UI.Gtk.StreckenObjekt () where
 #else
-module Zug.UI.Gtk.Widgets (
-    -- * Allgemeine Widget-Funktionen
-    widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, notebookAppendPageNew, containerRemoveJust, widgetShowIf,
-    dialogEval, boxPack, boxPackDefault, boxPackWidgetNewDefault,
-    Packing(..), packingDefault, Padding(..), paddingDefault, positionDefault, Position(..),
-    -- *`* Scrollbare Widgets
-    ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
-    scrollbaresWidgetPackNew, scrollbaresWidgetNotebookAppendPageNew,
-    -- ** Knopf erstellen
-    buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
-    -- ** Auswahl-Widgets
-    AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, auswahlComboBoxNew,
-    boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew,
-    MitAuswahlWidget(..), mitAuswahlWidget, auswahlWidget,
-    -- ** Anschluss darstellen
-    AnschlussWidget(), anschlussNew, AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss,
-    -- ** Name darstellen
-    namePackNew,
+module Zug.UI.Gtk.StreckenObjekt (
     -- ** Spezifisches StreckenObjekt darstellen
     BGWidgets(), STWidgets(), WEWidgets(), KUWidgets(), WSWidgets(), PLWidgets(), WidgetsTyp(..),
     bahngeschwindigkeitPackNew, streckenabschnittPackNew, weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
@@ -106,13 +89,13 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, containerRemoveJust, b
                                     buttonNewWithEventLabel, namePackNew, widgetShowNew, widgetShowIf,
                                     notebookAppendPageNew, buttonNewWithEvent, buttonNewWithEventMnemonic)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
-import Zug.UI.Gtk.Widgets.Anschluss (AnschlussWidget(), anschlussNew,
+import Zug.UI.Gtk.Anschluss (AnschlussWidget(), anschlussNew,
                                         AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss)
-import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, auswahlComboBoxNew,
+import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, auswahlComboBoxNew,
                                     boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew,
                                     MitAuswahlWidget(..), mitAuswahlWidget, auswahlWidget)
-import Zug.UI.Gtk.Widgets.Fliessend (fließendPackNew)
-import Zug.UI.Gtk.Widgets.ScrollbaresWidget (ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
+import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
                                             scrollbaresWidgetPackNew, scrollbaresWidgetNotebookAppendPageNew)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern

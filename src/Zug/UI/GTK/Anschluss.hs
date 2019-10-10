@@ -8,9 +8,9 @@
 Description: Widget zur Darstellung und Auswahl eines Anschluss
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Widgets.Anschluss () where
+module Zug.UI.Gtk.Anschluss () where
 #else
-module Zug.UI.Gtk.Widgets.Anschluss (
+module Zug.UI.Gtk.Anschluss (
     AnschlussWidget(), anschlussNew,
     AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss) where
 
@@ -24,7 +24,7 @@ import Zug.Language ((<->), (<:>), showText)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), mitNotebook)
-import Zug.UI.Gtk.Widgets.Auswahl (AuswahlWidget, aktuelleAuswahl,
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl,
                                     boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 
 -- | Anzeige eines 'Anschluss'
