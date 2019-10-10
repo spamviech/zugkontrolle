@@ -84,19 +84,13 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledTMVar, registriert
                                         RegistrierterCheckButton, MitRegistrierterCheckButton(..),
                                         registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew,
-                                    boxPackWidgetNewDefault, packingDefault, paddingDefault, positionDefault,
-                                    boxPackDefault, boxPack, Packing(..), Padding(..), Position(..), dialogEval,
-                                    buttonNewWithEventLabel, namePackNew, widgetShowNew, widgetShowIf,
-                                    notebookAppendPageNew, buttonNewWithEvent, buttonNewWithEventMnemonic)
+                                    boxPackWidgetNewDefault, paddingDefault, positionDefault,
+                                    Packing(..), Position(..), dialogEval,
+                                    buttonNewWithEventLabel, namePackNew, widgetShowNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
-import Zug.UI.Gtk.Anschluss (AnschlussWidget(), anschlussNew,
-                                        AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, auswahlComboBoxNew,
-                                    boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew,
-                                    MitAuswahlWidget(..), mitAuswahlWidget, auswahlWidget)
+import Zug.UI.Gtk.Anschluss (anschlussNew)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
-import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
-                                            scrollbaresWidgetPackNew, scrollbaresWidgetNotebookAppendPageNew)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen

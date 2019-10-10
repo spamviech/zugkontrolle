@@ -53,17 +53,11 @@ import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefe
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitBox(), MitWindow(), MitDialog())
-import Zug.UI.Gtk.Widgets (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(..), WidgetsTyp(..),
+import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, DynamischeWidgets(..), WidgetsTyp(..),
                         WegstreckenElement(..), DynamischeWidgetsReader,
-                        BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..),
-                        widgetShowIf, containerAddWidgetNew, boxPackDefault, boxPack,
-                        boxPackWidgetNewDefault, boxPackWidgetNew, paddingDefault, positionDefault,
-                        buttonNewWithEventMnemonic, buttonNewWithEventLabel, dialogEval,
-                        entferneHinzufügenPlanWidgets, bahngeschwindigkeitPackNew, streckenabschnittPackNew,
-                        weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
-                        aktuelleAuswahl, namePackNew, anschlussAuswahlNew, foldWegstreckeHinzufügen,
-                        scrollbaresWidgetNotebookAppendPageNew, scrollbaresWidgetPackNew, scrollbaresWidgetAddNew)
+                        BGWidgets(..), STWidgets(..), WEWidgets(..), KUWidgets(..), WSWidgets(..), PLWidgets(..))
 
 -- | Speichern des aktuellen 'StatusGui'
 buttonSpeichernPack :: (MitBox b, MonadIO m) => Gtk.Window -> b -> TMVar StatusGui -> m Gtk.Button
