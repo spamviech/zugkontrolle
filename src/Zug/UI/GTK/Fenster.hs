@@ -5,12 +5,12 @@
 {-# LANGUAGE CPP #-}
 
 {-|
-Description : Dialoge für GTK-UI.
+Description : Abfragen mit neuem Fenster für das Gtk-UI.
 -}
 #ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Dialog () where
+module Zug.UI.Gtk.Fenster () where
 #else
-module Zug.UI.Gtk.Dialog (
+module Zug.UI.Gtk.Fenster (
                         -- * Knöpfe mit zugehörigem Dialog erstellen
                         buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
 
