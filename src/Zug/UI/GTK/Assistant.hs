@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -15,6 +16,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
 import qualified Graphics.UI.Gtk as Gtk
+import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitWindow(..))
 
@@ -59,6 +61,33 @@ data AssistantSeiten w
         name :: Text,
         finalisierenLabel :: Text}
     deriving (Eq)
+
+instance Foldable AssistantSeiten where
+    foldMap :: Monoid m => (w -> m) -> AssistantSeiten w -> m
+    foldMap
+        f
+        AssistantSeiteLinear {seite, nachfolger}
+            = f seite `mappend` foldMap f nachfolger
+    foldMap
+        f
+        AssistantSeiteAuswahl {seite, nachfolgerListe}
+            = f seite `mappend` foldMap (foldMap f) nachfolgerListe
+    foldMap
+        f
+        AssistantSeiteLetzte {seite}
+            = f seite
+
+-- | Maximale Anzahl an 'AssistantSeiten' (Tiefe des Baums)
+anzahlSeiten :: AssistantSeiten w -> Natural
+anzahlSeiten
+    AssistantSeiteLinear {nachfolger}
+        = succ $ anzahlSeiten nachfolger
+anzahlSeiten
+    AssistantSeiteAuswahl {nachfolgerListe}
+        = succ $ maximum $ anzahlSeiten <$> nachfolgerListe
+anzahlSeiten
+    AssistantSeiteLetzte {}
+        = 1
 
 -- | Erstelle einen neuen 'Assistant'.
 -- Die /seiten/ werden in 'Tree'-Reihenfolge von Wurzel zu Blatt angezeigt.
