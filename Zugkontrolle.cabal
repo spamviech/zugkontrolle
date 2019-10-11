@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 539d56eb1eca44efbb13d3b421b1648902ff0adfdbe7272e80f655543fbac482
+-- hash: 77472cf94d913f543addc6b7f17aa99a140bde1864dd38ecb6b2275bc60128e7
 
 name:           Zugkontrolle
 version:        1.0.1.0
@@ -59,6 +59,7 @@ library
       Zug.UI.Cmd.Parser.StreckenObjekt
       Zug.UI.Gtk
       Zug.UI.Gtk.Anschluss
+      Zug.UI.Gtk.Assistant
       Zug.UI.Gtk.Auswahl
       Zug.UI.Gtk.Fenster
       Zug.UI.Gtk.Fliessend
