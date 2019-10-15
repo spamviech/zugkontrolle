@@ -1,5 +1,6 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -12,6 +13,7 @@ module Zug.UI.Gtk.Assistant (
     Assistant(), AssistantSeiten(..), assistantNew, assistantAuswerten, AssistantResult(..)) where
 
 -- Bibliotheken
+import Control.Concurrent.STM (atomically, TMVar, newEmptyTMVarIO, takeTMVar, putTMVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
@@ -24,7 +26,8 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitWindow(..))
 data Assistant w a = Assistant {
     fenster :: Gtk.Window,
     seiten :: AssistantSeiten w,
-    auswahl :: NonEmpty w -> IO a}
+    tmvarAuswahl :: TMVar (AssistantResult (NonEmpty w)),
+    auswertFunktion :: NonEmpty w -> IO a}
 
 instance MitWidget (Assistant w a) where
     erhalteWidget :: Assistant w a -> Gtk.Widget
@@ -46,20 +49,20 @@ data AssistantSeiten w
     = AssistantSeiteLinear {
         seite :: w,
         name :: Text,
-        fortfahrenLabel :: Text,
+        fortfahren :: Text,
         nachfolger :: AssistantSeiten w}
     -- | Seite mit meheren direkten Nachfolger
     | AssistantSeiteAuswahl {
         seite :: w,
         name :: Text,
-        fortfahrenLabel :: Text,
+        fortfahren :: Text,
         nachfolgerFrage :: Text,
         nachfolgerListe :: NonEmpty (AssistantSeiten w)}
     -- | Seite ohne Nachfolger
     | AssistantSeiteLetzte {
         seite :: w,
         name :: Text,
-        finalisierenLabel :: Text}
+        finalisieren :: Text}
     deriving (Eq)
 
 instance Foldable AssistantSeiten where
@@ -98,7 +101,13 @@ anzahlSeiten
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
 assistantNew :: (MonadIO m, MitWidget w) => AssistantSeiten w -> (NonEmpty w -> IO a) -> m (Assistant w a)
-assistantNew seiten auswertFunktion = do
+assistantNew seiten auswertFunktion = liftIO $ do
+    fenster <- Gtk.windowNew
+    tmvarAuswahl <- newEmptyTMVarIO
+    Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
+        atomically $ putTMVar tmvarAuswahl AssistantDestroy
+        Gtk.widgetHide fenster
+        pure True
     _
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
@@ -106,9 +115,18 @@ data AssistantResult a
     = AssistantSuccessful a
     | AssistantCancel
     | AssistantDestroy
+        deriving (Eq)
 
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
-assistantAuswerten :: (MonadIO m) => Assistant w a -> m a
-assistantAuswerten assistant = do
-    _
+assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
+assistantAuswerten Assistant {fenster, tmvarAuswahl, auswertFunktion} = liftIO $ do
+    Gtk.widgetShow fenster
+    -- Warte auf eine vollständige Eingabe (realisiert durch TMVar)
+    atomically (takeTMVar tmvarAuswahl) >>= \case
+        (AssistantSuccessful auswahl)
+            -> AssistantSuccessful <$> auswertFunktion auswahl
+        AssistantCancel
+            -> pure AssistantCancel
+        AssistantDestroy
+            -> pure AssistantDestroy
 #endif
