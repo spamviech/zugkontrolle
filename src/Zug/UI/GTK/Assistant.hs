@@ -13,21 +13,27 @@ module Zug.UI.Gtk.Assistant (
     Assistant(), AssistantSeiten(..), assistantNew, assistantAuswerten, AssistantResult(..)) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (atomically, TMVar, newEmptyTMVarIO, takeTMVar, putTMVar)
+import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
+import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitWindow(..))
+import qualified Zug.Language as Language
+import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault,
+                                    Packing(..), packingDefault, Position(..), paddingDefault,
+                                    buttonNewWithEventLabel)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitContainer(..), MitBox(), MitWindow(..))
 
 -- | Fenster zum erstellen eines Objekts, potentiell in mehreren Schritten
-data Assistant w a = Assistant {
-    fenster :: Gtk.Window,
-    seiten :: AssistantSeiten w,
-    tmvarAuswahl :: TMVar (AssistantResult (NonEmpty w)),
-    auswertFunktion :: NonEmpty w -> IO a}
+data Assistant w a
+    = Assistant {
+        fenster :: Gtk.Window,
+        seiten :: AssistantSeiten Gtk.Box,
+        tvarAuswahl :: TVar (Either ([w], AssistantSeiten Gtk.Box) (AssistantResult (NonEmpty w))),
+        auswertFunktion :: NonEmpty w -> IO a}
 
 instance MitWidget (Assistant w a) where
     erhalteWidget :: Assistant w a -> Gtk.Widget
@@ -49,13 +55,13 @@ data AssistantSeiten w
     = AssistantSeiteLinear {
         seite :: w,
         name :: Text,
-        fortfahren :: Text,
+        weiter :: Text,
         nachfolger :: AssistantSeiten w}
     -- | Seite mit meheren direkten Nachfolger
     | AssistantSeiteAuswahl {
         seite :: w,
         name :: Text,
-        fortfahren :: Text,
+        weiter :: Text,
         nachfolgerFrage :: Text,
         nachfolgerListe :: NonEmpty (AssistantSeiten w)}
     -- | Seite ohne Nachfolger
@@ -63,7 +69,11 @@ data AssistantSeiten w
         seite :: w,
         name :: Text,
         finalisieren :: Text}
-    deriving (Eq)
+    deriving (Eq, Show)
+
+instance (MitWidget w) => MitWidget (AssistantSeiten w) where
+    erhalteWidget :: AssistantSeiten w -> Gtk.Widget
+    erhalteWidget = erhalteWidget . seite
 
 instance Foldable AssistantSeiten where
     foldMap :: Monoid m => (w -> m) -> AssistantSeiten w -> m
@@ -100,33 +110,91 @@ anzahlSeiten
 --
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
-assistantNew :: (MonadIO m, MitWidget w) => AssistantSeiten w -> (NonEmpty w -> IO a) -> m (Assistant w a)
-assistantNew seiten auswertFunktion = liftIO $ do
+assistantNew :: (MonadIO m, MitWidget w) => Gtk.Window -> AssistantSeiten w -> (NonEmpty w -> IO a) -> m (Assistant w a)
+assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
+    tvarAuswahl <- newTVarIO $ Left ([], _seiten)
+    -- Erstelle Fenster
     fenster <- Gtk.windowNew
-    tmvarAuswahl <- newEmptyTMVarIO
+    Gtk.set fenster [Gtk.windowTransientFor := parent, Gtk.windowModal := True, Gtk.windowTitle := name seitenEingabe]
     Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
-        atomically $ putTMVar tmvarAuswahl AssistantDestroy
-        Gtk.widgetHide fenster
+        atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
         pure True
+    vBox <- liftIO $ containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
+    -- Knopf-Leiste für permanente Funktionen
+    flowControlBox <- liftIO $ boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
+    liftIO $ boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
+        buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
+    -- Packe Seiten in entsprechende Box und zeige nur die erste an.
+    seiten <- packSeiten vBox flowControlBox seitenEingabe
+    tvarAktuelleSeite <- newTVarIO seiten
+    weiterKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox $
+        buttonNewWithEventLabel Language.weiter $ do
+            aktuelleSeite <- readTVarIO tvarAktuelleSeite
+            mitWidgetHide aktuelleSeite
+            case aktuelleSeite of
+                AssistantSeiteLinear {nachfolger}
+                    -> do
+                        mitWidgetShow nachfolger
+                        case nachfolger of
+                            AssistantSeiteLetzte {finalisieren}
+                                -> Gtk.set (_finalisierenKnopf :: Gtk.Button) [Gtk.buttonLabel := finalisieren]
+                            assistantSeite
+                                -> Gtk.set (_weiterKnopf :: Gtk.Button) [Gtk.buttonLabel := weiter assistantSeite]
+                AssistantSeiteAuswahl {seite, name, weiter, nachfolgerFrage, nachfolgerListe}
+                    -> _        -- wie AssistantSeiteLinear nach nachfolgerAuswahl
+                assistantSeite@AssistantSeiteLetzte {}
+                    -> error $ "weiterKnopf aus AssistantSeiteLetzte aufgerufen!"
+            _
     _
+    pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
+
+packSeiten :: (MitBox b, MitBox fc, MitWidget w, MonadIO m) =>
+    b -> fc -> AssistantSeiten w -> m (AssistantSeiten Gtk.Box)
+packSeiten
+    box
+    flowControlBox
+    assistant@AssistantSeiteLinear {seite, name, weiter, nachfolger}
+        = liftIO $ do
+            _
+packSeiten
+    box
+    flowControlBox
+    AssistantSeiteAuswahl {seite, name, weiter, nachfolgerFrage, nachfolgerListe}
+        = liftIO _
+packSeiten
+    box
+    flowControlBox
+    AssistantSeiteLetzte {seite, name, finalisieren}
+        = liftIO _
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
 data AssistantResult a
-    = AssistantSuccessful a
-    | AssistantCancel
-    | AssistantDestroy
+    = AssistantErfolgreich a    -- ^ Assistant erfolgreich
+    | AssistantAbbrechen        -- ^ Der Abbrechen-Knopf wurde gedrückt
+    | AssistantBeenden          -- ^ Das Fenster wurde durch einen Druck des 'X' in der Titelleiste beendet
         deriving (Eq)
 
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
 assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
-assistantAuswerten Assistant {fenster, tmvarAuswahl, auswertFunktion} = liftIO $ do
+assistantAuswerten Assistant {fenster, tvarAuswahl, auswertFunktion} = liftIO $ do
     Gtk.widgetShow fenster
-    -- Warte auf eine vollständige Eingabe (realisiert durch TMVar)
-    atomically (takeTMVar tmvarAuswahl) >>= \case
-        (AssistantSuccessful auswahl)
-            -> AssistantSuccessful <$> auswertFunktion auswahl
-        AssistantCancel
-            -> pure AssistantCancel
-        AssistantDestroy
-            -> pure AssistantDestroy
+    -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
+    ergebnis <- atomically (takeAuswahl tvarAuswahl) >>= \case
+        (AssistantErfolgreich auswahl)
+            -> AssistantErfolgreich <$> auswertFunktion auswahl
+        AssistantAbbrechen
+            -> pure AssistantAbbrechen
+        AssistantBeenden
+            -> pure AssistantBeenden
+    Gtk.widgetHide fenster
+    pure ergebnis
+        where
+            -- Warte auf eine vollständige (Right) Eingabe
+            takeAuswahl :: TVar (Either a (AssistantResult (NonEmpty w))) -> STM (AssistantResult (NonEmpty w))
+            takeAuswahl tvarAuswahl = do
+                readTVar tvarAuswahl >>= \case
+                    (Left _a)
+                        -> retry
+                    (Right result)
+                        -> pure result
 #endif
