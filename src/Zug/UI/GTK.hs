@@ -34,12 +34,9 @@ import Zug.Language ((<~>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
-import Zug.UI.Gtk.Widgets (DynamischeWidgets(..), StatusGUI, IOStatusGUI,
-                        widgetShowNew, containerAddWidgetNew, boxPack, boxPackWidgetNew,
-                        Position(..), positionDefault, paddingDefault, packingDefault,
-                        buttonNewWithEventMnemonic, scrolledWidgedNotebookAppendPageNew)
-import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVar)
-import Zug.UI.Gtk.Dialog (buttonHinzufügenPack, buttonSpeichernPack, buttonLadenPack, ladeWidgets)
+import Zug.UI.Gtk.StreckenObjekt ()
+import Zug.UI.Gtk.Fenster ()
+import Zug.UI.Gtk.FortfahrenWennToggled ()
 
 -- | main loop
 main :: IO ()
