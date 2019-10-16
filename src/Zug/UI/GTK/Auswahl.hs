@@ -14,7 +14,10 @@ module Zug.UI.Gtk.Auswahl (
     -- * Datentyp
     AuswahlWidget(), aktuelleAuswahl,
     -- * Konstruktoren
+    auswahlRadioButtonNamedNew, auswahlComboBoxNamedNew,
+    -- ** Verwende Show-Instanz zum anzeigen
     auswahlRadioButtonNew, auswahlComboBoxNew,
+    -- ** Verwende ['minBound'..'maxBound'] zur Elemente-Auswahl
     boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew,
     -- * Klasse für Typen mit AuswahlWidget
     MitAuswahlWidget(..), mitAuswahlWidget, auswahlWidget) where
@@ -48,15 +51,16 @@ instance MitWidget (AuswahlWidget e) where
     erhalteWidget = widget
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's
-auswahlRadioButtonNew :: (MonadIO m, Eq e, Show e) => NonEmpty e -> Text -> m (AuswahlWidget e)
-auswahlRadioButtonNew (h :| t) name = liftIO $ do
+auswahlRadioButtonNamedNew :: (MonadIO m, Eq e) => NonEmpty e -> Text -> (e -> Text) -> m (AuswahlWidget e)
+auswahlRadioButtonNamedNew (h :| t) name anzeigeFunktion = liftIO $ do
     hBox <- Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
     vBox <- boxPackWidgetNewDefault hBox $ Gtk.vBoxNew False 0
     -- Erstelle RadioButtons
-    hRadioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabel $ show h
+    hRadioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabel $ anzeigeFunktion h
     tEnumButtons <- forM t $ \enum -> do
-        radioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabelFromWidget hRadioButton $ show enum
+        radioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabelFromWidget hRadioButton $
+            anzeigeFunktion enum
         -- Setze Start-Wert
         when (enum == h) $ Gtk.toggleButtonSetActive radioButton True
         pure (enum, radioButton)
@@ -64,19 +68,24 @@ auswahlRadioButtonNew (h :| t) name = liftIO $ do
         widget = erhalteWidget hBox,
         enumButtons = ((h, hRadioButton) :| tEnumButtons)}
 
--- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's für alle Elemente eines 'Bounded' 'Enum's
+-- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendeung der 'Show'-Instanz
+auswahlRadioButtonNew :: (MonadIO m, Eq e, Show e) => NonEmpty e -> Text -> m (AuswahlWidget e)
+auswahlRadioButtonNew elemente name = auswahlRadioButtonNamedNew elemente name showText
+
+-- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's für alle Elemente eines 'Bounded' 'Enum's.
+-- Verwende zur Anzeige die 'Show'-Instanz.
 boundedEnumAuswahlRadioButtonNew :: (MonadIO m, Bounded e, Enum e, Eq e, Show e) => e -> Text -> m (AuswahlWidget e)
 boundedEnumAuswahlRadioButtonNew standard = auswahlRadioButtonNew $ standard :| delete standard [minBound..maxBound]
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox'
-auswahlComboBoxNew :: (MonadIO m, Eq e, Show e) => NonEmpty e -> Text -> m (AuswahlWidget e)
-auswahlComboBoxNew elemente@(h :| _t) name = liftIO $ do
+auswahlComboBoxNamedNew :: (MonadIO m, Eq e) => NonEmpty e -> Text -> (e -> Text) -> m (AuswahlWidget e)
+auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = liftIO $ do
     hBox <- Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
     comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewText
     -- Erstelle ComboBox-Einträge
     enumIndizes <- forM elemente $ \enum -> do
-        index <- Gtk.comboBoxAppendText comboBox $ showText enum
+        index <- Gtk.comboBoxAppendText comboBox $ anzeigeFunktion enum
         when (enum == h) $ Gtk.comboBoxSetActive comboBox index
         pure (enum, index)
     pure AuswahlComboBox {
@@ -84,6 +93,12 @@ auswahlComboBoxNew elemente@(h :| _t) name = liftIO $ do
         comboBox,
         enumIndizes}
 
+-- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Show'-Instanz
+auswahlComboBoxNew :: (MonadIO m, Eq e, Show e) => NonEmpty e -> Text -> m (AuswahlWidget e)
+auswahlComboBoxNew elemente name = auswahlComboBoxNamedNew elemente name showText
+
+-- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' für alle Elemente eines 'Bounded' 'Enum's.
+-- Verwende zur Anzeige die 'Show'-Instanz.
 boundedEnumAuswahlComboBoxNew :: (MonadIO m, Bounded e, Enum e, Eq e, Show e) => e -> Text -> m (AuswahlWidget e)
 boundedEnumAuswahlComboBoxNew standard = auswahlComboBoxNew $ standard :| delete standard [minBound..maxBound]
 
