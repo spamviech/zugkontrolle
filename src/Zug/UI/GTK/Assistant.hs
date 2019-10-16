@@ -10,7 +10,8 @@ Description : Eigenes Assistant-Widget, nachdem das von Gtk bereitgestellte nich
 module Zug.UI.Gtk.Assistant () where
 #else
 module Zug.UI.Gtk.Assistant (
-    Assistant(), AssistantSeiten(..), assistantNew, assistantAuswerten, AssistantResult(..)) where
+    Assistant(), AssistantSeite(..), AssistantSeitenBaum(..),
+    assistantNew, assistantAuswerten, AssistantResult(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
@@ -31,8 +32,8 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitConta
 data Assistant w a
     = Assistant {
         fenster :: Gtk.Window,
-        seiten :: AssistantSeiten Gtk.Box,
-        tvarAuswahl :: TVar (Either ([w], AssistantSeiten Gtk.Box) (AssistantResult (NonEmpty w))),
+        seiten :: AssistantSeitenBaum Gtk.Box,
+        tvarAuswahl :: TVar (Either ([w], AssistantSeitenBaum Gtk.Box) (AssistantResult (NonEmpty w))),
         auswertFunktion :: NonEmpty w -> IO a}
 
 instance MitWidget (Assistant w a) where
@@ -47,51 +48,58 @@ instance MitWindow (Assistant w a) where
     erhalteWindow :: Assistant w a -> Gtk.Window
     erhalteWindow = fenster
 
--- | Seiten eines 'Assistant'.
--- Die Form ist wie ein Rose-tree, ergänzt um zusätzliche Informationen.
--- Der Name wird im Titel des Assistant und bei der Auswahl der Nachfolgeseite gezeigt.
-data AssistantSeiten w
-    -- | Seite mit einem direkten Nachfolger
-    = AssistantSeiteLinear {
+-- | Seite eines 'Assistant'.
+-- Der Name wird im Titel des 'Assistant' und bei der Auswahl der Nachfolgerseite angezeigt.
+-- /seitenAbschluss/ ist der Text des Knopfs zum Anzeigen der nächsten Seite/Finalisieren des 'Assistant'.
+data AssistantSeite w
+    = AssistantSeite {
         seite :: w,
         name :: Text,
-        weiter :: Text,
-        nachfolger :: AssistantSeiten w}
-    -- | Seite mit meheren direkten Nachfolger
-    | AssistantSeiteAuswahl {
-        seite :: w,
-        name :: Text,
-        weiter :: Text,
-        nachfolgerFrage :: Text,
-        nachfolgerListe :: NonEmpty (AssistantSeiten w)}
-    -- | Seite ohne Nachfolger
-    | AssistantSeiteLetzte {
-        seite :: w,
-        name :: Text,
-        finalisieren :: Text}
-    deriving (Eq, Show)
+        seitenAbschluss :: Text}
+            deriving (Eq, Show)
 
-instance (MitWidget w) => MitWidget (AssistantSeiten w) where
-    erhalteWidget :: AssistantSeiten w -> Gtk.Widget
+instance (MitWidget w) => MitWidget (AssistantSeite w) where
+    erhalteWidget :: AssistantSeite w -> Gtk.Widget
     erhalteWidget = erhalteWidget . seite
 
-instance Foldable AssistantSeiten where
-    foldMap :: Monoid m => (w -> m) -> AssistantSeiten w -> m
+-- | Seiten eines 'Assistant'.
+-- Die Form ist wie ein Rose-tree, ergänzt um zusätzliche Informationen.
+data AssistantSeitenBaum w
+    -- | Seite mit einem direkten Nachfolger
+    = AssistantSeiteLinear {
+        node :: AssistantSeite w,
+        nachfolger :: AssistantSeitenBaum w}
+    -- | Seite mit meheren direkten Nachfolger
+    | AssistantSeiteAuswahl {
+        node :: AssistantSeite w,
+        nachfolgerFrage :: Text,
+        nachfolgerListe :: NonEmpty (AssistantSeitenBaum w)}
+    -- | Seite ohne Nachfolger
+    | AssistantSeiteLetzte {
+        node :: AssistantSeite w}
+    deriving (Eq, Show)
+
+instance (MitWidget w) => MitWidget (AssistantSeitenBaum w) where
+    erhalteWidget :: AssistantSeitenBaum w -> Gtk.Widget
+    erhalteWidget = erhalteWidget . node
+
+instance Foldable AssistantSeitenBaum where
+    foldMap :: Monoid m => (w -> m) -> AssistantSeitenBaum w -> m
     foldMap
         f
-        AssistantSeiteLinear {seite, nachfolger}
-            = f seite `mappend` foldMap f nachfolger
+        AssistantSeiteLinear {node, nachfolger}
+            = f (seite node) `mappend` foldMap f nachfolger
     foldMap
         f
-        AssistantSeiteAuswahl {seite, nachfolgerListe}
-            = f seite `mappend` foldMap (foldMap f) nachfolgerListe
+        AssistantSeiteAuswahl {node, nachfolgerListe}
+            = f (seite node) `mappend` foldMap (foldMap f) nachfolgerListe
     foldMap
         f
-        AssistantSeiteLetzte {seite}
-            = f seite
+        AssistantSeiteLetzte {node}
+            = f $ seite node
 
 -- | Maximale Anzahl an 'AssistantSeiten' (Tiefe des Baums)
-anzahlSeiten :: AssistantSeiten w -> Natural
+anzahlSeiten :: AssistantSeitenBaum w -> Natural
 anzahlSeiten
     AssistantSeiteLinear {nachfolger}
         = succ $ anzahlSeiten nachfolger
@@ -110,61 +118,61 @@ anzahlSeiten
 --
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
-assistantNew :: (MonadIO m, MitWidget w) => Gtk.Window -> AssistantSeiten w -> (NonEmpty w -> IO a) -> m (Assistant w a)
+assistantNew :: (MonadIO m, MitWidget w, MitWindow p) =>
+    p -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w a)
 assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
     tvarAuswahl <- newTVarIO $ Left ([], _seiten)
     -- Erstelle Fenster
     fenster <- Gtk.windowNew
-    Gtk.set fenster [Gtk.windowTransientFor := parent, Gtk.windowModal := True, Gtk.windowTitle := name seitenEingabe]
+    Gtk.set fenster [
+        Gtk.windowTransientFor := erhalteWindow parent,
+        Gtk.windowModal := True,
+        Gtk.windowTitle := name (node seitenEingabe)]
     Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
         atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
         pure True
     vBox <- liftIO $ containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
+    -- Packe Seiten in entsprechende Box und zeige nur die erste an.
+    seiten <- packSeiten vBox seitenEingabe
     -- Knopf-Leiste für permanente Funktionen
+    tvarAktuelleSeite <- newTVarIO seiten
     flowControlBox <- liftIO $ boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
     liftIO $ boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
-    -- Packe Seiten in entsprechende Box und zeige nur die erste an.
-    seiten <- packSeiten vBox flowControlBox seitenEingabe
-    tvarAktuelleSeite <- newTVarIO seiten
-    weiterKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox $
+    seitenAbschlussKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox $
         buttonNewWithEventLabel Language.weiter $ do
             aktuelleSeite <- readTVarIO tvarAktuelleSeite
             mitWidgetHide aktuelleSeite
             case aktuelleSeite of
                 AssistantSeiteLinear {nachfolger}
-                    -> do
-                        mitWidgetShow nachfolger
-                        case nachfolger of
-                            AssistantSeiteLetzte {finalisieren}
-                                -> Gtk.set (_finalisierenKnopf :: Gtk.Button) [Gtk.buttonLabel := finalisieren]
-                            assistantSeite
-                                -> Gtk.set (_weiterKnopf :: Gtk.Button) [Gtk.buttonLabel := weiter assistantSeite]
-                AssistantSeiteAuswahl {seite, name, weiter, nachfolgerFrage, nachfolgerListe}
-                    -> _        -- wie AssistantSeiteLinear nach nachfolgerAuswahl
+                    -> zeigeNachfolger nachfolger
+                AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
+                    -> _        -- wie seitenAbschluss nach nachfolgerAuswahl
                 assistantSeite@AssistantSeiteLetzte {}
                     -> error $ "weiterKnopf aus AssistantSeiteLetzte aufgerufen!"
             _
     _
     pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
+        where
+            zeigeNachfolger :: (MonadIO m, MitWidget w) => AssistantSeitenBaum w -> m ()
+            zeigeNachfolger nachfolger = liftIO $ do
+                mitWidgetShow nachfolger
+                Gtk.set (_seitenAbschlussKnopf :: Gtk.Button) [Gtk.buttonLabel := seitenAbschluss (node nachfolger)]
 
-packSeiten :: (MitBox b, MitBox fc, MitWidget w, MonadIO m) =>
-    b -> fc -> AssistantSeiten w -> m (AssistantSeiten Gtk.Box)
+packSeiten :: (MitBox b, MitWidget w, MonadIO m) =>
+    b -> AssistantSeitenBaum w -> m (AssistantSeitenBaum Gtk.Box)
 packSeiten
     box
-    flowControlBox
-    assistant@AssistantSeiteLinear {seite, name, weiter, nachfolger}
+    assistant@AssistantSeiteLinear {node, nachfolger}
         = liftIO $ do
             _
 packSeiten
     box
-    flowControlBox
-    AssistantSeiteAuswahl {seite, name, weiter, nachfolgerFrage, nachfolgerListe}
+    AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
         = liftIO _
 packSeiten
     box
-    flowControlBox
-    AssistantSeiteLetzte {seite, name, finalisieren}
+    AssistantSeiteLetzte {node}
         = liftIO _
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
@@ -189,7 +197,8 @@ assistantAuswerten Assistant {fenster, tvarAuswahl, auswertFunktion} = liftIO $ 
     Gtk.widgetHide fenster
     pure ergebnis
         where
-            -- Warte auf eine vollständige (Right) Eingabe
+            -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
+            -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
             takeAuswahl :: TVar (Either a (AssistantResult (NonEmpty w))) -> STM (AssistantResult (NonEmpty w))
             takeAuswahl tvarAuswahl = do
                 readTVar tvarAuswahl >>= \case
