@@ -16,7 +16,8 @@ module Zug.UI.Gtk.Assistant (
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Monad.Trans (MonadIO(..))
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
@@ -135,7 +136,7 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
     -- Packe Seiten in entsprechende Box und zeige nur die erste an.
     seiten <- packSeiten vBox seitenEingabe
     -- Knopf-Leiste für permanente Funktionen
-    tvarAktuelleSeite <- newTVarIO seiten
+    tvarAktuelleSeite <- newTVarIO seitenEingabe
     flowControlBox <- liftIO $ boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
     liftIO $ boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
@@ -149,7 +150,14 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
                 AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
                     -> _        -- wie seitenAbschluss nach nachfolgerAuswahl
                 assistantSeite@AssistantSeiteLetzte {}
-                    -> error $ "weiterKnopf aus AssistantSeiteLetzte aufgerufen!"
+                    -> do
+                        auswahl <- readTVarIO tvarAuswahl
+                        atomically $ writeTVar tvarAuswahl $ Right $ case auswahl of
+                            (Left (besuchteSeiten, _aktuelleSeite))
+                                -> AssistantErfolgreich $ NonEmpty.reverse $
+                                    (seite $ node assistantSeite) :| besuchteSeiten
+                            (Right ergebnis)
+                                -> ergebnis
             _
     _
     pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
