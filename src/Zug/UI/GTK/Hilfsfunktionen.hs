@@ -19,7 +19,9 @@ module Zug.UI.Gtk.Hilfsfunktionen (
     boxPack, boxPackDefault, boxPackWidgetNew, boxPackWidgetNewDefault,
     Packing(..), packingDefault, Padding(..), paddingDefault, Position(..), positionDefault,
     -- * Notebook
-    notebookAppendPageNew, dialogEval, ResponseId,
+    notebookAppendPageNew,
+    -- * Dialog
+    dialogGetUpper, dialogEval, ResponseId,
     -- * Button
     buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
     -- * Name
@@ -120,6 +122,10 @@ dialogEval dialog = liftIO $ do
     antwort <- mitDialog Gtk.dialogRun dialog
     mitWidgetHide dialog
     pure antwort
+
+-- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
+dialogGetUpper :: (MitDialog d) => d -> IO Gtk.Box
+dialogGetUpper dialog = fmap Gtk.castToBox $ Gtk.dialogGetActionArea $ erhalteDialog dialog
 
 -- ** Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen

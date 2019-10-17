@@ -2,6 +2,8 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -37,12 +39,13 @@ import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetz
 import Zug.Klassen (Zugtyp(..), Richtung(..), unterstützteRichtungen, Strom(..), Fahrtrichtung(..), ZugtypEither(..))
 import Zug.Anbindung (Value(..), Pin(), zuPin, Bahngeschwindigkeit(..), Streckenabschnitt(..),
                     Weiche(..), Kupplung(..), Wegstrecke(..), StreckenObjekt(..))
-import Zug.Objekt (ObjektAllgemein(..))
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<!>), (<:>), (<^>))
 import Zug.UI.Base (Status, auswertenTMVarIOStatus,
+                    ReaderFamilie, ObjektReader,
                     putBahngeschwindigkeiten, bahngeschwindigkeiten,
                     putStreckenabschnitte, streckenabschnitte,
                     putWeichen, weichen,
@@ -50,13 +53,18 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
-import Zug.UI.Gtk.Assistant ()
+import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), AssistantSeitenBaum(..),
+                                assistantNew, assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton)
-import Zug.UI.Gtk.Hilfsfunktionen ()
-import Zug.UI.Gtk.Klassen (MitBox(), MitWindow(), MitDialog())
-import Zug.UI.Gtk.StreckenObjekt ()
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
+                                    widgetShowIf)
+import Zug.UI.Gtk.Klassen (MitBox(), MitWindow(), MitDialog(), mitContainerRemove)
+import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui,
+                                    DynamischeWidgets(..), DynamischeWidgetsReader(..),
+                                    StatusReader(..), WegstreckenElement(..), WEWidgets,
+                                    WidgetsTyp(..))
 
 -- | Speichern des aktuellen 'StatusGui'
 buttonSpeichernPack :: (MitBox b, MonadIO m) => Gtk.Window -> b -> TMVar StatusGui -> m Gtk.Button
@@ -141,11 +149,13 @@ dialogLadenFehlerNew window = Gtk.messageDialogNew (Just window) [] Gtk.MessageE
 -- | Hinzufügen eines 'StreckenObjekt'
 buttonHinzufügenPack :: (MitWindow w, MitBox b) => w -> b -> TMVar StatusGui -> DynamischeWidgets -> IO Gtk.Button
 buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
-    dialogHinzufügen@(DialogHinzufügen {dialog}) <- dialogHinzufügenNew parentWindow dynamischeWidgets
+    assistantHinzufügen <- assistantHinzufügenNew parentWindow dynamischeWidgets
     button <- liftIO $ boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.hinzufügen $ do
-        Gtk.widgetShow dialog
-        runPage 0 dialogHinzufügen tmvarStatus dynamischeWidgets
+        objekt <- assistantAuswerten assistantHinzufügen
+        -- über /case objekt of/ und individuelle pack-Funktionen lösen?
+        _objektPackNew _box objekt
     pure button
+    {-
         where
             runPage :: Natural -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
             runPage
@@ -370,7 +380,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                 tmvarStatus
                 dynamischeWidgets
                     = void $ do
-                        weName <- Gtk.get nameEntry Gtk.entryText
+                        weName <- Gtk.get nameEntry Gtk.entryText :: IO Text
                         weFließend <- erhalteFließendValue dialogHinzufügen
                         weiche <- Gtk.get comboBoxZugtyp Gtk.comboBoxActive >>= \case
                             index
@@ -387,7 +397,7 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                                                         pin <- Gtk.get spinButton Gtk.spinButtonValue
                                                         pure $ (richtung, _zuPin pin) : acc
                                                     False   -> pure acc
-                                        richtungsPins <- foldM _erhalteToggledRichtungen [] _richtungsWidgetsMärklin
+                                        richtungsPins <- foldM _erhalteToggledRichtungen [] (_richtungsWidgetsMärklin :: [Weiche 'Märklin])
                                         case richtungsPins of
                                             []      -> error "Keine Richtung beim Hinzufügen einer Märklin-Weiche ausgewählt."
                                             (h : t) -> pure $ ZugtypMärklin MärklinWeiche {
@@ -430,10 +440,10 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                     = void $ do
                         wsName <- Gtk.get nameEntry Gtk.entryText
                         wegstreckenElementeCurrent <- atomically $ readTMVar $ wegstreckenElemente ^. _tmvarCheckButtons
-                        wsBahngeschwindigkeiten <- foldM (getToggledWegstreckenElemente $ pure . _bg) [] $ wegstreckenElementeCurrent ^. bahngeschwindigkeiten
-                        wsStreckenabschnitte <- foldM (getToggledWegstreckenElemente $ pure . _st) [] $  wegstreckenElementeCurrent ^. streckenabschnitte
-                        wsWeichenRichtungen <- foldM (getToggledWegstreckenElemente getWeichenRichtung) [] $ wegstreckenElementeCurrent ^. _weichen
-                        wsKupplungen <- foldM (getToggledWegstreckenElemente $ pure . _ku) [] $ wegstreckenElementeCurrent ^. kupplungen
+                        wsBahngeschwindigkeiten <- foldM (_getToggledWegstreckenElemente $ _pure . _bg) [] $ wegstreckenElementeCurrent ^. bahngeschwindigkeiten
+                        wsStreckenabschnitte <- foldM (_getToggledWegstreckenElemente $ _pure . _st) [] $  wegstreckenElementeCurrent ^. streckenabschnitte
+                        wsWeichenRichtungen <- foldM (_getToggledWegstreckenElemente _getWeichenRichtung) [] $ wegstreckenElementeCurrent ^. weichen
+                        wsKupplungen <- foldM (_getToggledWegstreckenElemente $ _pure . _ku) [] $ wegstreckenElementeCurrent ^. kupplungen
                         _wegstreckePackNew (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}) tmvarStatus dynamischeWidgets
                             where
                                 getToggledWegstreckenElemente :: (WegstreckenElement s) => (s -> IO a) -> [a] -> s -> IO [a]
@@ -441,13 +451,13 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                                     selector
                                     acc
                                     element
-                                        = do
-                                            Gtk.get (element ^. getterWegstrecke . _checkButton) Gtk.toggleButtonActive >>= \case
+                                        = Gtk.get (element ^. getterWegstrecke) _Gtk_toggleButtonActive >>= \case
                                                 True    -> do
                                                     h <- selector element
                                                     pure $ h : acc
                                                 False   -> pure acc
-                                getWeichenRichtung :: WEWidgets z -> IO (Weiche z, Richtung)
+                                getWeichenRichtung :: (WegstreckenElement (WEWidgets z)) =>
+                                    WEWidgets z -> IO (Weiche z, Richtung)
                                 getWeichenRichtung weWidgets = do
                                     richtung <- getToggledRichtung (weWidgets ^. _getterRichtungsRadioButtons)
                                     pure (erhalteObjektTyp weWidgets, richtung)
@@ -474,555 +484,562 @@ buttonHinzufügenPack parentWindow box tmvarStatus dynamischeWidgets = do
                 _mvarStatus
                 _dynamischeWidgets
                     = error $ "Unbekannte Seite während dem Hinzufügen angezeigt: " ++ show page
+    -}
 
-dialogHinzufügenNew :: (MitWindow w) => w -> DynamischeWidgets -> IO DialogHinzufügen
-dialogHinzufügenNew
+-- | Seiten des Hinzufügen-'Assistant'
+data HinzufügenSeite = HinzufügenSeite
+
+-- Durch Assistant ersetzten!
+-- | Erstelle einen neuen Hinzufügen-'Assistant'
+assistantHinzufügenNew :: (MitWindow w) => w -> DynamischeWidgets -> IO (Assistant HinzufügenSeite Objekt)
+assistantHinzufügenNew
     parent
     dynamischeWidgets
         = do
-            dialog <- dialogNew
-            set dialog [
-                windowTitle := (Language.hinzufügen :: Text),
-                windowTransientFor := parent,
-                windowDefaultHeight := 320]
-            -- Eigene Hinzufügen-Knöpfe für Seiten, bei denen er temporär deaktiert sein kann
-            buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
-            buttonHinzufügenWeicheMärklin <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
-            buttonHinzufügenWeicheLego <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
-            let buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke ^. fortfahrenButton
-            dialogAddActionWidget dialog buttonHinzufügenWegstrecke Gtk.ResponseOk
-            buttonHinzufügenPlan <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
-            -- ComboBox zur Zugtyp-Auswahl
-            buttonBox <- widgetGetParent buttonHinzufügen >>= pure . castToBox . fromJust
-            comboBoxFließend <- boxPackWidgetNewDefault buttonBox comboBoxNewText
-            indexHigh <- comboBoxAppendText comboBoxFließend Language.high
-            indexLow <- comboBoxAppendText comboBoxFließend Language.low
-            let indizesFließend = (indexHigh, HIGH) :| (indexLow, LOW) : []
-            comboBoxZugtyp <- boxPackWidgetNewDefault buttonBox comboBoxNewText
-            indexMärklin <- comboBoxAppendText comboBoxZugtyp Language.märklin
-            indexLego <-comboBoxAppendText comboBoxZugtyp Language.lego
-            let indizesZugtyp = (indexMärklin, Märklin) :| (indexLego, Lego) : []
-            -- Fluss-Kontrolle des Dialogs
-            buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) Gtk.ResponseApply
-            buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) Gtk.ResponseReject
-            _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
-            -- Seiten mit Einstellungs-Möglichkeiten
-            contentBox <- dialogGetUpper dialog
-            pages <- flip State.execStateT leer $ do
-                appendPage contentBox $ do
-                    vBox <- vBoxNew False 0
-                    rbBahngeschwindigkeit   <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabel (Language.bahngeschwindigkeit :: Text)
-                    rbStreckenabschnitt     <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.streckenabschnitt :: Text)
-                    rbWeiche                <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.weiche :: Text)
-                    rbKupplung              <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.kupplung :: Text)
-                    rbWegstrecke            <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.wegstrecke :: Text)
-                    rbPlan                  <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.plan :: Text)
-                    let 
-                        radioButtons :: NonEmpty Gtk.RadioButton
-                        radioButtons
-                            = rbBahngeschwindigkeit :|
-                                rbStreckenabschnitt :
-                                rbWeiche :
-                                rbKupplung :
-                                rbWegstrecke :
-                                rbPlan : []
-                    pure PageStart {widget=vBox, radioButtons}
-                appendPage contentBox $ do
-                    -- Bahngeschwindigkeit
-                    widget <- vBoxNew False 0
-                    boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.bahngeschwindigkeit :: Text)
-                    nameEntry <- nameEntryPackNew widget
-                    (geschwindigkeitsPinWidget, geschwindigkeitsPinSpinButton) <- pinSpinBoxNew Language.geschwindigkeit
-                    boxPackWidgetNewDefault widget $ pure geschwindigkeitsPinWidget
-                    -- Zeige Fahrtrichtungs-Pin nicht für Märklin-Bahngeschwindigkeit an
-                    (fahrtrichtungsPinWidget, fahrtrichtungsPinSpinButton) <- pinSpinBoxNew Language.fahrtrichtung
-                    boxPackWidgetNewDefault widget $ pure fahrtrichtungsPinWidget
-                    on comboBoxZugtyp changed $ do
-                        index <- get comboBoxZugtyp comboBoxActive
-                        widgetShowIf (index == indexLego) fahrtrichtungsPinWidget
-                    pure PageBahngeschwindigkeit {widget, nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton}
-                appendPage contentBox $ do
-                    -- Streckenabschnitt
-                    widget <- vBoxNew False 0
-                    boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.streckenabschnitt :: Text)
-                    nameEntry <- nameEntryPackNew widget
-                    (stromPinWidget, stromPinSpinButton) <- pinSpinBoxNew Language.strom
-                    boxPackWidgetNewDefault widget $ pure stromPinWidget
-                    pure PageStreckenabschnitt {widget, nameEntry, stromPinSpinButton}
-                appendPage contentBox $ do
-                    -- Weiche
-                    widget <- vBoxNew False 0
-                    boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.weiche :: Text)
-                    nameEntry <- nameEntryPackNew widget
-                    (richtungsPinWidget, richtungsPinSpinButton) <- pinSpinBoxNew Language.richtung
-                    boxPackWidgetNewDefault widget $ pure richtungsPinWidget
-                    let
-                        createRichtungsPin :: Richtung -> IO (Richtung, Gtk.HBox, Gtk.CheckButton, Gtk.SpinButton)
-                        createRichtungsPin richtung = do
-                            hBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                            checkButton <- boxPackWidgetNewDefault hBox checkButtonNew
-                            (pinWidget, spinButton) <- pinSpinBoxNew $ showText richtung
-                            boxPackWidgetNewDefault hBox $ pure pinWidget
-                            pure (richtung, hBox, checkButton, spinButton)
-                        createRichtungenRadioButton :: Maybe (NonEmpty (Richtung, Richtung, Gtk.RadioButton)) -> (Richtung, Richtung) -> IO (Maybe (NonEmpty (Richtung, Richtung, Gtk.RadioButton)))
-                        createRichtungenRadioButton (Nothing)               richtungen@(richtung1, richtung2)   = do
-                            radioButton <- boxPackWidgetNewDefault widget $ radioButtonNewWithLabel $ getRichtungenText richtungen
-                            pure $ Just $ (richtung1, richtung2, radioButton):|[]
-                        createRichtungenRadioButton (Just (h@(_,_,rb):|t))  richtungen@(richtung1, richtung2)   = do
-                            radioButton <- boxPackWidgetNewDefault widget $ radioButtonNewWithLabelFromWidget rb $ getRichtungenText richtungen
-                            pure $ Just $ (richtung1, richtung2, radioButton):|h:t
-                        getRichtungenText :: (Richtung, Richtung) -> Text
-                        getRichtungenText (richtung1, richtung2) = showText richtung1 <^> showText richtung2
-                    richtungsPins <- mapM createRichtungsPin unterstützteRichtungen
-                    richtungsWidgetsMärklin <- fortfahrenWennToggledNew buttonHinzufügenWeicheMärklin $
-                        (\(richtung, _hBox, checkButton, spinButton) -> (richtung, checkButton, spinButton)) <$> richtungsPins
-                    let
-                        richtungsKombinationen :: NonEmpty (Richtung, Richtung)
-                        richtungsKombinationen = dreiecksKombinationen unterstützteRichtungen
-                        -- Wenn gespiegelte Kombinationen gewünscht werden nutze Applicative-Instanz
-                        -- richtungsKombinationen = (,) <&> unterstützteRichtungen <*> unterstützteRichtungen
-                        dreiecksKombinationen :: NonEmpty a -> NonEmpty (a, a)
-                        dreiecksKombinationen   (h:|[])     = (h, h) :| []
-                        dreiecksKombinationen   (h:|s:[])   = (h, s) :| []
-                        dreiecksKombinationen   (h:|t)      = let tNE = NE.fromList t in ((,) h <$> tNE) <> dreiecksKombinationen tNE
-                    richtungsRadioButtons <- foldM createRichtungenRadioButton Nothing richtungsKombinationen >>= pure . fromJust
-                    let richtungsWidgetsLego = (richtungsPinSpinButton, richtungsRadioButtons)
-                    on comboBoxZugtyp changed $ do
-                        index <- get comboBoxZugtyp comboBoxActive
-                        visible <- get widget widgetVisible
-                        widgetShowIf (visible && index == indexMärklin) buttonHinzufügenWeicheMärklin
-                        mapM_ (\(_,hBox,_,_) -> widgetShowIf (index == indexMärklin) hBox) richtungsPins
-                        widgetShowIf (visible && index == indexLego) buttonHinzufügenWeicheLego
-                        widgetShowIf (index == indexLego) richtungsPinWidget
-                        mapM_ (\(_,_,rb) -> widgetShowIf (index == indexLego) rb) richtungsRadioButtons
-                    pure PageWeiche {widget, nameEntry, richtungsWidgetsMärklin, richtungsWidgetsLego}
-                appendPage contentBox $ do
-                    -- Kupplung
-                    widget <- vBoxNew False 0
-                    boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.kupplung :: Text)
-                    nameEntry <- nameEntryPackNew widget
-                    (kupplungPinWidget, kupplungsPinSpinButton) <- pinSpinBoxNew Language.kupplung
-                    boxPackWidgetNewDefault widget $ pure kupplungPinWidget
-                    pure PageKupplung {widget, nameEntry, kupplungsPinSpinButton}
-                appendPage contentBox $ do
-                    -- Wegstrecke
-                    widget <- vBoxNew False 0
-                    boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.wegstrecke :: Text)
-                    nameEntry <- nameEntryPackNew widget
-                    notebook <- boxPackWidgetNew widget PackGrow paddingDefault positionDefault notebookNew
-                    scrolledWidgedNotebookAppendPageNew notebook Language.bahngeschwindigkeiten $ pure vBoxHinzufügenWegstreckeBahngeschwindigkeiten
-                    scrolledWidgedNotebookAppendPageNew notebook Language.streckenabschnitte $ pure vBoxHinzufügenWegstreckeStreckenabschnitte
-                    scrolledWidgedNotebookAppendPageNew notebook Language.weichen $ pure vBoxHinzufügenWegstreckeWeichen
-                    scrolledWidgedNotebookAppendPageNew notebook Language.kupplungen $ pure vBoxHinzufügenWegstreckeKupplungen
-                    pure PageWegstrecke {widget, nameEntry, wegstreckenElemente=fortfahrenWennToggledWegstrecke}
-                appendPage contentBox $ do
-                    -- Plan
-                    -- Objekt-Buttons schreiben bei Druck Objekt in tmvarPlanObjekt
-                    -- Sobald diese gefüllt ist kann die Aktion zur aktionen-TVar hinzufgefügt werden
-                    tvarLabelAktionen <- newTVarIO []
-                    tvarAktionen <- newTVarIO leer
-                    expanderAktionen <- expanderNew (Language.aktionen :: Text)
-                    vBoxAktionen <- vBoxNew False 0
-                    let
-                        showAktionenSpezifisch :: IO ()
-                        showAktionenSpezifisch = do
-                            aktionen <- readTVarIO tvarAktionen
-                            showAktionen buttonHinzufügenPlan vBoxAktionen expanderAktionen tvarLabelAktionen aktionen
-                    -- Hilfsdialog erstellen
-                    windowObjekte <- windowNew
-                    set windowObjekte [
-                        windowTitle := (Language.aktion :: Text),
-                        windowModal := True,
-                        windowTransientFor := dialog]
-                    on windowObjekte deleteEvent $ liftIO $ do
-                        atomically $ putTMVar tmvarPlanObjekt Nothing
-                        widgetHide windowObjekte
-                        pure True
-                    windowVBox <- containerAddWidgetNew windowObjekte $ vBoxNew False 0
-                    (windowScrolledWindowBGGeschw, windowVBoxBGGeschw)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowBGUmdrehen, windowVBoxBGUmdrehen)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowST, windowVBoxST)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowWEGerade, windowVBoxWEGerade)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowWEKurve, windowVBoxWEKurve)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowWELinks, windowVBoxWELinks)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowWERechts, windowVBoxWERechts)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowKU, windowVBoxKU)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    (windowScrolledWindowWS, windowVBoxWS)
-                        <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
-                    boxPackWidgetNewDefault windowVBox $ buttonNewWithEventLabel Language.abbrechen $ do
-                        atomically $ putTMVar tmvarPlanObjekt Nothing
-                        widgetHide windowObjekte
-                    boxPackWidgetNewDefault windowVBoxBGGeschw $ labelNew $
-                        Just $ (Language.bahngeschwindigkeiten :: Text)
-                    boxPackDefault windowVBoxBGGeschw vBoxHinzufügenPlanBahngeschwindigkeiten
-                    boxPackWidgetNewDefault windowVBoxBGGeschw $ labelNew $
-                        Just $ (Language.wegstrecken :: Text)
-                    boxPackDefault windowVBoxBGGeschw vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
-                    boxPackWidgetNewDefault windowVBoxBGUmdrehen $ labelNew $
-                        Just $ (Language.bahngeschwindigkeiten :: Text)
-                    boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                    boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                    boxPackWidgetNewDefault windowVBoxBGUmdrehen $ labelNew $
-                        Just $ (Language.wegstrecken :: Text)
-                    boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                    boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                    boxPackWidgetNewDefault windowVBoxST $ labelNew $
-                        Just $ (Language.streckenabschnitte :: Text)
-                    boxPackDefault windowVBoxST vBoxHinzufügenPlanStreckenabschnitte
-                    boxPackWidgetNewDefault windowVBoxST $ labelNew $
-                        Just $ (Language.wegstrecken :: Text)
-                    boxPackDefault windowVBoxST vBoxHinzufügenPlanWegstreckenStreckenabschnitt
-                    boxPackWidgetNewDefault windowVBoxWEGerade $ labelNew $
-                        Just $ (Language.weichen :: Text)
-                    boxPackDefault windowVBoxWEGerade vBoxHinzufügenPlanWeichenGerade
-                    boxPackWidgetNewDefault windowVBoxWEKurve $ labelNew $
-                        Just $ (Language.weichen :: Text)
-                    boxPackDefault windowVBoxWEKurve vBoxHinzufügenPlanWeichenKurve
-                    boxPackWidgetNewDefault windowVBoxWELinks $ labelNew $
-                        Just $ (Language.weichen :: Text)
-                    boxPackDefault windowVBoxWELinks vBoxHinzufügenPlanWeichenLinks
-                    boxPackWidgetNewDefault windowVBoxWERechts $ labelNew $
-                        Just $ (Language.weichen :: Text)
-                    boxPackDefault windowVBoxWERechts vBoxHinzufügenPlanWeichenRechts
-                    boxPackWidgetNewDefault windowVBoxKU $ labelNew $
-                        Just $ (Language.kupplungen :: Text)
-                    boxPackDefault windowVBoxKU vBoxHinzufügenPlanKupplungen
-                    boxPackWidgetNewDefault windowVBoxKU $ labelNew $
-                        Just $ (Language.wegstrecken :: Text)
-                    boxPackDefault windowVBoxKU vBoxHinzufügenPlanWegstreckenKupplung
-                    boxPackWidgetNewDefault windowVBoxWS $ labelNew $
-                        Just $ (Language.wegstrecken :: Text)
-                    boxPackDefault windowVBoxWS vBoxHinzufügenPlanWegstreckenWeiche
-                    -- Widget erstellen
-                    widget <- vBoxNew False 0
-                    boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.plan :: Text)
-                    nameEntry <- nameEntryPackNew widget
-                    functionBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                    let µsInS = 1000000
-                    spinButtonZeit <- spinButtonNewWithRange 0 (60*µsInS) (1*µsInS)
-                    boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.warten $ do
-                        wertDouble <- get spinButtonZeit spinButtonValue
-                        atomically $ modifyTVar tvarAktionen $ anhängen $ Warten $ fromIntegral $ fromEnum wertDouble
-                        showAktionenSpezifisch
-                    boxPackWidgetNewDefault functionBox $ pure spinButtonZeit
-                    boxPackWidgetNewDefault functionBox $ labelNew $ Just $ (Language.wartenEinheit :: Text)
-                    bgFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                    hScaleGeschwindigkeit <- hScaleNewWithRange 0 100 1
-                    boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.geschwindigkeit $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetShow windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        wertDouble <- get hScaleGeschwindigkeit rangeValue
-                        let wert = fromIntegral $ fromEnum wertDouble
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OBahngeschwindigkeit bg))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    ABahngeschwindigkeit $ Geschwindigkeit bg wert
-                            (Just (OWegstrecke ws))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWegstrecke $ AWSBahngeschwindigkeit $ Geschwindigkeit ws wert
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    boxPackWidgetNew bgFunktionen PackGrow paddingDefault positionDefault $ pure hScaleGeschwindigkeit
-                    vorwärtsRadioButton <- radioButtonNewWithLabel (Language.vorwärts :: Text)
-                    rückwärtsRadioButton <- radioButtonNewWithLabelFromWidget vorwärtsRadioButton (Language.rückwärts :: Text)
-                    boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.umdrehen $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetShow windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OBahngeschwindigkeit bg))
-                                -> do
-                                    maybeFahrtrichtung <- case zugtyp bg of
-                                        Lego    -> do
-                                            toggled <- get vorwärtsRadioButton toggleButtonActive
-                                            pure $ Just $ if toggled then Vorwärts else Rückwärts
-                                        _zugtyp -> pure Nothing
-                                    atomically $ modifyTVar tvarAktionen $ anhängen $
-                                        ABahngeschwindigkeit $ Umdrehen bg maybeFahrtrichtung
-                            (Just (OWegstrecke ws))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWegstrecke $ AWSBahngeschwindigkeit $ Umdrehen ws Nothing
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    fahrtrichtungsVBox <- boxPackWidgetNewDefault bgFunktionen $ vBoxNew False 0
-                    on comboBoxZugtyp changed $ do
-                        index <- get comboBoxZugtyp comboBoxActive
-                        mapM_ (widgetShowIf (index == indexLego)) [
-                            vBoxHinzufügenPlanBahngeschwindigkeitenLego,
-                            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
-                            fahrtrichtungsVBox]
-                        mapM_ (widgetShowIf (index == indexMärklin)) [
-                            vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
-                            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin]
-                    boxPackWidgetNewDefault fahrtrichtungsVBox $ pure vorwärtsRadioButton
-                    boxPackWidgetNewDefault fahrtrichtungsVBox $ pure rückwärtsRadioButton
-                    stFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                    boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.an) $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetShow windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OStreckenabschnitt st))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AStreckenabschnitt $ Strom st Fließend
-                            (Just (OWegstrecke ws))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWegstrecke $ AWSStreckenabschnitt $ Strom ws Fließend
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.aus) $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetShow windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        atomically $ case objekt of
-                            (Just (OStreckenabschnitt st))
-                                -> modifyTVar tvarAktionen $ anhängen $
-                                    AStreckenabschnitt $ Strom st Gesperrt
-                            (Just (OWegstrecke ws))
-                                -> modifyTVar tvarAktionen $ anhängen $
-                                    AWegstrecke $ AWSStreckenabschnitt $ Strom ws Gesperrt
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    weFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                    boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetShow windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OWeiche we))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWeiche $ Stellen we Gerade
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetShow windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OWeiche we))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWeiche $ Stellen we Kurve
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.links) $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetShow windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OWeiche we))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWeiche $ Stellen we Links
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetShow windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OWeiche we))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWeiche $ Stellen we Rechts
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    kuFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                    boxPackWidgetNewDefault kuFunktionen $ buttonNewWithEventLabel Language.kuppeln $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetShow windowScrolledWindowKU
-                            widgetHide windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OKupplung ku))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AKupplung $ Kuppeln ku
-                            (Just (OWegstrecke ws))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWegstrecke $ AWSKupplung $ Kuppeln ws
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    wsFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
-                    boxPackWidgetNewDefault wsFunktionen $ buttonNewWithEventLabel Language.einstellen $ void $ forkIO $ do
-                        postGuiAsync $ do
-                            widgetShow windowObjekte
-                            widgetHide windowScrolledWindowBGGeschw
-                            widgetHide windowScrolledWindowBGUmdrehen
-                            widgetHide windowScrolledWindowST
-                            widgetHide windowScrolledWindowWEGerade
-                            widgetHide windowScrolledWindowWEKurve
-                            widgetHide windowScrolledWindowWELinks
-                            widgetHide windowScrolledWindowWERechts
-                            widgetHide windowScrolledWindowKU
-                            widgetShow windowScrolledWindowWS
-                        objekt <- atomically $ takeTMVar tmvarPlanObjekt
-                        case objekt of
-                            (Just (OWegstrecke ws))
-                                -> atomically $ modifyTVar tvarAktionen $ anhängen $
-                                    AWegstrecke $ Einstellen ws
-                            _objekt
-                                -> pure ()
-                        postGuiAsync $ do
-                            widgetHide windowObjekte
-                            showAktionenSpezifisch
-                    boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
-                    scrolledWidgetAddNew expanderAktionen $ widgetShow vBoxAktionen >> pure vBoxAktionen
-                    set vBoxAktionen [widgetExpand := True]
-                    let
-                        entferneLetzteAktion :: Warteschlange Aktion -> Warteschlange Aktion
-                        entferneLetzteAktion aktionen = case zeigeLetztes aktionen of
-                            Leer            -> leer
-                            (Gefüllt _l p)  -> p
-                    boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ do
-                        atomically $ modifyTVar tvarAktionen entferneLetzteAktion
-                        showAktionenSpezifisch
-                    showAktionenSpezifisch
-                    pure PagePlan {
-                        widget,
-                        nameEntry,
-                        bgFunktionen,
-                        stFunktionen,
-                        weFunktionen,
-                        kuFunktionen,
-                        wsFunktionen,
-                        tvarAktionen,
-                        expanderAktionen,
-                        tvarLabelAktionen,
-                        vBoxAktionen,
-                        pgButtonHinzufügenPlan=buttonHinzufügenPlan}
-            -- Setze Wert der ComboBox am Ende um davon abhängige Widgets automatisch zu zeigen/verstecken
-            comboBoxSetActive comboBoxFließend indexLow
-            comboBoxSetActive comboBoxZugtyp indexMärklin
-            pure DialogHinzufügen {dialog, pages, buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, buttonWeiter, buttonZurück, comboBoxZugtyp, indizesZugtyp, comboBoxFließend, indizesFließend}
-                where
-                    appendPage :: (MitBox b, Monad m, MonadIO m) => b -> m PageHinzufügen -> StateT (Warteschlange PageHinzufügen) m ()
-                    appendPage box konstruktor = do
-                        page <- lift konstruktor
-                        liftIO $ boxPack box (widget page) PackGrow paddingDefault positionDefault
-                        State.modify $ anhängen page
+            _assistantErstellen
+            -- dialog <- Gtk.dialogNew
+            -- Gtk.set dialog [
+            --     Gtk.windowTitle := (Language.hinzufügen :: Text),
+            --     Gtk.windowTransientFor := parent,
+            --     Gtk.windowDefaultHeight := 320]
+            -- -- Eigene Hinzufügen-Knöpfe für Seiten, bei denen er temporär deaktiert sein kann
+            -- buttonHinzufügen <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
+            -- buttonHinzufügenWeicheMärklin <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
+            -- buttonHinzufügenWeicheLego <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
+            -- let buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke ^. fortfahrenButton
+            -- dialogAddActionWidget dialog buttonHinzufügenWegstrecke Gtk.ResponseOk
+            -- buttonHinzufügenPlan <- dialogAddButton dialog (Language.hinzufügen :: Text) Gtk.ResponseOk
+            -- -- ComboBox zur Zugtyp-Auswahl
+            -- buttonBox <- widgetGetParent buttonHinzufügen >>= pure . castToBox . fromJust
+            -- comboBoxFließend <- boxPackWidgetNewDefault buttonBox comboBoxNewText
+            -- indexHigh <- comboBoxAppendText comboBoxFließend Language.high
+            -- indexLow <- comboBoxAppendText comboBoxFließend Language.low
+            -- let indizesFließend = (indexHigh, HIGH) :| (indexLow, LOW) : []
+            -- comboBoxZugtyp <- boxPackWidgetNewDefault buttonBox comboBoxNewText
+            -- indexMärklin <- comboBoxAppendText comboBoxZugtyp Language.märklin
+            -- indexLego <-comboBoxAppendText comboBoxZugtyp Language.lego
+            -- let indizesZugtyp = (indexMärklin, Märklin) :| (indexLego, Lego) : []
+            -- -- Fluss-Kontrolle des Dialogs
+            -- buttonWeiter <- dialogAddButton dialog (Language.weiter :: Text) Gtk.ResponseApply
+            -- buttonZurück <- dialogAddButton dialog (Language.zurück :: Text) Gtk.ResponseReject
+            -- _buttonAbbrechen <- dialogAddButton dialog (Language.abbrechen :: Text) ResponseCancel
+            -- -- Seiten mit Einstellungs-Möglichkeiten
+            -- contentBox <- dialogGetUpper dialog
+            -- pages <- flip State.execStateT leer $ do
+            --     appendPage contentBox $ do
+            --         vBox <- vBoxNew False 0
+            --         rbBahngeschwindigkeit   <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabel (Language.bahngeschwindigkeit :: Text)
+            --         rbStreckenabschnitt     <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.streckenabschnitt :: Text)
+            --         rbWeiche                <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.weiche :: Text)
+            --         rbKupplung              <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.kupplung :: Text)
+            --         rbWegstrecke            <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.wegstrecke :: Text)
+            --         rbPlan                  <- boxPackWidgetNewDefault vBox $ radioButtonNewWithLabelFromWidget rbBahngeschwindigkeit (Language.plan :: Text)
+            --         let 
+            --             radioButtons :: NonEmpty Gtk.RadioButton
+            --             radioButtons
+            --                 = rbBahngeschwindigkeit :|
+            --                     rbStreckenabschnitt :
+            --                     rbWeiche :
+            --                     rbKupplung :
+            --                     rbWegstrecke :
+            --                     rbPlan : []
+            --         pure PageStart {widget=vBox, radioButtons}
+            --     appendPage contentBox $ do
+            --         -- Bahngeschwindigkeit
+            --         widget <- vBoxNew False 0
+            --         boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.bahngeschwindigkeit :: Text)
+            --         nameEntry <- nameEntryPackNew widget
+            --         (geschwindigkeitsPinWidget, geschwindigkeitsPinSpinButton) <- pinSpinBoxNew Language.geschwindigkeit
+            --         boxPackWidgetNewDefault widget $ pure geschwindigkeitsPinWidget
+            --         -- Zeige Fahrtrichtungs-Pin nicht für Märklin-Bahngeschwindigkeit an
+            --         (fahrtrichtungsPinWidget, fahrtrichtungsPinSpinButton) <- pinSpinBoxNew Language.fahrtrichtung
+            --         boxPackWidgetNewDefault widget $ pure fahrtrichtungsPinWidget
+            --         on comboBoxZugtyp changed $ do
+            --             index <- get comboBoxZugtyp comboBoxActive
+            --             widgetShowIf (index == indexLego) fahrtrichtungsPinWidget
+            --         pure PageBahngeschwindigkeit {widget, nameEntry, geschwindigkeitsPinSpinButton, fahrtrichtungsPinSpinButton}
+            --     appendPage contentBox $ do
+            --         -- Streckenabschnitt
+            --         widget <- vBoxNew False 0
+            --         boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.streckenabschnitt :: Text)
+            --         nameEntry <- nameEntryPackNew widget
+            --         (stromPinWidget, stromPinSpinButton) <- pinSpinBoxNew Language.strom
+            --         boxPackWidgetNewDefault widget $ pure stromPinWidget
+            --         pure PageStreckenabschnitt {widget, nameEntry, stromPinSpinButton}
+            --     appendPage contentBox $ do
+            --         -- Weiche
+            --         widget <- vBoxNew False 0
+            --         boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.weiche :: Text)
+            --         nameEntry <- nameEntryPackNew widget
+            --         (richtungsPinWidget, richtungsPinSpinButton) <- pinSpinBoxNew Language.richtung
+            --         boxPackWidgetNewDefault widget $ pure richtungsPinWidget
+            --         let
+            --             createRichtungsPin :: Richtung -> IO (Richtung, Gtk.HBox, Gtk.CheckButton, Gtk.SpinButton)
+            --             createRichtungsPin richtung = do
+            --                 hBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --                 checkButton <- boxPackWidgetNewDefault hBox checkButtonNew
+            --                 (pinWidget, spinButton) <- pinSpinBoxNew $ showText richtung
+            --                 boxPackWidgetNewDefault hBox $ pure pinWidget
+            --                 pure (richtung, hBox, checkButton, spinButton)
+            --             createRichtungenRadioButton :: Maybe (NonEmpty (Richtung, Richtung, Gtk.RadioButton)) -> (Richtung, Richtung) -> IO (Maybe (NonEmpty (Richtung, Richtung, Gtk.RadioButton)))
+            --             createRichtungenRadioButton (Nothing)               richtungen@(richtung1, richtung2)   = do
+            --                 radioButton <- boxPackWidgetNewDefault widget $ radioButtonNewWithLabel $ getRichtungenText richtungen
+            --                 pure $ Just $ (richtung1, richtung2, radioButton):|[]
+            --             createRichtungenRadioButton (Just (h@(_,_,rb):|t))  richtungen@(richtung1, richtung2)   = do
+            --                 radioButton <- boxPackWidgetNewDefault widget $ radioButtonNewWithLabelFromWidget rb $ getRichtungenText richtungen
+            --                 pure $ Just $ (richtung1, richtung2, radioButton):|h:t
+            --             getRichtungenText :: (Richtung, Richtung) -> Text
+            --             getRichtungenText (richtung1, richtung2) = showText richtung1 <^> showText richtung2
+            --         richtungsPins <- mapM createRichtungsPin unterstützteRichtungen
+            --         richtungsWidgetsMärklin <- fortfahrenWennToggledNew buttonHinzufügenWeicheMärklin $
+            --             (\(richtung, _hBox, checkButton, spinButton) -> (richtung, checkButton, spinButton)) <$> richtungsPins
+            --         let
+            --             richtungsKombinationen :: NonEmpty (Richtung, Richtung)
+            --             richtungsKombinationen = dreiecksKombinationen unterstützteRichtungen
+            --             -- Wenn gespiegelte Kombinationen gewünscht werden nutze Applicative-Instanz
+            --             -- richtungsKombinationen = (,) <&> unterstützteRichtungen <*> unterstützteRichtungen
+            --             dreiecksKombinationen :: NonEmpty a -> NonEmpty (a, a)
+            --             dreiecksKombinationen   (h:|[])     = (h, h) :| []
+            --             dreiecksKombinationen   (h:|s:[])   = (h, s) :| []
+            --             dreiecksKombinationen   (h:|t)      = let tNE = NE.fromList t in ((,) h <$> tNE) <> dreiecksKombinationen tNE
+            --         richtungsRadioButtons <- foldM createRichtungenRadioButton Nothing richtungsKombinationen >>= pure . fromJust
+            --         let richtungsWidgetsLego = (richtungsPinSpinButton, richtungsRadioButtons)
+            --         on comboBoxZugtyp changed $ do
+            --             index <- get comboBoxZugtyp comboBoxActive
+            --             visible <- get widget widgetVisible
+            --             widgetShowIf (visible && index == indexMärklin) buttonHinzufügenWeicheMärklin
+            --             mapM_ (\(_,hBox,_,_) -> widgetShowIf (index == indexMärklin) hBox) richtungsPins
+            --             widgetShowIf (visible && index == indexLego) buttonHinzufügenWeicheLego
+            --             widgetShowIf (index == indexLego) richtungsPinWidget
+            --             mapM_ (\(_,_,rb) -> widgetShowIf (index == indexLego) rb) richtungsRadioButtons
+            --         pure PageWeiche {widget, nameEntry, richtungsWidgetsMärklin, richtungsWidgetsLego}
+            --     appendPage contentBox $ do
+            --         -- Kupplung
+            --         widget <- vBoxNew False 0
+            --         boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.kupplung :: Text)
+            --         nameEntry <- nameEntryPackNew widget
+            --         (kupplungPinWidget, kupplungsPinSpinButton) <- pinSpinBoxNew Language.kupplung
+            --         boxPackWidgetNewDefault widget $ pure kupplungPinWidget
+            --         pure PageKupplung {widget, nameEntry, kupplungsPinSpinButton}
+            --     appendPage contentBox $ do
+            --         -- Wegstrecke
+            --         widget <- vBoxNew False 0
+            --         boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.wegstrecke :: Text)
+            --         nameEntry <- nameEntryPackNew widget
+            --         notebook <- boxPackWidgetNew widget PackGrow paddingDefault positionDefault notebookNew
+            --         scrolledWidgedNotebookAppendPageNew notebook Language.bahngeschwindigkeiten $ pure vBoxHinzufügenWegstreckeBahngeschwindigkeiten
+            --         scrolledWidgedNotebookAppendPageNew notebook Language.streckenabschnitte $ pure vBoxHinzufügenWegstreckeStreckenabschnitte
+            --         scrolledWidgedNotebookAppendPageNew notebook Language.weichen $ pure vBoxHinzufügenWegstreckeWeichen
+            --         scrolledWidgedNotebookAppendPageNew notebook Language.kupplungen $ pure vBoxHinzufügenWegstreckeKupplungen
+            --         pure PageWegstrecke {widget, nameEntry, wegstreckenElemente=fortfahrenWennToggledWegstrecke}
+            --     appendPage contentBox $ do
+            --         -- Plan
+            --         -- Objekt-Buttons schreiben bei Druck Objekt in tmvarPlanObjekt
+            --         -- Sobald diese gefüllt ist kann die Aktion zur aktionen-TVar hinzufgefügt werden
+            --         tvarLabelAktionen <- newTVarIO []
+            --         tvarAktionen <- newTVarIO leer
+            --         expanderAktionen <- expanderNew (Language.aktionen :: Text)
+            --         vBoxAktionen <- vBoxNew False 0
+            --         let
+            --             showAktionenSpezifisch :: IO ()
+            --             showAktionenSpezifisch = do
+            --                 aktionen <- readTVarIO tvarAktionen
+            --                 showAktionen buttonHinzufügenPlan vBoxAktionen expanderAktionen tvarLabelAktionen aktionen
+            --         -- Hilfsdialog erstellen
+            --         windowObjekte <- windowNew
+            --         set windowObjekte [
+            --             windowTitle := (Language.aktion :: Text),
+            --             windowModal := True,
+            --             windowTransientFor := dialog]
+            --         on windowObjekte deleteEvent $ liftIO $ do
+            --             atomically $ putTMVar tmvarPlanObjekt Nothing
+            --             widgetHide windowObjekte
+            --             pure True
+            --         windowVBox <- containerAddWidgetNew windowObjekte $ vBoxNew False 0
+            --         (windowScrolledWindowBGGeschw, windowVBoxBGGeschw)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowBGUmdrehen, windowVBoxBGUmdrehen)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowST, windowVBoxST)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowWEGerade, windowVBoxWEGerade)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowWEKurve, windowVBoxWEKurve)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowWELinks, windowVBoxWELinks)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowWERechts, windowVBoxWERechts)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowKU, windowVBoxKU)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         (windowScrolledWindowWS, windowVBoxWS)
+            --             <- scrolledWidgetPackNew windowVBox $ vBoxNew False 0
+            --         boxPackWidgetNewDefault windowVBox $ buttonNewWithEventLabel Language.abbrechen $ do
+            --             atomically $ putTMVar tmvarPlanObjekt Nothing
+            --             widgetHide windowObjekte
+            --         boxPackWidgetNewDefault windowVBoxBGGeschw $ labelNew $
+            --             Just $ (Language.bahngeschwindigkeiten :: Text)
+            --         boxPackDefault windowVBoxBGGeschw vBoxHinzufügenPlanBahngeschwindigkeiten
+            --         boxPackWidgetNewDefault windowVBoxBGGeschw $ labelNew $
+            --             Just $ (Language.wegstrecken :: Text)
+            --         boxPackDefault windowVBoxBGGeschw vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
+            --         boxPackWidgetNewDefault windowVBoxBGUmdrehen $ labelNew $
+            --             Just $ (Language.bahngeschwindigkeiten :: Text)
+            --         boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanBahngeschwindigkeitenLego
+            --         boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+            --         boxPackWidgetNewDefault windowVBoxBGUmdrehen $ labelNew $
+            --             Just $ (Language.wegstrecken :: Text)
+            --         boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+            --         boxPackDefault windowVBoxBGUmdrehen vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+            --         boxPackWidgetNewDefault windowVBoxST $ labelNew $
+            --             Just $ (Language.streckenabschnitte :: Text)
+            --         boxPackDefault windowVBoxST vBoxHinzufügenPlanStreckenabschnitte
+            --         boxPackWidgetNewDefault windowVBoxST $ labelNew $
+            --             Just $ (Language.wegstrecken :: Text)
+            --         boxPackDefault windowVBoxST vBoxHinzufügenPlanWegstreckenStreckenabschnitt
+            --         boxPackWidgetNewDefault windowVBoxWEGerade $ labelNew $
+            --             Just $ (Language.weichen :: Text)
+            --         boxPackDefault windowVBoxWEGerade vBoxHinzufügenPlanWeichenGerade
+            --         boxPackWidgetNewDefault windowVBoxWEKurve $ labelNew $
+            --             Just $ (Language.weichen :: Text)
+            --         boxPackDefault windowVBoxWEKurve vBoxHinzufügenPlanWeichenKurve
+            --         boxPackWidgetNewDefault windowVBoxWELinks $ labelNew $
+            --             Just $ (Language.weichen :: Text)
+            --         boxPackDefault windowVBoxWELinks vBoxHinzufügenPlanWeichenLinks
+            --         boxPackWidgetNewDefault windowVBoxWERechts $ labelNew $
+            --             Just $ (Language.weichen :: Text)
+            --         boxPackDefault windowVBoxWERechts vBoxHinzufügenPlanWeichenRechts
+            --         boxPackWidgetNewDefault windowVBoxKU $ labelNew $
+            --             Just $ (Language.kupplungen :: Text)
+            --         boxPackDefault windowVBoxKU vBoxHinzufügenPlanKupplungen
+            --         boxPackWidgetNewDefault windowVBoxKU $ labelNew $
+            --             Just $ (Language.wegstrecken :: Text)
+            --         boxPackDefault windowVBoxKU vBoxHinzufügenPlanWegstreckenKupplung
+            --         boxPackWidgetNewDefault windowVBoxWS $ labelNew $
+            --             Just $ (Language.wegstrecken :: Text)
+            --         boxPackDefault windowVBoxWS vBoxHinzufügenPlanWegstreckenWeiche
+            --         -- Widget erstellen
+            --         widget <- vBoxNew False 0
+            --         boxPackWidgetNewDefault widget $ labelNew $ Just $ (Language.plan :: Text)
+            --         nameEntry <- nameEntryPackNew widget
+            --         functionBox <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --         let µsInS = 1000000
+            --         spinButtonZeit <- spinButtonNewWithRange 0 (60*µsInS) (1*µsInS)
+            --         boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.warten $ do
+            --             wertDouble <- get spinButtonZeit spinButtonValue
+            --             atomically $ modifyTVar tvarAktionen $ anhängen $ Warten $ fromIntegral $ fromEnum wertDouble
+            --             showAktionenSpezifisch
+            --         boxPackWidgetNewDefault functionBox $ pure spinButtonZeit
+            --         boxPackWidgetNewDefault functionBox $ labelNew $ Just $ (Language.wartenEinheit :: Text)
+            --         bgFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --         hScaleGeschwindigkeit <- hScaleNewWithRange 0 100 1
+            --         boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.geschwindigkeit $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetShow windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             wertDouble <- get hScaleGeschwindigkeit rangeValue
+            --             let wert = fromIntegral $ fromEnum wertDouble
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OBahngeschwindigkeit bg))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         ABahngeschwindigkeit $ Geschwindigkeit bg wert
+            --                 (Just (OWegstrecke ws))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWegstrecke $ AWSBahngeschwindigkeit $ Geschwindigkeit ws wert
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         boxPackWidgetNew bgFunktionen PackGrow paddingDefault positionDefault $ pure hScaleGeschwindigkeit
+            --         vorwärtsRadioButton <- radioButtonNewWithLabel (Language.vorwärts :: Text)
+            --         rückwärtsRadioButton <- radioButtonNewWithLabelFromWidget vorwärtsRadioButton (Language.rückwärts :: Text)
+            --         boxPackWidgetNewDefault bgFunktionen $ buttonNewWithEventLabel Language.umdrehen $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetShow windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OBahngeschwindigkeit bg))
+            --                     -> do
+            --                         maybeFahrtrichtung <- case zugtyp bg of
+            --                             Lego    -> do
+            --                                 toggled <- get vorwärtsRadioButton toggleButtonActive
+            --                                 pure $ Just $ if toggled then Vorwärts else Rückwärts
+            --                             _zugtyp -> pure Nothing
+            --                         atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                             ABahngeschwindigkeit $ Umdrehen bg maybeFahrtrichtung
+            --                 (Just (OWegstrecke ws))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWegstrecke $ AWSBahngeschwindigkeit $ Umdrehen ws Nothing
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         fahrtrichtungsVBox <- boxPackWidgetNewDefault bgFunktionen $ vBoxNew False 0
+            --         on comboBoxZugtyp changed $ do
+            --             index <- get comboBoxZugtyp comboBoxActive
+            --             mapM_ (widgetShowIf (index == indexLego)) [
+            --                 vBoxHinzufügenPlanBahngeschwindigkeitenLego,
+            --                 vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
+            --                 fahrtrichtungsVBox]
+            --             mapM_ (widgetShowIf (index == indexMärklin)) [
+            --                 vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
+            --                 vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin]
+            --         boxPackWidgetNewDefault fahrtrichtungsVBox $ pure vorwärtsRadioButton
+            --         boxPackWidgetNewDefault fahrtrichtungsVBox $ pure rückwärtsRadioButton
+            --         stFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --         boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.an) $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetShow windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OStreckenabschnitt st))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AStreckenabschnitt $ Strom st Fließend
+            --                 (Just (OWegstrecke ws))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWegstrecke $ AWSStreckenabschnitt $ Strom ws Fließend
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         boxPackWidgetNewDefault stFunktionen $ buttonNewWithEventLabel (Language.strom <:> Language.aus) $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetShow windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             atomically $ case objekt of
+            --                 (Just (OStreckenabschnitt st))
+            --                     -> modifyTVar tvarAktionen $ anhängen $
+            --                         AStreckenabschnitt $ Strom st Gesperrt
+            --                 (Just (OWegstrecke ws))
+            --                     -> modifyTVar tvarAktionen $ anhängen $
+            --                         AWegstrecke $ AWSStreckenabschnitt $ Strom ws Gesperrt
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         weFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --         boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetShow windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OWeiche we))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWeiche $ Stellen we Gerade
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetShow windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OWeiche we))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWeiche $ Stellen we Kurve
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.links) $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetShow windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OWeiche we))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWeiche $ Stellen we Links
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         boxPackWidgetNewDefault weFunktionen $ buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetShow windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OWeiche we))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWeiche $ Stellen we Rechts
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         kuFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --         boxPackWidgetNewDefault kuFunktionen $ buttonNewWithEventLabel Language.kuppeln $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetShow windowScrolledWindowKU
+            --                 widgetHide windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OKupplung ku))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AKupplung $ Kuppeln ku
+            --                 (Just (OWegstrecke ws))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWegstrecke $ AWSKupplung $ Kuppeln ws
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         wsFunktionen <- boxPackWidgetNewDefault widget $ hBoxNew False 0
+            --         boxPackWidgetNewDefault wsFunktionen $ buttonNewWithEventLabel Language.einstellen $ void $ forkIO $ do
+            --             postGuiAsync $ do
+            --                 widgetShow windowObjekte
+            --                 widgetHide windowScrolledWindowBGGeschw
+            --                 widgetHide windowScrolledWindowBGUmdrehen
+            --                 widgetHide windowScrolledWindowST
+            --                 widgetHide windowScrolledWindowWEGerade
+            --                 widgetHide windowScrolledWindowWEKurve
+            --                 widgetHide windowScrolledWindowWELinks
+            --                 widgetHide windowScrolledWindowWERechts
+            --                 widgetHide windowScrolledWindowKU
+            --                 widgetShow windowScrolledWindowWS
+            --             objekt <- atomically $ takeTMVar tmvarPlanObjekt
+            --             case objekt of
+            --                 (Just (OWegstrecke ws))
+            --                     -> atomically $ modifyTVar tvarAktionen $ anhängen $
+            --                         AWegstrecke $ Einstellen ws
+            --                 _objekt
+            --                     -> pure ()
+            --             postGuiAsync $ do
+            --                 widgetHide windowObjekte
+            --                 showAktionenSpezifisch
+            --         boxPackWidgetNew widget PackGrow paddingDefault positionDefault $ pure expanderAktionen
+            --         scrolledWidgetAddNew expanderAktionen $ widgetShow vBoxAktionen >> pure vBoxAktionen
+            --         set vBoxAktionen [widgetExpand := True]
+            --         let
+            --             entferneLetzteAktion :: Warteschlange Aktion -> Warteschlange Aktion
+            --             entferneLetzteAktion aktionen = case zeigeLetztes aktionen of
+            --                 Leer            -> leer
+            --                 (Gefüllt _l p)  -> p
+            --         boxPackWidgetNewDefault widget $ buttonNewWithEventLabel Language.rückgängig $ do
+            --             atomically $ modifyTVar tvarAktionen entferneLetzteAktion
+            --             showAktionenSpezifisch
+            --         showAktionenSpezifisch
+            --         pure PagePlan {
+            --             widget,
+            --             nameEntry,
+            --             bgFunktionen,
+            --             stFunktionen,
+            --             weFunktionen,
+            --             kuFunktionen,
+            --             wsFunktionen,
+            --             tvarAktionen,
+            --             expanderAktionen,
+            --             tvarLabelAktionen,
+            --             vBoxAktionen,
+            --             pgButtonHinzufügenPlan=buttonHinzufügenPlan}
+            -- -- Setze Wert der ComboBox am Ende um davon abhängige Widgets automatisch zu zeigen/verstecken
+            -- comboBoxSetActive comboBoxFließend indexLow
+            -- comboBoxSetActive comboBoxZugtyp indexMärklin
+            -- pure DialogHinzufügen {dialog, pages, buttonHinzufügen, buttonHinzufügenWeicheMärklin, buttonHinzufügenWeicheLego, buttonHinzufügenWegstrecke, buttonHinzufügenPlan, buttonWeiter, buttonZurück, comboBoxZugtyp, indizesZugtyp, comboBoxFließend, indizesFließend}
+            --     where
+            --         appendPage :: (MitBox b, Monad m, MonadIO m) => b -> m PageHinzufügen -> StateT (Warteschlange PageHinzufügen) m ()
+            --         appendPage box konstruktor = do
+            --             page <- lift konstruktor
+            --             liftIO $ boxPack box (widget page) PackGrow paddingDefault positionDefault
+            --             State.modify $ anhängen page
 
 -- | Zeige 'Aktion'en richtig an.
 showAktionen :: (MitBox b, Foldable t) => Gtk.Button -> b -> Gtk.Expander -> TVar [Gtk.Label] -> t Aktion -> IO ()
 showAktionen buttonHinzufügen box expander tvarWidgets aktionen = do
     widgets <- readTVarIO tvarWidgets
-    forM_ widgets $ containerRemove box
-    widgetsNeu <- mapM (boxPackWidgetNewDefault box . labelNew . Just . show) $ toList aktionen
-    set expander [expanderLabel := Language.aktionen <:> show (length aktionen)]
+    forM_ widgets $ mitContainerRemove box
+    widgetsNeu <- mapM (boxPackWidgetNewDefault box . Gtk.labelNew . Just . show) $ toList aktionen
+    Gtk.set expander [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
     atomically $ writeTVar tvarWidgets widgetsNeu
-    set buttonHinzufügen [widgetSensitive := not $ null aktionen]
+    Gtk.set buttonHinzufügen [Gtk.widgetSensitive := not $ null aktionen]
 
 -- | Zeige nur die i-te Seite (start bei i=0) an
 showNth :: Natural -> Warteschlange PageHinzufügen -> IO (Maybe PageHinzufügen)
@@ -1030,17 +1047,17 @@ showNth i queue = case zeigeErstes queue of
     (Leer)          -> pure Nothing
     (Gefüllt h t)
         | i <= 0    -> do
-            widgetShow $ widget h
-            forM_ t $ widgetHide . widget
+            Gtk.widgetShow $ widget h
+            forM_ t $ Gtk.widgetHide . widget
             pure $ Just h
         | otherwise -> do
-            widgetHide $ widget h
+            Gtk.widgetHide $ widget h
             showNth (pred i) t
 
 -- | Gebe den Index des ersten eingeschalteten Radiobuttons an. Wenn kein Gtk.RadioButton an ist, gebe 0 zurück.
 erhalteToggledIndex :: NonEmpty Gtk.RadioButton -> IO Natural
 erhalteToggledIndex (h:|t) = do
-    toggled <- get h toggleButtonActive
+    toggled <- Gtk.get h Gtk.toggleButtonActive
     if toggled
         then pure 0
         else succ <$> (maybe (pure 0) erhalteToggledIndex $ nonEmpty t)
@@ -1090,22 +1107,19 @@ instance Show PageHinzufügen where
     show (PageWegstrecke {})            = "PageWegstrecke"
     show (PagePlan {})                  = "PagePlan"
 
-data DialogHinzufügen = DialogHinzufügen {
-                            dialog :: Gtk.Dialog,
-                            pages :: Warteschlange PageHinzufügen,
-                            buttonHinzufügen :: Gtk.Button,
-                            buttonHinzufügenWeicheMärklin :: Gtk.Button,
-                            buttonHinzufügenWeicheLego :: Gtk.Button,
-                            buttonHinzufügenWegstrecke :: Gtk.Button,
-                            buttonHinzufügenPlan :: Gtk.Button,
-                            buttonWeiter :: Gtk.Button,
-                            buttonZurück :: Gtk.Button,
-                            comboBoxZugtyp :: Gtk.ComboBox,
-                            indizesZugtyp :: NonEmpty (Int, Zugtyp),
-                            comboBoxFließend :: Gtk.ComboBox,
-                            indizesFließend :: NonEmpty (Int, Value)}
-
--- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
-dialogGetUpper :: (MitDialog d) => d -> IO Gtk.Box
-dialogGetUpper dialog = dialogGetActionArea dialog >>= pure . castToBox
+data DialogHinzufügen
+    = DialogHinzufügen {
+        dialog :: Gtk.Dialog,
+        pages :: Warteschlange PageHinzufügen,
+        buttonHinzufügen :: Gtk.Button,
+        buttonHinzufügenWeicheMärklin :: Gtk.Button,
+        buttonHinzufügenWeicheLego :: Gtk.Button,
+        buttonHinzufügenWegstrecke :: Gtk.Button,
+        buttonHinzufügenPlan :: Gtk.Button,
+        buttonWeiter :: Gtk.Button,
+        buttonZurück :: Gtk.Button,
+        comboBoxZugtyp :: Gtk.ComboBox,
+        indizesZugtyp :: NonEmpty (Int, Zugtyp),
+        comboBoxFließend :: Gtk.ComboBox,
+        indizesFließend :: NonEmpty (Int, Value)}
 #endif
