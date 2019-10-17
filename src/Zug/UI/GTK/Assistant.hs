@@ -163,6 +163,8 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
                                 (either id (Lens.view _2) $ seite $ node assistantSeite) :| besuchteSeiten
                         (Right ergebnis)
                             -> ergebnis
+                    -- Zeige erste Seite (für nächsten Assistant-Aufruf)
+                    mitWidgetShow seiten
     pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
 
 packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
@@ -216,10 +218,10 @@ data AssistantResult a
 
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
 assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
-assistantAuswerten Assistant {fenster, tvarAuswahl, auswertFunktion} = liftIO $ do
+assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
     Gtk.widgetShow fenster
     -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
-    ergebnis <- atomically (takeAuswahl tvarAuswahl) >>= \case
+    ergebnis <- atomically (takeAuswahl assistant) >>= \case
         (AssistantErfolgreich auswahl)
             -> AssistantErfolgreich <$> auswertFunktion auswahl
         AssistantAbbrechen
@@ -231,11 +233,15 @@ assistantAuswerten Assistant {fenster, tvarAuswahl, auswertFunktion} = liftIO $ 
         where
             -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
             -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
-            takeAuswahl :: TVar (Either a (AssistantResult (NonEmpty w))) -> STM (AssistantResult (NonEmpty w))
-            takeAuswahl tvarAuswahl = do
+            takeAuswahl ::Assistant w a -> STM (AssistantResult (NonEmpty w))
+            takeAuswahl Assistant {tvarAuswahl, seiten} = do
                 readTVar tvarAuswahl >>= \case
                     (Left _a)
                         -> retry
                     (Right result)
-                        -> pure result
+                        -> do
+                            -- Setze auf Startwert zurück
+                            writeTVar tvarAuswahl $ Left ([], seiten)
+                            -- Gebe Ergebnis zurück
+                            pure result
 #endif
