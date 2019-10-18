@@ -114,7 +114,7 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
         Gtk.windowTransientFor := erhalteWindow parent,
         Gtk.windowModal := True,
         Gtk.windowTitle := name (node seitenEingabe)]
-    vBox <- liftIO $ containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
+    vBox <- containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
     -- Packe Seiten in entsprechende Box und zeige nur die erste an.
     seiten <- packSeiten vBox (node seitenEingabe) seitenEingabe
     tvarAuswahl <- newTVarIO $ Left ([], seiten)
@@ -124,10 +124,10 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
         pure True
     -- Knopf-Leiste für permanente Funktionen
     tvarAktuelleSeite <- newTVarIO seiten
-    flowControlBox <- liftIO $ boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
+    flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
     boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
-    seitenAbschlussKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox $
+    seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox $
         Gtk.buttonNewWithLabel (Language.weiter :: Text)
     Gtk.on seitenAbschlussKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
