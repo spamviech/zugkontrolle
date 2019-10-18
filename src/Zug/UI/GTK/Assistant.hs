@@ -20,6 +20,7 @@ import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVar
 import Control.Lens (Field2(..))
 import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
+import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
@@ -82,29 +83,15 @@ data AssistantSeitenBaum w
     -- | Seite ohne Nachfolger
     | AssistantSeiteLetzte {
         node :: AssistantSeite w}
-    deriving (Eq, Show)
 
 instance (MitWidget w) => MitWidget (AssistantSeitenBaum w) where
     erhalteWidget :: AssistantSeitenBaum w -> Gtk.Widget
     erhalteWidget = erhalteWidget . node
 
--- -- | Maximale Anzahl an 'AssistantSeiten' (Tiefe des Baums)
--- anzahlSeiten :: AssistantSeitenBaum w -> Natural
--- anzahlSeiten
---     AssistantSeiteLinear {nachfolger}
---         = succ $ anzahlSeiten nachfolger
--- anzahlSeiten
---     AssistantSeiteAuswahl {nachfolgerListe}
---         = succ $ maximum $ anzahlSeiten <$> nachfolgerListe
--- anzahlSeiten
---     AssistantSeiteLetzte {}
---         = 1
-
 -- | Darstellung des 'AssistantSeitenBaum's, inklusiver zugehörigem 'AuswahlWidget'
 newtype AssistantSeitenBaumPacked w
     = AssistantSeitenBaumPacked {
-        unpackSeitenBaum :: AssistantSeitenBaum (Either w (Gtk.Box, w, AuswahlWidget (AssistantSeitenBaumPacked w)))}
-    deriving (Eq)
+        unpackSeitenBaum :: AssistantSeitenBaum (Either w (Gtk.Box, w, AuswahlWidget (AssistantSeite w)))}
 
 instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget :: AssistantSeitenBaumPacked w -> Gtk.Widget
@@ -147,13 +134,25 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
         mitWidgetHide aktuelleSeite
         case unpackSeitenBaum aktuelleSeite of
             AssistantSeiteLinear {nachfolger}
+                -> zeigeNachfolger seitenAbschlussKnopf $ AssistantSeitenBaumPacked nachfolger
+            assistant@AssistantSeiteAuswahl {nachfolgerListe}
                 -> do
+                    let Right (_box, _w, auswahlWidget) = seite $ node assistant
+                        vergleich :: (Eq w) =>
+                            AssistantSeite w ->
+                            AssistantSeitenBaum (Either w (Gtk.Box, w, AuswahlWidget (AssistantSeite w))) ->
+                                Bool
+                        vergleich vergleichsSeite seitenBaum = case seite $ node seitenBaum of
+                            (Left gezeigtSeite)
+                                -> (gezeigtSeite <$ node seitenBaum) == vergleichsSeite
+                            (Right (_box, gezeigtSeite, _auswahlWidget))
+                                -> (gezeigtSeite <$ node seitenBaum) == vergleichsSeite
+                    nachfolgerSeite <- aktuelleAuswahl auswahlWidget
+                    let maybeNachfolger = find (vergleich nachfolgerSeite) nachfolgerListe
+                        nachfolger = case maybeNachfolger of
+                            (Just nachfolger)   -> nachfolger
+                            Nothing             -> error "unbekannte Seite bei AuswahlWidget ausgewählt."
                     zeigeNachfolger seitenAbschlussKnopf $ AssistantSeitenBaumPacked nachfolger
-            AssistantSeiteAuswahl {node}
-                -> do
-                    let Right (_box, _w, auswahlWidget) = seite node
-                    nachfolger <- aktuelleAuswahl auswahlWidget
-                    zeigeNachfolger seitenAbschlussKnopf nachfolger
             assistantSeite@AssistantSeiteLetzte {}
                 -> do
                     auswahl <- readTVarIO tvarAuswahl
@@ -188,13 +187,21 @@ packSeiten
             vBox <- boxPackWidgetNewDefault box $ Gtk.vBoxNew False 0
             boxPackDefault vBox nodeW
             widgetShowIf (ersteSeite == nodeW) nodeW
-            nachfolgerListePacked <- mapM (packSeiten box ersteSeite) nachfolgerListe
+            nachfolgerListe <- mapM (fmap unpackSeitenBaum . packSeiten box ersteSeite) nachfolgerListe
+            let nodeListe = node <$> nachfolgerListe
             auswahlWidget <- boxPackWidgetNewDefault vBox $
-                auswahlRadioButtonNamedNew nachfolgerListePacked nachfolgerFrage $ name . node . unpackSeitenBaum
+                auswahlRadioButtonNamedNew (erhalteSeite <$> nodeListe) nachfolgerFrage name
             pure $ AssistantSeitenBaumPacked AssistantSeiteAuswahl {
                 node = nodeW {seite = Right (erhalteBox vBox, seite nodeW, auswahlWidget)},
                 nachfolgerFrage,
-                nachfolgerListe = unpackSeitenBaum <$> nachfolgerListePacked}
+                nachfolgerListe}
+    where
+        erhalteSeite :: AssistantSeite (Either w (a, w, b)) -> AssistantSeite w
+        erhalteSeite assistantSeite = case seite assistantSeite of
+            (Left w)
+                -> w <$ assistantSeite
+            (Right (_a, w, _b))
+                -> w <$ assistantSeite
 packSeiten
     box
     ersteSeite
