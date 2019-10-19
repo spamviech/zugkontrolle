@@ -29,7 +29,7 @@ import qualified Control.Monad.State as State
 import Control.Monad.Trans (MonadIO(..), lift)
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (maybe, fromJust)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
@@ -57,12 +57,14 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus,
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
+import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlPackNew, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
-                                    widgetShowIf)
-import Zug.UI.Gtk.Klassen (MitBox(), MitWindow(..), MitDialog(), mitContainerRemove)
+                                    widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(), MitWindow(..), MitDialog(), mitContainerRemove)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
                                     StatusReader(..), WegstreckenElement(..),
@@ -196,6 +198,60 @@ buttonHinzufügenPack parentWindow box = do
         -- über /case objekt of/ und individuelle pack-Funktionen lösen?
         _objektPackNew _box objekt
     pure button
+
+-- | Seiten des Hinzufügen-'Assistant'
+data HinzufügenSeite
+    = HinzufügenSeiteAuswahl {
+        widget :: Gtk.Widget}
+    | HinzufügenSeiteBahngeschwindigkeit {
+        widget :: Gtk.Widget,
+        nameAuswahl :: NameAuswahlWidget}
+    | HinzufügenSeiteStreckenabschnitt {
+        widget :: Gtk.Widget,
+        nameAuswahl :: NameAuswahlWidget}
+    | HinzufügenSeiteWeiche {
+        widget :: Gtk.Widget,
+        nameAuswahl :: NameAuswahlWidget}
+    | HinzufügenSeiteKupplung {
+        widget :: Gtk.Widget,
+        nameAuswahl :: NameAuswahlWidget}
+    | HinzufügenSeiteWegstrecke {
+        widget :: Gtk.Widget,
+        nameAuswahl :: NameAuswahlWidget}
+    | HinzufügenSeitePlan {
+        widget :: Gtk.Widget,
+        nameAuswahl :: NameAuswahlWidget}
+    deriving (Eq)
+
+instance MitWidget HinzufügenSeite where
+    erhalteWidget :: HinzufügenSeite -> Gtk.Widget
+    erhalteWidget = widget
+
+hinzufügenErgebnis :: NonEmpty HinzufügenSeite -> IO Objekt
+hinzufügenErgebnis gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
+    HinzufügenSeiteAuswahl {}
+        -> error "Auswahl-Seite zum Hinzufügen als letzte Seite angezeigt"
+    HinzufügenSeiteBahngeschwindigkeit {nameAuswahl}
+        -> _
+    HinzufügenSeiteStreckenabschnitt {nameAuswahl}
+        -> _
+    HinzufügenSeiteWeiche {nameAuswahl}
+        -> _
+    HinzufügenSeiteKupplung {nameAuswahl}
+        -> _
+    HinzufügenSeiteWegstrecke {nameAuswahl}
+        -> _
+    HinzufügenSeitePlan {nameAuswahl}
+        -> _
+
+-- Durch Assistant ersetzten!
+-- | Erstelle einen neuen Hinzufügen-'Assistant'
+assistantHinzufügenNew :: (MitWindow w, MonadIO m) =>
+    w -> m (Assistant HinzufügenSeite [Either (AuswahlWidget Zugtyp) FließendAuswahlWidget] Objekt)
+assistantHinzufügenNew
+    parent
+        = do
+            _assistantErstellen
     {-
         where
             runPage :: Natural -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
@@ -526,17 +582,6 @@ buttonHinzufügenPack parentWindow box = do
                 _dynamischeWidgets
                     = error $ "Unbekannte Seite während dem Hinzufügen angezeigt: " ++ show page
     -}
-
--- | Seiten des Hinzufügen-'Assistant'
-data HinzufügenSeite = HinzufügenSeite
-
--- Durch Assistant ersetzten!
--- | Erstelle einen neuen Hinzufügen-'Assistant'
-assistantHinzufügenNew :: (MitWindow w, MonadIO m) => w -> m (Assistant HinzufügenSeite Objekt)
-assistantHinzufügenNew
-    parent
-        = do
-            _assistantErstellen
             -- dialog <- Gtk.dialogNew
             -- Gtk.set dialog [
             --     Gtk.windowTitle := (Language.hinzufügen :: Text),
@@ -641,7 +686,7 @@ assistantHinzufügenNew
             --             dreiecksKombinationen :: NonEmpty a -> NonEmpty (a, a)
             --             dreiecksKombinationen   (h:|[])     = (h, h) :| []
             --             dreiecksKombinationen   (h:|s:[])   = (h, s) :| []
-            --             dreiecksKombinationen   (h:|t)      = let tNE = NE.fromList t in ((,) h <$> tNE) <> dreiecksKombinationen tNE
+            --             dreiecksKombinationen   (h:|t)      = let tNE = NonEmpty.fromList t in ((,) h <$> tNE) <> dreiecksKombinationen tNE
             --         richtungsRadioButtons <- foldM createRichtungenRadioButton Nothing richtungsKombinationen >>= pure . fromJust
             --         let richtungsWidgetsLego = (richtungsPinSpinButton, richtungsRadioButtons)
             --         on comboBoxZugtyp changed $ do
