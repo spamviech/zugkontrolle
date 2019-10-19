@@ -19,6 +19,7 @@ module Zug.UI.Gtk.Assistant (
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens (Field2(..))
 import qualified Control.Lens as Lens
+import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -29,29 +30,30 @@ import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
-import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPackDefault,
+import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault,
                                     Packing(..), packingDefault, Position(..), paddingDefault,
                                     buttonNewWithEventLabel, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitContainer(..), MitBox(..), MitWindow(..))
 
--- | Fenster zum erstellen eines Objekts, potentiell in mehreren Schritten
-data Assistant w a
+-- | Fenster zum erstellen eines Wertes, potentiell in mehreren Schritten
+data Assistant w g a
     = Assistant {
         fenster :: Gtk.Window,
+        globaleWidgets :: [g],
         seiten :: AssistantSeitenBaumPacked w,
         tvarAuswahl :: TVar (Either ([w], AssistantSeitenBaumPacked w) (AssistantResult (NonEmpty w))),
         auswertFunktion :: NonEmpty w -> IO a}
 
-instance MitWidget (Assistant w a) where
-    erhalteWidget :: Assistant w a -> Gtk.Widget
+instance MitWidget (Assistant w g a) where
+    erhalteWidget :: Assistant w g a -> Gtk.Widget
     erhalteWidget = erhalteWidget . fenster
 
-instance MitContainer (Assistant w a) where
-    erhalteContainer :: Assistant w a -> Gtk.Container
+instance MitContainer (Assistant w g a) where
+    erhalteContainer :: Assistant w g a -> Gtk.Container
     erhalteContainer = erhalteContainer . fenster
 
-instance MitWindow (Assistant w a) where
-    erhalteWindow :: Assistant w a -> Gtk.Window
+instance MitWindow (Assistant w g a) where
+    erhalteWindow :: Assistant w g a -> Gtk.Window
     erhalteWindow = fenster
 
 -- | Seite eines 'Assistant'.
@@ -98,6 +100,7 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget = erhalteWidget . either id (Lens.view _2) . seite . node . unpackSeitenBaum
 
 -- | Erstelle einen neuen 'Assistant'.
+-- Die /globalenWidgets/ werden permanent in der Fußleiste mit dem /Weiter/-Knopf (etc.) angezeigt.
 -- Die /seiten/ werden in 'Tree'-Reihenfolge von Wurzel zu Blatt angezeigt.
 -- Wenn es mehr als einen Nachfolgeknoten gibt wird der Nutzer gefragt, welcher als nächster gezeigt werden soll.
 -- Falls es bereitgestellt wird ersetzt dass mitgelieferte 'Gtk.Label' dabei die Standard-Frage.
@@ -105,9 +108,9 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
 --
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
-assistantNew :: (MonadIO m, MitWidget w, Eq w, MitWindow p) =>
-    p -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w a)
-assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
+assistantNew :: (MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
+    p -> [g] -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w g a)
+assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     -- Erstelle Fenster
     fenster <- Gtk.windowNew
     Gtk.set fenster [
@@ -127,7 +130,7 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
     flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
     boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
-    seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox $
+    seitenAbschlussKnopf <- boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         Gtk.buttonNewWithLabel (Language.weiter :: Text)
     Gtk.on seitenAbschlussKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
@@ -164,7 +167,11 @@ assistantNew parent seitenEingabe auswertFunktion = liftIO $ do
                             -> ergebnis
                     -- Zeige erste Seite (für nächsten Assistant-Aufruf)
                     mitWidgetShow seiten
-    pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
+    -- Füge permanente Widgets zur FlowControlBox hinzu und zeige sie an
+    forM_ globaleWidgets $ \widget -> do
+        boxPack flowControlBox widget packingDefault paddingDefault Start
+        mitWidgetShow widget
+    pure Assistant {fenster, globaleWidgets, seiten, tvarAuswahl, auswertFunktion}
 
 packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
     b -> AssistantSeite w -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
@@ -224,7 +231,7 @@ data AssistantResult a
         deriving (Eq)
 
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
-assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
+assistantAuswerten :: (MonadIO m) => Assistant w g a -> m (AssistantResult a)
 assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
     Gtk.widgetShow fenster
     -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
@@ -240,7 +247,7 @@ assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
         where
             -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
             -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
-            takeAuswahl ::Assistant w a -> STM (AssistantResult (NonEmpty w))
+            takeAuswahl ::Assistant w g a -> STM (AssistantResult (NonEmpty w))
             takeAuswahl Assistant {tvarAuswahl, seiten} = do
                 readTVar tvarAuswahl >>= \case
                     (Left _a)
