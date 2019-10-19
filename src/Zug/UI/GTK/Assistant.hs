@@ -36,24 +36,23 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxP
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitContainer(..), MitBox(..), MitWindow(..))
 
 -- | Fenster zum erstellen eines Wertes, potentiell in mehreren Schritten
-data Assistant w g a
+data Assistant w a
     = Assistant {
         fenster :: Gtk.Window,
-        globaleWidgets :: [g],
         seiten :: AssistantSeitenBaumPacked w,
         tvarAuswahl :: TVar (Either ([AssistantSeitenBaumPacked w], AssistantSeitenBaumPacked w) (AssistantResult (NonEmpty w))),
         auswertFunktion :: NonEmpty w -> IO a}
 
-instance MitWidget (Assistant w g a) where
-    erhalteWidget :: Assistant w g a -> Gtk.Widget
+instance MitWidget (Assistant w a) where
+    erhalteWidget :: Assistant w a -> Gtk.Widget
     erhalteWidget = erhalteWidget . fenster
 
-instance MitContainer (Assistant w g a) where
-    erhalteContainer :: Assistant w g a -> Gtk.Container
+instance MitContainer (Assistant w a) where
+    erhalteContainer :: Assistant w a -> Gtk.Container
     erhalteContainer = erhalteContainer . fenster
 
-instance MitWindow (Assistant w g a) where
-    erhalteWindow :: Assistant w g a -> Gtk.Window
+instance MitWindow (Assistant w a) where
+    erhalteWindow :: Assistant w a -> Gtk.Window
     erhalteWindow = fenster
 
 -- | Seite eines 'Assistant'.
@@ -109,7 +108,7 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
 assistantNew :: (MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
-    p -> [g] -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w g a)
+    p -> [g] -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w a)
 assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     -- Erstelle Fenster
     fenster <- Gtk.windowNew
@@ -207,7 +206,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     forM_ globaleWidgets $ \widget -> do
         boxPack flowControlBox widget packingDefault paddingDefault Start
         mitWidgetShow widget
-    pure Assistant {fenster, globaleWidgets, seiten, tvarAuswahl, auswertFunktion}
+    pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
 
 packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
     b -> AssistantSeite w -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
@@ -269,7 +268,7 @@ data AssistantResult a
         deriving (Eq)
 
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
-assistantAuswerten :: (MonadIO m) => Assistant w g a -> m (AssistantResult a)
+assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
 assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
     Gtk.widgetShow fenster
     -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
@@ -285,7 +284,7 @@ assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
         where
             -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
             -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
-            takeAuswahl ::Assistant w g a -> STM (AssistantResult (NonEmpty w))
+            takeAuswahl ::Assistant w a -> STM (AssistantResult (NonEmpty w))
             takeAuswahl Assistant {tvarAuswahl, seiten} = do
                 readTVar tvarAuswahl >>= \case
                     (Left _a)
