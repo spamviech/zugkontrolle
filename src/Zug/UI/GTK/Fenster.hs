@@ -64,7 +64,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennTo
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
-                                    widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew)
+                                    widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(), MitWindow(..), MitDialog(), mitContainerRemove)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
@@ -207,68 +207,93 @@ data HinzufügenSeite
     | HinzufügenSeiteBahngeschwindigkeit {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
-        geschwindigkeitAnschluss :: AnschlussAuswahlWidget,
+        geschwindigkeitAuswahl :: AnschlussAuswahlWidget,
         -- Nur für Lego-Zugtyp
         legoBox :: Gtk.Box,
-        fahrtrichtungsAnschluss :: AnschlussAuswahlWidget}
+        fahrtrichtungsAuswahl :: AnschlussAuswahlWidget}
     | HinzufügenSeiteStreckenabschnitt {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
-        stromAnschluss :: AnschlussAuswahlWidget}
+        stromAuswahl :: AnschlussAuswahlWidget}
     | HinzufügenSeiteWeiche {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
         -- Märklin
         märklinBox :: Gtk.Box,
-        geradeAnschluss :: AnschlussAuswahlWidget,
-        kurveAnschluss :: AnschlussAuswahlWidget,
-        linksAnschluss :: AnschlussAuswahlWidget,
-        rechtsAnschluss :: AnschlussAuswahlWidget,
+        geradeAuswahl :: AnschlussAuswahlWidget,
+        kurveAuswahl :: AnschlussAuswahlWidget,
+        linksAuswahl :: AnschlussAuswahlWidget,
+        rechtsAuswahl :: AnschlussAuswahlWidget,
         -- Lego
         legoBox :: Gtk.Box,
-        richtungsAnschluss :: AnschlussAuswahlWidget,
+        richtungsAuswahl :: AnschlussAuswahlWidget,
         richtungen :: AuswahlWidget (Richtung, Richtung)}
     | HinzufügenSeiteKupplung {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
-        kupplungsAnschluss :: AnschlussAuswahlWidget}
+        kupplungsAuswahl :: AnschlussAuswahlWidget}
     | HinzufügenSeiteWegstrecke {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget}
     | HinzufügenSeitePlan {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
-        aktionen :: TVar (Warteschlange Aktion)}
+        tvarAktionen :: TVar (Warteschlange Aktion)}
     deriving (Eq)
 
 instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = widget
 
-hinzufügenErgebnis :: NonEmpty HinzufügenSeite -> IO Objekt
-hinzufügenErgebnis gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
+hinzufügenErgebnis :: AuswahlWidget Zugtyp -> FließendAuswahlWidget -> NonEmpty HinzufügenSeite -> IO Objekt
+hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
     HinzufügenSeiteAuswahl {}
         -> error "Auswahl-Seite zum Hinzufügen als letzte Seite angezeigt"
-    HinzufügenSeiteBahngeschwindigkeit {nameAuswahl}
+    HinzufügenSeiteBahngeschwindigkeit {nameAuswahl, geschwindigkeitAuswahl, fahrtrichtungsAuswahl}
+        -> do
+            name <- aktuellerName nameAuswahl
+            fließend <- aktuellerFließendValue fließendAuswahl
+            geschwindigkeitsAnschluss <- aktuellerAnschluss geschwindigkeitAuswahl
+            aktuelleAuswahl zugtypAuswahl >>= \case
+                Märklin
+                    -> pure $ OBahngeschwindigkeit $ ZugtypMärklin MärklinBahngeschwindigkeit {
+                        bgmName = name,
+                        bgmFließend = fließend,
+                        bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss}
+                Lego
+                    -> do
+                        bglFahrtrichtungsAnschluss <- aktuellerAnschluss fahrtrichtungsAuswahl
+                        pure $ OBahngeschwindigkeit $ ZugtypLego LegoBahngeschwindigkeit {
+                            bglName = name,
+                            bglFließend = fließend,
+                            bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss,
+                            bglFahrtrichtungsAnschluss}
+    HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl}
         -> _
-    HinzufügenSeiteStreckenabschnitt {nameAuswahl}
-        -> _
-    HinzufügenSeiteWeiche {nameAuswahl}
-        -> _
-    HinzufügenSeiteKupplung {nameAuswahl}
+    HinzufügenSeiteWeiche {
+        nameAuswahl,
+        geradeAuswahl,
+        kurveAuswahl,
+        linksAuswahl,
+        rechtsAuswahl,
+        richtungsAuswahl,
+        richtungen}
+            -> _
+    HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl}
         -> _
     HinzufügenSeiteWegstrecke {nameAuswahl}
         -> _
-    HinzufügenSeitePlan {nameAuswahl}
+    HinzufügenSeitePlan {nameAuswahl, tvarAktionen}
         -> _
 
 -- Durch Assistant ersetzten!
 -- | Erstelle einen neuen Hinzufügen-'Assistant'
 assistantHinzufügenNew :: (MitWindow w, MonadIO m) =>
-    w -> m (Assistant HinzufügenSeite [Either (AuswahlWidget Zugtyp) FließendAuswahlWidget] Objekt)
+    w -> m (Assistant HinzufügenSeite Objekt)
 assistantHinzufügenNew
     parent
         = do
+            let globaleWidget = _globaleWidget :: [Either (AuswahlWidget Zugtyp) FließendAuswahlWidget]
             _assistantErstellen
     {-
         where
