@@ -5,6 +5,7 @@ Cmd-UI:
 
 Fix tests
     Änderungen berücksichtigen
+    oder entfernen, vergesse ich sowieso ständig
 
 GTK-UI: Gleichzeitiges Anzeigen mehrerer Kategorien ermöglichen
     optional?

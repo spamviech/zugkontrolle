@@ -16,6 +16,8 @@ erzeugeKlasse abhängigkeiten name = do
     istTyp nameMitPräfixGtk >>= flip unless (TH.reportError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name.")
     typName <- fromJust <$> TH.lookupTypeName nameMitPräfixGtk
     variablenName <- TH.newName "widget"
+    instanzDeklaration <- erzeugeInstanzDeklaration
+    eitherInstanzDeklaration <- erzeugeEitherInstanzDeklaration
     mitFunktionSignatur <- erzeugeMitFunktionSignatur
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
     getterSignatur <- erzeugeGetterSignatur typName
@@ -26,7 +28,8 @@ erzeugeKlasse abhängigkeiten name = do
             [TH.PlainTV $ variablenName]
             funDeps
             (deklarationen variablenName typName),
-        instanzDeklaration variablenName,
+        instanzDeklaration,
+        eitherInstanzDeklaration,
         mitFunktionSignatur,
         mitFunktionDeklaration,
         getterSignatur,
@@ -72,13 +75,29 @@ erzeugeKlasse abhängigkeiten name = do
         defaultImplementierung :: TH.Name -> TH.Name -> TH.Dec
         defaultImplementierung _variablenName _typName
             = TH.ValD (TH.VarP funktionName) (TH.NormalB $ TH.VarE defaultNameGtk) []
-        instanzDeklaration :: TH.Name -> TH.Dec
-        instanzDeklaration variablenName
-            = TH.InstanceD
+        erzeugeInstanzDeklaration :: TH.Q TH.Dec
+        erzeugeInstanzDeklaration = do
+            variablenName <- TH.newName "widget"
+            pure $ TH.InstanceD
                 (Just TH.Overlappable)
                 [TH.AppT (TH.ConT klassenNameGtk) $ TH.VarT variablenName]
                 (TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName)
                 []
+        erzeugeEitherInstanzDeklaration :: TH.Q TH.Dec
+        erzeugeEitherInstanzDeklaration = do
+            aName <- TH.newName "a"
+            bName <- TH.newName "b"
+            valName <- TH.newName "value"
+            pure $ TH.InstanceD
+                (Just TH.Overlappable)
+                [TH.AppT (TH.ConT klassenName) $ TH.VarT aName, TH.AppT (TH.ConT klassenName) $ TH.VarT bName]
+                (TH.AppT (TH.ConT klassenName) $ TH.ParensT $
+                    TH.AppT (TH.AppT (TH.ConT $ TH.mkName "Either") $ TH.VarT aName) $ TH.VarT bName)
+                [TH.FunD funktionName [
+                    TH.Clause [TH.ConP (TH.mkName "Left") [TH.VarP valName]]
+                        (TH.NormalB $ TH.AppE (TH.VarE funktionName) $ TH.VarE valName) [],
+                    TH.Clause [TH.ConP (TH.mkName "Right") [TH.VarP valName]]
+                        (TH.NormalB $ TH.AppE (TH.VarE funktionName) $ TH.VarE valName) []]]
         mitFunktionName :: TH.Name
         mitFunktionName = TH.mkName $ "mit" ++ name
         erzeugeMitFunktionSignatur :: TH.Q TH.Dec
