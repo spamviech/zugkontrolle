@@ -55,6 +55,7 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
+import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
@@ -205,22 +206,39 @@ data HinzufügenSeite
         widget :: Gtk.Widget}
     | HinzufügenSeiteBahngeschwindigkeit {
         widget :: Gtk.Widget,
-        nameAuswahl :: NameAuswahlWidget}
+        nameAuswahl :: NameAuswahlWidget,
+        geschwindigkeitAnschluss :: AnschlussAuswahlWidget,
+        -- Nur für Lego-Zugtyp
+        legoBox :: Gtk.Box,
+        fahrtrichtungsAnschluss :: AnschlussAuswahlWidget}
     | HinzufügenSeiteStreckenabschnitt {
         widget :: Gtk.Widget,
-        nameAuswahl :: NameAuswahlWidget}
+        nameAuswahl :: NameAuswahlWidget,
+        stromAnschluss :: AnschlussAuswahlWidget}
     | HinzufügenSeiteWeiche {
         widget :: Gtk.Widget,
-        nameAuswahl :: NameAuswahlWidget}
+        nameAuswahl :: NameAuswahlWidget,
+        -- Märklin
+        märklinBox :: Gtk.Box,
+        geradeAnschluss :: AnschlussAuswahlWidget,
+        kurveAnschluss :: AnschlussAuswahlWidget,
+        linksAnschluss :: AnschlussAuswahlWidget,
+        rechtsAnschluss :: AnschlussAuswahlWidget,
+        -- Lego
+        legoBox :: Gtk.Box,
+        richtungsAnschluss :: AnschlussAuswahlWidget,
+        richtungen :: AuswahlWidget (Richtung, Richtung)}
     | HinzufügenSeiteKupplung {
         widget :: Gtk.Widget,
-        nameAuswahl :: NameAuswahlWidget}
+        nameAuswahl :: NameAuswahlWidget,
+        kupplungsAnschluss :: AnschlussAuswahlWidget}
     | HinzufügenSeiteWegstrecke {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget}
     | HinzufügenSeitePlan {
         widget :: Gtk.Widget,
-        nameAuswahl :: NameAuswahlWidget}
+        nameAuswahl :: NameAuswahlWidget,
+        aktionen :: TVar (Warteschlange Aktion)}
     deriving (Eq)
 
 instance MitWidget HinzufügenSeite where

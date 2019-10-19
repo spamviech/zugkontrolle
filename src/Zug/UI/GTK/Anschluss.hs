@@ -45,17 +45,19 @@ anschlussNew name anschluss = liftIO $ fmap AnschlussWidget $
     Gtk.labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss
 
 -- | Widgets zum erzeugen eines 'Anschluss'
-data AnschlussAuswahlWidget = AnschlussAuswahlWidget {
-    aawWidget :: Gtk.Widget,
-    aawNotebook :: Gtk.Notebook,
-    aawPinPage :: Int,
-    aawPin :: Gtk.SpinButton,
-    aawPCF8574PortPage :: Int,
-    aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant,
-    aawPCF8574PortA0 :: AuswahlWidget Value,
-    aawPCF8574PortA1 :: AuswahlWidget Value,
-    aawPCF8574PortA2 :: AuswahlWidget Value,
-    aawPCF8574Port :: Gtk.SpinButton}
+data AnschlussAuswahlWidget
+    = AnschlussAuswahlWidget {
+        aawWidget :: Gtk.Widget,
+        aawNotebook :: Gtk.Notebook,
+        aawPinPage :: Int,
+        aawPin :: Gtk.SpinButton,
+        aawPCF8574PortPage :: Int,
+        aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant,
+        aawPCF8574PortA0 :: AuswahlWidget Value,
+        aawPCF8574PortA1 :: AuswahlWidget Value,
+        aawPCF8574PortA2 :: AuswahlWidget Value,
+        aawPCF8574Port :: Gtk.SpinButton}
+    deriving (Eq)
 
 instance MitWidget AnschlussAuswahlWidget where
     erhalteWidget :: AnschlussAuswahlWidget -> Gtk.Widget
