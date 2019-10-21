@@ -17,8 +17,6 @@ module Zug.UI.Gtk.Assistant (
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
-import Control.Lens (Field2(..))
-import qualified Control.Lens as Lens
 import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (find)
@@ -90,13 +88,27 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaum w) where
     erhalteWidget = erhalteWidget . node
 
 -- | Darstellung des 'AssistantSeitenBaum's, inklusiver zugehörigem 'AuswahlWidget'
-newtype AssistantSeitenBaumPacked w
-    = AssistantSeitenBaumPacked {
-        unpackSeitenBaum :: AssistantSeitenBaum (Either w (Gtk.Box, w, AuswahlWidget (AssistantSeite w)))}
+data AssistantSeitenBaumPacked w
+    -- | Seite mit einem direkten Nachfolger
+    = PackedSeiteLinear {
+        packedNode :: AssistantSeite w,
+        packedNachfolger :: AssistantSeitenBaumPacked w}
+    -- | Seite mit meheren direkten Nachfolger
+    | PackedSeiteAuswahl {
+        packedNode :: AssistantSeite w,
+        packedNachfolgerFrage :: Text,
+        packedNachfolgerListe :: NonEmpty (AssistantSeitenBaumPacked w),
+        packedBox :: Gtk.Box,
+        packedNachfolgerAuswahl :: AuswahlWidget (AssistantSeite w)}
+    -- | Seite ohne Nachfolger
+    | PackedSeiteLetzte {
+        packedNode :: AssistantSeite w}
 
 instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget :: AssistantSeitenBaumPacked w -> Gtk.Widget
-    erhalteWidget = erhalteWidget . either id (Lens.view _2) . seite . node . unpackSeitenBaum
+    erhalteWidget   PackedSeiteLinear {packedNode}  = erhalteWidget packedNode
+    erhalteWidget   PackedSeiteAuswahl {packedBox}  = erhalteWidget packedBox
+    erhalteWidget   PackedSeiteLetzte {packedNode}  = erhalteWidget packedNode
 
 -- | Erstelle einen neuen 'Assistant'.
 -- Die /globalenWidgets/ werden permanent in der Fußleiste mit dem /Weiter/-Knopf (etc.) angezeigt.
@@ -149,7 +161,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         case maybeLetzteSeite of
             (Just letzteSeite)
                 -> do
-                    widgetShowIf (node seitenEingabe /= erhalteSeite (node $ unpackSeitenBaum letzteSeite)) zurückKnopf
+                    widgetShowIf (node seitenEingabe /= packedNode letzteSeite) zurückKnopf
                     zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite letzteSeite
             Nothing
                 -> error "Zurück-Knopf an unerwarteter Stelle gedrückt."
@@ -157,47 +169,34 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
         mitWidgetHide aktuelleSeite
         mitWidgetShow zurückKnopf
-        case unpackSeitenBaum aktuelleSeite of
-            AssistantSeiteLinear {nachfolger}
+        case aktuelleSeite of
+            PackedSeiteLinear {packedNachfolger}
                 -> do
                     atomically $ modifyTVar tvarAuswahl $ \case
                         (Left (besuchteSeiten, _aktuelleSeite))
-                            -> Left $ (aktuelleSeite :  besuchteSeiten, AssistantSeitenBaumPacked nachfolger)
+                            -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                         ergebnis
                             -> ergebnis
-                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite $
-                        AssistantSeitenBaumPacked nachfolger
-            assistant@AssistantSeiteAuswahl {nachfolgerListe}
+                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
+            PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl}
                 -> do
-                    let Right (_box, _w, auswahlWidget) = seite $ node assistant
-                        vergleich :: (Eq w) =>
-                            AssistantSeite w ->
-                            AssistantSeitenBaum (Either w (Gtk.Box, w, AuswahlWidget (AssistantSeite w))) ->
-                                Bool
-                        vergleich vergleichsSeite seitenBaum = case seite $ node seitenBaum of
-                            (Left gezeigtSeite)
-                                -> (gezeigtSeite <$ node seitenBaum) == vergleichsSeite
-                            (Right (_box, gezeigtSeite, _auswahlWidget))
-                                -> (gezeigtSeite <$ node seitenBaum) == vergleichsSeite
-                    nachfolgerSeite <- aktuelleAuswahl auswahlWidget
-                    let maybeNachfolger = find (vergleich nachfolgerSeite) nachfolgerListe
-                        nachfolger = case maybeNachfolger of
-                            (Just nachfolger)   -> nachfolger
-                            Nothing             -> error "unbekannte Seite bei AuswahlWidget ausgewählt."
+                    nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
+                    let packedNachfolger = case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
+                            (Just packedNachfolger) -> packedNachfolger
+                            Nothing                 -> error "unbekannte Seite bei AuswahlWidget ausgewählt."
                     atomically $ modifyTVar tvarAuswahl $ \case
                         (Left (besuchteSeiten, _aktuelleSeite))
-                            -> Left $ (aktuelleSeite :  besuchteSeiten, AssistantSeitenBaumPacked nachfolger)
+                            -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                         ergebnis
                             -> ergebnis
-                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite $
-                        AssistantSeitenBaumPacked nachfolger
-            assistantSeite@AssistantSeiteLetzte {}
+                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite $ packedNachfolger
+            assistantSeite@PackedSeiteLetzte {}
                 -> do
                     atomically $ modifyTVar tvarAuswahl $ \case
                         (Left (besuchteSeiten, _aktuelleSeite))
                             -> Right $ AssistantErfolgreich $ NonEmpty.reverse $
-                                (seite $ erhalteSeite $ node assistantSeite) :|
-                                    (seite . erhalteSeite . node . unpackSeitenBaum <$> besuchteSeiten)
+                                (seite $ packedNode assistantSeite) :|
+                                    (seite . packedNode <$> besuchteSeiten)
                         ergebnis
                             -> ergebnis
                     -- Zeige erste Seite (für nächsten Assistant-Aufruf)
@@ -217,26 +216,27 @@ packSeiten
         = liftIO $ do
             boxPackDefault box node
             widgetShowIf (ersteSeite == node) node
-            nachfolgerPacked <- packSeiten box ersteSeite nachfolger
-            pure $ AssistantSeitenBaumPacked AssistantSeiteLinear {
-                node = Left <$> node,
-                nachfolger = unpackSeitenBaum nachfolgerPacked}
+            packedNachfolger <- packSeiten box ersteSeite nachfolger
+            pure $ PackedSeiteLinear {
+                packedNode = node,
+                packedNachfolger}
 packSeiten
     box
     ersteSeite
-    AssistantSeiteAuswahl {node = nodeW, nachfolgerFrage, nachfolgerListe}
+    AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
         = liftIO $ do
             vBox <- boxPackWidgetNewDefault box $ Gtk.vBoxNew False 0
-            boxPackDefault vBox nodeW
-            widgetShowIf (ersteSeite == nodeW) nodeW
-            nachfolgerListe <- mapM (fmap unpackSeitenBaum . packSeiten box ersteSeite) nachfolgerListe
-            let nodeListe = node <$> nachfolgerListe
-            auswahlWidget <- boxPackWidgetNewDefault vBox $
-                auswahlRadioButtonNamedNew (erhalteSeite <$> nodeListe) nachfolgerFrage name
-            pure $ AssistantSeitenBaumPacked AssistantSeiteAuswahl {
-                node = nodeW {seite = Right (erhalteBox vBox, seite nodeW, auswahlWidget)},
-                nachfolgerFrage,
-                nachfolgerListe}
+            boxPackDefault vBox node
+            widgetShowIf (ersteSeite == node) node
+            packedNachfolgerListe <- mapM (packSeiten box ersteSeite) nachfolgerListe
+            packedNachfolgerAuswahl <- boxPackWidgetNewDefault vBox $
+                auswahlRadioButtonNamedNew (packedNode <$> packedNachfolgerListe) nachfolgerFrage name
+            pure $ PackedSeiteAuswahl {
+                packedNode = node,
+                packedNachfolgerFrage = nachfolgerFrage,
+                packedNachfolgerListe,
+                packedBox = erhalteBox vBox,
+                packedNachfolgerAuswahl}
 packSeiten
     box
     ersteSeite
@@ -244,21 +244,14 @@ packSeiten
         = liftIO $ do
             boxPackDefault box node
             widgetShowIf (ersteSeite == node) node
-            pure $ AssistantSeitenBaumPacked AssistantSeiteLetzte {node = Left <$> node}
-
-erhalteSeite :: AssistantSeite (Either w (a, w, b)) -> AssistantSeite w
-erhalteSeite assistantSeite = case seite assistantSeite of
-    (Left w)
-        -> w <$ assistantSeite
-    (Right (_a, w, _b))
-        -> w <$ assistantSeite
+            pure $ PackedSeiteLetzte {packedNode = node}
 
 zeigeSeite :: (MonadIO m, MitWidget w, Eq w) =>
     Gtk.Button -> TVar (AssistantSeitenBaumPacked w) -> AssistantSeitenBaumPacked w -> m ()
 zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite nachfolger = liftIO $ do
     atomically $ writeTVar tvarAktuelleSeite nachfolger
     mitWidgetShow nachfolger
-    Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := seitenAbschluss (node $ unpackSeitenBaum nachfolger)]
+    Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := seitenAbschluss (packedNode nachfolger)]
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
 data AssistantResult a
