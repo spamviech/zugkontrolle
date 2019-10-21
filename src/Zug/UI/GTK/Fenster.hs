@@ -269,7 +269,11 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
                             bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss,
                             bglFahrtrichtungsAnschluss}
     HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl}
-        -> _
+        -> do
+            stName <- aktuellerName nameAuswahl
+            stFließend <- aktuellerFließendValue fließendAuswahl
+            stromAnschluss <- aktuellerAnschluss stromAuswahl
+            pure $ OStreckenabschnitt Streckenabschnitt {stName, stFließend, stromAnschluss}
     HinzufügenSeiteWeiche {
         nameAuswahl,
         geradeAuswahl,
