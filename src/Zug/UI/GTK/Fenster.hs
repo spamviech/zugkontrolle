@@ -284,7 +284,11 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
         richtungen}
             -> _
     HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl}
-        -> _
+        -> do
+            kuName <- aktuellerName nameAuswahl
+            kuFließend <- aktuellerFließendValue fließendAuswahl
+            kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
+            pure $ OKupplung Kupplung {kuName, kuFließend, kupplungsAnschluss}
     HinzufügenSeiteWegstrecke {nameAuswahl}
         -> _
     HinzufügenSeitePlan {nameAuswahl, tvarAktionen}
