@@ -12,11 +12,12 @@ Description : Eigenes Assistant-Widget, nachdem das von Gtk bereitgestellte nich
 module Zug.UI.Gtk.Assistant () where
 #else
 module Zug.UI.Gtk.Assistant (
-    Assistant(), AssistantSeite(..), AssistantSeitenBaum(..),
+    Assistant(), AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..),
     assistantNew, assistantAuswerten, AssistantResult(..)) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
+import Data.Maybe (catMaybes)
 import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (find)
@@ -28,10 +29,13 @@ import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault,
                                     Packing(..), packingDefault, Position(..), paddingDefault,
                                     buttonNewWithEventLabel, widgetShowIf)
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitContainer(..), MitBox(..), MitWindow(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..),
+                            MitContainer(..), MitBox(..), MitWindow(..))
+import Zug.UI.Gtk.StreckenObjekt (StatusGui, WegstreckeCheckButtonVoid)
 
 -- | Fenster zum erstellen eines Wertes, potentiell in mehreren Schritten
 data Assistant w a
@@ -53,15 +57,25 @@ instance MitWindow (Assistant w a) where
     erhalteWindow :: Assistant w a -> Gtk.Window
     erhalteWindow = fenster
 
+-- | Der Text des Knopfs zum Anzeigen der nächsten Seite/Finalisieren des 'Assistant'.
+-- Alternativ können bereits erstellte spezielle Knopf-Varianten übergeben werden.
+data SeitenAbschluss
+    = SeitenAbschluss
+        Text
+    | SeitenAbschlussToggled
+        FortfahrenWennToggled
+    | SeitenAbschlussToggledTMVar
+        (FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid)
+    deriving (Eq)
+
 -- | Seite eines 'Assistant'.
 -- Der Name wird im Titel des 'Assistant' und bei der Auswahl der Nachfolgerseite angezeigt.
--- /seitenAbschluss/ ist der Text des Knopfs zum Anzeigen der nächsten Seite/Finalisieren des 'Assistant'.
 data AssistantSeite w
     = AssistantSeite {
         seite :: w,
         name :: Text,
-        seitenAbschluss :: Text}
-            deriving (Eq, Show, Functor)
+        seitenAbschluss :: SeitenAbschluss}
+            deriving (Eq, Functor)
 
 instance (MitWidget w) => MitWidget (AssistantSeite w) where
     erhalteWidget :: AssistantSeite w -> Gtk.Widget
@@ -110,6 +124,28 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget   PackedSeiteAuswahl {packedBox}  = erhalteWidget packedBox
     erhalteWidget   PackedSeiteLetzte {packedNode}  = erhalteWidget packedNode
 
+besondereSeitenAbschlüsse :: AssistantSeitenBaumPacked w -> [Maybe Gtk.Button]
+besondereSeitenAbschlüsse
+    PackedSeiteLinear {packedNode, packedNachfolger}
+        = besondererSeitenAbschluss packedNode : besondereSeitenAbschlüsse packedNachfolger
+besondereSeitenAbschlüsse
+    PackedSeiteAuswahl {packedNode, packedNachfolgerListe}
+        = besondererSeitenAbschluss packedNode : concat (besondereSeitenAbschlüsse <$> packedNachfolgerListe)
+besondereSeitenAbschlüsse
+    PackedSeiteLetzte {packedNode}
+        = [besondererSeitenAbschluss packedNode]
+
+besondererSeitenAbschluss :: AssistantSeite w -> Maybe Gtk.Button
+besondererSeitenAbschluss
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)}
+        = Just $ erhalteButton fortfahrenWennToggled
+besondererSeitenAbschluss
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)}
+        = Just $ erhalteButton fortfahrenWennToggledTMVar
+besondererSeitenAbschluss
+    AssistantSeite {seitenAbschluss = (SeitenAbschluss _text)}
+        = Nothing
+
 -- | Erstelle einen neuen 'Assistant'.
 -- Die /globalenWidgets/ werden permanent in der Fußleiste mit dem /Weiter/-Knopf (etc.) angezeigt.
 -- Die /seiten/ werden in 'Tree'-Reihenfolge von Wurzel zu Blatt angezeigt.
@@ -129,16 +165,16 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         Gtk.windowModal := True,
         Gtk.windowTitle := name (node seitenEingabe)]
     vBox <- containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
-    -- Packe Seiten in entsprechende Box und zeige nur die erste an.
-    seiten <- packSeiten vBox (node seitenEingabe) seitenEingabe
+    -- Packe Seiten in entsprechende Box
+    flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
+    seiten <- packSeiten vBox flowControlBox seitenEingabe
     tvarAuswahl <- newTVarIO $ Left ([], seiten)
+    tvarAktuelleSeite <- newTVarIO seiten
     -- Füge Reaktion auf beenden des Assistant durch 'X' in der Titelleiste hinzu
     Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
         atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
         pure True
     -- Knopf-Leiste für permanente Funktionen
-    tvarAktuelleSeite <- newTVarIO seiten
-    flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
     boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
     zurückKnopf <- boxPackWidgetNew flowControlBox packingDefault  paddingDefault End $
@@ -146,6 +182,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     Gtk.widgetHide zurückKnopf
     seitenAbschlussKnopf <- boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
         Gtk.buttonNewWithLabel (Language.weiter :: Text)
+    -- Füge Reaktion auf drücken des Vorwärts- und Zurück-Knopfes hinzu
     Gtk.on zurückKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
         mitWidgetHide aktuelleSeite
@@ -165,70 +202,104 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                     zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite letzteSeite
             Nothing
                 -> error "Zurück-Knopf an unerwarteter Stelle gedrückt."
-    Gtk.on seitenAbschlussKnopf Gtk.buttonActivated $ do
-        aktuelleSeite <- readTVarIO tvarAktuelleSeite
-        mitWidgetHide aktuelleSeite
-        mitWidgetShow zurückKnopf
-        case aktuelleSeite of
-            PackedSeiteLinear {packedNachfolger}
-                -> do
-                    atomically $ modifyTVar tvarAuswahl $ \case
-                        (Left (besuchteSeiten, _aktuelleSeite))
-                            -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
-                        ergebnis
-                            -> ergebnis
-                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
-            PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl}
-                -> do
-                    nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
-                    let packedNachfolger = case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
-                            (Just packedNachfolger) -> packedNachfolger
-                            Nothing                 -> error "unbekannte Seite bei AuswahlWidget ausgewählt."
-                    atomically $ modifyTVar tvarAuswahl $ \case
-                        (Left (besuchteSeiten, _aktuelleSeite))
-                            -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
-                        ergebnis
-                            -> ergebnis
-                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite $ packedNachfolger
-            assistantSeite@PackedSeiteLetzte {}
-                -> do
-                    atomically $ modifyTVar tvarAuswahl $ \case
-                        (Left (besuchteSeiten, _aktuelleSeite))
-                            -> Right $ AssistantErfolgreich $ NonEmpty.reverse $
-                                (seite $ packedNode assistantSeite) :|
-                                    (seite . packedNode <$> besuchteSeiten)
-                        ergebnis
-                            -> ergebnis
-                    -- Zeige erste Seite (für nächsten Assistant-Aufruf)
-                    mitWidgetShow seiten
+    let 
+        seitenAbschlussAktion :: IO ()
+        seitenAbschlussAktion = do
+            aktuelleSeite <- readTVarIO tvarAktuelleSeite
+            mitWidgetHide aktuelleSeite
+            case seitenAbschluss $ packedNode aktuelleSeite of
+                (SeitenAbschluss _name)
+                    -> pure ()
+                (SeitenAbschlussToggled fortfahrenWennToggled)
+                    -> mitWidgetHide fortfahrenWennToggled
+                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
+                    -> mitWidgetHide fortfahrenWennToggledTMVar
+            mitWidgetShow zurückKnopf
+            case aktuelleSeite of
+                PackedSeiteLinear {packedNachfolger}
+                    -> do
+                        atomically $ modifyTVar tvarAuswahl $ \case
+                            (Left (besuchteSeiten, _aktuelleSeite))
+                                -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
+                            ergebnis
+                                -> ergebnis
+                        zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
+                PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl}
+                    -> do
+                        nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
+                        let packedNachfolger = case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
+                                (Just packedNachfolger) -> packedNachfolger
+                                Nothing                 -> error "unbekannte Seite bei AuswahlWidget ausgewählt."
+                        atomically $ modifyTVar tvarAuswahl $ \case
+                            (Left (besuchteSeiten, _aktuelleSeite))
+                                -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
+                            ergebnis
+                                -> ergebnis
+                        zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite $ packedNachfolger
+                assistantSeite@PackedSeiteLetzte {}
+                    -> do
+                        atomically $ modifyTVar tvarAuswahl $ \case
+                            (Left (besuchteSeiten, _aktuelleSeite))
+                                -> Right $ AssistantErfolgreich $ NonEmpty.reverse $
+                                    (seite $ packedNode assistantSeite) :| (seite . packedNode <$> besuchteSeiten)
+                            ergebnis
+                                -> ergebnis
+                        -- Zeige erste Seite (für nächsten Assistant-Aufruf)
+                        mitWidgetShow seiten
+    Gtk.on seitenAbschlussKnopf Gtk.buttonActivated seitenAbschlussAktion
+    forM_ (catMaybes $ besondereSeitenAbschlüsse seiten) $
+        \knopf -> Gtk.on knopf Gtk.buttonActivated seitenAbschlussAktion
     -- Füge permanente Widgets zur FlowControlBox hinzu und zeige sie an
     forM_ globaleWidgets $ \widget -> do
         boxPack flowControlBox widget packingDefault paddingDefault Start
         mitWidgetShow widget
+    -- Zeige erste Seite an
+    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite seiten
     pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
 
 packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
-    b -> AssistantSeite w -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
+    b -> Gtk.HButtonBox -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
 packSeiten
     box
-    ersteSeite
+    flowControlBox
     AssistantSeiteLinear {node, nachfolger}
         = liftIO $ do
             boxPackDefault box node
-            widgetShowIf (ersteSeite == node) node
-            packedNachfolger <- packSeiten box ersteSeite nachfolger
-            pure $ PackedSeiteLinear {
-                packedNode = node,
-                packedNachfolger}
+            mitWidgetHide node
+            packedNachfolger <- packSeiten box flowControlBox nachfolger
+            case seitenAbschluss node of
+                (SeitenAbschluss _name)
+                    -> pure ()
+                (SeitenAbschlussToggled fortfahrenWennToggled)
+                    -> do
+                        boxPack flowControlBox fortfahrenWennToggled packingDefault paddingDefault End
+                        mitWidgetHide fortfahrenWennToggled
+                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
+                    -> do
+                        boxPack flowControlBox fortfahrenWennToggledTMVar packingDefault paddingDefault End
+                        mitWidgetHide fortfahrenWennToggledTMVar
+            pure PackedSeiteLinear {packedNode = node, packedNachfolger}
 packSeiten
     box
-    ersteSeite
+    flowControlBox
     AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
         = liftIO $ do
+            case seitenAbschluss node of
+                (SeitenAbschluss _name)
+                    -> pure ()
+                (SeitenAbschlussToggled fortfahrenWennToggled)
+                    -> do
+                        boxPack flowControlBox fortfahrenWennToggled packingDefault paddingDefault End
+                        mitWidgetHide fortfahrenWennToggled
+                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
+                    -> do
+                        boxPack flowControlBox fortfahrenWennToggledTMVar packingDefault paddingDefault End
+                        mitWidgetHide fortfahrenWennToggledTMVar
             vBox <- boxPackWidgetNewDefault box $ Gtk.vBoxNew False 0
+            mitWidgetHide vBox
             boxPackDefault vBox node
-            widgetShowIf (ersteSeite == node) node
-            packedNachfolgerListe <- mapM (packSeiten box ersteSeite) nachfolgerListe
+            mitWidgetShow node
+            packedNachfolgerListe <- mapM (packSeiten box flowControlBox) nachfolgerListe
             packedNachfolgerAuswahl <- boxPackWidgetNewDefault vBox $
                 auswahlRadioButtonNamedNew (packedNode <$> packedNachfolgerListe) nachfolgerFrage name
             pure $ PackedSeiteAuswahl {
@@ -239,11 +310,22 @@ packSeiten
                 packedNachfolgerAuswahl}
 packSeiten
     box
-    ersteSeite
+    flowControlBox
     AssistantSeiteLetzte {node}
         = liftIO $ do
+            case seitenAbschluss node of
+                (SeitenAbschluss _name)
+                    -> pure ()
+                (SeitenAbschlussToggled fortfahrenWennToggled)
+                    -> do
+                        boxPack flowControlBox fortfahrenWennToggled packingDefault paddingDefault End
+                        mitWidgetHide fortfahrenWennToggled
+                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
+                    -> do
+                        boxPack flowControlBox fortfahrenWennToggledTMVar packingDefault paddingDefault End
+                        mitWidgetHide fortfahrenWennToggledTMVar
             boxPackDefault box node
-            widgetShowIf (ersteSeite == node) node
+            mitWidgetHide node
             pure $ PackedSeiteLetzte {packedNode = node}
 
 zeigeSeite :: (MonadIO m, MitWidget w, Eq w) =>
@@ -251,7 +333,19 @@ zeigeSeite :: (MonadIO m, MitWidget w, Eq w) =>
 zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite nachfolger = liftIO $ do
     atomically $ writeTVar tvarAktuelleSeite nachfolger
     mitWidgetShow nachfolger
-    Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := seitenAbschluss (packedNode nachfolger)]
+    case seitenAbschluss $ packedNode nachfolger of
+        (SeitenAbschluss name)
+            -> do
+                Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := name]
+                mitWidgetShow seitenAbschlussKnopf
+        (SeitenAbschlussToggled fortfahrenWennToggled)
+            -> do
+                mitWidgetShow fortfahrenWennToggled
+                mitWidgetHide seitenAbschlussKnopf
+        (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
+            -> do
+                mitWidgetShow fortfahrenWennToggledTMVar
+                mitWidgetHide seitenAbschlussKnopf
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
 data AssistantResult a

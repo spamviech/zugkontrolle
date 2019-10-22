@@ -32,8 +32,7 @@ import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
-import Zug.UI.Gtk.Hilfsfunktionen (buttonNewWithEventLabel,)
-import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitButton(..))
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
@@ -47,11 +46,19 @@ instance MitWidget FortfahrenWennToggled  where
     erhalteWidget :: FortfahrenWennToggled -> Gtk.Widget
     erhalteWidget = erhalteWidget . fortfahren
 
+instance MitContainer FortfahrenWennToggled  where
+    erhalteContainer :: FortfahrenWennToggled -> Gtk.Container
+    erhalteContainer = erhalteContainer . fortfahren
+
+instance MitButton FortfahrenWennToggled  where
+    erhalteButton :: FortfahrenWennToggled -> Gtk.Button
+    erhalteButton = erhalteButton . fortfahren
+
 -- | Konstruktor, wenn alle 'CheckButton's beim erzeugen bekannt sind.
 fortfahrenWennToggledNew :: (MonadIO m) =>
-    Text -> IO () -> NonEmpty Text -> m FortfahrenWennToggled
-fortfahrenWennToggledNew label action checkButtonNames = liftIO $ do
-    fortfahren <- buttonNewWithEventLabel label action
+    Text -> NonEmpty Text -> m FortfahrenWennToggled
+fortfahrenWennToggledNew label checkButtonNames = liftIO $ do
+    fortfahren <- Gtk.buttonNewWithLabel label
     checkButtons <- forM checkButtonNames $ fmap RegistrierterCheckButton . Gtk.checkButtonNewWithLabel
     let fortfahrenWennToggled = FortfahrenWennToggled {fortfahren, checkButtons}
     forM_ checkButtons $ \(RegistrierterCheckButton checkButton) ->
@@ -92,11 +99,19 @@ instance MitWidget (FortfahrenWennToggledTMVar a c)  where
     erhalteWidget :: FortfahrenWennToggledTMVar a c -> Gtk.Widget
     erhalteWidget = erhalteWidget . fortfahrenTMVar
 
+instance MitContainer (FortfahrenWennToggledTMVar a c)  where
+    erhalteContainer :: FortfahrenWennToggledTMVar a c -> Gtk.Container
+    erhalteContainer = erhalteContainer . fortfahrenTMVar
+
+instance MitButton (FortfahrenWennToggledTMVar a c)  where
+    erhalteButton :: FortfahrenWennToggledTMVar a c -> Gtk.Button
+    erhalteButton = erhalteButton . fortfahrenTMVar
+
 -- | Konstruktor, wenn zu überprüfende 'CheckButton's sich während der Laufzeit ändern können.
 fortfahrenWennToggledTMVarNew :: (MonadIO m, MitRegistrierterCheckButton c) =>
-    Text -> IO () -> Lens.Fold a c -> TMVar a -> m (FortfahrenWennToggledTMVar a c)
-fortfahrenWennToggledTMVarNew label action foldCheckButtons tmvarCheckButtons = liftIO $ do
-    fortfahrenTMVar <- buttonNewWithEventLabel label action
+    Text -> Lens.Fold a c -> TMVar a -> m (FortfahrenWennToggledTMVar a c)
+fortfahrenWennToggledTMVarNew label foldCheckButtons tmvarCheckButtons = liftIO $ do
+    fortfahrenTMVar <- Gtk.buttonNewWithLabel label
     Gtk.set fortfahrenTMVar [Gtk.widgetSensitive := False]
     pure FortfahrenWennToggledTMVar {fortfahrenTMVar, tmvarCheckButtons, foldCheckButtons}
 
