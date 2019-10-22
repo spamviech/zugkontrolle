@@ -62,7 +62,7 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuell
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlPackNew, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
-                                        RegistrierterCheckButton)
+                                        RegistrierterCheckButton, registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(), MitWindow(..), MitDialog(), mitContainerRemove)
@@ -220,14 +220,18 @@ data HinzufügenSeite
         nameAuswahl :: NameAuswahlWidget,
         -- Märklin
         märklinBox :: Gtk.Box,
+        geradeCheckButton :: RegistrierterCheckButton,
         geradeAuswahl :: AnschlussAuswahlWidget,
+        kurveCheckButton :: RegistrierterCheckButton,
         kurveAuswahl :: AnschlussAuswahlWidget,
+        linksCheckButton :: RegistrierterCheckButton,
         linksAuswahl :: AnschlussAuswahlWidget,
+        rechtsCheckButton :: RegistrierterCheckButton,
         rechtsAuswahl :: AnschlussAuswahlWidget,
         -- Lego
         legoBox :: Gtk.Box,
         richtungsAuswahl :: AnschlussAuswahlWidget,
-        richtungen :: AuswahlWidget (Richtung, Richtung)}
+        richtungenAuswahl :: AuswahlWidget (Richtung, Richtung)}
     | HinzufügenSeiteKupplung {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
@@ -276,13 +280,52 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
             pure $ OStreckenabschnitt Streckenabschnitt {stName, stFließend, stromAnschluss}
     HinzufügenSeiteWeiche {
         nameAuswahl,
+        geradeCheckButton,
         geradeAuswahl,
+        kurveCheckButton,
         kurveAuswahl,
+        linksCheckButton,
         linksAuswahl,
+        rechtsCheckButton,
         rechtsAuswahl,
         richtungsAuswahl,
-        richtungen}
-            -> _
+        richtungenAuswahl}
+            -> do
+                name <- aktuellerName nameAuswahl
+                fließend <- aktuellerFließendValue fließendAuswahl
+                aktuelleAuswahl zugtypAuswahl >>= \case
+                    Märklin
+                        -> do
+                            maybeGerade <- registrierterCheckButtonToggled geradeCheckButton >>= \case
+                                True
+                                    -> Just <$> aktuellerAnschluss geradeAuswahl
+                                False
+                                    -> pure Nothing
+                            maybeKurve <- registrierterCheckButtonToggled kurveCheckButton >>= \case
+                                True
+                                    -> Just <$> aktuellerAnschluss kurveAuswahl
+                                False
+                                    -> pure Nothing
+                            maybeLinks <- registrierterCheckButtonToggled linksCheckButton >>= \case
+                                True
+                                    -> Just <$> aktuellerAnschluss linksAuswahl
+                                False
+                                    -> pure Nothing
+                            maybeRechts <- registrierterCheckButtonToggled rechtsCheckButton >>= \case
+                                True
+                                    -> Just <$> aktuellerAnschluss rechtsAuswahl
+                                False
+                                    -> pure Nothing
+                            _
+                    Lego
+                        -> do
+                            welRichtungen <- aktuelleAuswahl richtungenAuswahl
+                            welRichtungsAnschluss <- aktuellerAnschluss richtungsAuswahl
+                            pure $ OWeiche $ ZugtypLego LegoWeiche {
+                                welName = name,
+                                welFließend = fließend,
+                                welRichtungen,
+                                welRichtungsAnschluss}
     HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl}
         -> do
             kuName <- aktuellerName nameAuswahl
