@@ -41,6 +41,7 @@ data FortfahrenWennToggled
     = FortfahrenWennToggled {
         fortfahren :: Gtk.Button,
         checkButtons :: NonEmpty RegistrierterCheckButton}
+    deriving (Eq)
 
 instance MitWidget FortfahrenWennToggled  where
     erhalteWidget :: FortfahrenWennToggled -> Gtk.Widget
@@ -79,6 +80,13 @@ data FortfahrenWennToggledTMVar a c
         fortfahrenTMVar :: Gtk.Button,
         tmvarCheckButtons :: TMVar a,
         foldCheckButtons :: Lens.Fold a c}
+
+instance Eq (FortfahrenWennToggledTMVar a c) where
+    (==) :: FortfahrenWennToggledTMVar a c -> FortfahrenWennToggledTMVar a c -> Bool
+    (==)
+        FortfahrenWennToggledTMVar {fortfahrenTMVar = fortfahrenTMVar0, tmvarCheckButtons = tmvarCheckButtons0}
+        FortfahrenWennToggledTMVar {fortfahrenTMVar = fortfahrenTMVar1, tmvarCheckButtons = tmvarCheckButtons1}
+            = (fortfahrenTMVar0 == fortfahrenTMVar1) && (tmvarCheckButtons0 == tmvarCheckButtons1)
 
 instance MitWidget (FortfahrenWennToggledTMVar a c)  where
     erhalteWidget :: FortfahrenWennToggledTMVar a c -> Gtk.Widget
