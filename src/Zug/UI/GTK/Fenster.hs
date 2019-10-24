@@ -313,7 +313,10 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
     HinzufügenSeiteWegstrecke {nameAuswahl}
         -> _
     HinzufügenSeitePlan {nameAuswahl, tvarAktionen}
-        -> _
+        -> do
+            plName <- aktuellerName nameAuswahl
+            plAktionen <- toList <$> readTVarIO tvarAktionen
+            pure $ OPlan Plan {plName, plAktionen}
 
 -- Durch Assistant ersetzten!
 -- | Erstelle einen neuen Hinzufügen-'Assistant'
