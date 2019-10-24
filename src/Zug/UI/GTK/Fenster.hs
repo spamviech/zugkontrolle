@@ -22,7 +22,7 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TMVar, readTMVar, takeTMVar, putTMVar,
                                 TVar, newTVarIO, readTVarIO, writeTVar, modifyTVar)
 import Control.Lens ((^.))
-import Control.Monad (void, when, foldM, forM_)
+import Control.Monad (void, when, foldM, forM, forM_)
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.State (StateT)
 import qualified Control.Monad.State as State
@@ -30,7 +30,7 @@ import Control.Monad.Trans (MonadIO(..), lift)
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (maybe, fromJust)
+import Data.Maybe (maybe, fromJust, isNothing)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
@@ -220,18 +220,11 @@ data HinzufügenSeite
         nameAuswahl :: NameAuswahlWidget,
         -- Märklin
         märklinBox :: Gtk.Box,
-        geradeCheckButton :: RegistrierterCheckButton,
-        geradeAuswahl :: AnschlussAuswahlWidget,
-        kurveCheckButton :: RegistrierterCheckButton,
-        kurveAuswahl :: AnschlussAuswahlWidget,
-        linksCheckButton :: RegistrierterCheckButton,
-        linksAuswahl :: AnschlussAuswahlWidget,
-        rechtsCheckButton :: RegistrierterCheckButton,
-        rechtsAuswahl :: AnschlussAuswahlWidget,
+        märklinRichtungsAuswahl :: NonEmpty (Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget),
         -- Lego
         legoBox :: Gtk.Box,
-        richtungsAuswahl :: AnschlussAuswahlWidget,
-        richtungenAuswahl :: AuswahlWidget (Richtung, Richtung)}
+        legoRichtungsAuswahl :: AnschlussAuswahlWidget,
+        legoRichtungenAuswahl :: AuswahlWidget (Richtung, Richtung)}
     | HinzufügenSeiteKupplung {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
@@ -280,47 +273,32 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
             pure $ OStreckenabschnitt Streckenabschnitt {stName, stFließend, stromAnschluss}
     HinzufügenSeiteWeiche {
         nameAuswahl,
-        geradeCheckButton,
-        geradeAuswahl,
-        kurveCheckButton,
-        kurveAuswahl,
-        linksCheckButton,
-        linksAuswahl,
-        rechtsCheckButton,
-        rechtsAuswahl,
-        richtungsAuswahl,
-        richtungenAuswahl}
+        märklinRichtungsAuswahl,
+        legoRichtungsAuswahl,
+        legoRichtungenAuswahl}
             -> do
                 name <- aktuellerName nameAuswahl
                 fließend <- aktuellerFließendValue fließendAuswahl
                 aktuelleAuswahl zugtypAuswahl >>= \case
                     Märklin
                         -> do
-                            maybeGerade <- registrierterCheckButtonToggled geradeCheckButton >>= \case
-                                True
-                                    -> Just <$> aktuellerAnschluss geradeAuswahl
-                                False
-                                    -> pure Nothing
-                            maybeKurve <- registrierterCheckButtonToggled kurveCheckButton >>= \case
-                                True
-                                    -> Just <$> aktuellerAnschluss kurveAuswahl
-                                False
-                                    -> pure Nothing
-                            maybeLinks <- registrierterCheckButtonToggled linksCheckButton >>= \case
-                                True
-                                    -> Just <$> aktuellerAnschluss linksAuswahl
-                                False
-                                    -> pure Nothing
-                            maybeRechts <- registrierterCheckButtonToggled rechtsCheckButton >>= \case
-                                True
-                                    -> Just <$> aktuellerAnschluss rechtsAuswahl
-                                False
-                                    -> pure Nothing
-                            _
+                            -- Nicht-Leerheit garantiert durch FortfahrenWennToggled
+                            wemRichtungsAnschlüsse <-
+                                fmap (NonEmpty.fromList . map fromJust . NonEmpty.filter isNothing) $
+                                    forM märklinRichtungsAuswahl $ \(richtung, rcb, anschlussAuswahl)
+                                        -> registrierterCheckButtonToggled rcb >>= \case
+                                            True
+                                                -> Just . (\anschluss -> (richtung, anschluss)) <$> aktuellerAnschluss anschlussAuswahl
+                                            False
+                                                -> pure Nothing
+                            pure $ OWeiche $ ZugtypMärklin MärklinWeiche {
+                                wemName = name,
+                                wemFließend = fließend,
+                                wemRichtungsAnschlüsse}
                     Lego
                         -> do
-                            welRichtungen <- aktuelleAuswahl richtungenAuswahl
-                            welRichtungsAnschluss <- aktuellerAnschluss richtungsAuswahl
+                            welRichtungen <- aktuelleAuswahl legoRichtungenAuswahl
+                            welRichtungsAnschluss <- aktuellerAnschluss legoRichtungsAuswahl
                             pure $ OWeiche $ ZugtypLego LegoWeiche {
                                 welName = name,
                                 welFließend = fließend,
