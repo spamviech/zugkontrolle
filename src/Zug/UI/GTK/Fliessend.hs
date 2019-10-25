@@ -11,8 +11,8 @@ Description: Anzeige und Auswahl des Fließend-Value
 module Zug.UI.Gtk.Fliessend () where
 #else
 module Zug.UI.Gtk.Fliessend (
-    FließendWidget(), fließendPackNew,
-    FließendAuswahlWidget(), fließendAuswahlPackNew, aktuellerFließendValue) where
+    FließendWidget(), fließendNew, fließendPackNew,
+    FließendAuswahlWidget(), fließendAuswahlNew, fließendAuswahlPackNew, aktuellerFließendValue) where
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
@@ -29,24 +29,26 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktu
 newtype FließendWidget = FließendWidget Gtk.Label
                             deriving (Eq, MitWidget, MitLabel)
 
--- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
+-- | Erstelle ein neues 'FließendWidget' und packe es in eine 'MitBox'
 fließendPackNew :: (MonadIO m, StreckenAtom s, MitBox b) => b -> s -> m FließendWidget
-fließendPackNew box s
-    = liftIO $ boxPackWidgetNew
-        box
-        packingDefault
-        3
-        positionDefault
-        $ fmap FließendWidget $ Gtk.labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
+fließendPackNew box = boxPackWidgetNew box packingDefault 3 positionDefault . fließendNew
+
+-- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
+fließendNew :: (MonadIO m, StreckenAtom s) => s -> m FließendWidget
+fließendNew s = liftIO $ fmap FließendWidget $
+    Gtk.labelNew $ Just $ (Language.fließendValue <:> showText (fließend s) :: Text)
 
 -- | Widget zur Eingabe des Fließend-Value
 newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget :: AuswahlWidget Value}
                                     deriving (Eq, MitWidget)
 
--- | Erstelle ein Widget zur Auswahl des Fließend-Value
+-- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'
 fließendAuswahlPackNew :: (MonadIO m, MitBox b) => b -> m FließendAuswahlWidget
 fließendAuswahlPackNew
-    = fmap FließendAuswahlWidget . flip boxPackWidgetNewDefault (boundedEnumAuswahlRadioButtonNew LOW Language.fließend)
+    = flip boxPackWidgetNewDefault fließendAuswahlNew
+
+fließendAuswahlNew :: (MonadIO m) => m FließendAuswahlWidget
+fließendAuswahlNew = liftIO $ FließendAuswahlWidget <$> boundedEnumAuswahlRadioButtonNew LOW Language.fließend
 
 -- | Erhalte den aktuell gewählten Fließend-Value
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value

@@ -61,7 +61,7 @@ import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuel
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl, MitAuswahlWidget())
-import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlPackNew, aktuellerFließendValue)
+import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
@@ -395,13 +395,17 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
 
 -- Durch Assistant ersetzten!
 -- | Erstelle einen neuen Hinzufügen-'Assistant'
-assistantHinzufügenNew :: (MitWindow w, MonadIO m) =>
+assistantHinzufügenNew :: (MitWindow w, ObjektReader ObjektGui m, MonadIO m) =>
     w -> m (Assistant HinzufügenSeite Objekt)
 assistantHinzufügenNew
     parent
         = do
-            let globaleWidget = _globaleWidget :: [Either (AuswahlWidget Zugtyp) FließendAuswahlWidget]
-            _assistantErstellen
+            objektReader <- ask
+            zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin "Zugtyp"
+            fließendAuswahl <- fließendAuswahlNew
+            let globaleWidgets = [Left zugtypAuswahl, Right fließendAuswahl]
+            assistantNew parent globaleWidgets _AssistantSeitenBaum $
+                flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
     {-
         where
             runPage :: Natural -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
