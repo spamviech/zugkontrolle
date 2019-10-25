@@ -58,7 +58,7 @@ import Zug.UI.Base (Status, StatusAllgemein(..), auswertenTMVarIOStatus,
                     putPläne, pläne)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
-import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), AssistantSeitenBaum(..),
+import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl, MitAuswahlWidget())
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
@@ -404,6 +404,13 @@ assistantHinzufügenNew
             zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin "Zugtyp"
             fließendAuswahl <- fließendAuswahlNew
             let globaleWidgets = [Left zugtypAuswahl, Right fließendAuswahl]
+            -- Dummy-Widget zur Seitenauswahl. Auswahl wird durch Assistant übernommen.
+            auswahl <- liftIO $ erhalteWidget <$> Gtk.labelNew (Nothing :: Maybe Text)
+            let auswahlSeite = AssistantSeite {
+                seite = auswahl,
+                name = Language.hinzufügen,
+                seiteZurücksetzen = pure (),
+                seitenAbschluss = SeitenAbschluss Language.weiter}
             assistantNew parent globaleWidgets _AssistantSeitenBaum $
                 flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
     {-
