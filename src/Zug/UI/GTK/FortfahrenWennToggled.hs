@@ -4,6 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -136,9 +137,9 @@ registrierterCheckButtonNew label fortfahrenWennToggled = liftIO $ do
     pure $ RegistrierterCheckButton checkButton
 
 -- | Überprüfe ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist
-registrierterCheckButtonToggled :: (MonadIO m) => RegistrierterCheckButton -> m Bool
+registrierterCheckButtonToggled :: (MitRegistrierterCheckButton r, MonadIO m) => r -> m Bool
 registrierterCheckButtonToggled
-    (RegistrierterCheckButton checkButton)
+    (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton))
         = liftIO $ Gtk.get checkButton Gtk.toggleButtonActive
 
 -- | Klasse für Typen mit 'RegistrierterCheckButton'

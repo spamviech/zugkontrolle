@@ -35,7 +35,7 @@ module Zug.UI.Gtk.StreckenObjekt (
     ObjektGui, BefehlGui, IOStatusGui, MStatusGui, MStatusGuiT,
     -- * Hinzufügen zu einem Plan/einer Wegstrecke
     WidgetHinzufügen, HinzufügenZiel(..),
-    CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen, WegstreckeCheckButtonVoid,
+    CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen, WegstreckeCheckButton(), WegstreckeCheckButtonVoid,
     ButtonPlanHinzufügen, BoxPlanHinzufügen,
     widgetHinzufügenZugtypEither,widgetHinzufügenRegistrierterCheckButtonVoid, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenToggled, widgetHinzufügenContainerRemoveJust, widgetHinzufügenBoxPackNew,
     foldWegstreckeHinzufügen, WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets,

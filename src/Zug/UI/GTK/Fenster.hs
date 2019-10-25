@@ -22,7 +22,8 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TMVar, readTMVar, takeTMVar, putTMVar,
                                 TVar, newTVarIO, readTVarIO, writeTVar, modifyTVar)
 import Control.Lens ((^.))
-import Control.Monad (void, when, foldM, forM, forM_)
+import qualified Control.Lens as Lens
+import Control.Monad (void, when, foldM, forM, forM_, filterM)
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.State (StateT)
 import qualified Control.Monad.State as State
@@ -30,7 +31,7 @@ import Control.Monad.Trans (MonadIO(..), lift)
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (maybe, fromJust, isNothing)
+import Data.Maybe (maybe, fromJust, isNothing, catMaybes)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
@@ -38,7 +39,8 @@ import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes, zeigeErstes)
-import Zug.Klassen (Zugtyp(..), Richtung(..), unterstützteRichtungen, Strom(..), Fahrtrichtung(..), ZugtypEither(..))
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..), unterstützteRichtungen,
+                    Strom(..), Fahrtrichtung(..))
 import Zug.Anbindung (Value(..), Pin(), zuPin, Bahngeschwindigkeit(..), Streckenabschnitt(..),
                     Weiche(..), Kupplung(..), Wegstrecke(..), StreckenObjekt(..))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
@@ -46,7 +48,7 @@ import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
 import Zug.Language (showText, (<!>), (<:>), (<^>))
-import Zug.UI.Base (Status, auswertenTMVarIOStatus,
+import Zug.UI.Base (Status, StatusAllgemein(..), auswertenTMVarIOStatus,
                     ReaderFamilie, ObjektReader,
                     putBahngeschwindigkeiten, bahngeschwindigkeiten,
                     putStreckenabschnitte, streckenabschnitte,
@@ -58,7 +60,7 @@ import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefe
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl, MitAuswahlWidget())
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlPackNew, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
@@ -68,8 +70,9 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMn
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(), MitWindow(..), MitDialog(), mitContainerRemove)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
-                                    StatusReader(..), WegstreckenElement(..),
-                                    WidgetsTyp(..),
+                                    StatusReader(..),
+                                    WegstreckenElement(..), WegstreckeCheckButton(), PlanElement(..),
+                                    WidgetsTyp(..), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl,
                                     bahngeschwindigkeitPackNew, BGWidgets,
                                     streckenabschnittPackNew, STWidgets,
                                     weichePackNew, WEWidgets,
@@ -242,7 +245,8 @@ instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = widget
 
-hinzufügenErgebnis :: AuswahlWidget Zugtyp -> FließendAuswahlWidget -> NonEmpty HinzufügenSeite -> IO Objekt
+hinzufügenErgebnis :: (StatusReader r m, MonadIO m) =>
+    AuswahlWidget Zugtyp -> FließendAuswahlWidget -> NonEmpty HinzufügenSeite -> m Objekt
 hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
     HinzufügenSeiteAuswahl {}
         -> error "Auswahl-Seite zum Hinzufügen als letzte Seite angezeigt"
@@ -311,9 +315,56 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
             kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
             pure $ OKupplung Kupplung {kuName, kuFließend, kupplungsAnschluss}
     HinzufügenSeiteWegstrecke {nameAuswahl}
-        -> _
-    HinzufügenSeitePlan {nameAuswahl, tvarAktionen}
         -> do
+            tmvarStatus <- erhalteStatus
+            aktuellerStatus <- liftIO $ atomically $ readTMVar tmvarStatus
+            wsName <- aktuellerName nameAuswahl
+            let
+                gewählteWegstrecke ::
+                    (MonadIO m, ZugtypKlasse z, WegstreckenElement (BGWidgets z), WegstreckenElement (WEWidgets z),
+                    MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung) =>
+                        m (Wegstrecke z)
+                gewählteWegstrecke = do
+                    wsBahngeschwindigkeiten <- foldM anhängenWennToggled [] $
+                        catMaybes $ map vonZugtypEither $ aktuellerStatus ^. bahngeschwindigkeiten
+                    wsStreckenabschnitte <- foldM anhängenWennToggled [] $ aktuellerStatus ^. streckenabschnitte
+                    wsWeichenRichtungen <- foldM weichenRichtungAnhängenWennToggled [] $
+                        catMaybes $ map vonZugtypEither $ aktuellerStatus ^. weichen
+                    wsKupplungen <- foldM anhängenWennToggled [] $ aktuellerStatus ^. kupplungen
+                    pure Wegstrecke {
+                        wsName,
+                        wsBahngeschwindigkeiten,
+                        wsStreckenabschnitte,
+                        wsWeichenRichtungen,
+                        wsKupplungen}
+                anhängenWennToggled :: (WidgetsTyp a, WegstreckenElement a, MonadIO m) =>
+                    [ObjektTyp a] -> a -> m [ObjektTyp a]
+                anhängenWennToggled acc a = widgetHinzufügenToggled (a ^. getterWegstrecke) >>= \case
+                    True
+                        -> pure $ erhalteObjektTyp a : acc
+                    False
+                        -> pure acc
+                weichenRichtungAnhängenWennToggled ::
+                    (WegstreckenElement (WEWidgets z), MonadIO m,
+                    MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung) =>
+                        [(Weiche z, Richtung)] -> WEWidgets z -> m [(Weiche z, Richtung)]
+                weichenRichtungAnhängenWennToggled acc weiche = do
+                    let widgetHinzufügen = weiche ^. getterWegstrecke
+                    toggled <- widgetHinzufügenToggled widgetHinzufügen
+                    if toggled
+                        then do
+                            richtung <- widgetHinzufügenAktuelleAuswahl widgetHinzufügen
+                            pure $ (erhalteObjektTyp weiche, richtung) : acc
+                        else pure acc
+            -- Explizite Zugtyp-Auswahl notwendig für den Typ-Checker
+            -- Dieser kann sonst Typ-Klassen nicht überprüfen
+            aktuelleAuswahl zugtypAuswahl >>= \case
+                Märklin
+                    -> OWegstrecke . ZugtypMärklin <$> gewählteWegstrecke
+                Lego
+                    -> OWegstrecke . ZugtypLego <$> gewählteWegstrecke
+    HinzufügenSeitePlan {nameAuswahl, tvarAktionen}
+        -> liftIO $ do
             plName <- aktuellerName nameAuswahl
             plAktionen <- toList <$> readTVarIO tvarAktionen
             pure $ OPlan Plan {plName, plAktionen}
