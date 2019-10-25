@@ -70,12 +70,21 @@ data SeitenAbschluss
 
 -- | Seite eines 'Assistant'.
 -- Der Name wird im Titel des 'Assistant' und bei der Auswahl der Nachfolgerseite angezeigt.
+-- /seiteZurücksetzten/ wird vor jedem anzeigen der Seite aufgerufen
 data AssistantSeite w
     = AssistantSeite {
         seite :: w,
         name :: Text,
+        seiteZurücksetzen :: IO (),
         seitenAbschluss :: SeitenAbschluss}
-            deriving (Eq, Functor)
+            deriving (Functor)
+
+instance (Eq w) => Eq (AssistantSeite w) where
+    (==) :: AssistantSeite w -> AssistantSeite w -> Bool
+    (==)
+        AssistantSeite {seite = seite0, name = name0,  seitenAbschluss = seitenAbschluss0}
+        AssistantSeite {seite = seite1, name = name1,  seitenAbschluss = seitenAbschluss1}
+            = seite0 == seite1 && name0 == name1 && seitenAbschluss0 == seitenAbschluss1
 
 instance (MitWidget w) => MitWidget (AssistantSeite w) where
     erhalteWidget :: AssistantSeite w -> Gtk.Widget
@@ -160,10 +169,7 @@ assistantNew :: (MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
 assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     -- Erstelle Fenster
     fenster <- Gtk.windowNew
-    Gtk.set fenster [
-        Gtk.windowTransientFor := erhalteWindow parent,
-        Gtk.windowModal := True,
-        Gtk.windowTitle := name (node seitenEingabe)]
+    Gtk.set fenster [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
     vBox <- containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
     -- Packe Seiten in entsprechende Box
     flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
@@ -199,7 +205,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
             (Just letzteSeite)
                 -> do
                     widgetShowIf (node seitenEingabe /= packedNode letzteSeite) zurückKnopf
-                    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite letzteSeite
+                    zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite letzteSeite
             Nothing
                 -> error "Zurück-Knopf an unerwarteter Stelle gedrückt."
     let 
@@ -223,7 +229,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
+                        zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
                 PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl}
                     -> do
                         nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
@@ -235,7 +241,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite $ packedNachfolger
+                        zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite $ packedNachfolger
                 assistantSeite@PackedSeiteLetzte {}
                     -> do
                         atomically $ modifyTVar tvarAuswahl $ \case
@@ -254,9 +260,10 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         boxPack flowControlBox widget packingDefault paddingDefault Start
         mitWidgetShow widget
     -- Zeige erste Seite an
-    zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite seiten
+    zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite seiten
     pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
 
+-- | Packe den übergebenen 'SeitenBaum' in die 'MitBox' und erzeuge notwendige Hilfswidgets
 packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
     b -> Gtk.HButtonBox -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
 packSeiten
@@ -328,12 +335,16 @@ packSeiten
             mitWidgetHide node
             pure $ PackedSeiteLetzte {packedNode = node}
 
+-- | Zeige die übergebene Seite an
 zeigeSeite :: (MonadIO m, MitWidget w, Eq w) =>
-    Gtk.Button -> TVar (AssistantSeitenBaumPacked w) -> AssistantSeitenBaumPacked w -> m ()
-zeigeSeite seitenAbschlussKnopf tvarAktuelleSeite nachfolger = liftIO $ do
+    Gtk.Window -> Gtk.Button -> TVar (AssistantSeitenBaumPacked w) -> AssistantSeitenBaumPacked w -> m ()
+zeigeSeite assistantWindow seitenAbschlussKnopf tvarAktuelleSeite nachfolger = liftIO $ do
+    let nachfolgerSeite = packedNode nachfolger
+    seiteZurücksetzen nachfolgerSeite
+    Gtk.set assistantWindow [Gtk.windowTitle := name nachfolgerSeite]
     atomically $ writeTVar tvarAktuelleSeite nachfolger
     mitWidgetShow nachfolger
-    case seitenAbschluss $ packedNode nachfolger of
+    case seitenAbschluss nachfolgerSeite of
         (SeitenAbschluss name)
             -> do
                 Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := name]
