@@ -429,13 +429,18 @@ assistantHinzufügenNew
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            boxStreckenabschnitt <- liftIO $ Gtk.vBoxNew False 0
+            nameAuswahlStreckenabschnitt <- nameAuswahlPackNew boxStreckenabschnitt
+            stromAuswahl <- boxPackWidgetNewDefault boxStreckenabschnitt $
+                anschlussAuswahlNew Language.strom
             let seiteStreckenabschnitt = AssistantSeite {
                 seite = HinzufügenSeiteStreckenabschnitt{
-                    widget = _,
-                    nameAuswahl = _,
-                    stromAuswahl = _},
+                    widget = erhalteWidget boxStreckenabschnitt,
+                    nameAuswahl = nameAuswahlStreckenabschnitt,
+                    stromAuswahl},
                 name = Language.streckenabschnitt,
-                seiteZurücksetzen = _,
+                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlStreckenabschnitt)
+                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
             let seiteWeiche = AssistantSeite {
                 seite = HinzufügenSeiteWeiche {
