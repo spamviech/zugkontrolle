@@ -67,7 +67,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennTo
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(), MitWindow(..), MitDialog(), mitContainerRemove)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, MitEntry(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
                                     StatusReader(..),
@@ -411,14 +411,51 @@ assistantHinzufügenNew
                     name = Language.hinzufügen,
                     seiteZurücksetzen = pure (),
                     seitenAbschluss = SeitenAbschluss Language.weiter}
-                seiteBahngeschwindigkeit = _
-                seiteStreckenabschnitt = _
-                seiteWeiche = _
-                seiteKupplung = _
-                seiteWegstrecke = _
-                seitePlan = _
+            boxBahngeschwindigkeit <- liftIO $ Gtk.vBoxNew False 0
+            nameAuswahlBahngeschwindigkeit <- nameAuswahlPackNew boxBahngeschwindigkeit
+            geschwindigkeitAuswahl <- boxPackWidgetNewDefault boxBahngeschwindigkeit $
+                anschlussAuswahlNew Language.geschwindigkeit
+            legoBox <- liftIO $ erhalteBox <$> Gtk.vBoxNew False 0
+            fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoBox $
+                anschlussAuswahlNew Language.fahrtrichtung
+            let seiteBahngeschwindigkeit = AssistantSeite {
+                seite = HinzufügenSeiteBahngeschwindigkeit {
+                    widget = erhalteWidget boxBahngeschwindigkeit,
+                    nameAuswahl = nameAuswahlBahngeschwindigkeit,
+                    geschwindigkeitAuswahl,
+                    legoBox,
+                    fahrtrichtungsAuswahl},
+                name = Language.bahngeschwindigkeit ,
+                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
+                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
+                seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            let seiteStreckenabschnitt = AssistantSeite {
+                seite = _,
+                name = Language.streckenabschnitt,
+                seiteZurücksetzen = _,
+                seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            let seiteWeiche = AssistantSeite {
+                seite = _,
+                name = Language.weiche,
+                seiteZurücksetzen = _,
+                seitenAbschluss = _}
+            let seiteKupplung = AssistantSeite {
+                seite = _,
+                name = Language.kupplung,
+                seiteZurücksetzen = _,
+                seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            let seiteWegstrecke = AssistantSeite {
+                seite = _,
+                name = Language.wegstrecke,
+                seiteZurücksetzen = _,
+                seitenAbschluss = _}
+            let seitePlan = AssistantSeite {
+                seite = _,
+                name = Language.plan,
+                seiteZurücksetzen = _,
+                seitenAbschluss = _}
                 -- konstruiere SeitenBaum
-                seitenBaum = AssistantSeiteAuswahl {
+            let seitenBaum = AssistantSeiteAuswahl {
                     node = seiteAuswahl,
                     nachfolgerFrage = Language.welchesObjektHinzufügen,
                     nachfolgerListe = AssistantSeiteLetzte <$>
