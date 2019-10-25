@@ -48,10 +48,12 @@ concatMapM erzeugeDeklaration ["dateiname", "name", "richtung", "richtungen", "f
 concatMapM erzeugeDeklaration ["anschluss", "pin", "pcf8574Port", "pcf8574", "variante", "normal", "a", "a0", "a1", "a2", "port"]
 -- * Query-Abfragen / Queries
 concatMapM erzeugeDeklaration ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
+erzeugeDeklaration "welchesObjektHinzufügen"
 -- * Fehlermeldungen / Error Messages
 concatMapM erzeugeDeklaration [
     "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt",
-    "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer", "valueErwartet"]
+    "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer"]
+erzeugeDeklaration "valueErwartet"
 -- * Typ-namen / Type names
 concatMapM erzeugeDeklaration ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 

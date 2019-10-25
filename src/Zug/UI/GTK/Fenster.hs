@@ -406,12 +406,29 @@ assistantHinzufügenNew
             let globaleWidgets = [Left zugtypAuswahl, Right fließendAuswahl]
             -- Dummy-Widget zur Seitenauswahl. Auswahl wird durch Assistant übernommen.
             auswahl <- liftIO $ erhalteWidget <$> Gtk.labelNew (Nothing :: Maybe Text)
-            let auswahlSeite = AssistantSeite {
-                seite = auswahl,
-                name = Language.hinzufügen,
-                seiteZurücksetzen = pure (),
-                seitenAbschluss = SeitenAbschluss Language.weiter}
-            assistantNew parent globaleWidgets _AssistantSeitenBaum $
+            let seiteAuswahl = AssistantSeite {
+                    seite = HinzufügenSeiteAuswahl {widget = auswahl},
+                    name = Language.hinzufügen,
+                    seiteZurücksetzen = pure (),
+                    seitenAbschluss = SeitenAbschluss Language.weiter}
+                seiteBahngeschwindigkeit = _
+                seiteStreckenabschnitt = _
+                seiteWeiche = _
+                seiteKupplung = _
+                seiteWegstrecke = _
+                seitePlan = _
+                -- konstruiere SeitenBaum
+                seitenBaum = AssistantSeiteAuswahl {
+                    node = seiteAuswahl,
+                    nachfolgerFrage = Language.welchesObjektHinzufügen,
+                    nachfolgerListe = AssistantSeiteLetzte <$>
+                        seiteBahngeschwindigkeit :| [
+                        seiteStreckenabschnitt,
+                        seiteWeiche,
+                        seiteKupplung,
+                        seiteWegstrecke,
+                        seitePlan]}
+            assistantNew parent globaleWidgets seitenBaum $
                 flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
     {-
         where
