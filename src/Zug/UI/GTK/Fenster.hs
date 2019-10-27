@@ -60,12 +60,15 @@ import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefe
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl, MitAuswahlWidget())
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, boundedEnumAuswahlComboBoxNew,
+                            aktuelleAuswahl, MitAuswahlWidget())
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar, tmvarCheckButtons,
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, checkButtons,
+                                        FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault,
+                                    buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, MitEntry(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
@@ -411,6 +414,7 @@ assistantHinzufügenNew
                     name = Language.hinzufügen,
                     seiteZurücksetzen = pure (),
                     seitenAbschluss = SeitenAbschluss Language.weiter}
+            -- Bahngeschwindigkeit
             boxBahngeschwindigkeit <- liftIO $ Gtk.vBoxNew False 0
             nameAuswahlBahngeschwindigkeit <- nameAuswahlPackNew boxBahngeschwindigkeit
             geschwindigkeitAuswahl <- boxPackWidgetNewDefault boxBahngeschwindigkeit $
@@ -429,6 +433,7 @@ assistantHinzufügenNew
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            -- Streckenabschnitt
             boxStreckenabschnitt <- liftIO $ Gtk.vBoxNew False 0
             nameAuswahlStreckenabschnitt <- nameAuswahlPackNew boxStreckenabschnitt
             stromAuswahl <- boxPackWidgetNewDefault boxStreckenabschnitt $
@@ -442,18 +447,44 @@ assistantHinzufügenNew
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlStreckenabschnitt)
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            -- Weiche
+            boxWeiche <- liftIO $ Gtk.vBoxNew False 0
+            nameAuswahlWeiche <- nameAuswahlPackNew boxWeiche
+            märklinBox <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
+            märklinFortfahrenWennToggledTMVar <- fortfahrenWennToggledNew Language.weiter $
+                showText <$> unterstützteRichtungen
+            let richtungsCheckButtons = NonEmpty.zip unterstützteRichtungen $
+                    checkButtons märklinFortfahrenWennToggledTMVar
+            märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung, checkButton) -> do
+                box <- liftIO $ boxPackWidgetNewDefault märklinBox $ Gtk.hBoxNew False 0
+                boxPackDefault box checkButton
+                anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew ""
+                pure (richtung, checkButton, anschlussAuswahl)
+            legoBox <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
+            legoRichtungsAuswahl <- boxPackWidgetNewDefault legoBox $
+                anschlussAuswahlNew Language.richtung
+            legoRichtungenAuswahl <- boxPackWidgetNewDefault legoBox $
+                flip auswahlComboBoxNew Language.richtungen $
+                    (Gerade, Kurve) :| [
+                    (Gerade, Links),
+                    (Gerade, Rechts),
+                    (Kurve, Links),
+                    (Kurve, Rechts),
+                    (Links, Rechts)]
             let seiteWeiche = AssistantSeite {
                 seite = HinzufügenSeiteWeiche {
-                    widget = _,
-                    nameAuswahl = _,
-                    märklinBox = _,
-                    märklinRichtungsAuswahl = _,
-                    legoBox = _,
-                    legoRichtungsAuswahl = _,
-                    legoRichtungenAuswahl = _},
+                    widget = erhalteWidget boxWeiche,
+                    nameAuswahl = nameAuswahlWeiche,
+                    märklinBox,
+                    märklinRichtungsAuswahl,
+                    legoBox,
+                    legoRichtungsAuswahl,
+                    legoRichtungenAuswahl},
                 name = Language.weiche,
-                seiteZurücksetzen = _,
+                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
+                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = _}
+            -- Kupplung
             let seiteKupplung = AssistantSeite {
                 seite = HinzufügenSeiteKupplung {
                     widget = _,
@@ -462,6 +493,7 @@ assistantHinzufügenNew
                 name = Language.kupplung,
                 seiteZurücksetzen = _,
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+            -- Wegstrecke
             let seiteWegstrecke = AssistantSeite {
                 seite = HinzufügenSeiteWegstrecke {
                     widget = _,
@@ -469,6 +501,7 @@ assistantHinzufügenNew
                 name = Language.wegstrecke,
                 seiteZurücksetzen = _,
                 seitenAbschluss = _}
+            -- Plan
             let seitePlan = AssistantSeite {
                 seite = HinzufügenSeitePlan {
                     widget = _,
@@ -477,7 +510,7 @@ assistantHinzufügenNew
                 name = Language.plan,
                 seiteZurücksetzen = _,
                 seitenAbschluss = _}
-                -- konstruiere SeitenBaum
+            -- konstruiere SeitenBaum
             let seitenBaum = AssistantSeiteAuswahl {
                     node = seiteAuswahl,
                     nachfolgerFrage = Language.welchesObjektHinzufügen,
