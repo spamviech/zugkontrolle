@@ -483,15 +483,20 @@ assistantHinzufügenNew
                 name = Language.weiche,
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
-                seitenAbschluss = _}
+                seitenAbschluss = _}-- Unterschiede zwischen Märklin und Lego, TODO!!!
             -- Kupplung
+            boxKupplung <- liftIO $ Gtk.vBoxNew False 0
+            nameAuswahlKupplung <- nameAuswahlPackNew boxKupplung
+            kupplungsAuswahl <- boxPackWidgetNewDefault boxKupplung $
+                anschlussAuswahlNew Language.kuppeln
             let seiteKupplung = AssistantSeite {
                 seite = HinzufügenSeiteKupplung {
-                    widget = _,
-                    nameAuswahl = _,
-                    kupplungsAuswahl = _},
+                    widget = erhalteWidget boxKupplung,
+                    nameAuswahl = nameAuswahlKupplung,
+                    kupplungsAuswahl},
                 name = Language.kupplung,
-                seiteZurücksetzen = _,
+                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
+                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
             -- Wegstrecke
             let seiteWegstrecke = AssistantSeite {
