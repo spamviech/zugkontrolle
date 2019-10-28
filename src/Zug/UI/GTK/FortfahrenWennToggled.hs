@@ -79,7 +79,7 @@ aktiviereWennToggledAux button foldable = liftIO $ foldM_ (aktiviereWennToggledC
         aktiviereWennToggledCheckButton :: (MitRegistrierterCheckButton c) => Gtk.Button -> Bool -> c -> IO Bool
         aktiviereWennToggledCheckButton _button True    _c  = pure True
         aktiviereWennToggledCheckButton button  False   c   = do
-            toggled <- registrierterCheckButtonToggled (erhalteRegistrierterCheckButton c)
+            toggled <- registrierterCheckButtonToggled $ erhalteRegistrierterCheckButton c
             Gtk.set button [Gtk.widgetSensitive := toggled]
             pure toggled
 

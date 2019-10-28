@@ -506,13 +506,14 @@ assistantHinzufügenNew
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
             -- Wegstrecke
+            DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
             let seiteWegstrecke = AssistantSeite {
                 seite = HinzufügenSeiteWegstrecke {
                     widget = _,
                     nameAuswahl = _},
                 name = Language.wegstrecke,
                 seiteZurücksetzen = _,
-                seitenAbschluss = _}
+                seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
             -- Plan
             let seitePlan = AssistantSeite {
                 seite = HinzufügenSeitePlan {

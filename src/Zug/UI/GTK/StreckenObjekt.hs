@@ -114,6 +114,14 @@ data HinzufügenZiel = HinzufügenWegstrecke | HinzufügenPlan
 newtype WidgetHinzufügen (e :: HinzufügenZiel) (w :: Type) (a :: Type) = WidgetHinzufügen {widgetHinzufügen :: w}
     deriving (Eq)
 
+instance (MitWidget w) => MitWidget (WidgetHinzufügen e w a) where
+    erhalteWidget :: WidgetHinzufügen e w a -> Gtk.Widget
+    erhalteWidget = erhalteWidget . widgetHinzufügen
+
+instance (MitRegistrierterCheckButton w) => MitRegistrierterCheckButton (WidgetHinzufügen e w a) where
+    erhalteRegistrierterCheckButton :: WidgetHinzufügen e w a -> RegistrierterCheckButton
+    erhalteRegistrierterCheckButton = erhalteRegistrierterCheckButton . widgetHinzufügen
+
 -- | Konvertiere ein 'WidgetHinzufügen' in das zugehörige 'ZugtypEither'-Äquivalent
 widgetHinzufügenZugtypEither :: WidgetHinzufügen e w (a z) -> WidgetHinzufügen e w (ZugtypEither a)
 widgetHinzufügenZugtypEither = WidgetHinzufügen . widgetHinzufügen
@@ -218,7 +226,7 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
     progressBarPlan :: Gtk.ProgressBar,
     windowMain :: Gtk.Window,
-    fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui RegistrierterCheckButton,
+    fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid,
     tmvarPlanObjekt :: TMVar (Maybe Objekt)}
 
 -- | Klasse für Typen mit 'DynamischeWidgets'
