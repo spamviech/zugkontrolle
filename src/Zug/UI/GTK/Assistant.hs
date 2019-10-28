@@ -17,7 +17,7 @@ module Zug.UI.Gtk.Assistant (
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
-import Data.Maybe (catMaybes)
+import Data.Either (rights)
 import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (find)
@@ -36,6 +36,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxP
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..),
                             MitContainer(..), MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, WegstreckeCheckButtonVoid)
+import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch)
 
 -- | Fenster zum erstellen eines Wertes, potentiell in mehreren Schritten
 data Assistant w a
@@ -66,6 +67,8 @@ data SeitenAbschluss
         FortfahrenWennToggled
     | SeitenAbschlussToggledTMVar
         (FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid)
+    | SeitenAbschlussZugtyp
+        (ZugtypSpezifisch Gtk.Button)
     deriving (Eq)
 
 -- | Seite eines 'Assistant'.
@@ -133,27 +136,44 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget   PackedSeiteAuswahl {packedBox}  = erhalteWidget packedBox
     erhalteWidget   PackedSeiteLetzte {packedNode}  = erhalteWidget packedNode
 
-besondereSeitenAbschlüsse :: AssistantSeitenBaumPacked w -> [Maybe Gtk.Button]
-besondereSeitenAbschlüsse
+besondereSeitenAbschlussKnöpfe :: AssistantSeitenBaumPacked w -> [Either Text Gtk.Button]
+besondereSeitenAbschlussKnöpfe
     PackedSeiteLinear {packedNode, packedNachfolger}
-        = besondererSeitenAbschluss packedNode : besondereSeitenAbschlüsse packedNachfolger
-besondereSeitenAbschlüsse
+        = besondererSeitenAbschlussKnopf packedNode : besondereSeitenAbschlussKnöpfe packedNachfolger
+besondereSeitenAbschlussKnöpfe
     PackedSeiteAuswahl {packedNode, packedNachfolgerListe}
-        = besondererSeitenAbschluss packedNode : concat (besondereSeitenAbschlüsse <$> packedNachfolgerListe)
-besondereSeitenAbschlüsse
+        = besondererSeitenAbschlussKnopf packedNode : concat (besondereSeitenAbschlussKnöpfe <$> packedNachfolgerListe)
+besondereSeitenAbschlussKnöpfe
     PackedSeiteLetzte {packedNode}
-        = [besondererSeitenAbschluss packedNode]
+        = [besondererSeitenAbschlussKnopf packedNode]
 
-besondererSeitenAbschluss :: AssistantSeite w -> Maybe Gtk.Button
-besondererSeitenAbschluss
+besondererSeitenAbschlussKnopf :: AssistantSeite w -> Either Text Gtk.Button
+besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)}
-        = Just $ erhalteButton fortfahrenWennToggled
-besondererSeitenAbschluss
+        = Right $ erhalteButton fortfahrenWennToggled
+besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)}
-        = Just $ erhalteButton fortfahrenWennToggledTMVar
-besondererSeitenAbschluss
-    AssistantSeite {seitenAbschluss = (SeitenAbschluss _text)}
-        = Nothing
+        = Right $ erhalteButton fortfahrenWennToggledTMVar
+besondererSeitenAbschlussKnopf
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)}
+        = Right $ erhalteButton zugtypSpezifisch
+besondererSeitenAbschlussKnopf
+    AssistantSeite {seitenAbschluss = (SeitenAbschluss text)}
+        = Left text
+
+besondererSeitenAbschlussWidget :: AssistantSeite w -> Either Text Gtk.Widget
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschluss text)}
+        = Left text
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)}
+        = Right $ erhalteWidget fortfahrenWennToggled
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)}
+        = Right $ erhalteWidget fortfahrenWennToggledTMVar
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)}
+        = Right $ erhalteWidget zugtypSpezifisch
 
 -- | Erstelle einen neuen 'Assistant'.
 -- Die /globalenWidgets/ werden permanent in der Fußleiste mit dem /Weiter/-Knopf (etc.) angezeigt.
@@ -220,6 +240,8 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                     -> mitWidgetHide fortfahrenWennToggled
                 (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
                     -> mitWidgetHide fortfahrenWennToggledTMVar
+                (SeitenAbschlussZugtyp zugtypSpezifisch)
+                    -> mitWidgetHide zugtypSpezifisch
             mitWidgetShow zurückKnopf
             case aktuelleSeite of
                 PackedSeiteLinear {packedNachfolger}
@@ -253,7 +275,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                         -- Zeige erste Seite (für nächsten Assistant-Aufruf)
                         mitWidgetShow seiten
     Gtk.on seitenAbschlussKnopf Gtk.buttonActivated seitenAbschlussAktion
-    forM_ (catMaybes $ besondereSeitenAbschlüsse seiten) $
+    forM_ (rights $ besondereSeitenAbschlussKnöpfe seiten) $
         \knopf -> Gtk.on knopf Gtk.buttonActivated seitenAbschlussAktion
     -- Füge permanente Widgets zur FlowControlBox hinzu und zeige sie an
     forM_ globaleWidgets $ \widget -> do
@@ -271,37 +293,29 @@ packSeiten
     flowControlBox
     AssistantSeiteLinear {node, nachfolger}
         = liftIO $ do
+            case besondererSeitenAbschlussWidget node of
+                (Left _text)
+                    -> pure ()
+                (Right widget)
+                    -> do
+                        boxPack flowControlBox widget packingDefault paddingDefault End
+                        mitWidgetHide widget
             boxPackDefault box node
             mitWidgetHide node
             packedNachfolger <- packSeiten box flowControlBox nachfolger
-            case seitenAbschluss node of
-                (SeitenAbschluss _name)
-                    -> pure ()
-                (SeitenAbschlussToggled fortfahrenWennToggled)
-                    -> do
-                        boxPack flowControlBox fortfahrenWennToggled packingDefault paddingDefault End
-                        mitWidgetHide fortfahrenWennToggled
-                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
-                    -> do
-                        boxPack flowControlBox fortfahrenWennToggledTMVar packingDefault paddingDefault End
-                        mitWidgetHide fortfahrenWennToggledTMVar
             pure PackedSeiteLinear {packedNode = node, packedNachfolger}
 packSeiten
     box
     flowControlBox
     AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
         = liftIO $ do
-            case seitenAbschluss node of
-                (SeitenAbschluss _name)
+            case besondererSeitenAbschlussWidget node of
+                (Left _text)
                     -> pure ()
-                (SeitenAbschlussToggled fortfahrenWennToggled)
+                (Right widget)
                     -> do
-                        boxPack flowControlBox fortfahrenWennToggled packingDefault paddingDefault End
-                        mitWidgetHide fortfahrenWennToggled
-                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
-                    -> do
-                        boxPack flowControlBox fortfahrenWennToggledTMVar packingDefault paddingDefault End
-                        mitWidgetHide fortfahrenWennToggledTMVar
+                        boxPack flowControlBox widget packingDefault paddingDefault End
+                        mitWidgetHide widget
             vBox <- boxPackWidgetNewDefault box $ Gtk.vBoxNew False 0
             mitWidgetHide vBox
             boxPackDefault vBox node
@@ -320,17 +334,13 @@ packSeiten
     flowControlBox
     AssistantSeiteLetzte {node}
         = liftIO $ do
-            case seitenAbschluss node of
-                (SeitenAbschluss _name)
+            case besondererSeitenAbschlussWidget node of
+                (Left _text)
                     -> pure ()
-                (SeitenAbschlussToggled fortfahrenWennToggled)
+                (Right widget)
                     -> do
-                        boxPack flowControlBox fortfahrenWennToggled packingDefault paddingDefault End
-                        mitWidgetHide fortfahrenWennToggled
-                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
-                    -> do
-                        boxPack flowControlBox fortfahrenWennToggledTMVar packingDefault paddingDefault End
-                        mitWidgetHide fortfahrenWennToggledTMVar
+                        boxPack flowControlBox widget packingDefault paddingDefault End
+                        mitWidgetHide widget
             boxPackDefault box node
             mitWidgetHide node
             pure $ PackedSeiteLetzte {packedNode = node}
@@ -344,18 +354,14 @@ zeigeSeite assistantWindow seitenAbschlussKnopf tvarAktuelleSeite nachfolger = l
     Gtk.set assistantWindow [Gtk.windowTitle := name nachfolgerSeite]
     atomically $ writeTVar tvarAktuelleSeite nachfolger
     mitWidgetShow nachfolger
-    case seitenAbschluss nachfolgerSeite of
-        (SeitenAbschluss name)
+    case besondererSeitenAbschlussWidget nachfolgerSeite of
+        (Left text)
             -> do
-                Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := name]
+                Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := text]
                 mitWidgetShow seitenAbschlussKnopf
-        (SeitenAbschlussToggled fortfahrenWennToggled)
+        (Right widget)
             -> do
-                mitWidgetShow fortfahrenWennToggled
-                mitWidgetHide seitenAbschlussKnopf
-        (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
-            -> do
-                mitWidgetShow fortfahrenWennToggledTMVar
+                mitWidgetShow widget
                 mitWidgetHide seitenAbschlussKnopf
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
