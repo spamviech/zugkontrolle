@@ -240,8 +240,8 @@ data HinzufügenSeite
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
         geschwindigkeitAuswahl :: AnschlussAuswahlWidget,
-        -- Nur für Lego-Zugtyp
-        legoBox :: Gtk.Box,
+        zugtypSpezifisch :: ZugtypSpezifisch Gtk.Widget,
+        -- Lego
         fahrtrichtungsAuswahl :: AnschlussAuswahlWidget}
     | HinzufügenSeiteStreckenabschnitt {
         widget :: Gtk.Widget,
@@ -250,11 +250,10 @@ data HinzufügenSeite
     | HinzufügenSeiteWeiche {
         widget :: Gtk.Widget,
         nameAuswahl :: NameAuswahlWidget,
+        zugtypSpezifisch :: ZugtypSpezifisch Gtk.Widget,
         -- Märklin
-        märklinBox :: Gtk.Box,
         märklinRichtungsAuswahl :: NonEmpty (Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget),
         -- Lego
-        legoBox :: Gtk.Box,
         legoRichtungsAuswahl :: AnschlussAuswahlWidget,
         legoRichtungenAuswahl :: AuswahlWidget (Richtung, Richtung)}
     | HinzufügenSeiteKupplung {
@@ -425,12 +424,13 @@ assistantHinzufügenNew
             legoBoxBahngeschwindigkeit <- liftIO $ erhalteBox <$> Gtk.vBoxNew False 0
             fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoBoxBahngeschwindigkeit $
                 anschlussAuswahlNew Language.fahrtrichtung
+            zugtypSpezifisch <- zugtypSpezifischNew ((Lego, legoBoxBahngeschwindigkeit) :| []) zugtypAuswahl
             let seiteBahngeschwindigkeit = AssistantSeite {
                 seite = HinzufügenSeiteBahngeschwindigkeit {
                     widget = erhalteWidget boxBahngeschwindigkeit,
                     nameAuswahl = nameAuswahlBahngeschwindigkeit,
                     geschwindigkeitAuswahl,
-                    legoBox = legoBoxBahngeschwindigkeit,
+                    zugtypSpezifisch,
                     fahrtrichtungsAuswahl},
                 name = Language.bahngeschwindigkeit ,
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
@@ -478,13 +478,13 @@ assistantHinzufügenNew
             seitenAbschlussWeiche <- SeitenAbschlussZugtyp <$> zugtypSpezifischButtonNew
                 ((Märklin, erhalteButton märklinFortfahrenWennToggledTMVar) :| [(Lego, legoSeitenAbschluss)])
                 zugtypAuswahl
+            zugtypSpezifisch <- zugtypSpezifischNew ((Märklin, märklinBoxWeiche) :| [(Lego, legoBoxWeiche)]) zugtypAuswahl
             let seiteWeiche = AssistantSeite {
                 seite = HinzufügenSeiteWeiche {
                     widget = erhalteWidget boxWeiche,
                     nameAuswahl = nameAuswahlWeiche,
-                    märklinBox = märklinBoxWeiche,
+                    zugtypSpezifisch,
                     märklinRichtungsAuswahl,
-                    legoBox = legoBoxWeiche,
                     legoRichtungsAuswahl,
                     legoRichtungenAuswahl},
                 name = Language.weiche,
