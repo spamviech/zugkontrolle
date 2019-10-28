@@ -502,27 +502,51 @@ assistantHinzufügenNew
                     nameAuswahl = nameAuswahlKupplung,
                     kupplungsAuswahl},
                 name = Language.kupplung,
-                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
+                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlKupplung)
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
                 seitenAbschluss = SeitenAbschluss Language.hinzufügen}
             -- Wegstrecke
-            DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
-            let seiteWegstrecke = AssistantSeite {
-                seite = HinzufügenSeiteWegstrecke {
-                    widget = _,
-                    nameAuswahl = _},
-                name = Language.wegstrecke,
-                seiteZurücksetzen = _,
-                seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
+            DynamischeWidgets {
+                fortfahrenWennToggledWegstrecke,
+                vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin,
+                vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego,
+                vBoxHinzufügenWegstreckeStreckenabschnitte,
+                vBoxHinzufügenWegstreckeWeichenMärklin,
+                vBoxHinzufügenWegstreckeWeichenLego,
+                vBoxHinzufügenWegstreckeKupplungen}
+                    <- erhalteDynamischeWidgets
+            boxWegstrecke <- liftIO $ Gtk.vBoxNew False 0
+            nameAuswahlWegstrecke <- nameAuswahlPackNew boxWegstrecke
+            -- Notebook/Paned?
+            _ToDoCreateNotebookOrPaned
+            boxPackWidgetNewDefault boxWegstrecke $ flip zugtypSpezifischNew zugtypAuswahl $
+                (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
+                [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
+            boxPackDefault boxWegstrecke vBoxHinzufügenWegstreckeStreckenabschnitte
+            boxPackWidgetNewDefault boxWegstrecke $ flip zugtypSpezifischNew zugtypAuswahl $
+                (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
+                [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
+            boxPackDefault boxWegstrecke vBoxHinzufügenWegstreckeKupplungen
+            let seiteZurücksetzenWegstrecke = do
+                    aktiviereWennToggledTMVar fortfahrenWennToggledWegstrecke
+                    Gtk.set (erhalteEntry nameAuswahlWegstrecke)
+                        [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
+                seiteWegstrecke = AssistantSeite {
+                    seite = HinzufügenSeiteWegstrecke {
+                        widget = erhalteWidget boxWegstrecke,
+                        nameAuswahl = nameAuswahlWegstrecke},
+                    name = Language.wegstrecke,
+                    seiteZurücksetzen = seiteZurücksetzenWegstrecke,
+                    seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
             -- Plan
             let seitePlan = AssistantSeite {
-                seite = HinzufügenSeitePlan {
-                    widget = _,
-                    nameAuswahl = _,
-                    tvarAktionen = _},
-                name = Language.plan,
-                seiteZurücksetzen = _,
-                seitenAbschluss = _}
+                    seite = HinzufügenSeitePlan {
+                        widget = _,
+                        nameAuswahl = _,
+                        tvarAktionen = _},
+                    name = Language.plan,
+                    seiteZurücksetzen = _,
+                    seitenAbschluss = _}
             -- konstruiere SeitenBaum
             let seitenBaum = AssistantSeiteAuswahl {
                     node = seiteAuswahl,
