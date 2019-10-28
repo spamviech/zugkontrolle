@@ -70,7 +70,8 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, checkButtons,
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault,
                                     buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, MitEntry(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove,
+                            MitEntry(..), MitButton(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
                                     StatusReader(..),
@@ -82,6 +83,7 @@ import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     kupplungPackNew, KUWidgets,
                                     wegstreckePackNew, WSWidgets,
                                     planPackNew, PLWidgets)
+import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), auswahlWidget, zugtypSpezifischNew, zugtypSpezifischButtonNew)
 
 -- | Speichern des aktuellen 'StatusGui'
 buttonSpeichernPack :: (MitBox b, ObjektReader ObjektGui m, MonadIO m) => Gtk.Window -> b -> m Gtk.Button
@@ -404,7 +406,8 @@ assistantHinzufügenNew
     parent
         = do
             objektReader <- ask
-            zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin "Zugtyp"
+            -- Globale Widgets
+            zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin Language.zugtyp
             fließendAuswahl <- fließendAuswahlNew
             let globaleWidgets = [Left zugtypAuswahl, Right fließendAuswahl]
             -- Dummy-Widget zur Seitenauswahl. Auswahl wird durch Assistant übernommen.
@@ -419,15 +422,15 @@ assistantHinzufügenNew
             nameAuswahlBahngeschwindigkeit <- nameAuswahlPackNew boxBahngeschwindigkeit
             geschwindigkeitAuswahl <- boxPackWidgetNewDefault boxBahngeschwindigkeit $
                 anschlussAuswahlNew Language.geschwindigkeit
-            legoBox <- liftIO $ erhalteBox <$> Gtk.vBoxNew False 0
-            fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoBox $
+            legoBoxBahngeschwindigkeit <- liftIO $ erhalteBox <$> Gtk.vBoxNew False 0
+            fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoBoxBahngeschwindigkeit $
                 anschlussAuswahlNew Language.fahrtrichtung
             let seiteBahngeschwindigkeit = AssistantSeite {
                 seite = HinzufügenSeiteBahngeschwindigkeit {
                     widget = erhalteWidget boxBahngeschwindigkeit,
                     nameAuswahl = nameAuswahlBahngeschwindigkeit,
                     geschwindigkeitAuswahl,
-                    legoBox,
+                    legoBox = legoBoxBahngeschwindigkeit,
                     fahrtrichtungsAuswahl},
                 name = Language.bahngeschwindigkeit ,
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
@@ -450,20 +453,21 @@ assistantHinzufügenNew
             -- Weiche
             boxWeiche <- liftIO $ Gtk.vBoxNew False 0
             nameAuswahlWeiche <- nameAuswahlPackNew boxWeiche
-            märklinBox <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
-            märklinFortfahrenWennToggledTMVar <- fortfahrenWennToggledNew Language.weiter $
+            märklinBoxWeiche <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
+            märklinFortfahrenWennToggledTMVar <- fortfahrenWennToggledNew Language.hinzufügen $
                 showText <$> unterstützteRichtungen
             let richtungsCheckButtons = NonEmpty.zip unterstützteRichtungen $
                     checkButtons märklinFortfahrenWennToggledTMVar
             märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung, checkButton) -> do
-                box <- liftIO $ boxPackWidgetNewDefault märklinBox $ Gtk.hBoxNew False 0
+                box <- liftIO $ boxPackWidgetNewDefault märklinBoxWeiche $ Gtk.hBoxNew False 0
                 boxPackDefault box checkButton
                 anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew ""
                 pure (richtung, checkButton, anschlussAuswahl)
-            legoBox <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
-            legoRichtungsAuswahl <- boxPackWidgetNewDefault legoBox $
+            legoBoxWeiche <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
+            legoSeitenAbschluss <- liftIO $ Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+            legoRichtungsAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
                 anschlussAuswahlNew Language.richtung
-            legoRichtungenAuswahl <- boxPackWidgetNewDefault legoBox $
+            legoRichtungenAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
                 flip auswahlComboBoxNew Language.richtungen $
                     (Gerade, Kurve) :| [
                     (Gerade, Links),
@@ -471,19 +475,22 @@ assistantHinzufügenNew
                     (Kurve, Links),
                     (Kurve, Rechts),
                     (Links, Rechts)]
+            seitenAbschlussWeiche <- SeitenAbschlussZugtyp <$> zugtypSpezifischButtonNew
+                ((Märklin, erhalteButton märklinFortfahrenWennToggledTMVar) :| [(Lego, legoSeitenAbschluss)])
+                zugtypAuswahl
             let seiteWeiche = AssistantSeite {
                 seite = HinzufügenSeiteWeiche {
                     widget = erhalteWidget boxWeiche,
                     nameAuswahl = nameAuswahlWeiche,
-                    märklinBox,
+                    märklinBox = märklinBoxWeiche,
                     märklinRichtungsAuswahl,
-                    legoBox,
+                    legoBox = legoBoxWeiche,
                     legoRichtungsAuswahl,
                     legoRichtungenAuswahl},
                 name = Language.weiche,
                 seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
                     [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
-                seitenAbschluss = _}-- Unterschiede zwischen Märklin und Lego, TODO!!!
+                seitenAbschluss = seitenAbschlussWeiche}
             -- Kupplung
             boxKupplung <- liftIO $ Gtk.vBoxNew False 0
             nameAuswahlKupplung <- nameAuswahlPackNew boxKupplung
