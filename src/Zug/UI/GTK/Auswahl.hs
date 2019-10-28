@@ -12,7 +12,7 @@ module Zug.UI.Gtk.Auswahl () where
 #else
 module Zug.UI.Gtk.Auswahl (
     -- * Datentyp
-    AuswahlWidget(), aktuelleAuswahl,
+    AuswahlWidget(), aktuelleAuswahl, beiAuswahl,
     -- * Konstruktoren
     auswahlRadioButtonNamedNew, auswahlComboBoxNamedNew,
     -- ** Verwende Show-Instanz zum anzeigen
@@ -22,8 +22,9 @@ module Zug.UI.Gtk.Auswahl (
     -- * Klasse für Typen mit AuswahlWidget
     MitAuswahlWidget(..), mitAuswahlWidget, auswahlWidget) where
 
+-- Bibliotheken
 import qualified Control.Lens as Lens
-import Control.Monad (when, forM, foldM)
+import Control.Monad (when, void, forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -128,6 +129,18 @@ aktuelleAuswahl
                     | otherwise
                         = Nothing
             pure $ fromJust $ foldr foldEnum Nothing enumIndizes
+
+-- | Führe die übergebene Aktion bei Änderung der Auswahl aus (vgl. 'Gtk.on')
+beiAuswahl :: (Eq e, MonadIO m) => AuswahlWidget e -> (e -> IO ()) -> m ()
+beiAuswahl
+    auswahlWidget@AuswahlRadioButton {enumButtons}
+    aktion
+        = liftIO $ forM_ enumButtons $ \(_e, radioButton) ->
+            Gtk.on radioButton Gtk.toggled $ aktuelleAuswahl auswahlWidget >>= aktion
+beiAuswahl
+    auswahlWidget@AuswahlComboBox {comboBox}
+    aktion
+        = void $ liftIO $ Gtk.on comboBox Gtk.changed $ aktuelleAuswahl auswahlWidget >>= aktion
 
 -- | Klasse für Typen mit 'AuswahlWidget'
 class (MitWidget a) => MitAuswahlWidget a e where
