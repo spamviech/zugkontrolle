@@ -638,7 +638,12 @@ assistantHinzufügenNew
                         Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
                     aktionHinzufügen :: Aktion -> IO ()
                     aktionHinzufügen aktion = do
-                        _
+                        aktionenDanach <- atomically $ do
+                            aktionen <- readTVar tvarAktionen
+                            let aktionenDanach = anhängen aktion aktionen
+                            writeTVar tvarAktionen aktionenDanach
+                            pure aktionenDanach
+                        zeigeAktionen aktionenDanach
                 boxAktionMärklinBahngeschwindigkeit <- Gtk.hBoxNew False 0
                 märklinGeschwindigkeitsScale <-
                     boxPackWidgetNew boxAktionMärklinBahngeschwindigkeit PackGrow paddingDefault positionDefault $
@@ -684,15 +689,16 @@ assistantHinzufügenNew
                 _ObjekteWerdenNurZugtypSpezifischAngezeigt
                 boxPackDefault boxPlan expanderAktionen
                 boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
-                    aktionen <- atomically $ do
+                    aktionenVorher <- atomically $ do
                         aktionen <- readTVar tvarAktionen
-                        writeTVar tvarAktionen $ case zeigeLetztes aktionen of
-                            Leer
-                                -> leer
-                            Gefüllt _letztes warteschlange
-                                -> warteschlange
-                        pure aktionen
-                    zeigeAktionen aktionen
+                        let aktionenVorher = case zeigeLetztes aktionen of
+                                Leer
+                                    -> leer
+                                Gefüllt _letztes warteschlange
+                                    -> warteschlange
+                        writeTVar tvarAktionen aktionenVorher
+                        pure aktionenVorher
+                    zeigeAktionen aktionenVorher
                 let
                     seiteZurücksetzenPlan :: IO ()
                     seiteZurücksetzenPlan = do
