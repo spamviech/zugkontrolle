@@ -69,6 +69,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widg
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, mitContainerAdd,
                             MitEntry(..), MitButton(..))
+import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
                                     StatusReader(..),
@@ -546,7 +547,6 @@ assistantHinzufügenNew
                 -- Wegstrecke
                 boxWegstrecke <- Gtk.vBoxNew False 0
                 nameAuswahlWegstrecke <- nameAuswahlPackNew boxWegstrecke
-                -- Notebook/Paned?
                 hPaned <- boxPackWidgetNewDefault boxWegstrecke Gtk.hPanedNew
                 vPanedLeft <- widgetShowNew Gtk.vPanedNew
                 Gtk.panedAdd1 hPaned vPanedLeft
@@ -564,15 +564,16 @@ assistantHinzufügenNew
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
                 Gtk.panedAdd2 vPanedLeft frameRightBot
-                _scrollbaresWidgetVerwenden
-                containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
+                containerAddWidgetNew frameLeftTop $ scrollbaresWidgetNew $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
-                mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
-                containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
+                containerAddWidgetNew frameLeftBot $ scrollbaresWidgetNew $
+                    pure vBoxHinzufügenWegstreckeStreckenabschnitte
+                containerAddWidgetNew frameRightTop $ scrollbaresWidgetNew $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
-                mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
+                containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $
+                    pure vBoxHinzufügenWegstreckeKupplungen
                 let
                     seiteZurücksetzenWegstrecke :: IO ()
                     seiteZurücksetzenWegstrecke = do
