@@ -564,6 +564,7 @@ assistantHinzufügenNew
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
                 Gtk.panedAdd2 vPanedLeft frameRightBot
+                _scrollbaresWidgetVerwenden
                 containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
@@ -587,7 +588,31 @@ assistantHinzufügenNew
                         seiteZurücksetzen = seiteZurücksetzenWegstrecke,
                         seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
                 -- Hilfsdialog für Plan
-                aktionObjektAuswahl <- _
+                windowAktionObjektAuswahl <- Gtk.windowNew
+                boxAktionObjektAuswahl <- containerAddWidgetNew windowAktionObjektAuswahl $ Gtk.vBoxNew False 0
+                mapM_ (boxPackDefault boxAktionObjektAuswahl) [
+                    erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
+                    erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenLego,
+                    erhalteWidget vBoxHinzufügenPlanStreckenabschnitte,
+                    erhalteWidget vBoxHinzufügenPlanWeichenGeradeMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWeichenKurveMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWeichenLinksMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWeichenRechtsMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWeichenGeradeLego,
+                    erhalteWidget vBoxHinzufügenPlanWeichenKurveLego,
+                    erhalteWidget vBoxHinzufügenPlanWeichenLinksLego,
+                    erhalteWidget vBoxHinzufügenPlanWeichenRechtsLego,
+                    erhalteWidget vBoxHinzufügenPlanKupplungen,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenMärklin,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungLego,
+                    erhalteWidget vBoxHinzufügenPlanWegstreckenLego]
+                -- Anzeige explizit beim Anzeigen des Fensters
+                _ScrollbaresWidgetVerwenden
                 -- Plan
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
@@ -634,6 +659,9 @@ assistantHinzufügenNew
                             seiteKupplung,
                             seiteWegstrecke,
                             seitePlan]}
-                assistantNew parent globaleWidgets seitenBaum $
+                assistant <- assistantNew parent globaleWidgets seitenBaum $
                     flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
+                Gtk.set windowAktionObjektAuswahl
+                    [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
+                pure assistant
 #endif
