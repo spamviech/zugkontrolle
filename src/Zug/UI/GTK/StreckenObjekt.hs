@@ -92,6 +92,7 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, 
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -152,7 +153,7 @@ widgetHinzufügenBoxPackNew b = fmap WidgetHinzufügen . boxPackWidgetNewDefault
 -- | CheckButton zum hinzufügen zu einer Wegstrecke
 type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstrecke (WegstreckeCheckButton e) a
 -- | Box zur Auswahl der 'Wegstrecke'n-Elemente
-type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke Gtk.VBox a
+type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
 data WegstreckeCheckButton e where
@@ -188,7 +189,7 @@ instance MitAuswahlWidget (WegstreckeCheckButton Richtung) Richtung where
 -- | Button zum hinzufügen eines Plans
 type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 -- | Box zum hinzufügen eines Plans
-type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.VBox a
+type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets = DynamischeWidgets {

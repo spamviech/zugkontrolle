@@ -564,16 +564,14 @@ assistantHinzufügenNew
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
                 Gtk.panedAdd2 vPanedLeft frameRightBot
-                containerAddWidgetNew frameLeftTop $ scrollbaresWidgetNew $ flip zugtypSpezifischNew zugtypAuswahl $
+                containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
-                containerAddWidgetNew frameLeftBot $ scrollbaresWidgetNew $
-                    pure vBoxHinzufügenWegstreckeStreckenabschnitte
-                containerAddWidgetNew frameRightTop $ scrollbaresWidgetNew $ flip zugtypSpezifischNew zugtypAuswahl $
+                mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
+                containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
-                containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $
-                    pure vBoxHinzufügenWegstreckeKupplungen
+                mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
                 let
                     seiteZurücksetzenWegstrecke :: IO ()
                     seiteZurücksetzenWegstrecke = do
@@ -591,6 +589,7 @@ assistantHinzufügenNew
                 -- Hilfsdialog für Plan
                 windowAktionObjektAuswahl <- Gtk.windowNew
                 boxAktionObjektAuswahl <- containerAddWidgetNew windowAktionObjektAuswahl $ Gtk.vBoxNew False 0
+                -- Anzeige der Boxen explizit beim Anzeigen des Fensters
                 mapM_ (boxPackDefault boxAktionObjektAuswahl) [
                     erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
                     erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenLego,
@@ -612,8 +611,6 @@ assistantHinzufügenNew
                     erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
                     erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungLego,
                     erhalteWidget vBoxHinzufügenPlanWegstreckenLego]
-                -- Anzeige explizit beim Anzeigen des Fensters
-                _ScrollbaresWidgetVerwenden
                 -- Plan
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
