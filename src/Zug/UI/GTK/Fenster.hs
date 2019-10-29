@@ -645,31 +645,46 @@ assistantHinzufügenNew
                             pure aktionenDanach
                         zeigeAktionen aktionenDanach
                 boxAktionMärklinBahngeschwindigkeit <- Gtk.hBoxNew False 0
+                let
+                    zeigeMärklinBahngeschwindigkeitAktionAuswahl :: IO ()
+                    zeigeMärklinBahngeschwindigkeitAktionAuswahl = do
+                        mitWidgetShow vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
                 märklinGeschwindigkeitsScale <-
                     boxPackWidgetNew boxAktionMärklinBahngeschwindigkeit PackGrow paddingDefault positionDefault $
                         Gtk.hScaleNewWithRange 0 100 1
                 boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
                     buttonNewWithEventLabel Language.geschwindigkeit $ do
-                        _showAktionObjektAuswahl
+                        zeigeMärklinBahngeschwindigkeitAktionAuswahl
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
                                 -> do
                                     wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
                                     aktionHinzufügen $ ABahngeschwindigkeitMärklin $ Geschwindigkeit bgMärklin wert
-                            (Just (OBahngeschwindigkeit (ZugtypLego bgLego)))
-                                -> do
-                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
-                                    aktionHinzufügen $ ABahngeschwindigkeitLego $ Geschwindigkeit bgLego wert
                             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
                                 -> do
                                     wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
                                     aktionHinzufügen $ AWegstreckeMärklin $ AWSBahngeschwindigkeit $
                                         Geschwindigkeit wsMärklin wert
-                            (Just (OWegstrecke (ZugtypLego wsLego)))
-                                -> do
-                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
-                                    aktionHinzufügen $ AWegstreckeLego $ AWSBahngeschwindigkeit $
-                                        Geschwindigkeit wsLego wert
                             (Just anderesObjekt)
                                 -> error $
                                     "unerwartetes Objekt zum Geschwindigkeit einstellen erhalten: " ++ show anderesObjekt
