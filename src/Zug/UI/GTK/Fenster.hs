@@ -557,14 +557,33 @@ assistantHinzufügenNew
                     seiteZurücksetzen = seiteZurücksetzenWegstrecke,
                     seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
             -- Plan
-            let seitePlan = AssistantSeite {
+            boxPlan <- liftIO $ Gtk.vBoxNew False 0
+            nameAuswahlPlan <- nameAuswahlPackNew boxPlan
+            _aktionAuswahlWidgets
+            seitenAbschlussPlan <- liftIO $ Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+            tvarAktionen <- liftIO $ newTVarIO leer
+            tvarWidgets <- liftIO $ newTVarIO []
+            let showAktionen :: (Foldable t, MonadIO m) => t Aktion -> m ()
+                showAktionen aktionen = liftIO $ do
+                    widgets <- readTVarIO tvarWidgets
+                    forM_ widgets $ mitContainerRemove (_box :: Gtk.Box)
+                    widgetsNeu <- mapM (boxPackWidgetNewDefault (_box :: Gtk.Box) . Gtk.labelNew . Just . show) $ toList aktionen
+                    Gtk.set _expander [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
+                    atomically $ writeTVar tvarWidgets widgetsNeu
+                    Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
+            let seiteZurücksetzenPlan = do
+                    atomically $ writeTVar tvarAktionen leer
+                    showAktionen leer
+                    Gtk.set (erhalteEntry nameAuswahlPlan)
+                        [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
+                seitePlan = AssistantSeite {
                     seite = HinzufügenSeitePlan {
-                        widget = _,
-                        nameAuswahl = _,
-                        tvarAktionen = _},
+                        widget = erhalteWidget boxPlan,
+                        nameAuswahl = nameAuswahlPlan,
+                        tvarAktionen},
                     name = Language.plan,
-                    seiteZurücksetzen = _,
-                    seitenAbschluss = _}
+                    seiteZurücksetzen = seiteZurücksetzenPlan,
+                    seitenAbschluss = SeitenAbschlussButton seitenAbschlussPlan}
             -- konstruiere SeitenBaum
             let seitenBaum = AssistantSeiteAuswahl {
                     node = seiteAuswahl,
