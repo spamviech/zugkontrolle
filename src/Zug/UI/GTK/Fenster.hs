@@ -65,10 +65,11 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, checkButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew,
+                                    boxPackWidgetNew, Packing(..), paddingDefault, positionDefault,
                                     buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, mitContainerAdd,
-                            MitEntry(..), MitButton(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..), mitContainerRemove, mitContainerAdd,
+                            MitEntry(..), MitButton(..), MitWindow(..), MitDialog())
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
@@ -514,7 +515,9 @@ assistantHinzufügenNew
                 seitenAbschlussWeiche <- SeitenAbschlussZugtyp <$> zugtypSpezifischButtonNew
                     ((Märklin, erhalteButton märklinFortfahrenWennToggledTMVar) :| [(Lego, legoSeitenAbschluss)])
                     zugtypAuswahl
-                zugtypSpezifisch <- zugtypSpezifischNew ((Märklin, märklinBoxWeiche) :| [(Lego, legoBoxWeiche)]) zugtypAuswahl
+                zugtypSpezifisch <- zugtypSpezifischNew
+                    ((Märklin, märklinBoxWeiche) :| [(Lego, legoBoxWeiche)])
+                    zugtypAuswahl
                 let
                     seiteWeiche :: AssistantSeite HinzufügenSeite
                     seiteWeiche = AssistantSeite {
@@ -618,7 +621,7 @@ assistantHinzufügenNew
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
                 boxAktionenAuswahl <- boxPackWidgetNewDefault boxPlan $ Gtk.vBoxNew False 0
-                expanderAktionen <- boxPackWidgetNewDefault boxPlan $ Gtk.expanderNew (Language.aktionen :: Text)
+                expanderAktionen <- widgetShowNew $ Gtk.expanderNew (Language.aktionen :: Text)
                 boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
                 seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
                 tvarAktionen <- newTVarIO leer
@@ -633,14 +636,53 @@ assistantHinzufügenNew
                         Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
                         atomically $ writeTVar tvarWidgets widgetsNeu
                         Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
+                    aktionHinzufügen :: Aktion -> IO ()
+                    aktionHinzufügen aktion = do
+                        _
+                boxAktionMärklinBahngeschwindigkeit <- Gtk.hBoxNew False 0
+                märklinGeschwindigkeitsScale <-
+                    boxPackWidgetNew boxAktionMärklinBahngeschwindigkeit PackGrow paddingDefault positionDefault $
+                        Gtk.hScaleNewWithRange 0 100 1
+                boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
+                    buttonNewWithEventLabel Language.geschwindigkeit $ do
+                        _showAktionObjektAuswahl
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
+                                -> do
+                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
+                                    aktionHinzufügen $ ABahngeschwindigkeitMärklin $ Geschwindigkeit bgMärklin wert
+                            (Just (OBahngeschwindigkeit (ZugtypLego bgLego)))
+                                -> do
+                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
+                                    aktionHinzufügen $ ABahngeschwindigkeitLego $ Geschwindigkeit bgLego wert
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> do
+                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
+                                    aktionHinzufügen $ AWegstreckeMärklin $ AWSBahngeschwindigkeit $
+                                        Geschwindigkeit wsMärklin wert
+                            (Just (OWegstrecke (ZugtypLego wsLego)))
+                                -> do
+                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
+                                    aktionHinzufügen $ AWegstreckeLego $ AWSBahngeschwindigkeit $
+                                        Geschwindigkeit wsLego wert
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt zum Geschwindigkeit einstellen erhalten: " ++ show anderesObjekt
+                            Nothing
+                                -> mitWidgetHide windowAktionObjektAuswahl
                 _märklinGeschwindigkeitEinstellenUndUmdrehen
+                boxAktionLegoBahngeschwindigkeit <- Gtk.hBoxNew False 0
                 _legoGeschwindigkeitEinstellenUndFahrtrichtungEinstellen
+                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                    ((Märklin, boxAktionMärklinBahngeschwindigkeit) :| [(Lego, boxAktionLegoBahngeschwindigkeit)])
+                    zugtypAuswahl
                 _stromEinstellen
                 _richtungenEinstellen
                 _kuppeln
                 _wegstreckeEinstellen
                 _aktionAuswahlWidgets
                 _ObjekteWerdenNurZugtypSpezifischAngezeigt
+                boxPackDefault boxPlan expanderAktionen
                 boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
                     aktionen <- atomically $ do
                         aktionen <- readTVar tvarAktionen
