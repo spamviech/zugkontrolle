@@ -67,10 +67,10 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, checkButtons,
                                         FortfahrenWennToggledTMVar, tmvarCheckButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault,
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew,
                                     buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove,
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, mitContainerAdd,
                             MitEntry(..), MitButton(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
@@ -518,15 +518,33 @@ assistantHinzufügenNew
             boxWegstrecke <- liftIO $ Gtk.vBoxNew False 0
             nameAuswahlWegstrecke <- nameAuswahlPackNew boxWegstrecke
             -- Notebook/Paned?
-            _ToDoCreateNotebookOrPaned
-            boxPackWidgetNewDefault boxWegstrecke $ flip zugtypSpezifischNew zugtypAuswahl $
+            (frameLeftTop, frameLeftBot, frameRightTop, frameRightBot) <- liftIO $ do
+                hPaned <- boxPackWidgetNewDefault boxWegstrecke Gtk.hPanedNew
+                vPanedLeft <- widgetShowNew Gtk.vPanedNew
+                Gtk.panedAdd1 hPaned vPanedLeft
+                frameLeftTop <- widgetShowNew Gtk.frameNew
+                Gtk.set frameLeftTop [Gtk.frameShadowType := Gtk.ShadowIn]
+                Gtk.panedAdd1 vPanedLeft frameLeftTop
+                frameLeftBot <- widgetShowNew Gtk.frameNew
+                Gtk.set frameLeftBot [Gtk.frameShadowType := Gtk.ShadowIn]
+                Gtk.panedAdd2 vPanedLeft frameLeftBot
+                vPanedRight <- widgetShowNew Gtk.vPanedNew
+                Gtk.panedAdd2 hPaned vPanedRight
+                frameRightTop <- widgetShowNew Gtk.frameNew
+                Gtk.set frameRightTop [Gtk.frameShadowType := Gtk.ShadowIn]
+                Gtk.panedAdd1 vPanedLeft frameRightTop
+                frameRightBot <- widgetShowNew Gtk.frameNew
+                Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
+                Gtk.panedAdd2 vPanedLeft frameRightBot
+                pure (frameLeftTop, frameLeftBot, frameRightTop, frameRightBot)
+            containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
                 (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                 [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
-            boxPackDefault boxWegstrecke vBoxHinzufügenWegstreckeStreckenabschnitte
-            boxPackWidgetNewDefault boxWegstrecke $ flip zugtypSpezifischNew zugtypAuswahl $
+            mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
+            containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
                 (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
                 [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
-            boxPackDefault boxWegstrecke vBoxHinzufügenWegstreckeKupplungen
+            mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
             let seiteZurücksetzenWegstrecke = do
                     aktiviereWennToggledTMVar fortfahrenWennToggledWegstrecke
                     Gtk.set (erhalteEntry nameAuswahlWegstrecke)
