@@ -69,6 +69,8 @@ data SeitenAbschluss
         (FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid)
     | SeitenAbschlussZugtyp
         (ZugtypSpezifisch Gtk.Button)
+    | SeitenAbschlussButton
+        Gtk.Button
     deriving (Eq)
 
 -- | Seite eines 'Assistant'.
@@ -149,6 +151,9 @@ besondereSeitenAbschlussKnöpfe
 
 besondererSeitenAbschlussKnopf :: AssistantSeite w -> Either Text Gtk.Button
 besondererSeitenAbschlussKnopf
+    AssistantSeite {seitenAbschluss = (SeitenAbschluss text)}
+        = Left text
+besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)}
         = Right $ erhalteButton fortfahrenWennToggled
 besondererSeitenAbschlussKnopf
@@ -158,8 +163,8 @@ besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)}
         = Right $ erhalteButton zugtypSpezifisch
 besondererSeitenAbschlussKnopf
-    AssistantSeite {seitenAbschluss = (SeitenAbschluss text)}
-        = Left text
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussButton button)}
+        = Right button
 
 besondererSeitenAbschlussWidget :: AssistantSeite w -> Either Text Gtk.Widget
 besondererSeitenAbschlussWidget
@@ -174,6 +179,9 @@ besondererSeitenAbschlussWidget
 besondererSeitenAbschlussWidget
     AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)}
         = Right $ erhalteWidget zugtypSpezifisch
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussButton button)}
+        = Right $ erhalteWidget button
 
 -- | Erstelle einen neuen 'Assistant'.
 -- Die /globalenWidgets/ werden permanent in der Fußleiste mit dem /Weiter/-Knopf (etc.) angezeigt.
@@ -233,15 +241,11 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         seitenAbschlussAktion = do
             aktuelleSeite <- readTVarIO tvarAktuelleSeite
             mitWidgetHide aktuelleSeite
-            case seitenAbschluss $ packedNode aktuelleSeite of
-                (SeitenAbschluss _name)
+            case besondererSeitenAbschlussWidget $ packedNode aktuelleSeite of
+                (Left _name)
                     -> pure ()
-                (SeitenAbschlussToggled fortfahrenWennToggled)
-                    -> mitWidgetHide fortfahrenWennToggled
-                (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)
-                    -> mitWidgetHide fortfahrenWennToggledTMVar
-                (SeitenAbschlussZugtyp zugtypSpezifisch)
-                    -> mitWidgetHide zugtypSpezifisch
+                (Right widget)
+                    -> mitWidgetHide widget
             mitWidgetShow zurückKnopf
             case aktuelleSeite of
                 PackedSeiteLinear {packedNachfolger}
