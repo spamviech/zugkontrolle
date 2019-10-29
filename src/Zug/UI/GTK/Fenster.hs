@@ -112,7 +112,6 @@ buttonLadenPack parent box = do
     dialogLaden <- dialogLadenNew parent
     dialogLadenFehler <- dialogLadenFehlerNew parent
     tmvarStatus <- erhalteStatus
-    dynamischeWidgets <- erhalteDynamischeWidgets 
     objektReader <- ask
     boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.laden $ do
         antwort <- dialogEval dialogLaden
@@ -405,107 +404,6 @@ assistantHinzufügenNew
     parent
         = do
             objektReader <- ask
-            -- Globale Widgets
-            zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin Language.zugtyp
-            fließendAuswahl <- fließendAuswahlNew
-            let globaleWidgets = [Left zugtypAuswahl, Right fließendAuswahl]
-            -- Dummy-Widget zur Seitenauswahl. Auswahl wird durch Assistant übernommen.
-            auswahl <- liftIO $ erhalteWidget <$> Gtk.labelNew (Nothing :: Maybe Text)
-            let seiteAuswahl = AssistantSeite {
-                    seite = HinzufügenSeiteAuswahl {widget = auswahl},
-                    name = Language.hinzufügen,
-                    seiteZurücksetzen = pure (),
-                    seitenAbschluss = SeitenAbschluss Language.weiter}
-            -- Bahngeschwindigkeit
-            boxBahngeschwindigkeit <- liftIO $ Gtk.vBoxNew False 0
-            nameAuswahlBahngeschwindigkeit <- nameAuswahlPackNew boxBahngeschwindigkeit
-            geschwindigkeitAuswahl <- boxPackWidgetNewDefault boxBahngeschwindigkeit $
-                anschlussAuswahlNew Language.geschwindigkeit
-            legoBoxBahngeschwindigkeit <- liftIO $ erhalteBox <$> Gtk.vBoxNew False 0
-            fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoBoxBahngeschwindigkeit $
-                anschlussAuswahlNew Language.fahrtrichtung
-            zugtypSpezifisch <- zugtypSpezifischNew ((Lego, legoBoxBahngeschwindigkeit) :| []) zugtypAuswahl
-            let seiteBahngeschwindigkeit = AssistantSeite {
-                seite = HinzufügenSeiteBahngeschwindigkeit {
-                    widget = erhalteWidget boxBahngeschwindigkeit,
-                    nameAuswahl = nameAuswahlBahngeschwindigkeit,
-                    geschwindigkeitAuswahl,
-                    zugtypSpezifisch,
-                    fahrtrichtungsAuswahl},
-                name = Language.bahngeschwindigkeit ,
-                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
-                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
-                seitenAbschluss = SeitenAbschluss Language.hinzufügen}
-            -- Streckenabschnitt
-            boxStreckenabschnitt <- liftIO $ Gtk.vBoxNew False 0
-            nameAuswahlStreckenabschnitt <- nameAuswahlPackNew boxStreckenabschnitt
-            stromAuswahl <- boxPackWidgetNewDefault boxStreckenabschnitt $
-                anschlussAuswahlNew Language.strom
-            let seiteStreckenabschnitt = AssistantSeite {
-                seite = HinzufügenSeiteStreckenabschnitt{
-                    widget = erhalteWidget boxStreckenabschnitt,
-                    nameAuswahl = nameAuswahlStreckenabschnitt,
-                    stromAuswahl},
-                name = Language.streckenabschnitt,
-                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlStreckenabschnitt)
-                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
-                seitenAbschluss = SeitenAbschluss Language.hinzufügen}
-            -- Weiche
-            boxWeiche <- liftIO $ Gtk.vBoxNew False 0
-            nameAuswahlWeiche <- nameAuswahlPackNew boxWeiche
-            märklinBoxWeiche <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
-            märklinFortfahrenWennToggledTMVar <- fortfahrenWennToggledNew Language.hinzufügen $
-                showText <$> unterstützteRichtungen
-            let richtungsCheckButtons = NonEmpty.zip unterstützteRichtungen $
-                    checkButtons märklinFortfahrenWennToggledTMVar
-            märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung, checkButton) -> do
-                box <- liftIO $ boxPackWidgetNewDefault märklinBoxWeiche $ Gtk.hBoxNew False 0
-                boxPackDefault box checkButton
-                anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew ""
-                pure (richtung, checkButton, anschlussAuswahl)
-            legoBoxWeiche <- liftIO $ fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
-            legoSeitenAbschluss <- liftIO $ Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
-            legoRichtungsAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
-                anschlussAuswahlNew Language.richtung
-            legoRichtungenAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
-                flip auswahlComboBoxNew Language.richtungen $
-                    (Gerade, Kurve) :| [
-                    (Gerade, Links),
-                    (Gerade, Rechts),
-                    (Kurve, Links),
-                    (Kurve, Rechts),
-                    (Links, Rechts)]
-            seitenAbschlussWeiche <- SeitenAbschlussZugtyp <$> zugtypSpezifischButtonNew
-                ((Märklin, erhalteButton märklinFortfahrenWennToggledTMVar) :| [(Lego, legoSeitenAbschluss)])
-                zugtypAuswahl
-            zugtypSpezifisch <- zugtypSpezifischNew ((Märklin, märklinBoxWeiche) :| [(Lego, legoBoxWeiche)]) zugtypAuswahl
-            let seiteWeiche = AssistantSeite {
-                seite = HinzufügenSeiteWeiche {
-                    widget = erhalteWidget boxWeiche,
-                    nameAuswahl = nameAuswahlWeiche,
-                    zugtypSpezifisch,
-                    märklinRichtungsAuswahl,
-                    legoRichtungsAuswahl,
-                    legoRichtungenAuswahl},
-                name = Language.weiche,
-                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
-                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
-                seitenAbschluss = seitenAbschlussWeiche}
-            -- Kupplung
-            boxKupplung <- liftIO $ Gtk.vBoxNew False 0
-            nameAuswahlKupplung <- nameAuswahlPackNew boxKupplung
-            kupplungsAuswahl <- boxPackWidgetNewDefault boxKupplung $
-                anschlussAuswahlNew Language.kuppeln
-            let seiteKupplung = AssistantSeite {
-                seite = HinzufügenSeiteKupplung {
-                    widget = erhalteWidget boxKupplung,
-                    nameAuswahl = nameAuswahlKupplung,
-                    kupplungsAuswahl},
-                name = Language.kupplung,
-                seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlKupplung)
-                    [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
-                seitenAbschluss = SeitenAbschluss Language.hinzufügen}
-            -- Wegstrecke
             DynamischeWidgets {
                 fortfahrenWennToggledWegstrecke,
                 vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin,
@@ -515,10 +413,123 @@ assistantHinzufügenNew
                 vBoxHinzufügenWegstreckeWeichenLego,
                 vBoxHinzufügenWegstreckeKupplungen}
                     <- erhalteDynamischeWidgets
-            boxWegstrecke <- liftIO $ Gtk.vBoxNew False 0
-            nameAuswahlWegstrecke <- nameAuswahlPackNew boxWegstrecke
-            -- Notebook/Paned?
-            (frameLeftTop, frameLeftBot, frameRightTop, frameRightBot) <- liftIO $ do
+            liftIO $ do
+                -- Globale Widgets
+                zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin Language.zugtyp
+                fließendAuswahl <- fließendAuswahlNew
+                let globaleWidgets = [Left zugtypAuswahl, Right fließendAuswahl]
+                -- Dummy-Widget zur Seitenauswahl. Auswahl wird durch Assistant übernommen.
+                auswahl <- erhalteWidget <$> Gtk.labelNew (Nothing :: Maybe Text)
+                let
+                    seiteAuswahl :: AssistantSeite HinzufügenSeite
+                    seiteAuswahl = AssistantSeite {
+                        seite = HinzufügenSeiteAuswahl {widget = auswahl},
+                        name = Language.hinzufügen,
+                        seiteZurücksetzen = pure (),
+                        seitenAbschluss = SeitenAbschluss Language.weiter}
+                -- Bahngeschwindigkeit
+                boxBahngeschwindigkeit <- Gtk.vBoxNew False 0
+                nameAuswahlBahngeschwindigkeit <- nameAuswahlPackNew boxBahngeschwindigkeit
+                geschwindigkeitAuswahl <- boxPackWidgetNewDefault boxBahngeschwindigkeit $
+                    anschlussAuswahlNew Language.geschwindigkeit
+                legoBoxBahngeschwindigkeit <- erhalteBox <$> Gtk.vBoxNew False 0
+                fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoBoxBahngeschwindigkeit $
+                    anschlussAuswahlNew Language.fahrtrichtung
+                zugtypSpezifisch <- zugtypSpezifischNew ((Lego, legoBoxBahngeschwindigkeit) :| []) zugtypAuswahl
+                let
+                    seiteBahngeschwindigkeit :: AssistantSeite HinzufügenSeite
+                    seiteBahngeschwindigkeit = AssistantSeite {
+                        seite = HinzufügenSeiteBahngeschwindigkeit {
+                            widget = erhalteWidget boxBahngeschwindigkeit,
+                            nameAuswahl = nameAuswahlBahngeschwindigkeit,
+                            geschwindigkeitAuswahl,
+                            zugtypSpezifisch,
+                            fahrtrichtungsAuswahl},
+                        name = Language.bahngeschwindigkeit ,
+                        seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlBahngeschwindigkeit)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
+                        seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+                -- Streckenabschnitt
+                boxStreckenabschnitt <- Gtk.vBoxNew False 0
+                nameAuswahlStreckenabschnitt <- nameAuswahlPackNew boxStreckenabschnitt
+                stromAuswahl <- boxPackWidgetNewDefault boxStreckenabschnitt $
+                    anschlussAuswahlNew Language.strom
+                let
+                    seiteStreckenabschnitt :: AssistantSeite HinzufügenSeite
+                    seiteStreckenabschnitt = AssistantSeite {
+                        seite = HinzufügenSeiteStreckenabschnitt{
+                            widget = erhalteWidget boxStreckenabschnitt,
+                            nameAuswahl = nameAuswahlStreckenabschnitt,
+                            stromAuswahl},
+                        name = Language.streckenabschnitt,
+                        seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlStreckenabschnitt)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
+                        seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+                -- Weiche
+                boxWeiche <- Gtk.vBoxNew False 0
+                nameAuswahlWeiche <- nameAuswahlPackNew boxWeiche
+                märklinBoxWeiche <- fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
+                märklinFortfahrenWennToggledTMVar <- fortfahrenWennToggledNew Language.hinzufügen $
+                    showText <$> unterstützteRichtungen
+                let
+                    richtungsCheckButtons :: NonEmpty (Richtung, RegistrierterCheckButton)
+                    richtungsCheckButtons = NonEmpty.zip unterstützteRichtungen $
+                        checkButtons märklinFortfahrenWennToggledTMVar
+                märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung, checkButton) -> do
+                    box <- boxPackWidgetNewDefault märklinBoxWeiche $ Gtk.hBoxNew False 0
+                    boxPackDefault box checkButton
+                    anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew ""
+                    pure (richtung, checkButton, anschlussAuswahl)
+                legoBoxWeiche <- fmap erhalteBox $ boxPackWidgetNewDefault boxWeiche $ Gtk.vBoxNew False 0
+                legoSeitenAbschluss <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+                legoRichtungsAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
+                    anschlussAuswahlNew Language.richtung
+                legoRichtungenAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
+                    flip auswahlComboBoxNew Language.richtungen $
+                        (Gerade, Kurve) :| [
+                        (Gerade, Links),
+                        (Gerade, Rechts),
+                        (Kurve, Links),
+                        (Kurve, Rechts),
+                        (Links, Rechts)]
+                seitenAbschlussWeiche <- SeitenAbschlussZugtyp <$> zugtypSpezifischButtonNew
+                    ((Märklin, erhalteButton märklinFortfahrenWennToggledTMVar) :| [(Lego, legoSeitenAbschluss)])
+                    zugtypAuswahl
+                zugtypSpezifisch <- zugtypSpezifischNew ((Märklin, märklinBoxWeiche) :| [(Lego, legoBoxWeiche)]) zugtypAuswahl
+                let
+                    seiteWeiche :: AssistantSeite HinzufügenSeite
+                    seiteWeiche = AssistantSeite {
+                        seite = HinzufügenSeiteWeiche {
+                            widget = erhalteWidget boxWeiche,
+                            nameAuswahl = nameAuswahlWeiche,
+                            zugtypSpezifisch,
+                            märklinRichtungsAuswahl,
+                            legoRichtungsAuswahl,
+                            legoRichtungenAuswahl},
+                        name = Language.weiche,
+                        seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlWeiche)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
+                        seitenAbschluss = seitenAbschlussWeiche}
+                -- Kupplung
+                boxKupplung <- Gtk.vBoxNew False 0
+                nameAuswahlKupplung <- nameAuswahlPackNew boxKupplung
+                kupplungsAuswahl <- boxPackWidgetNewDefault boxKupplung $
+                    anschlussAuswahlNew Language.kuppeln
+                let
+                    seiteKupplung :: AssistantSeite HinzufügenSeite
+                    seiteKupplung = AssistantSeite {
+                        seite = HinzufügenSeiteKupplung {
+                            widget = erhalteWidget boxKupplung,
+                            nameAuswahl = nameAuswahlKupplung,
+                            kupplungsAuswahl},
+                        name = Language.kupplung,
+                        seiteZurücksetzen = Gtk.set (erhalteEntry nameAuswahlKupplung)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True],
+                        seitenAbschluss = SeitenAbschluss Language.hinzufügen}
+                -- Wegstrecke
+                boxWegstrecke <- Gtk.vBoxNew False 0
+                nameAuswahlWegstrecke <- nameAuswahlPackNew boxWegstrecke
+                -- Notebook/Paned?
                 hPaned <- boxPackWidgetNewDefault boxWegstrecke Gtk.hPanedNew
                 vPanedLeft <- widgetShowNew Gtk.vPanedNew
                 Gtk.panedAdd1 hPaned vPanedLeft
@@ -536,67 +547,76 @@ assistantHinzufügenNew
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
                 Gtk.panedAdd2 vPanedLeft frameRightBot
-                pure (frameLeftTop, frameLeftBot, frameRightTop, frameRightBot)
-            containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
-                (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
-                [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
-            mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
-            containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
-                (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
-                [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
-            mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
-            let seiteZurücksetzenWegstrecke = do
-                    aktiviereWennToggledTMVar fortfahrenWennToggledWegstrecke
-                    Gtk.set (erhalteEntry nameAuswahlWegstrecke)
-                        [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
-                seiteWegstrecke = AssistantSeite {
-                    seite = HinzufügenSeiteWegstrecke {
-                        widget = erhalteWidget boxWegstrecke,
-                        nameAuswahl = nameAuswahlWegstrecke},
-                    name = Language.wegstrecke,
-                    seiteZurücksetzen = seiteZurücksetzenWegstrecke,
-                    seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
-            -- Plan
-            boxPlan <- liftIO $ Gtk.vBoxNew False 0
-            nameAuswahlPlan <- nameAuswahlPackNew boxPlan
-            _aktionAuswahlWidgets
-            seitenAbschlussPlan <- liftIO $ Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
-            tvarAktionen <- liftIO $ newTVarIO leer
-            tvarWidgets <- liftIO $ newTVarIO []
-            let showAktionen :: (Foldable t, MonadIO m) => t Aktion -> m ()
-                showAktionen aktionen = liftIO $ do
-                    widgets <- readTVarIO tvarWidgets
-                    forM_ widgets $ mitContainerRemove (_box :: Gtk.Box)
-                    widgetsNeu <- mapM (boxPackWidgetNewDefault (_box :: Gtk.Box) . Gtk.labelNew . Just . show) $ toList aktionen
-                    Gtk.set _expander [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
-                    atomically $ writeTVar tvarWidgets widgetsNeu
-                    Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
-            let seiteZurücksetzenPlan = do
-                    atomically $ writeTVar tvarAktionen leer
-                    showAktionen leer
-                    Gtk.set (erhalteEntry nameAuswahlPlan)
-                        [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
-                seitePlan = AssistantSeite {
-                    seite = HinzufügenSeitePlan {
-                        widget = erhalteWidget boxPlan,
-                        nameAuswahl = nameAuswahlPlan,
-                        tvarAktionen},
-                    name = Language.plan,
-                    seiteZurücksetzen = seiteZurücksetzenPlan,
-                    seitenAbschluss = SeitenAbschlussButton seitenAbschlussPlan}
-            -- konstruiere SeitenBaum
-            let seitenBaum = AssistantSeiteAuswahl {
-                    node = seiteAuswahl,
-                    nachfolgerFrage = Language.welchesObjektHinzufügen,
-                    nachfolgerListe = AssistantSeiteLetzte <$>
-                        seiteBahngeschwindigkeit :| [
-                        seiteStreckenabschnitt,
-                        seiteWeiche,
-                        seiteKupplung,
-                        seiteWegstrecke,
-                        seitePlan]}
-            assistantNew parent globaleWidgets seitenBaum $
-                flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
+                containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
+                    (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
+                    [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
+                mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
+                containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
+                    (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
+                    [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
+                mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
+                let
+                    seiteZurücksetzenWegstrecke :: IO ()
+                    seiteZurücksetzenWegstrecke = do
+                        aktiviereWennToggledTMVar fortfahrenWennToggledWegstrecke
+                        Gtk.set (erhalteEntry nameAuswahlWegstrecke)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
+                    seiteWegstrecke :: AssistantSeite HinzufügenSeite
+                    seiteWegstrecke = AssistantSeite {
+                        seite = HinzufügenSeiteWegstrecke {
+                            widget = erhalteWidget boxWegstrecke,
+                            nameAuswahl = nameAuswahlWegstrecke},
+                        name = Language.wegstrecke,
+                        seiteZurücksetzen = seiteZurücksetzenWegstrecke,
+                        seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
+                -- Plan
+                boxPlan <- Gtk.vBoxNew False 0
+                nameAuswahlPlan <- nameAuswahlPackNew boxPlan
+                _aktionAuswahlWidgets
+                expanderAktionen <- boxPackWidgetNewDefault boxPlan $ Gtk.expanderNew (Language.aktionen :: Text)
+                boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
+                seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+                tvarAktionen <- newTVarIO leer
+                tvarWidgets <- newTVarIO []
+                let
+                    zeigeAktionen :: (Foldable t) => t Aktion -> IO ()
+                    zeigeAktionen aktionen = do
+                        widgets <- readTVarIO tvarWidgets
+                        forM_ widgets $ mitContainerRemove boxAktionen
+                        widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . show) $ toList aktionen
+                        Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
+                        atomically $ writeTVar tvarWidgets widgetsNeu
+                        Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
+                    seiteZurücksetzenPlan :: IO ()
+                    seiteZurücksetzenPlan = do
+                        atomically $ writeTVar tvarAktionen leer
+                        zeigeAktionen leer
+                        Gtk.set (erhalteEntry nameAuswahlPlan)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
+                    seitePlan :: AssistantSeite HinzufügenSeite
+                    seitePlan = AssistantSeite {
+                        seite = HinzufügenSeitePlan {
+                            widget = erhalteWidget boxPlan,
+                            nameAuswahl = nameAuswahlPlan,
+                            tvarAktionen},
+                        name = Language.plan,
+                        seiteZurücksetzen = seiteZurücksetzenPlan,
+                        seitenAbschluss = SeitenAbschlussButton seitenAbschlussPlan}
+                -- konstruiere SeitenBaum
+                let
+                    seitenBaum :: AssistantSeitenBaum HinzufügenSeite
+                    seitenBaum = AssistantSeiteAuswahl {
+                        node = seiteAuswahl,
+                        nachfolgerFrage = Language.welchesObjektHinzufügen,
+                        nachfolgerListe = AssistantSeiteLetzte <$>
+                            seiteBahngeschwindigkeit :| [
+                            seiteStreckenabschnitt,
+                            seiteWeiche,
+                            seiteKupplung,
+                            seiteWegstrecke,
+                            seitePlan]}
+                assistantNew parent globaleWidgets seitenBaum $
+                    flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
     {-
         where
             runPage :: Natural -> DialogHinzufügen -> TMVar StatusGui -> DynamischeWidgets -> IO ()
