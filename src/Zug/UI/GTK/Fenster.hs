@@ -20,7 +20,7 @@ module Zug.UI.Gtk.Fenster (
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TMVar, readTMVar, takeTMVar, putTMVar,
-                                TVar, newTVarIO, readTVarIO, writeTVar, modifyTVar)
+                                TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
 import Control.Lens ((^.))
 import qualified Control.Lens as Lens
 import Control.Monad (void, when, foldM, forM, forM_)
@@ -617,25 +617,46 @@ assistantHinzufügenNew
                 -- Plan
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
-                _aktionAuswahlWidgets
+                boxAktionenAuswahl <- boxPackWidgetNewDefault boxPlan $ Gtk.vBoxNew False 0
                 expanderAktionen <- boxPackWidgetNewDefault boxPlan $ Gtk.expanderNew (Language.aktionen :: Text)
                 boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
                 seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
                 tvarAktionen <- newTVarIO leer
                 tvarWidgets <- newTVarIO []
                 let
-                    zeigeAktionen :: (Foldable t) => t Aktion -> IO ()
-                    zeigeAktionen aktionen = do
+                    zeigeAktionen :: (Foldable t, MonadIO m) => t Aktion -> m ()
+                    zeigeAktionen aktionen = liftIO $ do
                         widgets <- readTVarIO tvarWidgets
                         forM_ widgets $ mitContainerRemove boxAktionen
-                        widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . show) $ toList aktionen
+                        widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . show) $
+                            toList aktionen
                         Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
                         atomically $ writeTVar tvarWidgets widgetsNeu
                         Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
+                _märklinGeschwindigkeitEinstellenUndUmdrehen
+                _legoGeschwindigkeitEinstellenUndFahrtrichtungEinstellen
+                _stromEinstellen
+                _richtungenEinstellen
+                _kuppeln
+                _wegstreckeEinstellen
+                _aktionAuswahlWidgets
+                _ObjekteWerdenNurZugtypSpezifischAngezeigt
+                boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
+                    aktionen <- atomically $ do
+                        aktionen <- readTVar tvarAktionen
+                        writeTVar tvarAktionen $ case zeigeLetztes aktionen of
+                            Leer
+                                -> leer
+                            Gefüllt _letztes warteschlange
+                                -> warteschlange
+                        pure aktionen
+                    zeigeAktionen aktionen
+                let
                     seiteZurücksetzenPlan :: IO ()
                     seiteZurücksetzenPlan = do
                         atomically $ writeTVar tvarAktionen leer
                         zeigeAktionen leer
+                        _zeigeNurMöglicheAktionen
                         Gtk.set (erhalteEntry nameAuswahlPlan)
                             [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
                     seitePlan :: AssistantSeite HinzufügenSeite

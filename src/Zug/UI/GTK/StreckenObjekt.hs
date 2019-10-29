@@ -532,7 +532,8 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bgLego@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss}
                 range
                     = void $ do
-                        liftIO $ boxPackWidgetNewDefault box $ anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
+                        liftIO $ boxPackWidgetNewDefault box $
+                            anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
                         togglebuttonFahrtrichtungEinstellenPackNew box bgLego range
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu

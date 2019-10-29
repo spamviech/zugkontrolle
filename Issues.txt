@@ -18,6 +18,17 @@ Anzeige über eigene Klasse regeln
     Sprache in aktuellem Zustand speichern
         änderbar im Programm
 
+Rekursion in Plan ermöglichen
+    erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
+    potentielle Endlosschleifen
+        problematisch?
+        eigentlich nicht, da 'ausführenAbbrechen' immer möglich
+
+Erlaube "Warten auf Signal"
+    Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
+    Zeit-basierte Lösung wird weiterhin unterstützt.
+    Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
+
 Code-Stil vereinheitlichen:
     hlint berücksichtigen(?)
     Konstruktoren nur wenn notwendig in Klammern setzten
@@ -35,10 +46,6 @@ Code-Stil vereinheitlichen:
             Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
     etc.
 
-Erlaube "Warten auf Signal"
-    Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
-    Zeit-basierte Lösung wird weiterhin unterstützt.
-    Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
 
 Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
     Strom an/aus
