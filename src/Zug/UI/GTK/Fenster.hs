@@ -65,7 +65,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, checkButtons,
                                         fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew,
-                                    buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
+                                    buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), MitWindow(..), MitDialog(), mitContainerRemove, mitContainerAdd,
                             MitEntry(..), MitButton(..))
@@ -404,6 +404,7 @@ assistantHinzufügenNew
             objektReader <- ask
             DynamischeWidgets {
                 fortfahrenWennToggledWegstrecke,
+                tmvarPlanObjekt,
                 vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin,
                 vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego,
                 vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
@@ -611,6 +612,8 @@ assistantHinzufügenNew
                     erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
                     erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungLego,
                     erhalteWidget vBoxHinzufügenPlanWegstreckenLego]
+                boxPackWidgetNewDefault boxAktionObjektAuswahl $ buttonNewWithEventLabel Language.abbrechen $
+                    atomically $ putTMVar tmvarPlanObjekt Nothing
                 -- Plan
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
