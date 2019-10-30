@@ -5,6 +5,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -38,8 +39,12 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes, zeigeErstes)
 import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither,
                     Richtung(..), unterstützteRichtungen, Fahrtrichtung(..), Strom(..))
-import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..),
-                    Weiche(..), Kupplung(..), Wegstrecke(..), StreckenObjekt(..))
+import Zug.Anbindung (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(),
+                    Streckenabschnitt(..), StreckenabschnittKlasse(),
+                    Weiche(..), WeicheKlasse(),
+                    Kupplung(..), KupplungKlasse(),
+                    Wegstrecke(..), WegstreckeKlasse(),
+                    StreckenObjekt(..))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
@@ -669,28 +674,35 @@ assistantHinzufügenNew
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
                         mitWidgetShow windowAktionObjektAuswahl
-                märklinGeschwindigkeitsScale <-
-                    boxPackWidgetNew boxAktionMärklinBahngeschwindigkeit PackGrow paddingDefault positionDefault $
-                        Gtk.hScaleNewWithRange 0 100 1
-                boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
-                    buttonNewWithEventLabel Language.geschwindigkeit $ do
+                    märklinBahngeschwindigkeitAktionHinzufügen :: 
+                        (forall b. (BahngeschwindigkeitKlasse b) =>
+                            b 'Märklin -> IO (AktionBahngeschwindigkeit b 'Märklin)) ->
+                                IO ()
+                    märklinBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = do
                         zeigeMärklinBahngeschwindigkeitAktionAuswahl
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
-                                -> do
-                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
-                                    aktionHinzufügen $ ABahngeschwindigkeitMärklin $ Geschwindigkeit bgMärklin wert
+                                -> aktionKonstruktor bgMärklin >>= aktionHinzufügen . ABahngeschwindigkeitMärklin
                             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
-                                -> do
-                                    wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
-                                    aktionHinzufügen $ AWegstreckeMärklin $ AWSBahngeschwindigkeit $
-                                        Geschwindigkeit wsMärklin wert
+                                -> aktionKonstruktor wsMärklin >>=
+                                    aktionHinzufügen . AWegstreckeMärklin . AWSBahngeschwindigkeit
                             (Just anderesObjekt)
                                 -> error $
                                     "unerwartetes Objekt zum Geschwindigkeit einstellen erhalten: " ++ show anderesObjekt
                             Nothing
-                                -> mitWidgetHide windowAktionObjektAuswahl
-                _märklinGeschwindigkeitEinstellenUndUmdrehen
+                                -> pure ()
+                        mitWidgetHide windowAktionObjektAuswahl
+                märklinGeschwindigkeitsScale <-
+                    boxPackWidgetNew boxAktionMärklinBahngeschwindigkeit PackGrow paddingDefault positionDefault $
+                        Gtk.hScaleNewWithRange 0 100 1
+                boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
+                    buttonNewWithEventLabel Language.geschwindigkeit $
+                        märklinBahngeschwindigkeitAktionHinzufügen $ \bg -> do
+                            wert <- floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
+                            pure $ Geschwindigkeit bg wert
+                boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
+                    buttonNewWithEventLabel Language.umdrehen $
+                        märklinBahngeschwindigkeitAktionHinzufügen $ pure . Umdrehen
                 boxAktionLegoBahngeschwindigkeit <- Gtk.hBoxNew False 0
                 _legoGeschwindigkeitEinstellenUndFahrtrichtungEinstellen
                 boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
