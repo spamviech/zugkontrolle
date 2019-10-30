@@ -933,7 +933,57 @@ assistantHinzufügenNew
                     ((Märklin, boxAktionMärklinWeiche) :| [(Lego, boxAktionLegoWeiche)])
                     zugtypAuswahl
                 -- AktionKupplung
-                _kuppeln
+                boxAktionKupplung <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
+                let
+                    zeigeKupplungAktionAuswahl :: IO ()
+                    zeigeKupplungAktionAuswahl = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetShow vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    kupplungAktionHinzufügen :: 
+                        (forall k. (KupplungKlasse k) =>
+                            k -> IO (AktionKupplung k)) ->
+                                IO ()
+                    kupplungAktionHinzufügen aktionKonstruktor = do
+                        zeigeKupplungAktionAuswahl
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OKupplung ku))
+                                -> aktionKonstruktor ku >>= aktionHinzufügen . AKupplung
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> aktionKonstruktor wsMärklin >>=
+                                    aktionHinzufügen . AWegstreckeMärklin . AWSKupplung
+                            (Just (OWegstrecke (ZugtypLego wsLego)))
+                                -> aktionKonstruktor wsLego >>=
+                                    aktionHinzufügen . AWegstreckeLego . AWSKupplung
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt für Streckenabschnitt-Aktion erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        mitWidgetHide windowAktionObjektAuswahl
+                boxPackWidgetNewDefault boxAktionKupplung $
+                    buttonNewWithEventLabel Language.kuppeln $
+                        kupplungAktionHinzufügen $ pure . Kuppeln
+                boxPackDefault boxAktionStreckenabschnitt auswahlStrom
                 -- AktionWegstrecke 'Märklin
                 boxAktionMärklinWegstrecke <- Gtk.hBoxNew False 0
                 _wegstreckeEinstellenMärklin
