@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -35,6 +36,7 @@ import Data.Maybe (maybe, fromJust, isNothing, catMaybes)
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
+import qualified Language.Haskell.TH as TH
 -- Abhängigkeiten von anderen Modulen
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes, zeigeErstes)
 import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither,
@@ -1103,15 +1105,34 @@ assistantHinzufügenNew
                             [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
                         -- zeige nur mögliche Aktionen an
                         aktuellerStatus <- atomically $ readTMVar tmvarStatus
+                        let
+                            filterWegstrecke ::
+                                (forall z. Wegstrecke z -> [s]) -> [ZugtypEither WSWidgets] -> [ZugtypEither WSWidgets]
+                            filterWegstrecke auswahlFunktion liste
+                                = filter (not . null . ausZugtypEither auswahlFunktion . erhalteObjektTyp) liste
+                            filterWegstreckeZT ::
+                                (forall z. Wegstrecke z -> [s z]) -> [ZugtypEither WSWidgets] -> [ZugtypEither WSWidgets]
+                            filterWegstreckeZT auswahlFunktion liste
+                                = filter (not . null . mapZugtypEitherListe auswahlFunktion) liste
+                            mapZugtypEitherListe ::
+                                (forall z. Wegstrecke z -> [s z]) -> ZugtypEither WSWidgets -> [ZugtypEither s]
+                            mapZugtypEitherListe
+                                auswahlFunktion
+                                (ZugtypMärklin ws)
+                                    = ZugtypMärklin <$> auswahlFunktion (erhalteObjektTyp ws)
+                            mapZugtypEitherListe
+                                auswahlFunktion
+                                (ZugtypLego ws)
+                                    = ZugtypLego <$> auswahlFunktion (erhalteObjektTyp ws)
                         widgetShowIf
                             (not $
                                 null (aktuellerStatus ^. bahngeschwindigkeiten) &&
-                                null (aktuellerStatus ^. wegstrecken))
+                                null (filterWegstreckeZT wsBahngeschwindigkeiten $ aktuellerStatus ^. wegstrecken))
                             zugtypSpezifischBahngeschwindigkeit
                         widgetShowIf
                             (not $
                                 null (aktuellerStatus ^. streckenabschnitte) &&
-                                null (aktuellerStatus ^. wegstrecken))
+                                null (filterWegstrecke wsStreckenabschnitte $ aktuellerStatus ^. wegstrecken))
                             boxAktionStreckenabschnitt
                         widgetShowIf
                             (not $ null $ aktuellerStatus ^. weichen)
@@ -1119,12 +1140,11 @@ assistantHinzufügenNew
                         widgetShowIf
                             (not $
                                 null (aktuellerStatus ^. kupplungen) &&
-                                null (aktuellerStatus ^. wegstrecken))
+                                null (filterWegstrecke wsKupplungen $ aktuellerStatus ^. wegstrecken))
                             boxAktionKupplung
                         widgetShowIf
-                            (not $ null $ aktuellerStatus ^. wegstrecken)
+                            (not $ null $ filterWegstreckeZT (map fst . wsWeichenRichtungen) $ aktuellerStatus ^. wegstrecken)
                             zugtypSpezifischWegstrecke
-                        _aktionenNichtImmerAnzeigen
                     seitePlan :: AssistantSeite HinzufügenSeite
                     seitePlan = AssistantSeite {
                         seite = HinzufügenSeitePlan {
