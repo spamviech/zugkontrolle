@@ -824,10 +824,110 @@ assistantHinzufügenNew
                 boxPackDefault boxAktionStreckenabschnitt auswahlStrom
                 -- AktionWeiche 'Märklin
                 boxAktionMärklinWeiche <- Gtk.hBoxNew False 0
-                _richtungenEinstellenMärklin
+                let
+                    zeigeMärklinWeicheAktionAuswahl :: Richtung -> IO ()
+                    zeigeMärklinWeicheAktionAuswahl richtung = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeMärklin
+                        widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveMärklin
+                        widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksMärklin
+                        widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    märklinWeicheAktionHinzufügen ::
+                        Richtung ->
+                                IO ()
+                    märklinWeicheAktionHinzufügen richtung = do
+                        zeigeMärklinWeicheAktionAuswahl richtung
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OWeiche we@(ZugtypMärklin _weMärklin)))
+                                -> aktionHinzufügen $ AWeiche $ Stellen we richtung
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt zum Märklin-Weiche einstellen erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        mitWidgetHide windowAktionObjektAuswahl
+                boxPackWidgetNewDefault boxAktionMärklinWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
+                        märklinWeicheAktionHinzufügen Gerade
+                boxPackWidgetNewDefault boxAktionMärklinWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $
+                        märklinWeicheAktionHinzufügen Kurve
+                boxPackWidgetNewDefault boxAktionMärklinWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.links) $
+                        märklinWeicheAktionHinzufügen Links
+                boxPackWidgetNewDefault boxAktionMärklinWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
+                        märklinWeicheAktionHinzufügen Rechts
                 -- AktionWeiche 'Lego
                 boxAktionLegoWeiche <- Gtk.hBoxNew False 0
-                _richtungenEinstellenLego
+                let
+                    zeigeLegoWeicheAktionAuswahl :: Richtung -> IO ()
+                    zeigeLegoWeicheAktionAuswahl richtung = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeLego
+                        widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveLego
+                        widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksLego
+                        widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    legoWeicheAktionHinzufügen ::
+                        Richtung ->
+                                IO ()
+                    legoWeicheAktionHinzufügen richtung = do
+                        zeigeLegoWeicheAktionAuswahl richtung
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OWeiche we@(ZugtypLego _weMärklin)))
+                                -> aktionHinzufügen $ AWeiche $ Stellen we richtung
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt zum Märklin-Weiche einstellen erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        mitWidgetHide windowAktionObjektAuswahl
+                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
+                        legoWeicheAktionHinzufügen Gerade
+                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $
+                        legoWeicheAktionHinzufügen Kurve
+                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.links) $
+                        legoWeicheAktionHinzufügen Links
+                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
+                        legoWeicheAktionHinzufügen Rechts
                 -- ZugtypSpezifisch
                 boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
                     ((Märklin, boxAktionMärklinWeiche) :| [(Lego, boxAktionLegoWeiche)])
@@ -844,6 +944,8 @@ assistantHinzufügenNew
                 boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
                     ((Märklin, boxAktionMärklinWegstrecke) :| [(Lego, boxAktionLegoWegstrecke)])
                     zugtypAuswahl
+                -- Aktionsanzeige beschränken
+                _aktionenNichtImmerAnzeigen
                 -- Zeige aktuelle Aktionen an
                 boxPackDefault boxPlan expanderAktionen
                 boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
