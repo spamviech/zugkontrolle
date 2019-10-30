@@ -598,6 +598,10 @@ assistantHinzufügenNew
                         seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
                 -- Hilfsdialog für Plan
                 windowAktionObjektAuswahl <- Gtk.windowNew
+                Gtk.on windowAktionObjektAuswahl Gtk.deleteEvent $ liftIO $ do
+                    atomically $ putTMVar tmvarPlanObjekt Nothing
+                    mitWidgetHide windowAktionObjektAuswahl
+                    pure True
                 boxAktionObjektAuswahl <- containerAddWidgetNew windowAktionObjektAuswahl $ Gtk.vBoxNew False 0
                 -- Anzeige der Boxen explizit beim Anzeigen des Fensters
                 mapM_ (boxPackDefault boxAktionObjektAuswahl) [
@@ -626,7 +630,6 @@ assistantHinzufügenNew
                 -- Plan
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
-                boxAktionenAuswahl <- boxPackWidgetNewDefault boxPlan $ Gtk.vBoxNew False 0
                 expanderAktionen <- widgetShowNew $ Gtk.expanderNew (Language.aktionen :: Text)
                 boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
                 seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
@@ -820,17 +823,27 @@ assistantHinzufügenNew
                         streckenabschnittAktionHinzufügen $ \st -> Strom st <$> aktuelleAuswahl auswahlStrom
                 boxPackDefault boxAktionStreckenabschnitt auswahlStrom
                 -- AktionWeiche 'Märklin
+                boxAktionMärklinWeiche <- Gtk.hBoxNew False 0
                 _richtungenEinstellenMärklin
                 -- AktionWeiche 'Lego
+                boxAktionLegoWeiche <- Gtk.hBoxNew False 0
                 _richtungenEinstellenLego
                 -- ZugtypSpezifisch
+                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                    ((Märklin, boxAktionMärklinWeiche) :| [(Lego, boxAktionLegoWeiche)])
+                    zugtypAuswahl
                 -- AktionKupplung
                 _kuppeln
                 -- AktionWegstrecke 'Märklin
+                boxAktionMärklinWegstrecke <- Gtk.hBoxNew False 0
                 _wegstreckeEinstellenMärklin
                 -- AktionWegstrecke 'Lego
+                boxAktionLegoWegstrecke <- Gtk.hBoxNew False 0
                 _wegstreckeEinstellenLego
                 -- ZugtypSpezifisch
+                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                    ((Märklin, boxAktionMärklinWegstrecke) :| [(Lego, boxAktionLegoWegstrecke)])
+                    zugtypAuswahl
                 -- Zeige aktuelle Aktionen an
                 boxPackDefault boxPlan expanderAktionen
                 boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
@@ -849,7 +862,6 @@ assistantHinzufügenNew
                     seiteZurücksetzenPlan = do
                         atomically $ writeTVar tvarAktionen leer
                         zeigeAktionen leer
-                        _zeigeNurMöglicheAktionen
                         Gtk.set (erhalteEntry nameAuswahlPlan)
                             [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
                     seitePlan :: AssistantSeite HinzufügenSeite
