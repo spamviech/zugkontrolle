@@ -439,6 +439,7 @@ assistantHinzufügenNew
                 vBoxHinzufügenPlanWegstreckenKupplungLego,
                 vBoxHinzufügenPlanWegstreckenLego}
                     <- erhalteDynamischeWidgets
+            tmvarStatus <- erhalteStatus
             liftIO $ do
                 -- Globale Widgets
                 zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin Language.zugtyp
@@ -766,7 +767,7 @@ assistantHinzufügenNew
                         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> FahrtrichtungEinstellen bg <$> aktuelleAuswahl legoFahrtrichtungAuswahl
                 boxPackDefault boxAktionLegoBahngeschwindigkeit legoFahrtrichtungAuswahl
                 -- ZugtypSpezifisch Bahngeschwindigkeit
-                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                zugtypSpezifischBahngeschwindigkeit <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
                     ((Märklin, boxAktionMärklinBahngeschwindigkeit) :| [(Lego, boxAktionLegoBahngeschwindigkeit)])
                     zugtypAuswahl
                 -- AktionStreckenabschnitt
@@ -929,7 +930,7 @@ assistantHinzufügenNew
                     buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
                         legoWeicheAktionHinzufügen Rechts
                 -- ZugtypSpezifisch Weiche
-                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                zugtypSpezifischWeiche <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
                     ((Märklin, boxAktionMärklinWeiche) :| [(Lego, boxAktionLegoWeiche)])
                     zugtypAuswahl
                 -- AktionKupplung
@@ -1075,11 +1076,9 @@ assistantHinzufügenNew
                     buttonNewWithEventLabel Language.einstellen $
                         legoWegstreckeAktionHinzufügen $ pure . Einstellen
                 -- ZugtypSpezifisch Wegstrecke
-                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                zugtypSpezifischWegstrecke <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
                     ((Märklin, boxAktionMärklinWegstrecke) :| [(Lego, boxAktionLegoWegstrecke)])
                     zugtypAuswahl
-                -- Aktionsanzeige beschränken
-                _aktionenNichtImmerAnzeigen
                 -- Zeige aktuelle Aktionen an
                 boxPackDefault boxPlan expanderAktionen
                 boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
@@ -1096,10 +1095,36 @@ assistantHinzufügenNew
                 let
                     seiteZurücksetzenPlan :: IO ()
                     seiteZurücksetzenPlan = do
+                        -- aktuelle Aktionen zurücksetzen
                         atomically $ writeTVar tvarAktionen leer
                         zeigeAktionen leer
+                        -- Entry zurücksetzten
                         Gtk.set (erhalteEntry nameAuswahlPlan)
                             [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
+                        -- zeige nur mögliche Aktionen an
+                        aktuellerStatus <- atomically $ readTMVar tmvarStatus
+                        widgetShowIf
+                            (not $
+                                null (aktuellerStatus ^. bahngeschwindigkeiten) &&
+                                null (aktuellerStatus ^. wegstrecken))
+                            zugtypSpezifischBahngeschwindigkeit
+                        widgetShowIf
+                            (not $
+                                null (aktuellerStatus ^. streckenabschnitte) &&
+                                null (aktuellerStatus ^. wegstrecken))
+                            boxAktionStreckenabschnitt
+                        widgetShowIf
+                            (not $ null $ aktuellerStatus ^. weichen)
+                            zugtypSpezifischWeiche
+                        widgetShowIf
+                            (not $
+                                null (aktuellerStatus ^. kupplungen) &&
+                                null (aktuellerStatus ^. wegstrecken))
+                            boxAktionKupplung
+                        widgetShowIf
+                            (not $ null $ aktuellerStatus ^. wegstrecken)
+                            zugtypSpezifischWegstrecke
+                        _aktionenNichtImmerAnzeigen
                     seitePlan :: AssistantSeite HinzufügenSeite
                     seitePlan = AssistantSeite {
                         seite = HinzufügenSeitePlan {
