@@ -76,21 +76,24 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widg
                                     boxPackWidgetNew, Packing(..), paddingDefault, positionDefault,
                                     buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..), mitContainerRemove, mitContainerAdd,
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..),
+                            MitContainer(..), mitContainerRemove, mitContainerAdd,
                             MitEntry(..), MitButton(..), MitWindow(..), MitDialog())
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
-                                    StatusReader(..),
-                                    WegstreckenElement(..), WegstreckeCheckButton(), PlanElement(..),
+                                    StatusReader(..), WidgetHinzufügen(..),
+                                    WegstreckenElement(..), WegstreckeCheckButton(),
+                                    PlanElement(..), BoxPlanHinzufügen,
                                     WidgetsTyp(..), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl,
+                                    widgetHinzufügenContainerGefüllt,
                                     bahngeschwindigkeitPackNew, BGWidgets,
                                     streckenabschnittPackNew, STWidgets,
                                     weichePackNew, WEWidgets,
                                     kupplungPackNew, KUWidgets,
                                     wegstreckePackNew, WSWidgets,
                                     planPackNew, PLWidgets)
-import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), auswahlWidget, zugtypSpezifischNew, zugtypSpezifischButtonNew)
+import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew)
 
 -- | Speichern des aktuellen 'StatusGui'
 buttonSpeichernPack :: (MitBox b, ObjektReader ObjektGui m, MonadIO m) => Gtk.Window -> b -> m Gtk.Button
@@ -657,7 +660,7 @@ assistantHinzufügenNew
                             pure aktionenDanach
                         zeigeAktionen aktionenDanach
                 -- AktionBahngeschwindigkeit 'Märklin
-                boxAktionMärklinBahngeschwindigkeit <- Gtk.hBoxNew False 0
+                boxAktionBahngeschwindigkeitMärklin <- Gtk.hBoxNew False 0
                 let
                     zeigeMärklinBahngeschwindigkeitAktionAuswahl :: IO ()
                     zeigeMärklinBahngeschwindigkeitAktionAuswahl = do
@@ -702,17 +705,17 @@ assistantHinzufügenNew
                                 -> pure ()
                         mitWidgetHide windowAktionObjektAuswahl
                 märklinGeschwindigkeitsScale <-
-                    boxPackWidgetNew boxAktionMärklinBahngeschwindigkeit PackGrow paddingDefault positionDefault $
+                    boxPackWidgetNew boxAktionBahngeschwindigkeitMärklin PackGrow paddingDefault positionDefault $
                         Gtk.hScaleNewWithRange 0 100 1
-                boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitMärklin $
                     buttonNewWithEventLabel Language.geschwindigkeit $
                         märklinBahngeschwindigkeitAktionHinzufügen $ \bg -> do
                             Geschwindigkeit bg . floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
-                boxPackWidgetNewDefault boxAktionMärklinBahngeschwindigkeit $
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitMärklin $
                     buttonNewWithEventLabel Language.umdrehen $
                         märklinBahngeschwindigkeitAktionHinzufügen $ pure . Umdrehen
                 -- AktionBahngeschwindigkeit 'Lego
-                boxAktionLegoBahngeschwindigkeit <- Gtk.hBoxNew False 0
+                boxAktionBahngeschwindigkeitLego <- Gtk.hBoxNew False 0
                 let
                     zeigeLegoBahngeschwindigkeitAktionAuswahl :: IO ()
                     zeigeLegoBahngeschwindigkeitAktionAuswahl = do
@@ -757,20 +760,20 @@ assistantHinzufügenNew
                                 -> pure ()
                         mitWidgetHide windowAktionObjektAuswahl
                 legoGeschwindigkeitsScale <-
-                    boxPackWidgetNew boxAktionLegoBahngeschwindigkeit PackGrow paddingDefault positionDefault $
+                    boxPackWidgetNew boxAktionBahngeschwindigkeitLego PackGrow paddingDefault positionDefault $
                         Gtk.hScaleNewWithRange 0 100 1
-                boxPackWidgetNewDefault boxAktionLegoBahngeschwindigkeit $
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
                     buttonNewWithEventLabel Language.geschwindigkeit $
                         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> 
                             Geschwindigkeit bg . floor <$> Gtk.get legoGeschwindigkeitsScale Gtk.rangeValue
                 legoFahrtrichtungAuswahl <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Vorwärts ("" :: Text)
-                boxPackWidgetNewDefault boxAktionLegoBahngeschwindigkeit $
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
                     buttonNewWithEventLabel Language.fahrtrichtungEinstellen $
                         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> FahrtrichtungEinstellen bg <$> aktuelleAuswahl legoFahrtrichtungAuswahl
-                boxPackDefault boxAktionLegoBahngeschwindigkeit legoFahrtrichtungAuswahl
+                boxPackDefault boxAktionBahngeschwindigkeitLego legoFahrtrichtungAuswahl
                 -- ZugtypSpezifisch Bahngeschwindigkeit
                 zugtypSpezifischBahngeschwindigkeit <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
-                    ((Märklin, boxAktionMärklinBahngeschwindigkeit) :| [(Lego, boxAktionLegoBahngeschwindigkeit)])
+                    ((Märklin, boxAktionBahngeschwindigkeitMärklin) :| [(Lego, boxAktionBahngeschwindigkeitLego)])
                     zugtypAuswahl
                 -- AktionStreckenabschnitt
                 boxAktionStreckenabschnitt <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
@@ -825,11 +828,11 @@ assistantHinzufügenNew
                     buttonNewWithEventLabel Language.strom $
                         streckenabschnittAktionHinzufügen $ \st -> Strom st <$> aktuelleAuswahl auswahlStrom
                 boxPackDefault boxAktionStreckenabschnitt auswahlStrom
-                -- AktionWeiche 'Märklin
-                boxAktionMärklinWeiche <- Gtk.hBoxNew False 0
+                -- AktionWeiche
+                boxAktionWeiche <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
                 let
-                    zeigeMärklinWeicheAktionAuswahl :: Richtung -> IO ()
-                    zeigeMärklinWeicheAktionAuswahl richtung = do
+                    zeigeWeicheAktionAuswahl :: Richtung -> IO ()
+                    zeigeWeicheAktionAuswahl richtung = do
                         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
                         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
                         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
@@ -837,59 +840,6 @@ assistantHinzufügenNew
                         widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveMärklin
                         widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksMärklin
                         widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                        mitWidgetHide vBoxHinzufügenPlanKupplungen
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                        mitWidgetShow windowAktionObjektAuswahl
-                    märklinWeicheAktionHinzufügen ::
-                        Richtung ->
-                                IO ()
-                    märklinWeicheAktionHinzufügen richtung = do
-                        zeigeMärklinWeicheAktionAuswahl richtung
-                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                            (Just (OWeiche we@(ZugtypMärklin _weMärklin)))
-                                -> aktionHinzufügen $ AWeiche $ Stellen we richtung
-                            (Just anderesObjekt)
-                                -> error $
-                                    "unerwartetes Objekt zum Märklin-Weiche einstellen erhalten: " ++
-                                    show anderesObjekt
-                            Nothing
-                                -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
-                boxPackWidgetNewDefault boxAktionMärklinWeiche $
-                    buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
-                        märklinWeicheAktionHinzufügen Gerade
-                boxPackWidgetNewDefault boxAktionMärklinWeiche $
-                    buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $
-                        märklinWeicheAktionHinzufügen Kurve
-                boxPackWidgetNewDefault boxAktionMärklinWeiche $
-                    buttonNewWithEventLabel (Language.stellen <:> Language.links) $
-                        märklinWeicheAktionHinzufügen Links
-                boxPackWidgetNewDefault boxAktionMärklinWeiche $
-                    buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
-                        märklinWeicheAktionHinzufügen Rechts
-                -- AktionWeiche 'Lego
-                boxAktionLegoWeiche <- Gtk.hBoxNew False 0
-                let
-                    zeigeLegoWeicheAktionAuswahl :: Richtung -> IO ()
-                    zeigeLegoWeicheAktionAuswahl richtung = do
-                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
                         widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeLego
                         widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveLego
                         widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksLego
@@ -904,37 +854,30 @@ assistantHinzufügenNew
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
                         mitWidgetShow windowAktionObjektAuswahl
-                    legoWeicheAktionHinzufügen ::
-                        Richtung ->
-                                IO ()
-                    legoWeicheAktionHinzufügen richtung = do
-                        zeigeLegoWeicheAktionAuswahl richtung
+                    weicheAktionHinzufügen :: Richtung -> IO ()
+                    weicheAktionHinzufügen richtung = do
+                        zeigeWeicheAktionAuswahl richtung
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                            (Just (OWeiche we@(ZugtypLego _weMärklin)))
+                            (Just (OWeiche we))
                                 -> aktionHinzufügen $ AWeiche $ Stellen we richtung
                             (Just anderesObjekt)
                                 -> error $
-                                    "unerwartetes Objekt zum Märklin-Weiche einstellen erhalten: " ++
-                                    show anderesObjekt
+                                    "unerwartetes Objekt zum Weiche stellen erhalten: " ++ show anderesObjekt
                             Nothing
                                 -> pure ()
                         mitWidgetHide windowAktionObjektAuswahl
-                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                buttonAktionWeicheGerade <- boxPackWidgetNewDefault boxAktionWeiche $
                     buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
-                        legoWeicheAktionHinzufügen Gerade
-                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                        weicheAktionHinzufügen Gerade
+                buttonAktionWeicheKurve <- boxPackWidgetNewDefault boxAktionWeiche $
                     buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $
-                        legoWeicheAktionHinzufügen Kurve
-                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                        weicheAktionHinzufügen Kurve
+                buttonAktionWeicheLinks <- boxPackWidgetNewDefault boxAktionWeiche $
                     buttonNewWithEventLabel (Language.stellen <:> Language.links) $
-                        legoWeicheAktionHinzufügen Links
-                boxPackWidgetNewDefault boxAktionLegoWeiche $
+                        weicheAktionHinzufügen Links
+                buttonAktionWeicheRechts <- boxPackWidgetNewDefault boxAktionWeiche $
                     buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
-                        legoWeicheAktionHinzufügen Rechts
-                -- ZugtypSpezifisch Weiche
-                zugtypSpezifischWeiche <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
-                    ((Märklin, boxAktionMärklinWeiche) :| [(Lego, boxAktionLegoWeiche)])
-                    zugtypAuswahl
+                        weicheAktionHinzufügen Rechts
                 -- AktionKupplung
                 boxAktionKupplung <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
                 let
@@ -987,11 +930,11 @@ assistantHinzufügenNew
                     buttonNewWithEventLabel Language.kuppeln $
                         kupplungAktionHinzufügen $ pure . Kuppeln
                 boxPackDefault boxAktionStreckenabschnitt auswahlStrom
-                -- AktionWegstrecke 'Märklin
-                boxAktionMärklinWegstrecke <- Gtk.hBoxNew False 0
+                -- AktionWegstrecke
+                boxAktionWegstrecke <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
                 let
-                    zeigeMärklinWegstreckeAktionAuswahl :: IO ()
-                    zeigeMärklinWegstreckeAktionAuswahl = do
+                    zeigeWegstreckeAktionAuswahl :: IO ()
+                    zeigeWegstreckeAktionAuswahl = do
                         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
                         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
                         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
@@ -1007,80 +950,33 @@ assistantHinzufügenNew
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                        mitWidgetShow vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                        mitWidgetShow windowAktionObjektAuswahl
-                    märklinWegstreckeAktionHinzufügen ::
-                        (forall w. (WegstreckeKlasse (w 'Märklin)) =>
-                            w 'Märklin -> IO (AktionWegstrecke w 'Märklin)) ->
-                                IO ()
-                    märklinWegstreckeAktionHinzufügen aktionKonstruktor = do
-                        zeigeMärklinWegstreckeAktionAuswahl 
-                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
-                                -> aktionKonstruktor wsMärklin >>= aktionHinzufügen . AWegstreckeMärklin
-                            (Just anderesObjekt)
-                                -> error $
-                                    "unerwartetes Objekt für Märklin-Wegstrecke-Aktion erhalten: " ++
-                                    show anderesObjekt
-                            Nothing
-                                -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
-                boxPackWidgetNewDefault boxAktionMärklinWegstrecke $
-                    buttonNewWithEventLabel Language.einstellen $
-                        märklinWegstreckeAktionHinzufügen $ pure . Einstellen
-                -- AktionWegstrecke 'Lego
-                boxAktionLegoWegstrecke <- Gtk.hBoxNew False 0
-                let
-                    zeigeLegoWegstreckeAktionAuswahl :: IO ()
-                    zeigeLegoWegstreckeAktionAuswahl = do
-                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                        mitWidgetHide vBoxHinzufügenPlanKupplungen
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenMärklin
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
                         mitWidgetShow vBoxHinzufügenPlanWegstreckenLego
                         mitWidgetShow windowAktionObjektAuswahl
-                    legoWegstreckeAktionHinzufügen ::
-                        (forall w. (WegstreckeKlasse (w 'Lego)) =>
-                            w 'Lego -> IO (AktionWegstrecke w 'Lego)) ->
+                    wegstreckeAktionHinzufügen ::
+                        (forall w z. (WegstreckeKlasse (w z)) =>
+                            w z -> IO (AktionWegstrecke w z)) ->
                                 IO ()
-                    legoWegstreckeAktionHinzufügen aktionKonstruktor = do
-                        zeigeLegoWegstreckeAktionAuswahl 
+                    wegstreckeAktionHinzufügen aktionKonstruktor = do
+                        zeigeWegstreckeAktionAuswahl 
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> aktionKonstruktor wsMärklin >>= aktionHinzufügen . AWegstreckeMärklin
                             (Just (OWegstrecke (ZugtypLego wsLego)))
                                 -> aktionKonstruktor wsLego >>= aktionHinzufügen . AWegstreckeLego
                             (Just anderesObjekt)
                                 -> error $
-                                    "unerwartetes Objekt für Märklin-Wegstrecke-Aktion erhalten: " ++
+                                    "unerwartetes Objekt für Wegstrecke-Aktion erhalten: " ++
                                     show anderesObjekt
                             Nothing
                                 -> pure ()
                         mitWidgetHide windowAktionObjektAuswahl
-                boxPackWidgetNewDefault boxAktionLegoWegstrecke $
+                boxPackWidgetNewDefault boxAktionWegstrecke $
                     buttonNewWithEventLabel Language.einstellen $
-                        legoWegstreckeAktionHinzufügen $ pure . Einstellen
-                -- ZugtypSpezifisch Wegstrecke
-                zugtypSpezifischWegstrecke <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
-                    ((Märklin, boxAktionMärklinWegstrecke) :| [(Lego, boxAktionLegoWegstrecke)])
-                    zugtypAuswahl
+                        wegstreckeAktionHinzufügen $ pure . Einstellen
                 -- Zeige aktuelle Aktionen an
                 boxPackDefault boxPlan expanderAktionen
                 boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
@@ -1103,48 +999,63 @@ assistantHinzufügenNew
                         -- Entry zurücksetzten
                         Gtk.set (erhalteEntry nameAuswahlPlan)
                             [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
-                        -- zeige nur mögliche Aktionen an
-                        aktuellerStatus <- atomically $ readTMVar tmvarStatus
                         let
-                            filterWegstrecke ::
-                                (forall z. Wegstrecke z -> [s]) -> [ZugtypEither WSWidgets] -> [ZugtypEither WSWidgets]
-                            filterWegstrecke auswahlFunktion liste
-                                = filter (not . null . ausZugtypEither auswahlFunktion . erhalteObjektTyp) liste
-                            filterWegstreckeZT ::
-                                (forall z. Wegstrecke z -> [s z]) -> [ZugtypEither WSWidgets] -> [ZugtypEither WSWidgets]
-                            filterWegstreckeZT auswahlFunktion liste
-                                = filter (not . null . mapZugtypEitherListe auswahlFunktion) liste
-                            mapZugtypEitherListe ::
-                                (forall z. Wegstrecke z -> [s z]) -> ZugtypEither WSWidgets -> [ZugtypEither s]
-                            mapZugtypEitherListe
-                                auswahlFunktion
-                                (ZugtypMärklin ws)
-                                    = ZugtypMärklin <$> auswahlFunktion (erhalteObjektTyp ws)
-                            mapZugtypEitherListe
-                                auswahlFunktion
-                                (ZugtypLego ws)
-                                    = ZugtypLego <$> auswahlFunktion (erhalteObjektTyp ws)
-                        widgetShowIf
-                            (not $
-                                null (aktuellerStatus ^. bahngeschwindigkeiten) &&
-                                null (filterWegstreckeZT wsBahngeschwindigkeiten $ aktuellerStatus ^. wegstrecken))
-                            zugtypSpezifischBahngeschwindigkeit
-                        widgetShowIf
-                            (not $
-                                null (aktuellerStatus ^. streckenabschnitte) &&
-                                null (filterWegstrecke wsStreckenabschnitte $ aktuellerStatus ^. wegstrecken))
+                            versteckeWennLeer :: (MitWidget w) =>
+                                BoxPlanHinzufügen a ->
+                                Maybe (BoxPlanHinzufügen b) ->
+                                Maybe (BoxPlanHinzufügen c) ->
+                                w ->
+                                    IO ()
+                            versteckeWennLeer boxPlanA maybeBoxPlanB maybeBoxPlanC widget = do
+                                a <- widgetHinzufügenContainerGefüllt boxPlanA
+                                b <- maybe (pure False) widgetHinzufügenContainerGefüllt maybeBoxPlanB
+                                c <- maybe (pure False) widgetHinzufügenContainerGefüllt maybeBoxPlanC
+                                widgetShowIf (a || b || c) widget
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                            (Just vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin)
+                            Nothing
+                            boxAktionBahngeschwindigkeitMärklin
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                            (Just vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin)
+                            Nothing
+                            boxAktionBahngeschwindigkeitLego
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanStreckenabschnitte
+                            (Just vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin)
+                            (Just vBoxHinzufügenPlanWegstreckenStreckenabschnittLego)
                             boxAktionStreckenabschnitt
-                        widgetShowIf
-                            (not $ null $ aktuellerStatus ^. weichen)
-                            zugtypSpezifischWeiche
-                        widgetShowIf
-                            (not $
-                                null (aktuellerStatus ^. kupplungen) &&
-                                null (filterWegstrecke wsKupplungen $ aktuellerStatus ^. wegstrecken))
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenGeradeMärklin
+                            (Just vBoxHinzufügenPlanWeichenGeradeLego)
+                            Nothing
+                            buttonAktionWeicheGerade
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenKurveMärklin
+                            (Just vBoxHinzufügenPlanWeichenKurveLego)
+                            Nothing
+                            buttonAktionWeicheKurve
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenLinksMärklin
+                            (Just vBoxHinzufügenPlanWeichenLinksLego)
+                            Nothing
+                            buttonAktionWeicheLinks
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenRechtsMärklin
+                            (Just vBoxHinzufügenPlanWeichenRechtsLego)
+                            Nothing
+                            buttonAktionWeicheRechts
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanKupplungen
+                            (Just vBoxHinzufügenPlanWegstreckenKupplungMärklin)
+                            (Just vBoxHinzufügenPlanWegstreckenKupplungLego)
                             boxAktionKupplung
-                        widgetShowIf
-                            (not $ null $ filterWegstreckeZT (map fst . wsWeichenRichtungen) $ aktuellerStatus ^. wegstrecken)
-                            zugtypSpezifischWegstrecke
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWegstreckenMärklin
+                            (Just vBoxHinzufügenPlanWegstreckenLego)
+                            Nothing
+                            boxAktionWegstrecke
                     seitePlan :: AssistantSeite HinzufügenSeite
                     seitePlan = AssistantSeite {
                         seite = HinzufügenSeitePlan {

@@ -12,7 +12,7 @@ Description: Widget zur Auswahl eines Bounded Enums
 #ifndef ZUGKONTROLLEGUI
 module Zug.UI.Gtk.ZugtypSpezifisch () where
 #else
-module Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), auswahlWidget, zugtypSpezifischNew, zugtypSpezifischButtonNew) where
+module Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew) where
 
 -- Bibliotheken
 import Control.Monad (forM_, forM)
@@ -22,20 +22,16 @@ import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.Klassen (Zugtyp(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl)
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackDefault, widgetShowIf)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..))
 
 -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
     ZugtypSpezifisch :: {
-        vBox :: Gtk.VBox,
-        auswahlWidget :: AuswahlWidget Zugtyp,
-        zugtypWidgets :: NonEmpty (Zugtyp, Gtk.Widget)}
+        vBox :: Gtk.VBox}
             -> ZugtypSpezifisch Gtk.Widget
     ZugtypSpezifischButton :: {
         buttonVBox :: Gtk.VBox,
-        buttonAuswahlWidget :: AuswahlWidget Zugtyp,
-        buttonZugtypWidgets :: NonEmpty (Zugtyp, Gtk.Button),
         buttonDummy :: Gtk.Button}
             -> ZugtypSpezifisch Gtk.Button
 
@@ -58,13 +54,15 @@ zugtypSpezifischNew :: (MitWidget w, MonadIO m) =>
     NonEmpty (Zugtyp, w) -> AuswahlWidget Zugtyp -> m (ZugtypSpezifisch Gtk.Widget)
 zugtypSpezifischNew eingabeWidgets auswahlWidget = liftIO $ do
     vBox <- Gtk.vBoxNew False 0
-    boxPackDefault vBox auswahlWidget
-    zugtypWidgets <- forM eingabeWidgets $ \(zugtyp, widget) -> do
-        boxPackDefault vBox widget
-        pure (zugtyp, erhalteWidget widget)
+    zugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitWidget) -> do
+        hiddenBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+        let widget = erhalteWidget mitWidget
+        Gtk.widgetShow widget
+        boxPackDefault hiddenBox widget
+        pure (zugtyp, widget)
     beiAuswahl auswahlWidget $ \gewählterZugtyp -> forM_ zugtypWidgets $ \(zugtyp, widget) ->
         widgetShowIf (gewählterZugtyp == zugtyp) widget
-    pure ZugtypSpezifisch {vBox, auswahlWidget, zugtypWidgets}
+    pure ZugtypSpezifisch {vBox}
 
 -- | Erzeuge ein 'ZugtypSpezifisch' aus den übergebenen Widgets und dem 'AuswahlWidget'.
 -- Das erzeugte 'ZugtypSpezifisch' implementiert eine 'MitButton'-Instanz.
@@ -72,13 +70,16 @@ zugtypSpezifischButtonNew :: (MitButton w, MonadIO m) =>
     NonEmpty (Zugtyp, w) -> AuswahlWidget Zugtyp -> m (ZugtypSpezifisch Gtk.Button)
 zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
     buttonVBox <- Gtk.vBoxNew False 0
-    boxPackDefault buttonVBox buttonAuswahlWidget
     buttonDummy <- Gtk.buttonNew
-    buttonZugtypWidgets <- forM eingabeWidgets $ \(zugtyp, widget) -> do
-        boxPackDefault buttonVBox widget
-        Gtk.on (erhalteButton widget) Gtk.buttonActivated $ Gtk.buttonClicked buttonDummy
-        pure (zugtyp, erhalteButton widget)
+    buttonZugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitButton) -> do
+        hiddenBox <- boxPackWidgetNewDefault buttonVBox $ Gtk.hBoxNew False 0
+        let widget = erhalteWidget mitButton
+        Gtk.widgetShow widget
+        boxPackDefault hiddenBox widget
+        let button = erhalteButton mitButton
+        Gtk.on button Gtk.buttonActivated $ Gtk.buttonClicked buttonDummy
+        pure (zugtyp, button)
     beiAuswahl buttonAuswahlWidget $ \gewählterZugtyp -> forM_ buttonZugtypWidgets $ \(zugtyp, widget) ->
         widgetShowIf (gewählterZugtyp == zugtyp) widget
-    pure ZugtypSpezifischButton {buttonVBox, buttonAuswahlWidget, buttonZugtypWidgets, buttonDummy}
+    pure ZugtypSpezifischButton {buttonVBox, buttonDummy}
 #endif

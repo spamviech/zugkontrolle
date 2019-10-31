@@ -34,10 +34,12 @@ module Zug.UI.Gtk.StreckenObjekt (
     DynamischeWidgets(..), DynamischeWidgetsReader(..), StatusGui, StatusReader(..),
     ObjektGui, BefehlGui, IOStatusGui, MStatusGui, MStatusGuiT,
     -- * Hinzufügen zu einem Plan/einer Wegstrecke
-    WidgetHinzufügen, HinzufügenZiel(..),
+    WidgetHinzufügen(), HinzufügenZiel(..),
     CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen, WegstreckeCheckButton(), WegstreckeCheckButtonVoid,
     ButtonPlanHinzufügen, BoxPlanHinzufügen,
-    widgetHinzufügenZugtypEither,widgetHinzufügenRegistrierterCheckButtonVoid, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenToggled, widgetHinzufügenContainerRemoveJust, widgetHinzufügenBoxPackNew,
+    widgetHinzufügenZugtypEither,widgetHinzufügenRegistrierterCheckButtonVoid,
+    widgetHinzufügenAktuelleAuswahl, widgetHinzufügenToggled,
+    widgetHinzufügenContainerRemoveJust, widgetHinzufügenBoxPackNew, widgetHinzufügenContainerGefüllt,
     foldWegstreckeHinzufügen, WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets,
     PlanElement(..), entferneHinzufügenPlanWidgets) where
 
@@ -149,6 +151,11 @@ widgetHinzufügenContainerRemoveJust c w = containerRemoveJust (widgetHinzufüge
 widgetHinzufügenBoxPackNew :: (MitBox b, MitWidget w, MonadIO m) =>
     WidgetHinzufügen e b a -> m w -> m (WidgetHinzufügen e w a)
 widgetHinzufügenBoxPackNew b = fmap WidgetHinzufügen . boxPackWidgetNewDefault (widgetHinzufügen b)
+
+-- | Teste ob ein 'WidgetHinzufügen'-'MitContainer' mindestens ein Element enthält.
+widgetHinzufügenContainerGefüllt :: (MitContainer w, MonadIO m) => WidgetHinzufügen e w a -> m Bool
+widgetHinzufügenContainerGefüllt =
+    liftIO . fmap (not . null) . Gtk.containerGetChildren . erhalteContainer . widgetHinzufügen
 
 -- | CheckButton zum hinzufügen zu einer Wegstrecke
 type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstrecke (WegstreckeCheckButton e) a
