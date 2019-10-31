@@ -70,17 +70,18 @@ setupGUI = void $ do
     tmvarStatus <- newTMVarIO statusLeer
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-    vBoxBahngeschwindigkeiten
+    _notebookMitPanedErsetzen
+    (vBoxBahngeschwindigkeiten, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.bahngeschwindigkeiten $ Gtk.vBoxNew False 0
-    vBoxStreckenabschnitte
+    (vBoxStreckenabschnitte, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.streckenabschnitte $ Gtk.vBoxNew False 0
-    vBoxWeichen
+    (vBoxWeichen, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.weichen $ Gtk.vBoxNew False 0
-    vBoxKupplungen
+    (vBoxKupplungen, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.kupplungen $ Gtk.vBoxNew False 0
-    vBoxWegstrecken
+    (vBoxWegstrecken, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.wegstrecken $ Gtk.vBoxNew False 0
-    vBoxPläne
+    (vBoxPläne, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.pläne $ Gtk.vBoxNew False 0
     progressBarPlan
         <- widgetShowNew Gtk.progressBarNew

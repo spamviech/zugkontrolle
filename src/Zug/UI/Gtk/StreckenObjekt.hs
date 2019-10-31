@@ -200,12 +200,12 @@ type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidge
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets = DynamischeWidgets {
-    vBoxBahngeschwindigkeiten :: Gtk.VBox,
-    vBoxStreckenabschnitte :: Gtk.VBox,
-    vBoxWeichen :: Gtk.VBox,
-    vBoxKupplungen :: Gtk.VBox,
-    vBoxWegstrecken :: Gtk.VBox,
-    vBoxPläne :: Gtk.VBox,
+    vBoxBahngeschwindigkeiten :: ScrollbaresWidget Gtk.VBox,
+    vBoxStreckenabschnitte :: ScrollbaresWidget Gtk.VBox,
+    vBoxWeichen ::ScrollbaresWidget  Gtk.VBox,
+    vBoxKupplungen :: ScrollbaresWidget Gtk.VBox,
+    vBoxWegstrecken :: ScrollbaresWidget Gtk.VBox,
+    vBoxPläne :: ScrollbaresWidget Gtk.VBox,
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin :: BoxWegstreckeHinzufügen (BGWidgets 'Märklin),
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego :: BoxWegstreckeHinzufügen (BGWidgets 'Lego),
     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin :: BoxPlanHinzufügen (BGWidgets 'Märklin),
