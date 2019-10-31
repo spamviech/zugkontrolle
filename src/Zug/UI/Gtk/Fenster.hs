@@ -20,47 +20,43 @@ module Zug.UI.Gtk.Fenster (
                         buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (atomically, TMVar, readTMVar, takeTMVar, putTMVar,
-                                TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
+import Control.Concurrent.STM (atomically, readTMVar, takeTMVar, putTMVar,
+                                TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens ((^.))
-import qualified Control.Lens as Lens
 import Control.Monad (void, when, foldM, forM, forM_)
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import qualified Control.Monad.State as State
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (toList)
-import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
+import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (maybe, fromJust, isNothing, catMaybes)
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
-import qualified Language.Haskell.TH as TH
 -- Abhängigkeiten von anderen Modulen
-import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes, zeigeErstes)
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither,
+import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes)
+import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..),
                     Richtung(..), unterstützteRichtungen, Fahrtrichtung(..), Strom(..))
 import Zug.Anbindung (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(),
                     Streckenabschnitt(..), StreckenabschnittKlasse(),
-                    Weiche(..), WeicheKlasse(),
+                    Weiche(..),
                     Kupplung(..), KupplungKlasse(),
-                    Wegstrecke(..), WegstreckeKlasse(),
-                    StreckenObjekt(..))
+                    Wegstrecke(..), WegstreckeKlasse())
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
-import Zug.Language (showText, (<!>), (<:>), (<^>))
-import Zug.UI.Base (Status, StatusAllgemein(..), auswertenTMVarIOStatus,
-                    ReaderFamilie, ObjektReader,
+import Zug.Language (showText, (<!>), (<:>))
+import Zug.UI.Base (Status, auswertenTMVarIOStatus,
+                    ObjektReader,
                     putBahngeschwindigkeiten, bahngeschwindigkeiten,
                     putStreckenabschnitte, streckenabschnitte,
                     putWeichen, weichen,
                     putKupplungen, kupplungen,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
-import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..), ausführenTMVarBefehl)
+import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
@@ -68,31 +64,27 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, boundedEnumAuswahl
                             boundedEnumAuswahlRadioButtonNew,
                             aktuelleAuswahl, MitAuswahlWidget())
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, checkButtons,
-                                        FortfahrenWennToggledTMVar, tmvarCheckButtons,
-                                        fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
+import Zug.UI.Gtk.FortfahrenWennToggled (checkButtons, fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
                                         RegistrierterCheckButton, registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew,
                                     boxPackWidgetNew, Packing(..), paddingDefault, positionDefault,
-                                    buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval, dialogGetUpper,
+                                    buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..),
-                            MitContainer(..), mitContainerRemove, mitContainerAdd,
-                            MitEntry(..), MitButton(..), MitWindow(..), MitDialog())
-import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
-import Zug.UI.Gtk.StreckenObjekt (StatusGui, BefehlGui, IOStatusGui, ObjektGui,
+                            mitContainerRemove, mitContainerAdd,
+                            MitEntry(..), MitButton(..), MitWindow(..))
+import Zug.UI.Gtk.StreckenObjekt (StatusGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
-                                    StatusReader(..), WidgetHinzufügen(..),
+                                    StatusReader(..), BoxPlanHinzufügen,
                                     WegstreckenElement(..), WegstreckeCheckButton(),
-                                    PlanElement(..), BoxPlanHinzufügen,
                                     WidgetsTyp(..), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl,
                                     widgetHinzufügenContainerGefüllt,
                                     bahngeschwindigkeitPackNew, BGWidgets,
-                                    streckenabschnittPackNew, STWidgets,
+                                    streckenabschnittPackNew,
                                     weichePackNew, WEWidgets,
-                                    kupplungPackNew, KUWidgets,
+                                    kupplungPackNew,
                                     wegstreckePackNew, WSWidgets,
-                                    planPackNew, PLWidgets)
+                                    planPackNew)
 import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew)
 
 -- | Speichern des aktuellen 'StatusGui'
@@ -444,7 +436,6 @@ assistantHinzufügenNew
                 vBoxHinzufügenPlanWegstreckenKupplungLego,
                 vBoxHinzufügenPlanWegstreckenLego}
                     <- erhalteDynamischeWidgets
-            tmvarStatus <- erhalteStatus
             liftIO $ do
                 -- Globale Widgets
                 zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin Language.zugtyp
@@ -772,7 +763,7 @@ assistantHinzufügenNew
                         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> FahrtrichtungEinstellen bg <$> aktuelleAuswahl legoFahrtrichtungAuswahl
                 boxPackDefault boxAktionBahngeschwindigkeitLego legoFahrtrichtungAuswahl
                 -- ZugtypSpezifisch Bahngeschwindigkeit
-                zugtypSpezifischBahngeschwindigkeit <- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
                     ((Märklin, boxAktionBahngeschwindigkeitMärklin) :| [(Lego, boxAktionBahngeschwindigkeitLego)])
                     zugtypAuswahl
                 -- AktionStreckenabschnitt
