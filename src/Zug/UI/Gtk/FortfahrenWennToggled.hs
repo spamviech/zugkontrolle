@@ -18,7 +18,8 @@ module Zug.UI.Gtk.FortfahrenWennToggled (
     FortfahrenWennToggled(), checkButtons,
     fortfahrenWennToggledNew, aktiviereWennToggled,
     -- * Variable Anzahl an 'CheckButton's
-    FortfahrenWennToggledTMVar(), tmvarCheckButtons, foldCheckButtons, fortfahrenWennToggledTMVarNew, aktiviereWennToggledTMVar,
+    FortfahrenWennToggledTMVar(), tmvarCheckButtons, foldCheckButtons,
+    fortfahrenWennToggledTMVarNew, aktiviereWennToggledTMVar,
     -- * Assoziierter 'CheckButton' zu einem 'FortfahrenWennToggled'/'FortfahrenWennToggledTMvar'
     RegistrierterCheckButton, MitRegistrierterCheckButton(..), registrierterCheckButtonNew,
     mitRegistrierterCheckButton, registrierterCheckButton, registrierterCheckButtonToggled) where
