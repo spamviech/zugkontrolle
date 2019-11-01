@@ -17,7 +17,7 @@ module Zug.Anbindung.I2C (
     -- * Read-/Write-Aktionen
     i2cWrite, i2cWriteAdjust, i2cRead, I2CAddress(..), BitValue(..)) where
 
-import Foreign.C.Types (CInt)
+import Foreign.C.Types (CInt(..))
 import Control.Concurrent (forkIO, ThreadId)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
 import Control.Monad (void)

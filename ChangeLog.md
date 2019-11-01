@@ -97,7 +97,8 @@
 - Bugfix: Cmd-UI erkennt wieder, wann ein Plan ausgeführt wird (war invertiert).
 - Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist. Man muss nicht erst ins Hauptmenü zurückkehren.
 ## Unreleased changes
-- Support für PCF8574 hinzugefügt (bisher keine Integration in Gtk-UI)
+- Support für PCF8574 hinzugefügt
 - MVar durch TVar/TMVar ersetzt, LinkedMVar entfernt
 - unqualifizierter Import wird immer explizit angegeben
 - GADTs verwendet um Zugtyp-Mischformen zu vermeiden
+- GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen

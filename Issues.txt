@@ -7,10 +7,6 @@ Fix tests
     Änderungen berücksichtigen
     oder entfernen, vergesse ich sowieso ständig
 
-GTK-UI: Gleichzeitiges Anzeigen mehrerer Kategorien ermöglichen
-    optional?
-    VPaned/HPaned verwenden
-
 Anzeige über eigene Klasse regeln
     default-Implementierung aus Show-Instanz
         DefaultSignatures
@@ -22,7 +18,7 @@ Rekursion in Plan ermöglichen
     erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
     potentielle Endlosschleifen
         problematisch?
-        eigentlich nicht, da 'ausführenAbbrechen' immer möglich
+        nein, da 'ausführenAbbrechen' immer möglich
 
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
@@ -106,3 +102,7 @@ Widget.hs: eigenen bool-like Datentyp für Position erstellen
     data Position = First | Last
     newtype für Padding
         Done
+
+GTK-UI: Gleichzeitiges Anzeigen mehrerer Kategorien ermöglichen
+    optional?
+    VPaned/HPaned verwenden
