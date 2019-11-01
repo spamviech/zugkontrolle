@@ -20,6 +20,7 @@ module Zug.UI.Gtk.Fenster (
                         buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
 
 -- Bibliotheken
+import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, readTMVar, takeTMVar, putTMVar,
                                 TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens ((^.))
@@ -680,8 +681,8 @@ assistantHinzufügenNew
                         (forall b. (BahngeschwindigkeitKlasse b) =>
                             b 'Märklin -> IO (AktionBahngeschwindigkeit b 'Märklin)) ->
                                 IO ()
-                    märklinBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = do
-                        zeigeMärklinBahngeschwindigkeitAktionAuswahl
+                    märklinBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeMärklinBahngeschwindigkeitAktionAuswahl
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
                                 -> aktionKonstruktor bgMärklin >>= aktionHinzufügen . ABahngeschwindigkeitMärklin
@@ -694,7 +695,7 @@ assistantHinzufügenNew
                                     show anderesObjekt
                             Nothing
                                 -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
                 märklinGeschwindigkeitsScale <-
                     boxPackWidgetNew boxAktionBahngeschwindigkeitMärklin PackGrow paddingDefault positionDefault $
                         Gtk.hScaleNewWithRange 0 100 1
@@ -735,8 +736,8 @@ assistantHinzufügenNew
                         (forall b. (BahngeschwindigkeitKlasse b) =>
                             b 'Lego -> IO (AktionBahngeschwindigkeit b 'Lego)) ->
                                 IO ()
-                    legoBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = do
-                        zeigeLegoBahngeschwindigkeitAktionAuswahl
+                    legoBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeLegoBahngeschwindigkeitAktionAuswahl
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OBahngeschwindigkeit (ZugtypLego bgLego)))
                                 -> aktionKonstruktor bgLego >>= aktionHinzufügen . ABahngeschwindigkeitLego
@@ -749,7 +750,7 @@ assistantHinzufügenNew
                                     show anderesObjekt
                             Nothing
                                 -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
                 legoGeschwindigkeitsScale <-
                     boxPackWidgetNew boxAktionBahngeschwindigkeitLego PackGrow paddingDefault positionDefault $
                         Gtk.hScaleNewWithRange 0 100 1
@@ -796,8 +797,8 @@ assistantHinzufügenNew
                         (forall s. (StreckenabschnittKlasse s) =>
                             s -> IO (AktionStreckenabschnitt s)) ->
                                 IO ()
-                    streckenabschnittAktionHinzufügen aktionKonstruktor = do
-                        zeigeStreckenabschnittAktionAuswahl
+                    streckenabschnittAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeStreckenabschnittAktionAuswahl
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OStreckenabschnitt st))
                                 -> aktionKonstruktor st >>= aktionHinzufügen . AStreckenabschnitt
@@ -813,7 +814,7 @@ assistantHinzufügenNew
                                     show anderesObjekt
                             Nothing
                                 -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
                 auswahlStrom <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend ("" :: Text)
                 boxPackWidgetNewDefault boxAktionStreckenabschnitt $
                     buttonNewWithEventLabel Language.strom $
@@ -846,8 +847,8 @@ assistantHinzufügenNew
                         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
                         mitWidgetShow windowAktionObjektAuswahl
                     weicheAktionHinzufügen :: Richtung -> IO ()
-                    weicheAktionHinzufügen richtung = do
-                        zeigeWeicheAktionAuswahl richtung
+                    weicheAktionHinzufügen richtung = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeWeicheAktionAuswahl richtung
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OWeiche we))
                                 -> aktionHinzufügen $ AWeiche $ Stellen we richtung
@@ -856,7 +857,7 @@ assistantHinzufügenNew
                                     "unerwartetes Objekt zum Weiche stellen erhalten: " ++ show anderesObjekt
                             Nothing
                                 -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
                 buttonAktionWeicheGerade <- boxPackWidgetNewDefault boxAktionWeiche $
                     buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
                         weicheAktionHinzufügen Gerade
@@ -899,8 +900,8 @@ assistantHinzufügenNew
                         (forall k. (KupplungKlasse k) =>
                             k -> IO (AktionKupplung k)) ->
                                 IO ()
-                    kupplungAktionHinzufügen aktionKonstruktor = do
-                        zeigeKupplungAktionAuswahl
+                    kupplungAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeKupplungAktionAuswahl
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OKupplung ku))
                                 -> aktionKonstruktor ku >>= aktionHinzufügen . AKupplung
@@ -916,7 +917,7 @@ assistantHinzufügenNew
                                     show anderesObjekt
                             Nothing
                                 -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
                 boxPackWidgetNewDefault boxAktionKupplung $
                     buttonNewWithEventLabel Language.kuppeln $
                         kupplungAktionHinzufügen $ pure . Kuppeln
@@ -951,8 +952,8 @@ assistantHinzufügenNew
                         (forall w z. (WegstreckeKlasse (w z)) =>
                             w z -> IO (AktionWegstrecke w z)) ->
                                 IO ()
-                    wegstreckeAktionHinzufügen aktionKonstruktor = do
-                        zeigeWegstreckeAktionAuswahl 
+                    wegstreckeAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeWegstreckeAktionAuswahl 
                         atomically (takeTMVar tmvarPlanObjekt) >>= \case
                             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
                                 -> aktionKonstruktor wsMärklin >>= aktionHinzufügen . AWegstreckeMärklin
@@ -964,7 +965,7 @@ assistantHinzufügenNew
                                     show anderesObjekt
                             Nothing
                                 -> pure ()
-                        mitWidgetHide windowAktionObjektAuswahl
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
                 boxPackWidgetNewDefault boxAktionWegstrecke $
                     buttonNewWithEventLabel Language.einstellen $
                         wegstreckeAktionHinzufügen $ pure . Einstellen
