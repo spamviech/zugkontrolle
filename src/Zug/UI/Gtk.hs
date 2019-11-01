@@ -33,7 +33,8 @@ import Zug.Language ((<~>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
-import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), StatusGui, MStatusGuiT)
+import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
+                                    StatusGui, MStatusGuiT)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
@@ -85,46 +86,58 @@ setupGUI = void $ do
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.pläne $ Gtk.vBoxNew False 0
     progressBarPlan
         <- widgetShowNew Gtk.progressBarNew
-    vBoxHinzufügenWegstreckeBahngeschwindigkeiten
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanBahngeschwindigkeiten
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanBahngeschwindigkeitenLego
-        <- widgetShowNew $ Gtk.vBoxNew False 0
+    vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+        <- boxWegstreckeHinzufügenNew
+    vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+        <- boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-        <- widgetShowNew $ Gtk.vBoxNew False 0
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanBahngeschwindigkeitenLego
+        <- boxPlanHinzufügenNew
     vBoxHinzufügenWegstreckeStreckenabschnitte
-        <- widgetShowNew $ Gtk.vBoxNew False 0
+        <- boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanStreckenabschnitte
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenWegstreckeWeichen
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWeichenGerade
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWeichenKurve
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWeichenLinks
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWeichenRechts
-        <- widgetShowNew $ Gtk.vBoxNew False 0
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenWegstreckeWeichenMärklin
+        <- boxWegstreckeHinzufügenNew
+    vBoxHinzufügenWegstreckeWeichenLego
+        <- boxWegstreckeHinzufügenNew
+    vBoxHinzufügenPlanWeichenGeradeMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenGeradeLego
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenKurveMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenKurveLego
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenLinksMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenLinksLego
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenRechtsMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWeichenRechtsLego
+        <- boxPlanHinzufügenNew
     vBoxHinzufügenWegstreckeKupplungen
-        <- widgetShowNew $ Gtk.vBoxNew False 0
+        <- boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanKupplungen
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeit
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-        <- widgetShowNew $ Gtk.vBoxNew False 0
+        <- boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenStreckenabschnitt
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenWeiche
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    vBoxHinzufügenPlanWegstreckenKupplung
-        <- widgetShowNew $ Gtk.vBoxNew False 0
-    buttonHinzufügenWegstrecke
-        <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenKupplungMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenKupplungLego
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenMärklin
+        <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanWegstreckenLego
+        <- boxPlanHinzufügenNew
     fortfahrenWennToggledWegstrecke <- fortfahrenWennToggledTMVarNew Language.hinzufügen _fold tmvarStatus
     tmvarPlanObjekt
         <- newEmptyTMVarIO

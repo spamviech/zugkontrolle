@@ -35,9 +35,10 @@ module Zug.UI.Gtk.StreckenObjekt (
     ObjektGui, BefehlGui, IOStatusGui, MStatusGui, MStatusGuiT,
     -- * Hinzufügen zu einem Plan/einer Wegstrecke
     WidgetHinzufügen(), HinzufügenZiel(..),
-    CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen, WegstreckeCheckButton(), WegstreckeCheckButtonVoid,
-    ButtonPlanHinzufügen, BoxPlanHinzufügen,
-    widgetHinzufügenZugtypEither,widgetHinzufügenRegistrierterCheckButtonVoid,
+    CheckButtonWegstreckeHinzufügen, WegstreckeCheckButton(), WegstreckeCheckButtonVoid,
+    BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew,
+    ButtonPlanHinzufügen, BoxPlanHinzufügen, boxPlanHinzufügenNew,
+    widgetHinzufügenZugtypEither, widgetHinzufügenRegistrierterCheckButtonVoid,
     widgetHinzufügenAktuelleAuswahl, widgetHinzufügenToggled,
     widgetHinzufügenContainerRemoveJust, widgetHinzufügenBoxPackNew, widgetHinzufügenContainerGefüllt,
     foldWegstreckeHinzufügen, WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets,
@@ -94,7 +95,7 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, 
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
-import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget)
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -162,6 +163,10 @@ type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstr
 -- | Box zur Auswahl der 'Wegstrecke'n-Elemente
 type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
+-- | Erstelle eine neue 'BoxWegstreckeHinzufügen'
+boxWegstreckeHinzufügenNew :: (MonadIO m) => m (BoxWegstreckeHinzufügen a)
+boxWegstreckeHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
 data WegstreckeCheckButton e where
     WegstreckeCheckButton :: {
@@ -197,6 +202,10 @@ instance MitAuswahlWidget (WegstreckeCheckButton Richtung) Richtung where
 type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 -- | Box zum hinzufügen eines Plans
 type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
+
+-- | Erstelle eine neue 'BoxPlanHinzufügen'
+boxPlanHinzufügenNew :: (MonadIO m) => m (BoxPlanHinzufügen a)
+boxPlanHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets = DynamischeWidgets {
