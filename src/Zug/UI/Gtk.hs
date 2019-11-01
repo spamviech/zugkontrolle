@@ -35,7 +35,7 @@ import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu, auswertenTMVarIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
-                                    StatusGui, MStatusGuiT)
+                                    StatusGui, MStatusGuiT, foldWegstreckeHinzufügen)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventMnemonic,
@@ -165,7 +165,7 @@ setupGUI = void $ do
         <- boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenLego
         <- boxPlanHinzufügenNew
-    fortfahrenWennToggledWegstrecke <- fortfahrenWennToggledTMVarNew Language.hinzufügen _fold tmvarStatus
+    fortfahrenWennToggledWegstrecke <- fortfahrenWennToggledTMVarNew Language.hinzufügen foldWegstreckeHinzufügen tmvarStatus
     tmvarPlanObjekt
         <- newEmptyTMVarIO
     let dynamischeWidgets = DynamischeWidgets {

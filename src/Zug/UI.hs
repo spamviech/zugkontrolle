@@ -34,7 +34,7 @@ main :: IO ()
 main = ausführenWennRoot $ do
     Options {ui} <- getOptions
     case ui of
-        Gtk -> GTK.main
+        Gtk -> Gtk.main
         Cmd -> Cmd.main
 
 ausführenWennRoot :: IO () -> IO ()
