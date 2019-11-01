@@ -24,7 +24,7 @@ import Zug.UI.Gtk.Klassen (MitWidget(..),  MitContainer(..), MitBox(..), MitGrid
                                     MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..),
                                     MitButton(..), MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
 
--- | ScrolledWindow mit automatisch erstelltem Viewport
+-- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport
 data ScrollbaresWidget w = ScrollbaresWidget {swScrolledWindow :: Gtk.ScrolledWindow, swWidget :: w}
 
 instance MitWidget (ScrollbaresWidget w) where
@@ -74,7 +74,7 @@ instance (MitRadioButton w) => MitRadioButton (ScrollbaresWidget w) where
     erhalteRadioButton :: ScrollbaresWidget w -> Gtk.RadioButton
     erhalteRadioButton = erhalteRadioButton . swWidget
 
--- | Erstelle neues 'Scrollbares
+-- | Erstelle neues 'ScrollbaresWidget'
 scrollbaresWidgetNew :: (MonadIO m, MitWidget w) => m w -> m (ScrollbaresWidget w)
 scrollbaresWidgetNew konstruktor = do
     widget <- widgetShowNew konstruktor
@@ -86,17 +86,18 @@ scrollbaresWidgetNew konstruktor = do
         Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget widget
         pure ScrollbaresWidget {swScrolledWindow, swWidget = widget}
 
--- | Erstelle neues 'ScrolledWindow' mit automatisch erstelltem Viewport und füge sie zu 'Container' hinzu
+-- | Erstelle neues 'ScrollbaresWidget'und füge sie zu 'MitContainer' hinzu
 scrollbaresWidgetAddNew :: (MonadIO m, MitContainer c, MitWidget w) => c -> m w -> m (ScrollbaresWidget w)
 scrollbaresWidgetAddNew container konstruktor =containerAddWidgetNew container $ scrollbaresWidgetNew konstruktor
 
--- | Erstelle neues 'ScrolledWindow' mit automatisch erstelltem Viewport und packe sie in eine 'Box'
+-- | Erstelle neues 'ScrollbaresWidget' und packe sie in eine 'MitBox'
 scrollbaresWidgetPackNew :: (MonadIO m, MitBox b, MitWidget w) => b -> m w -> m (ScrollbaresWidget w)
 scrollbaresWidgetPackNew box konstruktor
     = boxPackWidgetNew box PackGrow paddingDefault positionDefault $ scrollbaresWidgetNew konstruktor
 
--- | Seite mit scrollbarer VBox einem Notebook hinzufügen
-scrollbaresWidgetNotebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) => n -> Text -> m w -> m (ScrollbaresWidget w, Int)
+-- | Erstelle neues 'ScrollbaresWidget' und füge sie als neue Seite einem 'MitNotebook' hinzu
+scrollbaresWidgetNotebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) =>
+    n -> Text -> m w -> m (ScrollbaresWidget w, Int)
 scrollbaresWidgetNotebookAppendPageNew notebook name konstruktor
     = notebookAppendPageNew notebook name $ scrollbaresWidgetNew konstruktor
 #endif
