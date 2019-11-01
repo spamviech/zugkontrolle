@@ -22,6 +22,7 @@ module Zug.UI.Gtk (main, setupGUI) where
 -- Bibliotheken
 import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO)
 import Control.Monad (void)
+import Control.Monad.Reader (runReaderT)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (liftIO)
 import Data.Text (Text)
@@ -31,13 +32,13 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>))
 import qualified Zug.Language as Language
-import Zug.UI.Base (Status, statusLeer)
+import Zug.UI.Base (Status, statusLeer, tvarMapsNeu, auswertenTMVarIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
                                     StatusGui, MStatusGuiT)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
+import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventMnemonic,
                                     containerAddWidgetNew, boxPack, boxPackWidgetNew,
                                     Packing(..), packingDefault, paddingDefault,
                                     Position(..), positionDefault)
@@ -68,6 +69,7 @@ setupGUI = void $ do
     -- Wird hier trotzdem gesetzt für den Fall, dass sich das in einer neueren Version ändert.
     Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
+    tvarMaps <- tvarMapsNeu
     tmvarStatus <- newTMVarIO statusLeer
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
@@ -84,6 +86,7 @@ setupGUI = void $ do
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.wegstrecken $ Gtk.vBoxNew False 0
     (vBoxPläne, _page)
         <- scrollbaresWidgetNotebookAppendPageNew notebookElemente Language.pläne $ Gtk.vBoxNew False 0
+    -- DynamischeWidgets
     progressBarPlan
         <- widgetShowNew Gtk.progressBarNew
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
@@ -178,12 +181,14 @@ setupGUI = void $ do
         windowMain,
         fortfahrenWennToggledWegstrecke,
         tmvarPlanObjekt}
+    let objektReader = (tvarMaps, dynamischeWidgets, tmvarStatus)
     -- Knopf-Leiste mit globalen Funktionen
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End $ Gtk.hBoxNew False 0
-    _buttonHinzufügen <- buttonHinzufügenPack windowMain functionBox
-    boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
-    buttonSpeichernPack windowMain functionBox
-    buttonLadenPack windowMain functionBox
+    flip runReaderT objektReader $ do
+        buttonHinzufügenPack windowMain functionBox
+        liftIO $ boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
+        buttonSpeichernPack windowMain functionBox
+        buttonLadenPack windowMain functionBox
     boxPackWidgetNew functionBox packingDefault paddingDefault End $
         buttonNewWithEventMnemonic Language.beenden $ Gtk.mainQuit
     -- Lade Datei angegeben in Kommandozeilenargument
@@ -191,9 +196,10 @@ setupGUI = void $ do
     -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
     let
         ladeAktion :: Status -> IO StatusGui
-        ladeAktion = ladeWidgets
+        ladeAktion = flip runReaderT objektReader . ladeWidgets
         fehlerBehandlung :: MStatusGuiT IO ()
         fehlerBehandlung = RWS.put statusLeer
-    flip RWS.evalRWST statusLeer _ $ ausführenBefehl $
-        Laden dateipfad ladeAktion fehlerBehandlung
+        statusAktion :: MStatusGuiT IO Bool
+        statusAktion = ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung
+    flip runReaderT objektReader $ auswertenTMVarIOStatus statusAktion tmvarStatus
 #endif
