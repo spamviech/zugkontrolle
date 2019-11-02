@@ -80,7 +80,8 @@ anschlussAuswahlNew name = liftIO $ do
     aawPCF8574PortA0 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a0
     aawPCF8574PortA1 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a1
     aawPCF8574PortA2 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a2
-    aawPCF8574Port <- boxPackWidgetNewDefault pinBox $ Gtk.spinButtonNewWithRange 0 7 1
+    boxPackWidgetNewDefault pcf8574Box $ Gtk.labelNew $ Just $ (Language.port <:> "" :: Text)
+    aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
     Gtk.set aawPCF8574Port [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
     pure AnschlussAuswahlWidget {
         aawWidget = erhalteWidget vBox,
