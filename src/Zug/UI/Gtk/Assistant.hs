@@ -45,7 +45,10 @@ data Assistant w a
         fenster :: Gtk.Window,
         seiten :: AssistantSeitenBaumPacked w,
         tvarAuswahl :: TVar (Either ([AssistantSeitenBaumPacked w], AssistantSeitenBaumPacked w) (AssistantResult (NonEmpty w))),
-        auswertFunktion :: NonEmpty w -> IO a}
+        auswertFunktion :: NonEmpty w -> IO a,
+        seitenAbschlussKnopf :: Gtk.Button,
+        zurückKnopf :: Gtk.Button,
+        tvarAktuelleSeite :: TVar (AssistantSeitenBaumPacked w)}
 
 instance MitWidget (Assistant w a) where
     erhalteWidget :: Assistant w a -> Gtk.Widget
@@ -214,9 +217,17 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         Gtk.buttonNewWithLabel (Language.weiter :: Text)
     zurückKnopf <- boxPackWidgetNewDefault flowControlBox $
         Gtk.buttonNewWithLabel (Language.zurück :: Text)
-    Gtk.widgetHide zurückKnopf
     boxPackWidgetNewDefault flowControlBox $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
+    -- Konstruiere Ergebnistyp
+    let assistant = Assistant {
+        fenster,
+        seiten,
+        tvarAuswahl,
+        auswertFunktion,
+        seitenAbschlussKnopf,
+        zurückKnopf,
+        tvarAktuelleSeite}
     -- Füge Reaktion auf drücken des Vorwärts- und Zurück-Knopfes hinzu
     Gtk.on zurückKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
@@ -232,9 +243,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                     -> pure Nothing
         case maybeLetzteSeite of
             (Just letzteSeite)
-                -> do
-                    widgetShowIf (node seitenEingabe /= packedNode letzteSeite) zurückKnopf
-                    zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite letzteSeite
+                -> zeigeSeite assistant letzteSeite
             Nothing
                 -> error "Zurück-Knopf an unerwarteter Stelle gedrückt."
     let 
@@ -256,7 +265,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
+                        zeigeSeite assistant packedNachfolger
                 PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl}
                     -> do
                         nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
@@ -271,7 +280,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
+                        zeigeSeite assistant packedNachfolger
                 assistantSeite@PackedSeiteLetzte {}
                     -> do
                         atomically $ modifyTVar tvarAuswahl $ \case
@@ -290,8 +299,8 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         boxPack flowControlBox widget packingDefault paddingDefault Start
         mitWidgetShow widget
     -- Zeige erste Seite an
-    zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite seiten
-    pure Assistant {fenster, seiten, tvarAuswahl, auswertFunktion}
+    zeigeSeite assistant seiten
+    pure assistant
 
 -- | Packe den übergebenen 'SeitenBaum' in die 'MitBox' und erzeuge notwendige Hilfswidgets
 packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
@@ -355,22 +364,26 @@ packSeiten
 
 -- | Zeige die übergebene Seite an
 zeigeSeite :: (MonadIO m, MitWidget w, Eq w) =>
-    Gtk.Window -> Gtk.Button -> TVar (AssistantSeitenBaumPacked w) -> AssistantSeitenBaumPacked w -> m ()
-zeigeSeite assistantWindow seitenAbschlussKnopf tvarAktuelleSeite nachfolger = liftIO $ do
-    let nachfolgerSeite = packedNode nachfolger
-    seiteZurücksetzen nachfolgerSeite
-    Gtk.set assistantWindow [Gtk.windowTitle := name nachfolgerSeite]
-    atomically $ writeTVar tvarAktuelleSeite nachfolger
-    mitWidgetShow nachfolger
-    case besondererSeitenAbschlussWidget nachfolgerSeite of
-        (Left text)
-            -> do
-                Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := text]
-                mitWidgetShow seitenAbschlussKnopf
-        (Right widget)
-            -> do
-                mitWidgetShow widget
-                mitWidgetHide seitenAbschlussKnopf
+    Assistant w a -> AssistantSeitenBaumPacked w -> m ()
+zeigeSeite
+    Assistant{fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite}
+    nachfolger
+        = liftIO $ do
+            let nachfolgerSeite = packedNode nachfolger
+            seiteZurücksetzen nachfolgerSeite
+            Gtk.set fenster [Gtk.windowTitle := name nachfolgerSeite]
+            widgetShowIf (packedNode seiten /= nachfolgerSeite) zurückKnopf
+            atomically $ writeTVar tvarAktuelleSeite nachfolger
+            mitWidgetShow nachfolger
+            case besondererSeitenAbschlussWidget nachfolgerSeite of
+                (Left text)
+                    -> do
+                        Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := text]
+                        mitWidgetShow seitenAbschlussKnopf
+                (Right widget)
+                    -> do
+                        mitWidgetShow widget
+                        mitWidgetHide seitenAbschlussKnopf
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
 data AssistantResult a
@@ -382,9 +395,11 @@ data AssistantResult a
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
 -- Es wird erwartet, dass diese Funktion geforkt vom GTK-Hauptthread aufgerufen wird.
 -- Entsprechend wird 'Gtk.postGUIAsync' verwendet.
-assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
-assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
-    Gtk.postGUIAsync $ Gtk.widgetShow fenster
+assistantAuswerten :: (MonadIO m, MitWidget w, Eq w) => Assistant w a -> m (AssistantResult a)
+assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAktuelleSeite} = liftIO $ do
+    Gtk.postGUIAsync $ do
+        zeigeSeite assistant seiten
+        Gtk.widgetShow fenster
     -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
     ergebnis <- atomically (takeAuswahl assistant) >>= \case
         (AssistantErfolgreich auswahl)
@@ -393,7 +408,10 @@ assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
             -> pure AssistantAbbrechen
         AssistantBeenden
             -> pure AssistantBeenden
-    Gtk.postGUIAsync $ Gtk.widgetHide fenster
+    letzteSeite <- readTVarIO tvarAktuelleSeite
+    Gtk.postGUIAsync $ do
+        mitWidgetHide letzteSeite
+        Gtk.widgetHide fenster
     pure ergebnis
         where
             -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
