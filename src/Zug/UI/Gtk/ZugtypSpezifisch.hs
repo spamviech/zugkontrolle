@@ -21,9 +21,9 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.Klassen (Zugtyp(..))
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowIf)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitContainer(..))
 
 -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
@@ -54,12 +54,13 @@ zugtypSpezifischNew :: (MitWidget w, MonadIO m) =>
     NonEmpty (Zugtyp, w) -> AuswahlWidget Zugtyp -> m (ZugtypSpezifisch Gtk.Widget)
 zugtypSpezifischNew eingabeWidgets auswahlWidget = liftIO $ do
     vBox <- Gtk.vBoxNew False 0
+    aktuellerZugtyp <- aktuelleAuswahl auswahlWidget
     zugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitWidget) -> do
         hiddenBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-        let widget = erhalteWidget mitWidget
-        Gtk.widgetShow widget
-        boxPackDefault hiddenBox widget
-        pure (zugtyp, widget)
+        widgetShowIf (aktuellerZugtyp == zugtyp) hiddenBox
+        mitWidgetShow mitWidget
+        boxPackDefault hiddenBox mitWidget
+        pure (zugtyp, hiddenBox)
     beiAuswahl auswahlWidget $ \gewählterZugtyp -> forM_ zugtypWidgets $ \(zugtyp, widget) ->
         widgetShowIf (gewählterZugtyp == zugtyp) widget
     pure ZugtypSpezifisch {vBox}
@@ -71,14 +72,15 @@ zugtypSpezifischButtonNew :: (MitButton w, MonadIO m) =>
 zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
     buttonVBox <- Gtk.vBoxNew False 0
     buttonDummy <- Gtk.buttonNew
+    aktuellerZugtyp <- aktuelleAuswahl buttonAuswahlWidget
     buttonZugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitButton) -> do
         hiddenBox <- boxPackWidgetNewDefault buttonVBox $ Gtk.hBoxNew False 0
-        let widget = erhalteWidget mitButton
-        Gtk.widgetShow widget
-        boxPackDefault hiddenBox widget
+        widgetShowIf (aktuellerZugtyp == zugtyp) hiddenBox
+        mitWidgetShow mitButton
+        boxPackDefault hiddenBox mitButton
         let button = erhalteButton mitButton
         Gtk.on button Gtk.buttonActivated $ Gtk.buttonClicked buttonDummy
-        pure (zugtyp, button)
+        pure (zugtyp, hiddenBox)
     beiAuswahl buttonAuswahlWidget $ \gewählterZugtyp -> forM_ buttonZugtypWidgets $ \(zugtyp, widget) ->
         widgetShowIf (gewählterZugtyp == zugtyp) widget
     pure ZugtypSpezifischButton {buttonVBox, buttonDummy}
