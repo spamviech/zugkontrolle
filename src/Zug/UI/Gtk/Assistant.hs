@@ -232,6 +232,11 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     Gtk.on zurückKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
         mitWidgetHide aktuelleSeite
+        case besondererSeitenAbschlussWidget $ packedNode aktuelleSeite of
+            (Left _name)
+                -> pure ()
+            (Right widget)
+                -> mitWidgetHide widget
         maybeLetzteSeite <- atomically $ do
             auswahl <- readTVar tvarAuswahl
             case auswahl of
