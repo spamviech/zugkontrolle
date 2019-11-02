@@ -210,13 +210,13 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
         pure True
     -- Knopf-Leiste für permanente Funktionen
-    boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
-        buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
-    zurückKnopf <- boxPackWidgetNew flowControlBox packingDefault  paddingDefault End $
+    seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox $
+        Gtk.buttonNewWithLabel (Language.weiter :: Text)
+    zurückKnopf <- boxPackWidgetNewDefault flowControlBox $
         Gtk.buttonNewWithLabel (Language.zurück :: Text)
     Gtk.widgetHide zurückKnopf
-    seitenAbschlussKnopf <- boxPackWidgetNew flowControlBox packingDefault paddingDefault End $
-        Gtk.buttonNewWithLabel (Language.weiter :: Text)
+    boxPackWidgetNewDefault flowControlBox $
+        buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
     -- Füge Reaktion auf drücken des Vorwärts- und Zurück-Knopfes hinzu
     Gtk.on zurückKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
