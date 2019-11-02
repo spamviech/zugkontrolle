@@ -35,6 +35,7 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitButton(..))
+import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew)
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
@@ -61,7 +62,7 @@ fortfahrenWennToggledNew :: (MonadIO m) =>
     Text -> NonEmpty Text -> m FortfahrenWennToggled
 fortfahrenWennToggledNew label checkButtonNames = liftIO $ do
     fortfahren <- Gtk.buttonNewWithLabel label
-    checkButtons <- forM checkButtonNames $ fmap RegistrierterCheckButton . Gtk.checkButtonNewWithLabel
+    checkButtons <- forM checkButtonNames $ fmap RegistrierterCheckButton . widgetShowNew . Gtk.checkButtonNewWithLabel
     let fortfahrenWennToggled = FortfahrenWennToggled {fortfahren, checkButtons}
     forM_ checkButtons $ \(RegistrierterCheckButton checkButton) ->
         Gtk.on checkButton Gtk.toggled $ aktiviereWennToggled fortfahrenWennToggled
@@ -133,7 +134,7 @@ newtype RegistrierterCheckButton
 registrierterCheckButtonNew :: (MonadIO m, MitRegistrierterCheckButton c) =>
     Text -> FortfahrenWennToggledTMVar a c -> m RegistrierterCheckButton
 registrierterCheckButtonNew label fortfahrenWennToggled = liftIO $ do
-    checkButton <- Gtk.checkButtonNewWithLabel label
+    checkButton <- widgetShowNew $ Gtk.checkButtonNewWithLabel label
     Gtk.on checkButton Gtk.toggled $ aktiviereWennToggledTMVar fortfahrenWennToggled
     pure $ RegistrierterCheckButton checkButton
 
