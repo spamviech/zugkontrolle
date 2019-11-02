@@ -23,7 +23,7 @@ import Zug.Language ((<:>), showText)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
@@ -48,7 +48,7 @@ fließendAuswahlPackNew
     = flip boxPackWidgetNewDefault fließendAuswahlNew
 
 fließendAuswahlNew :: (MonadIO m) => m FließendAuswahlWidget
-fließendAuswahlNew = liftIO $ FließendAuswahlWidget <$> boundedEnumAuswahlRadioButtonNew LOW Language.fließend
+fließendAuswahlNew = liftIO $ FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW Language.fließend
 
 -- | Erhalte den aktuell gewählten Fließend-Value
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value

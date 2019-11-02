@@ -24,6 +24,7 @@ import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
@@ -82,7 +83,7 @@ data AssistantSeite w
         name :: Text,
         seiteZurücksetzen :: IO (),
         seitenAbschluss :: SeitenAbschluss}
-            deriving (Functor)
+    deriving (Functor)
 
 instance (Eq w) => Eq (AssistantSeite w) where
     (==) :: AssistantSeite w -> AssistantSeite w -> Bool
@@ -260,14 +261,17 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                     -> do
                         nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
                         let packedNachfolger = case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
-                                (Just packedNachfolger) -> packedNachfolger
-                                Nothing                 -> error "unbekannte Seite bei AuswahlWidget ausgewählt."
+                                (Just packedNachfolger)
+                                    -> packedNachfolger
+                                Nothing
+                                    -> error $ "Unbekannte Seite bei AuswahlWidget ausgewählt: " ++
+                                        Text.unpack (name nachfolgerSeite)
                         atomically $ modifyTVar tvarAuswahl $ \case
                             (Left (besuchteSeiten, _aktuelleSeite))
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite $ packedNachfolger
+                        zeigeSeite fenster seitenAbschlussKnopf tvarAktuelleSeite packedNachfolger
                 assistantSeite@PackedSeiteLetzte {}
                     -> do
                         atomically $ modifyTVar tvarAuswahl $ \case
