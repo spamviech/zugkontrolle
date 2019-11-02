@@ -570,14 +570,26 @@ assistantHinzufügenNew
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
                 Gtk.panedAdd2 vPanedRight frameRightBot
-                containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
+                boxBahngeschwindigkeiten <- containerAddWidgetNew frameLeftTop $ Gtk.vBoxNew False 0
+                boxPackWidgetNewDefault boxBahngeschwindigkeiten $ Gtk.labelNew $
+                    Just (Language.bahngeschwindigkeiten :: Text)
+                boxPackWidgetNewDefault boxBahngeschwindigkeiten $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
-                mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
-                containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
+                boxStreckenabschnitte <- containerAddWidgetNew frameLeftBot $ Gtk.vBoxNew False 0
+                boxPackWidgetNewDefault boxStreckenabschnitte $ Gtk.labelNew $
+                    Just (Language.streckenabschnitte :: Text)
+                boxPackDefault boxStreckenabschnitte vBoxHinzufügenWegstreckeStreckenabschnitte
+                boxWeichen <- containerAddWidgetNew frameRightTop $ Gtk.vBoxNew False 0
+                boxPackWidgetNewDefault boxWeichen $ Gtk.labelNew $
+                    Just (Language.weichen :: Text)
+                boxPackWidgetNewDefault boxWeichen $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
-                mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
+                boxKupplungen <- containerAddWidgetNew frameRightBot $ Gtk.vBoxNew False 0
+                boxPackWidgetNewDefault boxKupplungen $ Gtk.labelNew $
+                    Just (Language.kupplungen :: Text)
+                boxPackDefault boxKupplungen vBoxHinzufügenWegstreckeKupplungen
                 let
                     seiteZurücksetzenWegstrecke :: IO ()
                     seiteZurücksetzenWegstrecke = do

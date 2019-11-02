@@ -39,7 +39,7 @@ import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufüge
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventMnemonic,
-                                    containerAddWidgetNew, boxPack, boxPackWidgetNew,
+                                    containerAddWidgetNew, boxPack, boxPackWidgetNew, boxPackWidgetNewDefault,
                                     Packing(..), packingDefault, paddingDefault,
                                     Position(..), positionDefault,
                                     notebookAppendPageNew)
@@ -84,20 +84,24 @@ setupGUI = void $ do
     Gtk.set frameLeftTop [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 vPanedLeft frameLeftTop
     vBoxBahngeschwindigkeiten <- containerAddWidgetNew frameLeftTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.labelNew $ Just (Language.bahngeschwindigkeiten :: Text)
     frameLeftBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameLeftBot [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 vPanedLeft frameLeftBot
     vBoxStreckenabschnitte <- containerAddWidgetNew frameLeftBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault vBoxStreckenabschnitte $ Gtk.labelNew $ Just (Language.streckenabschnitte :: Text)
     vPanedRight <- widgetShowNew Gtk.vPanedNew
     Gtk.panedAdd2 panedEinzelObjekte vPanedRight
     frameRightTop <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightTop [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 vPanedRight frameRightTop
     vBoxWeichen <- containerAddWidgetNew frameRightTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault vBoxWeichen $ Gtk.labelNew $ Just (Language.weichen :: Text)
     frameRightBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 vPanedRight frameRightBot
     vBoxKupplungen <- containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault vBoxKupplungen $ Gtk.labelNew $ Just (Language.kupplungen :: Text)
     (panedSammelObjekte, _page) <- notebookAppendPageNew
         notebookElemente
         (Language.wegstrecken <|> Language.pläne)
@@ -106,10 +110,12 @@ setupGUI = void $ do
     Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 panedSammelObjekte frameWegstrecken
     vBoxWegstrecken <- containerAddWidgetNew frameWegstrecken $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault vBoxWegstrecken $ Gtk.labelNew $ Just (Language.wegstrecken :: Text)
     framePläne <- widgetShowNew Gtk.frameNew
     Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 panedSammelObjekte framePläne
     vBoxPläne <- containerAddWidgetNew framePläne $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault vBoxPläne $ Gtk.labelNew $ Just (Language.pläne :: Text)
     -- DynamischeWidgets
     progressBarPlan
         <- widgetShowNew Gtk.progressBarNew
