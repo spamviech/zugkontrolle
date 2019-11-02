@@ -30,6 +30,7 @@ import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe (fromJust)
 import Data.Text (Text)
+import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (showText)
@@ -51,11 +52,16 @@ instance MitWidget (AuswahlWidget e) where
     erhalteWidget :: AuswahlWidget e -> Gtk.Widget
     erhalteWidget = widget
 
+-- | Wert von 'Gtk.labelMaxWidthChars'-proberty des Name-Labels
+nameWrapSize :: Int
+nameWrapSize = 16
+
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's
 auswahlRadioButtonNamedNew :: (MonadIO m, Eq e) => NonEmpty e -> Text -> (e -> Text) -> m (AuswahlWidget e)
 auswahlRadioButtonNamedNew (h :| t) name anzeigeFunktion = liftIO $ do
     hBox <- Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
+    nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
+    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     vBox <- boxPackWidgetNewDefault hBox $ Gtk.vBoxNew False 0
     -- Erstelle RadioButtons
     hRadioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabel $ anzeigeFunktion h
@@ -82,7 +88,8 @@ boundedEnumAuswahlRadioButtonNew standard = auswahlRadioButtonNew $ standard :| 
 auswahlComboBoxNamedNew :: (MonadIO m, Eq e) => NonEmpty e -> Text -> (e -> Text) -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = liftIO $ do
     hBox <- Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
+    nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
+    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewText
     -- Erstelle ComboBox-Einträge
     enumIndizes <- forM elemente $ \enum -> do
