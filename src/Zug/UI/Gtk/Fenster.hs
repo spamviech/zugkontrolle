@@ -72,8 +72,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widg
                                     buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..),
-                            mitContainerRemove, mitContainerAdd,
-                            MitEntry(..), MitButton(..), MitWindow(..))
+                            mitContainerRemove, MitEntry(..), MitButton(..), MitWindow(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
                                     StatusReader(..), BoxPlanHinzufügen,
@@ -613,6 +612,7 @@ assistantHinzufügenNew
                 boxAktionObjektAuswahl <- containerAddWidgetNew windowAktionObjektAuswahl $ Gtk.vBoxNew False 0
                 -- Anzeige der Boxen explizit beim Anzeigen des Fensters
                 mapM_ (boxPackDefault boxAktionObjektAuswahl) [
+                    -- Kategorie-Label anzeigen, ToDo!!!)
                     erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
                     erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenLego,
                     erhalteWidget vBoxHinzufügenPlanStreckenabschnitte,
@@ -635,438 +635,437 @@ assistantHinzufügenNew
                     erhalteWidget vBoxHinzufügenPlanWegstreckenLego]
                 boxPackWidgetNewDefault boxAktionObjektAuswahl $ buttonNewWithEventLabel Language.abbrechen $
                     atomically $ putTMVar tmvarPlanObjekt Nothing
-                -- -- Plan
-                -- boxPlan <- Gtk.vBoxNew False 0
-                -- nameAuswahlPlan <- nameAuswahlPackNew boxPlan
-                -- expanderAktionen <- widgetShowNew $ Gtk.expanderNew (Language.aktionen :: Text)
-                -- boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
-                -- seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
-                -- tvarAktionen <- newTVarIO leer
-                -- tvarWidgets <- newTVarIO []
-                -- let
-                --     zeigeAktionen :: (Foldable t, MonadIO m) => t Aktion -> m ()
-                --     zeigeAktionen aktionen = liftIO $ do
-                --         widgets <- readTVarIO tvarWidgets
-                --         forM_ widgets $ mitContainerRemove boxAktionen
-                --         widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . show) $
-                --             toList aktionen
-                --         Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
-                --         atomically $ writeTVar tvarWidgets widgetsNeu
-                --         Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
-                --     aktionHinzufügen :: Aktion -> IO ()
-                --     aktionHinzufügen aktion = do
-                --         aktionenDanach <- atomically $ do
-                --             aktionen <- readTVar tvarAktionen
-                --             let aktionenDanach = anhängen aktion aktionen
-                --             writeTVar tvarAktionen aktionenDanach
-                --             pure aktionenDanach
-                --         zeigeAktionen aktionenDanach
-                -- -- AktionBahngeschwindigkeit 'Märklin
-                -- boxAktionBahngeschwindigkeitMärklin <- Gtk.hBoxNew False 0
-                -- let
-                --     zeigeMärklinBahngeschwindigkeitAktionAuswahl :: IO ()
-                --     zeigeMärklinBahngeschwindigkeitAktionAuswahl = do
-                --         mitWidgetShow vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                --         mitWidgetHide vBoxHinzufügenPlanKupplungen
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                --         mitWidgetShow windowAktionObjektAuswahl
-                --     märklinBahngeschwindigkeitAktionHinzufügen :: 
-                --         (forall b. (BahngeschwindigkeitKlasse b) =>
-                --             b 'Märklin -> IO (AktionBahngeschwindigkeit b 'Märklin)) ->
-                --                 IO ()
-                --     märklinBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
-                --         Gtk.postGUIAsync $ zeigeMärklinBahngeschwindigkeitAktionAuswahl
-                --         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                --             (Just (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
-                --                 -> aktionKonstruktor bgMärklin >>= aktionHinzufügen . ABahngeschwindigkeitMärklin
-                --             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
-                --                 -> aktionKonstruktor wsMärklin >>=
-                --                     aktionHinzufügen . AWegstreckeMärklin . AWSBahngeschwindigkeit
-                --             (Just anderesObjekt)
-                --                 -> error $
-                --                     "unerwartetes Objekt für Märklin-Bahngeschwindigkeit-Aktion erhalten: " ++
-                --                     show anderesObjekt
-                --             Nothing
-                --                 -> pure ()
-                --         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                -- märklinGeschwindigkeitsScale <-
-                --     boxPackWidgetNew boxAktionBahngeschwindigkeitMärklin PackGrow paddingDefault positionDefault $
-                --         Gtk.hScaleNewWithRange 0 100 1
-                -- boxPackWidgetNewDefault boxAktionBahngeschwindigkeitMärklin $
-                --     buttonNewWithEventLabel Language.geschwindigkeit $
-                --         märklinBahngeschwindigkeitAktionHinzufügen $ \bg -> do
-                --             Geschwindigkeit bg . floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
-                -- boxPackWidgetNewDefault boxAktionBahngeschwindigkeitMärklin $
-                --     buttonNewWithEventLabel Language.umdrehen $
-                --         märklinBahngeschwindigkeitAktionHinzufügen $ pure . Umdrehen
-                -- -- AktionBahngeschwindigkeit 'Lego
-                -- boxAktionBahngeschwindigkeitLego <- Gtk.hBoxNew False 0
-                -- let
-                --     zeigeLegoBahngeschwindigkeitAktionAuswahl :: IO ()
-                --     zeigeLegoBahngeschwindigkeitAktionAuswahl = do
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --         mitWidgetShow vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                --         mitWidgetHide vBoxHinzufügenPlanKupplungen
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                --         mitWidgetShow windowAktionObjektAuswahl
-                --     legoBahngeschwindigkeitAktionHinzufügen :: 
-                --         (forall b. (BahngeschwindigkeitKlasse b) =>
-                --             b 'Lego -> IO (AktionBahngeschwindigkeit b 'Lego)) ->
-                --                 IO ()
-                --     legoBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
-                --         Gtk.postGUIAsync $ zeigeLegoBahngeschwindigkeitAktionAuswahl
-                --         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                --             (Just (OBahngeschwindigkeit (ZugtypLego bgLego)))
-                --                 -> aktionKonstruktor bgLego >>= aktionHinzufügen . ABahngeschwindigkeitLego
-                --             (Just (OWegstrecke (ZugtypLego wsLego)))
-                --                 -> aktionKonstruktor wsLego >>=
-                --                     aktionHinzufügen . AWegstreckeLego . AWSBahngeschwindigkeit
-                --             (Just anderesObjekt)
-                --                 -> error $
-                --                     "unerwartetes Objekt für Lego-Bahngeschwindigkeit-Aktion erhalten: " ++
-                --                     show anderesObjekt
-                --             Nothing
-                --                 -> pure ()
-                --         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                -- legoGeschwindigkeitsScale <-
-                --     boxPackWidgetNew boxAktionBahngeschwindigkeitLego PackGrow paddingDefault positionDefault $
-                --         Gtk.hScaleNewWithRange 0 100 1
-                -- boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
-                --     buttonNewWithEventLabel Language.geschwindigkeit $
-                --         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> 
-                --             Geschwindigkeit bg . floor <$> Gtk.get legoGeschwindigkeitsScale Gtk.rangeValue
-                -- legoFahrtrichtungAuswahl <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Vorwärts ("" :: Text)
-                -- boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
-                --     buttonNewWithEventLabel Language.fahrtrichtungEinstellen $
-                --         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> FahrtrichtungEinstellen bg <$> aktuelleAuswahl legoFahrtrichtungAuswahl
-                -- boxPackDefault boxAktionBahngeschwindigkeitLego legoFahrtrichtungAuswahl
-                -- -- ZugtypSpezifisch Bahngeschwindigkeit
-                -- boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
-                --     ((Märklin, boxAktionBahngeschwindigkeitMärklin) :| [(Lego, boxAktionBahngeschwindigkeitLego)])
-                --     zugtypAuswahl
-                -- -- AktionStreckenabschnitt
-                -- boxAktionStreckenabschnitt <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
-                -- let
-                --     zeigeStreckenabschnittAktionAuswahl :: IO ()
-                --     zeigeStreckenabschnittAktionAuswahl = do
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --         mitWidgetShow vBoxHinzufügenPlanStreckenabschnitte
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                --         mitWidgetHide vBoxHinzufügenPlanKupplungen
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                --         mitWidgetShow windowAktionObjektAuswahl
-                --     streckenabschnittAktionHinzufügen :: 
-                --         (forall s. (StreckenabschnittKlasse s) =>
-                --             s -> IO (AktionStreckenabschnitt s)) ->
-                --                 IO ()
-                --     streckenabschnittAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
-                --         Gtk.postGUIAsync $ zeigeStreckenabschnittAktionAuswahl
-                --         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                --             (Just (OStreckenabschnitt st))
-                --                 -> aktionKonstruktor st >>= aktionHinzufügen . AStreckenabschnitt
-                --             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
-                --                 -> aktionKonstruktor wsMärklin >>=
-                --                     aktionHinzufügen . AWegstreckeMärklin . AWSStreckenabschnitt
-                --             (Just (OWegstrecke (ZugtypLego wsLego)))
-                --                 -> aktionKonstruktor wsLego >>=
-                --                     aktionHinzufügen . AWegstreckeLego . AWSStreckenabschnitt
-                --             (Just anderesObjekt)
-                --                 -> error $
-                --                     "unerwartetes Objekt für Streckenabschnitt-Aktion erhalten: " ++
-                --                     show anderesObjekt
-                --             Nothing
-                --                 -> pure ()
-                --         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                -- auswahlStrom <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend ("" :: Text)
-                -- boxPackWidgetNewDefault boxAktionStreckenabschnitt $
-                --     buttonNewWithEventLabel Language.strom $
-                --         streckenabschnittAktionHinzufügen $ \st -> Strom st <$> aktuelleAuswahl auswahlStrom
-                -- boxPackDefault boxAktionStreckenabschnitt auswahlStrom
-                -- -- AktionWeiche
-                -- boxAktionWeiche <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
-                -- let
-                --     zeigeWeicheAktionAuswahl :: Richtung -> IO ()
-                --     zeigeWeicheAktionAuswahl richtung = do
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                --         widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeMärklin
-                --         widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveMärklin
-                --         widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksMärklin
-                --         widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsMärklin
-                --         widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeLego
-                --         widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveLego
-                --         widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksLego
-                --         widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsLego
-                --         mitWidgetHide vBoxHinzufügenPlanKupplungen
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                --         mitWidgetShow windowAktionObjektAuswahl
-                --     weicheAktionHinzufügen :: Richtung -> IO ()
-                --     weicheAktionHinzufügen richtung = void $ forkIO $ do
-                --         Gtk.postGUIAsync $ zeigeWeicheAktionAuswahl richtung
-                --         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                --             (Just (OWeiche we))
-                --                 -> aktionHinzufügen $ AWeiche $ Stellen we richtung
-                --             (Just anderesObjekt)
-                --                 -> error $
-                --                     "unerwartetes Objekt zum Weiche stellen erhalten: " ++ show anderesObjekt
-                --             Nothing
-                --                 -> pure ()
-                --         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                -- buttonAktionWeicheGerade <- boxPackWidgetNewDefault boxAktionWeiche $
-                --     buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
-                --         weicheAktionHinzufügen Gerade
-                -- buttonAktionWeicheKurve <- boxPackWidgetNewDefault boxAktionWeiche $
-                --     buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $
-                --         weicheAktionHinzufügen Kurve
-                -- buttonAktionWeicheLinks <- boxPackWidgetNewDefault boxAktionWeiche $
-                --     buttonNewWithEventLabel (Language.stellen <:> Language.links) $
-                --         weicheAktionHinzufügen Links
-                -- buttonAktionWeicheRechts <- boxPackWidgetNewDefault boxAktionWeiche $
-                --     buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
-                --         weicheAktionHinzufügen Rechts
-                -- -- AktionKupplung
-                -- boxAktionKupplung <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
-                -- let
-                --     zeigeKupplungAktionAuswahl :: IO ()
-                --     zeigeKupplungAktionAuswahl = do
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                --         mitWidgetShow vBoxHinzufügenPlanKupplungen
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenKupplungLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
-                --         mitWidgetShow windowAktionObjektAuswahl
-                --     kupplungAktionHinzufügen :: 
-                --         (forall k. (KupplungKlasse k) =>
-                --             k -> IO (AktionKupplung k)) ->
-                --                 IO ()
-                --     kupplungAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
-                --         Gtk.postGUIAsync $ zeigeKupplungAktionAuswahl
-                --         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                --             (Just (OKupplung ku))
-                --                 -> aktionKonstruktor ku >>= aktionHinzufügen . AKupplung
-                --             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
-                --                 -> aktionKonstruktor wsMärklin >>=
-                --                     aktionHinzufügen . AWegstreckeMärklin . AWSKupplung
-                --             (Just (OWegstrecke (ZugtypLego wsLego)))
-                --                 -> aktionKonstruktor wsLego >>=
-                --                     aktionHinzufügen . AWegstreckeLego . AWSKupplung
-                --             (Just anderesObjekt)
-                --                 -> error $
-                --                     "unerwartetes Objekt für Streckenabschnitt-Aktion erhalten: " ++
-                --                     show anderesObjekt
-                --             Nothing
-                --                 -> pure ()
-                --         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                -- boxPackWidgetNewDefault boxAktionKupplung $
-                --     buttonNewWithEventLabel Language.kuppeln $
-                --         kupplungAktionHinzufügen $ pure . Kuppeln
-                -- boxPackDefault boxAktionStreckenabschnitt auswahlStrom
-                -- -- AktionWegstrecke
-                -- boxAktionWegstrecke <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
-                -- let
-                --     zeigeWegstreckeAktionAuswahl :: IO ()
-                --     zeigeWegstreckeAktionAuswahl = do
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --         mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
-                --         mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
-                --         mitWidgetHide vBoxHinzufügenPlanKupplungen
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenMärklin
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                --         mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
-                --         mitWidgetShow vBoxHinzufügenPlanWegstreckenLego
-                --         mitWidgetShow windowAktionObjektAuswahl
-                --     wegstreckeAktionHinzufügen ::
-                --         (forall w z. (WegstreckeKlasse (w z)) =>
-                --             w z -> IO (AktionWegstrecke w z)) ->
-                --                 IO ()
-                --     wegstreckeAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
-                --         Gtk.postGUIAsync $ zeigeWegstreckeAktionAuswahl 
-                --         atomically (takeTMVar tmvarPlanObjekt) >>= \case
-                --             (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
-                --                 -> aktionKonstruktor wsMärklin >>= aktionHinzufügen . AWegstreckeMärklin
-                --             (Just (OWegstrecke (ZugtypLego wsLego)))
-                --                 -> aktionKonstruktor wsLego >>= aktionHinzufügen . AWegstreckeLego
-                --             (Just anderesObjekt)
-                --                 -> error $
-                --                     "unerwartetes Objekt für Wegstrecke-Aktion erhalten: " ++
-                --                     show anderesObjekt
-                --             Nothing
-                --                 -> pure ()
-                --         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                -- boxPackWidgetNewDefault boxAktionWegstrecke $
-                --     buttonNewWithEventLabel Language.einstellen $
-                --         wegstreckeAktionHinzufügen $ pure . Einstellen
-                -- -- Zeige aktuelle Aktionen an
-                -- boxPackDefault boxPlan expanderAktionen
-                -- boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
-                --     aktionenVorher <- atomically $ do
-                --         aktionen <- readTVar tvarAktionen
-                --         let aktionenVorher = case zeigeLetztes aktionen of
-                --                 Leer
-                --                     -> leer
-                --                 Gefüllt _letztes warteschlange
-                --                     -> warteschlange
-                --         writeTVar tvarAktionen aktionenVorher
-                --         pure aktionenVorher
-                --     zeigeAktionen aktionenVorher
-                -- let
-                --     seiteZurücksetzenPlan :: IO ()
-                --     seiteZurücksetzenPlan = do
-                --         -- aktuelle Aktionen zurücksetzen
-                --         atomically $ writeTVar tvarAktionen leer
-                --         zeigeAktionen leer
-                --         -- Entry zurücksetzten
-                --         Gtk.set (erhalteEntry nameAuswahlPlan)
-                --             [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
-                --         let
-                --             versteckeWennLeer :: (MitWidget w) =>
-                --                 BoxPlanHinzufügen a ->
-                --                 Maybe (BoxPlanHinzufügen b) ->
-                --                 Maybe (BoxPlanHinzufügen c) ->
-                --                 w ->
-                --                     IO ()
-                --             versteckeWennLeer boxPlanA maybeBoxPlanB maybeBoxPlanC widget = do
-                --                 a <- widgetHinzufügenContainerGefüllt boxPlanA
-                --                 b <- maybe (pure False) widgetHinzufügenContainerGefüllt maybeBoxPlanB
-                --                 c <- maybe (pure False) widgetHinzufügenContainerGefüllt maybeBoxPlanC
-                --                 widgetShowIf (a || b || c) widget
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                --             (Just vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin)
-                --             Nothing
-                --             boxAktionBahngeschwindigkeitMärklin
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                --             (Just vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin)
-                --             Nothing
-                --             boxAktionBahngeschwindigkeitLego
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanStreckenabschnitte
-                --             (Just vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin)
-                --             (Just vBoxHinzufügenPlanWegstreckenStreckenabschnittLego)
-                --             boxAktionStreckenabschnitt
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanWeichenGeradeMärklin
-                --             (Just vBoxHinzufügenPlanWeichenGeradeLego)
-                --             Nothing
-                --             buttonAktionWeicheGerade
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanWeichenKurveMärklin
-                --             (Just vBoxHinzufügenPlanWeichenKurveLego)
-                --             Nothing
-                --             buttonAktionWeicheKurve
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanWeichenLinksMärklin
-                --             (Just vBoxHinzufügenPlanWeichenLinksLego)
-                --             Nothing
-                --             buttonAktionWeicheLinks
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanWeichenRechtsMärklin
-                --             (Just vBoxHinzufügenPlanWeichenRechtsLego)
-                --             Nothing
-                --             buttonAktionWeicheRechts
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanKupplungen
-                --             (Just vBoxHinzufügenPlanWegstreckenKupplungMärklin)
-                --             (Just vBoxHinzufügenPlanWegstreckenKupplungLego)
-                --             boxAktionKupplung
-                --         versteckeWennLeer
-                --             vBoxHinzufügenPlanWegstreckenMärklin
-                --             (Just vBoxHinzufügenPlanWegstreckenLego)
-                --             Nothing
-                --             boxAktionWegstrecke
-                --     seitePlan :: AssistantSeite HinzufügenSeite
-                --     seitePlan = AssistantSeite {
-                --         seite = HinzufügenSeitePlan {
-                --             widget = erhalteWidget boxPlan,
-                --             nameAuswahl = nameAuswahlPlan,
-                --             tvarAktionen},
-                --         name = Language.plan,
-                --         seiteZurücksetzen = seiteZurücksetzenPlan,
-                --         seitenAbschluss = SeitenAbschlussButton seitenAbschlussPlan}
+                -- Plan
+                boxPlan <- Gtk.vBoxNew False 0
+                nameAuswahlPlan <- nameAuswahlPackNew boxPlan
+                expanderAktionen <- widgetShowNew $ Gtk.expanderNew (Language.aktionen :: Text)
+                boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
+                seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+                tvarAktionen <- newTVarIO leer
+                tvarWidgets <- newTVarIO []
+                let
+                    zeigeAktionen :: (Foldable t, MonadIO m) => t Aktion -> m ()
+                    zeigeAktionen aktionen = liftIO $ do
+                        widgets <- readTVarIO tvarWidgets
+                        forM_ widgets $ mitContainerRemove boxAktionen
+                        widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . show) $
+                            toList aktionen
+                        Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
+                        atomically $ writeTVar tvarWidgets widgetsNeu
+                        Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
+                    aktionHinzufügen :: Aktion -> IO ()
+                    aktionHinzufügen aktion = do
+                        aktionenDanach <- atomically $ do
+                            aktionen <- readTVar tvarAktionen
+                            let aktionenDanach = anhängen aktion aktionen
+                            writeTVar tvarAktionen aktionenDanach
+                            pure aktionenDanach
+                        zeigeAktionen aktionenDanach
+                -- AktionBahngeschwindigkeit 'Märklin
+                boxAktionBahngeschwindigkeitMärklin <- Gtk.hBoxNew False 0
+                let
+                    zeigeMärklinBahngeschwindigkeitAktionAuswahl :: IO ()
+                    zeigeMärklinBahngeschwindigkeitAktionAuswahl = do
+                        mitWidgetShow vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    märklinBahngeschwindigkeitAktionHinzufügen :: 
+                        (forall b. (BahngeschwindigkeitKlasse b) =>
+                            b 'Märklin -> IO (AktionBahngeschwindigkeit b 'Märklin)) ->
+                                IO ()
+                    märklinBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeMärklinBahngeschwindigkeitAktionAuswahl
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
+                                -> aktionKonstruktor bgMärklin >>= aktionHinzufügen . ABahngeschwindigkeitMärklin
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> aktionKonstruktor wsMärklin >>=
+                                    aktionHinzufügen . AWegstreckeMärklin . AWSBahngeschwindigkeit
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt für Märklin-Bahngeschwindigkeit-Aktion erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
+                märklinGeschwindigkeitsScale <-
+                    boxPackWidgetNew boxAktionBahngeschwindigkeitMärklin PackGrow paddingDefault positionDefault $
+                        Gtk.hScaleNewWithRange 0 100 1
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitMärklin $
+                    buttonNewWithEventLabel Language.geschwindigkeit $
+                        märklinBahngeschwindigkeitAktionHinzufügen $ \bg -> do
+                            Geschwindigkeit bg . floor <$> Gtk.get märklinGeschwindigkeitsScale Gtk.rangeValue
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitMärklin $
+                    buttonNewWithEventLabel Language.umdrehen $
+                        märklinBahngeschwindigkeitAktionHinzufügen $ pure . Umdrehen
+                -- AktionBahngeschwindigkeit 'Lego
+                boxAktionBahngeschwindigkeitLego <- Gtk.hBoxNew False 0
+                let
+                    zeigeLegoBahngeschwindigkeitAktionAuswahl :: IO ()
+                    zeigeLegoBahngeschwindigkeitAktionAuswahl = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetShow vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    legoBahngeschwindigkeitAktionHinzufügen :: 
+                        (forall b. (BahngeschwindigkeitKlasse b) =>
+                            b 'Lego -> IO (AktionBahngeschwindigkeit b 'Lego)) ->
+                                IO ()
+                    legoBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeLegoBahngeschwindigkeitAktionAuswahl
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OBahngeschwindigkeit (ZugtypLego bgLego)))
+                                -> aktionKonstruktor bgLego >>= aktionHinzufügen . ABahngeschwindigkeitLego
+                            (Just (OWegstrecke (ZugtypLego wsLego)))
+                                -> aktionKonstruktor wsLego >>=
+                                    aktionHinzufügen . AWegstreckeLego . AWSBahngeschwindigkeit
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt für Lego-Bahngeschwindigkeit-Aktion erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
+                legoGeschwindigkeitsScale <-
+                    boxPackWidgetNew boxAktionBahngeschwindigkeitLego PackGrow paddingDefault positionDefault $
+                        Gtk.hScaleNewWithRange 0 100 1
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
+                    buttonNewWithEventLabel Language.geschwindigkeit $
+                        legoBahngeschwindigkeitAktionHinzufügen $ \bg -> 
+                            Geschwindigkeit bg . floor <$> Gtk.get legoGeschwindigkeitsScale Gtk.rangeValue
+                legoFahrtrichtungAuswahl <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Vorwärts ("" :: Text)
+                boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
+                    buttonNewWithEventLabel Language.fahrtrichtungEinstellen $
+                        legoBahngeschwindigkeitAktionHinzufügen $ \bg -> FahrtrichtungEinstellen bg <$> aktuelleAuswahl legoFahrtrichtungAuswahl
+                boxPackDefault boxAktionBahngeschwindigkeitLego legoFahrtrichtungAuswahl
+                -- ZugtypSpezifisch Bahngeschwindigkeit
+                boxPackWidgetNewDefault boxPlan $ zugtypSpezifischNew
+                    ((Märklin, boxAktionBahngeschwindigkeitMärklin) :| [(Lego, boxAktionBahngeschwindigkeitLego)])
+                    zugtypAuswahl
+                -- AktionStreckenabschnitt
+                boxAktionStreckenabschnitt <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
+                let
+                    zeigeStreckenabschnittAktionAuswahl :: IO ()
+                    zeigeStreckenabschnittAktionAuswahl = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetShow vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    streckenabschnittAktionHinzufügen :: 
+                        (forall s. (StreckenabschnittKlasse s) =>
+                            s -> IO (AktionStreckenabschnitt s)) ->
+                                IO ()
+                    streckenabschnittAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeStreckenabschnittAktionAuswahl
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OStreckenabschnitt st))
+                                -> aktionKonstruktor st >>= aktionHinzufügen . AStreckenabschnitt
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> aktionKonstruktor wsMärklin >>=
+                                    aktionHinzufügen . AWegstreckeMärklin . AWSStreckenabschnitt
+                            (Just (OWegstrecke (ZugtypLego wsLego)))
+                                -> aktionKonstruktor wsLego >>=
+                                    aktionHinzufügen . AWegstreckeLego . AWSStreckenabschnitt
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt für Streckenabschnitt-Aktion erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
+                auswahlStrom <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend ("" :: Text)
+                boxPackWidgetNewDefault boxAktionStreckenabschnitt $
+                    buttonNewWithEventLabel Language.strom $
+                        streckenabschnittAktionHinzufügen $ \st -> Strom st <$> aktuelleAuswahl auswahlStrom
+                boxPackDefault boxAktionStreckenabschnitt auswahlStrom
+                -- AktionWeiche
+                boxAktionWeiche <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
+                let
+                    zeigeWeicheAktionAuswahl :: Richtung -> IO ()
+                    zeigeWeicheAktionAuswahl richtung = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeMärklin
+                        widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveMärklin
+                        widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksMärklin
+                        widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsMärklin
+                        widgetShowIf (richtung == Gerade) vBoxHinzufügenPlanWeichenGeradeLego
+                        widgetShowIf (richtung == Kurve) vBoxHinzufügenPlanWeichenKurveLego
+                        widgetShowIf (richtung == Links) vBoxHinzufügenPlanWeichenLinksLego
+                        widgetShowIf (richtung == Rechts) vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    weicheAktionHinzufügen :: Richtung -> IO ()
+                    weicheAktionHinzufügen richtung = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeWeicheAktionAuswahl richtung
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OWeiche we))
+                                -> aktionHinzufügen $ AWeiche $ Stellen we richtung
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt zum Weiche stellen erhalten: " ++ show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
+                buttonAktionWeicheGerade <- boxPackWidgetNewDefault boxAktionWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.gerade) $
+                        weicheAktionHinzufügen Gerade
+                buttonAktionWeicheKurve <- boxPackWidgetNewDefault boxAktionWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.kurve) $
+                        weicheAktionHinzufügen Kurve
+                buttonAktionWeicheLinks <- boxPackWidgetNewDefault boxAktionWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.links) $
+                        weicheAktionHinzufügen Links
+                buttonAktionWeicheRechts <- boxPackWidgetNewDefault boxAktionWeiche $
+                    buttonNewWithEventLabel (Language.stellen <:> Language.rechts) $
+                        weicheAktionHinzufügen Rechts
+                -- AktionKupplung
+                boxAktionKupplung <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
+                let
+                    zeigeKupplungAktionAuswahl :: IO ()
+                    zeigeKupplungAktionAuswahl = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetShow vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    kupplungAktionHinzufügen :: 
+                        (forall k. (KupplungKlasse k) =>
+                            k -> IO (AktionKupplung k)) ->
+                                IO ()
+                    kupplungAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeKupplungAktionAuswahl
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OKupplung ku))
+                                -> aktionKonstruktor ku >>= aktionHinzufügen . AKupplung
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> aktionKonstruktor wsMärklin >>=
+                                    aktionHinzufügen . AWegstreckeMärklin . AWSKupplung
+                            (Just (OWegstrecke (ZugtypLego wsLego)))
+                                -> aktionKonstruktor wsLego >>=
+                                    aktionHinzufügen . AWegstreckeLego . AWSKupplung
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt für Streckenabschnitt-Aktion erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
+                boxPackWidgetNewDefault boxAktionKupplung $
+                    buttonNewWithEventLabel Language.kuppeln $
+                        kupplungAktionHinzufügen $ pure . Kuppeln
+                -- AktionWegstrecke
+                boxAktionWegstrecke <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
+                let
+                    zeigeWegstreckeAktionAuswahl :: IO ()
+                    zeigeWegstreckeAktionAuswahl = do
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                        mitWidgetHide vBoxHinzufügenPlanStreckenabschnitte
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWeichenGeradeLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenKurveLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenLinksLego
+                        mitWidgetHide vBoxHinzufügenPlanWeichenRechtsLego
+                        mitWidgetHide vBoxHinzufügenPlanKupplungen
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenMärklin
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                        mitWidgetHide vBoxHinzufügenPlanWegstreckenKupplungLego
+                        mitWidgetShow vBoxHinzufügenPlanWegstreckenLego
+                        mitWidgetShow windowAktionObjektAuswahl
+                    wegstreckeAktionHinzufügen ::
+                        (forall w z. (WegstreckeKlasse (w z)) =>
+                            w z -> IO (AktionWegstrecke w z)) ->
+                                IO ()
+                    wegstreckeAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
+                        Gtk.postGUIAsync $ zeigeWegstreckeAktionAuswahl 
+                        atomically (takeTMVar tmvarPlanObjekt) >>= \case
+                            (Just (OWegstrecke (ZugtypMärklin wsMärklin)))
+                                -> aktionKonstruktor wsMärklin >>= aktionHinzufügen . AWegstreckeMärklin
+                            (Just (OWegstrecke (ZugtypLego wsLego)))
+                                -> aktionKonstruktor wsLego >>= aktionHinzufügen . AWegstreckeLego
+                            (Just anderesObjekt)
+                                -> error $
+                                    "unerwartetes Objekt für Wegstrecke-Aktion erhalten: " ++
+                                    show anderesObjekt
+                            Nothing
+                                -> pure ()
+                        Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
+                boxPackWidgetNewDefault boxAktionWegstrecke $
+                    buttonNewWithEventLabel Language.einstellen $
+                        wegstreckeAktionHinzufügen $ pure . Einstellen
+                -- Zeige aktuelle Aktionen an
+                boxPackDefault boxPlan expanderAktionen
+                boxPackWidgetNewDefault boxPlan $ buttonNewWithEventLabel Language.rückgängig $ do
+                    aktionenVorher <- atomically $ do
+                        aktionen <- readTVar tvarAktionen
+                        let aktionenVorher = case zeigeLetztes aktionen of
+                                Leer
+                                    -> leer
+                                Gefüllt _letztes warteschlange
+                                    -> warteschlange
+                        writeTVar tvarAktionen aktionenVorher
+                        pure aktionenVorher
+                    zeigeAktionen aktionenVorher
+                let
+                    seiteZurücksetzenPlan :: IO ()
+                    seiteZurücksetzenPlan = do
+                        -- aktuelle Aktionen zurücksetzen
+                        atomically $ writeTVar tvarAktionen leer
+                        zeigeAktionen leer
+                        -- Entry zurücksetzten
+                        Gtk.set (erhalteEntry nameAuswahlPlan)
+                            [Gtk.entryText := ("" :: Text), Gtk.widgetHasFocus := True]
+                        let
+                            versteckeWennLeer :: (MitWidget w) =>
+                                BoxPlanHinzufügen a ->
+                                Maybe (BoxPlanHinzufügen b) ->
+                                Maybe (BoxPlanHinzufügen c) ->
+                                w ->
+                                    IO ()
+                            versteckeWennLeer boxPlanA maybeBoxPlanB maybeBoxPlanC widget = do
+                                a <- widgetHinzufügenContainerGefüllt boxPlanA
+                                b <- maybe (pure False) widgetHinzufügenContainerGefüllt maybeBoxPlanB
+                                c <- maybe (pure False) widgetHinzufügenContainerGefüllt maybeBoxPlanC
+                                widgetShowIf (a || b || c) widget
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                            (Just vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin)
+                            Nothing
+                            boxAktionBahngeschwindigkeitMärklin
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                            (Just vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin)
+                            Nothing
+                            boxAktionBahngeschwindigkeitLego
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanStreckenabschnitte
+                            (Just vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin)
+                            (Just vBoxHinzufügenPlanWegstreckenStreckenabschnittLego)
+                            boxAktionStreckenabschnitt
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenGeradeMärklin
+                            (Just vBoxHinzufügenPlanWeichenGeradeLego)
+                            Nothing
+                            buttonAktionWeicheGerade
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenKurveMärklin
+                            (Just vBoxHinzufügenPlanWeichenKurveLego)
+                            Nothing
+                            buttonAktionWeicheKurve
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenLinksMärklin
+                            (Just vBoxHinzufügenPlanWeichenLinksLego)
+                            Nothing
+                            buttonAktionWeicheLinks
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWeichenRechtsMärklin
+                            (Just vBoxHinzufügenPlanWeichenRechtsLego)
+                            Nothing
+                            buttonAktionWeicheRechts
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanKupplungen
+                            (Just vBoxHinzufügenPlanWegstreckenKupplungMärklin)
+                            (Just vBoxHinzufügenPlanWegstreckenKupplungLego)
+                            boxAktionKupplung
+                        versteckeWennLeer
+                            vBoxHinzufügenPlanWegstreckenMärklin
+                            (Just vBoxHinzufügenPlanWegstreckenLego)
+                            Nothing
+                            boxAktionWegstrecke
+                    seitePlan :: AssistantSeite HinzufügenSeite
+                    seitePlan = AssistantSeite {
+                        seite = HinzufügenSeitePlan {
+                            widget = erhalteWidget boxPlan,
+                            nameAuswahl = nameAuswahlPlan,
+                            tvarAktionen},
+                        name = Language.plan,
+                        seiteZurücksetzen = seiteZurücksetzenPlan,
+                        seitenAbschluss = SeitenAbschlussButton seitenAbschlussPlan}
                 -- konstruiere SeitenBaum
                 let
                     seitenBaum :: AssistantSeitenBaum HinzufügenSeite
@@ -1078,11 +1077,11 @@ assistantHinzufügenNew
                             seiteStreckenabschnitt,
                             seiteWeiche,
                             seiteKupplung,
-                            seiteWegstrecke{-,
-                            seitePlan-}]}
+                            seiteWegstrecke,
+                            seitePlan]}
                 assistant <- assistantNew parent globaleWidgets seitenBaum $
                     flip runReaderT objektReader . hinzufügenErgebnis zugtypAuswahl fließendAuswahl
-                -- Gtk.set windowAktionObjektAuswahl
-                --     [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
+                Gtk.set windowAktionObjektAuswahl
+                    [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
                 pure assistant
 #endif
