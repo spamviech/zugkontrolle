@@ -376,9 +376,11 @@ data AssistantResult a
         deriving (Eq)
 
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
+-- Es wird erwartet, dass diese Funktion geforkt vom GTK-Hauptthread aufgerufen wird.
+-- Entsprechend wird 'Gtk.postGUIAsync' verwendet.
 assistantAuswerten :: (MonadIO m) => Assistant w a -> m (AssistantResult a)
 assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
-    Gtk.widgetShow fenster
+    Gtk.postGUIAsync $ Gtk.widgetShow fenster
     -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
     ergebnis <- atomically (takeAuswahl assistant) >>= \case
         (AssistantErfolgreich auswahl)
@@ -387,7 +389,7 @@ assistantAuswerten assistant@Assistant {fenster, auswertFunktion} = liftIO $ do
             -> pure AssistantAbbrechen
         AssistantBeenden
             -> pure AssistantBeenden
-    Gtk.widgetHide fenster
+    Gtk.postGUIAsync $ Gtk.widgetHide fenster
     pure ergebnis
         where
             -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
