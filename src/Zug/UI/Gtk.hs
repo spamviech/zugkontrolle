@@ -92,11 +92,11 @@ setupGUI = void $ do
     Gtk.panedAdd2 panedEinzelObjekte vPanedRight
     frameRightTop <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightTop [Gtk.frameShadowType := Gtk.ShadowIn]
-    Gtk.panedAdd1 vPanedLeft frameRightTop
+    Gtk.panedAdd1 vPanedRight frameRightTop
     vBoxWeichen <- containerAddWidgetNew frameRightTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
     frameRightBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
-    Gtk.panedAdd2 vPanedLeft frameRightBot
+    Gtk.panedAdd2 vPanedRight frameRightBot
     vBoxKupplungen <- containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
     (panedSammelObjekte, _page) <- notebookAppendPageNew
         notebookElemente

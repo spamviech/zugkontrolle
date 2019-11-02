@@ -566,10 +566,10 @@ assistantHinzufügenNew
                 Gtk.panedAdd2 hPaned vPanedRight
                 frameRightTop <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightTop [Gtk.frameShadowType := Gtk.ShadowIn]
-                Gtk.panedAdd1 vPanedLeft frameRightTop
+                Gtk.panedAdd1 vPanedRight frameRightTop
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
-                Gtk.panedAdd2 vPanedLeft frameRightBot
+                Gtk.panedAdd2 vPanedRight frameRightBot
                 containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
