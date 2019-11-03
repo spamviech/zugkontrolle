@@ -34,6 +34,7 @@ module Zug.UI.Base (
     ausführenMöglich, AusführenMöglich(..)) where
 
 -- Bibliotheken
+import qualified Control.Concurrent.STM as STM
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, takeTMVar, putTMVar)
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS, runRWS)
 import Control.Monad.Trans (MonadIO(..))
@@ -225,9 +226,14 @@ auswertenTMVarIOStatus :: (MonadReader (ReaderFamilie o) m, MonadIO m) => IOStat
 auswertenTMVarIOStatus action tmvarStatus = do
     reader <- ask
     liftIO $ do
+        empty <- atomically $ STM.isEmptyTMVar tmvarStatus
+        putStrLn $ "isEmpty: " ++ show empty
         status0 <- atomically $ takeTMVar tmvarStatus
+        putStrLn "runRWST"
         (a, status1, ()) <- runRWST action reader status0
+        putStrLn "putTMVar"
         atomically $ putTMVar tmvarStatus status1
+        putStrLn "done"
         pure a
 
 -- | Führe Aktion mit 'StatusAllgemein' in 'TMVar' aus

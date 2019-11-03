@@ -120,7 +120,7 @@ buttonLadenPack parent box = do
         antwort <- dialogEval dialogLaden
         when (antwort == Gtk.ResponseOk) $ void $ do
             Gtk.fileChooserGetFilename dialogLaden >>= \case
-                (Nothing)           -> void $ do
+                Nothing             -> void $ do
                     Gtk.set dialogLadenFehler [Gtk.windowTitle := (Language.nichtGefundeneDatei :: Text)]
                     dialogEval dialogLadenFehler
                 (Just dateipfad)    -> void $ do

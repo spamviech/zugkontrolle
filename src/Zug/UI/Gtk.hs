@@ -32,10 +32,10 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>), (<|>))
 import qualified Zug.Language as Language
-import Zug.UI.Base (Status, statusLeer, tvarMapsNeu, auswertenTMVarIOStatus)
-import Zug.UI.Befehl (BefehlKlasse(..), BefehlAllgemein(..))
+import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
+import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
-                                    StatusGui, MStatusGuiT, foldWegstreckeHinzufügen)
+                                    StatusGui, MStatusGuiT, foldWegstreckeHinzufügen, BefehlGui)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventMnemonic,
@@ -222,14 +222,14 @@ setupGUI = void $ do
     boxPackWidgetNew functionBox packingDefault paddingDefault End $
         buttonNewWithEventMnemonic Language.beenden $ Gtk.mainQuit
     -- Lade Datei angegeben in Kommandozeilenargument
-    (Options {load=dateipfad}) <- getOptions
+    Options {load=dateipfad} <- getOptions
     -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
     let
         ladeAktion :: Status -> IO StatusGui
         ladeAktion = flip runReaderT objektReader . ladeWidgets
         fehlerBehandlung :: MStatusGuiT IO ()
         fehlerBehandlung = RWS.put statusLeer
-        statusAktion :: MStatusGuiT IO Bool
-        statusAktion = ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung
-    flip runReaderT objektReader $ auswertenTMVarIOStatus statusAktion tmvarStatus
+        befehl :: BefehlGui
+        befehl = Laden dateipfad ladeAktion fehlerBehandlung
+    flip runReaderT objektReader $ ausführenTMVarBefehl befehl tmvarStatus
 #endif
