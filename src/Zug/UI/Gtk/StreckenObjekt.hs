@@ -36,6 +36,7 @@ module Zug.UI.Gtk.StreckenObjekt (
     -- * Hinzufügen zu einem Plan/einer Wegstrecke
     WidgetHinzufügen(), HinzufügenZiel(..),
     CheckButtonWegstreckeHinzufügen, WegstreckeCheckButton(), WegstreckeCheckButtonVoid,
+    KategorieText(..), Kategorie(..),
     BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew,
     ButtonPlanHinzufügen, BoxPlanHinzufügen, boxPlanHinzufügenNew,
     widgetHinzufügenZugtypEither, widgetHinzufügenRegistrierterCheckButtonVoid,
@@ -155,8 +156,32 @@ widgetHinzufügenBoxPackNew b = fmap WidgetHinzufügen . boxPackWidgetNewDefault
 
 -- | Teste ob ein 'WidgetHinzufügen'-'MitContainer' mindestens ein Element enthält.
 widgetHinzufügenContainerGefüllt :: (MitContainer w, MonadIO m) => WidgetHinzufügen e w a -> m Bool
-widgetHinzufügenContainerGefüllt =
-    liftIO . fmap (not . null) . Gtk.containerGetChildren . erhalteContainer . widgetHinzufügen
+widgetHinzufügenContainerGefüllt
+    = liftIO . fmap ((> 1) . length) . Gtk.containerGetChildren . erhalteContainer . widgetHinzufügen
+
+-- | Text mit Typ-Annotation
+newtype KategorieText a = KategorieText {kategorieText :: Text}
+-- | Label für 'BoxWegstreckeHinzufügen'/'BoxPlanHinzufügen'
+class Kategorie a where
+    kategorie :: KategorieText a
+instance Kategorie (BGWidgets z) where
+    kategorie :: KategorieText (BGWidgets z)
+    kategorie = KategorieText Language.bahngeschwindigkeiten
+instance Kategorie STWidgets where
+    kategorie :: KategorieText STWidgets
+    kategorie = KategorieText Language.streckenabschnitte
+instance Kategorie (WEWidgets z) where
+    kategorie :: KategorieText (WEWidgets z)
+    kategorie = KategorieText Language.weichen
+instance Kategorie KUWidgets where
+    kategorie :: KategorieText KUWidgets
+    kategorie = KategorieText Language.kupplungen
+instance Kategorie (WSWidgets z) where
+    kategorie :: KategorieText (WSWidgets z)
+    kategorie = KategorieText Language.wegstrecken
+instance Kategorie PLWidgets where
+    kategorie :: KategorieText PLWidgets
+    kategorie = KategorieText Language.pläne
 
 -- | CheckButton zum hinzufügen zu einer Wegstrecke
 type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstrecke (WegstreckeCheckButton e) a
@@ -164,8 +189,11 @@ type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstr
 type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxWegstreckeHinzufügen'
-boxWegstreckeHinzufügenNew :: (MonadIO m) => m (BoxWegstreckeHinzufügen a)
-boxWegstreckeHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+boxWegstreckeHinzufügenNew :: forall a m. (Kategorie a, MonadIO m) => m (BoxWegstreckeHinzufügen a)
+boxWegstreckeHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    box <- Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ kategorieText (kategorie :: KategorieText a)
+    pure box
 
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
 data WegstreckeCheckButton e where
@@ -204,8 +232,11 @@ type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxPlanHinzufügen'
-boxPlanHinzufügenNew :: (MonadIO m) => m (BoxPlanHinzufügen a)
-boxPlanHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+boxPlanHinzufügenNew :: forall a m. (Kategorie a, MonadIO m) => m (BoxPlanHinzufügen a)
+boxPlanHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    box <- Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ kategorieText (kategorie :: KategorieText a)
+    pure box
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets = DynamischeWidgets {

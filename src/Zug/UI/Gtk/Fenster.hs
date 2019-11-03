@@ -43,7 +43,8 @@ import Zug.Anbindung (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(),
                     Streckenabschnitt(..), StreckenabschnittKlasse(),
                     Weiche(..),
                     Kupplung(..), KupplungKlasse(),
-                    Wegstrecke(..), WegstreckeKlasse())
+                    Wegstrecke(..), WegstreckeKlasse(),
+                    Wartezeit(..))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
@@ -72,7 +73,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widg
                                     buttonNewWithEventLabel, buttonNewWithEventMnemonic, dialogEval,
                                     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..),
-                            mitContainerRemove, MitEntry(..), MitButton(..), MitWindow(..))
+                            mitContainerAdd, mitContainerRemove, MitEntry(..), MitButton(..), MitWindow(..))
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, IOStatusGui, ObjektGui,
                                     DynamischeWidgets(..), DynamischeWidgetsReader(..),
                                     StatusReader(..), BoxPlanHinzufügen,
@@ -569,26 +570,14 @@ assistantHinzufügenNew
                 frameRightBot <- widgetShowNew Gtk.frameNew
                 Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
                 Gtk.panedAdd2 vPanedRight frameRightBot
-                boxBahngeschwindigkeiten <- containerAddWidgetNew frameLeftTop $ Gtk.vBoxNew False 0
-                boxPackWidgetNewDefault boxBahngeschwindigkeiten $ Gtk.labelNew $
-                    Just (Language.bahngeschwindigkeiten :: Text)
-                boxPackWidgetNewDefault boxBahngeschwindigkeiten $ flip zugtypSpezifischNew zugtypAuswahl $
+                containerAddWidgetNew frameLeftTop $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
-                boxStreckenabschnitte <- containerAddWidgetNew frameLeftBot $ Gtk.vBoxNew False 0
-                boxPackWidgetNewDefault boxStreckenabschnitte $ Gtk.labelNew $
-                    Just (Language.streckenabschnitte :: Text)
-                boxPackDefault boxStreckenabschnitte vBoxHinzufügenWegstreckeStreckenabschnitte
-                boxWeichen <- containerAddWidgetNew frameRightTop $ Gtk.vBoxNew False 0
-                boxPackWidgetNewDefault boxWeichen $ Gtk.labelNew $
-                    Just (Language.weichen :: Text)
-                boxPackWidgetNewDefault boxWeichen $ flip zugtypSpezifischNew zugtypAuswahl $
+                mitContainerAdd frameLeftBot vBoxHinzufügenWegstreckeStreckenabschnitte
+                containerAddWidgetNew frameRightTop $ flip zugtypSpezifischNew zugtypAuswahl $
                     (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin) :|
                     [(Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
-                boxKupplungen <- containerAddWidgetNew frameRightBot $ Gtk.vBoxNew False 0
-                boxPackWidgetNewDefault boxKupplungen $ Gtk.labelNew $
-                    Just (Language.kupplungen :: Text)
-                boxPackDefault boxKupplungen vBoxHinzufügenWegstreckeKupplungen
+                mitContainerAdd frameRightBot vBoxHinzufügenWegstreckeKupplungen
                 let
                     seiteZurücksetzenWegstrecke :: IO ()
                     seiteZurücksetzenWegstrecke = do
@@ -612,7 +601,6 @@ assistantHinzufügenNew
                 boxAktionObjektAuswahl <- containerAddWidgetNew windowAktionObjektAuswahl $ Gtk.vBoxNew False 0
                 -- Anzeige der Boxen explizit beim Anzeigen des Fensters
                 mapM_ (boxPackDefault boxAktionObjektAuswahl) [
-                    -- Kategorie-Label anzeigen, ToDo!!!)
                     erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
                     erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenLego,
                     erhalteWidget vBoxHinzufügenPlanStreckenabschnitte,
@@ -661,6 +649,17 @@ assistantHinzufügenNew
                             writeTVar tvarAktionen aktionenDanach
                             pure aktionenDanach
                         zeigeAktionen aktionenDanach
+                -- Warten
+                boxAktionWarten <- boxPackWidgetNewDefault boxPlan $ Gtk.hBoxNew False 0
+                let wartenMinµs = 0
+                    wartenMaxµs = 10000000  -- 10 s
+                    wartenStepµs = 1000     -- 1 ms
+                wartenSpinButton <- widgetShowNew $ Gtk.spinButtonNewWithRange wartenMinµs wartenMaxµs wartenStepµs
+                boxPackWidgetNewDefault boxAktionWarten $ buttonNewWithEventLabel Language.warten $ do
+                    wartezeit <- MikroSekunden . fromIntegral <$> Gtk.spinButtonGetValueAsInt wartenSpinButton
+                    aktionHinzufügen $ Warten wartezeit
+                boxPackDefault boxAktionWarten wartenSpinButton
+                boxPackWidgetNewDefault boxAktionWarten $ Gtk.labelNew $ Just (Language.wartenEinheit :: Text)
                 -- AktionBahngeschwindigkeit 'Märklin
                 boxAktionBahngeschwindigkeitMärklin <- Gtk.hBoxNew False 0
                 let
