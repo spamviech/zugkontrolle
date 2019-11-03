@@ -208,15 +208,18 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     seiten <- packSeiten vBox flowControlBox seitenEingabe
     tvarAuswahl <- newTVarIO $ Left ([], seiten)
     tvarAktuelleSeite <- newTVarIO seiten
-    -- Füge Reaktion auf beenden des Assistant durch 'X' in der Titelleiste hinzu
+    -- Füge Reaktion auf Beenden des Assistant durch 'X' in der Titelleiste hinzu
     Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
         atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
         pure True
-    -- Knopf-Leiste für permanente Funktionen
+    -- Knopf-Leiste für permanente Funktionen und globaleWidgets
     seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox $
         Gtk.buttonNewWithLabel (Language.weiter :: Text)
     zurückKnopf <- boxPackWidgetNewDefault flowControlBox $
         Gtk.buttonNewWithLabel (Language.zurück :: Text)
+    forM_ globaleWidgets $ \widget -> do
+        boxPackDefault flowControlBox widget
+        mitWidgetShow widget
     boxPackWidgetNewDefault flowControlBox $
         buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
     -- Konstruiere Ergebnistyp
@@ -299,10 +302,6 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
     Gtk.on seitenAbschlussKnopf Gtk.buttonActivated seitenAbschlussAktion
     forM_ (rights $ besondereSeitenAbschlussKnöpfe seiten) $
         \knopf -> Gtk.on knopf Gtk.buttonActivated seitenAbschlussAktion
-    -- Füge permanente Widgets zur FlowControlBox hinzu und zeige sie an
-    forM_ globaleWidgets $ \widget -> do
-        boxPack flowControlBox widget packingDefault paddingDefault Start
-        mitWidgetShow widget
     -- Zeige erste Seite an
     zeigeSeite assistant seiten
     pure assistant
