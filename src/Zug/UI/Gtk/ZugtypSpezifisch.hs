@@ -56,7 +56,7 @@ zugtypSpezifischNew eingabeWidgets auswahlWidget = liftIO $ do
     vBox <- Gtk.vBoxNew False 0
     aktuellerZugtyp <- aktuelleAuswahl auswahlWidget
     zugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitWidget) -> do
-        hiddenBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+        hiddenBox <- boxPackWidgetNewDefault vBox $ Gtk.vBoxNew False 0
         widgetShowIf (aktuellerZugtyp == zugtyp) hiddenBox
         mitWidgetShow mitWidget
         boxPackDefault hiddenBox mitWidget
