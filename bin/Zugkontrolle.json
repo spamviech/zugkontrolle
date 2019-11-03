@@ -2,25 +2,33 @@
     "Streckenabschnitte": [
         {
             "Name": "welt",
-            "StromPin": 1,
+            "StromPin": {
+                "Pin": 1
+            },
             "Fließend": "HIGH"
         }
     ],
     "Bahngeschwindigkeiten": [
         {
-            "GeschwindigkeitsPin": 0,
+            "GeschwindigkeitsPin": {
+                "Pin": 0
+            },
             "Name": "hallo",
             "Zugtyp": "Märklin",
             "Fließend": "HIGH"
         },
         {
-            "GeschwindigkeitsPin": 19,
+            "GeschwindigkeitsPin": {
+                "Pin": 19
+            },
             "Name": "HardwarePWM",
             "Zugtyp": "Märklin",
             "Fließend": "HIGH"
         },
         {
-            "GeschwindigkeitsPin": 26,
+            "GeschwindigkeitsPin": {
+                "Pin": 26
+            },
             "Name": "SoftwarePWM",
             "Zugtyp": "Märklin",
             "Fließend": "HIGH"
@@ -29,7 +37,9 @@
     "Kupplungen": [
         {
             "Name": "meh",
-            "KupplungsPin": 5,
+            "KupplungsAnschluss": {
+                "Pin": 5
+            },
             "Fließend": "HIGH"
         }
     ],
@@ -38,11 +48,15 @@
             "RichtungsPins": [
                 [
                     "Links",
-                    5
+                    {
+                        "Pin": 5
+                    }
                 ],
                 [
                     "Gerade",
-                    4
+                    {
+                        "Pin": 4
+                    }
                 ]
             ],
             "Name": "bla",
@@ -53,11 +67,15 @@
             "RichtungsPins": [
                 [
                     "Rechts",
-                    3
+                    {
+                        "Pin": 3
+                    }
                 ],
                 [
                     "Gerade",
-                    2
+                    {
+                        "Pin": 2
+                    }
                 ]
             ],
             "Name": "blubb",
@@ -67,12 +85,14 @@
     ],
     "Pläne": [
         {
-            "Name": "",
+            "Name": "Stehenbleiben!",
             "Aktionen": [
                 {
                     "Wert": 0,
                     "Bahngeschwindigkeit": {
-                        "GeschwindigkeitsPin": 26,
+                        "GeschwindigkeitsPin": {
+                            "Pin": 26
+                        },
                         "Name": "SoftwarePWM",
                         "Zugtyp": "Märklin",
                         "Fließend": "HIGH"
@@ -87,7 +107,9 @@
                 {
                     "Wert": 23,
                     "Bahngeschwindigkeit": {
-                        "GeschwindigkeitsPin": 26,
+                        "GeschwindigkeitsPin": {
+                            "Pin": 26
+                        },
                         "Name": "SoftwarePWM",
                         "Zugtyp": "Märklin",
                         "Fließend": "HIGH"
@@ -97,7 +119,9 @@
                 {
                     "Wert": 79,
                     "Bahngeschwindigkeit": {
-                        "GeschwindigkeitsPin": 19,
+                        "GeschwindigkeitsPin": {
+                            "Pin": 19
+                        },
                         "Name": "HardwarePWM",
                         "Zugtyp": "Märklin",
                         "Fließend": "HIGH"
@@ -105,13 +129,17 @@
                     "Aktion": "Geschwindigkeit"
                 },
                 {
-                    "Wert": 9000000,
+                    "Wert": {
+                        "µs": 9000000
+                    },
                     "Aktion": "Warten"
                 },
                 {
                     "Wert": 0,
                     "Bahngeschwindigkeit": {
-                        "GeschwindigkeitsPin": 26,
+                        "GeschwindigkeitsPin": {
+                            "Pin": 26
+                        },
                         "Name": "SoftwarePWM",
                         "Zugtyp": "Märklin",
                         "Fließend": "HIGH"
@@ -121,7 +149,9 @@
                 {
                     "Wert": 0,
                     "Bahngeschwindigkeit": {
-                        "GeschwindigkeitsPin": 19,
+                        "GeschwindigkeitsPin": {
+                            "Pin": 19
+                        },
                         "Name": "HardwarePWM",
                         "Zugtyp": "Märklin",
                         "Fließend": "HIGH"
@@ -136,13 +166,17 @@
             "Streckenabschnitte": [
                 {
                     "Name": "welt",
-                    "StromPin": 1,
+                    "StromPin": {
+                        "Pin": 1
+                    },
                     "Fließend": "HIGH"
                 }
             ],
             "Bahngeschwindigkeiten": [
                 {
-                    "GeschwindigkeitsPin": 0,
+                    "GeschwindigkeitsPin": {
+                        "Pin": 0
+                    },
                     "Name": "hallo",
                     "Zugtyp": "Märklin",
                     "Fließend": "HIGH"
@@ -155,11 +189,15 @@
                         "RichtungsPins": [
                             [
                                 "Rechts",
-                                3
+                                {
+                                    "Pin": 3
+                                }
                             ],
                             [
                                 "Gerade",
-                                2
+                                {
+                                    "Pin": 2
+                                }
                             ]
                         ],
                         "Name": "blubb",

@@ -138,6 +138,8 @@ parseAnschluss :: Object -> Text -> Text -> Parser Anschluss
 parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (vonPinGpio <$> (v .: pinJS :: Parser Natural))
 
 -- Instanz-Deklarationen für Anschluss
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen war nur ein Pin-Anschluss erlaubt, wodurch ein Anschluss nur durch eine Zahl gespeichert wurde.
 instance FromJSON Anschluss where
     parseJSON :: Value -> Parser Anschluss
     parseJSON   (Object v)      = (vonPinGpio <$> (v .: pinJS :: Parser Int))
@@ -210,6 +212,8 @@ dJS :: Text
 dJS = "d"
 
 -- Instanz-Deklarationen für Wartezeit
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen wurde implizit immer Mikrosekunden angenommen, wodurch nur eine Zahl gespeichert wurde.
 instance FromJSON Wartezeit where
     parseJSON :: Value -> Parser Wartezeit
     parseJSON   (Object v)
@@ -220,6 +224,8 @@ instance FromJSON Wartezeit where
         <|> (Minuten <$> v .: minJS)
         <|> (Stunden <$> v .: hJS)
         <|> (Tage <$> v .: dJS)
+    parseJSON   (Number µs)
+        = pure $ MikroSekunden $ floor µs
     parseJSON   _value
         = mzero
 

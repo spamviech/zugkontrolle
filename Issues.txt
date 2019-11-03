@@ -1,9 +1,3 @@
-Gtk-UI:
-    parent=Null fehler bei buttonHinzufügenPack
-    STM-Dauerschleife bei laden zu Programmbeginn
-    Assistant friert ein
-
------------------------------------------------------------
 Cmd-UI:
     *Unbekannt aus Datentypen entfernen und eigenen (ParseError a)-Datentyp verwenden
         *Unbekannt hat überall identische Struktur
