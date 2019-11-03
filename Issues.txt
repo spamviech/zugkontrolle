@@ -1,7 +1,17 @@
+Rekursion in Plan ermöglichen
+    erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
+    potentielle Endlosschleifen
+        problematisch?
+        nein, da 'ausführenAbbrechen' immer möglich
+
 Cmd-UI:
     *Unbekannt aus Datentypen entfernen und eigenen (ParseError a)-Datentyp verwenden
         *Unbekannt hat überall identische Struktur
     Analog zu Either als Fehler-Monade
+
+Laden einer Liste schlägt momentan für gesamte Liste fehl
+    Elementweise überprüfen und nur fehlgeschlagene ignorieren
+    Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
 
 Fix tests
     Änderungen berücksichtigen
@@ -13,12 +23,6 @@ Anzeige über eigene Klasse regeln
     anzeige :: Sprache -> Text
     Sprache in aktuellem Zustand speichern
         änderbar im Programm
-
-Rekursion in Plan ermöglichen
-    erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
-    potentielle Endlosschleifen
-        problematisch?
-        nein, da 'ausführenAbbrechen' immer möglich
 
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.

@@ -76,9 +76,11 @@ newtype Ausführend
 
 instance Show Plan where
     show :: Plan -> String
-    show Plan {plName, plAktionen} = Language.plan
-                                    <:> Language.name <=> unpack plName
-                                    <^> Language.aktionen <=> show plAktionen
+    show
+        Plan {plName, plAktionen}
+            = Language.plan
+            <:> Language.name <=> unpack plName
+            <^> Language.aktionen <=> show plAktionen
 
 instance StreckenObjekt Plan where
     anschlüsse :: Plan -> [Anschluss]
@@ -114,7 +116,7 @@ instance PlanKlasse Plan where
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => a -> m ()
+    ausführenAktion :: (AusführendReader r m, MonadIO m) => a -> m ()
 
 -- | Eine Aktion eines 'StreckenObjekt's oder eine Wartezeit.
 -- Die Update-Funktion wird nicht aufgerufen.
@@ -135,7 +137,9 @@ data Aktion
         (AktionStreckenabschnitt Streckenabschnitt)
     | AKupplung
         (AktionKupplung Kupplung)
-            deriving (Eq)
+    | Ausführen
+        Plan
+    deriving (Eq)
 
 instance Show Aktion where
     show :: Aktion -> String
@@ -147,6 +151,7 @@ instance Show Aktion where
     show    (ABahngeschwindigkeitLego aktion)       = Language.bahngeschwindigkeit <~> show aktion
     show    (AStreckenabschnitt aktion)             = Language.streckenabschnitt <~> show aktion
     show    (AKupplung aktion)                      = Language.kupplung <~> show aktion
+    show    (Ausführen plan)                        = Language.ausführen  <~> show plan
 
 instance StreckenObjekt Aktion where
     anschlüsse :: Aktion -> [Anschluss]
@@ -158,11 +163,12 @@ instance StreckenObjekt Aktion where
     anschlüsse  (ABahngeschwindigkeitLego aktion)       = anschlüsse aktion
     anschlüsse  (AStreckenabschnitt aktion)             = anschlüsse aktion
     anschlüsse  (AKupplung aktion)                      = anschlüsse aktion
+    anschlüsse  (Ausführen plan)                        = anschlüsse plan
     erhalteName :: Aktion -> Text
     erhalteName = showText
 
 instance AktionKlasse Aktion where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => Aktion -> m ()
+    ausführenAktion :: (AusführendReader r m, MonadIO m) => Aktion -> m ()
     ausführenAktion (Warten time)                           = warte time
     ausführenAktion (AWegstreckeMärklin aktion)             = ausführenAktion aktion
     ausführenAktion (AWegstreckeLego aktion)                = ausführenAktion aktion
@@ -171,6 +177,7 @@ instance AktionKlasse Aktion where
     ausführenAktion (ABahngeschwindigkeitLego aktion)       = ausführenAktion aktion
     ausführenAktion (AStreckenabschnitt aktion)             = ausführenAktion aktion
     ausführenAktion (AKupplung aktion)                      = ausführenAktion aktion
+    ausführenAktion (Ausführen plan)                        = ausführenPlan plan (const $ pure ()) (pure ())
 
 -- | Bekannte 'Aktion'en einer 'Wegstrecke'
 data AktionWegstrecke ws (z :: Zugtyp)
@@ -182,7 +189,7 @@ data AktionWegstrecke ws (z :: Zugtyp)
         (AktionStreckenabschnitt (ws z))
     | AWSKupplung
         (AktionKupplung (ws z))
-            deriving (Eq)
+    deriving (Eq)
 
 instance (StreckenObjekt (ws z))  => Show (AktionWegstrecke ws z) where
     show :: AktionWegstrecke ws z -> String
@@ -201,17 +208,18 @@ instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z), Show (ws z)) =>
     erhalteName = showText
 
 instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z)) => AktionKlasse (AktionWegstrecke ws z) where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
+    ausführenAktion :: (AusführendReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
     ausführenAktion (Einstellen ws)                 = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit aktion) = ausführenAktion aktion
     ausführenAktion (AWSStreckenabschnitt aktion)   = ausführenAktion aktion
     ausführenAktion (AWSKupplung aktion)            = ausführenAktion aktion
 
 -- | Bekannte 'Aktion'en einer 'Weiche'
-data AktionWeiche we = Stellen
-                        we
-                        Richtung
-                            deriving (Eq)
+data AktionWeiche we 
+    = Stellen
+        we
+        Richtung
+    deriving (Eq)
 
 instance (StreckenObjekt we)  => Show (AktionWeiche we) where
     show :: AktionWeiche we -> String
@@ -271,10 +279,11 @@ instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigke
     ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung)  = fahrtrichtungEinstellen bg fahrtrichtung
 
 -- | Aktionen eines Streckenabschnitts
-data AktionStreckenabschnitt st = Strom
-                                    st
-                                    Strom
-                                        deriving (Eq)
+data AktionStreckenabschnitt st
+    = Strom
+        st
+        Strom
+    deriving (Eq)
 
 instance (StreckenObjekt st) => Show (AktionStreckenabschnitt st) where
     show :: AktionStreckenabschnitt st -> String
@@ -292,9 +301,10 @@ instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt s
     ausführenAktion (Strom st an) = strom st an
 
 -- | Aktionen einer Kupplung
-data AktionKupplung ku = Kuppeln
-                            ku
-                                deriving (Eq)
+data AktionKupplung ku
+    = Kuppeln
+        ku
+    deriving (Eq)
 
 instance (StreckenObjekt ku) => Show (AktionKupplung ku) where
     show :: AktionKupplung ku -> String
