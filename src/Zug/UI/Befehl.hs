@@ -144,7 +144,7 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
                 = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
                     Nothing             -> fehlerbehandlung
-                    (Just statusNeu)  -> do
+                    (Just statusNeu)    -> do
                         TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
                         liftIO $ do
                             atomically $ writeTVar tvarPwmMap pwmMapEmpty

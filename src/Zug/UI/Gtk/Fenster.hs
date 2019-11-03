@@ -26,7 +26,8 @@ import Control.Concurrent.STM (atomically, readTMVar, takeTMVar, putTMVar,
 import Control.Lens ((^.))
 import Control.Monad (void, when, foldM, forM, forM_)
 import Control.Monad.Reader (MonadReader(..), runReaderT)
-import qualified Control.Monad.State as State
+import Control.Monad.RWS (runRWST)
+import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -58,7 +59,7 @@ import Zug.UI.Base (Status, auswertenTMVarIOStatus,
                     putKupplungen, kupplungen,
                     putWegstrecken, wegstrecken,
                     putPläne, pläne)
-import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
+import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..), ausführenTMVarBefehl)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..),
                                 assistantNew, assistantAuswerten, AssistantResult(..))
@@ -132,8 +133,11 @@ buttonLadenPack parent box = do
                         fehlerBehandlung = liftIO $ void $ do
                             Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
-                    flip runReaderT objektReader $ flip ausführenTMVarBefehl tmvarStatus $
-                        Laden dateipfad ladeAktion fehlerBehandlung
+                    -- TMVar wird in ladeAktion beeinflusst
+                    -- ausführenTMVarBefehl dadurch nicht möglich
+                    -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
+                    statusAktuell <- atomically $ readTMVar tmvarStatus
+                    runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui' in 'TMVar') an reinen 'Status' an.
 ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> m StatusGui
@@ -144,7 +148,7 @@ ladeWidgets status = do
         where
             löscheWidgets :: IOStatusGui ()
             löscheWidgets = do
-                State.get >>= löscheWidgetsAux
+                RWS.get >>= löscheWidgetsAux
                 putBahngeschwindigkeiten []
                 putStreckenabschnitte []
                 putWeichen []

@@ -20,9 +20,10 @@ main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnters
 module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO)
+import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO, atomically, readTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
+import Control.Monad.RWS (runRWST)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (liftIO)
 import Data.Text (Text)
@@ -33,9 +34,9 @@ import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>), (<|>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
-import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
+import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
-                                    StatusGui, MStatusGuiT, foldWegstreckeHinzufügen, BefehlGui)
+                                    StatusGui, MStatusGuiT, foldWegstreckeHinzufügen)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventMnemonic,
@@ -229,7 +230,9 @@ setupGUI = void $ do
         ladeAktion = flip runReaderT objektReader . ladeWidgets
         fehlerBehandlung :: MStatusGuiT IO ()
         fehlerBehandlung = RWS.put statusLeer
-        befehl :: BefehlGui
-        befehl = Laden dateipfad ladeAktion fehlerBehandlung
-    flip runReaderT objektReader $ ausführenTMVarBefehl befehl tmvarStatus
+    -- TMVar wird in ladeAktion beeinflusst
+    -- ausführenTMVarBefehl dadurch nicht möglich
+    -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
+    statusAktuell <- atomically $ readTMVar tmvarStatus
+    runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
 #endif
