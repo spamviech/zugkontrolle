@@ -1,1 +1,175 @@
-{"Streckenabschnitte":[{"Name":"welt","StromPin":1,"Fließend":"HIGH"}],"Bahngeschwindigkeiten":[{"GeschwindigkeitsPin":0,"Name":"hallo","Zugtyp":"Märklin","Fließend":"HIGH"},{"GeschwindigkeitsPin":19,"Name":"HardwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"},{"GeschwindigkeitsPin":26,"Name":"SoftwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"}],"Kupplungen":[{"Name":"meh","KupplungsPin":5,"Fließend":"HIGH"}],"Weichen":[{"RichtungsPins":[["Links",5],["Gerade",4]],"Name":"bla","Zugtyp":"Märklin","Fließend":"HIGH"},{"RichtungsPins":[["Rechts",3],["Gerade",2]],"Name":"blubb","Zugtyp":"Märklin","Fließend":"HIGH"}],"Pläne":[{"Name":"","Aktionen":[{"Wert":0,"Bahngeschwindigkeit":{"GeschwindigkeitsPin":26,"Name":"SoftwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"},"Aktion":"Geschwindigkeit"}]},{"Name":"Mega-Plan","Aktionen":[{"Wert":23,"Bahngeschwindigkeit":{"GeschwindigkeitsPin":26,"Name":"SoftwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"},"Aktion":"Geschwindigkeit"},{"Wert":79,"Bahngeschwindigkeit":{"GeschwindigkeitsPin":19,"Name":"HardwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"},"Aktion":"Geschwindigkeit"},{"Wert":9000000,"Aktion":"Warten"},{"Wert":0,"Bahngeschwindigkeit":{"GeschwindigkeitsPin":26,"Name":"SoftwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"},"Aktion":"Geschwindigkeit"},{"Wert":0,"Bahngeschwindigkeit":{"GeschwindigkeitsPin":19,"Name":"HardwarePWM","Zugtyp":"Märklin","Fließend":"HIGH"},"Aktion":"Geschwindigkeit"}]}],"Wegstrecken":[{"Streckenabschnitte":[{"Name":"welt","StromPin":1,"Fließend":"HIGH"}],"Bahngeschwindigkeiten":[{"GeschwindigkeitsPin":0,"Name":"hallo","Zugtyp":"Märklin","Fließend":"HIGH"}],"Name":"HalloWelt","Weichen-Richtungen":[[{"RichtungsPins":[["Rechts",3],["Gerade",2]],"Name":"blubb","Zugtyp":"Märklin","Fließend":"HIGH"},"Rechts"]],"Kupplungen":[]}]}
+{
+    "Streckenabschnitte": [
+        {
+            "Name": "welt",
+            "StromPin": 1,
+            "Fließend": "HIGH"
+        }
+    ],
+    "Bahngeschwindigkeiten": [
+        {
+            "GeschwindigkeitsPin": 0,
+            "Name": "hallo",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        },
+        {
+            "GeschwindigkeitsPin": 19,
+            "Name": "HardwarePWM",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        },
+        {
+            "GeschwindigkeitsPin": 26,
+            "Name": "SoftwarePWM",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        }
+    ],
+    "Kupplungen": [
+        {
+            "Name": "meh",
+            "KupplungsPin": 5,
+            "Fließend": "HIGH"
+        }
+    ],
+    "Weichen": [
+        {
+            "RichtungsPins": [
+                [
+                    "Links",
+                    5
+                ],
+                [
+                    "Gerade",
+                    4
+                ]
+            ],
+            "Name": "bla",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        },
+        {
+            "RichtungsPins": [
+                [
+                    "Rechts",
+                    3
+                ],
+                [
+                    "Gerade",
+                    2
+                ]
+            ],
+            "Name": "blubb",
+            "Zugtyp": "Märklin",
+            "Fließend": "HIGH"
+        }
+    ],
+    "Pläne": [
+        {
+            "Name": "",
+            "Aktionen": [
+                {
+                    "Wert": 0,
+                    "Bahngeschwindigkeit": {
+                        "GeschwindigkeitsPin": 26,
+                        "Name": "SoftwarePWM",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
+                    },
+                    "Aktion": "Geschwindigkeit"
+                }
+            ]
+        },
+        {
+            "Name": "Mega-Plan",
+            "Aktionen": [
+                {
+                    "Wert": 23,
+                    "Bahngeschwindigkeit": {
+                        "GeschwindigkeitsPin": 26,
+                        "Name": "SoftwarePWM",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
+                    },
+                    "Aktion": "Geschwindigkeit"
+                },
+                {
+                    "Wert": 79,
+                    "Bahngeschwindigkeit": {
+                        "GeschwindigkeitsPin": 19,
+                        "Name": "HardwarePWM",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
+                    },
+                    "Aktion": "Geschwindigkeit"
+                },
+                {
+                    "Wert": 9000000,
+                    "Aktion": "Warten"
+                },
+                {
+                    "Wert": 0,
+                    "Bahngeschwindigkeit": {
+                        "GeschwindigkeitsPin": 26,
+                        "Name": "SoftwarePWM",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
+                    },
+                    "Aktion": "Geschwindigkeit"
+                },
+                {
+                    "Wert": 0,
+                    "Bahngeschwindigkeit": {
+                        "GeschwindigkeitsPin": 19,
+                        "Name": "HardwarePWM",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
+                    },
+                    "Aktion": "Geschwindigkeit"
+                }
+            ]
+        }
+    ],
+    "Wegstrecken": [
+        {
+            "Streckenabschnitte": [
+                {
+                    "Name": "welt",
+                    "StromPin": 1,
+                    "Fließend": "HIGH"
+                }
+            ],
+            "Bahngeschwindigkeiten": [
+                {
+                    "GeschwindigkeitsPin": 0,
+                    "Name": "hallo",
+                    "Zugtyp": "Märklin",
+                    "Fließend": "HIGH"
+                }
+            ],
+            "Name": "HalloWelt",
+            "Weichen-Richtungen": [
+                [
+                    {
+                        "RichtungsPins": [
+                            [
+                                "Rechts",
+                                3
+                            ],
+                            [
+                                "Gerade",
+                                2
+                            ]
+                        ],
+                        "Name": "blubb",
+                        "Zugtyp": "Märklin",
+                        "Fließend": "HIGH"
+                    },
+                    "Rechts"
+                ]
+            ],
+            "Kupplungen": []
+        }
+    ]
+}

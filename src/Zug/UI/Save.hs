@@ -130,12 +130,20 @@ pinJS = "Pin"
 portJS :: Text
 portJS = "PCF8574Port"
 
+
+-- | Parse einen Anschluss.
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen war nur ein Pin-Anschluss erlaubt, weshalb die JSON-Felder anders hießen.
+parseAnschluss :: Object -> Text -> Text -> Parser Anschluss
+parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (vonPinGpio <$> (v .: pinJS :: Parser Natural))
+
 -- Instanz-Deklarationen für Anschluss
 instance FromJSON Anschluss where
     parseJSON :: Value -> Parser Anschluss
-    parseJSON   (Object v)  = (vonPinGpio <$> (v .: pinJS :: Parser Int))
-                            <|> (AnschlussPCF8574Port <$> v .: portJS)
-    parseJSON   _value      = mzero
+    parseJSON   (Object v)      = (vonPinGpio <$> (v .: pinJS :: Parser Int))
+                                <|> (AnschlussPCF8574Port <$> v .: portJS)
+    parseJSON   (Number pin)    = pure $ vonPinGpio (floor pin :: Natural)
+    parseJSON   _value          = mzero
 
 instance ToJSON Anschluss where
     toJSON :: Anschluss -> Value
@@ -323,12 +331,6 @@ geschwindigkeitsAnschlussJS :: Text
 geschwindigkeitsAnschlussJS = "GeschwindigkeitsPin"
 fahrtrichtungsAnschlussJS :: Text
 fahrtrichtungsAnschlussJS = "FahrtrichtungsPin"
-
--- | Parse einen Anschluss.
--- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1 berücksichtigt.
--- Bei diesen war nur ein Pin-Anschluss erlaubt, weshalb die JSON-Felder anders hießen.
-parseAnschluss :: Object -> Text -> Text -> Parser Anschluss
-parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (vonPinGpio <$> (v .: pinJS :: Parser Natural))
 
 -- | Parse das Fließend-Feld.
 -- Dabei wird eine Rückwärtskompatibilität zu Versionen <1.0.0.14 berücksichtigt.
