@@ -39,6 +39,7 @@ concatMapM erzeugeDeklaration [
     "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
     "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
     "fließendValue", "high", "low"]
+concatMapM erzeugeDeklaration ["dauerschleife", "einfachAusführung"]
 -- * Typ-Namen / Type names
 concatMapM erzeugeDeklaration [
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",

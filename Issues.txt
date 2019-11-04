@@ -3,6 +3,14 @@ Rekursion in Plan ermöglichen
     potentielle Endlosschleifen
         problematisch?
         nein, da 'ausführenAbbrechen' immer möglich
+        bei Anzeigen auf Wiederholungen prüfen!
+            kann mit UI nicht erzeugt werden
+            Speichern in .json ebenfalls nicht möglich
+            Schleife-Aktion um Dauerschleife problemlos zu ermöglichen
+                Probleme bei ausführenAktion/ausführenPlan
+            eigenes Feld in Plan für Dauerschleife
+                endliche Wiederholungen möglich mit 2 Plänen
+                dadurch kein Integer-Feld notwendig
 
 Cmd-UI:
     *Unbekannt aus Datentypen entfernen und eigenen (ParseError a)-Datentyp verwenden

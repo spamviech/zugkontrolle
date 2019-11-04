@@ -24,7 +24,7 @@ module Zug.Plan (
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
-import Control.Monad (void, when)
+import Control.Monad (void, when, forever)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Semigroup (Semigroup(..))
@@ -66,8 +66,18 @@ class PlanKlasse pl where
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
 data Plan = Plan {
     plName :: Text,
-    plAktionen :: [Aktion]}
+    plAktionen :: [Aktion],
+    plDauerschleife :: Dauerschleife}
         deriving (Eq)
+
+-- | Soll ein 'Plan' in Dauerschleife ausgeführt werden?
+data Dauerschleife = Dauerschleife | EinfachAusführung
+    deriving (Eq)
+
+instance Show Dauerschleife where
+    show :: Dauerschleife -> String
+    show    Dauerschleife       = Language.dauerschleife
+    show    EinfachAusführung   = Language.einfachAusführung
 
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend
@@ -77,10 +87,11 @@ newtype Ausführend
 instance Show Plan where
     show :: Plan -> String
     show
-        Plan {plName, plAktionen}
+        Plan {plName, plAktionen, plDauerschleife}
             = Language.plan
             <:> Language.name <=> unpack plName
             <^> Language.aktionen <=> show plAktionen
+            <^> show plDauerschleife
 
 instance StreckenObjekt Plan where
     anschlüsse :: Plan -> [Anschluss]
@@ -91,13 +102,17 @@ instance StreckenObjekt Plan where
 instance PlanKlasse Plan where
     ausführenPlan :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
     ausführenPlan
-        plan@Plan {plAktionen}
+        plan@Plan {plAktionen, plDauerschleife}
         showAktion
         endAktion
             = void $ forkI2CReader $ void $ do
                 tvarAusführend <- erhalteMengeAusführend
                 liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
-                ausführenAux 0 plAktionen
+                case plDauerschleife of
+                    Dauerschleife
+                        -> forever $ ausführenAux 0 plAktionen
+                    EinfachAusführung
+                        -> ausführenAux 0 plAktionen
                 liftIO $ do
                     showAktion $ fromIntegral $ length plAktionen
                     endAktion
