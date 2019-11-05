@@ -12,7 +12,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
-    AnfrageErgebnis(..), verwendeAnfrageErgebnis,
+    AnfrageErgebnis(..), verwendeAnfrageErgebnis, ($<<),
     MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..),
     MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
     -- * Suche ein existierendes Objekt im Status
@@ -378,20 +378,34 @@ data AnfrageErgebnis a
 deriving instance (Show a, Show (AnfrageTyp a)) => Show (AnfrageErgebnis a)
 deriving instance (Eq a, Eq (AnfrageTyp a)) => Eq (AnfrageErgebnis a)
 
+-- | Komposition zweier Funktionen, die ein 'AnfrageErgebnis' zurückgeben.
 verwendeAnfrageErgebnis :: (MitAnfrage a, MitAnfrage b) =>
-    (a -> b) -> (AnfrageTyp a -> AnfrageTyp b) -> AnfrageErgebnis a -> AnfrageErgebnis b
+    (a -> b) ->
+    (AnfrageTyp a -> AnfrageErgebnis b) ->
+    (AnfrageTyp a -> AnfrageTyp b) ->
+    AnfrageErgebnis a ->
+        AnfrageErgebnis b
 verwendeAnfrageErgebnis
     wertFunktion
     _anfrageFunktion
+    _fehlerFunktion
     AnfrageErgebnis {ergebnis}
         = AnfrageErgebnis $ wertFunktion ergebnis
 verwendeAnfrageErgebnis
     _wertFunktion
     anfrageFunktion
+    _fehlerFunktion
     AnfrageZwischenwert {anfrage}
-        = AnfrageZwischenwert $ anfrageFunktion anfrage
+        = anfrageFunktion anfrage
 verwendeAnfrageErgebnis
     _wertFunktion
-    anfrageFunktion
+    _anfrageFunktion
+    fehlerFunktion
     AnfrageFehler {anfrage, fehlerhafteEingabe}
-        = AnfrageFehler {anfrage = anfrageFunktion anfrage, fehlerhafteEingabe}
+        = AnfrageFehler {anfrage = fehlerFunktion anfrage, fehlerhafteEingabe}
+
+infixr 0 $<<
+($<<) :: (MitAnfrage a, MitAnfrage b) =>
+    (a -> b, AnfrageTyp a -> AnfrageErgebnis b, AnfrageTyp a -> AnfrageTyp b) -> AnfrageErgebnis a -> AnfrageErgebnis b
+(wertFunktion, anfrageFunktion, fehlerFunktion) $<< anfrageErgebnis
+    = verwendeAnfrageErgebnis wertFunktion anfrageFunktion fehlerFunktion anfrageErgebnis
