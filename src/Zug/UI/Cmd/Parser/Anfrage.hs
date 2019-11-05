@@ -12,6 +12,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
+    AnfrageErgebnis(..), verwendeAnfrageErgebnis,
     MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..),
     MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
     -- * Suche ein existierendes Objekt im Status
@@ -363,3 +364,34 @@ wähleValue token = wähleBefehl token [
 -- | Fehlerhafte Eingabe anzeigen
 unbekanntShowText :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
 unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingabe
+
+
+data AnfrageErgebnis a
+    = AnfrageErgebnis {
+        ergebnis :: a}
+    | AnfrageZwischenwert {
+        anfrage :: AnfrageTyp a}
+    | AnfrageFehler {
+        anfrage :: AnfrageTyp a,
+        fehlerhafteEingabe :: Text}
+
+deriving instance (Show a, Show (AnfrageTyp a)) => Show (AnfrageErgebnis a)
+deriving instance (Eq a, Eq (AnfrageTyp a)) => Eq (AnfrageErgebnis a)
+
+verwendeAnfrageErgebnis :: (MitAnfrage a, MitAnfrage b) =>
+    (a -> b) -> (AnfrageTyp a -> AnfrageTyp b) -> AnfrageErgebnis a -> AnfrageErgebnis b
+verwendeAnfrageErgebnis
+    wertFunktion
+    _anfrageFunktion
+    AnfrageErgebnis {ergebnis}
+        = AnfrageErgebnis $ wertFunktion ergebnis
+verwendeAnfrageErgebnis
+    _wertFunktion
+    anfrageFunktion
+    AnfrageZwischenwert {anfrage}
+        = AnfrageZwischenwert $ anfrageFunktion anfrage
+verwendeAnfrageErgebnis
+    _wertFunktion
+    anfrageFunktion
+    AnfrageFehler {anfrage, fehlerhafteEingabe}
+        = AnfrageFehler {anfrage = anfrageFunktion anfrage, fehlerhafteEingabe}

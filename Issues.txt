@@ -1,7 +1,8 @@
 Cmd-UI:
-    *Unbekannt aus Datentypen entfernen und eigenen (ParseError a)-Datentyp verwenden
+    *Unbekannt aus Datentypen entfernen und eigenen (ParseErgebnis a)-Datentyp verwenden
         *Unbekannt hat überall identische Struktur
     Analog zu Either als Fehler-Monade
+        Monade geht nicht, wegen Either-Ähnlicher Typvariable (keine anderen Typen erlaubt)
 
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren
@@ -17,6 +18,9 @@ Anzeige über eigene Klasse regeln
     anzeige :: Sprache -> Text
     Sprache in aktuellem Zustand speichern
         änderbar im Programm
+    Erzeugen in Language.hs automatisch über TemplateHaskell
+        Durchsuchen des gesamten Namensraum (DE), import von vorhandenen Namen
+        Warnung bei fehlenden Feldern, erzeugen von Wildcard-Pattern
 
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
