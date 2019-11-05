@@ -103,6 +103,9 @@ data Token  = Beenden
             | Aus
             | Kuppeln
             | Einstellen
+            | AktionAusführen   -- ^ Ausführen plan :: Aktion
+            | Dauerschleife
+            | EinfachAusführen
             | Ausführen
             | AusführenAbbrechen
             | Warten

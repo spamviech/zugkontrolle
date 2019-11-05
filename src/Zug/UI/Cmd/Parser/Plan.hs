@@ -840,6 +840,9 @@ data AnfragePlan
         Natural                 -- ^ Verbleibende Aktionen
         (Warteschlange Aktion)  -- ^ Bekannte Aktionen
         AnfrageAktion           -- ^ Nächste Aktion
+    | APlanNameAktionen
+        Text                    -- ^ Name
+        (Warteschlange Aktion)  -- ^ Aktionen
     | APlanIOStatus
         StatusAnfrageObjekt
         (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
@@ -869,6 +872,11 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
                 <^> showText acc
                 <^> showText anfrageAktion
     show
+        (APlanNameAktionen name aktionen)
+            = unpack $ Language.plan
+                <^> Language.name <=> name
+                <^> showText aktionen
+    show
         (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
             = Language.plan <^> showText objektStatusAnfrage
     show
@@ -890,6 +898,9 @@ instance Anfrage AnfragePlan where
     zeigeAnfrage
         (APlanNameAnzahl _name _anzahl _acc anfrageAktion)
             = zeigeAnfrage anfrageAktion
+    zeigeAnfrage
+        (APlanNameAktionen _name _aktionen)
+            = Language.ausführModus
     zeigeAnfrage
         (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
             = zeigeAnfrage objektStatusAnfrage
@@ -918,6 +929,9 @@ instance Anfrage AnfragePlan where
     zeigeAnfrageOptionen
         (APlanNameAnzahl _name _anzahl _acc anfrageAktion)
             = zeigeAnfrageOptionen anfrageAktion
+    zeigeAnfrageOptionen
+        (APlanNameAktionen _name _aktionen)
+            = Just $ toBefehlsString [Language.einfachAusführung, Language.dauerschleife]
     zeigeAnfrageOptionen
         (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
             = zeigeAnfrageOptionen objektStatusAnfrage
@@ -949,13 +963,14 @@ instance MitAnfrage Plan where
                     -> Left $ APlanIOStatus objektStatusAnfrage $
                         Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
                 (Left (AAStatusAnfrage objektStatusAnfrage (Right konstruktor)))
-                    -> Left $ APlanIOStatus objektStatusAnfrage $ if anzahl > 1
-                        then Left $ \objekt ->
+                    -> Left $ APlanIOStatus objektStatusAnfrage $ Left $ if anzahl > 1
+                        then \objekt ->
                             APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion
-                        else Right $ \objekt ->
-                            Plan {
-                                plName = name,
-                                plAktionen = toList $ anhängen (konstruktor objekt) acc}
+                        else \objekt ->
+                            APlanNameAktionen name $ anhängen (konstruktor objekt) acc
+                            -- Right $ Plan {
+                            --     plName = name,
+                            --     plAktionen = toList $ anhängen (konstruktor objekt) acc}
                 (Left AARückgängig)
                     -> Left $ APlanNameAnzahl name (succ anzahl) (löscheLetztes acc) AnfrageAktion
                 (Left aAktion1)
@@ -964,9 +979,10 @@ instance MitAnfrage Plan where
                     | anzahl > 1
                         -> Left $ APlanNameAnzahl name (pred anzahl) (anhängen aktion acc) AnfrageAktion
                     | otherwise
-                        -> Right $ Plan {
-                            plName = name,
-                            plAktionen = toList $ anhängen aktion acc}
+                        -> Left $ APlanNameAktionen name $ anhängen aktion acc
+                        -- Right $ Plan {
+                        --     plName = name,
+                        --     plAktionen = toList $ anhängen aktion acc}
             where
                 löscheLetztes :: Warteschlange a -> Warteschlange a
                 löscheLetztes warteschlange = case zeigeLetztes warteschlange of
@@ -979,6 +995,20 @@ instance MitAnfrage Plan where
         token
             = Left $ APlanIOStatus (anfrageKonstruktor token) eitherF
     anfrageAktualisieren
-        anfrage
+        anfrage@(APlanNameAktionen plName aktionen)
+        token@EingabeToken {eingabe}
+            = wähleBefehl token [
+                (Lexer.EinfachAusführen, Right $ Plan {plName, plAktionen = toList $ aktionen}),
+                (Lexer.Dauerschleife, Right dauerschleife)]
+                $ Left $ APUnbekannt anfrage eingabe
+            where
+                dauerschleife :: Plan
+                dauerschleife = Plan {plName, plAktionen = toList $ anhängen (Ausführen dauerschleife) aktionen}
+    anfrageAktualisieren
+        anfrage@(APlanIOStatus _statusAnfrageObjekt _eitherKonstruktor)
+        _token
+            = Left anfrage
+    anfrageAktualisieren
+        anfrage@(APUnbekannt _anfrage _eingabe)
         _token
             = Left anfrage

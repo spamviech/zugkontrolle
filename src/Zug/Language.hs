@@ -39,7 +39,7 @@ concatMapM erzeugeDeklaration [
     "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
     "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
     "fließendValue", "high", "low"]
-concatMapM erzeugeDeklaration ["dauerschleife", "einfachAusführung"]
+concatMapM erzeugeDeklaration ["einfachAusführung", "dauerschleife"]
 -- * Typ-Namen / Type names
 concatMapM erzeugeDeklaration [
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",
@@ -49,7 +49,7 @@ concatMapM erzeugeDeklaration ["dateiname", "name", "richtung", "richtungen", "f
 concatMapM erzeugeDeklaration ["anschluss", "pin", "pcf8574Port", "pcf8574", "variante", "normal", "a", "a0", "a1", "a2", "port"]
 -- * Query-Abfragen / Queries
 concatMapM erzeugeDeklaration ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
-erzeugeDeklaration "welchesObjektHinzufügen"
+concatMapM erzeugeDeklaration ["welchesObjektHinzufügen", "ausführModus"]
 -- * Fehlermeldungen / Error Messages
 concatMapM erzeugeDeklaration [
     "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt",

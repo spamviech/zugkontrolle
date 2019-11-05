@@ -151,7 +151,7 @@ instance Show Aktion where
     show    (ABahngeschwindigkeitLego aktion)       = Language.bahngeschwindigkeit <~> show aktion
     show    (AStreckenabschnitt aktion)             = Language.streckenabschnitt <~> show aktion
     show    (AKupplung aktion)                      = Language.kupplung <~> show aktion
-    show    (Ausführen plan)                        = Language.ausführen  <~> show plan
+    show    (Ausführen Plan {plName})               = Language.ausführen  <:> unpack plName
 
 instance StreckenObjekt Aktion where
     anschlüsse :: Aktion -> [Anschluss]
