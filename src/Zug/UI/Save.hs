@@ -697,7 +697,7 @@ instance ToJSON Plan where
                 in object [
                     nameJS .= plName,
                     aktionenJS .= aktionen,
-                    dauerschleifeJS .= (null $ nullValues)]
+                    dauerschleifeJS .= (not $ null nullValues)]
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen
 findeÜbereinstimmendenWert :: (ToJSON a) => [a] -> Value -> Parser a
