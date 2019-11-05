@@ -36,6 +36,7 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (Anschluss(..))
+import Zug.Klassen (Zugtyp(..))
 import qualified Zug.Language as Language
 import Zug.Language ((<^>), (<:>), (<\>), showText, toBefehlsString)
 import qualified Zug.Menge as Menge
@@ -46,7 +47,7 @@ import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), showMitAnfrage, showMitAnfrageFehlgeschlagen,
                                 StatusAnfrageObjekt(..), statusAnfrageObjekt,
-                                StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp,
+                                StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
                                 wähleBefehl, unbekanntShowText, zeigeAnfrageFehlgeschlagenStandard)
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), AnfrageAktion(..),
                                 AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..),
@@ -170,6 +171,12 @@ data AnfrageBefehl
     | ABStatusAnfrage
         (EingabeToken -> StatusAnfrageObjekt)
         (Objekt -> AnfrageErgebnis)
+    | ABStatusAnfrageMärklin
+        (EingabeToken -> StatusAnfrageObjektZugtyp 'Märklin)
+        (ObjektZugtyp 'Märklin -> AnfrageErgebnis)
+    | ABStatusAnfrageLego
+        (EingabeToken -> StatusAnfrageObjektZugtyp 'Lego)
+        (ObjektZugtyp 'Lego -> AnfrageErgebnis)
 
 instance Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
