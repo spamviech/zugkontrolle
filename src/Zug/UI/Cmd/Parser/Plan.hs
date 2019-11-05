@@ -661,6 +661,7 @@ data AnfrageAktionElement
         Text
     | AAERückgängig
     | AAEWarten
+    | AAEAusführen
     | AAEWegstrecke
     | AAEWeiche
     | AAEBahngeschwindigkeit
@@ -681,6 +682,8 @@ instance MitAnfrage Aktion where
                     -> AARückgängig
                 AAEWarten
                     -> AAWarten
+                AAEAusführen
+                    -> AAKlassifizierung SAOPlan $ Right $ \(OPlan plan) -> Ausführen plan
                 AAEWegstrecke
                     -> AAKlassifizierung SAOWegstrecke $ Left erhalteWegstreckeAktion
                     where

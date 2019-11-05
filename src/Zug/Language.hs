@@ -39,7 +39,7 @@ concatMapM erzeugeDeklaration [
     "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
     "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
     "fließendValue", "high", "low"]
-concatMapM erzeugeDeklaration ["einfachAusführung", "dauerschleife"]
+concatMapM erzeugeDeklaration ["aktionAusführen", "einfachAusführung", "dauerschleife"]
 -- * Typ-Namen / Type names
 concatMapM erzeugeDeklaration [
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",
@@ -81,7 +81,7 @@ befehlWegstreckenElemente :: (Semigroup s, IsString s) => [s]
 befehlWegstreckenElemente = [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
 -- | All supported actions
 aktionGruppen :: (Semigroup s, IsString s) => [s]
-aktionGruppen = [warten] <> befehlObjekte
+aktionGruppen = [warten, aktionAusführen] <> befehlObjekte
 -- | All supported actions for a 'Plan'
 aktionPlan :: (Semigroup s, IsString s) => [s]
 aktionPlan = [ausführen]
