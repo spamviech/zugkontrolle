@@ -116,6 +116,15 @@ high = showText HIGH
 -- | LOW
 low :: (Semigroup s, IsString s) => s
 low = showText LOW
+-- | Execute
+aktionAusführen :: (Semigroup s, IsString s) => s
+aktionAusführen = "Execute"
+-- | Execute-Once
+einfachAusführung :: (Semigroup s, IsString s) => s
+einfachAusführung = "Execute-Once"
+-- | Loop
+dauerschleife :: (Semigroup s, IsString s) => s
+dauerschleife = "Loop"
 
 -- * Typ-Namen / Type names
 -- | Object
@@ -173,7 +182,31 @@ pin :: (Semigroup s, IsString s) => s
 pin                             = "Pin"
 -- | PCF8574Port
 pcf8574Port :: (Semigroup s, IsString s) => s
-pcf8574Port                     = "PCF8574Port"
+pcf8574Port                     = pcf8574 <-> port
+-- | PCF8574
+pcf8574 :: (Semigroup s, IsString s) => s
+pcf8574                         = "PCF8574"
+-- | Variant
+variante :: (Semigroup s, IsString s) => s
+variante                        = "Variant"
+-- | normal
+normal :: (Semigroup s, IsString s) => s
+normal                          = "normal"
+-- | A
+a :: (Semigroup s, IsString s) => s
+a                               = "A"
+-- | a0
+a0 :: (Semigroup s, IsString s) => s
+a0                              = "a0"
+-- | a1
+a1 :: (Semigroup s, IsString s) => s
+a1                              = "a1"
+-- | a2
+a2 :: (Semigroup s, IsString s) => s
+a2                              = "a2"
+-- | Port
+port :: (Semigroup s, IsString s) => s
+port                            = "Port"
 -- | Name
 name :: (Semigroup s, IsString s) => s
 name                            = "Name"
@@ -203,6 +236,12 @@ aktionen                        = "Actions"
 -- | Train model
 zugtyp :: (Semigroup s, IsString s) => s
 zugtyp                          = "Train model"
+-- | Execution mode
+ausführModus :: (Semigroup s, IsString s) => s
+ausführModus                    = "Execution mode"
+-- | Which Object should be added?
+welchesObjektHinzufügen :: (Semigroup s, IsString s) => s
+welchesObjektHinzufügen         = "Which Object should be added?"
 
 -- | Ask to specify the object (type indicated by /s/) either by its index or name
 indexOderName :: (Semigroup s, IsString s) => s -> s
@@ -234,6 +273,9 @@ uiNichtUnterstützt              = "Selected UI not supported. Cmd-UI is used in
 -- | erwartet "Integer"
 integerErwartet :: (Semigroup s, IsString s) => s
 integerErwartet                 = erwartet "Integer"
+-- | erwartet "Value"
+valueErwartet :: (Semigroup s, IsString s) => s
+valueErwartet                   = erwartet "Value"
 -- | erwartet richtung
 richtungErwartet :: (Semigroup s, IsString s) => s
 richtungErwartet                = erwartet richtung

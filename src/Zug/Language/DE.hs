@@ -110,13 +110,22 @@ zeit :: (Semigroup s, IsString s) => s
 zeit                            = "Zeit"
 -- | fließend <-> "Value"
 fließendValue :: (Semigroup s, IsString s) => s
-fließendValue = fließend <-> "Value"
+fließendValue                   = fließend <-> "Value"
 -- | HIGH
 high :: (Semigroup s, IsString s) => s
-high = showText HIGH
+high                            = showText HIGH
 -- | LOW
 low :: (Semigroup s, IsString s) => s
-low = showText LOW
+low                             = showText LOW
+-- | Execute
+aktionAusführen :: (Semigroup s, IsString s) => s
+aktionAusführen                 = "Ausführen"
+-- | Execute-Once
+einfachAusführung :: (Semigroup s, IsString s) => s
+einfachAusführung               = "Einfach-Ausführung"
+-- | Loop
+dauerschleife :: (Semigroup s, IsString s) => s
+dauerschleife                   = "Dauerschleife"
 
 -- * Typ-Namen / Type names
 -- | Object
@@ -174,7 +183,31 @@ pin :: (Semigroup s, IsString s) => s
 pin                             = "Pin"
 -- | PCF8574Port
 pcf8574Port :: (Semigroup s, IsString s) => s
-pcf8574Port                     = "PCF8574Port"
+pcf8574Port                     = pcf8574 <-> port
+-- | PCF8574
+pcf8574 :: (Semigroup s, IsString s) => s
+pcf8574                         = "PCF8574"
+-- | Variant
+variante :: (Semigroup s, IsString s) => s
+variante                        = "Variante"
+-- | normal
+normal :: (Semigroup s, IsString s) => s
+normal                          = "normal"
+-- | A
+a :: (Semigroup s, IsString s) => s
+a                               = "A"
+-- | a0
+a0 :: (Semigroup s, IsString s) => s
+a0                              = "a0"
+-- | a1
+a1 :: (Semigroup s, IsString s) => s
+a1                              = "a1"
+-- | a2
+a2 :: (Semigroup s, IsString s) => s
+a2                              = "a2"
+-- | Port
+port :: (Semigroup s, IsString s) => s
+port                            = "Port"
 -- | Name
 name :: (Semigroup s, IsString s) => s
 name                            = "Name"
@@ -204,6 +237,12 @@ aktionen                        = "Aktionen"
 -- | Train model
 zugtyp :: (Semigroup s, IsString s) => s
 zugtyp                          = "Zugtyp"
+-- | Execution mode
+ausführModus :: (Semigroup s, IsString s) => s
+ausführModus                    = "Ausführ-Modus"
+-- | Which Object should be added?
+welchesObjektHinzufügen :: (Semigroup s, IsString s) => s
+welchesObjektHinzufügen         = "Welches Objekt soll hinzugefügt werden?"
 
 -- | Ask to specify the object (type indicated by /s/) either by its index or name
 indexOderName :: (Semigroup s, IsString s) => s -> s
@@ -235,6 +274,9 @@ uiNichtUnterstützt              = "Gewählte UI-Option nicht unterstützt! Nutz
 -- | erwartet "Integer"
 integerErwartet :: (Semigroup s, IsString s) => s
 integerErwartet                 = erwartet "Integer"
+-- | erwartet "Value"
+valueErwartet :: (Semigroup s, IsString s) => s
+valueErwartet                   = erwartet "Value"
 -- | erwartet richtung
 richtungErwartet :: (Semigroup s, IsString s) => s
 richtungErwartet                = erwartet richtung

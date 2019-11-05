@@ -45,16 +45,16 @@ concatMapM erzeugeDeklaration [
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",
     "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne"]
 -- * Eigenschafts/Feld-Namen / Attributes/Field names
-concatMapM erzeugeDeklaration ["dateiname", "name", "richtung", "richtungen", "fahrtrichtung"]
-concatMapM erzeugeDeklaration ["anschluss", "pin", "pcf8574Port", "pcf8574", "variante", "normal", "a", "a0", "a1", "a2", "port"]
+concatMapM erzeugeDeklaration [
+    "dateiname", "name", "richtung", "richtungen", "fahrtrichtung", "anschluss",
+    "pin", "pcf8574Port", "pcf8574", "variante", "normal", "a", "a0", "a1", "a2", "port"]
 -- * Query-Abfragen / Queries
 concatMapM erzeugeDeklaration ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
 concatMapM erzeugeDeklaration ["welchesObjektHinzufügen", "ausführModus"]
 -- * Fehlermeldungen / Error Messages
 concatMapM erzeugeDeklaration [
     "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt",
-    "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer"]
-erzeugeDeklaration "valueErwartet"
+    "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer", "valueErwartet"]
 -- * Typ-namen / Type names
 concatMapM erzeugeDeklaration ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 
