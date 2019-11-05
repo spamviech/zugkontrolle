@@ -121,7 +121,9 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
                         (AEAnfrageBefehl anfrage)
                             -> statusParserAux $ parser anfrage eingabe
                 (Left anfrage)
-                    -> promptS (zeigeAnfrageFehlgeschlagen anfrage $ erhalteEingabe anfrage <!> zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser backup . lexer
+                    -> promptS
+                        (zeigeAnfrageFehlgeschlagen anfrage $ erhalteEingabe anfrage <!> zeigeAnfrage anfrage <:> "")
+                        >>= statusParserAux . parser backup . lexer
         erhalteEingabe :: StatusAnfrageObjekt -> Text
         erhalteEingabe  (SAOUnbekannt eingabe)                            = eingabe
         erhalteEingabe  (SAOPlan (EingabeToken {eingabe}))                = eingabe

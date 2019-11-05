@@ -303,11 +303,32 @@ anfrageBefehlAktualisieren
         = case anfrageAktualisieren anfrageObjekt token of
             (Left (AOUnbekannt anfrage eingabe))
                 -> AEAnfrageBefehl $ ABUnbekannt (ABHinzufügen anfrage) eingabe
-            (Left (AOStatusAnfrage statusanfrage (Right konstruktor)))
-                -> AEStatusAnfrage statusanfrage (AEBefehl . Hinzufügen . konstruktor) anfrage []
             (Left (AOStatusAnfrage statusanfrage (Left anfrageKonstruktor)))
                 -> AEStatusAnfrage statusanfrage (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor) anfrage []
-            (Left qObjekt1)
+            (Left (AOStatusAnfrage statusanfrage (Right konstruktor)))
+                -> AEStatusAnfrage statusanfrage (AEBefehl . Hinzufügen . konstruktor) anfrage []
+            (Left (AOStatusAnfrageMärklin statusAnfrageMärklin (Left anfrageKonstruktor)))
+                -> _
+            (Left (AOStatusAnfrageMärklin statusAnfrageMärklin (Right konstruktor)))
+                -> _
+            (Left (AOStatusAnfrageLego statusAnfrageLego (Left anfrageKonstruktor)))
+                -> _
+            (Left (AOStatusAnfrageLego statusAnfrageLego (Right konstruktor)))
+                -> _
+            -- Kein Wildcard-Pattern, damit neu hinzugefügte Konstruktoren nicht vergessen werden können
+            (Left qObjekt1@AnfrageObjekt)
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Left qObjekt1@(AOBahngeschwindigkeit _anfrageBahngeschwindigkeit))
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Left qObjekt1@(AOStreckenabschnitt _anfrageStreckenabschnitt))
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Left qObjekt1@(AOWeiche _anfrageWeiche))
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Left qObjekt1@(AOKupplung _anfrageKupplung))
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Left qObjekt1@(AOWegstrecke _anfrageWegstrecke))
+                -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
+            (Left qObjekt1@(AOPlan _anfragePlan))
                 -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
             (Right objekt)
                 -> AEBefehl $ Hinzufügen objekt
