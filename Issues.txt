@@ -1,22 +1,3 @@
-Rekursion in Plan ermöglichen
-    erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
-    potentielle Endlosschleifen
-        problematisch?
-        nein, da 'ausführenAbbrechen' immer möglich
-        bei Anzeigen/Eq-Vergleich auf Wiederholungen prüfen!
-            kann mit UI nicht erzeugt werden
-            Speichern in .json ebenfalls nicht möglich
-            verwende nur Name bei Plänen
-                vermeidet rekursive Aufrufe
-                speichern Problematisch, wenn Plan schon gelöscht
-                erfordert durchsuchen anderer Pläne beim Laden
-                    Parse-Reihenfolge wichtig?
-        Schleife-Aktion um Dauerschleife problemlos zu ermöglichen
-            Probleme bei ausführenAktion/ausführenPlan
-        eigenes Feld in Plan für Dauerschleife
-            endliche Wiederholungen möglich mit 2 Plänen
-            dadurch kein Integer-Feld notwendig
-
 Cmd-UI:
     *Unbekannt aus Datentypen entfernen und eigenen (ParseError a)-Datentyp verwenden
         *Unbekannt hat überall identische Struktur
@@ -84,6 +65,26 @@ Hilfetext von optparse-applicative übersetzten
     Außerdem sämtliche Hilfetexte in Language.hs auslagern.
 
 ---------------------------Gelöst--------------------------
+Rekursion in Plan ermöglichen
+    erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
+    potentielle Endlosschleifen
+        problematisch?
+        nein, da 'ausführenAbbrechen' immer möglich
+        bei Anzeigen/Eq-Vergleich auf Wiederholungen prüfen!
+            kann mit UI nicht erzeugt werden
+            Speichern in .json ebenfalls nicht möglich
+            verwende nur Name bei Plänen
+                vermeidet rekursive Aufrufe
+                speichern Problematisch, wenn Plan schon gelöscht
+                erfordert durchsuchen anderer Pläne beim Laden
+                    Parse-Reihenfolge wichtig?
+        Schleife-Aktion um Dauerschleife problemlos zu ermöglichen
+            Probleme bei ausführenAktion/ausführenPlan
+        eigenes Feld in Plan für Dauerschleife
+            endliche Wiederholungen möglich mit 2 Plänen
+            dadurch kein Integer-Feld notwendig
+    Done
+
 Zugtyp-Mischformen von Wegstrecken
     Mischformen können aktuell zu potentiell unerwartetem Verhalten führen:
         Wenn als Märklin interpretiert: alle Lego-Bahngeschwindigkeiten werden auf Vorwärts gestellt

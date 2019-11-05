@@ -85,6 +85,40 @@
     ],
     "Pläne": [
         {
+            "Dauerschleife": true,
+            "Name": "Dauerschleife",
+            "Aktionen": [
+                {
+                    "Plan": {
+                        "Dauerschleife": false,
+                        "Name": "Stehenbleiben!",
+                        "Aktionen": [
+                            {
+                                "Wert": 0,
+                                "Bahngeschwindigkeit": {
+                                    "GeschwindigkeitsPin": {
+                                        "Pin": 26
+                                    },
+                                    "Name": "SoftwarePWM",
+                                    "Zugtyp": "Märklin",
+                                    "Fließend": "HIGH"
+                                },
+                                "Aktion": "Geschwindigkeit"
+                            }
+                        ]
+                    },
+                    "Aktion": "Ausführen"
+                },
+                {
+                    "Wert": {
+                        "µs": 5000
+                    },
+                    "Aktion": "Warten"
+                }
+            ]
+        },
+        {
+            "Dauerschleife": false,
             "Name": "Stehenbleiben!",
             "Aktionen": [
                 {
@@ -102,6 +136,7 @@
             ]
         },
         {
+            "Dauerschleife": false,
             "Name": "Mega-Plan",
             "Aktionen": [
                 {
