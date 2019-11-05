@@ -172,6 +172,8 @@ setupGUI = void $ do
         <- boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenLego
         <- boxPlanHinzufügenNew
+    vBoxHinzufügenPlanPläne
+        <- boxPlanHinzufügenNew
     fortfahrenWennToggledWegstrecke <- fortfahrenWennToggledTMVarNew Language.hinzufügen foldWegstreckeHinzufügen tmvarStatus
     tmvarPlanObjekt
         <- newEmptyTMVarIO
@@ -208,6 +210,7 @@ setupGUI = void $ do
         vBoxHinzufügenPlanWegstreckenKupplungLego,
         vBoxHinzufügenPlanWegstreckenMärklin,
         vBoxHinzufügenPlanWegstreckenLego,
+        vBoxHinzufügenPlanPläne,
         progressBarPlan,
         windowMain,
         fortfahrenWennToggledWegstrecke,

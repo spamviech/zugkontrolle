@@ -339,7 +339,7 @@ anfrageBefehlAktualisieren
     EingabeToken {eingabe}
         = AEBefehlSofort (BSLaden $ unpack eingabe) []
 anfrageBefehlAktualisieren
-    anfrage@(ABAktionPlan plan@(Plan {plAktionen}))
+    anfrage@(ABAktionPlan plan@Plan {plAktionen})
     token@EingabeToken {eingabe}
         = wähleBefehl token [
             (Lexer.Ausführen, AEBefehl $ Ausführen plan zeigeFortschritt $ pure ())]

@@ -137,7 +137,7 @@ data Aktion
         (AktionStreckenabschnitt Streckenabschnitt)
     | AKupplung
         (AktionKupplung Kupplung)
-    | Ausführen
+    | AktionAusführen
         Plan
     deriving (Eq)
 
@@ -151,7 +151,7 @@ instance Show Aktion where
     show    (ABahngeschwindigkeitLego aktion)       = Language.bahngeschwindigkeit <~> show aktion
     show    (AStreckenabschnitt aktion)             = Language.streckenabschnitt <~> show aktion
     show    (AKupplung aktion)                      = Language.kupplung <~> show aktion
-    show    (Ausführen Plan {plName})               = Language.ausführen  <:> unpack plName
+    show    (AktionAusführen Plan {plName})         = Language.ausführen  <:> unpack plName
 
 instance StreckenObjekt Aktion where
     anschlüsse :: Aktion -> [Anschluss]
@@ -163,7 +163,7 @@ instance StreckenObjekt Aktion where
     anschlüsse  (ABahngeschwindigkeitLego aktion)       = anschlüsse aktion
     anschlüsse  (AStreckenabschnitt aktion)             = anschlüsse aktion
     anschlüsse  (AKupplung aktion)                      = anschlüsse aktion
-    anschlüsse  (Ausführen plan)                        = anschlüsse plan
+    anschlüsse  (AktionAusführen plan)                  = anschlüsse plan
     erhalteName :: Aktion -> Text
     erhalteName = showText
 
@@ -177,7 +177,7 @@ instance AktionKlasse Aktion where
     ausführenAktion (ABahngeschwindigkeitLego aktion)       = ausführenAktion aktion
     ausführenAktion (AStreckenabschnitt aktion)             = ausführenAktion aktion
     ausführenAktion (AKupplung aktion)                      = ausführenAktion aktion
-    ausführenAktion (Ausführen plan)                        = ausführenPlan plan (const $ pure ()) (pure ())
+    ausführenAktion (AktionAusführen plan)                  = ausführenPlan plan (const $ pure ()) (pure ())
 
 -- | Bekannte 'Aktion'en einer 'Wegstrecke'
 data AktionWegstrecke ws (z :: Zugtyp)

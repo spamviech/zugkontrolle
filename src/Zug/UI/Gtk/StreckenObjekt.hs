@@ -272,6 +272,7 @@ data DynamischeWidgets = DynamischeWidgets {
     vBoxHinzufügenPlanWegstreckenStreckenabschnittLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
     vBoxHinzufügenPlanWegstreckenKupplungLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
     vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
+    vBoxHinzufügenPlanPläne :: BoxPlanHinzufügen PLWidgets,
     progressBarPlan :: Gtk.ProgressBar,
     windowMain :: Gtk.Window,
     fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid,
@@ -1217,7 +1218,8 @@ data PLWidgets
     = PLWidgets {
         pl :: Plan,
         plWidget :: Gtk.Frame,
-        plFunktionBox :: Gtk.Box}
+        plFunktionBox :: Gtk.Box,
+        plHinzPL :: ButtonPlanHinzufügen PLWidgets}
     deriving (Eq)
 
 instance MitWidget PLWidgets where
@@ -1234,6 +1236,12 @@ instance WidgetsTyp PLWidgets where
         mitContainerRemove vBoxPläne plWidgets
     boxButtonEntfernen :: PLWidgets -> Gtk.Box
     boxButtonEntfernen = plFunktionBox
+    
+instance PlanElement PLWidgets where
+    foldPlan :: Lens.Fold PLWidgets (Maybe (ButtonPlanHinzufügen PLWidgets))
+    foldPlan = Lens.to $ Just . plHinzPL
+    boxenPlan :: Plan -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen PLWidgets)
+    boxenPlan _kuWidgets = Lens.to vBoxHinzufügenPlanPläne
 
 instance StreckenObjekt PLWidgets where
     anschlüsse :: PLWidgets -> [Anschluss]
@@ -1254,7 +1262,7 @@ planPackNew :: (ObjektReader ObjektGui m, MonadIO m) => Plan -> m PLWidgets
 planPackNew plan@Plan {plAktionen} = do
     tmvarStatus <- erhalteStatus
     objektReader <- ask
-    DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain} <- erhalteDynamischeWidgets
+    DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain, vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
     -- Widget erstellen
     frame <- liftIO $ boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
     vBox <- liftIO $ containerAddWidgetNew frame $ Gtk.vBoxNew False 0
@@ -1293,7 +1301,8 @@ planPackNew plan@Plan {plAktionen} = do
             ausführenTMVarBefehl (AusführenAbbrechen plan) tmvarStatus
         Gtk.widgetShow buttonAusführen
         Gtk.widgetHide buttonAbbrechen
-    let plWidgets = PLWidgets {pl = plan, plWidget = frame, plFunktionBox = erhalteBox functionBox}
+    plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan
+    let plWidgets = PLWidgets {pl = plan, plWidget = frame, plFunktionBox = erhalteBox functionBox, plHinzPL}
     buttonEntfernenPackNew plWidgets $ entfernenPlan plWidgets
     -- Widgets merken
     ausführenTMVarBefehl (Hinzufügen $ OPlan plWidgets) tmvarStatus

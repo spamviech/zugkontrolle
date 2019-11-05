@@ -683,7 +683,7 @@ instance MitAnfrage Aktion where
                 AAEWarten
                     -> AAWarten
                 AAEAusführen
-                    -> AAKlassifizierung SAOPlan $ Right $ \(OPlan plan) -> Ausführen plan
+                    -> AAKlassifizierung SAOPlan $ Right $ \(OPlan plan) -> AktionAusführen plan
                 AAEWegstrecke
                     -> AAKlassifizierung SAOWegstrecke $ Left erhalteWegstreckeAktion
                     where
@@ -1006,7 +1006,7 @@ instance MitAnfrage Plan where
                 $ Left $ APUnbekannt anfrage eingabe
             where
                 dauerschleife :: Plan
-                dauerschleife = Plan {plName, plAktionen = toList $ anhängen (Ausführen dauerschleife) aktionen}
+                dauerschleife = Plan {plName, plAktionen = toList $ anhängen (AktionAusführen dauerschleife) aktionen}
     anfrageAktualisieren
         anfrage@(APlanIOStatus _statusAnfrageObjekt _eitherKonstruktor)
         _token

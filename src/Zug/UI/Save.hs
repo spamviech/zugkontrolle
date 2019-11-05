@@ -600,7 +600,7 @@ instance FromJSON Aktion where
                 (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
                 (\v     -> AKupplung . Kuppeln <$> v .: kupplungJS)
         | s == ausführenJS
-            -> Ausführen <$> v .: planJS
+            -> AktionAusführen <$> v .: planJS
         | otherwise
             -> mzero
         where
@@ -665,7 +665,7 @@ aktionToJSON  _name (AStreckenabschnitt (Strom s an))
     = object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]
 aktionToJSON  _name (AKupplung (Kuppeln k))
     = object [kupplungJS .= k, aktionJS .= kuppelnJS]
-aktionToJSON  name  (Ausführen plan@Plan {plName})
+aktionToJSON  name  (AktionAusführen plan@Plan {plName})
     | name == plName
         -- Verwende Name als Marker für Namensgleichheit (== angenommene Dauerschleife)
         -- Explizit gehandhabt, da sonst die Berechnung des Value nicht terminiert.
@@ -682,7 +682,7 @@ instance FromJSON Plan where
             erzeugeDauerschleife :: Maybe Bool -> Plan
             erzeugeDauerschleife
                 (Just True)
-                    = let plan = Plan {plName, plAktionen = aktionen ++ [Ausführen plan]} in plan
+                    = let plan = Plan {plName, plAktionen = aktionen ++ [AktionAusführen plan]} in plan
             erzeugeDauerschleife
                 _NothingOderFalse
                     = Plan {plName, plAktionen = aktionen}
