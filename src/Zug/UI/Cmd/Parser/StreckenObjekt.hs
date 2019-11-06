@@ -939,26 +939,29 @@ instance Anfrage AnfrageKupplung where
 instance MitAnfrage Kupplung where
     type AnfrageTyp Kupplung = AnfrageKupplung
     -- | Eingabe einer Kupplung
-    anfrageAktualisieren :: AnfrageKupplung -> EingabeToken -> Either AnfrageKupplung Kupplung
+    anfrageAktualisieren :: AnfrageKupplung -> EingabeToken -> AnfrageFortsetzung AnfrageKupplung Kupplung
     anfrageAktualisieren
         AnfrageKupplung
         EingabeToken {eingabe}
-            = Left $ AKupplungName eingabe
+            = AFZwischenwert $ AKupplungName eingabe
     anfrageAktualisieren
         anfrage@(AKupplungName name)
         token@EingabeToken {eingabe}
-            = Left $ wähleBefehl token [
-                (Lexer.HIGH , AKupplungNameFließend name HIGH AnfrageAnschluss),
-                (Lexer.LOW  , AKupplungNameFließend name LOW AnfrageAnschluss)]
-                $ AKUUnbekannt anfrage eingabe
+            = wähleBefehl token [
+                (Lexer.HIGH , AFZwischenwert $ AKupplungNameFließend name HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AFZwischenwert $ AKupplungNameFließend name LOW AnfrageAnschluss)]
+                $ AFFehler anfrage eingabe
     anfrageAktualisieren
         anfrage@(AKupplungNameFließend kuName kuFließend anfrageAnschluss)
         token
-            = case anfrageAktualisieren anfrageAnschluss token of
-                (Left akuKupplungsAnfrageAnschluss)
-                    -> Left anfrage {akuKupplungsAnfrageAnschluss}
-                (Right kupplungsAnschluss)
-                    -> Right $ Kupplung {
+            = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anfrageAnschluss token
+            where
+                anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageKupplung
+                anfrageAnschlussVerwenden akuKupplungsAnfrageAnschluss
+                    = anfrage {akuKupplungsAnfrageAnschluss}
+                anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageKupplung Kupplung
+                anschlussVerwenden kupplungsAnschluss
+                    = AFErgebnis Kupplung {
                         kuName,
                         kuFließend,
                         kupplungsAnschluss}
