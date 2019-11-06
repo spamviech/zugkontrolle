@@ -297,7 +297,7 @@ instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
         AnfrageAktionKupplung k -> EingabeToken -> AnfrageFortsetzung (AnfrageAktionKupplung k) (AktionKupplung k)
     anfrageAktualisieren
         anfrage@(AnfrageAktionKupplung kupplung)
-        token@EingabeToken {eingabe}
+        token
             = wähleErgebnis anfrage token [(Lexer.Kuppeln, Kuppeln kupplung)]
 
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
