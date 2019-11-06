@@ -19,7 +19,8 @@ module Zug.UI.Cmd.Parser.Anfrage (
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
     ObjektZugtyp(..), StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, zuObjekt,
     -- * Hilfsfunktionen
-    wähleBefehl, wähleRichtung, wähleValue, unbekanntShowText) where
+    wähleBefehl, wähleRichtung, wähleValue, unbekanntShowText,
+    wähleZwischenwert, wähleErgebnis) where
 
 import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
@@ -127,11 +128,10 @@ anfrageAktualisierenZugtyp :: (MitAnfrageZugtyp a) =>
         AnfrageFortsetzung (AnfrageZugtypEither a) b
 anfrageAktualisierenZugtyp
     anfrage
-    token@EingabeToken {eingabe}
-        = wähleBefehl token [
-            (Lexer.Märklin  , AFZwischenwert $ AnfrageMärklin anfrageMärklin),
-            (Lexer.Lego     , AFZwischenwert $ AnfrageLego anfrageLego)]
-            $ AFFehler (AnfrageNothing anfrage) eingabe
+    token
+        = wähleZwischenwert (AnfrageNothing anfrage) token [
+            (Lexer.Märklin  , AnfrageMärklin anfrageMärklin),
+            (Lexer.Lego     , AnfrageLego anfrageLego)]
 
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
@@ -336,8 +336,8 @@ längerAls   []      i   = i < 0
 längerAls   _liste  0   = True
 längerAls   (_h:t)  i   = längerAls t $ pred i
 
--- | Wähle aus möglichen Interpretationen der Eingabe die erste passende aus und gebe den daraus resultierenden Befehl zurück.
--- Falls keine Möglichkeit passend ist, gebe wird das Ersatz-Ergebnis zurückgegeben.
+-- | Wähle aus möglichen Interpretationen der Eingabe die erste passende und gebe den zugehörigen Befehl zurück.
+-- Falls keine Möglichkeit passend ist, wird das Ersatz-Ergebnis zurückgegeben.
 wähleBefehl :: EingabeToken -> [(Token, a)] -> a -> a
 wähleBefehl
     _eingabe
@@ -382,6 +382,22 @@ data AnfrageFortsetzung a e
         anfrage :: a,
         fehlerhafteEingabe :: Text}
     deriving (Show, Eq)
+
+-- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
+wähleZwischenwert :: a -> EingabeToken -> [(Token, a)]-> AnfrageFortsetzung a e
+wähleZwischenwert
+    anfrage
+    token@EingabeToken {eingabe}
+    liste
+        = wähleBefehl token (map (\(t, a) -> (t, AFZwischenwert a)) liste) $ AFFehler anfrage eingabe
+
+-- | Spezialisierung von 'wähleBefehl' auf 'AFErgebnis'
+wähleErgebnis :: a -> EingabeToken -> [(Token, e)]-> AnfrageFortsetzung a e
+wähleErgebnis
+    anfrage
+    token@EingabeToken {eingabe}
+    liste
+        = wähleBefehl token (map (\(t, e) -> (t, AFErgebnis e)) liste) $ AFFehler anfrage eingabe
 
 -- | Komposition zweier Funktionen, die ein 'AnfrageFortsetzung' zurückgeben.
 verwendeAnfrageFortsetzung ::
