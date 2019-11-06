@@ -421,7 +421,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
                     Anschluss ->
                         AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'Märklin)
                 anschlussVerwenden bgmGeschwindigkeitsAnschluss
-                    = AFErgebnis $ MärklinBahngeschwindigkeit {
+                    = AFErgebnis MärklinBahngeschwindigkeit {
                         bgmName,
                         bgmFließend,
                         bgmGeschwindigkeitsAnschluss}
@@ -474,7 +474,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
                 Anschluss ->
                     AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
             anschlussVerwenden bglFahrtrichtungsAnschluss
-                = AFErgebnis $ LegoBahngeschwindigkeit {
+                = AFErgebnis LegoBahngeschwindigkeit {
                     bglName,
                     bglFließend,
                     bglGeschwindigkeitsAnschluss,
@@ -550,22 +550,25 @@ instance MitAnfrage Streckenabschnitt where
     anfrageAktualisieren
         AnfrageStreckenabschnitt
         EingabeToken {eingabe}
-            = Left $ AStreckenabschnittName eingabe
+            = AFZwischenwert $ AStreckenabschnittName eingabe
     anfrageAktualisieren
         anfrage@(AStreckenabschnittName name)
         token@EingabeToken {eingabe}
-            = Left $ wähleBefehl token [
-                (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
-                (Lexer.LOW  , AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
-                $ ASTUnbekannt anfrage eingabe
+            = wähleBefehl token [
+                (Lexer.HIGH , AFZwischenwert $ AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AFZwischenwert $ AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
+                $ AFFehler anfrage eingabe
     anfrageAktualisieren
         anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
         token
-            = case anfrageAktualisieren stromAnschluss token of
-                (Left astStromAnfrageAnschluss)
-                    -> Left $ anfrage {astStromAnfrageAnschluss}
-                (Right stromAnschluss)
-                    -> Right $ Streckenabschnitt {
+            = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren stromAnschluss token
+            where
+                anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageStreckenabschnitt
+                anfrageAnschlussVerwenden astStromAnfrageAnschluss
+                    = anfrage {astStromAnfrageAnschluss}
+                anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageStreckenabschnitt Streckenabschnitt
+                anschlussVerwenden stromAnschluss
+                    = AFErgebnis Streckenabschnitt {
                         stName,
                         stFließend,
                         stromAnschluss}
