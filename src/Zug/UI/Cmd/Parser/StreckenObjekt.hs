@@ -1098,23 +1098,23 @@ anfrageWegstreckeAktualisieren ::
 anfrageWegstreckeAktualisieren
     anfrage@AnfrageWegstreckeZugtyp
     _token
-        = Left anfrage
+        = AFZwischenwert anfrage
 anfrageWegstreckeAktualisieren
     anfrage@AWegstreckeMStatus {}
     _token
-        = Left anfrage
+        = AFZwischenwert anfrage
 anfrageWegstreckeAktualisieren
     AnfrageWegstrecke
     EingabeToken {eingabe}
-        = Left $ AWegstreckeName eingabe
+        = AFZwischenwert $ AWegstreckeName eingabe
 anfrageWegstreckeAktualisieren
     anfrage@(AWegstreckeName wsName)
     EingabeToken {eingabe, ganzzahl}
         = case ganzzahl of
             Nothing
-                -> Left $ AWSUnbekannt anfrage eingabe
+                -> AFFehler anfrage eingabe
             (Just anzahl)
-                -> Left $ AWegstreckeNameAnzahl
+                -> AFZwischenwert $ AWegstreckeNameAnzahl
                     Wegstrecke {
                         wsName,
                         wsBahngeschwindigkeiten = [],
@@ -1125,17 +1125,17 @@ anfrageWegstreckeAktualisieren
 anfrageWegstreckeAktualisieren
     anfrage@(AWegstreckeNameAnzahl acc anzahl)
     token
-        = Left $ case anfrageWegstreckenElement token of
-            AWSEWeiche
-                -> AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
-            AWSEBahngeschwindigkeit
-                -> AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
-            AWSEStreckenabschnitt
-                -> AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
-            AWSEKupplung
-                -> AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
+        = case anfrageWegstreckenElement token of
             (AWSEUnbekannt eingabe)
-                -> AWSUnbekannt anfrage eingabe
+                -> AFFehler anfrage eingabe
+            AWSEWeiche
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
+            AWSEBahngeschwindigkeit
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
+            AWSEStreckenabschnitt
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
+            AWSEKupplung
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
     where
         anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
         anfrageWegstreckenElement token@EingabeToken {eingabe} = wähleBefehl token [
@@ -1191,7 +1191,7 @@ anfrageWegstreckeAktualisieren
 anfrageWegstreckeAktualisieren
     (AWSStatusAnfrage anfrageKonstruktor eitherF)
     token
-        = Left $ AWegstreckeMStatus (anfrageKonstruktor token) eitherF
+        = AFZwischenwert $ AWegstreckeMStatus (anfrageKonstruktor token) eitherF
 anfrageWegstreckeAktualisieren
     anfrage@(AWegstreckeNameAnzahlWeicheRichtung
         Wegstrecke {}
@@ -1203,16 +1203,17 @@ anfrageWegstreckeAktualisieren
                 | hatRichtung weiche richtung
                     -> eitherWeicheRichtungAnhängen anfrage richtung
             _otherwise
-                -> Left $ AWSUnbekannt anfrage eingabe
+                -> AFFehler anfrage eingabe
     where
-        eitherWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Either (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
+        eitherWeicheRichtungAnhängen ::
+            AnfrageWegstrecke z -> Richtung -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
         eitherWeicheRichtungAnhängen
             anfrageWegstrecke
             richtung
                 | anzahl > 1
-                    = Left $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
+                    = AFZwischenwert $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
                 | otherwise
-                    = Right $ weicheRichtungAnhängen anfrageWegstrecke richtung
+                    = AFErgebnis $ weicheRichtungAnhängen anfrageWegstrecke richtung
         qWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> AnfrageWegstrecke z
         qWeicheRichtungAnhängen
             anfrageWegstrecke
