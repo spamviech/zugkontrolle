@@ -86,20 +86,20 @@ instance Show AnfrageAnschluss where
     show
         (APCF8574PortVariant variante)
             = unpack $ Language.anschluss <-> Language.pcf8574Port
-                <^> Language.variante <=> if (variante == VariantNormal)
+                <^> Language.variante <=> if variante == VariantNormal
                     then Language.normal
                     else Language.a
     show
         (APCF8574PortVariantA0 variante a0)
             = unpack $ Language.anschluss <-> Language.pcf8574Port
-                <^> Language.variante <=> (if (variante == VariantNormal)
+                <^> Language.variante <=> (if variante == VariantNormal
                     then Language.normal
                     else Language.a)
                 <^> Language.a0 <=> showText a0
     show
         (APCF8574PortVariantA0A1 variante a0 a1)
             = unpack $ Language.anschluss <-> Language.pcf8574Port
-                <^> Language.variante <=> (if (variante == VariantNormal)
+                <^> Language.variante <=> (if variante == VariantNormal
                     then Language.normal
                     else Language.a)
                 <^> Language.a0 <=> showText a0
@@ -107,7 +107,7 @@ instance Show AnfrageAnschluss where
     show
         (APCF8574PortVariantA0A1A2 variante a0 a1 a2)
             = unpack $ Language.anschluss <-> Language.pcf8574Port
-                <^> Language.variante <=> (if (variante == VariantNormal)
+                <^> Language.variante <=> (if variante == VariantNormal
                     then Language.normal
                     else Language.a)
                 <^> Language.a0 <=> showText a0
@@ -386,8 +386,6 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
             = Nothing
 
 instance MitAnfrageZugtyp AnfrageBahngeschwindigkeit where
-    anfrageUnbekannt :: AnfrageBahngeschwindigkeit z -> Text -> AnfrageBahngeschwindigkeit z
-    anfrageUnbekannt = ABGUnbekannt
     anfrageMärklin :: AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
     anfrageMärklin = AMärklinBahngeschwindigkeit
     anfrageLego :: AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
@@ -403,22 +401,27 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
     anfrageAktualisieren
         AMärklinBahngeschwindigkeit
         EingabeToken {eingabe}
-            = Left $ AMärklinBahngeschwindigkeitName eingabe
+            = AFZwischenwert $ AMärklinBahngeschwindigkeitName eingabe
     anfrageAktualisieren
         anfrage@AMärklinBahngeschwindigkeitName {abgmName}
         token@EingabeToken {eingabe}
-            = Left $ wähleBefehl token [
-                (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
-                (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
-                $ ABGUnbekannt anfrage eingabe
+            = wähleBefehl token [
+                (Lexer.HIGH , AFZwischenwert $ AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AFZwischenwert $ AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
+                $ AFFehler anfrage eingabe
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend geschwindigkeitsAnschluss)
         token
-            = case anfrageAktualisieren geschwindigkeitsAnschluss token of
-                (Left abgmGeschwindigkeitsAnfrageAnschluss)
-                    -> Left anfrage {abgmGeschwindigkeitsAnfrageAnschluss}
-                (Right bgmGeschwindigkeitsAnschluss)
-                    -> Right $ MärklinBahngeschwindigkeit {
+            = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren geschwindigkeitsAnschluss token
+            where
+                anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
+                anfrageAnschlussVerwenden abgmGeschwindigkeitsAnfrageAnschluss
+                    = anfrage {abgmGeschwindigkeitsAnfrageAnschluss}
+                anschlussVerwenden ::
+                    Anschluss ->
+                        AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'Märklin)
+                anschlussVerwenden bgmGeschwindigkeitsAnschluss
+                    = AFErgebnis $ MärklinBahngeschwindigkeit {
                         bgmName,
                         bgmFließend,
                         bgmGeschwindigkeitsAnschluss}
@@ -433,22 +436,28 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
     anfrageAktualisieren
         ALegoBahngeschwindigkeit
         EingabeToken {eingabe}
-            = Left $ ALegoBahngeschwindigkeitName eingabe
+            = AFZwischenwert $ ALegoBahngeschwindigkeitName eingabe
     anfrageAktualisieren
         anfrage@ALegoBahngeschwindigkeitName {abglName}
         token@EingabeToken {eingabe}
-            = Left $ wähleBefehl token [
-                (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
-                (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
-                $ ABGUnbekannt anfrage eingabe
+            = wähleBefehl token [
+                (Lexer.HIGH , AFZwischenwert $ ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
+                (Lexer.LOW  , AFZwischenwert $ ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
+                $ AFFehler anfrage eingabe
     anfrageAktualisieren
         anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
         token
-            = case anfrageAktualisieren geschwindigkeitsAnschluss token of
-                (Left abglGeschwindigkeitsAnfrageAnschluss)
-                    -> Left $ anfrage {abglGeschwindigkeitsAnfrageAnschluss}
-                (Right anschluss)
-                    -> Left $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
+            = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren geschwindigkeitsAnschluss token
+            where
+                anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
+                anfrageAnschlussVerwenden abglGeschwindigkeitsAnfrageAnschluss
+                    = anfrage {abglGeschwindigkeitsAnfrageAnschluss}
+                anschlussVerwenden ::
+                    Anschluss ->
+                        AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
+                anschlussVerwenden anschluss
+                    = AFZwischenwert $
+                        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
     anfrageAktualisieren
         anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
             bglName
@@ -456,15 +465,20 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
             bglGeschwindigkeitsAnschluss
             fahrtrichtungsAnschluss)
         token
-        = case anfrageAktualisieren fahrtrichtungsAnschluss token of
-            (Left abglFahrtrichtungsAnfrageAnschluss)
-                -> Left $ anfrage {abglFahrtrichtungsAnfrageAnschluss}
-            (Right bglFahrtrichtungsAnschluss)
-                -> Right $ LegoBahngeschwindigkeit {
-                        bglName,
-                        bglFließend,
-                        bglGeschwindigkeitsAnschluss,
-                        bglFahrtrichtungsAnschluss}
+        = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren fahrtrichtungsAnschluss token
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
+            anfrageAnschlussVerwenden abglFahrtrichtungsAnfrageAnschluss
+                = anfrage {abglFahrtrichtungsAnfrageAnschluss}
+            anschlussVerwenden ::
+                Anschluss ->
+                    AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
+            anschlussVerwenden bglFahrtrichtungsAnschluss
+                = AFErgebnis $ LegoBahngeschwindigkeit {
+                    bglName,
+                    bglFließend,
+                    bglGeschwindigkeitsAnschluss,
+                    bglFahrtrichtungsAnschluss}
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -845,8 +859,6 @@ instance MitAnfrage (Weiche 'Lego) where
                         welRichtungen = (richtung1,richtung2)}
 
 instance MitAnfrageZugtyp AnfrageWeiche where
-    anfrageUnbekannt :: AnfrageWeiche z -> Text -> AnfrageWeiche z
-    anfrageUnbekannt = AWEUnbekannt
     anfrageMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
     anfrageMärklin = AMärklinWeiche
     anfrageLego :: AnfrageWeiche 'AnfrageZugtypLego
@@ -1208,8 +1220,6 @@ anfrageWegstreckeAktualisieren
                     show anfrageWegstrecke
 
 instance MitAnfrageZugtyp AnfrageWegstrecke where
-    anfrageUnbekannt :: AnfrageWegstrecke z -> Text -> AnfrageWegstrecke z
-    anfrageUnbekannt = AWSUnbekannt
     anfrageMärklin :: AnfrageWegstrecke 'AnfrageZugtypMärklin
     anfrageMärklin = AnfrageWegstrecke
     anfrageLego :: AnfrageWegstrecke 'AnfrageZugtypLego

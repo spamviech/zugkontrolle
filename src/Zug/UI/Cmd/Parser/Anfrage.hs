@@ -118,21 +118,20 @@ instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrag
 
 -- | Klasse für 'AnfrageTyp'en mit 'AnfrageZugtyp'
 class MitAnfrageZugtyp (a :: AnfrageZugtyp -> Type) where
-    anfrageUnbekannt :: a z -> Text -> a z
     anfrageMärklin :: a 'AnfrageZugtypMärklin
     anfrageLego :: a 'AnfrageZugtypLego
 
 anfrageAktualisierenZugtyp :: (MitAnfrageZugtyp a) =>
     a 'AnfrageZugtyp ->
     EingabeToken ->
-        AnfrageZugtypEither a
+        AnfrageFortsetzung (AnfrageZugtypEither a) b
 anfrageAktualisierenZugtyp
     anfrage
     token@EingabeToken {eingabe}
         = wähleBefehl token [
-            (Lexer.Märklin  , AnfrageMärklin $ anfrageMärklin),
-            (Lexer.Lego     , AnfrageLego $ anfrageLego)]
-            $ AnfrageNothing $ anfrageUnbekannt anfrage eingabe
+            (Lexer.Märklin  , AFZwischenwert $ AnfrageMärklin anfrageMärklin),
+            (Lexer.Lego     , AFZwischenwert $ AnfrageLego anfrageLego)]
+            $ AFFehler (AnfrageNothing anfrage) eingabe
 
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
