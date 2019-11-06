@@ -25,7 +25,7 @@ import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
 import Data.Semigroup (Semigroup())
 import Data.String (IsString())
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(),
@@ -77,7 +77,7 @@ class MitAnfrage a where
     -- | Typfamilie für den assoziierten 'Anfrage'typ
     type family AnfrageTyp a :: Type
     -- | Eingabe eines Typs mit 'AnfrageTyp'
-    anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> Either (AnfrageTyp a) a
+    anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> AnfrageFortsetzung (AnfrageTyp a) a
 
 -- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'
 data AnfrageZugtyp
@@ -136,9 +136,7 @@ anfrageAktualisierenZugtyp
 
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
-    = SAOUnbekannt
-        Text
-    | SAOBahngeschwindigkeit
+    = SAOBahngeschwindigkeit
         EingabeToken
     | SAOStreckenabschnitt
         EingabeToken
@@ -153,7 +151,7 @@ data StatusAnfrageObjekt
 
 instance Show StatusAnfrageObjekt where
     show :: StatusAnfrageObjekt -> String
-    show    anfrage@(SAOUnbekannt eingabe)    = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
+    -- show    anfrage@(SAOUnbekannt eingabe)    = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
     show    (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
     show    (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
     show    (SAOWeiche _token)                = Language.weiche
@@ -162,7 +160,7 @@ instance Show StatusAnfrageObjekt where
     show    (SAOPlan _token)                  = Language.plan
 instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjekt -> s
-    zeigeAnfrage    (SAOUnbekannt _eingabe)           = Language.objekt
+    -- zeigeAnfrage    (SAOUnbekannt _eingabe)           = Language.objekt
     zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
     zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
     zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
@@ -171,10 +169,10 @@ instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt
-statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (Either StatusAnfrageObjekt Objekt)
-statusAnfrageObjekt
-    anfrage@(SAOUnbekannt _eingabe)
-        = pure $ Left anfrage
+statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (AnfrageFortsetzung StatusAnfrageObjekt Objekt)
+-- statusAnfrageObjekt
+--     anfrage@(SAOUnbekannt _eingabe)
+--         = pure $ Left anfrage
 statusAnfrageObjekt
     anfrage@(SAOBahngeschwindigkeit eingabe)
         = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
@@ -241,9 +239,7 @@ zuObjekt    (OZPlan pl)                 = OPlan pl
 
 -- | Ein Objekt mit bestimmten Zugtyp aus dem aktullen Status wird benötigt
 data StatusAnfrageObjektZugtyp (z :: Zugtyp)
-    = SAOZUnbekannt
-        Text
-    | SAOZBahngeschwindigkeit
+    = SAOZBahngeschwindigkeit
         EingabeToken
     | SAOZStreckenabschnitt
         EingabeToken
@@ -258,7 +254,7 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
 
 instance Show (StatusAnfrageObjektZugtyp z) where
     show :: StatusAnfrageObjektZugtyp z -> String
-    show    anfrage@(SAOZUnbekannt eingabe)     = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
+    -- show    anfrage@(SAOZUnbekannt eingabe)     = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
     show    (SAOZBahngeschwindigkeit _token)    = Language.bahngeschwindigkeit
     show    (SAOZStreckenabschnitt _token)      = Language.streckenabschnitt
     show    (SAOZWeiche _token)                 = Language.weiche
@@ -267,7 +263,7 @@ instance Show (StatusAnfrageObjektZugtyp z) where
     show    (SAOZPlan _token)                   = Language.plan
 instance Anfrage (StatusAnfrageObjektZugtyp z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjektZugtyp z -> s
-    zeigeAnfrage    (SAOZUnbekannt _eingabe)            = Language.objekt
+    -- zeigeAnfrage    (SAOZUnbekannt _eingabe)            = Language.objekt
     zeigeAnfrage    (SAOZBahngeschwindigkeit _token)    = Language.indexOderName Language.bahngeschwindigkeit
     zeigeAnfrage    (SAOZStreckenabschnitt _token)      = Language.indexOderName Language.streckenabschnitt 
     zeigeAnfrage    (SAOZWeiche _token)                 = Language.indexOderName Language.weiche
@@ -278,10 +274,10 @@ instance Anfrage (StatusAnfrageObjektZugtyp z) where
 -- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
 statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z) =>
     StatusAnfrageObjektZugtyp z ->
-        MStatusT m (Either (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
-statusAnfrageObjektZugtyp
-        anfrage@(SAOZUnbekannt _eingabe)
-            = pure $ Left anfrage
+        MStatusT m (AnfrageFortsetzung (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
+-- statusAnfrageObjektZugtyp
+--         anfrage@(SAOZUnbekannt _eingabe)
+--             = pure $ Left anfrage
 statusAnfrageObjektZugtyp
     anfrage@(SAOZBahngeschwindigkeit eingabe)
         = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $
@@ -314,12 +310,17 @@ statusAnfrageObjektAux :: (Monad m, StreckenObjekt a)
     -> EingabeToken
     -> MStatusT m [a]
     -> (a -> Maybe o)
-        -> MStatusT m (Either statusAnfrageObjekt o)
-statusAnfrageObjektAux anfrage eingabe getFromStatus konstruktor = do
-    objekte <- getFromStatus
-    pure $ case findByNameOrIndex objekte eingabe >>= konstruktor of
-        Nothing         -> Left anfrage
-        (Just objekt)   -> Right objekt
+        -> MStatusT m (AnfrageFortsetzung statusAnfrageObjekt o)
+statusAnfrageObjektAux
+    anfrage
+    token@EingabeToken {eingabe}
+    getFromStatus
+    konstruktor
+        = do
+            objekte <- getFromStatus
+            pure $ case findByNameOrIndex objekte token >>= konstruktor of
+                Nothing         -> AFFehler anfrage eingabe
+                (Just objekt)   -> AFErgebnis objekt
 
 -- | Element einer Liste anhand des Index oder Namens finden
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
@@ -385,7 +386,7 @@ data AnfrageFortsetzung a e
 
 -- | Komposition zweier Funktionen, die ein 'AnfrageFortsetzung' zurückgeben.
 verwendeAnfrageFortsetzung ::
-    (e -> f) ->
+    (e -> AnfrageFortsetzung b f) ->
     (a -> b) ->
     AnfrageFortsetzung a e ->
         AnfrageFortsetzung b f
@@ -393,7 +394,7 @@ verwendeAnfrageFortsetzung
     wertFunktion
     _anfrageFunktion
     AFErgebnis {ergebnis}
-        = AFErgebnis $ wertFunktion ergebnis
+        = wertFunktion ergebnis
 verwendeAnfrageFortsetzung
     _wertFunktion
     anfrageFunktion
@@ -406,7 +407,6 @@ verwendeAnfrageFortsetzung
         = AFFehler {anfrage = anfrageFunktion anfrage, fehlerhafteEingabe}
 
 infixr 0 $<<
-($<<) :: (MitAnfrage a, MitAnfrage b) =>
-    (e -> f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
+($<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
 (wertFunktion, anfrageFunktion) $<< anfrageErgebnis
     = verwendeAnfrageFortsetzung wertFunktion anfrageFunktion anfrageErgebnis
