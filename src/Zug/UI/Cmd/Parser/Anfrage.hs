@@ -12,7 +12,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
-    AnfrageErgebnis(..), verwendeAnfrageErgebnis, ($<<),
+    AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<),
     MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..),
     MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
     -- * Suche ein existierendes Objekt im Status
@@ -373,47 +373,40 @@ wähleValue token = wähleBefehl token [
 unbekanntShowText :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
 unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingabe
 
-
-data AnfrageErgebnis a
-    = AnfrageErgebnis {
-        ergebnis :: a}
-    | AnfrageZwischenwert {
-        anfrage :: AnfrageTyp a}
-    | AnfrageFehler {
-        anfrage :: AnfrageTyp a,
+data AnfrageFortsetzung a e
+    = AFErgebnis {
+        ergebnis :: e}
+    | AFZwischenwert {
+        anfrage :: a}
+    | AFFehler {
+        anfrage :: a,
         fehlerhafteEingabe :: Text}
+    deriving (Show, Eq)
 
-deriving instance (Show a, Show (AnfrageTyp a)) => Show (AnfrageErgebnis a)
-deriving instance (Eq a, Eq (AnfrageTyp a)) => Eq (AnfrageErgebnis a)
-
--- | Komposition zweier Funktionen, die ein 'AnfrageErgebnis' zurückgeben.
-verwendeAnfrageErgebnis :: (MitAnfrage a, MitAnfrage b) =>
+-- | Komposition zweier Funktionen, die ein 'AnfrageFortsetzung' zurückgeben.
+verwendeAnfrageFortsetzung ::
+    (e -> f) ->
     (a -> b) ->
-    (AnfrageTyp a -> AnfrageErgebnis b) ->
-    (AnfrageTyp a -> AnfrageTyp b) ->
-    AnfrageErgebnis a ->
-        AnfrageErgebnis b
-verwendeAnfrageErgebnis
+    AnfrageFortsetzung a e ->
+        AnfrageFortsetzung b f
+verwendeAnfrageFortsetzung
     wertFunktion
     _anfrageFunktion
-    _fehlerFunktion
-    AnfrageErgebnis {ergebnis}
-        = AnfrageErgebnis $ wertFunktion ergebnis
-verwendeAnfrageErgebnis
+    AFErgebnis {ergebnis}
+        = AFErgebnis $ wertFunktion ergebnis
+verwendeAnfrageFortsetzung
     _wertFunktion
     anfrageFunktion
-    _fehlerFunktion
-    AnfrageZwischenwert {anfrage}
-        = anfrageFunktion anfrage
-verwendeAnfrageErgebnis
+    AFZwischenwert {anfrage}
+        = AFZwischenwert $ anfrageFunktion anfrage
+verwendeAnfrageFortsetzung
     _wertFunktion
-    _anfrageFunktion
-    fehlerFunktion
-    AnfrageFehler {anfrage, fehlerhafteEingabe}
-        = AnfrageFehler {anfrage = fehlerFunktion anfrage, fehlerhafteEingabe}
+    anfrageFunktion
+    AFFehler {anfrage, fehlerhafteEingabe}
+        = AFFehler {anfrage = anfrageFunktion anfrage, fehlerhafteEingabe}
 
 infixr 0 $<<
 ($<<) :: (MitAnfrage a, MitAnfrage b) =>
-    (a -> b, AnfrageTyp a -> AnfrageErgebnis b, AnfrageTyp a -> AnfrageTyp b) -> AnfrageErgebnis a -> AnfrageErgebnis b
-(wertFunktion, anfrageFunktion, fehlerFunktion) $<< anfrageErgebnis
-    = verwendeAnfrageErgebnis wertFunktion anfrageFunktion fehlerFunktion anfrageErgebnis
+    (e -> f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
+(wertFunktion, anfrageFunktion) $<< anfrageErgebnis
+    = verwendeAnfrageFortsetzung wertFunktion anfrageFunktion anfrageErgebnis
