@@ -47,10 +47,6 @@ data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where
     AnfrageAktionBahngeschwindigkeit
         :: (b z)                                    -- ^ Bahngeschwindigkeit
             -> AnfrageAktionBahngeschwindigkeit b z
-    -- AABGUnbekannt
-    --     :: (AnfrageAktionBahngeschwindigkeit b z)   -- ^ Anfrage
-    --     -> Text                                     -- ^ Eingabe
-    --         -> AnfrageAktionBahngeschwindigkeit b z
     AABGGeschwindigkeit
         :: (b z)                                    -- ^ Bahngeschwindigkeit
             -> AnfrageAktionBahngeschwindigkeit b z
@@ -63,9 +59,6 @@ instance (Show (AnfrageTyp (b z)), Show (b z)) => Show (AnfrageAktionBahngeschwi
     show
         (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
             = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit
-    -- show
-    --     (AABGUnbekannt anfrageAktion eingabe)
-    --         = unpack $ unbekanntShowText anfrageAktion eingabe
     show
         (AABGGeschwindigkeit bahngeschwindigkeit)
             = Language.bahngeschwindigkeit <=> showText bahngeschwindigkeit <^> Language.geschwindigkeit
@@ -77,9 +70,6 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b z) where
     zeigeAnfrage
         (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)
             = Language.aktion
-    -- zeigeAnfrage
-    --     (AABGUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrage anfrageAktion
     zeigeAnfrage
         (AABGGeschwindigkeit _bahngeschwindigkeit)
             = Language.geschwindigkeit
@@ -99,9 +89,6 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b z) where
     zeigeAnfrageOptionen
         (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit)
             = Just $ toBefehlsString Language.aktionBahngeschwindigkeit
-    -- zeigeAnfrageOptionen
-    --     (AABGUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen
         (AABGGeschwindigkeit _bahngeschwindigkeit)
             = Nothing
@@ -172,18 +159,11 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
                 (Lexer.Vorwärts     , AFErgebnis $ FahrtrichtungEinstellen bahngeschwindigkeit Vorwärts),
                 (Lexer.Rückwärts    , AFErgebnis $ FahrtrichtungEinstellen bahngeschwindigkeit Rückwärts)]
                 $ AFFehler anfrage eingabe
-    -- anfrageAktualisieren
-    --     anfrage@(AABGUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left $ anfrage
 
 -- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
 data AnfrageAktionStreckenabschnitt s
     = AnfrageAktionStreckenabschnitt
         s                                   -- ^ Streckenabschnitt
-    -- | AASTUnbekannt
-    --     (AnfrageAktionStreckenabschnitt s)  -- ^ Anfrage
-    --     Text                                -- ^ Eingabe
     | AASTStrom
         s                                   -- ^ Streckenabschnitt
 
@@ -192,9 +172,6 @@ instance (Show (AnfrageTyp s), Show s) => Show (AnfrageAktionStreckenabschnitt s
     show
         (AnfrageAktionStreckenabschnitt streckenabschnitt)
             = Language.streckenabschnitt <=> showText streckenabschnitt
-    -- show
-    --     (AASTUnbekannt anfrageAktion eingabe)
-    --         = unpack $ unbekanntShowText anfrageAktion eingabe
     show
         (AASTStrom streckenabschnitt)
             = Language.streckenabschnitt <=> showText streckenabschnitt <^> Language.strom
@@ -203,9 +180,6 @@ instance Anfrage (AnfrageAktionStreckenabschnitt st) where
     zeigeAnfrage
         (AnfrageAktionStreckenabschnitt _streckenabschnitt)
             = Language.aktion
-    -- zeigeAnfrage
-    --     (AASTUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrage anfrageAktion
     zeigeAnfrage
         (AASTStrom _streckenabschnitt)
             = Language.fließend <|> Language.gesperrt
@@ -213,9 +187,6 @@ instance Anfrage (AnfrageAktionStreckenabschnitt st) where
     zeigeAnfrageOptionen
         (AnfrageAktionStreckenabschnitt _streckenabschnitt)
             = Just $ toBefehlsString Language.aktionStreckenabschnitt
-    -- zeigeAnfrageOptionen
-    --     (AASTUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen
         (AASTStrom _streckenabschnitt)
             = Just $ toBefehlsString [Language.an, Language.aus]
@@ -239,18 +210,11 @@ instance (StreckenabschnittKlasse s) => MitAnfrage (AktionStreckenabschnitt s) w
                 (Lexer.Gesperrt , AFErgebnis $ Strom streckenabschnitt Gesperrt),
                 (Lexer.Aus      , AFErgebnis $ Strom streckenabschnitt Gesperrt)]
                 $ AFFehler anfrage eingabe
-    -- anfrageAktualisieren
-    --     anfrage@(AASTUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left $ anfrage
 
 -- | Unvollständige 'Aktion' einer 'Weiche'
 data AnfrageAktionWeiche w
     = AnfrageAktionWeiche
         w                           -- ^ Weiche
-    -- | AAWUnbekannt
-    --     (AnfrageAktionWeiche w)     -- ^ Anfrage
-    --     Text                        -- ^ Eingabe
     | AAWStellen
         w                           -- ^ Weiche
 
@@ -259,9 +223,6 @@ instance (Show w) => Show (AnfrageAktionWeiche w) where
     show
         (AnfrageAktionWeiche weiche)
             = Language.weiche <=> showText weiche
-    -- show
-    --     (AAWUnbekannt anfrageAktion eingabe)
-    --         = unpack $ unbekanntShowText anfrageAktion eingabe
     show
         (AAWStellen weiche)
             = Language.weiche <=> showText weiche <^> Language.stellen
@@ -270,9 +231,6 @@ instance Anfrage (AnfrageAktionWeiche w) where
     zeigeAnfrage
         (AnfrageAktionWeiche _weiche)
             = Language.aktion
-    -- zeigeAnfrage
-    --     (AAWUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrage anfrageAktion
     zeigeAnfrage
         (AAWStellen _weiche)
             = Language.richtung
@@ -280,9 +238,6 @@ instance Anfrage (AnfrageAktionWeiche w) where
     zeigeAnfrageOptionen
         (AnfrageAktionWeiche _weiche)
             = Just $ toBefehlsString Language.aktionWeiche
-    -- zeigeAnfrageOptionen
-    --     (AAWUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen
         (AAWStellen _weiche)
             = Just $ toBefehlsString $ NE.toList $ fmap showText unterstützteRichtungen
@@ -319,41 +274,26 @@ instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
                 anfrage
                 _richtung
                     = error $ "mitRichtung mit unbekannter anfrage aufgerufen: " ++ show anfrage
-    -- anfrageAktualisieren
-    --     anfrage@(AAWUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left anfrage
 
 -- | Unvollständige 'Aktion' einer 'Kupplung'
 data AnfrageAktionKupplung k
     = AnfrageAktionKupplung
         k                           -- ^ Kupplung
-    -- | AAKUUnbekannt
-    --     (AnfrageAktionKupplung k)   -- ^ Anfrage
-    --     Text                        -- ^ Eingabe
 
 instance (Show (AnfrageTyp k), Show k) => Show (AnfrageAktionKupplung k) where
     show :: AnfrageAktionKupplung k -> String
     show
         (AnfrageAktionKupplung kupplung)
             = Language.kupplung <=> showText kupplung
-    -- show
-    --     (AAKUUnbekannt anfrageAktion eingabe)
-    --         = unpack $ unbekanntShowText anfrageAktion eingabe
 instance Anfrage (AnfrageAktionKupplung k) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionKupplung k -> s
     zeigeAnfrage
         (AnfrageAktionKupplung _kupplung)
             = Language.aktion
-    -- zeigeAnfrage
-    --     (AAKUUnbekannt anfrageAktion _eingabe)  = zeigeAnfrage anfrageAktion
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionKupplung k -> Maybe s
     zeigeAnfrageOptionen
         (AnfrageAktionKupplung _kupplung)
             = Just $ toBefehlsString Language.aktionKupplung
-    -- zeigeAnfrageOptionen
-    --     (AAKUUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrageOptionen anfrageAktion
 
 instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
     type AnfrageTyp (AktionKupplung k) = AnfrageAktionKupplung k
@@ -365,18 +305,11 @@ instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
         token@EingabeToken {eingabe}
             = wähleBefehl token [(Lexer.Kuppeln, AFErgebnis $ Kuppeln kupplung)] $
                 AFFehler anfrage eingabe
-    -- anfrageAktualisieren
-    --     anfrage@(AAKUUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left $ anfrage
 
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
 data AnfrageAktionWegstrecke w (z :: Zugtyp)
     = AnfrageAktionWegstrecke
-        (w z)                                   -- ^ Wegstrecke
-    -- | AAWSUnbekannt
-    --     (AnfrageAktionWegstrecke w z)           -- ^ Anfrage
-    --     Text                                    -- ^ Eingabe
+        (w z)                               -- ^ Wegstrecke
     | AAWSBahngeschwindigkeit
         (AnfrageAktionBahngeschwindigkeit w z)
     | AAWSStreckenabschnitt
@@ -387,20 +320,17 @@ data AnfrageAktionWegstrecke w (z :: Zugtyp)
 instance (Show (AnfrageTyp (w z)), Show (w z)) => Show (AnfrageAktionWegstrecke w z) where
     show :: AnfrageAktionWegstrecke w z -> String
     show    (AnfrageAktionWegstrecke wegstrecke)      = Language.wegstrecke <=> showText wegstrecke
-    -- show    (AAWSUnbekannt anfrageAktion eingabe)     = unpack $ unbekanntShowText anfrageAktion eingabe
     show    (AAWSBahngeschwindigkeit anfrageAktion)   = showText anfrageAktion
     show    (AAWSStreckenabschnitt anfrageAktion)     = showText anfrageAktion
     show    (AAWSKupplung anfrageAktion)              = showText anfrageAktion
 instance Anfrage (AnfrageAktionWegstrecke w z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke w z -> s
     zeigeAnfrage    (AnfrageAktionWegstrecke _wegstrecke)     = Language.aktion
-    -- zeigeAnfrage    (AAWSUnbekannt anfrageAktion _eingabe)    = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (AAWSBahngeschwindigkeit anfrageAktion)   = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (AAWSStreckenabschnitt anfrageAktion)     = zeigeAnfrage anfrageAktion
     zeigeAnfrage    (AAWSKupplung anfrageAktion)              = zeigeAnfrage anfrageAktion
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktionWegstrecke w z -> Maybe s
     zeigeAnfrageOptionen (AnfrageAktionWegstrecke _wegstrecke)     = Just $ toBefehlsString Language.aktionWegstrecke
-    -- zeigeAnfrageOptionen (AAWSUnbekannt anfrageAktion _eingabe)    = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (AAWSBahngeschwindigkeit anfrageAktion)   = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (AAWSStreckenabschnitt anfrageAktion)     = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (AAWSKupplung anfrageAktion)              = zeigeAnfrageOptionen anfrageAktion
@@ -460,10 +390,6 @@ instance (AktionWegstreckeZugtyp z, WegstreckeKlasse (w z),
         AnfrageAktionWegstrecke w z ->
         EingabeToken ->
             AnfrageFortsetzung (AnfrageAktionWegstrecke w z) (AktionWegstrecke w z)
-    -- anfrageAktualisieren
-    --     anfrage@(AAWSUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left anfrage
     anfrageAktualisieren
         anfrage@(AnfrageAktionWegstrecke _wegstrecke)
         token
@@ -484,9 +410,6 @@ instance (AktionWegstreckeZugtyp z, WegstreckeKlasse (w z),
 -- | Unvollständige 'Aktion'
 data AnfrageAktion
     = AnfrageAktion
-    -- | AAUnbekannt
-    --     AnfrageAktion   -- ^ Anfrage
-    --     Text            -- ^ Eingabe
     | AARückgängig
     | AAWarten
     | AAWegstreckeMärklin
@@ -515,9 +438,6 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
     Show (AnfrageTyp Streckenabschnitt), Show (AnfrageTyp Kupplung))
         => Show AnfrageAktion where
     show :: AnfrageAktion -> String
-    -- show
-    --     (AAUnbekannt anfrageAktion eingabe)
-    --         = unpack $ unbekanntShowText anfrageAktion eingabe
     show
         AnfrageAktion
             = Language.aktion
@@ -557,9 +477,6 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
 
 instance Anfrage AnfrageAktion where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAktion -> s
-    -- zeigeAnfrage
-    --     (AAUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrage anfrageAktion
     zeigeAnfrage
         AnfrageAktion
             = Language.aktion
@@ -606,9 +523,6 @@ instance Anfrage AnfrageAktion where
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAktion -> Maybe s
-    -- zeigeAnfrageOptionen
-    --     (AAUnbekannt anfrageAktion _eingabe)
-    --         = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen
         AnfrageAktion
             = Just $ toBefehlsString Language.aktionGruppen
@@ -777,17 +691,10 @@ instance MitAnfrage Aktion where
         anfrage@(AAStatusAnfrage _statusAnfrageObjekt _eitherKonstruktor)
         _token
             = AFZwischenwert anfrage
-    -- anfrageAktualisieren
-    --     anfrage@(AAUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left anfrage
 
 -- | Unvollständiger 'Plan'
 data AnfragePlan
     = AnfragePlan
-    -- | APUnbekannt
-    --     AnfragePlan             -- ^ Anfrage
-    --     Text                    -- ^ Eingabe
     | APlanName
         Text                    -- ^ Name
     | APlanNameAnzahl
@@ -810,9 +717,6 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
     Show (AnfrageTyp Streckenabschnitt), Show (AnfrageTyp Kupplung))
         => Show AnfragePlan where
     show :: AnfragePlan -> String
-    -- show
-    --     (APUnbekannt aPlan eingabe)
-    --         = unpack $ unbekanntShowText aPlan eingabe
     show
         AnfragePlan
             = Language.plan
@@ -841,9 +745,6 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
                 <^> showText (anfrageKonstruktor leeresToken)
 instance Anfrage AnfragePlan where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfragePlan -> s
-    -- zeigeAnfrage
-    --     (APUnbekannt aPlan _eingabe)
-    --         = zeigeAnfrage aPlan
     zeigeAnfrage
         AnfragePlan
             = Language.name
@@ -961,7 +862,3 @@ instance MitAnfrage Plan where
         anfrage@(APlanIOStatus _statusAnfrageObjekt _eitherKonstruktor)
         _token
             = AFZwischenwert anfrage
-    -- anfrageAktualisieren
-    --     anfrage@(APUnbekannt _anfrage _eingabe)
-    --     _token
-    --         = Left anfrage
