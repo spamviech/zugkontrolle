@@ -19,7 +19,7 @@ module Zug.UI.Cmd.Parser (
     parser, statusAnfrageObjekt, statusAnfrageObjektZugtyp,
     -- * Ergebnis-Typen
     AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), AnfrageNeu(..),
-    StatusAnfrageObjekt(..), StatusAnfrageObjektZugtyp(..),
+    StatusAnfrageObjekt(..), StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..), zuObjekt,
     -- ** Unvollständige StreckenObjekte
     Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
@@ -46,7 +46,7 @@ import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), showMitAnfrage, showMitAnfrageFehlgeschlagen,
-                                StatusAnfrageObjekt(..), statusAnfrageObjekt,
+                                StatusAnfrageObjekt(..), statusAnfrageObjekt, zuObjekt,
                                 StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
                                 wähleBefehl, unbekanntShowText, zeigeAnfrageFehlgeschlagenStandard)
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), AnfrageAktion(..),
@@ -113,6 +113,10 @@ parser = parserAux []
                         -> parserErgebnis acc $ AEBefehlSofort eingabe $ r ++ t
                     (AEStatusAnfrage eingabe konstruktor anfrage r)
                         -> parserErgebnis acc $ AEStatusAnfrage eingabe konstruktor anfrage $ r ++ t
+                    (AEStatusAnfrageMärklin eingabe konstruktor anfrage r)
+                        -> parserErgebnis acc $ AEStatusAnfrageMärklin eingabe konstruktor anfrage $ r ++ t
+                    (AEStatusAnfrageLego eingabe konstruktor anfrage r)
+                        -> parserErgebnis acc $ AEStatusAnfrageLego eingabe konstruktor anfrage $ r ++ t
                     (AEBefehl befehl)
                         -> parserAux (befehl:acc) AnfrageBefehl t
         -- | Ergebnis zurückgeben
@@ -128,13 +132,23 @@ data AnfrageErgebnis
     = AEBefehl
         Befehl
     | AEBefehlSofort
-        BefehlSofort                -- ^ Sofort auszuführender Befehl (z.B. IO-Aktion)
-        [EingabeTokenAllgemein]     -- ^ Nachfolge-Token
+        BefehlSofort                                -- ^ Sofort auszuführender Befehl (z.B. IO-Aktion)
+        [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
     | AEStatusAnfrage
-        StatusAnfrageObjekt         -- ^ Wonach wird gefragt?
-        (Objekt -> AnfrageErgebnis) -- ^ Wozu wird das Objekt benötigt
-        AnfrageBefehl               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
-        [EingabeTokenAllgemein]     -- ^ Nachfolge-Token
+        StatusAnfrageObjekt                         -- ^ Wonach wird gefragt?
+        (Objekt -> AnfrageErgebnis)                 -- ^ Wozu wird das Objekt benötigt
+        AnfrageBefehl                               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
+        [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
+    | AEStatusAnfrageMärklin
+        (StatusAnfrageObjektZugtyp 'Märklin)        -- ^ Wonach wird gefragt?
+        (ObjektZugtyp 'Märklin -> AnfrageErgebnis)  -- ^ Wozu wird das Objekt benötigt
+        AnfrageBefehl                               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
+        [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
+    | AEStatusAnfrageLego
+        (StatusAnfrageObjektZugtyp 'Lego)           -- ^ Wonach wird gefragt?
+        (ObjektZugtyp 'Lego -> AnfrageErgebnis)     -- ^ Wozu wird das Objekt benötigt
+        AnfrageBefehl                               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
+        [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
     | AEAnfrageBefehl
         AnfrageBefehl
 
@@ -213,6 +227,12 @@ instance Show AnfrageBefehl where
     show
         (ABStatusAnfrage anfrageKonstruktor _eitherF)
             = showText $ anfrageKonstruktor leeresToken
+    show
+        (ABStatusAnfrageMärklin anfrageKonstruktor _eitherF)
+            = showText $ anfrageKonstruktor leeresToken
+    show
+        (ABStatusAnfrageLego anfrageKonstruktor _eitherF)
+            = showText $ anfrageKonstruktor leeresToken
 
 instance Anfrage AnfrageBefehl where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBefehl -> s
@@ -249,6 +269,12 @@ instance Anfrage AnfrageBefehl where
     zeigeAnfrage
         (ABStatusAnfrage anfrageKonstruktor _eitherF)
             = zeigeAnfrage $ anfrageKonstruktor leeresToken
+    zeigeAnfrage
+        (ABStatusAnfrageMärklin anfrageKonstruktor _eitherF)
+            = zeigeAnfrage $ anfrageKonstruktor leeresToken
+    zeigeAnfrage
+        (ABStatusAnfrageLego anfrageKonstruktor _eitherF)
+            = zeigeAnfrage $ anfrageKonstruktor leeresToken
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBefehl -> Maybe s
     zeigeAnfrageOptionen
         (ABUnbekannt anfrage _eingabe)
@@ -270,6 +296,12 @@ instance Anfrage AnfrageBefehl where
             = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen
         (ABStatusAnfrage anfrageKonstruktor _eitherF)
+            = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
+    zeigeAnfrageOptionen
+        (ABStatusAnfrageMärklin anfrageKonstruktor _eitherF)
+            = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
+    zeigeAnfrageOptionen
+        (ABStatusAnfrageLego anfrageKonstruktor _eitherF)
             = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
     zeigeAnfrageOptionen
         _anfrage
@@ -310,18 +342,22 @@ anfrageBefehlAktualisieren
         = case anfrageAktualisieren anfrageObjekt token of
             (Left (AOUnbekannt anfrage eingabe))
                 -> AEAnfrageBefehl $ ABUnbekannt (ABHinzufügen anfrage) eingabe
-            (Left (AOStatusAnfrage statusanfrage (Left anfrageKonstruktor)))
-                -> AEStatusAnfrage statusanfrage (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor) anfrage []
-            (Left (AOStatusAnfrage statusanfrage (Right konstruktor)))
-                -> AEStatusAnfrage statusanfrage (AEBefehl . Hinzufügen . konstruktor) anfrage []
+            (Left (AOStatusAnfrage statusAnfrage (Left anfrageKonstruktor)))
+                -> AEStatusAnfrage statusAnfrage (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor) anfrage []
+            (Left (AOStatusAnfrage statusAnfrage (Right konstruktor)))
+                -> AEStatusAnfrage statusAnfrage (AEBefehl . Hinzufügen . konstruktor) anfrage []
             (Left (AOStatusAnfrageMärklin statusAnfrageMärklin (Left anfrageKonstruktor)))
-                -> _
+                -> AEStatusAnfrageMärklin
+                    statusAnfrageMärklin
+                    (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor)
+                    anfrage
+                    []
             (Left (AOStatusAnfrageMärklin statusAnfrageMärklin (Right konstruktor)))
-                -> _
+                -> AEStatusAnfrageMärklin statusAnfrageMärklin (AEBefehl . Hinzufügen . zuObjekt . konstruktor) anfrage []
             (Left (AOStatusAnfrageLego statusAnfrageLego (Left anfrageKonstruktor)))
-                -> _
+                -> AEStatusAnfrageLego statusAnfrageLego (AEAnfrageBefehl . ABHinzufügen . anfrageKonstruktor) anfrage []
             (Left (AOStatusAnfrageLego statusAnfrageLego (Right konstruktor)))
-                -> _
+                -> AEStatusAnfrageLego statusAnfrageLego (AEBefehl . Hinzufügen . zuObjekt . konstruktor) anfrage []
             -- Kein Wildcard-Pattern, damit neu hinzugefügte Konstruktoren nicht vergessen werden können
             (Left qObjekt1@AnfrageObjekt)
                 -> AEAnfrageBefehl $ ABHinzufügen qObjekt1
@@ -405,3 +441,11 @@ anfrageBefehlAktualisieren
     anfrage@(ABStatusAnfrage anfrageKonstruktor eitherF)
     token
         = AEStatusAnfrage (anfrageKonstruktor token) eitherF anfrage []
+anfrageBefehlAktualisieren
+    anfrage@(ABStatusAnfrageMärklin anfrageKonstruktor eitherF)
+    token
+        = AEStatusAnfrageMärklin (anfrageKonstruktor token) eitherF anfrage []
+anfrageBefehlAktualisieren
+    anfrage@(ABStatusAnfrageLego anfrageKonstruktor eitherF)
+    token
+        = AEStatusAnfrageLego (anfrageKonstruktor token) eitherF anfrage []

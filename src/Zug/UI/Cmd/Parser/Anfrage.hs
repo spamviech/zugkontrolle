@@ -17,7 +17,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
     -- * Suche ein existierendes Objekt im Status
     StatusAnfrageObjekt(..), statusAnfrageObjekt,
-    ObjektZugtyp(..), StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp,
+    ObjektZugtyp(..), StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, zuObjekt,
     -- * Hilfsfunktionen
     wähleBefehl, wähleRichtung, wähleValue, unbekanntShowText) where
 
@@ -230,6 +230,14 @@ instance Show (ObjektZugtyp z) where
     show
         (OZPlan plan)
             = show plan
+
+zuObjekt :: (ZugtypKlasse z) => ObjektZugtyp z -> Objekt
+zuObjekt    (OZBahngeschwindigkeit bg)  = OBahngeschwindigkeit $ zuZugtypEither bg
+zuObjekt    (OZStreckenabschnitt st)    = OStreckenabschnitt st
+zuObjekt    (OZWeiche we)               = OWeiche $ zuZugtypEither we
+zuObjekt    (OZKupplung ku)             = OKupplung ku
+zuObjekt    (OZWegstrecke ws)           = OWegstrecke $ zuZugtypEither ws
+zuObjekt    (OZPlan pl)                 = OPlan pl
 
 -- | Ein Objekt mit bestimmten Zugtyp aus dem aktullen Status wird benötigt
 data StatusAnfrageObjektZugtyp (z :: Zugtyp)
