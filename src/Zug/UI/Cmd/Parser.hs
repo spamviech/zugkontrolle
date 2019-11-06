@@ -386,7 +386,7 @@ anfrageBefehlAktualisieren
     where
         -- | Eingabe eines existierendes Objekts
         anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrageObjekt)
-        anfrageObjektExistierend  token@(EingabeToken {}) = wähleBefehl token [
+        anfrageObjektExistierend  token@EingabeToken {} = wähleBefehl token [
             (Lexer.Plan                  , Just SAOPlan),
             (Lexer.Wegstrecke            , Just SAOWegstrecke),
             (Lexer.Weiche                , Just SAOWeiche),

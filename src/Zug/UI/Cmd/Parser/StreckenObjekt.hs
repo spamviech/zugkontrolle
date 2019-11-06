@@ -767,49 +767,54 @@ instance MitAnfrage (Weiche 'Märklin) where
     anfrageAktualisieren ::
         AnfrageTyp (Weiche 'Märklin) ->
         EingabeToken ->
-            Either (AnfrageTyp (Weiche 'Märklin)) (Weiche 'Märklin)
+            AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
     anfrageAktualisieren
         AMärklinWeiche
         EingabeToken {eingabe}
-            = Left $ AMärklinWeicheName eingabe
+            = AFZwischenwert $ AMärklinWeicheName eingabe
     anfrageAktualisieren
         anfrage@(AMärklinWeicheName name)
         token@EingabeToken {eingabe}
-            = Left $ wähleBefehl token [
-                (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
-                (Lexer.LOW  , AMärklinWeicheNameFließend name LOW)]
-                $ AWEUnbekannt anfrage eingabe
+            = wähleBefehl token [
+                (Lexer.HIGH , AFZwischenwert $ AMärklinWeicheNameFließend name HIGH),
+                (Lexer.LOW  , AFZwischenwert $ AMärklinWeicheNameFließend name LOW)]
+                $ AFFehler anfrage eingabe
     anfrageAktualisieren
         anfrage@(AMärklinWeicheNameFließend name fließend)
         EingabeToken {eingabe, ganzzahl}
             = case ganzzahl of
                 Nothing
-                    -> Left $ AWEUnbekannt anfrage eingabe
+                    -> AFFehler anfrage eingabe
                 (Just anzahl)
-                    -> Left $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
+                    -> AFZwischenwert $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
     anfrageAktualisieren
         anfrage@(AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
         token@EingabeToken {eingabe}
-            = Left $ case wähleRichtung token of
+            = case wähleRichtung token of
                 Nothing
-                    -> AWEUnbekannt anfrage eingabe
+                    -> AFFehler anfrage eingabe
                 (Just richtung)
-                    -> AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
+                    -> AFZwischenwert $
+                        AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
     anfrageAktualisieren
         anfrage@(AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung anfrageAnschluss)
         token
-            = case anfrageAktualisieren anfrageAnschluss token of
-                (Left awemAnfrageAnschluss)
-                    -> Left anfrage {awemAnfrageAnschluss}
-                (Right anschluss)
+            = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anfrageAnschluss token
+            where
+                anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypMärklin
+                anfrageAnschlussVerwenden awemAnfrageAnschluss
+                    = anfrage {awemAnfrageAnschluss}
+                anschlussVerwenden ::
+                    Anschluss -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
+                anschlussVerwenden anschluss
                     | anzahl > 1
-                        -> Left $ AMärklinWeicheNameFließendAnzahl
+                        = AFZwischenwert $ AMärklinWeicheNameFließendAnzahl
                             wemName
                             wemFließend
                             (pred anzahl)
                             ((richtung, anschluss) : acc)
                     | otherwise
-                        -> Right MärklinWeiche {
+                        = AFErgebnis MärklinWeiche {
                             wemName,
                             wemFließend,
                             wemRichtungsAnschlüsse = (richtung, anschluss) :| acc}
@@ -820,42 +825,47 @@ instance MitAnfrage (Weiche 'Lego) where
     anfrageAktualisieren ::
         AnfrageTyp (Weiche 'Lego) ->
         EingabeToken ->
-            Either (AnfrageTyp (Weiche 'Lego)) (Weiche 'Lego)
+            AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypLego) (Weiche 'Lego)
     anfrageAktualisieren
         ALegoWeiche
         EingabeToken {eingabe}
-            = Left $ ALegoWeicheName eingabe
+            = AFZwischenwert $ ALegoWeicheName eingabe
     anfrageAktualisieren
         anfrage@(ALegoWeicheName name)
         token@EingabeToken {eingabe}
-            = Left $ wähleBefehl token [
-                (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
-                (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
-                $ AWEUnbekannt anfrage eingabe
+            = wähleBefehl token [
+                (Lexer.HIGH , AFZwischenwert $ ALegoWeicheNameFließend name HIGH),
+                (Lexer.LOW  , AFZwischenwert $ ALegoWeicheNameFließend name LOW)]
+                $ AFFehler anfrage eingabe
     anfrageAktualisieren
         anfrage@(ALegoWeicheNameFließend name fließend)
         token@EingabeToken {eingabe}
-            = Left $ case wähleRichtung token of
+            = case wähleRichtung token of
                 Nothing
-                    -> AWEUnbekannt anfrage eingabe
+                    -> AFFehler anfrage eingabe
                 (Just richtung1)
-                    -> ALegoWeicheNameFließendRichtung1 name fließend richtung1
+                    -> AFZwischenwert $ ALegoWeicheNameFließendRichtung1 name fließend richtung1
     anfrageAktualisieren
         anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)
         token@EingabeToken {eingabe}
-            = Left $ case wähleRichtung token of
+            = case wähleRichtung token of
                 Nothing
-                    -> AWEUnbekannt anfrage eingabe
+                    -> AFFehler anfrage eingabe
                 (Just richtung2)
-                    -> ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
+                    -> AFZwischenwert $
+                        ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
     anfrageAktualisieren
         anfrage@(ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2 anfrageAnschluss)
         token
-            = case anfrageAktualisieren anfrageAnschluss token of
-                (Left awelRichtungsAnfrageAnschluss)
-                    -> Left anfrage {awelRichtungsAnfrageAnschluss}
-                (Right welRichtungsAnschluss)
-                    -> Right $ LegoWeiche {
+            = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anfrageAnschluss token
+            where
+                anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypLego
+                anfrageAnschlussVerwenden awelRichtungsAnfrageAnschluss
+                    = anfrage {awelRichtungsAnfrageAnschluss}
+                anschlussVerwenden ::
+                    Anschluss -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypLego) (Weiche 'Lego)
+                anschlussVerwenden welRichtungsAnschluss
+                    = AFErgebnis LegoWeiche {
                         welName,
                         welFließend,
                         welRichtungsAnschluss,
