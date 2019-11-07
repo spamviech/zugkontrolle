@@ -31,7 +31,7 @@ import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
                     AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
-import Zug.UI.Cmd.Parser (AnfrageErgebnis(..), AnfrageBefehl(..), Anfrage(..),
+import Zug.UI.Cmd.Parser (AnfrageMöglichkeiten(..), AnfrageBefehl(..), Anfrage(..),
                         StatusAnfrageObjekt(..), statusAnfrageObjekt,
                         StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
                         BefehlSofort(..), AnfrageNeu(..), parser,
@@ -73,7 +73,7 @@ mainStatus = do
 statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
 statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
     where
-        statusParserAux :: ([Befehl], AnfrageErgebnis)-> IOStatus Bool
+        statusParserAux :: ([Befehl], AnfrageMöglichkeiten)-> IOStatus Bool
         statusParserAux (befehle, qErgebnis) = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
                 (AEBefehl befehl)
                     -> ausführenBefehl befehl
@@ -111,7 +111,7 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
                         promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
         statusAnfrage ::
             StatusAnfrageObjekt ->
-            (Objekt -> AnfrageErgebnis) ->
+            (Objekt -> AnfrageMöglichkeiten) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein] ->
                 IOStatus Bool
@@ -119,14 +119,14 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
             = statusAnfrageObjekt aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
         statusAnfrageZugtyp :: (ZugtypKlasse z) =>
             StatusAnfrageObjektZugtyp z ->
-            (ObjektZugtyp z -> AnfrageErgebnis) ->
+            (ObjektZugtyp z -> AnfrageMöglichkeiten) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein] ->
                 IOStatus Bool
         statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
             = statusAnfrageObjektZugtyp aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
         statusAnfrageAux :: (Anfrage statusAnfrageObjekt, ErhalteEingabe statusAnfrageObjekt) =>
-            (objekt -> AnfrageErgebnis) ->
+            (objekt -> AnfrageMöglichkeiten) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein]->
             (Either statusAnfrageObjekt objekt) ->

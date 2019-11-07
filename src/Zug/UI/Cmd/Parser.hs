@@ -18,7 +18,7 @@ module Zug.UI.Cmd.Parser (
     -- * Auswerten einer Text-Eingabe
     parser, statusAnfrageObjekt, statusAnfrageObjektZugtyp,
     -- * Ergebnis-Typen
-    AnfrageErgebnis(..), AnfrageBefehl(..), BefehlSofort(..), AnfrageNeu(..),
+    AnfrageMöglichkeiten(..), AnfrageBefehl(..), BefehlSofort(..), AnfrageNeu(..),
     StatusAnfrageObjekt(..), StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..), zuObjekt,
     -- ** Unvollständige StreckenObjekte
     Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard,
@@ -56,10 +56,10 @@ import Zug.UI.Cmd.Parser.StreckenObjekt (AnfrageObjekt(..), AnfrageBahngeschwind
                                         AnfrageWeiche(..), AnfrageKupplung(..), AnfrageWegstrecke(..))
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
-parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
+parser :: AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageMöglichkeiten)
 parser = parserAux []
     where
-        parserAux :: [Befehl] -> AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageErgebnis)
+        parserAux :: [Befehl] -> AnfrageBefehl -> [EingabeTokenAllgemein] -> ([Befehl], AnfrageMöglichkeiten)
         parserAux
             acc
             AnfrageBefehl
@@ -120,15 +120,15 @@ parser = parserAux []
                     (AEBefehl befehl)
                         -> parserAux (befehl:acc) AnfrageBefehl t
         -- | Ergebnis zurückgeben
-        parserErgebnis :: [Befehl] -> AnfrageErgebnis -> ([Befehl], AnfrageErgebnis)
+        parserErgebnis :: [Befehl] -> AnfrageMöglichkeiten -> ([Befehl], AnfrageMöglichkeiten)
         parserErgebnis acc anfrage = (reverse acc, anfrage)
-        parserErgebnisOk :: [Befehl] -> ([Befehl], AnfrageErgebnis)
+        parserErgebnisOk :: [Befehl] -> ([Befehl], AnfrageMöglichkeiten)
         parserErgebnisOk    []                  = parserErgebnis [] $ AEAnfrageBefehl AnfrageBefehl
         parserErgebnisOk    (befehl:befehle)    = parserErgebnis befehle $ AEBefehl befehl
 
 -- ** Anfrage
 -- | Rückgabe-Typen
-data AnfrageErgebnis
+data AnfrageMöglichkeiten
     = AEBefehl
         Befehl
     | AEBefehlSofort
@@ -136,17 +136,17 @@ data AnfrageErgebnis
         [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
     | AEStatusAnfrage
         StatusAnfrageObjekt                         -- ^ Wonach wird gefragt?
-        (Objekt -> AnfrageErgebnis)                 -- ^ Wozu wird das Objekt benötigt
+        (Objekt -> AnfrageMöglichkeiten)                 -- ^ Wozu wird das Objekt benötigt
         AnfrageBefehl                               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
         [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
     | AEStatusAnfrageMärklin
         (StatusAnfrageObjektZugtyp 'Märklin)        -- ^ Wonach wird gefragt?
-        (ObjektZugtyp 'Märklin -> AnfrageErgebnis)  -- ^ Wozu wird das Objekt benötigt
+        (ObjektZugtyp 'Märklin -> AnfrageMöglichkeiten)  -- ^ Wozu wird das Objekt benötigt
         AnfrageBefehl                               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
         [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
     | AEStatusAnfrageLego
         (StatusAnfrageObjektZugtyp 'Lego)           -- ^ Wonach wird gefragt?
-        (ObjektZugtyp 'Lego -> AnfrageErgebnis)     -- ^ Wozu wird das Objekt benötigt
+        (ObjektZugtyp 'Lego -> AnfrageMöglichkeiten)     -- ^ Wozu wird das Objekt benötigt
         AnfrageBefehl                               -- ^ Backup-Befehl, falls die Anfrage fehlschlägt
         [EingabeTokenAllgemein]                     -- ^ Nachfolge-Token
     | AEAnfrageBefehl
@@ -184,13 +184,13 @@ data AnfrageBefehl
         AnfrageAktion
     | ABStatusAnfrage
         (EingabeToken -> StatusAnfrageObjekt)
-        (Objekt -> AnfrageErgebnis)
+        (Objekt -> AnfrageMöglichkeiten)
     | ABStatusAnfrageMärklin
         (EingabeToken -> StatusAnfrageObjektZugtyp 'Märklin)
-        (ObjektZugtyp 'Märklin -> AnfrageErgebnis)
+        (ObjektZugtyp 'Märklin -> AnfrageMöglichkeiten)
     | ABStatusAnfrageLego
         (EingabeToken -> StatusAnfrageObjektZugtyp 'Lego)
-        (ObjektZugtyp 'Lego -> AnfrageErgebnis)
+        (ObjektZugtyp 'Lego -> AnfrageMöglichkeiten)
 
 instance Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
@@ -308,7 +308,7 @@ instance Anfrage AnfrageBefehl where
             = Nothing
 
 -- | Auswerten eines Zwischenergebnisses fortsetzen
-anfrageBefehlAktualisieren :: AnfrageBefehl -> EingabeToken -> AnfrageErgebnis
+anfrageBefehlAktualisieren :: AnfrageBefehl -> EingabeToken -> AnfrageMöglichkeiten
 anfrageBefehlAktualisieren
     anfrage@(ABUnbekannt _anfrage _eingabe)
     _token
@@ -330,7 +330,7 @@ anfrageBefehlAktualisieren
             (Lexer.Kupplung             , anfrageBefehlAktualisieren (ABAktion AnfrageAktion) token)]
             $ AEAnfrageBefehl $ ABUnbekannt AnfrageBefehl eingabe
                 where
-                    planWählen :: Objekt -> AnfrageErgebnis
+                    planWählen :: Objekt -> AnfrageMöglichkeiten
                     planWählen (OPlan plan) = AEBefehlSofort (BSAusführenMöglich plan) []
                     planWählen  objekt      = error $
                         "planWählen aus anfrageBefehlAktualisieren erwartet einen Plan. Stattdessen \"" ++
