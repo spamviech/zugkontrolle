@@ -12,7 +12,7 @@ module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard,
     showMitAnfrage, showMitAnfrageFehlgeschlagen,
-    AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<),
+    AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<), (.<<),
     MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..),
     MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
     -- * Suche ein existierendes Objekt im Status
@@ -150,7 +150,6 @@ data StatusAnfrageObjekt
 
 instance Show StatusAnfrageObjekt where
     show :: StatusAnfrageObjekt -> String
-    -- show    anfrage@(SAOUnbekannt eingabe)    = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
     show    (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
     show    (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
     show    (SAOWeiche _token)                = Language.weiche
@@ -159,7 +158,6 @@ instance Show StatusAnfrageObjekt where
     show    (SAOPlan _token)                  = Language.plan
 instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjekt -> s
-    -- zeigeAnfrage    (SAOUnbekannt _eingabe)           = Language.objekt
     zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
     zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
     zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
@@ -169,9 +167,6 @@ instance Anfrage StatusAnfrageObjekt where
 
 -- | Erhalte ein im Status existierendes Objekt
 statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (AnfrageFortsetzung StatusAnfrageObjekt Objekt)
--- statusAnfrageObjekt
---     anfrage@(SAOUnbekannt _eingabe)
---         = pure $ Left anfrage
 statusAnfrageObjekt
     anfrage@(SAOBahngeschwindigkeit eingabe)
         = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
@@ -253,7 +248,6 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
 
 instance Show (StatusAnfrageObjektZugtyp z) where
     show :: StatusAnfrageObjektZugtyp z -> String
-    -- show    anfrage@(SAOZUnbekannt eingabe)     = unpack $ zeigeAnfrageFehlgeschlagen anfrage eingabe
     show    (SAOZBahngeschwindigkeit _token)    = Language.bahngeschwindigkeit
     show    (SAOZStreckenabschnitt _token)      = Language.streckenabschnitt
     show    (SAOZWeiche _token)                 = Language.weiche
@@ -262,7 +256,6 @@ instance Show (StatusAnfrageObjektZugtyp z) where
     show    (SAOZPlan _token)                   = Language.plan
 instance Anfrage (StatusAnfrageObjektZugtyp z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjektZugtyp z -> s
-    -- zeigeAnfrage    (SAOZUnbekannt _eingabe)            = Language.objekt
     zeigeAnfrage    (SAOZBahngeschwindigkeit _token)    = Language.indexOderName Language.bahngeschwindigkeit
     zeigeAnfrage    (SAOZStreckenabschnitt _token)      = Language.indexOderName Language.streckenabschnitt 
     zeigeAnfrage    (SAOZWeiche _token)                 = Language.indexOderName Language.weiche
@@ -274,9 +267,6 @@ instance Anfrage (StatusAnfrageObjektZugtyp z) where
 statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z) =>
     StatusAnfrageObjektZugtyp z ->
         MStatusT m (AnfrageFortsetzung (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
--- statusAnfrageObjektZugtyp
---         anfrage@(SAOZUnbekannt _eingabe)
---             = pure $ Left anfrage
 statusAnfrageObjektZugtyp
     anfrage@(SAOZBahngeschwindigkeit eingabe)
         = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $
@@ -381,7 +371,18 @@ data AnfrageFortsetzung a e
     | AFFehler {
         anfrage :: a,
         fehlerhafteEingabe :: Text}
-    deriving (Show, Eq)
+    | AFStatusAnfrage {
+        anfrageKategorie :: StatusAnfrageObjekt,
+        konstruktor :: (Objekt -> AnfrageFortsetzung a e),
+        backup :: a}
+    | AFStatusAnfrageMärklin {
+        anfrageKategorieMärklin :: (StatusAnfrageObjektZugtyp 'Märklin),
+        konstruktorMärklin :: (ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e),
+        backup :: a}
+    | AFStatusAnfrageLego {
+        anfrageKategorieLego :: (StatusAnfrageObjektZugtyp 'Lego),
+        konstruktorLego :: (ObjektZugtyp 'Lego -> AnfrageFortsetzung a e),
+        backup :: a}
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
 wähleZwischenwert :: a -> EingabeToken -> [(Token, a)]-> AnfrageFortsetzung a e
@@ -416,6 +417,30 @@ verwendeAnfrageFortsetzung
     AFZwischenwert {anfrage}
         = AFZwischenwert $ anfrageFunktion anfrage
 verwendeAnfrageFortsetzung
+    wertFunktion
+    anfrageFunktion
+    AFStatusAnfrage {anfrageKategorie, konstruktor, backup}
+        = AFStatusAnfrage {
+            anfrageKategorie,
+            konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor,
+            backup = anfrageFunktion backup}
+verwendeAnfrageFortsetzung
+    wertFunktion
+    anfrageFunktion
+    AFStatusAnfrageMärklin {anfrageKategorieMärklin, konstruktorMärklin, backup}
+        = AFStatusAnfrageMärklin {
+            anfrageKategorieMärklin,
+            konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin,
+            backup = anfrageFunktion backup}
+verwendeAnfrageFortsetzung
+    wertFunktion
+    anfrageFunktion
+    AFStatusAnfrageLego {anfrageKategorieLego, konstruktorLego, backup}
+        = AFStatusAnfrageLego {
+            anfrageKategorieLego,
+            konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego,
+            backup = anfrageFunktion backup}
+verwendeAnfrageFortsetzung
     _wertFunktion
     anfrageFunktion
     AFFehler {anfrage, fehlerhafteEingabe}
@@ -425,3 +450,8 @@ infixr 0 $<<
 ($<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
 (wertFunktion, anfrageFunktion) $<< anfrageErgebnis
     = verwendeAnfrageFortsetzung wertFunktion anfrageFunktion anfrageErgebnis
+
+infixr 9 .<<
+(.<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> (o -> AnfrageFortsetzung a e) -> (o -> AnfrageFortsetzung b f)
+funktionen .<< konstruktor
+    = \o -> funktionen $<< konstruktor o
