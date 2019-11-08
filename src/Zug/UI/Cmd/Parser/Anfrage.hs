@@ -372,17 +372,14 @@ data AnfrageFortsetzung a e
         anfrage :: a,
         fehlerhafteEingabe :: Text}
     | AFStatusAnfrage {
-        anfrageKategorie :: StatusAnfrageObjekt,
-        konstruktor :: (Objekt -> AnfrageFortsetzung a e),
-        backup :: a}
+        anfrageObjekt :: StatusAnfrageObjekt,
+        konstruktor :: (Objekt -> AnfrageFortsetzung a e)}
     | AFStatusAnfrageMärklin {
-        anfrageKategorieMärklin :: (StatusAnfrageObjektZugtyp 'Märklin),
-        konstruktorMärklin :: (ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e),
-        backup :: a}
+        anfrageObjektMärklin :: (StatusAnfrageObjektZugtyp 'Märklin),
+        konstruktorMärklin :: (ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e)}
     | AFStatusAnfrageLego {
-        anfrageKategorieLego :: (StatusAnfrageObjektZugtyp 'Lego),
-        konstruktorLego :: (ObjektZugtyp 'Lego -> AnfrageFortsetzung a e),
-        backup :: a}
+        anfrageObjektLego :: (StatusAnfrageObjektZugtyp 'Lego),
+        konstruktorLego :: (ObjektZugtyp 'Lego -> AnfrageFortsetzung a e)}
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
 wähleZwischenwert :: a -> EingabeToken -> [(Token, a)]-> AnfrageFortsetzung a e
@@ -419,27 +416,24 @@ verwendeAnfrageFortsetzung
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
-    AFStatusAnfrage {anfrageKategorie, konstruktor, backup}
+    AFStatusAnfrage {anfrageObjekt, konstruktor}
         = AFStatusAnfrage {
-            anfrageKategorie,
-            konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor,
-            backup = anfrageFunktion backup}
+            anfrageObjekt,
+            konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor}
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
-    AFStatusAnfrageMärklin {anfrageKategorieMärklin, konstruktorMärklin, backup}
+    AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin}
         = AFStatusAnfrageMärklin {
-            anfrageKategorieMärklin,
-            konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin,
-            backup = anfrageFunktion backup}
+            anfrageObjektMärklin,
+            konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin}
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
-    AFStatusAnfrageLego {anfrageKategorieLego, konstruktorLego, backup}
+    AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego}
         = AFStatusAnfrageLego {
-            anfrageKategorieLego,
-            konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego,
-            backup = anfrageFunktion backup}
+            anfrageObjektLego,
+            konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego}
 verwendeAnfrageFortsetzung
     _wertFunktion
     anfrageFunktion

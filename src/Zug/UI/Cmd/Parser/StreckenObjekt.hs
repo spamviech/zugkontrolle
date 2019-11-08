@@ -44,12 +44,11 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen,
 import Zug.Language ((<^>), (<=>), (<->), showText, toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
-import Zug.Plan (Plan())
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
                                 AnfrageZugtyp(..), AnfrageZugtypEither(..), MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp, AnfrageFortsetzung(..), ($<<),
-                                StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung, wähleValue, wähleZwischenwert,
+                                wähleBefehl, wähleRichtung, wähleValue, wähleZwischenwert,
                                 StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..))
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
 
@@ -959,10 +958,27 @@ instance MitAnfrage Kupplung where
                         kuFließend,
                         kupplungsAnschluss}
 
-type family FixerZugtyp (z :: AnfrageZugtyp) :: Zugtyp
+class AnfrageZugtypKlasse (z :: AnfrageZugtyp) where
+    type family FixerZugtyp z :: Zugtyp
+    afStatusAnfrage ::
+        StatusAnfrageObjektZugtyp (FixerZugtyp z) ->
+        (ObjektZugtyp (FixerZugtyp z) -> AnfrageFortsetzung (a z) (e (FixerZugtyp z))) ->
+            AnfrageFortsetzung (a z) (e (FixerZugtyp z))
 
-type instance FixerZugtyp 'AnfrageZugtypMärklin = 'Märklin
-type instance FixerZugtyp 'AnfrageZugtypLego = 'Lego
+instance AnfrageZugtypKlasse 'AnfrageZugtypMärklin where
+    type FixerZugtyp 'AnfrageZugtypMärklin = 'Märklin
+    afStatusAnfrage ::
+        StatusAnfrageObjektZugtyp 'Märklin ->
+        (ObjektZugtyp 'Märklin -> AnfrageFortsetzung (a 'AnfrageZugtypMärklin) (e 'Märklin)) ->
+            AnfrageFortsetzung (a 'AnfrageZugtypMärklin) (e 'Märklin)
+    afStatusAnfrage = AFStatusAnfrageMärklin
+instance AnfrageZugtypKlasse 'AnfrageZugtypLego where
+    type FixerZugtyp 'AnfrageZugtypLego = 'Lego
+    afStatusAnfrage ::
+        StatusAnfrageObjektZugtyp 'Lego ->
+        (ObjektZugtyp 'Lego ->AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)) ->
+            AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)
+    afStatusAnfrage = AFStatusAnfrageLego
 
 -- | Unvollständige 'Wegstrecke'
 data AnfrageWegstrecke (z :: AnfrageZugtyp) where
@@ -980,15 +996,8 @@ data AnfrageWegstrecke (z :: AnfrageZugtyp) where
         awsAnzahl :: Natural,
         awsWeiche :: Weiche (FixerZugtyp z)}
             -> AnfrageWegstrecke z
-    AWSStatusAnfrage :: {
+    AWSKlassifizierung :: {
         awsStatusAnfrageKonstruktor :: EingabeToken -> StatusAnfrageObjektZugtyp (FixerZugtyp z),
-        awsEitherKonstruktor ::
-            Either
-                (ObjektZugtyp (FixerZugtyp z) -> (AnfrageWegstrecke z))
-                (ObjektZugtyp (FixerZugtyp z) -> (Wegstrecke (FixerZugtyp z)))}
-            -> AnfrageWegstrecke z
-    AWegstreckeMStatus :: {
-        awsStatusAnfrage :: StatusAnfrageObjektZugtyp (FixerZugtyp z),
         awsEitherKonstruktor ::
             Either
                 (ObjektZugtyp (FixerZugtyp z) -> (AnfrageWegstrecke z))
@@ -1018,11 +1027,8 @@ instance Show (AnfrageWegstrecke z) where
                 <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
                 <^> showText weiche
     show
-        AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
+        AWSKlassifizierung {awsStatusAnfrageKonstruktor}
             = Language.wegstreckenElement <^> showText (awsStatusAnfrageKonstruktor leeresToken)
-    show
-        AWegstreckeMStatus {awsStatusAnfrage}
-            = Language.wegstrecke <^> showText awsStatusAnfrage
 
 instance Anfrage (AnfrageWegstrecke z) where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> s
@@ -1042,11 +1048,8 @@ instance Anfrage (AnfrageWegstrecke z) where
         AWegstreckeNameAnzahlWeicheRichtung {}
             = Language.richtung
     zeigeAnfrage
-        AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
+        AWSKlassifizierung {awsStatusAnfrageKonstruktor}
             = zeigeAnfrage $ awsStatusAnfrageKonstruktor leeresToken
-    zeigeAnfrage
-        AWegstreckeMStatus {awsStatusAnfrage}
-            = zeigeAnfrage awsStatusAnfrage
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> Maybe s
     zeigeAnfrageOptionen
         AnfrageWegstreckeZugtyp
@@ -1058,11 +1061,8 @@ instance Anfrage (AnfrageWegstrecke z) where
         AWegstreckeNameAnzahlWeicheRichtung {}
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
-        AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
+        AWSKlassifizierung {awsStatusAnfrageKonstruktor}
             = zeigeAnfrageOptionen $ awsStatusAnfrageKonstruktor leeresToken
-    zeigeAnfrageOptionen
-        AWegstreckeMStatus {awsStatusAnfrage}
-            = zeigeAnfrageOptionen awsStatusAnfrage
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
@@ -1093,14 +1093,10 @@ instance MitAnfrage (Wegstrecke 'Lego) where
     anfrageAktualisieren = anfrageWegstreckeAktualisieren
 
 -- | Eingabe einer Wegstrecke
-anfrageWegstreckeAktualisieren ::
+anfrageWegstreckeAktualisieren :: (AnfrageZugtypKlasse z) =>
     AnfrageWegstrecke z -> EingabeToken -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
 anfrageWegstreckeAktualisieren
     anfrage@AnfrageWegstreckeZugtyp
-    _token
-        = AFZwischenwert anfrage
-anfrageWegstreckeAktualisieren
-    anfrage@AWegstreckeMStatus {}
     _token
         = AFZwischenwert anfrage
 anfrageWegstreckeAktualisieren
@@ -1129,13 +1125,13 @@ anfrageWegstreckeAktualisieren
             (AWSEUnbekannt eingabe)
                 -> AFFehler anfrage eingabe
             AWSEWeiche
-                -> AFZwischenwert $ AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
+                -> AFZwischenwert $ AWSKlassifizierung SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
             AWSEBahngeschwindigkeit
-                -> AFZwischenwert $ AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
+                -> AFZwischenwert $ AWSKlassifizierung SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
             AWSEStreckenabschnitt
-                -> AFZwischenwert $ AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
+                -> AFZwischenwert $ AWSKlassifizierung SAOZStreckenabschnitt $ eitherObjektAnhängen acc
             AWSEKupplung
-                -> AFZwischenwert $ AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
+                -> AFZwischenwert $ AWSKlassifizierung SAOZKupplung $ eitherObjektAnhängen acc
     where
         anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
         anfrageWegstreckenElement token@EingabeToken {eingabe} = wähleBefehl token [
@@ -1171,8 +1167,11 @@ anfrageWegstreckeAktualisieren
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         objektAnhängen
             wegstrecke
-            _objekt
-                = wegstrecke
+            objekt
+                = error $ "Unbekanntes Objekt zum anhängen an Wegstrecke (" ++
+                    show wegstrecke ++
+                    ") erhalten: " ++
+                    show objekt
         anfrageObjektAnhängen :: Wegstrecke (FixerZugtyp z) -> ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
         anfrageObjektAnhängen
             wegstrecke
@@ -1183,15 +1182,21 @@ anfrageWegstreckeAktualisieren
             (AWegstreckeNameAnzahl wegstrecke anzahl)
             (OZWeiche weiche)
                 = AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
-        -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         anfrageWeicheAnhängen
             anfrageWegstrecke
-            _objekt
-                = anfrageWegstrecke
+            objekt
+                = error $ "Unbekanntes Objekt zum anhängen einer Weiche an AnfrageWegstrecke (" ++
+                    show anfrageWegstrecke ++
+                    ") erhalten: " ++
+                    show objekt
 anfrageWegstreckeAktualisieren
-    (AWSStatusAnfrage anfrageKonstruktor eitherF)
+    (AWSKlassifizierung anfrageKonstruktor (Left zwischenwertKonstruktor))
     token
-        = AFZwischenwert $ AWegstreckeMStatus (anfrageKonstruktor token) eitherF
+        = afStatusAnfrage (anfrageKonstruktor token) $ AFZwischenwert . zwischenwertKonstruktor
+anfrageWegstreckeAktualisieren
+    (AWSKlassifizierung anfrageKonstruktor (Right konstruktor))
+    token
+        = afStatusAnfrage (anfrageKonstruktor token) $ AFErgebnis . konstruktor
 anfrageWegstreckeAktualisieren
     anfrage@(AWegstreckeNameAnzahlWeicheRichtung
         Wegstrecke {}
@@ -1251,15 +1256,6 @@ data AnfrageObjekt
         (AnfrageZugtypEither AnfrageWegstrecke)
     | AOPlan
         AnfragePlan
-    | AOStatusAnfrage
-        StatusAnfrageObjekt
-        (Either (Objekt -> AnfrageObjekt) (Objekt -> Objekt))
-    | AOStatusAnfrageMärklin
-        (StatusAnfrageObjektZugtyp 'Märklin)
-        (Either (ObjektZugtyp 'Märklin -> AnfrageObjekt) (ObjektZugtyp 'Märklin -> ObjektZugtyp 'Märklin))
-    | AOStatusAnfrageLego
-        (StatusAnfrageObjektZugtyp 'Lego)
-        (Either (ObjektZugtyp 'Lego -> AnfrageObjekt) (ObjektZugtyp 'Lego -> ObjektZugtyp 'Lego))
 
 instance Show AnfrageObjekt where
     show :: AnfrageObjekt -> String
@@ -1284,15 +1280,6 @@ instance Show AnfrageObjekt where
     show
         (AOPlan aPlan)
             = showText aPlan
-    show
-        (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
-            = showText objektStatusAnfrage
-    show
-        (AOStatusAnfrageMärklin objektStatusAnfrage _eitherKonstruktor)
-            = showText objektStatusAnfrage
-    show
-        (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
-            = showText objektStatusAnfrage
 
 instance Anfrage AnfrageObjekt where
     zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageObjekt -> s
@@ -1317,15 +1304,6 @@ instance Anfrage AnfrageObjekt where
     zeigeAnfrage
         (AOPlan aPlan)
             = zeigeAnfrage aPlan
-    zeigeAnfrage
-        (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage
-        (AOStatusAnfrageMärklin objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage
-        (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrage objektStatusAnfrage
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageObjekt -> Maybe s
     zeigeAnfrageOptionen
         AnfrageObjekt
@@ -1348,32 +1326,11 @@ instance Anfrage AnfrageObjekt where
     zeigeAnfrageOptionen
         (AOPlan aPlan)
             = zeigeAnfrageOptionen aPlan
-    zeigeAnfrageOptionen
-        (AOStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen
-        (AOStatusAnfrageMärklin objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen
-        (AOStatusAnfrageLego objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrageOptionen objektStatusAnfrage
 
 instance MitAnfrage Objekt where
     type AnfrageTyp Objekt = AnfrageObjekt
     -- | Eingabe eines Objekts
     anfrageAktualisieren :: AnfrageObjekt -> EingabeToken -> AnfrageFortsetzung AnfrageObjekt Objekt
-    anfrageAktualisieren
-        anfrageObjekt@(AOStatusAnfrage _objektStatusAnfrage _eitherKonstruktor)
-        _token
-            = AFZwischenwert anfrageObjekt
-    anfrageAktualisieren
-        anfrageObjekt@(AOStatusAnfrageMärklin _objektStatusAnfrage _eitherKonstruktor)
-        _token
-            = AFZwischenwert anfrageObjekt
-    anfrageAktualisieren
-        anfrageObjekt@(AOStatusAnfrageLego _objektStatusAnfrage _eitherKonstruktor)
-        _token
-            = AFZwischenwert anfrageObjekt
     anfrageAktualisieren
         AnfrageObjekt
         token
@@ -1425,53 +1382,14 @@ instance MitAnfrage Objekt where
     anfrageAktualisieren
         (AOWegstrecke (AnfrageMärklin aWegstrecke))
         token
-            = (wegstreckeVerwenden, anfrageWegstreckeVerwenden) $<< anfrageAktualisieren aWegstrecke token
-            where
-                anfrageWegstreckeVerwenden ::
-                    AnfrageWegstrecke 'AnfrageZugtypMärklin -> AnfrageObjekt
-                anfrageWegstreckeVerwenden (AWegstreckeMStatus objektStatusAnfrage (Right konstruktor))
-                    = AOStatusAnfrageMärklin objektStatusAnfrage $ Right $
-                        \objekt -> OZWegstrecke $ konstruktor objekt
-                anfrageWegstreckeVerwenden (AWegstreckeMStatus objektStatusAnfrage (Left anfrageKonstruktor))
-                    = AOStatusAnfrageMärklin objektStatusAnfrage $ Left $
-                        \objekt -> AOWegstrecke $ AnfrageMärklin $ anfrageKonstruktor objekt
-                anfrageWegstreckeVerwenden aWegstrecke1
-                    = AOWegstrecke $ AnfrageMärklin aWegstrecke1
-                wegstreckeVerwenden :: Wegstrecke 'Märklin -> AnfrageFortsetzung AnfrageObjekt Objekt
-                wegstreckeVerwenden wegstrecke
-                    = AFErgebnis $ OWegstrecke $ ZugtypMärklin wegstrecke
+            = (AFErgebnis . OWegstrecke . ZugtypMärklin, AOWegstrecke . AnfrageMärklin) $<<
+                anfrageAktualisieren aWegstrecke token
     anfrageAktualisieren
         (AOWegstrecke (AnfrageLego aWegstrecke))
         token
-            = (wegstreckeVerwenden, anfrageWegstreckeVerwenden) $<< anfrageAktualisieren aWegstrecke token
-            where
-                anfrageWegstreckeVerwenden ::
-                    AnfrageWegstrecke 'AnfrageZugtypLego -> AnfrageObjekt
-                anfrageWegstreckeVerwenden (AWegstreckeMStatus objektStatusAnfrage (Right konstruktor))
-                    = AOStatusAnfrageLego objektStatusAnfrage $ Right $
-                        \objekt -> OZWegstrecke $ konstruktor objekt
-                anfrageWegstreckeVerwenden (AWegstreckeMStatus objektStatusAnfrage (Left anfrageKonstruktor))
-                    = AOStatusAnfrageLego objektStatusAnfrage $ Left $
-                        \objekt -> AOWegstrecke $ AnfrageLego $ anfrageKonstruktor objekt
-                anfrageWegstreckeVerwenden aWegstrecke1
-                    = AOWegstrecke $ AnfrageLego aWegstrecke1
-                wegstreckeVerwenden :: Wegstrecke 'Lego -> AnfrageFortsetzung AnfrageObjekt Objekt
-                wegstreckeVerwenden wegstrecke
-                    = AFErgebnis $ OWegstrecke $ ZugtypLego wegstrecke
+            = (AFErgebnis . OWegstrecke . ZugtypLego, AOWegstrecke . AnfrageLego) $<<
+                anfrageAktualisieren aWegstrecke token
     anfrageAktualisieren
         (AOPlan aPlan)
         token
-            = (planVerwenden, anfragePlanVerwenden) $<< anfrageAktualisieren aPlan token
-            where
-                anfragePlanVerwenden :: AnfragePlan -> AnfrageObjekt
-                anfragePlanVerwenden (APlanIOStatus objektStatusAnfrage (Right konstruktor))
-                    = AOStatusAnfrage objektStatusAnfrage $ Right $
-                        \objekt -> OPlan $ konstruktor objekt
-                anfragePlanVerwenden (APlanIOStatus objektStatusAnfrage (Left anfrageKonstruktor))
-                    = AOStatusAnfrage objektStatusAnfrage $ Left $
-                        \objekt -> AOPlan $ anfrageKonstruktor objekt
-                anfragePlanVerwenden aPlan1
-                    = AOPlan aPlan1
-                planVerwenden :: Plan -> AnfrageFortsetzung AnfrageObjekt Objekt
-                planVerwenden plan
-                    = AFErgebnis $ OPlan plan
+            = (AFErgebnis . OPlan, AOPlan) $<< anfrageAktualisieren aPlan token

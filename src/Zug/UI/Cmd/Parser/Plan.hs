@@ -420,9 +420,6 @@ data AnfrageAktion
         (AnfrageAktionStreckenabschnitt Streckenabschnitt)
     | AAKupplung
         (AnfrageAktionKupplung Kupplung)
-    | AAStatusAnfrage
-        StatusAnfrageObjekt
-        (Either (Objekt -> AnfrageAktion) (Objekt -> Aktion))
     | AAKlassifizierung
         (EingabeToken -> StatusAnfrageObjekt)
         (Either (Objekt -> AnfrageAktion) (Objekt -> Aktion))
@@ -463,9 +460,6 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
         (AAKupplung aAktionKupplung)
             = Language.aktion <^> showText aAktionKupplung
     show
-        (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
-            = Language.aktion <^> showText objektStatusAnfrage
-    show
         (AAKlassifizierung anfrageKonstruktor _eitherF)
             = Language.aktion <-> Language.objekt <^> showText (anfrageKonstruktor leeresToken)
 
@@ -501,9 +495,6 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrage
         (AAKupplung aAktionKupplung)
             = zeigeAnfrage aAktionKupplung
-    zeigeAnfrage
-        (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrage objektStatusAnfrage
     zeigeAnfrage
         (AAKlassifizierung anfrageKonstruktor _eitherF)
             = zeigeAnfrage $ anfrageKonstruktor leeresToken
@@ -547,9 +538,6 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrageOptionen
         (AAKupplung aAktionKupplung)
             = zeigeAnfrageOptionen aAktionKupplung
-    zeigeAnfrageOptionen
-        (AAStatusAnfrage objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrageOptionen objektStatusAnfrage
     zeigeAnfrageOptionen
         (AAKlassifizierung anfrageKonstruktor _eitherF)
             = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
@@ -645,9 +633,13 @@ instance MitAnfrage Aktion where
                 (Just zeit)
                     -> AFErgebnis $ Warten $ MikroSekunden zeit
     anfrageAktualisieren
-        (AAKlassifizierung anfrageKonstruktor eitherF)
+        (AAKlassifizierung anfrageKonstruktor (Left zwischenwertKonstruktor))
         token
-            = AFZwischenwert $ AAStatusAnfrage (anfrageKonstruktor token) eitherF
+            = AFStatusAnfrage (anfrageKonstruktor token) $ AFZwischenwert . zwischenwertKonstruktor
+    anfrageAktualisieren
+        (AAKlassifizierung anfrageKonstruktor (Right konstruktor))
+        token
+            = AFStatusAnfrage (anfrageKonstruktor token) $ AFErgebnis . konstruktor
     anfrageAktualisieren
         (AAWegstreckeMärklin anfrageAktion)
         token
@@ -681,10 +673,6 @@ instance MitAnfrage Aktion where
         anfrage@AARückgängig
         _token
             = AFZwischenwert anfrage
-    anfrageAktualisieren
-        anfrage@(AAStatusAnfrage _statusAnfrageObjekt _eitherKonstruktor)
-        _token
-            = AFZwischenwert anfrage
 
 -- | Unvollständiger 'Plan'
 data AnfragePlan
@@ -699,10 +687,7 @@ data AnfragePlan
     | APlanNameAktionen
         Text                    -- ^ Name
         (Warteschlange Aktion)  -- ^ Aktionen
-    | APlanIOStatus
-        StatusAnfrageObjekt
-        (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
-    | APStatusAnfrage
+    | APlanKlassifizierung
         (EingabeToken -> StatusAnfrageObjekt)
         (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
 
@@ -730,10 +715,7 @@ instance (Show (AnfrageTyp (Wegstrecke 'Märklin)), Show (AnfrageTyp (Wegstrecke
                 <^> Language.name <=> name
                 <^> showText aktionen
     show
-        (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
-            = Language.plan <^> showText objektStatusAnfrage
-    show
-        (APStatusAnfrage anfrageKonstruktor _eitherF)
+        (APlanKlassifizierung anfrageKonstruktor _eitherF)
             = Language.plan
                 <^> Language.aktion <-> Language.objekt
                 <^> showText (anfrageKonstruktor leeresToken)
@@ -752,10 +734,7 @@ instance Anfrage AnfragePlan where
         (APlanNameAktionen _name _aktionen)
             = Language.ausführModus
     zeigeAnfrage
-        (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrage objektStatusAnfrage
-    zeigeAnfrage
-        (APStatusAnfrage anfrageKonstruktor _eitherF)
+        (APlanKlassifizierung anfrageKonstruktor _eitherF)
             = zeigeAnfrage $ anfrageKonstruktor leeresToken
     zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfragePlan -> s -> s
     zeigeAnfrageFehlgeschlagen
@@ -767,9 +746,6 @@ instance Anfrage AnfragePlan where
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfragePlan -> Maybe s
-    -- zeigeAnfrageOptionen
-    --     (APUnbekannt aPlan _eingabe)
-    --         = zeigeAnfrageOptionen aPlan
     zeigeAnfrageOptionen
         AnfragePlan
             = Nothing
@@ -783,10 +759,7 @@ instance Anfrage AnfragePlan where
         (APlanNameAktionen _name _aktionen)
             = Just $ toBefehlsString [Language.einfachAusführung, Language.dauerschleife]
     zeigeAnfrageOptionen
-        (APlanIOStatus objektStatusAnfrage _eitherKonstruktor)
-            = zeigeAnfrageOptionen objektStatusAnfrage
-    zeigeAnfrageOptionen
-        (APStatusAnfrage anfrageKonstruktor _eitherF)
+        (APlanKlassifizierung anfrageKonstruktor _eitherF)
             = zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
 
 instance MitAnfrage Plan where
@@ -816,17 +789,6 @@ instance MitAnfrage Plan where
                         -> p
                 anfrageAktionVerwenden :: AnfrageAktion -> AnfragePlan
                 anfrageAktionVerwenden
-                    (AAStatusAnfrage objektStatusAnfrage (Left anfrageKonstruktor))
-                        = APlanIOStatus objektStatusAnfrage $
-                            Left $ \objekt -> APlanNameAnzahl name anzahl acc $ anfrageKonstruktor objekt
-                anfrageAktionVerwenden
-                    (AAStatusAnfrage objektStatusAnfrage (Right konstruktor))
-                        = APlanIOStatus objektStatusAnfrage $ Left $ if anzahl > 1
-                            then \objekt ->
-                                APlanNameAnzahl name anzahl (anhängen (konstruktor objekt) acc) AnfrageAktion
-                            else \objekt ->
-                                APlanNameAktionen name $ anhängen (konstruktor objekt) acc
-                anfrageAktionVerwenden
                     AARückgängig
                         = APlanNameAnzahl name (succ anzahl) (löscheLetztes acc) AnfrageAktion
                 anfrageAktionVerwenden
@@ -839,9 +801,13 @@ instance MitAnfrage Plan where
                     | otherwise
                         = AFZwischenwert $ APlanNameAktionen name $ anhängen aktion acc
     anfrageAktualisieren
-        (APStatusAnfrage anfrageKonstruktor eitherF)
+        (APlanKlassifizierung anfrageKonstruktor (Left zwischenwertKonstruktor))
         token
-            = AFZwischenwert $ APlanIOStatus (anfrageKonstruktor token) eitherF
+            = AFStatusAnfrage (anfrageKonstruktor token) $ AFZwischenwert . zwischenwertKonstruktor
+    anfrageAktualisieren
+        (APlanKlassifizierung anfrageKonstruktor (Right konstruktor))
+        token
+            = AFStatusAnfrage (anfrageKonstruktor token) $ AFErgebnis . konstruktor
     anfrageAktualisieren
         anfrage@(APlanNameAktionen plName aktionen)
         token
@@ -851,7 +817,3 @@ instance MitAnfrage Plan where
             where
                 dauerschleife :: Plan
                 dauerschleife = Plan {plName, plAktionen = toList $ anhängen (AktionAusführen dauerschleife) aktionen}
-    anfrageAktualisieren
-        anfrage@(APlanIOStatus _statusAnfrageObjekt _eitherKonstruktor)
-        _token
-            = AFZwischenwert anfrage
