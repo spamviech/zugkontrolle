@@ -30,7 +30,7 @@ import Zug.Objekt (Objekt)
 import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
                     AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
-import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
+import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), lexer)
 import Zug.UI.Cmd.Parser (AnfrageFortsetzung(..), AnfrageBefehl(..), Anfrage(..),
                         StatusAnfrageObjekt(..), statusAnfrageObjekt,
                         StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
@@ -76,8 +76,8 @@ statusParser = statusParserAux . parser AnfrageBefehl
         statusParserAux ::
             ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl) ->
                 IOStatus Bool
-        statusParserAux (befehle, qErgebnis, eingabeRest, backup)
-            = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
+        statusParserAux (befehle, fortsetzung, eingabeRest, backup)
+            = ausführenBefehl (BefehlListe befehle) >> case fortsetzung of
                 (AFErgebnis (Right befehl))
                     -> ausführenBefehl befehl
                 (AFErgebnis (Left befehlSofort))
@@ -85,15 +85,13 @@ statusParser = statusParserAux . parser AnfrageBefehl
                         ergebnis <- ausführenBefehlSofort befehlSofort
                         statusParserAux $ parser ergebnis eingabeRest
                 (AFStatusAnfrage aObjektIOStatus konstruktor)
-                    -> statusAnfrage aObjektIOStatus konstruktor _backup _eingabeRest
+                    -> statusAnfrage aObjektIOStatus konstruktor backup eingabeRest
                 (AFStatusAnfrageMärklin aObjektIOStatus konstruktor)
-                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor _backup _eingabeRest
+                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
                 (AFStatusAnfrageLego aObjektIOStatus konstruktor)
-                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor _backup _eingabeRest
+                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
                 (AFZwischenwert AnfrageBefehl)
                     -> pure False
-                (AFFehler eingabe)
-                    -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
                 (AFFehler eingabe)
                     -> do
                         liftIO $ do
@@ -128,22 +126,20 @@ statusParser = statusParserAux . parser AnfrageBefehl
                 IOStatus Bool
         statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
             = statusAnfrageObjektZugtyp aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
-        statusAnfrageAux :: (Anfrage statusAnfrageObjekt) =>
+        statusAnfrageAux ::
             (objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein]->
-            (AnfrageFortsetzung statusAnfrageObjekt objekt) ->
+            (Either Text objekt) ->
                 IOStatus Bool
         statusAnfrageAux
             konstruktor
             backup
             eingabeRest
-            (AFErgebnis objekt)
+            (Right objekt)
                 = case konstruktor objekt of
-                    (AFErgebnis (Right befehl))
-                        -> ausführenBefehl befehl >> statusParser eingabeRest
-                    (AFErgebnis (Left befehlSofort))
-                        -> statusParserAux ([], AFErgebnis $ Left befehlSofort, eingabeRest, backup)
+                    ergebnis@(AFErgebnis _befehl)
+                        -> statusParserAux ([], ergebnis, eingabeRest, backup)
                     (AFStatusAnfrage qObjektIOStatus1 konstruktor1)
                         -> statusAnfrage qObjektIOStatus1 konstruktor1 backup eingabeRest
                     (AFStatusAnfrageMärklin qObjektIOStatus1 konstruktor1)
@@ -152,32 +148,15 @@ statusParser = statusParserAux . parser AnfrageBefehl
                         -> statusAnfrageZugtyp qObjektIOStatus1 konstruktor1 backup eingabeRest
                     (AFZwischenwert anfrage)
                         -> statusParserAux $ parser anfrage eingabeRest
+                    fehler@(AFFehler _eingabe)
+                        -> statusParserAux ([], fehler, eingabeRest, backup)
         statusAnfrageAux
             _konstruktor
             backup
             _eingabeRest
-            (AFFehler eingabe)
+            (Left eingabe)
                 = promptS (zeigeAnfrageFehlgeschlagen backup eingabe <!> zeigeAnfrage backup <:> "")
                     >>= statusParserAux . parser backup . lexer
-
--- class ErhalteEingabe s where
---     erhalteEingabe :: s -> Text
--- instance ErhalteEingabe StatusAnfrageObjekt where
---     erhalteEingabe :: StatusAnfrageObjekt -> Text
---     erhalteEingabe  (SAOPlan EingabeToken {eingabe})                = eingabe
---     erhalteEingabe  (SAOWegstrecke EingabeToken {eingabe})          = eingabe
---     erhalteEingabe  (SAOWeiche EingabeToken {eingabe})              = eingabe
---     erhalteEingabe  (SAOBahngeschwindigkeit EingabeToken {eingabe}) = eingabe
---     erhalteEingabe  (SAOStreckenabschnitt EingabeToken {eingabe})   = eingabe
---     erhalteEingabe  (SAOKupplung EingabeToken {eingabe})            = eingabe
--- instance ErhalteEingabe (StatusAnfrageObjektZugtyp z) where
---     erhalteEingabe :: StatusAnfrageObjektZugtyp z -> Text
---     erhalteEingabe  (SAOZPlan EingabeToken {eingabe})                = eingabe
---     erhalteEingabe  (SAOZWegstrecke EingabeToken {eingabe})          = eingabe
---     erhalteEingabe  (SAOZWeiche EingabeToken {eingabe})              = eingabe
---     erhalteEingabe  (SAOZBahngeschwindigkeit EingabeToken {eingabe}) = eingabe
---     erhalteEingabe  (SAOZStreckenabschnitt EingabeToken {eingabe})   = eingabe
---     erhalteEingabe  (SAOZKupplung EingabeToken {eingabe})            = eingabe
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl

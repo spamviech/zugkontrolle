@@ -164,7 +164,7 @@ instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt
-statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (AnfrageFortsetzung StatusAnfrageObjekt Objekt)
+statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (Either Text Objekt)
 statusAnfrageObjekt
     (SAOBahngeschwindigkeit eingabe)
         = statusAnfrageObjektAux eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
@@ -264,7 +264,7 @@ instance Anfrage (StatusAnfrageObjektZugtyp z) where
 -- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
 statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z) =>
     StatusAnfrageObjektZugtyp z ->
-        MStatusT m (AnfrageFortsetzung (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
+        MStatusT m (Either Text (ObjektZugtyp z))
 statusAnfrageObjektZugtyp
     (SAOZBahngeschwindigkeit eingabe)
         = statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $
@@ -296,7 +296,7 @@ statusAnfrageObjektAux :: (Monad m, StreckenObjekt a) =>
     EingabeToken ->
     MStatusT m [a] ->
     (a -> Maybe o) ->
-        MStatusT m (AnfrageFortsetzung statusAnfrageObjekt o)
+        MStatusT m (Either Text o)
 statusAnfrageObjektAux
     token@EingabeToken {eingabe}
     getFromStatus
@@ -304,8 +304,8 @@ statusAnfrageObjektAux
         = do
             objekte <- getFromStatus
             pure $ case findByNameOrIndex objekte token >>= konstruktor of
-                Nothing         -> AFFehler eingabe
-                (Just objekt)   -> AFErgebnis objekt
+                Nothing         -> Left eingabe
+                (Just objekt)   -> Right objekt
 
 -- | Element einer Liste anhand des Index oder Namens finden
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
