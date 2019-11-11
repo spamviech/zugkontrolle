@@ -13,7 +13,7 @@ main = do
         where
             argModifier :: [String] -> IO a -> IO a
             argModifier
-                [('-' : _arg)]
+                ['-' : _arg]
                     = id
             argModifier
                 [filename]
