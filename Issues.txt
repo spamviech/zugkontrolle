@@ -1,23 +1,7 @@
-Cmd-UI:
-    *Unbekannt aus Datentypen entfernen und eigenen (ParseErgebnis a)-Datentyp verwenden
-        *Unbekannt hat überall identische Struktur
-    Analog zu Either als Fehler-Monade
-        Monade geht nicht, wegen Either-Ähnlicher Typvariable (keine anderen Typen erlaubt)
-        -> eigene Verkettung-Funktion erstellen
-            Done
-    wähleBefehl oft mit AFFehler als Ausweich-Lösung und AFZwischenwert für jedes Ergebnis
-        -> eigenen Befehl wähleFortsetzung erstellen
-            Done
-    Jede Auswertung von AnfrageFortsetzung hat vorherigen Zustand
-        -> muss im Fehlerfall nicht gespeichert werden
-
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren
     Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
-
-Fix tests
-    Änderungen berücksichtigen
-    oder entfernen, vergesse ich sowieso ständig
+    Nicht für Wegstrecken-Element-Listen verwenden!
 
 Anzeige über eigene Klasse regeln
     default-Implementierung aus Show-Instanz
@@ -49,6 +33,7 @@ Code-Stil vereinheitlichen:
             {-# Overlappable #-}/{-# Overlapping #-} bei Instanz-Deklaration
             allgemeinen Fall abdeckbar, ohne Spezial-Instanzen zu verhindern
             Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
+            Done
     etc.
 
 
@@ -66,6 +51,10 @@ Beispiel-Schaltpläne erstellen
     Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
     In der ReadMe erwähnen/verlinken.
 
+Fix tests
+    Änderungen berücksichtigen
+    oder entfernen, vergesse ich sowieso ständig
+
 Test-Suite vervollständigen
     Fehlende Tests erstellen.
     Test-Bibliothek verwenden (hspec)?
@@ -76,6 +65,21 @@ Hilfetext von optparse-applicative übersetzten
     Außerdem sämtliche Hilfetexte in Language.hs auslagern.
 
 ---------------------------Gelöst--------------------------
+Cmd-UI:
+    *Unbekannt aus Datentypen entfernen und eigenen (ParseErgebnis a)-Datentyp verwenden
+        *Unbekannt hat überall identische Struktur
+    Analog zu Either als Fehler-Monade
+        Monade geht nicht, wegen Either-Ähnlicher Typvariable (keine anderen Typen erlaubt)
+        -> eigene Verkettung-Funktion erstellen
+            Done
+    wähleBefehl oft mit AFFehler als Ausweich-Lösung und AFZwischenwert für jedes Ergebnis
+        -> eigenen Befehl wähleFortsetzung erstellen
+            Done
+    Jede Auswertung von AnfrageFortsetzung hat vorherigen Zustand
+        -> muss im Fehlerfall nicht gespeichert werden
+            Done
+    Done
+
 Rekursion in Plan ermöglichen
     erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
     potentielle Endlosschleifen

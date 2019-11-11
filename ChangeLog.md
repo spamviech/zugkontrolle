@@ -87,18 +87,24 @@
 - Englische Sprache hinzugefügt. Sie kann über die Kommandozeilen-Option `--sprache=Englisch` ausgewählt werden.
 - Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
 - SoftwarePWM-Frequenz auf 500Hz erhöht.
+
 1.0.0.14:
 - Fließend-Value (HIGH/LOW) ist jetzt eine Eigenschaft jedes Objekts.  
     Das zugehörige Kommandozeilenargument `--fließend` wurde entsprechend entfernt.
 - SEQueue umbenannt in Warteschlange
 - Pläne können jetzt abgebrochen werden
 - Pläne können nur ausgeführt werden, wenn kein Pins bei einem bereits ausgeführtem Plan verwendet wird.
+
 1.0.0.15:
 - Bugfix: Cmd-UI erkennt wieder, wann ein Plan ausgeführt wird (war invertiert).
 - Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist. Man muss nicht erst ins Hauptmenü zurückkehren.
+
 ## Unreleased changes
 - Support für PCF8574 hinzugefügt
 - MVar durch TVar/TMVar ersetzt, LinkedMVar entfernt
 - unqualifizierter Import wird immer explizit angegeben
 - GADTs verwendet um Zugtyp-Mischformen zu vermeiden
 - GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen
+- Ein Plan kann andere Pläne ausführen (inklusive rekursivem Aufruf von sich selbst)
+- Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
+- Aktuelle Version über Data.Version.Version-Datentyp gespeichert

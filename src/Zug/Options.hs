@@ -3,7 +3,12 @@
 {-|
 Description : Kommandozeilen-Optionen
 -}
-module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOptionen, Sprache(..), alleSprachen) where
+module Zug.Options (
+    Options(..), getOptions,
+    UI(..), alleUI,
+    PWM(..), allePWMOptionen,
+    Sprache(..), alleSprachen,
+    version) where
 
 -- Bibliotheken
 import Control.Monad.Trans (MonadIO, liftIO)
@@ -11,6 +16,7 @@ import Options.Applicative (ParserInfo(), Parser(), execParser,
                             info, helper, fullDesc, progDesc, header, infoOption, long, short, help,
                             switch, option, auto, metavar, showDefault, value, strOption)
 import Data.Semigroup (Semigroup(..))
+import Data.Version (Version(), makeVersion, showVersion)
 
 -- | Erhalte Kommandozeilen-Arguemente
 getOptions :: (MonadIO m) => m Options
@@ -34,7 +40,17 @@ optionen = info
             header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
 
 versionOpt :: Parser (a -> a)
-versionOpt = infoOption ("Zugkontrolle Version: " ++ ZUGKONTROLLEVERSION) (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
+versionOpt
+    = infoOption
+        ("Zugkontrolle Version: " ++ showVersion version)
+        (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
+
+version :: Version
+version = makeVersion [
+    ZUGKONTROLLEVERSIONMAJORA,
+    ZUGKONTROLLEVERSIONMAJORB,
+    ZUGKONTROLLEVERSIONMINOR,
+    ZUGKONTROLLEVERSIONMISC]
 
 kombinierteOptionen :: Parser Options
 kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt
@@ -101,6 +117,6 @@ spracheOpt = option auto (
 
 -- | Hilfsfunktion um mögliche Optionen anzuzeigen
 zeigeMöglichkeiten :: (Show a) => [a] -> String
-zeigeMöglichkeiten  []      = ""
-zeigeMöglichkeiten  (h:[])  = show h
-zeigeMöglichkeiten  (h:t)   = show h ++ '|' : zeigeMöglichkeiten t
+zeigeMöglichkeiten  []          = ""
+zeigeMöglichkeiten  (h : [] )   = show h
+zeigeMöglichkeiten  (h : t)     = show h ++ '|' : zeigeMöglichkeiten t

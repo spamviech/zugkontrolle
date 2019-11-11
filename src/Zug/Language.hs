@@ -14,9 +14,11 @@ import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text (Text)
 import qualified Data.Text.IO as T
+import Data.Version (showVersion)
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren ((<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), showText, addMnemonic)
 import Zug.Options (getOptions, Options(..), Sprache())
+import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache
 import Zug.Language.TemplateHaskell (erzeugeDeklaration, erzeugeFunktionDeklaration)
 import qualified Zug.Language.DE
@@ -31,6 +33,9 @@ gewählteSprache = unsafePerformIO $ getOptions >>= pure . sprache
 
 -- * Titel / Title
 erzeugeDeklaration "zugkontrolle"
+-- ** Version
+version :: (IsString s, Semigroup s) => s
+version = fromString $ showVersion Options.version
 -- * Haupt-Befehle / Main Orders
 concatMapM erzeugeDeklaration
     ["beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden"]

@@ -64,7 +64,7 @@ setupGUI = void $ do
     -- Hauptfenster
     windowMain <- widgetShowNew Gtk.windowNew
     Gtk.set windowMain [
-        Gtk.windowTitle := (Language.zugkontrolle <~> ZUGKONTROLLEVERSION :: Text),
+        Gtk.windowTitle := (Language.zugkontrolle <~> Language.version :: Text),
         Gtk.windowDefaultWidth := 640,
         Gtk.windowDefaultHeight := 480]
     -- windowDefaultHeight wird aus irgendeinem Grund ignoriert.

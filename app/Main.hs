@@ -12,11 +12,21 @@ main = do
     argModifier args UI.main
         where
             argModifier :: [String] -> IO a -> IO a
-            argModifier (('-' : _arg) : []) = id
-            argModifier (filename : [])
-                | filename =~ linuxRegex    = withArgs $ "--load" : ((\(_before, _match, _after, submatches) -> submatches) (filename =~ linuxRegex :: (String, String, String, [String])))
-                | otherwise                 = withArgs ["--load", filename]
-            argModifier _args               = id
+            argModifier
+                [('-' : _arg)]
+                    = id
+            argModifier
+                [filename]
+                    | filename =~ linuxRegex
+                        = withArgs $
+                            "--load" :
+                                (\(_before, _match, _after, submatches) -> submatches)
+                                    (filename =~ linuxRegex :: (String, String, String, [String]))
+                | otherwise
+                    = withArgs ["--load", filename]
+            argModifier
+                _args
+                    = id
             -- Drag & Drop nur über .desktop-Datei möglich (raspian, nautilus window manager)
             -- "'file:///home/pi/Desktop/Zugkontrolle-bin/Doppeloval.json' "
             linuxRegex :: String
