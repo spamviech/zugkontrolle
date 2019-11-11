@@ -123,13 +123,11 @@ class MitAnfrageZugtyp (a :: AnfrageZugtyp -> Type) where
     anfrageLego :: a 'AnfrageZugtypLego
 
 anfrageAktualisierenZugtyp :: (MitAnfrageZugtyp a) =>
-    a 'AnfrageZugtyp ->
     EingabeToken ->
         AnfrageFortsetzung (AnfrageZugtypEither a) b
 anfrageAktualisierenZugtyp
-    anfrage
     token
-        = wähleZwischenwert (AnfrageNothing anfrage) token [
+        = wähleZwischenwert token [
             (Lexer.Märklin  , AnfrageMärklin anfrageMärklin),
             (Lexer.Lego     , AnfrageLego anfrageLego)]
 
@@ -168,23 +166,23 @@ instance Anfrage StatusAnfrageObjekt where
 -- | Erhalte ein im Status existierendes Objekt
 statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (AnfrageFortsetzung StatusAnfrageObjekt Objekt)
 statusAnfrageObjekt
-    anfrage@(SAOBahngeschwindigkeit eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
+    (SAOBahngeschwindigkeit eingabe)
+        = statusAnfrageObjektAux eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
 statusAnfrageObjekt
-    anfrage@(SAOStreckenabschnitt eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte $ Just . OStreckenabschnitt
+    (SAOStreckenabschnitt eingabe)
+        = statusAnfrageObjektAux eingabe getStreckenabschnitte $ Just . OStreckenabschnitt
 statusAnfrageObjekt
-    anfrage@(SAOWeiche eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWeichen $ Just . OWeiche
+    (SAOWeiche eingabe)
+        = statusAnfrageObjektAux eingabe getWeichen $ Just . OWeiche
 statusAnfrageObjekt
-    anfrage@(SAOKupplung eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getKupplungen $ Just . OKupplung
+    (SAOKupplung eingabe)
+        = statusAnfrageObjektAux eingabe getKupplungen $ Just . OKupplung
 statusAnfrageObjekt
-    anfrage@(SAOWegstrecke eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getWegstrecken $ Just . OWegstrecke
+    (SAOWegstrecke eingabe)
+        = statusAnfrageObjektAux eingabe getWegstrecken $ Just . OWegstrecke
 statusAnfrageObjekt
-    anfrage@(SAOPlan eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getPläne $ Just . OPlan
+    (SAOPlan eingabe)
+        = statusAnfrageObjektAux eingabe getPläne $ Just . OPlan
 
 -- | Ein Objekt mit bestimmten Zugtyp
 data ObjektZugtyp (z :: Zugtyp)
@@ -268,47 +266,45 @@ statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z) =>
     StatusAnfrageObjektZugtyp z ->
         MStatusT m (AnfrageFortsetzung (StatusAnfrageObjektZugtyp z) (ObjektZugtyp z))
 statusAnfrageObjektZugtyp
-    anfrage@(SAOZBahngeschwindigkeit eingabe)
-        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $
+    (SAOZBahngeschwindigkeit eingabe)
+        = statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $
             fmap OZBahngeschwindigkeit
 statusAnfrageObjektZugtyp
-    anfrage@(SAOZStreckenabschnitt eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getStreckenabschnitte $
+    (SAOZStreckenabschnitt eingabe)
+        = statusAnfrageObjektAux eingabe getStreckenabschnitte $
             Just . OZStreckenabschnitt
 statusAnfrageObjektZugtyp
-    anfrage@(SAOZWeiche eingabe)
-        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getWeichen) $
+    (SAOZWeiche eingabe)
+        = statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getWeichen) $
             fmap OZWeiche
 statusAnfrageObjektZugtyp
-    anfrage@(SAOZKupplung eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getKupplungen $
+    (SAOZKupplung eingabe)
+        = statusAnfrageObjektAux eingabe getKupplungen $
             Just . OZKupplung
 statusAnfrageObjektZugtyp
-    anfrage@(SAOZWegstrecke eingabe)
-        = statusAnfrageObjektAux anfrage eingabe (fmap vonZugtypEither <$> getWegstrecken) $
+    (SAOZWegstrecke eingabe)
+        = statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getWegstrecken) $
             fmap OZWegstrecke
 statusAnfrageObjektZugtyp
-    anfrage@(SAOZPlan eingabe)
-        = statusAnfrageObjektAux anfrage eingabe getPläne $
+    (SAOZPlan eingabe)
+        = statusAnfrageObjektAux eingabe getPläne $
             Just . OZPlan
 
 -- Hilfsfunktion
 -- | Finde ein Objekt anhand seines Namens/Indizes
-statusAnfrageObjektAux :: (Monad m, StreckenObjekt a)
-    => statusAnfrageObjekt
-    -> EingabeToken
-    -> MStatusT m [a]
-    -> (a -> Maybe o)
-        -> MStatusT m (AnfrageFortsetzung statusAnfrageObjekt o)
+statusAnfrageObjektAux :: (Monad m, StreckenObjekt a) =>
+    EingabeToken ->
+    MStatusT m [a] ->
+    (a -> Maybe o) ->
+        MStatusT m (AnfrageFortsetzung statusAnfrageObjekt o)
 statusAnfrageObjektAux
-    anfrage
     token@EingabeToken {eingabe}
     getFromStatus
     konstruktor
         = do
             objekte <- getFromStatus
             pure $ case findByNameOrIndex objekte token >>= konstruktor of
-                Nothing         -> AFFehler anfrage eingabe
+                Nothing         -> AFFehler eingabe
                 (Just objekt)   -> AFErgebnis objekt
 
 -- | Element einer Liste anhand des Index oder Namens finden
@@ -369,8 +365,7 @@ data AnfrageFortsetzung a e
     | AFZwischenwert {
         anfrage :: a}
     | AFFehler {
-        anfrage :: a,
-        fehlerhafteEingabe :: Text}
+        unbekannteEingabe :: Text}
     | AFStatusAnfrage {
         anfrageObjekt :: StatusAnfrageObjekt,
         konstruktor :: (Objekt -> AnfrageFortsetzung a e)}
@@ -382,20 +377,18 @@ data AnfrageFortsetzung a e
         konstruktorLego :: (ObjektZugtyp 'Lego -> AnfrageFortsetzung a e)}
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
-wähleZwischenwert :: a -> EingabeToken -> [(Token, a)]-> AnfrageFortsetzung a e
+wähleZwischenwert :: EingabeToken -> [(Token, a)]-> AnfrageFortsetzung a e
 wähleZwischenwert
-    anfrage
     token@EingabeToken {eingabe}
     liste
-        = wähleBefehl token (map (\(t, a) -> (t, AFZwischenwert a)) liste) $ AFFehler anfrage eingabe
+        = wähleBefehl token (map (\(t, a) -> (t, AFZwischenwert a)) liste) $ AFFehler eingabe
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFErgebnis'
-wähleErgebnis :: a -> EingabeToken -> [(Token, e)]-> AnfrageFortsetzung a e
+wähleErgebnis :: EingabeToken -> [(Token, e)]-> AnfrageFortsetzung a e
 wähleErgebnis
-    anfrage
     token@EingabeToken {eingabe}
     liste
-        = wähleBefehl token (map (\(t, e) -> (t, AFErgebnis e)) liste) $ AFFehler anfrage eingabe
+        = wähleBefehl token (map (\(t, e) -> (t, AFErgebnis e)) liste) $ AFFehler eingabe
 
 -- | Komposition zweier Funktionen, die ein 'AnfrageFortsetzung' zurückgeben.
 verwendeAnfrageFortsetzung ::
@@ -436,9 +429,9 @@ verwendeAnfrageFortsetzung
             konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego}
 verwendeAnfrageFortsetzung
     _wertFunktion
-    anfrageFunktion
-    AFFehler {anfrage, fehlerhafteEingabe}
-        = AFFehler {anfrage = anfrageFunktion anfrage, fehlerhafteEingabe}
+    _anfrageFunktion
+    AFFehler {unbekannteEingabe}
+        = AFFehler {unbekannteEingabe}
 
 infixr 0 $<<
 ($<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f

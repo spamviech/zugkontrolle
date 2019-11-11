@@ -62,14 +62,14 @@ import Zug.UI.Cmd.Parser.StreckenObjekt (AnfrageObjekt(..), AnfrageBahngeschwind
 parser ::
     AnfrageBefehl ->
     [EingabeTokenAllgemein] ->
-        ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either (BefehlSofort, [EingabeTokenAllgemein]) Befehl))
+        ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl)
 parser = parserAux []
     where
         parserAux ::
             [Befehl] ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein] ->
-                ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either (BefehlSofort, [EingabeTokenAllgemein]) Befehl))
+                ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl)
         parserAux
             acc
             AnfrageBefehl
@@ -79,67 +79,68 @@ parser = parserAux []
             acc
             (ABAktionPlanAusführend plan Neu)
             []
-                = parserErgebnis acc $ AFZwischenwert (ABAktionPlanAusführend plan Alt)
+                = parserErgebnis acc [] $ AFZwischenwert $ ABAktionPlanAusführend plan Alt
         parserAux
             acc
             (ABAktionPlanGesperrt plan Neu pins)
             []
-                = parserErgebnis acc $ AFZwischenwert (ABAktionPlanGesperrt plan Alt pins)
+                = parserErgebnis acc [] $ AFZwischenwert $ ABAktionPlanGesperrt plan Alt pins
         parserAux
             acc
             (ABAktionPlanAusführend plan Alt)
             []
-                = parserErgebnis acc $ AFErgebnis $ Left $ (BSAusführenMöglich plan, [])
+                = parserErgebnis acc [] $ AFErgebnis $ Left $ BSAusführenMöglich plan
         parserAux
             acc
             (ABAktionPlanGesperrt plan Alt _pins)
             []
-                = parserErgebnis acc $ AFErgebnis $ Left $ (BSAusführenMöglich plan, [])
+                = parserErgebnis acc [] $ AFErgebnis $ Left $ BSAusführenMöglich plan
         parserAux
             acc
             anfrage
             []
-                = parserErgebnis acc $ AFZwischenwert anfrage
+                = parserErgebnis acc [] $ AFZwischenwert anfrage
         parserAux
             acc
             _anfrage
-            (TkBeenden:_t)
+            (TkBeenden : _t)
                 = parserErgebnisOk (UI Beenden:acc)
         parserAux
             acc
             _anfrage
-            (TkAbbrechen:_t)
+            (TkAbbrechen : _t)
                 = parserErgebnisOk (UI Abbrechen:acc)
         parserAux
             acc
             anfrage
-            ((Tk h):t)
+            (Tk h : t)
                 = case anfrageAktualisieren anfrage h of
                     (AFErgebnis (Left befehlSofort))
-                        -> parserErgebnis acc $ AFErgebnis $ Left (befehlSofort, t)
+                        -> parserErgebnis acc t $ AFErgebnis $ Left befehlSofort
                     (AFErgebnis (Right befehl))
                         -> parserAux (befehl : acc) AnfrageBefehl t
                     (AFZwischenwert aBefehl)
                         -> parserAux acc aBefehl t
-                    (AFFehler anfrage eingabe)
-                        -> parserErgebnis acc $ AFFehler anfrage eingabe
-                    -- (AEStatusAnfrage eingabe konstruktor anfrage r)
-                    --     -> parserErgebnis acc $ AEStatusAnfrage eingabe konstruktor anfrage $ r ++ t
-                    -- (AEStatusAnfrageMärklin eingabe konstruktor anfrage r)
-                    --     -> parserErgebnis acc $ AEStatusAnfrageMärklin eingabe konstruktor anfrage $ r ++ t
-                    -- (AEStatusAnfrageLego eingabe konstruktor anfrage r)
-                    --     -> parserErgebnis acc $ AEStatusAnfrageLego eingabe konstruktor anfrage $ r ++ t
+                    (AFFehler eingabe)
+                        -> parserErgebnis acc [] $ AFFehler eingabe
+                    (AFStatusAnfrage statusAnfrageObjekt konstruktor)
+                        -> parserErgebnis acc t $ _AFStatusAnfrage _eingabe konstruktor anfrage
+                    (AFStatusAnfrageMärklin statusAnfrageObjektMärklin konstruktor)
+                        -> parserErgebnis acc t $ _AFStatusAnfrageMärklin _eingabe konstruktor anfrage
+                    (AFStatusAnfrageLego statusAnfrageObjektLego konstruktor)
+                        -> parserErgebnis acc t $ _AFStatusAnfrageLego _eingabe konstruktor anfrage
         -- | Ergebnis zurückgeben
         parserErgebnis ::
             [Befehl] ->
-            AnfrageFortsetzung AnfrageBefehl (Either (BefehlSofort, [EingabeTokenAllgemein]) Befehl) ->
-                ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either (BefehlSofort, [EingabeTokenAllgemein]) Befehl))
-        parserErgebnis acc anfrageFortsetzung = (reverse acc, anfrageFortsetzung)
+            [EingabeTokenAllgemein] ->
+            AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl) ->
+                ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl)
+        parserErgebnis acc eingabeRest anfrageFortsetzung = (reverse acc, anfrageFortsetzung, eingabeRest, _backup)
         parserErgebnisOk ::
             [Befehl] ->
-                ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either (BefehlSofort, [EingabeTokenAllgemein]) Befehl))
-        parserErgebnisOk    []                  = parserErgebnis [] $ AFZwischenwert AnfrageBefehl
-        parserErgebnisOk    (befehl : befehle)  = parserErgebnis befehle $ AFErgebnis $ Right befehl
+                ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl)
+        parserErgebnisOk    []                  = parserErgebnis [] [] $ AFZwischenwert AnfrageBefehl
+        parserErgebnisOk    (befehl : befehle)  = parserErgebnis befehle [] $ AFErgebnis $ Right befehl
 
 -- ** Anfrage
 -- -- | Rückgabe-Typen
@@ -175,46 +176,46 @@ data BefehlSofort
         Plan
     deriving (Eq, Show)
 
--- | Anfragen an den aktuellen 'Status'
-data StatusAnfrage
-    = StatusAnfrage
-        -- | Wonach wird gefragt?
-        StatusAnfrageObjekt
-        -- | Wozu wird das Objekt benötigt
-        (Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
-        -- | Backup-Befehl, falls die Anfrage fehlschlägt
-        AnfrageBefehl
-        -- | Nachfolge-Token
-        [EingabeTokenAllgemein]
-    | StatusAnfrageMärklin
-        -- | Wonach wird gefragt?
-        (StatusAnfrageObjektZugtyp 'Märklin)
-        -- | Wozu wird das Objekt benötigt
-        (ObjektZugtyp 'Märklin -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
-        -- | Backup-Befehl, falls die Anfrage fehlschlägt
-        AnfrageBefehl
-        -- | Nachfolge-Token
-        [EingabeTokenAllgemein]
-    | StatusAnfrageLego
-        -- | Wonach wird gefragt?
-        (StatusAnfrageObjektZugtyp 'Lego)
-        -- | Wozu wird das Objekt benötigt
-        (ObjektZugtyp 'Lego -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
-        -- | Backup-Befehl, falls die Anfrage fehlschlägt
-        AnfrageBefehl
-        -- | Nachfolge-Token
-        [EingabeTokenAllgemein]
+-- -- | Anfragen an den aktuellen 'Status'
+-- data StatusAnfrage
+--     = StatusAnfrage
+--         -- | Wonach wird gefragt?
+--         StatusAnfrageObjekt
+--         -- | Wozu wird das Objekt benötigt
+--         (Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
+--         -- | Backup-Befehl, falls die Anfrage fehlschlägt
+--         AnfrageBefehl
+--         -- | Nachfolge-Token
+--         [EingabeTokenAllgemein]
+--     | StatusAnfrageMärklin
+--         -- | Wonach wird gefragt?
+--         (StatusAnfrageObjektZugtyp 'Märklin)
+--         -- | Wozu wird das Objekt benötigt
+--         (ObjektZugtyp 'Märklin -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
+--         -- | Backup-Befehl, falls die Anfrage fehlschlägt
+--         AnfrageBefehl
+--         -- | Nachfolge-Token
+--         [EingabeTokenAllgemein]
+--     | StatusAnfrageLego
+--         -- | Wonach wird gefragt?
+--         (StatusAnfrageObjektZugtyp 'Lego)
+--         -- | Wozu wird das Objekt benötigt
+--         (ObjektZugtyp 'Lego -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
+--         -- | Backup-Befehl, falls die Anfrage fehlschlägt
+--         AnfrageBefehl
+--         -- | Nachfolge-Token
+        -- [EingabeTokenAllgemein]
 
--- | Mögliche Ergebnisse von 'parser', die vollständig sind
-data ParserMöglichkeiten
-    = PMBefehl
-        Befehl
-    | PMBefehlSofort
-        BefehlSofort
-        [EingabeTokenAllgemein]
-    | PMStatusAnfrage
-        StatusAnfrage
-        [EingabeTokenAllgemein]
+-- -- | Mögliche Ergebnisse von 'parser', die vollständig sind
+-- data ParserMöglichkeiten
+--     = PMBefehl
+--         Befehl
+--     | PMBefehlSofort
+--         BefehlSofort
+--         [EingabeTokenAllgemein]
+--     | PMStatusAnfrage
+--         StatusAnfrage
+--         [EingabeTokenAllgemein]
 
 -- | Ist eine 'Anfrage' das erste mal zu sehen
 data AnfrageNeu = Neu | Alt
@@ -377,7 +378,7 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
                 (Lexer.Bahngeschwindigkeit  , anfrageAktualisieren (ABAktion AnfrageAktion) token),
                 (Lexer.Streckenabschnitt    , anfrageAktualisieren (ABAktion AnfrageAktion) token),
                 (Lexer.Kupplung             , anfrageAktualisieren (ABAktion AnfrageAktion) token)]
-                $ AFFehler AnfrageBefehl eingabe
+                $ AFFehler eingabe
                     where
                         planWählen :: Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
                         planWählen (OPlan plan) = AFErgebnis $ Left $ BSAusführenMöglich plan
@@ -394,7 +395,7 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
         token@EingabeToken {eingabe}
             = case anfrageObjektExistierend token of
                 Nothing
-                    -> AFFehler ABEntfernen eingabe
+                    -> AFFehler eingabe
                 (Just anfrageKonstruktor)
                     -> AFZwischenwert $ ABStatusAnfrage anfrageKonstruktor $ AFErgebnis . Right . Entfernen
         where
@@ -419,7 +420,7 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
     anfrageAktualisieren
         anfrage@(ABAktionPlan plan@Plan {plAktionen})
         token
-            = wähleErgebnis anfrage token [(Lexer.Ausführen, Right $ Ausführen plan zeigeFortschritt $ pure ())]
+            = wähleErgebnis token [(Lexer.Ausführen, Right $ Ausführen plan zeigeFortschritt $ pure ())]
             where
                 zeigeFortschritt :: Natural -> IO ()
                 zeigeFortschritt i = putStrLn $
@@ -428,12 +429,11 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
     anfrageAktualisieren
         (ABAktionPlanAusführend plan _neu)
         token
-            = wähleErgebnis (ABAktionPlanAusführend plan Alt) token [
-                (Lexer.AusführenAbbrechen, Right $ AusführenAbbrechen plan)]
+            = wähleErgebnis token [(Lexer.AusführenAbbrechen, Right $ AusführenAbbrechen plan)]
     anfrageAktualisieren
-        (ABAktionPlanGesperrt plan _neu pins)
+        (ABAktionPlanGesperrt _plan _neu _pins)
         token@EingabeToken {eingabe}
-            = wähleBefehl token [] $ AFFehler (ABAktionPlanGesperrt plan Alt pins) eingabe
+            = wähleBefehl token [] $ AFFehler eingabe
     anfrageAktualisieren
         (ABAktion anfrageAktion)
         token

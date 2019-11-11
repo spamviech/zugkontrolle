@@ -31,7 +31,7 @@ import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
                     AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), EingabeToken(..), lexer)
-import Zug.UI.Cmd.Parser (AnfrageMöglichkeiten(..), AnfrageBefehl(..), Anfrage(..),
+import Zug.UI.Cmd.Parser (AnfrageFortsetzung(..), AnfrageBefehl(..), Anfrage(..),
                         StatusAnfrageObjekt(..), statusAnfrageObjekt,
                         StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
                         BefehlSofort(..), AnfrageNeu(..), parser,
@@ -71,34 +71,37 @@ mainStatus = do
 
 -- | Gesammter Auswerte-Prozess
 statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
-statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
+statusParser = statusParserAux . parser AnfrageBefehl
     where
-        statusParserAux :: ([Befehl], AnfrageMöglichkeiten)-> IOStatus Bool
-        statusParserAux (befehle, qErgebnis) = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
-                (AEBefehl befehl)
+        statusParserAux ::
+            ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl) ->
+                IOStatus Bool
+        statusParserAux (befehle, qErgebnis, eingabeRest, backup)
+            = ausführenBefehl (BefehlListe befehle) >> case qErgebnis of
+                (AFErgebnis (Right befehl))
                     -> ausführenBefehl befehl
-                (AEBefehlSofort befehlSofort eingabeRest)
+                (AFErgebnis (Left befehlSofort))
                     -> do
                         ergebnis <- ausführenBefehlSofort befehlSofort
                         statusParserAux $ parser ergebnis eingabeRest
-                (AEStatusAnfrage aObjektIOStatus konstruktor backup eingabeRest)
-                    -> statusAnfrage aObjektIOStatus konstruktor backup eingabeRest
-                (AEStatusAnfrageMärklin aObjektIOStatus konstruktor backup eingabeRest)
-                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
-                (AEStatusAnfrageLego aObjektIOStatus konstruktor backup eingabeRest)
-                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
-                (AEAnfrageBefehl AnfrageBefehl)
+                (AFStatusAnfrage aObjektIOStatus konstruktor)
+                    -> statusAnfrage aObjektIOStatus konstruktor _backup _eingabeRest
+                (AFStatusAnfrageMärklin aObjektIOStatus konstruktor)
+                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor _backup _eingabeRest
+                (AFStatusAnfrageLego aObjektIOStatus konstruktor)
+                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor _backup _eingabeRest
+                (AFZwischenwert AnfrageBefehl)
                     -> pure False
-                (AEAnfrageBefehl (ABUnbekannt AnfrageBefehl eingabe))
+                (AFFehler eingabe)
                     -> liftIO (T.putStrLn $ unbekanntShowText AnfrageBefehl eingabe) >> pure False
-                (AEAnfrageBefehl (ABUnbekannt anfrage eingabe))
+                (AFFehler eingabe)
                     -> do
                         liftIO $ do
                             setSGR [SetColor Foreground Vivid Red]
-                            T.putStr $ unbekanntShowText anfrage eingabe
+                            T.putStr $ unbekanntShowText backup eingabe
                             setSGR [Reset]
-                        promptS "" >>= statusParserAux . parser anfrage . lexer
-                (AEAnfrageBefehl anfrage)
+                        promptS "" >>= statusParserAux . parser backup . lexer
+                (AFZwischenwert anfrage)
                     -> do
                         case zeigeAnfrageOptionen anfrage of
                             Nothing
@@ -111,7 +114,7 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
                         promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
         statusAnfrage ::
             StatusAnfrageObjekt ->
-            (Objekt -> AnfrageMöglichkeiten) ->
+            (Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein] ->
                 IOStatus Bool
@@ -119,64 +122,62 @@ statusParser eingabe = statusParserAux $ parser AnfrageBefehl eingabe
             = statusAnfrageObjekt aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
         statusAnfrageZugtyp :: (ZugtypKlasse z) =>
             StatusAnfrageObjektZugtyp z ->
-            (ObjektZugtyp z -> AnfrageMöglichkeiten) ->
+            (ObjektZugtyp z -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein] ->
                 IOStatus Bool
         statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
             = statusAnfrageObjektZugtyp aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
-        statusAnfrageAux :: (Anfrage statusAnfrageObjekt, ErhalteEingabe statusAnfrageObjekt) =>
-            (objekt -> AnfrageMöglichkeiten) ->
+        statusAnfrageAux :: (Anfrage statusAnfrageObjekt) =>
+            (objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)) ->
             AnfrageBefehl ->
             [EingabeTokenAllgemein]->
-            (Either statusAnfrageObjekt objekt) ->
+            (AnfrageFortsetzung statusAnfrageObjekt objekt) ->
                 IOStatus Bool
         statusAnfrageAux
             konstruktor
-            _backup
+            backup
             eingabeRest
-            (Right objekt)
+            (AFErgebnis objekt)
                 = case konstruktor objekt of
-                    (AEBefehl befehl)
+                    (AFErgebnis (Right befehl))
                         -> ausführenBefehl befehl >> statusParser eingabeRest
-                    (AEBefehlSofort befehl eingabeRest1)
-                        -> statusParserAux ([], AEBefehlSofort befehl $ eingabeRest1 ++ eingabeRest)
-                    (AEStatusAnfrage qObjektIOStatus1 konstruktor1 backup1 eingabeRest1)
-                        -> statusAnfrage qObjektIOStatus1 konstruktor1 backup1 $ eingabeRest1 ++ eingabeRest
-                    (AEStatusAnfrageMärklin qObjektIOStatus1 konstruktor1 backup1 eingabeRest1)
-                        -> statusAnfrageZugtyp qObjektIOStatus1 konstruktor1 backup1 $ eingabeRest1 ++ eingabeRest
-                    (AEStatusAnfrageLego qObjektIOStatus1 konstruktor1 backup1 eingabeRest1)
-                        -> statusAnfrageZugtyp qObjektIOStatus1 konstruktor1 backup1 $ eingabeRest1 ++ eingabeRest
-                    (AEAnfrageBefehl anfrage)
-                        -> statusParserAux $ parser anfrage eingabe
+                    (AFErgebnis (Left befehlSofort))
+                        -> statusParserAux ([], AFErgebnis $ Left befehlSofort, eingabeRest, backup)
+                    (AFStatusAnfrage qObjektIOStatus1 konstruktor1)
+                        -> statusAnfrage qObjektIOStatus1 konstruktor1 backup eingabeRest
+                    (AFStatusAnfrageMärklin qObjektIOStatus1 konstruktor1)
+                        -> statusAnfrageZugtyp qObjektIOStatus1 konstruktor1 backup eingabeRest
+                    (AFStatusAnfrageLego qObjektIOStatus1 konstruktor1)
+                        -> statusAnfrageZugtyp qObjektIOStatus1 konstruktor1 backup eingabeRest
+                    (AFZwischenwert anfrage)
+                        -> statusParserAux $ parser anfrage eingabeRest
         statusAnfrageAux
             _konstruktor
             backup
             _eingabeRest
-            (Left anfrage)
-                = promptS (zeigeAnfrageFehlgeschlagen anfrage $ erhalteEingabe anfrage <!> zeigeAnfrage anfrage <:> "")
+            (AFFehler eingabe)
+                = promptS (zeigeAnfrageFehlgeschlagen backup eingabe <!> zeigeAnfrage backup <:> "")
                     >>= statusParserAux . parser backup . lexer
 
-class ErhalteEingabe s where
-    erhalteEingabe :: s -> Text
-instance ErhalteEingabe StatusAnfrageObjekt where
-    erhalteEingabe :: StatusAnfrageObjekt -> Text
-    erhalteEingabe  (SAOUnbekannt eingabe)                          = eingabe
-    erhalteEingabe  (SAOPlan EingabeToken {eingabe})                = eingabe
-    erhalteEingabe  (SAOWegstrecke EingabeToken {eingabe})          = eingabe
-    erhalteEingabe  (SAOWeiche EingabeToken {eingabe})              = eingabe
-    erhalteEingabe  (SAOBahngeschwindigkeit EingabeToken {eingabe}) = eingabe
-    erhalteEingabe  (SAOStreckenabschnitt EingabeToken {eingabe})   = eingabe
-    erhalteEingabe  (SAOKupplung EingabeToken {eingabe})            = eingabe
-instance ErhalteEingabe (StatusAnfrageObjektZugtyp z) where
-    erhalteEingabe :: StatusAnfrageObjektZugtyp z -> Text
-    erhalteEingabe  (SAOZUnbekannt eingabe)                         = eingabe
-    erhalteEingabe  (SAOZPlan EingabeToken {eingabe})                = eingabe
-    erhalteEingabe  (SAOZWegstrecke EingabeToken {eingabe})          = eingabe
-    erhalteEingabe  (SAOZWeiche EingabeToken {eingabe})              = eingabe
-    erhalteEingabe  (SAOZBahngeschwindigkeit EingabeToken {eingabe}) = eingabe
-    erhalteEingabe  (SAOZStreckenabschnitt EingabeToken {eingabe})   = eingabe
-    erhalteEingabe  (SAOZKupplung EingabeToken {eingabe})            = eingabe
+-- class ErhalteEingabe s where
+--     erhalteEingabe :: s -> Text
+-- instance ErhalteEingabe StatusAnfrageObjekt where
+--     erhalteEingabe :: StatusAnfrageObjekt -> Text
+--     erhalteEingabe  (SAOPlan EingabeToken {eingabe})                = eingabe
+--     erhalteEingabe  (SAOWegstrecke EingabeToken {eingabe})          = eingabe
+--     erhalteEingabe  (SAOWeiche EingabeToken {eingabe})              = eingabe
+--     erhalteEingabe  (SAOBahngeschwindigkeit EingabeToken {eingabe}) = eingabe
+--     erhalteEingabe  (SAOStreckenabschnitt EingabeToken {eingabe})   = eingabe
+--     erhalteEingabe  (SAOKupplung EingabeToken {eingabe})            = eingabe
+-- instance ErhalteEingabe (StatusAnfrageObjektZugtyp z) where
+--     erhalteEingabe :: StatusAnfrageObjektZugtyp z -> Text
+--     erhalteEingabe  (SAOZPlan EingabeToken {eingabe})                = eingabe
+--     erhalteEingabe  (SAOZWegstrecke EingabeToken {eingabe})          = eingabe
+--     erhalteEingabe  (SAOZWeiche EingabeToken {eingabe})              = eingabe
+--     erhalteEingabe  (SAOZBahngeschwindigkeit EingabeToken {eingabe}) = eingabe
+--     erhalteEingabe  (SAOZStreckenabschnitt EingabeToken {eingabe})   = eingabe
+--     erhalteEingabe  (SAOZKupplung EingabeToken {eingabe})            = eingabe
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl

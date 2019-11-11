@@ -189,7 +189,7 @@ instance MitAnfrage Anschluss where
     anfrageAktualisieren
         AnfrageAnschluss
         token
-            = wähleZwischenwert AnfrageAnschluss token [
+            = wähleZwischenwert token [
                 (Lexer.Pin          , APin),
                 (Lexer.PCF8574Port  , APCF8574Port)]
     anfrageAktualisieren 
@@ -199,39 +199,39 @@ instance MitAnfrage Anschluss where
                 (Just pin)
                     -> AFErgebnis $ vonPinGpio pin
                 Nothing
-                    -> AFFehler APin eingabe
+                    -> AFFehler eingabe
     anfrageAktualisieren
         APCF8574Port
         token
-            =  wähleZwischenwert APCF8574Port token [
+            =  wähleZwischenwert token [
                 (Lexer.A        , APCF8574PortVariant VariantA),
                 (Lexer.Normal   , APCF8574PortVariant VariantNormal)]
     anfrageAktualisieren
-        anfrage@(APCF8574PortVariant variante)
+        (APCF8574PortVariant variante)
         token@EingabeToken {eingabe}
             = case wähleValue token of
                 (Just a0)
                     -> AFZwischenwert $ APCF8574PortVariantA0 variante a0
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
     anfrageAktualisieren
-        anfrage@(APCF8574PortVariantA0 variante a0)
+        (APCF8574PortVariantA0 variante a0)
         token@EingabeToken {eingabe}
             = case wähleValue token of
                 (Just a1)
                     -> AFZwischenwert $ APCF8574PortVariantA0A1 variante a0 a1
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
     anfrageAktualisieren
-        anfrage@(APCF8574PortVariantA0A1 variante a0 a1)
+        (APCF8574PortVariantA0A1 variante a0 a1)
         token@EingabeToken {eingabe}
             = case wähleValue token of
                 (Just a2)
                     -> AFZwischenwert $ APCF8574PortVariantA0A1A2 variante a0 a1 a2
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
     anfrageAktualisieren
-        anfrage@(APCF8574PortVariantA0A1A2 variant a0 a1 a2)
+        (APCF8574PortVariantA0A1A2 variant a0 a1 a2)
         EingabeToken {eingabe, ganzzahl}
             = case ganzzahl of
                 (Just port)
@@ -239,7 +239,7 @@ instance MitAnfrage Anschluss where
                         pcf8574 = PCF8574 {variant, a0, a1, a2},
                         port = fromIntegral port}
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
 
 -- | Unvollständige 'Bahngeschwindigkeit'
 data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
@@ -401,9 +401,9 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
         EingabeToken {eingabe}
             = AFZwischenwert $ AMärklinBahngeschwindigkeitName eingabe
     anfrageAktualisieren
-        anfrage@AMärklinBahngeschwindigkeitName {abgmName}
+        AMärklinBahngeschwindigkeitName {abgmName}
         token
-            = wähleZwischenwert anfrage token [
+            = wähleZwischenwert token [
                 (Lexer.HIGH , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
                 (Lexer.LOW  , AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
     anfrageAktualisieren
@@ -435,9 +435,9 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
         EingabeToken {eingabe}
             = AFZwischenwert $ ALegoBahngeschwindigkeitName eingabe
     anfrageAktualisieren
-        anfrage@ALegoBahngeschwindigkeitName {abglName}
+        ALegoBahngeschwindigkeitName {abglName}
         token
-            = wähleZwischenwert anfrage token [
+            = wähleZwischenwert token [
                 (Lexer.HIGH , ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
                 (Lexer.LOW  , ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
     anfrageAktualisieren
@@ -548,9 +548,9 @@ instance MitAnfrage Streckenabschnitt where
         EingabeToken {eingabe}
             = AFZwischenwert $ AStreckenabschnittName eingabe
     anfrageAktualisieren
-        anfrage@(AStreckenabschnittName name)
+        (AStreckenabschnittName name)
         token
-            = wähleZwischenwert anfrage token [
+            = wähleZwischenwert token [
                 (Lexer.HIGH , AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
                 (Lexer.LOW  , AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren
@@ -768,25 +768,25 @@ instance MitAnfrage (Weiche 'Märklin) where
         EingabeToken {eingabe}
             = AFZwischenwert $ AMärklinWeicheName eingabe
     anfrageAktualisieren
-        anfrage@(AMärklinWeicheName name)
+        (AMärklinWeicheName name)
         token
-            = wähleZwischenwert anfrage token [
+            = wähleZwischenwert token [
                 (Lexer.HIGH , AMärklinWeicheNameFließend name HIGH),
                 (Lexer.LOW  , AMärklinWeicheNameFließend name LOW)]
     anfrageAktualisieren
-        anfrage@(AMärklinWeicheNameFließend name fließend)
+        (AMärklinWeicheNameFließend name fließend)
         EingabeToken {eingabe, ganzzahl}
             = case ganzzahl of
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
                 (Just anzahl)
                     -> AFZwischenwert $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
     anfrageAktualisieren
-        anfrage@(AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
+        (AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
         token@EingabeToken {eingabe}
             = case wähleRichtung token of
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
                 (Just richtung)
                     -> AFZwischenwert $
                         AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
@@ -825,25 +825,25 @@ instance MitAnfrage (Weiche 'Lego) where
         EingabeToken {eingabe}
             = AFZwischenwert $ ALegoWeicheName eingabe
     anfrageAktualisieren
-        anfrage@(ALegoWeicheName name)
+        (ALegoWeicheName name)
         token
-            = wähleZwischenwert anfrage token [
+            = wähleZwischenwert token [
                 (Lexer.HIGH , ALegoWeicheNameFließend name HIGH),
                 (Lexer.LOW  , ALegoWeicheNameFließend name LOW)]
     anfrageAktualisieren
-        anfrage@(ALegoWeicheNameFließend name fließend)
+        (ALegoWeicheNameFließend name fließend)
         token@EingabeToken {eingabe}
             = case wähleRichtung token of
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
                 (Just richtung1)
                     -> AFZwischenwert $ ALegoWeicheNameFließendRichtung1 name fließend richtung1
     anfrageAktualisieren
-        anfrage@(ALegoWeicheNameFließendRichtung1 name fließend richtung1)
+        (ALegoWeicheNameFließendRichtung1 name fließend richtung1)
         token@EingabeToken {eingabe}
             = case wähleRichtung token of
                 Nothing
-                    -> AFFehler anfrage eingabe
+                    -> AFFehler eingabe
                 (Just richtung2)
                     -> AFZwischenwert $
                         ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
@@ -938,9 +938,9 @@ instance MitAnfrage Kupplung where
         EingabeToken {eingabe}
             = AFZwischenwert $ AKupplungName eingabe
     anfrageAktualisieren
-        anfrage@(AKupplungName name)
+        (AKupplungName name)
         token
-            = wähleZwischenwert anfrage token [
+            = wähleZwischenwert token [
                 (Lexer.HIGH , AKupplungNameFließend name HIGH AnfrageAnschluss),
                 (Lexer.LOW  , AKupplungNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren
@@ -996,7 +996,7 @@ data AnfrageWegstrecke (z :: AnfrageZugtyp) where
         awsAnzahl :: Natural,
         awsWeiche :: Weiche (FixerZugtyp z)}
             -> AnfrageWegstrecke z
-    AWSKlassifizierung :: {
+    AWSStatusAnfrage :: {
         awsStatusAnfrageKonstruktor :: EingabeToken -> StatusAnfrageObjektZugtyp (FixerZugtyp z),
         awsEitherKonstruktor ::
             Either
@@ -1027,7 +1027,7 @@ instance Show (AnfrageWegstrecke z) where
                 <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
                 <^> showText weiche
     show
-        AWSKlassifizierung {awsStatusAnfrageKonstruktor}
+        AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
             = Language.wegstreckenElement <^> showText (awsStatusAnfrageKonstruktor leeresToken)
 
 instance Anfrage (AnfrageWegstrecke z) where
@@ -1048,7 +1048,7 @@ instance Anfrage (AnfrageWegstrecke z) where
         AWegstreckeNameAnzahlWeicheRichtung {}
             = Language.richtung
     zeigeAnfrage
-        AWSKlassifizierung {awsStatusAnfrageKonstruktor}
+        AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
             = zeigeAnfrage $ awsStatusAnfrageKonstruktor leeresToken
     zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> Maybe s
     zeigeAnfrageOptionen
@@ -1061,7 +1061,7 @@ instance Anfrage (AnfrageWegstrecke z) where
         AWegstreckeNameAnzahlWeicheRichtung {}
             = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
-        AWSKlassifizierung {awsStatusAnfrageKonstruktor}
+        AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
             = zeigeAnfrageOptionen $ awsStatusAnfrageKonstruktor leeresToken
     zeigeAnfrageOptionen
         _anfrage
@@ -1104,11 +1104,11 @@ anfrageWegstreckeAktualisieren
     EingabeToken {eingabe}
         = AFZwischenwert $ AWegstreckeName eingabe
 anfrageWegstreckeAktualisieren
-    anfrage@(AWegstreckeName wsName)
+    (AWegstreckeName wsName)
     EingabeToken {eingabe, ganzzahl}
         = case ganzzahl of
             Nothing
-                -> AFFehler anfrage eingabe
+                -> AFFehler eingabe
             (Just anzahl)
                 -> AFZwischenwert $ AWegstreckeNameAnzahl
                     Wegstrecke {
@@ -1123,15 +1123,15 @@ anfrageWegstreckeAktualisieren
     token
         = case anfrageWegstreckenElement token of
             (AWSEUnbekannt eingabe)
-                -> AFFehler anfrage eingabe
+                -> AFFehler eingabe
             AWSEWeiche
-                -> AFZwischenwert $ AWSKlassifizierung SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
             AWSEBahngeschwindigkeit
-                -> AFZwischenwert $ AWSKlassifizierung SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
             AWSEStreckenabschnitt
-                -> AFZwischenwert $ AWSKlassifizierung SAOZStreckenabschnitt $ eitherObjektAnhängen acc
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
             AWSEKupplung
-                -> AFZwischenwert $ AWSKlassifizierung SAOZKupplung $ eitherObjektAnhängen acc
+                -> AFZwischenwert $ AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
     where
         anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
         anfrageWegstreckenElement token@EingabeToken {eingabe} = wähleBefehl token [
@@ -1190,11 +1190,11 @@ anfrageWegstreckeAktualisieren
                     ") erhalten: " ++
                     show objekt
 anfrageWegstreckeAktualisieren
-    (AWSKlassifizierung anfrageKonstruktor (Left zwischenwertKonstruktor))
+    (AWSStatusAnfrage anfrageKonstruktor (Left zwischenwertKonstruktor))
     token
         = afStatusAnfrage (anfrageKonstruktor token) $ AFZwischenwert . zwischenwertKonstruktor
 anfrageWegstreckeAktualisieren
-    (AWSKlassifizierung anfrageKonstruktor (Right konstruktor))
+    (AWSStatusAnfrage anfrageKonstruktor (Right konstruktor))
     token
         = afStatusAnfrage (anfrageKonstruktor token) $ AFErgebnis . konstruktor
 anfrageWegstreckeAktualisieren
@@ -1208,7 +1208,7 @@ anfrageWegstreckeAktualisieren
                 | hatRichtung weiche richtung
                     -> eitherWeicheRichtungAnhängen anfrage richtung
             _otherwise
-                -> AFFehler anfrage eingabe
+                -> AFFehler eingabe
     where
         eitherWeicheRichtungAnhängen ::
             AnfrageWegstrecke z -> Richtung -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
@@ -1334,7 +1334,7 @@ instance MitAnfrage Objekt where
     anfrageAktualisieren
         AnfrageObjekt
         token
-            = wähleZwischenwert AnfrageObjekt token [
+            = wähleZwischenwert token [
                 (Lexer.Bahngeschwindigkeit  , AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit),
                 (Lexer.Streckenabschnitt    , AOStreckenabschnitt AnfrageStreckenabschnitt),
                 (Lexer.Weiche               , AOWeiche $ AnfrageNothing AnfrageWeiche),
@@ -1342,9 +1342,9 @@ instance MitAnfrage Objekt where
                 (Lexer.Kupplung             , AOKupplung AnfrageKupplung),
                 (Lexer.Plan                 , AOPlan AnfragePlan)]
     anfrageAktualisieren
-        (AOBahngeschwindigkeit (AnfrageNothing aBahngeschwindigkeit))
+        (AOBahngeschwindigkeit (AnfrageNothing AnfrageBahngeschwindigkeit))
         token
-            = (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp aBahngeschwindigkeit token
+            = (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageMärklin aBahngeschwindigkeit))
         token
@@ -1360,9 +1360,9 @@ instance MitAnfrage Objekt where
         token
             = (AFErgebnis . OStreckenabschnitt, AOStreckenabschnitt) $<< anfrageAktualisieren aStreckenabschnitt token
     anfrageAktualisieren
-        (AOWeiche (AnfrageNothing aWeiche))
+        (AOWeiche (AnfrageNothing AnfrageWeiche))
         token
-            = (id, AOWeiche) $<< anfrageAktualisierenZugtyp aWeiche token
+            = (id, AOWeiche) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren
         (AOWeiche (AnfrageMärklin aWeiche))
         token
@@ -1376,9 +1376,9 @@ instance MitAnfrage Objekt where
         token
             = (AFErgebnis . OKupplung, AOKupplung) $<< anfrageAktualisieren aKupplung token
     anfrageAktualisieren
-        (AOWegstrecke (AnfrageNothing aWegstrecke))
+        (AOWegstrecke (AnfrageNothing _aWegstrecke))
         token
-            = (id, AOWegstrecke) $<< anfrageAktualisierenZugtyp aWegstrecke token
+            = (id, AOWegstrecke) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren
         (AOWegstrecke (AnfrageMärklin aWegstrecke))
         token
