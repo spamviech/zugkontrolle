@@ -1,4 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-|
@@ -17,53 +21,58 @@ import qualified Data.Text.IO as T
 import Data.Version (showVersion)
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren ((<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), showText, addMnemonic)
-import Zug.Options (getOptions, Options(..), Sprache())
+import Zug.Options (Sprache())
 import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache
-import Zug.Language.TemplateHaskell (erzeugeDeklaration, erzeugeFunktionDeklaration)
+import Zug.Language.TemplateHaskell (erzeugeFunktion)
 import qualified Zug.Language.DE
 import qualified Zug.Language.EN
--- Unsafe-IO
-import System.IO.Unsafe (unsafePerformIO)
 
--- | Gewählte Sprache
-gewählteSprache :: Sprache
-{-# NOINLINE gewählteSprache #-}
-gewählteSprache = unsafePerformIO $ getOptions >>= pure . sprache
+-- | Zeige ein Objekt sprachabhängig an.
+class Anzeige a where
+    anzeige :: a -> Sprache -> Text
+
+instance {-# Overlappable #-} (Show a) => Anzeige a where
+    anzeige :: a -> Sprache -> Text
+    anzeige a = const $ showText a
+
+instance Anzeige (Sprache -> Text) where
+    anzeige :: (Sprache -> Text) -> Sprache -> Text
+    anzeige = id
 
 -- * Titel / Title
-erzeugeDeklaration "zugkontrolle"
+erzeugeFunktion "zugkontrolle"
 -- ** Version
-version :: (IsString s, Semigroup s) => s
+version :: Text
 version = fromString $ showVersion Options.version
 -- * Haupt-Befehle / Main Orders
-concatMapM erzeugeDeklaration
+concatMapM erzeugeFunktion
     ["beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden"]
 -- * Spezielle Befehle / Special order
-concatMapM erzeugeDeklaration [
+concatMapM erzeugeFunktion [
     "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
     "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
     "fließendValue", "high", "low"]
-concatMapM erzeugeDeklaration ["aktionAusführen", "einfachAusführung", "dauerschleife"]
+concatMapM erzeugeFunktion ["aktionAusführen", "einfachAusführung", "dauerschleife"]
 -- * Typ-Namen / Type names
-concatMapM erzeugeDeklaration [
+concatMapM erzeugeFunktion [
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",
     "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne"]
 -- * Eigenschafts/Feld-Namen / Attributes/Field names
-concatMapM erzeugeDeklaration [
+concatMapM erzeugeFunktion [
     "dateiname", "name", "richtung", "richtungen", "fahrtrichtung", "anschluss",
     "pin", "pcf8574Port", "pcf8574", "variante", "normal", "a", "a0", "a1", "a2", "port"]
 -- * Query-Abfragen / Queries
-concatMapM erzeugeDeklaration ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
-concatMapM erzeugeDeklaration ["welchesObjektHinzufügen", "ausführModus"]
+concatMapM erzeugeFunktion ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
+concatMapM erzeugeFunktion ["welchesObjektHinzufügen", "ausführModus"]
 -- * Fehlermeldungen / Error Messages
-concatMapM erzeugeDeklaration [
+concatMapM erzeugeFunktion [
     "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt",
     "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer", "valueErwartet"]
 -- * Typ-namen / Type names
-concatMapM erzeugeDeklaration ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
+concatMapM erzeugeFunktion ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 
-concatMapM erzeugeFunktionDeklaration [
+concatMapM erzeugeFunktion [
     -- * Spezielle Befehle / Special orders
     "wirdAusgeführt", "ausführenGesperrt",
     -- * Query-Abfragen / Queries
@@ -73,56 +82,60 @@ concatMapM erzeugeFunktionDeklaration [
 
 -- * Befehlsgruppen / Order classifications
 -- | All supported Orders in the main menu
-befehlAlle :: (Semigroup s, IsString s) => [s]
-befehlAlle = [beenden, hinzufügen, entfernen, speichern, laden] <> befehlTypen
+befehlAlle :: Sprache -> [Text]
+befehlAlle sprache = map ($ sprache) [beenden, hinzufügen, entfernen, speichern, laden] <> befehlTypen sprache
 -- | All supported Orders, classified by a type
-befehlTypen :: (Semigroup s, IsString s) => [s]
-befehlTypen = [plan] <> befehlObjekte
+befehlTypen :: Sprache -> [Text]
+befehlTypen sprache = [plan sprache] <> befehlObjekte sprache
 -- | All supported Orders, classified by a (physical) object
-befehlObjekte :: (Semigroup s, IsString s) => [s]
-befehlObjekte = [wegstrecke] <> befehlWegstreckenElemente
+befehlObjekte :: Sprache -> [Text]
+befehlObjekte sprache = [wegstrecke sprache] <> befehlWegstreckenElemente sprache
 -- | All supported Orders, classified by a train collection element
-befehlWegstreckenElemente :: (Semigroup s, IsString s) => [s]
-befehlWegstreckenElemente = [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
+befehlWegstreckenElemente :: Sprache -> [Text]
+befehlWegstreckenElemente sprache = map ($ sprache) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
 -- | All supported actions
-aktionGruppen :: (Semigroup s, IsString s) => [s]
-aktionGruppen = [warten, aktionAusführen] <> befehlObjekte
+aktionGruppen :: Sprache -> [Text]
+aktionGruppen sprache = map ($ sprache) [warten, aktionAusführen] <> befehlObjekte sprache
 -- | All supported actions for a 'Plan'
-aktionPlan :: (Semigroup s, IsString s) => [s]
-aktionPlan = [ausführen]
+aktionPlan :: Sprache -> [Text]
+aktionPlan sprache = [ausführen sprache]
 -- | All supported actions for a currently executed 'Plan'
-aktionPlanAusführend :: (Semigroup s, IsString s) => [s]
-aktionPlanAusführend = [ausführenAbbrechen]
+aktionPlanAusführend :: Sprache -> [Text]
+aktionPlanAusführend sprache = [ausführenAbbrechen sprache]
 -- | All supported actions for a blocked 'Plan'
-aktionPlanGesperrt :: (Semigroup s, IsString s) => [s]
-aktionPlanGesperrt = []
+aktionPlanGesperrt :: Sprache -> [Text]
+aktionPlanGesperrt _sprache = []
 -- | All supported actions for a train collection ('Wegstrecke')
-aktionWegstrecke :: (Semigroup s, IsString s) => [s]
-aktionWegstrecke = [einstellen] <> aktionBahngeschwindigkeit <> aktionStreckenabschnitt <> aktionKupplung
+aktionWegstrecke :: Sprache -> [Text]
+aktionWegstrecke sprache
+    = [einstellen sprache]
+    <> aktionBahngeschwindigkeit sprache
+    <> aktionStreckenabschnitt sprache
+    <> aktionKupplung sprache
 -- | All supported actions for a switch ('Weiche')
-aktionWeiche :: (Semigroup s, IsString s) => [s]
-aktionWeiche = [stellen]
+aktionWeiche :: Sprache -> [Text]
+aktionWeiche sprache = [stellen sprache]
 -- | All supported actions for a train speed ('Bahngeschwindigkeit')
-aktionBahngeschwindigkeit :: (Semigroup s, IsString s) => [s]
-aktionBahngeschwindigkeit = [geschwindigkeit, umdrehen]
+aktionBahngeschwindigkeit :: Sprache -> [Text]
+aktionBahngeschwindigkeit sprache = map ($ sprache) [geschwindigkeit, umdrehen]
 -- | All supported actions for a rail section ('Streckenabschnitt')
-aktionStreckenabschnitt :: (Semigroup s, IsString s) => [s]
-aktionStreckenabschnitt = [strom]
+aktionStreckenabschnitt :: Sprache -> [Text]
+aktionStreckenabschnitt sprache = [strom sprache]
 -- | All supported actions for a coupler ('Kupplung')
-aktionKupplung :: (Semigroup s, IsString s) => [s]
-aktionKupplung = [kuppeln]
+aktionKupplung :: Sprache -> [Text]
+aktionKupplung sprache = [kuppeln sprache]
 
 -- | Concatenate a list of strings to an eye-pleasing format
-toBefehlsString :: (Semigroup s, IsString s) => [s] -> s
+toBefehlsString :: [Text] -> Text
 toBefehlsString []      = "[]"
 toBefehlsString [s]     = s
 toBefehlsString (h:t)   = h <^> toBefehlsString t
 
 -- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_
-fehlerText :: (Semigroup s, IsString s) => s -> s
-fehlerText begründung = ungültigeEingabe <^> begründung <!> ""
+fehlerText :: Text -> Sprache -> Text
+fehlerText begründung sprache = ungültigeEingabe sprache <^> begründung <!> ""
 
 -- | Report an error due to _begründung_ and print it to the console.
-fehlerhafteEingabe :: Text -> IO ()
-fehlerhafteEingabe begründung = T.putStrLn $ fehlerText begründung
+fehlerhafteEingabe :: Text -> Sprache -> IO ()
+fehlerhafteEingabe begründung sprache = T.putStrLn $ fehlerText begründung sprache
