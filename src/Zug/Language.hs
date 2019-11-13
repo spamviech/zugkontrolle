@@ -14,7 +14,7 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 -}
 module Zug.Language (
     module Zug.Language,
-    Anzeige(..), Sprache(..), alleSprachen, showText, addMnemonic,
+    Anzeige(..), ($#), (.#), Sprache(..), alleSprachen, showText, addMnemonic,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
 -- Bibliotheken
@@ -26,7 +26,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Version (showVersion)
 -- Abhängigkeit von anderen Modulen
-import Zug.Language.Operatoren (Anzeige(..), Sprache(..), alleSprachen,
+import Zug.Language.Operatoren (Anzeige(..), ($#), (.#), Sprache(..), alleSprachen,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>), showText, addMnemonic)
 import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache
@@ -127,9 +127,9 @@ toBefehlsString (h:t)   = h <^> toBefehlsString t $ Deutsch
 
 -- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_
-fehlerText :: Text -> Sprache -> Text
-fehlerText begründung = ungültigeEingabe <^> begründung <!> Text.empty
+fehlerText :: Sprache -> Text -> Text
+fehlerText sprache begründung = ungültigeEingabe <^> begründung <!> Text.empty $ sprache
 
 -- | Report an error due to _begründung_ and print it to the console.
-fehlerhafteEingabe :: Text -> Sprache -> IO ()
-fehlerhafteEingabe begründung sprache = Text.putStrLn $ fehlerText begründung sprache
+fehlerhafteEingabe :: Sprache -> Text -> IO ()
+fehlerhafteEingabe sprache begründung = Text.putStrLn $ fehlerText sprache begründung

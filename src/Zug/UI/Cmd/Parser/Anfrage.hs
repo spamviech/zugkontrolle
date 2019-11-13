@@ -11,7 +11,7 @@ Description : Klasse und Typfamilie für unvollständige Objekte.
 module Zug.UI.Cmd.Parser.Anfrage (
     -- * Unvollständige Befehle/Objekte
     Anfrage(..), zeigeAnfrageFehlgeschlagenStandard,
-    showMitAnfrage, showMitAnfrageFehlgeschlagen,
+    anzeigeMitAnfrage, anzeigeMitAnfrageFehlgeschlagen,
     AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<), (.<<),
     MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..),
     MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp,
@@ -24,15 +24,13 @@ module Zug.UI.Cmd.Parser.Anfrage (
 
 import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
-import Data.Semigroup (Semigroup())
-import Data.String (IsString())
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(),
                     Weiche(), Kupplung(), Wegstrecke())
 import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
-import Zug.Language ((<=>), (<^>), showText, fehlerText)
+import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan())
@@ -43,35 +41,36 @@ import qualified Zug.UI.Cmd.Lexer as Lexer
 
 -- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
 class Anfrage a where
-    zeigeAnfrage :: (IsString s, Semigroup s) => a -> s
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => a -> s -> s
+    zeigeAnfrage :: a -> Sprache -> Text
+    zeigeAnfrageFehlgeschlagen :: a -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen = zeigeAnfrageFehlgeschlagenStandard
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => a -> Maybe s
+    zeigeAnfrageOptionen :: a -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen _anfrage = Nothing
     {-# MINIMAL zeigeAnfrage #-}
 
 -- | Standard-Implementierung zum Anzeigen einer fehlgeschlagenen 'Anfrage'
-zeigeAnfrageFehlgeschlagenStandard :: (Anfrage a, IsString s, Semigroup s) => a -> s -> s
-zeigeAnfrageFehlgeschlagenStandard a eingabe = Language.unbekannt (zeigeAnfrage a) <=> eingabe
+zeigeAnfrageFehlgeschlagenStandard :: (Anfrage a) => a -> Text -> Sprache -> Text
+zeigeAnfrageFehlgeschlagenStandard a eingabe
+    = Language.unbekannt $# zeigeAnfrage a <=> eingabe
 
 instance (Anfrage (a 'Märklin), Anfrage (a 'Lego)) => Anfrage (ZugtypEither a) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => ZugtypEither a -> s
+    zeigeAnfrage :: ZugtypEither a -> Sprache -> Text
     zeigeAnfrage    (ZugtypMärklin a)   = zeigeAnfrage a
     zeigeAnfrage    (ZugtypLego a)      = zeigeAnfrage a
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => ZugtypEither a -> s -> s
+    zeigeAnfrageFehlgeschlagen :: ZugtypEither a -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen  (ZugtypMärklin a)   = zeigeAnfrageFehlgeschlagen a
     zeigeAnfrageFehlgeschlagen  (ZugtypLego a)      = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => ZugtypEither a -> Maybe s
+    zeigeAnfrageOptionen :: ZugtypEither a -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen    (ZugtypMärklin a)   = zeigeAnfrageOptionen a
     zeigeAnfrageOptionen    (ZugtypLego a)      = zeigeAnfrageOptionen a
 
 -- | Zeige ein unvollständiges Objekt, gefolgt von der nächsten Nachfrage an
-showMitAnfrage :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s
-showMitAnfrage a = showText a <^> zeigeAnfrage a
+anzeigeMitAnfrage :: (Anzeige a, Anfrage a) => a -> Sprache -> Text
+anzeigeMitAnfrage a = a <^> zeigeAnfrage a
 
 -- | Zeige Meldung für eine invalide Eingabe auf die Nachfrage einer 'Anfrage' an
-showMitAnfrageFehlgeschlagen :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
-showMitAnfrageFehlgeschlagen a eingabe = showText a <^> zeigeAnfrageFehlgeschlagen a eingabe
+anzeigeMitAnfrageFehlgeschlagen :: (Anzeige a, Anfrage a) => a -> Text -> Sprache -> Text
+anzeigeMitAnfrageFehlgeschlagen a eingabe = a <^> zeigeAnfrageFehlgeschlagen a eingabe
 
 -- | Klasse für Typen mit assiziiertem 'Anfrage'-Type
 class MitAnfrage a where
@@ -104,15 +103,15 @@ instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'Anf
     show    (AnfrageLego a)     = show a
 instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrage (a 'AnfrageZugtypLego))
     => Anfrage (AnfrageZugtypEither a) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s
+    zeigeAnfrage :: AnfrageZugtypEither a -> Sprache -> Text
     zeigeAnfrage    (AnfrageNothing a)  = zeigeAnfrage a
     zeigeAnfrage    (AnfrageMärklin a)  = zeigeAnfrage a
     zeigeAnfrage    (AnfrageLego a)     = zeigeAnfrage a
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> s -> s
+    zeigeAnfrageFehlgeschlagen :: AnfrageZugtypEither a -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen  (AnfrageNothing a)  = zeigeAnfrageFehlgeschlagen a
     zeigeAnfrageFehlgeschlagen  (AnfrageMärklin a)  = zeigeAnfrageFehlgeschlagen a
     zeigeAnfrageFehlgeschlagen  (AnfrageLego a)     = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageZugtypEither a -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageZugtypEither a -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen    (AnfrageNothing a)  = zeigeAnfrageOptionen a
     zeigeAnfrageOptionen    (AnfrageMärklin a)  = zeigeAnfrageOptionen a
     zeigeAnfrageOptionen    (AnfrageLego a)     = zeigeAnfrageOptionen a
@@ -145,23 +144,24 @@ data StatusAnfrageObjekt
         EingabeToken
     | SAOPlan
         EingabeToken
+    deriving (Eq, Show)
 
-instance Show StatusAnfrageObjekt where
-    show :: StatusAnfrageObjekt -> String
-    show    (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
-    show    (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
-    show    (SAOWeiche _token)                = Language.weiche
-    show    (SAOKupplung _token)              = Language.kupplung
-    show    (SAOWegstrecke _token)            = Language.wegstrecke
-    show    (SAOPlan _token)                  = Language.plan
+instance Anzeige StatusAnfrageObjekt where
+    anzeige :: StatusAnfrageObjekt -> Sprache -> Text
+    anzeige (SAOBahngeschwindigkeit _token)   = Language.bahngeschwindigkeit
+    anzeige (SAOStreckenabschnitt _token)     = Language.streckenabschnitt
+    anzeige (SAOWeiche _token)                = Language.weiche
+    anzeige (SAOKupplung _token)              = Language.kupplung
+    anzeige (SAOWegstrecke _token)            = Language.wegstrecke
+    anzeige (SAOPlan _token)                  = Language.plan
 instance Anfrage StatusAnfrageObjekt where
-    zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjekt -> s
-    zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName Language.bahngeschwindigkeit
-    zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName Language.streckenabschnitt
-    zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName Language.weiche
-    zeigeAnfrage    (SAOKupplung _token)              = Language.indexOderName Language.kupplung
-    zeigeAnfrage    (SAOWegstrecke _token)            = Language.indexOderName Language.wegstrecke
-    zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName Language.plan
+    zeigeAnfrage :: StatusAnfrageObjekt -> Sprache -> Text
+    zeigeAnfrage    (SAOBahngeschwindigkeit _token)   = Language.indexOderName $# Language.bahngeschwindigkeit
+    zeigeAnfrage    (SAOStreckenabschnitt _token)     = Language.indexOderName $# Language.streckenabschnitt
+    zeigeAnfrage    (SAOWeiche _token)                = Language.indexOderName $# Language.weiche
+    zeigeAnfrage    (SAOKupplung _token)              = Language.indexOderName $# Language.kupplung
+    zeigeAnfrage    (SAOWegstrecke _token)            = Language.indexOderName $# Language.wegstrecke
+    zeigeAnfrage    (SAOPlan _token)                  = Language.indexOderName $# Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt
 statusAnfrageObjekt :: (Monad m) => StatusAnfrageObjekt -> MStatusT m (Either Text Objekt)
@@ -243,23 +243,24 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
         EingabeToken
     | SAOZPlan
         EingabeToken
+    deriving (Eq, Show)
 
-instance Show (StatusAnfrageObjektZugtyp z) where
-    show :: StatusAnfrageObjektZugtyp z -> String
-    show    (SAOZBahngeschwindigkeit _token)    = Language.bahngeschwindigkeit
-    show    (SAOZStreckenabschnitt _token)      = Language.streckenabschnitt
-    show    (SAOZWeiche _token)                 = Language.weiche
-    show    (SAOZKupplung _token)               = Language.kupplung
-    show    (SAOZWegstrecke _token)             = Language.wegstrecke
-    show    (SAOZPlan _token)                   = Language.plan
+instance Anzeige (StatusAnfrageObjektZugtyp z) where
+    anzeige :: StatusAnfrageObjektZugtyp z -> Sprache -> Text
+    anzeige (SAOZBahngeschwindigkeit _token)    = Language.bahngeschwindigkeit
+    anzeige (SAOZStreckenabschnitt _token)      = Language.streckenabschnitt
+    anzeige (SAOZWeiche _token)                 = Language.weiche
+    anzeige (SAOZKupplung _token)               = Language.kupplung
+    anzeige (SAOZWegstrecke _token)             = Language.wegstrecke
+    anzeige (SAOZPlan _token)                   = Language.plan
 instance Anfrage (StatusAnfrageObjektZugtyp z) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => StatusAnfrageObjektZugtyp z -> s
-    zeigeAnfrage    (SAOZBahngeschwindigkeit _token)    = Language.indexOderName Language.bahngeschwindigkeit
-    zeigeAnfrage    (SAOZStreckenabschnitt _token)      = Language.indexOderName Language.streckenabschnitt 
-    zeigeAnfrage    (SAOZWeiche _token)                 = Language.indexOderName Language.weiche
-    zeigeAnfrage    (SAOZKupplung _token)               = Language.indexOderName Language.kupplung
-    zeigeAnfrage    (SAOZWegstrecke _token)             = Language.indexOderName Language.wegstrecke
-    zeigeAnfrage    (SAOZPlan _token)                   = Language.indexOderName Language.plan
+    zeigeAnfrage :: StatusAnfrageObjektZugtyp z -> Sprache -> Text
+    zeigeAnfrage    (SAOZBahngeschwindigkeit _token)    = Language.indexOderName $# Language.bahngeschwindigkeit
+    zeigeAnfrage    (SAOZStreckenabschnitt _token)      = Language.indexOderName $# Language.streckenabschnitt 
+    zeigeAnfrage    (SAOZWeiche _token)                 = Language.indexOderName $# Language.weiche
+    zeigeAnfrage    (SAOZKupplung _token)               = Language.indexOderName $# Language.kupplung
+    zeigeAnfrage    (SAOZWegstrecke _token)             = Language.indexOderName $# Language.wegstrecke
+    zeigeAnfrage    (SAOZPlan _token)                   = Language.indexOderName $# Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
 statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z) =>
@@ -356,8 +357,8 @@ wähleValue token = wähleBefehl token [
     Nothing
 
 -- | Fehlerhafte Eingabe anzeigen
-unbekanntShowText :: (Show a, Anfrage a, IsString s, Semigroup s) => a -> s -> s
-unbekanntShowText a eingabe = fehlerText $ showMitAnfrageFehlgeschlagen a eingabe
+unbekanntShowText :: (Anzeige a, Anfrage a) => a -> Text -> Sprache -> Text
+unbekanntShowText a eingabe = fehlerText $# anzeigeMitAnfrageFehlgeschlagen a eingabe
 
 data AnfrageFortsetzung a e
     = AFErgebnis {

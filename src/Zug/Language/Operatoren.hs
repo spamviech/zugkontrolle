@@ -9,7 +9,8 @@ Description : Operatoren zur Verkettung von Strings.
 Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Leerzeichen/Trennzeichen bereit.
 -}
 module Zug.Language.Operatoren (
-    Anzeige(..), Sprache(..), alleSprachen, (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>),
+    Anzeige(..), ($#), (.#), Sprache(..), alleSprachen,
+    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>),
     showText, addMnemonic) where
 
 -- Bibliotheken
@@ -47,6 +48,14 @@ instance (Anzeige a) => Anzeige [a] where
             anzeigeAux  []      = const ""
             anzeigeAux  [b]     = anzeige b
             anzeigeAux  (h : t) = h <^> anzeigeAux t
+
+infixr 0 $#
+($#) :: (Anzeige a) => (Sprache -> Text -> Text) -> a -> Sprache -> Text
+($#) f a sprache = f sprache $ anzeige a sprache
+
+infixr 9 .#
+(.#) :: (Anzeige b) => (Sprache -> Text -> Text) -> (a -> b) -> a -> Sprache -> Text
+(.#) f g a = f $# g a
 
 -- * Operatoren
 verketten :: (Anzeige a, Anzeige b) => Text -> a -> b -> Sprache -> Text
