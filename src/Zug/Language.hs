@@ -15,7 +15,7 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 module Zug.Language (
     module Zug.Language,
     Anzeige(..), Sprache(..), showText, addMnemonic,
-    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>)) where
+    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
 -- Bibliotheken
 import MonadUtils (concatMapM)
@@ -27,7 +27,7 @@ import qualified Data.Text.IO as Text
 import Data.Version (showVersion)
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren (Anzeige(..), Sprache(..),
-    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), showText, addMnemonic)
+    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>), showText, addMnemonic)
 import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache
 import Zug.Language.TemplateHaskell (erzeugeFunktion)

@@ -27,7 +27,6 @@ import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
-import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
@@ -41,7 +40,7 @@ import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
                     Wegstrecke(), WegstreckeKlasse(..),
                     warte, Wartezeit(..))
 import qualified Zug.Language as Language
-import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
+import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>), (<#>))
 import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
@@ -143,7 +142,7 @@ data Aktion
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
-    anzeige (Warten time)                           = Language.warten <:> anzeige time <> Language.wartenEinheit
+    anzeige (Warten time)                           = Language.warten <:> time <#> Language.wartenEinheit
     anzeige (AWegstreckeMärklin aktion)             = Language.wegstrecke <~> aktion
     anzeige (AWegstreckeLego aktion)                = Language.wegstrecke <~> aktion
     anzeige (AWeiche aktion)                        = Language.weiche <~> aktion

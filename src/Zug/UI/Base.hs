@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -45,14 +46,15 @@ import Control.Lens (Lens', lens)
 import Data.Foldable (Foldable(..))
 import Data.List (delete, intersect)
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List.NonEmpty as NE
-import Data.Semigroup (Semigroup(..))
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..), StreckenObjekt(..))
+import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..),
+                        I2CMap, i2cMapEmpty, MitI2CMap(..), StreckenObjekt(..))
 import Zug.Klassen (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
-import Zug.Language ((<=>), (<\>))
+import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
 import Zug.Menge (Menge, leer)
 import Zug.Objekt (ObjektKlasse(..), Objekt, Phantom(..), ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
 import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
@@ -67,6 +69,11 @@ data StatusAllgemein o = Status {
     _pläne :: [PL o]}
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
+
+deriving instance (Eq (ZugtypEither (BG o)), Eq (ST o), Eq (ZugtypEither (WE o)), Eq (KU o),
+    Eq (ZugtypEither (WS o)), Eq (PL o)) => Eq (StatusAllgemein o)
+deriving instance (Show (ZugtypEither (BG o)), Show (ST o), Show (ZugtypEither (WE o)), Show (KU o),
+    Show (ZugtypEither (WS o)), Show (PL o)) => Show (StatusAllgemein o)
 
 -- | Erzeuge eine Phantom-Typ, um Typ-Inferenzen zu ermöglichen.
 phantom :: StatusAllgemein o -> Phantom o
@@ -113,9 +120,9 @@ pläne
         \status pls -> status {_pläne=pls}
 #endif
 
-instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
-    show :: StatusAllgemein o -> String
-    show
+instance (Anzeige o, ObjektKlasse o) => Anzeige (StatusAllgemein o) where
+    anzeige :: StatusAllgemein o -> Sprache -> Text
+    anzeige
         status
             = Language.bahngeschwindigkeiten <=>
                 (zeigeUnterliste $ ausBG (phantom status) <$> _bahngeschwindigkeiten status)
@@ -130,20 +137,20 @@ instance (Show o, ObjektKlasse o) => Show (StatusAllgemein o) where
             <\> Language.pläne <=>
                 (zeigeUnterliste $ ausPL (phantom status) <$> _pläne status)
         where
-            -- | Zeige Liste besser Lesbar, als normale Show-Instanz (newlines und Index-Angabe).
-            zeigeUnterliste :: (Show a) => [a] -> String
-            zeigeUnterliste liste = '[' : zeigeUnterlisteAux "" 0 liste
-            zeigeUnterlisteAux :: (Show a) => String -> Natural -> [a] -> String
+            -- | Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
+            zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
+            zeigeUnterliste = zeigeUnterlisteAux (const "[") 0
+            zeigeUnterlisteAux :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
             zeigeUnterlisteAux
                 acc
                 index
                 []
-                    = acc <> if (index == 0) then "]" else "\n]"
+                    = acc <#> (if index == 0 then "]" else "\n]" :: Text)
             zeigeUnterlisteAux
                 acc
                 index
                 (h : t)
-                    = zeigeUnterlisteAux (acc <\> "\t" <> (show index) <> ") " <> (show h)) (succ index) t
+                    = zeigeUnterlisteAux (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h) (succ index) t
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
 statusLeer :: StatusAllgemein o
@@ -343,7 +350,7 @@ ausführenMöglich plan = do
         | elem (Ausführend plan) ausführend
             -> WirdAusgeführt
         | not $ null belegtePins
-            -> AnschlüsseBelegt $ NE.fromList belegtePins
+            -> AnschlüsseBelegt $ NonEmpty.fromList belegtePins
         | otherwise
             -> AusführenMöglich
 

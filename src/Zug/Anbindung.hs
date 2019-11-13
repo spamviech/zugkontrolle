@@ -540,9 +540,9 @@ instance StreckenObjekt (Wegstrecke z) where
     anschlüsse :: Wegstrecke z -> [Anschluss]
     anschlüsse Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}
         = join $ map anschlüsse wsBahngeschwindigkeiten
-                <> map anschlüsse wsStreckenabschnitte
-                <> map (anschlüsse . fst) wsWeichenRichtungen
-                <> map anschlüsse wsKupplungen
+                ++ map anschlüsse wsStreckenabschnitte
+                ++ map (anschlüsse . fst) wsWeichenRichtungen
+                ++ map anschlüsse wsKupplungen
     erhalteName :: Wegstrecke z -> Text
     erhalteName Wegstrecke {wsName} = wsName
 

@@ -8,11 +8,14 @@ Description : Operatoren zur Verkettung von Strings.
 
 Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Leerzeichen/Trennzeichen bereit.
 -}
-module Zug.Language.Operatoren (Sprache(..), module Zug.Language.Operatoren) where
+module Zug.Language.Operatoren (
+    Anzeige(..), Sprache(..), (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>),
+    showText, addMnemonic) where
 
 -- Bibliotheken
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, pack)
+import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Options (Sprache(..))
 
@@ -33,6 +36,8 @@ instance Anzeige (Sprache -> Text) where
 instance Anzeige Char where
     anzeige :: Char -> Sprache -> Text
     anzeige a = pack . const [a]
+
+instance Anzeige Natural
 
 instance (Anzeige a) => Anzeige [a] where
     anzeige :: [a] -> Sprache -> Text
@@ -109,6 +114,13 @@ infixr 6 <\>
 -- Concatenate two strings with a new line.
 (<\>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
 (<\>) = verketten "\n"
+
+infixr 6 <#>
+-- | Verkette zwi Strings.
+-- 
+-- Concatentate two strings
+(<#>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<#>) = verketten ""
 
 -- * Text-Hilfsfunktionen
 -- | Show for 'Text'
