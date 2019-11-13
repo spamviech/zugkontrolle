@@ -28,7 +28,7 @@ import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Semigroup (Semigroup(..))
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Klassen (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
@@ -41,7 +41,7 @@ import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
                     Wegstrecke(), WegstreckeKlasse(..),
                     warte, Wartezeit(..))
 import qualified Zug.Language as Language
-import Zug.Language (showText, (<~>), (<^>), (<=>), (<:>), (<°>))
+import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
@@ -64,23 +64,23 @@ class PlanKlasse pl where
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
-data Plan = Plan {
-    plName :: Text,
-    plAktionen :: [Aktion]}
-        deriving (Eq)
+data Plan
+    = Plan {
+        plName :: Text,
+        plAktionen :: [Aktion]}
+    deriving (Eq, Show)
 
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend
     = Ausführend Plan
-        deriving (Eq, StreckenObjekt)
+    deriving (Eq, Show, StreckenObjekt)
 
-instance Show Plan where
-    show :: Plan -> String
-    show
-        Plan {plName, plAktionen}
-            = Language.plan
-            <:> Language.name <=> unpack plName
-            <^> Language.aktionen <=> show plAktionen
+instance Anzeige Plan where
+    anzeige :: Plan -> Sprache -> Text
+    anzeige Plan {plName, plAktionen}
+        = Language.plan
+            <:> Language.name <=> plName
+            <^> Language.aktionen <=> plAktionen
 
 instance StreckenObjekt Plan where
     anschlüsse :: Plan -> [Anschluss]
@@ -139,19 +139,19 @@ data Aktion
         (AktionKupplung Kupplung)
     | AktionAusführen
         Plan
-    deriving (Eq)
+    deriving (Eq, Show)
 
-instance Show Aktion where
-    show :: Aktion -> String
-    show    (Warten time)                           = Language.warten <:> show time <> Language.wartenEinheit
-    show    (AWegstreckeMärklin aktion)             = Language.wegstrecke <~> show aktion
-    show    (AWegstreckeLego aktion)                = Language.wegstrecke <~> show aktion
-    show    (AWeiche aktion)                        = Language.weiche <~> show aktion
-    show    (ABahngeschwindigkeitMärklin aktion)    = Language.bahngeschwindigkeit <~> show aktion
-    show    (ABahngeschwindigkeitLego aktion)       = Language.bahngeschwindigkeit <~> show aktion
-    show    (AStreckenabschnitt aktion)             = Language.streckenabschnitt <~> show aktion
-    show    (AKupplung aktion)                      = Language.kupplung <~> show aktion
-    show    (AktionAusführen Plan {plName})         = Language.ausführen  <:> unpack plName
+instance Anzeige Aktion where
+    anzeige :: Aktion -> Sprache -> Text
+    anzeige (Warten time)                           = Language.warten <:> anzeige time <> Language.wartenEinheit
+    anzeige (AWegstreckeMärklin aktion)             = Language.wegstrecke <~> aktion
+    anzeige (AWegstreckeLego aktion)                = Language.wegstrecke <~> aktion
+    anzeige (AWeiche aktion)                        = Language.weiche <~> aktion
+    anzeige (ABahngeschwindigkeitMärklin aktion)    = Language.bahngeschwindigkeit <~> aktion
+    anzeige (ABahngeschwindigkeitLego aktion)       = Language.bahngeschwindigkeit <~> aktion
+    anzeige (AStreckenabschnitt aktion)             = Language.streckenabschnitt <~> aktion
+    anzeige (AKupplung aktion)                      = Language.kupplung <~> aktion
+    anzeige (AktionAusführen Plan {plName})         = Language.ausführen <:> plName
 
 instance StreckenObjekt Aktion where
     anschlüsse :: Aktion -> [Anschluss]
@@ -189,16 +189,17 @@ data AktionWegstrecke ws (z :: Zugtyp)
         (AktionStreckenabschnitt (ws z))
     | AWSKupplung
         (AktionKupplung (ws z))
-    deriving (Eq)
+    deriving (Eq, Show)
 
-instance (StreckenObjekt (ws z))  => Show (AktionWegstrecke ws z) where
-    show :: AktionWegstrecke ws z -> String
-    show    (Einstellen wegstrecke)         = unpack $ erhalteName wegstrecke <°> Language.einstellen
-    show    (AWSBahngeschwindigkeit aktion) = show aktion
-    show    (AWSStreckenabschnitt aktion)   = show aktion
-    show    (AWSKupplung aktion)            = show aktion
+instance (StreckenObjekt (ws z))  => Anzeige (AktionWegstrecke ws z) where
+    anzeige :: AktionWegstrecke ws z -> Sprache -> Text
+    anzeige (Einstellen wegstrecke)         = erhalteName wegstrecke <°> Language.einstellen
+    anzeige (AWSBahngeschwindigkeit aktion) = anzeige aktion
+    anzeige (AWSStreckenabschnitt aktion)   = anzeige aktion
+    anzeige (AWSKupplung aktion)            = anzeige aktion
 
-instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z), Show (ws z)) => StreckenObjekt (AktionWegstrecke ws z) where
+instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z), Show (ws z)) =>
+        StreckenObjekt (AktionWegstrecke ws z) where
     anschlüsse :: AktionWegstrecke ws z -> [Anschluss]
     anschlüsse  (Einstellen ws)                 = anschlüsse ws
     anschlüsse  (AWSBahngeschwindigkeit aktion) = anschlüsse aktion
@@ -219,11 +220,11 @@ data AktionWeiche we
     = Stellen
         we
         Richtung
-    deriving (Eq)
+    deriving (Eq, Show)
 
-instance (StreckenObjekt we)  => Show (AktionWeiche we) where
-    show :: AktionWeiche we -> String
-    show (Stellen we richtung) = unpack $ erhalteName we <°> Language.stellen <=> showText richtung
+instance (StreckenObjekt we)  => Anzeige (AktionWeiche we) where
+    anzeige :: AktionWeiche we -> Sprache -> Text
+    anzeige (Stellen we richtung) = erhalteName we <°> Language.stellen <=> showText richtung
 
 instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
     anschlüsse :: AktionWeiche we -> [Anschluss]
@@ -250,18 +251,19 @@ data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
             AktionBahngeschwindigkeit bg 'Lego
 
 deriving instance (Eq (bg z)) => (Eq (AktionBahngeschwindigkeit bg z))
+deriving instance (Show (bg z)) => (Show (AktionBahngeschwindigkeit bg z))
 
-instance (StreckenObjekt (bg z)) => Show (AktionBahngeschwindigkeit bg z) where
-    show :: AktionBahngeschwindigkeit bg  z-> String
-    show
+instance (StreckenObjekt (bg z)) => Anzeige (AktionBahngeschwindigkeit bg z) where
+    anzeige :: AktionBahngeschwindigkeit bg  z-> Sprache -> Text
+    anzeige
         (Geschwindigkeit bg wert)
-            = unpack $ erhalteName bg <°> Language.geschwindigkeit <=> showText wert
-    show
+            = erhalteName bg <°> Language.geschwindigkeit <=> showText wert
+    anzeige
         (Umdrehen bg)
-            = unpack $ erhalteName bg <°> Language.umdrehen
-    show
+            = erhalteName bg <°> Language.umdrehen
+    anzeige
         (FahrtrichtungEinstellen bg fahrtrichtung)
-            = unpack $ erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
+            = erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
 
 instance (BahngeschwindigkeitKlasse bg, Show (bg z), StreckenObjekt (bg 'Märklin), StreckenObjekt (bg 'Lego), StreckenObjekt (bg z))
             => StreckenObjekt (AktionBahngeschwindigkeit bg z) where
@@ -283,12 +285,12 @@ data AktionStreckenabschnitt st
     = Strom
         st
         Strom
-    deriving (Eq)
+    deriving (Eq, Show)
 
-instance (StreckenObjekt st) => Show (AktionStreckenabschnitt st) where
-    show :: AktionStreckenabschnitt st -> String
-    show    (Strom st Fließend)  = unpack $ erhalteName st <°> Language.strom <=> Language.an
-    show    (Strom st Gesperrt)  = unpack $ erhalteName st <°> Language.strom <=> Language.aus
+instance (StreckenObjekt st) => Anzeige (AktionStreckenabschnitt st) where
+    anzeige :: AktionStreckenabschnitt st -> Sprache -> Text
+    anzeige (Strom st Fließend)  = erhalteName st <°> Language.strom <=> Language.an
+    anzeige (Strom st Gesperrt)  = erhalteName st <°> Language.strom <=> Language.aus
 
 instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStreckenabschnitt st) where
     anschlüsse :: AktionStreckenabschnitt st -> [Anschluss]
@@ -304,11 +306,11 @@ instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt s
 data AktionKupplung ku
     = Kuppeln
         ku
-    deriving (Eq)
+    deriving (Eq, Show)
 
-instance (StreckenObjekt ku) => Show (AktionKupplung ku) where
-    show :: AktionKupplung ku -> String
-    show (Kuppeln ku) = unpack $ erhalteName ku <°> Language.kuppeln
+instance (StreckenObjekt ku) => Anzeige (AktionKupplung ku) where
+    anzeige :: AktionKupplung ku -> Sprache -> Text
+    anzeige (Kuppeln ku) = erhalteName ku <°> Language.kuppeln
 
 instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) where
     anschlüsse :: AktionKupplung ku -> [Anschluss]

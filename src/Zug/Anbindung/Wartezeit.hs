@@ -7,11 +7,14 @@ Außerdem wird ein 'Wartezeit'-Typ mit automatischer Einheiten-Konvertierung ber
 -}
 module Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren) where
 
+-- Bibliotheken
 import Control.Concurrent (threadDelay)
 import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Semigroup (Semigroup(..))
 import Numeric.Natural (Natural)
+-- Abhängigkeit von anderen Modulen
+import Zug.Language (Anzeige(..))
 
 -- | Warte mindestens das Argument in µs.
 -- 
@@ -34,7 +37,9 @@ data Wartezeit
     | Minuten Natural
     | Stunden Natural
     | Tage Natural
-        deriving (Read, Show)
+    deriving (Read, Show)
+
+instance Anzeige Wartezeit
 
 instance Ord Wartezeit where
     compare :: Wartezeit -> Wartezeit -> Ordering
