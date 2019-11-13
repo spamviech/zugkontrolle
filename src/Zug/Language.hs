@@ -14,7 +14,7 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 -}
 module Zug.Language (
     module Zug.Language,
-    Anzeige(..), Sprache(..), showText, addMnemonic,
+    Anzeige(..), Sprache(..), alleSprachen, showText, addMnemonic,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
 -- Bibliotheken
@@ -26,7 +26,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Version (showVersion)
 -- Abhängigkeit von anderen Modulen
-import Zug.Language.Operatoren (Anzeige(..), Sprache(..),
+import Zug.Language.Operatoren (Anzeige(..), Sprache(..), alleSprachen,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>), showText, addMnemonic)
 import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache

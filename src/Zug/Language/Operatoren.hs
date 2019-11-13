@@ -9,7 +9,7 @@ Description : Operatoren zur Verkettung von Strings.
 Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Leerzeichen/Trennzeichen bereit.
 -}
 module Zug.Language.Operatoren (
-    Anzeige(..), Sprache(..), (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>),
+    Anzeige(..), Sprache(..), alleSprachen, (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>),
     showText, addMnemonic) where
 
 -- Bibliotheken
@@ -17,7 +17,7 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, pack)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Options (Sprache(..))
+import Zug.Options (Sprache(..), alleSprachen)
 
 -- | Zeige ein Objekt sprachabhängig an.
 class Anzeige a where
