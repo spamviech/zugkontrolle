@@ -14,22 +14,24 @@ module Zug.Anbindung.Anschluss (
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
+import Data.Text (Text)
 import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead,
                             I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
+import Zug.Language (Anzeige(..), Sprache(), showText)
 
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss
     = AnschlussPin Pin
     | AnschlussPCF8574Port PCF8574Port
-        deriving (Eq, Ord)
+    deriving (Eq, Show, Ord)
 
-instance Show Anschluss where
-    show :: Anschluss -> String
-    show    (AnschlussPin pin)          = show pin
-    show    (AnschlussPCF8574Port port) = show port
+instance Anzeige Anschluss where
+    anzeige :: Anschluss -> Sprache -> Text
+    anzeige (AnschlussPin pin)          = const $ showText pin
+    anzeige (AnschlussPCF8574Port port) = anzeige port
 
 instance Read Anschluss where
     readPrec :: ReadPrec Anschluss

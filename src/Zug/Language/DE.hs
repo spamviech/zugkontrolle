@@ -7,320 +7,321 @@ Sammlung aller verwendeten Strings (Deutsche Version).
 -}
 module Zug.Language.DE where
 
-import Data.Semigroup (Semigroup(..))
-import Data.String (IsString(..))
+import Data.Text (Text)
 import System.Hardware.WiringPi (Value(..))
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren
 
 -- * Titel / Title
 -- | Train Control
-zugkontrolle :: (Semigroup s, IsString s) => s
+zugkontrolle :: Text
 zugkontrolle                    = "Zugkontrolle"
 
 -- * Haupt-Befehle / Main Orders
 -- | Quit
-beenden :: (Semigroup s, IsString s) => s
+beenden :: Text
 beenden                         = "Beenden"
 -- | Cancel
-abbrechen :: (Semigroup s, IsString s) => s
+abbrechen :: Text
 abbrechen                       = "Abbrechen"
 -- | Undo
-rückgängig :: (Semigroup s, IsString s) => s
+rückgängig :: Text
 rückgängig                      = "Rückgängig"
 -- | Continue
-weiter :: (Semigroup s, IsString s) => s
+weiter :: Text
 weiter                          = "Weiter"
 -- | Back
-zurück :: (Semigroup s, IsString s) => s
+zurück :: Text
 zurück                          = "Zurück"
 -- | Add
-hinzufügen :: (Semigroup s, IsString s) => s
+hinzufügen :: Text
 hinzufügen                      = "Hinzufügen"
 -- | Remove
-entfernen :: (Semigroup s, IsString s) => s
+entfernen :: Text
 entfernen                       = "Entfernen"
 -- | Save
-speichern :: (Semigroup s, IsString s) => s
+speichern :: Text
 speichern                       = "Speichern"
 -- |Load
-laden :: (Semigroup s, IsString s) => s
+laden :: Text
 laden                           = "Laden"
 
 -- * Spezielle Befehle / Special orders
 -- | Speed
-geschwindigkeit :: (Semigroup s, IsString s) => s
+geschwindigkeit :: Text
 geschwindigkeit                 = "Geschwindigkeit"
 -- | Turn around
-umdrehen :: (Semigroup s, IsString s) => s
+umdrehen :: Text
 umdrehen                        = "Umdrehen"
 -- | Direction of Travel
-fahrtrichtungEinstellen :: (Semigroup s, IsString s) => s
+fahrtrichtungEinstellen :: Text
 fahrtrichtungEinstellen         = "Fahrtrichtung"
 -- | Change
-stellen :: (Semigroup s, IsString s) => s
+stellen :: Text
 stellen                         = "Stellen"
 -- | Current
-strom :: (Semigroup s, IsString s) => s
+strom :: Text
 strom                           = "Strom"
 -- | On
-an :: (Semigroup s, IsString s) => s
+an :: Text
 an                              = "An"
 -- | Off
-aus :: (Semigroup s, IsString s) => s
+aus :: Text
 aus                             = "Aus"
 -- | Flowing
-fließend :: (Semigroup s, IsString s) => s
+fließend :: Text
 fließend                        = "Fließend"
 -- | Blocked
-gesperrt :: (Semigroup s, IsString s) => s
+gesperrt :: Text
 gesperrt                        = "Gesperrt"
 -- | Uncouple
-kuppeln :: (Semigroup s, IsString s) => s
+kuppeln :: Text
 kuppeln                         = "Kuppeln"
 -- | Adjust the Switches
-einstellen :: (Semigroup s, IsString s) => s
+einstellen :: Text
 einstellen                      = "Einstellen"
 -- | Execute
-ausführen :: (Semigroup s, IsString s) => s
+ausführen :: Text
 ausführen                       = "Ausführen"
 -- | /s/ <~> "in execution"
-wirdAusgeführt :: (Semigroup s, IsString s) => s -> s
-wirdAusgeführt s = s <~> "wird ausgeführt"
+wirdAusgeführt :: Text -> Text
+wirdAusgeführt s = s <~> ("wird ausgeführt" :: Text) $ Deutsch
 -- | Abort!  
 -- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
-ausführenAbbrechen :: (Semigroup s, IsString s) => s
+ausführenAbbrechen :: Text
 ausführenAbbrechen              = "Abbrechen!"
 -- | aktion <~> "blocked"
-aktionGesperrt :: (Semigroup s, IsString s) => s
-aktionGesperrt = aktion <~> "gesperrt"
+aktionGesperrt :: Text
+aktionGesperrt = aktion <~> ("gesperrt" :: Text) $ Deutsch
 -- | ausführen <~> "blocked" <!> "Pins" <~> /s/ <~> "are already in use."
-ausführenGesperrt :: (Semigroup s, IsString s) => s -> s
-ausführenGesperrt s = ausführen <~> "gesperrt" <!> "Die Pins" <~> s <~> "werden bereits verwendet."
+ausführenGesperrt :: Text -> Text
+ausführenGesperrt s
+    = ausführen <~> ("gesperrt" :: Text) <!>
+        ("Die Pins" :: Text) <~> s <~> ("werden bereits verwendet." :: Text) $ Deutsch
 -- | Wait
-warten :: (Semigroup s, IsString s) => s
+warten :: Text
 warten                          = "Warten"
 -- | µs
 -- 
 -- Unit of time used to specify waiting time
-wartenEinheit :: (Semigroup s, IsString s) => s
+wartenEinheit :: Text
 wartenEinheit                   = "µs"
 -- | Time
-zeit :: (Semigroup s, IsString s) => s
+zeit :: Text
 zeit                            = "Zeit"
 -- | fließend <-> "Value"
-fließendValue :: (Semigroup s, IsString s) => s
-fließendValue                   = fließend <-> "Value"
+fließendValue :: Text
+fließendValue                   = fließend <-> ("Value" :: Text) $ Deutsch
 -- | HIGH
-high :: (Semigroup s, IsString s) => s
+high :: Text
 high                            = showText HIGH
 -- | LOW
-low :: (Semigroup s, IsString s) => s
+low :: Text
 low                             = showText LOW
 -- | Execute
-aktionAusführen :: (Semigroup s, IsString s) => s
+aktionAusführen :: Text
 aktionAusführen                 = "Ausführen"
 -- | Execute-Once
-einfachAusführung :: (Semigroup s, IsString s) => s
+einfachAusführung :: Text
 einfachAusführung               = "Einfach-Ausführung"
 -- | Loop
-dauerschleife :: (Semigroup s, IsString s) => s
+dauerschleife :: Text
 dauerschleife                   = "Dauerschleife"
 
 -- * Typ-Namen / Type names
 -- | Object
-objekt :: (Semigroup s, IsString s) => s
+objekt :: Text
 objekt                          = "Objekt"
 -- | Order
-befehl :: (Semigroup s, IsString s) => s
+befehl :: Text
 befehl                          = "Befehl"
 -- | Train speed
-bahngeschwindigkeit :: (Semigroup s, IsString s) => s
+bahngeschwindigkeit :: Text
 bahngeschwindigkeit             = "Bahngeschwindigkeit"
 -- | Train speeds
-bahngeschwindigkeiten :: (Semigroup s, IsString s) => s
+bahngeschwindigkeiten :: Text
 bahngeschwindigkeiten           = "Bahngeschwindigkeiten"
 -- | Rail section
-streckenabschnitt :: (Semigroup s, IsString s) => s
+streckenabschnitt :: Text
 streckenabschnitt               = "Streckenabschnitt"
 -- | Rail sections
-streckenabschnitte :: (Semigroup s, IsString s) => s
+streckenabschnitte :: Text
 streckenabschnitte              = "Streckenabschnitte"
 -- | Switch
-weiche :: (Semigroup s, IsString s) => s
+weiche :: Text
 weiche                          = "Weiche"
 -- | Switches
-weichen :: (Semigroup s, IsString s) => s
+weichen :: Text
 weichen                         = "Weichen"
 -- | Coupler
-kupplung :: (Semigroup s, IsString s) => s
+kupplung :: Text
 kupplung                        = "Kupplung"
 -- | Couplers
-kupplungen :: (Semigroup s, IsString s) => s
+kupplungen :: Text
 kupplungen                      = "Kupplungen"
 -- | Rail collection
-wegstrecke :: (Semigroup s, IsString s) => s
+wegstrecke :: Text
 wegstrecke                      = "Wegstrecke"
 -- | Rail collections
-wegstrecken :: (Semigroup s, IsString s) => s
+wegstrecken :: Text
 wegstrecken                     = "Wegstrecken"
 -- | Plan
-plan :: (Semigroup s, IsString s) => s
+plan :: Text
 plan                            = "Plan"
 -- | Plans
-pläne :: (Semigroup s, IsString s) => s
+pläne :: Text
 pläne                           = "Pläne"
 
 -- * Eigenschafts/Feld-Namen / Attributes/Field names
 -- | File path
-dateiname :: (Semigroup s, IsString s) => s
+dateiname :: Text
 dateiname                       = "Dateiname"
 -- | Connection
-anschluss :: (Semigroup s, IsString s) => s
+anschluss :: Text
 anschluss                       = "Anschluss"
 -- | Pin
-pin :: (Semigroup s, IsString s) => s
+pin :: Text
 pin                             = "Pin"
 -- | PCF8574Port
-pcf8574Port :: (Semigroup s, IsString s) => s
-pcf8574Port                     = pcf8574 <-> port
+pcf8574Port :: Text
+pcf8574Port                     = pcf8574 <-> port $ Deutsch
 -- | PCF8574
-pcf8574 :: (Semigroup s, IsString s) => s
+pcf8574 :: Text
 pcf8574                         = "PCF8574"
 -- | Variant
-variante :: (Semigroup s, IsString s) => s
+variante :: Text
 variante                        = "Variante"
 -- | normal
-normal :: (Semigroup s, IsString s) => s
+normal :: Text
 normal                          = "normal"
 -- | A
-a :: (Semigroup s, IsString s) => s
+a :: Text
 a                               = "A"
 -- | a0
-a0 :: (Semigroup s, IsString s) => s
+a0 :: Text
 a0                              = "a0"
 -- | a1
-a1 :: (Semigroup s, IsString s) => s
+a1 :: Text
 a1                              = "a1"
 -- | a2
-a2 :: (Semigroup s, IsString s) => s
+a2 :: Text
 a2                              = "a2"
 -- | Port
-port :: (Semigroup s, IsString s) => s
+port :: Text
 port                            = "Port"
 -- | Name
-name :: (Semigroup s, IsString s) => s
+name :: Text
 name                            = "Name"
 -- | Direction
-richtung :: (Semigroup s, IsString s) => s
+richtung :: Text
 richtung                        = "Richtung"
 -- | Directions
-richtungen :: (Semigroup s, IsString s) => s
+richtungen :: Text
 richtungen                      = "Richtungen"
 -- | Direction of travel
-fahrtrichtung :: (Semigroup s, IsString s) => s
+fahrtrichtung :: Text
 fahrtrichtung                   = "Fahrtrichtung"
 
 -- * Query-Abfragen / Queries
 -- | Rail collection element
-wegstreckenElement :: (Semigroup s, IsString s) => s
+wegstreckenElement :: Text
 wegstreckenElement              = "Wegstrecken-Element"
 -- | Rail collection elements
-wegstreckenElemente :: (Semigroup s, IsString s) => s
+wegstreckenElemente :: Text
 wegstreckenElemente             = "Wegstrecken-Elemente"
 -- | Action
-aktion :: (Semigroup s, IsString s) => s
+aktion :: Text
 aktion                          = "Aktion"
 -- | Actions
-aktionen :: (Semigroup s, IsString s) => s
+aktionen :: Text
 aktionen                        = "Aktionen"
 -- | Train model
-zugtyp :: (Semigroup s, IsString s) => s
+zugtyp :: Text
 zugtyp                          = "Zugtyp"
 -- | Execution mode
-ausführModus :: (Semigroup s, IsString s) => s
+ausführModus :: Text
 ausführModus                    = "Ausführ-Modus"
 -- | Which Object should be added?
-welchesObjektHinzufügen :: (Semigroup s, IsString s) => s
+welchesObjektHinzufügen :: Text
 welchesObjektHinzufügen         = "Welches Objekt soll hinzugefügt werden?"
 
 -- | Ask to specify the object (type indicated by /s/) either by its index or name
-indexOderName :: (Semigroup s, IsString s) => s -> s
-indexOderName   s   = s <~> "Index/Name"
+indexOderName :: Text -> Text
+indexOderName   s   = s <~> ("Index/Name" :: Text) $ Deutsch
 
 -- | Ask to specify the count of the object (indicated by /s/)
-anzahl :: (Semigroup s, IsString s) => s -> s
-anzahl  s   = "Anzahl" <~> s
+anzahl :: Text -> Text
+anzahl  s   = ("Anzahl" :: Text) <~> s $ Deutsch
 
 -- * Fehlermeldungen / Error Messages
 -- | zugkontrolle <:> "Execution requires root priviledges."
-nichtRoot :: (Semigroup s, IsString s) => s
-nichtRoot                       = zugkontrolle <:> "Ausführung benötigt Root-Rechte!"
+nichtRoot :: Text
+nichtRoot                       = zugkontrolle <:> ("Ausführung benötigt Root-Rechte!" :: Text) $ Deutsch
 -- | Not implemented: ToDo!!!
-toDo :: (Semigroup s, IsString s) => s
+toDo :: Text
 toDo                            = "Nicht implementiert: ToDo!!!"
 -- | Invalid input
-ungültigeEingabe :: (Semigroup s, IsString s) => s
+ungültigeEingabe :: Text
 ungültigeEingabe                = "Ungültige Eingabe"
 -- | Action not supported
-nichtUnterstützteAktion :: (Semigroup s, IsString s) => s
+nichtUnterstützteAktion :: Text
 nichtUnterstützteAktion         = "Aktion nicht unterstützt"
 -- | File not found/Unknown format
-nichtGefundeneDatei :: (Semigroup s, IsString s) => s
+nichtGefundeneDatei :: Text
 nichtGefundeneDatei             = "Datei nicht gefunden/Format nicht erkannt"
 -- | Selected UI not supported. Cmd-UI is used instead.
-uiNichtUnterstützt :: (Semigroup s, IsString s) => s
+uiNichtUnterstützt :: Text
 uiNichtUnterstützt              = "Gewählte UI-Option nicht unterstützt! Nutze stattdessen Cmd-UI."
 -- | erwartet "Integer"
-integerErwartet :: (Semigroup s, IsString s) => s
+integerErwartet :: Text
 integerErwartet                 = erwartet "Integer"
 -- | erwartet "Value"
-valueErwartet :: (Semigroup s, IsString s) => s
+valueErwartet :: Text
 valueErwartet                   = erwartet "Value"
 -- | erwartet richtung
-richtungErwartet :: (Semigroup s, IsString s) => s
+richtungErwartet :: Text
 richtungErwartet                = erwartet richtung
 -- | mindestens $ "one" <~> richtung
-richtungZuWenig :: (Semigroup s, IsString s) => s
-richtungZuWenig                 = mindestens $ "eine" <~> richtung
+richtungZuWenig :: Text
+richtungZuWenig                 = mindestens $ ("eine" :: Text) <~> richtung $ Deutsch
 -- | mindestens $ "one" <~> wegstreckenElement
-wegstreckeLeer :: (Semigroup s, IsString s) => s
-wegstreckeLeer                  = mindestens $ "ein" <~> wegstreckenElement
+wegstreckeLeer :: Text
+wegstreckeLeer                  = mindestens $ ("ein" :: Text) <~> wegstreckenElement $ Deutsch
 
 -- | /s/ <~> "not recognized"
-unbekannt :: (Semigroup s, IsString s) => s -> s
-unbekannt s = s <~> "nicht erkannt"
+unbekannt :: Text -> Text
+unbekannt s = s <~> ("nicht erkannt" :: Text) $ Deutsch
 
 -- | /s/ <~> "expected"
-erwartet :: (Semigroup s, IsString s) => s -> s
-erwartet s = s <~> "erwartet"
+erwartet :: Text -> Text
+erwartet s = s <~> ("erwartet" :: Text) $ Deutsch
 
 -- | "At least" <~> /s/ <~> "required"
-mindestens :: (Semigroup s, IsString s) => s -> s
-mindestens s = "Mindestens" <~> s <~> "benötigt"
+mindestens :: Text -> Text
+mindestens s = ("Mindestens" :: Text) <~> s <~> ("benötigt" :: Text) $ Deutsch
 
 -- * Typ-namen / Type names
 -- | Märklin
-märklin :: (Semigroup s, IsString s) => s
+märklin :: Text
 märklin                         = "Märklin"
 -- | Lego
-lego :: (Semigroup s, IsString s) => s
+lego :: Text
 lego                            = "Lego"
 -- | Straight
-gerade :: (Semigroup s, IsString s) => s
+gerade :: Text
 gerade                          = "Gerade"
 -- | Turn
-kurve :: (Semigroup s, IsString s) => s
+kurve :: Text
 kurve                           = "Kurve"
 -- | Left
-links :: (Semigroup s, IsString s) => s
+links :: Text
 links                           = "Links"
 -- | Right
-rechts :: (Semigroup s, IsString s) => s
+rechts :: Text
 rechts                          = "Rechts"
 -- | Forward
-vorwärts :: (Semigroup s, IsString s) => s
+vorwärts :: Text
 vorwärts                        = "Vorwärts"
 -- | Reverse
-rückwärts :: (Semigroup s, IsString s) => s
+rückwärts :: Text
 rückwärts                       = "Rückwärts"

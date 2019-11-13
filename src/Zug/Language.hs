@@ -3,6 +3,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-|
@@ -11,34 +12,27 @@ Description : Template-Haskell Deklarationen der Strings abhängig von der gewä
 Strings werden via Template-Haskell abhängig von der Sprache importiert.  
 Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamigen Funktionen mit angehängtem __S__ erhalten werden.
 -}
-module Zug.Language (module Zug.Language, module Zug.Language.Operatoren) where
+module Zug.Language (
+    module Zug.Language,
+    Anzeige(..), Sprache(..), showText, addMnemonic,
+    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>)) where
 
+-- Bibliotheken
 import MonadUtils (concatMapM)
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text (Text)
-import qualified Data.Text.IO as T
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 import Data.Version (showVersion)
 -- Abhängigkeit von anderen Modulen
-import Zug.Language.Operatoren ((<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), showText, addMnemonic)
-import Zug.Options (Sprache())
+import Zug.Language.Operatoren (Anzeige(..), Sprache(..),
+    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), showText, addMnemonic)
 import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache
 import Zug.Language.TemplateHaskell (erzeugeFunktion)
 import qualified Zug.Language.DE
 import qualified Zug.Language.EN
-
--- | Zeige ein Objekt sprachabhängig an.
-class Anzeige a where
-    anzeige :: a -> Sprache -> Text
-
-instance {-# Overlappable #-} (Show a) => Anzeige a where
-    anzeige :: a -> Sprache -> Text
-    anzeige a = const $ showText a
-
-instance Anzeige (Sprache -> Text) where
-    anzeige :: (Sprache -> Text) -> Sprache -> Text
-    anzeige = id
 
 -- * Titel / Title
 erzeugeFunktion "zugkontrolle"
@@ -129,13 +123,13 @@ aktionKupplung sprache = [kuppeln sprache]
 toBefehlsString :: [Text] -> Text
 toBefehlsString []      = "[]"
 toBefehlsString [s]     = s
-toBefehlsString (h:t)   = h <^> toBefehlsString t
+toBefehlsString (h:t)   = h <^> toBefehlsString t $ Deutsch
 
 -- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_
 fehlerText :: Text -> Sprache -> Text
-fehlerText begründung sprache = ungültigeEingabe sprache <^> begründung <!> ""
+fehlerText begründung = ungültigeEingabe <^> begründung <!> Text.empty
 
 -- | Report an error due to _begründung_ and print it to the console.
 fehlerhafteEingabe :: Text -> Sprache -> IO ()
-fehlerhafteEingabe begründung sprache = T.putStrLn $ fehlerText begründung sprache
+fehlerhafteEingabe begründung sprache = Text.putStrLn $ fehlerText begründung sprache

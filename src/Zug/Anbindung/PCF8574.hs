@@ -31,6 +31,7 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..),
                         I2CAddress(..), i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
+import Zug.Language (Anzeige())
 
 {-
 -- | Alle Möglichkeiten, die Addresse eines PCF8574 einzustellen
@@ -60,16 +61,16 @@ toI2CAddress
 
 -- | Variante des /PCF8574/ (beeinflusst 'I2CAddress')
 data PCF8574Variant = VariantNormal | VariantA
-                        deriving (Show, Read, Eq, Ord, Bounded, Enum)
+    deriving (Show, Read, Eq, Ord, Bounded, Enum)
 
 -- | Variante und variable Adress-Bits eines /PCF8574/
 data PCF8574 = PCF8574 {variant :: PCF8574Variant, a0, a1, a2 :: Value}
-                deriving (Eq, Ord)
+    deriving (Eq, Ord)
 
 instance Show PCF8574 where
     show :: PCF8574 -> String
-    show (PCF8574 {variant, a0, a1, a2})
-        = "PCF8574" ++ if (variant == VariantA) then "A" else "" ++
+    show PCF8574 {variant, a0, a1, a2}
+        = "PCF8574" ++ if variant == VariantA then "A" else "" ++
             showAddress a0 :
             showAddress a1 :
             showAddress a2 : []
@@ -77,6 +78,8 @@ instance Show PCF8574 where
             showAddress :: Value -> Char
             showAddress HIGH    = 'H'
             showAddress LOW     = 'L'
+
+instance Anzeige PCF8574
 
 instance Read PCF8574 where
     readPrec :: ReadPrec PCF8574
@@ -124,11 +127,13 @@ numPorts = 8
 
 -- | Verwende Port eines /PCF8574/
 data PCF8574Port = PCF8574Port {pcf8574 :: PCF8574, port::Word8}
-                    deriving (Eq, Ord)
+    deriving (Eq, Ord)
 
 instance Show PCF8574Port where
     show :: PCF8574Port -> String
     show PCF8574Port {pcf8574, port} = show pcf8574 ++ ('-' : show port)
+
+instance Anzeige PCF8574Port
 
 instance Read PCF8574Port where
     readPrec :: ReadPrec PCF8574Port
@@ -148,15 +153,14 @@ instance Read PCF8574Port where
 
 -- | Wert einzelner Ports eines /PCF8574/ setzen
 pcf8574PortWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
-pcf8574PortWrite (PCF8574Port {pcf8574, port}) value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
+pcf8574PortWrite PCF8574Port {pcf8574, port} value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
     where
         bitValueFunktion :: BitValue -> BitValue
         bitValueFunktion oldBitValue
             | (value == HIGH)   = oldBitValue .|. toBitValue port
             | otherwise         = oldBitValue .&. complement (toBitValue port)
-
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
 pcf8574PortRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
-pcf8574PortRead (PCF8574Port {pcf8574, port}) = do
+pcf8574PortRead PCF8574Port {pcf8574, port} = do
     fullBitValue <- pcf8574Read pcf8574
-    pure $ if (testBit fullBitValue $ fromIntegral port) then HIGH else LOW
+    pure $ if testBit fullBitValue $ fromIntegral port then HIGH else LOW
