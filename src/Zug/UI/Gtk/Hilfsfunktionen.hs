@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -11,6 +12,8 @@ Description: Allgemeine Hilfsfunktionen
 module Zug.UI.Gtk.Hilfsfunktionen () where
 #else
 module Zug.UI.Gtk.Hilfsfunktionen (
+    -- * Sprache
+    SpracheGui(), spracheGuiNeu, sprachwechsel, mitSpracheGui,
     -- * Widget
     widgetShowNew, widgetShowIf,
     -- * Container
@@ -27,14 +30,16 @@ module Zug.UI.Gtk.Hilfsfunktionen (
     -- * Name
     NameWidget(), namePackNew, NameAuswahlWidget(), nameAuswahlPackNew, aktuellerName) where
 
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Graphics.UI.Gtk (Packing(..), ResponseId)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..))
-import Zug.Language ((<:>))
+import Zug.Language (Sprache(), (<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), mitEntry,
                                     MitContainer(..), mitContainerAdd, mitContainerRemove,
@@ -160,15 +165,39 @@ newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
                                 deriving (Eq, MitWidget, MitEntry)
 
 -- | Name abfragen
-nameAuswahlPackNew :: (MonadIO m, MitBox b) => b -> m NameAuswahlWidget
-nameAuswahlPackNew box = liftIO $ do
+nameAuswahlPackNew :: (MonadIO m, MitBox b) => b -> SpracheGui -> m NameAuswahlWidget
+nameAuswahlPackNew box spracheGui = liftIO $ do
     hBox <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just $ (Language.name <:> "" :: Text)
+    label <- boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
+    mitSpracheGui spracheGui $ \sprache -> Gtk.set label [Gtk.labelText := (Language.name <:> Text.empty) sprache]
     entry <- boxPackWidgetNewDefault hBox Gtk.entryNew
-    Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name :: Text)]
+    mitSpracheGui spracheGui $
+        \sprache -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
     pure $ NameAuswahlWidget entry
 
 -- | Erhalte den aktuell gewählten Namen
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . mitEntry Gtk.entryGetText
+
+-- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
+data SpracheGui = SpracheGui {sprache :: Sprache, sprachwechselAktionen :: TVar [Sprache -> IO ()]}
+
+spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui
+spracheGuiNeu sprache = liftIO $ SpracheGui sprache <$> newTVarIO []
+
+sprachwechsel :: (MonadIO m) => Sprache -> SpracheGui -> m SpracheGui
+sprachwechsel
+    sprache
+    spracheGui@SpracheGui {sprachwechselAktionen}
+        = liftIO $ do
+            readTVarIO sprachwechselAktionen >>= sequence_ . map ($ sprache)
+            pure $ spracheGui {sprache}
+
+mitSpracheGui :: (MonadIO m) => SpracheGui -> (Sprache -> IO ()) -> m ()
+mitSpracheGui
+    SpracheGui {sprache, sprachwechselAktionen}
+    neueAktion
+        = liftIO $ do
+            neueAktion sprache
+            atomically $ modifyTVar sprachwechselAktionen (neueAktion :)
 #endif
