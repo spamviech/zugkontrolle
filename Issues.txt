@@ -1,3 +1,17 @@
+Anzeige sprachabhängig, ohne Show-Instanz
+    über eigene Anzeige-Klasse
+    speichern der aktuellen Sprache im Zustand
+        Kommandozeilen-Argument bezieht sich nur noch auf Anfangs-Sprache
+            Speichern in .json?
+        Sprachwechsel im Cmd-UI kein Problem:
+            wird sowieso neu erzeugt
+        GTK-Objekte müssen bei Sprachwechsel neu benannt werden
+            ergänze (SP ObjektGui) im Zustand um [Sprache -> IO ()]
+                werden bei Sprachwechsel alle via sequence_ aufgerufen
+                wie wird die IO-Funktion wieder gelöscht?
+                Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
+                    Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
+
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren
     Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen

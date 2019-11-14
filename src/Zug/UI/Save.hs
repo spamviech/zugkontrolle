@@ -1,12 +1,12 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -34,10 +34,11 @@ import Zug.Anbindung (Wartezeit(..),
             Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Klassen (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
-import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..), ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
+import Zug.Language (Sprache())
+import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
 import Zug.Plan (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
                 AktionWeiche(..), AktionKupplung(..), Plan(..))
-import Zug.UI.Base (StatusAllgemein(..), Status, phantom)
+import Zug.UI.Base (StatusAllgemein(..), Status)
 
 -- | Speichere aktuellen Zustand in Datei
 speichern :: (ObjektKlasse o, ToJSON o) => StatusAllgemein o -> FilePath -> IO ()
@@ -46,14 +47,14 @@ speichern contents path = ByteString.writeFile path $ encode contents
 -- | Lade Datei.
 -- 
 -- Dateifehler und nicht-existente Dateien geben Nothing zurück.
--- Ansonsten wird ein Konstruktor für einen aus einem 'Status' konstruiertem Typ zurückgegeben.
-laden :: FilePath -> (Status -> IO (s o)) -> IO (Maybe (s o))
-laden path fromStatus = do
+-- Ansonsten wird ein aus einem 'Status' konstruierter Typ zurückgegeben.
+laden :: FilePath -> (Status -> IO s) -> Sprache -> IO (Maybe s)
+laden path fromStatus sprache = do
     fileExists <- doesFileExist path
     if fileExists
         then do
             byteString <- ByteString.readFile path
-            maybe (pure Nothing) (fmap Just . fromStatus) $ decode byteString
+            maybe (pure Nothing) (\f -> fmap Just $ fromStatus $ f sprache) $ decode byteString
         else pure Nothing
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
@@ -71,8 +72,8 @@ wegstreckenJS = "Wegstrecken"
 pläneJS :: Text
 pläneJS = "Pläne"
 
-instance FromJSON Status where
-    parseJSON :: Value -> Parser Status
+instance FromJSON (Sprache -> Status) where
+    parseJSON :: Value -> Parser (Sprache -> Status)
     parseJSON   (Object v)
         = Status
             <$> ((v .: bahngeschwindigkeitenJS) <|> pure [])
@@ -84,15 +85,15 @@ instance FromJSON Status where
     parseJSON _value
         = mzero
 
-instance (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) where
+instance forall o. (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) where
     toJSON :: StatusAllgemein o -> Value
     toJSON status = object [
-        bahngeschwindigkeitenJS .= (ausBG (phantom status) <$> (_bahngeschwindigkeiten status)),
-        streckenabschnitteJS    .= (ausST (phantom status) <$> (_streckenabschnitte status)),
-        weichenJS               .= (ausWE (phantom status) <$> (_weichen status)),
-        kupplungenJS            .= (ausKU (phantom status) <$> (_kupplungen status)),
-        wegstreckenJS           .= (ausWS (phantom status) <$> (_wegstrecken status)),
-        pläneJS                 .= (ausPL (phantom status) <$> (_pläne status))]
+        bahngeschwindigkeitenJS .= (map (ausObjekt . OBahngeschwindigkeit) $ _bahngeschwindigkeiten status :: [o]),
+        streckenabschnitteJS    .= (map (ausObjekt . OStreckenabschnitt) $ _streckenabschnitte status :: [o]),
+        weichenJS               .= (map (ausObjekt . OWeiche) $ _weichen status :: [o]),
+        kupplungenJS            .= (map (ausObjekt . OKupplung) $ _kupplungen status :: [o]),
+        wegstreckenJS           .= (map (ausObjekt . OWegstrecke) $ _wegstrecken status :: [o]),
+        pläneJS                 .= (map (ausObjekt . OPlan) $ _pläne status :: [o])]
 
 instance (FromJSON (bg 'Märklin), FromJSON (bg 'Lego), FromJSON st, FromJSON (we 'Märklin), FromJSON (we 'Lego),
         FromJSON ku, FromJSON (ws 'Lego), FromJSON (ws 'Märklin), FromJSON pl)
@@ -368,19 +369,21 @@ instance FromJSON (Bahngeschwindigkeit 'Lego) where
 
 instance ToJSON (Bahngeschwindigkeit z) where
     toJSON :: Bahngeschwindigkeit z -> Value
-    toJSON  (LegoBahngeschwindigkeit {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss})
-        = object [
-            nameJS .= bglName,
-            fließendJS .= bglFließend,
-            geschwindigkeitsPinJS .= bglGeschwindigkeitsAnschluss,
-            zugtypJS .= Lego,
-            fahrtrichtungsPinJS .= bglFahrtrichtungsAnschluss]
-    toJSON  (MärklinBahngeschwindigkeit {bgmName, bgmFließend, bgmGeschwindigkeitsAnschluss})
-        = object [
-            nameJS .= bgmName,
-            fließendJS .= bgmFließend,
-            geschwindigkeitsPinJS .= bgmGeschwindigkeitsAnschluss,
-            zugtypJS .= Märklin]
+    toJSON
+        LegoBahngeschwindigkeit {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss}
+            = object [
+                nameJS .= bglName,
+                fließendJS .= bglFließend,
+                geschwindigkeitsPinJS .= bglGeschwindigkeitsAnschluss,
+                zugtypJS .= Lego,
+                fahrtrichtungsPinJS .= bglFahrtrichtungsAnschluss]
+    toJSON
+        MärklinBahngeschwindigkeit {bgmName, bgmFließend, bgmGeschwindigkeitsAnschluss}
+            = object [
+                nameJS .= bgmName,
+                fließendJS .= bgmFließend,
+                geschwindigkeitsPinJS .= bgmGeschwindigkeitsAnschluss,
+                zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 stromPinJS :: Text
@@ -401,11 +404,12 @@ instance FromJSON Streckenabschnitt where
 
 instance ToJSON Streckenabschnitt where
     toJSON :: Streckenabschnitt -> Value
-    toJSON (Streckenabschnitt {stName, stFließend, stromAnschluss})
-        = object [
-            nameJS .= stName,
-            fließendJS .= stFließend,
-            stromPinJS .= stromAnschluss]
+    toJSON
+        Streckenabschnitt {stName, stFließend, stromAnschluss}
+            = object [
+                nameJS .= stName,
+                fließendJS .= stFließend,
+                stromPinJS .= stromAnschluss]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 richtungsPinJS :: Text
@@ -438,19 +442,21 @@ instance FromJSON (Weiche 'Lego) where
 
 instance ToJSON (Weiche z) where
     toJSON :: Weiche z -> Value
-    toJSON  (LegoWeiche {welName, welFließend, welRichtungsAnschluss, welRichtungen})
-        = object [
-            nameJS .= welName,
-            fließendJS .= welFließend,
-            richtungsPinJS .= welRichtungsAnschluss,
-            richtungenJS .= welRichtungen,
-            zugtypJS .= Lego]
-    toJSON  (MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse})
-        = object [
-            nameJS .= wemName,
-            fließendJS .= wemFließend,
-            richtungsPinsJS .= NE.toList wemRichtungsAnschlüsse,
-            zugtypJS .= Märklin]
+    toJSON
+        LegoWeiche {welName, welFließend, welRichtungsAnschluss, welRichtungen}
+            = object [
+                nameJS .= welName,
+                fließendJS .= welFließend,
+                richtungsPinJS .= welRichtungsAnschluss,
+                richtungenJS .= welRichtungen,
+                zugtypJS .= Lego]
+    toJSON
+        MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse}
+            = object [
+                nameJS .= wemName,
+                fließendJS .= wemFließend,
+                richtungsPinsJS .= NE.toList wemRichtungsAnschlüsse,
+                zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 kupplungsPinJS :: Text
@@ -471,11 +477,12 @@ instance FromJSON Kupplung where
 
 instance ToJSON Kupplung where
     toJSON :: Kupplung -> Value
-    toJSON  (Kupplung {kuName, kuFließend, kupplungsAnschluss})
-        = object [
-            nameJS .= kuName,
-            fließendJS .= kuFließend,
-            kupplungsAnschlussJS .= kupplungsAnschluss]
+    toJSON
+        Kupplung {kuName, kuFließend, kupplungsAnschluss}
+            = object [
+                nameJS .= kuName,
+                fließendJS .= kuFließend,
+                kupplungsAnschlussJS .= kupplungsAnschluss]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 weichenRichtungenJS :: Text
@@ -507,13 +514,14 @@ instance FromJSON (Wegstrecke 'Lego) where
 
 instance ToJSON (Wegstrecke z) where
     toJSON :: Wegstrecke z -> Value
-    toJSON (Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen})
-        = object [
-            nameJS .= wsName,
-            bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten,
-            streckenabschnitteJS .= wsStreckenabschnitte,
-            weichenRichtungenJS .= wsWeichenRichtungen,
-            kupplungenJS .= wsKupplungen]
+    toJSON
+        Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}
+            = object [
+                nameJS .= wsName,
+                bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten,
+                streckenabschnitteJS .= wsStreckenabschnitte,
+                weichenRichtungenJS .= wsWeichenRichtungen,
+                kupplungenJS .= wsKupplungen]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 wartenJS :: Text
@@ -701,7 +709,7 @@ instance ToJSON Plan where
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen
 findeÜbereinstimmendenWert :: (ToJSON a) => [a] -> Value -> Parser a
-findeÜbereinstimmendenWert  ([])    _v  = mzero
-findeÜbereinstimmendenWert  (h:t)   v
+findeÜbereinstimmendenWert  []      _v  = mzero
+findeÜbereinstimmendenWert  (h : t) v
     | v == toJSON h             = pure h
     | otherwise                 = findeÜbereinstimmendenWert t v

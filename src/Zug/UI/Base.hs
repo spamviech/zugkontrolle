@@ -10,6 +10,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -18,7 +19,7 @@ Description : Grundlegende UI-Funktionen.
 module Zug.UI.Base (
     -- * Zustands-Typ
     Status, StatusAllgemein(..), statusLeer, ReaderFamilie, ObjektReader,
-    TVarMaps(..), MitTVarMaps(..), TVarMapsReader(..), tvarMapsNeu, phantom,
+    TVarMaps(..), MitTVarMaps(..), TVarMapsReader(..), tvarMapsNeu,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
 #endif
@@ -26,11 +27,13 @@ module Zug.UI.Base (
     IOStatus, MStatus, MStatusT, IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
     auswertenLeererIOStatus, auswertenTMVarIOStatus, auswertenTMVarMStatus,
     -- ** Anpassen des aktuellen Zustands
-    hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung, hinzufügenWegstrecke, hinzufügenPlan,
-    entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan,
+    hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung,
+    hinzufügenWegstrecke, hinzufügenPlan,
+    entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke,
+    entfernenPlan,
     -- ** Spezialisierte Funktionen der Zustands-Monade
-    getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getPhantom,
-    putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne,
+    getBahngeschwindigkeiten, getStreckenabschnitte, getWeichen, getKupplungen, getWegstrecken, getPläne, getSprache,
+    putBahngeschwindigkeiten, putStreckenabschnitte, putWeichen, putKupplungen, putWegstrecken, putPläne, putSprache,
     -- * Hilfsfunktionen
     ausführenMöglich, AusführenMöglich(..)) where
 
@@ -39,7 +42,7 @@ import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, t
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS, runRWS)
 import Control.Monad.Trans (MonadIO(..))
 import Control.Monad.Reader.Class (MonadReader(..), asks)
-import Control.Monad.State.Class (MonadState(..), gets, modify)
+import Control.Monad.State.Class (gets, modify)
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens', lens)
 #endif
@@ -56,7 +59,7 @@ import Zug.Klassen (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
 import Zug.Menge (Menge, leer)
-import Zug.Objekt (ObjektKlasse(..), Objekt, Phantom(..), ausBG, ausST, ausWE, ausKU, ausWS, ausPL)
+import Zug.Objekt (ObjektKlasse(..), Objekt)
 import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
 
 -- | Aktueller Status
@@ -66,18 +69,15 @@ data StatusAllgemein o = Status {
     _weichen :: [ZugtypEither (WE o)],
     _kupplungen :: [KU o],
     _wegstrecken :: [ZugtypEither (WS o)],
-    _pläne :: [PL o]}
+    _pläne :: [PL o],
+    _sprache :: SP o}
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
 
 deriving instance (Eq (ZugtypEither (BG o)), Eq (ST o), Eq (ZugtypEither (WE o)), Eq (KU o),
-    Eq (ZugtypEither (WS o)), Eq (PL o)) => Eq (StatusAllgemein o)
+    Eq (ZugtypEither (WS o)), Eq (PL o), Eq (SP o)) => Eq (StatusAllgemein o)
 deriving instance (Show (ZugtypEither (BG o)), Show (ST o), Show (ZugtypEither (WE o)), Show (KU o),
-    Show (ZugtypEither (WS o)), Show (PL o)) => Show (StatusAllgemein o)
-
--- | Erzeuge eine Phantom-Typ, um Typ-Inferenzen zu ermöglichen.
-phantom :: StatusAllgemein o -> Phantom o
-phantom _status = Phantom
+    Show (ZugtypEither (WS o)), Show (PL o), Show (SP o)) => Show (StatusAllgemein o)
 
 #ifdef ZUGKONTROLLEGUI
 -- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusAllgemein wirft dll-Fehler unter Windows)
@@ -120,22 +120,23 @@ pläne
         \status pls -> status {_pläne=pls}
 #endif
 
-instance (Anzeige o, ObjektKlasse o) => Anzeige (StatusAllgemein o) where
+instance (Anzeige (ZugtypEither (BG o)), Anzeige (ST o), Anzeige (ZugtypEither (WE o)), Anzeige (KU o),
+    Anzeige (ZugtypEither (WS o)), Anzeige (PL o), Anzeige (SP o)) => Anzeige (StatusAllgemein o) where
     anzeige :: StatusAllgemein o -> Sprache -> Text
     anzeige
         status
             = Language.bahngeschwindigkeiten <=>
-                (zeigeUnterliste $ ausBG (phantom status) <$> _bahngeschwindigkeiten status)
+                (zeigeUnterliste $ _bahngeschwindigkeiten status)
             <\> Language.streckenabschnitte <=>
-                (zeigeUnterliste $ ausST (phantom status) <$> _streckenabschnitte status)
+                (zeigeUnterliste $ _streckenabschnitte status)
             <\> Language.weichen <=>
-                (zeigeUnterliste $ ausWE (phantom status) <$> _weichen status)
+                (zeigeUnterliste $ _weichen status)
             <\> Language.kupplungen <=>
-                (zeigeUnterliste $ ausKU (phantom status) <$> _kupplungen status)
+                (zeigeUnterliste $ _kupplungen status)
             <\> Language.wegstrecken <=>
-                (zeigeUnterliste $ ausWS (phantom status) <$> _wegstrecken status)
+                (zeigeUnterliste $ _wegstrecken status)
             <\> Language.pläne <=>
-                (zeigeUnterliste $ ausPL (phantom status) <$> _pläne status)
+                (zeigeUnterliste $ _pläne status)
         where
             -- | Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
             zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
@@ -153,14 +154,15 @@ instance (Anzeige o, ObjektKlasse o) => Anzeige (StatusAllgemein o) where
                     = zeigeUnterlisteAux (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h) (succ index) t
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
-statusLeer :: StatusAllgemein o
-statusLeer = Status {
+statusLeer :: SP o -> StatusAllgemein o
+statusLeer _sprache = Status {
     _bahngeschwindigkeiten = [],
     _streckenabschnitte = [],
     _weichen = [],
     _kupplungen = [],
     _wegstrecken = [],
-    _pläne = []}
+    _pläne = [],
+    _sprache}
 
 -- | Sammlung aller benötigten 'TVar's
 data TVarMaps = TVarMaps {
@@ -197,10 +199,10 @@ type MStatusAllgemein o a = RWS (ReaderFamilie o) () (StatusAllgemein o) a
 type MStatusAllgemeinT m o a = RWST (ReaderFamilie o) () (StatusAllgemein o) m a
 
 -- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus
-auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO (ReaderFamilie o) -> IO a
-auswertenLeererIOStatus ioStatus readerNeu = do
+auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO (ReaderFamilie o) -> SP o -> IO a
+auswertenLeererIOStatus ioStatus readerNeu sprache = do
     tvarMaps <- readerNeu
-    (a, ()) <- evalRWST ioStatus tvarMaps statusLeer
+    (a, ()) <- evalRWST ioStatus tvarMaps $ statusLeer sprache
     pure a
 
 -- | Klasse für Typen mit 'TVarMaps'
@@ -248,9 +250,6 @@ auswertenTMVarMStatus action tmvarStatus = do
         pure a
 
 -- * Erhalte aktuellen Status.
--- | Erhalte 'Phantom' passend zum zugehörigem Objekt
-getPhantom :: (Monad m) => MStatusAllgemeinT m o (Phantom o)
-getPhantom = get >>= pure . phantom
 -- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
 getBahngeschwindigkeiten :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (BG o)]
 getBahngeschwindigkeiten = gets _bahngeschwindigkeiten
@@ -266,29 +265,35 @@ getKupplungen = gets _kupplungen
 -- | Erhalte 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 getWegstrecken :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (WS o)]
 getWegstrecken = gets _wegstrecken
--- | Erhalte Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
+-- | Erhalte Pläne ('Plan') im aktuellen 'StatusAllgemein'
 getPläne :: (Monad m) => MStatusAllgemeinT m o [PL o]
 getPläne = gets _pläne
+-- | Erhalte 'Sprache' im aktuellen 'StatusAllgemein'
+getSprache :: (Monad m) => MStatusAllgemeinT m o (SP o)
+getSprache = gets _sprache
 
 -- * Ändere aktuellen Status
 -- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
 putBahngeschwindigkeiten :: (Monad m) => [ZugtypEither (BG o)] -> MStatusAllgemeinT m o ()
-putBahngeschwindigkeiten bgs = modify $ \status -> status {_bahngeschwindigkeiten=bgs}
+putBahngeschwindigkeiten bgs = modify $ \status -> status {_bahngeschwindigkeiten = bgs}
 -- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
 putStreckenabschnitte :: (Monad m) => [ST o] -> MStatusAllgemeinT m o ()
-putStreckenabschnitte sts = modify $ \status -> status {_streckenabschnitte=sts}
+putStreckenabschnitte sts = modify $ \status -> status {_streckenabschnitte = sts}
 -- | Setze 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
 putWeichen :: (Monad m) => [ZugtypEither (WE o)] -> MStatusAllgemeinT m o ()
-putWeichen wes = modify $ \status -> status{_weichen=wes}
+putWeichen wes = modify $ \status -> status{_weichen = wes}
 -- | Setze 'Weiche'n im aktuellen 'StatusAllgemein'
 putKupplungen :: (Monad m) => [KU o] -> MStatusAllgemeinT m o ()
-putKupplungen kus = modify $ \status -> status{_kupplungen=kus}
+putKupplungen kus = modify $ \status -> status{_kupplungen = kus}
 -- | Setze 'Kupplung'en im akutellen 'StatusAllgemein'
 putWegstrecken :: (Monad m) => [ZugtypEither (WS o)] -> MStatusAllgemeinT m o ()
-putWegstrecken wss = modify $ \status -> status{_wegstrecken=wss}
--- | Setze Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
+putWegstrecken wss = modify $ \status -> status{_wegstrecken = wss}
+-- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'
 putPläne :: (Monad m) => [PL o] -> MStatusAllgemeinT m o ()
-putPläne pls = modify $ \status -> status {_pläne=pls}
+putPläne pls = modify $ \status -> status {_pläne = pls}
+-- | Setze 'Sprache' im aktuellen 'StatusAllgemein'
+putSprache :: (Monad m) => SP o -> MStatusAllgemeinT m o ()
+putSprache sprache = modify $ \status -> status{_sprache = sprache}
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
