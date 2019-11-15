@@ -140,7 +140,8 @@ aktionKupplung sprache = [kuppeln sprache]
 toBefehlsString :: [Text] -> Text
 toBefehlsString []      = "[]"
 toBefehlsString [s]     = s
-toBefehlsString (h:t)   = h <^> toBefehlsString t $ Deutsch
+-- Sprach-Angabe hier irrelevant, da Texteingabe unbeeinflusst von der gewählten Sprache bleibt
+toBefehlsString (h : t) = h <^> toBefehlsString t $ Deutsch
 
 -- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_
