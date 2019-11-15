@@ -25,7 +25,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
 
 -- * Widget

@@ -14,7 +14,7 @@ module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(
 import Data.Kind (Type)
 import Data.Text (Text)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..))
 import Zug.Language (Sprache())
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
                     Bahngeschwindigkeit(),

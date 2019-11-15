@@ -10,7 +10,7 @@ import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import qualified Language.Haskell.TH as TH
 -- Abhängigkeit von anderen Modulen
-import Zug.Options (Sprache(..), alleSprachen)
+import Zug.Language.Operatoren (Sprache(..), alleSprachen)
 
 modulName :: Sprache -> String
 modulName   Deutsch     = "Zug.Language.DE"

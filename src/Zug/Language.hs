@@ -5,6 +5,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP #-}
 
 {-|
 Description : Template-Haskell Deklarationen der Strings abhängig von der gewählten Sprache.
@@ -14,31 +15,47 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 -}
 module Zug.Language (
     module Zug.Language,
-    Anzeige(..), ($#), (.#), Sprache(..), alleSprachen, showText, addMnemonic,
+    Sprache(..), alleSprachen, MitSprache(..),
+    Anzeige(..), ($#), (.#), showText, addMnemonic,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
 -- Bibliotheken
 import MonadUtils (concatMapM)
 import Data.Semigroup (Semigroup(..))
-import Data.String (IsString(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Data.Version (showVersion)
+import Data.Version (Version, makeVersion, showVersion)
 -- Abhängigkeit von anderen Modulen
 import Zug.Language.Operatoren (Anzeige(..), ($#), (.#), Sprache(..), alleSprachen,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>), showText, addMnemonic)
-import qualified Zug.Options as Options
 -- TH-Auswahl der Sprache
 import Zug.Language.TemplateHaskell (erzeugeFunktion)
 import qualified Zug.Language.DE
 import qualified Zug.Language.EN
 
+-- | Klasse für Typen mit 'Sprache'
+class MitSprache s where
+    verwendeSprache :: (Sprache -> a) -> s -> a
+
+instance MitSprache Sprache where
+    verwendeSprache :: (Sprache -> a) -> Sprache -> a
+    verwendeSprache = ($)
+
 -- * Titel / Title
 erzeugeFunktion "zugkontrolle"
 -- ** Version
+-- | Aktuelle Version
+versionValue :: Version
+versionValue = makeVersion [
+    ZUGKONTROLLEVERSIONMAJORA,
+    ZUGKONTROLLEVERSIONMAJORB,
+    ZUGKONTROLLEVERSIONMINOR,
+    ZUGKONTROLLEVERSIONMISC]
+
+-- | 'Text'-Ausgabe von 'versionValue'
 version :: Text
-version = fromString $ showVersion Options.version
+version = Text.pack $ showVersion versionValue
 -- * Haupt-Befehle / Main Orders
 concatMapM erzeugeFunktion
     ["beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden"]

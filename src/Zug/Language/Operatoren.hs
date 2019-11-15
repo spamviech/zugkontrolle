@@ -17,8 +17,14 @@ module Zug.Language.Operatoren (
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, pack)
 import Numeric.Natural (Natural)
--- Abhängigkeit von anderen Modulen
-import Zug.Options (Sprache(..), alleSprachen)
+
+-- | Bekannte Sprachen
+data Sprache = Deutsch | Englisch
+                deriving (Show, Read, Bounded, Enum, Eq)
+
+-- | Alle unterstützten Sprachen
+alleSprachen :: [Sprache]
+alleSprachen = [minBound..maxBound]
 
 -- | Zeige ein Objekt sprachabhängig an.
 class Anzeige a where

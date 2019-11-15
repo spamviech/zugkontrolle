@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 {-|
 Description : Kommandozeilen-Optionen
 -}
@@ -7,8 +5,7 @@ module Zug.Options (
     Options(..), getOptions,
     UI(..), alleUI,
     PWM(..), allePWMOptionen,
-    Sprache(..), alleSprachen,
-    version) where
+    Sprache(..), alleSprachen) where
 
 -- Bibliotheken
 import Control.Monad.Trans (MonadIO, liftIO)
@@ -16,7 +13,10 @@ import Options.Applicative (ParserInfo(), Parser(), execParser,
                             info, helper, fullDesc, progDesc, header, infoOption, long, short, help,
                             switch, option, auto, metavar, showDefault, value, strOption)
 import Data.Semigroup (Semigroup(..))
-import Data.Version (Version(), makeVersion, showVersion)
+import Data.Text (unpack)
+-- Abhängigkeit von anderen Modulen
+import Zug.Language (Sprache(..), alleSprachen)
+import qualified Zug.Language as Language
 
 -- | Erhalte Kommandozeilen-Arguemente
 getOptions :: (MonadIO m) => m Options
@@ -42,15 +42,8 @@ optionen = info
 versionOpt :: Parser (a -> a)
 versionOpt
     = infoOption
-        ("Zugkontrolle Version: " ++ showVersion version)
+        ("Zugkontrolle Version: " ++ unpack Language.version)
         (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
-
-version :: Version
-version = makeVersion [
-    ZUGKONTROLLEVERSIONMAJORA,
-    ZUGKONTROLLEVERSIONMAJORB,
-    ZUGKONTROLLEVERSIONMINOR,
-    ZUGKONTROLLEVERSIONMISC]
 
 kombinierteOptionen :: Parser Options
 kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt
@@ -98,14 +91,6 @@ pwmOpt = option auto (
             showDefault <>
             value SoftwarePWM <>
             help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich."))
-
--- | Bekannte Sprachen
-data Sprache = Deutsch | Englisch
-                deriving (Show, Read, Bounded, Enum, Eq)
-
--- | Alle unterstützten Sprachen
-alleSprachen :: [Sprache]
-alleSprachen = [minBound..maxBound]
 
 spracheOpt :: Parser Sprache
 spracheOpt = option auto (

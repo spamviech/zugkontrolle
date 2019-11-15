@@ -33,7 +33,7 @@ import Zug.Anbindung (Wartezeit(..),
             Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio, zuPinGpio,
             Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
-import Zug.Klassen (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
+import Zug.Enums (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
 import Zug.Language (Sprache())
 import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
 import Zug.Plan (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),

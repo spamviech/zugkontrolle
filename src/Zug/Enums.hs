@@ -8,7 +8,7 @@
 {-|
 Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer Weiche) repräsentieren.
 -}
-module Zug.Klassen (
+module Zug.Enums (
     Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), mapZugtypEither, ausZugtypEither, unterstützteZugtypen,
     Richtung(..), unterstützteRichtungen,
     Fahrtrichtung(..), unterstützteFahrtrichtungen,

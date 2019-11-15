@@ -29,7 +29,7 @@ import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(),
                     Weiche(), Kupplung(), Wegstrecke())
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)

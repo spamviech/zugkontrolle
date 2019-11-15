@@ -26,7 +26,8 @@ import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
-import Zug.Klassen (Zugtyp(..))
+import Zug.Enums (Zugtyp(..))
+import Zug.Language (MitSprache(..))
 import Zug.Menge (entfernen)
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
 import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
@@ -38,7 +39,8 @@ import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, ObjektReader, 
                     hinzufügenWeiche, entfernenWeiche,
                     hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit,
                     hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
-                    hinzufügenKupplung, entfernenKupplung)
+                    hinzufügenKupplung, entfernenKupplung,
+                    getSprache)
 
 -- | Führe einen Plan mit einem in einer 'TMVar' gespeichertem Zustand aus
 ausführenTMVarPlan :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o))
@@ -55,7 +57,7 @@ ausführenTMVarBefehl :: (ObjektReader o m, MonadIO m, BefehlKlasse b,
                         ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
                         Eq (ST o), Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                         Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
-                        MitTVarMaps (ReaderFamilie o))
+                        MitTVarMaps (ReaderFamilie o), MitSprache (SP o))
                             => b o -> TMVar (StatusAllgemein o) -> m Bool
 ausführenTMVarBefehl befehl = auswertenTMVarIOStatus $ ausführenBefehl befehl
 
@@ -64,7 +66,7 @@ class BefehlKlasse b where
     -- | Gibt True zurück, falls das UI beendet werden soll
     ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
                         Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitTVarMaps (ReaderFamilie o))
+                        MitTVarMaps (ReaderFamilie o), MitSprache (SP o))
                             => b o -> IOStatusAllgemein o Bool
 
 -- | Unterstütze Befehle
@@ -109,7 +111,7 @@ instance BefehlKlasse UIBefehlAllgemein where
 instance BefehlKlasse BefehlAllgemein where
     ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
                         Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitTVarMaps (ReaderFamilie o))
+                        MitTVarMaps (ReaderFamilie o), MitSprache (SP o))
                             => BefehlAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl befehl = ausführenBefehlAux befehl >> pure (istBeenden befehl)
         where
@@ -119,7 +121,7 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
                                     Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                                     Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
-                                    MitTVarMaps (ReaderFamilie o))
+                                    MitTVarMaps (ReaderFamilie o), MitSprache (SP o))
                                         => BefehlAllgemein o -> IOStatusAllgemein o ()
             ausführenBefehlAux  (UI _uiAction)
                 = pure ()
@@ -142,14 +144,16 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Speichern dateipfad)
                 = get >>= liftIO . flip Save.speichern dateipfad
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
-                = liftIO (Save.laden dateipfad erfolgsAktion) >>= \case
-                    Nothing             -> fehlerbehandlung
-                    (Just statusNeu)    -> do
-                        TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
-                        liftIO $ do
-                            atomically $ writeTVar tvarPwmMap pwmMapEmpty
-                            atomically $ writeTVar tvarI2CMap i2cMapEmpty
-                        put statusNeu
+                = do
+                    mitSprache <- getSprache
+                    liftIO (flip verwendeSprache mitSprache $ Save.laden dateipfad erfolgsAktion) >>= \case
+                        Nothing             -> fehlerbehandlung
+                        (Just statusNeu)    -> do
+                            TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
+                            liftIO $ do
+                                atomically $ writeTVar tvarPwmMap pwmMapEmpty
+                                atomically $ writeTVar tvarI2CMap i2cMapEmpty
+                            put statusNeu
             ausführenBefehlAux  (Ausführen plan showAction endAktion)
                 = ausführenPlan plan showAction endAktion
             ausführenBefehlAux  (AusführenAbbrechen plan)
@@ -168,14 +172,14 @@ type BefehlListe = BefehlListeAllgemein Objekt
 instance BefehlKlasse BefehlListeAllgemein where
     ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
                         Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitTVarMaps (ReaderFamilie o))
+                        MitTVarMaps (ReaderFamilie o), MitSprache (SP o))
                             => BefehlListeAllgemein o -> IOStatusAllgemein o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
             ausführenBefehlAux  :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
                                     Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                                     Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
-                                    MitTVarMaps (ReaderFamilie o))
+                                    MitTVarMaps (ReaderFamilie o), MitSprache (SP o))
                                         =>  [BefehlAllgemein o] -> IOStatusAllgemein o Bool
             ausführenBefehlAux []      = pure False
             ausführenBefehlAux (h:t)   = do

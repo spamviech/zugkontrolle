@@ -28,7 +28,7 @@ import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKl
                     Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..),
                     Streckenabschnitt(..), StreckenabschnittKlasse(..),
                     Kupplung(..), KupplungKlasse(..), Wartezeit(..))
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..),
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..),
                     Fahrtrichtung(..), unterstützteFahrtrichtungen)
 import Zug.Language ((<^>), (<=>), (<->), (<|>), showText, toBefehlsString)
 import qualified Zug.Language as Language

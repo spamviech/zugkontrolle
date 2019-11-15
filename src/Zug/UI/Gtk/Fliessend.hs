@@ -27,7 +27,7 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuell
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
-                            deriving (Eq, MitWidget, MitLabel)
+    deriving (Eq, MitWidget, MitLabel)
 
 -- | Erstelle ein neues 'FließendWidget' und packe es in eine 'MitBox'
 fließendPackNew :: (MonadIO m, StreckenAtom s, MitBox b) => b -> s -> m FließendWidget
@@ -40,7 +40,7 @@ fließendNew s = liftIO $ fmap FließendWidget $
 
 -- | Widget zur Eingabe des Fließend-Value
 newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget :: AuswahlWidget Value}
-                                    deriving (Eq, MitWidget)
+    deriving (Eq, MitWidget)
 
 -- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'
 fließendAuswahlPackNew :: (MonadIO m, MitBox b) => b -> m FließendAuswahlWidget

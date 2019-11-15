@@ -46,7 +46,7 @@ import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..),
                                 pinMode, pwmSetRange, pwmWrite)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), Richtung(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), Richtung(..))
 import Zug.Options (Options(..), PWM(..), getOptions)
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))

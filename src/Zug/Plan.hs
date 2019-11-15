@@ -30,7 +30,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..),
                     PwmReader(..), I2CReader(..),
                     Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..),
