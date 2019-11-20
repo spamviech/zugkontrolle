@@ -17,6 +17,7 @@ module Zug.Language.Operatoren (
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text, pack)
 import Numeric.Natural (Natural)
+import System.Hardware.WiringPi (Value())
 
 -- | Bekannte Sprachen
 data Sprache = Deutsch | Englisch
@@ -46,14 +47,20 @@ instance Anzeige Char where
 
 instance Anzeige Natural
 
+instance Anzeige Value
+
 instance (Anzeige a) => Anzeige [a] where
     anzeige :: [a] -> Sprache -> Text
-    anzeige liste sprache = "[" <> anzeigeAux liste sprache <> "]"
+    anzeige liste = ("[" :: Text) <#> anzeigeAux liste <#> ("]" :: Text)
         where
             anzeigeAux :: (Anzeige b) => [b] -> Sprache -> Text
             anzeigeAux  []      = const ""
             anzeigeAux  [b]     = anzeige b
             anzeigeAux  (h : t) = h <^> anzeigeAux t
+
+instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
+    anzeige :: (a, b) -> Sprache -> Text
+    anzeige (a, b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
 
 infixr 0 $#
 ($#) :: (Anzeige a) => (Sprache -> Text -> Text) -> a -> Sprache -> Text

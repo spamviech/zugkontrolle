@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
@@ -29,19 +30,17 @@ module Zug.UI.Cmd.Parser.StreckenObjekt (
     -- ** Objekt
     AnfrageObjekt(..)) where
 
-import Data.Semigroup (Semigroup(..))
-import Data.String (IsString())
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
-import Data.Text (Text, unpack)
+import Data.Text (Text)
+import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..),
                     Kupplung(..), Wegstrecke(..), Anschluss(..), Value(..), alleValues,
                     PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen,
-                    Richtung(..), unterstützteRichtungen)
-import Zug.Language ((<^>), (<=>), (<->), showText, toBefehlsString)
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, Richtung(..), unterstützteRichtungen)
+import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
@@ -71,51 +70,52 @@ data AnfrageAnschluss
         Value                   -- ^ a0
         Value                   -- ^ a1
         Value                   -- ^ a2
+    deriving (Show, Eq)
 
-instance Show AnfrageAnschluss where
-    show :: AnfrageAnschluss -> String
-    show
+instance Anzeige AnfrageAnschluss where
+    anzeige :: AnfrageAnschluss -> Sprache -> Text
+    anzeige
         AnfrageAnschluss
             = Language.anschluss
-    show 
+    anzeige
         APin
-            = unpack $ Language.anschluss <-> Language.pin
-    show 
+            = Language.anschluss <-> Language.pin
+    anzeige
         APCF8574Port
-            = unpack $ Language.anschluss <-> Language.pcf8574Port
-    show
+            = Language.anschluss <-> Language.pcf8574Port
+    anzeige
         (APCF8574PortVariant variante)
-            = unpack $ Language.anschluss <-> Language.pcf8574Port
+            = Language.anschluss <-> Language.pcf8574Port
                 <^> Language.variante <=> if variante == VariantNormal
                     then Language.normal
                     else Language.a
-    show
+    anzeige
         (APCF8574PortVariantA0 variante a0)
-            = unpack $ Language.anschluss <-> Language.pcf8574Port
+            = Language.anschluss <-> Language.pcf8574Port
                 <^> Language.variante <=> (if variante == VariantNormal
                     then Language.normal
                     else Language.a)
-                <^> Language.a0 <=> showText a0
-    show
+                <^> Language.a0 <=> a0
+    anzeige
         (APCF8574PortVariantA0A1 variante a0 a1)
-            = unpack $ Language.anschluss <-> Language.pcf8574Port
+            = Language.anschluss <-> Language.pcf8574Port
                 <^> Language.variante <=> (if variante == VariantNormal
                     then Language.normal
                     else Language.a)
-                <^> Language.a0 <=> showText a0
-                <^> Language.a1 <=> showText a1
-    show
+                <^> Language.a0 <=> a0
+                <^> Language.a1 <=> a1
+    anzeige
         (APCF8574PortVariantA0A1A2 variante a0 a1 a2)
-            = unpack $ Language.anschluss <-> Language.pcf8574Port
+            = Language.anschluss <-> Language.pcf8574Port
                 <^> Language.variante <=> (if variante == VariantNormal
                     then Language.normal
                     else Language.a)
-                <^> Language.a0 <=> showText a0
-                <^> Language.a1 <=> showText a1
-                <^> Language.a2 <=> showText a2
+                <^> Language.a0 <=> a0
+                <^> Language.a1 <=> a1
+                <^> Language.a2 <=> a2
 
 instance Anfrage AnfrageAnschluss where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageAnschluss -> s
+    zeigeAnfrage :: AnfrageAnschluss -> Sprache -> Text
     zeigeAnfrage
         AnfrageAnschluss
             = Language.anschluss
@@ -137,7 +137,7 @@ instance Anfrage AnfrageAnschluss where
     zeigeAnfrage
         (APCF8574PortVariantA0A1A2 _variante _a0 _a1 _a2)
             = Language.port
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageAnschluss -> s -> s
+    zeigeAnfrageFehlgeschlagen :: AnfrageAnschluss -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen
         anfrage@APin
         eingabe
@@ -162,22 +162,22 @@ instance Anfrage AnfrageAnschluss where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageAnschluss -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageAnschluss -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AnfrageAnschluss
-            = Just $ toBefehlsString [Language.pin, Language.pcf8574Port]
+            = Just $ toBefehlsString . \sprache -> map ($ sprache) [Language.pin, Language.pcf8574Port]
     zeigeAnfrageOptionen
         APCF8574Port
-            = Just $ toBefehlsString [Language.normal, Language.a]
+            = Just $ toBefehlsString . \sprache -> map ($ sprache) [Language.normal, Language.a]
     zeigeAnfrageOptionen
         (APCF8574PortVariant _variante)
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         (APCF8574PortVariantA0 _variante _a0)
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         (APCF8574PortVariantA0A1 _variante _a0 _a1)
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         _anfrage
             = Nothing
@@ -272,45 +272,48 @@ data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
         abglFahrtrichtungsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
 
-instance Show (AnfrageBahngeschwindigkeit z) where
-    show :: AnfrageBahngeschwindigkeit z -> String
-    show
+deriving instance Eq (AnfrageBahngeschwindigkeit z)
+deriving instance Show (AnfrageBahngeschwindigkeit z)
+
+instance Anzeige (AnfrageBahngeschwindigkeit z) where
+    anzeige :: AnfrageBahngeschwindigkeit z -> Sprache -> Text
+    anzeige
         AnfrageBahngeschwindigkeit
             = Language.bahngeschwindigkeit
-    show
+    anzeige
         AMärklinBahngeschwindigkeit
             = Language.märklin <-> Language.bahngeschwindigkeit
-    show
+    anzeige
         (AMärklinBahngeschwindigkeitName name)
-            = unpack $ Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
-    show
+            = Language.märklin <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    anzeige
         (AMärklinBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
-            = unpack $ Language.märklin <-> Language.bahngeschwindigkeit
+            = Language.märklin <-> Language.bahngeschwindigkeit
                 <^> Language.name <=> name
-                <^> Language.fließendValue <=> showText fließend
-                <^> Language.geschwindigkeit <-> Language.anschluss <=> showText geschwindigkeitsAnschluss
-    show
+                <^> Language.fließendValue <=> fließend
+                <^> Language.geschwindigkeit <-> Language.anschluss <=> geschwindigkeitsAnschluss
+    anzeige
         ALegoBahngeschwindigkeit
             = Language.lego <-> Language.bahngeschwindigkeit
-    show
+    anzeige
         (ALegoBahngeschwindigkeitName name)
-            = unpack $ Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
-    show
+            = Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    anzeige
         (ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
-            = unpack $ Language.lego <-> Language.bahngeschwindigkeit
+            = Language.lego <-> Language.bahngeschwindigkeit
                 <^> Language.name <=> name
-                <^> Language.fließendValue <=> showText fließend
-                <^> Language.geschwindigkeit <-> Language.anschluss <=> showText geschwindigkeitsAnschluss
-    show
+                <^> Language.fließendValue <=> fließend
+                <^> Language.geschwindigkeit <-> Language.anschluss <=> geschwindigkeitsAnschluss
+    anzeige
         (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend geschwindigkeitsAnschluss fahrtrichtungsAnschluss)
-            = unpack $ Language.lego <-> Language.bahngeschwindigkeit
+            = Language.lego <-> Language.bahngeschwindigkeit
                 <^> Language.name <=> name
-                <^> Language.fließendValue <=> showText fließend
-                <^> Language.geschwindigkeit <-> Language.anschluss <=> showText geschwindigkeitsAnschluss
-                <^> Language.fahrtrichtung <-> Language.anschluss <=> showText fahrtrichtungsAnschluss
+                <^> Language.fließendValue <=> fließend
+                <^> Language.geschwindigkeit <-> Language.anschluss <=> geschwindigkeitsAnschluss
+                <^> Language.fahrtrichtung <-> Language.anschluss <=> fahrtrichtungsAnschluss
 
 instance Anfrage (AnfrageBahngeschwindigkeit z) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s
+    zeigeAnfrage :: AnfrageBahngeschwindigkeit z -> Sprache -> Text
     zeigeAnfrage
         AnfrageBahngeschwindigkeit
             = Language.zugtyp
@@ -335,7 +338,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
     zeigeAnfrage
         ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
             = zeigeAnfrage abglFahrtrichtungsAnfrageAnschluss
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> s -> s
+    zeigeAnfrageFehlgeschlagen :: AnfrageBahngeschwindigkeit z -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen
         anfrage@AMärklinBahngeschwindigkeitName {}
         eingabe
@@ -360,19 +363,19 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBahngeschwindigkeit z -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageBahngeschwindigkeit z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AnfrageBahngeschwindigkeit
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen
         AMärklinBahngeschwindigkeitName {}
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         AMärklinBahngeschwindigkeitNameFließend {abgmGeschwindigkeitsAnfrageAnschluss}
             = zeigeAnfrageOptionen abgmGeschwindigkeitsAnfrageAnschluss
     zeigeAnfrageOptionen
         ALegoBahngeschwindigkeitName {}
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         ALegoBahngeschwindigkeitNameFließend {abglGeschwindigkeitsAnfrageAnschluss}
             = zeigeAnfrageOptionen abglGeschwindigkeitsAnfrageAnschluss
@@ -485,24 +488,25 @@ data AnfrageStreckenabschnitt
         astName ::Text,
         astFließend :: Value,
         astStromAnfrageAnschluss :: AnfrageAnschluss}
+    deriving (Eq, Show)
 
-instance Show AnfrageStreckenabschnitt where
-    show :: AnfrageStreckenabschnitt -> String
-    show
+instance Anzeige AnfrageStreckenabschnitt where
+    anzeige :: AnfrageStreckenabschnitt -> Sprache -> Text
+    anzeige
         AnfrageStreckenabschnitt
             = Language.streckenabschnitt
-    show
+    anzeige
         (AStreckenabschnittName name)
-            = unpack $ Language.streckenabschnitt <^> Language.name <=> name
-    show
+            = Language.streckenabschnitt <^> Language.name <=> name
+    anzeige
         (AStreckenabschnittNameFließend name fließend stromAnschluss)
-            = unpack $ Language.streckenabschnitt
+            = Language.streckenabschnitt
                 <^> Language.name <=> name
-                <^> Language.fließendValue <=> showText fließend
-                <^> Language.strom <-> Language.anschluss <=> showText stromAnschluss
+                <^> Language.fließendValue <=> fließend
+                <^> Language.strom <-> Language.anschluss <=> stromAnschluss
 
 instance Anfrage AnfrageStreckenabschnitt where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s
+    zeigeAnfrage :: AnfrageStreckenabschnitt -> Sprache -> Text
     zeigeAnfrage
         AnfrageStreckenabschnitt
             = Language.name
@@ -512,7 +516,7 @@ instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrage
         AStreckenabschnittNameFließend {astStromAnfrageAnschluss}
             = zeigeAnfrage astStromAnfrageAnschluss
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> s -> s
+    zeigeAnfrageFehlgeschlagen :: AnfrageStreckenabschnitt -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen
         anfrage@AStreckenabschnittName {}
         eingabe
@@ -525,10 +529,10 @@ instance Anfrage AnfrageStreckenabschnitt where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageStreckenabschnitt -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageStreckenabschnitt -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AStreckenabschnittName {}
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         AStreckenabschnittNameFließend {astStromAnfrageAnschluss}
             = zeigeAnfrageOptionen astStromAnfrageAnschluss
@@ -617,66 +621,69 @@ data AnfrageWeiche (z :: AnfrageZugtyp) where
         awelRichtungsAnfrageAnschluss :: AnfrageAnschluss}
             -> AnfrageWeiche 'AnfrageZugtypLego
 
-instance Show (AnfrageWeiche z) where
-    show :: AnfrageWeiche z -> String
-    show
+deriving instance Eq (AnfrageWeiche z)
+deriving instance Show (AnfrageWeiche z)
+
+instance Anzeige (AnfrageWeiche z) where
+    anzeige :: AnfrageWeiche z -> Sprache -> Text
+    anzeige
         AnfrageWeiche
             = Language.weiche
-    show
+    anzeige
         AMärklinWeiche
             = Language.märklin <-> Language.weiche
-    show
+    anzeige
         (AMärklinWeicheName name)
-            = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
-    show
+            = Language.lego <-> Language.weiche <^> Language.name <=> name
+    anzeige
         (AMärklinWeicheNameFließend name fließend)
-            = unpack $ Language.lego <-> Language.weiche
+            = Language.lego <-> Language.weiche
                 <^> Language.name <=> name
-                <^> Language.fließend <=> showText fließend
-    show
+                <^> Language.fließend <=> fließend
+    anzeige
         (AMärklinWeicheNameFließendAnzahl name fließend anzahl acc)
-            = unpack $ Language.lego <-> Language.weiche
+            = Language.lego <-> Language.weiche
                 <^> Language.name <=> name
-                <^> Language.fließend <=> showText fließend
-                <^> Language.erwartet Language.richtungen <=> showText anzahl
-                <^> showText acc
-    show
+                <^> Language.fließend <=> fließend
+                <^> (Language.erwartet $# Language.richtungen) <=> anzahl
+                <^> acc
+    anzeige
         (AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung anschluss)
-            = unpack $ Language.lego <-> Language.weiche
+            = Language.lego <-> Language.weiche
                 <^> Language.name <=> name
-                <^> Language.fließend <=> showText fließend
-                <^> Language.erwartet Language.richtungen <=> showText anzahl
-                <^> showText acc
-                <^> Language.richtung <=> showText richtung
-                <^> Language.anschluss <=> showText anschluss
-    show
+                <^> Language.fließend <=> fließend
+                <^> (Language.erwartet $# Language.richtungen) <=> anzahl
+                <^> acc
+                <^> Language.richtung <=> richtung
+                <^> Language.anschluss <=> anschluss
+    anzeige
         ALegoWeiche
             = Language.lego <-> Language.weiche
-    show
+    anzeige
         (ALegoWeicheName name)
-            = unpack $ Language.lego <-> Language.weiche <^> Language.name <=> name
-    show
+            = Language.lego <-> Language.weiche <^> Language.name <=> name
+    anzeige
         (ALegoWeicheNameFließend name fließend)
-            = unpack $ Language.lego <-> Language.weiche
+            = Language.lego <-> Language.weiche
                 <^> Language.name <=> name
-                <^> Language.fließend <=> showText fließend
-    show
+                <^> Language.fließend <=> fließend
+    anzeige
         (ALegoWeicheNameFließendRichtung1 name fließend richtung1)
-            = unpack $ Language.lego <-> Language.weiche
+            = Language.lego <-> Language.weiche
                 <^> Language.name <=> name
-                <^> Language.fließend <=> showText fließend
-                <^> showText richtung1
-    show
+                <^> Language.fließend <=> fließend
+                <^> richtung1
+    anzeige
         (ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 anschluss)
-            = unpack $ Language.lego <-> Language.weiche
+            = Language.lego <-> Language.weiche
                 <^> Language.name <=> name
-                <^> Language.fließend <=> showText fließend
-                <^> showText richtung1
-                <^> showText richtung2
-                <^> Language.richtung <-> Language.anschluss <=> showText anschluss
+                <^> Language.fließend <=> fließend
+                <^> richtung1
+                <^> richtung2
+                <^> Language.richtung <-> Language.anschluss <=> anschluss
 
 instance Anfrage (AnfrageWeiche z) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWeiche z -> s
+    zeigeAnfrage :: AnfrageWeiche z -> Sprache -> Text
     zeigeAnfrage
         AnfrageWeiche
             = Language.zugtyp
@@ -688,7 +695,7 @@ instance Anfrage (AnfrageWeiche z) where
             = Language.fließendValue
     zeigeAnfrage
         (AMärklinWeicheNameFließend _name _fließend)
-            = Language.anzahl Language.richtungen
+            = Language.anzahl $# Language.richtungen
     zeigeAnfrage
         (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)
             = Language.richtung
@@ -710,7 +717,7 @@ instance Anfrage (AnfrageWeiche z) where
     zeigeAnfrage
         ALegoWeicheNameFließendRichtungen {awelRichtungsAnfrageAnschluss}
             = zeigeAnfrage awelRichtungsAnfrageAnschluss
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageWeiche z -> s -> s
+    zeigeAnfrageFehlgeschlagen :: AnfrageWeiche z -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen
         anfrage@(AMärklinWeicheNameFließend _name _fließend)
         eingabe
@@ -727,28 +734,28 @@ instance Anfrage (AnfrageWeiche z) where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWeiche z -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageWeiche z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AnfrageWeiche
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen
         (AMärklinWeicheName _name)
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc)
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
         AMärklinWeicheNameFließendAnzahlRichtung {awemAnfrageAnschluss}
             = zeigeAnfrageOptionen awemAnfrageAnschluss
     zeigeAnfrageOptionen
         (ALegoWeicheName _name)
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         (ALegoWeicheNameFließend _name _fließend)
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
         (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1)
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
         ALegoWeicheNameFließendRichtungen {awelRichtungsAnfrageAnschluss}
             = zeigeAnfrageOptionen awelRichtungsAnfrageAnschluss
@@ -879,23 +886,24 @@ data AnfrageKupplung
         akuName ::Text,
         akuFließend ::Value,
         akuKupplungsAnfrageAnschluss :: AnfrageAnschluss}
+    deriving (Eq, Show)
 
-instance Show AnfrageKupplung where
-    show :: AnfrageKupplung -> String
-    show 
+instance Anzeige AnfrageKupplung where
+    anzeige :: AnfrageKupplung -> Sprache -> Text
+    anzeige 
         AnfrageKupplung
             = Language.kupplung
-    show 
+    anzeige 
         (AKupplungName name)
-            = unpack $ Language.kupplung <^> Language.name <=> name
-    show 
+            = Language.kupplung <^> Language.name <=> name
+    anzeige 
         (AKupplungNameFließend name fließend anschluss)
-            = unpack $ Language.kupplung <^> Language.name <=> name
-                <^> Language.fließendValue <=> showText fließend
-                <^> Language.kupplung <-> Language.anschluss <=> showText anschluss
+            = Language.kupplung <^> Language.name <=> name
+                <^> Language.fließendValue <=> fließend
+                <^> Language.kupplung <-> Language.anschluss <=> anschluss
 
 instance Anfrage AnfrageKupplung where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageKupplung -> s
+    zeigeAnfrage :: AnfrageKupplung -> Sprache -> Text
     zeigeAnfrage
         AnfrageKupplung
             = Language.name
@@ -905,7 +913,7 @@ instance Anfrage AnfrageKupplung where
     zeigeAnfrage
         AKupplungNameFließend {akuKupplungsAnfrageAnschluss}
             = zeigeAnfrage akuKupplungsAnfrageAnschluss
-    zeigeAnfrageFehlgeschlagen :: (IsString s, Semigroup s) => AnfrageKupplung -> s -> s
+    zeigeAnfrageFehlgeschlagen :: AnfrageKupplung -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen
         anfrage@AKupplungName {}
         eingabe
@@ -918,10 +926,10 @@ instance Anfrage AnfrageKupplung where
         anfrage
         eingabe
             = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageKupplung -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageKupplung -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AKupplungName {}
-            = Just $ toBefehlsString $ map showText $ NE.toList alleValues
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
         AKupplungNameFließend {akuKupplungsAnfrageAnschluss}
             = zeigeAnfrageOptionen akuKupplungsAnfrageAnschluss
@@ -1006,32 +1014,36 @@ data AnfrageWegstrecke (z :: AnfrageZugtyp) where
 
 instance Show (AnfrageWegstrecke z) where
     show :: AnfrageWegstrecke z -> String
-    show
+    show = Text.unpack . flip anzeige Deutsch
+
+instance Anzeige (AnfrageWegstrecke z) where
+    anzeige :: AnfrageWegstrecke z -> Sprache -> Text
+    anzeige
         AnfrageWegstreckeZugtyp
-            = unpack $ Language.wegstrecke
-    show
+            = Language.wegstrecke
+    anzeige
         AnfrageWegstrecke
-            = unpack $ Language.wegstrecke
-    show
+            = Language.wegstrecke
+    anzeige
         (AWegstreckeName name)
-            = unpack $ Language.wegstrecke <^> Language.name <=> name
-    show
+            = Language.wegstrecke <^> Language.name <=> name
+    anzeige
         (AWegstreckeNameAnzahl acc anzahl)
-            = unpack $ Language.wegstrecke
-                <^> showText acc
-                <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
-    show
+            = Language.wegstrecke
+                <^> acc
+                <^> (Language.anzahl $# Language.wegstreckenElemente) <=> anzahl
+    anzeige
         (AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche)
-            = unpack $ Language.wegstrecke
-                <^> showText acc
-                <^> Language.anzahl Language.wegstreckenElemente <=> showText anzahl
-                <^> showText weiche
-    show
+            = Language.wegstrecke
+                <^> acc
+                <^> (Language.anzahl $# Language.wegstreckenElemente) <=> anzahl
+                <^> weiche
+    anzeige
         AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
-            = Language.wegstreckenElement <^> showText (awsStatusAnfrageKonstruktor leeresToken)
+            = Language.wegstreckenElement <^> awsStatusAnfrageKonstruktor leeresToken
 
 instance Anfrage (AnfrageWegstrecke z) where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> s
+    zeigeAnfrage :: AnfrageWegstrecke z -> Sprache -> Text
     zeigeAnfrage
         AnfrageWegstreckeZugtyp
             = Language.zugtyp
@@ -1040,7 +1052,7 @@ instance Anfrage (AnfrageWegstrecke z) where
             = Language.name
     zeigeAnfrage
         AWegstreckeName {}
-            = Language.anzahl Language.wegstreckenElemente
+            = Language.anzahl $# Language.wegstreckenElemente
     zeigeAnfrage
         AWegstreckeNameAnzahl {}
             = Language.wegstreckenElement
@@ -1050,16 +1062,16 @@ instance Anfrage (AnfrageWegstrecke z) where
     zeigeAnfrage
         AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
             = zeigeAnfrage $ awsStatusAnfrageKonstruktor leeresToken
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageWegstrecke z -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageWegstrecke z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AnfrageWegstreckeZugtyp
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteZugtypen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteZugtypen
     zeigeAnfrageOptionen
         AWegstreckeNameAnzahl {}
-            = Just $ toBefehlsString Language.befehlWegstreckenElemente
+            = Just $ toBefehlsString . Language.befehlWegstreckenElemente
     zeigeAnfrageOptionen
         AWegstreckeNameAnzahlWeicheRichtung {}
-            = Just $ toBefehlsString $ map showText $ NE.toList unterstützteRichtungen
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) $ NE.toList unterstützteRichtungen
     zeigeAnfrageOptionen
         AWSStatusAnfrage {awsStatusAnfrageKonstruktor}
             = zeigeAnfrageOptionen $ awsStatusAnfrageKonstruktor leeresToken
@@ -1256,33 +1268,34 @@ data AnfrageObjekt
         (AnfrageZugtypEither AnfrageWegstrecke)
     | AOPlan
         AnfragePlan
+    deriving (Show)
 
-instance Show AnfrageObjekt where
-    show :: AnfrageObjekt -> String
-    show
+instance Anzeige AnfrageObjekt where
+    anzeige :: AnfrageObjekt -> Sprache -> Text
+    anzeige
         AnfrageObjekt
             = Language.objekt
-    show
+    anzeige
         (AOBahngeschwindigkeit aBahngeschwindigkeit)
-            = showText aBahngeschwindigkeit
-    show
+            = anzeige aBahngeschwindigkeit
+    anzeige
         (AOStreckenabschnitt aStreckenabschnitt)
-            = showText aStreckenabschnitt
-    show
+            = anzeige aStreckenabschnitt
+    anzeige
         (AOWeiche aWeiche)
-            = showText aWeiche
-    show
+            = anzeige aWeiche
+    anzeige
         (AOKupplung aKupplung)
-            = showText aKupplung
-    show
+            = anzeige aKupplung
+    anzeige
         (AOWegstrecke qWegstrecke)
-            = showText qWegstrecke
-    show
+            = anzeige qWegstrecke
+    anzeige
         (AOPlan aPlan)
-            = showText aPlan
+            = anzeige aPlan
 
 instance Anfrage AnfrageObjekt where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageObjekt -> s
+    zeigeAnfrage :: AnfrageObjekt -> Sprache -> Text
     zeigeAnfrage
         AnfrageObjekt
             = Language.objekt
@@ -1304,10 +1317,10 @@ instance Anfrage AnfrageObjekt where
     zeigeAnfrage
         (AOPlan aPlan)
             = zeigeAnfrage aPlan
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageObjekt -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageObjekt -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         AnfrageObjekt
-            = Just $ toBefehlsString Language.befehlTypen
+            = Just $ toBefehlsString . Language.befehlTypen
     zeigeAnfrageOptionen
         (AOBahngeschwindigkeit aBahngeschwindigkeit)
             = zeigeAnfrageOptionen aBahngeschwindigkeit

@@ -21,6 +21,7 @@ module Zug.UI.Cmd.Parser.Plan (
 import Data.Foldable (Foldable(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..),
@@ -29,7 +30,7 @@ import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKl
                     Kupplung(..), KupplungKlasse(..), Wartezeit(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..),
                     Fahrtrichtung(..), unterstützteFahrtrichtungen)
-import Zug.Language (Anzeige(..), Sprache(), (<^>), (<=>), (<->), (<|>), toBefehlsString)
+import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..), AktionStreckenabschnitt(..), AktionWegstrecke(..),
@@ -694,6 +695,10 @@ data AnfragePlan
     | APlanStatusAnfrage
         (EingabeToken -> StatusAnfrageObjekt)
         (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
+
+instance Show AnfragePlan where
+    show :: AnfragePlan -> String
+    show = Text.unpack . flip anzeige Deutsch
 
 instance Anzeige AnfragePlan where
     anzeige :: AnfragePlan -> Sprache -> Text

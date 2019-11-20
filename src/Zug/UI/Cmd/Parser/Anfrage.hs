@@ -101,6 +101,12 @@ instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'Anf
     show    (AnfrageNothing a)  = show a
     show    (AnfrageMärklin a)  = show a
     show    (AnfrageLego a)     = show a
+instance (Anzeige (a 'AnfrageZugtyp), Anzeige (a 'AnfrageZugtypMärklin), Anzeige (a 'AnfrageZugtypLego))
+    => Anzeige (AnfrageZugtypEither a) where
+    anzeige :: AnfrageZugtypEither a -> Sprache -> Text
+    anzeige (AnfrageNothing a)  = anzeige a
+    anzeige (AnfrageMärklin a)  = anzeige a
+    anzeige (AnfrageLego a)     = anzeige a
 instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrage (a 'AnfrageZugtypLego))
     => Anfrage (AnfrageZugtypEither a) where
     zeigeAnfrage :: AnfrageZugtypEither a -> Sprache -> Text
