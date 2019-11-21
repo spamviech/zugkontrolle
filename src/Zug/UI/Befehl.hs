@@ -27,7 +27,7 @@ import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
 import Zug.Enums (Zugtyp(..))
-import Zug.Language (MitSprache(..))
+import Zug.Language (Sprache(), MitSprache(..))
 import Zug.Menge (entfernen)
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
 import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
@@ -85,7 +85,7 @@ data BefehlAllgemein o
         (IOStatusAllgemein o ())            -- ^ Fehlerbehandlung
     | Ausführen
         Plan
-        (Natural -> IO ())                  -- ^ Fortschrittsanzeige
+        (Natural -> Sprache -> IO ())       -- ^ Fortschrittsanzeige
         (IO ())                             -- ^ Abschlussanzeige
     | AusführenAbbrechen
         Plan
@@ -155,7 +155,9 @@ instance BefehlKlasse BefehlAllgemein where
                                 atomically $ writeTVar tvarI2CMap i2cMapEmpty
                             put statusNeu
             ausführenBefehlAux  (Ausführen plan showAction endAktion)
-                = ausführenPlan plan showAction endAktion
+                = do
+                    mitSprache <- getSprache
+                    ausführenPlan plan (verwendeSprache (flip showAction) mitSprache) endAktion
             ausführenBefehlAux  (AusführenAbbrechen plan)
                 = do
                     tvarAusführend <- erhalteMengeAusführend

@@ -1,21 +1,32 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
 
 {-|
 Description : Ungeordnete Mengen.
 
-Mengen enthalten jedes Element höchstens einmal. Die Implementierung ist nicht effizient, dafür werden keine weiteren Anforderungen an die Elemente gestellt.
+Mengen enthalten jedes Element höchstens einmal.
+Die Implementierung ist nicht effizient, dafür werden keine weiteren Anforderungen an die Elemente gestellt.
 -}
 module Zug.Menge (Menge(), leer, ausFoldable, hinzufügen, entfernen, mitglied, vereinigung, schnittmenge) where
 
+-- Bibliotheken
 import Data.Foldable (Foldable(..))
 import Data.List (delete, union, intersect, nub)
+import Data.Text (Text)
+import qualified Data.Text as Text
+-- Abhängigkeit von anderen Modulen
+import Zug.Language (Anzeige(..), Sprache(), (<#>))
 
 -- | Eine 'Menge' ist eine Sammlung an Elementen, bei denen jedes Element höchstens einmal vorkommt.
 newtype Menge a = Menge [a]
 
 instance (Show a) => Show (Menge a) where
     show :: Menge a -> String
-    show (Menge liste) = '{' : init (tail (show liste)) ++ "}"
+    show (Menge liste) = '{' : init (tail $ show liste) ++ "}"
+
+instance (Anzeige a) => Anzeige (Menge a) where
+    anzeige :: Menge a -> Sprache -> Text
+    anzeige (Menge liste) = ("{" :: Text) <#> Text.init . Text.tail . anzeige liste <#> ("}" :: Text)
 
 instance Foldable Menge where
     foldMap :: Monoid m => (a -> m) -> Menge a -> m 

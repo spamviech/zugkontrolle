@@ -47,6 +47,8 @@ instance Anzeige Char where
 
 instance Anzeige Natural
 
+instance Anzeige Double
+
 instance Anzeige Value
 
 instance (Anzeige a) => Anzeige [a] where

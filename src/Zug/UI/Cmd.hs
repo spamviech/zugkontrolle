@@ -21,7 +21,7 @@ import Control.Monad.State.Class (MonadState(..))
 -- Farbige Konsolenausgabe
 import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
-import Zug.Klassen (ZugtypKlasse())
+import Zug.Enums (ZugtypKlasse())
 import qualified Zug.Language as Language
 import Zug.Language ((<~>), (<\>), (<=>), (<!>), (<:>), showText, fehlerhafteEingabe, toBefehlsString)
 import qualified Zug.UI.Save as Save

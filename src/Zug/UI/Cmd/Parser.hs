@@ -23,7 +23,7 @@ module Zug.UI.Cmd.Parser (
     AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<),
     -- ** Unvollständige StreckenObjekte
     Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard,
-    showMitAnfrage, showMitAnfrageFehlgeschlagen, unbekanntShowText,
+    anzeigeMitAnfrage, anzeigeMitAnfrageFehlgeschlagen, unbekanntShowText,
     AnfragePlan(..), AnfrageAktion(..), AnfrageAktionWegstrecke(..), AnfrageAktionWeiche(..),
     AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..), AnfrageAktionKupplung(..),
     AnfrageObjekt(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..),
@@ -33,20 +33,22 @@ module Zug.UI.Cmd.Parser (
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
-import Data.Text (unpack)
+import Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (Anschluss(..))
-import Zug.Klassen (Zugtyp(..))
+import Zug.Enums (Zugtyp(..))
+import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<:>), (<\>), toBefehlsString)
 import qualified Zug.Language as Language
-import Zug.Language ((<^>), (<:>), (<\>), showText, toBefehlsString)
 import qualified Zug.Menge as Menge
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
 import Zug.Plan (Plan, Plan(..))
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), showMitAnfrage, showMitAnfrageFehlgeschlagen,
+import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), anzeigeMitAnfrage, anzeigeMitAnfrageFehlgeschlagen,
                                 StatusAnfrageObjekt(..), statusAnfrageObjekt, zuObjekt,
                                 StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
                                 unbekanntShowText, zeigeAnfrageFehlgeschlagenStandard,
@@ -186,45 +188,49 @@ data AnfrageBefehl
 
 instance Show AnfrageBefehl where
     show :: AnfrageBefehl -> String
-    show
+    show = Text.unpack . flip anzeige Deutsch
+
+instance Anzeige AnfrageBefehl where
+    anzeige :: AnfrageBefehl -> Sprache -> Text
+    anzeige
         AnfrageBefehl
             = Language.befehl
-    show
+    anzeige
         (ABHinzufügen anfrageObjekt)
-            = Language.hinzufügen <^> showText anfrageObjekt
-    show
+            = Language.hinzufügen <^> anfrageObjekt
+    anzeige
         ABEntfernen
             = Language.entfernen
-    show
+    anzeige
         ABSpeichern
             = Language.speichern
-    show
+    anzeige
         ABLaden
             = Language.laden
-    show
+    anzeige
         (ABAktionPlan plan)
-            = Language.aktion <^> showText plan
-    show
+            = Language.aktion <^> plan
+    anzeige
         (ABAktionPlanAusführend plan _neu)
-            = Language.wirdAusgeführt $ showText plan
-    show
+            = Language.wirdAusgeführt $# plan
+    anzeige
         (ABAktionPlanGesperrt plan _neu pins)
-            = Language.ausführenGesperrt (show $ Menge.ausFoldable pins) <\> showText plan
-    show
+            = (Language.ausführenGesperrt $# anzeige $ Menge.ausFoldable pins) <\> plan
+    anzeige
         (ABAktion anfrageAktion)
-            = showText anfrageAktion
-    show
+            = anzeige anfrageAktion
+    anzeige
         (ABStatusAnfrage anfrageKonstruktor _eitherF)
-            = showText $ anfrageKonstruktor leeresToken
-    show
+            = anzeige $ anfrageKonstruktor leeresToken
+    anzeige
         (ABStatusAnfrageMärklin anfrageKonstruktor _eitherF)
-            = showText $ anfrageKonstruktor leeresToken
-    show
+            = anzeige $ anfrageKonstruktor leeresToken
+    anzeige
         (ABStatusAnfrageLego anfrageKonstruktor _eitherF)
-            = showText $ anfrageKonstruktor leeresToken
+            = anzeige $ anfrageKonstruktor leeresToken
 
 instance Anfrage AnfrageBefehl where
-    zeigeAnfrage :: (IsString s, Semigroup s) => AnfrageBefehl -> s
+    zeigeAnfrage :: AnfrageBefehl -> Sprache -> Text
     zeigeAnfrage
         AnfrageBefehl
             = Language.befehl
@@ -245,10 +251,10 @@ instance Anfrage AnfrageBefehl where
             = Language.aktion
     zeigeAnfrage
         anfrage@(ABAktionPlanAusführend _plan _neu)
-            = showText anfrage <^> Language.aktion
+            = anfrage <^> Language.aktion
     zeigeAnfrage
         anfrage@(ABAktionPlanGesperrt _plan _neu _pins)
-            = showText anfrage <^> Language.aktion
+            = anfrage <^> Language.aktion
     zeigeAnfrage
         (ABAktion anfrageAktion)
             = zeigeAnfrage anfrageAktion
@@ -261,19 +267,19 @@ instance Anfrage AnfrageBefehl where
     zeigeAnfrage
         (ABStatusAnfrageLego anfrageKonstruktor _eitherF)
             = zeigeAnfrage $ anfrageKonstruktor leeresToken
-    zeigeAnfrageOptionen :: (IsString s, Semigroup s) => AnfrageBefehl -> Maybe s
+    zeigeAnfrageOptionen :: AnfrageBefehl -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen
         (ABHinzufügen anfrageObjekt)
             = zeigeAnfrageOptionen anfrageObjekt
     zeigeAnfrageOptionen
         (ABAktionPlan _plan)
-            = Just $ toBefehlsString Language.aktionPlan
+            = Just $ toBefehlsString . Language.aktionPlan
     zeigeAnfrageOptionen
         (ABAktionPlanAusführend _plan _neu)
-            = Just $ toBefehlsString Language.aktionPlanAusführend
+            = Just $ toBefehlsString . Language.aktionPlanAusführend
     zeigeAnfrageOptionen
         (ABAktionPlanGesperrt _plan _neu _pins)
-            = Just $ toBefehlsString Language.aktionPlanGesperrt
+            = Just $ toBefehlsString . Language.aktionPlanGesperrt
     zeigeAnfrageOptionen
         (ABAktion anfrageAktion)
             = zeigeAnfrageOptionen anfrageAktion
@@ -346,20 +352,19 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
     anfrageAktualisieren
         ABSpeichern
         EingabeToken {eingabe}
-            = AFErgebnis $ Right $ Speichern $ unpack eingabe
+            = AFErgebnis $ Right $ Speichern $ Text.unpack eingabe
     anfrageAktualisieren
         ABLaden
         EingabeToken {eingabe}
-            = AFErgebnis $ Left $ BSLaden $ unpack eingabe
+            = AFErgebnis $ Left $ BSLaden $ Text.unpack eingabe
     anfrageAktualisieren
         (ABAktionPlan plan@Plan {plAktionen})
         token
             = wähleErgebnis token [(Lexer.Ausführen, Right $ Ausführen plan zeigeFortschritt $ pure ())]
             where
-                zeigeFortschritt :: Natural -> IO ()
-                zeigeFortschritt i = putStrLn $
-                    showText plan <:>
-                    showText (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double)
+                zeigeFortschritt :: Natural -> Sprache -> IO ()
+                zeigeFortschritt i
+                    = Text.putStrLn . (plan <:> (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double))
     anfrageAktualisieren
         (ABAktionPlanAusführend plan _neu)
         token
