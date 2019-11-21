@@ -11,9 +11,9 @@ module Zug.UI.Cmd (main, mainStatus) where
 
 -- Bibliotheken
 import System.IO (hFlush, stdout)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import Data.Text (Text, pack)
+import Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 import Control.Monad (unless, void)
 import Control.Monad.Trans (MonadIO (..))
 import Control.Monad.RWS (evalRWST)
@@ -23,11 +23,12 @@ import System.Console.ANSI
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (ZugtypKlasse())
 import qualified Zug.Language as Language
-import Zug.Language ((<~>), (<\>), (<=>), (<!>), (<:>), showText, fehlerhafteEingabe, toBefehlsString)
+import Zug.Language (Anzeige(..), Sprache(), ($#), (<~>), (<\>), (<=>), (<!>), (<:>),
+                    fehlerhafteEingabe, toBefehlsString)
 import qualified Zug.UI.Save as Save
 import Zug.Options (Options(..), getOptions)
 import Zug.Objekt (Objekt)
-import Zug.UI.Base (IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
+import Zug.UI.Base (StatusAllgemein(..), getSprache, IOStatus, auswertenLeererIOStatus, tvarMapsNeu,
                     AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer(EingabeTokenAllgemein(..), lexer)
@@ -41,10 +42,10 @@ import Zug.UI.Cmd.Parser (AnfrageFortsetzung(..), AnfrageBefehl(..), Anfrage(..)
 main :: IO ()
 main = do
     -- Lade Datei angegeben in Kommandozeilenargument
-    Options {load = path} <- getOptions
-    Save.laden path pure >>= \case
+    Options {load = path, sprache} <- getOptions
+    Save.laden path pure sprache >>= \case
         Nothing
-            -> auswertenLeererIOStatus mainStatus tvarMapsNeu
+            -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
         (Just anfangsZustand)
             -> do
                 tvarMaps <- tvarMapsNeu
@@ -54,19 +55,24 @@ main = do
 mainStatus :: IOStatus ()
 mainStatus = do
     status <- get
+    let
+        sprache :: Sprache
+        sprache = _sprache status
+        putStrLnSprache :: (Sprache -> Text) -> IO ()
+        putStrLnSprache s = Text.putStrLn $ s sprache
     liftIO $ do
         setSGR [SetColor Foreground Dull Green]
-        putStr $ "" <\> Language.zugkontrolle
+        putStrLnSprache $ Text.empty <\> Language.zugkontrolle
         setSGR [Reset]
-        putStrLn $ "" <~> Language.version
+        putStrLnSprache $ Text.empty <~> Language.version
         setSGR [SetColor Foreground Dull Cyan]
-        putStrLn $ map (const '-') $ Language.zugkontrolle <~> Language.version
+        Text.putStrLn $ Text.map (const '-') $ Language.zugkontrolle <~> Language.version $ sprache
         setSGR [Reset]
-        putStrLn $ showText status
+        putStrLnSprache $ anzeige status
         setSGR [SetColor Foreground Dull Blue]
-        putStrLn $ toBefehlsString Language.befehlAlle
+        putStrLnSprache $ toBefehlsString . Language.befehlAlle
         setSGR [Reset]
-    ende <- promptS "\n" >>= statusParser . lexer
+    ende <- promptS (const "\n") >>= statusParser . lexer
     unless ende mainStatus
 
 -- | Gesammter Auswerte-Prozess
@@ -76,8 +82,9 @@ statusParser = statusParserAux . parser AnfrageBefehl
         statusParserAux ::
             ([Befehl], AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl), [EingabeTokenAllgemein], AnfrageBefehl) ->
                 IOStatus Bool
-        statusParserAux (befehle, fortsetzung, eingabeRest, backup)
-            = ausführenBefehl (BefehlListe befehle) >> case fortsetzung of
+        statusParserAux (befehle, fortsetzung, eingabeRest, backup) = do
+            sprache <- getSprache
+            ausführenBefehl (BefehlListe befehle) >> case fortsetzung of
                 (AFErgebnis (Right befehl))
                     -> ausführenBefehl befehl
                 (AFErgebnis (Left befehlSofort))
@@ -96,9 +103,9 @@ statusParser = statusParserAux . parser AnfrageBefehl
                     -> do
                         liftIO $ do
                             setSGR [SetColor Foreground Vivid Red]
-                            T.putStr $ unbekanntShowText backup eingabe
+                            Text.putStr $ unbekanntShowText backup eingabe sprache
                             setSGR [Reset]
-                        promptS "" >>= statusParserAux . parser backup . lexer
+                        promptS (const Text.empty) >>= statusParserAux . parser backup . lexer
                 (AFZwischenwert anfrage)
                     -> do
                         case zeigeAnfrageOptionen anfrage of
@@ -107,9 +114,9 @@ statusParser = statusParserAux . parser AnfrageBefehl
                             (Just anfrageOptionen)
                                 -> liftIO $ do
                                     setSGR [SetColor Foreground Dull Blue]
-                                    putStrLn anfrageOptionen
+                                    Text.putStrLn $ anfrageOptionen sprache
                                     setSGR [Reset]
-                        promptS (zeigeAnfrage anfrage <:> "") >>= statusParserAux . parser anfrage . lexer
+                        promptS (anfrage <:> Text.empty) >>= statusParserAux . parser anfrage . lexer
         statusAnfrage ::
             StatusAnfrageObjekt ->
             (Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)) ->
@@ -155,14 +162,14 @@ statusParser = statusParserAux . parser AnfrageBefehl
             backup
             _eingabeRest
             (Left eingabe)
-                = promptS (zeigeAnfrageFehlgeschlagen backup eingabe <!> zeigeAnfrage backup <:> "")
+                = promptS (zeigeAnfrageFehlgeschlagen backup eingabe <!> zeigeAnfrage backup <:> Text.empty)
                     >>= statusParserAux . parser backup . lexer
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl
 ausführenBefehlSofort   (BSLaden dateipfad)         = do
     ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $
-        Language.nichtGefundeneDatei <=> pack dateipfad
+        Language.nichtGefundeneDatei <=> dateipfad
     pure AnfrageBefehl
 ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >>= pure . \case
         AusführenMöglich                -> ABAktionPlan plan
@@ -172,12 +179,12 @@ ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]
 prompt text = do
-    T.putStr text
+    Text.putStr text
     hFlush stdout
-    T.getLine >>= pure . T.words
+    Text.getLine >>= pure . Text.words
 
-promptS :: Text -> IOStatus [Text]
-promptS = liftIO . prompt
+promptS :: (Sprache -> Text) -> IOStatus [Text]
+promptS s = getSprache >>= liftIO . prompt . s
 
-fehlerhafteEingabeS :: Text -> IOStatus ()
-fehlerhafteEingabeS = liftIO . fehlerhafteEingabe
+fehlerhafteEingabeS :: (Sprache -> Text) -> IOStatus ()
+fehlerhafteEingabeS s = getSprache >>= liftIO . (fehlerhafteEingabe $# s)

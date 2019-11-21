@@ -121,7 +121,7 @@ pläne
 #endif
 
 instance (Anzeige (ZugtypEither (BG o)), Anzeige (ST o), Anzeige (ZugtypEither (WE o)), Anzeige (KU o),
-    Anzeige (ZugtypEither (WS o)), Anzeige (PL o), Anzeige (SP o)) => Anzeige (StatusAllgemein o) where
+        Anzeige (ZugtypEither (WS o)), Anzeige (PL o)) => Anzeige (StatusAllgemein o) where
     anzeige :: StatusAllgemein o -> Sprache -> Text
     anzeige
         status

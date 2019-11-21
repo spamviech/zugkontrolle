@@ -21,7 +21,7 @@ import System.Hardware.WiringPi (Value())
 
 -- | Bekannte Sprachen
 data Sprache = Deutsch | Englisch
-                deriving (Show, Read, Bounded, Enum, Eq)
+    deriving (Show, Read, Bounded, Enum, Eq)
 
 -- | Alle unterstützten Sprachen
 alleSprachen :: [Sprache]
@@ -65,11 +65,11 @@ instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
     anzeige (a, b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
 
 infixr 0 $#
-($#) :: (Anzeige a) => (Sprache -> Text -> Text) -> a -> Sprache -> Text
+($#) :: (Anzeige a) => (Sprache -> Text -> b) -> a -> Sprache -> b
 ($#) f a sprache = f sprache $ anzeige a sprache
 
 infixr 9 .#
-(.#) :: (Anzeige b) => (Sprache -> Text -> Text) -> (a -> b) -> a -> Sprache -> Text
+(.#) :: (Anzeige b) => (Sprache -> Text -> c) -> (a -> b) -> a -> Sprache -> c
 (.#) f g a = f $# g a
 
 -- * Operatoren

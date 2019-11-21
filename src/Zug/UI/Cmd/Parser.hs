@@ -31,8 +31,6 @@ module Zug.UI.Cmd.Parser (
 
 -- Bibliotheken
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Semigroup (Semigroup(..))
-import Data.String (IsString(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
