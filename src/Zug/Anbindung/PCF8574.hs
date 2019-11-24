@@ -21,6 +21,7 @@ module Zug.Anbindung.PCF8574 (
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits ( bit, (.|.), (.&.), testBit, complement)
+import Data.Text (Text)
 import Data.Word (Word8)
 import System.Hardware.WiringPi (Value(..))
 import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
@@ -31,7 +32,8 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..),
                         I2CAddress(..), i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
-import Zug.Language (Anzeige())
+import Zug.Language (Anzeige(..), Sprache())
+import qualified Zug.Language as Language
 
 {-
 -- | Alle Möglichkeiten, die Addresse eines PCF8574 einzustellen
@@ -62,6 +64,11 @@ toI2CAddress
 -- | Variante des /PCF8574/ (beeinflusst 'I2CAddress')
 data PCF8574Variant = VariantNormal | VariantA
     deriving (Show, Read, Eq, Ord, Bounded, Enum)
+
+instance Anzeige PCF8574Variant where
+    anzeige :: PCF8574Variant -> Sprache -> Text
+    anzeige VariantNormal   = Language.normal
+    anzeige VariantA        = Language.a
 
 -- | Variante und variable Adress-Bits eines /PCF8574/
 data PCF8574 = PCF8574 {variant :: PCF8574Variant, a0, a1, a2 :: Value}

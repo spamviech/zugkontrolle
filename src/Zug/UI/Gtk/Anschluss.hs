@@ -16,20 +16,23 @@ module Zug.UI.Gtk.Anschluss (
 
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
+import Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), PCF8574(..), PCF8574Variant(..), Value(..))
-import Zug.Language ((<->), (<:>), showText)
+import Zug.Anbindung (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), PCF8574(..),
+                        PCF8574Variant(..), Value(..))
+import Zug.Language (Sprache(..), (<->), (<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
+import Zug.UI.Gtk.Hilfsfunktionen (SpracheGuiReader(), verwendeSpracheGui,
+                                    boxPackWidgetNewDefault, notebookAppendPageNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), mitNotebook)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl,
-                                    boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
+                            boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 
 -- | Anzeige eines 'Anschluss'
 newtype AnschlussWidget = AnschlussWidget Gtk.Label
-            deriving (Eq)
+    deriving (Eq)
 
 instance MitWidget AnschlussWidget where
     erhalteWidget :: AnschlussWidget -> Gtk.Widget
@@ -40,9 +43,12 @@ instance MitLabel AnschlussWidget where
     erhalteLabel (AnschlussWidget label) = label
 
 -- | 'Label' für 'Anschluss' erstellen
-anschlussNew :: (MonadIO m) => Text -> Anschluss -> m AnschlussWidget
-anschlussNew name anschluss = liftIO $ fmap AnschlussWidget $
-    Gtk.labelNew $ Just $ name <-> Language.anschluss <:> showText anschluss
+anschlussNew :: (SpracheGuiReader r m, MonadIO m) => Text -> Anschluss -> m AnschlussWidget
+anschlussNew name anschluss = do
+    label <- liftIO $ Gtk.labelNew (Nothing :: Maybe Text)
+    verwendeSpracheGui $
+        \sprache -> Gtk.set label [Gtk.labelText := (name <-> Language.anschluss <:> anschluss) sprache]
+    pure $ AnschlussWidget label
 
 -- | Widgets zum erzeugen eines 'Anschluss'
 data AnschlussAuswahlWidget
@@ -64,25 +70,47 @@ instance MitWidget AnschlussAuswahlWidget where
     erhalteWidget = aawWidget
 
 -- | Erzeugen eines'Anschluss'
-anschlussAuswahlNew :: (MonadIO m) => Text -> m AnschlussAuswahlWidget
-anschlussAuswahlNew name = liftIO $ do
-    vBox <- Gtk.vBoxNew False 0
-    aawNotebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
-    -- Pin
-    (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook (Language.pin :: Text) $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pinBox $ Gtk.labelNew $ Just $ name <-> Language.pin <:> ""
-    aawPin <- boxPackWidgetNewDefault pinBox $ Gtk.spinButtonNewWithRange 0 27 1
-    Gtk.set aawPin [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
-    -- PCF8574Port
-    (pcf8574Box, aawPCF8574PortPage) <- notebookAppendPageNew aawNotebook (Language.pcf8574Port  :: Text) $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pcf8574Box $ Gtk.labelNew $ Just $ name <-> Language.pcf8574Port <:> ""
-    aawPCF8574PortVariante <- boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlComboBoxNew VariantA Language.variante
+anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> m AnschlussAuswahlWidget
+anschlussAuswahlNew name = do
+    (vBox, aawNotebook, pinBox, aawPinPage, labelPinName, aawPin, pcf8574Box, aawPCF8574PortPage, labelPortName)
+        <- liftIO $ do
+            vBox <- Gtk.vBoxNew False 0
+            aawNotebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
+            -- Pin
+            (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook (Language.pin Deutsch) $ Gtk.hBoxNew False 0
+            labelPinName <- boxPackWidgetNewDefault pinBox $ Gtk.labelNew (Nothing :: Maybe Text)
+            aawPin <- boxPackWidgetNewDefault pinBox $ Gtk.spinButtonNewWithRange 0 27 1
+            Gtk.set aawPin [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
+            -- PCF8574Port
+            (pcf8574Box, aawPCF8574PortPage) <- notebookAppendPageNew aawNotebook (Language.pcf8574Port  Deutsch) $
+                    Gtk.hBoxNew False 0
+            labelPortName <- boxPackWidgetNewDefault pcf8574Box $ Gtk.labelNew (Nothing :: Maybe Text)
+            pure (
+                vBox,
+                aawNotebook,
+                pinBox,
+                aawPinPage,
+                labelPinName,
+                aawPin,
+                pcf8574Box,
+                aawPCF8574PortPage,
+                labelPortName)
+    aawPCF8574PortVariante <- boxPackWidgetNewDefault pcf8574Box $
+        boundedEnumAuswahlComboBoxNew VariantA Language.variante
     aawPCF8574PortA0 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a0
     aawPCF8574PortA1 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a1
     aawPCF8574PortA2 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a2
-    boxPackWidgetNewDefault pcf8574Box $ Gtk.labelNew $ Just $ (Language.port <:> "" :: Text)
-    aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
-    Gtk.set aawPCF8574Port [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
+    (labelPort, aawPCF8574Port) <- liftIO $ do
+        labelPort <- boxPackWidgetNewDefault pcf8574Box $ Gtk.labelNew (Nothing :: Maybe Text)
+        aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
+        Gtk.set aawPCF8574Port [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
+        pure (labelPort, aawPCF8574Port)
+    verwendeSpracheGui $ \sprache -> do
+        Gtk.notebookSetMenuLabelText aawNotebook pinBox $ Language.pin sprache
+        Gtk.set labelPinName [Gtk.labelText := (name <-> Language.pin <:> Text.empty) sprache]
+        Gtk.notebookSetMenuLabelText aawNotebook pcf8574Box $ Language.pcf8574Port sprache
+        Gtk.set labelPortName [Gtk.labelText := (name <-> Language.pcf8574Port <:> Text.empty) sprache]
+        Gtk.set labelPort [Gtk.labelText := (Language.port <:> Text.empty) sprache]
     pure AnschlussAuswahlWidget {
         aawWidget = erhalteWidget vBox,
         aawNotebook,
