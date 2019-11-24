@@ -3,6 +3,8 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -13,7 +15,7 @@ module Zug.UI.Gtk.Hilfsfunktionen () where
 #else
 module Zug.UI.Gtk.Hilfsfunktionen (
     -- * Sprache
-    SpracheGui(), spracheGuiNeu, sprachwechsel, mitSpracheGui,
+    SpracheGui(), SpracheGuiReader(..), spracheGuiNeu, sprachwechsel, verwendeSpracheGui,
     -- * Widget
     widgetShowNew, widgetShowIf,
     -- * Container
@@ -31,6 +33,7 @@ module Zug.UI.Gtk.Hilfsfunktionen (
     NameWidget(), namePackNew, NameAuswahlWidget(), nameAuswahlPackNew, aktuellerName) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar)
+import Control.Monad.Reader.Class (MonadReader())
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -142,7 +145,8 @@ buttonNewWithEvent konstruktor action = do
 
 -- | Knopf mit Mnemonic-Label und Funktion erstellen
 buttonNewWithEventMnemonic :: (MonadIO m) => Text -> IO () -> m Gtk.Button
-buttonNewWithEventMnemonic label = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithMnemonic $ Language.addMnemonic label)
+buttonNewWithEventMnemonic label
+    = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithMnemonic $ Language.addMnemonic label)
 
 -- | Knopf mit Label und Funktion erstellen
 buttonNewWithEventLabel :: (MonadIO m) => Text -> IO () -> m Gtk.Button
@@ -151,7 +155,7 @@ buttonNewWithEventLabel label = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWith
 -- ** Namen
 -- | Widget zur Anzeige eines Namen
 newtype NameWidget = NameWidget Gtk.Label
-                        deriving (Eq, MitWidget, MitLabel)
+    deriving (Eq, MitWidget, MitLabel)
 
 -- | Name anzeigen
 namePackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m NameWidget
@@ -162,16 +166,17 @@ namePackNew box objekt = liftIO $ do
 
 -- | Widget zur Eingabe eines Namen
 newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
-                                deriving (Eq, MitWidget, MitEntry)
+    deriving (Eq, MitWidget, MitEntry)
 
 -- | Name abfragen
-nameAuswahlPackNew :: (MonadIO m, MitBox b) => b -> SpracheGui -> m NameAuswahlWidget
-nameAuswahlPackNew box spracheGui = liftIO $ do
-    hBox <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-    label <- boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
-    mitSpracheGui spracheGui $ \sprache -> Gtk.set label [Gtk.labelText := (Language.name <:> Text.empty) sprache]
-    entry <- boxPackWidgetNewDefault hBox Gtk.entryNew
-    mitSpracheGui spracheGui $
+nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b) => b -> m NameAuswahlWidget
+nameAuswahlPackNew box = do
+    hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+    label <- liftIO $ boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
+    verwendeSpracheGui $
+        \sprache -> Gtk.set label [Gtk.labelText := (Language.name <:> Text.empty) sprache]
+    entry <- liftIO $ boxPackWidgetNewDefault hBox Gtk.entryNew
+    verwendeSpracheGui $
         \sprache -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
     pure $ NameAuswahlWidget entry
 
@@ -181,6 +186,9 @@ aktuellerName = liftIO . mitEntry Gtk.entryGetText
 
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 data SpracheGui = SpracheGui {sprache :: Sprache, sprachwechselAktionen :: TVar [Sprache -> IO ()]}
+
+class (MonadReader r m) => SpracheGuiReader r m | m -> r where
+    erhalteSpracheGui :: m SpracheGui
 
 spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui
 spracheGuiNeu sprache = liftIO $ SpracheGui sprache <$> newTVarIO []
@@ -193,11 +201,10 @@ sprachwechsel
             readTVarIO sprachwechselAktionen >>= sequence_ . map ($ sprache)
             pure $ spracheGui {sprache}
 
-mitSpracheGui :: (MonadIO m) => SpracheGui -> (Sprache -> IO ()) -> m ()
-mitSpracheGui
-    SpracheGui {sprache, sprachwechselAktionen}
-    neueAktion
-        = liftIO $ do
-            neueAktion sprache
-            atomically $ modifyTVar sprachwechselAktionen (neueAktion :)
+verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> IO ()) -> m ()
+verwendeSpracheGui neueAktion = do
+    SpracheGui {sprache, sprachwechselAktionen} <- erhalteSpracheGui
+    liftIO $ do
+        neueAktion sprache
+        atomically $ modifyTVar sprachwechselAktionen (neueAktion :)
 #endif

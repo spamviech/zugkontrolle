@@ -18,8 +18,9 @@ Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base (
     -- * Zustands-Typ
-    Status, StatusAllgemein(..), statusLeer, ReaderFamilie, ObjektReader,
+    Status, StatusAllgemein(..), statusLeer, MitStatus(..), StatusReader(..),
     TVarMaps(..), MitTVarMaps(..), TVarMapsReader(..), tvarMapsNeu,
+    ReaderFamilie, ObjektReader,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
 #endif
@@ -163,6 +164,19 @@ statusLeer _sprache = Status {
     _wegstrecken = [],
     _pläne = [],
     _sprache}
+
+-- | Klasse für Typen mit dem in einer 'TMVar' gespeicherten 'StatusAllgemein'
+class MitStatus r o where
+    status :: r -> TMVar (StatusAllgemein o)
+instance MitStatus (TMVar (StatusAllgemein o)) o where
+    status :: TMVar (StatusAllgemein o) -> TMVar (StatusAllgemein o)
+    status = id
+-- | Abkürzung für Funktionen, die den in einer 'TMVar' gespeicherten 'StatusAllgemein' benötigen.
+class (MonadReader r m) => StatusReader r o m | m -> r where
+    erhalteStatus :: m (TMVar (StatusAllgemein o))
+instance (MonadReader r m, MitStatus r o) => StatusReader r o m where
+    erhalteStatus :: m (TMVar (StatusAllgemein o))
+    erhalteStatus = asks status
 
 -- | Sammlung aller benötigten 'TVar's
 data TVarMaps = TVarMaps {

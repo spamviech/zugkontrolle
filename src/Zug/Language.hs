@@ -15,7 +15,7 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 -}
 module Zug.Language (
     module Zug.Language,
-    Sprache(..), alleSprachen, MitSprache(..),
+    Sprache(..), alleSprachen,
     Anzeige(..), ($#), (.#), showText, addMnemonic,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
@@ -33,14 +33,6 @@ import Zug.Language.Operatoren (Anzeige(..), ($#), (.#), Sprache(..), alleSprach
 import Zug.Language.TemplateHaskell (erzeugeFunktion)
 import qualified Zug.Language.DE
 import qualified Zug.Language.EN
-
--- | Klasse für Typen mit 'Sprache'
-class MitSprache s where
-    verwendeSprache :: (Sprache -> a) -> s -> a
-
-instance MitSprache Sprache where
-    verwendeSprache :: (Sprache -> a) -> Sprache -> a
-    verwendeSprache = ($)
 
 -- * Titel / Title
 erzeugeFunktion "zugkontrolle"

@@ -291,19 +291,6 @@ instance (MonadReader r m, MitDynamischeWidgets r) => DynamischeWidgetsReader r 
     erhalteDynamischeWidgets :: m DynamischeWidgets
     erhalteDynamischeWidgets = asks dynamischeWidgets
 
--- | Klasse für Typen mit dem in einer 'TMVar' gespeicherten 'StatusGui'
-class MitStatus r where
-    status :: r -> TMVar StatusGui
-instance MitStatus (TMVar StatusGui) where
-    status :: TMVar StatusGui -> TMVar StatusGui
-    status = id
--- | Abkürzung für Funktionen, die den in einer 'TMVar' gespeicherten 'StatusGui' benötigen.
-class (MonadReader r m) => StatusReader r m where
-    erhalteStatus :: m (TMVar StatusGui)
-instance (MonadReader r m, MitStatus r) => StatusReader r m where
-    erhalteStatus :: m (TMVar StatusGui)
-    erhalteStatus = asks status
-
 type instance ReaderFamilie ObjektGui = (TVarMaps, DynamischeWidgets, TMVar StatusGui)
 
 instance MitTVarMaps (TVarMaps, DynamischeWidgets, TMVar StatusGui) where
