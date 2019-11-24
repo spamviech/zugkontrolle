@@ -2,6 +2,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -33,8 +34,8 @@ import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (showText)
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault)
+import Zug.Language (Sprache(..), Anzeige(..))
+import Zug.UI.Gtk.Hilfsfunktionen (SpracheGuiReader(), verwendeSpracheGui, boxPackWidgetNewDefault)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 
 -- | Auswahl-Widget für ein 'Bounded' 'Enum'
@@ -57,57 +58,75 @@ nameWrapSize :: Int
 nameWrapSize = 16
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's
-auswahlRadioButtonNamedNew :: (MonadIO m, Eq e) => NonEmpty e -> Text -> (e -> Text) -> m (AuswahlWidget e)
-auswahlRadioButtonNamedNew (h :| t) name anzeigeFunktion = liftIO $ do
-    hBox <- Gtk.hBoxNew False 0
-    nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
-    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
-    vBox <- boxPackWidgetNewDefault hBox $ Gtk.vBoxNew False 0
-    -- Erstelle RadioButtons
-    hRadioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabel $ anzeigeFunktion h
-    tEnumButtons <- forM t $ \enum -> do
-        radioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewWithLabelFromWidget hRadioButton $
-            anzeigeFunktion enum
-        -- Setze Start-Wert
-        when (enum == h) $ Gtk.toggleButtonSetActive radioButton True
-        pure (enum, radioButton)
+auswahlRadioButtonNamedNew :: (SpracheGuiReader r m, MonadIO m, Eq e) =>
+    NonEmpty e -> (Sprache -> Text) -> (e -> Sprache -> Text) -> m (AuswahlWidget e)
+auswahlRadioButtonNamedNew (h :| t) name anzeigeFunktion = do
+    (hBox, nameLabel, enumButtons) <- liftIO $ do
+        hBox <- Gtk.hBoxNew False 0
+        nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
+        Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
+        vBox <- boxPackWidgetNewDefault hBox $ Gtk.vBoxNew False 0
+        -- Erstelle RadioButtons
+        hRadioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNew
+        tEnumButtons <- forM t $ \e -> do
+            radioButton <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewFromWidget hRadioButton
+            pure (e, radioButton)
+        -- Setze Startwert
+        Gtk.toggleButtonSetActive hRadioButton True
+        pure (hBox, nameLabel, (h, hRadioButton) :| tEnumButtons)
+    verwendeSpracheGui $ \sprache -> do
+        Gtk.set nameLabel [Gtk.labelText := name sprache]
+        forM_ enumButtons $ \(e, radioButton) ->
+            Gtk.set radioButton [Gtk.buttonLabel := anzeigeFunktion e sprache]
     pure $ AuswahlRadioButton {
         widget = erhalteWidget hBox,
-        enumButtons = ((h, hRadioButton) :| tEnumButtons)}
+        enumButtons}
 
--- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendeung der 'Show'-Instanz
-auswahlRadioButtonNew :: (MonadIO m, Eq e, Show e) => NonEmpty e -> Text -> m (AuswahlWidget e)
-auswahlRadioButtonNew elemente name = auswahlRadioButtonNamedNew elemente name showText
+-- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendeung der 'Anzeige'-Instanz
+auswahlRadioButtonNew :: (SpracheGuiReader r m, MonadIO m, Eq e, Anzeige e) =>
+    NonEmpty e -> (Sprache -> Text) -> m (AuswahlWidget e)
+auswahlRadioButtonNew elemente name = auswahlRadioButtonNamedNew elemente name anzeige
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's für alle Elemente eines 'Bounded' 'Enum's.
 -- Verwende zur Anzeige die 'Show'-Instanz.
-boundedEnumAuswahlRadioButtonNew :: (MonadIO m, Bounded e, Enum e, Eq e, Show e) => e -> Text -> m (AuswahlWidget e)
+boundedEnumAuswahlRadioButtonNew :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e) =>
+    e -> (Sprache -> Text) -> m (AuswahlWidget e)
 boundedEnumAuswahlRadioButtonNew standard = auswahlRadioButtonNew $ standard :| delete standard [minBound..maxBound]
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox'
-auswahlComboBoxNamedNew :: (MonadIO m, Eq e) => NonEmpty e -> Text -> (e -> Text) -> m (AuswahlWidget e)
-auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = liftIO $ do
-    hBox <- Gtk.hBoxNew False 0
-    nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew $ Just name
-    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
-    comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewText
+auswahlComboBoxNamedNew :: (SpracheGuiReader r m, MonadIO m, Eq e) =>
+    NonEmpty e -> (Sprache -> Text) -> (e -> Sprache -> Text) -> m (AuswahlWidget e)
+auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = do
+    (hBox, comboBox, enumIndizes, nameLabel, listStore) <- liftIO $ do
+        hBox <- Gtk.hBoxNew False 0
+        nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
+        Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
+        comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewText
+        enumIndizes <- forM elemente $ \e -> do
+            index <- Gtk.comboBoxAppendText comboBox $ anzeigeFunktion e Deutsch
+            when (e == h) $ liftIO $ Gtk.comboBoxSetActive comboBox index
+            pure (e, index)
+        listStore <- Gtk.comboBoxGetModelText comboBox
+        pure (hBox, comboBox, enumIndizes, nameLabel, listStore)
     -- Erstelle ComboBox-Einträge
-    enumIndizes <- forM elemente $ \enum -> do
-        index <- Gtk.comboBoxAppendText comboBox $ anzeigeFunktion enum
-        when (enum == h) $ Gtk.comboBoxSetActive comboBox index
-        pure (enum, index)
+    verwendeSpracheGui $ \sprache -> void $ do
+        Gtk.set nameLabel [Gtk.labelText := name sprache]
+        forM enumIndizes $ \(e, index) -> do
+            Gtk.listStoreSetValue listStore index $ anzeigeFunktion e sprache
     pure AuswahlComboBox {
         widget = erhalteWidget hBox,
         comboBox,
         enumIndizes}
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Show'-Instanz
-auswahlComboBoxNew :: (MonadIO m, Eq e, Show e) => NonEmpty e -> Text -> m (AuswahlWidget e)
-auswahlComboBoxNew elemente name = auswahlComboBoxNamedNew elemente name showText
+auswahlComboBoxNew :: (SpracheGuiReader r m, MonadIO m, Eq e, Anzeige e) =>
+    NonEmpty e -> (Sprache -> Text) -> m (AuswahlWidget e)
+auswahlComboBoxNew elemente name = auswahlComboBoxNamedNew elemente name anzeige
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' für alle Elemente eines 'Bounded' 'Enum's.
 -- Verwende zur Anzeige die 'Show'-Instanz.
-boundedEnumAuswahlComboBoxNew :: (MonadIO m, Bounded e, Enum e, Eq e, Show e) => e -> Text -> m (AuswahlWidget e)
+boundedEnumAuswahlComboBoxNew :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e) =>
+    e -> (Sprache -> Text) -> m (AuswahlWidget e)
 boundedEnumAuswahlComboBoxNew standard = auswahlComboBoxNew $ standard :| delete standard [minBound..maxBound]
 
 -- | Erhalte den aktuell ausgewählten 'Value'

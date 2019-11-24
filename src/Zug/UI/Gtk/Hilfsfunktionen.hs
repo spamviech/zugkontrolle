@@ -187,12 +187,15 @@ aktuellerName = liftIO . mitEntry Gtk.entryGetText
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 data SpracheGui = SpracheGui {sprache :: Sprache, sprachwechselAktionen :: TVar [Sprache -> IO ()]}
 
+-- | Abkürzungen für Funktionen, die ein 'SpracheGui' benötigen.
 class (MonadReader r m) => SpracheGuiReader r m | m -> r where
     erhalteSpracheGui :: m SpracheGui
 
+-- | Erzeuge ein neues 'SpracheGui' ohne 'sprachwechsel'-Aktionen.
 spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui
 spracheGuiNeu sprache = liftIO $ SpracheGui sprache <$> newTVarIO []
 
+-- | Wechsel die 'Sprache' eines 'SpracheGui' und führe alle zugehörigen 'IO'-Aktionen aus.
 sprachwechsel :: (MonadIO m) => Sprache -> SpracheGui -> m SpracheGui
 sprachwechsel
     sprache
@@ -201,6 +204,8 @@ sprachwechsel
             readTVarIO sprachwechselAktionen >>= sequence_ . map ($ sprache)
             pure $ spracheGui {sprache}
 
+-- | Führe die übergebene Aktion mit der aktellen 'Sprache' aus.
+-- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel.
 verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> IO ()) -> m ()
 verwendeSpracheGui neueAktion = do
     SpracheGui {sprache, sprachwechselAktionen} <- erhalteSpracheGui
