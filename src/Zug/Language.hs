@@ -15,7 +15,7 @@ Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamige
 -}
 module Zug.Language (
     module Zug.Language,
-    Sprache(..), alleSprachen,
+    Sprache(..), MitSprache(..), alleSprachen,
     Anzeige(..), ($#), (.#), showText, addMnemonic,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
@@ -27,7 +27,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Version (Version, makeVersion, showVersion)
 -- Abhängigkeit von anderen Modulen
-import Zug.Language.Operatoren (Anzeige(..), ($#), (.#), Sprache(..), alleSprachen,
+import Zug.Language.Operatoren (Anzeige(..), ($#), (.#), Sprache(..), MitSprache(..), alleSprachen,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>), showText, addMnemonic)
 -- TH-Auswahl der Sprache
 import Zug.Language.TemplateHaskell (erzeugeFunktion)

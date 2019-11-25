@@ -9,7 +9,7 @@ Description : Operatoren zur Verkettung von Strings.
 Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Leerzeichen/Trennzeichen bereit.
 -}
 module Zug.Language.Operatoren (
-    Anzeige(..), ($#), (.#), Sprache(..), alleSprachen,
+    Anzeige(..), ($#), (.#), Sprache(..), MitSprache(..), alleSprachen,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>),
     showText, addMnemonic) where
 
@@ -22,6 +22,13 @@ import System.Hardware.WiringPi (Value())
 -- | Bekannte Sprachen
 data Sprache = Deutsch | Englisch
     deriving (Show, Read, Bounded, Enum, Eq)
+
+-- | Klasse für Typen, die als 'Sprache' verwendet werden können.
+class MitSprache s where
+    verwendeSprache :: (Sprache -> a) -> s -> a
+instance MitSprache Sprache where
+    verwendeSprache :: (Sprache -> a) -> Sprache -> a
+    verwendeSprache = id
 
 -- | Alle unterstützten Sprachen
 alleSprachen :: [Sprache]
