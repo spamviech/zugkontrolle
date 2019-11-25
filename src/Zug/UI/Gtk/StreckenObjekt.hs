@@ -69,16 +69,17 @@ import Zug.Anbindung (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(),
                     Weiche(..), WeicheKlasse(..),
                     Kupplung(..), KupplungKlasse(..),
                     Wegstrecke(..), WegstreckeKlasse(..))
-import Zug.Klassen (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither,
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither,
                     Fahrtrichtung(..), Strom(..), Richtung(..))
 import qualified Zug.Language as Language
-import Zug.Language ((<^>), (<:>), (<°>), showText)
+import Zug.Language (Sprache(), Anzeige(..), (<^>), (<:>), (<°>))
 import Zug.Menge (ausFoldable)
 import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt)
 import Zug.Plan (PlanKlasse(..), Plan(..), AusführendReader(),
                 AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
                 AktionKupplung(..), AktionWegstrecke(..))
 import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
+                    MitStatus(..), StatusReader(..),
                     AusführenMöglich(..), ReaderFamilie, ObjektReader, TVarMaps(..), MitTVarMaps(..),
                     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen,
                     auswertenTMVarIOStatus, ausführenMöglich, entfernenBahngeschwindigkeit,
@@ -160,7 +161,7 @@ widgetHinzufügenContainerGefüllt
     = liftIO . fmap ((> 1) . length) . Gtk.containerGetChildren . erhalteContainer . widgetHinzufügen
 
 -- | Text mit Typ-Annotation
-newtype KategorieText a = KategorieText {kategorieText :: Text}
+newtype KategorieText a = KategorieText {kategorieText :: Sprache -> Text}
 -- | Label für 'BoxWegstreckeHinzufügen'/'BoxPlanHinzufügen'
 class Kategorie a where
     kategorie :: KategorieText a
@@ -299,7 +300,7 @@ instance MitTVarMaps (TVarMaps, DynamischeWidgets, TMVar StatusGui) where
 instance MitDynamischeWidgets (TVarMaps, DynamischeWidgets, TMVar StatusGui) where
     dynamischeWidgets :: (TVarMaps, DynamischeWidgets, TMVar StatusGui) -> DynamischeWidgets
     dynamischeWidgets (_tvarMaps, dynamischeWidgets, _tmvarStatus) = dynamischeWidgets
-instance MitStatus (TVarMaps, DynamischeWidgets, TMVar StatusGui) where
+instance MitStatus (TVarMaps, DynamischeWidgets, TMVar StatusGui) ObjektGui where
     status :: (TVarMaps, DynamischeWidgets, TMVar StatusGui) -> TMVar StatusGui
     status (_tvarMaps, _dynamischeWidgets, tmvarStatus) = tmvarStatus
 
