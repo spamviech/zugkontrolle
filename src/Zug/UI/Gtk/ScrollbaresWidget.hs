@@ -18,11 +18,15 @@ import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, Packing(..),
-                                    paddingDefault, positionDefault, notebookAppendPageNew)
-import Zug.UI.Gtk.Klassen (MitWidget(..),  MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..),
-                                    MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..),
-                                    MitButton(..), MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
+import Zug.Language (Sprache())
+import Zug.UI.Gtk.Hilfsfunktionen (
+    widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, Packing(..),
+    paddingDefault, positionDefault, notebookAppendPageNew)
+import Zug.UI.Gtk.Klassen (
+    MitWidget(..),  MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..),
+    MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..),
+    MitButton(..), MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport
 data ScrollbaresWidget w = ScrollbaresWidget {swScrolledWindow :: Gtk.ScrolledWindow, swWidget :: w}
@@ -96,8 +100,8 @@ scrollbaresWidgetPackNew box konstruktor
     = boxPackWidgetNew box PackGrow paddingDefault positionDefault $ scrollbaresWidgetNew konstruktor
 
 -- | Erstelle neues 'ScrollbaresWidget' und füge sie als neue Seite einem 'MitNotebook' hinzu
-scrollbaresWidgetNotebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) =>
-    n -> Text -> m w -> m (ScrollbaresWidget w, Int)
+scrollbaresWidgetNotebookAppendPageNew :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w) =>
+    n -> (Sprache -> Text) -> m w -> m (ScrollbaresWidget w, Int)
 scrollbaresWidgetNotebookAppendPageNew notebook name konstruktor
     = notebookAppendPageNew notebook name $ scrollbaresWidgetNew konstruktor
 #endif

@@ -63,36 +63,42 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(),
-                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..),
-                    Streckenabschnitt(..), StreckenabschnittKlasse(..),
-                    Weiche(..), WeicheKlasse(..),
-                    Kupplung(..), KupplungKlasse(..),
-                    Wegstrecke(..), WegstreckeKlasse(..))
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither,
-                    Fahrtrichtung(..), Strom(..), Richtung(..))
+import Zug.Anbindung (
+    StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(),
+    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..),
+    Streckenabschnitt(..), StreckenabschnittKlasse(..),
+    Weiche(..), WeicheKlasse(..),
+    Kupplung(..), KupplungKlasse(..),
+    Wegstrecke(..), WegstreckeKlasse(..))
+import Zug.Enums (
+    Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither,
+    Fahrtrichtung(..), Strom(..), Richtung(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), Anzeige(..), (<^>), (<:>), (<°>))
 import Zug.Menge (ausFoldable)
 import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt)
-import Zug.Plan (PlanKlasse(..), Plan(..), AusführendReader(),
-                AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
-                AktionKupplung(..), AktionWegstrecke(..))
-import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
-                    MitStatus(..), StatusReader(..),
-                    AusführenMöglich(..), ReaderFamilie, ObjektReader, TVarMaps(..), MitTVarMaps(..),
-                    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen,
-                    auswertenTMVarIOStatus, ausführenMöglich, entfernenBahngeschwindigkeit,
-                    entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
-                    entfernenWegstrecke, entfernenPlan)
+import Zug.Plan (
+    PlanKlasse(..), Plan(..), AusführendReader(),
+    AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
+    AktionKupplung(..), AktionWegstrecke(..))
+import Zug.UI.Base (
+    StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
+    MitStatus(..), StatusReader(..),
+    AusführenMöglich(..), ReaderFamilie, ObjektReader, TVarMaps(..), MitTVarMaps(..),
+    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen,
+    auswertenTMVarIOStatus, ausführenMöglich, entfernenBahngeschwindigkeit,
+    entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
+    entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl, ausführenTMVarAktion)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledTMVar, registrierterCheckButtonNew,
-                                        RegistrierterCheckButton, MitRegistrierterCheckButton(..),
-                                        registrierterCheckButtonToggled)
-import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew,
-                                    boxPackWidgetNewDefault, paddingDefault, positionDefault,
-                                    Packing(..), Position(..), dialogEval,
-                                    buttonNewWithEventLabel, namePackNew, widgetShowNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (
+    FortfahrenWennToggledTMVar, registrierterCheckButtonNew,
+    RegistrierterCheckButton, MitRegistrierterCheckButton(..),
+    registrierterCheckButtonToggled)
+import Zug.UI.Gtk.Hilfsfunktionen (
+    containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew,
+    boxPackWidgetNewDefault, paddingDefault, positionDefault,
+    Packing(..), Position(..), dialogEval,
+    buttonNewWithEventLabel, namePackNew, widgetShowNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
