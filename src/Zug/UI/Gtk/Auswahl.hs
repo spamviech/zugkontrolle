@@ -35,8 +35,9 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(..), Anzeige(..))
-import Zug.UI.Gtk.Hilfsfunktionen (SpracheGuiReader(), verwendeSpracheGui, boxPackWidgetNewDefault)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 
 -- | Auswahl-Widget für ein 'Bounded' 'Enum'
 data AuswahlWidget e

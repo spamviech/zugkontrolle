@@ -24,11 +24,11 @@ import Zug.Anbindung (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), 
                         PCF8574Variant(..), Value(..))
 import Zug.Language (Sprache(..), (<->), (<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Hilfsfunktionen (SpracheGuiReader(), verwendeSpracheGui,
-                                    boxPackWidgetNewDefault, notebookAppendPageNew)
+import Zug.UI.Gtk.Auswahl (
+    AuswahlWidget, aktuelleAuswahl, boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), mitNotebook)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl,
-                            boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 
 -- | Anzeige eines 'Anschluss'
 newtype AnschlussWidget = AnschlussWidget Gtk.Label

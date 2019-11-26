@@ -22,10 +22,10 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenAtom(..), Value(..))
 import Zug.Language ((<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Hilfsfunktionen (SpracheGuiReader(), verwendeSpracheGui,
-                                    boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label

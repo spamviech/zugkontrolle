@@ -2,9 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -14,8 +11,6 @@ Description: Allgemeine Hilfsfunktionen
 module Zug.UI.Gtk.Hilfsfunktionen () where
 #else
 module Zug.UI.Gtk.Hilfsfunktionen (
-    -- * Sprache
-    SpracheGui(), SpracheGuiReader(..), spracheGuiNeu, sprachwechsel, verwendeSpracheGui,
     -- * Widget
     widgetShowNew, widgetShowIf,
     -- * Container
@@ -32,8 +27,6 @@ module Zug.UI.Gtk.Hilfsfunktionen (
     -- * Name
     NameWidget(), namePackNew, NameAuswahlWidget(), nameAuswahlPackNew, aktuellerName) where
 
-import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar)
-import Control.Monad.Reader.Class (MonadReader())
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -42,12 +35,14 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..))
-import Zug.Language (Sprache(), (<:>))
+import Zug.Language ((<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), mitEntry,
-                                    MitContainer(..), mitContainerAdd, mitContainerRemove,
-                                    MitButton(..), MitDialog(..), mitDialog,
-                                    MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
+import Zug.UI.Gtk.Klassen (
+    MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), mitEntry,
+    MitContainer(..), mitContainerAdd, mitContainerRemove,
+    MitButton(..), MitDialog(..), mitDialog,
+    MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui)
 
 -- | 'Widget' erstellen und anzeigen
 widgetShowNew :: (MonadIO m, MitWidget w) => m w -> m w
@@ -183,33 +178,4 @@ nameAuswahlPackNew box = do
 -- | Erhalte den aktuell gewählten Namen
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . mitEntry Gtk.entryGetText
-
--- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
-data SpracheGui = SpracheGui {sprache :: Sprache, sprachwechselAktionen :: TVar [Sprache -> IO ()]}
-
--- | Abkürzungen für Funktionen, die ein 'SpracheGui' benötigen.
-class (MonadReader r m) => SpracheGuiReader r m | m -> r where
-    erhalteSpracheGui :: m SpracheGui
-
--- | Erzeuge ein neues 'SpracheGui' ohne 'sprachwechsel'-Aktionen.
-spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui
-spracheGuiNeu sprache = liftIO $ SpracheGui sprache <$> newTVarIO []
-
--- | Wechsel die 'Sprache' eines 'SpracheGui' und führe alle zugehörigen 'IO'-Aktionen aus.
-sprachwechsel :: (MonadIO m) => Sprache -> SpracheGui -> m SpracheGui
-sprachwechsel
-    sprache
-    spracheGui@SpracheGui {sprachwechselAktionen}
-        = liftIO $ do
-            readTVarIO sprachwechselAktionen >>= sequence_ . map ($ sprache)
-            pure $ spracheGui {sprache}
-
--- | Führe die übergebene Aktion mit der aktellen 'Sprache' aus.
--- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel.
-verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> IO ()) -> m ()
-verwendeSpracheGui neueAktion = do
-    SpracheGui {sprache, sprachwechselAktionen} <- erhalteSpracheGui
-    liftIO $ do
-        neueAktion sprache
-        atomically $ modifyTVar sprachwechselAktionen (neueAktion :)
 #endif
