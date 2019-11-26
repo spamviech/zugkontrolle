@@ -35,7 +35,7 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(..), Anzeige(..))
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 
@@ -62,9 +62,9 @@ nameWrapSize = 16
 auswahlRadioButtonNamedNew :: (SpracheGuiReader r m, MonadIO m, Eq e) =>
     NonEmpty e -> (Sprache -> Text) -> (e -> Sprache -> Text) -> m (AuswahlWidget e)
 auswahlRadioButtonNamedNew (h :| t) name anzeigeFunktion = do
-    (hBox, nameLabel, enumButtons) <- liftIO $ do
-        hBox <- Gtk.hBoxNew False 0
-        nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
+    hBox <- liftIO $ Gtk.hBoxNew False 0
+    nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew name
+    enumButtons <- liftIO $ do
         Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
         vBox <- boxPackWidgetNewDefault hBox $ Gtk.vBoxNew False 0
         -- Erstelle RadioButtons
@@ -74,9 +74,8 @@ auswahlRadioButtonNamedNew (h :| t) name anzeigeFunktion = do
             pure (e, radioButton)
         -- Setze Startwert
         Gtk.toggleButtonSetActive hRadioButton True
-        pure (hBox, nameLabel, (h, hRadioButton) :| tEnumButtons)
+        pure $ (h, hRadioButton) :| tEnumButtons
     verwendeSpracheGui $ \sprache -> do
-        Gtk.set nameLabel [Gtk.labelText := name sprache]
         forM_ enumButtons $ \(e, radioButton) ->
             Gtk.set radioButton [Gtk.buttonLabel := anzeigeFunktion e sprache]
     pure $ AuswahlRadioButton {
@@ -98,9 +97,9 @@ boundedEnumAuswahlRadioButtonNew standard = auswahlRadioButtonNew $ standard :| 
 auswahlComboBoxNamedNew :: (SpracheGuiReader r m, MonadIO m, Eq e) =>
     NonEmpty e -> (Sprache -> Text) -> (e -> Sprache -> Text) -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = do
-    (hBox, comboBox, enumIndizes, nameLabel, listStore) <- liftIO $ do
-        hBox <- Gtk.hBoxNew False 0
-        nameLabel <- boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
+    hBox <- liftIO $ Gtk.hBoxNew False 0
+    nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew name
+    (comboBox, enumIndizes, listStore) <- liftIO $ do
         Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
         comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewText
         enumIndizes <- forM elemente $ \e -> do
@@ -108,10 +107,9 @@ auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = do
             when (e == h) $ liftIO $ Gtk.comboBoxSetActive comboBox index
             pure (e, index)
         listStore <- Gtk.comboBoxGetModelText comboBox
-        pure (hBox, comboBox, enumIndizes, nameLabel, listStore)
+        pure (comboBox, enumIndizes, listStore)
     -- Erstelle ComboBox-Einträge
     verwendeSpracheGui $ \sprache -> void $ do
-        Gtk.set nameLabel [Gtk.labelText := name sprache]
         forM enumIndizes $ \(e, index) -> do
             Gtk.listStoreSetValue listStore index $ anzeigeFunktion e sprache
     pure AuswahlComboBox {

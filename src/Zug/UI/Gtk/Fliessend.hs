@@ -15,17 +15,16 @@ module Zug.UI.Gtk.Fliessend (
     FließendAuswahlWidget(), fließendAuswahlNew, fließendAuswahlPackNew, aktuellerFließendValue) where
 
 import Control.Monad.Trans (MonadIO(..))
-import Data.Text (Text)
-import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenAtom(..), Value(..))
 import Zug.Language ((<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault)
+import Zug.UI.Gtk.Hilfsfunktionen (
+    boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
@@ -37,11 +36,7 @@ fließendPackNew box = boxPackWidgetNew box packingDefault 3 positionDefault . f
 
 -- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
 fließendNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s) => s -> m FließendWidget
-fließendNew s = do
-    label <- liftIO $ Gtk.labelNew (Nothing :: Maybe Text)
-    verwendeSpracheGui $
-        \sprache -> Gtk.set label [Gtk.labelText := (Language.fließendValue <:> fließend s) sprache]
-    pure $ FließendWidget label
+fließendNew s = fmap FließendWidget $ labelSpracheNew $ Language.fließendValue <:> fließend s
 
 -- | Widget zur Eingabe des Fließend-Value
 newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget :: AuswahlWidget Value}

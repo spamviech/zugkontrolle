@@ -24,6 +24,8 @@ module Zug.UI.Gtk.Hilfsfunktionen (
     dialogGetUpper, dialogEval, ResponseId,
     -- * Button
     buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
+    -- * Label
+    labelSpracheNew,
     -- * Name
     NameWidget(), namePackNew, NameAuswahlWidget(), nameAuswahlPackNew, aktuellerName) where
 
@@ -35,7 +37,7 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..))
-import Zug.Language ((<:>))
+import Zug.Language (Sprache(..), (<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Klassen (
     MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), mitEntry,
@@ -102,10 +104,13 @@ boxPackDefault :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> m ()
 boxPackDefault box widget = boxPack box widget packingDefault paddingDefault positionDefault
 
 -- | Neu erstelltes 'MitWidget' zu einem 'MitNotebook' hinzufügen
-notebookAppendPageNew :: (MonadIO m, MitNotebook n, MitWidget w) => n -> Text -> m w -> m (w, Int)
+notebookAppendPageNew :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w) =>
+    n -> (Sprache -> Text) -> m w -> m (w, Int)
 notebookAppendPageNew notebook name konstruktor = do
     widget <- widgetShowNew konstruktor
-    page <- mitNotebookAppendPage notebook widget name
+    page <- mitNotebookAppendPage notebook widget $ name Deutsch
+    verwendeSpracheGui $ \sprache ->
+        Gtk.notebookSetMenuLabelText (erhalteNotebook notebook) (erhalteWidget widget) $ name sprache
     pure (widget, page)
 
 -- | Entferne ein vielleicht vorhandenes 'MitWidget' aus einem 'MitContainer'
@@ -130,7 +135,7 @@ dialogEval dialog = liftIO $ do
 dialogGetUpper :: (MitDialog d) => d -> IO Gtk.Box
 dialogGetUpper dialog = fmap Gtk.castToBox $ Gtk.dialogGetActionArea $ erhalteDialog dialog
 
--- ** Knöpfe mit einer Funktion
+-- * Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
 buttonNewWithEvent :: (MonadIO m, MitButton b) => m b -> IO () -> m b
 buttonNewWithEvent konstruktor action = do
@@ -139,15 +144,29 @@ buttonNewWithEvent konstruktor action = do
     pure button
 
 -- | Knopf mit Mnemonic-Label und Funktion erstellen
-buttonNewWithEventMnemonic :: (MonadIO m) => Text -> IO () -> m Gtk.Button
-buttonNewWithEventMnemonic label
-    = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithMnemonic $ Language.addMnemonic label)
+buttonNewWithEventMnemonic :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> IO () -> m Gtk.Button
+buttonNewWithEventMnemonic label event = do
+    button <- liftIO $ buttonNewWithEvent (Gtk.buttonNewWithMnemonic $ Language.addMnemonic $ label Deutsch) event
+    verwendeSpracheGui $ \sprache -> Gtk.set button [Gtk.buttonLabel := label sprache]
+    pure button
 
 -- | Knopf mit Label und Funktion erstellen
-buttonNewWithEventLabel :: (MonadIO m) => Text -> IO () -> m Gtk.Button
-buttonNewWithEventLabel label = liftIO . (buttonNewWithEvent $ Gtk.buttonNewWithLabel label)
+buttonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> IO () -> m Gtk.Button
+buttonNewWithEventLabel label event = do
+    button <- liftIO $ buttonNewWithEvent Gtk.buttonNew event
+    verwendeSpracheGui $ \sprache -> Gtk.set button [Gtk.buttonLabel := label sprache]
+    pure button
 
--- ** Namen
+
+-- * Label
+-- | Erzeuge ein Label, welches bei 'Zug.UI.Gtk.SpracheGui.sprachwechsel' den angezeigten Text anpasst.
+labelSpracheNew :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> m Gtk.Label
+labelSpracheNew text = do
+    label <- liftIO $ Gtk.labelNew (Nothing :: Maybe Text)
+    verwendeSpracheGui $ \sprache -> Gtk.set label [Gtk.labelText := text sprache]
+    pure label
+
+-- * Namen
 -- | Widget zur Anzeige eines Namen
 newtype NameWidget = NameWidget Gtk.Label
     deriving (Eq, MitWidget, MitLabel)
@@ -167,9 +186,7 @@ newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
 nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b) => b -> m NameAuswahlWidget
 nameAuswahlPackNew box = do
     hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-    label <- liftIO $ boxPackWidgetNewDefault hBox $ Gtk.labelNew (Nothing :: Maybe Text)
-    verwendeSpracheGui $
-        \sprache -> Gtk.set label [Gtk.labelText := (Language.name <:> Text.empty) sprache]
+    boxPackWidgetNewDefault hBox $ labelSpracheNew $ Language.name <:> Text.empty
     entry <- liftIO $ boxPackWidgetNewDefault hBox Gtk.entryNew
     verwendeSpracheGui $
         \sprache -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
