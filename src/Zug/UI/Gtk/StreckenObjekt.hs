@@ -47,7 +47,7 @@ module Zug.UI.Gtk.StreckenObjekt (
 
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
-import Control.Concurrent.STM (atomically, TMVar, putTMVar)
+import Control.Concurrent.STM (atomically, TMVar, putTMVar, readTMVar)
 import Control.Lens ((^.), (^..), (??))
 import qualified Control.Lens as Lens
 import Control.Monad (void, unless, forM_)
@@ -58,6 +58,7 @@ import Data.Foldable (Foldable(..))
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Void (Void)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
@@ -74,9 +75,9 @@ import Zug.Enums (
     Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither,
     Fahrtrichtung(..), Strom(..), Richtung(..))
 import qualified Zug.Language as Language
-import Zug.Language (Sprache(), Anzeige(..), (<^>), (<:>), (<°>))
+import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>), (<°>))
 import Zug.Menge (ausFoldable)
-import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt)
+import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt, ObjektKlasse(..))
 import Zug.Plan (
     PlanKlasse(..), Plan(..), AusführendReader(),
     AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..),
@@ -85,7 +86,7 @@ import Zug.UI.Base (
     StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
     MitStatus(..), StatusReader(..),
     AusführenMöglich(..), ReaderFamilie, ObjektReader, TVarMaps(..), MitTVarMaps(..),
-    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen,
+    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, sprache,
     auswertenTMVarIOStatus, ausführenMöglich, entfernenBahngeschwindigkeit,
     entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung,
     entfernenWegstrecke, entfernenPlan)
@@ -98,13 +99,14 @@ import Zug.UI.Gtk.Hilfsfunktionen (
     containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew,
     boxPackWidgetNewDefault, paddingDefault, positionDefault,
     Packing(..), Position(..), dialogEval,
-    buttonNewWithEventLabel, namePackNew, widgetShowNew)
+    buttonNewWithEventLabel, toggleButtonNewWithEventLabel, namePackNew, widgetShowNew,
+    labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), SpracheGui, verwendeSpracheGui)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -119,6 +121,19 @@ type IOStatusGui a = IOStatusAllgemein ObjektGui a
 type MStatusGui a = MStatusAllgemein ObjektGui a
 -- | Zustands-Monaden-Transformer spezialiert auf Gui-Typen
 type MStatusGuiT m a = MStatusAllgemeinT m ObjektGui a
+
+instance ObjektKlasse ObjektGui where
+    type BG ObjektGui = BGWidgets
+    type ST ObjektGui = STWidgets
+    type WE ObjektGui = WEWidgets
+    type KU ObjektGui = KUWidgets
+    type WS ObjektGui = WSWidgets
+    type PL ObjektGui = PLWidgets
+    type SP ObjektGui = SpracheGui
+    erhalteObjekt :: ObjektGui -> ObjektGui
+    erhalteObjekt = id
+    ausObjekt :: ObjektGui -> ObjektGui
+    ausObjekt = id
 
 -- | Auswahlmöglichkeiten zu 'WidgetHinzufügen'
 data HinzufügenZiel = HinzufügenWegstrecke | HinzufügenPlan
@@ -197,10 +212,11 @@ type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstr
 type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxWegstreckeHinzufügen'
-boxWegstreckeHinzufügenNew :: forall a m. (Kategorie a, MonadIO m) => m (BoxWegstreckeHinzufügen a)
-boxWegstreckeHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
-    box <- Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ kategorieText (kategorie :: KategorieText a)
+boxWegstreckeHinzufügenNew :: forall a m. (Kategorie a, ObjektReader ObjektGui m, MonadIO m) =>
+    m (BoxWegstreckeHinzufügen a)
+boxWegstreckeHinzufügenNew = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    box <- liftIO $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault box $ labelSpracheNew $ kategorieText (kategorie :: KategorieText a)
     pure box
 
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
@@ -240,51 +256,52 @@ type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxPlanHinzufügen'
-boxPlanHinzufügenNew :: forall a m. (Kategorie a, MonadIO m) => m (BoxPlanHinzufügen a)
-boxPlanHinzufügenNew = liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
-    box <- Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ kategorieText (kategorie :: KategorieText a)
+boxPlanHinzufügenNew :: forall a m. (Kategorie a, ObjektReader ObjektGui m, MonadIO m) => m (BoxPlanHinzufügen a)
+boxPlanHinzufügenNew = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    box <- liftIO $ Gtk.vBoxNew False 0
+    boxPackWidgetNewDefault box $ labelSpracheNew $ kategorieText (kategorie :: KategorieText a)
     pure box
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
-data DynamischeWidgets = DynamischeWidgets {
-    vBoxBahngeschwindigkeiten :: ScrollbaresWidget Gtk.VBox,
-    vBoxStreckenabschnitte :: ScrollbaresWidget Gtk.VBox,
-    vBoxWeichen ::ScrollbaresWidget  Gtk.VBox,
-    vBoxKupplungen :: ScrollbaresWidget Gtk.VBox,
-    vBoxWegstrecken :: ScrollbaresWidget Gtk.VBox,
-    vBoxPläne :: ScrollbaresWidget Gtk.VBox,
-    vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin :: BoxWegstreckeHinzufügen (BGWidgets 'Märklin),
-    vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego :: BoxWegstreckeHinzufügen (BGWidgets 'Lego),
-    vBoxHinzufügenPlanBahngeschwindigkeitenMärklin :: BoxPlanHinzufügen (BGWidgets 'Märklin),
-    vBoxHinzufügenPlanBahngeschwindigkeitenLego :: BoxPlanHinzufügen (BGWidgets 'Lego),
-    vBoxHinzufügenWegstreckeStreckenabschnitte :: BoxWegstreckeHinzufügen STWidgets,
-    vBoxHinzufügenPlanStreckenabschnitte :: BoxPlanHinzufügen STWidgets,
-    vBoxHinzufügenWegstreckeWeichenMärklin :: BoxWegstreckeHinzufügen (WEWidgets 'Märklin),
-    vBoxHinzufügenWegstreckeWeichenLego :: BoxWegstreckeHinzufügen (WEWidgets 'Lego),
-    vBoxHinzufügenPlanWeichenGeradeMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
-    vBoxHinzufügenPlanWeichenKurveMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
-    vBoxHinzufügenPlanWeichenLinksMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
-    vBoxHinzufügenPlanWeichenRechtsMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
-    vBoxHinzufügenPlanWeichenGeradeLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
-    vBoxHinzufügenPlanWeichenKurveLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
-    vBoxHinzufügenPlanWeichenLinksLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
-    vBoxHinzufügenPlanWeichenRechtsLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
-    vBoxHinzufügenWegstreckeKupplungen :: BoxWegstreckeHinzufügen KUWidgets,
-    vBoxHinzufügenPlanKupplungen :: BoxPlanHinzufügen KUWidgets,
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
-    vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
-    vBoxHinzufügenPlanWegstreckenKupplungMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
-    vBoxHinzufügenPlanWegstreckenMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
-    vBoxHinzufügenPlanWegstreckenStreckenabschnittLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
-    vBoxHinzufügenPlanWegstreckenKupplungLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
-    vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
-    vBoxHinzufügenPlanPläne :: BoxPlanHinzufügen PLWidgets,
-    progressBarPlan :: Gtk.ProgressBar,
-    windowMain :: Gtk.Window,
-    fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid,
-    tmvarPlanObjekt :: TMVar (Maybe Objekt)}
+data DynamischeWidgets
+    = DynamischeWidgets {
+        vBoxBahngeschwindigkeiten :: ScrollbaresWidget Gtk.VBox,
+        vBoxStreckenabschnitte :: ScrollbaresWidget Gtk.VBox,
+        vBoxWeichen ::ScrollbaresWidget  Gtk.VBox,
+        vBoxKupplungen :: ScrollbaresWidget Gtk.VBox,
+        vBoxWegstrecken :: ScrollbaresWidget Gtk.VBox,
+        vBoxPläne :: ScrollbaresWidget Gtk.VBox,
+        vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin :: BoxWegstreckeHinzufügen (BGWidgets 'Märklin),
+        vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego :: BoxWegstreckeHinzufügen (BGWidgets 'Lego),
+        vBoxHinzufügenPlanBahngeschwindigkeitenMärklin :: BoxPlanHinzufügen (BGWidgets 'Märklin),
+        vBoxHinzufügenPlanBahngeschwindigkeitenLego :: BoxPlanHinzufügen (BGWidgets 'Lego),
+        vBoxHinzufügenWegstreckeStreckenabschnitte :: BoxWegstreckeHinzufügen STWidgets,
+        vBoxHinzufügenPlanStreckenabschnitte :: BoxPlanHinzufügen STWidgets,
+        vBoxHinzufügenWegstreckeWeichenMärklin :: BoxWegstreckeHinzufügen (WEWidgets 'Märklin),
+        vBoxHinzufügenWegstreckeWeichenLego :: BoxWegstreckeHinzufügen (WEWidgets 'Lego),
+        vBoxHinzufügenPlanWeichenGeradeMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
+        vBoxHinzufügenPlanWeichenKurveMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
+        vBoxHinzufügenPlanWeichenLinksMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
+        vBoxHinzufügenPlanWeichenRechtsMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin),
+        vBoxHinzufügenPlanWeichenGeradeLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
+        vBoxHinzufügenPlanWeichenKurveLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
+        vBoxHinzufügenPlanWeichenLinksLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
+        vBoxHinzufügenPlanWeichenRechtsLego :: BoxPlanHinzufügen (WEWidgets 'Lego),
+        vBoxHinzufügenWegstreckeKupplungen :: BoxWegstreckeHinzufügen KUWidgets,
+        vBoxHinzufügenPlanKupplungen :: BoxPlanHinzufügen KUWidgets,
+        vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
+        vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
+        vBoxHinzufügenPlanWegstreckenKupplungMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
+        vBoxHinzufügenPlanWegstreckenMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin),
+        vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
+        vBoxHinzufügenPlanWegstreckenStreckenabschnittLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
+        vBoxHinzufügenPlanWegstreckenKupplungLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
+        vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego),
+        vBoxHinzufügenPlanPläne :: BoxPlanHinzufügen PLWidgets,
+        progressBarPlan :: Gtk.ProgressBar,
+        windowMain :: Gtk.Window,
+        fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid,
+        tmvarPlanObjekt :: TMVar (Maybe Objekt)}
 
 -- | Klasse für Typen mit 'DynamischeWidgets'
 class MitDynamischeWidgets r where
@@ -310,6 +327,13 @@ instance MitDynamischeWidgets (TVarMaps, DynamischeWidgets, TMVar StatusGui) whe
 instance MitStatus (TVarMaps, DynamischeWidgets, TMVar StatusGui) ObjektGui where
     status :: (TVarMaps, DynamischeWidgets, TMVar StatusGui) -> TMVar StatusGui
     status (_tvarMaps, _dynamischeWidgets, tmvarStatus) = tmvarStatus
+instance (MonadReader (TVarMaps, DynamischeWidgets, TMVar StatusGui) m, MonadIO m) =>
+        SpracheGuiReader (TVarMaps, DynamischeWidgets, TMVar StatusGui) m where
+    erhalteSpracheGui :: m SpracheGui
+    erhalteSpracheGui = do
+        tmvarStatus <- erhalteStatus
+        status <- liftIO $ atomically $ readTMVar tmvarStatus :: m StatusGui
+        pure $ status ^. sprache
 
 -- | Klasse für Widgets-Repräsentation von Objekt-Typen
 class (MitWidget s) => WidgetsTyp s where
@@ -385,7 +409,7 @@ buttonEntfernenPackNew :: (WidgetsTyp w, ObjektReader ObjektGui m, MonadIO m) =>
 buttonEntfernenPackNew w entfernenAktion = do
     tmvarStatus <- erhalteStatus
     objektReader <- ask
-    liftIO $ boxPackWidgetNew (boxButtonEntfernen w) PackNatural paddingDefault End $
+    boxPackWidgetNew (boxButtonEntfernen w) PackNatural paddingDefault End $
         buttonNewWithEventLabel Language.entfernen $
             flip runReaderT objektReader $ do
                 auswertenTMVarIOStatus entfernenAktion tmvarStatus
@@ -402,17 +426,17 @@ hinzufügenWidgetWegstreckePackNew objekt = do
     widgetHinzufügenBoxPackNew box $ WegstreckeCheckButton <$>
         registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
-hinzufügenWidgetWegstreckeRichtungPackNew :: forall o r m.
-    (DynamischeWidgetsReader r m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
+hinzufügenWidgetWegstreckeRichtungPackNew :: forall o m.
+    (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
     ObjektTyp o -> NonEmpty Richtung -> m (CheckButtonWegstreckeHinzufügen Richtung o)
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
-    liftIO $ widgetHinzufügenBoxPackNew box $ do
-            hBox <- Gtk.hBoxNew False 0
-            wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
+    widgetHinzufügenBoxPackNew box $ do
+            hBox <- liftIO $ Gtk.hBoxNew False 0
+            wcbrRegistrierterCheckButton <- liftIO $ boxPackWidgetNewDefault hBox $
                 registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
-            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen ""
+            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen $ const Text.empty
             pure WegstreckeCheckButtonRichtung {
                 wcbrWidget = erhalteWidget hBox,
                 wcbrRegistrierterCheckButton,
@@ -420,11 +444,11 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen = do
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 hinzufügenWidgetPlanPackNew ::
-    (DynamischeWidgetsReader r m, StreckenObjekt (ObjektTyp o), ObjektElement (ObjektTyp o), MonadIO m) =>
+    (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), ObjektElement (ObjektTyp o), MonadIO m) =>
         BoxPlanHinzufügen o -> ObjektTyp o -> m (ButtonPlanHinzufügen o)
 hinzufügenWidgetPlanPackNew box objekt = do
     DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
-    widgetHinzufügenBoxPackNew box $ buttonNewWithEventLabel (erhalteName objekt) $
+    widgetHinzufügenBoxPackNew box $ buttonNewWithEventLabel (const $ erhalteName objekt) $
         atomically $ putTMVar tmvarPlanObjekt $ Just $ zuObjekt objekt
 
 -- * Darstellung von Streckenobjekten
@@ -547,13 +571,14 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         bgHinzWS = hinzufügenWidgetWegstrecke,
         bgHinzPL = hinzufügenWidgetPlan}
     namePackNew hBox bahngeschwindigkeit
-    boxPackWidgetNewDefault hBox $ anschlussNew Language.geschwindigkeit $ getGeschwindigkeitsAnschluss bahngeschwindigkeit
+    boxPackWidgetNewDefault hBox $ anschlussNew Language.geschwindigkeit $
+        getGeschwindigkeitsAnschluss bahngeschwindigkeit
     hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bgWidgets
     fahrtrichtungsWidgetsPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit
     fließendPackNew hBox bahngeschwindigkeit
     buttonEntfernenPackNew bgWidgets $ entfernenBahngeschwindigkeit $ zuZugtypEither bgWidgets
     -- Widgets merken
-    ausführenTMVarBefehl (Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets) tmvarStatus
+    ausführenTMVarBefehl (Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets :: BefehlGui) tmvarStatus
     pure bgWidgets
         where
             getGeschwindigkeitsAnschluss :: Bahngeschwindigkeit z -> Anschluss
@@ -575,16 +600,16 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bgLego@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss}
                 range
                     = void $ do
-                        liftIO $ boxPackWidgetNewDefault box $
+                        boxPackWidgetNewDefault box $
                             anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
                         togglebuttonFahrtrichtungEinstellenPackNew box bgLego range
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
-hScaleGeschwindigkeitPackNew ::
+hScaleGeschwindigkeitPackNew :: forall b bg m z.
     (MitBox b, BahngeschwindigkeitKlasse bg, ObjektReader ObjektGui m, MonadIO m) =>
         b -> bg z -> m Gtk.HScale
 hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
     liftIO $ do
         scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault $ widgetShowNew $
@@ -596,32 +621,28 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
         pure scale
 
 -- | Füge 'Gtk.Button' zum umdrehen/ zur Box hinzu
-buttonUmdrehenPackNew :: (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
-    b -> bg 'Märklin -> r -> m Gtk.Button
+buttonUmdrehenPackNew :: forall b bg r m.
+    (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
+        b -> bg 'Märklin -> r -> m Gtk.Button
 buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
-    liftIO $ do
-        boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.umdrehen $ do
-            Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
-            flip runReaderT objektReader $
-                ausführenTMVarAktion (Umdrehen bahngeschwindigkeit) tmvarStatus
+    boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.umdrehen $ do
+        Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
+        flip runReaderT objektReader $
+            ausführenTMVarAktion (Umdrehen bahngeschwindigkeit) tmvarStatus
 -- | Füge 'Gtk.ToggleButton' zum Fahrtrichtung einstellen zur Box hinzu
-togglebuttonFahrtrichtungEinstellenPackNew ::
+togglebuttonFahrtrichtungEinstellenPackNew :: forall b bg r m.
     (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
         b -> bg 'Lego -> r -> m Gtk.ToggleButton
 togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
-    liftIO $ do
-        toggleButton <- boxPackWidgetNewDefault box $ Gtk.toggleButtonNewWithLabel (Language.umdrehen :: Text)
-        Gtk.on toggleButton Gtk.toggled $ do
-            Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
-            vorwärts <- Gtk.get toggleButton Gtk.toggleButtonActive
-            let fahrtrichtung = if vorwärts then Vorwärts else Rückwärts
-            flip runReaderT objektReader $
-                ausführenTMVarAktion (FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung) tmvarStatus
-        pure toggleButton
+    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel Language.umdrehen $ \vorwärts -> do
+        Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
+        let fahrtrichtung = if vorwärts then Vorwärts else Rückwärts
+        flip runReaderT objektReader $
+            ausführenTMVarAktion (FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung) tmvarStatus
 
 -- ** Streckenabschnitt
 -- | 'Streckenabschnitt' mit zugehörigen Widgets
@@ -677,10 +698,10 @@ instance StreckenabschnittKlasse STWidgets where
     strom STWidgets {st} = strom st
 
 -- | 'Streckenabschnitt' darstellen und zum Status hinzufügen
-streckenabschnittPackNew :: (ObjektReader ObjektGui m, MonadIO m) =>
+streckenabschnittPackNew :: forall m. (ObjektReader ObjektGui m, MonadIO m) =>
     Streckenabschnitt -> m STWidgets
 streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     DynamischeWidgets {
         vBoxStreckenabschnitte,
         vBoxHinzufügenPlanStreckenabschnitte}
@@ -701,19 +722,16 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     pure stWidgets
 
 -- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu
-toggleButtonStromPackNew :: (ObjektReader ObjektGui m, MonadIO m, MitBox b, StreckenabschnittKlasse s) =>
-    b -> s -> m Gtk.ToggleButton
+toggleButtonStromPackNew :: forall m b s.
+    (ObjektReader ObjektGui m, MonadIO m, MitBox b, StreckenabschnittKlasse s) =>
+        b -> s -> m Gtk.ToggleButton
 toggleButtonStromPackNew box streckenabschnitt = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
-    liftIO $ do
-        toggleButton <- boxPackWidgetNewDefault box $ Gtk.toggleButtonNewWithLabel (Language.strom :: Text)
-        Gtk.on toggleButton Gtk.toggled $ do
-            an <- Gtk.get toggleButton Gtk.toggleButtonActive
-            let fließend = if an then Fließend else Gesperrt
-            flip runReaderT objektReader $
-                ausführenTMVarAktion (Strom streckenabschnitt fließend) tmvarStatus
-        pure toggleButton
+    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel Language.strom $ \an -> do
+        let fließend = if an then Fließend else Gesperrt
+        flip runReaderT objektReader $
+            ausführenTMVarAktion (Strom streckenabschnitt fließend) tmvarStatus
 
 -- ** Weiche
 -- | 'Weiche' mit zugehörigen Widgets
@@ -842,12 +860,12 @@ instance WeicheKlasse (WEWidgets z) where
     erhalteRichtungen WEWidgets {we} = erhalteRichtungen we
 
 -- | 'Weiche' darstellen und zum Status hinzufügen
-weichePackNew ::
+weichePackNew :: forall m z.
     (ObjektReader ObjektGui m, MonadIO m, ZugtypKlasse z,
     WegstreckenElement (WEWidgets z) , PlanElement (WEWidgets z)) =>
         Weiche z -> m (WEWidgets z)
 weichePackNew weiche = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     dynamischeWidgets@DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeRichtungPackNew weiche $ erhalteRichtungen weiche
@@ -884,30 +902,31 @@ weichePackNew weiche = do
     ausführenTMVarBefehl (Hinzufügen $ OWeiche $ zuZugtypEither weWidgets) tmvarStatus
     pure weWidgets
         where
-            richtungsButtonsPackNew :: (MitBox b, MonadIO m, StatusReader r m, ObjektReader ObjektGui m) => Weiche z -> b -> m ()
+            richtungsButtonsPackNew :: forall b m z. (MitBox b, MonadIO m, ObjektReader ObjektGui m) =>
+                Weiche z -> b -> m ()
             richtungsButtonsPackNew
                 MärklinWeiche {wemRichtungsAnschlüsse}
                 box
                     = do
-                        tmvarStatus <- erhalteStatus
+                        tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
                         objektReader <- ask
                         forM_ wemRichtungsAnschlüsse $
                             \(richtung, anschluss) ->
                                 boxPackWidgetNewDefault box $
-                                    buttonNewWithEventLabel (showText richtung <:> showText anschluss) $
+                                    buttonNewWithEventLabel (richtung <:> anschluss) $
                                         flip runReaderT objektReader $
                                             ausführenTMVarAktion (Stellen weiche richtung) tmvarStatus
             richtungsButtonsPackNew
                 LegoWeiche {welRichtungsAnschluss, welRichtungen = (richtung1, richtung2)}
                 box
                     = void $ do
-                        tmvarStatus <- erhalteStatus
+                        tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
                         objektReader <- ask
                         boxPackWidgetNewDefault box $ anschlussNew Language.richtung welRichtungsAnschluss
-                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung1) $
+                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel (anzeige richtung1) $
                             flip runReaderT objektReader $
                                 ausführenTMVarAktion (Stellen weiche richtung1) tmvarStatus
-                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel (showText richtung2) $
+                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel (anzeige richtung2) $
                             flip runReaderT objektReader $
                                 ausführenTMVarAktion (Stellen weiche richtung2) tmvarStatus
 
@@ -965,10 +984,10 @@ instance KupplungKlasse KUWidgets where
     kuppeln KUWidgets {ku} = kuppeln ku
 
 -- | 'Kupplung' darstellen und zum Status hinzufügen
-kupplungPackNew :: (ObjektReader ObjektGui m, MonadIO m) =>
+kupplungPackNew :: forall m. (ObjektReader ObjektGui m, MonadIO m) =>
     Kupplung -> m KUWidgets
 kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     DynamischeWidgets {
         vBoxKupplungen,
         vBoxHinzufügenPlanKupplungen}
@@ -993,10 +1012,10 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     pure kuWidgets
 
 -- | Füge 'Gtk.Button' zum kuppeln zur Box hinzu
-buttonKuppelnPackNew :: (MitBox b, KupplungKlasse k, ObjektReader ObjektGui m, MonadIO m) =>
+buttonKuppelnPackNew :: forall b k m. (MitBox b, KupplungKlasse k, ObjektReader ObjektGui m, MonadIO m) =>
     b -> k -> m Gtk.Button
 buttonKuppelnPackNew box kupplung = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
     boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.kuppeln $
         flip runReaderT objektReader $
@@ -1115,7 +1134,7 @@ instance WegstreckeKlasse (WSWidgets z) where
     einstellen WSWidgets {ws} = einstellen ws
 
 -- | 'Wegstrecke' darstellen
-wegstreckePackNew :: (ObjektReader ObjektGui m, MonadIO m, ZugtypKlasse z, PlanElement (WSWidgets z)) =>
+wegstreckePackNew :: forall m z. (ObjektReader ObjektGui m, MonadIO m, ZugtypKlasse z, PlanElement (WSWidgets z)) =>
     Wegstrecke z -> m (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke {
@@ -1124,7 +1143,7 @@ wegstreckePackNew
         wsWeichenRichtungen,
         wsKupplungen}
             = do
-                tmvarStatus <- erhalteStatus
+                tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
                 objektReader <- ask
                 dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
                 -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
@@ -1160,12 +1179,14 @@ wegstreckePackNew
                 frame <- liftIO $ boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
                 vBox <- liftIO $ containerAddWidgetNew frame $ Gtk.vBoxNew False 0
                 namePackNew vBox wegstrecke
-                expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew (Language.wegstreckenElemente :: Text)
+                expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
+                verwendeSpracheGui $
+                    \sprache -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
                 vBoxExpander <- liftIO $ containerAddWidgetNew expander $ Gtk.vBoxNew False 0
                 functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
                 unless (null wsBahngeschwindigkeiten) $ void $ do
-                    liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
-                        Language.bahngeschwindigkeiten <:> foldl appendName "" wsBahngeschwindigkeiten
+                    boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew $
+                        Language.bahngeschwindigkeiten <:> foldl appendName (const Text.empty) wsBahngeschwindigkeiten
                     hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew functionBox wegstrecke
                     case zuZugtypEither wegstrecke of
                         (ZugtypMärklin wsMärklin)
@@ -1179,19 +1200,21 @@ wegstreckePackNew
                                 wsLego
                                 hScaleGeschwindigkeit
                 unless (null wsStreckenabschnitte) $ void $ do
-                    liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
-                        Language.streckenabschnitte <:> foldl appendName "" wsStreckenabschnitte
+                    boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew $
+                        Language.streckenabschnitte <:> foldl appendName (const Text.empty) wsStreckenabschnitte
                     toggleButtonStromPackNew functionBox wegstrecke
                 unless (null wsWeichenRichtungen) $ void $ do
-                    liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
-                        Language.weichen <:>
-                        foldl (\acc (weiche, richtung) -> appendName acc weiche <°> showText richtung) "" wsWeichenRichtungen
+                    boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew $
+                        Language.weichen <:> foldl
+                            (\acc (weiche, richtung) -> appendName acc weiche <°> richtung)
+                            (const Text.empty)
+                            wsWeichenRichtungen
                     boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel Language.einstellen $
                         flip runReaderT objektReader $
                             ausführenTMVarAktion (Einstellen wegstrecke) tmvarStatus
                 unless (null wsKupplungen) $ void $ do
-                    liftIO $ boxPackWidgetNewDefault vBoxExpander $ Gtk.labelNew $ Just $
-                        Language.kupplungen <:> foldl appendName "" wsKupplungen
+                    boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew $
+                        Language.kupplungen <:> foldl appendName (const Text.empty) wsKupplungen
                     buttonKuppelnPackNew functionBox wegstrecke
                 let wsWidgets = WSWidgets {
                         ws = wegstrecke,
@@ -1203,9 +1226,10 @@ wegstreckePackNew
                 ausführenTMVarBefehl (Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets) tmvarStatus
                 pure wsWidgets
     where
-        appendName :: (StreckenObjekt o) => Text -> o -> Text
-        appendName ""       objekt = erhalteName objekt
-        appendName string   objekt = string <^> erhalteName objekt
+        appendName :: (StreckenObjekt o) => (Sprache -> Text) -> o -> Sprache -> Text
+        appendName acc objekt sprache = case acc sprache of
+            ""  -> erhalteName objekt
+            _s  -> acc <^> erhalteName objekt $ sprache
 
 -- ** Plan
 -- | 'Plan' mit zugehörigen Widgets
@@ -1253,31 +1277,35 @@ instance PlanKlasse PLWidgets where
     ausführenPlan PLWidgets {pl} = ausführenPlan pl
 
 -- | 'Plan' darstellen
-planPackNew :: (ObjektReader ObjektGui m, MonadIO m) => Plan -> m PLWidgets
+planPackNew :: forall m. (ObjektReader ObjektGui m, MonadIO m) => Plan -> m PLWidgets
 planPackNew plan@Plan {plAktionen} = do
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
     DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain, vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
     -- Widget erstellen
     frame <- liftIO $ boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
     vBox <- liftIO $ containerAddWidgetNew frame $ Gtk.vBoxNew False 0
     namePackNew vBox plan
-    expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Language.aktionen <:> show (length plAktionen)
+    expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Text.empty
+    verwendeSpracheGui $
+        \sprache -> Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
     vBoxExpander <- liftIO $ containerAddWidgetNew expander $ Gtk.vBoxNew False 0
     liftIO $ forM_ plAktionen $ boxPackWidgetNewDefault vBoxExpander . Gtk.labelNew . Just . show
     functionBox <- liftIO $ boxPackWidgetNewDefault vBox Gtk.hButtonBoxNew
-    buttonAusführen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNewWithLabel (Language.ausführen :: Text)
-    buttonAbbrechen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNewWithLabel (Language.ausführenAbbrechen :: Text)
+    buttonAusführen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNew
+    verwendeSpracheGui $ \sprache -> Gtk.set buttonAusführen [Gtk.buttonLabel := Language.ausführen sprache]
+    buttonAbbrechen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNew
+    verwendeSpracheGui $ \sprache -> Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.ausführenAbbrechen sprache]
     liftIO $ Gtk.widgetHide buttonAbbrechen
     dialogGesperrt <- liftIO $ Gtk.messageDialogNew (Just windowMain) [] Gtk.MessageError Gtk.ButtonsOk ("" :: Text)
-    liftIO $ Gtk.set dialogGesperrt [Gtk.windowTitle := (Language.aktionGesperrt :: Text)]
+    verwendeSpracheGui $ \sprache ->  Gtk.set dialogGesperrt [Gtk.windowTitle := Language.aktionGesperrt sprache]
     liftIO $ Gtk.on buttonAusführen Gtk.buttonActivated $ flip runReaderT objektReader $
         auswertenTMVarIOStatus (ausführenMöglich plan) tmvarStatus >>= \case
             AusführenMöglich                -> void $ do
                 liftIO $ do
                     Gtk.widgetHide buttonAusführen
                     Gtk.widgetShow buttonAbbrechen
-                ausführenTMVarBefehl (Ausführen plan anzeigeAktion abschlussAktion) tmvarStatus
+                ausführenTMVarBefehl (Ausführen plan (const . anzeigeAktion) abschlussAktion) tmvarStatus
                 where
                     anzeigeAktion :: Natural -> IO ()
                     anzeigeAktion wert = Gtk.set progressBarPlan [
@@ -1287,10 +1315,10 @@ planPackNew plan@Plan {plAktionen} = do
                         Gtk.widgetShow buttonAusführen
                         Gtk.widgetHide buttonAbbrechen
             WirdAusgeführt                  -> error "Ausführen in GTK-UI erneut gestartet."
-            (AnschlüsseBelegt anschlüsse)   -> liftIO $ do
-                Gtk.set dialogGesperrt 
-                    [Gtk.messageDialogText := Just (Language.ausführenGesperrt $ show $ ausFoldable anschlüsse)]
-                void $ dialogEval dialogGesperrt
+            (AnschlüsseBelegt anschlüsse)   -> void $ do
+                verwendeSpracheGui $ \sprache -> Gtk.set dialogGesperrt 
+                    [Gtk.messageDialogText := Just $ (Language.ausführenGesperrt $# ausFoldable anschlüsse) sprache]
+                dialogEval dialogGesperrt
     liftIO $ Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
         flip runReaderT objektReader $
             ausführenTMVarBefehl (AusführenAbbrechen plan) tmvarStatus

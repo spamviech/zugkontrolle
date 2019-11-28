@@ -54,6 +54,8 @@ instance Anzeige Char where
 
 instance Anzeige Natural
 
+instance Anzeige Int
+
 instance Anzeige Double
 
 instance Anzeige Value

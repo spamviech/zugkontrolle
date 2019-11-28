@@ -22,7 +22,7 @@ module Zug.UI.Base (
     TVarMaps(..), MitTVarMaps(..), TVarMapsReader(..), tvarMapsNeu,
     ReaderFamilie, ObjektReader,
 #ifdef ZUGKONTROLLEGUI
-    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne,
+    bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, sprache,
 #endif
     -- * Zustands-Monade
     IOStatus, MStatus, MStatusT, IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
@@ -88,37 +88,43 @@ bahngeschwindigkeiten :: Lens' (StatusAllgemein o) [ZugtypEither (BG o)]
 bahngeschwindigkeiten
     = lens
         _bahngeschwindigkeiten $
-        \status bgs -> status {_bahngeschwindigkeiten=bgs}
+        \status bgs -> status {_bahngeschwindigkeiten = bgs}
 -- | 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
 streckenabschnitte :: Lens' (StatusAllgemein o) [ST o]
 streckenabschnitte
     = lens
         _streckenabschnitte $
-        \status sts -> status {_streckenabschnitte=sts}
+        \status sts -> status {_streckenabschnitte = sts}
 -- | 'Weiche'n im aktuellen 'StatusAllgemein'
 weichen :: Lens' (StatusAllgemein o) [ZugtypEither (WE o)]
 weichen
     = lens
         _weichen $
-        \status wes -> status {_weichen=wes}
+        \status wes -> status {_weichen = wes}
 -- | 'Kupplung'en im aktuellen 'StatusAllgemein'
 kupplungen :: Lens' (StatusAllgemein o) [KU o]
 kupplungen
     = lens
         _kupplungen $
-        \status kus -> status {_kupplungen=kus}
+        \status kus -> status {_kupplungen = kus}
 -- | 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 wegstrecken :: Lens' (StatusAllgemein o) [ZugtypEither (WS o)]
 wegstrecken
     = lens
         _wegstrecken $
-        \status wss -> status {_wegstrecken=wss}
+        \status wss -> status {_wegstrecken = wss}
 -- | Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 pläne :: Lens' (StatusAllgemein o) [PL o]
 pläne
     = lens
         _pläne $
-        \status pls -> status {_pläne=pls}
+        \status pls -> status {_pläne = pls}
+-- | 'Sprache' im aktuellen 'StatusAllgemein'
+sprache :: Lens' (StatusAllgemein o) (SP o)
+sprache
+    = lens
+        _sprache $
+        \status sp -> status {_sprache = sp}
 #endif
 
 instance (Anzeige (ZugtypEither (BG o)), Anzeige (ST o), Anzeige (ZugtypEither (WE o)), Anzeige (KU o),

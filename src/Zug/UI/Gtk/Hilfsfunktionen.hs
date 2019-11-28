@@ -23,7 +23,9 @@ module Zug.UI.Gtk.Hilfsfunktionen (
     -- * Dialog
     dialogGetUpper, dialogEval, ResponseId,
     -- * Button
-    buttonNewWithEvent, buttonNewWithEventLabel, buttonNewWithEventMnemonic,
+    buttonNewWithEvent, buttonNewWithEventLabel,-- buttonNewWithEventMnemonic,
+    -- * ToggleButton
+    toggleButtonNewWithEvent, toggleButtonNewWithEventLabel,
     -- * Label
     labelSpracheNew,
     -- * Name
@@ -42,7 +44,7 @@ import qualified Zug.Language as Language
 import Zug.UI.Gtk.Klassen (
     MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), mitEntry,
     MitContainer(..), mitContainerAdd, mitContainerRemove,
-    MitButton(..), MitDialog(..), mitDialog,
+    MitButton(..), MitToggleButton(..), MitDialog(..), mitDialog,
     MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui)
 
@@ -138,17 +140,20 @@ dialogGetUpper dialog = fmap Gtk.castToBox $ Gtk.dialogGetActionArea $ erhalteDi
 -- * Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
 buttonNewWithEvent :: (MonadIO m, MitButton b) => m b -> IO () -> m b
-buttonNewWithEvent konstruktor action = do
+buttonNewWithEvent konstruktor event = do
     button <- widgetShowNew konstruktor
-    liftIO $ Gtk.on (erhalteButton button) Gtk.buttonActivated action
+    liftIO $ Gtk.on (erhalteButton button) Gtk.buttonActivated event
     pure button
 
--- | Knopf mit Mnemonic-Label und Funktion erstellen
-buttonNewWithEventMnemonic :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> IO () -> m Gtk.Button
-buttonNewWithEventMnemonic label event = do
-    button <- liftIO $ buttonNewWithEvent (Gtk.buttonNewWithMnemonic $ Language.addMnemonic $ label Deutsch) event
-    verwendeSpracheGui $ \sprache -> Gtk.set button [Gtk.buttonLabel := label sprache]
-    pure button
+-- -- | Knopf mit Mnemonic-Label und Funktion erstellen
+-- buttonNewWithEventMnemonic :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> IO () -> m Gtk.Button
+-- buttonNewWithEventMnemonic label event = do
+--     button <- liftIO $ buttonNewWithEvent Gtk.buttonNew event
+--     verwendeSpracheGui $ \sprache -> do
+--         let labelSprache = label sprache
+--         Gtk.set button [Gtk.buttonLabel := (Language.addMnemonic labelSprache)]
+--         _adjustMnemonic $ Text.head labelSprache
+--     pure button
 
 -- | Knopf mit Label und Funktion erstellen
 buttonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> IO () -> m Gtk.Button
@@ -156,6 +161,24 @@ buttonNewWithEventLabel label event = do
     button <- liftIO $ buttonNewWithEvent Gtk.buttonNew event
     verwendeSpracheGui $ \sprache -> Gtk.set button [Gtk.buttonLabel := label sprache]
     pure button
+
+-- * ToggleButton
+-- | ToggleButton mit Funktion erstellen
+toggleButtonNewWithEvent :: (MonadIO m, MitToggleButton b) => m b -> (Bool -> IO ()) -> m b
+toggleButtonNewWithEvent konstruktor event = do
+    mitToggleButton <- widgetShowNew konstruktor
+    let toggleButton = erhalteToggleButton mitToggleButton
+    liftIO $ Gtk.on toggleButton Gtk.toggled $
+        Gtk.get toggleButton Gtk.toggleButtonActive >>= event
+    pure mitToggleButton
+
+-- | ToggleButton mit Label und Funktion erstellen
+toggleButtonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m) =>
+    (Sprache -> Text) -> (Bool -> IO ()) -> m Gtk.ToggleButton
+toggleButtonNewWithEventLabel label event = do
+    toggleButton <- liftIO $ toggleButtonNewWithEvent Gtk.toggleButtonNew event
+    verwendeSpracheGui $ \sprache -> Gtk.set toggleButton [Gtk.buttonLabel := label sprache]
+    pure toggleButton
 
 
 -- * Label

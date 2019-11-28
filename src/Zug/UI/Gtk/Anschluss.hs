@@ -43,7 +43,7 @@ instance MitLabel AnschlussWidget where
     erhalteLabel (AnschlussWidget label) = label
 
 -- | 'Label' für 'Anschluss' erstellen
-anschlussNew :: (SpracheGuiReader r m, MonadIO m) => Text -> Anschluss -> m AnschlussWidget
+anschlussNew :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> Anschluss -> m AnschlussWidget
 anschlussNew name anschluss = fmap AnschlussWidget $ labelSpracheNew $ name <-> Language.anschluss <:> anschluss
 
 -- | Widgets zum erzeugen eines 'Anschluss'
