@@ -28,14 +28,18 @@ import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
+import Zug.Language (Sprache(..), alleSprachen)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar)
-import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault,
-                                    Packing(..), packingDefault, Position(..), paddingDefault,
-                                    buttonNewWithEventLabel, widgetShowIf)
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..),
-                            MitContainer(..), MitBox(..), MitWindow(..))
+import Zug.UI.Gtk.Hilfsfunktionen (
+    containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault,
+    Packing(..), packingDefault, Position(..), paddingDefault,
+    buttonNewWithEventLabel, labelSpracheNew, widgetShowIf)
+import Zug.UI.Gtk.Klassen (
+    MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..),
+    MitContainer(..), MitBox(..), MitWindow(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, WegstreckeCheckButtonVoid)
 import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch)
 
@@ -83,7 +87,7 @@ data SeitenAbschluss
 data AssistantSeite w
     = AssistantSeite {
         seite :: w,
-        name :: Text,
+        name :: Sprache -> Text,
         seiteZurücksetzen :: IO (),
         seitenAbschluss :: SeitenAbschluss}
     deriving (Functor)
@@ -93,7 +97,9 @@ instance (Eq w) => Eq (AssistantSeite w) where
     (==)
         AssistantSeite {seite = seite0, name = name0,  seitenAbschluss = seitenAbschluss0}
         AssistantSeite {seite = seite1, name = name1,  seitenAbschluss = seitenAbschluss1}
-            = seite0 == seite1 && name0 == name1 && seitenAbschluss0 == seitenAbschluss1
+            = seite0 == seite1
+            && all (\sprache -> name0 sprache == name1 sprache) alleSprachen
+            && seitenAbschluss0 == seitenAbschluss1
 
 instance (MitWidget w) => MitWidget (AssistantSeite w) where
     erhalteWidget :: AssistantSeite w -> Gtk.Widget
@@ -109,7 +115,7 @@ data AssistantSeitenBaum w
     -- | Seite mit meheren direkten Nachfolger
     | AssistantSeiteAuswahl {
         node :: AssistantSeite w,
-        nachfolgerFrage :: Text,
+        nachfolgerFrage :: Sprache -> Text,
         nachfolgerListe :: NonEmpty (AssistantSeitenBaum w)}
     -- | Seite ohne Nachfolger
     | AssistantSeiteLetzte {
@@ -128,7 +134,7 @@ data AssistantSeitenBaumPacked w
     -- | Seite mit meheren direkten Nachfolger
     | PackedSeiteAuswahl {
         packedNode :: AssistantSeite w,
-        packedNachfolgerFrage :: Text,
+        packedNachfolgerFrage :: Sprache -> Text,
         packedNachfolgerListe :: NonEmpty (AssistantSeitenBaumPacked w),
         packedBox :: Gtk.Box,
         packedNachfolgerAuswahl :: AuswahlWidget (AssistantSeite w)}
@@ -196,27 +202,31 @@ besondererSeitenAbschlussWidget
 --
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
-assistantNew :: (MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
+assistantNew :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
     p -> [g] -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w a)
-assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
+assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
     -- Erstelle Fenster
-    fenster <- Gtk.windowNew
-    Gtk.set fenster [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
-    vBox <- containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
-    -- Packe Seiten in entsprechende Box
-    flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
+    (fenster, vBox, flowControlBox) <- liftIO $ do
+        fenster <- Gtk.windowNew
+        Gtk.set fenster [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
+        vBox <- containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
+        -- Packe Seiten in entsprechende Box
+        flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
+        pure (fenster, vBox, flowControlBox)
     seiten <- packSeiten vBox flowControlBox seitenEingabe
-    tvarAuswahl <- newTVarIO $ Left ([], seiten)
-    tvarAktuelleSeite <- newTVarIO seiten
-    -- Füge Reaktion auf Beenden des Assistant durch 'X' in der Titelleiste hinzu
-    Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
-        atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
-        pure True
-    -- Knopf-Leiste für permanente Funktionen und globaleWidgets
-    seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox $
-        Gtk.buttonNewWithLabel (Language.weiter :: Text)
-    zurückKnopf <- boxPackWidgetNewDefault flowControlBox $
-        Gtk.buttonNewWithLabel (Language.zurück :: Text)
+    (tvarAuswahl, tvarAktuelleSeite, seitenAbschlussKnopf) <- liftIO $ do
+        tvarAuswahl <- newTVarIO $ Left ([], seiten)
+        tvarAktuelleSeite <- newTVarIO seiten
+        -- Füge Reaktion auf Beenden des Assistant durch 'X' in der Titelleiste hinzu
+        Gtk.on fenster Gtk.deleteEvent $ liftIO $ do
+            atomically $ writeTVar tvarAuswahl $ Right AssistantBeenden
+            pure True
+        -- Knopf-Leiste für permanente Funktionen und globaleWidgets
+        seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox Gtk.buttonNew
+        pure (tvarAuswahl, tvarAktuelleSeite, seitenAbschlussKnopf)
+    verwendeSpracheGui $ \sprache -> Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := Language.weiter sprache]
+    zurückKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox Gtk.buttonNew
+    verwendeSpracheGui $ \sprache -> Gtk.set zurückKnopf [Gtk.buttonLabel := Language.zurück sprache]
     forM_ globaleWidgets $ \widget -> do
         boxPackDefault flowControlBox widget
         mitWidgetShow widget
@@ -232,7 +242,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
         zurückKnopf,
         tvarAktuelleSeite}
     -- Füge Reaktion auf drücken des Vorwärts- und Zurück-Knopfes hinzu
-    Gtk.on zurückKnopf Gtk.buttonActivated $ do
+    liftIO $ Gtk.on zurückKnopf Gtk.buttonActivated $ do
         aktuelleSeite <- readTVarIO tvarAktuelleSeite
         mitWidgetHide aktuelleSeite
         case besondererSeitenAbschlussWidget $ packedNode aktuelleSeite of
@@ -282,7 +292,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                                     -> packedNachfolger
                                 Nothing
                                     -> error $ "Unbekannte Seite bei AuswahlWidget ausgewählt: " ++
-                                        Text.unpack (name nachfolgerSeite)
+                                        Text.unpack (name nachfolgerSeite Deutsch)
                         atomically $ modifyTVar tvarAuswahl $ \case
                             (Left (besuchteSeiten, _aktuelleSeite))
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
@@ -299,21 +309,22 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = liftIO $ do
                                 -> ergebnis
                         -- Zeige erste Seite (für nächsten Assistant-Aufruf)
                         mitWidgetShow seiten
-    Gtk.on seitenAbschlussKnopf Gtk.buttonActivated seitenAbschlussAktion
-    forM_ (rights $ besondereSeitenAbschlussKnöpfe seiten) $
-        \knopf -> Gtk.on knopf Gtk.buttonActivated seitenAbschlussAktion
+    liftIO $ do
+        Gtk.on seitenAbschlussKnopf Gtk.buttonActivated seitenAbschlussAktion
+        forM_ (rights $ besondereSeitenAbschlussKnöpfe seiten) $
+            \knopf -> Gtk.on knopf Gtk.buttonActivated seitenAbschlussAktion
     -- Zeige erste Seite an
     zeigeSeite assistant seiten
     pure assistant
 
 -- | Packe den übergebenen 'SeitenBaum' in die 'MitBox' und erzeuge notwendige Hilfswidgets
-packSeiten :: (MitBox b, MitWidget w, Eq w, MonadIO m) =>
+packSeiten :: (MitBox b, MitWidget w, Eq w, SpracheGuiReader r m, MonadIO m) =>
     b -> Gtk.HButtonBox -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
 packSeiten
     box
     flowControlBox
     AssistantSeiteLinear {node, nachfolger}
-        = liftIO $ do
+        = do
             case besondererSeitenAbschlussWidget node of
                 (Left _text)
                     -> pure ()
@@ -329,7 +340,7 @@ packSeiten
     box
     flowControlBox
     AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
-        = liftIO $ do
+        = do
             case besondererSeitenAbschlussWidget node of
                 (Left _text)
                     -> pure ()
@@ -337,7 +348,7 @@ packSeiten
                     -> do
                         boxPack flowControlBox widget packingDefault paddingDefault End
                         mitWidgetHide widget
-            vBox <- boxPackWidgetNewDefault box $ Gtk.vBoxNew False 0
+            vBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.vBoxNew False 0
             mitWidgetHide vBox
             boxPackDefault vBox node
             mitWidgetShow node
@@ -367,7 +378,7 @@ packSeiten
             pure $ PackedSeiteLetzte {packedNode = node}
 
 -- | Zeige die übergebene Seite an
-zeigeSeite :: (MonadIO m, MitWidget w, Eq w) =>
+zeigeSeite :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w) =>
     Assistant w a -> AssistantSeitenBaumPacked w -> m ()
 zeigeSeite
     Assistant{fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite}
