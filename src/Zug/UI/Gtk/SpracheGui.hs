@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE CPP #-}
@@ -17,10 +18,14 @@ import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTV
 import Control.Monad.Reader.Class (MonadReader())
 import Control.Monad.Trans (MonadIO(..))
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Sprache())
+import Zug.Language (Sprache(), MitSprache(..))
 
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 data SpracheGui = SpracheGui {sprache :: Sprache, sprachwechselAktionen :: TVar [Sprache -> IO ()]}
+
+instance MitSprache SpracheGui where
+    leseSprache :: (Sprache -> a) -> SpracheGui -> a
+    leseSprache f = f . sprache
 
 -- | Abkürzungen für Funktionen, die ein 'SpracheGui' benötigen.
 class (MonadReader r m) => SpracheGuiReader r m | m -> r where

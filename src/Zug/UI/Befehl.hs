@@ -146,7 +146,7 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
                 = do
                     mitSprache <- getSprache
-                    liftIO (flip verwendeSprache mitSprache $ Save.laden dateipfad erfolgsAktion) >>= \case
+                    liftIO (flip leseSprache mitSprache $ Save.laden dateipfad erfolgsAktion) >>= \case
                         Nothing             -> fehlerbehandlung
                         (Just statusNeu)    -> do
                             TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
@@ -157,7 +157,7 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux  (Ausführen plan showAction endAktion)
                 = do
                     mitSprache <- getSprache
-                    ausführenPlan plan (verwendeSprache (flip showAction) mitSprache) endAktion
+                    ausführenPlan plan (leseSprache (flip showAction) mitSprache) endAktion
             ausführenBefehlAux  (AusführenAbbrechen plan)
                 = do
                     tvarAusführend <- erhalteMengeAusführend

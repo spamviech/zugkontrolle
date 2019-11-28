@@ -25,10 +25,10 @@ data Sprache = Deutsch | Englisch
 
 -- | Klasse für Typen, die als 'Sprache' verwendet werden können.
 class MitSprache s where
-    verwendeSprache :: (Sprache -> a) -> s -> a
+    leseSprache :: (Sprache -> a) -> s -> a
 instance MitSprache Sprache where
-    verwendeSprache :: (Sprache -> a) -> Sprache -> a
-    verwendeSprache = id
+    leseSprache :: (Sprache -> a) -> Sprache -> a
+    leseSprache = id
 
 -- | Alle unterstützten Sprachen
 alleSprachen :: [Sprache]
