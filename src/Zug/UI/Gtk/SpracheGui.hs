@@ -2,6 +2,9 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -11,11 +14,11 @@ Description: Allgemeine Hilfsfunktionen
 module Zug.UI.Gtk.SpracheGui () where
 #else
 module Zug.UI.Gtk.SpracheGui (
-    SpracheGui(), SpracheGuiReader(..), spracheGuiNeu, sprachwechsel, verwendeSpracheGui) where
+    SpracheGui(), SpracheGuiReader(..), MitSpracheGui(..), spracheGuiNeu, sprachwechsel, verwendeSpracheGui) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar)
-import Control.Monad.Reader.Class (MonadReader())
+import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.Trans (MonadIO(..))
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(), MitSprache(..))
@@ -27,9 +30,19 @@ instance MitSprache SpracheGui where
     leseSprache :: (Sprache -> a) -> SpracheGui -> a
     leseSprache f = f . sprache
 
+-- | Klasse für Typen mit Zugriff auf 'SpracheGui'
+class MitSpracheGui r where
+    spracheGui :: (MonadIO m) => r -> m SpracheGui
+instance MitSpracheGui SpracheGui where
+    spracheGui :: (MonadIO m) => SpracheGui -> m SpracheGui
+    spracheGui = pure
+
 -- | Abkürzungen für Funktionen, die ein 'SpracheGui' benötigen.
-class (MonadReader r m) => SpracheGuiReader r m | m -> r where
+class (MonadReader r m) => SpracheGuiReader r m where
     erhalteSpracheGui :: m SpracheGui
+instance (MonadReader r m, MitSpracheGui r, MonadIO m) => SpracheGuiReader r m where
+    erhalteSpracheGui :: m SpracheGui
+    erhalteSpracheGui = ask >>= spracheGui
 
 -- | Erzeuge ein neues 'SpracheGui' ohne 'sprachwechsel'-Aktionen.
 spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui

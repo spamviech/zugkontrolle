@@ -106,7 +106,7 @@ import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), SpracheGui, verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(..), verwendeSpracheGui)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -327,12 +327,10 @@ instance MitDynamischeWidgets (TVarMaps, DynamischeWidgets, TMVar StatusGui) whe
 instance MitStatus (TVarMaps, DynamischeWidgets, TMVar StatusGui) ObjektGui where
     status :: (TVarMaps, DynamischeWidgets, TMVar StatusGui) -> TMVar StatusGui
     status (_tvarMaps, _dynamischeWidgets, tmvarStatus) = tmvarStatus
-instance (MonadReader (TVarMaps, DynamischeWidgets, TMVar StatusGui) m, MonadIO m) =>
-        SpracheGuiReader (TVarMaps, DynamischeWidgets, TMVar StatusGui) m where
-    erhalteSpracheGui :: m SpracheGui
-    erhalteSpracheGui = do
-        tmvarStatus <- erhalteStatus
-        status <- liftIO $ atomically $ readTMVar tmvarStatus :: m StatusGui
+instance MitSpracheGui (TVarMaps, DynamischeWidgets, TMVar StatusGui) where
+    spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, TMVar StatusGui) -> m SpracheGui
+    spracheGui (_tvarMaps, _dynamischeWidgets, tmvarStatus) = do
+        status <- liftIO $ atomically $ readTMVar tmvarStatus
         pure $ status ^. sprache
 
 -- | Klasse für Widgets-Repräsentation von Objekt-Typen
