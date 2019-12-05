@@ -19,6 +19,7 @@ module Zug.UI.Gtk.Assistant (
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
 import Data.Either (rights)
 import Control.Monad (forM_)
+import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -28,18 +29,18 @@ import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Sprache(..), alleSprachen)
+import Zug.Language (Sprache(..), MitSprache(..), alleSprachen)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar)
 import Zug.UI.Gtk.Hilfsfunktionen (
     containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault,
     Packing(..), packingDefault, Position(..), paddingDefault,
-    buttonNewWithEventLabel, labelSpracheNew, widgetShowIf)
+    buttonNewWithEventLabel, widgetShowIf)
 import Zug.UI.Gtk.Klassen (
     MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..),
     MitContainer(..), MitBox(..), MitWindow(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, WegstreckeCheckButtonVoid)
 import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch)
 
@@ -202,9 +203,10 @@ besondererSeitenAbschlussWidget
 --
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
-assistantNew :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
+assistantNew :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
     p -> [g] -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w a)
 assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
+    spracheReader <- ask
     -- Erstelle Fenster
     (fenster, vBox, flowControlBox) <- liftIO $ do
         fenster <- Gtk.windowNew
@@ -250,7 +252,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
                 -> pure ()
             (Right widget)
                 -> mitWidgetHide widget
-        maybeLetzteSeite <- atomically $ do
+        maybeLetzteSeite <-  atomically $ do
             auswahl <- readTVar tvarAuswahl
             case auswahl of
                 (Left ((letzteSeite : besuchteSeiten), _aktuelleSeite))
@@ -261,7 +263,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
                     -> pure Nothing
         case maybeLetzteSeite of
             (Just letzteSeite)
-                -> zeigeSeite assistant letzteSeite
+                -> flip runReaderT spracheReader $ zeigeSeite assistant letzteSeite
             Nothing
                 -> error "Zurück-Knopf an unerwarteter Stelle gedrückt."
     let 
@@ -283,7 +285,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite assistant packedNachfolger
+                        flip runReaderT spracheReader $ zeigeSeite assistant packedNachfolger
                 PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl}
                     -> do
                         nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
@@ -298,7 +300,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
                                 -> Left $ (aktuelleSeite :  besuchteSeiten, packedNachfolger)
                             ergebnis
                                 -> ergebnis
-                        zeigeSeite assistant packedNachfolger
+                        flip runReaderT spracheReader $ zeigeSeite assistant packedNachfolger
                 assistantSeite@PackedSeiteLetzte {}
                     -> do
                         atomically $ modifyTVar tvarAuswahl $ \case
@@ -383,22 +385,24 @@ zeigeSeite :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w) =>
 zeigeSeite
     Assistant{fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite}
     nachfolger
-        = liftIO $ do
-            let nachfolgerSeite = packedNode nachfolger
-            seiteZurücksetzen nachfolgerSeite
-            Gtk.set fenster [Gtk.windowTitle := name nachfolgerSeite]
-            widgetShowIf (packedNode seiten /= nachfolgerSeite) zurückKnopf
-            atomically $ writeTVar tvarAktuelleSeite nachfolger
-            mitWidgetShow nachfolger
-            case besondererSeitenAbschlussWidget nachfolgerSeite of
-                (Left text)
-                    -> do
-                        Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := text]
-                        mitWidgetShow seitenAbschlussKnopf
-                (Right widget)
-                    -> do
-                        mitWidgetShow widget
-                        mitWidgetHide seitenAbschlussKnopf
+        = do
+            spracheGui <- erhalteSpracheGui
+            liftIO $ do
+                let nachfolgerSeite = packedNode nachfolger
+                seiteZurücksetzen nachfolgerSeite
+                Gtk.set fenster [Gtk.windowTitle := leseSprache (name nachfolgerSeite) spracheGui]
+                widgetShowIf (packedNode seiten /= nachfolgerSeite) zurückKnopf
+                atomically $ writeTVar tvarAktuelleSeite nachfolger
+                mitWidgetShow nachfolger
+                case besondererSeitenAbschlussWidget nachfolgerSeite of
+                    (Left text)
+                        -> do
+                            Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := text]
+                            mitWidgetShow seitenAbschlussKnopf
+                    (Right widget)
+                        -> do
+                            mitWidgetShow widget
+                            mitWidgetHide seitenAbschlussKnopf
 
 -- | Ergebnis-Typ von 'assistantAuswerten'
 data AssistantResult a
@@ -410,36 +414,39 @@ data AssistantResult a
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
 -- Es wird erwartet, dass diese Funktion geforkt vom GTK-Hauptthread aufgerufen wird.
 -- Entsprechend wird 'Gtk.postGUIAsync' verwendet.
-assistantAuswerten :: (MonadIO m, MitWidget w, Eq w) => Assistant w a -> m (AssistantResult a)
-assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAktuelleSeite} = liftIO $ do
-    Gtk.postGUIAsync $ do
-        zeigeSeite assistant seiten
-        Gtk.widgetShow fenster
-    -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
-    ergebnis <- atomically (takeAuswahl assistant) >>= \case
-        (AssistantErfolgreich auswahl)
-            -> AssistantErfolgreich <$> auswertFunktion auswahl
-        AssistantAbbrechen
-            -> pure AssistantAbbrechen
-        AssistantBeenden
-            -> pure AssistantBeenden
-    letzteSeite <- readTVarIO tvarAktuelleSeite
-    Gtk.postGUIAsync $ do
-        mitWidgetHide letzteSeite
-        Gtk.widgetHide fenster
-    pure ergebnis
-        where
-            -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
-            -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
-            takeAuswahl ::Assistant w a -> STM (AssistantResult (NonEmpty w))
-            takeAuswahl Assistant {tvarAuswahl, seiten} = do
-                readTVar tvarAuswahl >>= \case
-                    (Left _a)
-                        -> retry
-                    (Right result)
-                        -> do
-                            -- Setze auf Startwert zurück
-                            writeTVar tvarAuswahl $ Left ([], seiten)
-                            -- Gebe Ergebnis zurück
-                            pure result
+assistantAuswerten :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w) =>
+    Assistant w a -> m (AssistantResult a)
+assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAktuelleSeite} = do
+    spracheReader <- ask
+    liftIO $ do
+        Gtk.postGUIAsync $ do
+            flip runReaderT spracheReader $ zeigeSeite assistant seiten
+            Gtk.widgetShow fenster
+        -- Warte auf eine vollständige Eingabe (realisiert durch takeAuswahl)
+        ergebnis <- atomically (takeAuswahl assistant) >>= \case
+            (AssistantErfolgreich auswahl)
+                -> AssistantErfolgreich <$> auswertFunktion auswahl
+            AssistantAbbrechen
+                -> pure AssistantAbbrechen
+            AssistantBeenden
+                -> pure AssistantBeenden
+        letzteSeite <- readTVarIO tvarAktuelleSeite
+        Gtk.postGUIAsync $ do
+            mitWidgetHide letzteSeite
+            Gtk.widgetHide fenster
+        pure ergebnis
+    where
+        -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
+        -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
+        takeAuswahl ::Assistant w a -> STM (AssistantResult (NonEmpty w))
+        takeAuswahl Assistant {tvarAuswahl, seiten} = do
+            readTVar tvarAuswahl >>= \case
+                (Left _a)
+                    -> retry
+                (Right result)
+                    -> do
+                        -- Setze auf Startwert zurück
+                        writeTVar tvarAuswahl $ Left ([], seiten)
+                        -- Gebe Ergebnis zurück
+                        pure result
 #endif
