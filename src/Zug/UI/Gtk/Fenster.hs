@@ -6,7 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -22,7 +22,7 @@ module Zug.UI.Gtk.Fenster (
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (
-    atomically, readTMVar, takeTMVar, putTMVar,
+    atomically, TMVar, readTMVar, takeTMVar, putTMVar,
     TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens ((^.))
 import Control.Monad (void, when, foldM, forM, forM_)
@@ -35,6 +35,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (maybe, fromJust, isJust, catMaybes)
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
@@ -85,6 +86,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (
 import Zug.UI.Gtk.Klassen (
     MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..),
     mitContainerAdd, mitContainerRemove, MitEntry(..), MitButton(..), MitWindow(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (
     StatusGui, IOStatusGui, ObjektGui,
     DynamischeWidgets(..), DynamischeWidgetsReader(..),
@@ -101,24 +103,30 @@ import Zug.UI.Gtk.StreckenObjekt (
 import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew, zugtypSpezifischButtonNew)
 
 -- | Speichern des aktuellen 'StatusGui'
-buttonSpeichernPack :: (MitBox b, ObjektReader ObjektGui m, MonadIO m) => Gtk.Window -> b -> m Gtk.Button
+buttonSpeichernPack :: forall b m. (MitBox b, ObjektReader ObjektGui m, MonadIO m) => Gtk.Window -> b -> m Gtk.Button
 buttonSpeichernPack windowMain box = do
     dialogSpeichern <- dialogSpeichernNew windowMain
-    tmvarStatus <- erhalteStatus
+    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.speichern $ do
+    boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.speichern $ do
         antwort <- dialogEval dialogSpeichern
         when (antwort == Gtk.ResponseOk) $ void $ do
             (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
             flip runReaderT objektReader $
                 ausführenTMVarBefehl (Speichern dateipfad) tmvarStatus
 
-dialogSpeichernNew :: (MonadIO m) => Gtk.Window -> m Gtk.FileChooserDialog
-dialogSpeichernNew window = liftIO $ do
-    fileChooserDialog <- Gtk.fileChooserDialogNew (Just Language.speichern :: Maybe Text) (Just window) Gtk.FileChooserActionSave [
-        (Language.speichern, Gtk.ResponseOk),
-        (Language.abbrechen, Gtk.ResponseCancel)]
-    Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
+dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m) => Gtk.Window -> m Gtk.FileChooserDialog
+dialogSpeichernNew window = do
+    (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
+        fileChooserDialog <- Gtk.fileChooserDialogNew (Nothing :: Maybe Text) (Just window) Gtk.FileChooserActionSave []
+        Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
+        buttonSpeichern <- Gtk.dialogAddButton fileChooserDialog Text.empty Gtk.ResponseOk
+        buttonAbbrechen <- Gtk.dialogAddButton fileChooserDialog Text.empty Gtk.ResponseCancel
+        pure (fileChooserDialog, buttonSpeichern, buttonAbbrechen)
+    verwendeSpracheGui $ \sprache -> do
+        Gtk.set fileChooserDialog [Gtk.windowTitle := Language.speichern sprache]
+        Gtk.set buttonSpeichern [Gtk.buttonLabel := Language.speichern sprache]
+        Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.abbrechen sprache]
     pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGui' aus einer Datei
@@ -128,7 +136,7 @@ buttonLadenPack parent box = do
     dialogLadenFehler <- dialogLadenFehlerNew parent
     tmvarStatus <- erhalteStatus
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventMnemonic Language.laden $ do
+    boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.laden $ do
         antwort <- dialogEval dialogLaden
         when (antwort == Gtk.ResponseOk) $ void $ do
             Gtk.fileChooserGetFilename dialogLaden >>= \case
@@ -290,7 +298,7 @@ instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = widget
 
-hinzufügenErgebnis :: (StatusReader r m, MonadIO m) =>
+hinzufügenErgebnis :: (StatusReader r ObjektGui m, MonadIO m) =>
     AuswahlWidget Zugtyp -> FließendAuswahlWidget -> NonEmpty HinzufügenSeite -> m Objekt
 hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
     HinzufügenSeiteAuswahl {}
