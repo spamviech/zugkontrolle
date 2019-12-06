@@ -12,6 +12,11 @@ Anzeige sprachabhängig, ohne Show-Instanz
                 Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
                     Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
 
+Gtk.StreckenObjekt.hs
+    ..PackNew auf IOStatusGui umstellen
+    TMVar wird dadurch nicht mehr benötigt
+        es kann 'ausführenTMVarBefehl' in 'buttonLadenPack' verwendet werden
+
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren
     Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
