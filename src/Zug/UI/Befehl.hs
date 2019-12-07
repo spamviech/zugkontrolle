@@ -4,6 +4,9 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementierung.
@@ -19,6 +22,7 @@ module Zug.UI.Befehl (
     ausführenTMVarPlan, ausführenTMVarAktion, ausführenTMVarBefehl) where
 
 -- Bibliotheken
+import qualified Control.Monad.RWS as RWS
 import Control.Monad.State.Class (MonadState(..))
 import Control.Monad.Trans (MonadIO(..))
 import Control.Concurrent.STM (atomically, writeTVar, modifyTVar, TMVar)
@@ -32,28 +36,29 @@ import Zug.Menge (entfernen)
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
 import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
-import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, ObjektReader, ReaderFamilie,
-                    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus,
-                    hinzufügenPlan, entfernenPlan,
-                    hinzufügenWegstrecke, entfernenWegstrecke,
-                    hinzufügenWeiche, entfernenWeiche,
-                    hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit,
-                    hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
-                    hinzufügenKupplung, entfernenKupplung,
-                    getSprache)
+import Zug.UI.Base (
+    StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ObjektReader, ReaderFamilie,
+    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus,
+    hinzufügenPlan, entfernenPlan,
+    hinzufügenWegstrecke, entfernenWegstrecke,
+    hinzufügenWeiche, entfernenWeiche,
+    hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit,
+    hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
+    hinzufügenKupplung, entfernenKupplung,
+    getSprache)
 
 -- | Führe einen Plan mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarPlan :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o))
-                            => PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> m ()
+ausführenTMVarPlan :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o)) =>
+    PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> m ()
 ausführenTMVarPlan plan showAktion endAktion = auswertenTMVarIOStatus $ ausführenPlan plan showAktion endAktion
 
 -- | Führe eine Aktion mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarAktion   :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o))
-                                => a -> TMVar (StatusAllgemein o) -> m ()
+ausführenTMVarAktion   :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o)) =>
+    a -> TMVar (StatusAllgemein o) -> m ()
 ausführenTMVarAktion aktion = auswertenTMVarIOStatus $ ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarBefehl :: (ObjektReader o m, MonadIO m, BefehlKlasse b,
+ausführenTMVarBefehl :: (ObjektReader o m, MonadIO m, BefehlKlasse b o,
                         ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
                         Eq (ST o), Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                         Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
@@ -62,12 +67,9 @@ ausführenTMVarBefehl :: (ObjektReader o m, MonadIO m, BefehlKlasse b,
 ausführenTMVarBefehl befehl = auswertenTMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
-class BefehlKlasse b where
+class BefehlKlasse b o where
     -- | Gibt True zurück, falls das UI beendet werden soll
-    ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
-                        Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                            => b o -> IOStatusAllgemein o Bool
+    ausführenBefehl :: (MonadIO m) => b o -> MStatusAllgemeinT m o Bool
 
 -- | Unterstütze Befehle
 data BefehlAllgemein o
@@ -96,23 +98,21 @@ type Befehl = BefehlAllgemein Objekt
 
 -- | UI-spezifische Befehle. Phantomtyp, um eine 'BefehlKlasse'-Instanz zu erhalten.
 data UIBefehlAllgemein o = Beenden | Abbrechen
-                            deriving (Show)
+    deriving (Show)
 -- | 'UIBefehlAllgemein' spezialisiert auf 'Objekt'
 type UIBefehl = UIBefehlAllgemein Objekt
 
-instance BefehlKlasse UIBefehlAllgemein where
-    ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
-                        Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                            => UIBefehlAllgemein o -> IOStatusAllgemein o Bool
+instance BefehlKlasse UIBefehlAllgemein o where
+    ausführenBefehl :: (MonadIO m) => UIBefehlAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl Beenden     = pure True
     ausführenBefehl Abbrechen   = pure False
 
-instance BefehlKlasse BefehlAllgemein where
-    ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
-                        Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                            => BefehlAllgemein o -> IOStatusAllgemein o Bool
+instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
+    Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
+    Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
+    MitSprache (SP o), MitTVarMaps (ReaderFamilie o)) =>
+        BefehlKlasse BefehlAllgemein o where
+    ausführenBefehl :: (MonadIO m) => BefehlAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl befehl = ausführenBefehlAux befehl >> pure (istBeenden befehl)
         where
             istBeenden :: BefehlAllgemein o -> Bool
@@ -121,8 +121,8 @@ instance BefehlKlasse BefehlAllgemein where
             ausführenBefehlAux :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
                                     Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                                     Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
-                                    MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                                        => BefehlAllgemein o -> IOStatusAllgemein o ()
+                                    MitSprache (SP o), MitTVarMaps (ReaderFamilie o), MonadIO m)
+                                        => BefehlAllgemein o -> MStatusAllgemeinT m o ()
             ausführenBefehlAux  (UI _uiAction)
                 = pure ()
             ausführenBefehlAux  (Hinzufügen objekt)
@@ -147,7 +147,11 @@ instance BefehlKlasse BefehlAllgemein where
                 = do
                     mitSprache <- getSprache
                     liftIO (flip leseSprache mitSprache $ Save.laden dateipfad erfolgsAktion) >>= \case
-                        Nothing             -> fehlerbehandlung
+                        Nothing             -> do
+                            state0 <- RWS.get
+                            reader <- RWS.ask
+                            ((), state1, ()) <- liftIO $ RWS.runRWST fehlerbehandlung reader state0
+                            put state1
                         (Just statusNeu)    -> do
                             TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
                             liftIO $ do
@@ -171,18 +175,19 @@ newtype BefehlListeAllgemein o = BefehlListe {getBefehlListe :: [BefehlAllgemein
 -- | 'BefehlListeAllgemein' spezialisiert auf 'Objekt'
 type BefehlListe = BefehlListeAllgemein Objekt
 
-instance BefehlKlasse BefehlListeAllgemein where
-    ausführenBefehl :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o), Eq (PL o),
-                        Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o), Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego),
-                        MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                            => BefehlListeAllgemein o -> IOStatusAllgemein o Bool
+instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
+    Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
+    Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
+    MitSprache (SP o), MitTVarMaps (ReaderFamilie o)) =>
+        BefehlKlasse BefehlListeAllgemein o where
+    ausführenBefehl :: (MonadIO m) => BefehlListeAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
             ausführenBefehlAux  :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
                                     Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                                     Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
-                                    MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                                        =>  [BefehlAllgemein o] -> IOStatusAllgemein o Bool
+                                    MitSprache (SP o), MitTVarMaps (ReaderFamilie o), MonadIO m)
+                                        =>  [BefehlAllgemein o] -> MStatusAllgemeinT m o Bool
             ausführenBefehlAux []      = pure False
             ausführenBefehlAux (h:t)   = do
                 ende <- ausführenBefehl h
