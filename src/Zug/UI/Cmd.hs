@@ -168,7 +168,7 @@ statusParser = statusParserAux . parser AnfrageBefehl
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl
 ausführenBefehlSofort   (BSLaden dateipfad)         = do
-    ausführenBefehl $ Laden dateipfad pure $ fehlerhafteEingabeS $
+    ausführenBefehl $ Laden dateipfad put $ fehlerhafteEingabeS $
         Language.nichtGefundeneDatei <=> dateipfad
     pure AnfrageBefehl
 ausführenBefehlSofort   (BSAusführenMöglich plan) = ausführenMöglich plan >>= pure . \case

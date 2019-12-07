@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-|
 Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementierung.
@@ -82,7 +83,7 @@ data BefehlAllgemein o
         FilePath
     | Laden
         FilePath
-        (Status -> IO (StatusAllgemein o))  -- ^ Erfolgsaktion
+        (Status -> IOStatusAllgemein o ())  -- ^ Erfolgsaktion
         (IOStatusAllgemein o ())            -- ^ Fehlerbehandlung
     | Ausführen
         Plan
@@ -117,8 +118,8 @@ instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq
             istBeenden :: BefehlAllgemein o -> Bool
             istBeenden  (UI Beenden)    = True
             istBeenden  _befehl         = False
-            ausführenBefehlAux :: (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq (ST o),
-                                    Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
+            ausführenBefehlAux :: forall o m. (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
+                                    Eq (ST o), Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
                                     Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
                                     MitSprache (SP o), MitTVarMaps (ReaderFamilie o), MonadIO m)
                                         => BefehlAllgemein o -> MStatusAllgemeinT m o ()
@@ -145,10 +146,13 @@ instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
                 = do
                     mitSprache <- getSprache
-                    liftIO (flip leseSprache mitSprache $ Save.laden dateipfad erfolgsAktion) >>= \case
+                    reader <- RWS.ask
+                    state0 <- RWS.get
+                    let
+                        erfolgsIO :: Status -> IO (StatusAllgemein o)
+                        erfolgsIO statusNeu = fst <$> RWS.execRWST (erfolgsAktion statusNeu) reader state0
+                    liftIO (flip leseSprache mitSprache $ Save.laden dateipfad erfolgsIO) >>= \case
                         Nothing             -> do
-                            state0 <- RWS.get
-                            reader <- RWS.ask
                             ((), state1, ()) <- liftIO $ RWS.runRWST fehlerbehandlung reader state0
                             RWS.put state1
                         (Just statusNeu)    -> do

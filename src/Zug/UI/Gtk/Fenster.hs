@@ -55,10 +55,10 @@ import Zug.Plan (
     Plan(..), Aktion(..), AktionWegstrecke(..),
     AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
-import Zug.Language (showText, (<!>), (<:>))
+import Zug.Language (MitSprache(..), showText, (<!>), (<:>))
 import Zug.UI.Base (
     Status, auswertenTMVarIOStatus,
-    ObjektReader,
+    ObjektReader, sprache,
     putBahngeschwindigkeiten, bahngeschwindigkeiten,
     putStreckenabschnitte, streckenabschnitte,
     putWeichen, weichen,
@@ -88,7 +88,7 @@ import Zug.UI.Gtk.Klassen (
     mitContainerAdd, mitContainerRemove, MitEntry(..), MitButton(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (
-    StatusGui, IOStatusGui, ObjektGui,
+    StatusGui, MStatusGuiT, IOStatusGui, ObjektGui,
     DynamischeWidgets(..), DynamischeWidgetsReader(..),
     StatusReader(..), BoxPlanHinzufügen,
     WegstreckenElement(..), WegstreckeCheckButton(),
@@ -141,72 +141,69 @@ buttonLadenPack parent box = do
         when (antwort == Gtk.ResponseOk) $ void $ do
             Gtk.fileChooserGetFilename dialogLaden >>= \case
                 Nothing             -> void $ do
-                    Gtk.set dialogLadenFehler [Gtk.windowTitle := (Language.nichtGefundeneDatei :: Text)]
+                    status <- atomically $ readTMVar tmvarStatus
+                    Gtk.set dialogLadenFehler
+                        [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei (status ^. sprache)]
                     dialogEval dialogLadenFehler
                 (Just dateipfad)    -> void $ do
-                    -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
                     let
-                        ladeAktion :: Status -> IO StatusGui
-                        ladeAktion = flip runReaderT objektReader . ladeWidgets
+                        ladeAktion :: Status -> IOStatusGui ()
+                        ladeAktion statusNeu = do
+                            state0 <- RWS.get
+                            state1 <- liftIO $ flip runReaderT objektReader $ fst <$>
+                                RWS.execRWST (ladeWidgets statusNeu) objektReader state0
+                            RWS.put state1
                         fehlerBehandlung :: IOStatusGui ()
                         fehlerBehandlung = liftIO $ void $ do
                             Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
+                    flip runReaderT objektReader $
+                        ausführenTMVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) tmvarStatus
+                    -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
                     -- TMVar wird in ladeAktion beeinflusst
                     -- ausführenTMVarBefehl dadurch nicht möglich
                     -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
-                    statusAktuell <- atomically $ readTMVar tmvarStatus
-                    runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
+                    -- statusAktuell <- atomically $ readTMVar tmvarStatus
+                    -- runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui' in 'TMVar') an reinen 'Status' an.
-ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> m StatusGui
+ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
 ladeWidgets status = do
-    tmvarStatus <- erhalteStatus
-    auswertenTMVarIOStatus löscheWidgets tmvarStatus
+    löscheWidgets
     erstelleWidgets status
         where
-            löscheWidgets :: IOStatusGui ()
+            löscheWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => MStatusGuiT m ()
             löscheWidgets = do
-                RWS.get >>= löscheWidgetsAux
-                putBahngeschwindigkeiten []
-                putStreckenabschnitte []
-                putWeichen []
-                putKupplungen []
-                putWegstrecken []
-                putPläne []
-            löscheWidgetsAux :: (DynamischeWidgetsReader r m, MonadIO m) => StatusGui -> m ()
-            löscheWidgetsAux status = do
+                status <- RWS.get
                 mapM_ entferneWidgets $ status ^. bahngeschwindigkeiten
                 mapM_ entferneWidgets $ status ^. streckenabschnitte
                 mapM_ entferneWidgets $ status ^. weichen
                 mapM_ entferneWidgets $ status ^. kupplungen
                 mapM_ entferneWidgets $ status ^. wegstrecken
                 mapM_ entferneWidgets $ status ^. pläne
-            erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> m StatusGui
+            erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
             erstelleWidgets status = do
-                tmvarStatus <- erhalteStatus
                 let 
                     packBG :: (ObjektReader ObjektGui m, MonadIO m) =>
-                        ZugtypEither Bahngeschwindigkeit -> m (ZugtypEither BGWidgets)
+                        ZugtypEither Bahngeschwindigkeit -> MStatusGuiT m (ZugtypEither BGWidgets)
                     packBG  (ZugtypMärklin bg)  = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
                     packBG  (ZugtypLego bg)     = ZugtypLego <$> bahngeschwindigkeitPackNew bg
                 mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
                 mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
                 let
                     packWE :: (ObjektReader ObjektGui m, MonadIO m) =>
-                        ZugtypEither Weiche -> m (ZugtypEither WEWidgets)
+                        ZugtypEither Weiche -> MStatusGuiT m (ZugtypEither WEWidgets)
                     packWE  (ZugtypMärklin we)  = ZugtypMärklin <$> weichePackNew we
                     packWE  (ZugtypLego we)     = ZugtypLego <$> weichePackNew we
                 mapM_ packWE $ reverse $ status ^. weichen
                 mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
                 let
                     packWS :: (ObjektReader ObjektGui m, MonadIO m) =>
-                        ZugtypEither Wegstrecke -> m (ZugtypEither WSWidgets)
+                        ZugtypEither Wegstrecke -> MStatusGuiT m (ZugtypEither WSWidgets)
                     packWS  (ZugtypMärklin ws)  = ZugtypMärklin <$> wegstreckePackNew ws
                     packWS  (ZugtypLego ws)     = ZugtypLego <$> wegstreckePackNew ws
                 mapM_ packWS $ reverse $ status ^. wegstrecken
                 mapM_ planPackNew $ reverse $ status ^. pläne
-                liftIO $ atomically $ readTMVar tmvarStatus
 
 dialogLadenNew :: (MitWindow p, MonadIO m) => p -> m Gtk.FileChooserDialog
 dialogLadenNew parent = liftIO $ Gtk.fileChooserDialogNew
