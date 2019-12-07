@@ -12,16 +12,6 @@ Anzeige sprachabhängig, ohne Show-Instanz
                 Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
                     Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
 
-Gtk.StreckenObjekt.hs
-    ..PackNew auf IOStatusGui umstellen
-    TMVar wird dadurch nicht mehr benötigt
-        es kann 'ausführenTMVarBefehl' in 'buttonLadenPack' verwendet werden
-
-Laden einer Liste schlägt momentan für gesamte Liste fehl
-    Elementweise überprüfen und nur fehlgeschlagene ignorieren
-    Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
-    Nicht für Wegstrecken-Element-Listen verwenden!
-
 Anzeige über eigene Klasse regeln
     default-Implementierung aus Show-Instanz
         DefaultSignatures
@@ -31,6 +21,12 @@ Anzeige über eigene Klasse regeln
     Erzeugen in Language.hs automatisch über TemplateHaskell
         Durchsuchen des gesamten Namensraum (DE), import von vorhandenen Namen
         Warnung bei fehlenden Feldern, erzeugen von Wildcard-Pattern
+        dauert zu lange (kompilieren bei 4 Zeichen dauert länger als 5min, steigt exponentiell)
+
+Laden einer Liste schlägt momentan für gesamte Liste fehl
+    Elementweise überprüfen und nur fehlgeschlagene ignorieren
+    Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
+    Nicht für Wegstrecken-Element-Listen verwenden!
 
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
@@ -84,6 +80,12 @@ Hilfetext von optparse-applicative übersetzten
     Außerdem sämtliche Hilfetexte in Language.hs auslagern.
 
 ---------------------------Gelöst--------------------------
+Gtk.StreckenObjekt.hs
+    ..PackNew auf MStatusGuiT umstellen
+    TMVar wird dadurch nicht mehr benötigt
+        es kann 'ausführenTMVarBefehl' in 'buttonLadenPack' verwendet werden
+    Done
+
 Cmd-UI:
     *Unbekannt aus Datentypen entfernen und eigenen (ParseErgebnis a)-Datentyp verwenden
         *Unbekannt hat überall identische Struktur

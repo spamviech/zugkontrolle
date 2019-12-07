@@ -23,7 +23,6 @@ module Zug.UI.Befehl (
 
 -- Bibliotheken
 import qualified Control.Monad.RWS as RWS
-import Control.Monad.State.Class (MonadState(..))
 import Control.Monad.Trans (MonadIO(..))
 import Control.Concurrent.STM (atomically, writeTVar, modifyTVar, TMVar)
 import Data.Aeson (ToJSON)
@@ -142,7 +141,7 @@ instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq
                     (OStreckenabschnitt streckenabschnitt)      -> entfernenStreckenabschnitt streckenabschnitt
                     (OKupplung kupplung)                        -> entfernenKupplung kupplung
             ausführenBefehlAux  (Speichern dateipfad)
-                = get >>= liftIO . flip Save.speichern dateipfad
+                = RWS.get >>= liftIO . flip Save.speichern dateipfad
             ausführenBefehlAux  (Laden dateipfad erfolgsAktion fehlerbehandlung)
                 = do
                     mitSprache <- getSprache
@@ -151,13 +150,13 @@ instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq
                             state0 <- RWS.get
                             reader <- RWS.ask
                             ((), state1, ()) <- liftIO $ RWS.runRWST fehlerbehandlung reader state0
-                            put state1
+                            RWS.put state1
                         (Just statusNeu)    -> do
                             TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
                             liftIO $ do
                                 atomically $ writeTVar tvarPwmMap pwmMapEmpty
                                 atomically $ writeTVar tvarI2CMap i2cMapEmpty
-                            put statusNeu
+                            RWS.put statusNeu
             ausführenBefehlAux  (Ausführen plan showAction endAktion)
                 = do
                     mitSprache <- getSprache
