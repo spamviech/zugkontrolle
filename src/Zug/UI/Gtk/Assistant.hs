@@ -71,7 +71,7 @@ instance MitWindow (Assistant w a) where
 -- Alternativ können bereits erstellte spezielle Knopf-Varianten übergeben werden.
 data SeitenAbschluss
     = SeitenAbschluss
-        Text
+        (Sprache -> Text)
     | SeitenAbschlussToggled
         FortfahrenWennToggled
     | SeitenAbschlussToggledTMVar
@@ -80,7 +80,33 @@ data SeitenAbschluss
         (ZugtypSpezifisch Gtk.Button)
     | SeitenAbschlussButton
         Gtk.Button
-    deriving (Eq)
+
+instance Eq SeitenAbschluss where
+    (==) :: SeitenAbschluss -> SeitenAbschluss -> Bool
+    (==)
+        (SeitenAbschluss label0)
+        (SeitenAbschluss label1)
+            = all (uncurry (==)) $ zip (map label0 alleSprachen) (map label1 alleSprachen)
+    (==)
+        (SeitenAbschlussToggled f0)
+        (SeitenAbschlussToggled f1)
+            = f0 == f1
+    (==)
+        (SeitenAbschlussToggledTMVar f0)
+        (SeitenAbschlussToggledTMVar f1)
+            = f0 == f1
+    (==)
+        (SeitenAbschlussZugtyp z0)
+        (SeitenAbschlussZugtyp z1)
+            = z0 == z1
+    (==)
+        (SeitenAbschlussButton b0)
+        (SeitenAbschlussButton b1)
+            = b0 == b1
+    (==)
+        _s0
+        _s1
+            = False
 
 -- | Seite eines 'Assistant'.
 -- Der Name wird im Titel des 'Assistant' und bei der Auswahl der Nachfolgerseite angezeigt.
@@ -149,7 +175,7 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget   PackedSeiteAuswahl {packedBox}  = erhalteWidget packedBox
     erhalteWidget   PackedSeiteLetzte {packedNode}  = erhalteWidget packedNode
 
-besondereSeitenAbschlussKnöpfe :: AssistantSeitenBaumPacked w -> [Either Text Gtk.Button]
+besondereSeitenAbschlussKnöpfe :: AssistantSeitenBaumPacked w -> [Either (Sprache -> Text) Gtk.Button]
 besondereSeitenAbschlussKnöpfe
     PackedSeiteLinear {packedNode, packedNachfolger}
         = besondererSeitenAbschlussKnopf packedNode : besondereSeitenAbschlussKnöpfe packedNachfolger
@@ -160,7 +186,7 @@ besondereSeitenAbschlussKnöpfe
     PackedSeiteLetzte {packedNode}
         = [besondererSeitenAbschlussKnopf packedNode]
 
-besondererSeitenAbschlussKnopf :: AssistantSeite w -> Either Text Gtk.Button
+besondererSeitenAbschlussKnopf :: AssistantSeite w -> Either (Sprache -> Text) Gtk.Button
 besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschluss text)}
         = Left text
@@ -177,7 +203,7 @@ besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussButton button)}
         = Right button
 
-besondererSeitenAbschlussWidget :: AssistantSeite w -> Either Text Gtk.Widget
+besondererSeitenAbschlussWidget :: AssistantSeite w -> Either (Sprache -> Text) Gtk.Widget
 besondererSeitenAbschlussWidget
     AssistantSeite {seitenAbschluss = (SeitenAbschluss text)}
         = Left text
@@ -397,7 +423,7 @@ zeigeSeite
                 case besondererSeitenAbschlussWidget nachfolgerSeite of
                     (Left text)
                         -> do
-                            Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := text]
+                            Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := leseSprache text spracheGui]
                             mitWidgetShow seitenAbschlussKnopf
                     (Right widget)
                         -> do
