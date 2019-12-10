@@ -416,7 +416,7 @@ buttonEntfernenPackNew w entfernenAktion = do
 
 -- ** Widget mit Name und CheckButton erstellen
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen.
-hinzufügenWidgetWegstreckePackNew :: forall o r m.
+hinzufügenWidgetWegstreckePackNew :: forall o m.
     (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
         ObjektTyp o -> m (CheckButtonWegstreckeHinzufügen Void o)
 hinzufügenWidgetWegstreckePackNew objekt = do
