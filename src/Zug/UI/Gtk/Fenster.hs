@@ -57,7 +57,7 @@ import Zug.Plan (
 import qualified Zug.Language as Language
 import Zug.Language (MitSprache(..), showText, (<!>), (<:>))
 import Zug.UI.Base (
-    Status, auswertenTMVarIOStatus,
+    Status, auswertenTMVarIOStatus, auswertenTMVarMStatusT,
     ObjektReader, sprache,
     putBahngeschwindigkeiten, bahngeschwindigkeiten,
     putStreckenabschnitte, streckenabschnitte,
@@ -205,54 +205,68 @@ ladeWidgets status = do
                 mapM_ packWS $ reverse $ status ^. wegstrecken
                 mapM_ planPackNew $ reverse $ status ^. pläne
 
-dialogLadenNew :: (MitWindow p, MonadIO m) => p -> m Gtk.FileChooserDialog
-dialogLadenNew parent = liftIO $ Gtk.fileChooserDialogNew
-    (Just Language.laden :: Maybe Text)
-    (Just $ erhalteWindow parent)
-    Gtk.FileChooserActionOpen
-    [(Language.laden, Gtk.ResponseOk), (Language.abbrechen, Gtk.ResponseCancel)]
+dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m) => p -> m Gtk.FileChooserDialog
+dialogLadenNew parent = do
+    (dialog, buttonLaden, buttonAbbrechen) <- liftIO $ do
+        dialog <- Gtk.fileChooserDialogNew
+            (Nothing :: Maybe Text)
+            (Just $ erhalteWindow parent)
+            Gtk.FileChooserActionOpen
+            []
+        buttonLaden <- Gtk.dialogAddButton dialog Text.empty Gtk.ResponseOk
+        buttonAbbrechen <- Gtk.dialogAddButton dialog Text.empty Gtk.ResponseCancel
+        pure (dialog, buttonLaden, buttonAbbrechen)
+    verwendeSpracheGui $ \sprache -> do
+        Gtk.set dialog [Gtk.windowTitle := Language.laden sprache]
+        Gtk.set buttonLaden [Gtk.buttonLabel := Language.laden sprache]
+        Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.abbrechen sprache]
+    pure dialog
 
-dialogLadenFehlerNew :: (MitWindow p, MonadIO m) => p -> m Gtk.MessageDialog
-dialogLadenFehlerNew parent = liftIO $ Gtk.messageDialogNew
-    (Just $ erhalteWindow parent)
-    []
-    Gtk.MessageError
-    Gtk.ButtonsOk
-    (Language.nichtGefundeneDatei <!> "" :: Text)
+dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m) => p -> m Gtk.MessageDialog
+dialogLadenFehlerNew parent = do
+    dialog <- liftIO $ Gtk.messageDialogNew
+        (Just $ erhalteWindow parent)
+        []
+        Gtk.MessageError
+        Gtk.ButtonsOk
+        Text.empty
+    verwendeSpracheGui $
+        \sprache -> Gtk.set dialog [Gtk.windowTitle := (Language.nichtGefundeneDatei <!> Text.empty) sprache]
+    pure dialog
 
 -- | Hinzufügen eines 'StreckenObjekt'
 buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m) => p -> b -> m Gtk.Button
 buttonHinzufügenPack parentWindow box = do
     assistantHinzufügen <- assistantHinzufügenNew parentWindow
     objektReader <- ask
-    button <- liftIO $ boxPackWidgetNewDefault box $
-        buttonNewWithEventMnemonic Language.hinzufügen $ void $ forkIO $ do
-            flip runReaderT objektReader $ do
-                assistantAuswerten assistantHinzufügen >>= \case
-                    (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
-                        -> void $ bahngeschwindigkeitPackNew bgMärklin
-                    (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
-                        -> void $ bahngeschwindigkeitPackNew bgLego
-                    (AssistantErfolgreich (OStreckenabschnitt st))
-                        -> void $ streckenabschnittPackNew st
-                    (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
-                        -> void $ weichePackNew weMärklin
-                    (AssistantErfolgreich (OWeiche (ZugtypLego weLego)))
-                        -> void $ weichePackNew weLego
-                    (AssistantErfolgreich (OKupplung ku))
-                        -> void $ kupplungPackNew ku
-                    (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
-                        -> void $ wegstreckePackNew wsMärklin
-                    (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego)))
-                        -> void $ wegstreckePackNew wsLego
-                    (AssistantErfolgreich (OPlan pl))
-                        -> void $ planPackNew pl
-                    -- Kein catch-all Pattern um Fehlermeldung des Compilers
-                    -- bei neu hinzugefügten Objekten nicht zu verpassen
-                    AssistantBeenden
-                        -> pure ()
-                    AssistantAbbrechen
-                        -> pure ()
+    tmvarStatus <- erhalteStatus
+    button <- boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.hinzufügen $ void $ forkIO $ do
+        flip runReaderT objektReader $ do
+            assistantAuswerten assistantHinzufügen >>= flip auswertenTMVarMStatusT tmvarStatus . \case
+                (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
+                    -> void $ bahngeschwindigkeitPackNew bgMärklin
+                (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
+                    -> void $ bahngeschwindigkeitPackNew bgLego
+                (AssistantErfolgreich (OStreckenabschnitt st))
+                    -> void $ streckenabschnittPackNew st
+                (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
+                    -> void $ weichePackNew weMärklin
+                (AssistantErfolgreich (OWeiche (ZugtypLego weLego)))
+                    -> void $ weichePackNew weLego
+                (AssistantErfolgreich (OKupplung ku))
+                    -> void $ kupplungPackNew ku
+                (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
+                    -> void $ wegstreckePackNew wsMärklin
+                (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego)))
+                    -> void $ wegstreckePackNew wsLego
+                (AssistantErfolgreich (OPlan pl))
+                    -> void $ planPackNew pl
+                -- Kein catch-all Pattern um Fehlermeldung des Compilers
+                -- bei neu hinzugefügten Objekten nicht zu verpassen
+                AssistantBeenden
+                    -> pure ()
+                AssistantAbbrechen
+                    -> pure ()
     pure button
 
 -- | Seiten des Hinzufügen-'Assistant'

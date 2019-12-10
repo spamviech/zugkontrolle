@@ -20,13 +20,13 @@ module Zug.UI.Base (
     -- * Zustands-Typ
     Status, StatusAllgemein(..), statusLeer, MitStatus(..), StatusReader(..),
     TVarMaps(..), MitTVarMaps(..), TVarMapsReader(..), tvarMapsNeu,
-    ReaderFamilie, ObjektReader,
+    ReaderFamilie, ObjektReader, liftIOStatus,
 #ifdef ZUGKONTROLLEGUI
     bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne, sprache,
 #endif
     -- * Zustands-Monade
     IOStatus, MStatus, MStatusT, IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
-    auswertenLeererIOStatus, auswertenTMVarIOStatus, auswertenTMVarMStatus,
+    auswertenLeererIOStatus, auswertenTMVarIOStatus, auswertenTMVarMStatusT, auswertenTMVarMStatus,
     -- ** Anpassen des aktuellen Zustands
     hinzufügenBahngeschwindigkeit, hinzufügenStreckenabschnitt, hinzufügenWeiche, hinzufügenKupplung,
     hinzufügenWegstrecke, hinzufügenPlan,
@@ -43,7 +43,7 @@ import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, TMVar, t
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS, runRWS)
 import Control.Monad.Trans (MonadIO(..))
 import Control.Monad.Reader.Class (MonadReader(..), asks)
-import Control.Monad.State.Class (gets, modify)
+import Control.Monad.State.Class (MonadState(..), gets, modify)
 #ifdef ZUGKONTROLLEGUI
 import Control.Lens (Lens', lens)
 #endif
@@ -225,6 +225,15 @@ auswertenLeererIOStatus ioStatus readerNeu sprache = do
     (a, ()) <- evalRWST ioStatus tvarMaps $ statusLeer sprache
     pure a
 
+-- | Führe einen 'IOStatusAllgemein' in einer 'MStatusAllgemeinT' mit 'MonadIO' aus.
+liftIOStatus :: (MonadIO m) => IOStatusAllgemein o a -> MStatusAllgemeinT m o a
+liftIOStatus action = do
+    reader <- ask
+    state0 <- get
+    (a, state1, ()) <- liftIO $ runRWST action reader state0
+    put state1
+    pure a
+
 -- | Klasse für Typen mit 'TVarMaps'
 class MitTVarMaps r where
     tvarMaps :: r -> TVarMaps
@@ -249,7 +258,7 @@ instance (MitTVarMaps r) => MitAusführend r where
 
 instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
 
--- | Führe IO-Aktion mit 'StatusAllgemein' in 'TMVar' aus
+-- | Führe 'IO'-Aktion mit 'StatusAllgemein' in 'TMVar' aus
 auswertenTMVarIOStatus :: (MonadReader (ReaderFamilie o) m, MonadIO m) => IOStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a
 auswertenTMVarIOStatus action tmvarStatus = do
     reader <- ask
@@ -258,6 +267,16 @@ auswertenTMVarIOStatus action tmvarStatus = do
         (a, status1, ()) <- runRWST action reader status0
         atomically $ putTMVar tmvarStatus status1
         pure a
+
+-- | Führe 'MonadIO'-Aktion mit 'StatusAllgemein' in 'TMVar' aus
+auswertenTMVarMStatusT :: (MonadReader (ReaderFamilie o) m, MonadIO m) =>
+    MStatusAllgemeinT m o a -> TMVar (StatusAllgemein o) -> m a
+auswertenTMVarMStatusT action tmvarStatus = do
+    reader <- ask
+    status0 <- liftIO $ atomically $ takeTMVar tmvarStatus
+    (a, status1, ()) <- runRWST action reader status0
+    liftIO $ atomically $ putTMVar tmvarStatus status1
+    pure a
 
 -- | Führe Aktion mit 'StatusAllgemein' in 'TMVar' aus
 auswertenTMVarMStatus :: (MonadReader (ReaderFamilie o) m, MonadIO m) => MStatusAllgemein o a -> TMVar (StatusAllgemein o) -> m a

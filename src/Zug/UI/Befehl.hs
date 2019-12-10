@@ -38,7 +38,7 @@ import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..),
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base (
     StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ObjektReader, ReaderFamilie,
-    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus,
+    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus, liftIOStatus,
     hinzufügenPlan, entfernenPlan,
     hinzufügenWegstrecke, entfernenWegstrecke,
     hinzufügenWeiche, entfernenWeiche,
@@ -152,9 +152,7 @@ instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq
                         erfolgsIO :: Status -> IO (StatusAllgemein o)
                         erfolgsIO statusNeu = fst <$> RWS.execRWST (erfolgsAktion statusNeu) reader state0
                     liftIO (flip leseSprache mitSprache $ Save.laden dateipfad erfolgsIO) >>= \case
-                        Nothing             -> do
-                            ((), state1, ()) <- liftIO $ RWS.runRWST fehlerbehandlung reader state0
-                            RWS.put state1
+                        Nothing             -> liftIOStatus fehlerbehandlung
                         (Just statusNeu)    -> do
                             TVarMaps {tvarPwmMap, tvarI2CMap} <- erhalteTVarMaps
                             liftIO $ do
