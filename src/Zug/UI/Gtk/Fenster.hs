@@ -55,7 +55,7 @@ import Zug.Plan (
     Plan(..), Aktion(..), AktionWegstrecke(..),
     AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import qualified Zug.Language as Language
-import Zug.Language (MitSprache(..), showText, (<!>), (<:>))
+import Zug.Language (MitSprache(..), Anzeige(..), (<!>), (<:>))
 import Zug.UI.Base (
     Status, auswertenTMVarIOStatus, auswertenTMVarMStatusT,
     ObjektReader, sprache,
@@ -309,7 +309,7 @@ instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = widget
 
-hinzufügenErgebnis :: (StatusReader r ObjektGui m, MonadIO m) =>
+hinzufügenErgebnis :: forall r m. (StatusReader r ObjektGui m, MonadIO m) =>
     AuswahlWidget Zugtyp -> FließendAuswahlWidget -> NonEmpty HinzufügenSeite -> m Objekt
 hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
     HinzufügenSeiteAuswahl {}
@@ -380,7 +380,7 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
             pure $ OKupplung Kupplung {kuName, kuFließend, kupplungsAnschluss}
     HinzufügenSeiteWegstrecke {nameAuswahl}
         -> do
-            tmvarStatus <- erhalteStatus
+            tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
             aktuellerStatus <- liftIO $ atomically $ readTMVar tmvarStatus
             wsName <- aktuellerName nameAuswahl
             let
@@ -533,7 +533,7 @@ assistantHinzufügenNew
                 nameAuswahlWeiche <- nameAuswahlPackNew boxWeiche
                 märklinBoxWeiche <- fmap erhalteBox $ Gtk.vBoxNew False 0
                 märklinFortfahrenWennToggledTMVar <- fortfahrenWennToggledNew Language.hinzufügen $
-                    showText <$> unterstützteRichtungen
+                    anzeige <$> unterstützteRichtungen
                 let
                     richtungsCheckButtons :: NonEmpty (Richtung, RegistrierterCheckButton)
                     richtungsCheckButtons = NonEmpty.zip unterstützteRichtungen $
@@ -541,10 +541,12 @@ assistantHinzufügenNew
                 märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung, checkButton) -> do
                     box <- boxPackWidgetNewDefault märklinBoxWeiche $ Gtk.hBoxNew False 0
                     boxPackDefault box checkButton
-                    anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew $ showText richtung
+                    anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew $ anzeige richtung
                     pure (richtung, checkButton, anschlussAuswahl)
                 legoBoxWeiche <- fmap erhalteBox $ Gtk.vBoxNew False 0
-                legoSeitenAbschluss <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+                legoSeitenAbschluss <- Gtk.buttonNew
+                verwendeSpracheGui $ \sprache ->
+                    Gtk.set legoSeitenAbschluss [Gtk.buttonLabel := Language.hinzufügen sprache]
                 legoRichtungsAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
                     anschlussAuswahlNew Language.richtung
                 legoRichtungenAuswahl <- boxPackWidgetNewDefault legoBoxWeiche $
@@ -667,9 +669,13 @@ assistantHinzufügenNew
                 -- Plan
                 boxPlan <- Gtk.vBoxNew False 0
                 nameAuswahlPlan <- nameAuswahlPackNew boxPlan
-                expanderAktionen <- widgetShowNew $ Gtk.expanderNew (Language.aktionen :: Text)
+                expanderAktionen <- widgetShowNew $ Gtk.expanderNew Text.empty
+                verwendeSpracheGui $ \sprache ->
+                    Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen sprache]
                 boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
-                seitenAbschlussPlan <- Gtk.buttonNewWithLabel (Language.hinzufügen :: Text)
+                seitenAbschlussPlan <- Gtk.buttonNew
+                verwendeSpracheGui $ \sprache ->
+                    Gtk.set seitenAbschlussPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
                 tvarAktionen <- newTVarIO leer
                 tvarWidgets <- newTVarIO []
                 let
@@ -677,9 +683,9 @@ assistantHinzufügenNew
                     zeigeAktionen aktionen = liftIO $ do
                         widgets <- readTVarIO tvarWidgets
                         forM_ widgets $ mitContainerRemove boxAktionen
-                        widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . show) $
+                        widgetsNeu <- mapM (boxPackWidgetNewDefault boxAktionen . Gtk.labelNew . Just . anzeige) $
                             toList aktionen
-                        Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> show (length aktionen)]
+                        Gtk.set expanderAktionen [Gtk.expanderLabel := Language.aktionen <:> length aktionen]
                         atomically $ writeTVar tvarWidgets widgetsNeu
                         Gtk.set seitenAbschlussPlan [Gtk.widgetSensitive := not $ null aktionen]
                     aktionHinzufügen :: Aktion -> IO ()
@@ -700,7 +706,8 @@ assistantHinzufügenNew
                     wartezeit <- MikroSekunden . fromIntegral <$> Gtk.spinButtonGetValueAsInt wartenSpinButton
                     aktionHinzufügen $ Warten wartezeit
                 boxPackDefault boxAktionWarten wartenSpinButton
-                boxPackWidgetNewDefault boxAktionWarten $ Gtk.labelNew $ Just (Language.wartenEinheit :: Text)
+                labelWarten <- boxPackWidgetNewDefault boxAktionWarten $ Gtk.labelNew (Nothing :: Maybe Text)
+                verwendeSpracheGui $ \sprache -> Gtk.set labelWarten [Gtk.labelText :=  Language.wartenEinheit sprache]
                 -- AktionBahngeschwindigkeit 'Märklin
                 boxAktionBahngeschwindigkeitMärklin <- Gtk.hBoxNew False 0
                 let
@@ -810,7 +817,7 @@ assistantHinzufügenNew
                     buttonNewWithEventLabel Language.geschwindigkeit $
                         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> 
                             Geschwindigkeit bg . floor <$> Gtk.get legoGeschwindigkeitsScale Gtk.rangeValue
-                legoFahrtrichtungAuswahl <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Vorwärts ("" :: Text)
+                legoFahrtrichtungAuswahl <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Vorwärts $ const Text.empty
                 boxPackWidgetNewDefault boxAktionBahngeschwindigkeitLego $
                     buttonNewWithEventLabel Language.fahrtrichtungEinstellen $
                         legoBahngeschwindigkeitAktionHinzufügen $ \bg -> FahrtrichtungEinstellen bg <$> aktuelleAuswahl legoFahrtrichtungAuswahl
@@ -868,7 +875,7 @@ assistantHinzufügenNew
                             Nothing
                                 -> pure ()
                         Gtk.postGUIAsync $ mitWidgetHide windowAktionObjektAuswahl
-                auswahlStrom <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend ("" :: Text)
+                auswahlStrom <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend $ const Text.empty
                 boxPackWidgetNewDefault boxAktionStreckenabschnitt $
                     buttonNewWithEventLabel Language.strom $
                         streckenabschnittAktionHinzufügen $ \st -> Strom st <$> aktuelleAuswahl auswahlStrom
@@ -1081,8 +1088,9 @@ assistantHinzufügenNew
                         pure aktionenVorher
                     zeigeAktionen aktionenVorher
                 -- Dauerschleife
-                checkButtonDauerschleife <- boxPackWidgetNewDefault boxPlan $
-                    Gtk.checkButtonNewWithLabel (Language.dauerschleife :: Text)
+                checkButtonDauerschleife <- boxPackWidgetNewDefault boxPlan Gtk.checkButtonNew
+                verwendeSpracheGui $ \sprache ->
+                    Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
                 let
                     seiteZurücksetzenPlan :: IO ()
                     seiteZurücksetzenPlan = do

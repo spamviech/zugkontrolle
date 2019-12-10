@@ -417,13 +417,13 @@ buttonEntfernenPackNew w entfernenAktion = do
 -- ** Widget mit Name und CheckButton erstellen
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen.
 hinzufügenWidgetWegstreckePackNew :: forall o r m.
-    (DynamischeWidgetsReader r m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
+    (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
         ObjektTyp o -> m (CheckButtonWegstreckeHinzufügen Void o)
 hinzufügenWidgetWegstreckePackNew objekt = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     widgetHinzufügenBoxPackNew box $ WegstreckeCheckButton <$>
-        registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
+        registrierterCheckButtonNew (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
 hinzufügenWidgetWegstreckeRichtungPackNew :: forall o m.
     (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
@@ -433,8 +433,8 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen = do
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     widgetHinzufügenBoxPackNew box $ do
             hBox <- liftIO $ Gtk.hBoxNew False 0
-            wcbrRegistrierterCheckButton <- liftIO $ boxPackWidgetNewDefault hBox $
-                registrierterCheckButtonNew (erhalteName objekt) fortfahrenWennToggledWegstrecke
+            wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
+                registrierterCheckButtonNew (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
             wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen $ const Text.empty
             pure WegstreckeCheckButtonRichtung {
                 wcbrWidget = erhalteWidget hBox,
