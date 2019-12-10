@@ -9,9 +9,10 @@ module Zug.Options (
 
 -- Bibliotheken
 import Control.Monad.Trans (MonadIO, liftIO)
-import Options.Applicative (ParserInfo(), Parser(), execParser,
-                            info, helper, fullDesc, progDesc, header, infoOption, long, short, help,
-                            switch, option, auto, metavar, showDefault, value, strOption)
+import Options.Applicative (
+    ParserInfo(), Parser(), execParser,
+    info, helper, fullDesc, progDesc, header, infoOption, long, short, help,
+    switch, option, auto, metavar, showDefault, value, strOption)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (unpack)
 -- Abhängigkeit von anderen Modulen
@@ -34,16 +35,15 @@ data Options
 
 optionen :: ParserInfo Options
 optionen = info
-        (helper <*> versionOpt <*> kombinierteOptionen)
-        (fullDesc <>
-            progDesc "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle." <>
-            header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
+    (helper <*> versionOpt <*> kombinierteOptionen)
+    (fullDesc <>
+        progDesc "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle." <>
+        header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
 
 versionOpt :: Parser (a -> a)
-versionOpt
-    = infoOption
-        ("Zugkontrolle Version: " ++ unpack Language.version)
-        (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
+versionOpt = infoOption
+    ("Zugkontrolle Version: " ++ unpack Language.version)
+    (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
 
 kombinierteOptionen :: Parser Options
 kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt
@@ -61,24 +61,24 @@ alleUI = [minBound..maxBound]
 
 uiOpt :: Parser UI
 uiOpt = option auto (
-                long "ui" <>
-                metavar "UI" <>
-                showDefault <>
-                value Gtk <>
-                help ("Verwende UI=" ++ zeigeMöglichkeiten alleUI ++ " als Benutzer-Schnittstelle."))
+    long "ui" <>
+    metavar "UI" <>
+    showDefault <>
+    value Gtk <>
+    help ("Verwende UI=" ++ zeigeMöglichkeiten alleUI ++ " als Benutzer-Schnittstelle."))
 
 ladeOpt :: Parser String
 ladeOpt = strOption (
-                long "load" <>
-                short 'l' <>
-                metavar "DATEINAME" <>
-                showDefault <>
-                value "" <>
-                help "Lade DATEINAME zum Programmstart.")
+    long "load" <>
+    short 'l' <>
+    metavar "DATEINAME" <>
+    showDefault <>
+    value "" <>
+    help "Lade DATEINAME zum Programmstart.")
 
 -- | Verwende Hardware-PWM wenn möglich?
 data PWM = SoftwarePWM | HardwarePWM
-                deriving (Show, Read, Enum, Bounded, Eq)
+    deriving (Show, Read, Enum, Bounded, Eq)
 
 -- | Alle unterstützten PWM-Optionen
 allePWMOptionen :: [PWM]
@@ -86,19 +86,19 @@ allePWMOptionen = [minBound..maxBound]
 
 pwmOpt :: Parser PWM
 pwmOpt = option auto (
-            long "pwm" <>
-            metavar "PWMTYP" <>
-            showDefault <>
-            value SoftwarePWM <>
-            help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich."))
+    long "pwm" <>
+    metavar "PWMTYP" <>
+    showDefault <>
+    value SoftwarePWM <>
+    help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich."))
 
 spracheOpt :: Parser Sprache
 spracheOpt = option auto (
-                long "sprache" <>
-                metavar "SPRACHE" <>
-                showDefault <>
-                value Deutsch <>
-                help ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?"))
+    long "sprache" <>
+    metavar "SPRACHE" <>
+    showDefault <>
+    value Deutsch <>
+    help ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?"))
 
 -- | Hilfsfunktion um mögliche Optionen anzuzeigen
 zeigeMöglichkeiten :: (Show a) => [a] -> String

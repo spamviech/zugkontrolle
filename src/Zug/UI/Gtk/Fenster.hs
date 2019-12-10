@@ -75,7 +75,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled (
 import Zug.UI.Gtk.Hilfsfunktionen (
     boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew,
     boxPackWidgetNew, Packing(..), paddingDefault, positionDefault,
-    buttonNewWithEventLabel, dialogEval,
+    buttonNewWithEventLabel, dialogEval, labelSpracheNew,
     widgetShowIf, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (
     MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..),
@@ -704,8 +704,7 @@ assistantHinzufügenNew
                 wartezeit <- MikroSekunden . fromIntegral <$> Gtk.spinButtonGetValueAsInt wartenSpinButton
                 aktionHinzufügen $ Warten wartezeit
             boxPackDefault boxAktionWarten wartenSpinButton
-            labelWarten <- liftIO $ boxPackWidgetNewDefault boxAktionWarten $ Gtk.labelNew (Nothing :: Maybe Text)
-            verwendeSpracheGui $ \sprache -> Gtk.set labelWarten [Gtk.labelText :=  Language.wartenEinheit sprache]
+            boxPackWidgetNewDefault boxAktionWarten $ labelSpracheNew Language.wartenEinheit
             -- AktionBahngeschwindigkeit 'Märklin
             boxAktionBahngeschwindigkeitMärklin <- liftIO $ Gtk.hBoxNew False 0
             let

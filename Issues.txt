@@ -5,23 +5,14 @@ Anzeige sprachabhängig, ohne Show-Instanz
             Speichern in .json?
         Sprachwechsel im Cmd-UI kein Problem:
             wird sowieso neu erzeugt
+            muss noch implementiert werden
         GTK-Objekte müssen bei Sprachwechsel neu benannt werden
             ergänze (SP ObjektGui) im Zustand um [Sprache -> IO ()]
                 werden bei Sprachwechsel alle via sequence_ aufgerufen
                 wie wird die IO-Funktion wieder gelöscht?
                 Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
                     Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
-
-Anzeige über eigene Klasse regeln
-    default-Implementierung aus Show-Instanz
-        DefaultSignatures
-    anzeige :: Sprache -> Text
-    Sprache in aktuellem Zustand speichern
-        änderbar im Programm
-    Erzeugen in Language.hs automatisch über TemplateHaskell
-        Durchsuchen des gesamten Namensraum (DE), import von vorhandenen Namen
-        Warnung bei fehlenden Feldern, erzeugen von Wildcard-Pattern
-        dauert zu lange (kompilieren bei 4 Zeichen dauert länger als 5min, steigt exponentiell)
+            Sprachwechsel über AuswahlWidget (ComboBox)
 
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren

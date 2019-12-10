@@ -14,7 +14,8 @@ Description: Allgemeine Hilfsfunktionen
 module Zug.UI.Gtk.SpracheGui () where
 #else
 module Zug.UI.Gtk.SpracheGui (
-    SpracheGui(), SpracheGuiReader(..), MitSpracheGui(..), spracheGuiNeu, sprachwechsel, verwendeSpracheGui) where
+    SpracheGui(), SpracheGuiReader(..), MitSpracheGui(..), spracheGuiNeu,
+    sprachwechsel, verwendeSpracheGui, verwendeSpracheGuiFn) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar)
@@ -58,11 +59,17 @@ sprachwechsel
             pure $ spracheGui {sprache}
 
 -- | Führe die übergebene Aktion mit der aktellen 'Sprache' aus.
--- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel.
+-- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel'.
 verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> IO ()) -> m ()
-verwendeSpracheGui neueAktion = do
-    SpracheGui {sprache, sprachwechselAktionen} <- erhalteSpracheGui
-    liftIO $ do
-        neueAktion sprache
-        atomically $ modifyTVar sprachwechselAktionen (neueAktion :)
+verwendeSpracheGui neueAktion = erhalteSpracheGui >>= flip verwendeSpracheGuiFn neueAktion
+
+-- | Führe die übergebene Aktion mit der übergebenen 'SpracheGui' aus.
+-- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel'.
+verwendeSpracheGuiFn :: (MonadIO m) => SpracheGui -> (Sprache -> IO ()) -> m ()
+verwendeSpracheGuiFn
+    SpracheGui {sprache, sprachwechselAktionen}
+    neueAktion
+        = liftIO $ do
+            neueAktion sprache
+            atomically $ modifyTVar sprachwechselAktionen (neueAktion :)
 #endif

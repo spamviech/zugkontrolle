@@ -106,7 +106,7 @@ import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(..), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(), MitSpracheGui(..), verwendeSpracheGui)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -212,7 +212,7 @@ type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstr
 type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxWegstreckeHinzufügen'
-boxWegstreckeHinzufügenNew :: forall a m. (Kategorie a, ObjektReader ObjektGui m, MonadIO m) =>
+boxWegstreckeHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) =>
     m (BoxWegstreckeHinzufügen a)
 boxWegstreckeHinzufügenNew = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
     box <- liftIO $ Gtk.vBoxNew False 0
@@ -256,7 +256,7 @@ type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxPlanHinzufügen'
-boxPlanHinzufügenNew :: forall a m. (Kategorie a, ObjektReader ObjektGui m, MonadIO m) => m (BoxPlanHinzufügen a)
+boxPlanHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) => m (BoxPlanHinzufügen a)
 boxPlanHinzufügenNew = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
     box <- liftIO $ Gtk.vBoxNew False 0
     boxPackWidgetNewDefault box $ labelSpracheNew $ kategorieText (kategorie :: KategorieText a)

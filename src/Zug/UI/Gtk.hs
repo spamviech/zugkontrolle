@@ -26,7 +26,6 @@ import Control.Monad.Reader (runReaderT)
 import Control.Monad.RWS (runRWST)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (liftIO)
-import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
@@ -35,16 +34,19 @@ import Zug.Language ((<~>), (<|>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
 import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
-import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
-                                    StatusGui, MStatusGuiT, foldWegstreckeHinzufügen)
+import Zug.UI.Gtk.StreckenObjekt (
+    DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
+    MStatusGuiT, IOStatusGui, foldWegstreckeHinzufügen)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, buttonNewWithEventMnemonic,
-                                    containerAddWidgetNew, boxPack, boxPackWidgetNew, boxPackWidgetNewDefault,
-                                    Packing(..), packingDefault, paddingDefault,
-                                    Position(..), positionDefault,
-                                    notebookAppendPageNew)
+import Zug.UI.Gtk.Hilfsfunktionen (
+    widgetShowNew, buttonNewWithEventLabel,
+    containerAddWidgetNew, boxPack, boxPackWidgetNew, boxPackWidgetNewDefault,
+    Packing(..), packingDefault, paddingDefault,
+    Position(..), positionDefault,
+    notebookAppendPageNew, labelSpracheNew)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
+import Zug.UI.Gtk.SpracheGui (spracheGuiNeu, verwendeSpracheGuiFn)
 
 -- | main loop
 main :: IO ()
@@ -61,120 +63,130 @@ main = do
 -- Zur Verwendung muss vorher 'initGUI' aufgerufen werden.
 setupGUI :: IO ()
 setupGUI = void $ do
+    Options {load=dateipfad, sprache} <- getOptions
+    spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
     windowMain <- widgetShowNew Gtk.windowNew
     Gtk.set windowMain [
-        Gtk.windowTitle := (Language.zugkontrolle <~> Language.version :: Text),
         Gtk.windowDefaultWidth := 640,
         Gtk.windowDefaultHeight := 480]
+    verwendeSpracheGuiFn spracheGui $ \sprache ->
+        Gtk.set windowMain [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sprache]
     -- windowDefaultHeight wird aus irgendeinem Grund ignoriert.
     -- Wird hier trotzdem gesetzt für den Fall, dass sich das in einer neueren Version ändert.
     Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
     tvarMaps <- tvarMapsNeu
-    tmvarStatus <- newTMVarIO statusLeer
+    tmvarStatus <- newTMVarIO $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-    (panedEinzelObjekte, _page) <- notebookAppendPageNew
+    (panedEinzelObjekte, _page) <- flip runReaderT spracheGui $ notebookAppendPageNew
         notebookElemente
         (Language.bahngeschwindigkeiten <|> Language.streckenabschnitte <|> Language.weichen <|> Language.kupplungen )
-        Gtk.hPanedNew
+        $ liftIO Gtk.hPanedNew
     vPanedLeft <- widgetShowNew Gtk.vPanedNew
     Gtk.panedAdd1 panedEinzelObjekte vPanedLeft
     frameLeftTop <- widgetShowNew Gtk.frameNew
     Gtk.set frameLeftTop [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 vPanedLeft frameLeftTop
     vBoxBahngeschwindigkeiten <- containerAddWidgetNew frameLeftTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.labelNew $ Just (Language.bahngeschwindigkeiten :: Text)
+    flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $
+        labelSpracheNew Language.bahngeschwindigkeiten
     frameLeftBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameLeftBot [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 vPanedLeft frameLeftBot
     vBoxStreckenabschnitte <- containerAddWidgetNew frameLeftBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBoxStreckenabschnitte $ Gtk.labelNew $ Just (Language.streckenabschnitte :: Text)
+    flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxStreckenabschnitte $
+        labelSpracheNew Language.streckenabschnitte
     vPanedRight <- widgetShowNew Gtk.vPanedNew
     Gtk.panedAdd2 panedEinzelObjekte vPanedRight
     frameRightTop <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightTop [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 vPanedRight frameRightTop
     vBoxWeichen <- containerAddWidgetNew frameRightTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBoxWeichen $ Gtk.labelNew $ Just (Language.weichen :: Text)
+    flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxWeichen $
+        labelSpracheNew Language.weichen
     frameRightBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 vPanedRight frameRightBot
     vBoxKupplungen <- containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBoxKupplungen $ Gtk.labelNew $ Just (Language.kupplungen :: Text)
-    (panedSammelObjekte, _page) <- notebookAppendPageNew
+    flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxKupplungen $
+        labelSpracheNew Language.kupplungen
+    (panedSammelObjekte, _page) <- flip runReaderT spracheGui $ notebookAppendPageNew
         notebookElemente
         (Language.wegstrecken <|> Language.pläne)
-        Gtk.hPanedNew
+        $ liftIO Gtk.hPanedNew
     frameWegstrecken <- widgetShowNew Gtk.frameNew
     Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 panedSammelObjekte frameWegstrecken
     vBoxWegstrecken <- containerAddWidgetNew frameWegstrecken $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBoxWegstrecken $ Gtk.labelNew $ Just (Language.wegstrecken :: Text)
+    flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxWegstrecken $
+        labelSpracheNew Language.wegstrecken
     framePläne <- widgetShowNew Gtk.frameNew
     Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 panedSammelObjekte framePläne
     vBoxPläne <- containerAddWidgetNew framePläne $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBoxPläne $ Gtk.labelNew $ Just (Language.pläne :: Text)
+    flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxPläne $
+        labelSpracheNew Language.pläne
     -- DynamischeWidgets
     progressBarPlan
         <- widgetShowNew Gtk.progressBarNew
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-        <- boxWegstreckeHinzufügenNew
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-        <- boxWegstreckeHinzufügenNew
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanBahngeschwindigkeitenLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenWegstreckeStreckenabschnitte
-        <- boxWegstreckeHinzufügenNew
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanStreckenabschnitte
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenWegstreckeWeichenMärklin
-        <- boxWegstreckeHinzufügenNew
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenWegstreckeWeichenLego
-        <- boxWegstreckeHinzufügenNew
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanWeichenGeradeMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenGeradeLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenKurveMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenKurveLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenLinksMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenLinksLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenRechtsMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWeichenRechtsLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenWegstreckeKupplungen
-        <- boxWegstreckeHinzufügenNew
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanKupplungen
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenKupplungMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenKupplungLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenMärklin
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanWegstreckenLego
-        <- boxPlanHinzufügenNew
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     vBoxHinzufügenPlanPläne
-        <- boxPlanHinzufügenNew
-    fortfahrenWennToggledWegstrecke <- fortfahrenWennToggledTMVarNew Language.hinzufügen foldWegstreckeHinzufügen tmvarStatus
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
+    fortfahrenWennToggledWegstrecke <- flip runReaderT spracheGui $
+        fortfahrenWennToggledTMVarNew Language.hinzufügen foldWegstreckeHinzufügen tmvarStatus
     tmvarPlanObjekt
         <- newEmptyTMVarIO
     let dynamischeWidgets = DynamischeWidgets {
@@ -223,16 +235,18 @@ setupGUI = void $ do
         liftIO $ boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
         buttonSpeichernPack windowMain functionBox
         buttonLadenPack windowMain functionBox
-    boxPackWidgetNew functionBox packingDefault paddingDefault End $
-        buttonNewWithEventMnemonic Language.beenden $ Gtk.mainQuit
+        boxPackWidgetNew functionBox packingDefault paddingDefault End $
+            buttonNewWithEventLabel Language.beenden $ Gtk.mainQuit
     -- Lade Datei angegeben in Kommandozeilenargument
-    Options {load=dateipfad} <- getOptions
-    -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
     let
-        ladeAktion :: Status -> IO StatusGui
-        ladeAktion = flip runReaderT objektReader . ladeWidgets
+        ladeAktion :: Status -> IOStatusGui ()
+        ladeAktion statusNeu = do
+            state0 <- RWS.get
+            state1 <- liftIO $ flip runReaderT objektReader $ fst <$>
+                RWS.execRWST (ladeWidgets statusNeu) objektReader state0
+            RWS.put state1
         fehlerBehandlung :: MStatusGuiT IO ()
-        fehlerBehandlung = RWS.put statusLeer
+        fehlerBehandlung = RWS.put $ statusLeer spracheGui
     -- TMVar wird in ladeAktion beeinflusst
     -- ausführenTMVarBefehl dadurch nicht möglich
     -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
