@@ -18,14 +18,12 @@ module Zug.UI.Befehl (
     -- * Typen
     Befehl, BefehlAllgemein(..),
     BefehlListe, BefehlListeAllgemein(..),
-    UIBefehl, UIBefehlAllgemein(..),
-    -- * Funktionen
-    ausführenTMVarPlan, ausführenTMVarAktion, ausführenTMVarBefehl) where
+    UIBefehl, UIBefehlAllgemein(..)) where
 
 -- Bibliotheken
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (MonadIO(..))
-import Control.Concurrent.STM (atomically, writeTVar, modifyTVar, TMVar)
+import Control.Concurrent.STM (atomically, writeTVar, modifyTVar)
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 -- Abhängigkeiten von anderen Modulen
@@ -37,8 +35,8 @@ import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
 import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
 import qualified Zug.UI.Save as Save
 import Zug.UI.Base (
-    StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ObjektReader, ReaderFamilie,
-    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), auswertenTMVarIOStatus, liftIOStatus,
+    StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ReaderFamilie,
+    TVarMaps(..), MitTVarMaps(), TVarMapsReader(..), liftIOStatus,
     hinzufügenPlan, entfernenPlan,
     hinzufügenWegstrecke, entfernenWegstrecke,
     hinzufügenWeiche, entfernenWeiche,
@@ -46,25 +44,6 @@ import Zug.UI.Base (
     hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
     hinzufügenKupplung, entfernenKupplung,
     getSprache)
-
--- | Führe einen Plan mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarPlan :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o)) =>
-    PL o -> (Natural -> IO ()) -> IO () -> TMVar (StatusAllgemein o) -> m ()
-ausführenTMVarPlan plan showAktion endAktion = auswertenTMVarIOStatus $ ausführenPlan plan showAktion endAktion
-
--- | Führe eine Aktion mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarAktion   :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o)) =>
-    a -> TMVar (StatusAllgemein o) -> m ()
-ausführenTMVarAktion aktion = auswertenTMVarIOStatus $ ausführenAktion aktion
-
--- | Führe einen Befehl mit einem in einer 'TMVar' gespeichertem Zustand aus
-ausführenTMVarBefehl :: (ObjektReader o m, MonadIO m, BefehlKlasse b o,
-                        ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego),
-                        Eq (ST o), Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego), Eq (KU o),
-                        Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego), Eq (PL o),
-                        MitSprache (SP o), MitTVarMaps (ReaderFamilie o))
-                            => b o -> TMVar (StatusAllgemein o) -> m Bool
-ausführenTMVarBefehl befehl = auswertenTMVarIOStatus $ ausführenBefehl befehl
 
 -- | Ausführen eines Befehls
 class BefehlKlasse b o where

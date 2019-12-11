@@ -1,3 +1,8 @@
+Gtk-UI:
+    Laden führt zu Dauerschleife
+    Hinzufügen (getested mit Lego-Weiche) wird nicht angezeigt; speichern nicht getested
+
+
 Anzeige sprachabhängig, ohne Show-Instanz
     über eigene Anzeige-Klasse
     speichern der aktuellen Sprache im Zustand
