@@ -20,10 +20,9 @@ main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnters
 module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO, atomically, readTMVar)
+import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.RWS (runRWST)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (liftIO)
 import Graphics.UI.Gtk (AttrOp(..))
@@ -33,7 +32,7 @@ import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>), (<|>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
-import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
+import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
 import Zug.UI.Gtk.StreckenObjekt (
     DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
     MStatusGuiT, IOStatusGui, foldWegstreckeHinzufügen)
@@ -247,9 +246,11 @@ setupGUI = void $ do
             RWS.put state1
         fehlerBehandlung :: MStatusGuiT IO ()
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
+    flip runReaderT objektReader $
+        ausführenTMVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) tmvarStatus
     -- TMVar wird in ladeAktion beeinflusst
     -- ausführenTMVarBefehl dadurch nicht möglich
     -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
-    statusAktuell <- atomically $ readTMVar tmvarStatus
-    runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
+    -- statusAktuell <- atomically $ readTMVar tmvarStatus
+    -- runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
 #endif

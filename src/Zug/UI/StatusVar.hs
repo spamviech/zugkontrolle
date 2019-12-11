@@ -80,7 +80,7 @@ putStatusVar StatusVar {tvar} status = readTVar tvar >>= \case
     (Right _sprache)
         -> writeTVar tvar $ Left status
 
--- | Klasse für Typen mit dem in einer 'TMVar' gespeicherten 'StatusAllgemein'
+-- | Klasse für Typen mit dem in einer 'StatusVar'
 class MitStatusVar r o where
     statusVar :: r -> StatusVar o
 instance MitStatusVar (StatusVar o) o where
