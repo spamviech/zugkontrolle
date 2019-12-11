@@ -31,8 +31,8 @@ module Zug.UI.Gtk.StreckenObjekt (
     BGWidgets(), STWidgets(), WEWidgets(), KUWidgets(), WSWidgets(), PLWidgets(), WidgetsTyp(..),
     bahngeschwindigkeitPackNew, streckenabschnittPackNew, weichePackNew, kupplungPackNew, wegstreckePackNew, planPackNew,
     -- * Verwaltung des aktuellen Zustands
-    DynamischeWidgets(..), DynamischeWidgetsReader(..), StatusGui, StatusVarReader(..),
-    ObjektGui, BefehlGui, IOStatusGui, MStatusGui, MStatusGuiT,
+    DynamischeWidgets(..), DynamischeWidgetsReader(..), StatusGui,
+    ObjektGui, BefehlGui, IOStatusGui, MStatusGui, MStatusGuiT, StatusVarGui, readSpracheGui,
     -- * Hinzufügen zu einem Plan/einer Wegstrecke
     WidgetHinzufügen(), HinzufügenZiel(..),
     CheckButtonWegstreckeHinzufügen, WegstreckeCheckButton(), WegstreckeCheckButtonVoid,
@@ -333,12 +333,15 @@ instance MitStatusVar (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektG
     statusVar (_tvarMaps, _dynamischeWidgets, statusVar) = statusVar
 instance MitSpracheGui (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> m SpracheGui
-    spracheGui (_tvarMaps, _dynamischeWidgets, statusVar)
-        = liftIO $ atomically (tryReadStatusVar statusVar) >>= pure . \case
-            (Left status)
-                -> status ^. sprache
-            (Right spracheGui)
-                -> spracheGui
+    spracheGui (_tvarMaps, _dynamischeWidgets, statusVar) = readSpracheGui statusVar
+
+-- | Lese die 'SpracheGui' aus einer 'StatusVarGui'
+readSpracheGui :: (MonadIO m) => StatusVarGui -> m SpracheGui
+readSpracheGui statusVar = liftIO $ atomically (tryReadStatusVar statusVar) >>= pure . \case
+    (Left status)
+        -> status ^. sprache
+    (Right spracheGui)
+        -> spracheGui
 
 -- | Klasse für Widgets-Repräsentation von Objekt-Typen
 class (MitWidget s) => WidgetsTyp s where

@@ -22,7 +22,7 @@ module Zug.UI.Gtk.Fenster (
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (
-    atomically, TMVar, readTMVar, takeTMVar, putTMVar,
+    atomically, takeTMVar, putTMVar,
     TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens ((^.))
 import Control.Monad (void, when, foldM, forM, forM_)
@@ -56,10 +56,11 @@ import Zug.Plan (
 import qualified Zug.Language as Language
 import Zug.Language (MitSprache(..), Anzeige(..), (<!>), (<:>))
 import Zug.UI.Base (
-    Status, auswertenTMVarMStatusT, ObjektReader,
+    Status, ObjektReader,
     bahngeschwindigkeiten, streckenabschnitte,
-    weichen, kupplungen, wegstrecken, pläne, sprache)
-import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
+    weichen, kupplungen, wegstrecken, pläne)
+import Zug.UI.Befehl (BefehlAllgemein(..))
+import Zug.UI.StatusVar (readStatusVar, auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Assistant (
     Assistant, AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..),
@@ -82,9 +83,8 @@ import Zug.UI.Gtk.Klassen (
     mitContainerAdd, mitContainerRemove, MitEntry(..), MitButton(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (
-    StatusGui, MStatusGuiT, IOStatusGui, ObjektGui,
-    DynamischeWidgets(..), DynamischeWidgetsReader(..),
-    StatusReader(..), BoxPlanHinzufügen,
+    MStatusGuiT, IOStatusGui, ObjektGui, StatusVarGui, readSpracheGui,
+    DynamischeWidgets(..), DynamischeWidgetsReader(..), BoxPlanHinzufügen,
     WegstreckenElement(..), WegstreckeCheckButton(),
     WidgetsTyp(..), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl,
     widgetHinzufügenContainerGefüllt,
@@ -100,14 +100,14 @@ import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew, zugtypSpezifischButtonN
 buttonSpeichernPack :: forall b m. (MitBox b, ObjektReader ObjektGui m, MonadIO m) => Gtk.Window -> b -> m Gtk.Button
 buttonSpeichernPack windowMain box = do
     dialogSpeichern <- dialogSpeichernNew windowMain
-    tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
+    statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
     boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.speichern $ do
         antwort <- dialogEval dialogSpeichern
         when (antwort == Gtk.ResponseOk) $ void $ do
             (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
             flip runReaderT objektReader $
-                ausführenTMVarBefehl (Speichern dateipfad) tmvarStatus
+                ausführenStatusVarBefehl (Speichern dateipfad) statusVar
 
 dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m) => Gtk.Window -> m Gtk.FileChooserDialog
 dialogSpeichernNew window = do
@@ -128,16 +128,15 @@ buttonLadenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m) 
 buttonLadenPack parent box = do
     dialogLaden <- dialogLadenNew parent
     dialogLadenFehler <- dialogLadenFehlerNew parent
-    tmvarStatus <- erhalteStatus
+    statusVar <- erhalteStatusVar
     objektReader <- ask
     boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.laden $ do
         antwort <- dialogEval dialogLaden
         when (antwort == Gtk.ResponseOk) $ void $ do
             Gtk.fileChooserGetFilename dialogLaden >>= \case
                 Nothing             -> void $ do
-                    status <- atomically $ readTMVar tmvarStatus
-                    Gtk.set dialogLadenFehler
-                        [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei (status ^. sprache)]
+                    spracheGui <- readSpracheGui statusVar
+                    Gtk.set dialogLadenFehler [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei spracheGui]
                     dialogEval dialogLadenFehler
                 (Just dateipfad)    -> void $ do
                     let
@@ -152,13 +151,7 @@ buttonLadenPack parent box = do
                             Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
                     flip runReaderT objektReader $
-                        ausführenTMVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) tmvarStatus
-                    -- neuer Status ist schon in tmvarStatus gespeichert und muss nicht mehr neu gesetzt werden
-                    -- TMVar wird in ladeAktion beeinflusst
-                    -- ausführenTMVarBefehl dadurch nicht möglich
-                    -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
-                    -- statusAktuell <- atomically $ readTMVar tmvarStatus
-                    -- runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
+                        ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui' in 'TMVar') an reinen 'Status' an.
 ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
@@ -233,10 +226,10 @@ buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, Monad
 buttonHinzufügenPack parentWindow box = do
     assistantHinzufügen <- assistantHinzufügenNew parentWindow
     objektReader <- ask
-    tmvarStatus <- erhalteStatus
+    statusVar <- erhalteStatusVar
     button <- boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.hinzufügen $ void $ forkIO $ do
         flip runReaderT objektReader $ do
-            assistantAuswerten assistantHinzufügen >>= flip auswertenTMVarMStatusT tmvarStatus . \case
+            assistantAuswerten assistantHinzufügen >>= flip auswertenStatusVarMStatusT statusVar . \case
                 (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
                     -> void $ bahngeschwindigkeitPackNew bgMärklin
                 (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
@@ -303,7 +296,7 @@ instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = widget
 
-hinzufügenErgebnis :: forall r m. (StatusReader r ObjektGui m, MonadIO m) =>
+hinzufügenErgebnis :: forall r m. (StatusVarReader r ObjektGui m, MonadIO m) =>
     AuswahlWidget Zugtyp -> FließendAuswahlWidget -> NonEmpty HinzufügenSeite -> m Objekt
 hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
     HinzufügenSeiteAuswahl {}
@@ -374,8 +367,8 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
             pure $ OKupplung Kupplung {kuName, kuFließend, kupplungsAnschluss}
     HinzufügenSeiteWegstrecke {nameAuswahl}
         -> do
-            tmvarStatus <- erhalteStatus :: m (TMVar StatusGui)
-            aktuellerStatus <- liftIO $ atomically $ readTMVar tmvarStatus
+            statusVar <- erhalteStatusVar :: m StatusVarGui
+            aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
             wsName <- aktuellerName nameAuswahl
             let
                 gewählteWegstrecke ::
