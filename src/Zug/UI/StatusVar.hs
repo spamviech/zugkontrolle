@@ -37,7 +37,7 @@ import Zug.Objekt (ObjektKlasse(..))
 import Zug.Plan (PlanKlasse(..), AktionKlasse(..))
 import Zug.UI.Base (
     StatusAllgemein(), sprache, IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT,
-    ReaderFamilie, ObjektReader(), MitTVarMaps())
+    ReaderFamilie, ObjektReader(), MitTVarMaps(), liftIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..))
 
 -- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält
@@ -98,13 +98,7 @@ instance (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m where
 -- | Führe 'IO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
 auswertenStatusVarIOStatus :: (ObjektReader o m, MonadIO m) =>
     IOStatusAllgemein o a -> StatusVar o -> m a
-auswertenStatusVarIOStatus action statusVar = do
-    reader <- ask
-    liftIO $ do
-        status0 <- atomically $ takeStatusVar statusVar
-        (a, status1, ()) <- runRWST action reader status0
-        atomically $ putStatusVar statusVar status1
-        pure a
+auswertenStatusVarIOStatus action = auswertenStatusVarMStatusT $ liftIOStatus action
 
 -- | Führe 'MonadIO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
 auswertenStatusVarMStatusT :: (ObjektReader o m, MonadIO m) =>

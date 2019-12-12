@@ -74,6 +74,7 @@ import Zug.Anbindung (
 import Zug.Enums (
     Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither,
     Fahrtrichtung(..), Strom(..), Richtung(..))
+import Zug.Language (MitSprache(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>), (<°>))
 import Zug.Menge (ausFoldable)
@@ -108,7 +109,7 @@ import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew,  MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(), MitSpracheGui(..), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(..), MitSpracheGui(..), verwendeSpracheGui)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialiert auf Gui-Typen
@@ -1286,6 +1287,7 @@ planPackNew :: forall m. (ObjektReader ObjektGui m, MonadIO m) => Plan -> MStatu
 planPackNew plan@Plan {plAktionen} = do
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     objektReader <- ask
+    spracheGui <- erhalteSpracheGui
     DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain, vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
     -- Widget erstellen
     frame <- liftIO $ boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
@@ -1295,7 +1297,8 @@ planPackNew plan@Plan {plAktionen} = do
     verwendeSpracheGui $
         \sprache -> Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
     vBoxExpander <- liftIO $ containerAddWidgetNew expander $ Gtk.vBoxNew False 0
-    liftIO $ forM_ plAktionen $ boxPackWidgetNewDefault vBoxExpander . Gtk.labelNew . Just . show
+    liftIO $ forM_ plAktionen $ boxPackWidgetNewDefault vBoxExpander . Gtk.labelNew .
+        Just . flip leseSprache spracheGui . anzeige
     functionBox <- liftIO $ boxPackWidgetNewDefault vBox Gtk.hButtonBoxNew
     buttonAusführen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNew
     verwendeSpracheGui $ \sprache -> Gtk.set buttonAusführen [Gtk.buttonLabel := Language.ausführen sprache]
@@ -1303,7 +1306,7 @@ planPackNew plan@Plan {plAktionen} = do
     verwendeSpracheGui $ \sprache -> Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.ausführenAbbrechen sprache]
     liftIO $ Gtk.widgetHide buttonAbbrechen
     dialogGesperrt <- liftIO $ Gtk.messageDialogNew (Just windowMain) [] Gtk.MessageError Gtk.ButtonsOk ("" :: Text)
-    verwendeSpracheGui $ \sprache ->  Gtk.set dialogGesperrt [Gtk.windowTitle := Language.aktionGesperrt sprache]
+    verwendeSpracheGui $ \sprache -> Gtk.set dialogGesperrt [Gtk.windowTitle := Language.aktionGesperrt sprache]
     liftIO $ Gtk.on buttonAusführen Gtk.buttonActivated $ flip runReaderT objektReader $
         auswertenStatusVarIOStatus (ausführenMöglich plan) statusVar >>= \case
             AusführenMöglich                -> void $ do
