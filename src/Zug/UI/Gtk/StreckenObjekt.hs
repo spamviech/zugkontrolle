@@ -94,7 +94,7 @@ import Zug.UI.StatusVar (
     StatusVar, MitStatusVar(..), StatusVarReader(..),
     tryReadStatusVar, auswertenStatusVarIOStatus, ausführenStatusVarBefehl, ausführenStatusVarAktion)
 import Zug.UI.Gtk.FortfahrenWennToggled (
-    FortfahrenWennToggledTMVar, registrierterCheckButtonNew,
+    FortfahrenWennToggledVar, registrierterCheckButtonNew,
     RegistrierterCheckButton, MitRegistrierterCheckButton(..),
     registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (
@@ -304,7 +304,7 @@ data DynamischeWidgets
         vBoxHinzufügenPlanPläne :: BoxPlanHinzufügen PLWidgets,
         progressBarPlan :: Gtk.ProgressBar,
         windowMain :: Gtk.Window,
-        fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid,
+        fortfahrenWennToggledWegstrecke :: FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid,
         tmvarPlanObjekt :: TMVar (Maybe Objekt)}
 
 -- | Klasse für Typen mit 'DynamischeWidgets'

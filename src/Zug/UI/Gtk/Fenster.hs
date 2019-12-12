@@ -71,7 +71,7 @@ import Zug.UI.Gtk.Auswahl (
     aktuelleAuswahl, MitAuswahlWidget())
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled (
-    checkButtons, fortfahrenWennToggledNew, aktiviereWennToggledTMVar,
+    checkButtons, fortfahrenWennToggledNew, aktiviereWennToggledVar,
     RegistrierterCheckButton, registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (
     boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew,
@@ -610,7 +610,7 @@ assistantHinzufügenNew
             let
                 seiteZurücksetzenWegstrecke :: IO ()
                 seiteZurücksetzenWegstrecke = do
-                    aktiviereWennToggledTMVar fortfahrenWennToggledWegstrecke
+                    aktiviereWennToggledVar fortfahrenWennToggledWegstrecke
                     Gtk.set (erhalteEntry nameAuswahlWegstrecke)
                         [Gtk.entryText := Text.empty, Gtk.widgetHasFocus := True]
                 seiteWegstrecke :: AssistantSeite HinzufügenSeite
@@ -620,7 +620,7 @@ assistantHinzufügenNew
                         nameAuswahl = nameAuswahlWegstrecke},
                     name = Language.wegstrecke,
                     seiteZurücksetzen = seiteZurücksetzenWegstrecke,
-                    seitenAbschluss = SeitenAbschlussToggledTMVar fortfahrenWennToggledWegstrecke}
+                    seitenAbschluss = SeitenAbschlussToggledVar fortfahrenWennToggledWegstrecke}
             -- Hilfsdialog für Plan
             windowAktionObjektAuswahl <- liftIO Gtk.windowNew
             liftIO $ Gtk.on windowAktionObjektAuswahl Gtk.deleteEvent $ liftIO $ do

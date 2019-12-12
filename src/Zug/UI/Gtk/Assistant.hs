@@ -32,7 +32,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Language (Sprache(..), MitSprache(..), alleSprachen)
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledTMVar)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen (
     containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault,
     Packing(..), packingDefault, Position(..), paddingDefault,
@@ -41,7 +41,7 @@ import Zug.UI.Gtk.Klassen (
     MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..),
     MitContainer(..), MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), MitSpracheGui(), verwendeSpracheGui)
-import Zug.UI.Gtk.StreckenObjekt (StatusGui, WegstreckeCheckButtonVoid)
+import Zug.UI.Gtk.StreckenObjekt (StatusGui, StatusVarGui, WegstreckeCheckButtonVoid)
 import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch)
 
 -- | Fenster zum erstellen eines Wertes, potentiell in mehreren Schritten
@@ -74,8 +74,8 @@ data SeitenAbschluss
         (Sprache -> Text)
     | SeitenAbschlussToggled
         FortfahrenWennToggled
-    | SeitenAbschlussToggledTMVar
-        (FortfahrenWennToggledTMVar StatusGui WegstreckeCheckButtonVoid)
+    | SeitenAbschlussToggledVar
+        (FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid)
     | SeitenAbschlussZugtyp
         (ZugtypSpezifisch Gtk.Button)
     | SeitenAbschlussButton
@@ -92,8 +92,8 @@ instance Eq SeitenAbschluss where
         (SeitenAbschlussToggled f1)
             = f0 == f1
     (==)
-        (SeitenAbschlussToggledTMVar f0)
-        (SeitenAbschlussToggledTMVar f1)
+        (SeitenAbschlussToggledVar f0)
+        (SeitenAbschlussToggledVar f1)
             = f0 == f1
     (==)
         (SeitenAbschlussZugtyp z0)
@@ -194,8 +194,8 @@ besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)}
         = Right $ erhalteButton fortfahrenWennToggled
 besondererSeitenAbschlussKnopf
-    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)}
-        = Right $ erhalteButton fortfahrenWennToggledTMVar
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledVar fortfahrenWennToggledVar)}
+        = Right $ erhalteButton fortfahrenWennToggledVar
 besondererSeitenAbschlussKnopf
     AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)}
         = Right $ erhalteButton zugtypSpezifisch
@@ -211,8 +211,8 @@ besondererSeitenAbschlussWidget
     AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)}
         = Right $ erhalteWidget fortfahrenWennToggled
 besondererSeitenAbschlussWidget
-    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledTMVar fortfahrenWennToggledTMVar)}
-        = Right $ erhalteWidget fortfahrenWennToggledTMVar
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledVar fortfahrenWennToggledVar)}
+        = Right $ erhalteWidget fortfahrenWennToggledVar
 besondererSeitenAbschlussWidget
     AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)}
         = Right $ erhalteWidget zugtypSpezifisch

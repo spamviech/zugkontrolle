@@ -20,7 +20,7 @@ main = setSGR [SetColor Foreground Vivid Red] >> putStrLn Language.uiNichtUnters
 module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (newEmptyTMVarIO, newTMVarIO)
+import Control.Concurrent.STM (atomically, newEmptyTMVarIO)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import qualified Control.Monad.RWS as RWS
@@ -32,12 +32,13 @@ import Zug.Options (Options(..), getOptions)
 import Zug.Language ((<~>), (<|>))
 import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
-import Zug.UI.Befehl (BefehlAllgemein(..), ausführenTMVarBefehl)
+import Zug.UI.Befehl (BefehlAllgemein(..))
+import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
 import Zug.UI.Gtk.StreckenObjekt (
     DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
     MStatusGuiT, IOStatusGui, foldWegstreckeHinzufügen)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
-import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledTMVarNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (
     widgetShowNew, buttonNewWithEventLabel,
     containerAddWidgetNew, boxPack, boxPackWidgetNew, boxPackWidgetNewDefault,
@@ -76,7 +77,7 @@ setupGUI = void $ do
     Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
     tvarMaps <- tvarMapsNeu
-    tmvarStatus <- newTMVarIO $ statusLeer spracheGui
+    statusVar <- statusVarNew $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
     (panedEinzelObjekte, _page) <- flip runReaderT spracheGui $ notebookAppendPageNew
@@ -185,7 +186,7 @@ setupGUI = void $ do
     vBoxHinzufügenPlanPläne
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew
     fortfahrenWennToggledWegstrecke <- flip runReaderT spracheGui $
-        fortfahrenWennToggledTMVarNew Language.hinzufügen foldWegstreckeHinzufügen tmvarStatus
+        fortfahrenWennToggledVarNew Language.hinzufügen foldWegstreckeHinzufügen (atomically . readStatusVar) statusVar
     tmvarPlanObjekt
         <- newEmptyTMVarIO
     let dynamischeWidgets = DynamischeWidgets {
@@ -226,7 +227,7 @@ setupGUI = void $ do
         windowMain,
         fortfahrenWennToggledWegstrecke,
         tmvarPlanObjekt}
-    let objektReader = (tvarMaps, dynamischeWidgets, tmvarStatus)
+    let objektReader = (tvarMaps, dynamischeWidgets, statusVar)
     -- Knopf-Leiste mit globalen Funktionen
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End $ Gtk.hBoxNew False 0
     flip runReaderT objektReader $ do
@@ -247,10 +248,5 @@ setupGUI = void $ do
         fehlerBehandlung :: MStatusGuiT IO ()
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
     flip runReaderT objektReader $
-        ausführenTMVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) tmvarStatus
-    -- TMVar wird in ladeAktion beeinflusst
-    -- ausführenTMVarBefehl dadurch nicht möglich
-    -- Ergebnis & Status der RWST-Aktion ebenfalls uninteressant
-    -- statusAktuell <- atomically $ readTMVar tmvarStatus
-    -- runRWST (ausführenBefehl $ Laden dateipfad ladeAktion fehlerBehandlung) objektReader statusAktuell
+        ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
 #endif

@@ -14,6 +14,7 @@ module Zug.UI.StatusVar (
     -- * Konstruktor
     statusVarNew,
     -- * Gundfunktionen
+    STM, atomically,
     takeStatusVar, readStatusVar, tryReadStatusVar, putStatusVar,
     -- * Zugehörigkeitsklassen
     MitStatusVar(..), StatusVarReader(..),
@@ -41,6 +42,7 @@ import Zug.UI.Befehl (BefehlKlasse(..))
 
 -- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält
 newtype StatusVar o = StatusVar {tvar :: TVar (Either (StatusAllgemein o) (SP o))}
+    deriving (Eq)
 
 -- | Erstelle eine neue 'StatusVar'
 statusVarNew :: StatusAllgemein o -> IO (StatusVar o)
