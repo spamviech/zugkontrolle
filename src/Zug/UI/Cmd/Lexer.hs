@@ -6,7 +6,7 @@ Description : Umwandeln einer Text-Eingabe in Token.
 module Zug.UI.Cmd.Lexer (lexer, Token(..), leeresToken, EingabeTokenAllgemein(..), EingabeToken(..)) where
 
 -- Bibliotheken
-import Text.Read
+import Text.Read (readMaybe)
 import qualified Data.Text as Text
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)

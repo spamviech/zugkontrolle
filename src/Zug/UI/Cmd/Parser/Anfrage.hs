@@ -27,15 +27,17 @@ import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(),
-                    Weiche(), Kupplung(), Wegstrecke())
+import Zug.Anbindung (
+    StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(),
+    Weiche(), Kupplung(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan())
-import Zug.UI.Base (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
-                    getStreckenabschnitte, getKupplungen)
+import Zug.UI.Base (
+    MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten,
+    getStreckenabschnitte, getKupplungen)
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
 import qualified Zug.UI.Cmd.Lexer as Lexer
 

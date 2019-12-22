@@ -24,12 +24,14 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..),
-                    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..),
-                    Streckenabschnitt(..), StreckenabschnittKlasse(..),
-                    Kupplung(..), KupplungKlasse(..), Wartezeit(..))
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..),
-                    Fahrtrichtung(..), unterstützteFahrtrichtungen)
+import Zug.Anbindung (
+    Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..),
+    Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..),
+    Streckenabschnitt(..), StreckenabschnittKlasse(..),
+    Kupplung(..), KupplungKlasse(..), Wartezeit(..))
+import Zug.Enums (
+    Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..),
+    Fahrtrichtung(..), unterstützteFahrtrichtungen)
 import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
@@ -39,9 +41,10 @@ import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
-                                StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung,
-                                AnfrageFortsetzung(..), ($<<), wähleZwischenwert, wähleErgebnis)
+import Zug.UI.Cmd.Parser.Anfrage (
+    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
+    StatusAnfrageObjekt(..), wähleBefehl, wähleRichtung,
+    AnfrageFortsetzung(..), ($<<), wähleZwischenwert, wähleErgebnis)
 
 -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
 data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where

@@ -36,19 +36,22 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..),
-                    Kupplung(..), Wegstrecke(..), Anschluss(..), Value(..), alleValues,
-                    PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
+import Zug.Anbindung (
+    Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..),
+    Kupplung(..), Wegstrecke(..), Anschluss(..), Value(..), alleValues,
+    PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, Richtung(..), unterstützteRichtungen)
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
-                                AnfrageZugtyp(..), AnfrageZugtypEither(..), MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp, AnfrageFortsetzung(..), ($<<),
-                                wähleBefehl, wähleRichtung, wähleValue, wähleZwischenwert,
-                                StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..))
+import Zug.UI.Cmd.Parser.Anfrage (
+    Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..),
+    AnfrageZugtyp(..), AnfrageZugtypEither(..), MitAnfrageZugtyp(..),
+    anfrageAktualisierenZugtyp, AnfrageFortsetzung(..), ($<<),
+    wähleBefehl, wähleRichtung, wähleValue, wähleZwischenwert,
+    StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..))
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
 
 -- | Unvollständiger 'Anschluss'

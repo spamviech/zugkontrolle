@@ -46,17 +46,20 @@ import Zug.Plan (Plan, Plan(..))
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)
-import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), anzeigeMitAnfrage, anzeigeMitAnfrageFehlgeschlagen,
-                                StatusAnfrageObjekt(..), statusAnfrageObjekt, zuObjekt,
-                                StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
-                                unbekanntShowText, zeigeAnfrageFehlgeschlagenStandard,
-                                wähleBefehl, wähleErgebnis,
-                                AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<))
-import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..), AnfrageAktion(..),
-                                AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..),
-                                AnfrageAktionWeiche(..), AnfrageAktionKupplung(..), AnfrageAktionWegstrecke(..))
-import Zug.UI.Cmd.Parser.StreckenObjekt (AnfrageObjekt(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..),
-                                        AnfrageWeiche(..), AnfrageKupplung(..), AnfrageWegstrecke(..))
+import Zug.UI.Cmd.Parser.Anfrage (
+    Anfrage(..), MitAnfrage(..), anzeigeMitAnfrage, anzeigeMitAnfrageFehlgeschlagen,
+    StatusAnfrageObjekt(..), statusAnfrageObjekt, zuObjekt,
+    StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..),
+    unbekanntShowText, zeigeAnfrageFehlgeschlagenStandard,
+    wähleBefehl, wähleErgebnis,
+    AnfrageFortsetzung(..), verwendeAnfrageFortsetzung, ($<<))
+import Zug.UI.Cmd.Parser.Plan (
+    AnfragePlan(..), AnfrageAktion(..),
+    AnfrageAktionBahngeschwindigkeit(..), AnfrageAktionStreckenabschnitt(..),
+    AnfrageAktionWeiche(..), AnfrageAktionKupplung(..), AnfrageAktionWegstrecke(..))
+import Zug.UI.Cmd.Parser.StreckenObjekt (
+    AnfrageObjekt(..), AnfrageBahngeschwindigkeit(..), AnfrageStreckenabschnitt(..),
+    AnfrageWeiche(..), AnfrageKupplung(..), AnfrageWegstrecke(..))
 
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
 parser ::

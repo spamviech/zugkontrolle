@@ -13,6 +13,8 @@ Anzeige sprachabhängig, ohne Show-Instanz
                 werden bei Sprachwechsel alle via sequence_ aufgerufen
                 wie wird die IO-Funktion wieder gelöscht?
                     ToDo!!!
+                    Widgets werden nicht gelöscht -> IO-Aktion muss auch nicht gelöscht werden
+                    führt evtl. zu Memory-Leaks, wenn das Programm zu lange läuft
                 Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
                     Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
             Sprachwechsel über AuswahlWidget (ComboBox)
