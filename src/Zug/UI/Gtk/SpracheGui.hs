@@ -50,10 +50,10 @@ spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui
 spracheGuiNeu sprache = liftIO $ SpracheGui sprache <$> newTVarIO []
 
 -- | Wechsel die 'Sprache' eines 'SpracheGui' und führe alle zugehörigen 'IO'-Aktionen aus.
-sprachwechsel :: (MonadIO m) => Sprache -> SpracheGui -> m SpracheGui
+sprachwechsel :: (MonadIO m) => SpracheGui -> Sprache -> m SpracheGui
 sprachwechsel
-    sprache
     spracheGui@SpracheGui {sprachwechselAktionen}
+    sprache
         = liftIO $ do
             readTVarIO sprachwechselAktionen >>= sequence_ . map ($ sprache)
             pure $ spracheGui {sprache}

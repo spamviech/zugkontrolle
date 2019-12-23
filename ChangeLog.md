@@ -108,3 +108,4 @@
 - Ein Plan kann andere Pläne ausführen (inklusive rekursivem Aufruf von sich selbst)
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Aktuelle Version über Data.Version.Version-Datentyp gespeichert
+- Sprachwechsel möglich, ohne das Programm neu starten zu müssen.

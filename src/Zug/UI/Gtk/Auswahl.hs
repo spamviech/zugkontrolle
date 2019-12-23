@@ -89,7 +89,7 @@ auswahlRadioButtonNew :: (SpracheGuiReader r m, MonadIO m, Eq e, Anzeige e) =>
 auswahlRadioButtonNew elemente name = auswahlRadioButtonNamedNew elemente name anzeige
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's für alle Elemente eines 'Bounded' 'Enum's.
--- Verwende zur Anzeige die 'Show'-Instanz.
+-- Verwende zur Anzeige die 'Anzeige'-Instanz.
 boundedEnumAuswahlRadioButtonNew :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e) =>
     e -> (Sprache -> Text) -> m (AuswahlWidget e)
 boundedEnumAuswahlRadioButtonNew standard = auswahlRadioButtonNew $ standard :| delete standard [minBound..maxBound]
@@ -118,13 +118,13 @@ auswahlComboBoxNamedNew elemente@(h :| _t) name anzeigeFunktion = do
         comboBox,
         enumIndizes}
 
--- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Show'-Instanz
+-- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz
 auswahlComboBoxNew :: (SpracheGuiReader r m, MonadIO m, Eq e, Anzeige e) =>
     NonEmpty e -> (Sprache -> Text) -> m (AuswahlWidget e)
 auswahlComboBoxNew elemente name = auswahlComboBoxNamedNew elemente name anzeige
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' für alle Elemente eines 'Bounded' 'Enum's.
--- Verwende zur Anzeige die 'Show'-Instanz.
+-- Verwende zur Anzeige die 'Anzeige'-Instanz.
 boundedEnumAuswahlComboBoxNew :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e) =>
     e -> (Sprache -> Text) -> m (AuswahlWidget e)
 boundedEnumAuswahlComboBoxNew standard = auswahlComboBoxNew $ standard :| delete standard [minBound..maxBound]

@@ -34,9 +34,7 @@ import qualified Zug.Language as Language
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
-import Zug.UI.Gtk.StreckenObjekt (
-    DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
-    MStatusGuiT, IOStatusGui, foldWegstreckeHinzufügen)
+import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen (
@@ -46,7 +44,10 @@ import Zug.UI.Gtk.Hilfsfunktionen (
     Position(..), positionDefault,
     notebookAppendPageNew, labelSpracheNew)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (spracheGuiNeu, verwendeSpracheGuiFn)
+import Zug.UI.Gtk.SpracheGui (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel)
+import Zug.UI.Gtk.StreckenObjekt (
+    DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew,
+    MStatusGuiT, IOStatusGui, foldWegstreckeHinzufügen)
 
 -- | main loop
 main :: IO ()
@@ -232,6 +233,11 @@ setupGUI = void $ do
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End $ Gtk.hBoxNew False 0
     flip runReaderT objektReader $ do
         buttonHinzufügenPack windowMain functionBox
+        spracheAuswahl <- boxPackWidgetNewDefault functionBox $
+            boundedEnumAuswahlComboBoxNew Language.Deutsch Language.sprache
+        beiAuswahl spracheAuswahl $ \sprache -> void $ do
+            spracheGuiNeu <- sprachwechsel spracheGui sprache
+            flip runReaderT objektReader $ ausführenStatusVarBefehl (SprachWechsel spracheGuiNeu) statusVar
         liftIO $ boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
         buttonSpeichernPack windowMain functionBox
         buttonLadenPack windowMain functionBox

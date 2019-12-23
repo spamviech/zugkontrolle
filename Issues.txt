@@ -4,10 +4,11 @@ Anzeige sprachabhängig, ohne Show-Instanz
     speichern der aktuellen Sprache im Zustand
         Kommandozeilen-Argument bezieht sich nur noch auf Anfangs-Sprache
             Speichern in .json?
+            Wird nicht gespeichert
         Sprachwechsel im Cmd-UI kein Problem:
             wird sowieso neu erzeugt
             muss noch implementiert werden
-                ToDo!!!
+                Done
         GTK-Objekte müssen bei Sprachwechsel neu benannt werden
             ergänze (SP ObjektGui) im Zustand um [Sprache -> IO ()]
                 werden bei Sprachwechsel alle via sequence_ aufgerufen
@@ -18,7 +19,14 @@ Anzeige sprachabhängig, ohne Show-Instanz
                 Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
                     Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
             Sprachwechsel über AuswahlWidget (ComboBox)
-                ToDo!!!
+                Done
+
+Haddock schlägt an Language.hs (vermutlich TemplateHaskell) fehl
+    Probieren ob ein-Datei-Version funktioniert
+        ToDo!!!
+
+Jedem Plan eine eigene ProgressBar spendieren.
+    Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.
 
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren
