@@ -78,11 +78,15 @@ data EingabeTokenAllgemein
         EingabeToken
     | TkBeenden
     | TkAbbrechen
-        deriving (Eq, Show)
+    deriving (Eq, Show)
 
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
-data EingabeToken = EingabeToken {eingabe :: Text, möglichkeiten :: [Token], ganzzahl :: Maybe Natural}
-                        deriving (Eq, Show)
+data EingabeToken
+    = EingabeToken {
+        eingabe :: Text,
+        möglichkeiten :: [Token],
+        ganzzahl :: Maybe Natural}
+    deriving (Eq, Show)
 
 leeresToken :: EingabeToken
 leeresToken = EingabeToken {eingabe = Text.pack "", möglichkeiten = [], ganzzahl = Nothing}
@@ -92,6 +96,9 @@ data Token
     = Beenden
     | Abbrechen
     | Rückgängig
+    | Sprache
+    | Deutsch
+    | Englisch
     | Hinzufügen
     | Entfernen
     | Speichern
@@ -133,7 +140,7 @@ data Token
     | Rückwärts
     | HIGH
     | LOW
-        deriving (Eq, Show)
+    deriving (Eq, Show)
 
 -- * Hilfs-Befehle
 -- | Eingabe überprüfen (istBefehl <eingabe> <befehl>)

@@ -27,6 +27,15 @@ abbrechen                       = "Abbrechen"
 -- | Undo
 rückgängig :: Text
 rückgängig                      = "Rückgängig"
+-- | Language
+sprache :: Text
+sprache                         = "Sprache"
+-- | German
+deutsch :: Text
+deutsch                         = "Deutsch"
+-- | English
+englisch :: Text
+englisch                        = "English"
 -- | Continue
 weiter :: Text
 weiter                          = "Weiter"

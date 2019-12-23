@@ -43,7 +43,7 @@ import Zug.UI.Base (
     hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit,
     hinzufügenStreckenabschnitt, entfernenStreckenabschnitt,
     hinzufügenKupplung, entfernenKupplung,
-    getSprache)
+    getSprache, putSprache)
 
 -- | Ausführen eines Befehls
 class BefehlKlasse b o where
@@ -54,6 +54,8 @@ class BefehlKlasse b o where
 data BefehlAllgemein o
     = UI
         (UIBefehlAllgemein o)
+    | SprachWechsel
+        (SP o)
     | Hinzufügen
         o
     | Entfernen
@@ -104,6 +106,8 @@ instance (ObjektKlasse o, ToJSON o, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego), Eq
                                         => BefehlAllgemein o -> MStatusAllgemeinT m o ()
             ausführenBefehlAux  (UI _uiAction)
                 = pure ()
+            ausführenBefehlAux  (SprachWechsel sprache)
+                = putSprache sprache
             ausführenBefehlAux  (Hinzufügen objekt)
                 = case erhalteObjekt objekt of
                     (OPlan plan)                                -> hinzufügenPlan plan

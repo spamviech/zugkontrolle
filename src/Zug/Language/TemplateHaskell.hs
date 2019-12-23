@@ -77,5 +77,8 @@ erzeugeFunktion bezeichner
         wildcardKlausel nameDeutsch = TH.Clause [TH.WildP] (TH.NormalB $ TH.VarE nameDeutsch) []
         fallback :: [TH.Dec]
         fallback = [
-            TH.SigD name $ TH.ConT ''Text,
-            TH.ValD (TH.VarP name) (TH.NormalB $ TH.LitE $ TH.StringL $ '"' : bezeichner ++ "\"") []]
+            TH.SigD name $ TH.AppT (TH.AppT TH.ArrowT $ TH.ConT ''Sprache) $ TH.ConT ''Text,
+            TH.ValD
+                (TH.VarP name)
+                (TH.NormalB $ TH.AppE (TH.VarE 'const) $ TH.LitE $ TH.StringL $ '"' : bezeichner ++ "\"")
+                []]

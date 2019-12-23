@@ -161,6 +161,7 @@ data AnfrageNeu = Neu | Alt
 -- | Unvollständige Befehle
 data AnfrageBefehl
     = AnfrageBefehl
+    | ABSprache
     | ABHinzufügen
         AnfrageObjekt
     | ABEntfernen
@@ -196,6 +197,9 @@ instance Anzeige AnfrageBefehl where
     anzeige
         AnfrageBefehl
             = Language.befehl
+    anzeige
+        ABSprache
+            = Language.sprache
     anzeige
         (ABHinzufügen anfrageObjekt)
             = Language.hinzufügen <^> anfrageObjekt
@@ -236,6 +240,9 @@ instance Anfrage AnfrageBefehl where
         AnfrageBefehl
             = Language.befehl
     zeigeAnfrage
+        ABSprache
+            = Language.sprache
+    zeigeAnfrage
         (ABHinzufügen anfrageObjekt)
             = zeigeAnfrage anfrageObjekt
     zeigeAnfrage
@@ -272,6 +279,9 @@ instance Anfrage AnfrageBefehl where
     zeigeAnfrageOptionen
         (ABHinzufügen anfrageObjekt)
             = zeigeAnfrageOptionen anfrageObjekt
+    zeigeAnfrageOptionen
+        ABSprache
+            = Just $ toBefehlsString . \sprache -> map (flip anzeige sprache) Language.alleSprachen
     zeigeAnfrageOptionen
         (ABAktionPlan _plan)
             = Just $ toBefehlsString . Language.aktionPlan
@@ -320,13 +330,19 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
                 (Lexer.Streckenabschnitt    , anfrageAktualisieren (ABAktion AnfrageAktion) token),
                 (Lexer.Kupplung             , anfrageAktualisieren (ABAktion AnfrageAktion) token)]
                 $ AFFehler eingabe
-                    where
-                        planWählen :: Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
-                        planWählen (OPlan plan) = AFErgebnis $ Left $ BSAusführenMöglich plan
-                        planWählen  objekt      = error $
-                            "planWählen erwartet einen Plan. Stattdessen \"" ++
-                            show objekt ++
-                            "\" erhalten."
+            where
+                planWählen :: Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+                planWählen (OPlan plan) = AFErgebnis $ Left $ BSAusführenMöglich plan
+                planWählen  objekt      = error $
+                    "planWählen erwartet einen Plan. Stattdessen \"" ++
+                    show objekt ++
+                    "\" erhalten."
+    anfrageAktualisieren
+        ABSprache
+        token
+            = wähleErgebnis token [
+                (Lexer.Deutsch, Right $ SprachWechsel Deutsch),
+                (Lexer.Englisch, Right $ SprachWechsel Englisch)]
     anfrageAktualisieren
         (ABHinzufügen anfrageObjekt)
         token

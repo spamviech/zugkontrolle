@@ -6,6 +6,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
 Description : Template-Haskell Deklarationen der Strings abhängig von der gewählten Sprache.
@@ -49,8 +50,13 @@ versionValue = makeVersion [
 version :: Text
 version = Text.pack $ showVersion versionValue
 -- * Haupt-Befehle / Main Orders
-concatMapM erzeugeFunktion
-    ["beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden"]
+concatMapM erzeugeFunktion [
+    "beenden", "abbrechen", "rückgängig", "weiter", "zurück", "hinzufügen", "entfernen", "speichern", "laden",
+    "sprache", "deutsch", "englisch"]
+instance Anzeige Sprache where
+    anzeige :: Sprache -> Sprache -> Text
+    anzeige Deutsch     = deutsch
+    anzeige Englisch    = englisch
 -- * Spezielle Befehle / Special order
 concatMapM erzeugeFunktion [
     "geschwindigkeit", "umdrehen", "fahrtrichtungEinstellen", "stellen", "strom", "an", "aus", "fließend", "gesperrt",
@@ -86,7 +92,9 @@ concatMapM erzeugeFunktion [
 -- * Befehlsgruppen / Order classifications
 -- | All supported Orders in the main menu
 befehlAlle :: Sprache -> [Text]
-befehlAlle sprache = map ($ sprache) [beenden, hinzufügen, entfernen, speichern, laden] <> befehlTypen sprache
+befehlAlle gewählteSprache
+    = map ($ gewählteSprache) [beenden, sprache, hinzufügen, entfernen, speichern, laden]
+    <> befehlTypen gewählteSprache
 -- | All supported Orders, classified by a type
 befehlTypen :: Sprache -> [Text]
 befehlTypen sprache = [plan sprache] <> befehlObjekte sprache
