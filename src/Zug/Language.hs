@@ -15,9 +15,40 @@ Strings werden via Template-Haskell abhängig von der Sprache importiert.
 Wenn eine String andere Sprache gewünscht wird kann dieser mit der gleichnamigen Funktionen mit angehängtem __S__ erhalten werden.
 -}
 module Zug.Language (
-    module Zug.Language,
+    -- * Titel / Title
+    zugkontrolle,
+    -- ** Version
+    versionValue, version,
+    -- * Haupt-Befehle / Main Orders
+    beenden, abbrechen, rückgängig, weiter, zurück, hinzufügen, entfernen, speichern, laden, sprache, deutsch, englisch,
+    -- * Spezielle Befehle / Special Orders
+    geschwindigkeit, umdrehen, fahrtrichtungEinstellen, stellen, strom, an, aus, fließend, gesperrt, kuppeln,
+    einstellen, ausführen, ausführenAbbrechen, aktionGesperrt, warten, wartenEinheit, zeit, fließendValue, high, low,
+    aktionAusführen, einfachAusführung, dauerschleife, wirdAusgeführt, ausführenGesperrt,
+    -- * Typ-Namen / Type names
+    objekt, befehl, bahngeschwindigkeit, bahngeschwindigkeiten, streckenabschnitt, streckenabschnitte,
+    weiche, weichen, kupplung, kupplungen, wegstrecke, wegstrecken, plan, pläne, märklin, lego,
+    gerade, kurve, links, rechts, vorwärts, rückwärts,
+    -- * Eingenschafts-/Feld-Namen / Attribute/Field Names
+    dateiname, name, richtung, richtungen, fahrtrichtung, anschluss, pin, pcf8574Port, pcf8574,
+    variante, normal, a, a0, a1, a2, port,
+    -- * Query-Abragen / Queries
+    wegstreckenElement, wegstreckenElemente, aktion, aktionen, zugtyp, welchesObjektHinzufügen, ausführModus, indexOderName, anzahl,
+    -- * Fehlermeldungen / Error Messages
+    nichtRoot, toDo, ungültigeEingabe, nichtUnterstützteAktion, nichtGefundeneDatei, uiNichtUnterstützt,
+    integerErwartet, richtungErwartet, richtungZuWenig, wegstreckeLeer, valueErwartet, unbekannt, erwartet, mindestens,
+    -- * Befehlsgruppen / Order classifications
+    befehlAlle, befehlTypen, befehlObjekte, befehlWegstreckenElemente, aktionGruppen, aktionPlan,
+    aktionPlanAusführend, aktionPlanGesperrt, aktionWeiche, aktionBahngeschwindigkeit, aktionStreckenabschnitt,
+    aktionKupplung, aktionWegstrecke, toBefehlsString,
+    -- * Unbekannte Eingabe melden
+    fehlerText, fehlerhafteEingabe,
+    -- * Datentyp / Data Type
     Sprache(..), MitSprache(..), alleSprachen,
-    Anzeige(..), ($#), (.#), showText, addMnemonic,
+    -- ** Typ-Klasse / Type Class
+    Anzeige(..), ($#), (.#),
+    -- ** Hilfsfunktionen / Helper Functions
+    showText, addMnemonic,
     (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>)) where
 
 -- Bibliotheken
@@ -63,10 +94,12 @@ concatMapM erzeugeFunktion [
     "kuppeln", "einstellen", "ausführen", "ausführenAbbrechen", "aktionGesperrt", "warten", "wartenEinheit", "zeit",
     "fließendValue", "high", "low"]
 concatMapM erzeugeFunktion ["aktionAusführen", "einfachAusführung", "dauerschleife"]
+concatMapM erzeugeFunktion ["wirdAusgeführt", "ausführenGesperrt"]
 -- * Typ-Namen / Type names
 concatMapM erzeugeFunktion [
     "objekt", "befehl", "bahngeschwindigkeit", "bahngeschwindigkeiten", "streckenabschnitt", "streckenabschnitte",
     "weiche", "weichen", "kupplung", "kupplungen", "wegstrecke", "wegstrecken", "plan", "pläne"]
+concatMapM erzeugeFunktion ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
 -- * Eigenschafts/Feld-Namen / Attributes/Field names
 concatMapM erzeugeFunktion [
     "dateiname", "name", "richtung", "richtungen", "fahrtrichtung", "anschluss",
@@ -74,20 +107,12 @@ concatMapM erzeugeFunktion [
 -- * Query-Abfragen / Queries
 concatMapM erzeugeFunktion ["wegstreckenElement", "wegstreckenElemente", "aktion", "aktionen", "zugtyp"]
 concatMapM erzeugeFunktion ["welchesObjektHinzufügen", "ausführModus"]
+concatMapM erzeugeFunktion ["indexOderName", "anzahl"]
 -- * Fehlermeldungen / Error Messages
 concatMapM erzeugeFunktion [
     "nichtRoot", "toDo", "ungültigeEingabe", "nichtUnterstützteAktion", "nichtGefundeneDatei", "uiNichtUnterstützt",
     "integerErwartet", "richtungErwartet", "richtungZuWenig", "wegstreckeLeer", "valueErwartet"]
--- * Typ-namen / Type names
-concatMapM erzeugeFunktion ["märklin", "lego", "gerade", "kurve", "links", "rechts", "vorwärts", "rückwärts"]
-
-concatMapM erzeugeFunktion [
-    -- * Spezielle Befehle / Special orders
-    "wirdAusgeführt", "ausführenGesperrt",
-    -- * Query-Abfragen / Queries
-    "indexOderName", "anzahl",
-    -- * Fehlermeldungen / Error Messages
-    "unbekannt", "erwartet", "mindestens"]
+concatMapM erzeugeFunktion ["unbekannt", "erwartet", "mindestens"]
 
 -- * Befehlsgruppen / Order classifications
 -- | All supported Orders in the main menu

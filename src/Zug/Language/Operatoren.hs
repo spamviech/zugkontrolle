@@ -74,10 +74,13 @@ instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
     anzeige (a, b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
 
 infixr 0 $#
+-- | Werte eine 'Sprache'-abhänge Funktion mit einem 'Anzeige'-Typen aus.
+-- Die Fixivität ist dabei identisch zu '$' gewählt.
 ($#) :: (Anzeige a) => (Sprache -> Text -> b) -> a -> Sprache -> b
 ($#) f a sprache = f sprache $ anzeige a sprache
 
 infixr 9 .#
+-- | Verkette eine 'Sprache'-abhängige Funktion mit einer Funktion, die einen 'Anzeige'-Typ liefert.
 (.#) :: (Anzeige b) => (Sprache -> Text -> c) -> (a -> b) -> a -> Sprache -> c
 (.#) f g a = f $# g a
 

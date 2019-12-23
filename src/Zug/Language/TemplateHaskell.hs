@@ -20,6 +20,9 @@ sprachName :: Sprache -> TH.Name
 sprachName  Deutsch     = 'Deutsch
 sprachName  Englisch    = 'Englisch
 
+-- | Erzeuge die Deklaration einer Funktion mit übergebenem Bezeicher.
+-- | Der Typ der erzeugten Funktion ist dabei 'Sprache' -> <Typ in "Zug.Language.DE">
+-- | Existiert dieser Wert nicht wird eine Dummy-Deklaration mit Typ 'Sprache' -> 'Text' erzeugt.
 erzeugeFunktion :: String -> TH.Q [TH.Dec]
 erzeugeFunktion bezeichner
     = TH.lookupValueName (qualifizierterName Deutsch) >>= \case
