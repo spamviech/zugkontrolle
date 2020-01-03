@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3e9b34671e65ace2384581dc028112a472d085f09cd5c1decda3c396306e9e7a
+-- hash: eb4f1a04885ab98e064b89b1fb61e0f260a38af3ae612a4f0e8e9fbbec439029
 
 name:           Zugkontrolle
 version:        1.1.0.0
@@ -40,8 +40,6 @@ library
       Zug.Anbindung.Wartezeit
       Zug.Enums
       Zug.Language
-      Zug.Language.DE
-      Zug.Language.EN
       Zug.Language.Operatoren
       Zug.Language.TemplateHaskell
       Zug.Menge

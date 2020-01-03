@@ -21,7 +21,8 @@ Anzeige sprachabhängig, ohne Show-Instanz
             Sprachwechsel über AuswahlWidget (ComboBox)
                 Done
 
-Haddock schlägt an Language.hs (vermutlich TemplateHaskell) fehl
+Haddock schlägt an Language.hs fehl
+    Sonderzeichen bei fehlender Dokumentation führt zu Absturz von Haddock
     Probieren ob ein-Datei-Version funktioniert
         ToDo!!!
 

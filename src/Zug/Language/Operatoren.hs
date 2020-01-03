@@ -6,7 +6,7 @@
 {-|
 Description : Operatoren zur Verkettung von Strings.
 
-Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'IsString' mit einem Leerzeichen/Trennzeichen bereit.
+Dieses Modul stellt Operatoren zur Verknüpfung von zwei 'Anzeige'-Typen mit einem Leerzeichen/Trennzeichen bereit.
 -}
 module Zug.Language.Operatoren (
     Anzeige(..), ($#), (.#), Sprache(..), MitSprache(..), alleSprachen,
