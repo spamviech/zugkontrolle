@@ -22,9 +22,51 @@ Anzeige sprachabhängig, ohne Show-Instanz
                 Done
 
 Haddock schlägt an Language.hs fehl
-    Sonderzeichen bei fehlender Dokumentation führt zu Absturz von Haddock
+    Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
     Probieren ob ein-Datei-Version funktioniert
-        ToDo!!!
+        Funktioniert, aber jetzt stürzt Haddock nach Zug.UI.Save ab
+    Kompilationsreihenfolge:
+        [ 1 of 41] Compiling Paths_Zugkontrolle
+        [ 2 of 41] Compiling Zug.Anbindung.I2C
+        [ 3 of 41] Compiling Zug.Language.Operatoren
+        [ 4 of 41] Compiling Zug.Language
+        [ 5 of 41] Compiling Zug.Enums
+        [ 6 of 41] Compiling Zug.Anbindung.Wartezeit
+        [ 7 of 41] Compiling Zug.Anbindung.PCF8574
+        [ 8 of 41] Compiling Zug.Anbindung.Anschluss
+        [ 9 of 41] Compiling Zug.Anbindung.SoftwarePWM
+        [10 of 41] Compiling Zug.Language.TemplateHaskell
+        [11 of 41] Compiling Zug.Menge
+        [12 of 41] Compiling Zug.Options
+        [13 of 41] Compiling Zug.Anbindung
+        [14 of 41] Compiling Zug.Plan
+        [15 of 41] Compiling Zug.Objekt
+        [16 of 41] Compiling Zug.UI.Base
+        [17 of 41] Compiling Zug.UI.Cmd.Lexer
+        [18 of 41] Compiling Zug.UI.Cmd.Parser.Anfrage
+        [19 of 41] Compiling Zug.UI.Gtk.Klassen.TemplateHaskell
+        [20 of 41] Compiling Zug.UI.Gtk.Klassen
+        [21 of 41] Compiling Zug.UI.Gtk.SpracheGui
+        [22 of 41] Compiling Zug.UI.Gtk.Hilfsfunktionen
+        [23 of 41] Compiling Zug.UI.Gtk.ScrollbaresWidget
+        [24 of 41] Compiling Zug.UI.Gtk.FortfahrenWennToggled
+        [25 of 41] Compiling Zug.UI.Gtk.Auswahl
+        [26 of 41] Compiling Zug.UI.Gtk.Fliessend
+        [27 of 41] Compiling Zug.UI.Gtk.Anschluss
+        [28 of 41] Compiling Zug.UI.Gtk.ZugtypSpezifisch
+        [29 of 41] Compiling Zug.UI.Save
+        [30 of 41] Compiling Zug.UI.Befehl
+        [31 of 41] Compiling Zug.UI.StatusVar
+        [32 of 41] Compiling Zug.UI.Gtk.StreckenObjekt
+        [33 of 41] Compiling Zug.UI.Gtk.Assistant
+        [34 of 41] Compiling Zug.Warteschlange
+        [35 of 41] Compiling Zug.UI.Gtk.Fenster
+        [36 of 41] Compiling Zug.UI.Gtk
+        [37 of 41] Compiling Zug.UI.Cmd.Parser.Plan
+        [38 of 41] Compiling Zug.UI.Cmd.Parser.StreckenObjekt
+        [39 of 41] Compiling Zug.UI.Cmd.Parser
+        [40 of 41] Compiling Zug.UI.Cmd
+        [41 of 41] Compiling Zug.UI
 
 Jedem Plan eine eigene ProgressBar spendieren.
     Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.

@@ -50,7 +50,7 @@ class BefehlKlasse b o where
     -- | Gibt True zurück, falls das UI beendet werden soll
     ausführenBefehl :: (MonadIO m) => b o -> MStatusAllgemeinT m o Bool
 
--- | Unterstütze Befehle
+
 data BefehlAllgemein o
     = UI
         (UIBefehlAllgemein o)

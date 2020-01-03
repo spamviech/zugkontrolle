@@ -88,6 +88,7 @@ data EingabeToken
         ganzzahl :: Maybe Natural}
     deriving (Eq, Show)
 
+-- | Ein Token ohne Eingabe. Wird für Anzeige einiger Anfrage-Typen benötigt.
 leeresToken :: EingabeToken
 leeresToken = EingabeToken {eingabe = Text.pack "", möglichkeiten = [], ganzzahl = Nothing}
 

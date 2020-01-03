@@ -46,7 +46,7 @@ speichern contents path = ByteString.writeFile path $ encode contents
 
 -- | Lade Datei.
 -- 
--- Dateifehler und nicht-existente Dateien geben Nothing zurück.
+-- Dateifehler und nicht-existente Dateien geben 'Nothing' zurück.
 -- Ansonsten wird ein aus einem 'Status' konstruierter Typ zurückgegeben.
 laden :: FilePath -> (Status -> IO s) -> Sprache -> IO (Maybe s)
 laden path fromStatus sprache = do

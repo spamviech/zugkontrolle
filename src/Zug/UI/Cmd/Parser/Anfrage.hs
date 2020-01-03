@@ -368,6 +368,7 @@ wähleValue token = wähleBefehl token [
 unbekanntShowText :: (Anzeige a, Anfrage a) => a -> Text -> Sprache -> Text
 unbekanntShowText a eingabe = fehlerText $# anzeigeMitAnfrageFehlgeschlagen a eingabe
 
+-- | Ergebnis-Typ von 'anfrageAktualisieren'.
 data AnfrageFortsetzung a e
     = AFErgebnis {
         ergebnis :: e}
@@ -443,11 +444,14 @@ verwendeAnfrageFortsetzung
         = AFFehler {unbekannteEingabe}
 
 infixr 0 $<<
+-- | Wende eine Funktion auf das Ergebnis einer 'AnfrageFortsetzung' an.
+-- Alternativ wird der Anfrage-Typ konvertiert.
 ($<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
 (wertFunktion, anfrageFunktion) $<< anfrageErgebnis
     = verwendeAnfrageFortsetzung wertFunktion anfrageFunktion anfrageErgebnis
 
 infixr 9 .<<
+-- | Verkette zwei Funktionen, die als Ergebnis eine 'AnfrageFortsetzung' haben.
 (.<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> (o -> AnfrageFortsetzung a e) -> (o -> AnfrageFortsetzung b f)
 funktionen .<< konstruktor
     = \o -> funktionen $<< konstruktor o

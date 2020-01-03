@@ -106,6 +106,7 @@ anschlussAuswahlNew name = do
         aawPCF8574PortA2,
         aawPCF8574Port}
 
+-- | Erhalte den aktuell gewählten 'Anschluss'.
 aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
 aktuellerAnschluss
     AnschlussAuswahlWidget {
