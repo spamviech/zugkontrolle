@@ -57,6 +57,13 @@ Dazu muss der Installations-Befehl erweitert werden um die flag gui auf false zu
 Eine Verwendung des GTK-UI ist dann natürlich nicht mehr möglich.  
 Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip-Rechner über das GTK-UI, speichern und kopieren in einer json-Datei und anschließendes Ausführen mit Cmd-UI auf dem Raspberry Pi.
 
+## Installation von stack
+TODO!!!!
+	https://docs.haskellstack.org/en/stable/install_and_upgrade/
+    `curl -sSL https://get.haskellstack.org/ | sh`
+(Probleme mit neuester Stack-Version, daher Version 1.9.3 im Repository enthalten)
+(LLVM-3.9 nicht vergessen)
+
 ## Installation von WiringPi
 Unter Raspbian ist standardmäßig eine Version von wiringpi installiert.  
 Um die neueste Version zu installieren ist es zu empfehlen die Installationsanweisungen unter http://wiringpi.com/download-and-install/ zu berücksichtigen.
@@ -65,7 +72,7 @@ Um die neueste Version zu installieren ist es zu empfehlen die Installationsanwe
 Um  das GTK-UI zu verwenden muss natürlich GTK+ (Version 3) installiert werden.
 Dazu ist am besten die Anleitung auf der Website zu befolgen: https://www.gtk.org/download/index.php
 * Linux/Raspbian:
-    Falls es nicht schon installiert ist (bei Raspbian der Fall) ist eine Installation über den verwendeten paket manager vermutlich das einfachste.
+    Falls nicht schon installiert, ist eine Installation über den verwendeten paket manager vermutlich das einfachste.
     Bei Verwendung von apt-get ist der Befehl: `sudo apt-get install libgtk-3-dev`
 * Windows:
     Die Installation erfolgt über __MSYS2__.  
