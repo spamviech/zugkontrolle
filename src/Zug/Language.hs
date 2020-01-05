@@ -1,12 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE CPP #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
 Description : Sammlung aller verwendeten Strings.
@@ -60,10 +56,8 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Version (Version, makeVersion, showVersion)
+import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Value(..))
--- Abhängigkeit von anderen Modulen
-import Zug.Language.Operatoren (Anzeige(..), ($#), (.#), Sprache(..), MitSprache(..), alleSprachen,
-    (<~>), (<^>), (<=>), (<->), (<|>), (<:>), (<!>), (<°>), (<\>), (<#>), showText, addMnemonic)
 
 -- * Titel / Title
 -- | Train Control
@@ -133,10 +127,6 @@ speichern   Englisch    = "Save"
 laden :: Sprache -> Text
 laden   Deutsch     = "Laden"
 laden   Englisch    = "Load"
-instance Anzeige Sprache where
-    anzeige :: Sprache -> Sprache -> Text
-    anzeige Deutsch     = deutsch
-    anzeige Englisch    = englisch
 
 -- * Spezielle Befehle / Special order
 -- | Speed
@@ -565,3 +555,157 @@ fehlerText sprache begründung = ungültigeEingabe <^> begründung <!> Text.empt
 -- | Report an error due to _begründung_ and print it to the console.
 fehlerhafteEingabe :: Sprache -> Text -> IO ()
 fehlerhafteEingabe sprache begründung = Text.putStrLn $ fehlerText sprache begründung
+
+-- * Datentypen
+-- | Bekannte Sprachen
+data Sprache = Deutsch | Englisch
+    deriving (Show, Read, Bounded, Enum, Eq)
+
+-- | Klasse für Typen, die als 'Sprache' verwendet werden können.
+class MitSprache s where
+    leseSprache :: (Sprache -> a) -> s -> a
+instance MitSprache Sprache where
+    leseSprache :: (Sprache -> a) -> Sprache -> a
+    leseSprache = id
+
+-- | Alle unterstützten Sprachen
+alleSprachen :: [Sprache]
+alleSprachen = [minBound..maxBound]
+
+-- ** Typ-Klasse
+-- | Zeige ein Objekt sprachabhängig an.
+class Anzeige a where
+    anzeige :: a -> Sprache -> Text
+    default anzeige :: (Show a) => a -> Sprache -> Text
+    anzeige = const . showText
+
+instance Anzeige Text where
+    anzeige :: Text -> Sprache -> Text
+    anzeige = const
+
+instance Anzeige (Sprache -> Text) where
+    anzeige :: (Sprache -> Text) -> Sprache -> Text
+    anzeige = id
+
+instance Anzeige Char where
+    anzeige :: Char -> Sprache -> Text
+    anzeige a = Text.pack . const [a]
+
+instance Anzeige Natural
+
+instance Anzeige Int
+
+instance Anzeige Double
+
+instance Anzeige Value
+
+instance Anzeige Sprache where
+    anzeige :: Sprache -> Sprache -> Text
+    anzeige Deutsch     = deutsch
+    anzeige Englisch    = englisch
+
+instance (Anzeige a) => Anzeige [a] where
+    anzeige :: [a] -> Sprache -> Text
+    anzeige liste = ("[" :: Text) <#> anzeigeAux liste <#> ("]" :: Text)
+        where
+            anzeigeAux :: (Anzeige b) => [b] -> Sprache -> Text
+            anzeigeAux  []      = const ""
+            anzeigeAux  [b]     = anzeige b
+            anzeigeAux  (h : t) = h <^> anzeigeAux t
+
+instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
+    anzeige :: (a, b) -> Sprache -> Text
+    anzeige (a, b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
+
+infixr 0 $#
+-- | Werte eine 'Sprache'-abhänge Funktion mit einem 'Anzeige'-Typen aus.
+-- Die Fixivität ist dabei identisch zu '$' gewählt.
+($#) :: (Anzeige a) => (Sprache -> Text -> b) -> a -> Sprache -> b
+($#) f a sprache = f sprache $ anzeige a sprache
+
+infixr 9 .#
+-- | Verkette eine 'Sprache'-abhängige Funktion mit einer Funktion, die einen 'Anzeige'-Typ liefert.
+(.#) :: (Anzeige b) => (Sprache -> Text -> c) -> (a -> b) -> a -> Sprache -> c
+(.#) f g a = f $# g a
+
+-- ** Hilfsfunktionen
+verketten :: (Anzeige a, Anzeige b) => Text -> a -> b -> Sprache -> Text
+verketten trennzeichen a b sprache = anzeige a sprache <> trennzeichen <> anzeige b sprache
+
+infixr 6 <~>
+-- | Verkette zwei Strings mit einem Leerzeichen.
+-- 
+-- Concatenate two strings with a space.
+(<~>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<~>) = verketten " "
+
+infixr 6 <^>
+-- | Verkette zwei Strings mit einem Komma.
+-- 
+-- Concatenate two strings with a comma.
+(<^>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<^>) = verketten ", "
+
+infixr 6 <=>
+-- | Verkette zwei Strings mit einem Gleichheitszeichen.
+-- 
+-- Concatenate two strings with a equal sign.
+(<=>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<=>) = verketten "="
+
+infixr 6 <->
+-- | Verkette zwei Strings mit einem Bindestrinch.
+-- 
+-- Concatenate two strings with a hypthen.
+(<->) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<->) = verketten "-"
+
+infixr 6 <|>
+-- | Verkette zwei Strings mit einem '|'.
+-- 
+-- Concatenate two strings with a '|'.
+(<|>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<|>) = verketten "|"
+
+infixr 6 <:>
+-- | Verkette zwei Strings mit einem Doppelpunkt.
+-- 
+-- Concatenate two strings with a colon.
+(<:>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<:>) = verketten ": "
+
+infixr 6 <!>
+-- | Verkette zwei Strings mit einem Ausrufezeichen und einem Zeilenumbruch.
+-- 
+-- Concatenate two strings with a exclamation mark an a new line.
+(<!>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<!>) = verketten "!\n"
+
+infixr 6 <°>
+-- | Verkette zwei Strings mit einem Pfeil.
+-- 
+-- Concatenate two strings with an arrow.
+(<°>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<°>) = verketten "->"
+
+infixr 6 <\>
+-- | Verkette zwei Strings mit einem Zeilenumbruch.
+-- 
+-- Concatenate two strings with a new line.
+(<\>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<\>) = verketten "\n"
+
+infixr 6 <#>
+-- | Verkette zwi Strings.
+-- 
+-- Concatentate two strings
+(<#>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
+(<#>) = verketten Text.empty
+
+-- | Show for 'Text'
+showText :: (Show a) => a -> Text
+showText = Text.pack . show
+
+-- | Mnemonic-Markierung hinzufügen
+addMnemonic :: Text -> Text
+addMnemonic = Text.cons '_'
