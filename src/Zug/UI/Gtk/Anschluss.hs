@@ -28,7 +28,7 @@ import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (
     AuswahlWidget, aktuelleAuswahl, boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew, labelSpracheNew)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), mitNotebook)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitNotebook(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | Anzeige eines 'Anschluss'
@@ -119,7 +119,7 @@ aktuellerAnschluss
         aawPCF8574PortA2,
         aawPCF8574Port}
             = liftIO $ do
-                mitNotebook Gtk.notebookGetCurrentPage aawNotebook >>= \case
+                Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
                     page
                         | page == aawPCF8574PortPage
                             -> liftIO $ do

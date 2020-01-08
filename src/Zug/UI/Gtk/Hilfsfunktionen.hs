@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
 
 {-|
@@ -42,10 +44,10 @@ import Zug.Anbindung (StreckenObjekt(..))
 import Zug.Language (Sprache(..), (<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Klassen (
-    MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), mitEntry,
-    MitContainer(..), mitContainerAdd, mitContainerRemove,
-    MitButton(..), MitToggleButton(..), MitDialog(..), mitDialog,
-    MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
+    MitWidget(..), mitWidgetShow, mitWidgetHide,
+    MitLabel(..), MitEntry(..), MitContainer(..), mitContainerAdd, mitContainerRemove,
+    MitButton(..), MitToggleButton(..), MitDialog(..), MitBox(..), mitBoxPackStart, mitBoxPackEnd,
+    MitNotebook(..), mitNotebookAppendPage)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui)
 
 -- | 'Widget' erstellen und anzeigen
@@ -129,7 +131,7 @@ widgetShowIf    False   = mitWidgetHide
 dialogEval :: (MonadIO m, MitDialog d) => d -> m ResponseId
 dialogEval dialog = liftIO $ do
     mitWidgetShow dialog
-    antwort <- mitDialog Gtk.dialogRun dialog
+    antwort <- Gtk.dialogRun $ erhalteDialog dialog
     mitWidgetHide dialog
     pure antwort
 
@@ -192,7 +194,15 @@ labelSpracheNew text = do
 -- * Namen
 -- | Widget zur Anzeige eines Namen
 newtype NameWidget = NameWidget Gtk.Label
-    deriving (Eq, MitWidget, MitLabel)
+    deriving (Eq)
+
+instance MitWidget NameWidget where
+    erhalteWidget :: NameWidget -> Gtk.Widget
+    erhalteWidget (NameWidget w) = erhalteWidget w
+
+instance MitLabel NameWidget where
+    erhalteLabel :: NameWidget -> Gtk.Label
+    erhalteLabel (NameWidget w) = w
 
 -- | Name anzeigen
 namePackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m NameWidget
@@ -203,7 +213,15 @@ namePackNew box objekt = liftIO $ do
 
 -- | Widget zur Eingabe eines Namen
 newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
-    deriving (Eq, MitWidget, MitEntry)
+    deriving (Eq)
+
+instance MitWidget NameAuswahlWidget where
+    erhalteWidget :: NameAuswahlWidget -> Gtk.Widget
+    erhalteWidget (NameAuswahlWidget w) = erhalteWidget w
+
+instance MitEntry NameAuswahlWidget where
+    erhalteEntry :: NameAuswahlWidget -> Gtk.Entry
+    erhalteEntry (NameAuswahlWidget w) = w
 
 -- | Name abfragen
 nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b) => b -> m NameAuswahlWidget
@@ -217,5 +235,5 @@ nameAuswahlPackNew box = do
 
 -- | Erhalte den aktuell gewählten Namen
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
-aktuellerName = liftIO . mitEntry Gtk.entryGetText
+aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 #endif
