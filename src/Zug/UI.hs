@@ -21,6 +21,7 @@ import qualified Zug.UI.Cmd as Cmd
 import qualified Zug.UI.Gtk as Gtk
 #ifdef ZUGKONTROLLERASPI
 -- Überprüfe, ob das Programm mit Root-Rechten aufgeführt wird
+import qualified Data.Text.IO as Text
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 import System.Posix.User (getRealUserID)
 -- Abhängigkeiten von anderen Modulen
@@ -40,7 +41,7 @@ main = ausführenWennRoot $ do
 ausführenWennRoot :: IO () -> IO ()
 #ifdef ZUGKONTROLLERASPI
 ausführenWennRoot action = do
-    (Options {pwm}) <- getOptions
+    (Options {pwm, sprache}) <- getOptions
     case pwm of
         SoftwarePWM -> action
         HardwarePWM -> do
@@ -49,7 +50,7 @@ ausführenWennRoot action = do
                 then action
                 else do
                     setSGR [SetColor Foreground Vivid Red]
-                    putStrLn Language.nichtRoot
+                    Text.putStrLn $ Language.nichtRoot sprache
                     setSGR [Reset]
 #else
 ausführenWennRoot action = action
