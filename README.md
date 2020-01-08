@@ -63,6 +63,8 @@ TODO!!!!
     `curl -sSL https://get.haskellstack.org/ | sh`
 (Probleme mit neuester Stack-Version, daher Version 1.9.3 im Repository enthalten)
 (LLVM-3.9 nicht vergessen)
+sudo apt-get install libtinfo-dev llvm-3.9-de
+
 
 ## Installation von WiringPi
 Unter Raspbian ist standardmäßig eine Version von wiringpi installiert.  
