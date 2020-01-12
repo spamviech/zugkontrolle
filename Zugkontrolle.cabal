@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 613c0064d9d9144a5f5b3ce188cb56ce00e16552dd60dac626f6cd78b7e39ea4
+-- hash: e693de1fe13fb19cfeeff44688cb4fa0d9bc2ae5965d1ce05d66512dcd0828b8
 
 name:           Zugkontrolle
 version:        1.1.0.0
@@ -62,6 +62,7 @@ library
       Zug.UI.Gtk.FortfahrenWennToggled
       Zug.UI.Gtk.Hilfsfunktionen
       Zug.UI.Gtk.Klassen
+      Zug.UI.Gtk.Klassen.TemplateHaskell
       Zug.UI.Gtk.ScrollbaresWidget
       Zug.UI.Gtk.SpracheGui
       Zug.UI.Gtk.StreckenObjekt
