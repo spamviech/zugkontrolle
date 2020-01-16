@@ -18,6 +18,17 @@ Anzeige sprachabhängig, ohne Show-Instanz
                     führt evtl. zu Memory-Leaks, wenn das Programm zu lange läuft
                 Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
                     Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
+                Speichere (Maybe [Sprache -> IO ()]) in TVar, welche bei löschen auf Nothing gesetzt wird
+                    Übergebe Maybe (TVar (Maybe [Sprache -> IO ()])) an verwendeSpracheGui
+                    Wenn Nothing, speichere weiterhin global
+                    Wenn TVar, schaue Inhalt an
+                        Wenn Nothing füge ausführen aller TVar-Aktionen zur globalen Liste hinzu
+                            und ersetzte TVar-Inhalt durch Just [übergebeneAktion]
+                        Wenn (Just ..) füge nur die übergebene Aktion zur TVar hinzu
+                Speichere Aktionen in SpracheGui als [Either (Sprache -> IO ()) (TVar (Maybe [Sprache -> IO ()]))]
+                    Wenn bei Aufruf (via foldM) TVar mit Nothing entdeckt wird, lösche diesen Eintrag
+                Führe außerdem widgetDestroy beim entfernen aus
+                    jeweils äußerstes Widget (welches bisher nur aus Container entfernt wird) sollte ausreichen
             Sprachwechsel über AuswahlWidget (ComboBox)
                 Done
 
