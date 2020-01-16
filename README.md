@@ -64,6 +64,7 @@ TODO!!!!
 (Probleme mit neuester Stack-Version, daher Version 1.9.3 im Repository enthalten)
 (LLVM-3.9 nicht vergessen)
 sudo apt-get install libtinfo-dev llvm-3.9-de
+(LLVM-3.9 Ordner zu PATH hinzufügen? Siehe https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
 
 
 ## Installation von WiringPi
