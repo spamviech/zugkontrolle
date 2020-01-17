@@ -94,17 +94,17 @@ sprachwechsel
 -- Sobald ein 'sprachwechsel' durchgeführt wird während die 'TVar' als Wert 'Nothing' hat wird die Aktion gelöscht.
 -- Ansonsten werden alle Aktionen darin ausgeführt.
 verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m) =>
-    (Sprache -> IO ()) -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m ()
-verwendeSpracheGui neueAktion maybeTVar
-    = erhalteSpracheGui >>= \spracheGui -> verwendeSpracheGuiFn spracheGui neueAktion maybeTVar
+    Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
+verwendeSpracheGui maybeTVar neueAktion
+    = erhalteSpracheGui >>= \spracheGui -> verwendeSpracheGuiFn spracheGui maybeTVar neueAktion
 
 -- | Wie 'verwendeSpracheGui' mit explizit übergebenem 'SpracheGui'.
 verwendeSpracheGuiFn :: (MonadIO m) =>
-    SpracheGui -> (Sprache -> IO ()) -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m ()
+    SpracheGui -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
 verwendeSpracheGuiFn
     SpracheGui {sprache, sprachwechselAktionen}
-    neueAktion
     maybeTVar
+    neueAktion
         = liftIO $ do
             neueAktion sprache
             case maybeTVar of
