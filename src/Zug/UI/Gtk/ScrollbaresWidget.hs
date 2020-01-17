@@ -13,6 +13,7 @@ module Zug.UI.Gtk.ScrollbaresWidget (
     ScrollbaresWidget(), scrollbaresWidgetNew, scrollbaresWidgetAddNew,
     scrollbaresWidgetPackNew, scrollbaresWidgetNotebookAppendPageNew) where
 
+import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
@@ -99,9 +100,11 @@ scrollbaresWidgetPackNew :: (MonadIO m, MitBox b, MitWidget w) => b -> m w -> m 
 scrollbaresWidgetPackNew box konstruktor
     = boxPackWidgetNew box PackGrow paddingDefault positionDefault $ scrollbaresWidgetNew konstruktor
 
--- | Erstelle neues 'ScrollbaresWidget' und füge sie als neue Seite einem 'MitNotebook' hinzu
+-- | Erstelle neues 'ScrollbaresWidget' und füge sie als neue Seite einem 'MitNotebook' hinzu.
+-- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 scrollbaresWidgetNotebookAppendPageNew :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w) =>
-    n -> (Sprache -> Text) -> m w -> m (ScrollbaresWidget w, Int)
-scrollbaresWidgetNotebookAppendPageNew notebook name konstruktor
-    = notebookAppendPageNew notebook name $ scrollbaresWidgetNew konstruktor
+    n -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> Text) -> m w -> m (ScrollbaresWidget w, Int)
+scrollbaresWidgetNotebookAppendPageNew notebook maybeTVar name konstruktor
+    = notebookAppendPageNew notebook maybeTVar name $ scrollbaresWidgetNew konstruktor
 #endif
