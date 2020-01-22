@@ -9,7 +9,7 @@ github:               "spamviech/Zugkontrolle"
 license:              BSD3
 author:               "Wolfgang Witt"
 maintainer:           "wolfi.witt@gmx.de"
-copyright:            "2019 Wolfgang Witt"
+copyright:            "2020 Wolfgang Witt"
 
 extra-source-files:
 - README.md
@@ -57,6 +57,7 @@ dependencies:
   - stm
   - template-haskell
   - text
+  - yaml
   - wiringPi
 
 ghc-options:

@@ -32,6 +32,11 @@ Anzeige sprachabhängig, ohne Show-Instanz
             Sprachwechsel über AuswahlWidget (ComboBox)
                 Done
 
+Speichern von json in yaml konvertieren
+    Packet yaml zur Konvertierung verwenden
+        https://hackage.haskell.org/package/yaml
+    Verwendet intern aeson, kann somit problemlos als plug-and-play replacement verwendet werden
+
 Haddock schlägt an Language.hs fehl
     Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
     Probieren ob ein-Datei-Version funktioniert
