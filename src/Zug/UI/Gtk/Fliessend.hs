@@ -14,11 +14,12 @@ module Zug.UI.Gtk.Fliessend (
     FließendWidget(), fließendNew, fließendPackNew,
     FließendAuswahlWidget(), fließendAuswahlNew, fließendAuswahlPackNew, aktuellerFließendValue) where
 
+import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Graphics.UI.Gtk as Gtk
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenAtom(..), Value(..))
-import Zug.Language ((<:>))
+import Zug.Language (Sprache(), (<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (
@@ -30,25 +31,40 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 newtype FließendWidget = FließendWidget Gtk.Label
     deriving (Eq, MitWidget, MitLabel)
 
--- | Erstelle ein neues 'FließendWidget' und packe es in eine 'MitBox'
-fließendPackNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s, MitBox b) => b -> s -> m FließendWidget
-fließendPackNew box = boxPackWidgetNew box packingDefault 3 positionDefault . fließendNew
+-- | Erstelle ein neues 'FließendWidget' und packe es in eine 'MitBox'.
+-- 
+-- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+fließendPackNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s, MitBox b) =>
+    b -> s -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m FließendWidget
+fließendPackNew box s maybeTVar = boxPackWidgetNew box packingDefault 3 positionDefault $ fließendNew s maybeTVar
 
 -- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
-fließendNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s) => s -> m FließendWidget
-fließendNew s = fmap FließendWidget $ labelSpracheNew $ Language.fließendValue <:> fließend s
+-- 
+-- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+fließendNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s) =>
+    s -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m FließendWidget
+fließendNew s maybeTVar = fmap FließendWidget $ labelSpracheNew maybeTVar $ Language.fließendValue <:> fließend s
 
 -- | Widget zur Eingabe des Fließend-Value
 newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget :: AuswahlWidget Value}
     deriving (Eq, MitWidget)
 
--- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'
-fließendAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b) => b -> m FließendAuswahlWidget
-fließendAuswahlPackNew box = boxPackWidgetNewDefault box $ fließendAuswahlNew
+-- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+fließendAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b) =>
+    b -> TVar (Maybe [Sprache -> IO ()]) -> m FließendAuswahlWidget
+fließendAuswahlPackNew box = boxPackWidgetNewDefault box . fließendAuswahlNew
 
--- | Erstelle ein neues 'FließendAuswahlWidget'
-fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m) => m FließendAuswahlWidget
-fließendAuswahlNew = FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW Language.fließend
+-- | Erstelle ein neues 'FließendAuswahlWidget'.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m) => TVar (Maybe [Sprache -> IO ()]) -> m FließendAuswahlWidget
+fließendAuswahlNew tvar = FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW tvar Language.fließend
 
 -- | Erhalte den aktuell gewählten Fließend-Value
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
