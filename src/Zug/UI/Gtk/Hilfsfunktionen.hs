@@ -109,6 +109,7 @@ boxPackDefault :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> m ()
 boxPackDefault box widget = boxPack box widget packingDefault paddingDefault positionDefault
 
 -- | Neu erstelltes 'MitWidget' zu einem 'MitNotebook' hinzufügen.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 notebookAppendPageNew :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w) =>
@@ -161,6 +162,7 @@ buttonNewWithEvent konstruktor event = do
 --     pure button
 
 -- | Knopf mit Label und Funktion erstellen.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m) =>
@@ -181,6 +183,7 @@ toggleButtonNewWithEvent konstruktor event = do
     pure mitToggleButton
 
 -- | ToggleButton mit Label und Funktion erstellen.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m) =>
@@ -193,6 +196,7 @@ toggleButtonNewWithEventLabel maybeTVar label event = do
 
 -- * Label
 -- | Erzeuge ein Label, welches bei 'Zug.UI.Gtk.SpracheGui.sprachwechsel' den angezeigten Text anpasst.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 labelSpracheNew :: (SpracheGuiReader r m, MonadIO m) =>

@@ -65,6 +65,7 @@ instance MitButton FortfahrenWennToggled  where
     erhalteButton = erhalteButton . fortfahren
 
 -- | Konstruktor, wenn alle 'CheckButton's beim erzeugen bekannt sind.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fortfahrenWennToggledNew :: (SpracheGuiReader r m, MonadIO m) =>
@@ -139,6 +140,7 @@ instance MitButton (FortfahrenWennToggledVar a v c)  where
     erhalteButton = erhalteButton . fortfahrenVar
 
 -- | Konstruktor, wenn zu überprüfende 'CheckButton's sich während der Laufzeit ändern können.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fortfahrenWennToggledVarNew :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c) =>
@@ -170,6 +172,7 @@ newtype RegistrierterCheckButton
             deriving (Eq, MitWidget)
 
 -- | Konstruktor für neuen 'RegistrierterCheckButton'.
+-- 
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 registrierterCheckButtonNew :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c) =>
