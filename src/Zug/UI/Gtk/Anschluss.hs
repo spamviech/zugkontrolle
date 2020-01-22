@@ -15,6 +15,7 @@ module Zug.UI.Gtk.Anschluss (
     AnschlussWidget(), anschlussNew,
     AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss) where
 
+import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import Data.Text as Text
@@ -43,9 +44,14 @@ instance MitLabel AnschlussWidget where
     erhalteLabel :: AnschlussWidget -> Gtk.Label
     erhalteLabel (AnschlussWidget label) = label
 
--- | 'Label' für 'Anschluss' erstellen
-anschlussNew :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> Anschluss -> m AnschlussWidget
-anschlussNew name anschluss = fmap AnschlussWidget $ labelSpracheNew $ name <-> Language.anschluss <:> anschluss
+-- | 'Label' für 'Anschluss' erstellen.
+-- 
+-- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+anschlussNew :: (SpracheGuiReader r m, MonadIO m) =>
+    Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> Text) -> Anschluss -> m AnschlussWidget
+anschlussNew maybeTVar name anschluss
+    = fmap AnschlussWidget $ labelSpracheNew maybeTVar $ name <-> Language.anschluss <:> anschluss
 
 -- | Widgets zum erzeugen eines 'Anschluss'
 data AnschlussAuswahlWidget
@@ -66,30 +72,35 @@ instance MitWidget AnschlussAuswahlWidget where
     erhalteWidget :: AnschlussAuswahlWidget -> Gtk.Widget
     erhalteWidget = aawWidget
 
--- | Erzeugen eines'Anschluss'
-anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> m AnschlussAuswahlWidget
-anschlussAuswahlNew name = do
+-- | Erzeugen eines'Anschluss'.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m) =>
+    TVar (Maybe [Sprache -> IO ()]) -> (Sprache -> Text) -> m AnschlussAuswahlWidget
+anschlussAuswahlNew tvar name = do
     (vBox, aawNotebook) <- liftIO $ do
         vBox <- Gtk.vBoxNew False 0
         aawNotebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
         pure (vBox, aawNotebook)
     -- Pin
-    (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook Language.pin $ liftIO $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pinBox $ labelSpracheNew $ name <-> Language.pin <:> Text.empty
+    let justTVar = Just tvar
+    (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook justTVar Language.pin $ liftIO $ Gtk.hBoxNew False 0
+    boxPackWidgetNewDefault pinBox $ labelSpracheNew justTVar $ name <-> Language.pin <:> Text.empty
     aawPin <- liftIO $ do
             aawPin <- boxPackWidgetNewDefault pinBox $ Gtk.spinButtonNewWithRange 0 27 1
             Gtk.set aawPin [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
             pure aawPin
     -- PCF8574Port
-    (pcf8574Box, aawPCF8574PortPage) <- notebookAppendPageNew aawNotebook Language.pcf8574Port $
+    (pcf8574Box, aawPCF8574PortPage) <- notebookAppendPageNew aawNotebook justTVar Language.pcf8574Port $
         liftIO $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew $ name <-> Language.pcf8574Port <:> Text.empty
+    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew justTVar $ name <-> Language.pcf8574Port <:> Text.empty
     aawPCF8574PortVariante <- boxPackWidgetNewDefault pcf8574Box $
-        boundedEnumAuswahlComboBoxNew VariantA Language.variante
-    aawPCF8574PortA0 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a0
-    aawPCF8574PortA1 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a1
-    aawPCF8574PortA2 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW Language.a2
-    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew $ Language.port <:> Text.empty
+        boundedEnumAuswahlComboBoxNew VariantA tvar Language.variante
+    aawPCF8574PortA0 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW tvar Language.a0
+    aawPCF8574PortA1 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW tvar Language.a1
+    aawPCF8574PortA2 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW tvar Language.a2
+    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew justTVar $ Language.port <:> Text.empty
     aawPCF8574Port <- liftIO $ do
         aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
         Gtk.set aawPCF8574Port [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
