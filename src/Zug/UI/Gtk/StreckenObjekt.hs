@@ -47,7 +47,7 @@ module Zug.UI.Gtk.StreckenObjekt (
 
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
-import Control.Concurrent.STM (atomically, TMVar, putTMVar)
+import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, TMVar, putTMVar)
 import Control.Lens ((^.), (^..), (??))
 import qualified Control.Lens as Lens
 import Control.Monad (void, unless, forM_)
@@ -216,12 +216,15 @@ type CheckButtonWegstreckeHinzufügen e a = WidgetHinzufügen 'HinzufügenWegstr
 -- | Box zur Auswahl der 'Wegstrecke'n-Elemente
 type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
--- | Erstelle eine neue 'BoxWegstreckeHinzufügen'
+-- | Erstelle eine neue 'BoxWegstreckeHinzufügen'.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 boxWegstreckeHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) =>
-    m (BoxWegstreckeHinzufügen a)
-boxWegstreckeHinzufügenNew = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    TVar (Maybe [Sprache -> IO ()]) -> m (BoxWegstreckeHinzufügen a)
+boxWegstreckeHinzufügenNew tvar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
     box <- liftIO $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box $ labelSpracheNew $ kategorieText (kategorie :: KategorieText a)
+    boxPackWidgetNewDefault box $ labelSpracheNew (Just tvar) $ kategorieText (kategorie :: KategorieText a)
     pure box
 
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
@@ -260,11 +263,15 @@ type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 -- | Box zum hinzufügen eines Plans
 type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
 
--- | Erstelle eine neue 'BoxPlanHinzufügen'
-boxPlanHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) => m (BoxPlanHinzufügen a)
-boxPlanHinzufügenNew = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+-- | Erstelle eine neue 'BoxPlanHinzufügen'.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+boxPlanHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) =>
+    TVar (Maybe [Sprache -> IO ()]) -> m (BoxPlanHinzufügen a)
+boxPlanHinzufügenNew tvar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
     box <- liftIO $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box $ labelSpracheNew $ kategorieText (kategorie :: KategorieText a)
+    boxPackWidgetNewDefault box $ labelSpracheNew (Just tvar) $ kategorieText (kategorie :: KategorieText a)
     pure box
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
@@ -414,51 +421,69 @@ entferneHinzufügenPlanWidgets planElement = do
 
 -- | Neuen Entfernen-Knopf an das Ende der zugehörigen 'Box' hinzufügen.
 -- Beim drücken werden 'entferneWidgets' und die übergebene 'IOStatusGui'-Aktion ausgeführt.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonEntfernenPackNew :: (WidgetsTyp w, ObjektReader ObjektGui m, MonadIO m) =>
-    w -> IOStatusGui () -> m Gtk.Button
-buttonEntfernenPackNew w entfernenAktion = do
+    w -> TVar (Maybe [Sprache -> IO ()]) -> IOStatusGui () -> m Gtk.Button
+buttonEntfernenPackNew w tvar entfernenAktion = do
     statusVar <- erhalteStatusVar
     objektReader <- ask
     boxPackWidgetNew (boxButtonEntfernen w) PackNatural paddingDefault End $
-        buttonNewWithEventLabel Language.entfernen $
+        buttonNewWithEventLabel (Just tvar) Language.entfernen $
             flip runReaderT objektReader $ do
                 auswertenStatusVarIOStatus entfernenAktion statusVar
                 entferneWidgets w
 
 -- ** Widget mit Name und CheckButton erstellen
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetWegstreckePackNew :: forall o m.
     (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
-        ObjektTyp o -> m (CheckButtonWegstreckeHinzufügen Void o)
-hinzufügenWidgetWegstreckePackNew objekt = do
+        ObjektTyp o -> TVar (Maybe [Sprache -> IO ()]) -> m (CheckButtonWegstreckeHinzufügen Void o)
+hinzufügenWidgetWegstreckePackNew objekt tvar = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     widgetHinzufügenBoxPackNew box $ WegstreckeCheckButton <$>
-        registrierterCheckButtonNew (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
--- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
+        registrierterCheckButtonNew (Just tvar) (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
+
+-- | Erzeuge einen 'RegistrierterCheckButton'.
+-- Dieser enhält ein 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetWegstreckeRichtungPackNew :: forall o m.
     (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m) =>
-    ObjektTyp o -> NonEmpty Richtung -> m (CheckButtonWegstreckeHinzufügen Richtung o)
-hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen = do
+    ObjektTyp o ->
+    NonEmpty Richtung ->
+    TVar (Maybe [Sprache -> IO ()]) ->
+        m (CheckButtonWegstreckeHinzufügen Richtung o)
+hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     widgetHinzufügenBoxPackNew box $ do
             hBox <- liftIO $ Gtk.hBoxNew False 0
             wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
-                registrierterCheckButtonNew (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
-            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $ auswahlRadioButtonNew richtungen $ const Text.empty
+                registrierterCheckButtonNew (Just tvar) (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
+            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $
+                auswahlRadioButtonNew richtungen tvar $ const Text.empty
             pure WegstreckeCheckButtonRichtung {
                 wcbrWidget = erhalteWidget hBox,
                 wcbrRegistrierterCheckButton,
                 wcbrRichtungsAuswahl}
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetPlanPackNew ::
     (ObjektReader ObjektGui m, StreckenObjekt (ObjektTyp o), ObjektElement (ObjektTyp o), MonadIO m) =>
-        BoxPlanHinzufügen o -> ObjektTyp o -> m (ButtonPlanHinzufügen o)
-hinzufügenWidgetPlanPackNew box objekt = do
+        BoxPlanHinzufügen o -> ObjektTyp o -> TVar (Maybe [Sprache -> IO ()]) -> m (ButtonPlanHinzufügen o)
+hinzufügenWidgetPlanPackNew box objekt tvar = do
     DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
-    widgetHinzufügenBoxPackNew box $ buttonNewWithEventLabel (const $ erhalteName objekt) $
+    widgetHinzufügenBoxPackNew box $ buttonNewWithEventLabel (Just tvar) (const $ erhalteName objekt) $
         atomically $ putTMVar tmvarPlanObjekt $ Just $ zuObjekt objekt
 
 -- * Darstellung von Streckenobjekten
@@ -469,7 +494,8 @@ data BGWidgets (z :: Zugtyp)
         bg :: Bahngeschwindigkeit z,
         bgWidget :: Gtk.HBox,
         bgHinzWS :: CheckButtonWegstreckeHinzufügen Void (BGWidgets z),
-        bgHinzPL :: ButtonPlanHinzufügen (BGWidgets z)}
+        bgHinzPL :: ButtonPlanHinzufügen (BGWidgets z),
+        bgSpracheTVar :: TVar (Maybe [Sprache -> IO ()])}
 
 deriving instance (Eq (ObjektTyp (BGWidgets z))) => Eq (BGWidgets z)
 
@@ -482,11 +508,12 @@ instance (WegstreckenElement (BGWidgets z), PlanElement (BGWidgets z)) => Widget
     erhalteObjektTyp :: BGWidgets z -> Bahngeschwindigkeit z
     erhalteObjektTyp = bg
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => BGWidgets z -> m ()
-    entferneWidgets bgWidgets = do
+    entferneWidgets bgWidgets@BGWidgets {bgSpracheTVar} = do
         DynamischeWidgets {vBoxBahngeschwindigkeiten} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxBahngeschwindigkeiten bgWidgets
         entferneHinzufügenWegstreckeWidgets bgWidgets
         entferneHinzufügenPlanWidgets bgWidgets
+        liftIO $ atomically $ writeTVar bgSpracheTVar Nothing
     boxButtonEntfernen :: BGWidgets z -> Gtk.Box
     boxButtonEntfernen = erhalteBox . bgWidget
 
@@ -504,7 +531,8 @@ instance WidgetsTyp (ZugtypEither BGWidgets) where
 instance WegstreckenElement (BGWidgets 'Märklin) where
     getterWegstrecke :: Lens.Getter (BGWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Void (BGWidgets 'Märklin))
     getterWegstrecke = Lens.to bgHinzWS
-    boxWegstrecke :: Bahngeschwindigkeit 'Märklin -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (BGWidgets 'Märklin))
+    boxWegstrecke ::
+        Bahngeschwindigkeit 'Märklin -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (BGWidgets 'Märklin))
     boxWegstrecke _bgWidgets = Lens.to vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
 instance WegstreckenElement (BGWidgets 'Lego) where
     getterWegstrecke :: Lens.Getter (BGWidgets 'Lego) (CheckButtonWegstreckeHinzufügen Void (BGWidgets 'Lego))
@@ -512,9 +540,11 @@ instance WegstreckenElement (BGWidgets 'Lego) where
     boxWegstrecke :: Bahngeschwindigkeit 'Lego -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (BGWidgets 'Lego))
     boxWegstrecke _bgWidgets = Lens.to vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
 instance WegstreckenElement (ZugtypEither BGWidgets) where
-    getterWegstrecke :: Lens.Getter (ZugtypEither BGWidgets) (CheckButtonWegstreckeHinzufügen Void (ZugtypEither BGWidgets))
+    getterWegstrecke ::
+        Lens.Getter (ZugtypEither BGWidgets) (CheckButtonWegstreckeHinzufügen Void (ZugtypEither BGWidgets))
     getterWegstrecke = Lens.to $ ausZugtypEither $ widgetHinzufügenZugtypEither . bgHinzWS
-    boxWegstrecke :: ZugtypEither Bahngeschwindigkeit -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither BGWidgets))
+    boxWegstrecke :: ZugtypEither Bahngeschwindigkeit ->
+        Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither BGWidgets))
     boxWegstrecke (ZugtypMärklin _bgWidgets) = Lens.to $
         widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
     boxWegstrecke (ZugtypLego _bgWidgets) = Lens.to $
@@ -533,7 +563,8 @@ instance PlanElement (BGWidgets 'Lego) where
 instance PlanElement (ZugtypEither BGWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither BGWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither BGWidgets)))
     foldPlan = Lens.to $ ausZugtypEither $ Just . widgetHinzufügenZugtypEither . bgHinzPL
-    boxenPlan :: ZugtypEither Bahngeschwindigkeit -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither BGWidgets))
+    boxenPlan ::
+        ZugtypEither Bahngeschwindigkeit -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither BGWidgets))
     boxenPlan   (ZugtypMärklin _bahngeschwindigkeit)    = Lens.to $
         widgetHinzufügenZugtypEither . vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
     boxenPlan   (ZugtypLego _bahngeschwindigkeit)   = Lens.to $
@@ -568,24 +599,27 @@ bahngeschwindigkeitPackNew ::
         Bahngeschwindigkeit z -> MStatusGuiT m (BGWidgets z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     dynamischeWidgets@DynamischeWidgets {vBoxBahngeschwindigkeiten} <- erhalteDynamischeWidgets
+    bgSpracheTVar <- liftIO $ newTVarIO $ Just []
+    let justSpracheTVar = Just bgSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWidgetWegstrecke <- hinzufügenWidgetWegstreckePackNew bahngeschwindigkeit
+    hinzufügenWidgetWegstrecke <- hinzufügenWidgetWegstreckePackNew bahngeschwindigkeit bgSpracheTVar
     let boxPlan = head $ dynamischeWidgets ^.. boxenPlan bahngeschwindigkeit
-    hinzufügenWidgetPlan <- hinzufügenWidgetPlanPackNew boxPlan bahngeschwindigkeit
+    hinzufügenWidgetPlan <- hinzufügenWidgetPlanPackNew boxPlan bahngeschwindigkeit bgSpracheTVar
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.hBoxNew False 0
     let bgWidgets = BGWidgets {
         bg = bahngeschwindigkeit,
         bgWidget = hBox,
         bgHinzWS = hinzufügenWidgetWegstrecke,
-        bgHinzPL = hinzufügenWidgetPlan}
+        bgHinzPL = hinzufügenWidgetPlan,
+        bgSpracheTVar}
     namePackNew hBox bahngeschwindigkeit
-    boxPackWidgetNewDefault hBox $ anschlussNew Language.geschwindigkeit $
+    boxPackWidgetNewDefault hBox $ anschlussNew justSpracheTVar Language.geschwindigkeit $
         getGeschwindigkeitsAnschluss bahngeschwindigkeit
     hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bgWidgets
-    fahrtrichtungsWidgetsPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit
-    fließendPackNew hBox bahngeschwindigkeit
-    buttonEntfernenPackNew bgWidgets $ entfernenBahngeschwindigkeit $ zuZugtypEither bgWidgets
+    fahrtrichtungsWidgetsPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit bgSpracheTVar
+    fließendPackNew hBox bahngeschwindigkeit justSpracheTVar
+    buttonEntfernenPackNew bgWidgets bgSpracheTVar $ entfernenBahngeschwindigkeit $ zuZugtypEither bgWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets
     pure bgWidgets
@@ -598,20 +632,22 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss}
                     = bglGeschwindigkeitsAnschluss
             fahrtrichtungsWidgetsPackNew :: (ObjektReader ObjektGui m, MonadIO m, MitBox b, MitRange r) =>
-                b -> Bahngeschwindigkeit z -> r -> m ()
+                b -> Bahngeschwindigkeit z -> r -> TVar (Maybe [Sprache -> IO ()]) -> m ()
             fahrtrichtungsWidgetsPackNew
                 box
                 bgMärklin@MärklinBahngeschwindigkeit {}
                 range
-                    = void $ buttonUmdrehenPackNew box bgMärklin range
+                tvar
+                    = void $ buttonUmdrehenPackNew box bgMärklin range tvar
             fahrtrichtungsWidgetsPackNew
                 box
                 bgLego@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss}
                 range
+                tvar
                     = void $ do
                         boxPackWidgetNewDefault box $
-                            anschlussNew Language.fahrtrichtung bglFahrtrichtungsAnschluss
-                        togglebuttonFahrtrichtungEinstellenPackNew box bgLego range
+                            anschlussNew (Just tvar) Language.fahrtrichtung bglFahrtrichtungsAnschluss
+                        togglebuttonFahrtrichtungEinstellenPackNew box bgLego range tvar
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew :: forall b bg m z.
@@ -629,25 +665,31 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
                 ausführenStatusVarAktion (Geschwindigkeit bahngeschwindigkeit $ floor wert) statusVar
         pure scale
 
--- | Füge 'Gtk.Button' zum umdrehen/ zur Box hinzu
+-- | Füge 'Gtk.Button' zum umdrehen/ zur Box hinzu.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonUmdrehenPackNew :: forall b bg r m.
     (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
-        b -> bg 'Märklin -> r -> m Gtk.Button
-buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
+        b -> bg 'Märklin -> r -> TVar (Maybe [Sprache -> IO ()])-> m Gtk.Button
+buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit tvar = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.umdrehen $ do
+    boxPackWidgetNewDefault box $ buttonNewWithEventLabel (Just tvar) Language.umdrehen $ do
         Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
         flip runReaderT objektReader $
             ausführenStatusVarAktion (Umdrehen bahngeschwindigkeit) statusVar
--- | Füge 'Gtk.ToggleButton' zum Fahrtrichtung einstellen zur Box hinzu
+-- | Füge 'Gtk.ToggleButton' zum Fahrtrichtung einstellen zur Box hinzu.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 togglebuttonFahrtrichtungEinstellenPackNew :: forall b bg r m.
     (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektReader ObjektGui m, MonadIO m) =>
-        b -> bg 'Lego -> r -> m Gtk.ToggleButton
-togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit = do
+        b -> bg 'Lego -> r -> TVar (Maybe [Sprache -> IO ()]) -> m Gtk.ToggleButton
+togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit tvar = do
     tmvarStatus <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel Language.umdrehen $ \vorwärts -> do
+    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel (Just tvar) Language.umdrehen $ \vorwärts -> do
         Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
         let fahrtrichtung = if vorwärts then Vorwärts else Rückwärts
         flip runReaderT objektReader $
