@@ -1009,7 +1009,8 @@ data KUWidgets
         ku :: Kupplung,
         kuWidget :: Gtk.HBox,
         kuHinzWS :: CheckButtonWegstreckeHinzufügen Void KUWidgets,
-        kuHinzPL :: ButtonPlanHinzufügen KUWidgets}
+        kuHinzPL :: ButtonPlanHinzufügen KUWidgets,
+        kuSpracheTVar :: TVar (Maybe [Sprache -> IO ()])}
     deriving (Eq)
 
 instance MitWidget KUWidgets where
@@ -1063,32 +1064,35 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
         vBoxKupplungen,
         vBoxHinzufügenPlanKupplungen}
             <- erhalteDynamischeWidgets
+    kuSpracheTVar <- liftIO $ newTVarIO $ Just []
+    let justSpracheTVar = Just kuSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew kupplung
-    hinzufügenPlanWidget <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew kupplung kuSpracheTVar
+    hinzufügenPlanWidget <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung kuSpracheTVar
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.hBoxNew False 0
     namePackNew hBox kupplung
-    boxPackWidgetNewDefault hBox $ anschlussNew Language.kupplung kupplungsAnschluss
-    buttonKuppelnPackNew hBox kupplung
-    fließendPackNew hBox kupplung
+    boxPackWidgetNewDefault hBox $ anschlussNew justSpracheTVar Language.kupplung kupplungsAnschluss
+    buttonKuppelnPackNew hBox kupplung kuSpracheTVar
+    fließendPackNew hBox kupplung justSpracheTVar
     let kuWidgets = KUWidgets {
         ku = kupplung,
         kuWidget = hBox,
         kuHinzPL = hinzufügenPlanWidget,
-        kuHinzWS = hinzufügenWegstreckeWidget}
-    buttonEntfernenPackNew kuWidgets $ entfernenKupplung kuWidgets
+        kuHinzWS = hinzufügenWegstreckeWidget,
+        kuSpracheTVar}
+    buttonEntfernenPackNew kuWidgets kuSpracheTVar $ entfernenKupplung kuWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OKupplung kuWidgets
     pure kuWidgets
 
 -- | Füge 'Gtk.Button' zum kuppeln zur Box hinzu
 buttonKuppelnPackNew :: forall b k m. (MitBox b, KupplungKlasse k, ObjektReader ObjektGui m, MonadIO m) =>
-    b -> k -> m Gtk.Button
-buttonKuppelnPackNew box kupplung = do
+    b -> k -> TVar (Maybe [Sprache -> IO ()]) -> m Gtk.Button
+buttonKuppelnPackNew box kupplung tvar = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventLabel Language.kuppeln $
+    boxPackWidgetNewDefault box $ buttonNewWithEventLabel (Just tvar) Language.kuppeln $
         flip runReaderT objektReader $
             ausführenStatusVarAktion (Kuppeln kupplung) statusVar
 
