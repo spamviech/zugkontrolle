@@ -221,10 +221,10 @@ type BoxWegstreckeHinzufügen a = WidgetHinzufügen 'HinzufügenWegstrecke (Scro
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 boxWegstreckeHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) =>
-    TVar (Maybe [Sprache -> IO ()]) -> m (BoxWegstreckeHinzufügen a)
-boxWegstreckeHinzufügenNew tvar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    Maybe (TVar (Maybe [Sprache -> IO ()])) -> m (BoxWegstreckeHinzufügen a)
+boxWegstreckeHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
     box <- liftIO $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box $ labelSpracheNew (Just tvar) $ kategorieText (kategorie :: KategorieText a)
+    boxPackWidgetNewDefault box $ labelSpracheNew maybeTVar $ kategorieText (kategorie :: KategorieText a)
     pure box
 
 -- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
@@ -268,10 +268,10 @@ type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidge
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 boxPlanHinzufügenNew :: forall a r m. (Kategorie a, SpracheGuiReader r m, MonadIO m) =>
-    TVar (Maybe [Sprache -> IO ()]) -> m (BoxPlanHinzufügen a)
-boxPlanHinzufügenNew tvar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
+    Maybe (TVar (Maybe [Sprache -> IO ()])) -> m (BoxPlanHinzufügen a)
+boxPlanHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
     box <- liftIO $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box $ labelSpracheNew (Just tvar) $ kategorieText (kategorie :: KategorieText a)
+    boxPackWidgetNewDefault box $ labelSpracheNew maybeTVar $ kategorieText (kategorie :: KategorieText a)
     pure box
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
