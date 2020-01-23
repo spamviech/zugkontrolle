@@ -802,7 +802,8 @@ data WEWidgets (z :: Zugtyp)
         we :: Weiche z,
         weWidget :: Gtk.HBox,
         weHinzWS :: CheckButtonWegstreckeHinzufügen Richtung (WEWidgets z),
-        weHinzPL :: WeichePlanHinzufügenWidgets z}
+        weHinzPL :: WeichePlanHinzufügenWidgets z,
+        weSpracheTVar :: TVar (Maybe [Sprache -> IO ()])}
     deriving (Eq)
 
 -- | Widgets zum Hinzufügen einer 'Weiche' zu einem 'Plan'
@@ -844,7 +845,8 @@ instance WidgetsTyp (ZugtypEither WEWidgets) where
 
 instance WegstreckenElement (WEWidgets 'Märklin) where
     type CheckButtonAuswahl (WEWidgets 'Märklin) = Richtung
-    getterWegstrecke :: Lens.Getter (WEWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Märklin))
+    getterWegstrecke ::
+        Lens.Getter (WEWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Märklin))
     getterWegstrecke = Lens.to weHinzWS
     boxWegstrecke :: Weiche 'Märklin -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (WEWidgets 'Märklin))
     boxWegstrecke _weWidgets = Lens.to vBoxHinzufügenWegstreckeWeichenMärklin
@@ -856,9 +858,11 @@ instance WegstreckenElement (WEWidgets 'Lego) where
     boxWegstrecke _weWidgets = Lens.to vBoxHinzufügenWegstreckeWeichenLego
 instance WegstreckenElement (ZugtypEither WEWidgets) where
     type CheckButtonAuswahl (ZugtypEither WEWidgets) = Richtung
-    getterWegstrecke :: Lens.Getter (ZugtypEither WEWidgets) (CheckButtonWegstreckeHinzufügen Richtung (ZugtypEither WEWidgets))
+    getterWegstrecke ::
+        Lens.Getter (ZugtypEither WEWidgets) (CheckButtonWegstreckeHinzufügen Richtung (ZugtypEither WEWidgets))
     getterWegstrecke = Lens.to $ ausZugtypEither $ widgetHinzufügenZugtypEither . weHinzWS
-    boxWegstrecke :: ZugtypEither Weiche -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither WEWidgets))
+    boxWegstrecke ::
+        ZugtypEither Weiche -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither WEWidgets))
     boxWegstrecke (ZugtypMärklin _weWidgets) = Lens.to $
         widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenMärklin
     boxWegstrecke (ZugtypLego _weWidgets) = Lens.to $
@@ -928,20 +932,23 @@ weichePackNew :: forall m z.
         Weiche z -> MStatusGuiT m (WEWidgets z)
 weichePackNew weiche = do
     dynamischeWidgets@DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
+    weSpracheTVar <- liftIO $ newTVarIO $ Just []
+    let justSpracheTVar = Just weSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeRichtungPackNew weiche $ erhalteRichtungen weiche
+    hinzufügenWegstreckeWidget
+        <- hinzufügenWidgetWegstreckeRichtungPackNew weiche (erhalteRichtungen weiche) weSpracheTVar
     let [boxGerade, boxKurve, boxLinks, boxRechts] = dynamischeWidgets ^.. boxenPlan weiche
     hinzufügenPlanWidgetGerade <- if hatRichtung weiche Gerade
-        then Just <$> hinzufügenWidgetPlanPackNew boxGerade weiche
+        then Just <$> hinzufügenWidgetPlanPackNew boxGerade weiche weSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetKurve <- if hatRichtung weiche Kurve
-        then Just <$> hinzufügenWidgetPlanPackNew boxKurve weiche
+        then Just <$> hinzufügenWidgetPlanPackNew boxKurve weiche weSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetLinks <- if hatRichtung weiche Links
-        then Just <$> hinzufügenWidgetPlanPackNew boxLinks weiche
+        then Just <$> hinzufügenWidgetPlanPackNew boxLinks weiche weSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetRechts <- if hatRichtung weiche Rechts
-        then Just <$> hinzufügenWidgetPlanPackNew boxRechts weiche
+        then Just <$> hinzufügenWidgetPlanPackNew boxRechts weiche weSpracheTVar
         else pure Nothing
     let hinzufügenPlanWidget = WeichePlanHinzufügenWidgets {
         gerade = hinzufügenPlanWidgetGerade,
@@ -951,43 +958,47 @@ weichePackNew weiche = do
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.hBoxNew False 0
     namePackNew hBox weiche
-    richtungsButtonsPackNew weiche hBox
-    fließendPackNew hBox weiche
+    richtungsButtonsPackNew weiche hBox weSpracheTVar
+    fließendPackNew hBox weiche justSpracheTVar
     let weWidgets = WEWidgets {
         we = weiche,
         weWidget = hBox,
         weHinzWS = hinzufügenWegstreckeWidget,
-        weHinzPL = hinzufügenPlanWidget}
-    buttonEntfernenPackNew weWidgets $ entfernenWeiche $ zuZugtypEither weWidgets
+        weHinzPL = hinzufügenPlanWidget,
+        weSpracheTVar}
+    buttonEntfernenPackNew weWidgets weSpracheTVar $ entfernenWeiche $ zuZugtypEither weWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OWeiche $ zuZugtypEither weWidgets
     pure weWidgets
         where
             richtungsButtonsPackNew :: forall b m z. (MitBox b, MonadIO m, ObjektReader ObjektGui m) =>
-                Weiche z -> b -> m ()
+                Weiche z -> b -> TVar (Maybe [Sprache -> IO ()]) -> m ()
             richtungsButtonsPackNew
                 MärklinWeiche {wemRichtungsAnschlüsse}
                 box
+                tvar
                     = do
                         statusVar <- erhalteStatusVar :: m StatusVarGui
                         objektReader <- ask
                         forM_ wemRichtungsAnschlüsse $
                             \(richtung, anschluss) ->
                                 boxPackWidgetNewDefault box $
-                                    buttonNewWithEventLabel (richtung <:> anschluss) $
+                                    buttonNewWithEventLabel (Just tvar) (richtung <:> anschluss) $
                                         flip runReaderT objektReader $
                                             ausführenStatusVarAktion (Stellen weiche richtung) statusVar
             richtungsButtonsPackNew
                 LegoWeiche {welRichtungsAnschluss, welRichtungen = (richtung1, richtung2)}
                 box
+                tvar
                     = void $ do
                         statusVar <- erhalteStatusVar :: m StatusVarGui
                         objektReader <- ask
-                        boxPackWidgetNewDefault box $ anschlussNew Language.richtung welRichtungsAnschluss
-                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel (anzeige richtung1) $
+                        let justTVar = Just tvar
+                        boxPackWidgetNewDefault box $ anschlussNew justTVar Language.richtung welRichtungsAnschluss
+                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel justTVar (anzeige richtung1) $
                             flip runReaderT objektReader $
                                 ausführenStatusVarAktion (Stellen weiche richtung1) statusVar
-                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel (anzeige richtung2) $
+                        boxPackWidgetNewDefault box $ buttonNewWithEventLabel justTVar (anzeige richtung2) $
                             flip runReaderT objektReader $
                                 ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
 
