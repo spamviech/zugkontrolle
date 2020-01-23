@@ -1,0 +1,257 @@
+Streckenabschnitte:
+- Name: B.St
+  StromPin:
+    Pin: 5
+  Fließend: LOW
+- Name: A5.St
+  StromPin:
+    Pin: 0
+  Fließend: LOW
+- Name: A4.St
+  StromPin:
+    Pin: 16
+  Fließend: LOW
+- Name: A3.St
+  StromPin:
+    Pin: 13
+  Fließend: LOW
+- Name: A2.St
+  StromPin:
+    Pin: 6
+  Fließend: LOW
+- Name: A1.St
+  StromPin:
+    Pin: 12
+  Fließend: LOW
+- Name: Z.St
+  StromPin:
+    Pin: 26
+  Fließend: LOW
+- Name: O.St
+  StromPin:
+    Pin: 20
+  Fließend: LOW
+- Name: I.St
+  StromPin:
+    Pin: 21
+  Fließend: LOW
+- Name: st
+  StromPin:
+    Pin: 26
+  Fließend: LOW
+- Name: welt
+  StromPin:
+    Pin: 1
+  Fließend: HIGH
+Bahngeschwindigkeiten:
+- GeschwindigkeitsPin:
+    Pin: 14
+  Name: BG
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 26
+  Name: bg
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 0
+  Name: hallo
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 19
+  Name: HardwarePWM
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 26
+  Name: SoftwarePWM
+  Zugtyp: Märklin
+  Fließend: HIGH
+Kupplungen:
+- Name: ku
+  KupplungsAnschluss:
+    Pin: 26
+  Fließend: LOW
+- Name: meh
+  KupplungsAnschluss:
+    Pin: 5
+  Fließend: HIGH
+Weichen:
+- RichtungsPins:
+  - - Gerade
+    - Pin: 26
+  Name: we
+  Zugtyp: Märklin
+  Fließend: LOW
+- RichtungsPins:
+  - - Links
+    - Pin: 5
+  - - Gerade
+    - Pin: 4
+  Name: bla
+  Zugtyp: Märklin
+  Fließend: HIGH
+- RichtungsPins:
+  - - Rechts
+    - Pin: 3
+  - - Gerade
+    - Pin: 2
+  Name: blubb
+  Zugtyp: Märklin
+  Fließend: HIGH
+Pläne:
+- Dauerschleife: true
+  Name: Dauerschleife
+  Aktionen:
+  - Plan:
+      Dauerschleife: false
+      Name: Stehenbleiben!
+      Aktionen:
+      - Wert: 0
+        Bahngeschwindigkeit:
+          GeschwindigkeitsPin:
+            Pin: 26
+          Name: SoftwarePWM
+          Zugtyp: Märklin
+          Fließend: HIGH
+        Aktion: Geschwindigkeit
+    Aktion: Ausführen
+  - Wert:
+      µs: 5000
+    Aktion: Warten
+- Dauerschleife: false
+  Name: Stehenbleiben!
+  Aktionen:
+  - Wert: 0
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 26
+      Name: SoftwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+- Dauerschleife: false
+  Name: Mega-Plan
+  Aktionen:
+  - Wert: 23
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 26
+      Name: SoftwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+  - Wert: 79
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 19
+      Name: HardwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+  - Wert:
+      µs: 9000000
+    Aktion: Warten
+  - Wert: 0
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 26
+      Name: SoftwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+  - Wert: 0
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 19
+      Name: HardwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+Wegstrecken:
+- Streckenabschnitte:
+  - Name: O.St
+    StromPin:
+      Pin: 20
+    Fließend: LOW
+  - Name: B.St
+    StromPin:
+      Pin: 5
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 14
+    Name: BG
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: Außen & Berg
+  Weichen-Richtungen: []
+  Kupplungen: []
+- Streckenabschnitte:
+  - Name: I.St
+    StromPin:
+      Pin: 21
+    Fließend: LOW
+  - Name: Z.St
+    StromPin:
+      Pin: 26
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 14
+    Name: BG
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: Innen & Zentrum
+  Weichen-Richtungen: []
+  Kupplungen: []
+- Streckenabschnitte:
+  - Name: st
+    StromPin:
+      Pin: 26
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 26
+    Name: bg
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: ws
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Gerade
+        - Pin: 26
+      Name: we
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Gerade
+  Kupplungen:
+  - Name: ku
+    KupplungsAnschluss:
+      Pin: 26
+    Fließend: LOW
+- Streckenabschnitte:
+  - Name: welt
+    StromPin:
+      Pin: 1
+    Fließend: HIGH
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 0
+    Name: hallo
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: HalloWelt
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 3
+      - - Gerade
+        - Pin: 2
+      Name: blubb
+      Zugtyp: Märklin
+      Fließend: HIGH
+    - Rechts
+  Kupplungen: []

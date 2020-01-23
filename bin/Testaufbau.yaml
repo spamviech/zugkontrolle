@@ -1,0 +1,281 @@
+Streckenabschnitte:
+- Name: Sarasani
+  StromPin:
+    Pin: 16
+  Fließend: LOW
+- Name: S-Bahn
+  StromPin:
+    Pin: 13
+  Fließend: LOW
+- Name: Hauptkreis
+  StromPin:
+    Pin: 26
+  Fließend: LOW
+- Name: welt
+  StromPin:
+    Pin: 1
+  Fließend: HIGH
+Bahngeschwindigkeiten:
+- GeschwindigkeitsPin:
+    Pin: 14
+  Name: Geschwindigkeit
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 0
+  Name: hallo
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 19
+  Name: HardwarePWM
+  Zugtyp: Märklin
+  Fließend: HIGH
+- GeschwindigkeitsPin:
+    Pin: 26
+  Name: SoftwarePWM
+  Zugtyp: Märklin
+  Fließend: HIGH
+Kupplungen:
+- Name: Sarasani
+  KupplungsAnschluss:
+    Pin: 12
+  Fließend: LOW
+- Name: meh
+  KupplungsAnschluss:
+    Pin: 5
+  Fließend: HIGH
+Weichen:
+- RichtungsPins:
+  - - Rechts
+    - Pin: 6
+  - - Links
+    - Pin: 5
+  Name: S-Bahn
+  Zugtyp: Märklin
+  Fließend: LOW
+- RichtungsPins:
+  - - Rechts
+    - Pin: 21
+  - - Links
+    - Pin: 20
+  Name: Sarasani
+  Zugtyp: Märklin
+  Fließend: LOW
+- RichtungsPins:
+  - - Links
+    - Pin: 5
+  - - Gerade
+    - Pin: 4
+  Name: bla
+  Zugtyp: Märklin
+  Fließend: HIGH
+- RichtungsPins:
+  - - Rechts
+    - Pin: 3
+  - - Gerade
+    - Pin: 2
+  Name: blubb
+  Zugtyp: Märklin
+  Fließend: HIGH
+Pläne:
+- Dauerschleife: true
+  Name: Dauerschleife
+  Aktionen:
+  - Plan:
+      Dauerschleife: false
+      Name: Stehenbleiben!
+      Aktionen:
+      - Wert: 0
+        Bahngeschwindigkeit:
+          GeschwindigkeitsPin:
+            Pin: 26
+          Name: SoftwarePWM
+          Zugtyp: Märklin
+          Fließend: HIGH
+        Aktion: Geschwindigkeit
+    Aktion: Ausführen
+  - Wert:
+      µs: 5000
+    Aktion: Warten
+- Dauerschleife: false
+  Name: Stehenbleiben!
+  Aktionen:
+  - Wert: 0
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 26
+      Name: SoftwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+- Dauerschleife: false
+  Name: Mega-Plan
+  Aktionen:
+  - Wert: 23
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 26
+      Name: SoftwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+  - Wert: 79
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 19
+      Name: HardwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+  - Wert:
+      µs: 9000000
+    Aktion: Warten
+  - Wert: 0
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 26
+      Name: SoftwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+  - Wert: 0
+    Bahngeschwindigkeit:
+      GeschwindigkeitsPin:
+        Pin: 19
+      Name: HardwarePWM
+      Zugtyp: Märklin
+      Fließend: HIGH
+    Aktion: Geschwindigkeit
+Wegstrecken:
+- Streckenabschnitte:
+  - Name: Hauptkreis
+    StromPin:
+      Pin: 26
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 14
+    Name: Geschwindigkeit
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: Hauptkreis
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 21
+      - - Links
+        - Pin: 20
+      Name: Sarasani
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 6
+      - - Links
+        - Pin: 5
+      Name: S-Bahn
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  Kupplungen: []
+- Streckenabschnitte:
+  - Name: Sarasani
+    StromPin:
+      Pin: 16
+    Fließend: LOW
+  - Name: Hauptkreis
+    StromPin:
+      Pin: 26
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 14
+    Name: Geschwindigkeit
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: Abstellgleis Sarasani
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 6
+      - - Links
+        - Pin: 5
+      Name: S-Bahn
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 21
+      - - Links
+        - Pin: 20
+      Name: Sarasani
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  Kupplungen:
+  - Name: Sarasani
+    KupplungsAnschluss:
+      Pin: 12
+    Fließend: LOW
+- Streckenabschnitte:
+  - Name: S-Bahn
+    StromPin:
+      Pin: 13
+    Fließend: LOW
+  - Name: Hauptkreis
+    StromPin:
+      Pin: 26
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 14
+    Name: Geschwindigkeit
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: Abstellgleis S-Bahn
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 6
+      - - Links
+        - Pin: 5
+      Name: S-Bahn
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 21
+      - - Links
+        - Pin: 20
+      Name: Sarasani
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  Kupplungen: []
+- Streckenabschnitte:
+  - Name: welt
+    StromPin:
+      Pin: 1
+    Fließend: HIGH
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 0
+    Name: hallo
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: HalloWelt
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Rechts
+        - Pin: 3
+      - - Gerade
+        - Pin: 2
+      Name: blubb
+      Zugtyp: Märklin
+      Fließend: HIGH
+    - Rechts
+  Kupplungen: []

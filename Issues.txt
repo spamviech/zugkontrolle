@@ -1,3 +1,8 @@
+Laden dauert teilweise sehr lange
+
+Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
+    Vermutlich ein Problem mit Assistant
+
 Anzeige sprachabhängig, ohne Show-Instanz
     über eigene Anzeige-Klasse
         Done
@@ -32,11 +37,6 @@ Anzeige sprachabhängig, ohne Show-Instanz
                     jeweils äußerstes Widget (welches bisher nur aus Container entfernt wird) sollte ausreichen
             Sprachwechsel über AuswahlWidget (ComboBox)
                 Done
-
-Speichern von json in yaml konvertieren
-    Packet yaml zur Konvertierung verwenden
-        https://hackage.haskell.org/package/yaml
-    Verwendet intern aeson, kann somit problemlos als plug-and-play replacement verwendet werden
 
 Haddock schlägt an Language.hs fehl
     Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
@@ -145,6 +145,12 @@ Hilfetext von optparse-applicative übersetzten
     Außerdem sämtliche Hilfetexte in Language.hs auslagern.
 
 ---------------------------Gelöst--------------------------
+Speichern von json in yaml konvertieren
+    Packet yaml zur Konvertierung verwenden
+        https://hackage.haskell.org/package/yaml
+    Verwendet intern aeson, kann somit problemlos als plug-and-play replacement verwendet werden
+        Done
+
 Gtk.StreckenObjekt.hs
     ..PackNew auf MStatusGuiT umstellen
     TMVar wird dadurch nicht mehr benötigt

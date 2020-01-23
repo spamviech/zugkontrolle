@@ -1,0 +1,235 @@
+Streckenabschnitte:
+- Name: '0'
+  StromPin:
+    Pin: 0
+  Fließend: HIGH
+- Name: '1'
+  StromPin:
+    Pin: 1
+  Fließend: HIGH
+- Name: '2'
+  StromPin:
+    Pin: 2
+  Fließend: HIGH
+- Name: '3'
+  StromPin:
+    Pin: 3
+  Fließend: HIGH
+- Name: '4'
+  StromPin:
+    Pin: 4
+  Fließend: HIGH
+- Name: '5'
+  StromPin:
+    Pin: 5
+  Fließend: HIGH
+- Name: '6'
+  StromPin:
+    Pin: 6
+  Fließend: HIGH
+- Name: '7'
+  StromPin:
+    Pin: 7
+  Fließend: HIGH
+- Name: '8'
+  StromPin:
+    Pin: 8
+  Fließend: HIGH
+- Name: '9'
+  StromPin:
+    Pin: 9
+  Fließend: HIGH
+- Name: '10'
+  StromPin:
+    Pin: 10
+  Fließend: HIGH
+- Name: '11'
+  StromPin:
+    Pin: 11
+  Fließend: HIGH
+- Name: '12'
+  StromPin:
+    Pin: 12
+  Fließend: HIGH
+- Name: '13'
+  StromPin:
+    Pin: 13
+  Fließend: HIGH
+- Name: '14'
+  StromPin:
+    Pin: 14
+  Fließend: HIGH
+- Name: '15'
+  StromPin:
+    Pin: 15
+  Fließend: HIGH
+- Name: '16'
+  StromPin:
+    Pin: 16
+  Fließend: HIGH
+- Name: '17'
+  StromPin:
+    Pin: 17
+  Fließend: HIGH
+- Name: '18'
+  StromPin:
+    Pin: 18
+  Fließend: HIGH
+- Name: '19'
+  StromPin:
+    Pin: 19
+  Fließend: HIGH
+- Name: '20'
+  StromPin:
+    Pin: 20
+  Fließend: HIGH
+- Name: '21'
+  StromPin:
+    Pin: 21
+  Fließend: HIGH
+- Name: '22'
+  StromPin:
+    Pin: 22
+  Fließend: HIGH
+- Name: '23'
+  StromPin:
+    Pin: 23
+  Fließend: HIGH
+- Name: '24'
+  StromPin:
+    Pin: 24
+  Fließend: HIGH
+- Name: '25'
+  StromPin:
+    Pin: 25
+  Fließend: HIGH
+- Name: '26'
+  StromPin:
+    Pin: 26
+  Fließend: HIGH
+- Name: '27'
+  StromPin:
+    Pin: 27
+  Fließend: HIGH
+Bahngeschwindigkeiten: []
+Kupplungen: []
+Weichen: []
+Pläne: []
+Wegstrecken:
+- Streckenabschnitte:
+  - Name: '0'
+    StromPin:
+      Pin: 0
+    Fließend: HIGH
+  - Name: '1'
+    StromPin:
+      Pin: 1
+    Fließend: HIGH
+  - Name: '2'
+    StromPin:
+      Pin: 2
+    Fließend: HIGH
+  - Name: '3'
+    StromPin:
+      Pin: 3
+    Fließend: HIGH
+  - Name: '4'
+    StromPin:
+      Pin: 4
+    Fließend: HIGH
+  - Name: '5'
+    StromPin:
+      Pin: 5
+    Fließend: HIGH
+  - Name: '6'
+    StromPin:
+      Pin: 6
+    Fließend: HIGH
+  - Name: '7'
+    StromPin:
+      Pin: 7
+    Fließend: HIGH
+  - Name: '8'
+    StromPin:
+      Pin: 8
+    Fließend: HIGH
+  - Name: '9'
+    StromPin:
+      Pin: 9
+    Fließend: HIGH
+  - Name: '10'
+    StromPin:
+      Pin: 10
+    Fließend: HIGH
+  - Name: '11'
+    StromPin:
+      Pin: 11
+    Fließend: HIGH
+  - Name: '12'
+    StromPin:
+      Pin: 12
+    Fließend: HIGH
+  - Name: '13'
+    StromPin:
+      Pin: 13
+    Fließend: HIGH
+  - Name: '14'
+    StromPin:
+      Pin: 14
+    Fließend: HIGH
+  - Name: '15'
+    StromPin:
+      Pin: 15
+    Fließend: HIGH
+  - Name: '16'
+    StromPin:
+      Pin: 16
+    Fließend: HIGH
+  - Name: '17'
+    StromPin:
+      Pin: 17
+    Fließend: HIGH
+  - Name: '18'
+    StromPin:
+      Pin: 18
+    Fließend: HIGH
+  - Name: '19'
+    StromPin:
+      Pin: 19
+    Fließend: HIGH
+  - Name: '20'
+    StromPin:
+      Pin: 20
+    Fließend: HIGH
+  - Name: '21'
+    StromPin:
+      Pin: 21
+    Fließend: HIGH
+  - Name: '22'
+    StromPin:
+      Pin: 22
+    Fließend: HIGH
+  - Name: '23'
+    StromPin:
+      Pin: 23
+    Fließend: HIGH
+  - Name: '24'
+    StromPin:
+      Pin: 24
+    Fließend: HIGH
+  - Name: '25'
+    StromPin:
+      Pin: 25
+    Fließend: HIGH
+  - Name: '26'
+    StromPin:
+      Pin: 26
+    Fließend: HIGH
+  - Name: '27'
+    StromPin:
+      Pin: 27
+    Fließend: HIGH
+  Bahngeschwindigkeiten: []
+  Name: Alle Pins
+  Weichen-Richtungen: []
+  Kupplungen: []

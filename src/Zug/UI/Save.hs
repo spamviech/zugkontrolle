@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -19,13 +20,12 @@ module Zug.UI.Save (
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
-import Data.Aeson (encode, decode)
 import Data.Aeson.Types (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
-import qualified Data.ByteString.Lazy as ByteString
 import Data.List (partition)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (isJust, fromJust)
 import Data.Text (Text)
+import Data.Yaml (encodeFile, decodeFileEither)
 import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 -- Abhängigkeiten von anderen Modulen
@@ -42,7 +42,7 @@ import Zug.UI.Base (StatusAllgemein(..), Status)
 
 -- | Speichere aktuellen Zustand in Datei
 speichern :: (ObjektKlasse o, ToJSON o) => StatusAllgemein o -> FilePath -> IO ()
-speichern contents path = ByteString.writeFile path $ encode contents
+speichern = flip encodeFile
 
 -- | Lade Datei.
 -- 
@@ -52,9 +52,9 @@ laden :: FilePath -> (Status -> IO s) -> Sprache -> IO (Maybe s)
 laden path fromStatus sprache = do
     fileExists <- doesFileExist path
     if fileExists
-        then do
-            byteString <- ByteString.readFile path
-            maybe (pure Nothing) (\f -> fmap Just $ fromStatus $ f sprache) $ decode byteString
+        then decodeFileEither path >>= \case
+            (Left _error)   -> pure Nothing
+            (Right f)       -> fmap Just $ fromStatus $ f sprache
         else pure Nothing
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
