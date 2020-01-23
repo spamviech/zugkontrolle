@@ -1089,7 +1089,10 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     ausführenBefehl $ Hinzufügen $ OKupplung kuWidgets
     pure kuWidgets
 
--- | Füge 'Gtk.Button' zum kuppeln zur Box hinzu
+-- | Füge 'Gtk.Button' zum kuppeln zur Box hinzu.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonKuppelnPackNew :: forall b k m. (MitBox b, KupplungKlasse k, ObjektReader ObjektGui m, MonadIO m) =>
     b -> k -> TVar (Maybe [Sprache -> IO ()]) -> m Gtk.Button
 buttonKuppelnPackNew box kupplung tvar = do
@@ -1327,7 +1330,8 @@ data PLWidgets
         pl :: Plan,
         plWidget :: Gtk.Frame,
         plFunktionBox :: Gtk.Box,
-        plHinzPL :: ButtonPlanHinzufügen PLWidgets}
+        plHinzPL :: ButtonPlanHinzufügen PLWidgets,
+        plSpracheTVar :: TVar (Maybe [Sprache -> IO ()])}
     deriving (Eq)
 
 instance MitWidget PLWidgets where
@@ -1339,9 +1343,10 @@ instance WidgetsTyp PLWidgets where
     erhalteObjektTyp :: PLWidgets -> Plan
     erhalteObjektTyp = pl
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => PLWidgets -> m ()
-    entferneWidgets plWidgets = do
+    entferneWidgets plWidgets@PLWidgets {plSpracheTVar} = do
         DynamischeWidgets {vBoxPläne} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxPläne plWidgets
+        liftIO $ atomically $ writeTVar plSpracheTVar Nothing
     boxButtonEntfernen :: PLWidgets -> Gtk.Box
     boxButtonEntfernen = plFunktionBox
     
@@ -1372,24 +1377,29 @@ planPackNew plan@Plan {plAktionen} = do
     objektReader <- ask
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain, vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
+    plSpracheTVar <- liftIO $ newTVarIO $ Just []
+    let justSpracheTVar = Just plSpracheTVar
     -- Widget erstellen
     frame <- liftIO $ boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
     vBox <- liftIO $ containerAddWidgetNew frame $ Gtk.vBoxNew False 0
     namePackNew vBox plan
     expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Text.empty
-    verwendeSpracheGui $
+    verwendeSpracheGui justSpracheTVar $
         \sprache -> Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
     vBoxExpander <- liftIO $ containerAddWidgetNew expander $ Gtk.vBoxNew False 0
     liftIO $ forM_ plAktionen $ boxPackWidgetNewDefault vBoxExpander . Gtk.labelNew .
         Just . flip leseSprache spracheGui . anzeige
     functionBox <- liftIO $ boxPackWidgetNewDefault vBox Gtk.hButtonBoxNew
     buttonAusführen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNew
-    verwendeSpracheGui $ \sprache -> Gtk.set buttonAusführen [Gtk.buttonLabel := Language.ausführen sprache]
+    verwendeSpracheGui justSpracheTVar $
+        \sprache -> Gtk.set buttonAusführen [Gtk.buttonLabel := Language.ausführen sprache]
     buttonAbbrechen <- liftIO $ boxPackWidgetNewDefault functionBox $ Gtk.buttonNew
-    verwendeSpracheGui $ \sprache -> Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.ausführenAbbrechen sprache]
+    verwendeSpracheGui justSpracheTVar $
+        \sprache -> Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.ausführenAbbrechen sprache]
     liftIO $ Gtk.widgetHide buttonAbbrechen
     dialogGesperrt <- liftIO $ Gtk.messageDialogNew (Just windowMain) [] Gtk.MessageError Gtk.ButtonsOk ("" :: Text)
-    verwendeSpracheGui $ \sprache -> Gtk.set dialogGesperrt [Gtk.windowTitle := Language.aktionGesperrt sprache]
+    verwendeSpracheGui justSpracheTVar $
+        \sprache -> Gtk.set dialogGesperrt [Gtk.windowTitle := Language.aktionGesperrt sprache]
     liftIO $ Gtk.on buttonAusführen Gtk.buttonActivated $ flip runReaderT objektReader $
         auswertenStatusVarIOStatus (ausführenMöglich plan) statusVar >>= \case
             AusführenMöglich                -> void $ do
@@ -1407,7 +1417,7 @@ planPackNew plan@Plan {plAktionen} = do
                         Gtk.widgetHide buttonAbbrechen
             WirdAusgeführt                  -> error "Ausführen in GTK-UI erneut gestartet."
             (AnschlüsseBelegt anschlüsse)   -> void $ do
-                verwendeSpracheGui $ \sprache -> Gtk.set dialogGesperrt 
+                liftIO $ flip leseSprache spracheGui $ \sprache -> Gtk.set dialogGesperrt 
                     [Gtk.messageDialogText := Just $ (Language.ausführenGesperrt $# ausFoldable anschlüsse) sprache]
                 dialogEval dialogGesperrt
     liftIO $ Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
@@ -1415,9 +1425,14 @@ planPackNew plan@Plan {plAktionen} = do
             ausführenStatusVarBefehl (AusführenAbbrechen plan) statusVar
         Gtk.widgetShow buttonAusführen
         Gtk.widgetHide buttonAbbrechen
-    plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan
-    let plWidgets = PLWidgets {pl = plan, plWidget = frame, plFunktionBox = erhalteBox functionBox, plHinzPL}
-    buttonEntfernenPackNew plWidgets $ entfernenPlan plWidgets
+    plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan plSpracheTVar
+    let plWidgets = PLWidgets {
+        pl = plan,
+        plWidget = frame,
+        plFunktionBox = erhalteBox functionBox,
+        plHinzPL,
+        plSpracheTVar}
+    buttonEntfernenPackNew plWidgets plSpracheTVar $ entfernenPlan plWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OPlan plWidgets
     pure plWidgets
