@@ -229,9 +229,17 @@ besondererSeitenAbschlussWidget
 --
 -- Die /auswertFunktion/ wird gespeichert und durch 'assistantAuswerten' aufgerufen.
 -- Sie erhält als Argument die ausgewählten /seiten/.
+-- 
+-- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 assistantNew :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p) =>
-    p -> [g] -> AssistantSeitenBaum w -> (NonEmpty w -> IO a) -> m (Assistant w a)
-assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
+    p ->
+    [g] ->
+    AssistantSeitenBaum w ->
+    Maybe (TVar (Maybe [Sprache -> IO ()])) ->
+    (NonEmpty w -> IO a) ->
+        m (Assistant w a)
+assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
     spracheReader <- ask
     -- Erstelle Fenster
     (fenster, vBox, flowControlBox) <- liftIO $ do
@@ -241,7 +249,7 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
         -- Packe Seiten in entsprechende Box
         flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
         pure (fenster, vBox, flowControlBox)
-    seiten <- packSeiten vBox flowControlBox seitenEingabe
+    seiten <- packSeiten vBox flowControlBox seitenEingabe maybeTVar
     (tvarAuswahl, tvarAktuelleSeite, seitenAbschlussKnopf) <- liftIO $ do
         tvarAuswahl <- newTVarIO $ Left ([], seiten)
         tvarAktuelleSeite <- newTVarIO seiten
@@ -252,14 +260,15 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
         -- Knopf-Leiste für permanente Funktionen und globaleWidgets
         seitenAbschlussKnopf <- boxPackWidgetNewDefault flowControlBox Gtk.buttonNew
         pure (tvarAuswahl, tvarAktuelleSeite, seitenAbschlussKnopf)
-    verwendeSpracheGui $ \sprache -> Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := Language.weiter sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := Language.weiter sprache]
     zurückKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox Gtk.buttonNew
-    verwendeSpracheGui $ \sprache -> Gtk.set zurückKnopf [Gtk.buttonLabel := Language.zurück sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set zurückKnopf [Gtk.buttonLabel := Language.zurück sprache]
     forM_ globaleWidgets $ \widget -> do
         boxPackDefault flowControlBox widget
         mitWidgetShow widget
     boxPackWidgetNewDefault flowControlBox $
-        buttonNewWithEventLabel Language.abbrechen $ atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
+        buttonNewWithEventLabel maybeTVar Language.abbrechen $
+            atomically $ writeTVar tvarAuswahl $ Right AssistantAbbrechen
     -- Konstruiere Ergebnistyp
     let assistant = Assistant {
         fenster,
@@ -345,13 +354,21 @@ assistantNew parent globaleWidgets seitenEingabe auswertFunktion = do
     zeigeSeite assistant seiten
     pure assistant
 
--- | Packe den übergebenen 'SeitenBaum' in die 'MitBox' und erzeuge notwendige Hilfswidgets
+-- | Packe den übergebenen 'SeitenBaum' in die 'MitBox' und erzeuge notwendige Hilfswidgets.
+-- 
+-- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 packSeiten :: (MitBox b, MitWidget w, Eq w, SpracheGuiReader r m, MonadIO m) =>
-    b -> Gtk.HButtonBox -> AssistantSeitenBaum w -> m (AssistantSeitenBaumPacked w)
+    b ->
+    Gtk.HButtonBox ->
+    AssistantSeitenBaum w ->
+    Maybe (TVar (Maybe [Sprache -> IO ()])) ->
+        m (AssistantSeitenBaumPacked w)
 packSeiten
     box
     flowControlBox
     AssistantSeiteLinear {node, nachfolger}
+    maybeTVar
         = do
             case besondererSeitenAbschlussWidget node of
                 (Left _text)
@@ -362,12 +379,13 @@ packSeiten
                         mitWidgetHide widget
             boxPackDefault box node
             mitWidgetHide node
-            packedNachfolger <- packSeiten box flowControlBox nachfolger
+            packedNachfolger <- packSeiten box flowControlBox nachfolger maybeTVar
             pure PackedSeiteLinear {packedNode = node, packedNachfolger}
 packSeiten
     box
     flowControlBox
     AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
+    maybeTVar
         = do
             case besondererSeitenAbschlussWidget node of
                 (Left _text)
@@ -380,9 +398,9 @@ packSeiten
             mitWidgetHide vBox
             boxPackDefault vBox node
             mitWidgetShow node
-            packedNachfolgerListe <- mapM (packSeiten box flowControlBox) nachfolgerListe
+            packedNachfolgerListe <- mapM (packSeiten box flowControlBox `flip` maybeTVar) nachfolgerListe
             packedNachfolgerAuswahl <- boxPackWidgetNewDefault vBox $
-                auswahlRadioButtonNamedNew (packedNode <$> packedNachfolgerListe) nachfolgerFrage name
+                auswahlRadioButtonNamedNew (packedNode <$> packedNachfolgerListe) maybeTVar nachfolgerFrage name
             pure $ PackedSeiteAuswahl {
                 packedNode = node,
                 packedNachfolgerFrage = nachfolgerFrage,
@@ -393,6 +411,7 @@ packSeiten
     box
     flowControlBox
     AssistantSeiteLetzte {node}
+    _maybeTVar
         = liftIO $ do
             case besondererSeitenAbschlussWidget node of
                 (Left _text)

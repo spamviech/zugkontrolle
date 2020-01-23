@@ -74,33 +74,32 @@ instance MitWidget AnschlussAuswahlWidget where
 
 -- | Erzeugen eines'Anschluss'.
 -- 
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m) =>
-    TVar (Maybe [Sprache -> IO ()]) -> (Sprache -> Text) -> m AnschlussAuswahlWidget
-anschlussAuswahlNew tvar name = do
+    Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> Text) -> m AnschlussAuswahlWidget
+anschlussAuswahlNew maybeTVar name = do
     (vBox, aawNotebook) <- liftIO $ do
         vBox <- Gtk.vBoxNew False 0
         aawNotebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
         pure (vBox, aawNotebook)
     -- Pin
-    let justTVar = Just tvar
-    (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook justTVar Language.pin $ liftIO $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pinBox $ labelSpracheNew justTVar $ name <-> Language.pin <:> Text.empty
+    (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook maybeTVar Language.pin $ liftIO $ Gtk.hBoxNew False 0
+    boxPackWidgetNewDefault pinBox $ labelSpracheNew maybeTVar $ name <-> Language.pin <:> Text.empty
     aawPin <- liftIO $ do
             aawPin <- boxPackWidgetNewDefault pinBox $ Gtk.spinButtonNewWithRange 0 27 1
             Gtk.set aawPin [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
             pure aawPin
     -- PCF8574Port
-    (pcf8574Box, aawPCF8574PortPage) <- notebookAppendPageNew aawNotebook justTVar Language.pcf8574Port $
+    (pcf8574Box, aawPCF8574PortPage) <- notebookAppendPageNew aawNotebook maybeTVar Language.pcf8574Port $
         liftIO $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew justTVar $ name <-> Language.pcf8574Port <:> Text.empty
+    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew maybeTVar $ name <-> Language.pcf8574Port <:> Text.empty
     aawPCF8574PortVariante <- boxPackWidgetNewDefault pcf8574Box $
-        boundedEnumAuswahlComboBoxNew VariantA tvar Language.variante
-    aawPCF8574PortA0 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW tvar Language.a0
-    aawPCF8574PortA1 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW tvar Language.a1
-    aawPCF8574PortA2 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW tvar Language.a2
-    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew justTVar $ Language.port <:> Text.empty
+        boundedEnumAuswahlComboBoxNew VariantA maybeTVar Language.variante
+    aawPCF8574PortA0 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW maybeTVar Language.a0
+    aawPCF8574PortA1 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW maybeTVar Language.a1
+    aawPCF8574PortA2 <-  boxPackWidgetNewDefault pcf8574Box $ boundedEnumAuswahlRadioButtonNew LOW maybeTVar Language.a2
+    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew maybeTVar $ Language.port <:> Text.empty
     aawPCF8574Port <- liftIO $ do
         aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
         Gtk.set aawPCF8574Port [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]

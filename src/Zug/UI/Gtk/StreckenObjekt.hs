@@ -463,12 +463,13 @@ hinzufügenWidgetWegstreckeRichtungPackNew :: forall o m.
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
     dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
+    let justTVar = Just tvar
     widgetHinzufügenBoxPackNew box $ do
             hBox <- liftIO $ Gtk.hBoxNew False 0
             wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox $
-                registrierterCheckButtonNew (Just tvar) (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
+                registrierterCheckButtonNew justTVar (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
             wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox $
-                auswahlRadioButtonNew richtungen tvar $ const Text.empty
+                auswahlRadioButtonNew richtungen justTVar $ const Text.empty
             pure WegstreckeCheckButtonRichtung {
                 wcbrWidget = erhalteWidget hBox,
                 wcbrRegistrierterCheckButton,

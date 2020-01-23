@@ -53,18 +53,19 @@ newtype FließendAuswahlWidget = FließendAuswahlWidget {erhalteAuswahlWidget ::
 
 -- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'.
 -- 
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fließendAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b) =>
-    b -> TVar (Maybe [Sprache -> IO ()]) -> m FließendAuswahlWidget
+    b -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m FließendAuswahlWidget
 fließendAuswahlPackNew box = boxPackWidgetNewDefault box . fließendAuswahlNew
 
 -- | Erstelle ein neues 'FließendAuswahlWidget'.
 -- 
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m) => TVar (Maybe [Sprache -> IO ()]) -> m FließendAuswahlWidget
-fließendAuswahlNew tvar = FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW tvar Language.fließend
+fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m) =>
+    Maybe (TVar (Maybe [Sprache -> IO ()])) -> m FließendAuswahlWidget
+fließendAuswahlNew maybeTVar = FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW maybeTVar Language.fließend
 
 -- | Erhalte den aktuell gewählten Fließend-Value
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
