@@ -702,7 +702,8 @@ data STWidgets
         st :: Streckenabschnitt,
         stWidget :: Gtk.HBox,
         stHinzWS :: CheckButtonWegstreckeHinzufügen Void STWidgets,
-        stHinzPL :: ButtonPlanHinzufügen STWidgets}
+        stHinzPL :: ButtonPlanHinzufügen STWidgets,
+        stSpracheTVar :: TVar (Maybe [Sprache -> IO ()])}
     deriving (Eq)
 
 instance MitWidget STWidgets where
@@ -756,29 +757,40 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
         vBoxStreckenabschnitte,
         vBoxHinzufügenPlanStreckenabschnitte}
             <- erhalteDynamischeWidgets
+    stSpracheTVar <- liftIO $ newTVarIO $ Just []
+    let justSpracheTVar = Just stSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew streckenabschnitt
-    hinzufügenPlanWidget <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanStreckenabschnitte streckenabschnitt
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew streckenabschnitt stSpracheTVar
+    hinzufügenPlanWidget
+        <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanStreckenabschnitte streckenabschnitt stSpracheTVar
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ liftIO $ Gtk.hBoxNew False 0
     namePackNew hBox streckenabschnitt
-    boxPackWidgetNewDefault hBox $ anschlussNew Language.strom stromAnschluss
-    toggleButtonStromPackNew hBox streckenabschnitt
-    fließendPackNew hBox streckenabschnitt
-    let stWidgets = STWidgets {st = streckenabschnitt, stWidget = hBox, stHinzPL = hinzufügenPlanWidget, stHinzWS=hinzufügenWegstreckeWidget}
-    buttonEntfernenPackNew stWidgets $ entfernenStreckenabschnitt stWidgets
+    boxPackWidgetNewDefault hBox $ anschlussNew justSpracheTVar Language.strom stromAnschluss
+    toggleButtonStromPackNew hBox streckenabschnitt stSpracheTVar
+    fließendPackNew hBox streckenabschnitt justSpracheTVar
+    let stWidgets = STWidgets {
+        st = streckenabschnitt,
+        stWidget = hBox,
+        stHinzPL = hinzufügenPlanWidget,
+        stHinzWS = hinzufügenWegstreckeWidget,
+        stSpracheTVar}
+    buttonEntfernenPackNew stWidgets stSpracheTVar $ entfernenStreckenabschnitt stWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OStreckenabschnitt stWidgets
     pure stWidgets
 
--- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu
+-- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu.
+-- 
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonStromPackNew :: forall m b s.
     (ObjektReader ObjektGui m, MonadIO m, MitBox b, StreckenabschnittKlasse s) =>
-        b -> s -> m Gtk.ToggleButton
-toggleButtonStromPackNew box streckenabschnitt = do
+        b -> s -> TVar (Maybe [Sprache -> IO ()]) -> m Gtk.ToggleButton
+toggleButtonStromPackNew box streckenabschnitt tvar = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel Language.strom $ \an -> do
+    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel (Just tvar) Language.strom $ \an -> do
         let fließend = if an then Fließend else Gesperrt
         flip runReaderT objektReader $
             ausführenStatusVarAktion (Strom streckenabschnitt fließend) statusVar
