@@ -27,6 +27,7 @@ Anzeige sprachabhängig, ohne Show-Instanz
                         Wenn (Just ..) füge nur die übergebene Aktion zur TVar hinzu
                 Speichere Aktionen in SpracheGui als [Either (Sprache -> IO ()) (TVar (Maybe [Sprache -> IO ()]))]
                     Wenn bei Aufruf (via foldM) TVar mit Nothing entdeckt wird, lösche diesen Eintrag
+                    Ist ein widgetDestroy notwendig?
                 Führe außerdem widgetDestroy beim entfernen aus
                     jeweils äußerstes Widget (welches bisher nur aus Container entfernt wird) sollte ausreichen
             Sprachwechsel über AuswahlWidget (ComboBox)
