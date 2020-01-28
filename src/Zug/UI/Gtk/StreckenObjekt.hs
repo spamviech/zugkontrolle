@@ -57,6 +57,7 @@ import qualified Data.Aeson as Aeson
 import Data.Foldable (Foldable(..))
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty (..))
+import Data.Maybe (fromJust)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Void (Void)
@@ -112,9 +113,9 @@ import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(..), MitSpracheGui(..), verwendeSpracheGui)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
--- | Sammel-Typ spezialiert auf Gui-Typen
+-- | Sammel-Typ spezialisiert auf Gui-Typen
 type ObjektGui = ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets WSWidgets PLWidgets
--- | Befehl spezialiert auf Gui-Typen
+-- | Befehl spezialisiert auf Gui-Typen
 type BefehlGui = BefehlAllgemein ObjektGui
 -- | Zustands-Typ der Zustands-Monade spezialisiert auf Gui-Typen
 type StatusGui = StatusAllgemein ObjektGui
@@ -122,9 +123,9 @@ type StatusGui = StatusAllgemein ObjektGui
 type StatusVarGui = StatusVar ObjektGui
 -- | Zustands-Monaden-Transformer spezialisiert auf Gui-Typen in der IO-Monade
 type IOStatusGui a = IOStatusAllgemein ObjektGui a
--- | Reine Zustands-Monade spezialiert auf Gui-Typen
+-- | Reine Zustands-Monade spezialisiert auf Gui-Typen
 type MStatusGui a = MStatusAllgemein ObjektGui a
--- | Zustands-Monaden-Transformer spezialiert auf Gui-Typen
+-- | Zustands-Monaden-Transformer spezialisiert auf Gui-Typen
 type MStatusGuiT m a = MStatusAllgemeinT m ObjektGui a
 
 instance ObjektKlasse ObjektGui where
@@ -227,7 +228,7 @@ boxWegstreckeHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidg
     boxPackWidgetNewDefault box $ labelSpracheNew maybeTVar $ kategorieText (kategorie :: KategorieText a)
     pure box
 
--- | 'RegistrierterCheckButton', potentiell mit zusätlicher Richtungsauswahl
+-- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl
 data WegstreckeCheckButton e where
     WegstreckeCheckButton :: {
         wcbvRegistrierterCheckButton :: RegistrierterCheckButton}
@@ -450,7 +451,7 @@ hinzufügenWidgetWegstreckePackNew objekt tvar = do
         registrierterCheckButtonNew (Just tvar) (const $ erhalteName objekt) fortfahrenWennToggledWegstrecke
 
 -- | Erzeuge einen 'RegistrierterCheckButton'.
--- Dieser enhält ein 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
+-- Dieser enthält ein 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
 -- 
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
@@ -1276,7 +1277,7 @@ wegstreckePackNew
         functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
         unless (null wsBahngeschwindigkeiten) $ void $ do
             boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew justSpracheTVar $
-                Language.bahngeschwindigkeiten <:> foldl appendName (const Text.empty) wsBahngeschwindigkeiten
+                Language.bahngeschwindigkeiten <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
             hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew functionBox wegstrecke
             case zuZugtypEither wegstrecke of
                 (ZugtypMärklin wsMärklin)
@@ -1293,20 +1294,20 @@ wegstreckePackNew
                         wsSpracheTVar
         unless (null wsStreckenabschnitte) $ void $ do
             boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew justSpracheTVar $
-                Language.streckenabschnitte <:> foldl appendName (const Text.empty) wsStreckenabschnitte
+                Language.streckenabschnitte <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
             toggleButtonStromPackNew functionBox wegstrecke wsSpracheTVar
         unless (null wsWeichenRichtungen) $ void $ do
             boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew justSpracheTVar $
-                Language.weichen <:> foldl
-                    (\acc (weiche, richtung) -> appendName acc weiche <°> richtung)
-                    (const Text.empty)
-                    wsWeichenRichtungen
+                Language.weichen <:> fromJust (foldl
+                    (\acc (weiche, richtung) -> Just $ fromJust (appendName acc weiche) <°> richtung)
+                    Nothing
+                    wsWeichenRichtungen)
             boxPackWidgetNewDefault functionBox $ buttonNewWithEventLabel justSpracheTVar Language.einstellen $
                 flip runReaderT objektReader $
                     ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
         unless (null wsKupplungen) $ void $ do
             boxPackWidgetNewDefault vBoxExpander $ labelSpracheNew justSpracheTVar $
-                Language.kupplungen <:> foldl appendName (const Text.empty) wsKupplungen
+                Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
             buttonKuppelnPackNew functionBox wegstrecke wsSpracheTVar
         let wsWidgets = WSWidgets {
                 ws = wegstrecke,
@@ -1319,10 +1320,10 @@ wegstreckePackNew
         ausführenBefehl $ Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets
         pure wsWidgets
     where
-        appendName :: (StreckenObjekt o) => (Sprache -> Text) -> o -> Sprache -> Text
-        appendName acc objekt sprache = case acc sprache of
-            ""  -> erhalteName objekt
-            _s  -> acc <^> erhalteName objekt $ sprache
+        -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime
+        appendName :: (StreckenObjekt o) => Maybe (Sprache -> Text) -> o -> Maybe (Sprache -> Text)
+        appendName  Nothing     objekt = Just $ const $ erhalteName objekt
+        appendName  (Just acc)  objekt = Just $ acc <^> erhalteName objekt
 
 -- ** Plan
 -- | 'Plan' mit zugehörigen Widgets

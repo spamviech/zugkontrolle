@@ -162,7 +162,7 @@ buttonLadenPack parent box maybeTVar = do
                     flip runReaderT objektReader $
                         ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
 
--- | Passe angezeigte Widgets (inkl. 'StatusGui' in 'TMVar') an reinen 'Status' an.
+-- | Passe angezeigte Widgets (inkl. 'StatusGui') an reinen 'Status' an.
 ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
 ladeWidgets status = do
     löscheWidgets
