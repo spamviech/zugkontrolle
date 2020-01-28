@@ -67,17 +67,16 @@ main = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
 setupGUI maybeTVar = void $ do
-    Options {load=dateipfad, sprache} <- getOptions
+    Options {load = dateipfad, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
     windowMain <- widgetShowNew Gtk.windowNew
+    -- TODO: find native resolution for Raspi Screen
     Gtk.set windowMain [
-        Gtk.windowDefaultWidth := 640,
-        Gtk.windowDefaultHeight := 480]
+        Gtk.windowDefaultWidth := 1024,
+        Gtk.windowDefaultHeight := 576]
     verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache ->
         Gtk.set windowMain [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sprache]
-    -- windowDefaultHeight wird aus irgendeinem Grund ignoriert.
-    -- Wird hier trotzdem gesetzt für den Fall, dass sich das in einer neueren Version ändert.
     Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
     tvarMaps <- tvarMapsNeu
@@ -265,4 +264,13 @@ setupGUI maybeTVar = void $ do
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
     flip runReaderT objektReader $
         ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
+    -- Breite & Höhe überprüfen und wenn nötig auf Mindestgröße erhöhen.
+    -- windowDefaultWidth/Height wird aus irgendeinem Grund ignoriert.
+    -- Dementsprechend wird es hier explizit gesetzt.
+    (width, height) <- Gtk.windowGetSize windowMain
+    (defaultWidth, defaultHeight) <- Gtk.windowGetDefaultSize windowMain
+    let
+        newWidth = max width defaultWidth
+        newHeight = max height defaultHeight
+    Gtk.windowResize windowMain newWidth newHeight
 #endif

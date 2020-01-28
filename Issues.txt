@@ -1,7 +1,3 @@
-Laden dauert teilweise sehr lange (Gtk-UI)
-    Geforktes erzeugen der Widgets, damit das Programm nicht so aussieht als wäre es abgestürzt
-    Evtl. eine Fortschrittsanzeige hinzufügen
-
 Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Vermutlich ein Problem mit Assistant
 
@@ -84,6 +80,15 @@ Code-Stil vereinheitlichen:
     etc.
 
 
+Laden dauert teilweise sehr lange (Gtk-UI)
+    Geforktes erzeugen der Widgets, damit das Programm nicht so aussieht als wäre es abgestürzt
+        vielleicht später (TODO)
+    Evtl. eine Fortschrittsanzeige hinzufügen
+        vielleicht später (TODO)
+    Lag an Wegstrecken mit vielen Objekten vom gleichen Typ
+        Bug gefixt
+
+
 Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
     Strom an/aus
         permanent
@@ -99,14 +104,15 @@ Beispiel-Schaltpläne erstellen
     Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
     In der ReadMe erwähnen/verlinken.
 
-Fix tests
-    Änderungen berücksichtigen
-    oder entfernen, vergesse ich sowieso ständig
-
-Test-Suite vervollständigen
+Test-Suite fixen & vervollständigen
+    Änderungen berücksichtigen!
     Fehlende Tests erstellen.
     Test-Bibliothek verwenden (hspec)?
         'shouldBe' und 'shouldSatisfy'
+    Wird de-facto ignoriert
+        Tests einfach entfernen?
+        CI in GitHub testen?
+
 
 Hilfetext von optparse-applicative übersetzten
     Eigene helper-Funktion erstellen.

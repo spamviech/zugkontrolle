@@ -129,3 +129,4 @@
 - Aktuelle Version über Data.Version.Version-Datentyp gespeichert
 - Sprachwechsel möglich, ohne das Programm neu starten zu müssen.
 - /yaml/ anstelle von /json/ als Speicherformat verwendet. Alte Speicherdateien können weiterverwendet werden.
+- Gtk-UI: Größe des Fensters wird explizit gesetzt. Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
