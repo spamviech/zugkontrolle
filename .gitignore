@@ -1,8 +1,9 @@
 .stack-work/
 .vscode/
-Schaltpläne/*.aux
-Schaltpläne/*.log
-Schaltpläne/*.synctex.gz
-stuff/
 *~
 Zugkontrolle.cabal
+
+/Schaltpläne/*.aux
+/Schaltpläne/*.log
+/Schaltpläne/*.synctex.gz
+/stuff/
