@@ -21,7 +21,7 @@ module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
-import Control.Monad (void)
+import Control.Monad (void, forM_)
 import Control.Monad.Reader (runReaderT)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (liftIO)
@@ -71,10 +71,11 @@ setupGUI maybeTVar = void $ do
     spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
     windowMain <- widgetShowNew Gtk.windowNew
-    -- TODO: find native resolution for Raspi Screen
+    -- native resolution for Raspi 7'' Screen is 800x480
+    -- slightly smaller values given here, to accommodate decorators
     Gtk.set windowMain [
-        Gtk.windowDefaultWidth := 1024,
-        Gtk.windowDefaultHeight := 576]
+        Gtk.windowDefaultWidth := 750,
+        Gtk.windowDefaultHeight := 450]
     verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache ->
         Gtk.set windowMain [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sprache]
     Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
@@ -273,4 +274,17 @@ setupGUI maybeTVar = void $ do
         newWidth = max width defaultWidth
         newHeight = max height defaultHeight
     Gtk.windowResize windowMain newWidth newHeight
+    -- Position der Paned-Fenster anpassen (mittig setzten)
+    forM_ [panedEinzelObjekte, panedSammelObjekte] $ \paned ->
+        -- Gtk.get paned Gtk.panedMaxPosition
+        -- Gtk-native method to get panedMaxPosition doesn't work here.
+        -- Probably would need to wait one frame for it to update.
+        -- Use window-width instead.
+        Gtk.set paned [Gtk.panedPosition := div newWidth 2]
+    forM_ [vPanedLeft,vPanedRight] $ \paned ->
+        -- Gtk.get paned Gtk.panedMaxPosition
+        -- Gtk-native method to get panedMaxPosition doesn't work here.
+        -- Probably would need to wait one frame for it to update.
+        -- Use window-height instead; divide by 3 instead of 2 to accommodate for decorators.
+        Gtk.set paned [Gtk.panedPosition := div newHeight 3]
 #endif

@@ -123,10 +123,10 @@
 - MVar durch TVar/TMVar ersetzt, LinkedMVar entfernt
 - unqualifizierter Import wird immer explizit angegeben
 - GADTs verwendet um Zugtyp-Mischformen zu vermeiden
-- GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen
 - Ein Plan kann andere Pläne ausführen (inklusive rekursivem Aufruf von sich selbst)
-- Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Aktuelle Version über Data.Version.Version-Datentyp gespeichert
 - Sprachwechsel möglich, ohne das Programm neu starten zu müssen.
 - /yaml/ anstelle von /json/ als Speicherformat verwendet. Alte Speicherdateien können weiterverwendet werden.
+- Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Größe des Fensters wird explizit gesetzt. Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
+- GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen
