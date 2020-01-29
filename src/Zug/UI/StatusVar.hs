@@ -13,7 +13,7 @@ module Zug.UI.StatusVar (
     StatusVar(),
     -- * Konstruktor
     statusVarNew,
-    -- * Gundfunktionen
+    -- * Grundfunktionen
     STM, atomically,
     takeStatusVar, readStatusVar, tryReadStatusVar, putStatusVar,
     -- * Zugehörigkeitsklassen

@@ -75,7 +75,7 @@ mainStatus = do
     ende <- promptS (const "\n") >>= statusParser . lexer
     unless ende mainStatus
 
--- | Gesammter Auswerte-Prozess
+-- | Gesamter Auswert-Prozess
 statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
 statusParser = statusParserAux . parser AnfrageBefehl
     where

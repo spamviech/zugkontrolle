@@ -41,7 +41,7 @@ class (MonadReader r m, MitI2CMap r) => I2CReader r m | m -> r where
     -- | Erhalte die aktuelle 'I2CMap' aus der Umgebung.
     erhalteI2CMap :: m (TVar I2CMap)
     erhalteI2CMap = asks i2cMap
-    -- | 'forkIO' in die 'I2CReader'-Monade gelifted; Die aktuellen Umgebung soll übergeben werden.
+    -- | 'forkIO' in die 'I2CReader'-Monade geliftet; Die aktuellen Umgebung soll übergeben werden.
     forkI2CReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
     forkI2CReader action = do
         reader <- ask

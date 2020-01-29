@@ -14,7 +14,7 @@ module Zug.Anbindung.PCF8574 (
         -- * Read-/Write-Aktionen
         pcf8574Write, pcf8574Read,
         BitValue(..), toBitValue,
-        -- ** Auf bestimmten Port spezailierte Funktionen
+        -- ** Auf bestimmten Port spezialisierte Funktionen
         PCF8574Port(..), pcf8574PortWrite, pcf8574PortRead) where
 
 -- Bibliotheken
@@ -36,7 +36,7 @@ import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 
 {-
--- | Alle Möglichkeiten, die Addresse eines PCF8574 einzustellen
+-- | Alle Möglichkeiten, die Adresse eines PCF8574 einzustellen
 addressMöglichkeiten :: [(Value, Value, Value)]
 addressMöglichkeiten = (,,) <$> [minBound..maxBound] <*> [minBound..maxBound] <*> [minBound..maxBound]
 -}
@@ -46,7 +46,7 @@ minI2CAddress :: PCF8574Variant -> I2CAddress
 minI2CAddress VariantNormal = I2CAddress $ bit 5
 minI2CAddress VariantA      = I2CAddress $ bit 5 .|. bit 4 .|. bit 3
 
--- Memoisieren?
+-- TODO: Memoisieren?
 -- | Berechne die 'I2CAddress' eines /PCF8574/ anhand der variablen Address-Bits.
 toI2CAddress :: PCF8574 -> I2CAddress
 toI2CAddress

@@ -1,6 +1,7 @@
 Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Vermutlich ein Problem mit Assistant
         evtl. muss Gtk.widgetExpand/Gtk.widgetVExpand explizit gesetzt werden
+    Könnte auch ein Problem mit ZugtypSpezifisch sein
 
 Jedem Plan eine eigene ProgressBar spendieren.
     Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.

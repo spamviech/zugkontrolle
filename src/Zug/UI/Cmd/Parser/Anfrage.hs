@@ -41,7 +41,7 @@ import Zug.UI.Base (
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
 import qualified Zug.UI.Cmd.Lexer as Lexer
 
--- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer angzuzeigen, was als nächstes zum vervollständigen benötigt wird.
+-- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer anzuzeigen, was als nächstes zum vervollständigen benötigt wird.
 class Anfrage a where
     zeigeAnfrage :: a -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen :: a -> Text -> Sprache -> Text
@@ -74,7 +74,7 @@ anzeigeMitAnfrage a = a <^> zeigeAnfrage a
 anzeigeMitAnfrageFehlgeschlagen :: (Anzeige a, Anfrage a) => a -> Text -> Sprache -> Text
 anzeigeMitAnfrageFehlgeschlagen a eingabe = a <^> zeigeAnfrageFehlgeschlagen a eingabe
 
--- | Klasse für Typen mit assiziiertem 'Anfrage'-Type
+-- | Klasse für Typen mit assoziiertem 'Anfrage'-Type
 class MitAnfrage a where
     -- | Typfamilie für den assoziierten 'Anfrage'typ
     type family AnfrageTyp a :: Type
@@ -237,7 +237,7 @@ zuObjekt    (OZKupplung ku)             = OKupplung ku
 zuObjekt    (OZWegstrecke ws)           = OWegstrecke $ zuZugtypEither ws
 zuObjekt    (OZPlan pl)                 = OPlan pl
 
--- | Ein Objekt mit bestimmten Zugtyp aus dem aktullen Status wird benötigt
+-- | Ein Objekt mit bestimmten Zugtyp aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjektZugtyp (z :: Zugtyp)
     = SAOZBahngeschwindigkeit
         EingabeToken

@@ -195,13 +195,13 @@ instance (MonadReader (ReaderFamilie o) m) => ObjektReader o m
 type IOStatus a = IOStatusAllgemein Objekt a
 -- | Reine Zustands-Monade spezialisiert auf 'Status'
 type MStatus a = MStatusAllgemein Objekt a
--- | Zustands-Monaden-Transformer spezialiert auf 'Status'
+-- | Zustands-Monaden-Transformer spezialisiert auf 'Status'
 type MStatusT m a = MStatusAllgemeinT m Objekt a
 -- | Zustands-Monaden-Transformer spezialisiert auf 'StatusAllgemein' in der IO-Monade
 type IOStatusAllgemein o a = MStatusAllgemeinT IO o a
--- | Reine Zustands-Monade spezialiert auf 'StatusAllgemein'
+-- | Reine Zustands-Monade spezialisiert auf 'StatusAllgemein'
 type MStatusAllgemein o a = RWS (ReaderFamilie o) () (StatusAllgemein o) a
--- | Zustands-Monaden-Transformer spezialiert auf 'StatusAllgemein'
+-- | Zustands-Monaden-Transformer spezialisiert auf 'StatusAllgemein'
 type MStatusAllgemeinT m o a = RWST (ReaderFamilie o) () (StatusAllgemein o) m a
 
 -- | Führe 'IOStatusAllgemein'-Aktion mit initial leerem 'StatusAllgemein' aus

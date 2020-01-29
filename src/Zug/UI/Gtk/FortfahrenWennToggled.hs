@@ -165,7 +165,7 @@ aktiviereWennToggledVar FortfahrenWennToggledVar {fortfahrenVar, varCheckButtons
         checkButtons <- readVar varCheckButtonsRec
         aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec checkButtons
 
--- | 'CheckButton', welcher mit einem 'ForfahrenWennToggled' assoziiert ist.
+-- | 'CheckButton', welcher mit einem 'FortfahrenWennToggled' assoziiert ist.
 newtype RegistrierterCheckButton
     = RegistrierterCheckButton
         Gtk.CheckButton

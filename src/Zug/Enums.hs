@@ -26,7 +26,7 @@ import qualified Zug.Language as Language
 data Zugtyp = Märklin | Lego
     deriving (Eq, Show, Bounded, Enum)
 
--- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datantypen
+-- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datentypen
 data ZugtypEither (a :: Zugtyp -> Type)
     = ZugtypMärklin (a 'Märklin)
     | ZugtypLego (a 'Lego)

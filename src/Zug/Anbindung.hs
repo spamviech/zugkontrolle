@@ -60,7 +60,7 @@ import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multi
 alleValues :: NonEmpty Value
 alleValues = NE.fromList [minBound..maxBound]
 
--- * Test-Funktionen, ob Anschlusss bestimmte Funktionen unterstützen
+-- * Test-Funktionen, ob Anschluss bestimmte Funktionen unterstützen
 -- | Unterstützt der 'Pin'
 -- >'pinMode' pin 'PWM_OUTPUT'
 pwmMöglich :: Pin -> Bool
@@ -114,8 +114,8 @@ erhaltePwmWert pwmGrenzeMax wert = PwmValueUnmodifiziert $ fromIntegral ergebnis
     where
         {-
             Verwende Natural um Fehler wegen zu kleinem Wertebereich zu vermeiden.
-            Multipliziere zuerst alle Werte, bevor sie normaliert werden um Rundungsfehler zu verhindern.
-            Möglich, nachdem die Funktion nicht in Perfomance-kritischen Bereichen (und selten) aufgerufen wird.
+            Multipliziere zuerst alle Werte, bevor sie normalisiert werden um Rundungsfehler zu verhindern.
+            Möglich, nachdem die Funktion nicht in Performance-kritischen Bereichen (und selten) aufgerufen wird.
             Effektivspannung skaliert wie die Wurzel des PwmValue.
             Der Eingabewert wird daher quadriert um linear mit der Effektivspannung zu skalieren.
         -}
@@ -254,7 +254,7 @@ class (StreckenObjekt (b 'Märklin), StreckenObjekt (b 'Lego)) => Bahngeschwindi
     geschwindigkeit :: (PwmReader r m, MonadIO m) => b z -> Natural -> m ()
     -- | Gebe allen Zügen den Befehl zum Umdrehen
     umdrehen :: (PwmReader r m, MonadIO m) => b 'Märklin -> m ()
-    -- | Gebe allen Zugen den Befehl in einer bestimmen Richtung zu fahren
+    -- | Gebe allen Zügen den Befehl in einer bestimmen Richtung zu fahren
     fahrtrichtungEinstellen :: (PwmReader r m, MonadIO m) => b 'Lego -> Fahrtrichtung -> m ()
     {-# MINIMAL geschwindigkeit, umdrehen, fahrtrichtungEinstellen #-}
 
@@ -469,7 +469,7 @@ instance WeicheKlasse (Weiche z) where
         MärklinWeiche {wemRichtungsAnschlüsse}
             = fst <$> wemRichtungsAnschlüsse
 
--- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekuppelt werden
+-- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden
 data Kupplung = Kupplung {kuName :: Text, kuFließend :: Value, kupplungsAnschluss::Anschluss}
     deriving (Eq, Show)
 

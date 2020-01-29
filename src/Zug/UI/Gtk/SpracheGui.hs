@@ -109,7 +109,7 @@ verwendeSpracheGuiFn
             neueAktion sprache
             case maybeTVar of
                 (Just tvar) -> do
-                    -- füge TVar zu sprachwechelAktionen hinzu, wenn es die erste Aktion ist
+                    -- füge TVar zu sprachwechselAktionen hinzu, wenn es die erste Aktion ist
                     let appendTVar = atomically $ modifyTVar sprachwechselAktionen (Right tvar :)
                     readTVarIO tvar >>= flip when appendTVar . maybe False null
                     -- füge die neueAktion zur TVar hinzu

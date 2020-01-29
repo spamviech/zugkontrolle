@@ -19,7 +19,7 @@ import Data.Text (unpack)
 import Zug.Language (Sprache(..), alleSprachen)
 import qualified Zug.Language as Language
 
--- | Erhalte Kommandozeilen-Arguemente
+-- | Erhalte Kommandozeilen-Argumente
 getOptions :: (MonadIO m) => m Options
 getOptions = liftIO $ execParser optionen
 

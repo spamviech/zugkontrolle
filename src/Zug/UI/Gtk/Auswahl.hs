@@ -56,7 +56,7 @@ instance MitWidget (AuswahlWidget e) where
     erhalteWidget :: AuswahlWidget e -> Gtk.Widget
     erhalteWidget = widget
 
--- | Wert von 'Gtk.labelMaxWidthChars'-proberty des Name-Labels
+-- | Wert von 'Gtk.labelMaxWidthChars'-property des Name-Labels
 nameWrapSize :: Int
 nameWrapSize = 16
 
@@ -91,7 +91,7 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
         widget = erhalteWidget hBox,
         enumButtons}
 
--- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendeung der 'Anzeige'-Instanz.
+-- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendung der 'Anzeige'-Instanz.
 -- 
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.

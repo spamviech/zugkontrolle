@@ -4,7 +4,7 @@
 {-# LANGUAGE CPP #-}
 
 {-|
-Description: Scrollbare Widgetw
+Description: Scrollbare Widgets
 -}
 #ifndef ZUGKONTROLLEGUI
 module Zug.UI.Gtk.ScrollbaresWidget () where

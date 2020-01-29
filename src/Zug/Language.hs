@@ -31,7 +31,7 @@ module Zug.Language (
     -- * Eingenschafts-/Feld-Namen / Attribute/Field Names
     dateiname, name, richtung, richtungen, fahrtrichtung, anschluss, pin, pcf8574Port, pcf8574,
     variante, normal, a, a0, a1, a2, port,
-    -- * Query-Abragen / Queries
+    -- * Query-Abfragen / Queries
     wegstreckenElement, wegstreckenElemente, aktion, aktionen, zugtyp, welchesObjektHinzufügen, ausführModus, indexOderName, anzahl,
     -- * Fehlermeldungen / Error Messages
     nichtRoot, toDo, ungültigeEingabe, nichtUnterstützteAktion, nichtGefundeneDatei, uiNichtUnterstützt,
@@ -436,10 +436,10 @@ anzahl :: Sprache -> Text -> Text
 anzahl  Deutsch     s   = ("Anzahl" :: Text) <~> s $ Deutsch
 anzahl  Englisch    s   = ("Count" :: Text) <~> s $ Englisch
 -- * Fehlermeldungen / Error Messages
--- | zugkontrolle <:> "Execution requires root priviledges."
+-- | zugkontrolle <:> "Execution requires root privileges."
 nichtRoot :: Sprache -> Text
 nichtRoot   Deutsch     = zugkontrolle <:> ("Ausführung benötigt Root-Rechte!" :: Text) $ Deutsch
-nichtRoot   Englisch    = zugkontrolle <:> ("Execution requires root priviledges." :: Text) $ Englisch
+nichtRoot   Englisch    = zugkontrolle <:> ("Execution requires root privileges." :: Text) $ Englisch
 -- | Not implemented: ToDo!!!
 toDo :: Sprache -> Text
 toDo    Deutsch     = "Nicht implementiert: ToDo!!!"
@@ -619,7 +619,7 @@ instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
 
 infixr 0 $#
 -- | Werte eine 'Sprache'-abhänge Funktion mit einem 'Anzeige'-Typen aus.
--- Die Fixivität ist dabei identisch zu '$' gewählt.
+-- Die Fix-Stärke ist dabei identisch zu '$' gewählt.
 ($#) :: (Anzeige a) => (Sprache -> Text -> b) -> a -> Sprache -> b
 ($#) f a sprache = f sprache $ anzeige a sprache
 
@@ -654,9 +654,9 @@ infixr 6 <=>
 (<=>) = verketten "="
 
 infixr 6 <->
--- | Verkette zwei Strings mit einem Bindestrinch.
+-- | Verkette zwei Strings mit einem Bindestrich.
 -- 
--- Concatenate two strings with a hypthen.
+-- Concatenate two strings with a hyphen.
 (<->) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
 (<->) = verketten "-"
 
@@ -698,7 +698,7 @@ infixr 6 <\>
 infixr 6 <#>
 -- | Verkette zwi Strings.
 -- 
--- Concatentate two strings
+-- Concatenate two strings
 (<#>) :: (Anzeige a, Anzeige b) => a -> b -> Sprache -> Text
 (<#>) = verketten Text.empty
 

@@ -139,7 +139,7 @@ data AssistantSeitenBaum w
     = AssistantSeiteLinear {
         node :: AssistantSeite w,
         nachfolger :: AssistantSeitenBaum w}
-    -- | Seite mit meheren direkten Nachfolger
+    -- | Seite mit mehreren direkten Nachfolger
     | AssistantSeiteAuswahl {
         node :: AssistantSeite w,
         nachfolgerFrage :: Sprache -> Text,
@@ -158,7 +158,7 @@ data AssistantSeitenBaumPacked w
     = PackedSeiteLinear {
         packedNode :: AssistantSeite w,
         packedNachfolger :: AssistantSeitenBaumPacked w}
-    -- | Seite mit meheren direkten Nachfolger
+    -- | Seite mit mehreren direkten Nachfolger
     | PackedSeiteAuswahl {
         packedNode :: AssistantSeite w,
         packedNachfolgerFrage :: Sprache -> Text,
