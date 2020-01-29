@@ -86,7 +86,7 @@ scrollbaresWidgetNew konstruktor = do
     liftIO $ do
         swScrolledWindow <- widgetShowNew $ Gtk.scrolledWindowNew Nothing Nothing
         Gtk.set swScrolledWindow [
-            Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyNever,
+            Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic,
             Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
         Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget widget
         pure ScrollbaresWidget {swScrolledWindow, swWidget = widget}
