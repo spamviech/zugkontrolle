@@ -2,7 +2,6 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE CPP #-}
 
 {-|
 Description : Sammlung aller verwendeten Strings.
@@ -55,9 +54,11 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Data.Version (Version, makeVersion, showVersion)
+import Data.Version (Version, showVersion)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (Value(..))
+-- Auto-generiertes Cabal-Modul
+import qualified Paths_Zugkontrolle as Paths
 
 -- * Titel / Title
 -- | Train Control
@@ -68,11 +69,7 @@ zugkontrolle    Englisch    = "Train Control"
 -- ** Version
 -- | Aktuelle Version
 versionValue :: Version
-versionValue = makeVersion [
-    ZUGKONTROLLEVERSIONMAJORA,
-    ZUGKONTROLLEVERSIONMAJORB,
-    ZUGKONTROLLEVERSIONMINOR,
-    ZUGKONTROLLEVERSIONMISC]
+versionValue = Paths.version
 
 -- | 'Text'-Ausgabe von 'versionValue'
 version :: Text
