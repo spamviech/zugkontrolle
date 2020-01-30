@@ -10,7 +10,7 @@
 {-# LANGUAGE CPP #-}
 
 {-|
-Description : Abfragen mit neuem Fenster für das Gtk-UI.
+Description : Erstellen eines Assistant zum Hinzufügen eines 'StreckenObjekt'es.
 -}
 #ifndef ZUGKONTROLLEGUI
 module Zug.UI.Gtk.Fenster.AssistantHinzufuegen () where
