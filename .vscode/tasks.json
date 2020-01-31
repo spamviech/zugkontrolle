@@ -1,0 +1,37 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "stack install",
+            "type": "shell",
+            "command": "stack install",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "test",
+            "type": "shell",
+            "command": "stack test",
+            "group": "test"
+        },
+        {
+            "label": "documentation",
+            "type": "shell",
+            "command": "stack haddock --open",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "exec",
+            "type": "shell",
+            "command": "stack run --cwd=./bin -- --load Zugkontrolle.yaml",
+            "group": "none",
+            "problemMatcher": []
+        }
+    ]
+}
