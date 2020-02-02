@@ -16,40 +16,38 @@ Jede Art von 'StreckenObjekt' ('Bahngeschwindigkeit', 'Streckenabschnitt', 'Weic
 Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, welche nacheinander ausgeführt werden können.
 -}
 module Zug.Plan
-  (-- * Allgemeine Datentypen
-   PlanKlasse(..)
-  ,MitAusführend(..)
-  ,AusführendReader(..)
-  ,Plan(..)
-  ,AktionKlasse(..)
-  ,Aktion(..)
-  ,Ausführend(..)
-   -- * Spezialisierte Aktionen
-  ,AktionWeiche(..)
-  ,AktionBahngeschwindigkeit(..)
-  ,AktionStreckenabschnitt(..)
-  ,AktionKupplung(..)
-  ,AktionWegstrecke(..)) where
+  ( -- * Allgemeine Datentypen
+    PlanKlasse(..)
+  , MitAusführend(..)
+  , AusführendReader(..)
+  , Plan(..)
+  , AktionKlasse(..)
+  , Aktion(..)
+  , Ausführend(..)
+    -- * Spezialisierte Aktionen
+  , AktionWeiche(..)
+  , AktionBahngeschwindigkeit(..)
+  , AktionStreckenabschnitt(..)
+  , AktionKupplung(..)
+  , AktionWegstrecke(..)) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (atomically,TVar,readTVarIO,modifyTVar)
-import Control.Monad (void,when)
+import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
+import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Text (Text)
-
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
-       (Anschluss(),StreckenObjekt(..),PwmReader(..),I2CReader(..),Bahngeschwindigkeit(),BahngeschwindigkeitKlasse(..)
-       ,Streckenabschnitt(),StreckenabschnittKlasse(..),Weiche(),WeicheKlasse(..),Kupplung(),KupplungKlasse(..)
-       ,Wegstrecke(),WegstreckeKlasse(..),warte,Wartezeit(..))
+       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), Bahngeschwindigkeit()
+      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..)
+      , Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..))
 -- Abhängigkeiten von anderen Modulen
-import Zug.Enums (Zugtyp(..),ZugtypEither(),Richtung(),Fahrtrichtung(),Strom(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
-import Zug.Language (Anzeige(..),Sprache(),showText,(<~>),(<^>),(<=>),(<:>),(<°>),(<#>))
-import Zug.Menge (Menge(),hinzufügen,entfernen)
+import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>), (<#>))
+import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
 class MitAusführend r where
@@ -78,15 +76,15 @@ data Plan =
     { plName :: Text
     , plAktionen :: [Aktion]
     }
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend = Ausführend Plan
-    deriving (Eq,Show,StreckenObjekt)
+    deriving (Eq, Show, StreckenObjekt)
 
 instance Anzeige Plan where
     anzeige :: Plan -> Sprache -> Text
-    anzeige Plan {plName,plAktionen} = Language.plan <:> Language.name <=> plName <^> Language.aktionen <=> plAktionen
+    anzeige Plan {plName, plAktionen} = Language.plan <:> Language.name <=> plName <^> Language.aktionen <=> plAktionen
 
 instance StreckenObjekt Plan where
     anschlüsse :: Plan -> [Anschluss]
@@ -97,7 +95,7 @@ instance StreckenObjekt Plan where
 
 instance PlanKlasse Plan where
     ausführenPlan :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
-    ausführenPlan plan @ Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
+    ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
         tvarAusführend <- erhalteMengeAusführend
         liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
         ausführenAux 0 plAktionen
@@ -112,7 +110,7 @@ instance PlanKlasse Plan where
         ausführenAux i (h:t) = do
             tvarAusführend <- erhalteMengeAusführend
             ausführend <- liftIO $ readTVarIO tvarAusführend
-            when (elem (Ausführend plan) ausführend) $ do
+            when (Ausführend plan `elem` ausführend) $ do
                 liftIO $ showAktion i
                 ausführenAktion h
                 ausführenAux (succ i) t
@@ -133,7 +131,7 @@ data Aktion
     | AStreckenabschnitt (AktionStreckenabschnitt Streckenabschnitt)
     | AKupplung (AktionKupplung Kupplung)
     | AktionAusführen Plan
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
@@ -180,7 +178,7 @@ data AktionWegstrecke ws (z :: Zugtyp)
     | AWSBahngeschwindigkeit (AktionBahngeschwindigkeit ws z)
     | AWSStreckenabschnitt (AktionStreckenabschnitt (ws z))
     | AWSKupplung (AktionKupplung (ws z))
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance (StreckenObjekt (ws z)) => Anzeige (AktionWegstrecke ws z) where
     anzeige :: AktionWegstrecke ws z -> Sprache -> Text
@@ -209,7 +207,7 @@ instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z)) => AktionKlasse
 
 -- | Bekannte 'Aktion'en einer 'Weiche'
 data AktionWeiche we = Stellen we Richtung
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance (StreckenObjekt we) => Anzeige (AktionWeiche we) where
     anzeige :: AktionWeiche we -> Sprache -> Text
@@ -264,7 +262,7 @@ instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigke
 
 -- | Aktionen eines Streckenabschnitts
 data AktionStreckenabschnitt st = Strom st Strom
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance (StreckenObjekt st) => Anzeige (AktionStreckenabschnitt st) where
     anzeige :: AktionStreckenabschnitt st -> Sprache -> Text
@@ -283,8 +281,8 @@ instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt s
     ausführenAktion (Strom st an) = strom st an
 
 -- | Aktionen einer Kupplung
-data AktionKupplung ku = Kuppeln ku
-    deriving (Eq,Show)
+newtype AktionKupplung ku = Kuppeln ku
+    deriving (Eq, Show)
 
 instance (StreckenObjekt ku) => Anzeige (AktionKupplung ku) where
     anzeige :: AktionKupplung ku -> Sprache -> Text

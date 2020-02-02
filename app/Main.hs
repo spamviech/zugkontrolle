@@ -1,9 +1,10 @@
 module Main (main) where
 
-import System.Environment (getArgs,withArgs)
-
+-- Bibliotheken
+import System.Environment (getArgs, withArgs)
 import Text.Regex.TDFA ((=~))
 
+-- Abhängigkeit von anderen Modulen
 import qualified Zug.UI as UI
 
 main :: IO ()
@@ -12,17 +13,17 @@ main = do
     -- Damit kann man das Programm durch ziehen einer Datei auf die Binary mit einem bestimmten Anfangszustand starten.
     args <- getArgs
     argModifier args UI.main
-  where
-    argModifier :: [String] -> IO a -> IO a
-    argModifier [filename]
-      | filename =~ linuxRegex =
-          withArgs $ "--load" : (\(_before,_match,_after,submatches)
-                                 -> submatches) (filename =~ linuxRegex :: (String, String, String, [String]))
-      | otherwise = withArgs ["--load", filename]
-    argModifier _args = id
+    where
+        argModifier :: [String] -> IO a -> IO a
+        argModifier [filename]
+            | filename =~ linuxRegex =
+                withArgs $ "--load" : (\(_before, _match, _after, submatches)
+                                       -> submatches) (filename =~ linuxRegex :: (String, String, String, [String]))
+            | otherwise = withArgs ["--load", filename]
+        argModifier _args = id
 
-    -- Drag & Drop nur über .desktop-Datei möglich (raspian, nautilus window manager)
-    -- Beispielwert für übergebenes Argument:
-    -- "'file:///home/pi/Desktop/Zugkontrolle-bin/Doppeloval.json' "
-    linuxRegex :: String
-    linuxRegex = "'file://(.+)' *"
+        -- Drag & Drop nur über .desktop-Datei möglich (raspian, nautilus window manager)
+        -- Beispielwert für übergebenes Argument:
+        -- "'file:///home/pi/Desktop/Zugkontrolle-bin/Doppeloval.json' "
+        linuxRegex :: String
+        linuxRegex = "'file://(.+)' *"

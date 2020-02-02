@@ -44,13 +44,70 @@
             "sort-imports": [
                 {
                     "prefixes": [""],
-                    "order": "grouped"
+                    "order": "sorted"
                 },
                 {
                     "prefixes": ["Zug"],
-                    "order": "grouped"
+                    "order": "sorted"
                 }
             ]
+        },
+        "indent": {
+            "where": 4,
+            "where-binds": "indent-by 4",
+            "multi-if": "indent-by 4"
+        },
+        "op": {
+            ",": {
+                "spaces": "after",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            ", in declaration": {
+                "spaces": "after",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            ", in type": {
+                "spaces": "after",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            ", in pattern": {
+                "spaces": "after",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            ", in other": {
+                "spaces": "after",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            "@": {
+                "spaces": "none",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            "@ in declaration": {
+                "spaces": "none",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            "@ in type": {
+                "spaces": "none",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            "@ in pattern": {
+                "spaces": "none",
+                "linebreaks": "before",
+                "force-linebreak": false
+            },
+            "@ in other": {
+                "spaces": "none",
+                "linebreaks": "before",
+                "force-linebreak": false
+            }
         }
     }
 }
