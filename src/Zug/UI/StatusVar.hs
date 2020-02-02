@@ -9,45 +9,43 @@
 {-# LANGUAGE DataKinds #-}
 
 module Zug.UI.StatusVar
-  (-- * Datentyp
-   StatusVar()
-   -- * Konstruktor
-  ,statusVarNew
-   -- * Grundfunktionen
-  ,STM
-  ,atomically
-  ,takeStatusVar
-  ,readStatusVar
-  ,tryReadStatusVar
-  ,putStatusVar
-   -- * Zugehörigkeitsklassen
-  ,MitStatusVar(..)
-  ,StatusVarReader(..)
-   -- * Hilfsfunktionen
-  ,auswertenStatusVarIOStatus
-  ,auswertenStatusVarMStatus
-  ,auswertenStatusVarMStatusT
-  ,ausführenStatusVarBefehl
-  ,ausführenStatusVarPlan
-  ,ausführenStatusVarAktion) where
+  ( -- * Datentyp
+    StatusVar()
+    -- * Konstruktor
+  , statusVarNew
+    -- * Grundfunktionen
+  , STM
+  , atomically
+  , takeStatusVar
+  , readStatusVar
+  , tryReadStatusVar
+  , putStatusVar
+    -- * Zugehörigkeitsklassen
+  , MitStatusVar(..)
+  , StatusVarReader(..)
+    -- * Hilfsfunktionen
+  , auswertenStatusVarIOStatus
+  , auswertenStatusVarMStatus
+  , auswertenStatusVarMStatusT
+  , ausführenStatusVarBefehl
+  , ausführenStatusVarPlan
+  , ausführenStatusVarAktion) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (STM,atomically,TVar,readTVar,writeTVar,retry,newTVarIO)
-import Control.Monad.RWS.Lazy (runRWS,runRWST)
-import Control.Monad.Reader.Class (MonadReader(..),asks)
+import Control.Concurrent.STM (STM, atomically, TVar, readTVar, writeTVar, retry, newTVarIO)
+import Control.Monad.RWS.Lazy (runRWS, runRWST)
+import Control.Monad.Reader.Class (MonadReader(..), asks)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Aeson (ToJSON())
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache())
 import Zug.Objekt (ObjektKlasse(..))
-import Zug.Plan (PlanKlasse(..),AktionKlasse(..))
-import Zug.UI.Base (StatusAllgemein(..),IOStatusAllgemein,MStatusAllgemein,MStatusAllgemeinT,ReaderFamilie
-                   ,ObjektReader(),MitTVarMaps(),liftIOStatus)
+import Zug.Plan (PlanKlasse(..), AktionKlasse(..))
+import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT, ReaderFamilie
+                  , ObjektReader(), MitTVarMaps(), liftIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..))
 
 -- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält
@@ -114,7 +112,7 @@ auswertenStatusVarMStatusT :: (ObjektReader o m, MonadIO m) => MStatusAllgemeinT
 auswertenStatusVarMStatusT action statusVar = do
     reader <- ask
     status0 <- liftIO $ atomically $ takeStatusVar statusVar
-    (a,status1,()) <- runRWST action reader status0
+    (a, status1, ()) <- runRWST action reader status0
     liftIO $ atomically $ putStatusVar statusVar status1
     pure a
 
@@ -124,7 +122,7 @@ auswertenStatusVarMStatus action statusVar = do
     reader <- ask
     liftIO $ atomically $ do
         status0 <- takeStatusVar statusVar
-        let (a,status1,()) = runRWS action reader status0
+        let (a, status1, ()) = runRWS action reader status0
         putStatusVar statusVar status1
         pure a
 

@@ -8,16 +8,16 @@
 {-|
 Description : 'Either'-ähnlicher Datentyp für 'StreckenObjekt'-Typen.
 -}
-module Zug.Objekt (Objekt,ObjektAllgemein(..),ObjektElement(..),ObjektKlasse(..)) where
+module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(..)) where
 
 -- Bibliotheken
 import Data.Kind (Type)
 import Data.Text (Text)
 
 import Zug.Anbindung
-       (Anschluss(),StreckenObjekt(..),Bahngeschwindigkeit(),Streckenabschnitt(),Weiche(),Kupplung(),Wegstrecke())
+       (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(), Streckenabschnitt(), Weiche(), Kupplung(), Wegstrecke())
 -- Abhängigkeiten von anderen Modulen
-import Zug.Enums (Zugtyp(..),ZugtypEither(),ZugtypKlasse(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..))
 import Zug.Language (Sprache())
 import Zug.Plan (Plan(..))
 

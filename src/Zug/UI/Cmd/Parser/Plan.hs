@@ -13,42 +13,38 @@
 Description: Parsen von 'Plan' und 'Aktion'
 -}
 module Zug.UI.Cmd.Parser.Plan
-  (AnfragePlan(..)
-  ,AnfrageAktion(..)
-  ,AnfrageAktionWegstrecke(..)
-  ,AktionWegstreckeZugtyp(..)
-  ,AnfrageAktionBahngeschwindigkeit(..)
-  ,AktionBahngeschwindigkeitZugtyp(..)
-  ,AnfrageAktionStreckenabschnitt(..)
-  ,AnfrageAktionWeiche(..)
-  ,AnfrageAktionKupplung(..)) where
+  ( AnfragePlan(..)
+  , AnfrageAktion(..)
+  , AnfrageAktionWegstrecke(..)
+  , AktionWegstreckeZugtyp(..)
+  , AnfrageAktionBahngeschwindigkeit(..)
+  , AktionBahngeschwindigkeitZugtyp(..)
+  , AnfrageAktionStreckenabschnitt(..)
+  , AnfrageAktionWeiche(..)
+  , AnfrageAktionKupplung(..)) where
 
 import Data.Foldable (Foldable(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as Text
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (Wegstrecke(..),WegstreckeKlasse(..),Weiche(..),WeicheKlasse(..),Bahngeschwindigkeit(..)
-                     ,BahngeschwindigkeitKlasse(..),Streckenabschnitt(..),StreckenabschnittKlasse(..),Kupplung(..)
-                     ,KupplungKlasse(..),Wartezeit(..))
-import Zug.Enums (Zugtyp(..),ZugtypEither(..),Richtung(..),unterstützteRichtungen,Strom(..),Fahrtrichtung(..)
-                 ,unterstützteFahrtrichtungen)
-import Zug.Language (Anzeige(..),Sprache(..),(<^>),(<=>),(<->),(<|>),toBefehlsString)
+import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..), Bahngeschwindigkeit(..)
+                    , BahngeschwindigkeitKlasse(..), Streckenabschnitt(..), StreckenabschnittKlasse(..), Kupplung(..)
+                    , KupplungKlasse(..), Wartezeit(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..), Fahrtrichtung(..)
+                , unterstützteFahrtrichtungen)
+import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(..),Objekt)
-import Zug.Plan (Plan(..),Aktion(..),AktionStreckenabschnitt(..),AktionWegstrecke(..),AktionBahngeschwindigkeit(..)
-                ,AktionWeiche(..),AktionKupplung(..))
-
-import Zug.UI.Cmd.Lexer (EingabeToken(..),leeresToken)
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
+import Zug.Plan (Plan(..), Aktion(..), AktionStreckenabschnitt(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
+               , AktionWeiche(..), AktionKupplung(..))
+import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
-
 import Zug.UI.Cmd.Parser.Anfrage
-       (Anfrage(..),zeigeAnfrageFehlgeschlagenStandard,MitAnfrage(..),StatusAnfrageObjekt(..),wähleBefehl
-       ,wähleRichtung,AnfrageFortsetzung(..),($<<),wähleZwischenwert,wähleErgebnis)
-
+       (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..), StatusAnfrageObjekt(..), wähleBefehl
+      , wähleRichtung, AnfrageFortsetzung(..), ($<<), wähleZwischenwert, wähleErgebnis)
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
@@ -81,7 +77,7 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b z) where
     zeigeAnfrage (AABGFahrtrichtungEinstellen _bahngeschwindigkeit) = Language.fahrtrichtung
 
     zeigeAnfrageFehlgeschlagen :: AnfrageAktionBahngeschwindigkeit b z -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ (AABGGeschwindigkeit _bahngeschwindigkeit) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(AABGGeschwindigkeit _bahngeschwindigkeit) eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
@@ -103,9 +99,7 @@ instance AktionBahngeschwindigkeitZugtyp 'Märklin where
         :: AnfrageAktionBahngeschwindigkeit bg 'Märklin
         -> EingabeToken
         -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Märklin) (AktionBahngeschwindigkeit bg 'Märklin)
-    wähleAktionBahngeschwindigkeit
-        (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
-        token @ EingabeToken {eingabe} =
+    wähleAktionBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit) token@EingabeToken {eingabe} =
         wähleBefehl
             token
             [ (Lexer.Geschwindigkeit, AFZwischenwert $ AABGGeschwindigkeit bahngeschwindigkeit)
@@ -133,9 +127,9 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
     anfrageAktualisieren :: AnfrageAktionBahngeschwindigkeit b z
                          -> EingabeToken
                          -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit b z) (AktionBahngeschwindigkeit b z)
-    anfrageAktualisieren anfrage @ (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) token =
+    anfrageAktualisieren anfrage@(AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) token =
         wähleAktionBahngeschwindigkeit anfrage token
-    anfrageAktualisieren (AABGGeschwindigkeit bahngeschwindigkeit) EingabeToken {eingabe,ganzzahl} = case ganzzahl of
+    anfrageAktualisieren (AABGGeschwindigkeit bahngeschwindigkeit) EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
         (Just wert) -> AFErgebnis $ Geschwindigkeit bahngeschwindigkeit wert
     anfrageAktualisieren (AABGFahrtrichtungEinstellen bahngeschwindigkeit) token =
@@ -148,7 +142,7 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
 data AnfrageAktionStreckenabschnitt s
     = AnfrageAktionStreckenabschnitt s           -- ^ Streckenabschnitt
     | AASTStrom s           -- ^ Streckenabschnitt
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance (Anzeige s) => Anzeige (AnfrageAktionStreckenabschnitt s) where
     anzeige :: AnfrageAktionStreckenabschnitt s -> Sprache -> Text
@@ -187,7 +181,7 @@ instance (StreckenabschnittKlasse s) => MitAnfrage (AktionStreckenabschnitt s) w
 data AnfrageAktionWeiche w
     = AnfrageAktionWeiche w           -- ^ Weiche
     | AAWStellen w           -- ^ Weiche
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance (Anzeige w) => Anzeige (AnfrageAktionWeiche w) where
     anzeige :: AnfrageAktionWeiche w -> Sprache -> Text
@@ -212,22 +206,22 @@ instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
         :: AnfrageAktionWeiche w -> EingabeToken -> AnfrageFortsetzung (AnfrageAktionWeiche w) (AktionWeiche w)
     anfrageAktualisieren (AnfrageAktionWeiche weiche) token =
         wähleZwischenwert token [(Lexer.Stellen, AAWStellen weiche)]
-    anfrageAktualisieren anfrage @ (AAWStellen _weiche) token @ EingabeToken {eingabe} = case wähleRichtung token of
+    anfrageAktualisieren anfrage@(AAWStellen _weiche) token@EingabeToken {eingabe} = case wähleRichtung token of
         Nothing -> AFFehler eingabe
         (Just richtung) -> mitRichtung anfrage richtung
-      where
-        mitRichtung :: (Show w, WeicheKlasse w)
-                    => AnfrageAktionWeiche w
-                    -> Richtung
-                    -> AnfrageFortsetzung (AnfrageAktionWeiche w) (AktionWeiche w)
-        mitRichtung (AAWStellen weiche) richtung
-          | hatRichtung weiche richtung = AFErgebnis $ Stellen weiche richtung
-          | otherwise = AFFehler eingabe
-        mitRichtung anfrage _richtung = error $ "mitRichtung mit unerwarteter Anfrage aufgerufen: " ++ show anfrage
+        where
+            mitRichtung :: (Show w, WeicheKlasse w)
+                        => AnfrageAktionWeiche w
+                        -> Richtung
+                        -> AnfrageFortsetzung (AnfrageAktionWeiche w) (AktionWeiche w)
+            mitRichtung (AAWStellen weiche) richtung
+                | hatRichtung weiche richtung = AFErgebnis $ Stellen weiche richtung
+                | otherwise = AFFehler eingabe
+            mitRichtung anfrage _richtung = error $ "mitRichtung mit unerwarteter Anfrage aufgerufen: " ++ show anfrage
 
 -- | Unvollständige 'Aktion' einer 'Kupplung'
 data AnfrageAktionKupplung k = AnfrageAktionKupplung k   -- ^ Kupplung
-    deriving (Show,Eq)
+    deriving (Show, Eq)
 
 instance (Anzeige k) => Anzeige (AnfrageAktionKupplung k) where
     anzeige :: AnfrageAktionKupplung k -> Sprache -> Text
@@ -255,7 +249,7 @@ data AnfrageAktionWegstrecke w (z :: Zugtyp)
     | AAWSBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit w z)
     | AAWSStreckenabschnitt (AnfrageAktionStreckenabschnitt (w z))
     | AAWSKupplung (AnfrageAktionKupplung (w z))
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance (Anzeige (w z)) => Anzeige (AnfrageAktionWegstrecke w z) where
     anzeige :: AnfrageAktionWegstrecke w z -> Sprache -> Text
@@ -286,7 +280,7 @@ instance AktionWegstreckeZugtyp 'Märklin where
     wähleAktionWegstrecke :: AnfrageAktionWegstrecke ws 'Märklin
                            -> EingabeToken
                            -> AnfrageFortsetzung (AnfrageAktionWegstrecke ws 'Märklin) (AktionWegstrecke ws 'Märklin)
-    wähleAktionWegstrecke (AnfrageAktionWegstrecke wegstrecke) token @ EingabeToken {eingabe} =
+    wähleAktionWegstrecke (AnfrageAktionWegstrecke wegstrecke) token@EingabeToken {eingabe} =
         wähleBefehl
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
@@ -301,7 +295,7 @@ instance AktionWegstreckeZugtyp 'Lego where
     wähleAktionWegstrecke :: AnfrageAktionWegstrecke ws 'Lego
                            -> EingabeToken
                            -> AnfrageFortsetzung (AnfrageAktionWegstrecke ws 'Lego) (AktionWegstrecke ws 'Lego)
-    wähleAktionWegstrecke (AnfrageAktionWegstrecke wegstrecke) token @ EingabeToken {eingabe} =
+    wähleAktionWegstrecke (AnfrageAktionWegstrecke wegstrecke) token@EingabeToken {eingabe} =
         wähleBefehl
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
@@ -323,7 +317,7 @@ instance ( AktionWegstreckeZugtyp z
     anfrageAktualisieren :: AnfrageAktionWegstrecke w z
                          -> EingabeToken
                          -> AnfrageFortsetzung (AnfrageAktionWegstrecke w z) (AktionWegstrecke w z)
-    anfrageAktualisieren anfrage @ (AnfrageAktionWegstrecke _wegstrecke) token = wähleAktionWegstrecke anfrage token
+    anfrageAktualisieren anfrage@(AnfrageAktionWegstrecke _wegstrecke) token = wähleAktionWegstrecke anfrage token
     anfrageAktualisieren (AAWSBahngeschwindigkeit aAktion0) token =
         (AFErgebnis . AWSBahngeschwindigkeit, AAWSBahngeschwindigkeit) $<< anfrageAktualisieren aAktion0 token
     anfrageAktualisieren (AAWSStreckenabschnitt aAktion0) token =
@@ -375,7 +369,7 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrage (AAStatusAnfrage anfrageKonstruktor _eitherF) = zeigeAnfrage $ anfrageKonstruktor leeresToken
 
     zeigeAnfrageFehlgeschlagen :: AnfrageAktion -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ AAWarten eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@AAWarten eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
@@ -418,45 +412,45 @@ instance MitAnfrage Aktion where
         AAEWarten -> AFZwischenwert AAWarten
         AAEAusführen -> AFZwischenwert $ AAStatusAnfrage SAOPlan $ Right $ \(OPlan plan) -> AktionAusführen plan
         AAEWegstrecke -> AFZwischenwert $ AAStatusAnfrage SAOWegstrecke $ Left erhalteWegstreckeAktion
-          where
-            erhalteWegstreckeAktion :: Objekt -> AnfrageAktion
-            erhalteWegstreckeAktion (OWegstrecke (ZugtypMärklin wegstrecke)) =
-                AAWegstreckeMärklin $ AnfrageAktionWegstrecke wegstrecke
-            erhalteWegstreckeAktion (OWegstrecke (ZugtypLego wegstrecke)) =
-                AAWegstreckeLego $ AnfrageAktionWegstrecke wegstrecke
-            erhalteWegstreckeAktion _objekt = AnfrageAktion
+            where
+                erhalteWegstreckeAktion :: Objekt -> AnfrageAktion
+                erhalteWegstreckeAktion (OWegstrecke (ZugtypMärklin wegstrecke)) =
+                    AAWegstreckeMärklin $ AnfrageAktionWegstrecke wegstrecke
+                erhalteWegstreckeAktion (OWegstrecke (ZugtypLego wegstrecke)) =
+                    AAWegstreckeLego $ AnfrageAktionWegstrecke wegstrecke
+                erhalteWegstreckeAktion _objekt = AnfrageAktion
         AAEWeiche -> AFZwischenwert $ AAStatusAnfrage SAOWeiche $ Left $ \(OWeiche weiche)
             -> AAWeiche $ AnfrageAktionWeiche weiche
         AAEBahngeschwindigkeit
          -> AFZwischenwert $ AAStatusAnfrage SAOBahngeschwindigkeit $ Left erhalteBahngeschwindigkeitAktion
-          where
-            erhalteBahngeschwindigkeitAktion :: Objekt -> AnfrageAktion
-            erhalteBahngeschwindigkeitAktion (OBahngeschwindigkeit (ZugtypMärklin bahngeschwindigkeit)) =
-                AABahngeschwindigkeitMärklin $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
-            erhalteBahngeschwindigkeitAktion (OBahngeschwindigkeit (ZugtypLego bahngeschwindigkeit)) =
-                AABahngeschwindigkeitLego $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
-            erhalteBahngeschwindigkeitAktion _objekt = AnfrageAktion
+            where
+                erhalteBahngeschwindigkeitAktion :: Objekt -> AnfrageAktion
+                erhalteBahngeschwindigkeitAktion (OBahngeschwindigkeit (ZugtypMärklin bahngeschwindigkeit)) =
+                    AABahngeschwindigkeitMärklin $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
+                erhalteBahngeschwindigkeitAktion (OBahngeschwindigkeit (ZugtypLego bahngeschwindigkeit)) =
+                    AABahngeschwindigkeitLego $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
+                erhalteBahngeschwindigkeitAktion _objekt = AnfrageAktion
         AAEStreckenabschnitt
          -> AFZwischenwert $ AAStatusAnfrage SAOStreckenabschnitt $ Left $ \(OStreckenabschnitt streckenabschnitt)
             -> AAStreckenabschnitt $ AnfrageAktionStreckenabschnitt streckenabschnitt
         AAEKupplung -> AFZwischenwert $ AAStatusAnfrage SAOKupplung $ Left $ \(OKupplung kupplung)
             -> AAKupplung $ AnfrageAktionKupplung kupplung
-      where
-        anfrageAktionElement :: EingabeToken -> AnfrageAktionElement
-        anfrageAktionElement token @ EingabeToken {eingabe} =
-            wähleBefehl
-                token
-                [ (Lexer.Rückgängig, AAERückgängig)
-                , (Lexer.Warten, AAEWarten)
-                , (Lexer.Wegstrecke, AAEWegstrecke)
-                , (Lexer.Weiche, AAEWeiche)
-                , (Lexer.Bahngeschwindigkeit, AAEBahngeschwindigkeit)
-                , (Lexer.Streckenabschnitt, AAEStreckenabschnitt)
-                , (Lexer.Kupplung, AAEKupplung)]
-            $ AAEUnbekannt eingabe
+        where
+            anfrageAktionElement :: EingabeToken -> AnfrageAktionElement
+            anfrageAktionElement token@EingabeToken {eingabe} =
+                wähleBefehl
+                    token
+                    [ (Lexer.Rückgängig, AAERückgängig)
+                    , (Lexer.Warten, AAEWarten)
+                    , (Lexer.Wegstrecke, AAEWegstrecke)
+                    , (Lexer.Weiche, AAEWeiche)
+                    , (Lexer.Bahngeschwindigkeit, AAEBahngeschwindigkeit)
+                    , (Lexer.Streckenabschnitt, AAEStreckenabschnitt)
+                    , (Lexer.Kupplung, AAEKupplung)]
+                $ AAEUnbekannt eingabe
     anfrageAktualisieren _anfrage EingabeToken {möglichkeiten}
-      | elem Lexer.Rückgängig möglichkeiten = AFZwischenwert AnfrageAktion
-    anfrageAktualisieren AAWarten EingabeToken {eingabe,ganzzahl} = case ganzzahl of
+        | elem Lexer.Rückgängig möglichkeiten = AFZwischenwert AnfrageAktion
+    anfrageAktualisieren AAWarten EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
         (Just zeit) -> AFErgebnis $ Warten $ MikroSekunden zeit
     anfrageAktualisieren (AAStatusAnfrage anfrageKonstruktor (Left zwischenwertKonstruktor)) token =
@@ -478,7 +472,7 @@ instance MitAnfrage Aktion where
         (AFErgebnis . AStreckenabschnitt, AAStreckenabschnitt) $<< anfrageAktualisieren anfrageAktion token
     anfrageAktualisieren (AAKupplung anfrageAktion) token =
         (AFErgebnis . AKupplung, AAKupplung) $<< anfrageAktualisieren anfrageAktion token
-    anfrageAktualisieren anfrage @ AARückgängig _token = AFZwischenwert anfrage
+    anfrageAktualisieren anfrage@AARückgängig _token = AFZwischenwert anfrage
 
 -- | Unvollständiger 'Plan'
 data AnfragePlan
@@ -518,7 +512,7 @@ instance Anfrage AnfragePlan where
     zeigeAnfrage (APlanStatusAnfrage anfrageKonstruktor _eitherF) = zeigeAnfrage $ anfrageKonstruktor leeresToken
 
     zeigeAnfrageFehlgeschlagen :: AnfragePlan -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ (APlanName _name) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(APlanName _name) eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
@@ -537,26 +531,28 @@ instance MitAnfrage Plan where
     -- | Eingabe eines Plans
     anfrageAktualisieren :: AnfragePlan -> EingabeToken -> AnfrageFortsetzung AnfragePlan Plan
     anfrageAktualisieren AnfragePlan EingabeToken {eingabe} = AFZwischenwert $ APlanName eingabe
-    anfrageAktualisieren (APlanName name) EingabeToken {eingabe,ganzzahl} = case ganzzahl of
+    anfrageAktualisieren (APlanName name) EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
         (Just anzahl) -> AFZwischenwert $ APlanNameAnzahl name anzahl Warteschlange.leer AnfrageAktion
     anfrageAktualisieren (APlanNameAnzahl name anzahl acc anfrageAktion) token =
         (aktionVerwenden, anfrageAktionVerwenden) $<< anfrageAktualisieren anfrageAktion token
-      where
-        löscheLetztes :: Warteschlange a -> Warteschlange a
-        löscheLetztes warteschlange = case Warteschlange.zeigeLetztes warteschlange of
-            Warteschlange.Leer -> warteschlange
-            (Warteschlange.Gefüllt _l p) -> p
+        where
+            löscheLetztes :: Warteschlange a -> Warteschlange a
+            löscheLetztes warteschlange = case Warteschlange.zeigeLetztes warteschlange of
+                Warteschlange.Leer -> warteschlange
+                (Warteschlange.Gefüllt _l p) -> p
 
-        anfrageAktionVerwenden :: AnfrageAktion -> AnfragePlan
-        anfrageAktionVerwenden AARückgängig = APlanNameAnzahl name (succ anzahl) (löscheLetztes acc) AnfrageAktion
-        anfrageAktionVerwenden aAktion = APlanNameAnzahl name anzahl acc aAktion
+            anfrageAktionVerwenden :: AnfrageAktion -> AnfragePlan
+            anfrageAktionVerwenden AARückgängig =
+                APlanNameAnzahl name (succ anzahl) (löscheLetztes acc) AnfrageAktion
+            anfrageAktionVerwenden aAktion = APlanNameAnzahl name anzahl acc aAktion
 
-        aktionVerwenden :: Aktion -> AnfrageFortsetzung AnfragePlan Plan
-        aktionVerwenden aktion
-          | anzahl > 1 =
-              AFZwischenwert $ APlanNameAnzahl name (pred anzahl) (Warteschlange.anhängen aktion acc) AnfrageAktion
-          | otherwise = AFZwischenwert $ APlanNameAktionen name $ Warteschlange.anhängen aktion acc
+            aktionVerwenden :: Aktion -> AnfrageFortsetzung AnfragePlan Plan
+            aktionVerwenden aktion
+                | anzahl > 1 =
+                    AFZwischenwert
+                    $ APlanNameAnzahl name (pred anzahl) (Warteschlange.anhängen aktion acc) AnfrageAktion
+                | otherwise = AFZwischenwert $ APlanNameAktionen name $ Warteschlange.anhängen aktion acc
     anfrageAktualisieren (APlanStatusAnfrage anfrageKonstruktor (Left zwischenwertKonstruktor)) token =
         AFStatusAnfrage (anfrageKonstruktor token) $ AFZwischenwert . zwischenwertKonstruktor
     anfrageAktualisieren (APlanStatusAnfrage anfrageKonstruktor (Right konstruktor)) token =
@@ -570,10 +566,10 @@ instance MitAnfrage Plan where
                     , plAktionen = toList $ aktionen
                     })
             , (Lexer.Dauerschleife, dauerschleife)]
-      where
-        dauerschleife :: Plan
-        dauerschleife =
-            Plan
-            { plName
-            , plAktionen = toList $ Warteschlange.anhängen (AktionAusführen dauerschleife) aktionen
-            }
+        where
+            dauerschleife :: Plan
+            dauerschleife =
+                Plan
+                { plName
+                , plAktionen = toList $ Warteschlange.anhängen (AktionAusführen dauerschleife) aktionen
+                }

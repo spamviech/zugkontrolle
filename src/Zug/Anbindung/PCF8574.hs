@@ -7,45 +7,42 @@
 Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstelle
 -}
 module Zug.Anbindung.PCF8574
-  (-- * Map über aktuelle I2C-Kanäle
-   I2CMap
-  ,i2cMapEmpty
-  ,MitI2CMap(..)
-  ,I2CReader(..)
-   -- * I2CAddresse des PCF8574
-  ,PCF8574(..)
-  ,PCF8574Variant(..)
-  ,Value(..)
-   -- * Read-/Write-Aktionen
-  ,pcf8574Write
-  ,pcf8574Read
-  ,BitValue(..)
-  ,toBitValue
-   -- ** Auf bestimmten Port spezialisierte Funktionen
-  ,PCF8574Port(..)
-  ,pcf8574PortWrite
-  ,pcf8574PortRead) where
+  ( -- * Map über aktuelle I2C-Kanäle
+    I2CMap
+  , i2cMapEmpty
+  , MitI2CMap(..)
+  , I2CReader(..)
+    -- * I2CAddresse des PCF8574
+  , PCF8574(..)
+  , PCF8574Variant(..)
+  , Value(..)
+    -- * Read-/Write-Aktionen
+  , pcf8574Write
+  , pcf8574Read
+  , BitValue(..)
+  , toBitValue
+    -- ** Auf bestimmten Port spezialisierte Funktionen
+  , PCF8574Port(..)
+  , pcf8574PortWrite
+  , pcf8574PortRead) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
-
-import Data.Bits (bit,(.|.),(.&.),testBit,complement)
+import Data.Bits (bit, (.|.), (.&.), testBit, complement)
 import Data.Text (Text)
 import Data.Word (Word8)
-
 import System.Hardware.WiringPi (Value(..))
-
 import Text.ParserCombinators.ReadP (ReadP())
 import qualified Text.ParserCombinators.ReadP as ReadP
 import qualified Text.ParserCombinators.ReadPrec as ReadPrec
-import Text.Read (Read(..),ReadPrec,lexP,readListPrecDefault)
-import Text.Read.Lex (numberToInteger,Lexeme(..))
+import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
+import Text.Read.Lex (numberToInteger, Lexeme(..))
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.I2C
-       (I2CMap,i2cMapEmpty,MitI2CMap(..),I2CReader(..),I2CAddress(..),i2cWrite,i2cWriteAdjust,i2cRead,BitValue(..))
-import Zug.Language (Anzeige(..),Sprache())
+import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..), i2cWrite, i2cWriteAdjust
+                        , i2cRead, BitValue(..))
+import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 
 {-
@@ -61,23 +58,23 @@ minI2CAddress VariantA = I2CAddress $ bit 5 .|. bit 4 .|. bit 3
 -- TODO: Memoisieren?
 -- | Berechne die 'I2CAddress' eines /PCF8574/ anhand der variablen Address-Bits.
 toI2CAddress :: PCF8574 -> I2CAddress
-toI2CAddress PCF8574 {variant,a0,a1,a2} =
+toI2CAddress PCF8574 {variant, a0, a1, a2} =
     I2CAddress
     $ addFirstIfHigh a2 (bit 2)
     $ addFirstIfHigh a1 (bit 1)
     $ addFirstIfHigh a0 (bit 0)
     $ fromI2CAddress
     $ minI2CAddress variant
-  where
-    addFirstIfHigh :: Value -> Word8 -> Word8 -> Word8
-    addFirstIfHigh HIGH a b = a + b
-    addFirstIfHigh LOW _a b = b
+    where
+        addFirstIfHigh :: Value -> Word8 -> Word8 -> Word8
+        addFirstIfHigh HIGH a b = a + b
+        addFirstIfHigh LOW _a b = b
 
 -- | Variante des /PCF8574/ (beeinflusst 'I2CAddress')
 data PCF8574Variant
     = VariantNormal
     | VariantA
-    deriving (Show,Read,Eq,Ord,Bounded,Enum)
+    deriving (Show, Read, Eq, Ord, Bounded, Enum)
 
 instance Anzeige PCF8574Variant where
     anzeige :: PCF8574Variant -> Sprache -> Text
@@ -90,19 +87,19 @@ data PCF8574 =
     { variant :: PCF8574Variant
     , a0, a1, a2 :: Value
     }
-    deriving (Eq,Ord)
+    deriving (Eq, Ord)
 
 instance Show PCF8574 where
     show :: PCF8574 -> String
-    show PCF8574 {variant,a0,a1,a2} =
+    show PCF8574 {variant, a0, a1, a2} =
         "PCF8574"
         ++ if variant == VariantA
             then "A"
             else "" ++ [showAddress a0, showAddress a1, showAddress a2]
-      where
-        showAddress :: Value -> Char
-        showAddress HIGH = 'H'
-        showAddress LOW = 'L'
+        where
+            showAddress :: Value -> Char
+            showAddress HIGH = 'H'
+            showAddress LOW = 'L'
 
 instance Anzeige PCF8574
 
@@ -121,17 +118,17 @@ instance Read PCF8574 where
             ReadP.char '-'
             pure variant
         PCF8574 variant <$> parseValue <*> parseValue <*> parseValue
-      where
-        parseA :: ReadP PCF8574Variant
-        parseA = ReadP.get >>= \case
-            'A' -> pure VariantA
-            _fail -> ReadP.pfail
+        where
+            parseA :: ReadP PCF8574Variant
+            parseA = ReadP.get >>= \case
+                'A' -> pure VariantA
+                _fail -> ReadP.pfail
 
-        parseValue :: ReadPrec Value
-        parseValue = ReadPrec.get >>= \case
-            'H' -> pure HIGH
-            'L' -> pure LOW
-            _fail -> ReadPrec.pfail
+            parseValue :: ReadPrec Value
+            parseValue = ReadPrec.get >>= \case
+                'H' -> pure HIGH
+                'L' -> pure LOW
+                _fail -> ReadPrec.pfail
 
     readListPrec :: ReadPrec [PCF8574]
     readListPrec = readListPrecDefault
@@ -158,42 +155,42 @@ data PCF8574Port =
     { pcf8574 :: PCF8574
     , port :: Word8
     }
-    deriving (Eq,Ord)
+    deriving (Eq, Ord)
 
 instance Show PCF8574Port where
     show :: PCF8574Port -> String
-    show PCF8574Port {pcf8574,port} = show pcf8574 ++ ('-' : show port)
+    show PCF8574Port {pcf8574, port} = show pcf8574 ++ ('-' : show port)
 
 instance Anzeige PCF8574Port
 
 instance Read PCF8574Port where
     readPrec :: ReadPrec PCF8574Port
     readPrec = PCF8574Port <$> (readPrec :: ReadPrec PCF8574) <*> parsePort
-      where
-        parsePort :: ReadPrec Word8
-        parsePort = do
-            ReadPrec.lift $ ReadP.char '-'
-            (Number number) <- lexP
-            case numberToInteger number >>= Just . fromInteger of
-                (Just n)
-                  | (n >= 0) || (n < numPorts) -> pure n
-                _fail -> ReadPrec.pfail
+        where
+            parsePort :: ReadPrec Word8
+            parsePort = do
+                ReadPrec.lift $ ReadP.char '-'
+                (Number number) <- lexP
+                case numberToInteger number >>= Just . fromInteger of
+                    (Just n)
+                        | (n >= 0) || (n < numPorts) -> pure n
+                    _fail -> ReadPrec.pfail
 
     readListPrec :: ReadPrec [PCF8574Port]
     readListPrec = readListPrecDefault
 
 -- | Wert einzelner Ports eines /PCF8574/ setzen
 pcf8574PortWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
-pcf8574PortWrite PCF8574Port {pcf8574,port} value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
-  where
-    bitValueFunktion :: BitValue -> BitValue
-    bitValueFunktion oldBitValue
-      | value == HIGH = oldBitValue .|. toBitValue port
-      | otherwise = oldBitValue .&. complement (toBitValue port)
+pcf8574PortWrite PCF8574Port {pcf8574, port} value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
+    where
+        bitValueFunktion :: BitValue -> BitValue
+        bitValueFunktion oldBitValue
+            | value == HIGH = oldBitValue .|. toBitValue port
+            | otherwise = oldBitValue .&. complement (toBitValue port)
 
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
 pcf8574PortRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
-pcf8574PortRead PCF8574Port {pcf8574,port} = do
+pcf8574PortRead PCF8574Port {pcf8574, port} = do
     fullBitValue <- pcf8574Read pcf8574
     pure
         $ if testBit fullBitValue $ fromIntegral port

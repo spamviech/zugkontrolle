@@ -7,16 +7,16 @@ Description : Ungeordnete Mengen.
 Mengen enthalten jedes Element höchstens einmal.
 Die Implementierung ist nicht effizient, dafür werden keine weiteren Anforderungen an die Elemente gestellt.
 -}
-module Zug.Menge (Menge(),leer,ausFoldable,hinzufügen,entfernen,mitglied,vereinigung,schnittmenge) where
+module Zug.Menge (Menge(), leer, ausFoldable, hinzufügen, entfernen, mitglied, vereinigung, schnittmenge) where
 
 -- Bibliotheken
 import Data.Foldable (Foldable(..))
-import Data.List (delete,union,intersect,nub)
+import Data.List (delete, union, intersect, nub)
 import Data.Text (Text)
 import qualified Data.Text as Text
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Anzeige(..),Sprache(),(<#>))
+import Zug.Language (Anzeige(..), Sprache(), (<#>))
 
 -- | Eine 'Menge' ist eine Sammlung an Elementen, bei denen jedes Element höchstens einmal vorkommt.
 newtype Menge a = Menge [a]
@@ -47,7 +47,7 @@ ausFoldable foldable = Menge $ nub $ toList foldable
 
 -- | Füge ein Element zu einer 'Menge' hinzu.
 hinzufügen :: (Eq a) => a -> Menge a -> Menge a
-hinzufügen a menge @ (Menge liste) =
+hinzufügen a menge@(Menge liste) =
     if mitglied a menge
         then menge
         else Menge $ a : liste

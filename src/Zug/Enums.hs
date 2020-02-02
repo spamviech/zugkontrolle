@@ -9,33 +9,33 @@
 Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer Weiche) repräsentieren.
 -}
 module Zug.Enums
-  (Zugtyp(..)
-  ,ZugtypEither(..)
-  ,ZugtypKlasse(..)
-  ,mapZugtypEither
-  ,ausZugtypEither
-  ,unterstützteZugtypen
-  ,Richtung(..)
-  ,unterstützteRichtungen
-  ,Fahrtrichtung(..)
-  ,unterstützteFahrtrichtungen
-  ,Strom(..)
-  ,unterstützteStromeinstellungen) where
+  ( Zugtyp(..)
+  , ZugtypEither(..)
+  , ZugtypKlasse(..)
+  , mapZugtypEither
+  , ausZugtypEither
+  , unterstützteZugtypen
+  , Richtung(..)
+  , unterstützteRichtungen
+  , Fahrtrichtung(..)
+  , unterstützteFahrtrichtungen
+  , Strom(..)
+  , unterstützteStromeinstellungen) where
 
 -- Bibliotheken
 import Data.Kind (Type)
-import Data.List.NonEmpty (NonEmpty(..),fromList)
+import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Text (Text)
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Language (Anzeige(..),Sprache())
+import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 
 -- | Zugtyp eines Elements
 data Zugtyp
     = Märklin
     | Lego
-    deriving (Eq,Show,Bounded,Enum)
+    deriving (Eq, Show, Bounded, Enum)
 
 -- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datentypen
 data ZugtypEither (a :: Zugtyp -> Type)
@@ -98,7 +98,7 @@ data Richtung
     | Kurve
     | Links
     | Rechts
-    deriving (Eq,Show,Bounded,Enum)
+    deriving (Eq, Show, Bounded, Enum)
 
 -- | Alle 'Richtung'en
 unterstützteRichtungen :: NonEmpty Richtung
@@ -116,7 +116,7 @@ instance Anzeige Richtung where
 data Fahrtrichtung
     = Vorwärts
     | Rückwärts
-    deriving (Eq,Show,Bounded,Enum)
+    deriving (Eq, Show, Bounded, Enum)
 
 -- | Alle 'Fahrtrichtung'en
 unterstützteFahrtrichtungen :: NonEmpty Fahrtrichtung
@@ -132,7 +132,7 @@ instance Anzeige Fahrtrichtung where
 data Strom
     = Fließend
     | Gesperrt
-    deriving (Eq,Show,Bounded,Enum)
+    deriving (Eq, Show, Bounded, Enum)
 
 -- | Anzeigen von 'Strom'
 instance Anzeige Strom where

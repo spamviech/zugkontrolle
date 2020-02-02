@@ -5,7 +5,15 @@
 Description :
 Single-Ended Queue mit O(1) 'anhängen' und amortisierter O(1) 'zeigeErstes'-Funktion.
 -}
-module Zug.Warteschlange (Warteschlange(),leer,einzelElement,vonListe,anhängen,zeigeErstes,zeigeLetztes,Anzeige(..)) where
+module Zug.Warteschlange
+  ( Warteschlange()
+  , leer
+  , einzelElement
+  , vonListe
+  , anhängen
+  , zeigeErstes
+  , zeigeLetztes
+  , Anzeige(..)) where
 
 -- Bibliotheken
 import Data.Foldable (toList)
@@ -52,7 +60,7 @@ vonListe ausgabe =
 
 -- | Hänge ein Element an eine 'Warteschlange' an. Effizienz ist O(1).
 anhängen :: a -> Warteschlange a -> Warteschlange a
-anhängen a Warteschlange {eingabe = e1,ausgabe} =
+anhängen a Warteschlange {eingabe = e1, ausgabe} =
     Warteschlange
     { eingabe = a : e1
     , ausgabe
@@ -60,8 +68,8 @@ anhängen a Warteschlange {eingabe = e1,ausgabe} =
 
 -- | Erhalte das erste Element und die Verbleibende 'Warteschlange'. Amortisierte Effizienz ist O(1).
 zeigeErstes :: Warteschlange a -> Anzeige a
-zeigeErstes Warteschlange {eingabe = [],ausgabe = []} = Leer
-zeigeErstes Warteschlange {eingabe,ausgabe = []} =
+zeigeErstes Warteschlange {eingabe = [], ausgabe = []} = Leer
+zeigeErstes Warteschlange {eingabe, ausgabe = []} =
     let (a:ausgabe) = reverse eingabe
     in Gefüllt
            a
@@ -69,7 +77,7 @@ zeigeErstes Warteschlange {eingabe,ausgabe = []} =
            { eingabe = []
            , ausgabe
            }
-zeigeErstes Warteschlange {eingabe,ausgabe = (h:t)} =
+zeigeErstes Warteschlange {eingabe, ausgabe = (h:t)} =
     Gefüllt
         h
         Warteschlange
@@ -80,15 +88,15 @@ zeigeErstes Warteschlange {eingabe,ausgabe = (h:t)} =
 -- | Erhalte das zuletzt hinzugefügte Element und die 'Warteschlange' vor hinzufügen des selben.
 -- Effizienz ist im schlimmsten Fall O(n).
 zeigeLetztes :: Warteschlange a -> Anzeige a
-zeigeLetztes Warteschlange {eingabe = [],ausgabe = []} = Leer
-zeigeLetztes Warteschlange {eingabe = [],ausgabe = a1} =
+zeigeLetztes Warteschlange {eingabe = [], ausgabe = []} = Leer
+zeigeLetztes Warteschlange {eingabe = [], ausgabe = a1} =
     Gefüllt
         (last a1)
         Warteschlange
         { eingabe = []
         , ausgabe = init a1
         }
-zeigeLetztes Warteschlange {eingabe = (h:t),ausgabe} =
+zeigeLetztes Warteschlange {eingabe = (h:t), ausgabe} =
     Gefüllt
         h
         Warteschlange
@@ -104,7 +112,7 @@ instance Foldable Warteschlange where
 
 instance Functor Warteschlange where
     fmap :: (a -> b) -> Warteschlange a -> Warteschlange b
-    fmap f Warteschlange {eingabe = e1,ausgabe = a1} =
+    fmap f Warteschlange {eingabe = e1, ausgabe = a1} =
         Warteschlange
         { eingabe = f <$> e1
         , ausgabe = f <$> a1

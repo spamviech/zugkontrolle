@@ -1,19 +1,17 @@
 {-|
 Description : Kommandozeilen-Optionen
 -}
-module Zug.Options (Options(..),getOptions,UI(..),alleUI,PWM(..),allePWMOptionen,Sprache(..),alleSprachen) where
+module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOptionen, Sprache(..), alleSprachen) where
 
 -- Bibliotheken
-import Control.Monad.Trans (MonadIO,liftIO)
-
+import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (unpack)
-
-import Options.Applicative (ParserInfo(),Parser(),execParser,info,helper,fullDesc,progDesc,header,infoOption,long,short
-                           ,help,switch,option,auto,metavar,showDefault,value,strOption)
+import Options.Applicative (ParserInfo(), Parser(), execParser, info, helper, fullDesc, progDesc, header, infoOption
+                          , long, short, help, switch, option, auto, metavar, showDefault, value, strOption)
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Sprache(..),alleSprachen)
+import Zug.Language (Sprache(..), alleSprachen)
 import qualified Zug.Language as Language
 
 -- | Erhalte Kommandozeilen-Argumente
@@ -56,7 +54,7 @@ printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe a
 data UI
     = Gtk
     | Cmd
-    deriving (Show,Read,Enum,Bounded,Eq)
+    deriving (Show, Read, Enum, Bounded, Eq)
 
 -- | Alle unterstützten UI-Optionen
 alleUI :: [UI]
@@ -86,7 +84,7 @@ ladeOpt =
 data PWM
     = SoftwarePWM
     | HardwarePWM
-    deriving (Show,Read,Enum,Bounded,Eq)
+    deriving (Show, Read, Enum, Bounded, Eq)
 
 -- | Alle unterstützten PWM-Optionen
 allePWMOptionen :: [PWM]

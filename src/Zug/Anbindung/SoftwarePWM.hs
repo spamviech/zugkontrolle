@@ -13,32 +13,29 @@ Dieses Modul bietet eine Implementierung in Software an.
 Im Gegensatz zu Hardware-basierter PWM, die nur von einigen Pins des Raspberry Pi unterstützt wird, ist diese mit allen Pins möglich.
 -}
 module Zug.Anbindung.SoftwarePWM
-  (-- * Map über aktuell laufende PWM-Ausgabe
-   PwmMap
-  ,pwmMapEmpty
-  ,MitPwmMap(..)
-  ,PwmReader(..)
-   -- * Aufruf der PWM-Funktionen
-  ,pwmSoftwareSetzteWert
-  ,pwmGrenze) where
+  ( -- * Map über aktuell laufende PWM-Ausgabe
+    PwmMap
+  , pwmMapEmpty
+  , MitPwmMap(..)
+  , PwmReader(..)
+    -- * Aufruf der PWM-Funktionen
+  , pwmSoftwareSetzteWert
+  , pwmGrenze) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (TVar,modifyTVar,readTVar,writeTVar,readTVarIO,atomically)
-import Control.Monad (void,when)
-import Control.Monad.Reader (ReaderT,asks)
+import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
+import Control.Monad (void, when)
+import Control.Monad.Reader (ReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as Map
 import Data.Maybe (isNothing)
-
 import Numeric.Natural (Natural)
-
-import System.Hardware.WiringPi (PwmValue(),Value(..))
+import System.Hardware.WiringPi (PwmValue(), Value(..))
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung.Anschluss (Anschluss(),anschlussWrite,MitI2CMap(),I2CReader(..))
-import Zug.Anbindung.Wartezeit (warte,Wartezeit(..),differenz,multiplizieren,dividieren)
+import Zug.Anbindung.Anschluss (Anschluss(), anschlussWrite, MitI2CMap(), I2CReader(..))
+import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), differenz, multiplizieren, dividieren)
 
 -- | Welche Pins haben aktuell Software-PWM
 type PwmMap = Map Anschluss (PwmValue, Natural)
@@ -66,18 +63,18 @@ pwmGrenze = 1024
 -- | Erhalte Zeit in µs, die der Strom während einer PWM-Periode (an, aus) ist.
 pwmBerechneZeiten :: Natural -> PwmValue -> (Wartezeit, Wartezeit)
 pwmBerechneZeiten pwmFrequenzHz pwmWert = (zeitAn, zeitAus)
-  where
-    zeitAn :: Wartezeit
-    zeitAn = dividieren (multiplizieren pwmPeriodendauer $ fromIntegral pwmWert) $ fromIntegral pwmGrenze
+    where
+        zeitAn :: Wartezeit
+        zeitAn = dividieren (multiplizieren pwmPeriodendauer $ fromIntegral pwmWert) $ fromIntegral pwmGrenze
 
-    zeitAus :: Wartezeit
-    zeitAus = differenz pwmPeriodendauer zeitAn
+        zeitAus :: Wartezeit
+        zeitAus = differenz pwmPeriodendauer zeitAn
 
-    µsInS :: Natural
-    µsInS = 1000000
+        µsInS :: Natural
+        µsInS = 1000000
 
-    pwmPeriodendauer :: Wartezeit
-    pwmPeriodendauer = MikroSekunden $ div µsInS pwmFrequenzHz
+        pwmPeriodendauer :: Wartezeit
+        pwmPeriodendauer = MikroSekunden $ div µsInS pwmFrequenzHz
 
 -- | Nutze Haskell-Module um ein Software-generiertes PWM-Signal zu erzeugen
 pwmSoftwareSetzteWert :: (PwmReader r m, MonadIO m) => Anschluss -> Natural -> PwmValue -> m ()
@@ -96,17 +93,17 @@ pwmSoftwareSetzteWert anschluss pwmFrequenz pwmWert = do
     --
     -- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Anschluss' in der übergebenen 'TVar' 'PwmMap' nicht mehr vorkommt.
 
-      where
-        pwmSoftwareAnschlussMain :: (MitPwmMap r, MitI2CMap r) => Anschluss -> ReaderT r IO ()
-        pwmSoftwareAnschlussMain anschluss = do
-            tvarPwmMap <- erhaltePwmMap
-            pwmMap <- liftIO $ readTVarIO tvarPwmMap
-            case Map.lookup anschluss pwmMap of
-                Nothing -> pure ()
-                (Just (pwmWert,pwmFrequenz)) -> do
-                    anschlussWrite anschluss HIGH
-                    let (zeitAn,zeitAus) = pwmBerechneZeiten pwmFrequenz pwmWert
-                    warte zeitAn
-                    anschlussWrite anschluss LOW
-                    warte zeitAus
-                    pwmSoftwareAnschlussMain anschluss
+        where
+            pwmSoftwareAnschlussMain :: (MitPwmMap r, MitI2CMap r) => Anschluss -> ReaderT r IO ()
+            pwmSoftwareAnschlussMain anschluss = do
+                tvarPwmMap <- erhaltePwmMap
+                pwmMap <- liftIO $ readTVarIO tvarPwmMap
+                case Map.lookup anschluss pwmMap of
+                    Nothing -> pure ()
+                    (Just (pwmWert, pwmFrequenz)) -> do
+                        anschlussWrite anschluss HIGH
+                        let (zeitAn, zeitAus) = pwmBerechneZeiten pwmFrequenz pwmWert
+                        warte zeitAn
+                        anschlussWrite anschluss LOW
+                        warte zeitAus
+                        pwmSoftwareAnschlussMain anschluss

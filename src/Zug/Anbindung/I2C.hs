@@ -12,29 +12,27 @@
 Description : Funktionen zur Verwendung der I2C-Schnittstelle
 -}
 module Zug.Anbindung.I2C
-  (-- * Map über aktuelle I2C-Kanäle
-   I2CMap
-  ,i2cMapEmpty
-  ,MitI2CMap(..)
-  ,I2CReader(..)
-   -- * Read-/Write-Aktionen
-  ,i2cWrite
-  ,i2cWriteAdjust
-  ,i2cRead
-  ,I2CAddress(..)
-  ,BitValue(..)) where
+  ( -- * Map über aktuelle I2C-Kanäle
+    I2CMap
+  , i2cMapEmpty
+  , MitI2CMap(..)
+  , I2CReader(..)
+    -- * Read-/Write-Aktionen
+  , i2cWrite
+  , i2cWriteAdjust
+  , i2cRead
+  , I2CAddress(..)
+  , BitValue(..)) where
 
-import Control.Concurrent (forkIO,ThreadId)
-import Control.Concurrent.STM (atomically,TVar,readTVarIO,writeTVar,modifyTVar)
+import Control.Concurrent (forkIO, ThreadId)
+import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
 import Control.Monad (void)
-import Control.Monad.Reader (MonadReader(..),ReaderT,runReaderT,asks)
+import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
-
-import Data.Bits (Bits,complement,zeroBits)
+import Data.Bits (Bits, complement, zeroBits)
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as Map
 import Data.Word (Word8)
-
 import Foreign.C.Types (CInt(..))
 
 -- | 'FileHandle' und aktuell gesetzter 'BitValue' eines I2C-Kanals
@@ -81,7 +79,7 @@ newtype I2CAddress =
     I2CAddress
     { fromI2CAddress :: Word8
     }
-    deriving (Eq,Ord)
+    deriving (Eq, Ord)
 
 instance Show I2CAddress where
     show :: I2CAddress -> String
@@ -92,7 +90,7 @@ newtype BitValue =
     BitValue
     { fromBitValue :: Word8
     }
-    deriving (Eq,Bits)
+    deriving (Eq, Bits)
 
 instance Show BitValue where
     show :: BitValue -> String
@@ -106,24 +104,24 @@ fullBitValue = complement zeroBits
 i2cWrite :: (I2CReader r m, MonadIO m) => I2CAddress -> BitValue -> m ()
 i2cWrite i2cAddress bitValue = do
     tvarI2CKanäle <- erhalteI2CMap
-    (fileHandle,_oldBitValue) <- i2cKanalLookup i2cAddress
+    (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress
     liftIO $ do
         atomically
             $ modifyTVar tvarI2CKanäle
-            $ Map.adjust (\(fileHandle,_oldBitValue) -> (fileHandle, bitValue)) i2cAddress
+            $ Map.adjust (\(fileHandle, _oldBitValue) -> (fileHandle, bitValue)) i2cAddress
         c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue $ bitValue
 
 -- | Ändere den geschriebenen 'BitValue' in einem I2C-Kanal.
 -- Die aktuelle Ausgabe wird über der übergebenen Funktion angepasst und neu gesetzt.
 i2cWriteAdjust :: (I2CReader r m, MonadIO m) => I2CAddress -> (BitValue -> BitValue) -> m ()
 i2cWriteAdjust i2cAddress bitValueFunktion = do
-    (_fileHandle,oldBitValue) <- i2cKanalLookup i2cAddress
+    (_fileHandle, oldBitValue) <- i2cKanalLookup i2cAddress
     i2cWrite i2cAddress (bitValueFunktion oldBitValue)
 
 -- | Lese den aktuellen Wert aus einem I2C-Kanal
 i2cRead :: (I2CReader r m, MonadIO m) => I2CAddress -> m BitValue
 i2cRead i2cAddress = do
-    (fileHandle,_setBitValue) <- i2cKanalLookup i2cAddress
+    (fileHandle, _setBitValue) <- i2cKanalLookup i2cAddress
     liftIO $ do
         c_result <- c_wiringPiI2CRead (fromFileHandle fileHandle)
         pure $ BitValue $ fromIntegral c_result
@@ -168,4 +166,5 @@ c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO ()
 c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
 -}
 #endif
+
 

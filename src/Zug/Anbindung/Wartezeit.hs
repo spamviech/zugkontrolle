@@ -5,15 +5,13 @@ Description: Stellt eine Funktion zur Verfügung einen Thread für eine bestimmt
 Im Gegensatz zu 'threadDelay' kommt es bei 0-Argumenten zu keinem divide-by-zero error.
 Außerdem wird ein 'Wartezeit'-Typ mit automatischer Einheiten-Konvertierung berietgestellt.
 -}
-module Zug.Anbindung.Wartezeit (warte,Wartezeit(..),addition,differenz,multiplizieren,dividieren) where
+module Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren) where
 
 -- Bibliotheken
 import Control.Concurrent (threadDelay)
 import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Semigroup (Semigroup(..))
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
@@ -42,7 +40,7 @@ data Wartezeit
     | Minuten Natural
     | Stunden Natural
     | Tage Natural
-    deriving (Read,Show)
+    deriving (Read, Show)
 
 instance Anzeige Wartezeit
 
@@ -161,58 +159,58 @@ addition = (<>)
 -- | Berechne den Betrag der differenz zwischen zwei 'Wartezeit'en.
 differenz :: Wartezeit -> Wartezeit -> Wartezeit
 differenz t1 t2
-  | t1 > t2 = differenzAux t1 t2
-  | otherwise = differenzAux t2 t1
-  where
-    differenzAux (NanoSekunden ns1) (NanoSekunden ns2) = NanoSekunden $ (-) ns1 ns2
-    differenzAux (NanoSekunden ns) (MikroSekunden µs) = NanoSekunden $ (-) ns $ nsInµs * µs
-    differenzAux (NanoSekunden ns) (MilliSekunden ms) = NanoSekunden $ (-) ns $ nsInms * ms
-    differenzAux (NanoSekunden ns) (Sekunden s) = NanoSekunden $ (-) ns $ nsInS * s
-    differenzAux (NanoSekunden ns) (Minuten min) = NanoSekunden $ (-) ns $ nsInMin * min
-    differenzAux (NanoSekunden ns) (Stunden h) = NanoSekunden $ (-) ns $ nsInH * h
-    differenzAux (NanoSekunden ns) (Tage d) = NanoSekunden $ (-) ns $ nsInD * d
-    differenzAux (MikroSekunden µs) (NanoSekunden ns) = MikroSekunden $ (-) (nsInµs * µs) ns
-    differenzAux (MikroSekunden µs1) (MikroSekunden µs2) = MikroSekunden $ (-) µs1 µs2
-    differenzAux (MikroSekunden µs) (MilliSekunden ms) = MikroSekunden $ (-) µs $ µsInms * ms
-    differenzAux (MikroSekunden µs) (Sekunden s) = MikroSekunden $ (-) µs $ µsInS * s
-    differenzAux (MikroSekunden µs) (Minuten min) = MikroSekunden $ (-) µs $ µsInMin * min
-    differenzAux (MikroSekunden µs) (Stunden h) = MikroSekunden $ (-) µs $ µsInH * h
-    differenzAux (MikroSekunden µs) (Tage d) = MikroSekunden $ (-) µs $ µsInD * d
-    differenzAux (MilliSekunden ms) (NanoSekunden ns) = NanoSekunden $ (-) (nsInms * ms) ns
-    differenzAux (MilliSekunden ms) (MikroSekunden µs) = MikroSekunden $ (-) (µsInms * ms) µs
-    differenzAux (MilliSekunden ms1) (MilliSekunden ms2) = MilliSekunden $ (-) ms1 ms2
-    differenzAux (MilliSekunden ms) (Sekunden s) = MilliSekunden $ (-) ms $ msInS * s
-    differenzAux (MilliSekunden ms) (Minuten min) = MilliSekunden $ (-) ms $ msInMin * min
-    differenzAux (MilliSekunden ms) (Stunden h) = MilliSekunden $ (-) ms $ msInH * h
-    differenzAux (MilliSekunden ms) (Tage d) = MilliSekunden $ (-) ms $ msInD * d
-    differenzAux (Sekunden s) (NanoSekunden ns) = NanoSekunden $ (-) (nsInS * s) ns
-    differenzAux (Sekunden s) (MikroSekunden µs) = MikroSekunden $ (-) (µsInS * s) µs
-    differenzAux (Sekunden s) (MilliSekunden ms) = MilliSekunden $ (-) (msInS * s) ms
-    differenzAux (Sekunden s1) (Sekunden s2) = Sekunden $ (-) s1 s2
-    differenzAux (Sekunden s) (Minuten min) = Sekunden $ (-) s $ sInMin * min
-    differenzAux (Sekunden s) (Stunden h) = Sekunden $ (-) s $ sInH * h
-    differenzAux (Sekunden s) (Tage d) = Sekunden $ (-) s $ sInD * d
-    differenzAux (Minuten min) (NanoSekunden ns) = NanoSekunden $ (-) (nsInMin * min) ns
-    differenzAux (Minuten min) (MikroSekunden µs) = MikroSekunden $ (-) (µsInMin * min) µs
-    differenzAux (Minuten min) (MilliSekunden ms) = MilliSekunden $ (-) (msInMin * min) ms
-    differenzAux (Minuten min) (Sekunden s) = Sekunden $ (-) (sInMin * min) s
-    differenzAux (Minuten min1) (Minuten min2) = Minuten $ (-) min1 min2
-    differenzAux (Minuten min) (Stunden h) = Minuten $ (-) min $ minInH * h
-    differenzAux (Minuten min) (Tage d) = Minuten $ (-) min $ minInD * d
-    differenzAux (Stunden h) (NanoSekunden ns) = NanoSekunden $ (-) (nsInH * h) ns
-    differenzAux (Stunden h) (MikroSekunden µs) = MikroSekunden $ (-) (µsInH * h) µs
-    differenzAux (Stunden h) (MilliSekunden ms) = MilliSekunden $ (-) (msInH * h) ms
-    differenzAux (Stunden h) (Sekunden s) = Sekunden $ (-) (sInH * h) s
-    differenzAux (Stunden h) (Minuten min) = Minuten $ (-) (minInH * h) min
-    differenzAux (Stunden h1) (Stunden h2) = Stunden $ (-) h1 h2
-    differenzAux (Stunden h) (Tage d) = Stunden $ (-) h $ hInD * d
-    differenzAux (Tage d) (NanoSekunden ns) = NanoSekunden $ (-) (nsInD * d) ns
-    differenzAux (Tage d) (MikroSekunden µs) = MikroSekunden $ (-) (µsInD * d) µs
-    differenzAux (Tage d) (MilliSekunden ms) = MilliSekunden $ (-) (msInD * d) ms
-    differenzAux (Tage d) (Sekunden s) = Sekunden $ (-) (sInD * d) s
-    differenzAux (Tage d) (Minuten min) = Minuten $ (-) (minInD * d) min
-    differenzAux (Tage d) (Stunden h) = Stunden $ (-) (hInD * d) h
-    differenzAux (Tage d1) (Tage d2) = Tage $ (-) d1 d2
+    | t1 > t2 = differenzAux t1 t2
+    | otherwise = differenzAux t2 t1
+    where
+        differenzAux (NanoSekunden ns1) (NanoSekunden ns2) = NanoSekunden $ (-) ns1 ns2
+        differenzAux (NanoSekunden ns) (MikroSekunden µs) = NanoSekunden $ (-) ns $ nsInµs * µs
+        differenzAux (NanoSekunden ns) (MilliSekunden ms) = NanoSekunden $ (-) ns $ nsInms * ms
+        differenzAux (NanoSekunden ns) (Sekunden s) = NanoSekunden $ (-) ns $ nsInS * s
+        differenzAux (NanoSekunden ns) (Minuten min) = NanoSekunden $ (-) ns $ nsInMin * min
+        differenzAux (NanoSekunden ns) (Stunden h) = NanoSekunden $ (-) ns $ nsInH * h
+        differenzAux (NanoSekunden ns) (Tage d) = NanoSekunden $ (-) ns $ nsInD * d
+        differenzAux (MikroSekunden µs) (NanoSekunden ns) = MikroSekunden $ (-) (nsInµs * µs) ns
+        differenzAux (MikroSekunden µs1) (MikroSekunden µs2) = MikroSekunden $ (-) µs1 µs2
+        differenzAux (MikroSekunden µs) (MilliSekunden ms) = MikroSekunden $ (-) µs $ µsInms * ms
+        differenzAux (MikroSekunden µs) (Sekunden s) = MikroSekunden $ (-) µs $ µsInS * s
+        differenzAux (MikroSekunden µs) (Minuten min) = MikroSekunden $ (-) µs $ µsInMin * min
+        differenzAux (MikroSekunden µs) (Stunden h) = MikroSekunden $ (-) µs $ µsInH * h
+        differenzAux (MikroSekunden µs) (Tage d) = MikroSekunden $ (-) µs $ µsInD * d
+        differenzAux (MilliSekunden ms) (NanoSekunden ns) = NanoSekunden $ (-) (nsInms * ms) ns
+        differenzAux (MilliSekunden ms) (MikroSekunden µs) = MikroSekunden $ (-) (µsInms * ms) µs
+        differenzAux (MilliSekunden ms1) (MilliSekunden ms2) = MilliSekunden $ (-) ms1 ms2
+        differenzAux (MilliSekunden ms) (Sekunden s) = MilliSekunden $ (-) ms $ msInS * s
+        differenzAux (MilliSekunden ms) (Minuten min) = MilliSekunden $ (-) ms $ msInMin * min
+        differenzAux (MilliSekunden ms) (Stunden h) = MilliSekunden $ (-) ms $ msInH * h
+        differenzAux (MilliSekunden ms) (Tage d) = MilliSekunden $ (-) ms $ msInD * d
+        differenzAux (Sekunden s) (NanoSekunden ns) = NanoSekunden $ (-) (nsInS * s) ns
+        differenzAux (Sekunden s) (MikroSekunden µs) = MikroSekunden $ (-) (µsInS * s) µs
+        differenzAux (Sekunden s) (MilliSekunden ms) = MilliSekunden $ (-) (msInS * s) ms
+        differenzAux (Sekunden s1) (Sekunden s2) = Sekunden $ (-) s1 s2
+        differenzAux (Sekunden s) (Minuten min) = Sekunden $ (-) s $ sInMin * min
+        differenzAux (Sekunden s) (Stunden h) = Sekunden $ (-) s $ sInH * h
+        differenzAux (Sekunden s) (Tage d) = Sekunden $ (-) s $ sInD * d
+        differenzAux (Minuten min) (NanoSekunden ns) = NanoSekunden $ (-) (nsInMin * min) ns
+        differenzAux (Minuten min) (MikroSekunden µs) = MikroSekunden $ (-) (µsInMin * min) µs
+        differenzAux (Minuten min) (MilliSekunden ms) = MilliSekunden $ (-) (msInMin * min) ms
+        differenzAux (Minuten min) (Sekunden s) = Sekunden $ (-) (sInMin * min) s
+        differenzAux (Minuten min1) (Minuten min2) = Minuten $ (-) min1 min2
+        differenzAux (Minuten min) (Stunden h) = Minuten $ (-) min $ minInH * h
+        differenzAux (Minuten min) (Tage d) = Minuten $ (-) min $ minInD * d
+        differenzAux (Stunden h) (NanoSekunden ns) = NanoSekunden $ (-) (nsInH * h) ns
+        differenzAux (Stunden h) (MikroSekunden µs) = MikroSekunden $ (-) (µsInH * h) µs
+        differenzAux (Stunden h) (MilliSekunden ms) = MilliSekunden $ (-) (msInH * h) ms
+        differenzAux (Stunden h) (Sekunden s) = Sekunden $ (-) (sInH * h) s
+        differenzAux (Stunden h) (Minuten min) = Minuten $ (-) (minInH * h) min
+        differenzAux (Stunden h1) (Stunden h2) = Stunden $ (-) h1 h2
+        differenzAux (Stunden h) (Tage d) = Stunden $ (-) h $ hInD * d
+        differenzAux (Tage d) (NanoSekunden ns) = NanoSekunden $ (-) (nsInD * d) ns
+        differenzAux (Tage d) (MikroSekunden µs) = MikroSekunden $ (-) (µsInD * d) µs
+        differenzAux (Tage d) (MilliSekunden ms) = MilliSekunden $ (-) (msInD * d) ms
+        differenzAux (Tage d) (Sekunden s) = Sekunden $ (-) (sInD * d) s
+        differenzAux (Tage d) (Minuten min) = Minuten $ (-) (minInD * d) min
+        differenzAux (Tage d) (Stunden h) = Stunden $ (-) (hInD * d) h
+        differenzAux (Tage d1) (Tage d2) = Tage $ (-) d1 d2
 
 -- | Multipliziere eine 'Wartezeit' mit einem 'Natural'
 multiplizieren :: Wartezeit -> Natural -> Wartezeit

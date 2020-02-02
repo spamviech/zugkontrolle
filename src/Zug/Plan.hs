@@ -102,18 +102,18 @@ instance PlanKlasse Plan where
         liftIO $ do
             showAktion $ fromIntegral $ length plAktionen
             endAktion
-      where
-        ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
-        ausführenAux _i [] = do
-            tvarAusführend <- erhalteMengeAusführend
-            liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
-        ausführenAux i (h:t) = do
-            tvarAusführend <- erhalteMengeAusführend
-            ausführend <- liftIO $ readTVarIO tvarAusführend
-            when (Ausführend plan `elem` ausführend) $ do
-                liftIO $ showAktion i
-                ausführenAktion h
-                ausführenAux (succ i) t
+        where
+            ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
+            ausführenAux _i [] = do
+                tvarAusführend <- erhalteMengeAusführend
+                liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+            ausführenAux i (h:t) = do
+                tvarAusführend <- erhalteMengeAusführend
+                ausführend <- liftIO $ readTVarIO tvarAusführend
+                when (Ausführend plan `elem` ausführend) $ do
+                    liftIO $ showAktion i
+                    ausführenAktion h
+                    ausführenAux (succ i) t
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where

@@ -5,46 +5,43 @@
 Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichkeiten zur Verfügung.
 -}
 module Zug.Anbindung.Anschluss
-  (-- * Anschluss-Datentyp
-   Anschluss(..)
-  ,PCF8574Port(..)
-  ,PCF8574(..)
-  ,PCF8574Variant(..)
-  ,vonPin
-  ,zuPin
-  ,zuPinGpio
-  ,vonPinGpio
-  ,vonPCF8574Port
-  ,zuPCF8574Port
-   -- * Schreibe/Lese-Aktionen
-  ,Value(..)
-  ,anschlussWrite
-  ,anschlussRead
-  ,I2CMap
-  ,i2cMapEmpty
-  ,MitI2CMap(..)
-  ,I2CReader(..)) where
+  ( -- * Anschluss-Datentyp
+    Anschluss(..)
+  , PCF8574Port(..)
+  , PCF8574(..)
+  , PCF8574Variant(..)
+  , vonPin
+  , zuPin
+  , zuPinGpio
+  , vonPinGpio
+  , vonPCF8574Port
+  , zuPCF8574Port
+    -- * Schreibe/Lese-Aktionen
+  , Value(..)
+  , anschlussWrite
+  , anschlussRead
+  , I2CMap
+  , i2cMapEmpty
+  , MitI2CMap(..)
+  , I2CReader(..)) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Text (Text)
-
-import System.Hardware.WiringPi (Pin(..),Value(..),Mode(..),digitalWrite,digitalRead,pinToBcmGpio,pinMode)
-
-import Text.Read (Read(..),ReadPrec,readListPrecDefault)
+import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
+import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.PCF8574 (PCF8574Port(..),PCF8574(..),PCF8574Variant(..),pcf8574PortWrite,pcf8574PortRead,I2CMap
-                             ,i2cMapEmpty,MitI2CMap(..),I2CReader(..))
-import Zug.Language (Anzeige(..),Sprache(),showText)
+import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead
+                            , I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
+import Zug.Language (Anzeige(..), Sprache(), showText)
 
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss
     = AnschlussPin Pin
     | AnschlussPCF8574Port PCF8574Port
-    deriving (Eq,Show,Ord)
+    deriving (Eq, Show, Ord)
 
 instance Anzeige Anschluss where
     anzeige :: Anschluss -> Sprache -> Text

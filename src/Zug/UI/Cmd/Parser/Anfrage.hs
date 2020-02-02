@@ -9,53 +9,51 @@
 Description : Klasse und Typfamilie für unvollständige Objekte.
 -}
 module Zug.UI.Cmd.Parser.Anfrage
-  (-- * Unvollständige Befehle/Objekte
-   Anfrage(..)
-  ,zeigeAnfrageFehlgeschlagenStandard
-  ,anzeigeMitAnfrage
-  ,anzeigeMitAnfrageFehlgeschlagen
-  ,AnfrageFortsetzung(..)
-  ,verwendeAnfrageFortsetzung
-  ,($<<)
-  ,(.<<)
-  ,MitAnfrage(..)
-  ,AnfrageZugtyp(..)
-  ,AnfrageZugtypEither(..)
-  ,MitAnfrageZugtyp(..)
-  ,anfrageAktualisierenZugtyp
-   -- * Suche ein existierendes Objekt im Status
-  ,StatusAnfrageObjekt(..)
-  ,statusAnfrageObjekt
-  ,ObjektZugtyp(..)
-  ,StatusAnfrageObjektZugtyp(..)
-  ,statusAnfrageObjektZugtyp
-  ,zuObjekt
-   -- * Hilfsfunktionen
-  ,wähleBefehl
-  ,wähleRichtung
-  ,wähleValue
-  ,unbekanntShowText
-  ,wähleZwischenwert
-  ,wähleErgebnis) where
+  ( -- * Unvollständige Befehle/Objekte
+    Anfrage(..)
+  , zeigeAnfrageFehlgeschlagenStandard
+  , anzeigeMitAnfrage
+  , anzeigeMitAnfrageFehlgeschlagen
+  , AnfrageFortsetzung(..)
+  , verwendeAnfrageFortsetzung
+  , ($<<)
+  , (.<<)
+  , MitAnfrage(..)
+  , AnfrageZugtyp(..)
+  , AnfrageZugtypEither(..)
+  , MitAnfrageZugtyp(..)
+  , anfrageAktualisierenZugtyp
+    -- * Suche ein existierendes Objekt im Status
+  , StatusAnfrageObjekt(..)
+  , statusAnfrageObjekt
+  , ObjektZugtyp(..)
+  , StatusAnfrageObjektZugtyp(..)
+  , statusAnfrageObjektZugtyp
+  , zuObjekt
+    -- * Hilfsfunktionen
+  , wähleBefehl
+  , wähleRichtung
+  , wähleValue
+  , unbekanntShowText
+  , wähleZwischenwert
+  , wähleErgebnis) where
 
 import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
 import Data.Text (Text)
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung
-       (StreckenObjekt(..),Value(..),Bahngeschwindigkeit(),Streckenabschnitt(),Weiche(),Kupplung(),Wegstrecke())
-import Zug.Enums (Zugtyp(..),ZugtypEither(..),ZugtypKlasse(..),Richtung(..))
-import Zug.Language (Anzeige(..),($#),Sprache(),(<=>),(<^>),fehlerText)
+       (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(), Weiche(), Kupplung(), Wegstrecke())
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
+import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(..),Objekt)
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan())
 import Zug.UI.Base
-       (MStatusT,getPläne,getWegstrecken,getWeichen,getBahngeschwindigkeiten,getStreckenabschnitte,getKupplungen)
-
-import Zug.UI.Cmd.Lexer (EingabeToken(..),Token())
+       (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten, getStreckenabschnitte, getKupplungen)
+import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
 import qualified Zug.UI.Cmd.Lexer as Lexer
 
 -- | Unvollständige Befehle/Objekte stellen Funktionen bereit dem Nutzer anzuzeigen, was als nächstes zum vervollständigen benötigt wird.
@@ -165,7 +163,7 @@ data StatusAnfrageObjekt
     | SAOKupplung EingabeToken
     | SAOWegstrecke EingabeToken
     | SAOPlan EingabeToken
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance Anzeige StatusAnfrageObjekt where
     anzeige :: StatusAnfrageObjekt -> Sprache -> Text
@@ -231,7 +229,7 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
     | SAOZKupplung EingabeToken
     | SAOZWegstrecke EingabeToken
     | SAOZPlan EingabeToken
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance Anzeige (StatusAnfrageObjektZugtyp z) where
     anzeige :: StatusAnfrageObjektZugtyp z -> Sprache -> Text
@@ -269,7 +267,7 @@ statusAnfrageObjektZugtyp (SAOZPlan eingabe) = statusAnfrageObjektAux eingabe ge
 -- | Finde ein Objekt anhand seines Namens/Indizes
 statusAnfrageObjektAux
     :: (Monad m, StreckenObjekt a) => EingabeToken -> MStatusT m [a] -> (a -> Maybe o) -> MStatusT m (Either Text o)
-statusAnfrageObjektAux token @ EingabeToken {eingabe} getFromStatus konstruktor = do
+statusAnfrageObjektAux token@EingabeToken {eingabe} getFromStatus konstruktor = do
     objekte <- getFromStatus
     pure $ case findByNameOrIndex objekte token >>= konstruktor of
         Nothing -> Left eingabe
@@ -277,9 +275,9 @@ statusAnfrageObjektAux token @ EingabeToken {eingabe} getFromStatus konstruktor 
 
 -- | Element einer Liste anhand des Index oder Namens finden
 findByNameOrIndex :: (StreckenObjekt a) => [a] -> EingabeToken -> Maybe a
-findByNameOrIndex liste EingabeToken {eingabe,ganzzahl} = case ganzzahl of
+findByNameOrIndex liste EingabeToken {eingabe, ganzzahl} = case ganzzahl of
     (Just index)
-      | index >= 0, längerAls liste index -> Just $ liste !! fromIntegral index
+        | index >= 0, längerAls liste index -> Just $ liste !! fromIntegral index
     _maybeIndex -> listToMaybe $ filter ((== eingabe) . erhalteName) liste
 
 -- | Prüft, ob eine Liste mindestens von der Länge i ist, ohne die komplette Länge zu berechnen
@@ -292,9 +290,9 @@ längerAls (_h:t) i = längerAls t $ pred i
 -- Falls keine Möglichkeit passend ist, wird das Ersatz-Ergebnis zurückgegeben.
 wähleBefehl :: EingabeToken -> [(Token, a)] -> a -> a
 wähleBefehl _eingabe [] ersatz = ersatz
-wähleBefehl eingabe @ EingabeToken {möglichkeiten} ((befehl,ergebnis):t) ersatz
-  | elem befehl möglichkeiten = ergebnis
-  | otherwise = wähleBefehl eingabe t ersatz
+wähleBefehl eingabe@EingabeToken {möglichkeiten} ((befehl, ergebnis):t) ersatz
+    | elem befehl möglichkeiten = ergebnis
+    | otherwise = wähleBefehl eingabe t ersatz
 
 -- | Gebe (falls möglich) die zur Eingabe passende 'Richtung' zurück.
 wähleRichtung :: EingabeToken -> Maybe Richtung
@@ -341,13 +339,13 @@ data AnfrageFortsetzung a e
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
 wähleZwischenwert :: EingabeToken -> [(Token, a)] -> AnfrageFortsetzung a e
-wähleZwischenwert token @ EingabeToken {eingabe} liste =
-    wähleBefehl token (map (\(t,a) -> (t, AFZwischenwert a)) liste) $ AFFehler eingabe
+wähleZwischenwert token@EingabeToken {eingabe} liste =
+    wähleBefehl token (map (\(t, a) -> (t, AFZwischenwert a)) liste) $ AFFehler eingabe
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFErgebnis'
 wähleErgebnis :: EingabeToken -> [(Token, e)] -> AnfrageFortsetzung a e
-wähleErgebnis token @ EingabeToken {eingabe} liste =
-    wähleBefehl token (map (\(t,e) -> (t, AFErgebnis e)) liste) $ AFFehler eingabe
+wähleErgebnis token@EingabeToken {eingabe} liste =
+    wähleBefehl token (map (\(t, e) -> (t, AFErgebnis e)) liste) $ AFFehler eingabe
 
 -- | Komposition zweier Funktionen, die ein 'AnfrageFortsetzung' zurückgeben.
 verwendeAnfrageFortsetzung
@@ -355,7 +353,7 @@ verwendeAnfrageFortsetzung
 verwendeAnfrageFortsetzung wertFunktion _anfrageFunktion AFErgebnis {ergebnis} = wertFunktion ergebnis
 verwendeAnfrageFortsetzung _wertFunktion anfrageFunktion AFZwischenwert {anfrage} =
     AFZwischenwert $ anfrageFunktion anfrage
-verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrage {anfrageObjekt,konstruktor} =
+verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrage {anfrageObjekt, konstruktor} =
     AFStatusAnfrage
     { anfrageObjekt
     , konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor
@@ -363,12 +361,12 @@ verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrage {anfrage
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
-    AFStatusAnfrageMärklin {anfrageObjektMärklin,konstruktorMärklin} =
+    AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} =
     AFStatusAnfrageMärklin
     { anfrageObjektMärklin
     , konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin
     }
-verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrageLego {anfrageObjektLego,konstruktorLego} =
+verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} =
     AFStatusAnfrageLego
     { anfrageObjektLego
     , konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego
@@ -383,7 +381,7 @@ infixr 0 $<<
 -- | Wende eine Funktion auf das Ergebnis einer 'AnfrageFortsetzung' an.
 -- Alternativ wird der Anfrage-Typ konvertiert.
 ($<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
-(wertFunktion,anfrageFunktion)
+(wertFunktion, anfrageFunktion)
     $<< anfrageErgebnis = verwendeAnfrageFortsetzung wertFunktion anfrageFunktion anfrageErgebnis
 
 infixr 9 .<<

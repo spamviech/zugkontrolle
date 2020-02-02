@@ -14,47 +14,44 @@
 Description: Parsen von 'StreckenObjekt'en
 -}
 module Zug.UI.Cmd.Parser.StreckenObjekt
-  (-- * Hilfstypen
-   AnfrageZugtyp(..)
-  ,AnfrageZugtypEither(..)
-  ,AnfrageAnschluss(..)
-   -- * StreckenObjekte
-   -- ** Bahngeschwindigkeit
-  ,AnfrageBahngeschwindigkeit(..)
-   -- ** Weiche
-  ,AnfrageWeiche(..)
-   -- ** Streckenabschnitt
-  ,AnfrageStreckenabschnitt(..)
-   -- ** Kupplung
-  ,AnfrageKupplung(..)
-   -- ** Wegstrecke
-  ,AnfrageWegstrecke(..)
-   -- ** Objekt
-  ,AnfrageObjekt(..)) where
+  ( -- * Hilfstypen
+    AnfrageZugtyp(..)
+  , AnfrageZugtypEither(..)
+  , AnfrageAnschluss(..)
+    -- * StreckenObjekte
+    -- ** Bahngeschwindigkeit
+  , AnfrageBahngeschwindigkeit(..)
+    -- ** Weiche
+  , AnfrageWeiche(..)
+    -- ** Streckenabschnitt
+  , AnfrageStreckenabschnitt(..)
+    -- ** Kupplung
+  , AnfrageKupplung(..)
+    -- ** Wegstrecke
+  , AnfrageWegstrecke(..)
+    -- ** Objekt
+  , AnfrageObjekt(..)) where
 
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as Text
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung
-       (Bahngeschwindigkeit(..),Streckenabschnitt(..),Weiche(..),WeicheKlasse(..),Kupplung(..),Wegstrecke(..)
-       ,Anschluss(..),Value(..),alleValues,PCF8574Port(..),PCF8574(..),PCF8574Variant(..),vonPinGpio)
-import Zug.Enums (Zugtyp(..),ZugtypEither(..),unterstützteZugtypen,Richtung(..),unterstützteRichtungen)
-import Zug.Language (Anzeige(..),Sprache(..),($#),(<^>),(<=>),(<->),toBefehlsString)
+       (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..), Kupplung(..), Wegstrecke(..)
+      , Anschluss(..), Value(..), alleValues, PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, Richtung(..), unterstützteRichtungen)
+import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
-import Zug.Objekt (Objekt,ObjektAllgemein(..))
-
-import Zug.UI.Cmd.Lexer (EingabeToken(..),leeresToken)
+import Zug.Objekt (Objekt, ObjektAllgemein(..))
+import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
-
 import Zug.UI.Cmd.Parser.Anfrage
-       (Anfrage(..),zeigeAnfrageFehlgeschlagenStandard,MitAnfrage(..),AnfrageZugtyp(..),AnfrageZugtypEither(..)
-       ,MitAnfrageZugtyp(..),anfrageAktualisierenZugtyp,AnfrageFortsetzung(..),($<<),wähleBefehl,wähleRichtung
-       ,wähleValue,wähleZwischenwert,StatusAnfrageObjektZugtyp(..),ObjektZugtyp(..))
+       (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..), AnfrageZugtyp(..), AnfrageZugtypEither(..)
+      , MitAnfrageZugtyp(..), anfrageAktualisierenZugtyp, AnfrageFortsetzung(..), ($<<), wähleBefehl, wähleRichtung
+      , wähleValue, wähleZwischenwert, StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..))
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
 
 -- | Unvollständiger 'Anschluss'
@@ -72,7 +69,7 @@ data AnfrageAnschluss
                                 Value                   -- ^ a0
                                 Value                   -- ^ a1
                                 Value                   -- ^ a2
-    deriving (Show,Eq)
+    deriving (Show, Eq)
 
 instance Anzeige AnfrageAnschluss where
     anzeige :: AnfrageAnschluss -> Sprache -> Text
@@ -122,15 +119,15 @@ instance Anfrage AnfrageAnschluss where
     zeigeAnfrage (APCF8574PortVariantA0A1A2 _variante _a0 _a1 _a2) = Language.port
 
     zeigeAnfrageFehlgeschlagen :: AnfrageAnschluss -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ APin eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@APin eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen anfrage @ (APCF8574PortVariant _variante) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(APCF8574PortVariant _variante) eingabe =
         zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
-    zeigeAnfrageFehlgeschlagen anfrage @ (APCF8574PortVariantA0 _variante _a0) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(APCF8574PortVariantA0 _variante _a0) eingabe =
         zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
-    zeigeAnfrageFehlgeschlagen anfrage @ (APCF8574PortVariantA0A1 _variante _a0 _a2) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(APCF8574PortVariantA0A1 _variante _a0 _a2) eingabe =
         zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.valueErwartet
-    zeigeAnfrageFehlgeschlagen anfrage @ (APCF8574PortVariantA0A1A2 _variante _a0 _a1 _a2) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(APCF8574PortVariantA0A1A2 _variante _a0 _a1 _a2) eingabe =
         zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
@@ -154,24 +151,24 @@ instance MitAnfrage Anschluss where
     anfrageAktualisieren :: AnfrageAnschluss -> EingabeToken -> AnfrageFortsetzung AnfrageAnschluss Anschluss
     anfrageAktualisieren AnfrageAnschluss token =
         wähleZwischenwert token [(Lexer.Pin, APin), (Lexer.PCF8574Port, APCF8574Port)]
-    anfrageAktualisieren APin EingabeToken {eingabe,ganzzahl} = case ganzzahl of
+    anfrageAktualisieren APin EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         (Just pin) -> AFErgebnis $ vonPinGpio pin
         Nothing -> AFFehler eingabe
     anfrageAktualisieren APCF8574Port token =
         wähleZwischenwert
             token
             [(Lexer.A, APCF8574PortVariant VariantA), (Lexer.Normal, APCF8574PortVariant VariantNormal)]
-    anfrageAktualisieren (APCF8574PortVariant variante) token @ EingabeToken {eingabe} = case wähleValue token of
+    anfrageAktualisieren (APCF8574PortVariant variante) token@EingabeToken {eingabe} = case wähleValue token of
         (Just a0) -> AFZwischenwert $ APCF8574PortVariantA0 variante a0
         Nothing -> AFFehler eingabe
-    anfrageAktualisieren (APCF8574PortVariantA0 variante a0) token @ EingabeToken {eingabe} = case wähleValue token of
+    anfrageAktualisieren (APCF8574PortVariantA0 variante a0) token@EingabeToken {eingabe} = case wähleValue token of
         (Just a1) -> AFZwischenwert $ APCF8574PortVariantA0A1 variante a0 a1
         Nothing -> AFFehler eingabe
-    anfrageAktualisieren (APCF8574PortVariantA0A1 variante a0 a1) token @ EingabeToken {eingabe} =
+    anfrageAktualisieren (APCF8574PortVariantA0A1 variante a0 a1) token@EingabeToken {eingabe} =
         case wähleValue token of
             (Just a2) -> AFZwischenwert $ APCF8574PortVariantA0A1A2 variante a0 a1 a2
             Nothing -> AFFehler eingabe
-    anfrageAktualisieren (APCF8574PortVariantA0A1A2 variant a0 a1 a2) EingabeToken {eingabe,ganzzahl} =
+    anfrageAktualisieren (APCF8574PortVariantA0A1A2 variant a0 a1 a2) EingabeToken {eingabe, ganzzahl} =
         case ganzzahl of
             (Just port) -> AFErgebnis
                 $ AnschlussPCF8574Port
@@ -270,12 +267,12 @@ instance Anfrage (AnfrageBahngeschwindigkeit z) where
         zeigeAnfrage abglFahrtrichtungsAnfrageAnschluss
 
     zeigeAnfrageFehlgeschlagen :: AnfrageBahngeschwindigkeit z -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ AMärklinBahngeschwindigkeitName {} eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@AMärklinBahngeschwindigkeitName {} eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen
         AMärklinBahngeschwindigkeitNameFließend {abgmGeschwindigkeitsAnfrageAnschluss}
         eingabe = zeigeAnfrageFehlgeschlagen abgmGeschwindigkeitsAnfrageAnschluss eingabe
-    zeigeAnfrageFehlgeschlagen anfrage @ ALegoBahngeschwindigkeitName {} eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@ALegoBahngeschwindigkeitName {} eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen ALegoBahngeschwindigkeitNameFließend {abglGeschwindigkeitsAnfrageAnschluss} eingabe =
         zeigeAnfrageFehlgeschlagen abglGeschwindigkeitsAnfrageAnschluss eingabe
@@ -322,26 +319,26 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
             [ (Lexer.HIGH, AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss)
             , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
     anfrageAktualisieren
-        anfrage @ (AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend geschwindigkeitsAnschluss)
+        anfrage@(AMärklinBahngeschwindigkeitNameFließend bgmName bgmFließend geschwindigkeitsAnschluss)
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren geschwindigkeitsAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
-        anfrageAnschlussVerwenden abgmGeschwindigkeitsAnfrageAnschluss =
-            anfrage
-            { abgmGeschwindigkeitsAnfrageAnschluss
-            }
-
-        anschlussVerwenden
-            :: Anschluss
-            -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'Märklin)
-        anschlussVerwenden bgmGeschwindigkeitsAnschluss =
-            AFErgebnis
-                MärklinBahngeschwindigkeit
-                { bgmName
-                , bgmFließend
-                , bgmGeschwindigkeitsAnschluss
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
+            anfrageAnschlussVerwenden abgmGeschwindigkeitsAnfrageAnschluss =
+                anfrage
+                { abgmGeschwindigkeitsAnfrageAnschluss
                 }
+
+            anschlussVerwenden
+                :: Anschluss
+                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'Märklin)
+            anschlussVerwenden bgmGeschwindigkeitsAnschluss =
+                AFErgebnis
+                    MärklinBahngeschwindigkeit
+                    { bgmName
+                    , bgmFließend
+                    , bgmGeschwindigkeitsAnschluss
+                    }
 
 instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
     type AnfrageTyp (Bahngeschwindigkeit 'Lego) = AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
@@ -358,48 +355,46 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
             token
             [ (Lexer.HIGH, ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss)
             , (Lexer.LOW, ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
-    anfrageAktualisieren
-        anfrage @ (ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
-        token =
+    anfrageAktualisieren anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren geschwindigkeitsAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
-        anfrageAnschlussVerwenden abglGeschwindigkeitsAnfrageAnschluss =
-            anfrage
-            { abglGeschwindigkeitsAnfrageAnschluss
-            }
-
-        anschlussVerwenden
-            :: Anschluss
-            -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
-        anschlussVerwenden anschluss =
-            AFZwischenwert
-            $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
-    anfrageAktualisieren
-        anfrage @ (ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-                       bglName
-                       bglFließend
-                       bglGeschwindigkeitsAnschluss
-                       fahrtrichtungsAnschluss)
-        token = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren fahrtrichtungsAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
-        anfrageAnschlussVerwenden abglFahrtrichtungsAnfrageAnschluss =
-            anfrage
-            { abglFahrtrichtungsAnfrageAnschluss
-            }
-
-        anschlussVerwenden
-            :: Anschluss
-            -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
-        anschlussVerwenden bglFahrtrichtungsAnschluss =
-            AFErgebnis
-                LegoBahngeschwindigkeit
-                { bglName
-                , bglFließend
-                , bglGeschwindigkeitsAnschluss
-                , bglFahrtrichtungsAnschluss
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
+            anfrageAnschlussVerwenden abglGeschwindigkeitsAnfrageAnschluss =
+                anfrage
+                { abglGeschwindigkeitsAnfrageAnschluss
                 }
+
+            anschlussVerwenden
+                :: Anschluss
+                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
+            anschlussVerwenden anschluss =
+                AFZwischenwert
+                $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit name fließend anschluss AnfrageAnschluss
+    anfrageAktualisieren
+        anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
+                     bglName
+                     bglFließend
+                     bglGeschwindigkeitsAnschluss
+                     fahrtrichtungsAnschluss)
+        token = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren fahrtrichtungsAnschluss token
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
+            anfrageAnschlussVerwenden abglFahrtrichtungsAnfrageAnschluss =
+                anfrage
+                { abglFahrtrichtungsAnfrageAnschluss
+                }
+
+            anschlussVerwenden
+                :: Anschluss
+                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Lego)
+            anschlussVerwenden bglFahrtrichtungsAnschluss =
+                AFErgebnis
+                    LegoBahngeschwindigkeit
+                    { bglName
+                    , bglFließend
+                    , bglGeschwindigkeitsAnschluss
+                    , bglFahrtrichtungsAnschluss
+                    }
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -412,7 +407,7 @@ data AnfrageStreckenabschnitt
           , astFließend :: Value
           , astStromAnfrageAnschluss :: AnfrageAnschluss
           }
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance Anzeige AnfrageStreckenabschnitt where
     anzeige :: AnfrageStreckenabschnitt -> Sprache -> Text
@@ -430,7 +425,7 @@ instance Anfrage AnfrageStreckenabschnitt where
     zeigeAnfrage AStreckenabschnittNameFließend {astStromAnfrageAnschluss} = zeigeAnfrage astStromAnfrageAnschluss
 
     zeigeAnfrageFehlgeschlagen :: AnfrageStreckenabschnitt -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ AStreckenabschnittName {} eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@AStreckenabschnittName {} eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen AStreckenabschnittNameFließend {astStromAnfrageAnschluss} eingabe =
         zeigeAnfrageFehlgeschlagen astStromAnfrageAnschluss eingabe
@@ -456,23 +451,23 @@ instance MitAnfrage Streckenabschnitt where
             token
             [ (Lexer.HIGH, AStreckenabschnittNameFließend name HIGH AnfrageAnschluss)
             , (Lexer.LOW, AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
-    anfrageAktualisieren anfrage @ (AStreckenabschnittNameFließend stName stFließend stromAnschluss) token =
+    anfrageAktualisieren anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren stromAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageStreckenabschnitt
-        anfrageAnschlussVerwenden astStromAnfrageAnschluss =
-            anfrage
-            { astStromAnfrageAnschluss
-            }
-
-        anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageStreckenabschnitt Streckenabschnitt
-        anschlussVerwenden stromAnschluss =
-            AFErgebnis
-                Streckenabschnitt
-                { stName
-                , stFließend
-                , stromAnschluss
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageStreckenabschnitt
+            anfrageAnschlussVerwenden astStromAnfrageAnschluss =
+                anfrage
+                { astStromAnfrageAnschluss
                 }
+
+            anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageStreckenabschnitt Streckenabschnitt
+            anschlussVerwenden stromAnschluss =
+                AFErgebnis
+                    Streckenabschnitt
+                    { stName
+                    , stFließend
+                    , stromAnschluss
+                    }
 
 -- | Unvollständige 'Weiche'
 data AnfrageWeiche (z :: AnfrageZugtyp) where
@@ -571,7 +566,7 @@ instance Anfrage (AnfrageWeiche z) where
         ALegoWeicheNameFließendRichtungen {awelRichtungsAnfrageAnschluss} = zeigeAnfrage awelRichtungsAnfrageAnschluss
 
     zeigeAnfrageFehlgeschlagen :: AnfrageWeiche z -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ (AMärklinWeicheNameFließend _name _fließend) eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@(AMärklinWeicheNameFließend _name _fließend) eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen AMärklinWeicheNameFließendAnzahlRichtung {awemAnfrageAnschluss} eingabe =
         zeigeAnfrageFehlgeschlagen awemAnfrageAnschluss eingabe
@@ -610,37 +605,42 @@ instance MitAnfrage (Weiche 'Märklin) where
         wähleZwischenwert
             token
             [(Lexer.HIGH, AMärklinWeicheNameFließend name HIGH), (Lexer.LOW, AMärklinWeicheNameFließend name LOW)]
-    anfrageAktualisieren (AMärklinWeicheNameFließend name fließend) EingabeToken {eingabe,ganzzahl} =
+    anfrageAktualisieren (AMärklinWeicheNameFließend name fließend) EingabeToken {eingabe, ganzzahl} =
         case ganzzahl of
             Nothing -> AFFehler eingabe
             (Just anzahl) -> AFZwischenwert $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
-    anfrageAktualisieren (AMärklinWeicheNameFließendAnzahl name fließend anzahl acc) token @ EingabeToken {eingabe} =
+    anfrageAktualisieren (AMärklinWeicheNameFließendAnzahl name fließend anzahl acc) token@EingabeToken {eingabe} =
         case wähleRichtung token of
             Nothing -> AFFehler eingabe
             (Just richtung) -> AFZwischenwert
                 $ AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung AnfrageAnschluss
     anfrageAktualisieren
-        anfrage @ (AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung anfrageAnschluss)
+        anfrage@(AMärklinWeicheNameFließendAnzahlRichtung wemName wemFließend anzahl acc richtung anfrageAnschluss)
         token = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anfrageAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypMärklin
-        anfrageAnschlussVerwenden awemAnfrageAnschluss =
-            anfrage
-            { awemAnfrageAnschluss
-            }
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypMärklin
+            anfrageAnschlussVerwenden awemAnfrageAnschluss =
+                anfrage
+                { awemAnfrageAnschluss
+                }
 
-        anschlussVerwenden :: Anschluss -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
-        anschlussVerwenden anschluss
-          | anzahl > 1 =
-              AFZwischenwert
-              $ AMärklinWeicheNameFließendAnzahl wemName wemFließend (pred anzahl) ((richtung, anschluss) : acc)
-          | otherwise =
-              AFErgebnis
-                  MärklinWeiche
-                  { wemName
-                  , wemFließend
-                  , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
-                  }
+            anschlussVerwenden
+                :: Anschluss -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
+            anschlussVerwenden anschluss
+                | anzahl > 1 =
+                    AFZwischenwert
+                    $ AMärklinWeicheNameFließendAnzahl
+                        wemName
+                        wemFließend
+                        (pred anzahl)
+                        ((richtung, anschluss) : acc)
+                | otherwise =
+                    AFErgebnis
+                        MärklinWeiche
+                        { wemName
+                        , wemFließend
+                        , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
+                        }
 
 instance MitAnfrage (Weiche 'Lego) where
     type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
@@ -654,34 +654,34 @@ instance MitAnfrage (Weiche 'Lego) where
         wähleZwischenwert
             token
             [(Lexer.HIGH, ALegoWeicheNameFließend name HIGH), (Lexer.LOW, ALegoWeicheNameFließend name LOW)]
-    anfrageAktualisieren (ALegoWeicheNameFließend name fließend) token @ EingabeToken {eingabe} =
+    anfrageAktualisieren (ALegoWeicheNameFließend name fließend) token@EingabeToken {eingabe} =
         case wähleRichtung token of
             Nothing -> AFFehler eingabe
             (Just richtung1) -> AFZwischenwert $ ALegoWeicheNameFließendRichtung1 name fließend richtung1
-    anfrageAktualisieren (ALegoWeicheNameFließendRichtung1 name fließend richtung1) token @ EingabeToken {eingabe} =
+    anfrageAktualisieren (ALegoWeicheNameFließendRichtung1 name fließend richtung1) token@EingabeToken {eingabe} =
         case wähleRichtung token of
             Nothing -> AFFehler eingabe
             (Just richtung2) -> AFZwischenwert
                 $ ALegoWeicheNameFließendRichtungen name fließend richtung1 richtung2 AnfrageAnschluss
     anfrageAktualisieren
-        anfrage @ (ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2 anfrageAnschluss)
+        anfrage@(ALegoWeicheNameFließendRichtungen welName welFließend richtung1 richtung2 anfrageAnschluss)
         token = (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anfrageAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypLego
-        anfrageAnschlussVerwenden awelRichtungsAnfrageAnschluss =
-            anfrage
-            { awelRichtungsAnfrageAnschluss
-            }
-
-        anschlussVerwenden :: Anschluss -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypLego) (Weiche 'Lego)
-        anschlussVerwenden welRichtungsAnschluss =
-            AFErgebnis
-                LegoWeiche
-                { welName
-                , welFließend
-                , welRichtungsAnschluss
-                , welRichtungen = (richtung1, richtung2)
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypLego
+            anfrageAnschlussVerwenden awelRichtungsAnfrageAnschluss =
+                anfrage
+                { awelRichtungsAnfrageAnschluss
                 }
+
+            anschlussVerwenden :: Anschluss -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypLego) (Weiche 'Lego)
+            anschlussVerwenden welRichtungsAnschluss =
+                AFErgebnis
+                    LegoWeiche
+                    { welName
+                    , welFließend
+                    , welRichtungsAnschluss
+                    , welRichtungen = (richtung1, richtung2)
+                    }
 
 instance MitAnfrageZugtyp AnfrageWeiche where
     anfrageMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
@@ -701,7 +701,7 @@ data AnfrageKupplung
           , akuFließend :: Value
           , akuKupplungsAnfrageAnschluss :: AnfrageAnschluss
           }
-    deriving (Eq,Show)
+    deriving (Eq, Show)
 
 instance Anzeige AnfrageKupplung where
     anzeige :: AnfrageKupplung -> Sprache -> Text
@@ -719,7 +719,7 @@ instance Anfrage AnfrageKupplung where
     zeigeAnfrage AKupplungNameFließend {akuKupplungsAnfrageAnschluss} = zeigeAnfrage akuKupplungsAnfrageAnschluss
 
     zeigeAnfrageFehlgeschlagen :: AnfrageKupplung -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage @ AKupplungName {} eingabe =
+    zeigeAnfrageFehlgeschlagen anfrage@AKupplungName {} eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen AKupplungNameFließend {akuKupplungsAnfrageAnschluss} eingabe =
         zeigeAnfrageFehlgeschlagen akuKupplungsAnfrageAnschluss eingabe
@@ -743,23 +743,23 @@ instance MitAnfrage Kupplung where
             token
             [ (Lexer.HIGH, AKupplungNameFließend name HIGH AnfrageAnschluss)
             , (Lexer.LOW, AKupplungNameFließend name LOW AnfrageAnschluss)]
-    anfrageAktualisieren anfrage @ (AKupplungNameFließend kuName kuFließend anfrageAnschluss) token =
+    anfrageAktualisieren anfrage@(AKupplungNameFließend kuName kuFließend anfrageAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anfrageAnschluss token
-      where
-        anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageKupplung
-        anfrageAnschlussVerwenden akuKupplungsAnfrageAnschluss =
-            anfrage
-            { akuKupplungsAnfrageAnschluss
-            }
-
-        anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageKupplung Kupplung
-        anschlussVerwenden kupplungsAnschluss =
-            AFErgebnis
-                Kupplung
-                { kuName
-                , kuFließend
-                , kupplungsAnschluss
+        where
+            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageKupplung
+            anfrageAnschlussVerwenden akuKupplungsAnfrageAnschluss =
+                anfrage
+                { akuKupplungsAnfrageAnschluss
                 }
+
+            anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageKupplung Kupplung
+            anschlussVerwenden kupplungsAnschluss =
+                AFErgebnis
+                    Kupplung
+                    { kuName
+                    , kuFließend
+                    , kupplungsAnschluss
+                    }
 
 class AnfrageZugtypKlasse (z :: AnfrageZugtyp) where
     type FixerZugtyp z :: Zugtyp
@@ -871,9 +871,9 @@ anfrageWegstreckeAktualisieren
     => AnfrageWegstrecke z
     -> EingabeToken
     -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
-anfrageWegstreckeAktualisieren anfrage @ AnfrageWegstreckeZugtyp _token = AFZwischenwert anfrage
+anfrageWegstreckeAktualisieren anfrage@AnfrageWegstreckeZugtyp _token = AFZwischenwert anfrage
 anfrageWegstreckeAktualisieren AnfrageWegstrecke EingabeToken {eingabe} = AFZwischenwert $ AWegstreckeName eingabe
-anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe,ganzzahl} = case ganzzahl of
+anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, ganzzahl} = case ganzzahl of
     Nothing -> AFFehler eingabe
     (Just anzahl) -> AFZwischenwert
         $ AWegstreckeNameAnzahl
@@ -886,91 +886,94 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe,ga
             }
             anzahl
 anfrageWegstreckeAktualisieren
-    anfrage @ (AWegstreckeNameAnzahl acc anzahl)
+    anfrage@(AWegstreckeNameAnzahl acc anzahl)
     token = case anfrageWegstreckenElement token of
     (AWSEUnbekannt eingabe) -> AFFehler eingabe
     AWSEWeiche -> AFZwischenwert $ AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
     AWSEBahngeschwindigkeit -> AFZwischenwert $ AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
     AWSEStreckenabschnitt -> AFZwischenwert $ AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
     AWSEKupplung -> AFZwischenwert $ AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
-  where
-    anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
-    anfrageWegstreckenElement token @ EingabeToken {eingabe} =
-        wähleBefehl
-            token
-            [ (Lexer.Weiche, AWSEWeiche)
-            , (Lexer.Bahngeschwindigkeit, AWSEBahngeschwindigkeit)
-            , (Lexer.Streckenabschnitt, AWSEStreckenabschnitt)
-            , (Lexer.Kupplung, AWSEKupplung)]
-        $ AWSEUnbekannt eingabe
+    where
+        anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
+        anfrageWegstreckenElement token@EingabeToken {eingabe} =
+            wähleBefehl
+                token
+                [ (Lexer.Weiche, AWSEWeiche)
+                , (Lexer.Bahngeschwindigkeit, AWSEBahngeschwindigkeit)
+                , (Lexer.Streckenabschnitt, AWSEStreckenabschnitt)
+                , (Lexer.Kupplung, AWSEKupplung)]
+            $ AWSEUnbekannt eingabe
 
-    eitherObjektAnhängen
-        :: Wegstrecke (FixerZugtyp z)
-        -> Either (ObjektZugtyp (FixerZugtyp z)
-                   -> (AnfrageWegstrecke z)) (ObjektZugtyp (FixerZugtyp z) -> (Wegstrecke (FixerZugtyp z)))
-    eitherObjektAnhängen wegstrecke
-      | anzahl > 1 = Left $ anfrageObjektAnhängen wegstrecke
-      | otherwise = Right $ objektAnhängen wegstrecke
+        eitherObjektAnhängen
+            :: Wegstrecke (FixerZugtyp z)
+            -> Either (ObjektZugtyp (FixerZugtyp z)
+                       -> (AnfrageWegstrecke z)) (ObjektZugtyp (FixerZugtyp z) -> (Wegstrecke (FixerZugtyp z)))
+        eitherObjektAnhängen wegstrecke
+            | anzahl > 1 = Left $ anfrageObjektAnhängen wegstrecke
+            | otherwise = Right $ objektAnhängen wegstrecke
 
-    objektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> Wegstrecke z
-    objektAnhängen wegstrecke @ Wegstrecke {wsBahngeschwindigkeiten} (OZBahngeschwindigkeit bahngeschwindigkeit) =
-        wegstrecke
-        { wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten
-        }
-    objektAnhängen wegstrecke @ Wegstrecke {wsStreckenabschnitte} (OZStreckenabschnitt streckenabschnitt) =
-        wegstrecke
-        { wsStreckenabschnitte = streckenabschnitt : wsStreckenabschnitte
-        }
-    objektAnhängen wegstrecke @ Wegstrecke {wsKupplungen} (OZKupplung kupplung) =
-        wegstrecke
-        { wsKupplungen = kupplung : wsKupplungen
-        }
-    -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
-    objektAnhängen wegstrecke objekt =
-        error $ "Unbekanntes Objekt zum anhängen an Wegstrecke (" ++ show wegstrecke ++ ") erhalten: " ++ show objekt
+        objektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> Wegstrecke z
+        objektAnhängen wegstrecke@Wegstrecke {wsBahngeschwindigkeiten} (OZBahngeschwindigkeit bahngeschwindigkeit) =
+            wegstrecke
+            { wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten
+            }
+        objektAnhängen wegstrecke@Wegstrecke {wsStreckenabschnitte} (OZStreckenabschnitt streckenabschnitt) =
+            wegstrecke
+            { wsStreckenabschnitte = streckenabschnitt : wsStreckenabschnitte
+            }
+        objektAnhängen wegstrecke@Wegstrecke {wsKupplungen} (OZKupplung kupplung) =
+            wegstrecke
+            { wsKupplungen = kupplung : wsKupplungen
+            }
+        -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
+        objektAnhängen wegstrecke objekt =
+            error
+            $ "Unbekanntes Objekt zum anhängen an Wegstrecke (" ++ show wegstrecke ++ ") erhalten: " ++ show objekt
 
-    anfrageObjektAnhängen :: Wegstrecke (FixerZugtyp z) -> ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
-    anfrageObjektAnhängen wegstrecke objekt = AWegstreckeNameAnzahl (objektAnhängen wegstrecke objekt) $ pred anzahl
+        anfrageObjektAnhängen :: Wegstrecke (FixerZugtyp z) -> ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
+        anfrageObjektAnhängen wegstrecke objekt =
+            AWegstreckeNameAnzahl (objektAnhängen wegstrecke objekt) $ pred anzahl
 
-    anfrageWeicheAnhängen :: AnfrageWegstrecke z -> ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
-    anfrageWeicheAnhängen (AWegstreckeNameAnzahl wegstrecke anzahl) (OZWeiche weiche) =
-        AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
-    anfrageWeicheAnhängen anfrageWegstrecke objekt =
-        error
-        $ "Unbekanntes Objekt zum anhängen einer Weiche an AnfrageWegstrecke ("
-        ++ show anfrageWegstrecke
-        ++ ") erhalten: "
-        ++ show objekt
+        anfrageWeicheAnhängen :: AnfrageWegstrecke z -> ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
+        anfrageWeicheAnhängen (AWegstreckeNameAnzahl wegstrecke anzahl) (OZWeiche weiche) =
+            AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
+        anfrageWeicheAnhängen anfrageWegstrecke objekt =
+            error
+            $ "Unbekanntes Objekt zum anhängen einer Weiche an AnfrageWegstrecke ("
+            ++ show anfrageWegstrecke
+            ++ ") erhalten: "
+            ++ show objekt
 anfrageWegstreckeAktualisieren (AWSStatusAnfrage anfrageKonstruktor (Left zwischenwertKonstruktor)) token =
     afStatusAnfrage (anfrageKonstruktor token) $ AFZwischenwert . zwischenwertKonstruktor
 anfrageWegstreckeAktualisieren (AWSStatusAnfrage anfrageKonstruktor (Right konstruktor)) token =
     afStatusAnfrage (anfrageKonstruktor token) $ AFErgebnis . konstruktor
 anfrageWegstreckeAktualisieren
-    anfrage @ (AWegstreckeNameAnzahlWeicheRichtung Wegstrecke {} anzahl weiche)
-    token @ EingabeToken {eingabe} = case wähleRichtung token of
+    anfrage@(AWegstreckeNameAnzahlWeicheRichtung Wegstrecke {} anzahl weiche)
+    token@EingabeToken {eingabe} = case wähleRichtung token of
     (Just richtung)
-      | hatRichtung weiche richtung -> eitherWeicheRichtungAnhängen anfrage richtung
+        | hatRichtung weiche richtung -> eitherWeicheRichtungAnhängen anfrage richtung
     _otherwise -> AFFehler eingabe
-  where
-    eitherWeicheRichtungAnhängen
-        :: AnfrageWegstrecke z -> Richtung -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
-    eitherWeicheRichtungAnhängen anfrageWegstrecke richtung
-      | anzahl > 1 = AFZwischenwert $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
-      | otherwise = AFErgebnis $ weicheRichtungAnhängen anfrageWegstrecke richtung
+    where
+        eitherWeicheRichtungAnhängen
+            :: AnfrageWegstrecke z -> Richtung -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
+        eitherWeicheRichtungAnhängen anfrageWegstrecke richtung
+            | anzahl > 1 = AFZwischenwert $ qWeicheRichtungAnhängen anfrageWegstrecke richtung
+            | otherwise = AFErgebnis $ weicheRichtungAnhängen anfrageWegstrecke richtung
 
-    qWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> AnfrageWegstrecke z
-    qWeicheRichtungAnhängen anfrageWegstrecke richtung =
-        AWegstreckeNameAnzahl (weicheRichtungAnhängen anfrageWegstrecke richtung) $ pred anzahl
+        qWeicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> AnfrageWegstrecke z
+        qWeicheRichtungAnhängen anfrageWegstrecke richtung =
+            AWegstreckeNameAnzahl (weicheRichtungAnhängen anfrageWegstrecke richtung) $ pred anzahl
 
-    weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Wegstrecke (FixerZugtyp z)
-    weicheRichtungAnhängen
-        AWegstreckeNameAnzahlWeicheRichtung {awsAkkumulator = wegstrecke @ Wegstrecke {wsWeichenRichtungen},awsWeiche}
-        richtung =
-        wegstrecke
-        { wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen
-        }
-    weicheRichtungAnhängen anfrageWegstrecke _richtung =
-        error $ "weicheRichtungAnhängen mit unerwarteter anfrageWegstrecke aufgerufen: " ++ show anfrageWegstrecke
+        weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Wegstrecke (FixerZugtyp z)
+        weicheRichtungAnhängen
+            AWegstreckeNameAnzahlWeicheRichtung
+            {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
+            richtung =
+            wegstrecke
+            { wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen
+            }
+        weicheRichtungAnhängen anfrageWegstrecke _richtung =
+            error $ "weicheRichtungAnhängen mit unerwarteter anfrageWegstrecke aufgerufen: " ++ show anfrageWegstrecke
 
 instance MitAnfrageZugtyp AnfrageWegstrecke where
     anfrageMärklin :: AnfrageWegstrecke 'AnfrageZugtypMärklin

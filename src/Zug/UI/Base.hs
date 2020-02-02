@@ -18,92 +18,91 @@
 Description : Grundlegende UI-Funktionen.
 -}
 module Zug.UI.Base
-  (-- * Zustands-Typ
-   Status
-  ,StatusAllgemein(..)
-  ,statusLeer
-  ,TVarMaps(..)
-  ,MitTVarMaps(..)
-  ,TVarMapsReader(..)
-  ,tvarMapsNeu
-  ,ReaderFamilie
-  ,ObjektReader
-  ,auswertenLeererIOStatus
-  ,liftIOStatus
+  ( -- * Zustands-Typ
+    Status
+  , StatusAllgemein(..)
+  , statusLeer
+  , TVarMaps(..)
+  , MitTVarMaps(..)
+  , TVarMapsReader(..)
+  , tvarMapsNeu
+  , ReaderFamilie
+  , ObjektReader
+  , auswertenLeererIOStatus
+  , liftIOStatus
 #ifdef ZUGKONTROLLEGUI
-  ,bahngeschwindigkeiten
-  ,streckenabschnitte
-  ,weichen
-  ,kupplungen
-  ,wegstrecken
-  ,pläne
-  ,sprache
+  , bahngeschwindigkeiten
+  , streckenabschnitte
+  , weichen
+  , kupplungen
+  , wegstrecken
+  , pläne
+  , sprache
 #endif
-   -- * Zustands-Monade
-  ,IOStatus
-  ,MStatus
-  ,MStatusT
-  ,IOStatusAllgemein
-  ,MStatusAllgemein
-  ,MStatusAllgemeinT
-   -- ** Anpassen des aktuellen Zustands
-  ,hinzufügenBahngeschwindigkeit
-  ,hinzufügenStreckenabschnitt
-  ,hinzufügenWeiche
-  ,hinzufügenKupplung
-  ,hinzufügenWegstrecke
-  ,hinzufügenPlan
-  ,entfernenBahngeschwindigkeit
-  ,entfernenStreckenabschnitt
-  ,entfernenWeiche
-  ,entfernenKupplung
-  ,entfernenWegstrecke
-  ,entfernenPlan
-   -- ** Spezialisierte Funktionen der Zustands-Monade
-  ,getBahngeschwindigkeiten
-  ,getStreckenabschnitte
-  ,getWeichen
-  ,getKupplungen
-  ,getWegstrecken
-  ,getPläne
-  ,getSprache
-  ,putBahngeschwindigkeiten
-  ,putStreckenabschnitte
-  ,putWeichen
-  ,putKupplungen
-  ,putWegstrecken
-  ,putPläne
-  ,putSprache
-   -- * Hilfsfunktionen
-  ,ausführenMöglich
-  ,AusführenMöglich(..)) where
+    -- * Zustands-Monade
+  , IOStatus
+  , MStatus
+  , MStatusT
+  , IOStatusAllgemein
+  , MStatusAllgemein
+  , MStatusAllgemeinT
+    -- ** Anpassen des aktuellen Zustands
+  , hinzufügenBahngeschwindigkeit
+  , hinzufügenStreckenabschnitt
+  , hinzufügenWeiche
+  , hinzufügenKupplung
+  , hinzufügenWegstrecke
+  , hinzufügenPlan
+  , entfernenBahngeschwindigkeit
+  , entfernenStreckenabschnitt
+  , entfernenWeiche
+  , entfernenKupplung
+  , entfernenWegstrecke
+  , entfernenPlan
+    -- ** Spezialisierte Funktionen der Zustands-Monade
+  , getBahngeschwindigkeiten
+  , getStreckenabschnitte
+  , getWeichen
+  , getKupplungen
+  , getWegstrecken
+  , getPläne
+  , getSprache
+  , putBahngeschwindigkeiten
+  , putStreckenabschnitte
+  , putWeichen
+  , putKupplungen
+  , putWegstrecken
+  , putPläne
+  , putSprache
+    -- * Hilfsfunktionen
+  , ausführenMöglich
+  , AusführenMöglich(..)) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (TVar,newTVarIO,readTVarIO)
+import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
 #ifdef ZUGKONTROLLEGUI
-import Control.Lens (Lens',lens)
+import Control.Lens (Lens', lens)
 #endif
-import Control.Monad.RWS.Lazy (RWST,runRWST,evalRWST,RWS)
-import Control.Monad.Reader.Class (MonadReader(..),asks)
-import Control.Monad.State.Class (MonadState(..),gets,modify)
+import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS)
+import Control.Monad.Reader.Class (MonadReader(..), asks)
+import Control.Monad.State.Class (MonadState(..), gets, modify)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Foldable (Foldable(..))
-import Data.List (delete,intersect)
+import Data.List (delete, intersect)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Anschluss(),PwmMap,pwmMapEmpty,MitPwmMap(..),I2CMap,i2cMapEmpty,MitI2CMap(..),StreckenObjekt(..))
-import Zug.Enums (Zugtyp(..),ZugtypEither())
+import Zug.Anbindung
+       (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..), StreckenObjekt(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
-import Zug.Language (Anzeige(..),Sprache(),(<=>),(<\>),(<#>))
-import Zug.Menge (Menge,leer)
-import Zug.Objekt (ObjektKlasse(..),Objekt)
-import Zug.Plan (Ausführend(..),Plan,MitAusführend(..),AusführendReader(..))
+import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
+import Zug.Menge (Menge, leer)
+import Zug.Objekt (ObjektKlasse(..), Objekt)
+import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
 
 -- | Aktueller Status
 data StatusAllgemein o =
@@ -202,18 +201,18 @@ instance ( Anzeige (ZugtypEither (BG o))
         <=> (zeigeUnterliste $ _wegstrecken status) <\> Language.pläne <=> (zeigeUnterliste $ _pläne status)
         -- | Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
 
-          where
-            zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
-            zeigeUnterliste = zeigeUnterlisteAux (const "[") 0
+            where
+                zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
+                zeigeUnterliste = zeigeUnterlisteAux (const "[") 0
 
-            zeigeUnterlisteAux :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
-            zeigeUnterlisteAux acc index [] =
-                acc
-                <#> (if index == 0
-                         then "]"
-                         else "\n]" :: Text)
-            zeigeUnterlisteAux acc index (h:t) =
-                zeigeUnterlisteAux (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h) (succ index) t
+                zeigeUnterlisteAux :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
+                zeigeUnterlisteAux acc index [] =
+                    acc
+                    <#> (if index == 0
+                             then "]"
+                             else "\n]" :: Text)
+                zeigeUnterlisteAux acc index (h:t) =
+                    zeigeUnterlisteAux (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h) (succ index) t
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
 statusLeer :: SP o -> StatusAllgemein o
@@ -273,7 +272,7 @@ type MStatusAllgemeinT m o a = RWST (ReaderFamilie o) () (StatusAllgemein o) m a
 auswertenLeererIOStatus :: IOStatusAllgemein o a -> IO (ReaderFamilie o) -> SP o -> IO a
 auswertenLeererIOStatus ioStatus readerNeu sprache = do
     tvarMaps <- readerNeu
-    (a,()) <- evalRWST ioStatus tvarMaps $ statusLeer sprache
+    (a, ()) <- evalRWST ioStatus tvarMaps $ statusLeer sprache
     pure a
 
 -- | Führe einen 'IOStatusAllgemein' in einer 'MStatusAllgemeinT' mit 'MonadIO' aus.
@@ -281,7 +280,7 @@ liftIOStatus :: (MonadIO m) => IOStatusAllgemein o a -> MStatusAllgemeinT m o a
 liftIOStatus action = do
     reader <- ask
     state0 <- get
-    (a,state1,()) <- liftIO $ runRWST action reader state0
+    (a, state1, ()) <- liftIO $ runRWST action reader state0
     put state1
     pure a
 
@@ -462,9 +461,9 @@ ausführenMöglich plan = do
     let belegtePins = intersect (concat $ anschlüsse <$> ausführend) (anschlüsse plan)
     pure
         $ if
-          | elem (Ausführend plan) ausführend -> WirdAusgeführt
-          | not $ null belegtePins -> AnschlüsseBelegt $ NonEmpty.fromList belegtePins
-          | otherwise -> AusführenMöglich
+            | elem (Ausführend plan) ausführend -> WirdAusgeführt
+            | not $ null belegtePins -> AnschlüsseBelegt $ NonEmpty.fromList belegtePins
+            | otherwise -> AusführenMöglich
 
 -- | Ist ein Ausführen eines Plans möglich?
 data AusführenMöglich

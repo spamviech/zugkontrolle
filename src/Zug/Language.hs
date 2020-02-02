@@ -13,167 +13,164 @@ Die Dokumentation entspricht im allgemeinen nur der englischen Version.
 Die deutsche Version ist im durch den Namen gegeben.
 -}
 module Zug.Language
-  (-- * Titel / Title
-   zugkontrolle
-   -- ** Version
-  ,versionValue
-  ,version
-   -- * Haupt-Befehle / Main Orders
-  ,beenden
-  ,abbrechen
-  ,rückgängig
-  ,weiter
-  ,zurück
-  ,hinzufügen
-  ,entfernen
-  ,speichern
-  ,laden
-  ,sprache
-  ,deutsch
-  ,englisch
-   -- * Spezielle Befehle / Special Orders
-  ,geschwindigkeit
-  ,umdrehen
-  ,fahrtrichtungEinstellen
-  ,stellen
-  ,strom
-  ,an
-  ,aus
-  ,fließend
-  ,gesperrt
-  ,kuppeln
-  ,einstellen
-  ,ausführen
-  ,ausführenAbbrechen
-  ,aktionGesperrt
-  ,warten
-  ,wartenEinheit
-  ,zeit
-  ,fließendValue
-  ,high
-  ,low
-  ,aktionAusführen
-  ,einfachAusführung
-  ,dauerschleife
-  ,wirdAusgeführt
-  ,ausführenGesperrt
-   -- * Typ-Namen / Type names
-  ,objekt
-  ,befehl
-  ,bahngeschwindigkeit
-  ,bahngeschwindigkeiten
-  ,streckenabschnitt
-  ,streckenabschnitte
-  ,weiche
-  ,weichen
-  ,kupplung
-  ,kupplungen
-  ,wegstrecke
-  ,wegstrecken
-  ,plan
-  ,pläne
-  ,märklin
-  ,lego
-  ,gerade
-  ,kurve
-  ,links
-  ,rechts
-  ,vorwärts
-  ,rückwärts
-   -- * Eingenschafts-/Feld-Namen / Attribute/Field Names
-  ,dateiname
-  ,name
-  ,richtung
-  ,richtungen
-  ,fahrtrichtung
-  ,anschluss
-  ,pin
-  ,pcf8574Port
-  ,pcf8574
-  ,variante
-  ,normal
-  ,a
-  ,a0
-  ,a1
-  ,a2
-  ,port
-   -- * Query-Abfragen / Queries
-  ,wegstreckenElement
-  ,wegstreckenElemente
-  ,aktion
-  ,aktionen
-  ,zugtyp
-  ,welchesObjektHinzufügen
-  ,ausführModus
-  ,indexOderName
-  ,anzahl
-   -- * Fehlermeldungen / Error Messages
-  ,nichtRoot
-  ,toDo
-  ,ungültigeEingabe
-  ,nichtUnterstützteAktion
-  ,nichtGefundeneDatei
-  ,uiNichtUnterstützt
-  ,integerErwartet
-  ,richtungErwartet
-  ,richtungZuWenig
-  ,wegstreckeLeer
-  ,valueErwartet
-  ,unbekannt
-  ,erwartet
-  ,mindestens
-   -- * Befehlsgruppen / Order classifications
-  ,befehlAlle
-  ,befehlTypen
-  ,befehlObjekte
-  ,befehlWegstreckenElemente
-  ,aktionGruppen
-  ,aktionPlan
-  ,aktionPlanAusführend
-  ,aktionPlanGesperrt
-  ,aktionWeiche
-  ,aktionBahngeschwindigkeit
-  ,aktionStreckenabschnitt
-  ,aktionKupplung
-  ,aktionWegstrecke
-  ,toBefehlsString
-   -- * Unbekannte Eingabe melden
-  ,fehlerText
-  ,fehlerhafteEingabe
-   -- * Datentyp / Data Type
-  ,Sprache(..)
-  ,MitSprache(..)
-  ,alleSprachen
-   -- ** Typ-Klasse / Type Class
-  ,Anzeige(..)
-  ,($#)
-  ,(.#)
-   -- ** Hilfsfunktionen / Helper Functions
-  ,showText
-  ,addMnemonic
-  ,(<~>)
-  ,(<^>)
-  ,(<=>)
-  ,(<->)
-  ,(<|>)
-  ,(<:>)
-  ,(<!>)
-  ,(<°>)
-  ,(<\>)
-  ,(<#>)) where
+  ( -- * Titel / Title
+    zugkontrolle
+    -- ** Version
+  , versionValue
+  , version
+    -- * Haupt-Befehle / Main Orders
+  , beenden
+  , abbrechen
+  , rückgängig
+  , weiter
+  , zurück
+  , hinzufügen
+  , entfernen
+  , speichern
+  , laden
+  , sprache
+  , deutsch
+  , englisch
+    -- * Spezielle Befehle / Special Orders
+  , geschwindigkeit
+  , umdrehen
+  , fahrtrichtungEinstellen
+  , stellen
+  , strom
+  , an
+  , aus
+  , fließend
+  , gesperrt
+  , kuppeln
+  , einstellen
+  , ausführen
+  , ausführenAbbrechen
+  , aktionGesperrt
+  , warten
+  , wartenEinheit
+  , zeit
+  , fließendValue
+  , high
+  , low
+  , aktionAusführen
+  , einfachAusführung
+  , dauerschleife
+  , wirdAusgeführt
+  , ausführenGesperrt
+    -- * Typ-Namen / Type names
+  , objekt
+  , befehl
+  , bahngeschwindigkeit
+  , bahngeschwindigkeiten
+  , streckenabschnitt
+  , streckenabschnitte
+  , weiche
+  , weichen
+  , kupplung
+  , kupplungen
+  , wegstrecke
+  , wegstrecken
+  , plan
+  , pläne
+  , märklin
+  , lego
+  , gerade
+  , kurve
+  , links
+  , rechts
+  , vorwärts
+  , rückwärts
+    -- * Eingenschafts-/Feld-Namen / Attribute/Field Names
+  , dateiname
+  , name
+  , richtung
+  , richtungen
+  , fahrtrichtung
+  , anschluss
+  , pin
+  , pcf8574Port
+  , pcf8574
+  , variante
+  , normal
+  , a
+  , a0
+  , a1
+  , a2
+  , port
+    -- * Query-Abfragen / Queries
+  , wegstreckenElement
+  , wegstreckenElemente
+  , aktion
+  , aktionen
+  , zugtyp
+  , welchesObjektHinzufügen
+  , ausführModus
+  , indexOderName
+  , anzahl
+    -- * Fehlermeldungen / Error Messages
+  , nichtRoot
+  , toDo
+  , ungültigeEingabe
+  , nichtUnterstützteAktion
+  , nichtGefundeneDatei
+  , uiNichtUnterstützt
+  , integerErwartet
+  , richtungErwartet
+  , richtungZuWenig
+  , wegstreckeLeer
+  , valueErwartet
+  , unbekannt
+  , erwartet
+  , mindestens
+    -- * Befehlsgruppen / Order classifications
+  , befehlAlle
+  , befehlTypen
+  , befehlObjekte
+  , befehlWegstreckenElemente
+  , aktionGruppen
+  , aktionPlan
+  , aktionPlanAusführend
+  , aktionPlanGesperrt
+  , aktionWeiche
+  , aktionBahngeschwindigkeit
+  , aktionStreckenabschnitt
+  , aktionKupplung
+  , aktionWegstrecke
+  , toBefehlsString
+    -- * Unbekannte Eingabe melden
+  , fehlerText
+  , fehlerhafteEingabe
+    -- * Datentyp / Data Type
+  , Sprache(..)
+  , MitSprache(..)
+  , alleSprachen
+    -- ** Typ-Klasse / Type Class
+  , Anzeige(..)
+  , ($#)
+  , (.#)
+    -- ** Hilfsfunktionen / Helper Functions
+  , showText
+  , addMnemonic
+  , (<~>)
+  , (<^>)
+  , (<=>)
+  , (<->)
+  , (<|>)
+  , (<:>)
+  , (<!>)
+  , (<°>)
+  , (<\>)
+  , (<#>)) where
 
 -- Bibliotheken
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Data.Version (Version,showVersion)
-
+import Data.Version (Version, showVersion)
 import Numeric.Natural (Natural)
-
 -- Auto-generiertes Cabal-Modul
 import qualified Paths_Zugkontrolle as Paths
-
 import System.Hardware.WiringPi (Value(..))
 
 -- * Titel / Title
@@ -769,7 +766,7 @@ fehlerhafteEingabe sprache begründung = Text.putStrLn $ fehlerText sprache begr
 data Sprache
     = Deutsch
     | Englisch
-    deriving (Show,Read,Bounded,Enum,Eq)
+    deriving (Show, Read, Bounded, Enum, Eq)
 
 -- | Klasse für Typen, die als 'Sprache' verwendet werden können.
 class MitSprache s where
@@ -818,15 +815,15 @@ instance Anzeige Sprache where
 instance (Anzeige a) => Anzeige [a] where
     anzeige :: [a] -> Sprache -> Text
     anzeige liste = ("[" :: Text) <#> anzeigeAux liste <#> ("]" :: Text)
-      where
-        anzeigeAux :: (Anzeige b) => [b] -> Sprache -> Text
-        anzeigeAux [] = const ""
-        anzeigeAux [b] = anzeige b
-        anzeigeAux (h:t) = h <^> anzeigeAux t
+        where
+            anzeigeAux :: (Anzeige b) => [b] -> Sprache -> Text
+            anzeigeAux [] = const ""
+            anzeigeAux [b] = anzeige b
+            anzeigeAux (h:t) = h <^> anzeigeAux t
 
 instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
     anzeige :: (a, b) -> Sprache -> Text
-    anzeige (a,b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
+    anzeige (a, b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
 
 infixr 0 $#
 
