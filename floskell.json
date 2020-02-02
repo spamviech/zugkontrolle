@@ -1,0 +1,42 @@
+{
+    "language": "Haskell2010",
+    "extensions": [
+        "OverloadedStrings",
+        "NamedFieldPuns",
+        "LambdaCase",
+        "RankNTypes",
+        "InstanceSigs",
+        "DefaultSignatures",
+        "GeneralizedNewtypeDeriving",
+        "StandaloneDeriving",
+        "MultiParamTypeClasses",
+        "ScopedTypeVariables",
+        "MonoLocalBinds",
+        "DataKinds",
+        "KindSignatures",
+        "FlexibleInstances",
+        "FlexibleContexts",
+        "UndecidableInstances",
+        "TypeFamilies",
+        "GADTs",
+        "CPP"
+    ],
+    "style": "johan-tibell",
+    "formatting": {
+        "penalty": {
+            "max-line-length": 120
+        },
+        "options": {
+            "sort-imports": [
+                {
+                    "prefixes": [""],
+                    "order": "grouped"
+                },
+                {
+                    "prefixes": ["Zug"],
+                    "order": "grouped"
+                }
+            ]
+        }
+    }
+}

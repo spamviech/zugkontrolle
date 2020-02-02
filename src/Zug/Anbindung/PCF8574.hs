@@ -78,9 +78,9 @@ instance Show PCF8574 where
     show :: PCF8574 -> String
     show PCF8574 {variant, a0, a1, a2}
         = "PCF8574" ++ if variant == VariantA then "A" else "" ++
-            showAddress a0 :
-            showAddress a1 :
-            showAddress a2 : []
+            [showAddress a0,
+            showAddress a1,
+            showAddress a2]
         where
             showAddress :: Value -> Char
             showAddress HIGH    = 'H'
@@ -164,8 +164,8 @@ pcf8574PortWrite PCF8574Port {pcf8574, port} value = i2cWriteAdjust (toI2CAddres
     where
         bitValueFunktion :: BitValue -> BitValue
         bitValueFunktion oldBitValue
-            | (value == HIGH)   = oldBitValue .|. toBitValue port
-            | otherwise         = oldBitValue .&. complement (toBitValue port)
+            | value == HIGH = oldBitValue .|. toBitValue port
+            | otherwise     = oldBitValue .&. complement (toBitValue port)
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
 pcf8574PortRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
 pcf8574PortRead PCF8574Port {pcf8574, port} = do
