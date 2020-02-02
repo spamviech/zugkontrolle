@@ -7,15 +7,16 @@ Description : Ungeordnete Mengen.
 Mengen enthalten jedes Element höchstens einmal.
 Die Implementierung ist nicht effizient, dafür werden keine weiteren Anforderungen an die Elemente gestellt.
 -}
-module Zug.Menge (Menge(), leer, ausFoldable, hinzufügen, entfernen, mitglied, vereinigung, schnittmenge) where
+module Zug.Menge (Menge(),leer,ausFoldable,hinzufügen,entfernen,mitglied,vereinigung,schnittmenge) where
 
 -- Bibliotheken
 import Data.Foldable (Foldable(..))
-import Data.List (delete, union, intersect, nub)
+import Data.List (delete,union,intersect,nub)
 import Data.Text (Text)
 import qualified Data.Text as Text
+
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Anzeige(..), Sprache(), (<#>))
+import Zug.Language (Anzeige(..),Sprache(),(<#>))
 
 -- | Eine 'Menge' ist eine Sammlung an Elementen, bei denen jedes Element höchstens einmal vorkommt.
 newtype Menge a = Menge [a]
@@ -29,7 +30,7 @@ instance (Anzeige a) => Anzeige (Menge a) where
     anzeige (Menge liste) = ("{" :: Text) <#> Text.init . Text.tail . anzeige liste <#> ("}" :: Text)
 
 instance Foldable Menge where
-    foldMap :: Monoid m => (a -> m) -> Menge a -> m 
+    foldMap :: Monoid m => (a -> m) -> Menge a -> m
     foldMap f (Menge liste) = foldMap f liste
 
 instance Functor Menge where
@@ -46,7 +47,10 @@ ausFoldable foldable = Menge $ nub $ toList foldable
 
 -- | Füge ein Element zu einer 'Menge' hinzu.
 hinzufügen :: (Eq a) => a -> Menge a -> Menge a
-hinzufügen a menge@(Menge liste) = if mitglied a menge then menge else Menge $ a : liste
+hinzufügen a menge @ (Menge liste) =
+    if mitglied a menge
+        then menge
+        else Menge $ a : liste
 
 -- | Entferne ein Element aus einer 'Menge'. Hat keinen Effekt, falls das Element vorher nicht in der 'Menge' enthalten war.
 entfernen :: (Eq a) => a -> Menge a -> Menge a
@@ -54,7 +58,7 @@ entfernen a (Menge liste) = Menge $ delete a liste
 
 -- | Ist das Argument in der 'Menge' enthalten?
 mitglied :: (Eq a) => a -> Menge a -> Bool
-mitglied a (Menge liste) = elem a liste
+mitglied a (Menge liste) = a `elem` liste
 
 -- | Erhalte die Vereinigung zweier 'Menge'n
 vereinigung :: (Eq a) => Menge a -> Menge a -> Menge a

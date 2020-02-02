@@ -10,52 +10,64 @@ Description : Abfragen mit neuem Fenster für das Gtk-UI.
 #ifndef ZUGKONTROLLEGUI
 module Zug.UI.Gtk.Fenster () where
 #else
-module Zug.UI.Gtk.Fenster (
-    -- * Knöpfe mit zugehörigem Dialog erstellen
-    buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack) where
+module Zug.UI.Gtk.Fenster
+  (-- * Knöpfe mit zugehörigem Dialog erstellen
+   buttonSpeichernPack
+  ,buttonLadenPack
+  ,ladeWidgets
+  ,buttonHinzufügenPack) where
 
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Lens ((^.))
-import Control.Monad (void, when)
-import Control.Monad.Reader (MonadReader(..), runReaderT)
+import Control.Monad (void,when)
 import qualified Control.Monad.RWS as RWS
+import Control.Monad.Reader (MonadReader(..),runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+
 import Data.Text (Text)
 import qualified Data.Text as Text
+
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
+
+import Zug.Anbindung (Bahngeschwindigkeit(..),Weiche(..),Wegstrecke(..))
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (ZugtypEither(..))
-import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
-import Zug.Objekt (ObjektAllgemein(..))
 import qualified Zug.Language as Language
-import Zug.Language (Sprache(), MitSprache(..), (<!>))
-import Zug.UI.Base (
-    Status, ObjektReader,
-    bahngeschwindigkeiten, streckenabschnitte,
-    weichen, kupplungen, wegstrecken, pläne)
+import Zug.Language (Sprache(),MitSprache(..),(<!>))
+import Zug.Objekt (ObjektAllgemein(..))
+import Zug.UI.Base (Status,ObjektReader,bahngeschwindigkeiten,streckenabschnitte,weichen,kupplungen,wegstrecken,pläne)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
-import Zug.UI.Gtk.Assistant (assistantAuswerten, AssistantResult(..))
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel, dialogEval)
-import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
-import Zug.UI.Gtk.StreckenObjekt (
-    MStatusGuiT, IOStatusGui, ObjektGui, StatusVarGui, readSpracheGui,
-    DynamischeWidgetsReader(..), WidgetsTyp(..), 
-    bahngeschwindigkeitPackNew, BGWidgets,
-    streckenabschnittPackNew, weichePackNew, WEWidgets,
-    kupplungPackNew, wegstreckePackNew, WSWidgets, planPackNew)
+
+import Zug.UI.Gtk.Assistant (assistantAuswerten,AssistantResult(..))
+
 import Zug.UI.Gtk.Fenster.AssistantHinzufuegen (assistantHinzufügenNew)
 
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault,buttonNewWithEventLabel,dialogEval)
+
+import Zug.UI.Gtk.Klassen (MitBox(..),MitWindow(..))
+
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..),verwendeSpracheGui)
+
+import Zug.UI.Gtk.StreckenObjekt
+       (MStatusGuiT,IOStatusGui,ObjektGui,StatusVarGui,readSpracheGui,DynamischeWidgetsReader(..),WidgetsTyp(..)
+       ,bahngeschwindigkeitPackNew,BGWidgets,streckenabschnittPackNew,weichePackNew,WEWidgets,kupplungPackNew
+       ,wegstreckePackNew,WSWidgets,planPackNew)
+
+import Zug.UI.StatusVar (auswertenStatusVarMStatusT,ausführenStatusVarBefehl,StatusVarReader(..))
+
 -- | Speichern des aktuellen 'StatusGui'.
--- 
+--
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonSpeichernPack :: forall b m. (MitBox b, ObjektReader ObjektGui m, MonadIO m) =>
-    Gtk.Window -> b -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m Gtk.Button
+buttonSpeichernPack :: forall b m.
+                    (MitBox b, ObjektReader ObjektGui m, MonadIO m)
+                    => Gtk.Window
+                    -> b
+                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                    -> m Gtk.Button
 buttonSpeichernPack windowMain box maybeTVar = do
     dialogSpeichern <- dialogSpeichernNew windowMain maybeTVar
     statusVar <- erhalteStatusVar :: m StatusVarGui
@@ -64,14 +76,16 @@ buttonSpeichernPack windowMain box maybeTVar = do
         antwort <- dialogEval dialogSpeichern
         when (antwort == Gtk.ResponseOk) $ void $ do
             (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
-            flip runReaderT objektReader $
-                ausführenStatusVarBefehl (Speichern dateipfad) statusVar
+            flip runReaderT objektReader $ ausführenStatusVarBefehl (Speichern dateipfad) statusVar
 
-dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m) =>
-    Gtk.Window -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m Gtk.FileChooserDialog
+dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
+                   => Gtk.Window
+                   -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   -> m Gtk.FileChooserDialog
 dialogSpeichernNew window maybeTVar = do
-    (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
-        fileChooserDialog <- Gtk.fileChooserDialogNew (Nothing :: Maybe Text) (Just window) Gtk.FileChooserActionSave []
+    (fileChooserDialog,buttonSpeichern,buttonAbbrechen) <- liftIO $ do
+        fileChooserDialog
+            <- Gtk.fileChooserDialogNew (Nothing :: Maybe Text) (Just window) Gtk.FileChooserActionSave []
         Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
         buttonSpeichern <- Gtk.dialogAddButton fileChooserDialog Text.empty Gtk.ResponseOk
         buttonAbbrechen <- Gtk.dialogAddButton fileChooserDialog Text.empty Gtk.ResponseCancel
@@ -83,11 +97,14 @@ dialogSpeichernNew window maybeTVar = do
     pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGui' aus einer Datei.
--- 
+--
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonLadenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m) =>
-    p -> b -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m Gtk.Button
+buttonLadenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m)
+                => p
+                -> b
+                -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                -> m Gtk.Button
 buttonLadenPack parent box maybeTVar = do
     dialogLaden <- dialogLadenNew parent maybeTVar
     dialogLadenFehler <- dialogLadenFehlerNew parent maybeTVar
@@ -97,68 +114,71 @@ buttonLadenPack parent box maybeTVar = do
         antwort <- dialogEval dialogLaden
         when (antwort == Gtk.ResponseOk) $ void $ do
             Gtk.fileChooserGetFilename dialogLaden >>= \case
-                Nothing             -> void $ do
+                Nothing -> void $ do
                     spracheGui <- readSpracheGui statusVar
                     Gtk.set dialogLadenFehler [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei spracheGui]
                     dialogEval dialogLadenFehler
-                (Just dateipfad)    -> void $ do
-                    let
-                        ladeAktion :: Status -> IOStatusGui ()
+                (Just dateipfad) -> void $ do
+                    let ladeAktion :: Status -> IOStatusGui ()
                         ladeAktion statusNeu = do
                             state0 <- RWS.get
-                            state1 <- liftIO $ flip runReaderT objektReader $ fst <$>
-                                RWS.execRWST (ladeWidgets statusNeu) objektReader state0
+                            state1 <- liftIO
+                                $ flip runReaderT objektReader
+                                $ fst <$> RWS.execRWST (ladeWidgets statusNeu) objektReader state0
                             RWS.put state1
                         fehlerBehandlung :: IOStatusGui ()
                         fehlerBehandlung = liftIO $ void $ do
                             Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
-                    flip runReaderT objektReader $
-                        ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
+                    flip runReaderT objektReader
+                        $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui') an reinen 'Status' an.
 ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
 ladeWidgets status = do
     löscheWidgets
     erstelleWidgets status
-        where
-            löscheWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => MStatusGuiT m ()
-            löscheWidgets = do
-                status <- RWS.get
-                mapM_ entferneWidgets $ status ^. bahngeschwindigkeiten
-                mapM_ entferneWidgets $ status ^. streckenabschnitte
-                mapM_ entferneWidgets $ status ^. weichen
-                mapM_ entferneWidgets $ status ^. kupplungen
-                mapM_ entferneWidgets $ status ^. wegstrecken
-                mapM_ entferneWidgets $ status ^. pläne
-            erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
-            erstelleWidgets status = do
-                let 
-                    packBG :: (ObjektReader ObjektGui m, MonadIO m) =>
-                        ZugtypEither Bahngeschwindigkeit -> MStatusGuiT m (ZugtypEither BGWidgets)
-                    packBG  (ZugtypMärklin bg)  = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
-                    packBG  (ZugtypLego bg)     = ZugtypLego <$> bahngeschwindigkeitPackNew bg
-                mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
-                mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
-                let
-                    packWE :: (ObjektReader ObjektGui m, MonadIO m) =>
-                        ZugtypEither Weiche -> MStatusGuiT m (ZugtypEither WEWidgets)
-                    packWE  (ZugtypMärklin we)  = ZugtypMärklin <$> weichePackNew we
-                    packWE  (ZugtypLego we)     = ZugtypLego <$> weichePackNew we
-                mapM_ packWE $ reverse $ status ^. weichen
-                mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
-                let
-                    packWS :: (ObjektReader ObjektGui m, MonadIO m) =>
-                        ZugtypEither Wegstrecke -> MStatusGuiT m (ZugtypEither WSWidgets)
-                    packWS  (ZugtypMärklin ws)  = ZugtypMärklin <$> wegstreckePackNew ws
-                    packWS  (ZugtypLego ws)     = ZugtypLego <$> wegstreckePackNew ws
-                mapM_ packWS $ reverse $ status ^. wegstrecken
-                mapM_ planPackNew $ reverse $ status ^. pläne
+  where
+    löscheWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => MStatusGuiT m ()
+    löscheWidgets = do
+        status <- RWS.get
+        mapM_ entferneWidgets $ status ^. bahngeschwindigkeiten
+        mapM_ entferneWidgets $ status ^. streckenabschnitte
+        mapM_ entferneWidgets $ status ^. weichen
+        mapM_ entferneWidgets $ status ^. kupplungen
+        mapM_ entferneWidgets $ status ^. wegstrecken
+        mapM_ entferneWidgets $ status ^. pläne
 
-dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m) =>
-    p -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m Gtk.FileChooserDialog
+    erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
+    erstelleWidgets status = do
+        let packBG :: (ObjektReader ObjektGui m, MonadIO m)
+                   => ZugtypEither Bahngeschwindigkeit
+                   -> MStatusGuiT m (ZugtypEither BGWidgets)
+            packBG (ZugtypMärklin bg) = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
+            packBG (ZugtypLego bg) = ZugtypLego <$> bahngeschwindigkeitPackNew bg
+        mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
+        mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
+        let packWE :: (ObjektReader ObjektGui m, MonadIO m)
+                   => ZugtypEither Weiche
+                   -> MStatusGuiT m (ZugtypEither WEWidgets)
+            packWE (ZugtypMärklin we) = ZugtypMärklin <$> weichePackNew we
+            packWE (ZugtypLego we) = ZugtypLego <$> weichePackNew we
+        mapM_ packWE $ reverse $ status ^. weichen
+        mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
+        let packWS :: (ObjektReader ObjektGui m, MonadIO m)
+                   => ZugtypEither Wegstrecke
+                   -> MStatusGuiT m (ZugtypEither WSWidgets)
+            packWS (ZugtypMärklin ws) = ZugtypMärklin <$> wegstreckePackNew ws
+            packWS (ZugtypLego ws) = ZugtypLego <$> wegstreckePackNew ws
+        mapM_ packWS $ reverse $ status ^. wegstrecken
+        mapM_ planPackNew $ reverse $ status ^. pläne
+
+dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
+               => p
+               -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+               -> m Gtk.FileChooserDialog
 dialogLadenNew parent maybeTVar = do
-    (dialog, buttonLaden, buttonAbbrechen) <- liftIO $ do
+    (dialog,buttonLaden,buttonAbbrechen) <- liftIO $ do
         dialog <- Gtk.fileChooserDialogNew
             (Nothing :: Maybe Text)
             (Just $ erhalteWindow parent)
@@ -173,25 +193,25 @@ dialogLadenNew parent maybeTVar = do
         Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.abbrechen sprache]
     pure dialog
 
-dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m) =>
-    p -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m Gtk.MessageDialog
+dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
+                     => p
+                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                     -> m Gtk.MessageDialog
 dialogLadenFehlerNew parent maybeTVar = do
-    dialog <- liftIO $ Gtk.messageDialogNew
-        (Just $ erhalteWindow parent)
-        []
-        Gtk.MessageError
-        Gtk.ButtonsOk
-        Text.empty
-    verwendeSpracheGui maybeTVar $
-        \sprache -> Gtk.set dialog [Gtk.windowTitle := (Language.nichtGefundeneDatei <!> Text.empty) sprache]
+    dialog <- liftIO $ Gtk.messageDialogNew (Just $ erhalteWindow parent) [] Gtk.MessageError Gtk.ButtonsOk Text.empty
+    verwendeSpracheGui maybeTVar $ \sprache
+        -> Gtk.set dialog [Gtk.windowTitle := (Language.nichtGefundeneDatei <!> Text.empty) sprache]
     pure dialog
 
 -- | Hinzufügen eines 'StreckenObjekt'.
--- 
+--
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m) =>
-    p -> b -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> m Gtk.Button
+buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m)
+                      => p
+                      -> b
+                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                      -> m Gtk.Button
 buttonHinzufügenPack parentWindow box maybeTVar = do
     assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
     objektReader <- ask
@@ -203,25 +223,16 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                     -> void $ bahngeschwindigkeitPackNew bgMärklin
                 (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
                     -> void $ bahngeschwindigkeitPackNew bgLego
-                (AssistantErfolgreich (OStreckenabschnitt st))
-                    -> void $ streckenabschnittPackNew st
-                (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
-                    -> void $ weichePackNew weMärklin
-                (AssistantErfolgreich (OWeiche (ZugtypLego weLego)))
-                    -> void $ weichePackNew weLego
-                (AssistantErfolgreich (OKupplung ku))
-                    -> void $ kupplungPackNew ku
-                (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
-                    -> void $ wegstreckePackNew wsMärklin
-                (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego)))
-                    -> void $ wegstreckePackNew wsLego
-                (AssistantErfolgreich (OPlan pl))
-                    -> void $ planPackNew pl
+                (AssistantErfolgreich (OStreckenabschnitt st)) -> void $ streckenabschnittPackNew st
+                (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin))) -> void $ weichePackNew weMärklin
+                (AssistantErfolgreich (OWeiche (ZugtypLego weLego))) -> void $ weichePackNew weLego
+                (AssistantErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
+                (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin))) -> void $ wegstreckePackNew wsMärklin
+                (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego))) -> void $ wegstreckePackNew wsLego
+                (AssistantErfolgreich (OPlan pl)) -> void $ planPackNew pl
                 -- Kein catch-all Pattern um Fehlermeldung des Compilers
                 -- bei neu hinzugefügten Objekten nicht zu verpassen
-                AssistantBeenden
-                    -> pure ()
-                AssistantAbbrechen
-                    -> pure ()
+                AssistantBeenden -> pure ()
+                AssistantAbbrechen -> pure ()
     pure button
 #endif

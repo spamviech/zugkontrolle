@@ -35,6 +35,10 @@ when:
   - condition: os(linux)
     dependencies:
       - unix
+    when:
+      - condition: arch(arm)
+        ghc-options:
+          - -DZUGKONTROLLERASPI=1
 
 dependencies:
   - base

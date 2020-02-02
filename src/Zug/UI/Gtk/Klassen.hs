@@ -18,14 +18,18 @@ Außerdem wird eine /Overlappable/-Standard Instanz für "Graphics.UI.Gtk"-Typen
 Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden die Verwendung der Spracherweiterung /MonoLocalBinds/ empfohlen.
 -}
 module Zug.UI.Gtk.Klassen where
-#ifdef ZUGKONTROLLEGUI
 
+#ifdef ZUGKONTROLLEGUI
 import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
+
 import Data.Text (Text)
+
 import qualified Graphics.UI.Gtk as Gtk
+
 -- Abhängigkeiten von anderen Modulen
-import Zug.Enums (Zugtyp(..), ZugtypEither(..))
+import Zug.Enums (Zugtyp(..),ZugtypEither(..))
+
 import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
 
 -- * Widget
@@ -33,8 +37,8 @@ erzeugeKlasse [] "Widget"
 
 instance (MitWidget (a 'Märklin), MitWidget (a 'Lego)) => MitWidget (ZugtypEither a) where
     erhalteWidget :: ZugtypEither a -> Gtk.Widget
-    erhalteWidget   (ZugtypMärklin a)   = erhalteWidget a
-    erhalteWidget   (ZugtypLego a)      = erhalteWidget a
+    erhalteWidget (ZugtypMärklin a) = erhalteWidget a
+    erhalteWidget (ZugtypLego a) = erhalteWidget a
 
 -- | Zeige ein 'MitWidget'
 mitWidgetShow :: (MonadIO m, MitWidget w) => w -> m ()
@@ -68,26 +72,34 @@ erzeugeKlasse [''MitContainer] "Box"
 
 -- | Füge ein 'MitWidget' zum Anfang einer 'MitBox' hinzu
 mitBoxPackStart :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Gtk.Packing -> Int -> m ()
-mitBoxPackStart box widget packing padding = liftIO $ 
-    Gtk.boxPackStart (erhalteBox box) (erhalteWidget widget) packing padding
+mitBoxPackStart box widget packing padding =
+    liftIO $ Gtk.boxPackStart (erhalteBox box) (erhalteWidget widget) packing padding
 
 -- | Füge ein 'MitWidget' zum Ende einer 'MitBox' hinzu
 mitBoxPackEnd :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Gtk.Packing -> Int -> m ()
-mitBoxPackEnd box widget packing padding = liftIO $ 
-    Gtk.boxPackEnd (erhalteBox box) (erhalteWidget widget) packing padding
+mitBoxPackEnd box widget packing padding =
+    liftIO $ Gtk.boxPackEnd (erhalteBox box) (erhalteWidget widget) packing padding
 
 erzeugeKlasse [''MitContainer] "Grid"
 
 -- | Füge ein 'MitWidget' zu einem 'MitGrid' hinzu
 mitGridAttach :: (MonadIO m, MitGrid g, MitWidget w) => g -> w -> Int -> Int -> Int -> Int -> m ()
-mitGridAttach grid widget left top width height
-    = liftIO $ Gtk.gridAttach (erhalteGrid grid) (erhalteWidget widget) left top width height
+mitGridAttach grid widget left top width height =
+    liftIO $ Gtk.gridAttach (erhalteGrid grid) (erhalteWidget widget) left top width height
 
 -- | Füge ein 'MitWidget' zu einem 'MitGrid' direkt neben einem 'MitWidget' hinzu
-mitGridAttachNextTo :: (MonadIO m, MitGrid g, MitWidget w, MitWidget sibling)
-    => g -> w -> Maybe sibling -> Gtk.PositionType -> Int -> Int -> m ()
-mitGridAttachNextTo grid widget sibling position width height
-    = liftIO $ Gtk.gridAttachNextTo
+mitGridAttachNextTo
+    :: (MonadIO m, MitGrid g, MitWidget w, MitWidget sibling)
+    => g
+    -> w
+    -> Maybe sibling
+    -> Gtk.PositionType
+    -> Int
+    -> Int
+    -> m ()
+mitGridAttachNextTo grid widget sibling position width height =
+    liftIO
+    $ Gtk.gridAttachNextTo
         (erhalteGrid grid)
         (erhalteWidget widget)
         (sibling >>= pure . erhalteWidget)
@@ -109,23 +121,21 @@ erzeugeKlasse [''MitContainer] "Notebook"
 
 -- | Füge eine neue Seite am Ende eines 'MitNotebook' hinzu
 mitNotebookAppendPage :: (MonadIO m, MitNotebook n, MitWidget w) => n -> w -> Text -> m Int
-mitNotebookAppendPage notebook widget
-    = liftIO . Gtk.notebookAppendPage (erhalteNotebook notebook) (erhalteWidget widget)
+mitNotebookAppendPage notebook widget =
+    liftIO . Gtk.notebookAppendPage (erhalteNotebook notebook) (erhalteWidget widget)
 
 -- | Füge eine neue Seite am Anfang eines 'MitNotebook' hinzu
 mitNotebookPrependPage :: (MonadIO m, MitNotebook n, MitWidget w) => n -> w -> Text -> m Int
-mitNotebookPrependPage notebook widget
-    = liftIO . Gtk.notebookPrependPage (erhalteNotebook notebook) (erhalteWidget widget)
+mitNotebookPrependPage notebook widget =
+    liftIO . Gtk.notebookPrependPage (erhalteNotebook notebook) (erhalteWidget widget)
 
 -- | Entferne eine Seite aus einem 'MitNotebook' hinzu
 mitNotebookRemovePage :: (MonadIO m, MitNotebook n) => n -> Int -> m ()
-mitNotebookRemovePage notebook
-    = liftIO . mitNotebook Gtk.notebookRemovePage notebook
+mitNotebookRemovePage notebook = liftIO . mitNotebook Gtk.notebookRemovePage notebook
 
 -- | Setzte die aktuell angezeigte Seite eines 'MitNotebook'
 mitNotebookSetCurrentPage :: (MonadIO m, MitNotebook n) => n -> Int -> m ()
-mitNotebookSetCurrentPage notebook
-    = liftIO . mitNotebook Gtk.notebookSetCurrentPage notebook
+mitNotebookSetCurrentPage notebook = liftIO . mitNotebook Gtk.notebookSetCurrentPage notebook
 
 erzeugeKlasse [''MitContainer] "Paned"
 

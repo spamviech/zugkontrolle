@@ -8,44 +8,49 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
 Description : Speichern und laden
 -}
-module Zug.UI.Save (
-                -- * Speichern & Laden
-                speichern, laden) where
+module Zug.UI.Save
+  (-- * Speichern & Laden
+   speichern
+  ,laden) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
-import Data.Aeson.Types (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
+
+import Data.Aeson.Types (FromJSON(..),ToJSON(..),Value(..),Parser,Object,object,(.:),(.:?),(.=))
 import Data.List (partition)
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust,fromJust)
 import Data.Text (Text)
-import Data.Yaml (encodeFile, decodeFileEither)
+import Data.Yaml (encodeFile,decodeFileEither)
+
 import Numeric.Natural (Natural)
+
 import System.Directory (doesFileExist)
+
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Wartezeit(..),
-            Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio, zuPinGpio,
-            Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
+import Zug.Anbindung (Wartezeit(..),Anschluss(..),PCF8574Port(..),PCF8574(..),PCF8574Variant(..),vonPinGpio,zuPinGpio
+                     ,Bahngeschwindigkeit(..),Streckenabschnitt(..),Weiche(..),Kupplung(..),Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
-import Zug.Enums (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
+import Zug.Enums (Richtung(..),Zugtyp(..),ZugtypEither(..),Fahrtrichtung(..),Strom(..))
 import Zug.Language (Sprache())
-import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
-import Zug.Plan (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..),
-                AktionWeiche(..), AktionKupplung(..), Plan(..))
-import Zug.UI.Base (StatusAllgemein(..), Status)
+import Zug.Objekt (ObjektAllgemein(..),ObjektKlasse(..))
+import Zug.Plan (Aktion(..),AktionWegstrecke(..),AktionBahngeschwindigkeit(..),AktionStreckenabschnitt(..)
+                ,AktionWeiche(..),AktionKupplung(..),Plan(..))
+import Zug.UI.Base (StatusAllgemein(..),Status)
 
 -- | Speichere aktuellen Zustand in Datei
 speichern :: (ObjektKlasse o, ToJSON o) => StatusAllgemein o -> FilePath -> IO ()
 speichern = flip encodeFile
 
 -- | Lade Datei.
--- 
+--
 -- Dateifehler und nicht-existente Dateien geben 'Nothing' zurück.
 -- Ansonsten wird ein aus einem 'Status' konstruierter Typ zurückgegeben.
 laden :: FilePath -> (Status -> IO s) -> Sprache -> IO (Maybe s)
@@ -53,69 +58,88 @@ laden path fromStatus sprache = do
     fileExists <- doesFileExist path
     if fileExists
         then decodeFileEither path >>= \case
-            (Left _error)   -> pure Nothing
-            (Right f)       -> fmap Just $ fromStatus $ f sprache
+            (Left _error) -> pure Nothing
+            (Right f) -> fmap Just $ fromStatus $ f sprache
         else pure Nothing
 
 -- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
 -- Definition hier und nicht in Language.hs, damit einmal erzeugte json-Dateien auch nach einer Sprachänderung gültig bleiben.
 bahngeschwindigkeitenJS :: Text
 bahngeschwindigkeitenJS = "Bahngeschwindigkeiten"
+
 streckenabschnitteJS :: Text
 streckenabschnitteJS = "Streckenabschnitte"
+
 weichenJS :: Text
 weichenJS = "Weichen"
+
 kupplungenJS :: Text
 kupplungenJS = "Kupplungen"
+
 wegstreckenJS :: Text
 wegstreckenJS = "Wegstrecken"
+
 pläneJS :: Text
 pläneJS = "Pläne"
 
 instance FromJSON (Sprache -> Status) where
     parseJSON :: Value -> Parser (Sprache -> Status)
-    parseJSON   (Object v)
-        = Status
-            <$> ((v .: bahngeschwindigkeitenJS) <|> pure [])
-            <*> ((v .: streckenabschnitteJS)    <|> pure [])
-            <*> ((v .: weichenJS)               <|> pure [])
-            <*> ((v .: kupplungenJS)            <|> pure [])
-            <*> ((v .: wegstreckenJS)           <|> pure [])
-            <*> ((v .: pläneJS)                 <|> pure [])
-    parseJSON _value
-        = mzero
+    parseJSON (Object v) =
+        Status <$> ((v .: bahngeschwindigkeitenJS) <|> pure [])
+        <*> ((v .: streckenabschnitteJS) <|> pure [])
+        <*> ((v .: weichenJS) <|> pure [])
+        <*> ((v .: kupplungenJS) <|> pure [])
+        <*> ((v .: wegstreckenJS) <|> pure [])
+        <*> ((v .: pläneJS) <|> pure [])
+    parseJSON _value = mzero
 
 instance forall o. (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) where
     toJSON :: StatusAllgemein o -> Value
-    toJSON status = object [
-        bahngeschwindigkeitenJS .= (map (ausObjekt . OBahngeschwindigkeit) $ _bahngeschwindigkeiten status :: [o]),
-        streckenabschnitteJS    .= (map (ausObjekt . OStreckenabschnitt) $ _streckenabschnitte status :: [o]),
-        weichenJS               .= (map (ausObjekt . OWeiche) $ _weichen status :: [o]),
-        kupplungenJS            .= (map (ausObjekt . OKupplung) $ _kupplungen status :: [o]),
-        wegstreckenJS           .= (map (ausObjekt . OWegstrecke) $ _wegstrecken status :: [o]),
-        pläneJS                 .= (map (ausObjekt . OPlan) $ _pläne status :: [o])]
+    toJSON status =
+        object
+            [ bahngeschwindigkeitenJS
+                  .= (map (ausObjekt . OBahngeschwindigkeit) $ _bahngeschwindigkeiten status :: [o])
+            , streckenabschnitteJS .= (map (ausObjekt . OStreckenabschnitt) $ _streckenabschnitte status :: [o])
+            , weichenJS .= (map (ausObjekt . OWeiche) $ _weichen status :: [o])
+            , kupplungenJS .= (map (ausObjekt . OKupplung) $ _kupplungen status :: [o])
+            , wegstreckenJS .= (map (ausObjekt . OWegstrecke) $ _wegstrecken status :: [o])
+            , pläneJS .= (map (ausObjekt . OPlan) $ _pläne status :: [o])]
 
-instance (FromJSON (bg 'Märklin), FromJSON (bg 'Lego), FromJSON st, FromJSON (we 'Märklin), FromJSON (we 'Lego),
-        FromJSON ku, FromJSON (ws 'Lego), FromJSON (ws 'Märklin), FromJSON pl)
-            => FromJSON (ObjektAllgemein bg st we ku ws pl) where
+instance ( FromJSON (bg 'Märklin)
+         , FromJSON (bg 'Lego)
+         , FromJSON st
+         , FromJSON (we 'Märklin)
+         , FromJSON (we 'Lego)
+         , FromJSON ku
+         , FromJSON (ws 'Lego)
+         , FromJSON (ws 'Märklin)
+         , FromJSON pl) => FromJSON (ObjektAllgemein bg st we ku ws pl) where
     parseJSON :: Value -> Parser (ObjektAllgemein bg st we ku ws pl)
-    parseJSON value = OBahngeschwindigkeit <$> parseJSON value
-        <|> OStreckenabschnitt <$> parseJSON value
-        <|> OWeiche <$> parseJSON value
-        <|> OKupplung <$> parseJSON value
-        <|> OWegstrecke <$> parseJSON value
-        <|> OPlan <$> parseJSON value
+    parseJSON value =
+        OBahngeschwindigkeit
+        <$> parseJSON value <|> OStreckenabschnitt
+        <$> parseJSON value <|> OWeiche
+        <$> parseJSON value <|> OKupplung
+        <$> parseJSON value <|> OWegstrecke
+        <$> parseJSON value <|> OPlan
+        <$> parseJSON value
 
-instance (ToJSON (bg 'Märklin), ToJSON (bg 'Lego), ToJSON st, ToJSON (we 'Märklin), ToJSON (we 'Lego),
-        ToJSON ku, ToJSON (ws 'Märklin), ToJSON (ws 'Lego), ToJSON pl)
-            => ToJSON (ObjektAllgemein bg st we ku ws pl) where
+instance ( ToJSON (bg 'Märklin)
+         , ToJSON (bg 'Lego)
+         , ToJSON st
+         , ToJSON (we 'Märklin)
+         , ToJSON (we 'Lego)
+         , ToJSON ku
+         , ToJSON (ws 'Märklin)
+         , ToJSON (ws 'Lego)
+         , ToJSON pl) => ToJSON (ObjektAllgemein bg st we ku ws pl) where
     toJSON :: ObjektAllgemein bg st we ku ws pl -> Value
-    toJSON  (OBahngeschwindigkeit bg)   = toJSON bg
-    toJSON  (OStreckenabschnitt st)     = toJSON st
-    toJSON  (OWeiche we)                = toJSON we
-    toJSON  (OKupplung ku)              = toJSON ku
-    toJSON  (OWegstrecke ws)            = toJSON ws
-    toJSON  (OPlan pl)                  = toJSON pl
+    toJSON (OBahngeschwindigkeit bg) = toJSON bg
+    toJSON (OStreckenabschnitt st) = toJSON st
+    toJSON (OWeiche we) = toJSON we
+    toJSON (OKupplung ku) = toJSON ku
+    toJSON (OWegstrecke ws) = toJSON ws
+    toJSON (OPlan pl) = toJSON pl
 
 instance (FromJSON (a 'Märklin), FromJSON (a 'Lego)) => FromJSON (ZugtypEither a) where
     parseJSON :: Value -> Parser (ZugtypEither a)
@@ -123,15 +147,15 @@ instance (FromJSON (a 'Märklin), FromJSON (a 'Lego)) => FromJSON (ZugtypEither 
 
 instance (ToJSON (a 'Märklin), ToJSON (a 'Lego)) => ToJSON (ZugtypEither a) where
     toJSON :: ZugtypEither a -> Value
-    toJSON  (ZugtypMärklin a)   = toJSON a
-    toJSON  (ZugtypLego a)      = toJSON a
+    toJSON (ZugtypMärklin a) = toJSON a
+    toJSON (ZugtypLego a) = toJSON a
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 pinJS :: Text
 pinJS = "Pin"
+
 portJS :: Text
 portJS = "PCF8574Port"
-
 
 -- | Parse einen Anschluss.
 -- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
@@ -144,72 +168,76 @@ parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (vonPinGpio <$> (v .
 -- Bei diesen war nur ein Pin-Anschluss erlaubt, wodurch ein Anschluss nur durch eine Zahl gespeichert wurde.
 instance FromJSON Anschluss where
     parseJSON :: Value -> Parser Anschluss
-    parseJSON   (Object v)      = (vonPinGpio <$> (v .: pinJS :: Parser Int))
-                                <|> (AnschlussPCF8574Port <$> v .: portJS)
-    parseJSON   (Number pin)    = pure $ vonPinGpio (floor pin :: Natural)
-    parseJSON   _value          = mzero
+    parseJSON (Object v) = (vonPinGpio <$> (v .: pinJS :: Parser Int)) <|> (AnschlussPCF8574Port <$> v .: portJS)
+    parseJSON (Number pin) = pure $ vonPinGpio (floor pin :: Natural)
+    parseJSON _value = mzero
 
 instance ToJSON Anschluss where
     toJSON :: Anschluss -> Value
-    toJSON  anschluss@(AnschlussPin _pin)   = object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
-    toJSON  (AnschlussPCF8574Port port)     = object [portJS .= port]
+    toJSON anschluss @ (AnschlussPin _pin) = object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
+    toJSON (AnschlussPCF8574Port port) = object [portJS .= port]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 variantJS :: Text
 variantJS = "Variante"
+
 a0JS :: Text
 a0JS = "a0"
+
 a1JS :: Text
 a1JS = "a1"
+
 a2JS :: Text
 a2JS = "a2"
 
 -- Instanz-Deklarationen für PCF8574Port
 instance FromJSON PCF8574Port where
     parseJSON :: Value -> Parser PCF8574Port
-    parseJSON   (Object v)  = PCF8574Port
-                            <$> (PCF8574 <$> v .: variantJS <*> v .: a0JS <*> v .: a1JS <*> v .: a2JS)
-                            <*> (v .: portJS)
-    parseJSON   _anschluss  = mzero
+    parseJSON (Object v) =
+        PCF8574Port <$> (PCF8574 <$> v .: variantJS <*> v .: a0JS <*> v .: a1JS <*> v .: a2JS) <*> (v .: portJS)
+    parseJSON _anschluss = mzero
 
-instance  ToJSON PCF8574Port where
+instance ToJSON PCF8574Port where
     toJSON :: PCF8574Port -> Value
-    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port}= object [
-        variantJS .= variant,
-        a0JS .= a0,
-        a1JS .= a1,
-        a2JS .= a2,
-        portJS .= port]
+    toJSON PCF8574Port {pcf8574 = PCF8574 {variant,a0,a1,a2},port} =
+        object [variantJS .= variant, a0JS .= a0, a1JS .= a1, a2JS .= a2, portJS .= port]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 variantNormalJS :: Text
 variantNormalJS = "Normal"
+
 variantAJS :: Text
 variantAJS = "A"
 
 -- Instanz-Deklarationen für PCF8574Variant
 instance FromJSON PCF8574Variant where
     parseJSON :: Value -> Parser PCF8574Variant
-    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
 
 instance ToJSON PCF8574Variant where
     toJSON :: PCF8574Variant -> Value
-    toJSON  VariantNormal   = String variantNormalJS
-    toJSON  VariantA        = String variantAJS
+    toJSON VariantNormal = String variantNormalJS
+    toJSON VariantA = String variantAJS
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 nsJS :: Text
 nsJS = "ns"
+
 µsJS :: Text
 µsJS = "µs"
+
 msJS :: Text
 msJS = "ms"
+
 sJS :: Text
 sJS = "s"
+
 minJS :: Text
 minJS = "min"
+
 hJS :: Text
 hJS = "h"
+
 dJS :: Text
 dJS = "d"
 
@@ -218,125 +246,135 @@ dJS = "d"
 -- Bei diesen wurde implizit immer Mikrosekunden angenommen, wodurch nur eine Zahl gespeichert wurde.
 instance FromJSON Wartezeit where
     parseJSON :: Value -> Parser Wartezeit
-    parseJSON   (Object v)
-        = (NanoSekunden <$> v .: nsJS)
+    parseJSON (Object v) =
+        (NanoSekunden <$> v .: nsJS)
         <|> (MikroSekunden <$> v .: µsJS)
         <|> (MilliSekunden <$> v .: msJS)
         <|> (Sekunden <$> v .: sJS)
         <|> (Minuten <$> v .: minJS)
         <|> (Stunden <$> v .: hJS)
         <|> (Tage <$> v .: dJS)
-    parseJSON   (Number µs)
-        = pure $ MikroSekunden $ floor µs
-    parseJSON   _value
-        = mzero
+    parseJSON (Number µs) = pure $ MikroSekunden $ floor µs
+    parseJSON _value = mzero
 
 instance ToJSON Wartezeit where
     toJSON :: Wartezeit -> Value
-    toJSON  (NanoSekunden ns)   = object [nsJS .= ns]
-    toJSON  (MikroSekunden µs)  = object [µsJS .= µs]
-    toJSON  (MilliSekunden ms)  = object [msJS .= ms]
-    toJSON  (Sekunden s)        = object [sJS .= s]
-    toJSON  (Minuten min)       = object [minJS .= min]
-    toJSON  (Stunden h)         = object [hJS .= h]
-    toJSON  (Tage d)            = object [dJS .= d]
+    toJSON (NanoSekunden ns) = object [nsJS .= ns]
+    toJSON (MikroSekunden µs) = object [µsJS .= µs]
+    toJSON (MilliSekunden ms) = object [msJS .= ms]
+    toJSON (Sekunden s) = object [sJS .= s]
+    toJSON (Minuten min) = object [minJS .= min]
+    toJSON (Stunden h) = object [hJS .= h]
+    toJSON (Tage d) = object [dJS .= d]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 geradeJS :: Text
 geradeJS = "Gerade"
+
 kurveJS :: Text
 kurveJS = "Kurve"
+
 linksJS :: Text
 linksJS = "Links"
+
 rechtsJS :: Text
 rechtsJS = "Rechts"
 
 -- Instanz-Deklaration für Richtung
 instance FromJSON Richtung where
     parseJSON :: Value -> Parser Richtung
-    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
 
 instance ToJSON Richtung where
     toJSON :: Richtung -> Value
-    toJSON  Links   = String linksJS
-    toJSON  Rechts  = String rechtsJS
-    toJSON  Gerade  = String geradeJS
-    toJSON  Kurve   = String kurveJS
+    toJSON Links = String linksJS
+    toJSON Rechts = String rechtsJS
+    toJSON Gerade = String geradeJS
+    toJSON Kurve = String kurveJS
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 märklinJS :: Text
 märklinJS = "Märklin"
+
 legoJS :: Text
 legoJS = "Lego"
 
 -- Instanz-Deklaration für Zugtyp
 instance FromJSON Zugtyp where
     parseJSON :: Value -> Parser Zugtyp
-    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
 
 instance ToJSON Zugtyp where
     toJSON :: Zugtyp -> Value
-    toJSON  Märklin     = String märklinJS
-    toJSON  Lego        = String legoJS
+    toJSON Märklin = String märklinJS
+    toJSON Lego = String legoJS
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 vorwärtsJS :: Text
 vorwärtsJS = "Vorwärts"
+
 rückwärtsJS :: Text
 rückwärtsJS = "Rückwärts"
 
 -- Instanz-Deklaration für Fahrtrichtung
 instance FromJSON Fahrtrichtung where
     parseJSON :: Value -> Parser Fahrtrichtung
-    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
 
 instance ToJSON Fahrtrichtung where
     toJSON :: Fahrtrichtung -> Value
-    toJSON  Vorwärts    = String vorwärtsJS
-    toJSON  Rückwärts   = String rückwärtsJS
+    toJSON Vorwärts = String vorwärtsJS
+    toJSON Rückwärts = String rückwärtsJS
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 fließendJS :: Text
 fließendJS = "Fließend"
+
 gesperrtJS :: Text
 gesperrtJS = "Gesperrt"
 
 -- Instanz-Deklaration für Strom
 instance FromJSON Strom where
     parseJSON :: Value -> Parser Strom
-    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
 
 instance ToJSON Strom where
     toJSON :: Strom -> Value
-    toJSON  Fließend    = String fließendJS
-    toJSON  Gesperrt    = String gesperrtJS
+    toJSON Fließend = String fließendJS
+    toJSON Gesperrt = String gesperrtJS
 
 -- Instanz-Deklaration für Value
 instance FromJSON Anbindung.Value where
     parseJSON :: Value -> Parser Anbindung.Value
-    parseJSON = findeÜbereinstimmendenWert [minBound..maxBound]
+    parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
 
 highJS :: Text
 highJS = "HIGH"
+
 lowJS :: Text
 lowJS = "LOW"
 
 instance ToJSON Anbindung.Value where
     toJSON :: Anbindung.Value -> Value
-    toJSON  Anbindung.HIGH  = String highJS
-    toJSON  Anbindung.LOW   = String lowJS
+    toJSON Anbindung.HIGH = String highJS
+    toJSON Anbindung.LOW = String lowJS
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 nameJS :: Text
 nameJS = "Name"
+
 zugtypJS :: Text
 zugtypJS = "Zugtyp"
+
 geschwindigkeitsPinJS :: Text
 geschwindigkeitsPinJS = "GeschwindigkeitsPin"
+
 fahrtrichtungsPinJS :: Text
 fahrtrichtungsPinJS = "FahrtrichtungsPin"
+
 geschwindigkeitsAnschlussJS :: Text
 geschwindigkeitsAnschlussJS = "GeschwindigkeitsPin"
+
 fahrtrichtungsAnschlussJS :: Text
 fahrtrichtungsAnschlussJS = "FahrtrichtungsPin"
 
@@ -349,140 +387,148 @@ parseFließend v = (v .: fließendJS) <|> pure Anbindung.HIGH
 -- Instanz-Deklarationen für Bahngeschwindigkeit
 instance FromJSON (Bahngeschwindigkeit 'Märklin) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Märklin)
-    parseJSON   (Object v)  = do
+    parseJSON (Object v) = do
         Märklin <- v .: zugtypJS
         bgmName <- v .: nameJS
         bgmGeschwindigkeitsAnschluss <- parseAnschluss v geschwindigkeitsAnschlussJS geschwindigkeitsPinJS
         bgmFließend <- parseFließend v
-        pure MärklinBahngeschwindigkeit {bgmName, bgmFließend, bgmGeschwindigkeitsAnschluss}
-    parseJSON   _value      = mzero
+        pure
+            MärklinBahngeschwindigkeit
+            { bgmName
+            , bgmFließend
+            , bgmGeschwindigkeitsAnschluss
+            }
+    parseJSON _value = mzero
+
 instance FromJSON (Bahngeschwindigkeit 'Lego) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Lego)
-    parseJSON   (Object v)  = do
+    parseJSON (Object v) = do
         Lego <- v .: zugtypJS
         bglName <- v .: nameJS
         bglGeschwindigkeitsAnschluss <- parseAnschluss v geschwindigkeitsAnschlussJS geschwindigkeitsPinJS
         bglFahrtrichtungsAnschluss <- parseAnschluss v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
         bglFließend <- parseFließend v
-        pure LegoBahngeschwindigkeit {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss}
-    parseJSON   _value      = mzero
+        pure
+            LegoBahngeschwindigkeit
+            { bglName
+            , bglFließend
+            , bglGeschwindigkeitsAnschluss
+            , bglFahrtrichtungsAnschluss
+            }
+    parseJSON _value = mzero
 
 instance ToJSON (Bahngeschwindigkeit z) where
     toJSON :: Bahngeschwindigkeit z -> Value
-    toJSON
-        LegoBahngeschwindigkeit {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss}
-            = object [
-                nameJS .= bglName,
-                fließendJS .= bglFließend,
-                geschwindigkeitsPinJS .= bglGeschwindigkeitsAnschluss,
-                zugtypJS .= Lego,
-                fahrtrichtungsPinJS .= bglFahrtrichtungsAnschluss]
-    toJSON
-        MärklinBahngeschwindigkeit {bgmName, bgmFließend, bgmGeschwindigkeitsAnschluss}
-            = object [
-                nameJS .= bgmName,
-                fließendJS .= bgmFließend,
-                geschwindigkeitsPinJS .= bgmGeschwindigkeitsAnschluss,
-                zugtypJS .= Märklin]
+    toJSON LegoBahngeschwindigkeit {bglName,bglFließend,bglGeschwindigkeitsAnschluss,bglFahrtrichtungsAnschluss} =
+        object
+            [ nameJS .= bglName
+            , fließendJS .= bglFließend
+            , geschwindigkeitsPinJS .= bglGeschwindigkeitsAnschluss
+            , zugtypJS .= Lego
+            , fahrtrichtungsPinJS .= bglFahrtrichtungsAnschluss]
+    toJSON MärklinBahngeschwindigkeit {bgmName,bgmFließend,bgmGeschwindigkeitsAnschluss} =
+        object
+            [ nameJS .= bgmName
+            , fließendJS .= bgmFließend
+            , geschwindigkeitsPinJS .= bgmGeschwindigkeitsAnschluss
+            , zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 stromPinJS :: Text
 stromPinJS = "StromPin"
+
 stromAnschlussJS :: Text
 stromAnschlussJS = "StromPin"
 
 -- Instanz-Deklarationen für Streckenabschnitt
 instance FromJSON Streckenabschnitt where
     parseJSON :: Value -> Parser Streckenabschnitt
-    parseJSON   (Object v)
-        = Streckenabschnitt
-            <$> v .: nameJS
-            <*> parseFließend v
-            <*> parseAnschluss v stromAnschlussJS stromPinJS
-    parseJSON   _value
-        = mzero
+    parseJSON (Object v) =
+        Streckenabschnitt <$> v .: nameJS <*> parseFließend v <*> parseAnschluss v stromAnschlussJS stromPinJS
+    parseJSON _value = mzero
 
 instance ToJSON Streckenabschnitt where
     toJSON :: Streckenabschnitt -> Value
-    toJSON
-        Streckenabschnitt {stName, stFließend, stromAnschluss}
-            = object [
-                nameJS .= stName,
-                fließendJS .= stFließend,
-                stromPinJS .= stromAnschluss]
+    toJSON Streckenabschnitt {stName,stFließend,stromAnschluss} =
+        object [nameJS .= stName, fließendJS .= stFließend, stromPinJS .= stromAnschluss]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 richtungsPinJS :: Text
 richtungsPinJS = "RichtungsPin"
+
 richtungenJS :: Text
 richtungenJS = "Richtungen"
+
 richtungsPinsJS :: Text
 richtungsPinsJS = "RichtungsPins"
 
 -- Instanz-Deklarationen für Weiche
 instance FromJSON (Weiche 'Märklin) where
     parseJSON :: Value -> Parser (Weiche 'Märklin)
-    parseJSON   (Object v)  = do
+    parseJSON (Object v) = do
         Märklin <- v .: zugtypJS
         wemName <- v .: nameJS
         wemRichtungsAnschlüsse <- v .: richtungsPinsJS
         wemFließend <- parseFließend v
-        pure MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse}
-    parseJSON   _value      = mzero
+        pure
+            MärklinWeiche
+            { wemName
+            , wemFließend
+            , wemRichtungsAnschlüsse
+            }
+    parseJSON _value = mzero
+
 instance FromJSON (Weiche 'Lego) where
     parseJSON :: Value -> Parser (Weiche 'Lego)
-    parseJSON   (Object v)  = do
+    parseJSON (Object v) = do
         Lego <- v .: zugtypJS
         welName <- v .: nameJS
         welRichtungsAnschluss <- v .: richtungsPinJS
         welRichtungen <- v .: richtungenJS
         welFließend <- parseFließend v
-        pure LegoWeiche {welName, welFließend, welRichtungsAnschluss, welRichtungen}
-    parseJSON   _value      = mzero
+        pure
+            LegoWeiche
+            { welName
+            , welFließend
+            , welRichtungsAnschluss
+            , welRichtungen
+            }
+    parseJSON _value = mzero
 
 instance ToJSON (Weiche z) where
     toJSON :: Weiche z -> Value
-    toJSON
-        LegoWeiche {welName, welFließend, welRichtungsAnschluss, welRichtungen}
-            = object [
-                nameJS .= welName,
-                fließendJS .= welFließend,
-                richtungsPinJS .= welRichtungsAnschluss,
-                richtungenJS .= welRichtungen,
-                zugtypJS .= Lego]
-    toJSON
-        MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse}
-            = object [
-                nameJS .= wemName,
-                fließendJS .= wemFließend,
-                richtungsPinsJS .= NE.toList wemRichtungsAnschlüsse,
-                zugtypJS .= Märklin]
+    toJSON LegoWeiche {welName,welFließend,welRichtungsAnschluss,welRichtungen} =
+        object
+            [ nameJS .= welName
+            , fließendJS .= welFließend
+            , richtungsPinJS .= welRichtungsAnschluss
+            , richtungenJS .= welRichtungen
+            , zugtypJS .= Lego]
+    toJSON MärklinWeiche {wemName,wemFließend,wemRichtungsAnschlüsse} =
+        object
+            [ nameJS .= wemName
+            , fließendJS .= wemFließend
+            , richtungsPinsJS .= NE.toList wemRichtungsAnschlüsse
+            , zugtypJS .= Märklin]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 kupplungsPinJS :: Text
 kupplungsPinJS = "KupplungsPin"
+
 kupplungsAnschlussJS :: Text
 kupplungsAnschlussJS = "KupplungsAnschluss"
 
 -- Instanz-Deklarationen für Kupplung
 instance FromJSON Kupplung where
     parseJSON :: Value -> Parser Kupplung
-    parseJSON   (Object v)
-        = Kupplung
-            <$> v .: nameJS
-            <*> parseFließend v
-            <*> parseAnschluss v kupplungsAnschlussJS kupplungsPinJS
-    parseJSON   _value
-        = mzero
+    parseJSON (Object v) =
+        Kupplung <$> v .: nameJS <*> parseFließend v <*> parseAnschluss v kupplungsAnschlussJS kupplungsPinJS
+    parseJSON _value = mzero
 
 instance ToJSON Kupplung where
     toJSON :: Kupplung -> Value
-    toJSON
-        Kupplung {kuName, kuFließend, kupplungsAnschluss}
-            = object [
-                nameJS .= kuName,
-                fließendJS .= kuFließend,
-                kupplungsAnschlussJS .= kupplungsAnschluss]
+    toJSON Kupplung {kuName,kuFließend,kupplungsAnschluss} =
+        object [nameJS .= kuName, fließendJS .= kuFließend, kupplungsAnschlussJS .= kupplungsAnschluss]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 weichenRichtungenJS :: Text
@@ -491,225 +537,231 @@ weichenRichtungenJS = "Weichen-Richtungen"
 -- Instanz-Deklaration für Wegstrecke
 instance FromJSON (Wegstrecke 'Märklin) where
     parseJSON :: Value -> Parser (Wegstrecke 'Märklin)
-    parseJSON   (Object v)
-        = Wegstrecke
-            <$> (v .: nameJS)
-            <*> (v .: bahngeschwindigkeitenJS)
-            <*> (v .: streckenabschnitteJS)
-            <*> (v .: weichenRichtungenJS)
-            <*> (v .: kupplungenJS)
-    parseJSON   _value
-        = mzero
+    parseJSON (Object v) =
+        Wegstrecke <$> (v .: nameJS)
+        <*> (v .: bahngeschwindigkeitenJS)
+        <*> (v .: streckenabschnitteJS)
+        <*> (v .: weichenRichtungenJS)
+        <*> (v .: kupplungenJS)
+    parseJSON _value = mzero
+
 instance FromJSON (Wegstrecke 'Lego) where
     parseJSON :: Value -> Parser (Wegstrecke 'Lego)
-    parseJSON   (Object v)
-        = Wegstrecke
-            <$> (v .: nameJS)
-            <*> (v .: bahngeschwindigkeitenJS)
-            <*> (v .: streckenabschnitteJS)
-            <*> (v .: weichenRichtungenJS)
-            <*> (v .: kupplungenJS)
-    parseJSON   _value
-        = mzero
+    parseJSON (Object v) =
+        Wegstrecke <$> (v .: nameJS)
+        <*> (v .: bahngeschwindigkeitenJS)
+        <*> (v .: streckenabschnitteJS)
+        <*> (v .: weichenRichtungenJS)
+        <*> (v .: kupplungenJS)
+    parseJSON _value = mzero
 
 instance ToJSON (Wegstrecke z) where
     toJSON :: Wegstrecke z -> Value
-    toJSON
-        Wegstrecke {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen}
-            = object [
-                nameJS .= wsName,
-                bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten,
-                streckenabschnitteJS .= wsStreckenabschnitte,
-                weichenRichtungenJS .= wsWeichenRichtungen,
-                kupplungenJS .= wsKupplungen]
+    toJSON Wegstrecke {wsName,wsBahngeschwindigkeiten,wsStreckenabschnitte,wsWeichenRichtungen,wsKupplungen} =
+        object
+            [ nameJS .= wsName
+            , bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten
+            , streckenabschnitteJS .= wsStreckenabschnitte
+            , weichenRichtungenJS .= wsWeichenRichtungen
+            , kupplungenJS .= wsKupplungen]
 
 -- neue Feld-Namen/Bezeichner in json-Datei
 wartenJS :: Text
 wartenJS = "Warten"
+
 einstellenJS :: Text
 einstellenJS = "Einstellen"
+
 stellenJS :: Text
 stellenJS = "Stellen"
+
 geschwindigkeitJS :: Text
 geschwindigkeitJS = "Geschwindigkeit"
+
 umdrehenJS :: Text
 umdrehenJS = "Umdrehen"
+
 fahrtrichtungEinstellenJS :: Text
 fahrtrichtungEinstellenJS = "FahrtrichtungEinstellen"
+
 stromJS :: Text
 stromJS = "Strom"
+
 kuppelnJS :: Text
 kuppelnJS = "Kuppeln"
+
 wegstreckeJS :: Text
 wegstreckeJS = "Wegstrecke"
+
 aktionJS :: Text
 aktionJS = "Aktion"
+
 weicheJS :: Text
 weicheJS = "Weiche"
+
 richtungJS :: Text
 richtungJS = "Richtung"
+
 bahngeschwindigkeitJS :: Text
 bahngeschwindigkeitJS = "Bahngeschwindigkeit"
+
 wertJS :: Text
 wertJS = "Wert"
+
 fahrtrichtungJS :: Text
 fahrtrichtungJS = "Fahrtrichtung"
+
 streckenabschnittJS :: Text
 streckenabschnittJS = "Streckenabschnitt"
+
 anJS :: Text
 anJS = "Fließend"
+
 kupplungJS :: Text
 kupplungJS = "Kupplung"
+
 aktionenJS :: Text
 aktionenJS = "Aktionen"
+
 ausführenJS :: Text
 ausführenJS = "Ausführen"
+
 planJS :: Text
 planJS = "Plan"
+
 dauerschleifeJS :: Text
 dauerschleifeJS = "Dauerschleife"
 
 -- Instanz-Deklaration für Plan
 instance FromJSON Aktion where
     parseJSON :: Value -> Parser Aktion
-    parseJSON   (Object v)  = (v .: aktionJS) >>= \s -> if
-        | s == wartenJS
-            -> Warten <$> v .: wertJS
-        | s == einstellenJS
-            -> (AWegstreckeMärklin . Einstellen <$> v .: wegstreckeJS)
-                <|> (AWegstreckeLego . Einstellen <$> v .: wegstreckeJS)
-        | s == stellenJS
-            -> AWeiche <$> (Stellen <$> v .: weicheJS <*> v .: richtungJS)
-        | s == geschwindigkeitJS
-            -> parseMaybeWegstrecke v
-                (\w v   -> AWSBahngeschwindigkeit . Geschwindigkeit w <$> v .: wertJS)
-                (\w v   -> AWSBahngeschwindigkeit . Geschwindigkeit w <$> v .: wertJS)
-                (\v     -> (ABahngeschwindigkeitMärklin <$> geschwindigkeitParserMärklin v)
-                        <|> (ABahngeschwindigkeitLego <$> geschwindigkeitParserLego v))
-        | s == umdrehenJS
-            -> parseMaybeWegstrecke v
-                (\w _v  -> pure $ AWSBahngeschwindigkeit $ Umdrehen w)
-                parseFail
-                (\v     -> ABahngeschwindigkeitMärklin . Umdrehen <$> v .: bahngeschwindigkeitJS)
-        | s == fahrtrichtungEinstellenJS
-            -> parseMaybeWegstrecke v
-                parseFail
-                (\w v   -> AWSBahngeschwindigkeit . FahrtrichtungEinstellen w <$> v .: fahrtrichtungJS)
-                (\v     -> ABahngeschwindigkeitLego
-                        <$> (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS <*> v .: fahrtrichtungJS))
-        | s == stromJS
-            -> parseMaybeWegstrecke v
-                (\w v   -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
-                (\w v   -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
-                (\v     -> AStreckenabschnitt <$> (Strom <$> v .: streckenabschnittJS <*> v .: anJS))
-        | s == kuppelnJS
-            -> parseMaybeWegstrecke v
-                (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
-                (\w _v  -> pure $ AWSKupplung $ Kuppeln w)
-                (\v     -> AKupplung . Kuppeln <$> v .: kupplungJS)
-        | s == ausführenJS
-            -> AktionAusführen <$> v .: planJS
-        | otherwise
-            -> mzero
-        where
-            parseMaybeWegstrecke ::
-                Object ->
-                (Wegstrecke 'Märklin -> Object -> Parser (AktionWegstrecke Wegstrecke 'Märklin)) ->
-                (Wegstrecke 'Lego -> Object -> Parser (AktionWegstrecke Wegstrecke 'Lego)) ->
-                (Object -> Parser Aktion) ->
-                    Parser Aktion
-            parseMaybeWegstrecke v wsParserMärklin wsParserLego altParser = do
-                maybeWegstreckeMärklin <- v .:? wegstreckeJS :: Parser (Maybe (Wegstrecke 'Märklin))
-                maybeWegstreckeLego <- v .:? wegstreckeJS :: Parser (Maybe (Wegstrecke 'Lego))
-                if
-                    | isJust maybeWegstreckeMärklin
-                        -> AWegstreckeMärklin <$> wsParserMärklin (fromJust maybeWegstreckeMärklin) v
-                    | isJust maybeWegstreckeLego
-                        -> AWegstreckeLego <$> wsParserLego (fromJust maybeWegstreckeLego) v
-                    | otherwise
-                        -> altParser v
-            parseFail :: Wegstrecke z -> Object -> Parser (AktionWegstrecke Wegstrecke z)
-            parseFail _w _v = mzero
-            geschwindigkeitParserMärklin :: Object -> Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Märklin)
-            geschwindigkeitParserMärklin v = Geschwindigkeit <$> v .: bahngeschwindigkeitJS <*> v .: wertJS
-            geschwindigkeitParserLego :: Object -> Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Lego)
-            geschwindigkeitParserLego v = Geschwindigkeit <$> v .: bahngeschwindigkeitJS <*> v .: wertJS
-    parseJSON   _value      = mzero
+    parseJSON (Object v) = (v .: aktionJS) >>= \s -> if
+      | s == wartenJS -> Warten <$> v .: wertJS
+      | s == einstellenJS -> (AWegstreckeMärklin . Einstellen <$> v .: wegstreckeJS)
+          <|> (AWegstreckeLego . Einstellen <$> v .: wegstreckeJS)
+      | s == stellenJS -> AWeiche <$> (Stellen <$> v .: weicheJS <*> v .: richtungJS)
+      | s == geschwindigkeitJS -> parseMaybeWegstrecke
+          v
+          (\w v -> AWSBahngeschwindigkeit . Geschwindigkeit w <$> v .: wertJS)
+          (\w v -> AWSBahngeschwindigkeit . Geschwindigkeit w <$> v .: wertJS)
+          (\v -> (ABahngeschwindigkeitMärklin <$> geschwindigkeitParserMärklin v)
+           <|> (ABahngeschwindigkeitLego <$> geschwindigkeitParserLego v))
+      | s == umdrehenJS -> parseMaybeWegstrecke
+          v
+          (\w _v -> pure $ AWSBahngeschwindigkeit $ Umdrehen w)
+          parseFail
+          (\v -> ABahngeschwindigkeitMärklin . Umdrehen <$> v .: bahngeschwindigkeitJS)
+      | s == fahrtrichtungEinstellenJS -> parseMaybeWegstrecke
+          v
+          parseFail
+          (\w v -> AWSBahngeschwindigkeit . FahrtrichtungEinstellen w <$> v .: fahrtrichtungJS)
+          (\v -> ABahngeschwindigkeitLego
+           <$> (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS <*> v .: fahrtrichtungJS))
+      | s == stromJS -> parseMaybeWegstrecke
+          v
+          (\w v -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
+          (\w v -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
+          (\v -> AStreckenabschnitt <$> (Strom <$> v .: streckenabschnittJS <*> v .: anJS))
+      | s == kuppelnJS -> parseMaybeWegstrecke
+          v
+          (\w _v -> pure $ AWSKupplung $ Kuppeln w)
+          (\w _v -> pure $ AWSKupplung $ Kuppeln w)
+          (\v -> AKupplung . Kuppeln <$> v .: kupplungJS)
+      | s == ausführenJS -> AktionAusführen <$> v .: planJS
+      | otherwise -> mzero
+      where
+        parseMaybeWegstrecke :: Object
+                             -> (Wegstrecke 'Märklin -> Object -> Parser (AktionWegstrecke Wegstrecke 'Märklin))
+                             -> (Wegstrecke 'Lego -> Object -> Parser (AktionWegstrecke Wegstrecke 'Lego))
+                             -> (Object -> Parser Aktion)
+                             -> Parser Aktion
+        parseMaybeWegstrecke v wsParserMärklin wsParserLego altParser = do
+            maybeWegstreckeMärklin <- v .:? wegstreckeJS :: Parser (Maybe (Wegstrecke 'Märklin))
+            maybeWegstreckeLego <- v .:? wegstreckeJS :: Parser (Maybe (Wegstrecke 'Lego))
+            if
+              | isJust maybeWegstreckeMärklin -> AWegstreckeMärklin
+                  <$> wsParserMärklin (fromJust maybeWegstreckeMärklin) v
+              | isJust maybeWegstreckeLego -> AWegstreckeLego <$> wsParserLego (fromJust maybeWegstreckeLego) v
+              | otherwise -> altParser v
+
+        parseFail :: Wegstrecke z -> Object -> Parser (AktionWegstrecke Wegstrecke z)
+        parseFail _w _v = mzero
+
+        geschwindigkeitParserMärklin :: Object -> Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Märklin)
+        geschwindigkeitParserMärklin v = Geschwindigkeit <$> v .: bahngeschwindigkeitJS <*> v .: wertJS
+
+        geschwindigkeitParserLego :: Object -> Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Lego)
+        geschwindigkeitParserLego v = Geschwindigkeit <$> v .: bahngeschwindigkeitJS <*> v .: wertJS
+    parseJSON _value = mzero
 
 aktionToJSON :: Text -> Aktion -> Value
-aktionToJSON  _name (Warten wert)
-    = object [aktionJS .= wartenJS, wertJS .= wert]
-aktionToJSON  _name (AWegstreckeMärklin (Einstellen w))
-    = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
-aktionToJSON  _name (AWegstreckeLego (Einstellen w))
-    = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
-aktionToJSON  _name (AWegstreckeMärklin (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))
-    = object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-aktionToJSON  _name (AWegstreckeLego (AWSBahngeschwindigkeit (Geschwindigkeit w wert)))
-    = object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-aktionToJSON  _name (AWegstreckeMärklin (AWSBahngeschwindigkeit (Umdrehen w)))
-    = object [wegstreckeJS .= w, aktionJS .= umdrehenJS]
-aktionToJSON  _name (AWegstreckeLego (AWSBahngeschwindigkeit (FahrtrichtungEinstellen w fahrtrichtung)))
-    = object [wegstreckeJS .= w, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
-aktionToJSON  _name (AWegstreckeMärklin (AWSStreckenabschnitt (Strom w an)))
-    = object [wegstreckeJS .= w, aktionJS .= stromJS, anJS .= an]
-aktionToJSON  _name (AWegstreckeLego (AWSStreckenabschnitt (Strom w an)))
-    = object [wegstreckeJS .= w, aktionJS .= stromJS, anJS .= an]
-aktionToJSON  _name (AWegstreckeMärklin (AWSKupplung (Kuppeln w)))
-    = object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
-aktionToJSON  _name (AWegstreckeLego (AWSKupplung (Kuppeln w)))
-    = object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
-aktionToJSON  _name (AWeiche (Stellen w richtung))
-    = object [weicheJS .= w, aktionJS .= stellenJS, richtungJS .= richtung]
-aktionToJSON  _name (ABahngeschwindigkeitMärklin (Geschwindigkeit b wert))
-    = object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-aktionToJSON  _name (ABahngeschwindigkeitLego (Geschwindigkeit b wert))
-    = object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-aktionToJSON  _name (ABahngeschwindigkeitMärklin (Umdrehen b))
-    = object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS]
-aktionToJSON  _name (ABahngeschwindigkeitLego (FahrtrichtungEinstellen b fahrtrichtung))
-    = object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
-aktionToJSON  _name (AStreckenabschnitt (Strom s an))
-    = object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]
-aktionToJSON  _name (AKupplung (Kuppeln k))
-    = object [kupplungJS .= k, aktionJS .= kuppelnJS]
-aktionToJSON  name  (AktionAusführen plan@Plan {plName})
-    | name == plName
-        -- Verwende Name als Marker für Namensgleichheit (== angenommene Dauerschleife)
-        -- Explizit gehandhabt, da sonst die Berechnung des Value nicht terminiert.
-        = String name
-    | otherwise
-        = object [aktionJS .= ausführenJS, planJS .= plan]
+aktionToJSON _name (Warten wert) = object [aktionJS .= wartenJS, wertJS .= wert]
+aktionToJSON _name (AWegstreckeMärklin (Einstellen w)) = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
+aktionToJSON _name (AWegstreckeLego (Einstellen w)) = object [wegstreckeJS .= w, aktionJS .= einstellenJS]
+aktionToJSON _name (AWegstreckeMärklin (AWSBahngeschwindigkeit (Geschwindigkeit w wert))) =
+    object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
+aktionToJSON _name (AWegstreckeLego (AWSBahngeschwindigkeit (Geschwindigkeit w wert))) =
+    object [wegstreckeJS .= w, aktionJS .= geschwindigkeitJS, wertJS .= wert]
+aktionToJSON _name (AWegstreckeMärklin (AWSBahngeschwindigkeit (Umdrehen w))) =
+    object [wegstreckeJS .= w, aktionJS .= umdrehenJS]
+aktionToJSON _name (AWegstreckeLego (AWSBahngeschwindigkeit (FahrtrichtungEinstellen w fahrtrichtung))) =
+    object [wegstreckeJS .= w, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
+aktionToJSON _name (AWegstreckeMärklin (AWSStreckenabschnitt (Strom w an))) =
+    object [wegstreckeJS .= w, aktionJS .= stromJS, anJS .= an]
+aktionToJSON _name (AWegstreckeLego (AWSStreckenabschnitt (Strom w an))) =
+    object [wegstreckeJS .= w, aktionJS .= stromJS, anJS .= an]
+aktionToJSON _name (AWegstreckeMärklin (AWSKupplung (Kuppeln w))) = object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
+aktionToJSON _name (AWegstreckeLego (AWSKupplung (Kuppeln w))) = object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
+aktionToJSON _name (AWeiche (Stellen w richtung)) =
+    object [weicheJS .= w, aktionJS .= stellenJS, richtungJS .= richtung]
+aktionToJSON _name (ABahngeschwindigkeitMärklin (Geschwindigkeit b wert)) =
+    object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
+aktionToJSON _name (ABahngeschwindigkeitLego (Geschwindigkeit b wert)) =
+    object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
+aktionToJSON _name (ABahngeschwindigkeitMärklin (Umdrehen b)) =
+    object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS]
+aktionToJSON _name (ABahngeschwindigkeitLego (FahrtrichtungEinstellen b fahrtrichtung)) =
+    object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
+aktionToJSON _name (AStreckenabschnitt (Strom s an)) =
+    object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]
+aktionToJSON _name (AKupplung (Kuppeln k)) = object [kupplungJS .= k, aktionJS .= kuppelnJS]
+aktionToJSON name (AktionAusführen plan @ Plan {plName})
+  | name == plName =
+      -- Verwende Name als Marker für Namensgleichheit (== angenommene Dauerschleife)
+      -- Explizit gehandhabt, da sonst die Berechnung des Value nicht terminiert.
+      String name
+  | otherwise = object [aktionJS .= ausführenJS, planJS .= plan]
 
 instance FromJSON Plan where
     parseJSON :: Value -> Parser Plan
-    parseJSON   (Object v)  = do
+    parseJSON (Object v) = do
         plName <- v .: nameJS
         aktionen <- v .: aktionenJS
-        let
-            erzeugeDauerschleife :: Maybe Bool -> Plan
-            erzeugeDauerschleife
-                (Just True)
-                    = let plan = Plan {plName, plAktionen = aktionen ++ [AktionAusführen plan]} in plan
-            erzeugeDauerschleife
-                _NothingOderFalse
-                    = Plan {plName, plAktionen = aktionen}
+        let erzeugeDauerschleife :: Maybe Bool -> Plan
+            erzeugeDauerschleife (Just True) =
+                let plan =
+                        Plan
+                        { plName
+                        , plAktionen = aktionen ++ [AktionAusführen plan]
+                        }
+                in plan
+            erzeugeDauerschleife _NothingOderFalse =
+                Plan
+                { plName
+                , plAktionen = aktionen
+                }
         erzeugeDauerschleife <$> (v .:? dauerschleifeJS)
-    parseJSON   _value      = mzero
+    parseJSON _value = mzero
 
 instance ToJSON Plan where
     toJSON :: Plan -> Value
-    toJSON
-        Plan {plName, plAktionen}
-            = let (nullValues, aktionen) = partition ((==) $ String plName) $ map (aktionToJSON plName) plAktionen
-                in object [
-                    nameJS .= plName,
-                    aktionenJS .= aktionen,
-                    dauerschleifeJS .= (not $ null nullValues)]
+    toJSON Plan {plName,plAktionen} =
+        let (nullValues,aktionen) = partition ((==) $ String plName) $ map (aktionToJSON plName) plAktionen
+        in object [nameJS .= plName, aktionenJS .= aktionen, dauerschleifeJS .= (not $ null nullValues)]
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen
 findeÜbereinstimmendenWert :: (ToJSON a) => [a] -> Value -> Parser a
-findeÜbereinstimmendenWert  []      _v  = mzero
-findeÜbereinstimmendenWert  (h : t) v
-    | v == toJSON h             = pure h
-    | otherwise                 = findeÜbereinstimmendenWert t v
+findeÜbereinstimmendenWert [] _v = mzero
+findeÜbereinstimmendenWert (h:t) v
+  | v == toJSON h = pure h
+  | otherwise = findeÜbereinstimmendenWert t v
