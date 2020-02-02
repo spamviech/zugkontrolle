@@ -33,7 +33,6 @@ module Zug.UI.StatusVar
 
 -- Bibliotheken
 import Control.Concurrent.STM (STM,atomically,TVar,readTVar,writeTVar,retry,newTVarIO)
-import Control.Lens ((^.))
 import Control.Monad.RWS.Lazy (runRWS,runRWST)
 import Control.Monad.Reader.Class (MonadReader(..),asks)
 import Control.Monad.Trans (MonadIO(..))
@@ -47,7 +46,7 @@ import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache())
 import Zug.Objekt (ObjektKlasse(..))
 import Zug.Plan (PlanKlasse(..),AktionKlasse(..))
-import Zug.UI.Base (StatusAllgemein(),sprache,IOStatusAllgemein,MStatusAllgemein,MStatusAllgemeinT,ReaderFamilie
+import Zug.UI.Base (StatusAllgemein(..),IOStatusAllgemein,MStatusAllgemein,MStatusAllgemeinT,ReaderFamilie
                    ,ObjektReader(),MitTVarMaps(),liftIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..))
 
@@ -67,7 +66,7 @@ statusVarNew = fmap StatusVar . newTVarIO . Left
 takeStatusVar :: StatusVar o -> STM (StatusAllgemein o)
 takeStatusVar StatusVar {tvar} = readTVar tvar >>= \case
     (Left status) -> do
-        writeTVar tvar $ Right $ status ^. sprache
+        writeTVar tvar $ Right $ _sprache status
         pure status
     (Right _sprache) -> retry
 

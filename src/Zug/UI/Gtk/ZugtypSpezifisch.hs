@@ -5,32 +5,50 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE CPP #-}
+#ifndef ZUGKONTROLLEGUI
+{-# LANGUAGE EmptyDataDecls #-}
+#endif
 
 {-|
 Description: Widget zur Auswahl eines Bounded Enums
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.ZugtypSpezifisch () where
-#else
-module Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(),zugtypSpezifischNew,zugtypSpezifischButtonNew) where
+module Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew) where
 
 -- Bibliotheken
-import Control.Monad (forM_,forM)
+#ifdef ZUGKONTROLLEGUI
+import Control.Monad (forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.List.NonEmpty (NonEmpty(..))
-
+#else
+import qualified Data.Text as Text
+#endif
+#ifdef ZUGKONTROLLEGUI
 import qualified Graphics.UI.Gtk as Gtk
+#endif
 
 -- Abhängigkeit von anderen Modulen
+#ifdef ZUGKONTROLLEGUI
 import Zug.Enums (Zugtyp(..))
+#else
+import Zug.Language (Sprache(..))
+import qualified Zug.Language as Language
+#endif
+#ifdef ZUGKONTROLLEGUI
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl, aktuelleAuswahl)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowIf)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitContainer(..))
+#endif
 
-import Zug.UI.Gtk.Auswahl (AuswahlWidget,beiAuswahl,aktuelleAuswahl)
+#ifndef ZUGKONTROLLEGUI
+data ZugtypSpezifisch
 
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault,boxPackDefault,widgetShowIf)
+zugtypSpezifischNew :: a
+zugtypSpezifischNew = error $ Text.unpack $ Language.uiNichtUnterstützt Deutsch
 
-import Zug.UI.Gtk.Klassen (MitWidget(..),mitWidgetShow,MitButton(..),MitContainer(..))
+zugtypSpezifischButtonNew :: a
+zugtypSpezifischButtonNew = error $ Text.unpack $ Language.uiNichtUnterstützt Deutsch
 
+#else
 -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
     ZugtypSpezifisch :: { vBox :: Gtk.VBox
@@ -60,13 +78,13 @@ zugtypSpezifischNew
 zugtypSpezifischNew eingabeWidgets auswahlWidget = liftIO $ do
     vBox <- Gtk.vBoxNew False 0
     aktuellerZugtyp <- aktuelleAuswahl auswahlWidget
-    zugtypWidgets <- forM eingabeWidgets $ \(zugtyp,mitWidget) -> do
+    zugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitWidget) -> do
         hiddenBox <- boxPackWidgetNewDefault vBox $ Gtk.vBoxNew False 0
         widgetShowIf (aktuellerZugtyp == zugtyp) hiddenBox
         mitWidgetShow mitWidget
         boxPackDefault hiddenBox mitWidget
         pure (zugtyp, hiddenBox)
-    beiAuswahl auswahlWidget $ \gewählterZugtyp -> forM_ zugtypWidgets $ \(zugtyp,widget)
+    beiAuswahl auswahlWidget $ \gewählterZugtyp -> forM_ zugtypWidgets $ \(zugtyp, widget)
         -> widgetShowIf (gewählterZugtyp == zugtyp) widget
     pure
         ZugtypSpezifisch
@@ -81,7 +99,7 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
     buttonVBox <- Gtk.vBoxNew False 0
     buttonDummy <- Gtk.buttonNew
     aktuellerZugtyp <- aktuelleAuswahl buttonAuswahlWidget
-    buttonZugtypWidgets <- forM eingabeWidgets $ \(zugtyp,mitButton) -> do
+    buttonZugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitButton) -> do
         hiddenBox <- boxPackWidgetNewDefault buttonVBox $ Gtk.hBoxNew False 0
         widgetShowIf (aktuellerZugtyp == zugtyp) hiddenBox
         mitWidgetShow mitButton
@@ -89,7 +107,7 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
         let button = erhalteButton mitButton
         Gtk.on button Gtk.buttonActivated $ Gtk.buttonClicked buttonDummy
         pure (zugtyp, hiddenBox)
-    beiAuswahl buttonAuswahlWidget $ \gewählterZugtyp -> forM_ buttonZugtypWidgets $ \(zugtyp,widget)
+    beiAuswahl buttonAuswahlWidget $ \gewählterZugtyp -> forM_ buttonZugtypWidgets $ \(zugtyp, widget)
         -> widgetShowIf (gewählterZugtyp == zugtyp) widget
     pure
         ZugtypSpezifischButton
@@ -97,3 +115,4 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
         , buttonDummy
         }
 #endif
+

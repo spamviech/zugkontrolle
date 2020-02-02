@@ -4,63 +4,76 @@
 {-|
 Description : Erstelle GUI und starte den GTK-Main-Loop.
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk (main) where
+module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
-import Control.Concurrent.STM.TVar (TVar)
-import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
--- Abhängigkeiten von anderen Modulen
-import Zug.Language (Sprache())
-import qualified Zug.Language as Language
-import qualified Zug.UI.Cmd as Cmd
-
--- | GTK-main loop nicht verfügbar. Weiche auf Cmd-UI aus
-main :: IO ()
-main = do
-    setSGR [SetColor Foreground Vivid Red]
-    putStrLn Language.uiNichtUnterstützt
-    setSGR [Reset]
-    Cmd.main
+#ifdef ZUGKONTROLLEGUI
+import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
 #else
-module Zug.UI.Gtk (main,setupGUI) where
-
--- Bibliotheken
-import Control.Concurrent.STM (atomically,newEmptyTMVarIO,TVar)
-import Control.Monad (void,forM_)
+import Control.Concurrent.STM.TVar (TVar)
+#endif
+#ifdef ZUGKONTROLLEGUI
+import Control.Monad (void, forM_)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (liftIO)
-
+#else
+import Data.Text (Text)
+import qualified Data.Text.IO as Text
+#endif
+#ifdef ZUGKONTROLLEGUI
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
+#else
+import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
+#endif
 
-import Zug.Language (Sprache(),(<~>),(<|>))
-import qualified Zug.Language as Language
 -- Abhängigkeiten von anderen Modulen
-import Zug.Options (Options(..),getOptions)
-import Zug.UI.Base (Status,statusLeer,tvarMapsNeu)
+#ifndef ZUGKONTROLLEGUI
+import Zug.Language (Sprache(..))
+#else
+import Zug.Language (Sprache(), (<~>), (<|>))
+#endif
+import qualified Zug.Language as Language
+#ifdef ZUGKONTROLLEGUI
+import Zug.Options (Options(..), getOptions)
+import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-
-import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew,beiAuswahl)
-
-import Zug.UI.Gtk.Fenster (buttonSpeichernPack,buttonLadenPack,ladeWidgets,buttonHinzufügenPack)
-
+#endif
+#ifndef ZUGKONTROLLEGUI
+import qualified Zug.UI.Cmd as Cmd
+#else
+import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
+import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
-
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew,buttonNewWithEventLabel,containerAddWidgetNew,boxPack,boxPackWidgetNew,boxPackWidgetNewDefault
-       ,Packing(..),packingDefault,paddingDefault,Position(..),positionDefault,notebookAppendPageNew,labelSpracheNew)
-
+       (widgetShowNew, buttonNewWithEventLabel, containerAddWidgetNew, boxPack, boxPackWidgetNew
+      , boxPackWidgetNewDefault, Packing(..), packingDefault, paddingDefault, Position(..), positionDefault
+      , notebookAppendPageNew, labelSpracheNew)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
+import Zug.UI.Gtk.SpracheGui (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel)
+import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew, MStatusGuiT
+                                , IOStatusGui, foldWegstreckeHinzufügen)
+import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
+#endif
 
-import Zug.UI.Gtk.SpracheGui (spracheGuiNeu,verwendeSpracheGuiFn,sprachwechsel)
+#ifndef ZUGKONTROLLEGUI
+-- | GTK-main loop nicht verfügbar. Weiche auf Cmd-UI aus
+main :: IO ()
+main = do
+    putWarningLn Language.uiNichtUnterstützt
+    Cmd.main
 
-import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..),boxWegstreckeHinzufügenNew,boxPlanHinzufügenNew,MStatusGuiT
-                                 ,IOStatusGui,foldWegstreckeHinzufügen)
+setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
+setupGUI _maybeTVar = putWarningLn Language.uiNichtUnterstützt
 
-import Zug.UI.StatusVar (statusVarNew,ausführenStatusVarBefehl,readStatusVar)
+putWarningLn :: (Sprache -> Text) -> IO ()
+putWarningLn warning = do
+    setSGR [SetColor Foreground Vivid Red]
+    Text.putStrLn $ warning Deutsch
+    setSGR [Reset]
 
+#else
 -- | main loop
 main :: IO ()
 main = do
@@ -79,7 +92,7 @@ main = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
 setupGUI maybeTVar = void $ do
-    Options {load = dateipfad,sprache} <- getOptions
+    Options {load = dateipfad, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
     windowMain <- widgetShowNew Gtk.windowNew
@@ -94,7 +107,7 @@ setupGUI maybeTVar = void $ do
     statusVar <- statusVarNew $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
     notebookElemente <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-    (panedEinzelObjekte,_page) <- flip runReaderT spracheGui
+    (panedEinzelObjekte, _page) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
             notebookElemente
             maybeTVar
@@ -131,7 +144,7 @@ setupGUI maybeTVar = void $ do
     Gtk.panedAdd2 vPanedRight frameRightBot
     vBoxKupplungen <- containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui $ boxPackWidgetNewDefault vBoxKupplungen $ labelSpracheNew maybeTVar Language.kupplungen
-    (panedSammelObjekte,_page) <- flip runReaderT spracheGui
+    (panedSammelObjekte, _page) <- flip runReaderT spracheGui
         $ notebookAppendPageNew notebookElemente maybeTVar (Language.wegstrecken <|> Language.pläne)
         $ liftIO Gtk.hPanedNew
     frameWegstrecken <- widgetShowNew Gtk.frameNew
@@ -258,8 +271,8 @@ setupGUI maybeTVar = void $ do
     -- Breite & Höhe überprüfen und wenn nötig auf Mindestgröße erhöhen.
     -- windowDefaultWidth/Height wird aus irgendeinem Grund ignoriert.
     -- Dementsprechend wird es hier explizit gesetzt.
-    (width,height) <- Gtk.windowGetSize windowMain
-    (defaultWidth,defaultHeight) <- Gtk.windowGetDefaultSize windowMain
+    (width, height) <- Gtk.windowGetSize windowMain
+    (defaultWidth, defaultHeight) <- Gtk.windowGetDefaultSize windowMain
     let newWidth = max width defaultWidth
         newHeight = max height defaultHeight
     Gtk.windowResize windowMain newWidth newHeight
