@@ -80,7 +80,19 @@ Code-Stil vereinheitlichen:
             allgemeinen Fall abdeckbar, ohne Spezial-Instanzen zu verhindern
             Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
             Done
+    floskell.json verbessern
+        aktuelle Version sollte für alle Dateien angewendet sein
+        formatOnSave ist ebenfalls aktiviert
     etc.
+
+CPP im Code entfernen
+    Durch Plugin-System ersetzen
+        Cmd-UI immer vorhanden
+        Bei Programmstart durchsuchen des Ordners "./UI/"
+            Für jede vorhandene Datei biete es als Option für UI an
+            Erwarte eine main :: IO ()-Funktion, welche bei Auswahl aufgerufen wird.
+        https://hackage.haskell.org/package/plugins
+        https://hackage.haskell.org/package/dynamic-loader
 
 
 Laden dauert teilweise sehr lange (Gtk-UI)
@@ -90,7 +102,6 @@ Laden dauert teilweise sehr lange (Gtk-UI)
         vielleicht später (TODO)
     Lag an Wegstrecken mit vielen Objekten vom gleichen Typ
         gefixt
-
 
 Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
     Strom an/aus
