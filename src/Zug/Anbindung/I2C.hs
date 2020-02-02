@@ -132,7 +132,7 @@ newtype FileHandle =
     { fromFileHandle :: CInt
     }
 
-#if linux_HOST_OS
+#ifdef ZUGKONTROLLERASPI
 foreign import ccall "wiringPiI2CSetup" c_wiringPiI2CSetup :: CInt -> IO CInt
 
 foreign import ccall "wiringPiI2CRead" c_wiringPiI2CRead :: CInt -> IO CInt

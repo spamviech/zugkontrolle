@@ -37,7 +37,7 @@ when:
       - unix
     when:
       - condition: arch(arm)
-        ghc-options:
+        cpp-options:
           - -DZUGKONTROLLERASPI=1
 
 dependencies:
@@ -78,8 +78,10 @@ executables:
       - Zugkontrolle
     when:
       - condition: os(linux)
-        extra-libraries:
-        - wiringPi
+        when:
+          - condition: arch(arm)
+            extra-libraries:
+              - wiringPi
 
 tests:
   Zugkontrolle-test:
@@ -91,5 +93,7 @@ tests:
       - Zugkontrolle
     when:
       - condition: os(linux)
-        extra-libraries:
-        - wiringPi
+        when:
+          - condition: arch(arm)
+            extra-libraries:
+              - wiringPi
