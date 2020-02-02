@@ -22,14 +22,11 @@ module Zug.UI.Gtk.Klassen where
 #ifdef ZUGKONTROLLEGUI
 import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Text (Text)
-
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Enums (Zugtyp(..),ZugtypEither(..))
-
+import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
 
 -- * Widget
@@ -155,3 +152,4 @@ erzeugeKlasse [''MitToggleButton] "CheckButton"
 
 erzeugeKlasse [''MitCheckButton] "RadioButton"
 #endif
+

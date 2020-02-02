@@ -7,56 +7,46 @@
 {-|
 Description : Abfragen mit neuem Fenster für das Gtk-UI.
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Fenster () where
-#else
 module Zug.UI.Gtk.Fenster
-  (-- * Knöpfe mit zugehörigem Dialog erstellen
-   buttonSpeichernPack
-  ,buttonLadenPack
-  ,ladeWidgets
-  ,buttonHinzufügenPack) where
+#ifdef ZUGKONTROLLEGUI
+  ( -- * Knöpfe mit zugehörigem Dialog erstellen
+    buttonSpeichernPack
+  , buttonLadenPack
+  , ladeWidgets
+  , buttonHinzufügenPack) where
 
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Lens ((^.))
-import Control.Monad (void,when)
+import Control.Monad (void, when)
 import qualified Control.Monad.RWS as RWS
-import Control.Monad.Reader (MonadReader(..),runReaderT)
+import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Text (Text)
 import qualified Data.Text as Text
-
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Bahngeschwindigkeit(..),Weiche(..),Wegstrecke(..))
+import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (ZugtypEither(..))
 import qualified Zug.Language as Language
-import Zug.Language (Sprache(),MitSprache(..),(<!>))
+import Zug.Language (Sprache(), MitSprache(..), (<!>))
 import Zug.Objekt (ObjektAllgemein(..))
-import Zug.UI.Base (Status,ObjektReader,bahngeschwindigkeiten,streckenabschnitte,weichen,kupplungen,wegstrecken,pläne)
+import Zug.UI.Base
+       (Status, ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-
-import Zug.UI.Gtk.Assistant (assistantAuswerten,AssistantResult(..))
-
+import Zug.UI.Gtk.Assistant (assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.Fenster.AssistantHinzufuegen (assistantHinzufügenNew)
-
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault,buttonNewWithEventLabel,dialogEval)
-
-import Zug.UI.Gtk.Klassen (MitBox(..),MitWindow(..))
-
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..),verwendeSpracheGui)
-
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel, dialogEval)
+import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (MStatusGuiT,IOStatusGui,ObjektGui,StatusVarGui,readSpracheGui,DynamischeWidgetsReader(..),WidgetsTyp(..)
-       ,bahngeschwindigkeitPackNew,BGWidgets,streckenabschnittPackNew,weichePackNew,WEWidgets,kupplungPackNew
-       ,wegstreckePackNew,WSWidgets,planPackNew)
-
-import Zug.UI.StatusVar (auswertenStatusVarMStatusT,ausführenStatusVarBefehl,StatusVarReader(..))
+       (MStatusGuiT, IOStatusGui, ObjektGui, StatusVarGui, readSpracheGui, DynamischeWidgetsReader(..), WidgetsTyp(..)
+      , bahngeschwindigkeitPackNew, BGWidgets, streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew
+      , wegstreckePackNew, WSWidgets, planPackNew)
+import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
 
 -- | Speichern des aktuellen 'StatusGui'.
 --
@@ -83,7 +73,7 @@ dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
                    -> m Gtk.FileChooserDialog
 dialogSpeichernNew window maybeTVar = do
-    (fileChooserDialog,buttonSpeichern,buttonAbbrechen) <- liftIO $ do
+    (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
         fileChooserDialog
             <- Gtk.fileChooserDialogNew (Nothing :: Maybe Text) (Just window) Gtk.FileChooserActionSave []
         Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
@@ -138,47 +128,47 @@ ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m 
 ladeWidgets status = do
     löscheWidgets
     erstelleWidgets status
-  where
-    löscheWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => MStatusGuiT m ()
-    löscheWidgets = do
-        status <- RWS.get
-        mapM_ entferneWidgets $ status ^. bahngeschwindigkeiten
-        mapM_ entferneWidgets $ status ^. streckenabschnitte
-        mapM_ entferneWidgets $ status ^. weichen
-        mapM_ entferneWidgets $ status ^. kupplungen
-        mapM_ entferneWidgets $ status ^. wegstrecken
-        mapM_ entferneWidgets $ status ^. pläne
+    where
+        löscheWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => MStatusGuiT m ()
+        löscheWidgets = do
+            status <- RWS.get
+            mapM_ entferneWidgets $ status ^. bahngeschwindigkeiten
+            mapM_ entferneWidgets $ status ^. streckenabschnitte
+            mapM_ entferneWidgets $ status ^. weichen
+            mapM_ entferneWidgets $ status ^. kupplungen
+            mapM_ entferneWidgets $ status ^. wegstrecken
+            mapM_ entferneWidgets $ status ^. pläne
 
-    erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
-    erstelleWidgets status = do
-        let packBG :: (ObjektReader ObjektGui m, MonadIO m)
-                   => ZugtypEither Bahngeschwindigkeit
-                   -> MStatusGuiT m (ZugtypEither BGWidgets)
-            packBG (ZugtypMärklin bg) = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
-            packBG (ZugtypLego bg) = ZugtypLego <$> bahngeschwindigkeitPackNew bg
-        mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
-        mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
-        let packWE :: (ObjektReader ObjektGui m, MonadIO m)
-                   => ZugtypEither Weiche
-                   -> MStatusGuiT m (ZugtypEither WEWidgets)
-            packWE (ZugtypMärklin we) = ZugtypMärklin <$> weichePackNew we
-            packWE (ZugtypLego we) = ZugtypLego <$> weichePackNew we
-        mapM_ packWE $ reverse $ status ^. weichen
-        mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
-        let packWS :: (ObjektReader ObjektGui m, MonadIO m)
-                   => ZugtypEither Wegstrecke
-                   -> MStatusGuiT m (ZugtypEither WSWidgets)
-            packWS (ZugtypMärklin ws) = ZugtypMärklin <$> wegstreckePackNew ws
-            packWS (ZugtypLego ws) = ZugtypLego <$> wegstreckePackNew ws
-        mapM_ packWS $ reverse $ status ^. wegstrecken
-        mapM_ planPackNew $ reverse $ status ^. pläne
+        erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
+        erstelleWidgets status = do
+            let packBG :: (ObjektReader ObjektGui m, MonadIO m)
+                       => ZugtypEither Bahngeschwindigkeit
+                       -> MStatusGuiT m (ZugtypEither BGWidgets)
+                packBG (ZugtypMärklin bg) = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
+                packBG (ZugtypLego bg) = ZugtypLego <$> bahngeschwindigkeitPackNew bg
+            mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
+            mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
+            let packWE :: (ObjektReader ObjektGui m, MonadIO m)
+                       => ZugtypEither Weiche
+                       -> MStatusGuiT m (ZugtypEither WEWidgets)
+                packWE (ZugtypMärklin we) = ZugtypMärklin <$> weichePackNew we
+                packWE (ZugtypLego we) = ZugtypLego <$> weichePackNew we
+            mapM_ packWE $ reverse $ status ^. weichen
+            mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
+            let packWS :: (ObjektReader ObjektGui m, MonadIO m)
+                       => ZugtypEither Wegstrecke
+                       -> MStatusGuiT m (ZugtypEither WSWidgets)
+                packWS (ZugtypMärklin ws) = ZugtypMärklin <$> wegstreckePackNew ws
+                packWS (ZugtypLego ws) = ZugtypLego <$> wegstreckePackNew ws
+            mapM_ packWS $ reverse $ status ^. wegstrecken
+            mapM_ planPackNew $ reverse $ status ^. pläne
 
 dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                => p
                -> Maybe (TVar (Maybe [Sprache -> IO ()]))
                -> m Gtk.FileChooserDialog
 dialogLadenNew parent maybeTVar = do
-    (dialog,buttonLaden,buttonAbbrechen) <- liftIO $ do
+    (dialog, buttonLaden, buttonAbbrechen) <- liftIO $ do
         dialog <- Gtk.fileChooserDialogNew
             (Nothing :: Maybe Text)
             (Just $ erhalteWindow parent)

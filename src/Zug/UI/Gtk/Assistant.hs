@@ -8,53 +8,42 @@
 {-|
 Description : Eigenes Assistant-Widget, nachdem das von Gtk bereitgestellte nicht funktioniert.
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Assistant () where
-#else
 module Zug.UI.Gtk.Assistant
-  (Assistant()
-  ,AssistantSeite(..)
-  ,SeitenAbschluss(..)
-  ,AssistantSeitenBaum(..)
-  ,assistantNew
-  ,assistantAuswerten
-  ,AssistantResult(..)) where
+#ifdef ZUGKONTROLLEGUI
+  ( Assistant()
+  , AssistantSeite(..)
+  , SeitenAbschluss(..)
+  , AssistantSeitenBaum(..)
+  , assistantNew
+  , assistantAuswerten
+  , AssistantResult(..)) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (atomically,retry,STM,TVar,newTVarIO,readTVarIO,readTVar,writeTVar,modifyTVar)
+import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
 import Control.Monad (forM_)
-import Control.Monad.Reader (MonadReader(..),runReaderT)
+import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Either (rights)
 import Data.List (find)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 import qualified Data.Text as Text
-
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Sprache(..),MitSprache(..),alleSprachen)
+import Zug.Language (Sprache(..), MitSprache(..), alleSprachen)
 import qualified Zug.Language as Language
-
-import Zug.UI.Gtk.Auswahl (AuswahlWidget,auswahlRadioButtonNamedNew,aktuelleAuswahl)
-
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled,FortfahrenWennToggledVar)
-
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (containerAddWidgetNew,boxPackWidgetNew,boxPackWidgetNewDefault,boxPack,boxPackDefault,Packing(..),packingDefault
-       ,Position(..),paddingDefault,buttonNewWithEventLabel,widgetShowIf)
-
+       (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault, Packing(..)
+      , packingDefault, Position(..), paddingDefault, buttonNewWithEventLabel, widgetShowIf)
 import Zug.UI.Gtk.Klassen
-       (MitWidget(..),mitWidgetShow,mitWidgetHide,MitButton(..),MitContainer(..),MitBox(..),MitWindow(..))
-
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..),MitSpracheGui(),verwendeSpracheGui)
-
-import Zug.UI.Gtk.StreckenObjekt (StatusGui,StatusVarGui,WegstreckeCheckButtonVoid)
-
+       (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..), MitContainer(..), MitBox(..), MitWindow(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt (StatusGui, StatusVarGui, WegstreckeCheckButtonVoid)
 import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch)
 
 -- | Fenster zum erstellen eines Wertes, potentiell in mehreren Schritten
@@ -116,8 +105,8 @@ data AssistantSeite w =
 instance (Eq w) => Eq (AssistantSeite w) where
     (==) :: AssistantSeite w -> AssistantSeite w -> Bool
     (==)
-        AssistantSeite {seite = seite0,name = name0,seitenAbschluss = seitenAbschluss0}
-        AssistantSeite {seite = seite1,name = name1,seitenAbschluss = seitenAbschluss1} =
+        AssistantSeite {seite = seite0, name = name0, seitenAbschluss = seitenAbschluss0}
+        AssistantSeite {seite = seite1, name = name1, seitenAbschluss = seitenAbschluss1} =
         seite0 == seite1
         && all (\sprache -> name0 sprache == name1 sprache) alleSprachen
         && seitenAbschluss0 == seitenAbschluss1
@@ -176,9 +165,9 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget PackedSeiteLetzte {packedNode} = erhalteWidget packedNode
 
 besondereSeitenAbschlussKnöpfe :: AssistantSeitenBaumPacked w -> [Either (Sprache -> Text) Gtk.Button]
-besondereSeitenAbschlussKnöpfe PackedSeiteLinear {packedNode,packedNachfolger} =
+besondereSeitenAbschlussKnöpfe PackedSeiteLinear {packedNode, packedNachfolger} =
     besondererSeitenAbschlussKnopf packedNode : besondereSeitenAbschlussKnöpfe packedNachfolger
-besondereSeitenAbschlussKnöpfe PackedSeiteAuswahl {packedNode,packedNachfolgerListe} =
+besondereSeitenAbschlussKnöpfe PackedSeiteAuswahl {packedNode, packedNachfolgerListe} =
     besondererSeitenAbschlussKnopf packedNode : concat (besondereSeitenAbschlussKnöpfe <$> packedNachfolgerListe)
 besondereSeitenAbschlussKnöpfe PackedSeiteLetzte {packedNode} = [besondererSeitenAbschlussKnopf packedNode]
 
@@ -226,7 +215,7 @@ assistantNew :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w,
 assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
     spracheReader <- ask
     -- Erstelle Fenster
-    (fenster,vBox,flowControlBox) <- liftIO $ do
+    (fenster, vBox, flowControlBox) <- liftIO $ do
         fenster <- Gtk.windowNew
         Gtk.set fenster [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
         vBox <- containerAddWidgetNew fenster $ Gtk.vBoxNew False 0
@@ -234,7 +223,7 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
         flowControlBox <- boxPackWidgetNew vBox PackNatural paddingDefault End Gtk.hButtonBoxNew
         pure (fenster, vBox, flowControlBox)
     seiten <- packSeiten vBox flowControlBox seitenEingabe maybeTVar
-    (tvarAuswahl,tvarAktuelleSeite,seitenAbschlussKnopf) <- liftIO $ do
+    (tvarAuswahl, tvarAktuelleSeite, seitenAbschlussKnopf) <- liftIO $ do
         tvarAuswahl <- newTVarIO $ Left ([], seiten)
         tvarAktuelleSeite <- newTVarIO seiten
         -- Füge Reaktion auf Beenden des Assistant durch 'X' in der Titelleiste hinzu
@@ -277,7 +266,7 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
         maybeLetzteSeite <- atomically $ do
             auswahl <- readTVar tvarAuswahl
             case auswahl of
-                (Left ((letzteSeite:besuchteSeiten),_aktuelleSeite)) -> do
+                (Left ((letzteSeite:besuchteSeiten), _aktuelleSeite)) -> do
                     writeTVar tvarAuswahl $ Left (besuchteSeiten, letzteSeite)
                     pure $ Just letzteSeite
                 _otherwise -> pure Nothing
@@ -295,11 +284,11 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
             case aktuelleSeite of
                 PackedSeiteLinear {packedNachfolger} -> do
                     atomically $ modifyTVar tvarAuswahl $ \case
-                        (Left (besuchteSeiten,_aktuelleSeite))
+                        (Left (besuchteSeiten, _aktuelleSeite))
                             -> Left $ (aktuelleSeite : besuchteSeiten, packedNachfolger)
                         ergebnis -> ergebnis
                     flip runReaderT spracheReader $ zeigeSeite assistant packedNachfolger
-                PackedSeiteAuswahl {packedNachfolgerListe,packedNachfolgerAuswahl} -> do
+                PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl} -> do
                     nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
                     let packedNachfolger = case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
                             (Just packedNachfolger) -> packedNachfolger
@@ -307,13 +296,13 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
                                 $ "Unbekannte Seite bei AuswahlWidget ausgewählt: "
                                 ++ Text.unpack (name nachfolgerSeite Deutsch)
                     atomically $ modifyTVar tvarAuswahl $ \case
-                        (Left (besuchteSeiten,_aktuelleSeite))
+                        (Left (besuchteSeiten, _aktuelleSeite))
                             -> Left $ (aktuelleSeite : besuchteSeiten, packedNachfolger)
                         ergebnis -> ergebnis
                     flip runReaderT spracheReader $ zeigeSeite assistant packedNachfolger
-                assistantSeite @ PackedSeiteLetzte {} -> do
+                assistantSeite@PackedSeiteLetzte {} -> do
                     atomically $ modifyTVar tvarAuswahl $ \case
-                        (Left (besuchteSeiten,_aktuelleSeite)) -> Right
+                        (Left (besuchteSeiten, _aktuelleSeite)) -> Right
                             $ AssistantErfolgreich
                             $ NonEmpty.reverse
                             $ (seite $ packedNode assistantSeite) :| (seite . packedNode <$> besuchteSeiten)
@@ -338,7 +327,7 @@ packSeiten :: (MitBox b, MitWidget w, Eq w, SpracheGuiReader r m, MonadIO m)
            -> AssistantSeitenBaum w
            -> Maybe (TVar (Maybe [Sprache -> IO ()]))
            -> m (AssistantSeitenBaumPacked w)
-packSeiten box flowControlBox AssistantSeiteLinear {node,nachfolger} maybeTVar = do
+packSeiten box flowControlBox AssistantSeiteLinear {node, nachfolger} maybeTVar = do
     case besondererSeitenAbschlussWidget node of
         (Left _text) -> pure ()
         (Right widget) -> do
@@ -352,7 +341,7 @@ packSeiten box flowControlBox AssistantSeiteLinear {node,nachfolger} maybeTVar =
         { packedNode = node
         , packedNachfolger
         }
-packSeiten box flowControlBox AssistantSeiteAuswahl {node,nachfolgerFrage,nachfolgerListe} maybeTVar = do
+packSeiten box flowControlBox AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe} maybeTVar = do
     case besondererSeitenAbschlussWidget node of
         (Left _text) -> pure ()
         (Right widget) -> do
@@ -389,7 +378,7 @@ packSeiten box flowControlBox AssistantSeiteLetzte {node} _maybeTVar = liftIO $ 
 -- | Zeige die übergebene Seite an
 zeigeSeite
     :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w) => Assistant w a -> AssistantSeitenBaumPacked w -> m ()
-zeigeSeite Assistant {fenster,seiten,seitenAbschlussKnopf,zurückKnopf,tvarAktuelleSeite} nachfolger = do
+zeigeSeite Assistant {fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite} nachfolger = do
     spracheGui <- erhalteSpracheGui
     liftIO $ do
         let nachfolgerSeite = packedNode nachfolger
@@ -418,7 +407,7 @@ data AssistantResult a
 -- Entsprechend wird 'Gtk.postGUIAsync' verwendet.
 assistantAuswerten
     :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w) => Assistant w a -> m (AssistantResult a)
-assistantAuswerten assistant @ Assistant {fenster,seiten,auswertFunktion,tvarAktuelleSeite} = do
+assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAktuelleSeite} = do
     spracheReader <- ask
     liftIO $ do
         Gtk.postGUIAsync $ do
@@ -437,14 +426,15 @@ assistantAuswerten assistant @ Assistant {fenster,seiten,auswertFunktion,tvarAkt
     -- Warte auf eine vollständige (Right) Eingabe und gebe diese zurück.
     -- Analog zu 'Control.Concurrent.STM.takeTMVar'.
 
-      where
-        takeAuswahl :: Assistant w a -> STM (AssistantResult (NonEmpty w))
-        takeAuswahl Assistant {tvarAuswahl,seiten} = do
-            readTVar tvarAuswahl >>= \case
-                (Left _a) -> retry
-                (Right result) -> do
-                    -- Setze auf Startwert zurück
-                    writeTVar tvarAuswahl $ Left ([], seiten)
-                    -- Gebe Ergebnis zurück
-                    pure result
+        where
+            takeAuswahl :: Assistant w a -> STM (AssistantResult (NonEmpty w))
+            takeAuswahl Assistant {tvarAuswahl, seiten} = do
+                readTVar tvarAuswahl >>= \case
+                    (Left _a) -> retry
+                    (Right result) -> do
+                        -- Setze auf Startwert zurück
+                        writeTVar tvarAuswahl $ Left ([], seiten)
+                        -- Gebe Ergebnis zurück
+                        pure result
 #endif
+

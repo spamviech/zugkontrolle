@@ -11,49 +11,42 @@
 {-|
 Description : Erzeuge Buttons die nur sensitiv sind, wenn eine Bedingung erfüllt ist.
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.FortfahrenWennToggled () where
-#else
 module Zug.UI.Gtk.FortfahrenWennToggled
-  (-- * Feste Anzahl an 'CheckButton's
-   FortfahrenWennToggled()
-  ,checkButtons
-  ,fortfahrenWennToggledNew
-  ,aktiviereWennToggled
-   -- * Variable Anzahl an 'CheckButton's
-  ,FortfahrenWennToggledVar()
-  ,varCheckButtons
-  ,foldCheckButtons
-  ,fortfahrenWennToggledVarNew
-  ,aktiviereWennToggledVar
-   -- * Assoziierter 'CheckButton' zu einem 'FortfahrenWennToggled'/'FortfahrenWennToggledTMvar'
-  ,RegistrierterCheckButton
-  ,MitRegistrierterCheckButton(..)
-  ,registrierterCheckButtonNew
-  ,mitRegistrierterCheckButton
-  ,registrierterCheckButton
-  ,registrierterCheckButtonToggled) where
+#ifdef ZUGKONTROLLEGUI
+  ( -- * Feste Anzahl an 'CheckButton's
+    FortfahrenWennToggled()
+  , checkButtons
+  , fortfahrenWennToggledNew
+  , aktiviereWennToggled
+    -- * Variable Anzahl an 'CheckButton's
+  , FortfahrenWennToggledVar()
+  , varCheckButtons
+  , foldCheckButtons
+  , fortfahrenWennToggledVarNew
+  , aktiviereWennToggledVar
+    -- * Assoziierter 'CheckButton' zu einem 'FortfahrenWennToggled'/'FortfahrenWennToggledTMvar'
+  , RegistrierterCheckButton
+  , MitRegistrierterCheckButton(..)
+  , registrierterCheckButtonNew
+  , mitRegistrierterCheckButton
+  , registrierterCheckButton
+  , registrierterCheckButtonToggled) where
 
 -- Bibliotheken
 import Control.Concurrent.STM.TVar (TVar)
 import qualified Control.Lens as Lens
-import Control.Monad (foldM_,forM_,forM)
+import Control.Monad (foldM_, forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
-
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache())
-
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew)
-
-import Zug.UI.Gtk.Klassen (MitWidget(..),MitContainer(..),MitButton(..))
-
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(),verwendeSpracheGui)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitButton(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
@@ -110,17 +103,17 @@ fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggled :: (MonadIO m) => FortfahrenWennToggled -> m ()
 aktiviereWennToggled
-    FortfahrenWennToggled {fortfahren,checkButtonsRec} = aktiviereWennToggledAux fortfahren checkButtonsRec
+    FortfahrenWennToggled {fortfahren, checkButtonsRec} = aktiviereWennToggledAux fortfahren checkButtonsRec
 
 aktiviereWennToggledAux :: (Foldable f, MitRegistrierterCheckButton c, MonadIO m) => Gtk.Button -> f c -> m ()
 aktiviereWennToggledAux button foldable = liftIO $ foldM_ (aktiviereWennToggledCheckButton button) False foldable
-  where
-    aktiviereWennToggledCheckButton :: (MitRegistrierterCheckButton c) => Gtk.Button -> Bool -> c -> IO Bool
-    aktiviereWennToggledCheckButton _button True _c = pure True
-    aktiviereWennToggledCheckButton button False c = do
-        toggled <- registrierterCheckButtonToggled $ erhalteRegistrierterCheckButton c
-        Gtk.set button [Gtk.widgetSensitive := toggled]
-        pure toggled
+    where
+        aktiviereWennToggledCheckButton :: (MitRegistrierterCheckButton c) => Gtk.Button -> Bool -> c -> IO Bool
+        aktiviereWennToggledCheckButton _button True _c = pure True
+        aktiviereWennToggledCheckButton button False c = do
+            toggled <- registrierterCheckButtonToggled $ erhalteRegistrierterCheckButton c
+            Gtk.set button [Gtk.widgetSensitive := toggled]
+            pure toggled
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
@@ -144,8 +137,8 @@ foldCheckButtons = foldCheckButtonsRec
 instance (Eq v) => Eq (FortfahrenWennToggledVar a v c) where
     (==) :: FortfahrenWennToggledVar a v c -> FortfahrenWennToggledVar a v c -> Bool
     (==)
-        FortfahrenWennToggledVar {fortfahrenVar = fortfahrenVar0,varCheckButtonsRec = varCheckButtons0}
-        FortfahrenWennToggledVar {fortfahrenVar = fortfahrenVar1,varCheckButtonsRec = varCheckButtons1} =
+        FortfahrenWennToggledVar {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
+        FortfahrenWennToggledVar {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
         (fortfahrenVar0 == fortfahrenVar1) && (varCheckButtons0 == varCheckButtons1)
 
 instance MitWidget (FortfahrenWennToggledVar a v c) where
@@ -189,13 +182,13 @@ fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheck
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggledVar :: (MonadIO m, MitRegistrierterCheckButton c) => FortfahrenWennToggledVar a v c -> m ()
 aktiviereWennToggledVar
-    FortfahrenWennToggledVar {fortfahrenVar,varCheckButtonsRec,readVar,foldCheckButtonsRec} = liftIO $ do
+    FortfahrenWennToggledVar {fortfahrenVar, varCheckButtonsRec, readVar, foldCheckButtonsRec} = liftIO $ do
     checkButtons <- readVar varCheckButtonsRec
     aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec checkButtons
 
 -- | 'CheckButton', welcher mit einem 'FortfahrenWennToggled' assoziiert ist.
 newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
-    deriving (Eq,MitWidget)
+    deriving (Eq, MitWidget)
 
 -- | Konstruktor für neuen 'RegistrierterCheckButton'.
 --
@@ -236,3 +229,4 @@ instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
     erhalteRegistrierterCheckButton = id
 #endif
+

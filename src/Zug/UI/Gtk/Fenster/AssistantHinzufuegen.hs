@@ -12,71 +12,58 @@
 {-|
 Description : Erstellen eines Assistant zum Hinzufügen eines 'StreckenObjekt'es.
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Fenster.AssistantHinzufuegen () where
-#else
-module Zug.UI.Gtk.Fenster.AssistantHinzufuegen (assistantHinzufügenNew,HinzufügenSeite(),hinzufügenErgebnis) where
+module Zug.UI.Gtk.Fenster.AssistantHinzufuegen
+#ifdef ZUGKONTROLLEGUI
+ (assistantHinzufügenNew, HinzufügenSeite(), hinzufügenErgebnis) where
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (atomically,takeTMVar,putTMVar,TVar,newTVarIO,readTVarIO,readTVar,writeTVar)
+import Control.Concurrent.STM (atomically, takeTMVar, putTMVar, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens ((^.))
-import Control.Monad (void,foldM,forM,forM_)
-import Control.Monad.Reader (MonadReader(..),runReaderT)
+import Control.Monad (void, foldM, forM, forM_)
+import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (maybe,fromJust,isJust,catMaybes)
+import Data.Maybe (maybe, fromJust, isJust, catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as Text
-
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung
-       (Bahngeschwindigkeit(..),BahngeschwindigkeitKlasse(),Streckenabschnitt(..),StreckenabschnittKlasse(),Weiche(..)
-       ,Kupplung(..),KupplungKlasse(),Wegstrecke(..),WegstreckeKlasse(),Wartezeit(..))
-import Zug.Enums
-       (Zugtyp(..),ZugtypEither(..),ZugtypKlasse(..),Richtung(..),unterstützteRichtungen,Fahrtrichtung(..),Strom(..))
+       (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(), Streckenabschnitt(..), StreckenabschnittKlasse()
+      , Weiche(..), Kupplung(..), KupplungKlasse(), Wegstrecke(..), WegstreckeKlasse(), Wartezeit(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..), unterstützteRichtungen
+                , Fahrtrichtung(..), Strom(..))
 import qualified Zug.Language as Language
-import Zug.Language (Sprache(),MitSprache(..),Anzeige(..),(<:>))
-import Zug.Objekt (ObjektAllgemein(..),Objekt)
-import Zug.Plan (Plan(..),Aktion(..),AktionWegstrecke(..),AktionBahngeschwindigkeit(..),AktionStreckenabschnitt(..)
-                ,AktionWeiche(..),AktionKupplung(..))
-import Zug.UI.Base (ObjektReader,bahngeschwindigkeiten,streckenabschnitte,weichen,kupplungen)
-
-import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget,anschlussAuswahlNew,aktuellerAnschluss)
-
-import Zug.UI.Gtk.Assistant (Assistant,AssistantSeite(..),SeitenAbschluss(..),AssistantSeitenBaum(..),assistantNew)
-
-import Zug.UI.Gtk.Auswahl (AuswahlWidget,auswahlComboBoxNew,boundedEnumAuswahlComboBoxNew
-                          ,boundedEnumAuswahlRadioButtonNew,aktuelleAuswahl,MitAuswahlWidget())
-
-import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget,fließendAuswahlNew,aktuellerFließendValue)
-
-import Zug.UI.Gtk.FortfahrenWennToggled (checkButtons,fortfahrenWennToggledNew,aktiviereWennToggledVar
-                                        ,RegistrierterCheckButton,registrierterCheckButtonToggled)
-
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault,boxPackDefault,widgetShowNew,containerAddWidgetNew
-                                  ,boxPackWidgetNew,Packing(..),paddingDefault,positionDefault,buttonNewWithEventLabel
-                                  ,labelSpracheNew,widgetShowIf,NameAuswahlWidget,nameAuswahlPackNew,aktuellerName)
-
-import Zug.UI.Gtk.Klassen (MitWidget(..),mitWidgetShow,mitWidgetHide,MitBox(..),mitContainerAdd,mitContainerRemove
-                          ,MitEntry(..),MitButton(..),MitWindow(..))
-
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..),verwendeSpracheGui)
-
+import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
+import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..)
+               , AktionWeiche(..), AktionKupplung(..))
+import Zug.UI.Base (ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
+import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
+import Zug.UI.Gtk.Assistant (Assistant, AssistantSeite(..), SeitenAbschluss(..), AssistantSeitenBaum(..), assistantNew)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, boundedEnumAuswahlComboBoxNew
+                         , boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl, MitAuswahlWidget())
+import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
+import Zug.UI.Gtk.FortfahrenWennToggled (checkButtons, fortfahrenWennToggledNew, aktiviereWennToggledVar
+                                       , RegistrierterCheckButton, registrierterCheckButtonToggled)
+import Zug.UI.Gtk.Hilfsfunktionen
+       (boxPackWidgetNewDefault, boxPackDefault, widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, Packing(..)
+      , paddingDefault, positionDefault, buttonNewWithEventLabel, labelSpracheNew, widgetShowIf, NameAuswahlWidget
+      , nameAuswahlPackNew, aktuellerName)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitBox(..), mitContainerAdd, mitContainerRemove
+                         , MitEntry(..), MitButton(..), MitWindow(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (ObjektGui,StatusVarGui,DynamischeWidgets(..),DynamischeWidgetsReader(..),BoxPlanHinzufügen
-       ,WegstreckenElement(..),WegstreckeCheckButton(),WidgetsTyp(..),widgetHinzufügenToggled
-       ,widgetHinzufügenAktuelleAuswahl,widgetHinzufügenContainerGefüllt,BGWidgets,WEWidgets)
-
-import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew,zugtypSpezifischButtonNew)
-
-import Zug.UI.StatusVar (readStatusVar,StatusVarReader(..))
+       (ObjektGui, StatusVarGui, DynamischeWidgets(..), DynamischeWidgetsReader(..), BoxPlanHinzufügen
+      , WegstreckenElement(..), WegstreckeCheckButton(), WidgetsTyp(..), widgetHinzufügenToggled
+      , widgetHinzufügenAktuelleAuswahl, widgetHinzufügenContainerGefüllt, BGWidgets, WEWidgets)
+import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew, zugtypSpezifischButtonNew)
+import Zug.UI.StatusVar (readStatusVar, StatusVarReader(..))
 -- Abhängigkeiten von anderen Modulen
-import Zug.Warteschlange (Warteschlange,Anzeige(..),leer,anhängen,zeigeLetztes)
+import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes)
 
 -- | Seiten des Hinzufügen-'Assistant'
 data HinzufügenSeite
@@ -134,7 +121,7 @@ hinzufügenErgebnis :: forall r m.
                     -> m Objekt
 hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpty.last gezeigteSeiten of
     HinzufügenSeiteAuswahl {} -> error "Auswahl-Seite zum Hinzufügen als letzte Seite angezeigt"
-    HinzufügenSeiteBahngeschwindigkeit {nameAuswahl,geschwindigkeitAuswahl,fahrtrichtungsAuswahl} -> do
+    HinzufügenSeiteBahngeschwindigkeit {nameAuswahl, geschwindigkeitAuswahl, fahrtrichtungsAuswahl} -> do
         name <- aktuellerName nameAuswahl
         fließend <- aktuellerFließendValue fließendAuswahl
         geschwindigkeitsAnschluss <- aktuellerAnschluss geschwindigkeitAuswahl
@@ -158,7 +145,7 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
                         , bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
                         , bglFahrtrichtungsAnschluss
                         }
-    HinzufügenSeiteStreckenabschnitt {nameAuswahl,stromAuswahl} -> do
+    HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl} -> do
         stName <- aktuellerName nameAuswahl
         stFließend <- aktuellerFließendValue fließendAuswahl
         stromAnschluss <- aktuellerAnschluss stromAuswahl
@@ -169,7 +156,7 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
                 , stFließend
                 , stromAnschluss
                 }
-    HinzufügenSeiteWeiche {nameAuswahl,märklinRichtungsAuswahl,legoRichtungsAuswahl,legoRichtungenAuswahl} -> do
+    HinzufügenSeiteWeiche {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} -> do
         name <- aktuellerName nameAuswahl
         fließend <- aktuellerFließendValue fließendAuswahl
         aktuelleAuswahl zugtypAuswahl >>= \case
@@ -177,7 +164,7 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
                 -- Nicht-Leerheit garantiert durch FortfahrenWennToggled
                 wemRichtungsAnschlüsse <- fmap (NonEmpty.fromList . map fromJust . NonEmpty.filter isJust)
                     $ forM märklinRichtungsAuswahl
-                    $ \(richtung,rcb,anschlussAuswahl) -> registrierterCheckButtonToggled rcb >>= \case
+                    $ \(richtung, rcb, anschlussAuswahl) -> registrierterCheckButtonToggled rcb >>= \case
                         True -> Just . (\anschluss -> (richtung, anschluss)) <$> aktuellerAnschluss anschlussAuswahl
                         False -> pure Nothing
                 pure
@@ -200,7 +187,7 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
                         , welRichtungen
                         , welRichtungsAnschluss
                         }
-    HinzufügenSeiteKupplung {nameAuswahl,kupplungsAuswahl} -> do
+    HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl} -> do
         kuName <- aktuellerName nameAuswahl
         kuFließend <- aktuellerFließendValue fließendAuswahl
         kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
@@ -266,7 +253,7 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
         aktuelleAuswahl zugtypAuswahl >>= \case
             Märklin -> OWegstrecke . ZugtypMärklin <$> gewählteWegstrecke
             Lego -> OWegstrecke . ZugtypLego <$> gewählteWegstrecke
-    HinzufügenSeitePlan {nameAuswahl,tvarAktionen,checkButtonDauerschleife} -> liftIO $ do
+    HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife} -> liftIO $ do
         plName <- aktuellerName nameAuswahl
         aktionen <- toList <$> readTVarIO tvarAktionen
         Gtk.get checkButtonDauerschleife Gtk.toggleButtonActive >>= pure . OPlan . \case
@@ -292,35 +279,35 @@ assistantHinzufügenNew :: (MitWindow w, ObjektReader ObjektGui m, MonadIO m)
 assistantHinzufügenNew parent maybeTVar = do
     objektReader <- ask
     DynamischeWidgets
-        {fortfahrenWennToggledWegstrecke
-        ,tmvarPlanObjekt
-        ,vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-        ,vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-        ,vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-        ,vBoxHinzufügenPlanBahngeschwindigkeitenLego
-        ,vBoxHinzufügenWegstreckeStreckenabschnitte
-        ,vBoxHinzufügenPlanStreckenabschnitte
-        ,vBoxHinzufügenWegstreckeWeichenMärklin
-        ,vBoxHinzufügenWegstreckeWeichenLego
-        ,vBoxHinzufügenPlanWeichenGeradeMärklin
-        ,vBoxHinzufügenPlanWeichenKurveMärklin
-        ,vBoxHinzufügenPlanWeichenLinksMärklin
-        ,vBoxHinzufügenPlanWeichenRechtsMärklin
-        ,vBoxHinzufügenPlanWeichenGeradeLego
-        ,vBoxHinzufügenPlanWeichenKurveLego
-        ,vBoxHinzufügenPlanWeichenLinksLego
-        ,vBoxHinzufügenPlanWeichenRechtsLego
-        ,vBoxHinzufügenWegstreckeKupplungen
-        ,vBoxHinzufügenPlanKupplungen
-        ,vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-        ,vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-        ,vBoxHinzufügenPlanWegstreckenKupplungMärklin
-        ,vBoxHinzufügenPlanWegstreckenMärklin
-        ,vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-        ,vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-        ,vBoxHinzufügenPlanWegstreckenKupplungLego
-        ,vBoxHinzufügenPlanWegstreckenLego
-        ,vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
+        { fortfahrenWennToggledWegstrecke
+        , tmvarPlanObjekt
+        , vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+        , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+        , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+        , vBoxHinzufügenPlanBahngeschwindigkeitenLego
+        , vBoxHinzufügenWegstreckeStreckenabschnitte
+        , vBoxHinzufügenPlanStreckenabschnitte
+        , vBoxHinzufügenWegstreckeWeichenMärklin
+        , vBoxHinzufügenWegstreckeWeichenLego
+        , vBoxHinzufügenPlanWeichenGeradeMärklin
+        , vBoxHinzufügenPlanWeichenKurveMärklin
+        , vBoxHinzufügenPlanWeichenLinksMärklin
+        , vBoxHinzufügenPlanWeichenRechtsMärklin
+        , vBoxHinzufügenPlanWeichenGeradeLego
+        , vBoxHinzufügenPlanWeichenKurveLego
+        , vBoxHinzufügenPlanWeichenLinksLego
+        , vBoxHinzufügenPlanWeichenRechtsLego
+        , vBoxHinzufügenWegstreckeKupplungen
+        , vBoxHinzufügenPlanKupplungen
+        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+        , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+        , vBoxHinzufügenPlanWegstreckenKupplungMärklin
+        , vBoxHinzufügenPlanWegstreckenMärklin
+        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+        , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+        , vBoxHinzufügenPlanWegstreckenKupplungLego
+        , vBoxHinzufügenPlanWegstreckenLego
+        , vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
         -- Globale Widgets
     zugtypAuswahl <- boundedEnumAuswahlComboBoxNew Märklin maybeTVar Language.zugtyp
     fließendAuswahl <- fließendAuswahlNew maybeTVar
@@ -388,7 +375,7 @@ assistantHinzufügenNew parent maybeTVar = do
         <- fortfahrenWennToggledNew maybeTVar Language.hinzufügen $ anzeige <$> unterstützteRichtungen
     let richtungsCheckButtons :: NonEmpty (Richtung, RegistrierterCheckButton)
         richtungsCheckButtons = NonEmpty.zip unterstützteRichtungen $ checkButtons märklinFortfahrenWennToggledTMVar
-    märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung,checkButton) -> do
+    märklinRichtungsAuswahl <- forM richtungsCheckButtons $ \(richtung, checkButton) -> do
         box <- liftIO $ boxPackWidgetNewDefault märklinBoxWeiche $ Gtk.hBoxNew False 0
         boxPackDefault box checkButton
         anschlussAuswahl <- boxPackWidgetNewDefault box $ anschlussAuswahlNew maybeTVar $ anzeige richtung
@@ -525,7 +512,7 @@ assistantHinzufügenNew parent maybeTVar = do
     -- Plan
     boxPlan <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahlPlan <- nameAuswahlPackNew boxPlan maybeTVar
-    (expanderAktionen,boxAktionen,seitenAbschlussPlan,tvarAktionen,tvarWidgets) <- liftIO $ do
+    (expanderAktionen, boxAktionen, seitenAbschlussPlan, tvarAktionen, tvarWidgets) <- liftIO $ do
         expanderAktionen <- widgetShowNew $ Gtk.expanderNew Text.empty
         boxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
         seitenAbschlussPlan <- Gtk.buttonNew
@@ -1004,3 +991,5 @@ assistantHinzufügenNew parent maybeTVar = do
             [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
     pure assistant
 #endif
+
+

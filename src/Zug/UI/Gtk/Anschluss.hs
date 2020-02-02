@@ -8,36 +8,26 @@
 {-|
 Description: Widget zur Darstellung und Auswahl eines Anschluss
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Anschluss () where
-#else
 module Zug.UI.Gtk.Anschluss
-  (AnschlussWidget()
-  ,anschlussNew
-  ,AnschlussAuswahlWidget()
-  ,anschlussAuswahlNew
-  ,aktuellerAnschluss) where
+#ifdef ZUGKONTROLLEGUI
+ (AnschlussWidget(), anschlussNew, AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss) where
 
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Text (Text)
 import Data.Text as Text
-
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung (Anschluss(),vonPinGpio,vonPCF8574Port,PCF8574Port(..),PCF8574(..),PCF8574Variant(..),Value(..))
-import Zug.Language (Sprache(..),(<->),(<:>))
+import Zug.Anbindung
+       (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), PCF8574(..), PCF8574Variant(..), Value(..))
+import Zug.Language (Sprache(..), (<->), (<:>))
 import qualified Zug.Language as Language
-
-import Zug.UI.Gtk.Auswahl (AuswahlWidget,aktuelleAuswahl,boundedEnumAuswahlRadioButtonNew,boundedEnumAuswahlComboBoxNew)
-
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault,notebookAppendPageNew,labelSpracheNew)
-
-import Zug.UI.Gtk.Klassen (MitWidget(..),MitLabel(..),MitNotebook(..))
-
+import Zug.UI.Gtk.Auswahl
+       (AuswahlWidget, aktuelleAuswahl, boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew, labelSpracheNew)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitNotebook(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | Anzeige eines 'Anschluss'
@@ -93,19 +83,19 @@ anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
                     -> (Sprache -> Text)
                     -> m AnschlussAuswahlWidget
 anschlussAuswahlNew maybeTVar name = do
-    (vBox,aawNotebook) <- liftIO $ do
+    (vBox, aawNotebook) <- liftIO $ do
         vBox <- Gtk.vBoxNew False 0
         aawNotebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
         pure (vBox, aawNotebook)
     -- Pin
-    (pinBox,aawPinPage) <- notebookAppendPageNew aawNotebook maybeTVar Language.pin $ liftIO $ Gtk.hBoxNew False 0
+    (pinBox, aawPinPage) <- notebookAppendPageNew aawNotebook maybeTVar Language.pin $ liftIO $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault pinBox $ labelSpracheNew maybeTVar $ name <-> Language.pin <:> Text.empty
     aawPin <- liftIO $ do
         aawPin <- boxPackWidgetNewDefault pinBox $ Gtk.spinButtonNewWithRange 0 27 1
         Gtk.set aawPin [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
         pure aawPin
     -- PCF8574Port
-    (pcf8574Box,aawPCF8574PortPage)
+    (pcf8574Box, aawPCF8574PortPage)
         <- notebookAppendPageNew aawNotebook maybeTVar Language.pcf8574Port $ liftIO $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew maybeTVar $ name <-> Language.pcf8574Port <:> Text.empty
     aawPCF8574PortVariante
@@ -136,33 +126,35 @@ anschlussAuswahlNew maybeTVar name = do
 aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
 aktuellerAnschluss
     AnschlussAuswahlWidget
-    {aawNotebook
-    ,aawPin
-    ,aawPCF8574PortPage
-    ,aawPCF8574PortVariante
-    ,aawPCF8574PortA0
-    ,aawPCF8574PortA1
-    ,aawPCF8574PortA2
-    ,aawPCF8574Port} = liftIO $ do
+    { aawNotebook
+    , aawPin
+    , aawPCF8574PortPage
+    , aawPCF8574PortVariante
+    , aawPCF8574PortA0
+    , aawPCF8574PortA1
+    , aawPCF8574PortA2
+    , aawPCF8574Port} = liftIO $ do
     Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
-          | page == aawPCF8574PortPage -> liftIO $ do
-              variant <- aktuelleAuswahl aawPCF8574PortVariante
-              a0 <- aktuelleAuswahl aawPCF8574PortA0
-              a1 <- aktuelleAuswahl aawPCF8574PortA1
-              a2 <- aktuelleAuswahl aawPCF8574PortA2
-              port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
-              pure
-                  $ vonPCF8574Port
-                  $ PCF8574Port
-                  { pcf8574 = PCF8574
-                        { variant
-                        , a0
-                        , a1
-                        , a2
-                        }
-                  , port
-                  }
-          -- Verwende als Standard die Pin-Eingabe
-          | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
+            | page == aawPCF8574PortPage -> liftIO $ do
+                variant <- aktuelleAuswahl aawPCF8574PortVariante
+                a0 <- aktuelleAuswahl aawPCF8574PortA0
+                a1 <- aktuelleAuswahl aawPCF8574PortA1
+                a2 <- aktuelleAuswahl aawPCF8574PortA2
+                port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
+                pure
+                    $ vonPCF8574Port
+                    $ PCF8574Port
+                    { pcf8574 = PCF8574
+                          { variant
+                          , a0
+                          , a1
+                          , a2
+                          }
+                    , port
+                    }
+            -- Verwende als Standard die Pin-Eingabe
+            | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
 #endif
+
+

@@ -89,7 +89,7 @@ Laden dauert teilweise sehr lange (Gtk-UI)
     Evtl. eine Fortschrittsanzeige hinzufügen
         vielleicht später (TODO)
     Lag an Wegstrecken mit vielen Objekten vom gleichen Typ
-        Bug gefixt
+        gefixt
 
 
 Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?

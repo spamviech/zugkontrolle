@@ -9,68 +9,62 @@
 {-|
 Description: Allgemeine Hilfsfunktionen
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Hilfsfunktionen () where
-#else
 module Zug.UI.Gtk.Hilfsfunktionen
-  (-- * Widget
-   widgetShowNew
-  ,widgetShowIf
-   -- * Container
-  ,containerAddWidgetNew
-  ,containerRemoveJust
-   -- * Box
-  ,boxPack
-  ,boxPackDefault
-  ,boxPackWidgetNew
-  ,boxPackWidgetNewDefault
-  ,Packing(..)
-  ,packingDefault
-  ,Padding(..)
-  ,paddingDefault
-  ,Position(..)
-  ,positionDefault
-   -- * Notebook
-  ,notebookAppendPageNew
-   -- * Dialog
-  ,dialogGetUpper
-  ,dialogEval
-  ,ResponseId
-   -- * Button
-  ,buttonNewWithEvent
-  ,buttonNewWithEventLabel -- buttonNewWithEventMnemonic,
-   -- * ToggleButton
-  ,toggleButtonNewWithEvent
-  ,toggleButtonNewWithEventLabel
-   -- * Label
-  ,labelSpracheNew
-   -- * Name
-  ,NameWidget()
-  ,namePackNew
-  ,NameAuswahlWidget()
-  ,nameAuswahlPackNew
-  ,aktuellerName) where
+#ifdef ZUGKONTROLLEGUI
+  ( -- * Widget
+    widgetShowNew
+  , widgetShowIf
+    -- * Container
+  , containerAddWidgetNew
+  , containerRemoveJust
+    -- * Box
+  , boxPack
+  , boxPackDefault
+  , boxPackWidgetNew
+  , boxPackWidgetNewDefault
+  , Packing(..)
+  , packingDefault
+  , Padding(..)
+  , paddingDefault
+  , Position(..)
+  , positionDefault
+    -- * Notebook
+  , notebookAppendPageNew
+    -- * Dialog
+  , dialogGetUpper
+  , dialogEval
+  , ResponseId
+    -- * Button
+  , buttonNewWithEvent
+  , buttonNewWithEventLabel -- buttonNewWithEventMnemonic,
+    -- * ToggleButton
+  , toggleButtonNewWithEvent
+  , toggleButtonNewWithEventLabel
+    -- * Label
+  , labelSpracheNew
+    -- * Name
+  , NameWidget()
+  , namePackNew
+  , NameAuswahlWidget()
+  , nameAuswahlPackNew
+  , aktuellerName) where
 
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
-
 import Data.Text (Text)
 import qualified Data.Text as Text
-
-import Graphics.UI.Gtk (Packing(..),ResponseId)
+import Graphics.UI.Gtk (Packing(..), ResponseId)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..))
-import Zug.Language (Sprache(..),(<:>))
+import Zug.Language (Sprache(..), (<:>))
 import qualified Zug.Language as Language
-
-import Zug.UI.Gtk.Klassen (MitWidget(..),mitWidgetShow,mitWidgetHide,MitLabel(..),MitEntry(..),MitContainer(..)
-                          ,mitContainerAdd,mitContainerRemove,MitButton(..),MitToggleButton(..),MitDialog(..),MitBox(..)
-                          ,mitBoxPackStart,mitBoxPackEnd,MitNotebook(..),mitNotebookAppendPage)
-
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader,verwendeSpracheGui)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), MitContainer(..)
+                         , mitContainerAdd, mitContainerRemove, MitButton(..), MitToggleButton(..), MitDialog(..)
+                         , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui)
 
 -- | 'Widget' erstellen und anzeigen
 widgetShowNew :: (MonadIO m, MitWidget w) => m w -> m w
@@ -90,10 +84,10 @@ containerAddWidgetNew container konstruktor = do
 boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Packing -> Padding -> Position -> m ()
 boxPack box widget packing padding position =
     liftIO $ boxPackPosition position box widget packing $ fromPadding padding
-  where
-    boxPackPosition :: (MitBox b, MitWidget w) => Position -> b -> w -> Packing -> Int -> IO ()
-    boxPackPosition Start = mitBoxPackStart
-    boxPackPosition End = mitBoxPackEnd
+    where
+        boxPackPosition :: (MitBox b, MitWidget w) => Position -> b -> w -> Packing -> Int -> IO ()
+        boxPackPosition Start = mitBoxPackStart
+        boxPackPosition End = mitBoxPackEnd
 
 -- | Neu erstelltes Widget in eine Box packen
 boxPackWidgetNew :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
@@ -111,7 +105,7 @@ newtype Padding =
     Padding
     { fromPadding :: Int
     }
-    deriving (Bounded,Enum,Eq,Integral,Num,Ord,Read,Real,Show)
+    deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
 
 -- | Standart-Abstand zwischen 'Widget's in einer 'Box'
 paddingDefault :: Padding
@@ -121,7 +115,7 @@ paddingDefault = 0
 data Position
     = Start
     | End
-    deriving (Show,Read,Eq,Ord)
+    deriving (Show, Read, Eq, Ord)
 
 -- | Standart-Position zum Hinzufügen zu einer 'Box'
 positionDefault :: Position
@@ -290,3 +284,4 @@ nameAuswahlPackNew box maybeTVar = do
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 #endif
+

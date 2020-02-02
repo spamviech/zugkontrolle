@@ -7,40 +7,33 @@
 {-|
 Description: Anzeige und Auswahl des Fließend-Value
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.Fliessend () where
-#else
 module Zug.UI.Gtk.Fliessend
-  (FließendWidget()
-  ,fließendNew
-  ,fließendPackNew
-  ,FließendAuswahlWidget()
-  ,fließendAuswahlNew
-  ,fließendAuswahlPackNew
-  ,aktuellerFließendValue) where
+#ifdef ZUGKONTROLLEGUI
+  ( FließendWidget()
+  , fließendNew
+  , fließendPackNew
+  , FließendAuswahlWidget()
+  , fließendAuswahlNew
+  , fließendAuswahlPackNew
+  , aktuellerFließendValue) where
 
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
-
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (StreckenAtom(..),Value(..))
-import Zug.Language (Sprache(),(<:>))
+import Zug.Anbindung (StreckenAtom(..), Value(..))
+import Zug.Language (Sprache(), (<:>))
 import qualified Zug.Language as Language
-
-import Zug.UI.Gtk.Auswahl (AuswahlWidget,boundedEnumAuswahlComboBoxNew,aktuelleAuswahl)
-
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (boxPackWidgetNew,boxPackWidgetNewDefault,packingDefault,positionDefault,labelSpracheNew)
-
-import Zug.UI.Gtk.Klassen (MitWidget(..),MitLabel(..),MitBox(..))
-
+       (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault, labelSpracheNew)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
-    deriving (Eq,MitWidget,MitLabel)
+    deriving (Eq, MitWidget, MitLabel)
 
 -- | Erstelle ein neues 'FließendWidget' und packe es in eine 'MitBox'.
 --
@@ -68,7 +61,7 @@ newtype FließendAuswahlWidget =
     FließendAuswahlWidget
     { erhalteAuswahlWidget :: AuswahlWidget Value
     }
-    deriving (Eq,MitWidget)
+    deriving (Eq, MitWidget)
 
 -- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'.
 --
@@ -93,3 +86,4 @@ fließendAuswahlNew
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
 aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif
+

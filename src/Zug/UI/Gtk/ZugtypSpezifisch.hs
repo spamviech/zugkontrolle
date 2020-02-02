@@ -5,50 +5,26 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE CPP #-}
-#ifndef ZUGKONTROLLEGUI
-{-# LANGUAGE EmptyDataDecls #-}
-#endif
 
 {-|
 Description: Widget zur Auswahl eines Bounded Enums
 -}
-module Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew) where
+module Zug.UI.Gtk.ZugtypSpezifisch
+#ifdef ZUGKONTROLLEGUI
+ (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew) where
 
 -- Bibliotheken
-#ifdef ZUGKONTROLLEGUI
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty(..))
-#else
-import qualified Data.Text as Text
-#endif
-#ifdef ZUGKONTROLLEGUI
 import qualified Graphics.UI.Gtk as Gtk
-#endif
 
 -- Abhängigkeit von anderen Modulen
-#ifdef ZUGKONTROLLEGUI
 import Zug.Enums (Zugtyp(..))
-#else
-import Zug.Language (Sprache(..))
-import qualified Zug.Language as Language
-#endif
-#ifdef ZUGKONTROLLEGUI
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitContainer(..))
-#endif
 
-#ifndef ZUGKONTROLLEGUI
-data ZugtypSpezifisch
-
-zugtypSpezifischNew :: a
-zugtypSpezifischNew = error $ Text.unpack $ Language.uiNichtUnterstützt Deutsch
-
-zugtypSpezifischButtonNew :: a
-zugtypSpezifischButtonNew = error $ Text.unpack $ Language.uiNichtUnterstützt Deutsch
-
-#else
 -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
     ZugtypSpezifisch :: { vBox :: Gtk.VBox
@@ -115,4 +91,3 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
         , buttonDummy
         }
 #endif
-

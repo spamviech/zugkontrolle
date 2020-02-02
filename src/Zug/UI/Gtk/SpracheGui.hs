@@ -2,7 +2,6 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
@@ -11,22 +10,22 @@
 Description: Allgemeine Hilfsfunktionen
 -}
 module Zug.UI.Gtk.SpracheGui
-  (SpracheGui()
-  ,SpracheGuiReader(..)
-  ,MitSpracheGui(..)
-  ,spracheGuiNeu
-  ,sprachwechsel
-  ,verwendeSpracheGui
-  ,verwendeSpracheGuiFn) where
+  ( SpracheGui()
+  , SpracheGuiReader(..)
+  , MitSpracheGui(..)
+  , spracheGuiNeu
+  , sprachwechsel
+  , verwendeSpracheGui
+  , verwendeSpracheGuiFn) where
 
 -- Bibliotheken
-import Control.Concurrent.STM (atomically,TVar,newTVarIO,readTVarIO,modifyTVar,writeTVar)
-import Control.Monad (when,foldM)
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar, writeTVar)
+import Control.Monad (when, foldM)
 import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.Trans (MonadIO(..))
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Sprache(),MitSprache(..))
+import Zug.Language (Sprache(), MitSprache(..))
 
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 data SpracheGui =
@@ -64,10 +63,10 @@ type AktionOderTVar = Either (Sprache -> IO ()) (TVar (Maybe [Sprache -> IO ()])
 
 -- | Wechsel die 'Sprache' eines 'SpracheGui' und führe alle zugehörigen 'IO'-Aktionen aus.
 sprachwechsel :: (MonadIO m) => SpracheGui -> Sprache -> m SpracheGui
-sprachwechsel spracheGui @ SpracheGui {sprachwechselAktionen} sprache = liftIO $ do
+sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ do
     sprachwechselAktionenAlt <- readTVarIO sprachwechselAktionen
     let ausführenOderLöschen :: [AktionOderTVar] -> AktionOderTVar -> IO [AktionOderTVar]
-        ausführenOderLöschen acc rightTVar @ (Right tvar) = do
+        ausführenOderLöschen acc rightTVar@(Right tvar) = do
             readTVarIO tvar >>= \case
                 -- Führe alle Aktionen in der tvar aus
                 (Just aktionen) -> do
@@ -75,7 +74,7 @@ sprachwechsel spracheGui @ SpracheGui {sprachwechselAktionen} sprache = liftIO $
                     pure $ rightTVar : acc
                 -- Lösche deaktivierte Aktionen
                 Nothing -> pure acc
-        ausführenOderLöschen acc leftAktion @ (Left aktion) = do
+        ausführenOderLöschen acc leftAktion@(Left aktion) = do
             -- Führe die Aktion aus
             aktion sprache
             pure $ leftAktion : acc
@@ -100,7 +99,7 @@ verwendeSpracheGui maybeTVar neueAktion =
 -- | Wie 'verwendeSpracheGui' mit explizit übergebenem 'SpracheGui'.
 verwendeSpracheGuiFn
     :: (MonadIO m) => SpracheGui -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
-verwendeSpracheGuiFn SpracheGui {sprache,sprachwechselAktionen} maybeTVar neueAktion = liftIO $ do
+verwendeSpracheGuiFn SpracheGui {sprache, sprachwechselAktionen} maybeTVar neueAktion = liftIO $ do
     neueAktion sprache
     case maybeTVar of
         (Just tvar) -> do

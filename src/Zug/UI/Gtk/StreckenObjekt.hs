@@ -23,70 +23,67 @@ Description : Erstelle zusammengesetzte
 
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
-#ifndef ZUGKONTROLLEGUI
-module Zug.UI.Gtk.StreckenObjekt () where
-#else
 module Zug.UI.Gtk.StreckenObjekt
-  (-- ** Spezifisches StreckenObjekt darstellen
-   BGWidgets()
-  ,STWidgets()
-  ,WEWidgets()
-  ,KUWidgets()
-  ,WSWidgets()
-  ,PLWidgets()
-  ,WidgetsTyp(..)
-  ,bahngeschwindigkeitPackNew
-  ,streckenabschnittPackNew
-  ,weichePackNew
-  ,kupplungPackNew
-  ,wegstreckePackNew
-  ,planPackNew
-   -- * Verwaltung des aktuellen Zustands
-  ,DynamischeWidgets(..)
-  ,DynamischeWidgetsReader(..)
-  ,StatusGui
-  ,ObjektGui
-  ,BefehlGui
-  ,IOStatusGui
-  ,MStatusGui
-  ,MStatusGuiT
-  ,StatusVarGui
-  ,readSpracheGui
-   -- * Hinzufügen zu einem Plan/einer Wegstrecke
-  ,WidgetHinzufügen()
-  ,HinzufügenZiel(..)
-  ,CheckButtonWegstreckeHinzufügen
-  ,WegstreckeCheckButton()
-  ,WegstreckeCheckButtonVoid
-  ,KategorieText(..)
-  ,Kategorie(..)
-  ,BoxWegstreckeHinzufügen
-  ,boxWegstreckeHinzufügenNew
-  ,ButtonPlanHinzufügen
-  ,BoxPlanHinzufügen
-  ,boxPlanHinzufügenNew
-  ,widgetHinzufügenZugtypEither
-  ,widgetHinzufügenRegistrierterCheckButtonVoid
-  ,widgetHinzufügenAktuelleAuswahl
-  ,widgetHinzufügenToggled
-  ,widgetHinzufügenContainerRemoveJust
-  ,widgetHinzufügenBoxPackNew
-  ,widgetHinzufügenContainerGefüllt
-  ,foldWegstreckeHinzufügen
-  ,WegstreckenElement(..)
-  ,entferneHinzufügenWegstreckeWidgets
-  ,PlanElement(..)
-  ,entferneHinzufügenPlanWidgets) where
+#ifdef ZUGKONTROLLEGUI
+  ( -- ** Spezifisches StreckenObjekt darstellen
+    BGWidgets()
+  , STWidgets()
+  , WEWidgets()
+  , KUWidgets()
+  , WSWidgets()
+  , PLWidgets()
+  , WidgetsTyp(..)
+  , bahngeschwindigkeitPackNew
+  , streckenabschnittPackNew
+  , weichePackNew
+  , kupplungPackNew
+  , wegstreckePackNew
+  , planPackNew
+    -- * Verwaltung des aktuellen Zustands
+  , DynamischeWidgets(..)
+  , DynamischeWidgetsReader(..)
+  , StatusGui
+  , ObjektGui
+  , BefehlGui
+  , IOStatusGui
+  , MStatusGui
+  , MStatusGuiT
+  , StatusVarGui
+  , readSpracheGui
+    -- * Hinzufügen zu einem Plan/einer Wegstrecke
+  , WidgetHinzufügen()
+  , HinzufügenZiel(..)
+  , CheckButtonWegstreckeHinzufügen
+  , WegstreckeCheckButton()
+  , WegstreckeCheckButtonVoid
+  , KategorieText(..)
+  , Kategorie(..)
+  , BoxWegstreckeHinzufügen
+  , boxWegstreckeHinzufügenNew
+  , ButtonPlanHinzufügen
+  , BoxPlanHinzufügen
+  , boxPlanHinzufügenNew
+  , widgetHinzufügenZugtypEither
+  , widgetHinzufügenRegistrierterCheckButtonVoid
+  , widgetHinzufügenAktuelleAuswahl
+  , widgetHinzufügenToggled
+  , widgetHinzufügenContainerRemoveJust
+  , widgetHinzufügenBoxPackNew
+  , widgetHinzufügenContainerGefüllt
+  , foldWegstreckeHinzufügen
+  , WegstreckenElement(..)
+  , entferneHinzufügenWegstreckeWidgets
+  , PlanElement(..)
+  , entferneHinzufügenPlanWidgets) where
 
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
-import Control.Concurrent.STM (atomically,TVar,writeTVar,newTVarIO,TMVar,putTMVar)
-import Control.Lens ((^.),(^..),(??))
+import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, TMVar, putTMVar)
+import Control.Lens ((^.), (^..), (??))
 import qualified Control.Lens as Lens
-import Control.Monad (void,unless,forM_)
-import Control.Monad.Reader (MonadReader(..),asks,runReaderT)
+import Control.Monad (void, unless, forM_)
+import Control.Monad.Reader (MonadReader(..), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-
 import qualified Data.Aeson as Aeson
 import Data.Foldable (Foldable(..))
 import Data.Kind (Type)
@@ -95,53 +92,42 @@ import Data.Maybe (fromJust)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Void (Void)
-
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
-
 import Numeric.Natural (Natural)
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..),Anschluss(),PwmReader(),I2CReader(),Bahngeschwindigkeit(..)
-                     ,BahngeschwindigkeitKlasse(..),Streckenabschnitt(..),StreckenabschnittKlasse(..),Weiche(..)
-                     ,WeicheKlasse(..),Kupplung(..),KupplungKlasse(..),Wegstrecke(..),WegstreckeKlasse(..))
-import Zug.Enums (Zugtyp(..),ZugtypEither(..),ZugtypKlasse(..),ausZugtypEither,mapZugtypEither,Fahrtrichtung(..)
-                 ,Strom(..),Richtung(..))
+import Zug.Anbindung (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(), Bahngeschwindigkeit(..)
+                    , BahngeschwindigkeitKlasse(..), Streckenabschnitt(..), StreckenabschnittKlasse(..), Weiche(..)
+                    , WeicheKlasse(..), Kupplung(..), KupplungKlasse(..), Wegstrecke(..), WegstreckeKlasse(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither, Fahrtrichtung(..)
+                , Strom(..), Richtung(..))
 import Zug.Language (MitSprache(..))
 import qualified Zug.Language as Language
-import Zug.Language (Sprache(),Anzeige(..),($#),(<^>),(<:>),(<°>))
+import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>), (<°>))
 import Zug.Menge (ausFoldable)
-import Zug.Objekt (ObjektAllgemein(..),ObjektElement(..),Objekt,ObjektKlasse(..))
-import Zug.Plan (PlanKlasse(..),Plan(..),AusführendReader(),AktionBahngeschwindigkeit(..),AktionStreckenabschnitt(..)
-                ,AktionWeiche(..),AktionKupplung(..),AktionWegstrecke(..))
-import Zug.UI.Base (StatusAllgemein(..),IOStatusAllgemein,MStatusAllgemein,MStatusAllgemeinT,AusführenMöglich(..)
-                   ,ReaderFamilie,ObjektReader,TVarMaps(..),MitTVarMaps(..),bahngeschwindigkeiten,streckenabschnitte
-                   ,weichen,kupplungen,sprache,ausführenMöglich,entfernenBahngeschwindigkeit
-                   ,entfernenStreckenabschnitt,entfernenWeiche,entfernenKupplung,entfernenWegstrecke,entfernenPlan)
-import Zug.UI.Befehl (BefehlAllgemein(..),BefehlKlasse(..))
-
+import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt, ObjektKlasse(..))
+import Zug.Plan (PlanKlasse(..), Plan(..), AusführendReader(), AktionBahngeschwindigkeit(..)
+               , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..), AktionWegstrecke(..))
+import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT, AusführenMöglich(..)
+                  , ReaderFamilie, ObjektReader, TVarMaps(..), MitTVarMaps(..), bahngeschwindigkeiten
+                  , streckenabschnitte, weichen, kupplungen, sprache, ausführenMöglich, entfernenBahngeschwindigkeit
+                  , entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung, entfernenWegstrecke, entfernenPlan)
+import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
-
-import Zug.UI.Gtk.Auswahl (AuswahlWidget(),aktuelleAuswahl,auswahlRadioButtonNew,MitAuswahlWidget(..))
-
+import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
-
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar,registrierterCheckButtonNew,RegistrierterCheckButton
-                                        ,MitRegistrierterCheckButton(..),registrierterCheckButtonToggled)
-
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar, registrierterCheckButtonNew, RegistrierterCheckButton
+                                       , MitRegistrierterCheckButton(..), registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (containerAddWidgetNew,containerRemoveJust,boxPackWidgetNew,boxPackWidgetNewDefault,paddingDefault
-       ,positionDefault,Packing(..),Position(..),dialogEval,buttonNewWithEventLabel,toggleButtonNewWithEventLabel
-       ,namePackNew,widgetShowNew,labelSpracheNew)
-
-import Zug.UI.Gtk.Klassen (MitWidget(..),MitContainer(..),mitContainerRemove,MitBox(..),MitRange(..))
-
-import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget,scrollbaresWidgetNew)
-
-import Zug.UI.Gtk.SpracheGui (SpracheGui,SpracheGuiReader(..),MitSpracheGui(..),verwendeSpracheGui)
-
-import Zug.UI.StatusVar (StatusVar,MitStatusVar(..),StatusVarReader(..),tryReadStatusVar,auswertenStatusVarIOStatus
-                        ,ausführenStatusVarBefehl,ausführenStatusVarAktion)
+       (containerAddWidgetNew, containerRemoveJust, boxPackWidgetNew, boxPackWidgetNewDefault, paddingDefault
+      , positionDefault, Packing(..), Position(..), dialogEval, buttonNewWithEventLabel, toggleButtonNewWithEventLabel
+      , namePackNew, widgetShowNew, labelSpracheNew)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(..), MitSpracheGui(..), verwendeSpracheGui)
+import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(..), tryReadStatusVar, auswertenStatusVarIOStatus
+                       , ausführenStatusVarBefehl, ausführenStatusVarAktion)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialisiert auf Gui-Typen
@@ -398,19 +384,19 @@ type instance ReaderFamilie ObjektGui = (TVarMaps, DynamischeWidgets, StatusVar 
 
 instance MitTVarMaps (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     tvarMaps :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> TVarMaps
-    tvarMaps (tvarMaps,_dynamischeWidgets,_tmvarStatus) = tvarMaps
+    tvarMaps (tvarMaps, _dynamischeWidgets, _tmvarStatus) = tvarMaps
 
 instance MitDynamischeWidgets (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     dynamischeWidgets :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> DynamischeWidgets
-    dynamischeWidgets (_tvarMaps,dynamischeWidgets,_tmvarStatus) = dynamischeWidgets
+    dynamischeWidgets (_tvarMaps, dynamischeWidgets, _tmvarStatus) = dynamischeWidgets
 
 instance MitStatusVar (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektGui where
     statusVar :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> StatusVar ObjektGui
-    statusVar (_tvarMaps,_dynamischeWidgets,statusVar) = statusVar
+    statusVar (_tvarMaps, _dynamischeWidgets, statusVar) = statusVar
 
 instance MitSpracheGui (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> m SpracheGui
-    spracheGui (_tvarMaps,_dynamischeWidgets,statusVar) = readSpracheGui statusVar
+    spracheGui (_tvarMaps, _dynamischeWidgets, statusVar) = readSpracheGui statusVar
 
 -- | Lese die 'SpracheGui' aus einer 'StatusVarGui'
 readSpracheGui :: (MonadIO m) => StatusVarGui -> m SpracheGui
@@ -460,17 +446,17 @@ type WegstreckeCheckButtonVoid = WidgetHinzufügen 'HinzufügenWegstrecke Regist
 -- | Alle 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke im aktuellen 'StatusGui'
 foldWegstreckeHinzufügen :: Lens.Fold StatusGui WegstreckeCheckButtonVoid
 foldWegstreckeHinzufügen = Lens.folding registrierteCheckButtons
-  where
-    registrierteCheckButtons :: StatusGui -> [WegstreckeCheckButtonVoid]
-    registrierteCheckButtons status =
-        map
-            (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-            (status ^. bahngeschwindigkeiten)
-        ++ map
-            (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-            (status ^. streckenabschnitte)
-        ++ map (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke) (status ^. weichen)
-        ++ map (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke) (status ^. kupplungen)
+    where
+        registrierteCheckButtons :: StatusGui -> [WegstreckeCheckButtonVoid]
+        registrierteCheckButtons status =
+            map
+                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
+                (status ^. bahngeschwindigkeiten)
+            ++ map
+                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
+                (status ^. streckenabschnitte)
+            ++ map (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke) (status ^. weichen)
+            ++ map (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke) (status ^. kupplungen)
 
 -- | Klasse für Gui-Darstellungen von Typen, die zur Erstellung eines 'Plan's verwendet werden.
 class (WidgetsTyp s) => PlanElement s where
@@ -521,7 +507,7 @@ hinzufügenWidgetWegstreckePackNew
     -> TVar (Maybe [Sprache -> IO ()])
     -> m (CheckButtonWegstreckeHinzufügen Void o)
 hinzufügenWidgetWegstreckePackNew objekt tvar = do
-    dynamischeWidgets @ DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     widgetHinzufügenBoxPackNew box
         $ WegstreckeCheckButton
@@ -540,7 +526,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew
     -> TVar (Maybe [Sprache -> IO ()])
     -> m (CheckButtonWegstreckeHinzufügen Richtung o)
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
-    dynamischeWidgets @ DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     let justTVar = Just tvar
     widgetHinzufügenBoxPackNew box $ do
@@ -600,7 +586,7 @@ instance (WegstreckenElement (BGWidgets z), PlanElement (BGWidgets z)) => Widget
     erhalteObjektTyp = bg
 
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => BGWidgets z -> m ()
-    entferneWidgets bgWidgets @ BGWidgets {bgSpracheTVar} = do
+    entferneWidgets bgWidgets@BGWidgets {bgSpracheTVar} = do
         DynamischeWidgets {vBoxBahngeschwindigkeiten} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxBahngeschwindigkeiten bgWidgets
         entferneHinzufügenWegstreckeWidgets bgWidgets
@@ -713,7 +699,7 @@ bahngeschwindigkeitPackNew
     => Bahngeschwindigkeit z
     -> MStatusGuiT m (BGWidgets z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
-    dynamischeWidgets @ DynamischeWidgets {vBoxBahngeschwindigkeiten} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets {vBoxBahngeschwindigkeiten} <- erhalteDynamischeWidgets
     bgSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just bgSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
@@ -741,25 +727,27 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets
     pure bgWidgets
-  where
-    getGeschwindigkeitsAnschluss :: Bahngeschwindigkeit z -> Anschluss
-    getGeschwindigkeitsAnschluss
-        MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss} = bgmGeschwindigkeitsAnschluss
-    getGeschwindigkeitsAnschluss LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss} = bglGeschwindigkeitsAnschluss
+    where
+        getGeschwindigkeitsAnschluss :: Bahngeschwindigkeit z -> Anschluss
+        getGeschwindigkeitsAnschluss
+            MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss} = bgmGeschwindigkeitsAnschluss
+        getGeschwindigkeitsAnschluss
+            LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss} = bglGeschwindigkeitsAnschluss
 
-    fahrtrichtungsWidgetsPackNew
-        :: (ObjektReader ObjektGui m, MonadIO m, MitBox b, MitRange r)
-        => b
-        -> Bahngeschwindigkeit z
-        -> r
-        -> TVar (Maybe [Sprache -> IO ()])
-        -> m ()
-    fahrtrichtungsWidgetsPackNew box bgMärklin @ MärklinBahngeschwindigkeit {} range tvar =
-        void $ buttonUmdrehenPackNew box bgMärklin range tvar
-    fahrtrichtungsWidgetsPackNew box bgLego @ LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss} range tvar =
-        void $ do
-            boxPackWidgetNewDefault box $ anschlussNew (Just tvar) Language.fahrtrichtung bglFahrtrichtungsAnschluss
-            togglebuttonFahrtrichtungEinstellenPackNew box bgLego range tvar
+        fahrtrichtungsWidgetsPackNew
+            :: (ObjektReader ObjektGui m, MonadIO m, MitBox b, MitRange r)
+            => b
+            -> Bahngeschwindigkeit z
+            -> r
+            -> TVar (Maybe [Sprache -> IO ()])
+            -> m ()
+        fahrtrichtungsWidgetsPackNew box bgMärklin@MärklinBahngeschwindigkeit {} range tvar =
+            void $ buttonUmdrehenPackNew box bgMärklin range tvar
+        fahrtrichtungsWidgetsPackNew box bgLego@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss} range tvar =
+            void $ do
+                boxPackWidgetNewDefault box
+                    $ anschlussNew (Just tvar) Language.fahrtrichtung bglFahrtrichtungsAnschluss
+                togglebuttonFahrtrichtungEinstellenPackNew box bgLego range tvar
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew
@@ -847,7 +835,7 @@ instance WidgetsTyp STWidgets where
     erhalteObjektTyp = st
 
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => STWidgets -> m ()
-    entferneWidgets stWidgets @ STWidgets {stSpracheTVar} = do
+    entferneWidgets stWidgets@STWidgets {stSpracheTVar} = do
         DynamischeWidgets {vBoxStreckenabschnitte} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxStreckenabschnitte stWidgets
         entferneHinzufügenWegstreckeWidgets stWidgets
@@ -889,8 +877,8 @@ instance StreckenabschnittKlasse STWidgets where
 -- | 'Streckenabschnitt' darstellen und zum Status hinzufügen
 streckenabschnittPackNew
     :: forall m. (ObjektReader ObjektGui m, MonadIO m) => Streckenabschnitt -> MStatusGuiT m STWidgets
-streckenabschnittPackNew streckenabschnitt @ Streckenabschnitt {stromAnschluss} = do
-    DynamischeWidgets {vBoxStreckenabschnitte,vBoxHinzufügenPlanStreckenabschnitte} <- erhalteDynamischeWidgets
+streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = do
+    DynamischeWidgets {vBoxStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte} <- erhalteDynamischeWidgets
     stSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just stSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
@@ -970,7 +958,7 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z)) => Widget
     erhalteObjektTyp = we
 
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => WEWidgets z -> m ()
-    entferneWidgets weWidgets @ WEWidgets {weSpracheTVar} = do
+    entferneWidgets weWidgets@WEWidgets {weSpracheTVar} = do
         DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxWeichen weWidgets
         entferneHinzufügenWegstreckeWidgets weWidgets
@@ -1029,7 +1017,7 @@ instance WegstreckenElement (ZugtypEither WEWidgets) where
 
 instance PlanElement (WEWidgets 'Märklin) where
     foldPlan :: Lens.Fold (WEWidgets 'Märklin) (Maybe (ButtonPlanHinzufügen (WEWidgets 'Märklin)))
-    foldPlan = Lens.folding $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade,kurve,links,rechts}}
+    foldPlan = Lens.folding $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> [gerade, kurve, links, rechts]
 
     boxenPlan :: Weiche 'Märklin -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WEWidgets 'Märklin))
@@ -1043,7 +1031,7 @@ instance PlanElement (WEWidgets 'Märklin) where
 
 instance PlanElement (WEWidgets 'Lego) where
     foldPlan :: Lens.Fold (WEWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WEWidgets 'Lego)))
-    foldPlan = Lens.folding $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade,kurve,links,rechts}}
+    foldPlan = Lens.folding $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> [gerade, kurve, links, rechts]
 
     boxenPlan :: Weiche 'Lego -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WEWidgets 'Lego))
@@ -1060,7 +1048,7 @@ instance PlanElement (ZugtypEither WEWidgets) where
     foldPlan =
         Lens.folding
         $ ausZugtypEither
-        $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade,kurve,links,rechts}}
+        $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> fmap widgetHinzufügenZugtypEither <$> [gerade, kurve, links, rechts]
 
     boxenPlan :: ZugtypEither Weiche -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WEWidgets))
@@ -1106,13 +1094,13 @@ weichePackNew
     => Weiche z
     -> MStatusGuiT m (WEWidgets z)
 weichePackNew weiche = do
-    dynamischeWidgets @ DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
     weSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just weSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget
         <- hinzufügenWidgetWegstreckeRichtungPackNew weiche (erhalteRichtungen weiche) weSpracheTVar
-    let [boxGerade,boxKurve,boxLinks,boxRechts] = dynamischeWidgets ^.. boxenPlan weiche
+    let [boxGerade, boxKurve, boxLinks, boxRechts] = dynamischeWidgets ^.. boxenPlan weiche
     hinzufügenPlanWidgetGerade <- if hatRichtung weiche Gerade
         then Just <$> hinzufügenWidgetPlanPackNew boxGerade weiche weSpracheTVar
         else pure Nothing
@@ -1149,35 +1137,35 @@ weichePackNew weiche = do
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OWeiche $ zuZugtypEither weWidgets
     pure weWidgets
-  where
-    richtungsButtonsPackNew
-        :: forall b m z.
-        (MitBox b, MonadIO m, ObjektReader ObjektGui m)
-        => Weiche z
-        -> b
-        -> TVar (Maybe [Sprache -> IO ()])
-        -> m ()
-    richtungsButtonsPackNew MärklinWeiche {wemRichtungsAnschlüsse} box tvar = do
-        statusVar <- erhalteStatusVar :: m StatusVarGui
-        objektReader <- ask
-        forM_ wemRichtungsAnschlüsse $ \(richtung,anschluss) -> boxPackWidgetNewDefault box
-            $ buttonNewWithEventLabel (Just tvar) (richtung <:> anschluss)
-            $ flip runReaderT objektReader
-            $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
-    richtungsButtonsPackNew LegoWeiche {welRichtungsAnschluss,welRichtungen = (richtung1,richtung2)} box tvar =
-        void $ do
+    where
+        richtungsButtonsPackNew
+            :: forall b m z.
+            (MitBox b, MonadIO m, ObjektReader ObjektGui m)
+            => Weiche z
+            -> b
+            -> TVar (Maybe [Sprache -> IO ()])
+            -> m ()
+        richtungsButtonsPackNew MärklinWeiche {wemRichtungsAnschlüsse} box tvar = do
             statusVar <- erhalteStatusVar :: m StatusVarGui
             objektReader <- ask
-            let justTVar = Just tvar
-            boxPackWidgetNewDefault box $ anschlussNew justTVar Language.richtung welRichtungsAnschluss
-            boxPackWidgetNewDefault box
-                $ buttonNewWithEventLabel justTVar (anzeige richtung1)
+            forM_ wemRichtungsAnschlüsse $ \(richtung, anschluss) -> boxPackWidgetNewDefault box
+                $ buttonNewWithEventLabel (Just tvar) (richtung <:> anschluss)
                 $ flip runReaderT objektReader
-                $ ausführenStatusVarAktion (Stellen weiche richtung1) statusVar
-            boxPackWidgetNewDefault box
-                $ buttonNewWithEventLabel justTVar (anzeige richtung2)
-                $ flip runReaderT objektReader
-                $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
+                $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
+        richtungsButtonsPackNew LegoWeiche {welRichtungsAnschluss, welRichtungen = (richtung1, richtung2)} box tvar =
+            void $ do
+                statusVar <- erhalteStatusVar :: m StatusVarGui
+                objektReader <- ask
+                let justTVar = Just tvar
+                boxPackWidgetNewDefault box $ anschlussNew justTVar Language.richtung welRichtungsAnschluss
+                boxPackWidgetNewDefault box
+                    $ buttonNewWithEventLabel justTVar (anzeige richtung1)
+                    $ flip runReaderT objektReader
+                    $ ausführenStatusVarAktion (Stellen weiche richtung1) statusVar
+                boxPackWidgetNewDefault box
+                    $ buttonNewWithEventLabel justTVar (anzeige richtung2)
+                    $ flip runReaderT objektReader
+                    $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
 
 -- ** Kupplung
 -- | 'Kupplung' mit zugehörigen Widgets
@@ -1202,7 +1190,7 @@ instance WidgetsTyp KUWidgets where
     erhalteObjektTyp = ku
 
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => KUWidgets -> m ()
-    entferneWidgets kuWidgets @ KUWidgets {kuSpracheTVar} = do
+    entferneWidgets kuWidgets@KUWidgets {kuSpracheTVar} = do
         DynamischeWidgets {vBoxKupplungen} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxKupplungen kuWidgets
         entferneHinzufügenWegstreckeWidgets kuWidgets
@@ -1243,8 +1231,8 @@ instance KupplungKlasse KUWidgets where
 
 -- | 'Kupplung' darstellen und zum Status hinzufügen
 kupplungPackNew :: forall m. (ObjektReader ObjektGui m, MonadIO m) => Kupplung -> MStatusGuiT m KUWidgets
-kupplungPackNew kupplung @ Kupplung {kupplungsAnschluss} = do
-    DynamischeWidgets {vBoxKupplungen,vBoxHinzufügenPlanKupplungen} <- erhalteDynamischeWidgets
+kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
+    DynamischeWidgets {vBoxKupplungen, vBoxHinzufügenPlanKupplungen} <- erhalteDynamischeWidgets
     kuSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just kuSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
@@ -1320,7 +1308,7 @@ instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
     erhalteObjektTyp = ws
 
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => WSWidgets z -> m ()
-    entferneWidgets wsWidgets @ WSWidgets {wsSpracheTVar} = do
+    entferneWidgets wsWidgets@WSWidgets {wsSpracheTVar} = do
         DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxWegstrecken wsWidgets
         entferneHinzufügenPlanWidgets wsWidgets
@@ -1435,14 +1423,14 @@ wegstreckePackNew :: forall m z.
                   => Wegstrecke z
                   -> MStatusGuiT m (WSWidgets z)
 wegstreckePackNew
-    wegstrecke @ Wegstrecke {wsBahngeschwindigkeiten,wsStreckenabschnitte,wsWeichenRichtungen,wsKupplungen} = do
+    wegstrecke@Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
-    dynamischeWidgets @ DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
     wsSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just wsSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    let [boxBahngeschwindigkeit,boxStreckenabschnitt,boxKupplung,boxWegstrecke] =
+    let [boxBahngeschwindigkeit, boxStreckenabschnitt, boxKupplung, boxWegstrecke] =
             dynamischeWidgets ^.. boxenPlan wegstrecke
     hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
         then pure Nothing
@@ -1493,7 +1481,7 @@ wegstreckePackNew
             $ Language.weichen
             <:> fromJust
                 (foldl
-                     (\acc (weiche,richtung) -> Just $ fromJust (appendName acc weiche) <°> richtung)
+                     (\acc (weiche, richtung) -> Just $ fromJust (appendName acc weiche) <°> richtung)
                      Nothing
                      wsWeichenRichtungen)
         boxPackWidgetNewDefault functionBox
@@ -1519,10 +1507,10 @@ wegstreckePackNew
     pure wsWidgets
     -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime
 
-      where
-        appendName :: (StreckenObjekt o) => Maybe (Sprache -> Text) -> o -> Maybe (Sprache -> Text)
-        appendName Nothing objekt = Just $ const $ erhalteName objekt
-        appendName (Just acc) objekt = Just $ acc <^> erhalteName objekt
+        where
+            appendName :: (StreckenObjekt o) => Maybe (Sprache -> Text) -> o -> Maybe (Sprache -> Text)
+            appendName Nothing objekt = Just $ const $ erhalteName objekt
+            appendName (Just acc) objekt = Just $ acc <^> erhalteName objekt
 
 -- ** Plan
 -- | 'Plan' mit zugehörigen Widgets
@@ -1547,7 +1535,7 @@ instance WidgetsTyp PLWidgets where
     erhalteObjektTyp = pl
 
     entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => PLWidgets -> m ()
-    entferneWidgets plWidgets @ PLWidgets {plSpracheTVar} = do
+    entferneWidgets plWidgets@PLWidgets {plSpracheTVar} = do
         DynamischeWidgets {vBoxPläne} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxPläne plWidgets
         liftIO $ atomically $ writeTVar plSpracheTVar Nothing
@@ -1579,11 +1567,11 @@ instance PlanKlasse PLWidgets where
 
 -- | 'Plan' darstellen
 planPackNew :: forall m. (ObjektReader ObjektGui m, MonadIO m) => Plan -> MStatusGuiT m PLWidgets
-planPackNew plan @ Plan {plAktionen} = do
+planPackNew plan@Plan {plAktionen} = do
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     objektReader <- ask
     spracheGui <- erhalteSpracheGui
-    DynamischeWidgets {vBoxPläne,progressBarPlan,windowMain,vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
+    DynamischeWidgets {vBoxPläne, progressBarPlan, windowMain, vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
     plSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just plSpracheTVar
     -- Widget erstellen
@@ -1617,17 +1605,17 @@ planPackNew plan @ Plan {plAktionen} = do
                     Gtk.widgetHide buttonAusführen
                     Gtk.widgetShow buttonAbbrechen
                 ausführenStatusVarBefehl (Ausführen plan (const . anzeigeAktion) abschlussAktion) statusVar
-              where
-                anzeigeAktion :: Natural -> IO ()
-                anzeigeAktion wert =
-                    Gtk.set
-                        progressBarPlan
-                        [Gtk.progressBarFraction := (fromIntegral wert) / (fromIntegral $ length plAktionen)]
+                where
+                    anzeigeAktion :: Natural -> IO ()
+                    anzeigeAktion wert =
+                        Gtk.set
+                            progressBarPlan
+                            [Gtk.progressBarFraction := (fromIntegral wert) / (fromIntegral $ length plAktionen)]
 
-                abschlussAktion :: IO ()
-                abschlussAktion = do
-                    Gtk.widgetShow buttonAusführen
-                    Gtk.widgetHide buttonAbbrechen
+                    abschlussAktion :: IO ()
+                    abschlussAktion = do
+                        Gtk.widgetShow buttonAusführen
+                        Gtk.widgetHide buttonAbbrechen
             WirdAusgeführt -> error "Ausführen in GTK-UI erneut gestartet."
             (AnschlüsseBelegt anschlüsse) -> void $ do
                 liftIO $ flip leseSprache spracheGui $ \sprache -> Gtk.set
@@ -1652,3 +1640,4 @@ planPackNew plan @ Plan {plAktionen} = do
     ausführenBefehl $ Hinzufügen $ OPlan plWidgets
     pure plWidgets
 #endif
+
