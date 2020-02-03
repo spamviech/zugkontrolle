@@ -1,0 +1,7 @@
+#!/usr/bin/xdg-open
+
+[Desktop Entry]
+Type=Application
+Terminal=false
+Name[en_EN]=Zugkontrolle
+Exec=sh -c "/home/pi/Desktop/Zugkontrolle/bin/Zugkontrolle %f"

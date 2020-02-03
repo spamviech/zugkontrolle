@@ -93,6 +93,8 @@ Bei Verwenden der Flag `--pwm=HardwarePWM` werden Root-Rechte benötigt, weil so
 Auf Linux-Systemen mit ARM-Architektur (Raspberry Pi) bricht das Programm sonst direkt mit einer Fehlermeldung ab.  
 Nachdem auf nicht-RaspberryPi-Systemen sämtliche IO-Funktionen des WiringPi-Moduls durch "return ()" ersetzt wurden ist das dort natürlich nicht notwendig.
 
+Alternativ kann natürlich direkt die von `stack install` erzeugte binary gestartet werden.
+
 ## GTK-Probleme mit stack und Windows
 Wenn das Programm unter Windows nicht startet, bzw. mit dll-Fehlern abbricht (Fehlermeldungen werden bei Start über Powershell nicht angezeigt) muss der Ordner der MSYS2-Installation weiter vorne im Path stehen.
 - Bei einer eigenen MSYS2-Installation ist das normalerweise: `C:\msys64\mingw64\bin`.
@@ -117,10 +119,30 @@ Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\App
     Auswahl der Benutzer-Schnittstelle (Standard: GTK).
     Bei Installation mit "--flag Zugkontrolle:-gui" wird immer das Cmd-UI verwendet.
 * -lDATEI | --load=DATEI  
-    Versuche den in DATEI gespeicherten Zustand zu laden.
+    Versuche den in DATEI (im `yaml`-Format) gespeicherten Zustand zu laden.
     Wenn die Datei nicht existiert/das falsche Format hat wird ohne Fehlermeldung mit einem leeren Zustand gestartet.
 * --pwm=HardwarePWM | SoftwarePWM  
     Gebe an, welche PWM-Funktion bevorzugt verwendet wird (Standard: SoftwarePWM).
     Nachdem nur das Einstellen der hardware-basierten PWM-Funktion Root-Rechte benötigt werden diese bei Verwendung von `--pwm=SoftwarePWM` nicht benötigt.
 * --sprache=Deutsch | Englisch  
     Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.
+
+## Starten durch ziehen einer Datei auf die binary
+Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu öfnnen und zu laden.
+- Unter `Windows` entspricht dies dem ziehen (drag-and-drop) einer Datei auf die Executable.
+- Unter `Linux` (nautilus window manager) ist ein Start über ziehen auf die Binary nicht möglich.
+    Stattdessen muss eine .desktop-Datei erstellt werden, die dass Verhalten unterstützt.
+    
+    Eine .desktop-Datei kann folgendermaßen aussehen:
+    ```
+    [Desktop Entry]
+    Type=Application
+    Terminal=false
+    Name[en_EN]=Zugkontrolle
+    Exec=sh -c "/home/pi/Desktop/Zugkontrolle-bin/Zugkontrolle %f"
+    ```
+    
+    TODO: Anleitung aus folgenden Quellen:
+    https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus
+    https://stackoverflow.com/a/56202419
+
