@@ -755,7 +755,7 @@ instance ToJSON Plan where
     toJSON :: Plan -> Value
     toJSON Plan {plName, plAktionen} =
         let (nullValues, aktionen) = partition ((==) $ String plName) $ map (aktionToJSON plName) plAktionen
-        in object [nameJS .= plName, aktionenJS .= aktionen, dauerschleifeJS .= (not $ null nullValues)]
+        in object [nameJS .= plName, aktionenJS .= aktionen, dauerschleifeJS .= not (null nullValues)]
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen
 findeÜbereinstimmendenWert :: (ToJSON a) => [a] -> Value -> Parser a

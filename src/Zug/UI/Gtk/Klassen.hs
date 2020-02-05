@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DataKinds #-}
@@ -6,7 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description: Erweiterbare Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
@@ -85,15 +87,14 @@ mitGridAttach grid widget left top width height =
     liftIO $ Gtk.gridAttach (erhalteGrid grid) (erhalteWidget widget) left top width height
 
 -- | Füge ein 'MitWidget' zu einem 'MitGrid' direkt neben einem 'MitWidget' hinzu
-mitGridAttachNextTo
-    :: (MonadIO m, MitGrid g, MitWidget w, MitWidget sibling)
-    => g
-    -> w
-    -> Maybe sibling
-    -> Gtk.PositionType
-    -> Int
-    -> Int
-    -> m ()
+mitGridAttachNextTo :: (MonadIO m, MitGrid g, MitWidget w, MitWidget sibling)
+                    => g
+                    -> w
+                    -> Maybe sibling
+                    -> Gtk.PositionType
+                    -> Int
+                    -> Int
+                    -> m ()
 mitGridAttachNextTo grid widget sibling position width height =
     liftIO
     $ Gtk.gridAttachNextTo
@@ -152,4 +153,3 @@ erzeugeKlasse [''MitToggleButton] "CheckButton"
 
 erzeugeKlasse [''MitCheckButton] "RadioButton"
 #endif
-

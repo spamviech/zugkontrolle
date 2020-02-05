@@ -1,22 +1,28 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 -- Fließend (mit 'ß' im Dateinamen) nicht möglich. Führt zu UTF-8 Fehlern. :(
 {-|
 Description: Anzeige und Auswahl des Fließend-Value
 -}
 module Zug.UI.Gtk.Fliessend
+  (
 #ifdef ZUGKONTROLLEGUI
-  ( FließendWidget()
+    FließendWidget()
   , fließendNew
   , fließendPackNew
   , FließendAuswahlWidget()
   , fließendAuswahlNew
   , fließendAuswahlPackNew
-  , aktuellerFließendValue) where
+  , aktuellerFließendValue
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Graphics.UI.Gtk as Gtk
@@ -77,8 +83,9 @@ fließendAuswahlPackNew box = boxPackWidgetNewDefault box . fließendAuswahlNew
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-fließendAuswahlNew
-    :: (SpracheGuiReader r m, MonadIO m) => Maybe (TVar (Maybe [Sprache -> IO ()])) -> m FließendAuswahlWidget
+fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
+                    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                    -> m FließendAuswahlWidget
 fließendAuswahlNew
     maybeTVar = FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW maybeTVar Language.fließend
 
@@ -86,4 +93,3 @@ fließendAuswahlNew
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
 aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif
-

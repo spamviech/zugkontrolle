@@ -66,14 +66,13 @@ sprachwechsel :: (MonadIO m) => SpracheGui -> Sprache -> m SpracheGui
 sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ do
     sprachwechselAktionenAlt <- readTVarIO sprachwechselAktionen
     let ausführenOderLöschen :: [AktionOderTVar] -> AktionOderTVar -> IO [AktionOderTVar]
-        ausführenOderLöschen acc rightTVar@(Right tvar) = do
-            readTVarIO tvar >>= \case
-                -- Führe alle Aktionen in der tvar aus
-                (Just aktionen) -> do
-                    sequence_ $ map ($ sprache) aktionen
-                    pure $ rightTVar : acc
-                -- Lösche deaktivierte Aktionen
-                Nothing -> pure acc
+        ausführenOderLöschen acc rightTVar@(Right tvar) = readTVarIO tvar >>= \case
+            -- Führe alle Aktionen in der tvar aus
+            (Just aktionen) -> do
+                mapM_ ($ sprache) aktionen
+                pure $ rightTVar : acc
+            -- Lösche deaktivierte Aktionen
+            Nothing -> pure acc
         ausführenOderLöschen acc leftAktion@(Left aktion) = do
             -- Führe die Aktion aus
             aktion sprache
@@ -82,8 +81,8 @@ sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ d
     atomically $ writeTVar sprachwechselAktionen sprachwechselAktionenNeu
     pure
         spracheGui
-        { sprache
-        }
+            { sprache
+            }
 
 -- | Führe die übergebene Aktion mit der aktellen 'Sprache' aus.
 -- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel'.
@@ -91,14 +90,16 @@ sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ d
 -- Wenn eine 'TVar' übergeben wird gehören alle Aktionen darin zusammen.
 -- Sobald ein 'sprachwechsel' durchgeführt wird während die 'TVar' als Wert 'Nothing' hat wird die Aktion gelöscht.
 -- Ansonsten werden alle Aktionen darin ausgeführt.
-verwendeSpracheGui
-    :: (SpracheGuiReader r m, MonadIO m) => Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
+verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m)
+                   => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   -> (Sprache -> IO ())
+                   -> m ()
 verwendeSpracheGui maybeTVar neueAktion =
     erhalteSpracheGui >>= \spracheGui -> verwendeSpracheGuiFn spracheGui maybeTVar neueAktion
 
 -- | Wie 'verwendeSpracheGui' mit explizit übergebenem 'SpracheGui'.
-verwendeSpracheGuiFn
-    :: (MonadIO m) => SpracheGui -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
+verwendeSpracheGuiFn ::
+                     (MonadIO m) => SpracheGui -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
 verwendeSpracheGuiFn SpracheGui {sprache, sprachwechselAktionen} maybeTVar neueAktion = liftIO $ do
     neueAktion sprache
     case maybeTVar of

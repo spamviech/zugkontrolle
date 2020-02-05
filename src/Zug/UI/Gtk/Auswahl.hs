@@ -1,17 +1,20 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description: Widget zur Auswahl eines Bounded Enums
 -}
 module Zug.UI.Gtk.Auswahl
+  (
 #ifdef ZUGKONTROLLEGUI
-  ( -- * Datentyp
+    -- * Datentyp
     AuswahlWidget()
   , aktuelleAuswahl
   , beiAuswahl
@@ -27,8 +30,11 @@ module Zug.UI.Gtk.Auswahl
     -- * Klasse für Typen mit AuswahlWidget
   , MitAuswahlWidget(..)
   , mitAuswahlWidget
-  , auswahlWidget) where
+  , auswahlWidget
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Concurrent.STM.TVar (TVar)
 import qualified Control.Lens as Lens
@@ -72,13 +78,12 @@ nameWrapSize = 16
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-auswahlRadioButtonNamedNew
-    :: (SpracheGuiReader r m, MonadIO m, Eq e)
-    => NonEmpty e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> (e -> Sprache -> Text)
-    -> m (AuswahlWidget e)
+auswahlRadioButtonNamedNew :: (SpracheGuiReader r m, MonadIO m, Eq e)
+                           => NonEmpty e
+                           -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                           -> (Sprache -> Text)
+                           -> (e -> Sprache -> Text)
+                           -> m (AuswahlWidget e)
 auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
     hBox <- liftIO $ Gtk.hBoxNew False 0
     nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar name
@@ -117,25 +122,23 @@ auswahlRadioButtonNew elemente maybeTVar name = auswahlRadioButtonNamedNew eleme
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-boundedEnumAuswahlRadioButtonNew
-    :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e)
-    => e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> m (AuswahlWidget e)
+boundedEnumAuswahlRadioButtonNew :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e)
+                                 => e
+                                 -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                                 -> (Sprache -> Text)
+                                 -> m (AuswahlWidget e)
 boundedEnumAuswahlRadioButtonNew standard = auswahlRadioButtonNew $ standard :| delete standard [minBound .. maxBound]
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox'.
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-auswahlComboBoxNamedNew
-    :: (SpracheGuiReader r m, MonadIO m, Eq e)
-    => NonEmpty e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> (e -> Sprache -> Text)
-    -> m (AuswahlWidget e)
+auswahlComboBoxNamedNew :: (SpracheGuiReader r m, MonadIO m, Eq e)
+                        => NonEmpty e
+                        -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                        -> (Sprache -> Text)
+                        -> (e -> Sprache -> Text)
+                        -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     hBox <- liftIO $ Gtk.hBoxNew False 0
     nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar name
@@ -154,10 +157,10 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
             Gtk.listStoreSetValue listStore index $ anzeigeFunktion e sprache
     pure
         AuswahlComboBox
-        { widget = erhalteWidget hBox
-        , comboBox
-        , enumIndizes
-        }
+            { widget = erhalteWidget hBox
+            , comboBox
+            , enumIndizes
+            }
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
 --
@@ -175,12 +178,11 @@ auswahlComboBoxNew elemente maybeTVar name = auswahlComboBoxNamedNew elemente ma
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-boundedEnumAuswahlComboBoxNew
-    :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e)
-    => e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> m (AuswahlWidget e)
+boundedEnumAuswahlComboBoxNew :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e)
+                              => e
+                              -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                              -> (Sprache -> Text)
+                              -> m (AuswahlWidget e)
 boundedEnumAuswahlComboBoxNew standard = auswahlComboBoxNew $ standard :| delete standard [minBound .. maxBound]
 
 -- | Erhalte den aktuell ausgewählten 'Value'
@@ -227,4 +229,3 @@ mitAuswahlWidget funktion = funktion . erhalteAuswahlWidget
 auswahlWidget :: (MitAuswahlWidget a e) => Lens.Getter a (AuswahlWidget e)
 auswahlWidget = Lens.to erhalteAuswahlWidget
 #endif
-

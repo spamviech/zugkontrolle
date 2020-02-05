@@ -48,13 +48,13 @@ import Zug.UI.Cmd.Parser.Anfrage
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
--- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
+ -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
 data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where
-    AnfrageAktionBahngeschwindigkeit :: (b z)                                    -- ^ Bahngeschwindigkeit
+    AnfrageAktionBahngeschwindigkeit :: b z                         -- ^ Bahngeschwindigkeit
         -> AnfrageAktionBahngeschwindigkeit b z
-    AABGGeschwindigkeit :: (b z)                                    -- ^ Bahngeschwindigkeit
+    AABGGeschwindigkeit :: b z                                      -- ^ Bahngeschwindigkeit
         -> AnfrageAktionBahngeschwindigkeit b z
-    AABGFahrtrichtungEinstellen :: (b 'Lego)                                -- ^ Bahngeschwindigkeit
+    AABGFahrtrichtungEinstellen :: b 'Lego                          -- ^ Bahngeschwindigkeit
         -> AnfrageAktionBahngeschwindigkeit b 'Lego
 
 deriving instance (Eq (b z)) => Eq (AnfrageAktionBahngeschwindigkeit b z)
@@ -86,19 +86,17 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b z) where
         Just $ toBefehlsString . Language.aktionBahngeschwindigkeit
     zeigeAnfrageOptionen (AABGGeschwindigkeit _bahngeschwindigkeit) = Nothing
     zeigeAnfrageOptionen (AABGFahrtrichtungEinstellen _bahngeschwindigkeit) =
-        Just $ toBefehlsString . (\sprache -> map (flip anzeige sprache) $ NE.toList unterstützteFahrtrichtungen)
+        Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache) $ NE.toList unterstützteFahrtrichtungen)
 
 class AktionBahngeschwindigkeitZugtyp (z :: Zugtyp) where
-    wähleAktionBahngeschwindigkeit
-        :: AnfrageAktionBahngeschwindigkeit bg z
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg z) (AktionBahngeschwindigkeit bg z)
+    wähleAktionBahngeschwindigkeit :: AnfrageAktionBahngeschwindigkeit bg z
+                                    -> EingabeToken
+                                    -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg z) (AktionBahngeschwindigkeit bg z)
 
 instance AktionBahngeschwindigkeitZugtyp 'Märklin where
-    wähleAktionBahngeschwindigkeit
-        :: AnfrageAktionBahngeschwindigkeit bg 'Märklin
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Märklin) (AktionBahngeschwindigkeit bg 'Märklin)
+    wähleAktionBahngeschwindigkeit :: AnfrageAktionBahngeschwindigkeit bg 'Märklin
+                                    -> EingabeToken
+                                    -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Märklin) (AktionBahngeschwindigkeit bg 'Märklin)
     wähleAktionBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit) token@EingabeToken {eingabe} =
         wähleBefehl
             token
@@ -108,10 +106,9 @@ instance AktionBahngeschwindigkeitZugtyp 'Märklin where
     wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
 instance AktionBahngeschwindigkeitZugtyp 'Lego where
-    wähleAktionBahngeschwindigkeit
-        :: AnfrageAktionBahngeschwindigkeit bg 'Lego
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Lego) (AktionBahngeschwindigkeit bg 'Lego)
+    wähleAktionBahngeschwindigkeit :: AnfrageAktionBahngeschwindigkeit bg 'Lego
+                                    -> EingabeToken
+                                    -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Lego) (AktionBahngeschwindigkeit bg 'Lego)
     wähleAktionBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit) token =
         wähleZwischenwert
             token
@@ -196,14 +193,15 @@ instance Anfrage (AnfrageAktionWeiche w) where
     zeigeAnfrageOptionen :: AnfrageAktionWeiche w -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen (AnfrageAktionWeiche _weiche) = Just $ toBefehlsString . Language.aktionWeiche
     zeigeAnfrageOptionen (AAWStellen _weiche) =
-        Just $ toBefehlsString . (\sprache -> map (flip anzeige sprache) $ NE.toList unterstützteRichtungen)
+        Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache) $ NE.toList unterstützteRichtungen)
 
 instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
     type AnfrageTyp (AktionWeiche w) = AnfrageAktionWeiche w
 
     -- | Eingabe einer Weichen-Aktion
-    anfrageAktualisieren
-        :: AnfrageAktionWeiche w -> EingabeToken -> AnfrageFortsetzung (AnfrageAktionWeiche w) (AktionWeiche w)
+    anfrageAktualisieren :: AnfrageAktionWeiche w
+                         -> EingabeToken
+                         -> AnfrageFortsetzung (AnfrageAktionWeiche w) (AktionWeiche w)
     anfrageAktualisieren (AnfrageAktionWeiche weiche) token =
         wähleZwischenwert token [(Lexer.Stellen, AAWStellen weiche)]
     anfrageAktualisieren anfrage@(AAWStellen _weiche) token@EingabeToken {eingabe} = case wähleRichtung token of
@@ -220,7 +218,7 @@ instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
             mitRichtung anfrage _richtung = error $ "mitRichtung mit unerwarteter Anfrage aufgerufen: " ++ show anfrage
 
 -- | Unvollständige 'Aktion' einer 'Kupplung'
-data AnfrageAktionKupplung k = AnfrageAktionKupplung k   -- ^ Kupplung
+newtype AnfrageAktionKupplung k = AnfrageAktionKupplung k   -- ^ Kupplung
     deriving (Show, Eq)
 
 instance (Anzeige k) => Anzeige (AnfrageAktionKupplung k) where
@@ -238,8 +236,9 @@ instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
     type AnfrageTyp (AktionKupplung k) = AnfrageAktionKupplung k
 
     -- | Eingabe einer Kupplung-Aktion
-    anfrageAktualisieren
-        :: AnfrageAktionKupplung k -> EingabeToken -> AnfrageFortsetzung (AnfrageAktionKupplung k) (AktionKupplung k)
+    anfrageAktualisieren :: AnfrageAktionKupplung k
+                         -> EingabeToken
+                         -> AnfrageFortsetzung (AnfrageAktionKupplung k) (AktionKupplung k)
     anfrageAktualisieren (AnfrageAktionKupplung kupplung) token =
         wähleErgebnis token [(Lexer.Kuppeln, Kuppeln kupplung)]
 
@@ -301,7 +300,7 @@ instance AktionWegstreckeZugtyp 'Lego where
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , (Lexer.Geschwindigkeit, AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke)
             , ( Lexer.FahrtrichtungEinstellen
-                  , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGFahrtrichtungEinstellen wegstrecke)
+              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGFahrtrichtungEinstellen wegstrecke)
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
@@ -449,7 +448,7 @@ instance MitAnfrage Aktion where
                     , (Lexer.Kupplung, AAEKupplung)]
                 $ AAEUnbekannt eingabe
     anfrageAktualisieren _anfrage EingabeToken {möglichkeiten}
-        | elem Lexer.Rückgängig möglichkeiten = AFZwischenwert AnfrageAktion
+        | Lexer.Rückgängig `elem` möglichkeiten = AFZwischenwert AnfrageAktion
     anfrageAktualisieren AAWarten EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
         (Just zeit) -> AFErgebnis $ Warten $ MikroSekunden zeit
@@ -561,9 +560,9 @@ instance MitAnfrage Plan where
         wähleErgebnis
             token
             [ ( Lexer.EinfachAusführen
-                  , Plan
+              , Plan
                     { plName
-                    , plAktionen = toList $ aktionen
+                    , plAktionen = toList aktionen
                     })
             , (Lexer.Dauerschleife, dauerschleife)]
         where

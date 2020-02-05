@@ -1,8 +1,9 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLERASPI
+{-# LANGUAGE ForeignFunctionInterface #-}
+#endif
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -109,7 +110,7 @@ i2cWrite i2cAddress bitValue = do
         atomically
             $ modifyTVar tvarI2CKanäle
             $ Map.adjust (\(fileHandle, _oldBitValue) -> (fileHandle, bitValue)) i2cAddress
-        c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue $ bitValue
+        c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
 
 -- | Ändere den geschriebenen 'BitValue' in einem I2C-Kanal.
 -- Die aktuelle Ausgabe wird über der übergebenen Funktion angepasst und neu gesetzt.
@@ -148,13 +149,13 @@ foreign import ccall "wiringPiI2CWriteReg16" c_wiringPiI2CWriteReg16 :: CInt -> 
 #else
 -- wiringPi-Bibliothek nicht auf Windows vorhanden -> verwende stattdessen print-Befehle zum einfacheren Debugging
 c_wiringPiI2CSetup :: CInt -> IO CInt
-c_wiringPiI2CSetup = \i2cAdresse -> putStrLn ("I2CSetup " ++ show i2cAdresse) >> pure (-1)
+c_wiringPiI2CSetup i2cAdresse = putStrLn ("I2CSetup " ++ show i2cAdresse) >> pure (-1)
 
 c_wiringPiI2CRead :: CInt -> IO CInt
-c_wiringPiI2CRead = \fileHandle -> putStrLn ("I2CRead " ++ show fileHandle) >> pure 0
+c_wiringPiI2CRead fileHandle = putStrLn ("I2CRead " ++ show fileHandle) >> pure 0
 
 c_wiringPiI2CWrite :: CInt -> CInt -> IO ()
-c_wiringPiI2CWrite = \fileHandle value -> putStrLn $ "I2CWrite " ++ show fileHandle ++ " -> " ++ show value
+c_wiringPiI2CWrite fileHandle value = putStrLn $ "I2CWrite " ++ show fileHandle ++ " -> " ++ show value
 {-
 c_wiringPiI2CReadReg8 :: CInt -> CInt -> IO CInt
 c_wiringPiI2CReadReg8   fileHandle register         = putStrLn ("I2CReadReg8 " ++ show fileHandle ++ " r" ++ show register) >> pure 0
@@ -166,5 +167,3 @@ c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO ()
 c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
 -}
 #endif
-
-

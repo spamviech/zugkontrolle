@@ -19,6 +19,8 @@
         "UndecidableInstances",
         "TypeFamilies",
         "GADTs",
+        "ViewPatterns",
+        "TemplateHaskell",
         "CPP"
     ],
     "style": "johan-tibell",
@@ -43,11 +45,15 @@
         "options": {
             "sort-imports": [
                 {
-                    "prefixes": [""],
+                    "prefixes": [
+                        ""
+                    ],
                     "order": "sorted"
                 },
                 {
-                    "prefixes": ["Zug"],
+                    "prefixes": [
+                        "Zug"
+                    ],
                     "order": "sorted"
                 }
             ]
@@ -106,6 +112,31 @@
             "@ in other": {
                 "spaces": "none",
                 "linebreaks": "before",
+                "force-linebreak": false
+            },
+            "::": {
+                "spaces": "both",
+                "linebreaks": "after",
+                "force-linebreak": false
+            },
+            ":: in declaration": {
+                "spaces": "both",
+                "linebreaks": "after",
+                "force-linebreak": false
+            },
+            ":: in type": {
+                "spaces": "both",
+                "linebreaks": "after",
+                "force-linebreak": false
+            },
+            ":: in pattern": {
+                "spaces": "both",
+                "linebreaks": "after",
+                "force-linebreak": false
+            },
+            ":: in other": {
+                "spaces": "both",
+                "linebreaks": "after",
                 "force-linebreak": false
             }
         }

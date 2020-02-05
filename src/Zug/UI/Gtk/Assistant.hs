@@ -1,23 +1,29 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description : Eigenes Assistant-Widget, nachdem das von Gtk bereitgestellte nicht funktioniert.
 -}
 module Zug.UI.Gtk.Assistant
+  (
 #ifdef ZUGKONTROLLEGUI
-  ( Assistant()
+    Assistant()
   , AssistantSeite(..)
   , SeitenAbschluss(..)
   , AssistantSeitenBaum(..)
   , assistantNew
   , assistantAuswerten
-  , AssistantResult(..)) where
+  , AssistantResult(..)
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
 import Control.Monad (forM_)
@@ -51,8 +57,8 @@ data Assistant w a =
     Assistant
     { fenster :: Gtk.Window
     , seiten :: AssistantSeitenBaumPacked w
-    , tvarAuswahl
-          :: TVar (Either ([AssistantSeitenBaumPacked w], AssistantSeitenBaumPacked w) (AssistantResult (NonEmpty w)))
+    , tvarAuswahl :: TVar (Either ( [AssistantSeitenBaumPacked w]
+                                  , AssistantSeitenBaumPacked w) (AssistantResult (NonEmpty w)))
     , auswertFunktion :: NonEmpty w -> IO a
     , seitenAbschlussKnopf :: Gtk.Button
     , zurückKnopf :: Gtk.Button
@@ -338,9 +344,9 @@ packSeiten box flowControlBox AssistantSeiteLinear {node, nachfolger} maybeTVar 
     packedNachfolger <- packSeiten box flowControlBox nachfolger maybeTVar
     pure
         PackedSeiteLinear
-        { packedNode = node
-        , packedNachfolger
-        }
+            { packedNode = node
+            , packedNachfolger
+            }
 packSeiten box flowControlBox AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe} maybeTVar = do
     case besondererSeitenAbschlussWidget node of
         (Left _text) -> pure ()
@@ -376,8 +382,8 @@ packSeiten box flowControlBox AssistantSeiteLetzte {node} _maybeTVar = liftIO $ 
         }
 
 -- | Zeige die übergebene Seite an
-zeigeSeite
-    :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w) => Assistant w a -> AssistantSeitenBaumPacked w -> m ()
+zeigeSeite ::
+           (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w) => Assistant w a -> AssistantSeitenBaumPacked w -> m ()
 zeigeSeite Assistant {fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite} nachfolger = do
     spracheGui <- erhalteSpracheGui
     liftIO $ do
@@ -405,8 +411,9 @@ data AssistantResult a
 -- | Zeige einen Assistant, warte auf finale Nutzer-Eingabe und werte die Eingaben aus.
 -- Es wird erwartet, dass diese Funktion geforkt vom GTK-Hauptthread aufgerufen wird.
 -- Entsprechend wird 'Gtk.postGUIAsync' verwendet.
-assistantAuswerten
-    :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w) => Assistant w a -> m (AssistantResult a)
+assistantAuswerten :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w)
+                   => Assistant w a
+                   -> m (AssistantResult a)
 assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAktuelleSeite} = do
     spracheReader <- ask
     liftIO $ do

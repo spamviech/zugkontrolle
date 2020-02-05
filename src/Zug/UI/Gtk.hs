@@ -1,5 +1,7 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
+{-# LANGUAGE NamedFieldPuns #-}
+#endif
 
 {-|
 Description : Erstelle GUI und starte den GTK-Main-Loop.
@@ -290,5 +292,8 @@ setupGUI maybeTVar = void $ do
         -- Use window-height instead; divide by 3 instead of 2 to accommodate for decorators.
         Gtk.set paned [Gtk.panedPosition := div newHeight 3]
 #endif
+
+
+
 
 

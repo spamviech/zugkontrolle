@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
@@ -16,7 +18,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description : Erstelle zusammengesetzte 
@@ -24,8 +26,9 @@ Description : Erstelle zusammengesetzte
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
 module Zug.UI.Gtk.StreckenObjekt
+  (
 #ifdef ZUGKONTROLLEGUI
-  ( -- ** Spezifisches StreckenObjekt darstellen
+ -- ** Spezifisches StreckenObjekt darstellen
     BGWidgets()
   , STWidgets()
   , WEWidgets()
@@ -74,8 +77,11 @@ module Zug.UI.Gtk.StreckenObjekt
   , WegstreckenElement(..)
   , entferneHinzufügenWegstreckeWidgets
   , PlanElement(..)
-  , entferneHinzufügenPlanWidgets) where
+  , entferneHinzufügenPlanWidgets
+#endif
+    ) where
 
+#ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Applicative (ZipList(..))
 import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, TMVar, putTMVar)
@@ -1640,4 +1646,3 @@ planPackNew plan@Plan {plAktionen} = do
     ausführenBefehl $ Hinzufügen $ OPlan plWidgets
     pure plWidgets
 #endif
-

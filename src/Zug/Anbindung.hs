@@ -231,13 +231,14 @@ instance (StreckenAtom (a 'Märklin), StreckenAtom (a 'Lego)) => StreckenAtom (Z
     fließend (ZugtypMärklin a) = fließend a
     fließend (ZugtypLego a) = fließend a
 
--- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
+  -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
 data Bahngeschwindigkeit (z :: Zugtyp) where
-    LegoBahngeschwindigkeit :: { bglName :: Text
-                               , bglFließend :: Value
-                               , bglGeschwindigkeitsAnschluss :: Anschluss
-                               , bglFahrtrichtungsAnschluss :: Anschluss
-                               } -> Bahngeschwindigkeit 'Lego
+    LegoBahngeschwindigkeit ::
+        { bglName :: Text
+        , bglFließend :: Value
+        , bglGeschwindigkeitsAnschluss :: Anschluss
+        , bglFahrtrichtungsAnschluss :: Anschluss
+        } -> Bahngeschwindigkeit 'Lego
     MärklinBahngeschwindigkeit :: { bgmName :: Text
                                    , bgmFließend :: Value
                                    , bgmGeschwindigkeitsAnschluss :: Anschluss
@@ -387,7 +388,7 @@ instance StreckenabschnittKlasse Streckenabschnitt where
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
 
--- | Stellen einer 'Weiche'
+  -- | Stellen einer 'Weiche'
 data Weiche (z :: Zugtyp) where
     LegoWeiche :: { welName :: Text
                   , welFließend :: Value
@@ -495,8 +496,7 @@ instance WeicheKlasse (Weiche z) where
 
     hatRichtung :: Weiche z -> Richtung -> Bool
     hatRichtung LegoWeiche {welRichtungen = (erste, zweite)} richtung = (erste == richtung) || (zweite == richtung)
-    hatRichtung MärklinWeiche {wemRichtungsAnschlüsse} richtung =
-        any (\(richtung0, _pin0) -> (richtung0 == richtung)) wemRichtungsAnschlüsse
+    hatRichtung MärklinWeiche {wemRichtungsAnschlüsse} richtung = any ((richtung ==) . fst) wemRichtungsAnschlüsse
 
     erhalteRichtungen :: Weiche z -> NonEmpty Richtung
     erhalteRichtungen LegoWeiche {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]

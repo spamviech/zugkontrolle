@@ -1,17 +1,22 @@
 # Zugkontrolle
+
 Ermöglicht die Steuerung einer Modelleisenbahn über einen Raspberry Pi.  
 Die Funktion der Pins wird mit Datentypen realisiert, welche zur Laufzeit erstellt werden können.  
 Je nach Datentyp stehen einem so registrierten Pin vorgefertigte Aktionen (z.B. Schalten einer Weiche) zur Verfügung.
 Einige Beispielschaltpläne sind __NOCH NICHT ERSTELLT__.
 
-## Zugtyp
+## Begriffe
+
+### Zugtyp
+
 Unterstützte Zugtypen sind (analoge) __Märklin__- und __Lego__-Modelleisenbahnen. Bei beiden erfolgt die Stromzufuhr über eine leitende Schiene.
 Der Hauptunterschied besteht darin, wie ein Umdrehen einer Lokomotive erfolgt:
     Bei __Märklin__-Eisenbahnen führt eine Fahrspannung von __24V__ (im Gegensatz zur normalen Betriebsspannung __<=16V__) zu einem Umdrehen aller auf der Schiene befindlichen Lokomotiven.
     Bei __Lego__-Eisenbahnen gibt die _Polarität_ der Spannung die Richtung vor.
 Außerdem gibt es bei __Lego__-Eisenbahnen keine automatischen Weichen, weshalb ein Schalten z.B. über einen Servo-Motor realisiert werden muss.
 
-## Bahngeschwindigkeit
+### Bahngeschwindigkeit
+
 Eine Bahngeschwindigkeit regelt die Geschwindigkeit von allen Zügen auf den zugehörigen Gleisen, bzw. deren Fahrtrichtung.
 Dazu wird ein PWM-Signal erzeugt um ausgehend von einer Maximal-Spannung eine effektiv geringere Fahrspannung zu erzeugen.
 
@@ -20,33 +25,39 @@ Bei __Lego__-Modellbahnen werden __2__ Pins benötigt. Je ein Pin kümmert sich 
     Die Maximalspannung bei der Geschwindigkeit hängt vom Modell ab.
     Bei der letzten Version mit leitenden schienen sollte sie __9V__ betragen.
 
-## Streckenabschnitt
+### Streckenabschnitt
+
 Ein Streckenabschnitt regelt, welche Gleis-Abschnitte mit Strom versorgt werden. So können Abstellgleise abgeschaltet werden, ohne eine eigene Bahngeschwindigkeit zu benötigen.
 
-## Weiche
+### Weiche
+
 Weichen und Kreuzungen, bei denen die Fahrtrichtung geändert werden kann.
 
 Bei __Märklin__-Modellbahnen wird pro Richtung __1__ Pin benötigt.
 Bei __Lego__-Modellbahnen ist ein Umschalten über einen Servo-Motor angedacht. Es werden nur __2__ Richtungen unterstützt und __1__ Pin benötigt.
 
-## Kupplung
+### Kupplung
+
 Eine Kupplung ist eine Schiene bei der Zug-Elemente (Lokomotive/Wagon) voneinander getrennt werden können. Es wird __1__ Pin benötigt.
 
 __Anmerkung:__
     Mir sind keine Kupplungsschienen für __Lego__-Modellbahnen bekannt.
 
-## Wegstrecke
+### Wegstrecke
+
 Eine Wegstrecke ist eine Zusammenfassung mehrerer Teilelemente, wobei Weichen eine eindeutige Richtung zugewiesen wurde.
 Eine mögliche Anwendung ist das fahren von/auf ein Abstellgleis.
 
 Wegstrecken unterstützen sämtliche Funktionen ihrer Elemente, welche immer auf einmal ausgeführt werden.
 Weichen können dabei nur auf ihre festgelegte Richtung eingestellt werden.
 
-## Plan
+### Plan
+
 Ein Plan ist eine Aneinanderreihung von Aktionen vorher erstellter StreckenObjekte und Wartezeiten.
 Beim ausführen eines Plans werden diese nacheinander aufgerufen.
 
-# Installation
+## Installation
+
 Zur Installation wird stack empfohlen.  
 Nach Installation aller Abhängigkeiten (siehe Unten) kann durch den Aufruf von `stack build` eine Executable in einem Unterordner von `./.stack-work` erstellt werden.
 Durch Aufruf von `stack install` wird eine Kopie der Executable im Unterordner "./bin" erstellt.
@@ -57,7 +68,8 @@ Dazu muss der Installations-Befehl erweitert werden um die flag gui auf false zu
 Eine Verwendung des GTK-UI ist dann natürlich nicht mehr möglich.  
 Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip-Rechner über das GTK-UI, speichern und kopieren in einer json-Datei und anschließendes Ausführen mit Cmd-UI auf dem Raspberry Pi.
 
-## Installation von stack
+### Installation von stack
+
 TODO!!!!
 	https://docs.haskellstack.org/en/stable/install_and_upgrade/
     `curl -sSL https://get.haskellstack.org/ | sh`
@@ -67,13 +79,16 @@ sudo apt-get install libtinfo-dev llvm-3.9-de
 (LLVM-3.9 Ordner zu PATH hinzufügen? Siehe https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
 
 
-## Installation von WiringPi
-Unter Raspbian ist standardmäßig eine Version von wiringpi installiert.  
-Um die neueste Version zu installieren ist es zu empfehlen die Installationsanweisungen unter http://wiringpi.com/download-and-install/ zu berücksichtigen.
+### Installation von WiringPi
 
-## Installation von GTK+
+Unter Raspbian ist standardmäßig eine Version von wiringpi installiert.  
+Um die neueste Version zu installieren ist es zu empfehlen die Installationsanweisungen auf [der wiringPi-Seite](http://wiringpi.com/download-and-install/) zu berücksichtigen.
+
+### Installation von GTK+
+
 Um  das GTK-UI zu verwenden muss natürlich GTK+ (Version 3) installiert werden.
-Dazu ist am besten die Anleitung auf der Website zu befolgen: https://www.gtk.org/download/index.php
+Dazu ist am besten die Anleitung auf [der Gtk-Website](https://www.gtk.org/download/index.php) zu befolgen.
+
 * Linux/Raspbian:
     Falls nicht schon installiert, ist eine Installation über den verwendeten paket manager vermutlich das einfachste.
     Bei Verwendung von apt-get ist der Befehl: `sudo apt-get install libgtk-3-dev`
@@ -84,7 +99,8 @@ Dazu ist am besten die Anleitung auf der Website zu befolgen: https://www.gtk.or
     Wenn man keine selbst gepflegte MSYS2-Installation wünscht kann man die von stack mitgebrachte verwenden.
     Die Installation von gtk3 erfolgt dann über `stack exec -- pacman -S mingw-w64-x86_64-gtk3`
 
-# Ausführen des Programms
+## Ausführen des Programms
+
 Zum Ausführen kann wieder stack verwendet werden.  
 Der Befehl lautet `stack exec Zugkontrolle`.  
 Zusätzliche Kommandozeilen-Parameter (siehe Unten) müssen getrennt durch `--` übergeben werden.
@@ -95,10 +111,12 @@ Nachdem auf nicht-RaspberryPi-Systemen sämtliche IO-Funktionen des WiringPi-Mod
 
 Alternativ kann natürlich direkt die von `stack install` erzeugte binary gestartet werden.
 
-## GTK-Probleme mit stack und Windows
+### GTK-Probleme mit stack und Windows
+
 Wenn das Programm unter Windows nicht startet, bzw. mit dll-Fehlern abbricht (Fehlermeldungen werden bei Start über Powershell nicht angezeigt) muss der Ordner der MSYS2-Installation weiter vorne im Path stehen.
-- Bei einer eigenen MSYS2-Installation ist das normalerweise: `C:\msys64\mingw64\bin`.
-- Für die von stack mitgelieferte Version ist der Pfad normalerweise: `\~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\`
+
+* Bei einer eigenen MSYS2-Installation ist das normalerweise: `C:\msys64\mingw64\bin`.
+* Für die von stack mitgelieferte Version ist der Pfad normalerweise: `\~\AppData\Local\Programs\stack\x86_64-windows\msys2-20180531\mingw64\bin\`
 
 Falls das immer noch nicht hilft (bei `stack exec ...` normalerweise der Fall) muss die `zlib1.dll` durch die neuere aus dem msys-Ordner ersetzt werden.  
 Durch den Befehl `stack exec -- where zlib1.dll` werden alle im Pfad befindlichen in Reihenfolge aufgelistet.
@@ -106,7 +124,8 @@ Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werd
 
 Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\AppData\Local\Programs\stack\x86_64-windows\ghc-8.2.2\mingw\bin\zlib1.dll\zlib1.dll`
 
-## Unterstütze Kommandozeilen-Parameter
+### Unterstütze Kommandozeilen-Parameter
+
 * -h | --help  
     Zeige den Hilfstext an. Dieser wird automatisch erzeugt, wodurch Teile davon auf englisch sind.
 * -v | --version  
@@ -127,22 +146,24 @@ Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\App
 * --sprache=Deutsch | Englisch  
     Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.
 
-## Starten durch ziehen einer Datei auf die binary
-Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu öfnnen und zu laden.
-- Unter `Windows` entspricht dies dem ziehen (drag-and-drop) einer Datei auf die Executable.
-- Unter `Linux` (nautilus window manager) ist ein Start über ziehen auf die Binary nicht möglich.
+### Starten durch ziehen einer Datei auf die binary
+
+Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu öffnen und zu laden.
+
+* Unter `Windows` entspricht dies dem ziehen (drag-and-drop) einer Datei auf die Executable.
+* Unter `Linux` (nautilus window manager) ist ein Start über ziehen auf die Binary nicht möglich.
     Stattdessen muss eine .desktop-Datei erstellt werden, die dass Verhalten unterstützt.
-    
+
     Eine .desktop-Datei kann folgendermaßen aussehen:
-    ```
+
+    ```.desktop
     [Desktop Entry]
     Type=Application
     Terminal=false
     Name[en_EN]=Zugkontrolle
     Exec=sh -c "/home/pi/Desktop/Zugkontrolle-bin/Zugkontrolle %f"
     ```
-    
+
     TODO: Anleitung aus folgenden Quellen:
     https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus
     https://stackoverflow.com/a/56202419
-

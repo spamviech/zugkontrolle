@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -7,15 +9,21 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description : Erstellen eines Assistant zum Hinzufügen eines 'StreckenObjekt'es.
 -}
 module Zug.UI.Gtk.Fenster.AssistantHinzufuegen
+  (
 #ifdef ZUGKONTROLLEGUI
- (assistantHinzufügenNew, HinzufügenSeite(), hinzufügenErgebnis) where
+    assistantHinzufügenNew
+  , HinzufügenSeite()
+  , hinzufügenErgebnis
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, takeTMVar, putTMVar, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Lens ((^.))
@@ -202,13 +210,13 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
         statusVar <- erhalteStatusVar :: m StatusVarGui
         aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
         wsName <- aktuellerName nameAuswahl
-        let gewählteWegstrecke
-                :: ( MonadIO m
-                   , ZugtypKlasse z
-                   , WegstreckenElement (BGWidgets z)
-                   , WegstreckenElement (WEWidgets z)
-                   , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung)
-                => m (Wegstrecke z)
+        let gewählteWegstrecke ::
+                                ( MonadIO m
+                                , ZugtypKlasse z
+                                , WegstreckenElement (BGWidgets z)
+                                , WegstreckenElement (WEWidgets z)
+                                , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung)
+                                => m (Wegstrecke z)
             gewählteWegstrecke = do
                 wsBahngeschwindigkeiten <- foldM anhängenWennToggled []
                     $ catMaybes
@@ -228,18 +236,19 @@ hinzufügenErgebnis zugtypAuswahl fließendAuswahl gezeigteSeiten = case NonEmpt
                     , wsWeichenRichtungen
                     , wsKupplungen
                     }
-            anhängenWennToggled
-                :: (WidgetsTyp a, WegstreckenElement a, MonadIO m) => [ObjektTyp a] -> a -> m [ObjektTyp a]
+            anhängenWennToggled :: (WidgetsTyp a, WegstreckenElement a, MonadIO m)
+                                 => [ObjektTyp a]
+                                 -> a
+                                 -> m [ObjektTyp a]
             anhängenWennToggled acc a = widgetHinzufügenToggled (a ^. getterWegstrecke) >>= \case
                 True -> pure $ erhalteObjektTyp a : acc
                 False -> pure acc
-            weichenRichtungAnhängenWennToggled
-                :: ( WegstreckenElement (WEWidgets z)
-                   , MonadIO m
-                   , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung)
-                => [(Weiche z, Richtung)]
-                -> WEWidgets z
-                -> m [(Weiche z, Richtung)]
+            weichenRichtungAnhängenWennToggled :: ( WegstreckenElement (WEWidgets z)
+                                                   , MonadIO m
+                                                   , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung)
+                                                => [(Weiche z, Richtung)]
+                                                -> WEWidgets z
+                                                -> m [(Weiche z, Richtung)]
             weichenRichtungAnhängenWennToggled acc weiche = do
                 let widgetHinzufügen = weiche ^. getterWegstrecke
                 toggled <- widgetHinzufügenToggled widgetHinzufügen
@@ -581,9 +590,11 @@ assistantHinzufügenNew parent maybeTVar = do
             mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
             mitWidgetHide vBoxHinzufügenPlanPläne
             mitWidgetShow windowAktionObjektAuswahl
-        märklinBahngeschwindigkeitAktionHinzufügen
-            :: (forall b. (BahngeschwindigkeitKlasse b) => b 'Märklin -> IO (AktionBahngeschwindigkeit b 'Märklin))
-            -> IO ()
+        märklinBahngeschwindigkeitAktionHinzufügen :: (forall b.
+                                                         (BahngeschwindigkeitKlasse b)
+                                                         => b 'Märklin
+                                                         -> IO (AktionBahngeschwindigkeit b 'Märklin))
+                                                     -> IO ()
         märklinBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
             Gtk.postGUIAsync $ zeigeMärklinBahngeschwindigkeitAktionAuswahl
             atomically (takeTMVar tmvarPlanObjekt) >>= \case
@@ -633,8 +644,11 @@ assistantHinzufügenNew parent maybeTVar = do
             mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
             mitWidgetHide vBoxHinzufügenPlanPläne
             mitWidgetShow windowAktionObjektAuswahl
-        legoBahngeschwindigkeitAktionHinzufügen
-            :: (forall b. (BahngeschwindigkeitKlasse b) => b 'Lego -> IO (AktionBahngeschwindigkeit b 'Lego)) -> IO ()
+        legoBahngeschwindigkeitAktionHinzufügen :: (forall b.
+                                                     (BahngeschwindigkeitKlasse b)
+                                                     => b 'Lego
+                                                     -> IO (AktionBahngeschwindigkeit b 'Lego))
+                                                 -> IO ()
         legoBahngeschwindigkeitAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
             Gtk.postGUIAsync $ zeigeLegoBahngeschwindigkeitAktionAuswahl
             atomically (takeTMVar tmvarPlanObjekt) >>= \case
@@ -690,8 +704,11 @@ assistantHinzufügenNew parent maybeTVar = do
             mitWidgetHide vBoxHinzufügenPlanWegstreckenLego
             mitWidgetHide vBoxHinzufügenPlanPläne
             mitWidgetShow windowAktionObjektAuswahl
-        streckenabschnittAktionHinzufügen
-            :: (forall s. (StreckenabschnittKlasse s) => s -> IO (AktionStreckenabschnitt s)) -> IO ()
+        streckenabschnittAktionHinzufügen :: (forall s.
+                                               (StreckenabschnittKlasse s)
+                                               => s
+                                               -> IO (AktionStreckenabschnitt s))
+                                           -> IO ()
         streckenabschnittAktionHinzufügen aktionKonstruktor = void $ forkIO $ do
             Gtk.postGUIAsync $ zeigeStreckenabschnittAktionAuswahl
             atomically (takeTMVar tmvarPlanObjekt) >>= \case
@@ -991,5 +1008,3 @@ assistantHinzufügenNew parent maybeTVar = do
             [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
     pure assistant
 #endif
-
-

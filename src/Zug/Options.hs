@@ -113,5 +113,5 @@ spracheOpt =
 -- | Hilfsfunktion um mögliche Optionen anzuzeigen
 zeigeMöglichkeiten :: (Show a) => [a] -> String
 zeigeMöglichkeiten [] = ""
-zeigeMöglichkeiten (h:[]) = show h
+zeigeMöglichkeiten [h] = show h
 zeigeMöglichkeiten (h:t) = show h ++ '|' : zeigeMöglichkeiten t

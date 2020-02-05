@@ -190,15 +190,15 @@ instance ( Anzeige (ZugtypEither (BG o))
     anzeige :: StatusAllgemein o -> Sprache -> Text
     anzeige status =
         Language.bahngeschwindigkeiten
-        <=> (zeigeUnterliste $ _bahngeschwindigkeiten status)
+        <=> zeigeUnterliste (_bahngeschwindigkeiten status)
         <\> Language.streckenabschnitte
-        <=> (zeigeUnterliste $ _streckenabschnitte status)
+        <=> zeigeUnterliste (_streckenabschnitte status)
         <\> Language.weichen
-        <=> (zeigeUnterliste $ _weichen status)
+        <=> zeigeUnterliste (_weichen status)
         <\> Language.kupplungen
-        <=> (zeigeUnterliste $ _kupplungen status)
+        <=> zeigeUnterliste (_kupplungen status)
         <\> Language.wegstrecken
-        <=> (zeigeUnterliste $ _wegstrecken status) <\> Language.pläne <=> (zeigeUnterliste $ _pläne status)
+        <=> zeigeUnterliste (_wegstrecken status) <\> Language.pläne <=> zeigeUnterliste (_pläne status)
         -- | Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
 
             where
@@ -422,8 +422,9 @@ hinzufügenPlan plan = do
 
 -- * Elemente entfernen
 -- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'
-entfernenBahngeschwindigkeit
-    :: (Monad m, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego)) => ZugtypEither (BG o) -> MStatusAllgemeinT m o ()
+entfernenBahngeschwindigkeit :: (Monad m, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego))
+                             => ZugtypEither (BG o)
+                             -> MStatusAllgemeinT m o ()
 entfernenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten
     -> putBahngeschwindigkeiten $ delete bahngeschwindigkeit bahngeschwindigkeiten
 
@@ -433,8 +434,8 @@ entfernenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streck
     -> putStreckenabschnitte $ delete streckenabschnitt streckenabschnitte
 
 -- | Entferne eine 'Weiche' aus dem aktuellen 'StatusAllgemein'
-entfernenWeiche
-    :: (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego)) => ZugtypEither (WE o) -> MStatusAllgemeinT m o ()
+entfernenWeiche ::
+                (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego)) => ZugtypEither (WE o) -> MStatusAllgemeinT m o ()
 entfernenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ delete weiche weichen
 
 -- | Entferne eine 'Kupplung' aus dem aktuellen 'StatusAllgemein'
@@ -442,8 +443,9 @@ entfernenKupplung :: (Monad m, Eq (KU o)) => KU o -> MStatusAllgemeinT m o ()
 entfernenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ delete kupplung kupplungen
 
 -- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusAllgemein'
-entfernenWegstrecke
-    :: (Monad m, Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego)) => ZugtypEither (WS o) -> MStatusAllgemeinT m o ()
+entfernenWegstrecke :: (Monad m, Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego))
+                    => ZugtypEither (WS o)
+                    -> MStatusAllgemeinT m o ()
 entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ delete wegstrecke wegstrecken
 
 -- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
@@ -458,7 +460,7 @@ ausführenMöglich :: (MitAusführend (ReaderFamilie o), MitPwmMap (ReaderFamili
 ausführenMöglich plan = do
     tvarAusführend <- erhalteMengeAusführend
     ausführend <- liftIO $ readTVarIO tvarAusführend
-    let belegtePins = intersect (concat $ anschlüsse <$> ausführend) (anschlüsse plan)
+    let belegtePins = concat (anschlüsse <$> ausführend) `intersect` anschlüsse plan
     pure
         $ if
             | elem (Ausführend plan) ausführend -> WirdAusgeführt

@@ -74,16 +74,16 @@ zeigeErstes Warteschlange {eingabe, ausgabe = []} =
     in Gefüllt
            a
            Warteschlange
-           { eingabe = []
-           , ausgabe
-           }
+               { eingabe = []
+               , ausgabe
+               }
 zeigeErstes Warteschlange {eingabe, ausgabe = (h:t)} =
     Gefüllt
         h
         Warteschlange
-        { eingabe
-        , ausgabe = t
-        }
+            { eingabe
+            , ausgabe = t
+            }
 
 -- | Erhalte das zuletzt hinzugefügte Element und die 'Warteschlange' vor hinzufügen des selben.
 -- Effizienz ist im schlimmsten Fall O(n).
@@ -93,16 +93,16 @@ zeigeLetztes Warteschlange {eingabe = [], ausgabe = a1} =
     Gefüllt
         (last a1)
         Warteschlange
-        { eingabe = []
-        , ausgabe = init a1
-        }
+            { eingabe = []
+            , ausgabe = init a1
+            }
 zeigeLetztes Warteschlange {eingabe = (h:t), ausgabe} =
     Gefüllt
         h
         Warteschlange
-        { eingabe = t
-        , ausgabe
-        }
+            { eingabe = t
+            , ausgabe
+            }
 
 instance Foldable Warteschlange where
     foldMap :: Monoid m => (a -> m) -> Warteschlange a -> m

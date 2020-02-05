@@ -1,17 +1,27 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description: Widget zur Darstellung und Auswahl eines Anschluss
 -}
 module Zug.UI.Gtk.Anschluss
+  (
 #ifdef ZUGKONTROLLEGUI
- (AnschlussWidget(), anschlussNew, AnschlussAuswahlWidget(), anschlussAuswahlNew, aktuellerAnschluss) where
+    AnschlussWidget()
+  , anschlussNew
+  , AnschlussAuswahlWidget()
+  , anschlussAuswahlNew
+  , aktuellerAnschluss
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
@@ -110,30 +120,30 @@ anschlussAuswahlNew maybeTVar name = do
         pure aawPCF8574Port
     pure
         AnschlussAuswahlWidget
-        { aawWidget = erhalteWidget vBox
-        , aawNotebook
-        , aawPinPage
+            { aawWidget = erhalteWidget vBox
+            , aawNotebook
+            , aawPinPage
+            , aawPin
+            , aawPCF8574PortPage
+            , aawPCF8574PortVariante
+            , aawPCF8574PortA0
+            , aawPCF8574PortA1
+            , aawPCF8574PortA2
+            , aawPCF8574Port
+            }
+
+-- | Erhalte den aktuell gewählten 'Anschluss'.
+aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
+aktuellerAnschluss
+    AnschlussAuswahlWidget
+        { aawNotebook
         , aawPin
         , aawPCF8574PortPage
         , aawPCF8574PortVariante
         , aawPCF8574PortA0
         , aawPCF8574PortA1
         , aawPCF8574PortA2
-        , aawPCF8574Port
-        }
-
--- | Erhalte den aktuell gewählten 'Anschluss'.
-aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
-aktuellerAnschluss
-    AnschlussAuswahlWidget
-    { aawNotebook
-    , aawPin
-    , aawPCF8574PortPage
-    , aawPCF8574PortVariante
-    , aawPCF8574PortA0
-    , aawPCF8574PortA1
-    , aawPCF8574PortA2
-    , aawPCF8574Port} = liftIO $ do
+        , aawPCF8574Port} = liftIO $ do
     Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
@@ -156,5 +166,3 @@ aktuellerAnschluss
             -- Verwende als Standard die Pin-Eingabe
             | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
 #endif
-
-

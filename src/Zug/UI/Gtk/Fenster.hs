@@ -1,20 +1,26 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description : Abfragen mit neuem Fenster für das Gtk-UI.
 -}
 module Zug.UI.Gtk.Fenster
+  (
 #ifdef ZUGKONTROLLEGUI
-  ( -- * Knöpfe mit zugehörigem Dialog erstellen
+    -- * Knöpfe mit zugehörigem Dialog erstellen
     buttonSpeichernPack
   , buttonLadenPack
   , ladeWidgets
-  , buttonHinzufügenPack) where
+  , buttonHinzufügenPack
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM.TVar (TVar)
@@ -226,3 +232,5 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                 AssistantAbbrechen -> pure ()
     pure button
 #endif
+
+

@@ -1,5 +1,4 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE GADTs #-}
@@ -207,8 +206,7 @@ instance Anfrage AnfrageBefehl where
 
     zeigeAnfrageOptionen :: AnfrageBefehl -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen (ABHinzufügen anfrageObjekt) = zeigeAnfrageOptionen anfrageObjekt
-    zeigeAnfrageOptionen ABSprache = Just $ toBefehlsString . \sprache
-        -> map (flip anzeige sprache) Language.alleSprachen
+    zeigeAnfrageOptionen ABSprache = Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) Language.alleSprachen
     zeigeAnfrageOptionen (ABAktionPlan _plan) = Just $ toBefehlsString . Language.aktionPlan
     zeigeAnfrageOptionen (ABAktionPlanAusführend _plan _neu) = Just $ toBefehlsString . Language.aktionPlanAusführend
     zeigeAnfrageOptionen (ABAktionPlanGesperrt _plan _neu _pins) = Just $ toBefehlsString . Language.aktionPlanGesperrt
@@ -225,8 +223,8 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
     type AnfrageTyp (Either BefehlSofort Befehl) = AnfrageBefehl
 
     -- | Auswerten eines Zwischenergebnisses fortsetzen
-    anfrageAktualisieren
-        :: AnfrageBefehl -> EingabeToken -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+    anfrageAktualisieren ::
+                         AnfrageBefehl -> EingabeToken -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
     anfrageAktualisieren AnfrageBefehl token@EingabeToken {eingabe} =
         wähleBefehl
             token

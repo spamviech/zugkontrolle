@@ -86,7 +86,7 @@ ausZugtypEither f (ZugtypLego a) = f a
 unterstützteZugtypen :: NonEmpty Zugtyp
 unterstützteZugtypen = fromList [minBound .. maxBound]
 
--- | Anzeigen eines 'Zugtyp'
+  -- | Anzeigen eines 'Zugtyp'
 instance Anzeige Zugtyp where
     anzeige :: Zugtyp -> Sprache -> Text
     anzeige Märklin = Language.märklin
@@ -104,7 +104,7 @@ data Richtung
 unterstützteRichtungen :: NonEmpty Richtung
 unterstützteRichtungen = fromList [minBound .. maxBound]
 
--- | Anzeigen einer 'Richtung'
+  -- | Anzeigen einer 'Richtung'
 instance Anzeige Richtung where
     anzeige :: Richtung -> Sprache -> Text
     anzeige Gerade = Language.gerade
@@ -122,7 +122,7 @@ data Fahrtrichtung
 unterstützteFahrtrichtungen :: NonEmpty Fahrtrichtung
 unterstützteFahrtrichtungen = fromList [minBound .. maxBound]
 
--- | Anzeigen einer 'Fahrtrichtung'
+  -- | Anzeigen einer 'Fahrtrichtung'
 instance Anzeige Fahrtrichtung where
     anzeige :: Fahrtrichtung -> Sprache -> Text
     anzeige Vorwärts = Language.vorwärts
@@ -134,7 +134,7 @@ data Strom
     | Gesperrt
     deriving (Eq, Show, Bounded, Enum)
 
--- | Anzeigen von 'Strom'
+  -- | Anzeigen von 'Strom'
 instance Anzeige Strom where
     anzeige :: Strom -> Sprache -> Text
     anzeige Fließend = Language.fließend

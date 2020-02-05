@@ -291,7 +291,7 @@ längerAls (_h:t) i = längerAls t $ pred i
 wähleBefehl :: EingabeToken -> [(Token, a)] -> a -> a
 wähleBefehl _eingabe [] ersatz = ersatz
 wähleBefehl eingabe@EingabeToken {möglichkeiten} ((befehl, ergebnis):t) ersatz
-    | elem befehl möglichkeiten = ergebnis
+    | befehl `elem` möglichkeiten = ergebnis
     | otherwise = wähleBefehl eingabe t ersatz
 
 -- | Gebe (falls möglich) die zur Eingabe passende 'Richtung' zurück.
@@ -326,15 +326,15 @@ data AnfrageFortsetzung a e
           }
     | AFStatusAnfrage
           { anfrageObjekt :: StatusAnfrageObjekt
-          , konstruktor :: (Objekt -> AnfrageFortsetzung a e)
+          , konstruktor :: Objekt -> AnfrageFortsetzung a e
           }
     | AFStatusAnfrageMärklin
-          { anfrageObjektMärklin :: (StatusAnfrageObjektZugtyp 'Märklin)
-          , konstruktorMärklin :: (ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e)
+          { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin
+          , konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e
           }
     | AFStatusAnfrageLego
-          { anfrageObjektLego :: (StatusAnfrageObjektZugtyp 'Lego)
-          , konstruktorLego :: (ObjektZugtyp 'Lego -> AnfrageFortsetzung a e)
+          { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego
+          , konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageFortsetzung a e
           }
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'

@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -6,14 +8,15 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE CPP #-}
+#endif
 
 {-|
 Description : Erzeuge Buttons die nur sensitiv sind, wenn eine Bedingung erfüllt ist.
 -}
 module Zug.UI.Gtk.FortfahrenWennToggled
+  (
 #ifdef ZUGKONTROLLEGUI
-  ( -- * Feste Anzahl an 'CheckButton's
+    -- * Feste Anzahl an 'CheckButton's
     FortfahrenWennToggled()
   , checkButtons
   , fortfahrenWennToggledNew
@@ -30,8 +33,11 @@ module Zug.UI.Gtk.FortfahrenWennToggled
   , registrierterCheckButtonNew
   , mitRegistrierterCheckButton
   , registrierterCheckButton
-  , registrierterCheckButtonToggled) where
+  , registrierterCheckButtonToggled
+#endif
+  ) where
 
+#ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Concurrent.STM.TVar (TVar)
 import qualified Control.Lens as Lens
@@ -77,12 +83,11 @@ instance MitButton FortfahrenWennToggled where
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-fortfahrenWennToggledNew
-    :: (SpracheGuiReader r m, MonadIO m)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> NonEmpty (Sprache -> Text)
-    -> m FortfahrenWennToggled
+fortfahrenWennToggledNew :: (SpracheGuiReader r m, MonadIO m)
+                         => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                         -> (Sprache -> Text)
+                         -> NonEmpty (Sprache -> Text)
+                         -> m FortfahrenWennToggled
 fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
     fortfahren <- liftIO Gtk.buttonNew
     verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set fortfahren [Gtk.buttonLabel := label sprache]
@@ -157,14 +162,13 @@ instance MitButton (FortfahrenWennToggledVar a v c) where
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-fortfahrenWennToggledVarNew
-    :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> Lens.Fold a c
-    -> (v -> IO a)
-    -> v
-    -> m (FortfahrenWennToggledVar a v c)
+fortfahrenWennToggledVarNew :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
+                            => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                            -> (Sprache -> Text)
+                            -> Lens.Fold a c
+                            -> (v -> IO a)
+                            -> v
+                            -> m (FortfahrenWennToggledVar a v c)
 fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheckButtonsRec = do
     fortfahrenVar <- liftIO $ do
         fortfahrenVar <- Gtk.buttonNew
@@ -173,11 +177,11 @@ fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheck
     verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
     pure
         FortfahrenWennToggledVar
-        { fortfahrenVar
-        , readVar
-        , varCheckButtonsRec
-        , foldCheckButtonsRec
-        }
+            { fortfahrenVar
+            , readVar
+            , varCheckButtonsRec
+            , foldCheckButtonsRec
+            }
 
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggledVar :: (MonadIO m, MitRegistrierterCheckButton c) => FortfahrenWennToggledVar a v c -> m ()
@@ -194,12 +198,11 @@ newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-registrierterCheckButtonNew
-    :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> (Sprache -> Text)
-    -> FortfahrenWennToggledVar a v c
-    -> m RegistrierterCheckButton
+registrierterCheckButtonNew :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
+                            => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                            -> (Sprache -> Text)
+                            -> FortfahrenWennToggledVar a v c
+                            -> m RegistrierterCheckButton
 registrierterCheckButtonNew maybeTVar label fortfahrenWennToggled = do
     checkButton <- liftIO $ do
         checkButton <- widgetShowNew $ Gtk.checkButtonNew
@@ -229,4 +232,3 @@ instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
     erhalteRegistrierterCheckButton = id
 #endif
-
