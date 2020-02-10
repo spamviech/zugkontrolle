@@ -29,7 +29,8 @@ module Zug.Plan
   , AktionBahngeschwindigkeit(..)
   , AktionStreckenabschnitt(..)
   , AktionKupplung(..)
-  , AktionWegstrecke(..)) where
+  , AktionWegstrecke(..)
+  ) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
@@ -39,10 +40,10 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung
-       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), Bahngeschwindigkeit()
-      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..)
-      , Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..))
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..)
+                    , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
+                    , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung()
+                    , KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..))
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
@@ -66,15 +67,16 @@ instance (PwmReader r m, MitAusführend r) => AusführendReader r m
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
 -- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-'Menge' vorhanden ist.
 class PlanKlasse pl where
-    ausführenPlan :: (AusführendReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
+    ausführenPlan
+        :: (AusführendReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
     {-# MINIMAL ausführenPlan #-}
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
 data Plan =
     Plan
-    { plName :: Text
-    , plAktionen :: [Aktion]
+    { plName :: Text,
+      plAktionen :: [Aktion]
     }
     deriving (Eq, Show)
 
@@ -84,7 +86,8 @@ newtype Ausführend = Ausführend Plan
 
 instance Anzeige Plan where
     anzeige :: Plan -> Sprache -> Text
-    anzeige Plan {plName, plAktionen} = Language.plan <:> Language.name <=> plName <^> Language.aktionen <=> plAktionen
+    anzeige Plan {plName, plAktionen} =
+        Language.plan <:> Language.name <=> plName <^> Language.aktionen <=> plAktionen
 
 instance StreckenObjekt Plan where
     anschlüsse :: Plan -> [Anschluss]
@@ -94,7 +97,8 @@ instance StreckenObjekt Plan where
     erhalteName Plan {plName} = plName
 
 instance PlanKlasse Plan where
-    ausführenPlan :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
+    ausführenPlan
+        :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
     ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
         tvarAusführend <- erhalteMengeAusführend
         liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
@@ -198,7 +202,8 @@ instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z), Show (ws z))
     erhalteName :: AktionWegstrecke ws z -> Text
     erhalteName = showText
 
-instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z)) => AktionKlasse (AktionWegstrecke ws z) where
+instance (BahngeschwindigkeitKlasse ws, WegstreckeKlasse (ws z))
+    => AktionKlasse (AktionWegstrecke ws z) where
     ausführenAktion :: (AusführendReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
     ausführenAktion (Einstellen ws) = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit aktion) = ausführenAktion aktion
@@ -224,7 +229,7 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
- -- | Aktionen einer Bahngeschwindigkeit
+    -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
     Geschwindigkeit :: bg z -> Natural -> AktionBahngeschwindigkeit bg z
     Umdrehen :: bg 'Märklin -> AktionBahngeschwindigkeit bg 'Märklin
@@ -236,16 +241,18 @@ deriving instance (Show (bg z)) => Show (AktionBahngeschwindigkeit bg z)
 
 instance (StreckenObjekt (bg z)) => Anzeige (AktionBahngeschwindigkeit bg z) where
     anzeige :: AktionBahngeschwindigkeit bg z -> Sprache -> Text
-    anzeige (Geschwindigkeit bg wert) = erhalteName bg <°> Language.geschwindigkeit <=> showText wert
+    anzeige (Geschwindigkeit bg wert) =
+        erhalteName bg <°> Language.geschwindigkeit <=> showText wert
     anzeige (Umdrehen bg) = erhalteName bg <°> Language.umdrehen
     anzeige (FahrtrichtungEinstellen bg fahrtrichtung) =
         erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
 
-instance ( BahngeschwindigkeitKlasse bg
-         , Show (bg z)
-         , StreckenObjekt (bg 'Märklin)
-         , StreckenObjekt (bg 'Lego)
-         , StreckenObjekt (bg z)) => StreckenObjekt (AktionBahngeschwindigkeit bg z) where
+instance (BahngeschwindigkeitKlasse bg,
+          Show (bg z),
+          StreckenObjekt (bg 'Märklin),
+          StreckenObjekt (bg 'Lego),
+          StreckenObjekt (bg z)
+         ) => StreckenObjekt (AktionBahngeschwindigkeit bg z) where
     anschlüsse :: AktionBahngeschwindigkeit bg z -> [Anschluss]
     anschlüsse (Geschwindigkeit bg _wert) = anschlüsse bg
     anschlüsse (Umdrehen bg) = anschlüsse bg
@@ -258,7 +265,8 @@ instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigke
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg z -> m ()
     ausführenAktion (Geschwindigkeit bg wert) = geschwindigkeit bg wert
     ausführenAktion (Umdrehen bg) = umdrehen bg
-    ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung) = fahrtrichtungEinstellen bg fahrtrichtung
+    ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung) =
+        fahrtrichtungEinstellen bg fahrtrichtung
 
 -- | Aktionen eines Streckenabschnitts
 data AktionStreckenabschnitt st = Strom st Strom

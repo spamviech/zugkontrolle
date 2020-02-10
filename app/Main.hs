@@ -17,8 +17,10 @@ main = do
         argModifier :: [String] -> IO a -> IO a
         argModifier [filename]
             | filename =~ linuxRegex =
-                withArgs $ "--load" : (\(_before, _match, _after, submatches)
-                                       -> submatches) (filename =~ linuxRegex :: (String, String, String, [String]))
+                withArgs
+                $ "--load"
+                : (\(_before, _match, _after, submatches) -> submatches)
+                    (filename =~ linuxRegex :: (String, String, String, [String]))
             | otherwise = withArgs ["--load", filename]
         argModifier _args = id
 

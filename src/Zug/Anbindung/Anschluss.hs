@@ -23,18 +23,20 @@ module Zug.Anbindung.Anschluss
   , I2CMap
   , i2cMapEmpty
   , MitI2CMap(..)
-  , I2CReader(..)) where
+  , I2CReader(..)
+  ) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
-import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
+import System.Hardware.WiringPi
+       (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead
-                            , I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
+import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite
+                            , pcf8574PortRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
 import Zug.Language (Anzeige(..), Sprache(), showText)
 
 -- | Alle unterstützten Anschlussmöglichkeiten

@@ -40,7 +40,7 @@
     ],
     "formatting": {
         "penalty": {
-            "max-line-length": 120
+            "max-line-length": 100
         },
         "options": {
             "sort-imports": [
@@ -63,25 +63,37 @@
             "where-binds": "indent-by 4",
             "multi-if": "indent-by 4"
         },
+        "group": {
+            "(": {
+                "spaces": "none",
+                "linebreaks": "after",
+                "force-linebreak": false
+            },
+            ")": {
+                "spaces": "none",
+                "linebreaks": "none",
+                "force-linebreak": false
+            }
+        },
         "op": {
             ",": {
                 "spaces": "after",
-                "linebreaks": "before",
+                "linebreaks": "after",
                 "force-linebreak": false
             },
             ", in declaration": {
                 "spaces": "after",
-                "linebreaks": "before",
+                "linebreaks": "after",
                 "force-linebreak": false
             },
             ", in type": {
                 "spaces": "after",
-                "linebreaks": "before",
+                "linebreaks": "after",
                 "force-linebreak": false
             },
             ", in pattern": {
                 "spaces": "after",
-                "linebreaks": "before",
+                "linebreaks": "after",
                 "force-linebreak": false
             },
             ", in other": {
@@ -91,54 +103,27 @@
             },
             "@": {
                 "spaces": "none",
+                "linebreaks": "none",
+                "force-linebreak": false
+            },
+            "<-": {
+                "spaces": "both",
                 "linebreaks": "before",
                 "force-linebreak": false
             },
-            "@ in declaration": {
-                "spaces": "none",
+            "->": {
+                "spaces": "both",
                 "linebreaks": "before",
-                "force-linebreak": false
-            },
-            "@ in type": {
-                "spaces": "none",
-                "linebreaks": "before",
-                "force-linebreak": false
-            },
-            "@ in pattern": {
-                "spaces": "none",
-                "linebreaks": "before",
-                "force-linebreak": false
-            },
-            "@ in other": {
-                "spaces": "none",
-                "linebreaks": "before",
-                "force-linebreak": false
-            },
-            "::": {
-                "spaces": "both",
-                "linebreaks": "after",
-                "force-linebreak": false
-            },
-            ":: in declaration": {
-                "spaces": "both",
-                "linebreaks": "after",
-                "force-linebreak": false
-            },
-            ":: in type": {
-                "spaces": "both",
-                "linebreaks": "after",
-                "force-linebreak": false
-            },
-            ":: in pattern": {
-                "spaces": "both",
-                "linebreaks": "after",
-                "force-linebreak": false
-            },
-            ":: in other": {
-                "spaces": "both",
-                "linebreaks": "after",
                 "force-linebreak": false
             }
         }
+    },
+    "options": {
+        "align-sum-type-decl": true,
+        "sort-import-lists": true,
+        "sort-imports": true,
+        "sort-pragmas": true,
+        "split-language-pragmas": true,
+        "flexible-oneline": true
     }
 }

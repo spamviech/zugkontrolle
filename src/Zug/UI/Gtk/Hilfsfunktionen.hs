@@ -67,9 +67,10 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenObjekt(..))
 import Zug.Language (Sprache(..), (<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), MitContainer(..)
-                         , mitContainerAdd, mitContainerRemove, MitButton(..), MitToggleButton(..), MitDialog(..)
-                         , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
+import Zug.UI.Gtk.Klassen
+       (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), MitContainer(..)
+      , mitContainerAdd, mitContainerRemove, MitButton(..), MitToggleButton(..), MitDialog(..)
+      , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui)
 
 -- | 'Widget' erstellen und anzeigen
@@ -96,7 +97,8 @@ boxPack box widget packing padding position =
         boxPackPosition End = mitBoxPackEnd
 
 -- | Neu erstelltes Widget in eine Box packen
-boxPackWidgetNew :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
+boxPackWidgetNew
+    :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
 boxPackWidgetNew box packing padding start konstruktor = do
     widget <- widgetShowNew konstruktor
     boxPack box widget packing padding start
@@ -139,17 +141,19 @@ boxPackDefault box widget = boxPack box widget packingDefault paddingDefault pos
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-notebookAppendPageNew :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w)
-                      => n
-                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                      -> (Sprache -> Text)
-                      -> m w
-                      -> m (w, Int)
+notebookAppendPageNew
+    :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w)
+    => n
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> m w
+    -> m (w, Int)
 notebookAppendPageNew notebook maybeTVar name konstruktor = do
     widget <- widgetShowNew konstruktor
     page <- mitNotebookAppendPage notebook widget $ name Deutsch
     verwendeSpracheGui maybeTVar $ \sprache
-        -> Gtk.notebookSetMenuLabelText (erhalteNotebook notebook) (erhalteWidget widget) $ name sprache
+        -> Gtk.notebookSetMenuLabelText (erhalteNotebook notebook) (erhalteWidget widget)
+        $ name sprache
     pure (widget, page)
 
 -- | Entferne ein vielleicht vorhandenes 'MitWidget' aus einem 'MitContainer'
@@ -211,21 +215,25 @@ toggleButtonNewWithEvent :: (MonadIO m, MitToggleButton b) => m b -> (Bool -> IO
 toggleButtonNewWithEvent konstruktor event = do
     mitToggleButton <- widgetShowNew konstruktor
     let toggleButton = erhalteToggleButton mitToggleButton
-    liftIO $ Gtk.on toggleButton Gtk.toggled $ Gtk.get toggleButton Gtk.toggleButtonActive >>= event
+    liftIO
+        $ Gtk.on toggleButton Gtk.toggled
+        $ Gtk.get toggleButton Gtk.toggleButtonActive >>= event
     pure mitToggleButton
 
 -- | ToggleButton mit Label und Funktion erstellen.
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-toggleButtonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m)
-                              => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                              -> (Sprache -> Text)
-                              -> (Bool -> IO ())
-                              -> m Gtk.ToggleButton
+toggleButtonNewWithEventLabel
+    :: (SpracheGuiReader r m, MonadIO m)
+    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> (Bool -> IO ())
+    -> m Gtk.ToggleButton
 toggleButtonNewWithEventLabel maybeTVar label event = do
     toggleButton <- liftIO $ toggleButtonNewWithEvent Gtk.toggleButtonNew event
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set toggleButton [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.set toggleButton [Gtk.buttonLabel := label sprache]
     pure toggleButton
 
 -- * Label
@@ -283,10 +291,13 @@ nameAuswahlPackNew box maybeTVar = do
     hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar $ Language.name <:> Text.empty
     entry <- liftIO $ boxPackWidgetNewDefault hBox Gtk.entryNew
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
+    verwendeSpracheGui maybeTVar $ \sprache
+        -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
     pure $ NameAuswahlWidget entry
 
 -- | Erhalte den aktuell gewählten Namen
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 #endif
+
+

@@ -13,8 +13,8 @@ module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(
 import Data.Kind (Type)
 import Data.Text (Text)
 
-import Zug.Anbindung
-       (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(), Streckenabschnitt(), Weiche(), Kupplung(), Wegstrecke())
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(), Streckenabschnitt()
+                    , Weiche(), Kupplung(), Wegstrecke())
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..))
 import Zug.Language (Sprache())
@@ -32,25 +32,27 @@ data ObjektAllgemein bg st we ku ws pl
 -- | 'ObjektAllgemein' spezialisiert auf minimal benötigte Typen
 type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Wegstrecke Plan
 
-deriving instance ( Eq st
-                  , Eq ku
-                  , Eq pl
-                  , Eq (bg 'Märklin)
-                  , Eq (bg 'Lego)
-                  , Eq (we 'Märklin)
-                  , Eq (we 'Lego)
-                  , Eq (ws 'Märklin)
-                  , Eq (ws 'Lego)) => Eq (ObjektAllgemein bg st we ku ws pl)
+deriving instance (Eq st,
+                   Eq ku,
+                   Eq pl,
+                   Eq (bg 'Märklin),
+                   Eq (bg 'Lego),
+                   Eq (we 'Märklin),
+                   Eq (we 'Lego),
+                   Eq (ws 'Märklin),
+                   Eq (ws 'Lego)
+                  ) => Eq (ObjektAllgemein bg st we ku ws pl)
 
-instance ( Show (bg 'Märklin)
-         , Show (bg 'Lego)
-         , Show st
-         , Show (we 'Märklin)
-         , Show (we 'Lego)
-         , Show ku
-         , Show (ws 'Märklin)
-         , Show (ws 'Lego)
-         , Show pl) => Show (ObjektAllgemein bg st we ku ws pl) where
+instance (Show (bg 'Märklin),
+          Show (bg 'Lego),
+          Show st,
+          Show (we 'Märklin),
+          Show (we 'Lego),
+          Show ku,
+          Show (ws 'Märklin),
+          Show (ws 'Lego),
+          Show pl
+         ) => Show (ObjektAllgemein bg st we ku ws pl) where
     show :: ObjektAllgemein bg st we ku ws pl -> String
     show (OBahngeschwindigkeit bg) = show bg
     show (OStreckenabschnitt st) = show st
@@ -137,15 +139,16 @@ instance ObjektKlasse Objekt where
     ausObjekt :: Objekt -> Objekt
     ausObjekt = id
 
-instance ( StreckenObjekt pl
-         , StreckenObjekt (bg 'Märklin)
-         , StreckenObjekt (bg 'Lego)
-         , StreckenObjekt st
-         , StreckenObjekt ku
-         , StreckenObjekt (we 'Märklin)
-         , StreckenObjekt (we 'Lego)
-         , StreckenObjekt (ws 'Märklin)
-         , StreckenObjekt (ws 'Lego)) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
+instance (StreckenObjekt pl,
+          StreckenObjekt (bg 'Märklin),
+          StreckenObjekt (bg 'Lego),
+          StreckenObjekt st,
+          StreckenObjekt ku,
+          StreckenObjekt (we 'Märklin),
+          StreckenObjekt (we 'Lego),
+          StreckenObjekt (ws 'Märklin),
+          StreckenObjekt (ws 'Lego)
+         ) => StreckenObjekt (ObjektAllgemein bg st we ku ws pl) where
     erhalteName :: ObjektAllgemein bg st we ku ws pl -> Text
     erhalteName (OPlan pl) = erhalteName pl
     erhalteName (OWegstrecke ws) = erhalteName ws

@@ -19,7 +19,8 @@ module Zug.Anbindung.SoftwarePWM
   , PwmReader(..)
     -- * Aufruf der PWM-Funktionen
   , pwmSoftwareSetzteWert
-  , pwmGrenze) where
+  , pwmGrenze
+  ) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
@@ -64,7 +65,9 @@ pwmBerechneZeiten :: Natural -> PwmValue -> (Wartezeit, Wartezeit)
 pwmBerechneZeiten pwmFrequenzHz pwmWert = (zeitAn, zeitAus)
     where
         zeitAn :: Wartezeit
-        zeitAn = dividieren (multiplizieren pwmPeriodendauer $ fromIntegral pwmWert) $ fromIntegral pwmGrenze
+        zeitAn =
+            dividieren (multiplizieren pwmPeriodendauer $ fromIntegral pwmWert)
+            $ fromIntegral pwmGrenze
 
         zeitAus :: Wartezeit
         zeitAus = differenz pwmPeriodendauer zeitAn
@@ -87,7 +90,10 @@ pwmSoftwareSetzteWert anschluss pwmFrequenz pwmWert = do
         writeTVar tvarPwmMap $ Map.insert anschluss (pwmWert, pwmFrequenz) pwmMapAlt
         pure pwmMapAlt
     -- Starte neuen Pwm-Thread, falls er noch nicht existiert
-    when (isNothing $ Map.lookup anschluss pwmMapAlt) $ void $ forkI2CReader $ pwmSoftwareAnschlussMain anschluss
+    when (isNothing $ Map.lookup anschluss pwmMapAlt)
+        $ void
+        $ forkI2CReader
+        $ pwmSoftwareAnschlussMain anschluss
     -- | PWM-Funktion für einen 'Anschluss'. Läuft in einem eigenem Thread.
     --
     -- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Anschluss' in der übergebenen 'TVar' 'PwmMap' nicht mehr vorkommt.

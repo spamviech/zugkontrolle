@@ -23,8 +23,8 @@ import System.IO (hFlush, stdout)
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (ZugtypKlasse())
 import qualified Zug.Language as Language
-import Zug.Language
-       (Anzeige(..), Sprache(), ($#), (<~>), (<\>), (<=>), (<!>), (<:>), fehlerhafteEingabe, toBefehlsString)
+import Zug.Language (Anzeige(..), Sprache(), ($#), (<~>), (<\>), (<=>), (<!>), (<:>)
+                   , fehlerhafteEingabe, toBefehlsString)
 import Zug.Objekt (Objekt)
 import Zug.Options (Options(..), getOptions)
 import Zug.UI.Base (StatusAllgemein(..), getSprache, IOStatus, auswertenLeererIOStatus, tvarMapsNeu
@@ -32,9 +32,10 @@ import Zug.UI.Base (StatusAllgemein(..), getSprache, IOStatus, auswertenLeererIO
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), lexer)
 import Zug.UI.Cmd.Parser
-       (AnfrageFortsetzung(..), AnfrageBefehl(..), Anfrage(..), StatusAnfrageObjekt(..), statusAnfrageObjekt
-      , StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp, ObjektZugtyp(..), BefehlSofort(..), AnfrageNeu(..)
-      , parser, unbekanntShowText, zeigeAnfrage, zeigeAnfrageOptionen, zeigeAnfrageFehlgeschlagen)
+       (AnfrageFortsetzung(..), AnfrageBefehl(..), Anfrage(..), StatusAnfrageObjekt(..)
+      , statusAnfrageObjekt, StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp
+      , ObjektZugtyp(..), BefehlSofort(..), AnfrageNeu(..), parser, unbekanntShowText, zeigeAnfrage
+      , zeigeAnfrageOptionen, zeigeAnfrageFehlgeschlagen)
 import qualified Zug.UI.Save as Save
 
 -- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
@@ -75,10 +76,11 @@ mainStatus = do
 statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
 statusParser = statusParserAux . parser AnfrageBefehl
     where
-        statusParserAux :: ( [Befehl]
-                           , AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
-                           , [EingabeTokenAllgemein]
-                           , AnfrageBefehl)
+        statusParserAux :: ([Befehl],
+                            AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl),
+                            [EingabeTokenAllgemein],
+                            AnfrageBefehl
+                           )
                         -> IOStatus Bool
         statusParserAux (befehle, fortsetzung, eingabeRest, backup) = do
             sprache <- getSprache
@@ -117,20 +119,23 @@ statusParser = statusParserAux . parser AnfrageBefehl
         statusAnfrage aObjektIOStatus konstruktor backup eingabeRest =
             statusAnfrageObjekt aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
 
-        statusAnfrageZugtyp :: (ZugtypKlasse z)
-                            => StatusAnfrageObjektZugtyp z
-                            -> (ObjektZugtyp z -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
-                            -> AnfrageBefehl
-                            -> [EingabeTokenAllgemein]
-                            -> IOStatus Bool
+        statusAnfrageZugtyp
+            :: (ZugtypKlasse z)
+            => StatusAnfrageObjektZugtyp z
+            -> (ObjektZugtyp z -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
+            -> AnfrageBefehl
+            -> [EingabeTokenAllgemein]
+            -> IOStatus Bool
         statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest =
-            statusAnfrageObjektZugtyp aObjektIOStatus >>= statusAnfrageAux konstruktor backup eingabeRest
+            statusAnfrageObjektZugtyp aObjektIOStatus
+            >>= statusAnfrageAux konstruktor backup eingabeRest
 
-        statusAnfrageAux :: (objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
-                         -> AnfrageBefehl
-                         -> [EingabeTokenAllgemein]
-                         -> Either Text objekt
-                         -> IOStatus Bool
+        statusAnfrageAux
+            :: (objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))
+            -> AnfrageBefehl
+            -> [EingabeTokenAllgemein]
+            -> Either Text objekt
+            -> IOStatus Bool
         statusAnfrageAux konstruktor backup eingabeRest (Right objekt) = case konstruktor objekt of
             ergebnis@(AFErgebnis _befehl) -> statusParserAux ([], ergebnis, eingabeRest, backup)
             (AFStatusAnfrage qObjektIOStatus1 konstruktor1)
@@ -142,20 +147,26 @@ statusParser = statusParserAux . parser AnfrageBefehl
             (AFZwischenwert anfrage) -> statusParserAux $ parser anfrage eingabeRest
             fehler@(AFFehler _eingabe) -> statusParserAux ([], fehler, eingabeRest, backup)
         statusAnfrageAux _konstruktor backup _eingabeRest (Left eingabe) =
-            promptS (zeigeAnfrageFehlgeschlagen backup eingabe <!> zeigeAnfrage backup <:> Text.empty)
+            promptS
+                (zeigeAnfrageFehlgeschlagen backup eingabe <!> zeigeAnfrage backup <:> Text.empty)
             >>= statusParserAux . parser backup . lexer
 
 -- | Ausführen eines Befehls, der sofort ausgeführt werden muss
 ausführenBefehlSofort :: BefehlSofort -> IOStatus AnfrageBefehl
 ausführenBefehlSofort (BSLaden dateipfad) = do
-    ausführenBefehl $ Laden dateipfad put $ fehlerhafteEingabeS $ Language.nichtGefundeneDatei <=> dateipfad
+    ausführenBefehl
+        $ Laden dateipfad put
+        $ fehlerhafteEingabeS
+        $ Language.nichtGefundeneDatei <=> dateipfad
     pure AnfrageBefehl
-ausführenBefehlSofort (BSAusführenMöglich plan) = wähleAnfrageBefehl <$> ausführenMöglich plan
+ausführenBefehlSofort
+    (BSAusführenMöglich plan) = wähleAnfrageBefehl <$> ausführenMöglich plan
     where
         wähleAnfrageBefehl :: AusführenMöglich -> AnfrageBefehl
         wähleAnfrageBefehl AusführenMöglich = ABAktionPlan plan
         wähleAnfrageBefehl WirdAusgeführt = ABAktionPlanAusführend plan Neu
-        wähleAnfrageBefehl (AnschlüsseBelegt anschlüsse) = ABAktionPlanGesperrt plan Neu anschlüsse
+        wähleAnfrageBefehl (AnschlüsseBelegt anschlüsse) =
+            ABAktionPlanGesperrt plan Neu anschlüsse
 
 -- * Eingabe abfragen
 prompt :: Text -> IO [Text]

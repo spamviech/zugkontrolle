@@ -36,7 +36,8 @@ module Zug.UI.Cmd.Parser.Anfrage
   , wähleValue
   , unbekanntShowText
   , wähleZwischenwert
-  , wähleErgebnis) where
+  , wähleErgebnis
+  ) where
 
 import Data.Kind (Type)
 import Data.Maybe (listToMaybe)
@@ -44,15 +45,15 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung
-       (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(), Weiche(), Kupplung(), Wegstrecke())
+import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt()
+                    , Weiche(), Kupplung(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan())
-import Zug.UI.Base
-       (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten, getStreckenabschnitte, getKupplungen)
+import Zug.UI.Base (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten
+                  , getStreckenabschnitte, getKupplungen)
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
 import qualified Zug.UI.Cmd.Lexer as Lexer
 
@@ -122,15 +123,19 @@ instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'Anf
     show (AnfrageMärklin a) = show a
     show (AnfrageLego a) = show a
 
-instance (Anzeige (a 'AnfrageZugtyp), Anzeige (a 'AnfrageZugtypMärklin), Anzeige (a 'AnfrageZugtypLego))
-    => Anzeige (AnfrageZugtypEither a) where
+instance (Anzeige (a 'AnfrageZugtyp),
+          Anzeige (a 'AnfrageZugtypMärklin),
+          Anzeige (a 'AnfrageZugtypLego)
+         ) => Anzeige (AnfrageZugtypEither a) where
     anzeige :: AnfrageZugtypEither a -> Sprache -> Text
     anzeige (AnfrageNothing a) = anzeige a
     anzeige (AnfrageMärklin a) = anzeige a
     anzeige (AnfrageLego a) = anzeige a
 
-instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageZugtypMärklin), Anfrage (a 'AnfrageZugtypLego))
-    => Anfrage (AnfrageZugtypEither a) where
+instance (Anfrage (a 'AnfrageZugtyp),
+          Anfrage (a 'AnfrageZugtypMärklin),
+          Anfrage (a 'AnfrageZugtypLego)
+         ) => Anfrage (AnfrageZugtypEither a) where
     zeigeAnfrage :: AnfrageZugtypEither a -> Sprache -> Text
     zeigeAnfrage (AnfrageNothing a) = zeigeAnfrage a
     zeigeAnfrage (AnfrageMärklin a) = zeigeAnfrage a
@@ -151,9 +156,12 @@ class MitAnfrageZugtyp (a :: AnfrageZugtyp -> Type) where
     anfrageMärklin :: a 'AnfrageZugtypMärklin
     anfrageLego :: a 'AnfrageZugtypLego
 
-anfrageAktualisierenZugtyp :: (MitAnfrageZugtyp a) => EingabeToken -> AnfrageFortsetzung (AnfrageZugtypEither a) b
+anfrageAktualisierenZugtyp
+    :: (MitAnfrageZugtyp a) => EingabeToken -> AnfrageFortsetzung (AnfrageZugtypEither a) b
 anfrageAktualisierenZugtyp token =
-    wähleZwischenwert token [(Lexer.Märklin, AnfrageMärklin anfrageMärklin), (Lexer.Lego, AnfrageLego anfrageLego)]
+    wähleZwischenwert
+        token
+        [(Lexer.Märklin, AnfrageMärklin anfrageMärklin), (Lexer.Lego, AnfrageLego anfrageLego)]
 
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
@@ -176,8 +184,10 @@ instance Anzeige StatusAnfrageObjekt where
 
 instance Anfrage StatusAnfrageObjekt where
     zeigeAnfrage :: StatusAnfrageObjekt -> Sprache -> Text
-    zeigeAnfrage (SAOBahngeschwindigkeit _token) = Language.indexOderName $# Language.bahngeschwindigkeit
-    zeigeAnfrage (SAOStreckenabschnitt _token) = Language.indexOderName $# Language.streckenabschnitt
+    zeigeAnfrage (SAOBahngeschwindigkeit _token) =
+        Language.indexOderName $# Language.bahngeschwindigkeit
+    zeigeAnfrage (SAOStreckenabschnitt _token) =
+        Language.indexOderName $# Language.streckenabschnitt
     zeigeAnfrage (SAOWeiche _token) = Language.indexOderName $# Language.weiche
     zeigeAnfrage (SAOKupplung _token) = Language.indexOderName $# Language.kupplung
     zeigeAnfrage (SAOWegstrecke _token) = Language.indexOderName $# Language.wegstrecke
@@ -189,9 +199,12 @@ statusAnfrageObjekt (SAOBahngeschwindigkeit eingabe) =
     statusAnfrageObjektAux eingabe getBahngeschwindigkeiten $ Just . OBahngeschwindigkeit
 statusAnfrageObjekt (SAOStreckenabschnitt eingabe) =
     statusAnfrageObjektAux eingabe getStreckenabschnitte $ Just . OStreckenabschnitt
-statusAnfrageObjekt (SAOWeiche eingabe) = statusAnfrageObjektAux eingabe getWeichen $ Just . OWeiche
-statusAnfrageObjekt (SAOKupplung eingabe) = statusAnfrageObjektAux eingabe getKupplungen $ Just . OKupplung
-statusAnfrageObjekt (SAOWegstrecke eingabe) = statusAnfrageObjektAux eingabe getWegstrecken $ Just . OWegstrecke
+statusAnfrageObjekt (SAOWeiche eingabe) =
+    statusAnfrageObjektAux eingabe getWeichen $ Just . OWeiche
+statusAnfrageObjekt (SAOKupplung eingabe) =
+    statusAnfrageObjektAux eingabe getKupplungen $ Just . OKupplung
+statusAnfrageObjekt (SAOWegstrecke eingabe) =
+    statusAnfrageObjektAux eingabe getWegstrecken $ Just . OWegstrecke
 statusAnfrageObjekt (SAOPlan eingabe) = statusAnfrageObjektAux eingabe getPläne $ Just . OPlan
 
 -- | Ein Objekt mit bestimmten Zugtyp
@@ -242,31 +255,40 @@ instance Anzeige (StatusAnfrageObjektZugtyp z) where
 
 instance Anfrage (StatusAnfrageObjektZugtyp z) where
     zeigeAnfrage :: StatusAnfrageObjektZugtyp z -> Sprache -> Text
-    zeigeAnfrage (SAOZBahngeschwindigkeit _token) = Language.indexOderName $# Language.bahngeschwindigkeit
-    zeigeAnfrage (SAOZStreckenabschnitt _token) = Language.indexOderName $# Language.streckenabschnitt
+    zeigeAnfrage (SAOZBahngeschwindigkeit _token) =
+        Language.indexOderName $# Language.bahngeschwindigkeit
+    zeigeAnfrage (SAOZStreckenabschnitt _token) =
+        Language.indexOderName $# Language.streckenabschnitt
     zeigeAnfrage (SAOZWeiche _token) = Language.indexOderName $# Language.weiche
     zeigeAnfrage (SAOZKupplung _token) = Language.indexOderName $# Language.kupplung
     zeigeAnfrage (SAOZWegstrecke _token) = Language.indexOderName $# Language.wegstrecke
     zeigeAnfrage (SAOZPlan _token) = Language.indexOderName $# Language.plan
 
 -- | Erhalte ein im Status existierendes Objekt mit bestimmten Zugtyp
-statusAnfrageObjektZugtyp
-    :: (Monad m, ZugtypKlasse z) => StatusAnfrageObjektZugtyp z -> MStatusT m (Either Text (ObjektZugtyp z))
+statusAnfrageObjektZugtyp :: (Monad m, ZugtypKlasse z)
+                          => StatusAnfrageObjektZugtyp z
+                          -> MStatusT m (Either Text (ObjektZugtyp z))
 statusAnfrageObjektZugtyp (SAOZBahngeschwindigkeit eingabe) =
-    statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten) $ fmap OZBahngeschwindigkeit
+    statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getBahngeschwindigkeiten)
+    $ fmap OZBahngeschwindigkeit
 statusAnfrageObjektZugtyp (SAOZStreckenabschnitt eingabe) =
     statusAnfrageObjektAux eingabe getStreckenabschnitte $ Just . OZStreckenabschnitt
 statusAnfrageObjektZugtyp (SAOZWeiche eingabe) =
     statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getWeichen) $ fmap OZWeiche
-statusAnfrageObjektZugtyp (SAOZKupplung eingabe) = statusAnfrageObjektAux eingabe getKupplungen $ Just . OZKupplung
+statusAnfrageObjektZugtyp (SAOZKupplung eingabe) =
+    statusAnfrageObjektAux eingabe getKupplungen $ Just . OZKupplung
 statusAnfrageObjektZugtyp (SAOZWegstrecke eingabe) =
     statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getWegstrecken) $ fmap OZWegstrecke
-statusAnfrageObjektZugtyp (SAOZPlan eingabe) = statusAnfrageObjektAux eingabe getPläne $ Just . OZPlan
+statusAnfrageObjektZugtyp (SAOZPlan eingabe) =
+    statusAnfrageObjektAux eingabe getPläne $ Just . OZPlan
 
 -- Hilfsfunktion
 -- | Finde ein Objekt anhand seines Namens/Indizes
-statusAnfrageObjektAux
-    :: (Monad m, StreckenObjekt a) => EingabeToken -> MStatusT m [a] -> (a -> Maybe o) -> MStatusT m (Either Text o)
+statusAnfrageObjektAux :: (Monad m, StreckenObjekt a)
+                       => EingabeToken
+                       -> MStatusT m [a]
+                       -> (a -> Maybe o)
+                       -> MStatusT m (Either Text o)
 statusAnfrageObjektAux token@EingabeToken {eingabe} getFromStatus konstruktor = do
     objekte <- getFromStatus
     pure $ case findByNameOrIndex objekte token >>= konstruktor of
@@ -299,10 +321,10 @@ wähleRichtung :: EingabeToken -> Maybe Richtung
 wähleRichtung token =
     wähleBefehl
         token
-        [ (Lexer.Gerade, Just Gerade)
-        , (Lexer.Kurve, Just Kurve)
-        , (Lexer.Links, Just Links)
-        , (Lexer.Rechts, Just Rechts)]
+        [(Lexer.Gerade, Just Gerade),
+         (Lexer.Kurve, Just Kurve),
+         (Lexer.Links, Just Links),
+         (Lexer.Rechts, Just Rechts)]
         Nothing
 
 -- | Gebe (falls möglich) den zur Eingabe passenden 'Value' zurück.
@@ -325,16 +347,16 @@ data AnfrageFortsetzung a e
           { unbekannteEingabe :: Text
           }
     | AFStatusAnfrage
-          { anfrageObjekt :: StatusAnfrageObjekt
-          , konstruktor :: Objekt -> AnfrageFortsetzung a e
+          { anfrageObjekt :: StatusAnfrageObjekt,
+            konstruktor :: Objekt -> AnfrageFortsetzung a e
           }
     | AFStatusAnfrageMärklin
-          { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin
-          , konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e
+          { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin,
+            konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e
           }
     | AFStatusAnfrageLego
-          { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego
-          , konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageFortsetzung a e
+          { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego,
+            konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageFortsetzung a e
           }
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
@@ -348,28 +370,37 @@ wähleErgebnis token@EingabeToken {eingabe} liste =
     wähleBefehl token (map (\(t, e) -> (t, AFErgebnis e)) liste) $ AFFehler eingabe
 
 -- | Komposition zweier Funktionen, die ein 'AnfrageFortsetzung' zurückgeben.
-verwendeAnfrageFortsetzung
-    :: (e -> AnfrageFortsetzung b f) -> (a -> b) -> AnfrageFortsetzung a e -> AnfrageFortsetzung b f
-verwendeAnfrageFortsetzung wertFunktion _anfrageFunktion AFErgebnis {ergebnis} = wertFunktion ergebnis
+verwendeAnfrageFortsetzung :: (e -> AnfrageFortsetzung b f)
+                           -> (a -> b)
+                           -> AnfrageFortsetzung a e
+                           -> AnfrageFortsetzung b f
+verwendeAnfrageFortsetzung wertFunktion _anfrageFunktion AFErgebnis {ergebnis} =
+    wertFunktion ergebnis
 verwendeAnfrageFortsetzung _wertFunktion anfrageFunktion AFZwischenwert {anfrage} =
     AFZwischenwert $ anfrageFunktion anfrage
-verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrage {anfrageObjekt, konstruktor} =
+verwendeAnfrageFortsetzung
+    wertFunktion
+    anfrageFunktion
+    AFStatusAnfrage {anfrageObjekt, konstruktor} =
     AFStatusAnfrage
-    { anfrageObjekt
-    , konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor
+    { anfrageObjekt,
+      konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor
     }
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
     AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} =
     AFStatusAnfrageMärklin
-    { anfrageObjektMärklin
-    , konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin
+    { anfrageObjektMärklin,
+      konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin
     }
-verwendeAnfrageFortsetzung wertFunktion anfrageFunktion AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} =
+verwendeAnfrageFortsetzung
+    wertFunktion
+    anfrageFunktion
+    AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} =
     AFStatusAnfrageLego
-    { anfrageObjektLego
-    , konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego
+    { anfrageObjektLego,
+      konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego
     }
 verwendeAnfrageFortsetzung _wertFunktion _anfrageFunktion AFFehler {unbekannteEingabe} =
     AFFehler
@@ -387,5 +418,11 @@ infixr 0 $<<
 infixr 9 .<<
 
 -- | Verkette zwei Funktionen, die als Ergebnis eine 'AnfrageFortsetzung' haben.
-(.<<) :: (e -> AnfrageFortsetzung b f, a -> b) -> (o -> AnfrageFortsetzung a e) -> (o -> AnfrageFortsetzung b f)
+(.<<) :: (e
+              -> AnfrageFortsetzung b f,
+          a
+              -> b
+         )
+      -> (o -> AnfrageFortsetzung a e)
+      -> (o -> AnfrageFortsetzung b f)
 funktionen .<< konstruktor = \o -> funktionen $<< konstruktor o

@@ -160,7 +160,8 @@ module Zug.Language
   , (<!>)
   , (<°>)
   , (<\>)
-  , (<#>)) where
+  , (<#>)
+  ) where
 
 -- Bibliotheken
 import Data.Semigroup (Semigroup(..))
@@ -329,10 +330,14 @@ aktionGesperrt Englisch = aktion <~> ("blocked" :: Text) $ Englisch
 -- | ausführen <~> "blocked" <!> "Pins" <~> /s/ <~> "are already in use."
 ausführenGesperrt :: Sprache -> Text -> Text
 ausführenGesperrt Deutsch s =
-    ausführen <~> ("gesperrt" :: Text) <!> ("Die Pins" :: Text) <~> s <~> ("werden bereits verwendet." :: Text)
+    ausführen
+    <~> ("gesperrt" :: Text)
+    <!> ("Die Pins" :: Text) <~> s <~> ("werden bereits verwendet." :: Text)
     $ Deutsch
 ausführenGesperrt Englisch s =
-    ausführen <~> ("blocked" :: Text) <!> ("Pins" :: Text) <~> s <~> ("are already in use." :: Text) $ Englisch
+    ausführen
+    <~> ("blocked" :: Text) <!> ("Pins" :: Text) <~> s <~> ("are already in use." :: Text)
+    $ Englisch
 
 -- | Wait
 warten :: Sprache -> Text
@@ -703,7 +708,8 @@ befehlObjekte sprache = [wegstrecke sprache] <> befehlWegstreckenElemente sprach
 
 -- | All supported Orders, classified by a train collection element
 befehlWegstreckenElemente :: Sprache -> [Text]
-befehlWegstreckenElemente sprache = map ($ sprache) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
+befehlWegstreckenElemente sprache =
+    map ($ sprache) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
 
 -- | All supported actions
 aktionGruppen :: Sprache -> [Text]

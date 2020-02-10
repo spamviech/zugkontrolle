@@ -28,7 +28,8 @@ module Zug.UI.StatusVar
   , auswertenStatusVarMStatusT
   , ausführenStatusVarBefehl
   , ausführenStatusVarPlan
-  , ausführenStatusVarAktion) where
+  , ausführenStatusVarAktion
+  ) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (STM, atomically, TVar, readTVar, writeTVar, retry, newTVarIO)
@@ -43,8 +44,8 @@ import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache())
 import Zug.Objekt (ObjektKlasse(..))
 import Zug.Plan (PlanKlasse(..), AktionKlasse(..))
-import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT, ReaderFamilie
-                  , ObjektReader(), MitTVarMaps(), liftIOStatus)
+import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT
+                  , ReaderFamilie, ObjektReader(), MitTVarMaps(), liftIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..))
 
 -- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält
@@ -103,11 +104,13 @@ instance (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m where
     erhalteStatusVar = asks statusVar
 
 -- | Führe 'IO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
-auswertenStatusVarIOStatus :: (ObjektReader o m, MonadIO m) => IOStatusAllgemein o a -> StatusVar o -> m a
+auswertenStatusVarIOStatus
+    :: (ObjektReader o m, MonadIO m) => IOStatusAllgemein o a -> StatusVar o -> m a
 auswertenStatusVarIOStatus action = auswertenStatusVarMStatusT $ liftIOStatus action
 
 -- | Führe 'MonadIO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
-auswertenStatusVarMStatusT :: (ObjektReader o m, MonadIO m) => MStatusAllgemeinT m o a -> StatusVar o -> m a
+auswertenStatusVarMStatusT
+    :: (ObjektReader o m, MonadIO m) => MStatusAllgemeinT m o a -> StatusVar o -> m a
 auswertenStatusVarMStatusT action statusVar = do
     reader <- ask
     status0 <- liftIO $ atomically $ takeStatusVar statusVar
@@ -116,7 +119,8 @@ auswertenStatusVarMStatusT action statusVar = do
     pure a
 
 -- | Führe Aktion mit 'StatusAllgemein' in 'StatusVar' aus
-auswertenStatusVarMStatus :: (ObjektReader o m, MonadIO m) => MStatusAllgemein o a -> StatusVar o -> m a
+auswertenStatusVarMStatus
+    :: (ObjektReader o m, MonadIO m) => MStatusAllgemein o a -> StatusVar o -> m a
 auswertenStatusVarMStatus action statusVar = do
     reader <- ask
     liftIO $ atomically $ do
@@ -126,40 +130,44 @@ auswertenStatusVarMStatus action statusVar = do
         pure a
 
 -- | Führe einen Plan mit einem in einer 'StatusVar' gespeichertem Zustand aus
-ausführenStatusVarPlan :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o))
-                        => PL o
-                        -> (Natural -> IO ())
-                        -> IO ()
-                        -> StatusVar o
-                        -> m ()
+ausführenStatusVarPlan
+    :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o))
+    => PL o
+    -> (Natural -> IO ())
+    -> IO ()
+    -> StatusVar o
+    -> m ()
 ausführenStatusVarPlan plan showAktion endAktion =
     auswertenStatusVarIOStatus $ ausführenPlan plan showAktion endAktion
 
 -- | Führe eine Aktion mit einem in einer 'StatusVar' gespeichertem Zustand aus
-ausführenStatusVarAktion :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o))
-                          => a
-                          -> StatusVar o
-                          -> m ()
+ausführenStatusVarAktion
+    :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o))
+    => a
+    -> StatusVar o
+    -> m ()
 ausführenStatusVarAktion aktion = auswertenStatusVarIOStatus $ ausführenAktion aktion
 
 -- | Führe einen Befehl mit einem in einer 'StatusVar' gespeichertem Zustand aus
-ausführenStatusVarBefehl :: ( ObjektReader o m
-                             , MonadIO m
-                             , BefehlKlasse b o
-                             , ObjektKlasse o
-                             , ToJSON o
-                             , Eq ((BG o) 'Märklin)
-                             , Eq ((BG o) 'Lego)
-                             , Eq (ST o)
-                             , Eq ((WE o) 'Märklin)
-                             , Eq ((WE o) 'Lego)
-                             , Eq (KU o)
-                             , Eq ((WS o) 'Märklin)
-                             , Eq ((WS o) 'Lego)
-                             , Eq (PL o)
-                             , MitSprache (SP o)
-                             , MitTVarMaps (ReaderFamilie o))
-                          => b o
-                          -> StatusVar o
-                          -> m Bool
+ausführenStatusVarBefehl
+    :: (ObjektReader o m,
+        MonadIO m,
+        BefehlKlasse b o,
+        ObjektKlasse o,
+        ToJSON o,
+        Eq ((BG o) 'Märklin),
+        Eq ((BG o) 'Lego),
+        Eq (ST o),
+        Eq ((WE o) 'Märklin),
+        Eq ((WE o) 'Lego),
+        Eq (KU o),
+        Eq ((WS o) 'Märklin),
+        Eq ((WS o) 'Lego),
+        Eq (PL o),
+        MitSprache (SP o),
+        MitTVarMaps (ReaderFamilie o)
+       )
+    => b o
+    -> StatusVar o
+    -> m Bool
 ausführenStatusVarBefehl befehl = auswertenStatusVarIOStatus $ ausführenBefehl befehl

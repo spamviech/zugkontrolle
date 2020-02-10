@@ -7,7 +7,16 @@ Description : Ungeordnete Mengen.
 Mengen enthalten jedes Element höchstens einmal.
 Die Implementierung ist nicht effizient, dafür werden keine weiteren Anforderungen an die Elemente gestellt.
 -}
-module Zug.Menge (Menge(), leer, ausFoldable, hinzufügen, entfernen, mitglied, vereinigung, schnittmenge) where
+module Zug.Menge
+  ( Menge()
+  , leer
+  , ausFoldable
+  , hinzufügen
+  , entfernen
+  , mitglied
+  , vereinigung
+  , schnittmenge
+  ) where
 
 -- Bibliotheken
 import Data.Foldable (Foldable(..))
@@ -27,7 +36,8 @@ instance (Show a) => Show (Menge a) where
 
 instance (Anzeige a) => Anzeige (Menge a) where
     anzeige :: Menge a -> Sprache -> Text
-    anzeige (Menge liste) = ("{" :: Text) <#> Text.init . Text.tail . anzeige liste <#> ("}" :: Text)
+    anzeige (Menge liste) =
+        ("{" :: Text) <#> Text.init . Text.tail . anzeige liste <#> ("}" :: Text)
 
 instance Foldable Menge where
     foldMap :: Monoid m => (a -> m) -> Menge a -> m

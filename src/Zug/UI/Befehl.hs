@@ -21,7 +21,8 @@ module Zug.UI.Befehl
   , BefehlListe
   , BefehlListeAllgemein(..)
   , UIBefehl
-  , UIBefehlAllgemein(..)) where
+  , UIBefehlAllgemein(..)
+  ) where
 
 import Control.Concurrent.STM (atomically, writeTVar, modifyTVar)
 -- Bibliotheken
@@ -36,12 +37,14 @@ import Zug.Enums (Zugtyp(..))
 import Zug.Language (Sprache(), MitSprache(..))
 import Zug.Menge (entfernen)
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
-import Zug.Plan (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
-import Zug.UI.Base (StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ReaderFamilie, TVarMaps(..)
-                  , MitTVarMaps(), TVarMapsReader(..), liftIOStatus, hinzufügenPlan, entfernenPlan
-                  , hinzufügenWegstrecke, entfernenWegstrecke, hinzufügenWeiche, entfernenWeiche
-                  , hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit, hinzufügenStreckenabschnitt
-                  , entfernenStreckenabschnitt, hinzufügenKupplung, entfernenKupplung, getSprache, putSprache)
+import Zug.Plan
+       (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
+import Zug.UI.Base
+       (StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ReaderFamilie, TVarMaps(..)
+      , MitTVarMaps(), TVarMapsReader(..), liftIOStatus, hinzufügenPlan, entfernenPlan
+      , hinzufügenWegstrecke, entfernenWegstrecke, hinzufügenWeiche, entfernenWeiche
+      , hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit, hinzufügenStreckenabschnitt
+      , entfernenStreckenabschnitt, hinzufügenKupplung, entfernenKupplung, getSprache, putSprache)
 import qualified Zug.UI.Save as Save
 
 -- | Ausführen eines Befehls
@@ -81,19 +84,20 @@ instance BefehlKlasse UIBefehlAllgemein o where
     ausführenBefehl Beenden = pure True
     ausführenBefehl Abbrechen = pure False
 
-instance ( ObjektKlasse o
-         , ToJSON o
-         , Eq ((BG o) 'Märklin)
-         , Eq ((BG o) 'Lego)
-         , Eq (ST o)
-         , Eq ((WE o) 'Märklin)
-         , Eq ((WE o) 'Lego)
-         , Eq (KU o)
-         , Eq ((WS o) 'Märklin)
-         , Eq ((WS o) 'Lego)
-         , Eq (PL o)
-         , MitSprache (SP o)
-         , MitTVarMaps (ReaderFamilie o)) => BefehlKlasse BefehlAllgemein o where
+instance (ObjektKlasse o,
+          ToJSON o,
+          Eq ((BG o) 'Märklin),
+          Eq ((BG o) 'Lego),
+          Eq (ST o),
+          Eq ((WE o) 'Märklin),
+          Eq ((WE o) 'Lego),
+          Eq (KU o),
+          Eq ((WS o) 'Märklin),
+          Eq ((WS o) 'Lego),
+          Eq (PL o),
+          MitSprache (SP o),
+          MitTVarMaps (ReaderFamilie o)
+         ) => BefehlKlasse BefehlAllgemein o where
     ausführenBefehl :: (MonadIO m) => BefehlAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl befehl = ausführenBefehlAux befehl >> pure (istBeenden befehl)
         where
@@ -103,20 +107,21 @@ instance ( ObjektKlasse o
 
             ausführenBefehlAux
                 :: forall o m.
-                ( ObjektKlasse o
-                , ToJSON o
-                , Eq ((BG o) 'Märklin)
-                , Eq ((BG o) 'Lego)
-                , Eq (ST o)
-                , Eq ((WE o) 'Märklin)
-                , Eq ((WE o) 'Lego)
-                , Eq (KU o)
-                , Eq ((WS o) 'Märklin)
-                , Eq ((WS o) 'Lego)
-                , Eq (PL o)
-                , MitSprache (SP o)
-                , MitTVarMaps (ReaderFamilie o)
-                , MonadIO m)
+                (ObjektKlasse o,
+                 ToJSON o,
+                 Eq ((BG o) 'Märklin),
+                 Eq ((BG o) 'Lego),
+                 Eq (ST o),
+                 Eq ((WE o) 'Märklin),
+                 Eq ((WE o) 'Lego),
+                 Eq (KU o),
+                 Eq ((WS o) 'Märklin),
+                 Eq ((WS o) 'Lego),
+                 Eq (PL o),
+                 MitSprache (SP o),
+                 MitTVarMaps (ReaderFamilie o),
+                 MonadIO m
+                )
                 => BefehlAllgemein o
                 -> MStatusAllgemeinT m o ()
             ausführenBefehlAux (UI _uiAction) = pure ()
@@ -125,23 +130,29 @@ instance ( ObjektKlasse o
                 (OPlan plan) -> hinzufügenPlan plan
                 (OWegstrecke wegstrecke) -> hinzufügenWegstrecke wegstrecke
                 (OWeiche weiche) -> hinzufügenWeiche weiche
-                (OBahngeschwindigkeit bahngeschwindigkeit) -> hinzufügenBahngeschwindigkeit bahngeschwindigkeit
-                (OStreckenabschnitt streckenabschnitt) -> hinzufügenStreckenabschnitt streckenabschnitt
+                (OBahngeschwindigkeit bahngeschwindigkeit)
+                    -> hinzufügenBahngeschwindigkeit bahngeschwindigkeit
+                (OStreckenabschnitt streckenabschnitt)
+                    -> hinzufügenStreckenabschnitt streckenabschnitt
                 (OKupplung kupplung) -> hinzufügenKupplung kupplung
             ausführenBefehlAux (Entfernen objekt) = case erhalteObjekt objekt of
                 (OPlan plan) -> entfernenPlan plan
                 (OWegstrecke wegstrecke) -> entfernenWegstrecke wegstrecke
                 (OWeiche weiche) -> entfernenWeiche weiche
-                (OBahngeschwindigkeit bahngeschwindigkeit) -> entfernenBahngeschwindigkeit bahngeschwindigkeit
-                (OStreckenabschnitt streckenabschnitt) -> entfernenStreckenabschnitt streckenabschnitt
+                (OBahngeschwindigkeit bahngeschwindigkeit)
+                    -> entfernenBahngeschwindigkeit bahngeschwindigkeit
+                (OStreckenabschnitt streckenabschnitt)
+                    -> entfernenStreckenabschnitt streckenabschnitt
                 (OKupplung kupplung) -> entfernenKupplung kupplung
-            ausführenBefehlAux (Speichern dateipfad) = RWS.get >>= liftIO . flip Save.speichern dateipfad
+            ausführenBefehlAux (Speichern dateipfad) =
+                RWS.get >>= liftIO . flip Save.speichern dateipfad
             ausführenBefehlAux (Laden dateipfad erfolgsAktion fehlerbehandlung) = do
                 mitSprache <- getSprache
                 reader <- RWS.ask
                 state0 <- RWS.get
                 let erfolgsIO :: Status -> IO (StatusAllgemein o)
-                    erfolgsIO statusNeu = fst <$> RWS.execRWST (erfolgsAktion statusNeu) reader state0
+                    erfolgsIO statusNeu =
+                        fst <$> RWS.execRWST (erfolgsAktion statusNeu) reader state0
                 liftIO (flip leseSprache mitSprache $ Save.laden dateipfad erfolgsIO) >>= \case
                     Nothing -> liftIOStatus fehlerbehandlung
                     (Just statusNeu) -> do
@@ -168,37 +179,39 @@ newtype BefehlListeAllgemein o =
 -- | 'BefehlListeAllgemein' spezialisiert auf 'Objekt'
 type BefehlListe = BefehlListeAllgemein Objekt
 
-instance ( ObjektKlasse o
-         , ToJSON o
-         , Eq ((BG o) 'Märklin)
-         , Eq ((BG o) 'Lego)
-         , Eq (ST o)
-         , Eq ((WE o) 'Märklin)
-         , Eq ((WE o) 'Lego)
-         , Eq (KU o)
-         , Eq ((WS o) 'Märklin)
-         , Eq ((WS o) 'Lego)
-         , Eq (PL o)
-         , MitSprache (SP o)
-         , MitTVarMaps (ReaderFamilie o)) => BefehlKlasse BefehlListeAllgemein o where
+instance (ObjektKlasse o,
+          ToJSON o,
+          Eq ((BG o) 'Märklin),
+          Eq ((BG o) 'Lego),
+          Eq (ST o),
+          Eq ((WE o) 'Märklin),
+          Eq ((WE o) 'Lego),
+          Eq (KU o),
+          Eq ((WS o) 'Märklin),
+          Eq ((WS o) 'Lego),
+          Eq (PL o),
+          MitSprache (SP o),
+          MitTVarMaps (ReaderFamilie o)
+         ) => BefehlKlasse BefehlListeAllgemein o where
     ausführenBefehl :: (MonadIO m) => BefehlListeAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
             ausführenBefehlAux
-                :: ( ObjektKlasse o
-                   , ToJSON o
-                   , Eq ((BG o) 'Märklin)
-                   , Eq ((BG o) 'Lego)
-                   , Eq (ST o)
-                   , Eq ((WE o) 'Märklin)
-                   , Eq ((WE o) 'Lego)
-                   , Eq (KU o)
-                   , Eq ((WS o) 'Märklin)
-                   , Eq ((WS o) 'Lego)
-                   , Eq (PL o)
-                   , MitSprache (SP o)
-                   , MitTVarMaps (ReaderFamilie o)
-                   , MonadIO m)
+                :: (ObjektKlasse o,
+                    ToJSON o,
+                    Eq ((BG o) 'Märklin),
+                    Eq ((BG o) 'Lego),
+                    Eq (ST o),
+                    Eq ((WE o) 'Märklin),
+                    Eq ((WE o) 'Lego),
+                    Eq (KU o),
+                    Eq ((WS o) 'Märklin),
+                    Eq ((WS o) 'Lego),
+                    Eq (PL o),
+                    MitSprache (SP o),
+                    MitTVarMaps (ReaderFamilie o),
+                    MonadIO m
+                   )
                 => [BefehlAllgemein o]
                 -> MStatusAllgemeinT m o Bool
             ausführenBefehlAux [] = pure False

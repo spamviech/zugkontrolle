@@ -3,7 +3,13 @@
 {-|
 Description : Umwandeln einer Text-Eingabe in Token.
 -}
-module Zug.UI.Cmd.Lexer (lexer, Token(..), leeresToken, EingabeTokenAllgemein(..), EingabeToken(..)) where
+module Zug.UI.Cmd.Lexer
+  ( lexer
+  , Token(..)
+  , leeresToken
+  , EingabeTokenAllgemein(..)
+  , EingabeToken(..)
+  ) where
 
 import qualified Data.Text as Text
 import Data.Text (Text, unpack)
@@ -26,54 +32,54 @@ lexEinen eingabe
 lexEinen eingabe =
     Tk
     $ EingabeToken
-    { eingabe
-    , möglichkeiten = [token | (befehl, token) <- befehlToken, istBefehl eingabe befehl]
-    , ganzzahl = readMaybe $ unpack eingabe
+    { eingabe,
+      möglichkeiten = [token | (befehl, token) <- befehlToken, istBefehl eingabe befehl],
+      ganzzahl = readMaybe $ unpack eingabe
     }
     where
         befehlToken :: [(Sprache -> Text, Token)]
         befehlToken =
-            [ (Language.beenden, Beenden)
-            , (Language.abbrechen, Abbrechen)
-            , (Language.rückgängig, Rückgängig)
-            , (Language.hinzufügen, Hinzufügen)
-            , (Language.entfernen, Entfernen)
-            , (Language.speichern, Speichern)
-            , (Language.laden, Laden)
-            , (Language.geschwindigkeit, Geschwindigkeit)
-            , (Language.umdrehen, Umdrehen)
-            , (Language.fahrtrichtungEinstellen, FahrtrichtungEinstellen)
-            , (Language.stellen, Stellen)
-            , (Language.strom, Strom)
-            , (Language.fließend, Fließend)
-            , (Language.gesperrt, Gesperrt)
-            , (Language.an, An)
-            , (Language.aus, Aus)
-            , (Language.kuppeln, Kuppeln)
-            , (Language.einstellen, Einstellen)
-            , (Language.ausführen, Ausführen)
-            , (Language.ausführenAbbrechen, AusführenAbbrechen)
-            , (Language.warten, Warten)
-            , (Language.plan, Plan)
-            , (Language.wegstrecke, Wegstrecke)
-            , (Language.weiche, Weiche)
-            , (Language.bahngeschwindigkeit, Bahngeschwindigkeit)
-            , (Language.streckenabschnitt, Streckenabschnitt)
-            , (Language.kupplung, Kupplung)
-            , (Language.märklin, Märklin)
-            , (Language.lego, Lego)
-            , (Language.pin, Pin)
-            , (Language.pcf8574Port, PCF8574Port)
-            , (Language.normal, Normal)
-            , (Language.a, A)
-            , (Language.gerade, Gerade)
-            , (Language.kurve, Kurve)
-            , (Language.links, Links)
-            , (Language.rechts, Rechts)
-            , (Language.vorwärts, Vorwärts)
-            , (Language.rückwärts, Rückwärts)
-            , (Language.high, HIGH)
-            , (Language.low, LOW)]
+            [(Language.beenden, Beenden),
+             (Language.abbrechen, Abbrechen),
+             (Language.rückgängig, Rückgängig),
+             (Language.hinzufügen, Hinzufügen),
+             (Language.entfernen, Entfernen),
+             (Language.speichern, Speichern),
+             (Language.laden, Laden),
+             (Language.geschwindigkeit, Geschwindigkeit),
+             (Language.umdrehen, Umdrehen),
+             (Language.fahrtrichtungEinstellen, FahrtrichtungEinstellen),
+             (Language.stellen, Stellen),
+             (Language.strom, Strom),
+             (Language.fließend, Fließend),
+             (Language.gesperrt, Gesperrt),
+             (Language.an, An),
+             (Language.aus, Aus),
+             (Language.kuppeln, Kuppeln),
+             (Language.einstellen, Einstellen),
+             (Language.ausführen, Ausführen),
+             (Language.ausführenAbbrechen, AusführenAbbrechen),
+             (Language.warten, Warten),
+             (Language.plan, Plan),
+             (Language.wegstrecke, Wegstrecke),
+             (Language.weiche, Weiche),
+             (Language.bahngeschwindigkeit, Bahngeschwindigkeit),
+             (Language.streckenabschnitt, Streckenabschnitt),
+             (Language.kupplung, Kupplung),
+             (Language.märklin, Märklin),
+             (Language.lego, Lego),
+             (Language.pin, Pin),
+             (Language.pcf8574Port, PCF8574Port),
+             (Language.normal, Normal),
+             (Language.a, A),
+             (Language.gerade, Gerade),
+             (Language.kurve, Kurve),
+             (Language.links, Links),
+             (Language.rechts, Rechts),
+             (Language.vorwärts, Vorwärts),
+             (Language.rückwärts, Rückwärts),
+             (Language.high, HIGH),
+             (Language.low, LOW)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
 data EingabeTokenAllgemein
@@ -85,9 +91,9 @@ data EingabeTokenAllgemein
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken =
     EingabeToken
-    { eingabe :: Text
-    , möglichkeiten :: [Token]
-    , ganzzahl :: Maybe Natural
+    { eingabe :: Text,
+      möglichkeiten :: [Token],
+      ganzzahl :: Maybe Natural
     }
     deriving (Eq, Show)
 
@@ -95,9 +101,9 @@ data EingabeToken =
 leeresToken :: EingabeToken
 leeresToken =
     EingabeToken
-    { eingabe = Text.pack ""
-    , möglichkeiten = []
-    , ganzzahl = Nothing
+    { eingabe = Text.pack "",
+      möglichkeiten = [],
+      ganzzahl = Nothing
     }
 
 -- | Bekannte Befehle
@@ -158,8 +164,10 @@ istBefehl = istPrefix
 
 -- | Teste auf Prefix-Eigenschaft ohne Berücksichtigung von Groß-/Klein-Schreibung
 istPrefix :: Text -> (Sprache -> Text) -> Bool
-istPrefix eingabe befehl = any (Text.isPrefixOf (Text.toCaseFold eingabe) . Text.toCaseFold . befehl) alleSprachen
+istPrefix eingabe befehl =
+    any (Text.isPrefixOf (Text.toCaseFold eingabe) . Text.toCaseFold . befehl) alleSprachen
 
 -- | Teste auf Gleichheit ohne Berücksichtigung von Groß-/Klein-Schreibung
 istGleich :: Text -> (Sprache -> Text) -> Bool
-istGleich eingabe befehl = any (\sprache -> Text.toCaseFold eingabe == Text.toCaseFold (befehl sprache)) alleSprachen
+istGleich eingabe befehl =
+    any (\sprache -> Text.toCaseFold eingabe == Text.toCaseFold (befehl sprache)) alleSprachen

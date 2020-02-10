@@ -58,8 +58,8 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
 data FortfahrenWennToggled =
     FortfahrenWennToggled
-    { fortfahren :: Gtk.Button
-    , checkButtonsRec :: NonEmpty RegistrierterCheckButton
+    { fortfahren :: Gtk.Button,
+      checkButtonsRec :: NonEmpty RegistrierterCheckButton
     }
     deriving (Eq)
 
@@ -83,22 +83,25 @@ instance MitButton FortfahrenWennToggled where
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-fortfahrenWennToggledNew :: (SpracheGuiReader r m, MonadIO m)
-                         => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                         -> (Sprache -> Text)
-                         -> NonEmpty (Sprache -> Text)
-                         -> m FortfahrenWennToggled
+fortfahrenWennToggledNew
+    :: (SpracheGuiReader r m, MonadIO m)
+    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> NonEmpty (Sprache -> Text)
+    -> m FortfahrenWennToggled
 fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
     fortfahren <- liftIO Gtk.buttonNew
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set fortfahren [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.set fortfahren [Gtk.buttonLabel := label sprache]
     checkButtonsRec <- forM checkButtonNames $ \name -> do
         checkButton <- liftIO $ widgetShowNew Gtk.checkButtonNew
-        verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := name sprache]
+        verwendeSpracheGui maybeTVar
+            $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := name sprache]
         pure $ RegistrierterCheckButton checkButton
     let fortfahrenWennToggled =
             FortfahrenWennToggled
-            { fortfahren
-            , checkButtonsRec
+            { fortfahren,
+              checkButtonsRec
             }
     liftIO $ forM_ checkButtonsRec $ \(RegistrierterCheckButton checkButton)
         -> Gtk.on checkButton Gtk.toggled $ aktiviereWennToggled fortfahrenWennToggled
@@ -107,13 +110,16 @@ fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
 
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggled :: (MonadIO m) => FortfahrenWennToggled -> m ()
-aktiviereWennToggled
-    FortfahrenWennToggled {fortfahren, checkButtonsRec} = aktiviereWennToggledAux fortfahren checkButtonsRec
+aktiviereWennToggled FortfahrenWennToggled {fortfahren, checkButtonsRec} =
+    aktiviereWennToggledAux fortfahren checkButtonsRec
 
-aktiviereWennToggledAux :: (Foldable f, MitRegistrierterCheckButton c, MonadIO m) => Gtk.Button -> f c -> m ()
-aktiviereWennToggledAux button foldable = liftIO $ foldM_ (aktiviereWennToggledCheckButton button) False foldable
+aktiviereWennToggledAux
+    :: (Foldable f, MitRegistrierterCheckButton c, MonadIO m) => Gtk.Button -> f c -> m ()
+aktiviereWennToggledAux button foldable =
+    liftIO $ foldM_ (aktiviereWennToggledCheckButton button) False foldable
     where
-        aktiviereWennToggledCheckButton :: (MitRegistrierterCheckButton c) => Gtk.Button -> Bool -> c -> IO Bool
+        aktiviereWennToggledCheckButton
+            :: (MitRegistrierterCheckButton c) => Gtk.Button -> Bool -> c -> IO Bool
         aktiviereWennToggledCheckButton _button True _c = pure True
         aktiviereWennToggledCheckButton button False c = do
             toggled <- registrierterCheckButtonToggled $ erhalteRegistrierterCheckButton c
@@ -125,10 +131,10 @@ aktiviereWennToggledAux button foldable = liftIO $ foldM_ (aktiviereWennToggledC
 -- Die 'CheckButtons' sind dabei in einer in 'IO' lesbaren Variablen /v/ gespeichert.
 data FortfahrenWennToggledVar a v c =
     FortfahrenWennToggledVar
-    { fortfahrenVar :: Gtk.Button
-    , varCheckButtonsRec :: v
-    , readVar :: v -> IO a
-    , foldCheckButtonsRec :: Lens.Fold a c
+    { fortfahrenVar :: Gtk.Button,
+      varCheckButtonsRec :: v,
+      readVar :: v -> IO a,
+      foldCheckButtonsRec :: Lens.Fold a c
     }
 
 -- | Die Variable, in der die 'RegistrierterCheckButton' einer 'FortfahrenWennToggledVar' gespeichert werden.
@@ -142,8 +148,10 @@ foldCheckButtons = foldCheckButtonsRec
 instance (Eq v) => Eq (FortfahrenWennToggledVar a v c) where
     (==) :: FortfahrenWennToggledVar a v c -> FortfahrenWennToggledVar a v c -> Bool
     (==)
-        FortfahrenWennToggledVar {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
-        FortfahrenWennToggledVar {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
+        FortfahrenWennToggledVar
+            {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
+        FortfahrenWennToggledVar
+            {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
         (fortfahrenVar0 == fortfahrenVar1) && (varCheckButtons0 == varCheckButtons1)
 
 instance MitWidget (FortfahrenWennToggledVar a v c) where
@@ -162,33 +170,37 @@ instance MitButton (FortfahrenWennToggledVar a v c) where
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-fortfahrenWennToggledVarNew :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
-                            => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                            -> (Sprache -> Text)
-                            -> Lens.Fold a c
-                            -> (v -> IO a)
-                            -> v
-                            -> m (FortfahrenWennToggledVar a v c)
+fortfahrenWennToggledVarNew
+    :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
+    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> Lens.Fold a c
+    -> (v -> IO a)
+    -> v
+    -> m (FortfahrenWennToggledVar a v c)
 fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheckButtonsRec = do
     fortfahrenVar <- liftIO $ do
         fortfahrenVar <- Gtk.buttonNew
         Gtk.set fortfahrenVar [Gtk.widgetSensitive := False]
         pure fortfahrenVar
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
     pure
         FortfahrenWennToggledVar
-            { fortfahrenVar
-            , readVar
-            , varCheckButtonsRec
-            , foldCheckButtonsRec
+            { fortfahrenVar,
+              readVar,
+              varCheckButtonsRec,
+              foldCheckButtonsRec
             }
 
 -- | Funktion zum manuellen überprüfen
-aktiviereWennToggledVar :: (MonadIO m, MitRegistrierterCheckButton c) => FortfahrenWennToggledVar a v c -> m ()
 aktiviereWennToggledVar
-    FortfahrenWennToggledVar {fortfahrenVar, varCheckButtonsRec, readVar, foldCheckButtonsRec} = liftIO $ do
-    checkButtons <- readVar varCheckButtonsRec
-    aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec checkButtons
+    :: (MonadIO m, MitRegistrierterCheckButton c) => FortfahrenWennToggledVar a v c -> m ()
+aktiviereWennToggledVar
+    FortfahrenWennToggledVar {fortfahrenVar, varCheckButtonsRec, readVar, foldCheckButtonsRec} =
+    liftIO $ do
+        checkButtons <- readVar varCheckButtonsRec
+        aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec checkButtons
 
 -- | 'CheckButton', welcher mit einem 'FortfahrenWennToggled' assoziiert ist.
 newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
@@ -198,22 +210,25 @@ newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen des Buttons aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-registrierterCheckButtonNew :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
-                            => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                            -> (Sprache -> Text)
-                            -> FortfahrenWennToggledVar a v c
-                            -> m RegistrierterCheckButton
+registrierterCheckButtonNew
+    :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
+    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> FortfahrenWennToggledVar a v c
+    -> m RegistrierterCheckButton
 registrierterCheckButtonNew maybeTVar label fortfahrenWennToggled = do
     checkButton <- liftIO $ do
         checkButton <- widgetShowNew $ Gtk.checkButtonNew
         Gtk.on checkButton Gtk.toggled $ aktiviereWennToggledVar fortfahrenWennToggled
         pure checkButton
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := label sprache]
     pure $ RegistrierterCheckButton checkButton
 
 -- | Überprüfe ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist
 registrierterCheckButtonToggled :: (MitRegistrierterCheckButton r, MonadIO m) => r -> m Bool
-registrierterCheckButtonToggled (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton)) =
+registrierterCheckButtonToggled
+    (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton)) =
     liftIO $ Gtk.get checkButton Gtk.toggleButtonActive
 
 -- | Klasse für Typen mit 'RegistrierterCheckButton'
@@ -221,14 +236,18 @@ class (MitWidget c) => MitRegistrierterCheckButton c where
     erhalteRegistrierterCheckButton :: c -> RegistrierterCheckButton
 
 -- | Führe eine Aktion mit einem 'MitRegistrierterCheckButton' aus
-mitRegistrierterCheckButton :: (MitRegistrierterCheckButton c) => (RegistrierterCheckButton -> b) -> c -> b
+mitRegistrierterCheckButton
+    :: (MitRegistrierterCheckButton c) => (RegistrierterCheckButton -> b) -> c -> b
 mitRegistrierterCheckButton funktion = funktion . erhalteRegistrierterCheckButton
 
 -- | 'Lens.Getter' analog zu 'erhalteRegistrierterCheckButton'
-registrierterCheckButton :: (MitRegistrierterCheckButton c) => Lens.Getter c RegistrierterCheckButton
+registrierterCheckButton
+    :: (MitRegistrierterCheckButton c) => Lens.Getter c RegistrierterCheckButton
 registrierterCheckButton = Lens.to erhalteRegistrierterCheckButton
 
 instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
     erhalteRegistrierterCheckButton = id
 #endif
+
+

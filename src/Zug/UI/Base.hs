@@ -76,7 +76,8 @@ module Zug.UI.Base
   , putSprache
     -- * Hilfsfunktionen
   , ausführenMöglich
-  , AusführenMöglich(..)) where
+  , AusführenMöglich(..)
+  ) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
@@ -95,8 +96,8 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung
-       (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..), StreckenObjekt(..))
+import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty
+                    , MitI2CMap(..), StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
@@ -107,33 +108,35 @@ import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..
 -- | Aktueller Status
 data StatusAllgemein o =
     Status
-    { _bahngeschwindigkeiten :: [ZugtypEither (BG o)]
-    , _streckenabschnitte :: [ST o]
-    , _weichen :: [ZugtypEither (WE o)]
-    , _kupplungen :: [KU o]
-    , _wegstrecken :: [ZugtypEither (WS o)]
-    , _pläne :: [PL o]
-    , _sprache :: SP o
+    { _bahngeschwindigkeiten :: [ZugtypEither (BG o)],
+      _streckenabschnitte :: [ST o],
+      _weichen :: [ZugtypEither (WE o)],
+      _kupplungen :: [KU o],
+      _wegstrecken :: [ZugtypEither (WS o)],
+      _pläne :: [PL o],
+      _sprache :: SP o
     }
 
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
 
-deriving instance ( Eq (ZugtypEither (BG o))
-                  , Eq (ST o)
-                  , Eq (ZugtypEither (WE o))
-                  , Eq (KU o)
-                  , Eq (ZugtypEither (WS o))
-                  , Eq (PL o)
-                  , Eq (SP o)) => Eq (StatusAllgemein o)
+deriving instance (Eq (ZugtypEither (BG o)),
+                   Eq (ST o),
+                   Eq (ZugtypEither (WE o)),
+                   Eq (KU o),
+                   Eq (ZugtypEither (WS o)),
+                   Eq (PL o),
+                   Eq (SP o)
+                  ) => Eq (StatusAllgemein o)
 
-deriving instance ( Show (ZugtypEither (BG o))
-                  , Show (ST o)
-                  , Show (ZugtypEither (WE o))
-                  , Show (KU o)
-                  , Show (ZugtypEither (WS o))
-                  , Show (PL o)
-                  , Show (SP o)) => Show (StatusAllgemein o)
+deriving instance (Show (ZugtypEither (BG o)),
+                   Show (ST o),
+                   Show (ZugtypEither (WE o)),
+                   Show (KU o),
+                   Show (ZugtypEither (WS o)),
+                   Show (PL o),
+                   Show (SP o)
+                  ) => Show (StatusAllgemein o)
 
 #ifdef ZUGKONTROLLEGUI
 -- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusAllgemein wirft dll-Fehler unter Windows)
@@ -181,12 +184,13 @@ sprache = lens _sprache $ \status sp -> status
     }
 #endif
 
-instance ( Anzeige (ZugtypEither (BG o))
-         , Anzeige (ST o)
-         , Anzeige (ZugtypEither (WE o))
-         , Anzeige (KU o)
-         , Anzeige (ZugtypEither (WS o))
-         , Anzeige (PL o)) => Anzeige (StatusAllgemein o) where
+instance (Anzeige (ZugtypEither (BG o)),
+          Anzeige (ST o),
+          Anzeige (ZugtypEither (WE o)),
+          Anzeige (KU o),
+          Anzeige (ZugtypEither (WS o)),
+          Anzeige (PL o)
+         ) => Anzeige (StatusAllgemein o) where
     anzeige :: StatusAllgemein o -> Sprache -> Text
     anzeige status =
         Language.bahngeschwindigkeiten
@@ -198,41 +202,46 @@ instance ( Anzeige (ZugtypEither (BG o))
         <\> Language.kupplungen
         <=> zeigeUnterliste (_kupplungen status)
         <\> Language.wegstrecken
-        <=> zeigeUnterliste (_wegstrecken status) <\> Language.pläne <=> zeigeUnterliste (_pläne status)
+        <=> zeigeUnterliste (_wegstrecken status)
+        <\> Language.pläne <=> zeigeUnterliste (_pläne status)
         -- | Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
 
             where
                 zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
                 zeigeUnterliste = zeigeUnterlisteAux (const "[") 0
 
-                zeigeUnterlisteAux :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
+                zeigeUnterlisteAux
+                    :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
                 zeigeUnterlisteAux acc index [] =
                     acc
                     <#> (if index == 0
                              then "]"
                              else "\n]" :: Text)
                 zeigeUnterlisteAux acc index (h:t) =
-                    zeigeUnterlisteAux (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h) (succ index) t
+                    zeigeUnterlisteAux
+                        (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h)
+                        (succ index)
+                        t
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
 statusLeer :: SP o -> StatusAllgemein o
 statusLeer _sprache =
     Status
-    { _bahngeschwindigkeiten = []
-    , _streckenabschnitte = []
-    , _weichen = []
-    , _kupplungen = []
-    , _wegstrecken = []
-    , _pläne = []
-    , _sprache
+    { _bahngeschwindigkeiten = [],
+      _streckenabschnitte = [],
+      _weichen = [],
+      _kupplungen = [],
+      _wegstrecken = [],
+      _pläne = [],
+      _sprache
     }
 
 -- | Sammlung aller benötigten 'TVar's
 data TVarMaps =
     TVarMaps
-    { tvarAusführend :: TVar (Menge Ausführend)
-    , tvarPwmMap :: TVar PwmMap
-    , tvarI2CMap :: TVar I2CMap
+    { tvarAusführend :: TVar (Menge Ausführend),
+      tvarPwmMap :: TVar PwmMap,
+      tvarI2CMap :: TVar I2CMap
     }
 
 -- | Erzeuge neue, leere 'TVarMaps'
@@ -425,7 +434,8 @@ hinzufügenPlan plan = do
 entfernenBahngeschwindigkeit :: (Monad m, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego))
                              => ZugtypEither (BG o)
                              -> MStatusAllgemeinT m o ()
-entfernenBahngeschwindigkeit bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten
+entfernenBahngeschwindigkeit
+    bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten
     -> putBahngeschwindigkeiten $ delete bahngeschwindigkeit bahngeschwindigkeiten
 
 -- | Entferne einen 'Streckenabschnitt' aus dem aktuellen 'StatusAllgemein'
@@ -434,19 +444,22 @@ entfernenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streck
     -> putStreckenabschnitte $ delete streckenabschnitt streckenabschnitte
 
 -- | Entferne eine 'Weiche' aus dem aktuellen 'StatusAllgemein'
-entfernenWeiche ::
-                (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego)) => ZugtypEither (WE o) -> MStatusAllgemeinT m o ()
+entfernenWeiche :: (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego))
+                => ZugtypEither (WE o)
+                -> MStatusAllgemeinT m o ()
 entfernenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ delete weiche weichen
 
 -- | Entferne eine 'Kupplung' aus dem aktuellen 'StatusAllgemein'
 entfernenKupplung :: (Monad m, Eq (KU o)) => KU o -> MStatusAllgemeinT m o ()
-entfernenKupplung kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ delete kupplung kupplungen
+entfernenKupplung
+    kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ delete kupplung kupplungen
 
 -- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusAllgemein'
 entfernenWegstrecke :: (Monad m, Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego))
                     => ZugtypEither (WS o)
                     -> MStatusAllgemeinT m o ()
-entfernenWegstrecke wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ delete wegstrecke wegstrecken
+entfernenWegstrecke
+    wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ delete wegstrecke wegstrecken
 
 -- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
 entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MStatusAllgemeinT m o ()
@@ -454,9 +467,10 @@ entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 
 -- * Aktuell ausgeführte Pläne
 -- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
-ausführenMöglich :: (MitAusführend (ReaderFamilie o), MitPwmMap (ReaderFamilie o), MitI2CMap (ReaderFamilie o))
-                   => Plan
-                   -> IOStatusAllgemein o AusführenMöglich
+ausführenMöglich
+    :: (MitAusführend (ReaderFamilie o), MitPwmMap (ReaderFamilie o), MitI2CMap (ReaderFamilie o))
+    => Plan
+    -> IOStatusAllgemein o AusführenMöglich
 ausführenMöglich plan = do
     tvarAusführend <- erhalteMengeAusführend
     ausführend <- liftIO $ readTVarIO tvarAusführend

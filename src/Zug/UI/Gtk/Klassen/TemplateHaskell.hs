@@ -23,18 +23,18 @@ erzeugeKlasse abhängigkeiten name = do
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
     getterSignatur <- erzeugeGetterSignatur typName
     pure
-        [ TH.ClassD
-              (context variablenName)
-              klassenName
-              [TH.PlainTV variablenName]
-              funDeps
-              (deklarationen variablenName typName)
-        , instanzDeklaration
-        , eitherInstanzDeklaration
-        , mitFunktionSignatur
-        , mitFunktionDeklaration
-        , getterSignatur
-        , getterDeklaration]
+        [TH.ClassD
+             (context variablenName)
+             klassenName
+             [TH.PlainTV variablenName]
+             funDeps
+             (deklarationen variablenName typName),
+         instanzDeklaration,
+         eitherInstanzDeklaration,
+         mitFunktionSignatur,
+         mitFunktionDeklaration,
+         getterSignatur,
+         getterDeklaration]
     where
         istTyp :: String -> TH.Q Bool
         istTyp name = TH.lookupTypeName name >>= \case
@@ -60,16 +60,20 @@ erzeugeKlasse abhängigkeiten name = do
 
         deklarationen :: TH.Name -> TH.Name -> [TH.Dec]
         deklarationen variablenName typName =
-            [funktionSignatur, defaultSignatur, defaultImplementierung] <*> [variablenName] <*> [typName]
+            [funktionSignatur, defaultSignatur, defaultImplementierung]
+            <*> [variablenName]
+            <*> [typName]
 
         funktionName :: TH.Name
         funktionName = TH.mkName $ "erhalte" ++ name
 
         funktionTyp :: TH.Name -> TH.Name -> TH.Type
-        funktionTyp variablenName typName = TH.AppT (TH.AppT TH.ArrowT $ TH.VarT variablenName) $ TH.ConT typName
+        funktionTyp variablenName typName =
+            TH.AppT (TH.AppT TH.ArrowT $ TH.VarT variablenName) $ TH.ConT typName
 
         funktionSignatur :: TH.Name -> TH.Name -> TH.Dec
-        funktionSignatur variablenName typName = TH.SigD funktionName $ funktionTyp variablenName typName
+        funktionSignatur variablenName typName =
+            TH.SigD funktionName $ funktionTyp variablenName typName
 
         klassenNameGtk :: TH.Name
         klassenNameGtk = TH.mkName $ namePräfixGtk ++ name ++ "Class"
@@ -105,21 +109,22 @@ erzeugeKlasse abhängigkeiten name = do
             pure
                 $ TH.InstanceD
                     (Just TH.Overlappable)
-                    [TH.AppT (TH.ConT klassenName) $ TH.VarT aName, TH.AppT (TH.ConT klassenName) $ TH.VarT bName]
+                    [TH.AppT (TH.ConT klassenName) $ TH.VarT aName,
+                     TH.AppT (TH.ConT klassenName) $ TH.VarT bName]
                     (TH.AppT (TH.ConT klassenName)
                      $ TH.ParensT
                      $ TH.AppT (TH.AppT (TH.ConT $ TH.mkName "Either") $ TH.VarT aName)
                      $ TH.VarT bName)
-                    [ TH.FunD
-                          funktionName
-                          [ TH.Clause
-                                [TH.ConP (TH.mkName "Left") [TH.VarP valName]]
-                                (TH.NormalB $ TH.AppE (TH.VarE funktionName) $ TH.VarE valName)
-                                []
-                          , TH.Clause
-                                [TH.ConP (TH.mkName "Right") [TH.VarP valName]]
-                                (TH.NormalB $ TH.AppE (TH.VarE funktionName) $ TH.VarE valName)
-                                []]]
+                    [TH.FunD
+                         funktionName
+                         [TH.Clause
+                              [TH.ConP (TH.mkName "Left") [TH.VarP valName]]
+                              (TH.NormalB $ TH.AppE (TH.VarE funktionName) $ TH.VarE valName)
+                              [],
+                          TH.Clause
+                              [TH.ConP (TH.mkName "Right") [TH.VarP valName]]
+                              (TH.NormalB $ TH.AppE (TH.VarE funktionName) $ TH.VarE valName)
+                              []]]
 
         mitFunktionName :: TH.Name
         mitFunktionName = TH.mkName $ "mit" ++ name
@@ -146,10 +151,14 @@ erzeugeKlasse abhängigkeiten name = do
             pure
                 $ TH.FunD
                     mitFunktionName
-                    [ TH.Clause
-                          [TH.VarP fun]
-                          (TH.NormalB $ TH.UInfixE (TH.VarE fun) (TH.VarE $ TH.mkName ".") (TH.VarE funktionName))
-                          []]
+                    [TH.Clause
+                         [TH.VarP fun]
+                         (TH.NormalB
+                          $ TH.UInfixE
+                              (TH.VarE fun)
+                              (TH.VarE $ TH.mkName ".")
+                              (TH.VarE funktionName))
+                         []]
 
         firstToLower :: String -> String
         firstToLower [] = []
@@ -163,8 +172,12 @@ erzeugeKlasse abhängigkeiten name = do
             variablenName <- TH.newName "s"
             pure
                 $ TH.SigD getterName
-                $ TH.ForallT [TH.PlainTV variablenName] [TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName]
-                $ TH.AppT (TH.AppT (TH.ConT $ TH.mkName "Lens.Getter") (TH.VarT variablenName)) (TH.ConT typName)
+                $ TH.ForallT
+                    [TH.PlainTV variablenName]
+                    [TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName]
+                $ TH.AppT
+                    (TH.AppT (TH.ConT $ TH.mkName "Lens.Getter") (TH.VarT variablenName))
+                    (TH.ConT typName)
 
         getterDeklaration :: TH.Dec
         getterDeklaration =

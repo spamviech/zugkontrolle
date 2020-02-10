@@ -16,7 +16,8 @@ module Zug.UI.Gtk.SpracheGui
   , spracheGuiNeu
   , sprachwechsel
   , verwendeSpracheGui
-  , verwendeSpracheGuiFn) where
+  , verwendeSpracheGuiFn
+  ) where
 
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar, writeTVar)
@@ -30,8 +31,8 @@ import Zug.Language (Sprache(), MitSprache(..))
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 data SpracheGui =
     SpracheGui
-    { sprache :: Sprache
-    , sprachwechselAktionen :: TVar [AktionOderTVar]
+    { sprache :: Sprache,
+      sprachwechselAktionen :: TVar [AktionOderTVar]
     }
 
 instance MitSprache SpracheGui where
@@ -98,8 +99,11 @@ verwendeSpracheGui maybeTVar neueAktion =
     erhalteSpracheGui >>= \spracheGui -> verwendeSpracheGuiFn spracheGui maybeTVar neueAktion
 
 -- | Wie 'verwendeSpracheGui' mit explizit übergebenem 'SpracheGui'.
-verwendeSpracheGuiFn ::
-                     (MonadIO m) => SpracheGui -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> (Sprache -> IO ()) -> m ()
+verwendeSpracheGuiFn :: (MonadIO m)
+                     => SpracheGui
+                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                     -> (Sprache -> IO ())
+                     -> m ()
 verwendeSpracheGuiFn SpracheGui {sprache, sprachwechselAktionen} maybeTVar neueAktion = liftIO $ do
     neueAktion sprache
     case maybeTVar of

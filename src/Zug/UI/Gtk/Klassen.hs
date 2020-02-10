@@ -61,11 +61,13 @@ erzeugeKlasse [''MitWidget] "Container"
 
 -- | Füge ein 'MitWidget' zu einem 'MitContainer' hinzu
 mitContainerAdd :: (MonadIO m, MitContainer c, MitWidget w) => c -> w -> m ()
-mitContainerAdd container widget = liftIO $ Gtk.containerAdd (erhalteContainer container) (erhalteWidget widget)
+mitContainerAdd container widget =
+    liftIO $ Gtk.containerAdd (erhalteContainer container) (erhalteWidget widget)
 
 -- | Entferne ein 'MitWidget' aus einem 'MitContainer'
 mitContainerRemove :: (MonadIO m, MitContainer c, MitWidget w) => c -> w -> m ()
-mitContainerRemove container widget = liftIO $ Gtk.containerRemove (erhalteContainer container) (erhalteWidget widget)
+mitContainerRemove container widget =
+    liftIO $ Gtk.containerRemove (erhalteContainer container) (erhalteWidget widget)
 
 erzeugeKlasse [''MitContainer] "Box"
 
@@ -87,14 +89,15 @@ mitGridAttach grid widget left top width height =
     liftIO $ Gtk.gridAttach (erhalteGrid grid) (erhalteWidget widget) left top width height
 
 -- | Füge ein 'MitWidget' zu einem 'MitGrid' direkt neben einem 'MitWidget' hinzu
-mitGridAttachNextTo :: (MonadIO m, MitGrid g, MitWidget w, MitWidget sibling)
-                    => g
-                    -> w
-                    -> Maybe sibling
-                    -> Gtk.PositionType
-                    -> Int
-                    -> Int
-                    -> m ()
+mitGridAttachNextTo
+    :: (MonadIO m, MitGrid g, MitWidget w, MitWidget sibling)
+    => g
+    -> w
+    -> Maybe sibling
+    -> Gtk.PositionType
+    -> Int
+    -> Int
+    -> m ()
 mitGridAttachNextTo grid widget sibling position width height =
     liftIO
     $ Gtk.gridAttachNextTo
@@ -109,11 +112,13 @@ erzeugeKlasse [''MitContainer] "Fixed"
 
 -- | Füge ein 'MitWidget' an den spezifizierten Koordinaten zu einem 'MitFixed' hinzu
 mitFixedPut :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int -> Int -> m ()
-mitFixedPut fixed widget x y = liftIO $ Gtk.fixedPut (erhalteFixed fixed) (erhalteWidget widget) (x, y)
+mitFixedPut fixed widget x y =
+    liftIO $ Gtk.fixedPut (erhalteFixed fixed) (erhalteWidget widget) (x, y)
 
 -- | Bewege ein 'MitWidget' zu den spezifizierten Koordinaten ein einem 'MitFixed'
 mitFixedMove :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int -> Int -> m ()
-mitFixedMove fixed widget x y = liftIO $ Gtk.fixedMove (erhalteFixed fixed) (erhalteWidget widget) (x, y)
+mitFixedMove fixed widget x y =
+    liftIO $ Gtk.fixedMove (erhalteFixed fixed) (erhalteWidget widget) (x, y)
 
 erzeugeKlasse [''MitContainer] "Notebook"
 
@@ -153,3 +158,5 @@ erzeugeKlasse [''MitToggleButton] "CheckButton"
 
 erzeugeKlasse [''MitCheckButton] "RadioButton"
 #endif
+
+

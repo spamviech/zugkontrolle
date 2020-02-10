@@ -40,8 +40,8 @@ import Zug.Enums (ZugtypEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
 import Zug.Objekt (ObjektAllgemein(..))
-import Zug.UI.Base
-       (Status, ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, wegstrecken, pläne)
+import Zug.UI.Base (Status, ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen
+                  , kupplungen, wegstrecken, pläne)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.Gtk.Assistant (assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.Fenster.AssistantHinzufuegen (assistantHinzufügenNew)
@@ -49,9 +49,10 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLa
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (MStatusGuiT, IOStatusGui, ObjektGui, StatusVarGui, readSpracheGui, DynamischeWidgetsReader(..), WidgetsTyp(..)
-      , bahngeschwindigkeitPackNew, BGWidgets, streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew
-      , wegstreckePackNew, WSWidgets, planPackNew)
+       (MStatusGuiT, IOStatusGui, ObjektGui, StatusVarGui, readSpracheGui
+      , DynamischeWidgetsReader(..), WidgetsTyp(..), bahngeschwindigkeitPackNew, BGWidgets
+      , streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew, wegstreckePackNew
+      , WSWidgets, planPackNew)
 import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
 
 -- | Speichern des aktuellen 'StatusGui'.
@@ -72,7 +73,8 @@ buttonSpeichernPack windowMain box maybeTVar = do
         antwort <- dialogEval dialogSpeichern
         when (antwort == Gtk.ResponseOk) $ void $ do
             (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
-            flip runReaderT objektReader $ ausführenStatusVarBefehl (Speichern dateipfad) statusVar
+            flip runReaderT objektReader
+                $ ausführenStatusVarBefehl (Speichern dateipfad) statusVar
 
 dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    => Gtk.Window
@@ -80,8 +82,11 @@ dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    -> m Gtk.FileChooserDialog
 dialogSpeichernNew window maybeTVar = do
     (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
-        fileChooserDialog
-            <- Gtk.fileChooserDialogNew (Nothing :: Maybe Text) (Just window) Gtk.FileChooserActionSave []
+        fileChooserDialog <- Gtk.fileChooserDialogNew
+            (Nothing :: Maybe Text)
+            (Just window)
+            Gtk.FileChooserActionSave
+            []
         Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
         buttonSpeichern <- Gtk.dialogAddButton fileChooserDialog Text.empty Gtk.ResponseOk
         buttonAbbrechen <- Gtk.dialogAddButton fileChooserDialog Text.empty Gtk.ResponseCancel
@@ -112,7 +117,9 @@ buttonLadenPack parent box maybeTVar = do
             Gtk.fileChooserGetFilename dialogLaden >>= \case
                 Nothing -> void $ do
                     spracheGui <- readSpracheGui statusVar
-                    Gtk.set dialogLadenFehler [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei spracheGui]
+                    Gtk.set
+                        dialogLadenFehler
+                        [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei spracheGui]
                     dialogEval dialogLadenFehler
                 (Just dateipfad) -> void $ do
                     let ladeAktion :: Status -> IOStatusGui ()
@@ -127,7 +134,9 @@ buttonLadenPack parent box maybeTVar = do
                             Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
                             dialogEval dialogLadenFehler
                     flip runReaderT objektReader
-                        $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
+                        $ ausführenStatusVarBefehl
+                            (Laden dateipfad ladeAktion fehlerBehandlung)
+                            statusVar
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui') an reinen 'Status' an.
 ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
@@ -194,9 +203,16 @@ dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
                      -> m Gtk.MessageDialog
 dialogLadenFehlerNew parent maybeTVar = do
-    dialog <- liftIO $ Gtk.messageDialogNew (Just $ erhalteWindow parent) [] Gtk.MessageError Gtk.ButtonsOk Text.empty
-    verwendeSpracheGui maybeTVar $ \sprache
-        -> Gtk.set dialog [Gtk.windowTitle := (Language.nichtGefundeneDatei <!> Text.empty) sprache]
+    dialog <- liftIO
+        $ Gtk.messageDialogNew
+            (Just $ erhalteWindow parent)
+            []
+            Gtk.MessageError
+            Gtk.ButtonsOk
+            Text.empty
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set
+        dialog
+        [Gtk.windowTitle := (Language.nichtGefundeneDatei <!> Text.empty) sprache]
     pure dialog
 
 -- | Hinzufügen eines 'StreckenObjekt'.
@@ -212,25 +228,37 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
     assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
     objektReader <- ask
     statusVar <- erhalteStatusVar
-    button <- boxPackWidgetNewDefault box $ buttonNewWithEventLabel maybeTVar Language.hinzufügen $ void $ forkIO $ do
-        flip runReaderT objektReader $ do
-            assistantAuswerten assistantHinzufügen >>= flip auswertenStatusVarMStatusT statusVar . \case
-                (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
-                    -> void $ bahngeschwindigkeitPackNew bgMärklin
-                (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
-                    -> void $ bahngeschwindigkeitPackNew bgLego
-                (AssistantErfolgreich (OStreckenabschnitt st)) -> void $ streckenabschnittPackNew st
-                (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin))) -> void $ weichePackNew weMärklin
-                (AssistantErfolgreich (OWeiche (ZugtypLego weLego))) -> void $ weichePackNew weLego
-                (AssistantErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
-                (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin))) -> void $ wegstreckePackNew wsMärklin
-                (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego))) -> void $ wegstreckePackNew wsLego
-                (AssistantErfolgreich (OPlan pl)) -> void $ planPackNew pl
-                -- Kein catch-all Pattern um Fehlermeldung des Compilers
-                -- bei neu hinzugefügten Objekten nicht zu verpassen
-                AssistantBeenden -> pure ()
-                AssistantAbbrechen -> pure ()
+    button <- boxPackWidgetNewDefault box
+        $ buttonNewWithEventLabel maybeTVar Language.hinzufügen
+        $ void
+        $ forkIO
+        $ do
+            flip runReaderT objektReader $ do
+                assistantAuswerten assistantHinzufügen
+                    >>= flip auswertenStatusVarMStatusT statusVar . \case
+                        (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
+                            -> void $ bahngeschwindigkeitPackNew bgMärklin
+                        (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
+                            -> void $ bahngeschwindigkeitPackNew bgLego
+                        (AssistantErfolgreich (OStreckenabschnitt st))
+                            -> void $ streckenabschnittPackNew st
+                        (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
+                            -> void $ weichePackNew weMärklin
+                        (AssistantErfolgreich (OWeiche (ZugtypLego weLego)))
+                            -> void $ weichePackNew weLego
+                        (AssistantErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
+                        (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
+                            -> void $ wegstreckePackNew wsMärklin
+                        (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego)))
+                            -> void $ wegstreckePackNew wsLego
+                        (AssistantErfolgreich (OPlan pl)) -> void $ planPackNew pl
+                        -- Kein catch-all Pattern um Fehlermeldung des Compilers
+                        -- bei neu hinzugefügten Objekten nicht zu verpassen
+                        AssistantBeenden -> pure ()
+                        AssistantAbbrechen -> pure ()
     pure button
 #endif
+
+
 
 

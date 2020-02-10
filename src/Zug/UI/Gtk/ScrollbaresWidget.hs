@@ -28,18 +28,20 @@ import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache())
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, Packing(..), paddingDefault
-                                 , positionDefault, notebookAppendPageNew)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..)
-                         , MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..), MitButton(..)
-                         , MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
+import Zug.UI.Gtk.Hilfsfunktionen
+       (widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, Packing(..), paddingDefault
+      , positionDefault, notebookAppendPageNew)
+import Zug.UI.Gtk.Klassen
+       (MitWidget(..), MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..)
+      , MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..), MitButton(..)
+      , MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport
 data ScrollbaresWidget w =
     ScrollbaresWidget
-    { swScrolledWindow :: Gtk.ScrolledWindow
-    , swWidget :: w
+    { swScrolledWindow :: Gtk.ScrolledWindow,
+      swWidget :: w
     }
 
 instance MitWidget (ScrollbaresWidget w) where
@@ -110,33 +112,38 @@ scrollbaresWidgetNew konstruktor = do
         swScrolledWindow <- widgetShowNew $ Gtk.scrolledWindowNew Nothing Nothing
         Gtk.set
             swScrolledWindow
-            [ Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic
-            , Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
+            [Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic,
+             Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
         Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget widget
         pure
             ScrollbaresWidget
-                { swScrolledWindow
-                , swWidget = widget
+                { swScrolledWindow,
+                  swWidget = widget
                 }
 
 -- | Erstelle neues 'ScrollbaresWidget'und füge sie zu 'MitContainer' hinzu
-scrollbaresWidgetAddNew :: (MonadIO m, MitContainer c, MitWidget w) => c -> m w -> m (ScrollbaresWidget w)
-scrollbaresWidgetAddNew container konstruktor = containerAddWidgetNew container $ scrollbaresWidgetNew konstruktor
+scrollbaresWidgetAddNew
+    :: (MonadIO m, MitContainer c, MitWidget w) => c -> m w -> m (ScrollbaresWidget w)
+scrollbaresWidgetAddNew container konstruktor =
+    containerAddWidgetNew container $ scrollbaresWidgetNew konstruktor
 
 -- | Erstelle neues 'ScrollbaresWidget' und packe sie in eine 'MitBox'
-scrollbaresWidgetPackNew :: (MonadIO m, MitBox b, MitWidget w) => b -> m w -> m (ScrollbaresWidget w)
+scrollbaresWidgetPackNew
+    :: (MonadIO m, MitBox b, MitWidget w) => b -> m w -> m (ScrollbaresWidget w)
 scrollbaresWidgetPackNew box konstruktor =
     boxPackWidgetNew box PackGrow paddingDefault positionDefault $ scrollbaresWidgetNew konstruktor
 
 -- | Erstelle neues 'ScrollbaresWidget' und füge sie als neue Seite einem 'MitNotebook' hinzu.
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-scrollbaresWidgetNotebookAppendPageNew :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w)
-                                       => n
-                                       -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                                       -> (Sprache -> Text)
-                                       -> m w
-                                       -> m (ScrollbaresWidget w, Int)
+scrollbaresWidgetNotebookAppendPageNew
+    :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w)
+    => n
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> m w
+    -> m (ScrollbaresWidget w, Int)
 scrollbaresWidgetNotebookAppendPageNew notebook maybeTVar name konstruktor =
     notebookAppendPageNew notebook maybeTVar name $ scrollbaresWidgetNew konstruktor
 #endif
+

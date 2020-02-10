@@ -1,14 +1,24 @@
 {-|
 Description : Kommandozeilen-Optionen
 -}
-module Zug.Options (Options(..), getOptions, UI(..), alleUI, PWM(..), allePWMOptionen, Sprache(..), alleSprachen) where
+module Zug.Options
+  ( Options(..)
+  , getOptions
+  , UI(..)
+  , alleUI
+  , PWM(..)
+  , allePWMOptionen
+  , Sprache(..)
+  , alleSprachen
+  ) where
 
 -- Bibliotheken
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (unpack)
-import Options.Applicative (ParserInfo(), Parser(), execParser, info, helper, fullDesc, progDesc, header, infoOption
-                          , long, short, help, switch, option, auto, metavar, showDefault, value, strOption)
+import Options.Applicative
+       (ParserInfo(), Parser(), execParser, info, helper, fullDesc, progDesc, header, infoOption
+      , long, short, help, switch, option, auto, metavar, showDefault, value, strOption)
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(..), alleSprachen)
@@ -21,11 +31,11 @@ getOptions = liftIO $ execParser optionen
 -- | Unterstützte Kommandozeilen-Argumente
 data Options =
     Options
-    { printCmd :: Bool
-    , ui :: UI
-    , sprache :: Sprache
-    , load :: String
-    , pwm :: PWM
+    { printCmd :: Bool,
+      ui :: UI,
+      sprache :: Sprache,
+      load :: String,
+      pwm :: PWM
     }
     deriving (Show)
 
@@ -48,7 +58,8 @@ kombinierteOptionen :: Parser Options
 kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt
 
 printOpt :: Parser Bool
-printOpt = switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
+printOpt =
+    switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
 
 -- | Unterstützte Benutzer-Schnittstellen
 data UI
@@ -108,7 +119,8 @@ spracheOpt =
          <> metavar "SPRACHE"
          <> showDefault
          <> value Deutsch
-         <> help ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?"))
+         <> help
+             ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?"))
 
 -- | Hilfsfunktion um mögliche Optionen anzuzeigen
 zeigeMöglichkeiten :: (Show a) => [a] -> String

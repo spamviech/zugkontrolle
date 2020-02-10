@@ -24,7 +24,8 @@ module Zug.Anbindung.PCF8574
     -- ** Auf bestimmten Port spezialisierte Funktionen
   , PCF8574Port(..)
   , pcf8574PortWrite
-  , pcf8574PortRead) where
+  , pcf8574PortRead
+  ) where
 
 -- Bibliotheken
 import Control.Applicative (Alternative(..))
@@ -40,8 +41,8 @@ import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
 import Text.Read.Lex (numberToInteger, Lexeme(..))
 
 -- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..), i2cWrite, i2cWriteAdjust
-                        , i2cRead, BitValue(..))
+import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..)
+                        , i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
 import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 
@@ -84,8 +85,8 @@ instance Anzeige PCF8574Variant where
 -- | Variante und variable Adress-Bits eines /PCF8574/
 data PCF8574 =
     PCF8574
-    { variant :: PCF8574Variant
-    , a0, a1, a2 :: Value
+    { variant :: PCF8574Variant,
+      a0, a1, a2 :: Value
     }
     deriving (Eq, Ord)
 
@@ -152,8 +153,8 @@ numPorts = 8
 -- | Verwende Port eines /PCF8574/
 data PCF8574Port =
     PCF8574Port
-    { pcf8574 :: PCF8574
-    , port :: Word8
+    { pcf8574 :: PCF8574,
+      port :: Word8
     }
     deriving (Eq, Ord)
 
@@ -181,7 +182,8 @@ instance Read PCF8574Port where
 
 -- | Wert einzelner Ports eines /PCF8574/ setzen
 pcf8574PortWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
-pcf8574PortWrite PCF8574Port {pcf8574, port} value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
+pcf8574PortWrite PCF8574Port {pcf8574, port} value =
+    i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
     where
         bitValueFunktion :: BitValue -> BitValue
         bitValueFunktion oldBitValue

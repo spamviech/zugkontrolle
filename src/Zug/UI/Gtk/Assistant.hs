@@ -25,7 +25,8 @@ module Zug.UI.Gtk.Assistant
 
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
-import Control.Concurrent.STM (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
+import Control.Concurrent.STM
+       (atomically, retry, STM, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar)
 import Control.Monad (forM_)
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
@@ -44,10 +45,11 @@ import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlRadioButtonNamedNew, aktuelleAuswahl)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault, Packing(..)
-      , packingDefault, Position(..), paddingDefault, buttonNewWithEventLabel, widgetShowIf)
-import Zug.UI.Gtk.Klassen
-       (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..), MitContainer(..), MitBox(..), MitWindow(..))
+       (containerAddWidgetNew, boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, boxPackDefault
+      , Packing(..), packingDefault, Position(..), paddingDefault, buttonNewWithEventLabel
+      , widgetShowIf)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..)
+                         , MitContainer(..), MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (StatusGui, StatusVarGui, WegstreckeCheckButtonVoid)
 import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch)
@@ -170,31 +172,42 @@ instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget PackedSeiteAuswahl {packedBox} = erhalteWidget packedBox
     erhalteWidget PackedSeiteLetzte {packedNode} = erhalteWidget packedNode
 
-besondereSeitenAbschlussKnöpfe :: AssistantSeitenBaumPacked w -> [Either (Sprache -> Text) Gtk.Button]
+besondereSeitenAbschlussKnöpfe
+    :: AssistantSeitenBaumPacked w -> [Either (Sprache -> Text) Gtk.Button]
 besondereSeitenAbschlussKnöpfe PackedSeiteLinear {packedNode, packedNachfolger} =
     besondererSeitenAbschlussKnopf packedNode : besondereSeitenAbschlussKnöpfe packedNachfolger
 besondereSeitenAbschlussKnöpfe PackedSeiteAuswahl {packedNode, packedNachfolgerListe} =
-    besondererSeitenAbschlussKnopf packedNode : concat (besondereSeitenAbschlussKnöpfe <$> packedNachfolgerListe)
-besondereSeitenAbschlussKnöpfe PackedSeiteLetzte {packedNode} = [besondererSeitenAbschlussKnopf packedNode]
+    besondererSeitenAbschlussKnopf packedNode
+    : concat (besondereSeitenAbschlussKnöpfe <$> packedNachfolgerListe)
+besondereSeitenAbschlussKnöpfe
+    PackedSeiteLetzte {packedNode} = [besondererSeitenAbschlussKnopf packedNode]
 
 besondererSeitenAbschlussKnopf :: AssistantSeite w -> Either (Sprache -> Text) Gtk.Button
-besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschluss text)} = Left text
-besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)} =
+besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschluss text)} =
+    Left text
+besondererSeitenAbschlussKnopf
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)} =
     Right $ erhalteButton fortfahrenWennToggled
-besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledVar fortfahrenWennToggledVar)} =
+besondererSeitenAbschlussKnopf
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledVar fortfahrenWennToggledVar)} =
     Right $ erhalteButton fortfahrenWennToggledVar
-besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)} =
+besondererSeitenAbschlussKnopf
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)} =
     Right $ erhalteButton zugtypSpezifisch
-besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschlussButton button)} = Right button
+besondererSeitenAbschlussKnopf AssistantSeite {seitenAbschluss = (SeitenAbschlussButton button)} =
+    Right button
 
 besondererSeitenAbschlussWidget :: AssistantSeite w -> Either (Sprache -> Text) Gtk.Widget
-besondererSeitenAbschlussWidget AssistantSeite {seitenAbschluss = (SeitenAbschluss text)} = Left text
-besondererSeitenAbschlussWidget AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)} =
+besondererSeitenAbschlussWidget AssistantSeite {seitenAbschluss = (SeitenAbschluss text)} =
+    Left text
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussToggled fortfahrenWennToggled)} =
     Right $ erhalteWidget fortfahrenWennToggled
 besondererSeitenAbschlussWidget
     AssistantSeite {seitenAbschluss = (SeitenAbschlussToggledVar fortfahrenWennToggledVar)} =
     Right $ erhalteWidget fortfahrenWennToggledVar
-besondererSeitenAbschlussWidget AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)} =
+besondererSeitenAbschlussWidget
+    AssistantSeite {seitenAbschluss = (SeitenAbschlussZugtyp zugtypSpezifisch)} =
     Right $ erhalteWidget zugtypSpezifisch
 besondererSeitenAbschlussWidget AssistantSeite {seitenAbschluss = (SeitenAbschlussButton button)} =
     Right $ erhalteWidget button
@@ -211,13 +224,14 @@ besondererSeitenAbschlussWidget AssistantSeite {seitenAbschluss = (SeitenAbschlu
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-assistantNew :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p)
-             => p
-             -> [g]
-             -> AssistantSeitenBaum w
-             -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-             -> (NonEmpty w -> IO a)
-             -> m (Assistant w a)
+assistantNew
+    :: (MonadReader r m, MitSpracheGui r, MonadIO m, MitWidget w, Eq w, MitWidget g, MitWindow p)
+    => p
+    -> [g]
+    -> AssistantSeitenBaum w
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (NonEmpty w -> IO a)
+    -> m (Assistant w a)
 assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
     spracheReader <- ask
     -- Erstelle Fenster
@@ -242,7 +256,8 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
     verwendeSpracheGui maybeTVar
         $ \sprache -> Gtk.set seitenAbschlussKnopf [Gtk.buttonLabel := Language.weiter sprache]
     zurückKnopf <- liftIO $ boxPackWidgetNewDefault flowControlBox Gtk.buttonNew
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set zurückKnopf [Gtk.buttonLabel := Language.zurück sprache]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.set zurückKnopf [Gtk.buttonLabel := Language.zurück sprache]
     forM_ globaleWidgets $ \widget -> do
         boxPackDefault flowControlBox widget
         mitWidgetShow widget
@@ -296,11 +311,12 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
                     flip runReaderT spracheReader $ zeigeSeite assistant packedNachfolger
                 PackedSeiteAuswahl {packedNachfolgerListe, packedNachfolgerAuswahl} -> do
                     nachfolgerSeite <- aktuelleAuswahl packedNachfolgerAuswahl
-                    let packedNachfolger = case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
-                            (Just packedNachfolger) -> packedNachfolger
-                            Nothing -> error
-                                $ "Unbekannte Seite bei AuswahlWidget ausgewählt: "
-                                ++ Text.unpack (name nachfolgerSeite Deutsch)
+                    let packedNachfolger =
+                            case find ((==) nachfolgerSeite . packedNode) packedNachfolgerListe of
+                                (Just packedNachfolger) -> packedNachfolger
+                                Nothing -> error
+                                    $ "Unbekannte Seite bei AuswahlWidget ausgewählt: "
+                                    ++ Text.unpack (name nachfolgerSeite Deutsch)
                     atomically $ modifyTVar tvarAuswahl $ \case
                         (Left (besuchteSeiten, _aktuelleSeite))
                             -> Left $ (aktuelleSeite : besuchteSeiten, packedNachfolger)
@@ -311,7 +327,8 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
                         (Left (besuchteSeiten, _aktuelleSeite)) -> Right
                             $ AssistantErfolgreich
                             $ NonEmpty.reverse
-                            $ (seite $ packedNode assistantSeite) :| (seite . packedNode <$> besuchteSeiten)
+                            $ (seite $ packedNode assistantSeite)
+                            :| (seite . packedNode <$> besuchteSeiten)
                         ergebnis -> ergebnis
                     -- Zeige erste Seite (für nächsten Assistant-Aufruf)
                     mitWidgetShow seiten
@@ -347,7 +364,11 @@ packSeiten box flowControlBox AssistantSeiteLinear {node, nachfolger} maybeTVar 
             { packedNode = node
             , packedNachfolger
             }
-packSeiten box flowControlBox AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe} maybeTVar = do
+packSeiten
+    box
+    flowControlBox
+    AssistantSeiteAuswahl {node, nachfolgerFrage, nachfolgerListe}
+    maybeTVar = do
     case besondererSeitenAbschlussWidget node of
         (Left _text) -> pure ()
         (Right widget) -> do
@@ -359,7 +380,11 @@ packSeiten box flowControlBox AssistantSeiteAuswahl {node, nachfolgerFrage, nach
     mitWidgetShow node
     packedNachfolgerListe <- mapM (packSeiten box flowControlBox `flip` maybeTVar) nachfolgerListe
     packedNachfolgerAuswahl <- boxPackWidgetNewDefault vBox
-        $ auswahlRadioButtonNamedNew (packedNode <$> packedNachfolgerListe) maybeTVar nachfolgerFrage name
+        $ auswahlRadioButtonNamedNew
+            (packedNode <$> packedNachfolgerListe)
+            maybeTVar
+            nachfolgerFrage
+            name
     pure
         $ PackedSeiteAuswahl
         { packedNode = node
@@ -382,9 +407,13 @@ packSeiten box flowControlBox AssistantSeiteLetzte {node} _maybeTVar = liftIO $ 
         }
 
 -- | Zeige die übergebene Seite an
-zeigeSeite ::
-           (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w) => Assistant w a -> AssistantSeitenBaumPacked w -> m ()
-zeigeSeite Assistant {fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite} nachfolger = do
+zeigeSeite :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w)
+           => Assistant w a
+           -> AssistantSeitenBaumPacked w
+           -> m ()
+zeigeSeite
+    Assistant {fenster, seiten, seitenAbschlussKnopf, zurückKnopf, tvarAktuelleSeite}
+    nachfolger = do
     spracheGui <- erhalteSpracheGui
     liftIO $ do
         let nachfolgerSeite = packedNode nachfolger
@@ -444,4 +473,5 @@ assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAk
                         -- Gebe Ergebnis zurück
                         pure result
 #endif
+
 

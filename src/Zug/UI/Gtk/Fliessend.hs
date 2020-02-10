@@ -50,7 +50,8 @@ fließendPackNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s, MitBox b)
                  -> s
                  -> Maybe (TVar (Maybe [Sprache -> IO ()]))
                  -> m FließendWidget
-fließendPackNew box s maybeTVar = boxPackWidgetNew box packingDefault 3 positionDefault $ fließendNew s maybeTVar
+fließendPackNew box s maybeTVar =
+    boxPackWidgetNew box packingDefault 3 positionDefault $ fließendNew s maybeTVar
 
 -- | Füge neues 'Label' zu 'Box' hinzu, in dem der 'Value' eines 'StreckenAtom's angezeigt wird, bei dem Strom fließt.
 --
@@ -60,7 +61,8 @@ fließendNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s)
              => s
              -> Maybe (TVar (Maybe [Sprache -> IO ()]))
              -> m FließendWidget
-fließendNew s maybeTVar = fmap FließendWidget $ labelSpracheNew maybeTVar $ Language.fließendValue <:> fließend s
+fließendNew s maybeTVar =
+    fmap FließendWidget $ labelSpracheNew maybeTVar $ Language.fließendValue <:> fließend s
 
 -- | Widget zur Eingabe des Fließend-Value
 newtype FließendAuswahlWidget =
@@ -86,10 +88,12 @@ fließendAuswahlPackNew box = boxPackWidgetNewDefault box . fließendAuswahlNew
 fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
                     => Maybe (TVar (Maybe [Sprache -> IO ()]))
                     -> m FließendAuswahlWidget
-fließendAuswahlNew
-    maybeTVar = FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW maybeTVar Language.fließend
+fließendAuswahlNew maybeTVar =
+    FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW maybeTVar Language.fließend
 
 -- | Erhalte den aktuell gewählten Fließend-Value
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
 aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif
+
+
