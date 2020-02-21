@@ -83,44 +83,41 @@ data HinzufügenSeite
           { widget :: Gtk.Widget
           }
     | HinzufügenSeiteBahngeschwindigkeit
-          { widget :: Gtk.Widget,
-            nameAuswahl :: NameAuswahlWidget,
-            geschwindigkeitAuswahl :: AnschlussAuswahlWidget
+          { widget :: Gtk.Widget
+          , nameAuswahl :: NameAuswahlWidget
+          , geschwindigkeitAuswahl :: AnschlussAuswahlWidget
             -- Lego
-            ,
-            fahrtrichtungsAuswahl :: AnschlussAuswahlWidget
+          , fahrtrichtungsAuswahl :: AnschlussAuswahlWidget
           }
     | HinzufügenSeiteStreckenabschnitt
-          { widget :: Gtk.Widget,
-            nameAuswahl :: NameAuswahlWidget,
-            stromAuswahl :: AnschlussAuswahlWidget
+          { widget :: Gtk.Widget
+          , nameAuswahl :: NameAuswahlWidget
+          , stromAuswahl :: AnschlussAuswahlWidget
           }
     | HinzufügenSeiteWeiche
-          { widget :: Gtk.Widget,
-            nameAuswahl :: NameAuswahlWidget
+          { widget :: Gtk.Widget
+          , nameAuswahl :: NameAuswahlWidget
             -- Märklin
-            ,
-            märklinRichtungsAuswahl
+          , märklinRichtungsAuswahl
                 :: NonEmpty (Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)
             -- Lego
-            ,
-            legoRichtungsAuswahl :: AnschlussAuswahlWidget,
-            legoRichtungenAuswahl :: AuswahlWidget (Richtung, Richtung)
+          , legoRichtungsAuswahl :: AnschlussAuswahlWidget
+          , legoRichtungenAuswahl :: AuswahlWidget (Richtung, Richtung)
           }
     | HinzufügenSeiteKupplung
-          { widget :: Gtk.Widget,
-            nameAuswahl :: NameAuswahlWidget,
-            kupplungsAuswahl :: AnschlussAuswahlWidget
+          { widget :: Gtk.Widget
+          , nameAuswahl :: NameAuswahlWidget
+          , kupplungsAuswahl :: AnschlussAuswahlWidget
           }
     | HinzufügenSeiteWegstrecke
-          { widget :: Gtk.Widget,
-            nameAuswahl :: NameAuswahlWidget
+          { widget :: Gtk.Widget
+          , nameAuswahl :: NameAuswahlWidget
           }
     | HinzufügenSeitePlan
-          { widget :: Gtk.Widget,
-            nameAuswahl :: NameAuswahlWidget,
-            tvarAktionen :: TVar (Warteschlange Aktion),
-            checkButtonDauerschleife :: Gtk.CheckButton
+          { widget :: Gtk.Widget
+          , nameAuswahl :: NameAuswahlWidget
+          , tvarAktionen :: TVar (Warteschlange Aktion)
+          , checkButtonDauerschleife :: Gtk.CheckButton
           }
     deriving (Eq)
 
@@ -150,21 +147,21 @@ hinzufügenErgebnis
                     $ OBahngeschwindigkeit
                     $ ZugtypMärklin
                         MärklinBahngeschwindigkeit
-                            { bgmName = name,
-                              bgmFließend = fließend,
-                              bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
-                            }
+                        { bgmName = name,
+                          bgmFließend = fließend,
+                          bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
+                        }
                 Lego -> do
                     bglFahrtrichtungsAnschluss <- aktuellerAnschluss fahrtrichtungsAuswahl
                     pure
                         $ OBahngeschwindigkeit
                         $ ZugtypLego
                             LegoBahngeschwindigkeit
-                                { bglName = name,
-                                  bglFließend = fließend,
-                                  bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss,
-                                  bglFahrtrichtungsAnschluss
-                                }
+                            { bglName = name,
+                              bglFließend = fließend,
+                              bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss,
+                              bglFahrtrichtungsAnschluss
+                            }
     HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl} -> do
         stName <- aktuellerName nameAuswahl
         stFließend <- aktuellerFließendValue fließendAuswahl
@@ -172,10 +169,10 @@ hinzufügenErgebnis
         pure
             $ OStreckenabschnitt
                 Streckenabschnitt
-                    { stName,
-                      stFließend,
-                      stromAnschluss
-                    }
+                { stName,
+                  stFließend,
+                  stromAnschluss
+                }
     HinzufügenSeiteWeiche
         {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} -> do
             name <- aktuellerName nameAuswahl
@@ -195,10 +192,10 @@ hinzufügenErgebnis
                         $ OWeiche
                         $ ZugtypMärklin
                             MärklinWeiche
-                                { wemName = name,
-                                  wemFließend = fließend,
-                                  wemRichtungsAnschlüsse
-                                }
+                            { wemName = name,
+                              wemFließend = fließend,
+                              wemRichtungsAnschlüsse
+                            }
                 Lego -> do
                     welRichtungen <- aktuelleAuswahl legoRichtungenAuswahl
                     welRichtungsAnschluss <- aktuellerAnschluss legoRichtungsAuswahl
@@ -206,11 +203,11 @@ hinzufügenErgebnis
                         $ OWeiche
                         $ ZugtypLego
                             LegoWeiche
-                                { welName = name,
-                                  welFließend = fließend,
-                                  welRichtungen,
-                                  welRichtungsAnschluss
-                                }
+                            { welName = name,
+                              welFließend = fließend,
+                              welRichtungen,
+                              welRichtungsAnschluss
+                            }
     HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl} -> do
         kuName <- aktuellerName nameAuswahl
         kuFließend <- aktuellerFließendValue fließendAuswahl
@@ -218,10 +215,10 @@ hinzufügenErgebnis
         pure
             $ OKupplung
                 Kupplung
-                    { kuName,
-                      kuFließend,
-                      kupplungsAnschluss
-                    }
+                { kuName,
+                  kuFließend,
+                  kupplungsAnschluss
+                }
     HinzufügenSeiteWegstrecke {nameAuswahl} -> do
         statusVar <- erhalteStatusVar :: m StatusVarGui
         aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
@@ -248,12 +245,12 @@ hinzufügenErgebnis
                 wsKupplungen <- foldM anhängenWennToggled [] $ aktuellerStatus ^. kupplungen
                 pure
                     Wegstrecke
-                        { wsName,
-                          wsBahngeschwindigkeiten,
-                          wsStreckenabschnitte,
-                          wsWeichenRichtungen,
-                          wsKupplungen
-                        }
+                    { wsName,
+                      wsBahngeschwindigkeiten,
+                      wsStreckenabschnitte,
+                      wsWeichenRichtungen,
+                      wsKupplungen
+                    }
             anhängenWennToggled :: (WidgetsTyp a, WegstreckenElement a, MonadIO m)
                                  => [ObjektTyp a]
                                  -> a
@@ -1073,5 +1070,13 @@ assistantHinzufügenNew parent maybeTVar = do
             [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
     pure assistant
 #endif
+
+
+
+
+
+
+
+
 
 

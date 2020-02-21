@@ -97,3 +97,12 @@ aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif
 
 
+
+
+
+
+
+
+
+
+

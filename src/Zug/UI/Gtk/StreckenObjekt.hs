@@ -565,8 +565,8 @@ hinzufügenWidgetWegstreckePackNew
     -> TVar (Maybe [Sprache -> IO ()])
     -> m (CheckButtonWegstreckeHinzufügen Void o)
 hinzufügenWidgetWegstreckePackNew objekt tvar = do
-    dynamischeWidgets
-        @DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets
+        {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     widgetHinzufügenBoxPackNew box
         $ WegstreckeCheckButton
@@ -588,8 +588,8 @@ hinzufügenWidgetWegstreckeRichtungPackNew
     -> TVar (Maybe [Sprache -> IO ()])
     -> m (CheckButtonWegstreckeHinzufügen Richtung o)
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
-    dynamischeWidgets
-        @DynamischeWidgets {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
+    dynamischeWidgets@DynamischeWidgets
+        {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
     let justTVar = Just tvar
     widgetHinzufügenBoxPackNew box $ do
@@ -604,20 +604,21 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-                { wcbrWidget = erhalteWidget hBox
-                , wcbrRegistrierterCheckButton
-                , wcbrRichtungsAuswahl
-                }
+            { wcbrWidget = erhalteWidget hBox,
+              wcbrRegistrierterCheckButton,
+              wcbrRichtungsAuswahl
+            }
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 --
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetPlanPackNew
-    :: ( ObjektReader ObjektGui m
-       , StreckenObjekt (ObjektTyp o)
-       , ObjektElement (ObjektTyp o)
-       , MonadIO m)
+    :: (ObjektReader ObjektGui m,
+        StreckenObjekt (ObjektTyp o),
+        ObjektElement (ObjektTyp o),
+        MonadIO m
+       )
     => BoxPlanHinzufügen o
     -> ObjektTyp o
     -> TVar (Maybe [Sprache -> IO ()])
@@ -770,11 +771,12 @@ instance BahngeschwindigkeitKlasse BGWidgets where
 
 -- | 'Bahngeschwindigkeit' darstellen und zum Status hinzufügen
 bahngeschwindigkeitPackNew
-    :: ( ObjektReader ObjektGui m
-       , MonadIO m
-       , ZugtypKlasse z
-       , WegstreckenElement (BGWidgets z)
-       , PlanElement (BGWidgets z))
+    :: (ObjektReader ObjektGui m,
+        MonadIO m,
+        ZugtypKlasse z,
+        WegstreckenElement (BGWidgets z),
+        PlanElement (BGWidgets z)
+       )
     => Bahngeschwindigkeit z
     -> MStatusGuiT m (BGWidgets z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
@@ -790,11 +792,11 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.hBoxNew False 0
     let bgWidgets =
             BGWidgets
-            { bg = bahngeschwindigkeit
-            , bgWidget = hBox
-            , bgHinzWS = hinzufügenWidgetWegstrecke
-            , bgHinzPL = hinzufügenWidgetPlan
-            , bgSpracheTVar
+            { bg = bahngeschwindigkeit,
+              bgWidget = hBox,
+              bgHinzWS = hinzufügenWidgetWegstrecke,
+              bgHinzPL = hinzufügenWidgetPlan,
+              bgSpracheTVar
             }
     namePackNew hBox bahngeschwindigkeit
     boxPackWidgetNewDefault hBox
@@ -992,11 +994,11 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     fließendPackNew hBox streckenabschnitt justSpracheTVar
     let stWidgets =
             STWidgets
-            { st = streckenabschnitt
-            , stWidget = hBox
-            , stHinzPL = hinzufügenPlanWidget
-            , stHinzWS = hinzufügenWegstreckeWidget
-            , stSpracheTVar
+            { st = streckenabschnitt,
+              stWidget = hBox,
+              stHinzPL = hinzufügenPlanWidget,
+              stHinzWS = hinzufügenWegstreckeWidget,
+              stSpracheTVar
             }
     buttonEntfernenPackNew stWidgets stSpracheTVar $ entfernenStreckenabschnitt stWidgets
     -- Widgets merken
@@ -1134,10 +1136,10 @@ instance PlanElement (WEWidgets 'Märklin) where
     boxenPlan _weWidgets =
         Lens.folding
         $ (??)
-            [ vBoxHinzufügenPlanWeichenGeradeMärklin
-            , vBoxHinzufügenPlanWeichenKurveMärklin
-            , vBoxHinzufügenPlanWeichenLinksMärklin
-            , vBoxHinzufügenPlanWeichenRechtsMärklin]
+            [vBoxHinzufügenPlanWeichenGeradeMärklin,
+             vBoxHinzufügenPlanWeichenKurveMärklin,
+             vBoxHinzufügenPlanWeichenLinksMärklin,
+             vBoxHinzufügenPlanWeichenRechtsMärklin]
 
 instance PlanElement (WEWidgets 'Lego) where
     foldPlan :: Lens.Fold (WEWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WEWidgets 'Lego)))
@@ -1150,10 +1152,10 @@ instance PlanElement (WEWidgets 'Lego) where
     boxenPlan _weWidgets =
         Lens.folding
         $ (??)
-            [ vBoxHinzufügenPlanWeichenGeradeLego
-            , vBoxHinzufügenPlanWeichenKurveLego
-            , vBoxHinzufügenPlanWeichenLinksLego
-            , vBoxHinzufügenPlanWeichenRechtsLego]
+            [vBoxHinzufügenPlanWeichenGeradeLego,
+             vBoxHinzufügenPlanWeichenKurveLego,
+             vBoxHinzufügenPlanWeichenLinksLego,
+             vBoxHinzufügenPlanWeichenRechtsLego]
 
 instance PlanElement (ZugtypEither WEWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither WEWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WEWidgets)))
@@ -1169,18 +1171,18 @@ instance PlanElement (ZugtypEither WEWidgets) where
         Lens.folding
         $ fmap widgetHinzufügenZugtypEither
         . (??)
-            [ vBoxHinzufügenPlanWeichenGeradeMärklin
-            , vBoxHinzufügenPlanWeichenKurveMärklin
-            , vBoxHinzufügenPlanWeichenLinksMärklin
-            , vBoxHinzufügenPlanWeichenRechtsMärklin]
+            [vBoxHinzufügenPlanWeichenGeradeMärklin,
+             vBoxHinzufügenPlanWeichenKurveMärklin,
+             vBoxHinzufügenPlanWeichenLinksMärklin,
+             vBoxHinzufügenPlanWeichenRechtsMärklin]
     boxenPlan (ZugtypLego _weiche) =
         Lens.folding
         $ fmap widgetHinzufügenZugtypEither
         . (??)
-            [ vBoxHinzufügenPlanWeichenGeradeLego
-            , vBoxHinzufügenPlanWeichenKurveLego
-            , vBoxHinzufügenPlanWeichenLinksLego
-            , vBoxHinzufügenPlanWeichenRechtsLego]
+            [vBoxHinzufügenPlanWeichenGeradeLego,
+             vBoxHinzufügenPlanWeichenKurveLego,
+             vBoxHinzufügenPlanWeichenLinksLego,
+             vBoxHinzufügenPlanWeichenRechtsLego]
 
 instance StreckenObjekt (WEWidgets z) where
     anschlüsse :: WEWidgets z -> [Anschluss]
@@ -1202,11 +1204,12 @@ instance WeicheKlasse (WEWidgets z) where
 
 -- | 'Weiche' darstellen und zum Status hinzufügen
 weichePackNew :: forall m z.
-              ( ObjektReader ObjektGui m
-              , MonadIO m
-              , ZugtypKlasse z
-              , WegstreckenElement (WEWidgets z)
-              , PlanElement (WEWidgets z))
+              (ObjektReader ObjektGui m,
+               MonadIO m,
+               ZugtypKlasse z,
+               WegstreckenElement (WEWidgets z),
+               PlanElement (WEWidgets z)
+              )
               => Weiche z
               -> MStatusGuiT m (WEWidgets z)
 weichePackNew weiche = do
@@ -1233,10 +1236,10 @@ weichePackNew weiche = do
         else pure Nothing
     let hinzufügenPlanWidget =
             WeichePlanHinzufügenWidgets
-            { gerade = hinzufügenPlanWidgetGerade
-            , kurve = hinzufügenPlanWidgetKurve
-            , links = hinzufügenPlanWidgetLinks
-            , rechts = hinzufügenPlanWidgetRechts
+            { gerade = hinzufügenPlanWidgetGerade,
+              kurve = hinzufügenPlanWidgetKurve,
+              links = hinzufügenPlanWidgetLinks,
+              rechts = hinzufügenPlanWidgetRechts
             }
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.hBoxNew False 0
@@ -1245,11 +1248,11 @@ weichePackNew weiche = do
     fließendPackNew hBox weiche justSpracheTVar
     let weWidgets =
             WEWidgets
-            { we = weiche
-            , weWidget = hBox
-            , weHinzWS = hinzufügenWegstreckeWidget
-            , weHinzPL = hinzufügenPlanWidget
-            , weSpracheTVar
+            { we = weiche,
+              weWidget = hBox,
+              weHinzWS = hinzufügenWegstreckeWidget,
+              weHinzPL = hinzufügenPlanWidget,
+              weSpracheTVar
             }
     buttonEntfernenPackNew weWidgets weSpracheTVar $ entfernenWeiche $ zuZugtypEither weWidgets
     -- Widgets merken
@@ -1370,11 +1373,11 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     fließendPackNew hBox kupplung justSpracheTVar
     let kuWidgets =
             KUWidgets
-            { ku = kupplung
-            , kuWidget = hBox
-            , kuHinzPL = hinzufügenPlanWidget
-            , kuHinzWS = hinzufügenWegstreckeWidget
-            , kuSpracheTVar
+            { ku = kupplung,
+              kuWidget = hBox,
+              kuHinzPL = hinzufügenPlanWidget,
+              kuHinzWS = hinzufügenWegstreckeWidget,
+              kuSpracheTVar
             }
     buttonEntfernenPackNew kuWidgets kuSpracheTVar $ entfernenKupplung kuWidgets
     -- Widgets merken
@@ -1467,10 +1470,10 @@ instance PlanElement (WSWidgets 'Märklin) where
     boxenPlan _wsWidgets =
         Lens.folding
         $ (??)
-            [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-            , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-            , vBoxHinzufügenPlanWegstreckenKupplungMärklin
-            , vBoxHinzufügenPlanWegstreckenMärklin]
+            [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
+             vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
+             vBoxHinzufügenPlanWegstreckenKupplungMärklin,
+             vBoxHinzufügenPlanWegstreckenMärklin]
 
 instance PlanElement (WSWidgets 'Lego) where
     foldPlan :: Lens.Fold (WSWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WSWidgets 'Lego)))
@@ -1483,10 +1486,10 @@ instance PlanElement (WSWidgets 'Lego) where
     boxenPlan _wsWidgets =
         Lens.folding
         $ (??)
-            [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-            , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-            , vBoxHinzufügenPlanWegstreckenKupplungLego
-            , vBoxHinzufügenPlanWegstreckenLego]
+            [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
+             vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
+             vBoxHinzufügenPlanWegstreckenKupplungLego,
+             vBoxHinzufügenPlanWegstreckenLego]
 
 instance PlanElement (ZugtypEither WSWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither WSWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WSWidgets)))
@@ -1503,18 +1506,18 @@ instance PlanElement (ZugtypEither WSWidgets) where
         Lens.folding
         $ map widgetHinzufügenZugtypEither
         . (??)
-            [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-            , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-            , vBoxHinzufügenPlanWegstreckenKupplungMärklin
-            , vBoxHinzufügenPlanWegstreckenMärklin]
+            [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
+             vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
+             vBoxHinzufügenPlanWegstreckenKupplungMärklin,
+             vBoxHinzufügenPlanWegstreckenMärklin]
     boxenPlan (ZugtypLego _wegstrecke) =
         Lens.folding
         $ map widgetHinzufügenZugtypEither
         . (??)
-            [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-            , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-            , vBoxHinzufügenPlanWegstreckenKupplungLego
-            , vBoxHinzufügenPlanWegstreckenLego]
+            [vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
+             vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
+             vBoxHinzufügenPlanWegstreckenKupplungLego,
+             vBoxHinzufügenPlanWegstreckenLego]
 
 instance StreckenObjekt (WSWidgets z) where
     anschlüsse :: WSWidgets z -> [Anschluss]
@@ -1557,7 +1560,7 @@ wegstreckePackNew :: forall m z.
                   -> MStatusGuiT m (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke
-        {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
+    {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
@@ -1580,10 +1583,10 @@ wegstreckePackNew
         else Just <$> hinzufügenWidgetPlanPackNew boxWegstrecke wegstrecke wsSpracheTVar
     let hinzufügenPlanWidget =
             WegstreckePlanHinzufügenWidget
-            { bahngeschwindigkeit = hinzufügenPlanWidgetBG
-            , streckenabschnitt = hinzufügenPlanWidgetST
-            , kupplung = hinzufügenPlanWidgetKU
-            , wegstrecke = hinzufügenPlanWidgetWS
+            { bahngeschwindigkeit = hinzufügenPlanWidgetBG,
+              streckenabschnitt = hinzufügenPlanWidgetST,
+              kupplung = hinzufügenPlanWidgetKU,
+              wegstrecke = hinzufügenPlanWidgetWS
             }
     -- Widget erstellen
     frame <- liftIO $ boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
@@ -1632,11 +1635,11 @@ wegstreckePackNew
         buttonKuppelnPackNew functionBox wegstrecke wsSpracheTVar
     let wsWidgets =
             WSWidgets
-            { ws = wegstrecke
-            , wsWidget = frame
-            , wsFunktionBox = erhalteBox functionBox
-            , wsHinzPL = hinzufügenPlanWidget
-            , wsSpracheTVar
+            { ws = wegstrecke,
+              wsWidget = frame,
+              wsFunktionBox = erhalteBox functionBox,
+              wsHinzPL = hinzufügenPlanWidget,
+              wsSpracheTVar
             }
     buttonEntfernenPackNew wsWidgets wsSpracheTVar $ entfernenWegstrecke $ zuZugtypEither wsWidgets
     -- Widgets merken
@@ -1758,8 +1761,8 @@ planPackNew plan@Plan {plAktionen} = do
                     anzeigeAktion wert =
                         Gtk.set
                             progressBarPlan
-                            [ Gtk.progressBarFraction := (fromIntegral wert)
-                                  / (fromIntegral $ length plAktionen)]
+                            [Gtk.progressBarFraction := (fromIntegral wert)
+                                 / (fromIntegral $ length plAktionen)]
 
                     abschlussAktion :: IO ()
                     abschlussAktion = do
@@ -1769,8 +1772,8 @@ planPackNew plan@Plan {plAktionen} = do
             (AnschlüsseBelegt anschlüsse) -> void $ do
                 liftIO $ flip leseSprache spracheGui $ \sprache -> Gtk.set
                     dialogGesperrt
-                    [ Gtk.messageDialogText := Just
-                          $ (Language.ausführenGesperrt $# ausFoldable anschlüsse) sprache]
+                    [Gtk.messageDialogText := Just
+                         $ (Language.ausführenGesperrt $# ausFoldable anschlüsse) sprache]
                 dialogEval dialogGesperrt
     liftIO $ Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
         flip runReaderT objektReader
@@ -1780,14 +1783,23 @@ planPackNew plan@Plan {plAktionen} = do
     plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan plSpracheTVar
     let plWidgets =
             PLWidgets
-            { pl = plan
-            , plWidget = frame
-            , plFunktionBox = erhalteBox functionBox
-            , plHinzPL
-            , plSpracheTVar
+            { pl = plan,
+              plWidget = frame,
+              plFunktionBox = erhalteBox functionBox,
+              plHinzPL,
+              plSpracheTVar
             }
     buttonEntfernenPackNew plWidgets plSpracheTVar $ entfernenPlan plWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OPlan plWidgets
     pure plWidgets
 #endif
+
+
+
+
+
+
+
+
+

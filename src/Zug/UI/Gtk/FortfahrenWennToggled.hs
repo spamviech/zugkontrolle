@@ -58,8 +58,8 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
 data FortfahrenWennToggled =
     FortfahrenWennToggled
-    { fortfahren :: Gtk.Button,
-      checkButtonsRec :: NonEmpty RegistrierterCheckButton
+    { fortfahren :: Gtk.Button
+    , checkButtonsRec :: NonEmpty RegistrierterCheckButton
     }
     deriving (Eq)
 
@@ -131,10 +131,10 @@ aktiviereWennToggledAux button foldable =
 -- Die 'CheckButtons' sind dabei in einer in 'IO' lesbaren Variablen /v/ gespeichert.
 data FortfahrenWennToggledVar a v c =
     FortfahrenWennToggledVar
-    { fortfahrenVar :: Gtk.Button,
-      varCheckButtonsRec :: v,
-      readVar :: v -> IO a,
-      foldCheckButtonsRec :: Lens.Fold a c
+    { fortfahrenVar :: Gtk.Button
+    , varCheckButtonsRec :: v
+    , readVar :: v -> IO a
+    , foldCheckButtonsRec :: Lens.Fold a c
     }
 
 -- | Die Variable, in der die 'RegistrierterCheckButton' einer 'FortfahrenWennToggledVar' gespeichert werden.
@@ -149,9 +149,9 @@ instance (Eq v) => Eq (FortfahrenWennToggledVar a v c) where
     (==) :: FortfahrenWennToggledVar a v c -> FortfahrenWennToggledVar a v c -> Bool
     (==)
         FortfahrenWennToggledVar
-            {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
+        {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
         FortfahrenWennToggledVar
-            {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
+        {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
         (fortfahrenVar0 == fortfahrenVar1) && (varCheckButtons0 == varCheckButtons1)
 
 instance MitWidget (FortfahrenWennToggledVar a v c) where
@@ -187,11 +187,11 @@ fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheck
         $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
     pure
         FortfahrenWennToggledVar
-            { fortfahrenVar,
-              readVar,
-              varCheckButtonsRec,
-              foldCheckButtonsRec
-            }
+        { fortfahrenVar,
+          readVar,
+          varCheckButtonsRec,
+          foldCheckButtonsRec
+        }
 
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggledVar
@@ -249,5 +249,14 @@ instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
     erhalteRegistrierterCheckButton = id
 #endif
+
+
+
+
+
+
+
+
+
 
 

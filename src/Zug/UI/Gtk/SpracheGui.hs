@@ -31,8 +31,8 @@ import Zug.Language (Sprache(), MitSprache(..))
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 data SpracheGui =
     SpracheGui
-    { sprache :: Sprache,
-      sprachwechselAktionen :: TVar [AktionOderTVar]
+    { sprache :: Sprache
+    , sprachwechselAktionen :: TVar [AktionOderTVar]
     }
 
 instance MitSprache SpracheGui where
@@ -82,8 +82,8 @@ sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ d
     atomically $ writeTVar sprachwechselAktionen sprachwechselAktionenNeu
     pure
         spracheGui
-            { sprache
-            }
+        { sprache
+        }
 
 -- | Führe die übergebene Aktion mit der aktellen 'Sprache' aus.
 -- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel'.

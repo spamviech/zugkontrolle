@@ -94,21 +94,20 @@ pwmSoftwareSetzteWert anschluss pwmFrequenz pwmWert = do
         $ void
         $ forkI2CReader
         $ pwmSoftwareAnschlussMain anschluss
-    -- | PWM-Funktion für einen 'Anschluss'. Läuft in einem eigenem Thread.
-    --
-    -- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Anschluss' in der übergebenen 'TVar' 'PwmMap' nicht mehr vorkommt.
 
-        where
-            pwmSoftwareAnschlussMain :: (MitPwmMap r, MitI2CMap r) => Anschluss -> ReaderT r IO ()
-            pwmSoftwareAnschlussMain anschluss = do
-                tvarPwmMap <- erhaltePwmMap
-                pwmMap <- liftIO $ readTVarIO tvarPwmMap
-                case Map.lookup anschluss pwmMap of
-                    Nothing -> pure ()
-                    (Just (pwmWert, pwmFrequenz)) -> do
-                        anschlussWrite anschluss HIGH
-                        let (zeitAn, zeitAus) = pwmBerechneZeiten pwmFrequenz pwmWert
-                        warte zeitAn
-                        anschlussWrite anschluss LOW
-                        warte zeitAus
-                        pwmSoftwareAnschlussMain anschluss
+-- | PWM-Funktion für einen 'Anschluss'. Läuft in einem eigenem Thread.
+--
+-- Läuft so lange in einer Dauerschleife, bis der Wert für den betroffenen 'Anschluss' in der übergebenen 'TVar' 'PwmMap' nicht mehr vorkommt.
+pwmSoftwareAnschlussMain :: (MitPwmMap r, MitI2CMap r) => Anschluss -> ReaderT r IO ()
+pwmSoftwareAnschlussMain anschluss = do
+    tvarPwmMap <- erhaltePwmMap
+    pwmMap <- liftIO $ readTVarIO tvarPwmMap
+    case Map.lookup anschluss pwmMap of
+        Nothing -> pure ()
+        (Just (pwmWert, pwmFrequenz)) -> do
+            anschlussWrite anschluss HIGH
+            let (zeitAn, zeitAus) = pwmBerechneZeiten pwmFrequenz pwmWert
+            warte zeitAn
+            anschlussWrite anschluss LOW
+            warte zeitAus
+            pwmSoftwareAnschlussMain anschluss

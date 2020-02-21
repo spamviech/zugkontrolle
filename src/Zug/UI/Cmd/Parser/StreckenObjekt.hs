@@ -198,23 +198,23 @@ data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
     AMärklinBahngeschwindigkeitName :: { abgmName :: Text
                                         } -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
     AMärklinBahngeschwindigkeitNameFließend
-        :: { abgmName :: Text,
-             abgmFließend :: Value,
-             abgmGeschwindigkeitsAnfrageAnschluss :: AnfrageAnschluss
+        :: { abgmName :: Text
+           , abgmFließend :: Value
+           , abgmGeschwindigkeitsAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
     ALegoBahngeschwindigkeit :: AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
     ALegoBahngeschwindigkeitName :: { abglName :: Text
                                     } -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
     ALegoBahngeschwindigkeitNameFließend
-        :: { abglName :: Text,
-             abglFließend :: Value,
-             abglGeschwindigkeitsAnfrageAnschluss :: AnfrageAnschluss
+        :: { abglName :: Text
+           , abglFließend :: Value
+           , abglGeschwindigkeitsAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
     ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-        :: { abglName :: Text,
-             abglFließend :: Value,
-             abglGeschwindigkeitsAnschluss :: Anschluss,
-             abglFahrtrichtungsAnfrageAnschluss :: AnfrageAnschluss
+        :: { abglName :: Text
+           , abglFließend :: Value
+           , abglGeschwindigkeitsAnschluss :: Anschluss
+           , abglFahrtrichtungsAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
 
 deriving instance Eq (AnfrageBahngeschwindigkeit z)
@@ -357,10 +357,10 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
             anschlussVerwenden bgmGeschwindigkeitsAnschluss =
                 AFErgebnis
                     MärklinBahngeschwindigkeit
-                        { bgmName,
-                          bgmFließend,
-                          bgmGeschwindigkeitsAnschluss
-                        }
+                    { bgmName,
+                      bgmFließend,
+                      bgmGeschwindigkeitsAnschluss
+                    }
 
 instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
     type AnfrageTyp (Bahngeschwindigkeit 'Lego) = AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
@@ -423,11 +423,11 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
             anschlussVerwenden bglFahrtrichtungsAnschluss =
                 AFErgebnis
                     LegoBahngeschwindigkeit
-                        { bglName,
-                          bglFließend,
-                          bglGeschwindigkeitsAnschluss,
-                          bglFahrtrichtungsAnschluss
-                        }
+                    { bglName,
+                      bglFließend,
+                      bglGeschwindigkeitsAnschluss,
+                      bglFahrtrichtungsAnschluss
+                    }
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -436,9 +436,9 @@ data AnfrageStreckenabschnitt
           { astName :: Text
           }
     | AStreckenabschnittNameFließend
-          { astName :: Text,
-            astFließend :: Value,
-            astStromAnfrageAnschluss :: AnfrageAnschluss
+          { astName :: Text
+          , astFließend :: Value
+          , astStromAnfrageAnschluss :: AnfrageAnschluss
           }
     deriving (Eq, Show)
 
@@ -505,10 +505,10 @@ instance MitAnfrage Streckenabschnitt where
             anschlussVerwenden stromAnschluss =
                 AFErgebnis
                     Streckenabschnitt
-                        { stName,
-                          stFließend,
-                          stromAnschluss
-                        }
+                    { stName,
+                      stFließend,
+                      stromAnschluss
+                    }
 
    -- | Unvollständige 'Weiche'
 data AnfrageWeiche (z :: AnfrageZugtyp) where
@@ -516,40 +516,40 @@ data AnfrageWeiche (z :: AnfrageZugtyp) where
     AMärklinWeiche :: AnfrageWeiche 'AnfrageZugtypMärklin
     AMärklinWeicheName :: { awemName :: Text
                            } -> AnfrageWeiche 'AnfrageZugtypMärklin
-    AMärklinWeicheNameFließend :: { awemName :: Text,
-                                      awemFließend :: Value
+    AMärklinWeicheNameFließend :: { awemName :: Text
+                                    , awemFließend :: Value
                                     } -> AnfrageWeiche 'AnfrageZugtypMärklin
     AMärklinWeicheNameFließendAnzahl
-        :: { awemName :: Text,
-             awemFließend :: Value,
-             awemAnzahl :: Natural,
-             awemRichtungsAnschlüsse :: [(Richtung, Anschluss)]
+        :: { awemName :: Text
+           , awemFließend :: Value
+           , awemAnzahl :: Natural
+           , awemRichtungsAnschlüsse :: [(Richtung, Anschluss)]
            } -> AnfrageWeiche 'AnfrageZugtypMärklin
     AMärklinWeicheNameFließendAnzahlRichtung
-        :: { awemName :: Text,
-             awemFließend :: Value,
-             awemAnzahl :: Natural,
-             awemRichtungsAnschlüsse :: [(Richtung, Anschluss)],
-             awemRichtung :: Richtung,
-             awemAnfrageAnschluss :: AnfrageAnschluss
+        :: { awemName :: Text
+           , awemFließend :: Value
+           , awemAnzahl :: Natural
+           , awemRichtungsAnschlüsse :: [(Richtung, Anschluss)]
+           , awemRichtung :: Richtung
+           , awemAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageWeiche 'AnfrageZugtypMärklin
     ALegoWeiche :: AnfrageWeiche 'AnfrageZugtypLego
     ALegoWeicheName :: { awelName :: Text
                        } -> AnfrageWeiche 'AnfrageZugtypLego
-    ALegoWeicheNameFließend :: { awelName :: Text,
-                                  awelFließend :: Value
+    ALegoWeicheNameFließend :: { awelName :: Text
+                                , awelFließend :: Value
                                 } -> AnfrageWeiche 'AnfrageZugtypLego
     ALegoWeicheNameFließendRichtung1
-        :: { awelName :: Text,
-             awelFließend :: Value,
-             awelRichtung1 :: Richtung
+        :: { awelName :: Text
+           , awelFließend :: Value
+           , awelRichtung1 :: Richtung
            } -> AnfrageWeiche 'AnfrageZugtypLego
     ALegoWeicheNameFließendRichtungen
-        :: { awelName :: Text,
-             awelFließend :: Value,
-             awelRichtung1 :: Richtung,
-             awelRichtung2 :: Richtung,
-             awelRichtungsAnfrageAnschluss :: AnfrageAnschluss
+        :: { awelName :: Text
+           , awelFließend :: Value
+           , awelRichtung1 :: Richtung
+           , awelRichtung2 :: Richtung
+           , awelRichtungsAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageWeiche 'AnfrageZugtypLego
 
 deriving instance Eq (AnfrageWeiche z)
@@ -718,10 +718,10 @@ instance MitAnfrage (Weiche 'Märklin) where
                 | otherwise =
                     AFErgebnis
                         MärklinWeiche
-                            { wemName,
-                              wemFließend,
-                              wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
-                            }
+                        { wemName,
+                          wemFließend,
+                          wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
+                        }
 
 instance MitAnfrage (Weiche 'Lego) where
     type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
@@ -776,11 +776,11 @@ instance MitAnfrage (Weiche 'Lego) where
             anschlussVerwenden welRichtungsAnschluss =
                 AFErgebnis
                     LegoWeiche
-                        { welName,
-                          welFließend,
-                          welRichtungsAnschluss,
-                          welRichtungen = (richtung1, richtung2)
-                        }
+                    { welName,
+                      welFließend,
+                      welRichtungsAnschluss,
+                      welRichtungen = (richtung1, richtung2)
+                    }
 
 instance MitAnfrageZugtyp AnfrageWeiche where
     anfrageMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
@@ -796,9 +796,9 @@ data AnfrageKupplung
           { akuName :: Text
           }
     | AKupplungNameFließend
-          { akuName :: Text,
-            akuFließend :: Value,
-            akuKupplungsAnfrageAnschluss :: AnfrageAnschluss
+          { akuName :: Text
+          , akuFließend :: Value
+          , akuKupplungsAnfrageAnschluss :: AnfrageAnschluss
           }
     deriving (Eq, Show)
 
@@ -861,10 +861,10 @@ instance MitAnfrage Kupplung where
             anschlussVerwenden kupplungsAnschluss =
                 AFErgebnis
                     Kupplung
-                        { kuName,
-                          kuFließend,
-                          kupplungsAnschluss
-                        }
+                    { kuName,
+                      kuFließend,
+                      kupplungsAnschluss
+                    }
 
 class AnfrageZugtypKlasse (z :: AnfrageZugtyp) where
     type FixerZugtyp z :: Zugtyp
@@ -897,18 +897,18 @@ data AnfrageWegstrecke (z :: AnfrageZugtyp) where
     AnfrageWegstrecke :: AnfrageWegstrecke z
     AWegstreckeName :: { awsName :: Text
                        } -> AnfrageWegstrecke z
-    AWegstreckeNameAnzahl :: { awsAkkumulator :: Wegstrecke (FixerZugtyp z),
-                               awsAnzahl :: Natural
+    AWegstreckeNameAnzahl :: { awsAkkumulator :: Wegstrecke (FixerZugtyp z)
+                             , awsAnzahl :: Natural
                              } -> AnfrageWegstrecke z
     AWegstreckeNameAnzahlWeicheRichtung
-        :: { awsAkkumulator :: Wegstrecke (FixerZugtyp z),
-             awsAnzahl :: Natural,
-             awsWeiche :: Weiche (FixerZugtyp z)
+        :: { awsAkkumulator :: Wegstrecke (FixerZugtyp z)
+           , awsAnzahl :: Natural
+           , awsWeiche :: Weiche (FixerZugtyp z)
            } -> AnfrageWegstrecke z
     AWSStatusAnfrage
         :: { awsStatusAnfrageKonstruktor
-                 :: EingabeToken -> StatusAnfrageObjektZugtyp (FixerZugtyp z),
-             awsEitherKonstruktor :: Either (ObjektZugtyp (FixerZugtyp z)
+                 :: EingabeToken -> StatusAnfrageObjektZugtyp (FixerZugtyp z)
+           , awsEitherKonstruktor :: Either (ObjektZugtyp (FixerZugtyp z)
                                              -> AnfrageWegstrecke z) (ObjektZugtyp (FixerZugtyp z)
                                                                       -> Wegstrecke (FixerZugtyp z))
            } -> AnfrageWegstrecke z
@@ -995,12 +995,12 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, g
         (Just anzahl) -> AFZwischenwert
             $ AWegstreckeNameAnzahl
                 Wegstrecke
-                    { wsName,
-                      wsBahngeschwindigkeiten = [],
-                      wsStreckenabschnitte = [],
-                      wsWeichenRichtungen = [],
-                      wsKupplungen = []
-                    }
+                { wsName,
+                  wsBahngeschwindigkeiten = [],
+                  wsStreckenabschnitte = [],
+                  wsWeichenRichtungen = [],
+                  wsKupplungen = []
+                }
                 anzahl
 anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token =
     case anfrageWegstreckenElement token of
@@ -1099,7 +1099,7 @@ anfrageWegstreckeAktualisieren
         weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Wegstrecke (FixerZugtyp z)
         weicheRichtungAnhängen
             AWegstreckeNameAnzahlWeicheRichtung
-                {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
+            {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
             richtung =
             wegstrecke
             { wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen
@@ -1169,7 +1169,7 @@ instance MitAnfrage Objekt where
             token
             [(Lexer.Bahngeschwindigkeit,
               AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit
-             ),
+                 ),
              (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt),
              (Lexer.Weiche, AOWeiche $ AnfrageNothing AnfrageWeiche),
              (Lexer.Wegstrecke, AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp),

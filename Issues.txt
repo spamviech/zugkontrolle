@@ -14,47 +14,46 @@ Haddock schlägt an Language.hs fehl
     Probieren ob ein-Datei-Version funktioniert
         Funktioniert, aber jetzt stürzt Haddock nach Zug.UI.Save ab
     Kompilationsreihenfolge:
-        [ 1 of 41] Compiling Paths_Zugkontrolle
-        [ 2 of 41] Compiling Zug.Anbindung.I2C
-        [ 3 of 41] Compiling Zug.Language.Operatoren
-        [ 4 of 41] Compiling Zug.Language
-        [ 5 of 41] Compiling Zug.Enums
-        [ 6 of 41] Compiling Zug.Anbindung.Wartezeit
-        [ 7 of 41] Compiling Zug.Anbindung.PCF8574
-        [ 8 of 41] Compiling Zug.Anbindung.Anschluss
-        [ 9 of 41] Compiling Zug.Anbindung.SoftwarePWM
-        [10 of 41] Compiling Zug.Language.TemplateHaskell
-        [11 of 41] Compiling Zug.Menge
-        [12 of 41] Compiling Zug.Options
-        [13 of 41] Compiling Zug.Anbindung
-        [14 of 41] Compiling Zug.Plan
-        [15 of 41] Compiling Zug.Objekt
-        [16 of 41] Compiling Zug.UI.Base
-        [17 of 41] Compiling Zug.UI.Cmd.Lexer
-        [18 of 41] Compiling Zug.UI.Cmd.Parser.Anfrage
-        [19 of 41] Compiling Zug.UI.Gtk.Klassen.TemplateHaskell
-        [20 of 41] Compiling Zug.UI.Gtk.Klassen
-        [21 of 41] Compiling Zug.UI.Gtk.SpracheGui
-        [22 of 41] Compiling Zug.UI.Gtk.Hilfsfunktionen
-        [23 of 41] Compiling Zug.UI.Gtk.ScrollbaresWidget
-        [24 of 41] Compiling Zug.UI.Gtk.FortfahrenWennToggled
-        [25 of 41] Compiling Zug.UI.Gtk.Auswahl
-        [26 of 41] Compiling Zug.UI.Gtk.Fliessend
-        [27 of 41] Compiling Zug.UI.Gtk.Anschluss
-        [28 of 41] Compiling Zug.UI.Gtk.ZugtypSpezifisch
-        [29 of 41] Compiling Zug.UI.Save
-        [30 of 41] Compiling Zug.UI.Befehl
-        [31 of 41] Compiling Zug.UI.StatusVar
-        [32 of 41] Compiling Zug.UI.Gtk.StreckenObjekt
-        [33 of 41] Compiling Zug.UI.Gtk.Assistant
-        [34 of 41] Compiling Zug.Warteschlange
-        [35 of 41] Compiling Zug.UI.Gtk.Fenster
-        [36 of 41] Compiling Zug.UI.Gtk
-        [37 of 41] Compiling Zug.UI.Cmd.Parser.Plan
-        [38 of 41] Compiling Zug.UI.Cmd.Parser.StreckenObjekt
-        [39 of 41] Compiling Zug.UI.Cmd.Parser
-        [40 of 41] Compiling Zug.UI.Cmd
-        [41 of 41] Compiling Zug.UI
+        [ 1 of 40] Compiling Paths_Zugkontrolle
+        [ 2 of 40] Compiling Zug.Anbindung.I2C
+        [ 3 of 40] Compiling Zug.Language
+        [ 4 of 40] Compiling Zug.Enums
+        [ 5 of 40] Compiling Zug.Anbindung.Wartezeit
+        [ 6 of 40] Compiling Zug.Anbindung.PCF8574
+        [ 7 of 40] Compiling Zug.Anbindung.Anschluss
+        [ 8 of 40] Compiling Zug.Anbindung.SoftwarePWM
+        [ 9 of 40] Compiling Zug.Menge
+        [10 of 40] Compiling Zug.Options
+        [11 of 40] Compiling Zug.Anbindung
+        [12 of 40] Compiling Zug.Plan
+        [13 of 40] Compiling Zug.Objekt
+        [14 of 40] Compiling Zug.UI.Base
+        [15 of 40] Compiling Zug.UI.Cmd.Lexer
+        [16 of 40] Compiling Zug.UI.Cmd.Parser.Anfrage
+        [17 of 40] Compiling Zug.UI.Gtk.Klassen.TemplateHaskell
+        [18 of 40] Compiling Zug.UI.Gtk.Klassen
+        [19 of 40] Compiling Zug.UI.Gtk.SpracheGui
+        [20 of 40] Compiling Zug.UI.Gtk.Hilfsfunktionen
+        [21 of 40] Compiling Zug.UI.Gtk.ScrollbaresWidget
+        [22 of 40] Compiling Zug.UI.Gtk.FortfahrenWennToggled
+        [23 of 40] Compiling Zug.UI.Gtk.Auswahl
+        [24 of 40] Compiling Zug.UI.Gtk.Fliessend
+        [25 of 40] Compiling Zug.UI.Gtk.Anschluss
+        [26 of 40] Compiling Zug.UI.Gtk.ZugtypSpezifisch
+        [27 of 40] Compiling Zug.UI.Save
+        [28 of 40] Compiling Zug.UI.Befehl
+        [29 of 40] Compiling Zug.UI.StatusVar
+        [30 of 40] Compiling Zug.UI.Gtk.StreckenObjekt
+        [31 of 40] Compiling Zug.UI.Gtk.Assistant
+        [32 of 40] Compiling Zug.Warteschlange
+        [33 of 40] Compiling Zug.UI.Gtk.Fenster.AssistantHinzufuegen
+        [34 of 40] Compiling Zug.UI.Gtk.Fenster
+        [35 of 40] Compiling Zug.UI.Gtk
+        [36 of 40] Compiling Zug.UI.Cmd.Parser.Plan
+        [37 of 40] Compiling Zug.UI.Cmd.Parser.StreckenObjekt
+        [38 of 40] Compiling Zug.UI.Cmd.Parser
+        [39 of 40] Compiling Zug.UI.Cmd
+        [40 of 40] Compiling Zug.UI
 
 Laden einer Liste schlägt momentan für gesamte Liste fehl
     Elementweise überprüfen und nur fehlgeschlagene ignorieren
@@ -65,6 +64,19 @@ Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
     Zeit-basierte Lösung wird weiterhin unterstützt.
     Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
+
+Implementiere Server/Client-Modus:
+    Raspi läuft im Server-Modus und reagiert auf eingehende Nachrichten (evtl. nur von fester IP-Addresse)
+        stdout-Ausgabe der eigene IP-Addresse bei Start
+    Client sendet Nachrichten an angegebene TCP-Addresse
+    Zusätliche Kommandozeilenoption:
+        --ip
+            Gibt die eigene IP-Addresse aus und beendet sich
+    Benötigte Packages:
+        network-info
+            eigene IP-Addresse
+        network-simple
+            TCP-Nachrichten mit einfachem API
 
 Code-Stil vereinheitlichen:
     hlint berücksichtigen(?)
@@ -95,15 +107,7 @@ CPP im Code entfernen
             Erwarte eine main :: IO ()-Funktion, welche bei Auswahl aufgerufen wird.
         https://hackage.haskell.org/package/plugins
         https://hackage.haskell.org/package/dynamic-loader
-
-
-Laden dauert teilweise sehr lange (Gtk-UI)
-    Geforktes erzeugen der Widgets, damit das Programm nicht so aussieht als wäre es abgestürzt
-        vielleicht später (TODO)
-    Evtl. eine Fortschrittsanzeige hinzufügen
-        vielleicht später (TODO)
-    Lag an Wegstrecken mit vielen Objekten vom gleichen Typ
-        gefixt
+    Verschiedene Executables (in package.yaml) macht mehr Sinn
 
 Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
     Strom an/aus
@@ -115,6 +119,8 @@ gi-gtk/gi-gtk-declarative verwenden?
     gi-gtk scheint neuer und besser gewartet zu sein.
     Wirft auf Raspberry Pi bisher Fehlermeldungen.
         Warten bis eine neue GHC-Version auf Raspi funktioniert?
+            8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/
+            funktioniert auf Windows nicht!
 
 Beispiel-Schaltpläne erstellen
     Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.

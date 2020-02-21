@@ -67,16 +67,16 @@ anschlussNew maybeTVar name anschluss =
 -- | Widgets zum erzeugen eines 'Anschluss'
 data AnschlussAuswahlWidget =
     AnschlussAuswahlWidget
-    { aawWidget :: Gtk.Widget,
-      aawNotebook :: Gtk.Notebook,
-      aawPinPage :: Int,
-      aawPin :: Gtk.SpinButton,
-      aawPCF8574PortPage :: Int,
-      aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant,
-      aawPCF8574PortA0 :: AuswahlWidget Value,
-      aawPCF8574PortA1 :: AuswahlWidget Value,
-      aawPCF8574PortA2 :: AuswahlWidget Value,
-      aawPCF8574Port :: Gtk.SpinButton
+    { aawWidget :: Gtk.Widget
+    , aawNotebook :: Gtk.Notebook
+    , aawPinPage :: Int
+    , aawPin :: Gtk.SpinButton
+    , aawPCF8574PortPage :: Int
+    , aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant
+    , aawPCF8574PortA0 :: AuswahlWidget Value
+    , aawPCF8574PortA1 :: AuswahlWidget Value
+    , aawPCF8574PortA2 :: AuswahlWidget Value
+    , aawPCF8574Port :: Gtk.SpinButton
     }
     deriving (Eq)
 
@@ -130,30 +130,30 @@ anschlussAuswahlNew maybeTVar name = do
         pure aawPCF8574Port
     pure
         AnschlussAuswahlWidget
-            { aawWidget = erhalteWidget vBox,
-              aawNotebook,
-              aawPinPage,
-              aawPin,
-              aawPCF8574PortPage,
-              aawPCF8574PortVariante,
-              aawPCF8574PortA0,
-              aawPCF8574PortA1,
-              aawPCF8574PortA2,
-              aawPCF8574Port
-            }
+        { aawWidget = erhalteWidget vBox,
+          aawNotebook,
+          aawPinPage,
+          aawPin,
+          aawPCF8574PortPage,
+          aawPCF8574PortVariante,
+          aawPCF8574PortA0,
+          aawPCF8574PortA1,
+          aawPCF8574PortA2,
+          aawPCF8574Port
+        }
 
 -- | Erhalte den aktuell gewählten 'Anschluss'.
 aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
 aktuellerAnschluss
     AnschlussAuswahlWidget
-        {aawNotebook,
-         aawPin,
-         aawPCF8574PortPage,
-         aawPCF8574PortVariante,
-         aawPCF8574PortA0,
-         aawPCF8574PortA1,
-         aawPCF8574PortA2,
-         aawPCF8574Port} = liftIO $ do
+    {aawNotebook,
+     aawPin,
+     aawPCF8574PortPage,
+     aawPCF8574PortVariante,
+     aawPCF8574PortA0,
+     aawPCF8574PortA1,
+     aawPCF8574PortA2,
+     aawPCF8574Port} = liftIO $ do
     Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
@@ -176,6 +176,16 @@ aktuellerAnschluss
             -- Verwende als Standard die Pin-Eingabe
             | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
 #endif
+
+
+
+
+
+
+
+
+
+
 
 
 

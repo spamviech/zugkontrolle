@@ -91,9 +91,9 @@ data EingabeTokenAllgemein
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken =
     EingabeToken
-    { eingabe :: Text,
-      möglichkeiten :: [Token],
-      ganzzahl :: Maybe Natural
+    { eingabe :: Text
+    , möglichkeiten :: [Token]
+    , ganzzahl :: Maybe Natural
     }
     deriving (Eq, Show)
 

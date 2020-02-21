@@ -59,8 +59,9 @@ data Assistant w a =
     Assistant
     { fenster :: Gtk.Window
     , seiten :: AssistantSeitenBaumPacked w
-    , tvarAuswahl :: TVar (Either ( [AssistantSeitenBaumPacked w]
-                                  , AssistantSeitenBaumPacked w) (AssistantResult (NonEmpty w)))
+    , tvarAuswahl :: TVar (Either ([AssistantSeitenBaumPacked w],
+                                   AssistantSeitenBaumPacked w
+                                  ) (AssistantResult (NonEmpty w)))
     , auswertFunktion :: NonEmpty w -> IO a
     , seitenAbschlussKnopf :: Gtk.Button
     , zurückKnopf :: Gtk.Button
@@ -269,13 +270,13 @@ assistantNew parent globaleWidgets seitenEingabe maybeTVar auswertFunktion = do
     -- Konstruiere Ergebnistyp
     let assistant =
             Assistant
-            { fenster
-            , seiten
-            , tvarAuswahl
-            , auswertFunktion
-            , seitenAbschlussKnopf
-            , zurückKnopf
-            , tvarAktuelleSeite
+            { fenster,
+              seiten,
+              tvarAuswahl,
+              auswertFunktion,
+              seitenAbschlussKnopf,
+              zurückKnopf,
+              tvarAktuelleSeite
             }
     -- Füge Reaktion auf drücken des Vorwärts- und Zurück-Knopfes hinzu
     liftIO $ Gtk.on zurückKnopf Gtk.buttonActivated $ do
@@ -361,9 +362,9 @@ packSeiten box flowControlBox AssistantSeiteLinear {node, nachfolger} maybeTVar 
     packedNachfolger <- packSeiten box flowControlBox nachfolger maybeTVar
     pure
         PackedSeiteLinear
-            { packedNode = node
-            , packedNachfolger
-            }
+        { packedNode = node,
+          packedNachfolger
+        }
 packSeiten
     box
     flowControlBox
@@ -387,11 +388,11 @@ packSeiten
             name
     pure
         $ PackedSeiteAuswahl
-        { packedNode = node
-        , packedNachfolgerFrage = nachfolgerFrage
-        , packedNachfolgerListe
-        , packedBox = erhalteBox vBox
-        , packedNachfolgerAuswahl
+        { packedNode = node,
+          packedNachfolgerFrage = nachfolgerFrage,
+          packedNachfolgerListe,
+          packedBox = erhalteBox vBox,
+          packedNachfolgerAuswahl
         }
 packSeiten box flowControlBox AssistantSeiteLetzte {node} _maybeTVar = liftIO $ do
     case besondererSeitenAbschlussWidget node of
@@ -473,5 +474,14 @@ assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAk
                         -- Gebe Ergebnis zurück
                         pure result
 #endif
+
+
+
+
+
+
+
+
+
 
 

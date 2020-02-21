@@ -85,8 +85,8 @@ instance Anzeige PCF8574Variant where
 -- | Variante und variable Adress-Bits eines /PCF8574/
 data PCF8574 =
     PCF8574
-    { variant :: PCF8574Variant,
-      a0, a1, a2 :: Value
+    { variant :: PCF8574Variant
+    , a0, a1, a2 :: Value
     }
     deriving (Eq, Ord)
 
@@ -153,8 +153,8 @@ numPorts = 8
 -- | Verwende Port eines /PCF8574/
 data PCF8574Port =
     PCF8574Port
-    { pcf8574 :: PCF8574,
-      port :: Word8
+    { pcf8574 :: PCF8574
+    , port :: Word8
     }
     deriving (Eq, Ord)
 

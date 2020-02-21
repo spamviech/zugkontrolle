@@ -60,6 +60,7 @@
         "ccall",
         "concat",
         "doesn",
+        "floskell",
         "fmap",
         "foldl",
         "foldr",

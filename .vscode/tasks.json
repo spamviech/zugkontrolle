@@ -32,6 +32,13 @@
             "command": "stack run --cwd=./bin -- --load Zugkontrolle.yaml",
             "group": "none",
             "problemMatcher": []
+        },
+        {
+            "label": "format",
+            "type": "shell",
+            "command": "./run_floskell.bat",
+            "group": "none",
+            "problemMatcher": []
         }
     ]
 }

@@ -31,11 +31,11 @@ getOptions = liftIO $ execParser optionen
 -- | Unterstützte Kommandozeilen-Argumente
 data Options =
     Options
-    { printCmd :: Bool,
-      ui :: UI,
-      sprache :: Sprache,
-      load :: String,
-      pwm :: PWM
+    { printCmd :: Bool
+    , ui :: UI
+    , sprache :: Sprache
+    , load :: String
+    , pwm :: PWM
     }
     deriving (Show)
 

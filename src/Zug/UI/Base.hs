@@ -1,6 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -11,6 +10,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -30,7 +30,7 @@ module Zug.UI.Base
   , ObjektReader
   , auswertenLeererIOStatus
   , liftIOStatus
-#ifdef ZUGKONTROLLEGUI
+    -- ** Linsen
   , bahngeschwindigkeiten
   , streckenabschnitte
   , weichen
@@ -38,7 +38,6 @@ module Zug.UI.Base
   , wegstrecken
   , pläne
   , sprache
-#endif
     -- * Zustands-Monade
   , IOStatus
   , MStatus
@@ -81,9 +80,6 @@ module Zug.UI.Base
 
 -- Bibliotheken
 import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
-#ifdef ZUGKONTROLLEGUI
-import Control.Lens (Lens', lens)
-#endif
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS)
 import Control.Monad.Reader.Class (MonadReader(..), asks)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
@@ -108,13 +104,13 @@ import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..
 -- | Aktueller Status
 data StatusAllgemein o =
     Status
-    { _bahngeschwindigkeiten :: [ZugtypEither (BG o)],
-      _streckenabschnitte :: [ST o],
-      _weichen :: [ZugtypEither (WE o)],
-      _kupplungen :: [KU o],
-      _wegstrecken :: [ZugtypEither (WS o)],
-      _pläne :: [PL o],
-      _sprache :: SP o
+    { _bahngeschwindigkeiten :: [ZugtypEither (BG o)]
+    , _streckenabschnitte :: [ST o]
+    , _weichen :: [ZugtypEither (WE o)]
+    , _kupplungen :: [KU o]
+    , _wegstrecken :: [ZugtypEither (WS o)]
+    , _pläne :: [PL o]
+    , _sprache :: SP o
     }
 
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
@@ -138,9 +134,17 @@ deriving instance (Show (ZugtypEither (BG o)),
                    Show (SP o)
                   ) => Show (StatusAllgemein o)
 
-#ifdef ZUGKONTROLLEGUI
--- Template-Haskell verträgt sich nicht mit CPP (makeLenses ''StatusAllgemein wirft dll-Fehler unter Windows)
--- Linsen werden daher per Hand erstellt
+-- | Simple Copy&Paste from the lens-definition (remove need for CPP).
+type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+
+-- | Create a Lens' from a Getter and a Setter.
+-- Simple Copy&Paste from the lens-definition (remove need for CPP).
+-- lens :: forall f. Functor f => (s -> a) -> (s -> a -> s) -> (a -> f a) -> s -> f s
+lens :: (s -> a) -> (s -> a -> s) -> Lens' s a
+lens sa sas afa s = sas s <$> afa (sa s)
+
+{-# INLINE lens #-}
+
 -- | 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
 bahngeschwindigkeiten :: Lens' (StatusAllgemein o) [ZugtypEither (BG o)]
 bahngeschwindigkeiten = lens _bahngeschwindigkeiten $ \status bgs -> status
@@ -182,7 +186,6 @@ sprache :: Lens' (StatusAllgemein o) (SP o)
 sprache = lens _sprache $ \status sp -> status
     { _sprache = sp
     }
-#endif
 
 instance (Anzeige (ZugtypEither (BG o)),
           Anzeige (ST o),
@@ -239,9 +242,9 @@ statusLeer _sprache =
 -- | Sammlung aller benötigten 'TVar's
 data TVarMaps =
     TVarMaps
-    { tvarAusführend :: TVar (Menge Ausführend),
-      tvarPwmMap :: TVar PwmMap,
-      tvarI2CMap :: TVar I2CMap
+    { tvarAusführend :: TVar (Menge Ausführend)
+    , tvarPwmMap :: TVar PwmMap
+    , tvarI2CMap :: TVar I2CMap
     }
 
 -- | Erzeuge neue, leere 'TVarMaps'
@@ -465,7 +468,6 @@ entfernenWegstrecke
 entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MStatusAllgemeinT m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 
--- * Aktuell ausgeführte Pläne
 -- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
 ausführenMöglich
     :: (MitAusführend (ReaderFamilie o), MitPwmMap (ReaderFamilie o), MitI2CMap (ReaderFamilie o))

@@ -307,7 +307,7 @@ instance AktionWegstreckeZugtyp 'Märklin where
             [(Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke),
              (Lexer.Geschwindigkeit,
               AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
-             ),
+                 ),
              (Lexer.Umdrehen, AFErgebnis $ AWSBahngeschwindigkeit $ Umdrehen wegstrecke),
              (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
              (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
@@ -325,10 +325,10 @@ instance AktionWegstreckeZugtyp 'Lego where
             [(Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke),
              (Lexer.Geschwindigkeit,
               AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
-             ),
+                 ),
              (Lexer.FahrtrichtungEinstellen,
               AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGFahrtrichtungEinstellen wegstrecke
-             ),
+                 ),
              (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
              (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
@@ -635,7 +635,7 @@ instance MitAnfrage Plan where
                   { plName,
                     plAktionen = toList aktionen
                   }
-             ),
+                 ),
              (Lexer.Dauerschleife, dauerschleife)]
         where
             dauerschleife :: Plan

@@ -71,7 +71,7 @@
             },
             ")": {
                 "spaces": "none",
-                "linebreaks": "none",
+                "linebreaks": "after",
                 "force-linebreak": false
             }
         },
@@ -83,7 +83,7 @@
             },
             ", in declaration": {
                 "spaces": "after",
-                "linebreaks": "after",
+                "linebreaks": "before",
                 "force-linebreak": false
             },
             ", in type": {

@@ -75,8 +75,8 @@ class PlanKlasse pl where
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
 data Plan =
     Plan
-    { plName :: Text,
-      plAktionen :: [Aktion]
+    { plName :: Text
+    , plAktionen :: [Aktion]
     }
     deriving (Eq, Show)
 
@@ -229,7 +229,7 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
-    -- | Aktionen einer Bahngeschwindigkeit
+-- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
     Geschwindigkeit :: bg z -> Natural -> AktionBahngeschwindigkeit bg z
     Umdrehen :: bg 'Märklin -> AktionBahngeschwindigkeit bg 'Märklin

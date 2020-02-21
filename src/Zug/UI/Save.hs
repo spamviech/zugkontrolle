@@ -402,10 +402,10 @@ instance FromJSON (Bahngeschwindigkeit 'Märklin) where
         bgmFließend <- parseFließend v
         pure
             MärklinBahngeschwindigkeit
-                { bgmName,
-                  bgmFließend,
-                  bgmGeschwindigkeitsAnschluss
-                }
+            { bgmName,
+              bgmFließend,
+              bgmGeschwindigkeitsAnschluss
+            }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'Lego) where
@@ -420,18 +420,18 @@ instance FromJSON (Bahngeschwindigkeit 'Lego) where
         bglFließend <- parseFließend v
         pure
             LegoBahngeschwindigkeit
-                { bglName,
-                  bglFließend,
-                  bglGeschwindigkeitsAnschluss,
-                  bglFahrtrichtungsAnschluss
-                }
+            { bglName,
+              bglFließend,
+              bglGeschwindigkeitsAnschluss,
+              bglFahrtrichtungsAnschluss
+            }
     parseJSON _value = mzero
 
 instance ToJSON (Bahngeschwindigkeit z) where
     toJSON :: Bahngeschwindigkeit z -> Value
     toJSON
         LegoBahngeschwindigkeit
-            {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss} =
+        {bglName, bglFließend, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss} =
         object
             [nameJS .= bglName,
              fließendJS .= bglFließend,
@@ -486,10 +486,10 @@ instance FromJSON (Weiche 'Märklin) where
         wemFließend <- parseFließend v
         pure
             MärklinWeiche
-                { wemName,
-                  wemFließend,
-                  wemRichtungsAnschlüsse
-                }
+            { wemName,
+              wemFließend,
+              wemRichtungsAnschlüsse
+            }
     parseJSON _value = mzero
 
 instance FromJSON (Weiche 'Lego) where
@@ -502,11 +502,11 @@ instance FromJSON (Weiche 'Lego) where
         welFließend <- parseFließend v
         pure
             LegoWeiche
-                { welName,
-                  welFließend,
-                  welRichtungsAnschluss,
-                  welRichtungen
-                }
+            { welName,
+              welFließend,
+              welRichtungsAnschluss,
+              welRichtungen
+            }
     parseJSON _value = mzero
 
 instance ToJSON (Weiche z) where
@@ -577,11 +577,8 @@ instance FromJSON (Wegstrecke 'Lego) where
 instance ToJSON (Wegstrecke z) where
     toJSON :: Wegstrecke z -> Value
     toJSON
-        Wegstrecke {wsName,
-                    wsBahngeschwindigkeiten,
-                    wsStreckenabschnitte,
-                    wsWeichenRichtungen,
-                    wsKupplungen} =
+        Wegstrecke
+        {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
         object
             [nameJS .= wsName,
              bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten,

@@ -1,13 +1,13 @@
 {-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLERASPI
-{-# LANGUAGE ForeignFunctionInterface #-}
-#endif
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
+#ifdef ZUGKONTROLLERASPI
+{-# LANGUAGE ForeignFunctionInterface #-}
+#endif
 
 {-|
 Description : Funktionen zur Verwendung der I2C-Schnittstelle
@@ -23,7 +23,8 @@ module Zug.Anbindung.I2C
   , i2cWriteAdjust
   , i2cRead
   , I2CAddress(..)
-  , BitValue(..)) where
+  , BitValue(..)
+  ) where
 
 import Control.Concurrent (forkIO, ThreadId)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
@@ -107,9 +108,8 @@ i2cWrite i2cAddress bitValue = do
     tvarI2CKanäle <- erhalteI2CMap
     (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress
     liftIO $ do
-        atomically
-            $ modifyTVar tvarI2CKanäle
-            $ Map.adjust (\(fileHandle, _oldBitValue) -> (fileHandle, bitValue)) i2cAddress
+        atomically $ modifyTVar tvarI2CKanäle $ Map.adjust (\(fileHandle, _oldBitValue)
+                                                             -> (fileHandle, bitValue)) i2cAddress
         c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
 
 -- | Ändere den geschriebenen 'BitValue' in einem I2C-Kanal.
@@ -155,7 +155,8 @@ c_wiringPiI2CRead :: CInt -> IO CInt
 c_wiringPiI2CRead fileHandle = putStrLn ("I2CRead " ++ show fileHandle) >> pure 0
 
 c_wiringPiI2CWrite :: CInt -> CInt -> IO ()
-c_wiringPiI2CWrite fileHandle value = putStrLn $ "I2CWrite " ++ show fileHandle ++ " -> " ++ show value
+c_wiringPiI2CWrite fileHandle value =
+    putStrLn $ "I2CWrite " ++ show fileHandle ++ " -> " ++ show value
 {-
 c_wiringPiI2CReadReg8 :: CInt -> CInt -> IO CInt
 c_wiringPiI2CReadReg8   fileHandle register         = putStrLn ("I2CReadReg8 " ++ show fileHandle ++ " r" ++ show register) >> pure 0
@@ -167,3 +168,9 @@ c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO ()
 c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
 -}
 #endif
+
+
+
+
+
+

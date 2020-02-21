@@ -5,7 +5,14 @@ Description: Stellt eine Funktion zur Verfügung einen Thread für eine bestimmt
 Im Gegensatz zu 'threadDelay' kommt es bei 0-Argumenten zu keinem divide-by-zero error.
 Außerdem wird ein 'Wartezeit'-Typ mit automatischer Einheiten-Konvertierung berietgestellt.
 -}
-module Zug.Anbindung.Wartezeit (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren) where
+module Zug.Anbindung.Wartezeit
+  ( warte
+  , Wartezeit(..)
+  , addition
+  , differenz
+  , multiplizieren
+  , dividieren
+  ) where
 
 -- Bibliotheken
 import Control.Concurrent (threadDelay)
@@ -171,13 +178,15 @@ differenz t1 t2
         differenzAux (NanoSekunden ns) (Tage d) = NanoSekunden $ (-) ns $ nsInD * d
         differenzAux (MikroSekunden µs) (NanoSekunden ns) = MikroSekunden $ (-) (nsInµs * µs) ns
         differenzAux (MikroSekunden µs1) (MikroSekunden µs2) = MikroSekunden $ (-) µs1 µs2
-        differenzAux (MikroSekunden µs) (MilliSekunden ms) = MikroSekunden $ (-) µs $ µsInms * ms
+        differenzAux (MikroSekunden µs) (MilliSekunden ms) =
+            MikroSekunden $ (-) µs $ µsInms * ms
         differenzAux (MikroSekunden µs) (Sekunden s) = MikroSekunden $ (-) µs $ µsInS * s
         differenzAux (MikroSekunden µs) (Minuten min) = MikroSekunden $ (-) µs $ µsInMin * min
         differenzAux (MikroSekunden µs) (Stunden h) = MikroSekunden $ (-) µs $ µsInH * h
         differenzAux (MikroSekunden µs) (Tage d) = MikroSekunden $ (-) µs $ µsInD * d
         differenzAux (MilliSekunden ms) (NanoSekunden ns) = NanoSekunden $ (-) (nsInms * ms) ns
-        differenzAux (MilliSekunden ms) (MikroSekunden µs) = MikroSekunden $ (-) (µsInms * ms) µs
+        differenzAux (MilliSekunden ms) (MikroSekunden µs) =
+            MikroSekunden $ (-) (µsInms * ms) µs
         differenzAux (MilliSekunden ms1) (MilliSekunden ms2) = MilliSekunden $ (-) ms1 ms2
         differenzAux (MilliSekunden ms) (Sekunden s) = MilliSekunden $ (-) ms $ msInS * s
         differenzAux (MilliSekunden ms) (Minuten min) = MilliSekunden $ (-) ms $ msInMin * min

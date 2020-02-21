@@ -104,8 +104,8 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
             -> Gtk.set radioButton [Gtk.buttonLabel := anzeigeFunktion e sprache]
     pure
         $ AuswahlRadioButton
-        { widget = erhalteWidget hBox
-        , enumButtons
+        { widget = erhalteWidget hBox,
+          enumButtons
         }
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendung der 'Anzeige'-Instanz.
@@ -163,10 +163,10 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
             Gtk.listStoreSetValue listStore index $ anzeigeFunktion e sprache
     pure
         AuswahlComboBox
-            { widget = erhalteWidget hBox
-            , comboBox
-            , enumIndizes
-            }
+        { widget = erhalteWidget hBox,
+          comboBox,
+          enumIndizes
+        }
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
 --
@@ -240,4 +240,13 @@ mitAuswahlWidget funktion = funktion . erhalteAuswahlWidget
 auswahlWidget :: (MitAuswahlWidget a e) => Lens.Getter a (AuswahlWidget e)
 auswahlWidget = Lens.to erhalteAuswahlWidget
 #endif
+
+
+
+
+
+
+
+
+
 

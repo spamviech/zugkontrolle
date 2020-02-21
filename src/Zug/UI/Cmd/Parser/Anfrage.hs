@@ -347,16 +347,16 @@ data AnfrageFortsetzung a e
           { unbekannteEingabe :: Text
           }
     | AFStatusAnfrage
-          { anfrageObjekt :: StatusAnfrageObjekt,
-            konstruktor :: Objekt -> AnfrageFortsetzung a e
+          { anfrageObjekt :: StatusAnfrageObjekt
+          , konstruktor :: Objekt -> AnfrageFortsetzung a e
           }
     | AFStatusAnfrageMärklin
-          { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin,
-            konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e
+          { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin
+          , konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageFortsetzung a e
           }
     | AFStatusAnfrageLego
-          { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego,
-            konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageFortsetzung a e
+          { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego
+          , konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageFortsetzung a e
           }
 
 -- | Spezialisierung von 'wähleBefehl' auf 'AFZwischenwert'
