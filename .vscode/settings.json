@@ -89,5 +89,6 @@
         "wcbr",
         "wcbv",
         "wiringpi"
-    ]
+    ],
+    "languageServerHaskell.formattingProvider": "none",
 }
