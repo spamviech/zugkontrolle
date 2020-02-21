@@ -475,3 +475,7 @@ assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAk
                         pure result
 #endif
 
+
+
+
+

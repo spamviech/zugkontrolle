@@ -177,3 +177,7 @@ aktuellerAnschluss
             | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
 #endif
 
+
+
+
+

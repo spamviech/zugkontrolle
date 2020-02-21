@@ -300,3 +300,6 @@ aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 #endif
 
+
+
+
