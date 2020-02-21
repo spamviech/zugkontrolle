@@ -319,13 +319,14 @@ setupGUI maybeTVar = void $ do
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
     flip runReaderT objektReader
         $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
+    -- Die folgenden Befehle werden verzögert ausgeführt, da GTK etwas Zeit benötigt
+    -- Ansonsten funktionieren sie nicht (richtig)
     forkIO $ do
         let guiDelay = 300000
-        -- GTK benötigt etwas Zeit um nach Resize zu maximieren
+        -- Maximiere Fenster
         threadDelay guiDelay
         Gtk.postGUIAsync $ Gtk.windowMaximize windowMain
         -- Position der Paned-Fenster anpassen (mittig setzten)
-        -- GTK benötigt etwas Zeit um die Größen richtig zu berechnen
         threadDelay guiDelay
         Gtk.postGUIAsync $ do
             forM_ [panedEinzelObjekte, panedSammelObjekte] $ \paned -> do
