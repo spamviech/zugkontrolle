@@ -241,12 +241,3 @@ auswahlWidget :: (MitAuswahlWidget a e) => Lens.Getter a (AuswahlWidget e)
 auswahlWidget = Lens.to erhalteAuswahlWidget
 #endif
 
-
-
-
-
-
-
-
-
-

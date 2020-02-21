@@ -250,13 +250,3 @@ instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton = id
 #endif
 
-
-
-
-
-
-
-
-
-
-

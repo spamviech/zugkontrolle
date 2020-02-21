@@ -147,12 +147,3 @@ scrollbaresWidgetNotebookAppendPageNew notebook maybeTVar name konstruktor =
     notebookAppendPageNew notebook maybeTVar name $ scrollbaresWidgetNew konstruktor
 #endif
 
-
-
-
-
-
-
-
-
-

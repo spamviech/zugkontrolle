@@ -169,8 +169,3 @@ c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 
 -}
 #endif
 
-
-
-
-
-

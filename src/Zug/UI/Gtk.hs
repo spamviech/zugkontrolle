@@ -331,19 +331,3 @@ setupGUI maybeTVar = void $ do
         Gtk.set paned [Gtk.panedPosition := div newHeight 3]
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

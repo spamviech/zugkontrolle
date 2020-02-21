@@ -1795,11 +1795,3 @@ planPackNew plan@Plan {plAktionen} = do
     pure plWidgets
 #endif
 
-
-
-
-
-
-
-
-
