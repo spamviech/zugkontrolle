@@ -9,6 +9,7 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
+import Control.Concurrent (forkIO, threadDelay)
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
 #else
@@ -99,12 +100,22 @@ setupGUI maybeTVar = void $ do
     spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
     windowMain <- widgetShowNew Gtk.windowNew
-    -- native resolution for Raspi 7'' Screen is 800x480
-    -- slightly smaller values given here, to accommodate decorators
-    Gtk.set windowMain [Gtk.windowDefaultWidth := 750, Gtk.windowDefaultHeight := 450]
+    -- native Auflösung des Raspi 7'' TouchScreen ist 800x480
+    -- leicht kleinere Werte um Menüleisten zu berücksichtigen
+    Gtk.set windowMain [Gtk.windowDefaultWidth := 720, Gtk.windowDefaultHeight := 450]
+    -- Breite & Höhe überprüfen und wenn nötig auf Mindestgröße erhöhen.
+    -- windowDefaultWidth/Height wird aus irgendeinem Grund ignoriert.
+    -- Dementsprechend wird es hier explizit gesetzt.
+    (width, height) <- Gtk.windowGetSize windowMain
+    (defaultWidth, defaultHeight) <- Gtk.windowGetDefaultSize windowMain
+    let newWidth = max width defaultWidth
+        newHeight = max height defaultHeight
+    Gtk.windowResize windowMain newWidth newHeight
+    -- Titel
     verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache -> Gtk.set
         windowMain
         [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sprache]
+    -- Drücken des X-Knopfes beendet das gesamte Program
     Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
     tvarMaps <- tvarMapsNeu
@@ -308,28 +319,23 @@ setupGUI maybeTVar = void $ do
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
     flip runReaderT objektReader
         $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
-    -- Breite & Höhe überprüfen und wenn nötig auf Mindestgröße erhöhen.
-    -- windowDefaultWidth/Height wird aus irgendeinem Grund ignoriert.
-    -- Dementsprechend wird es hier explizit gesetzt.
-    (width, height) <- Gtk.windowGetSize windowMain
-    (defaultWidth, defaultHeight) <- Gtk.windowGetDefaultSize windowMain
-    let newWidth = max width defaultWidth
-        newHeight = max height defaultHeight
-    Gtk.windowResize windowMain newWidth newHeight
-    -- Position der Paned-Fenster anpassen (mittig setzten)
-    forM_ [panedEinzelObjekte, panedSammelObjekte] $ \paned ->
-        -- Gtk.get paned Gtk.panedMaxPosition
-        -- Gtk-native method to get panedMaxPosition doesn't work here.
-        -- Probably would need to wait one frame for it to update.
-        -- Use window-width instead.
-        Gtk.set paned [Gtk.panedPosition := div newWidth 2]
-    forM_ [vPanedLeft, vPanedRight] $ \paned ->
-        -- Gtk.get paned Gtk.panedMaxPosition
-        -- Gtk-native method to get panedMaxPosition doesn't work here.
-        -- Probably would need to wait one frame for it to update.
-        -- Use window-height instead; divide by 3 instead of 2 to accommodate for decorators.
-        Gtk.set paned [Gtk.panedPosition := div newHeight 3]
+    forkIO $ do
+        let guiDelay = 300000
+        -- GTK benötigt etwas Zeit um nach Resize zu maximieren
+        threadDelay guiDelay
+        Gtk.postGUIAsync $ Gtk.windowMaximize windowMain
+        -- Position der Paned-Fenster anpassen (mittig setzten)
+        -- GTK benötigt etwas Zeit um die Größen richtig zu berechnen
+        threadDelay guiDelay
+        Gtk.postGUIAsync $ do
+            forM_ [panedEinzelObjekte, panedSammelObjekte] $ \paned -> do
+                panedMax <- Gtk.get paned Gtk.panedMaxPosition
+                Gtk.set paned [Gtk.panedPosition := div panedMax 2]
+            forM_ [vPanedLeft, vPanedRight] $ \paned -> do
+                panedMax <- Gtk.get paned Gtk.panedMaxPosition
+                Gtk.set paned [Gtk.panedPosition := div panedMax 2]
 #endif
+
 
 
 

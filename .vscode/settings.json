@@ -91,4 +91,5 @@
         "wiringpi"
     ],
     "languageServerHaskell.formattingProvider": "none",
+    "editor.formatOnSave": false
 }
