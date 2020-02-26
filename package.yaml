@@ -52,7 +52,6 @@ dependencies:
   - hspec
   - mtl
   - optparse-applicative
-  - regex-tdfa
   - stm
   - template-haskell
   - text

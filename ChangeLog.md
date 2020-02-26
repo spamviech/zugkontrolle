@@ -130,3 +130,4 @@
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Größe des Fensters wird explizit gesetzt. Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
 - GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen
+- GTK-UI: Jeder Plan erhält seine eigene ProgressBar

@@ -5,10 +5,6 @@ Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Funktioniert auf raspi!!!!
         Warum????
 
-Jedem Plan eine eigene ProgressBar spendieren.
-    Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.
-    Außerdem muss überprüft werden, warum ProgressBar (vertikal) so klein sind.
-
 Haddock schlägt an Language.hs fehl
     Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
     Probieren ob ein-Datei-Version funktioniert
@@ -141,6 +137,11 @@ Hilfetext von optparse-applicative übersetzten
     Außerdem sämtliche Hilfetexte in Language.hs auslagern.
 
 ---------------------------Gelöst--------------------------
+Jedem Plan eine eigene ProgressBar spendieren.
+    Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.
+        Done
+    Außerdem muss überprüft werden, warum ProgressBar (vertikal) so klein sind.
+
 Anzeige sprachabhängig, ohne Show-Instanz
     über eigene Anzeige-Klasse
         Done

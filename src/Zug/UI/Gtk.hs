@@ -50,7 +50,7 @@ import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, buttonNewWithEventLabel, containerAddWidgetNew, boxPack, boxPackWidgetNew
+       (widgetShowNew, buttonNewWithEventLabel, containerAddWidgetNew, boxPackWidgetNew
       , boxPackWidgetNewDefault, Packing(..), packingDefault, paddingDefault, Position(..)
       , positionDefault, notebookAppendPageNew, labelSpracheNew)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
@@ -189,7 +189,6 @@ setupGUI maybeTVar = void $ do
         $ boxPackWidgetNewDefault vBoxPläne
         $ labelSpracheNew maybeTVar Language.pläne
     -- DynamischeWidgets
-    progressBarPlan <- widgetShowNew Gtk.progressBarNew
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
         <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
@@ -285,7 +284,6 @@ setupGUI maybeTVar = void $ do
               vBoxHinzufügenPlanWegstreckenMärklin,
               vBoxHinzufügenPlanWegstreckenLego,
               vBoxHinzufügenPlanPläne,
-              progressBarPlan,
               windowMain,
               fortfahrenWennToggledWegstrecke,
               tmvarPlanObjekt
@@ -301,7 +299,6 @@ setupGUI maybeTVar = void $ do
             spracheGuiNeu <- sprachwechsel spracheGui sprache
             flip runReaderT objektReader
                 $ ausführenStatusVarBefehl (SprachWechsel spracheGuiNeu) statusVar
-        liftIO $ boxPack functionBox progressBarPlan PackGrow paddingDefault positionDefault
         buttonSpeichernPack windowMain functionBox maybeTVar
         buttonLadenPack windowMain functionBox maybeTVar
         boxPackWidgetNew functionBox packingDefault paddingDefault End
@@ -336,6 +333,14 @@ setupGUI maybeTVar = void $ do
                 panedMax <- Gtk.get paned Gtk.panedMaxPosition
                 Gtk.set paned [Gtk.panedPosition := div panedMax 2]
 #endif
+
+
+
+
+
+
+
+
 
 
 

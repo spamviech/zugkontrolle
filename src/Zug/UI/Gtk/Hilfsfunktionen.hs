@@ -304,3 +304,11 @@ aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 
 
 
+
+
+
+
+
+
+
+

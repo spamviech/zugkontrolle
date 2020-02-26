@@ -36,7 +36,7 @@
         {
             "label": "format",
             "type": "shell",
-            "command": "./run_floskell.bat",
+            "command": "floskell ${file}",
             "group": "none",
             "problemMatcher": []
         }
