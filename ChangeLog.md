@@ -124,10 +124,12 @@
 - unqualifizierter Import wird immer explizit angegeben
 - GADTs verwendet um Zugtyp-Mischformen zu vermeiden
 - Ein Plan kann andere Pläne ausführen (inklusive rekursivem Aufruf von sich selbst)
-- Aktuelle Version über Data.Version.Version-Datentyp gespeichert
+- Aktuelle Version über Data.Version.Version-Datentyp gespeichert (ausgelesen aus Paths_Zugkontrolle)
 - Sprachwechsel möglich, ohne das Programm neu starten zu müssen.
 - /yaml/ anstelle von /json/ als Speicherformat verwendet. Alte Speicherdateien können weiterverwendet werden.
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Größe des Fensters wird explizit gesetzt. Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
+- Gtk-UI: Fenster wird bei Programstart maximiert.
 - GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen
 - GTK-UI: Jeder Plan erhält seine eigene ProgressBar
+- Tests entfernt. Wurden nicht gepflegt, somit ist deren Nicht-Existenz die ehrlichere Lösung.
