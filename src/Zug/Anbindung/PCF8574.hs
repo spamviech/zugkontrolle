@@ -94,9 +94,10 @@ instance Show PCF8574 where
     show :: PCF8574 -> String
     show PCF8574 {variant, a0, a1, a2} =
         "PCF8574"
-        ++ if variant == VariantA
-            then "A"
-            else "" ++ [showAddress a0, showAddress a1, showAddress a2]
+        ++ (if variant == VariantA
+                then "A"
+                else "")
+        ++ ['_', showAddress a0, showAddress a1, showAddress a2]
         where
             showAddress :: Value -> Char
             showAddress HIGH = 'H'
