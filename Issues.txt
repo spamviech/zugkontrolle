@@ -5,6 +5,25 @@ Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Funktioniert auf raspi!!!!
         Warum????
 
+Ändere Liste zu (Map Name a)
+    newtype NameSet a = NameSet (Set (Benannt a))
+        class MitName a where
+            erhalteName :: a -> Text
+        instance (MitName a) => Ord (Benannt a)
+    newtype NameSet a = NameSet (Map Name a)
+        insert :: a -> NameSet a -> Maybe a
+            Rückgabe: bisheriger Wert
+        remove :: a -> NameSet a -> Bool
+            Rückgabe: Wert vorhanden == True
+        Instanzen: Eq, Foldable, IsList, Traversable(?)
+    GTK-UI:
+        Plan/Wegstrecke-Aktionen können werden ebenfalls angezeigt werden
+    Vermeide doppelte Einträge
+    Laden einer Liste schlägt momentan für gesamte Liste fehl
+        Elementweise überprüfen und nur fehlgeschlagene ignorieren
+        Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
+        Nicht für Wegstrecken-Element-Listen verwenden!
+
 Haddock schlägt an Language.hs fehl
     Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
     Probieren ob ein-Datei-Version funktioniert
@@ -51,13 +70,11 @@ Haddock schlägt an Language.hs fehl
         [39 of 40] Compiling Zug.UI.Cmd
         [40 of 40] Compiling Zug.UI
 
-Laden einer Liste schlägt momentan für gesamte Liste fehl
-    Elementweise überprüfen und nur fehlgeschlagene ignorieren
-    Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
-    Nicht für Wegstrecken-Element-Listen verwenden!
-
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
+        GUI-Darstellung:
+            leerer/roter Kreis
+            wird grün, wenn Signal triggert
     Zeit-basierte Lösung wird weiterhin unterstützt.
     Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
 
@@ -110,6 +127,8 @@ Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
         permanent
         auf Zeit
     PWM
+    Signal erkennen
+        wenn implementiert
 
 gi-gtk/gi-gtk-declarative verwenden?
     gi-gtk scheint neuer und besser gewartet zu sein.
