@@ -141,19 +141,13 @@ Beispiel-Schaltpläne erstellen
     Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
     In der ReadMe erwähnen/verlinken.
 
-Test-Suite fixen & vervollständigen
-    Änderungen berücksichtigen!
-    Fehlende Tests erstellen.
-    Test-Bibliothek verwenden (hspec)?
-        'shouldBe' und 'shouldSatisfy'
-    Wird de-facto ignoriert
-        Tests einfach entfernen?
-        CI in GitHub testen?
-
-
 Hilfetext von optparse-applicative übersetzten
     Eigene helper-Funktion erstellen.
     Außerdem sämtliche Hilfetexte in Language.hs auslagern.
+
+Test-Suite erstellen?
+    Muss gepflegt werden um Sinn zu machen.
+    Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst--------------------------
 Jedem Plan eine eigene ProgressBar spendieren.
