@@ -1,9 +1,18 @@
+Pläne mit Dauerschleife werden nicht ausgeführt
+    Anzahl Aktionen versucht bis unendlich zu zählen?
+    Plan an falschen stellen strikt?
+
+GTK stürzt öfters ab
+    Zu viele Widgets?
+    Passiert vor allem auf raspi
+
 Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Vermutlich ein Problem mit Assistant
         evtl. muss Gtk.widgetExpand/Gtk.widgetVExpand explizit gesetzt werden
     Könnte auch ein Problem mit ZugtypSpezifisch sein
     Funktioniert auf raspi!!!!
         Warum????
+    Plan hinzufügen: gleiches Problem, diesmal auch auf raspi
 
 Ändere Liste zu (Map Name a)
     newtype NameSet a = NameSet (Set (Benannt a))
