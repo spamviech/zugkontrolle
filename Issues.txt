@@ -1,6 +1,5 @@
 Pläne mit Dauerschleife werden nicht ausgeführt
-    Anzahl Aktionen versucht bis unendlich zu zählen?
-    Plan an falschen stellen strikt?
+    Eq-Instanz versucht unendlich lange Listen zu vergleichen
 
 GTK stürzt öfters ab
     Zu viele Widgets?
@@ -88,15 +87,15 @@ Erlaube "Warten auf Signal"
     Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
 
 Implementiere Server/Client-Modus:
-    Raspi läuft im Server-Modus und reagiert auf eingehende Nachrichten (evtl. nur von fester IP-Addresse)
-        stdout-Ausgabe der eigene IP-Addresse bei Start
-    Client sendet Nachrichten an angegebene TCP-Addresse
-    Zusätliche Kommandozeilenoption:
+    Raspi läuft im Server-Modus und reagiert auf eingehende Nachrichten (evtl. nur von fester IP-Adresse)
+        stdout-Ausgabe der eigene IP-Adresse bei Start
+    Client sendet Nachrichten an angegebene TCP-Adresse
+    Zusätzliche Kommandozeilenoption:
         --ip
-            Gibt die eigene IP-Addresse aus und beendet sich
+            Gibt die eigene IP-Adresse aus und beendet sich
     Benötigte Packages:
         network-info
-            eigene IP-Addresse
+            eigene IP-Adresse
         network-simple
             TCP-Nachrichten mit einfachem API
 

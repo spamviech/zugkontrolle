@@ -76,6 +76,7 @@ class PlanKlasse pl where
 data Plan =
     Plan
     { plName :: Text
+    -- TODO derived Eq-instance terminiert nicht für Endlosschleifen!!!
     , plAktionen :: [Aktion]
     }
     deriving (Eq, Show)
