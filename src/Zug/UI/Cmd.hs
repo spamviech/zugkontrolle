@@ -84,7 +84,8 @@ statusParser = statusParserAux . parser AnfrageBefehl
                         -> IOStatus Bool
         statusParserAux (befehle, fortsetzung, eingabeRest, backup) = do
             sprache <- getSprache
-            ausführenBefehl (BefehlListe befehle) >> case fortsetzung of
+            ende <- ausführenBefehl (BefehlListe befehle)
+            if ende then pure True else case fortsetzung of
                 (AFErgebnis (Right befehl)) -> ausführenBefehl befehl
                 (AFErgebnis (Left befehlSofort)) -> do
                     ergebnis <- ausführenBefehlSofort befehlSofort
