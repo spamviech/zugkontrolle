@@ -45,21 +45,25 @@ Pläne:
 - Dauerschleife: true
   Name: Dauerschleife
   Aktionen:
-  - Plan:
-      Dauerschleife: false
-      Name: Stehenbleiben!
-      Aktionen:
-      - Wert: 0
-        Bahngeschwindigkeit:
-          GeschwindigkeitsPin:
-            Pin: 26
-          Name: SoftwarePWM
-          Zugtyp: Märklin
-          Fließend: HIGH
-        Aktion: Geschwindigkeit
-    Aktion: Ausführen
+  - Streckenabschnitt:
+      Name: welt
+      StromPin:
+        Pin: 1
+      Fließend: HIGH
+    Aktion: Strom
+    Fließend: Fließend
   - Wert:
-      µs: 5000
+      µs: 1000000
+    Aktion: Warten
+  - Streckenabschnitt:
+      Name: welt
+      StromPin:
+        Pin: 1
+      Fließend: HIGH
+    Aktion: Strom
+    Fließend: Gesperrt
+  - Wert:
+      µs: 1000000
     Aktion: Warten
 - Dauerschleife: false
   Name: Stehenbleiben!

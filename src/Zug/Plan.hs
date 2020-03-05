@@ -76,7 +76,6 @@ class PlanKlasse pl where
 data Plan =
     Plan
     { plName :: Text
-    -- TODO derived Eq-instance terminiert nicht für Endlosschleifen!!!
     , plAktionen :: [Aktion]
     }
     deriving (Eq, Show)
@@ -136,7 +135,20 @@ data Aktion
     | AStreckenabschnitt (AktionStreckenabschnitt Streckenabschnitt)
     | AKupplung (AktionKupplung Kupplung)
     | AktionAusführen Plan
-    deriving (Eq, Show)
+    deriving (Show)
+
+instance Eq Aktion where
+    (==) :: Aktion -> Aktion -> Bool
+    (==) (Warten w0) (Warten w1) = w0 == w1
+    (==) (AWegstreckeMärklin a0) (AWegstreckeMärklin a1) = a0 == a1
+    (==) (AWegstreckeLego a0) (AWegstreckeLego a1) = a0 == a1
+    (==) (AWeiche a0) (AWeiche a1) = a0 == a1
+    (==) (ABahngeschwindigkeitMärklin a0) (ABahngeschwindigkeitMärklin a1) = a0 == a1
+    (==) (ABahngeschwindigkeitLego a0) (ABahngeschwindigkeitLego a1) = a0 == a1
+    (==) (AStreckenabschnitt a0) (AStreckenabschnitt a1) = a0 == a1
+    (==) (AKupplung a0) (AKupplung a1) = a0 == a1
+    (==) (AktionAusführen Plan {plName = p0}) (AktionAusführen Plan {plName = p1}) = p0 == p1
+    (==) _a0 _a1 = False
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
