@@ -1,6 +1,3 @@
-Pläne mit Dauerschleife werden nicht ausgeführt
-    Eq-Instanz versucht unendlich lange Listen zu vergleichen
-
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi
@@ -158,6 +155,10 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst--------------------------
+Pläne mit Dauerschleife werden nicht ausgeführt
+    Eq-Instanz versucht unendlich lange Listen zu vergleichen
+    Gefixt
+
 Jedem Plan eine eigene ProgressBar spendieren.
     Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.
         Done
