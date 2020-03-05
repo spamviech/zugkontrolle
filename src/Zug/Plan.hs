@@ -38,6 +38,7 @@ import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..)
@@ -73,11 +74,7 @@ class PlanKlasse pl where
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
-data Plan =
-    Plan
-    { plName :: Text
-    , plAktionen :: [Aktion]
-    }
+data Plan = Plan { plName :: Text, plAktionen :: [Aktion] }
     deriving (Eq, Show)
 
 -- | newtype für ausführende Pläne ('Plan')
@@ -99,13 +96,14 @@ instance StreckenObjekt Plan where
 instance PlanKlasse Plan where
     ausführenPlan
         :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
-    ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
-        tvarAusführend <- erhalteMengeAusführend
-        liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
-        ausführenAux 0 plAktionen
-        liftIO $ do
-            showAktion $ fromIntegral $ length plAktionen
-            endAktion
+    ausführenPlan plan@Plan {plName, plAktionen} showAktion endAktion =
+        void $ forkI2CReader $ void $ do
+            tvarAusführend <- erhalteMengeAusführend
+            liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
+            ausführenAux 0 plAktionen
+            liftIO $ do
+                showAktion $ fromIntegral $ length plAktionen
+                endAktion
         where
             ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
             ausführenAux _i [] = do

@@ -630,12 +630,7 @@ instance MitAnfrage Plan where
     anfrageAktualisieren (APlanNameAktionen plName aktionen) token =
         wähleErgebnis
             token
-            [(Lexer.EinfachAusführen,
-              Plan
-                  { plName,
-                    plAktionen = toList aktionen
-                  }
-                 ),
+            [(Lexer.EinfachAusführen, Plan { plName, plAktionen = toList aktionen }),
              (Lexer.Dauerschleife, dauerschleife)]
         where
             dauerschleife :: Plan

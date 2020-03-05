@@ -49,10 +49,7 @@ import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MS
 import Zug.UI.Befehl (BefehlKlasse(..))
 
 -- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält
-newtype StatusVar o =
-    StatusVar
-    { tvar :: TVar (Either (StatusAllgemein o) (SP o))
-    }
+newtype StatusVar o = StatusVar { tvar :: TVar (Either (StatusAllgemein o) (SP o)) }
     deriving (Eq)
 
 -- | Erstelle eine neue 'StatusVar'

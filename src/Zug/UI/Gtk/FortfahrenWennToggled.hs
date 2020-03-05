@@ -98,11 +98,7 @@ fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
         verwendeSpracheGui maybeTVar
             $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := name sprache]
         pure $ RegistrierterCheckButton checkButton
-    let fortfahrenWennToggled =
-            FortfahrenWennToggled
-            { fortfahren,
-              checkButtonsRec
-            }
+    let fortfahrenWennToggled = FortfahrenWennToggled { fortfahren, checkButtonsRec }
     liftIO $ forM_ checkButtonsRec $ \(RegistrierterCheckButton checkButton)
         -> Gtk.on checkButton Gtk.toggled $ aktiviereWennToggled fortfahrenWennToggled
     aktiviereWennToggled fortfahrenWennToggled
@@ -249,6 +245,7 @@ instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
     erhalteRegistrierterCheckButton = id
 #endif
+
 
 
 

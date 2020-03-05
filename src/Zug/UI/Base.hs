@@ -147,45 +147,32 @@ lens sa sas afa s = sas s <$> afa (sa s)
 
 -- | 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
 bahngeschwindigkeiten :: Lens' (StatusAllgemein o) [ZugtypEither (BG o)]
-bahngeschwindigkeiten = lens _bahngeschwindigkeiten $ \status bgs -> status
-    { _bahngeschwindigkeiten = bgs
-    }
+bahngeschwindigkeiten =
+    lens _bahngeschwindigkeiten $ \status bgs -> status { _bahngeschwindigkeiten = bgs }
 
 -- | 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
 streckenabschnitte :: Lens' (StatusAllgemein o) [ST o]
-streckenabschnitte = lens _streckenabschnitte $ \status sts -> status
-    { _streckenabschnitte = sts
-    }
+streckenabschnitte = lens _streckenabschnitte $ \status sts -> status { _streckenabschnitte = sts }
 
 -- | 'Weiche'n im aktuellen 'StatusAllgemein'
 weichen :: Lens' (StatusAllgemein o) [ZugtypEither (WE o)]
-weichen = lens _weichen $ \status wes -> status
-    { _weichen = wes
-    }
+weichen = lens _weichen $ \status wes -> status { _weichen = wes }
 
 -- | 'Kupplung'en im aktuellen 'StatusAllgemein'
 kupplungen :: Lens' (StatusAllgemein o) [KU o]
-kupplungen = lens _kupplungen $ \status kus -> status
-    { _kupplungen = kus
-    }
+kupplungen = lens _kupplungen $ \status kus -> status { _kupplungen = kus }
 
 -- | 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 wegstrecken :: Lens' (StatusAllgemein o) [ZugtypEither (WS o)]
-wegstrecken = lens _wegstrecken $ \status wss -> status
-    { _wegstrecken = wss
-    }
+wegstrecken = lens _wegstrecken $ \status wss -> status { _wegstrecken = wss }
 
 -- | Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
 pläne :: Lens' (StatusAllgemein o) [PL o]
-pläne = lens _pläne $ \status pls -> status
-    { _pläne = pls
-    }
+pläne = lens _pläne $ \status pls -> status { _pläne = pls }
 
 -- | 'Sprache' im aktuellen 'StatusAllgemein'
 sprache :: Lens' (StatusAllgemein o) (SP o)
-sprache = lens _sprache $ \status sp -> status
-    { _sprache = sp
-    }
+sprache = lens _sprache $ \status sp -> status { _sprache = sp }
 
 instance (Anzeige (ZugtypEither (BG o)),
           Anzeige (ST o),
@@ -357,45 +344,31 @@ getSprache = gets _sprache
 -- * Ändere aktuellen Status
 -- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
 putBahngeschwindigkeiten :: (Monad m) => [ZugtypEither (BG o)] -> MStatusAllgemeinT m o ()
-putBahngeschwindigkeiten bgs = modify $ \status -> status
-    { _bahngeschwindigkeiten = bgs
-    }
+putBahngeschwindigkeiten bgs = modify $ \status -> status { _bahngeschwindigkeiten = bgs }
 
 -- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
 putStreckenabschnitte :: (Monad m) => [ST o] -> MStatusAllgemeinT m o ()
-putStreckenabschnitte sts = modify $ \status -> status
-    { _streckenabschnitte = sts
-    }
+putStreckenabschnitte sts = modify $ \status -> status { _streckenabschnitte = sts }
 
 -- | Setze 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
 putWeichen :: (Monad m) => [ZugtypEither (WE o)] -> MStatusAllgemeinT m o ()
-putWeichen wes = modify $ \status -> status
-    { _weichen = wes
-    }
+putWeichen wes = modify $ \status -> status { _weichen = wes }
 
 -- | Setze 'Weiche'n im aktuellen 'StatusAllgemein'
 putKupplungen :: (Monad m) => [KU o] -> MStatusAllgemeinT m o ()
-putKupplungen kus = modify $ \status -> status
-    { _kupplungen = kus
-    }
+putKupplungen kus = modify $ \status -> status { _kupplungen = kus }
 
 -- | Setze 'Kupplung'en im akutellen 'StatusAllgemein'
 putWegstrecken :: (Monad m) => [ZugtypEither (WS o)] -> MStatusAllgemeinT m o ()
-putWegstrecken wss = modify $ \status -> status
-    { _wegstrecken = wss
-    }
+putWegstrecken wss = modify $ \status -> status { _wegstrecken = wss }
 
 -- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'
 putPläne :: (Monad m) => [PL o] -> MStatusAllgemeinT m o ()
-putPläne pls = modify $ \status -> status
-    { _pläne = pls
-    }
+putPläne pls = modify $ \status -> status { _pläne = pls }
 
 -- | Setze 'Sprache' im aktuellen 'StatusAllgemein'
 putSprache :: (Monad m) => SP o -> MStatusAllgemeinT m o ()
-putSprache sprache = modify $ \status -> status
-    { _sprache = sprache
-    }
+putSprache sprache = modify $ \status -> status { _sprache = sprache }
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu

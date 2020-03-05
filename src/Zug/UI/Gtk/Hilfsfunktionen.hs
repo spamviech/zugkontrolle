@@ -109,10 +109,7 @@ packingDefault :: Packing
 packingDefault = PackNatural
 
 -- | Abstand zwischen 'Widget's
-newtype Padding =
-    Padding
-    { fromPadding :: Int
-    }
+newtype Padding = Padding { fromPadding :: Int }
     deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
 
 -- | Standart-Abstand zwischen 'Widget's in einer 'Box'
@@ -299,6 +296,7 @@ nameAuswahlPackNew box maybeTVar = do
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 #endif
+
 
 
 

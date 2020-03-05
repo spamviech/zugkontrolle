@@ -171,10 +171,7 @@ instance (ObjektKlasse o,
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten.
 -- Der hier bereitgestellte ein newtype löst das Problem über einen Phantomtyp.
-newtype BefehlListeAllgemein o =
-    BefehlListe
-    { getBefehlListe :: [BefehlAllgemein o]
-    }
+newtype BefehlListeAllgemein o = BefehlListe { getBefehlListe :: [BefehlAllgemein o] }
 
 -- | 'BefehlListeAllgemein' spezialisiert auf 'Objekt'
 type BefehlListe = BefehlListeAllgemein Objekt

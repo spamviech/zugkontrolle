@@ -85,32 +85,35 @@ statusParser = statusParserAux . parser AnfrageBefehl
         statusParserAux (befehle, fortsetzung, eingabeRest, backup) = do
             sprache <- getSprache
             ende <- ausführenBefehl (BefehlListe befehle)
-            if ende then pure True else case fortsetzung of
-                (AFErgebnis (Right befehl)) -> ausführenBefehl befehl
-                (AFErgebnis (Left befehlSofort)) -> do
-                    ergebnis <- ausführenBefehlSofort befehlSofort
-                    statusParserAux $ parser ergebnis eingabeRest
-                (AFStatusAnfrage aObjektIOStatus konstruktor)
-                    -> statusAnfrage aObjektIOStatus konstruktor backup eingabeRest
-                (AFStatusAnfrageMärklin aObjektIOStatus konstruktor)
-                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
-                (AFStatusAnfrageLego aObjektIOStatus konstruktor)
-                    -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
-                (AFZwischenwert AnfrageBefehl) -> pure False
-                (AFFehler eingabe) -> do
-                    liftIO $ do
-                        setSGR [SetColor Foreground Vivid Red]
-                        Text.putStr $ unbekanntShowText backup eingabe sprache
-                        setSGR [Reset]
-                    promptS (const Text.empty) >>= statusParserAux . parser backup . lexer
-                (AFZwischenwert anfrage) -> do
-                    case zeigeAnfrageOptionen anfrage of
-                        Nothing -> pure ()
-                        (Just anfrageOptionen) -> liftIO $ do
-                            setSGR [SetColor Foreground Dull Blue]
-                            Text.putStrLn $ anfrageOptionen sprache
+            if ende
+                then pure True
+                else case fortsetzung of
+                    (AFErgebnis (Right befehl)) -> ausführenBefehl befehl
+                    (AFErgebnis (Left befehlSofort)) -> do
+                        ergebnis <- ausführenBefehlSofort befehlSofort
+                        statusParserAux $ parser ergebnis eingabeRest
+                    (AFStatusAnfrage aObjektIOStatus konstruktor)
+                        -> statusAnfrage aObjektIOStatus konstruktor backup eingabeRest
+                    (AFStatusAnfrageMärklin aObjektIOStatus konstruktor)
+                        -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
+                    (AFStatusAnfrageLego aObjektIOStatus konstruktor)
+                        -> statusAnfrageZugtyp aObjektIOStatus konstruktor backup eingabeRest
+                    (AFZwischenwert AnfrageBefehl) -> pure False
+                    (AFFehler eingabe) -> do
+                        liftIO $ do
+                            setSGR [SetColor Foreground Vivid Red]
+                            Text.putStr $ unbekanntShowText backup eingabe sprache
                             setSGR [Reset]
-                    promptS (anfrage <:> Text.empty) >>= statusParserAux . parser anfrage . lexer
+                        promptS (const Text.empty) >>= statusParserAux . parser backup . lexer
+                    (AFZwischenwert anfrage) -> do
+                        case zeigeAnfrageOptionen anfrage of
+                            Nothing -> pure ()
+                            (Just anfrageOptionen) -> liftIO $ do
+                                setSGR [SetColor Foreground Dull Blue]
+                                Text.putStrLn $ anfrageOptionen sprache
+                                setSGR [Reset]
+                        promptS (anfrage <:> Text.empty)
+                            >>= statusParserAux . parser anfrage . lexer
 
         statusAnfrage :: StatusAnfrageObjekt
                       -> (Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))

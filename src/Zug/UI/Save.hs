@@ -400,12 +400,7 @@ instance FromJSON (Bahngeschwindigkeit 'Märklin) where
         bgmGeschwindigkeitsAnschluss
             <- parseAnschluss v geschwindigkeitsAnschlussJS geschwindigkeitsPinJS
         bgmFließend <- parseFließend v
-        pure
-            MärklinBahngeschwindigkeit
-            { bgmName,
-              bgmFließend,
-              bgmGeschwindigkeitsAnschluss
-            }
+        pure MärklinBahngeschwindigkeit { bgmName, bgmFließend, bgmGeschwindigkeitsAnschluss }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'Lego) where
@@ -484,12 +479,7 @@ instance FromJSON (Weiche 'Märklin) where
         wemName <- v .: nameJS
         wemRichtungsAnschlüsse <- v .: richtungsPinsJS
         wemFließend <- parseFließend v
-        pure
-            MärklinWeiche
-            { wemName,
-              wemFließend,
-              wemRichtungsAnschlüsse
-            }
+        pure MärklinWeiche { wemName, wemFließend, wemRichtungsAnschlüsse }
     parseJSON _value = mzero
 
 instance FromJSON (Weiche 'Lego) where
@@ -500,13 +490,7 @@ instance FromJSON (Weiche 'Lego) where
         welRichtungsAnschluss <- v .: richtungsPinJS
         welRichtungen <- v .: richtungenJS
         welFließend <- parseFließend v
-        pure
-            LegoWeiche
-            { welName,
-              welFließend,
-              welRichtungsAnschluss,
-              welRichtungen
-            }
+        pure LegoWeiche { welName, welFließend, welRichtungsAnschluss, welRichtungen }
     parseJSON _value = mzero
 
 instance ToJSON (Weiche z) where
@@ -775,17 +759,9 @@ instance FromJSON Plan where
         aktionen <- v .: aktionenJS
         let erzeugeDauerschleife :: Maybe Bool -> Plan
             erzeugeDauerschleife (Just True) =
-                let plan =
-                        Plan
-                        { plName,
-                          plAktionen = aktionen ++ [AktionAusführen plan]
-                        }
+                let plan = Plan { plName, plAktionen = aktionen ++ [AktionAusführen plan] }
                 in plan
-            erzeugeDauerschleife _NothingOderFalse =
-                Plan
-                { plName,
-                  plAktionen = aktionen
-                }
+            erzeugeDauerschleife _NothingOderFalse = Plan { plName, plAktionen = aktionen }
         erzeugeDauerschleife <$> (v .:? dauerschleifeJS)
     parseJSON _value = mzero
 

@@ -29,11 +29,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Zug.Language (Sprache(), MitSprache(..))
 
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
-data SpracheGui =
-    SpracheGui
-    { sprache :: Sprache
-    , sprachwechselAktionen :: TVar [AktionOderTVar]
-    }
+data SpracheGui = SpracheGui { sprache :: Sprache, sprachwechselAktionen :: TVar [AktionOderTVar] }
 
 instance MitSprache SpracheGui where
     leseSprache :: (Sprache -> a) -> SpracheGui -> a
@@ -80,10 +76,7 @@ sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ d
             pure $ leftAktion : acc
     sprachwechselAktionenNeu <- foldM ausführenOderLöschen [] sprachwechselAktionenAlt
     atomically $ writeTVar sprachwechselAktionen sprachwechselAktionenNeu
-    pure
-        spracheGui
-        { sprache
-        }
+    pure spracheGui { sprache }
 
 -- | Führe die übergebene Aktion mit der aktellen 'Sprache' aus.
 -- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel'.

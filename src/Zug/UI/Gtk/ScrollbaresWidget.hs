@@ -39,10 +39,7 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
 -- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport
 data ScrollbaresWidget w =
-    ScrollbaresWidget
-    { swScrolledWindow :: Gtk.ScrolledWindow
-    , swWidget :: w
-    }
+    ScrollbaresWidget { swScrolledWindow :: Gtk.ScrolledWindow, swWidget :: w }
 
 instance MitWidget (ScrollbaresWidget w) where
     erhalteWidget :: ScrollbaresWidget w -> Gtk.Widget
@@ -115,11 +112,7 @@ scrollbaresWidgetNew konstruktor = do
             [Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic,
              Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
         Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget widget
-        pure
-            ScrollbaresWidget
-            { swScrolledWindow,
-              swWidget = widget
-            }
+        pure ScrollbaresWidget { swScrolledWindow, swWidget = widget }
 
 -- | Erstelle neues 'ScrollbaresWidget'und füge sie zu 'MitContainer' hinzu
 scrollbaresWidgetAddNew
@@ -146,6 +139,7 @@ scrollbaresWidgetNotebookAppendPageNew
 scrollbaresWidgetNotebookAppendPageNew notebook maybeTVar name konstruktor =
     notebookAppendPageNew notebook maybeTVar name $ scrollbaresWidgetNew konstruktor
 #endif
+
 
 
 

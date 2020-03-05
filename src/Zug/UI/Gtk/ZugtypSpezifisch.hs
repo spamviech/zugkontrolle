@@ -35,11 +35,9 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitConta
 
         -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
-    ZugtypSpezifisch :: { vBox :: Gtk.VBox
-                        } -> ZugtypSpezifisch Gtk.Widget
-    ZugtypSpezifischButton :: { buttonVBox :: Gtk.VBox
-                              , buttonDummy :: Gtk.Button
-                              } -> ZugtypSpezifisch Gtk.Button
+    ZugtypSpezifisch :: { vBox :: Gtk.VBox } -> ZugtypSpezifisch Gtk.Widget
+    ZugtypSpezifischButton :: { buttonVBox :: Gtk.VBox, buttonDummy :: Gtk.Button }
+        -> ZugtypSpezifisch Gtk.Button
 
 deriving instance (Eq w) => Eq (ZugtypSpezifisch w)
 
@@ -72,10 +70,7 @@ zugtypSpezifischNew eingabeWidgets auswahlWidget = liftIO $ do
         pure (zugtyp, hiddenBox)
     beiAuswahl auswahlWidget $ \gewählterZugtyp -> forM_ zugtypWidgets $ \(zugtyp, widget)
         -> widgetShowIf (gewählterZugtyp == zugtyp) widget
-    pure
-        ZugtypSpezifisch
-        { vBox
-        }
+    pure ZugtypSpezifisch { vBox }
 
 -- | Erzeuge ein 'ZugtypSpezifisch' aus den übergebenen Widgets und dem 'AuswahlWidget'.
 -- Das erzeugte 'ZugtypSpezifisch' implementiert eine 'MitButton'-Instanz.
@@ -97,12 +92,9 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
         pure (zugtyp, hiddenBox)
     beiAuswahl buttonAuswahlWidget $ \gewählterZugtyp -> forM_ buttonZugtypWidgets
         $ \(zugtyp, widget) -> widgetShowIf (gewählterZugtyp == zugtyp) widget
-    pure
-        ZugtypSpezifischButton
-        { buttonVBox,
-          buttonDummy
-        }
+    pure ZugtypSpezifischButton { buttonVBox, buttonDummy }
 #endif
+
 
 
 

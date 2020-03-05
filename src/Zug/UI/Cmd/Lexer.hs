@@ -90,21 +90,12 @@ data EingabeTokenAllgemein
 
 -- | Eingabe im Klartext, alle möglichen Interpretation der Eingabe und mögliche Umwandlung in ein 'Natural'
 data EingabeToken =
-    EingabeToken
-    { eingabe :: Text
-    , möglichkeiten :: [Token]
-    , ganzzahl :: Maybe Natural
-    }
+    EingabeToken { eingabe :: Text, möglichkeiten :: [Token], ganzzahl :: Maybe Natural }
     deriving (Eq, Show)
 
 -- | Ein Token ohne Eingabe. Wird für Anzeige einiger Anfrage-Typen benötigt.
 leeresToken :: EingabeToken
-leeresToken =
-    EingabeToken
-    { eingabe = Text.pack "",
-      möglichkeiten = [],
-      ganzzahl = Nothing
-    }
+leeresToken = EingabeToken { eingabe = Text.pack "", möglichkeiten = [], ganzzahl = Nothing }
 
 -- | Bekannte Befehle
 data Token

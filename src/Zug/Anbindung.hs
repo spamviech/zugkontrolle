@@ -250,10 +250,9 @@ data Bahngeschwindigkeit (z :: Zugtyp) where
                                , bglGeschwindigkeitsAnschluss :: Anschluss
                                , bglFahrtrichtungsAnschluss :: Anschluss
                                } -> Bahngeschwindigkeit 'Lego
-    MärklinBahngeschwindigkeit :: { bgmName :: Text
-                                   , bgmFließend :: Value
-                                   , bgmGeschwindigkeitsAnschluss :: Anschluss
-                                   } -> Bahngeschwindigkeit 'Märklin
+    MärklinBahngeschwindigkeit
+        :: { bgmName :: Text, bgmFließend :: Value, bgmGeschwindigkeitsAnschluss :: Anschluss }
+        -> Bahngeschwindigkeit 'Märklin
 
 deriving instance Eq (Bahngeschwindigkeit z)
 
@@ -367,11 +366,7 @@ umdrehenAux s geschwindigkeitsAnschluss umdrehenAktionen = do
 
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt =
-    Streckenabschnitt
-    { stName :: Text
-    , stFließend :: Value
-    , stromAnschluss :: Anschluss
-    }
+    Streckenabschnitt { stName :: Text, stFließend :: Value, stromAnschluss :: Anschluss }
     deriving (Eq, Show)
 
 instance Anzeige Streckenabschnitt where
@@ -539,12 +534,7 @@ instance WeicheKlasse (Weiche z) where
     erhalteRichtungen MärklinWeiche {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse
 
 -- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden
-data Kupplung =
-    Kupplung
-    { kuName :: Text
-    , kuFließend :: Value
-    , kupplungsAnschluss :: Anschluss
-    }
+data Kupplung = Kupplung { kuName :: Text, kuFließend :: Value, kupplungsAnschluss :: Anschluss }
     deriving (Eq, Show)
 
 instance Anzeige Kupplung where

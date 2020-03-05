@@ -337,15 +337,9 @@ unbekanntShowText a eingabe = fehlerText $# anzeigeMitAnfrageFehlgeschlagen a ei
 
 -- | Ergebnis-Typ von 'anfrageAktualisieren'.
 data AnfrageFortsetzung a e
-    = AFErgebnis
-          { ergebnis :: e
-          }
-    | AFZwischenwert
-          { anfrage :: a
-          }
-    | AFFehler
-          { unbekannteEingabe :: Text
-          }
+    = AFErgebnis { ergebnis :: e }
+    | AFZwischenwert { anfrage :: a }
+    | AFFehler { unbekannteEingabe :: Text }
     | AFStatusAnfrage
           { anfrageObjekt :: StatusAnfrageObjekt
           , konstruktor :: Objekt -> AnfrageFortsetzung a e
@@ -403,9 +397,7 @@ verwendeAnfrageFortsetzung
       konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego
     }
 verwendeAnfrageFortsetzung _wertFunktion _anfrageFunktion AFFehler {unbekannteEingabe} =
-    AFFehler
-    { unbekannteEingabe
-    }
+    AFFehler { unbekannteEingabe }
 
 infixr 0 $<<
 

@@ -77,10 +77,7 @@ i2cKanalLookup i2cAddress = do
             (Just current) -> pure current
 
 -- | I2C-Adresse eines /PCF8574/
-newtype I2CAddress =
-    I2CAddress
-    { fromI2CAddress :: Word8
-    }
+newtype I2CAddress = I2CAddress { fromI2CAddress :: Word8 }
     deriving (Eq, Ord)
 
 instance Show I2CAddress where
@@ -88,10 +85,7 @@ instance Show I2CAddress where
     show = show . fromI2CAddress
 
 -- | Ein-/Ausgabe von 'i2cWrite'/'i2cRead'
-newtype BitValue =
-    BitValue
-    { fromBitValue :: Word8
-    }
+newtype BitValue = BitValue { fromBitValue :: Word8 }
     deriving (Eq, Bits)
 
 instance Show BitValue where
@@ -128,10 +122,7 @@ i2cRead i2cAddress = do
         pure $ BitValue $ fromIntegral c_result
 
 -- | File Handle eines I2C-Channel
-newtype FileHandle =
-    FileHandle
-    { fromFileHandle :: CInt
-    }
+newtype FileHandle = FileHandle { fromFileHandle :: CInt }
 
 #ifdef ZUGKONTROLLERASPI
 foreign import ccall "wiringPiI2CSetup" c_wiringPiI2CSetup :: CInt -> IO CInt
@@ -168,6 +159,7 @@ c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO ()
 c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
 -}
 #endif
+
 
 
 

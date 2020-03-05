@@ -83,11 +83,7 @@ instance Anzeige PCF8574Variant where
     anzeige VariantA = Language.a
 
 -- | Variante und variable Adress-Bits eines /PCF8574/
-data PCF8574 =
-    PCF8574
-    { variant :: PCF8574Variant
-    , a0, a1, a2 :: Value
-    }
+data PCF8574 = PCF8574 { variant :: PCF8574Variant, a0, a1, a2 :: Value }
     deriving (Eq, Ord)
 
 instance Show PCF8574 where
@@ -152,11 +148,7 @@ numPorts :: Word8
 numPorts = 8
 
 -- | Verwende Port eines /PCF8574/
-data PCF8574Port =
-    PCF8574Port
-    { pcf8574 :: PCF8574
-    , port :: Word8
-    }
+data PCF8574Port = PCF8574Port { pcf8574 :: PCF8574, port :: Word8 }
     deriving (Eq, Ord)
 
 instance Show PCF8574Port where

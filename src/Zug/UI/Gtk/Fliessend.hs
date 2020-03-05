@@ -66,9 +66,7 @@ fließendNew s maybeTVar =
 
 -- | Widget zur Eingabe des Fließend-Value
 newtype FließendAuswahlWidget =
-    FließendAuswahlWidget
-    { erhalteAuswahlWidget :: AuswahlWidget Value
-    }
+    FließendAuswahlWidget { erhalteAuswahlWidget :: AuswahlWidget Value }
     deriving (Eq, MitWidget)
 
 -- | Erstelle ein neues 'FließendAuswahlWidget' und packe es in eine 'MitBox'.
@@ -95,6 +93,7 @@ fließendAuswahlNew maybeTVar =
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
 aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif
+
 
 
 

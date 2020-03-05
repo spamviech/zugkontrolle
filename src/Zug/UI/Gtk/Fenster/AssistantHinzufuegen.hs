@@ -79,9 +79,7 @@ import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetz
 
 -- | Seiten des Hinzufügen-'Assistant'
 data HinzufügenSeite
-    = HinzufügenSeiteAuswahl
-          { widget :: Gtk.Widget
-          }
+    = HinzufügenSeiteAuswahl { widget :: Gtk.Widget }
     | HinzufügenSeiteBahngeschwindigkeit
           { widget :: Gtk.Widget
           , nameAuswahl :: NameAuswahlWidget
@@ -109,10 +107,7 @@ data HinzufügenSeite
           , nameAuswahl :: NameAuswahlWidget
           , kupplungsAuswahl :: AnschlussAuswahlWidget
           }
-    | HinzufügenSeiteWegstrecke
-          { widget :: Gtk.Widget
-          , nameAuswahl :: NameAuswahlWidget
-          }
+    | HinzufügenSeiteWegstrecke { widget :: Gtk.Widget, nameAuswahl :: NameAuswahlWidget }
     | HinzufügenSeitePlan
           { widget :: Gtk.Widget
           , nameAuswahl :: NameAuswahlWidget
@@ -166,13 +161,7 @@ hinzufügenErgebnis
         stName <- aktuellerName nameAuswahl
         stFließend <- aktuellerFließendValue fließendAuswahl
         stromAnschluss <- aktuellerAnschluss stromAuswahl
-        pure
-            $ OStreckenabschnitt
-                Streckenabschnitt
-                { stName,
-                  stFließend,
-                  stromAnschluss
-                }
+        pure $ OStreckenabschnitt Streckenabschnitt { stName, stFließend, stromAnschluss }
     HinzufügenSeiteWeiche
         {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} -> do
             name <- aktuellerName nameAuswahl
@@ -212,13 +201,7 @@ hinzufügenErgebnis
         kuName <- aktuellerName nameAuswahl
         kuFließend <- aktuellerFließendValue fließendAuswahl
         kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
-        pure
-            $ OKupplung
-                Kupplung
-                { kuName,
-                  kuFließend,
-                  kupplungsAnschluss
-                }
+        pure $ OKupplung Kupplung { kuName, kuFließend, kupplungsAnschluss }
     HinzufügenSeiteWegstrecke {nameAuswahl} -> do
         statusVar <- erhalteStatusVar :: m StatusVarGui
         aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
@@ -283,16 +266,9 @@ hinzufügenErgebnis
         plName <- aktuellerName nameAuswahl
         aktionen <- toList <$> readTVarIO tvarAktionen
         Gtk.get checkButtonDauerschleife Gtk.toggleButtonActive >>= pure . OPlan . \case
-            True -> let plan =
-                            Plan
-                            { plName,
-                              plAktionen = aktionen ++ [AktionAusführen plan]
-                            }
+            True -> let plan = Plan { plName, plAktionen = aktionen ++ [AktionAusführen plan] }
                     in plan
-            False -> Plan
-                { plName,
-                  plAktionen = aktionen
-                }
+            False -> Plan { plName, plAktionen = aktionen }
 
 -- | Erstelle einen neuen Hinzufügen-'Assistant'.
 --
@@ -343,9 +319,7 @@ assistantHinzufügenNew parent maybeTVar = do
     let seiteAuswahl :: AssistantSeite HinzufügenSeite
         seiteAuswahl =
             AssistantSeite
-            { seite = HinzufügenSeiteAuswahl
-                  { widget = auswahl
-                  },
+            { seite = HinzufügenSeiteAuswahl { widget = auswahl },
               name = Language.hinzufügen,
               seiteZurücksetzen = pure (),
               seitenAbschluss = SeitenAbschluss Language.weiter
@@ -1070,6 +1044,7 @@ assistantHinzufügenNew parent maybeTVar = do
             [Gtk.windowTransientFor := erhalteWindow assistant, Gtk.windowModal := True]
     pure assistant
 #endif
+
 
 
 

@@ -128,10 +128,7 @@ instance (MitWidget w) => MitWidget (AssistantSeite w) where
 -- Die Form ist wie ein Rose-tree, ergänzt um zusätzliche Informationen.
 data AssistantSeitenBaum w
     = -- | Seite mit einem direkten Nachfolger
-      AssistantSeiteLinear
-          { node :: AssistantSeite w
-          , nachfolger :: AssistantSeitenBaum w
-          }
+      AssistantSeiteLinear { node :: AssistantSeite w, nachfolger :: AssistantSeitenBaum w }
       -- | Seite mit mehreren direkten Nachfolger
     | AssistantSeiteAuswahl
           { node :: AssistantSeite w
@@ -139,9 +136,7 @@ data AssistantSeitenBaum w
           , nachfolgerListe :: NonEmpty (AssistantSeitenBaum w)
           }
       -- | Seite ohne Nachfolger
-    | AssistantSeiteLetzte
-          { node :: AssistantSeite w
-          }
+    | AssistantSeiteLetzte { node :: AssistantSeite w }
 
 instance (MitWidget w) => MitWidget (AssistantSeitenBaum w) where
     erhalteWidget :: AssistantSeitenBaum w -> Gtk.Widget
@@ -163,9 +158,7 @@ data AssistantSeitenBaumPacked w
           , packedNachfolgerAuswahl :: AuswahlWidget (AssistantSeite w)
           }
       -- | Seite ohne Nachfolger
-    | PackedSeiteLetzte
-          { packedNode :: AssistantSeite w
-          }
+    | PackedSeiteLetzte { packedNode :: AssistantSeite w }
 
 instance (MitWidget w) => MitWidget (AssistantSeitenBaumPacked w) where
     erhalteWidget :: AssistantSeitenBaumPacked w -> Gtk.Widget
@@ -360,11 +353,7 @@ packSeiten box flowControlBox AssistantSeiteLinear {node, nachfolger} maybeTVar 
     boxPackDefault box node
     mitWidgetHide node
     packedNachfolger <- packSeiten box flowControlBox nachfolger maybeTVar
-    pure
-        PackedSeiteLinear
-        { packedNode = node,
-          packedNachfolger
-        }
+    pure PackedSeiteLinear { packedNode = node, packedNachfolger }
 packSeiten
     box
     flowControlBox
@@ -402,10 +391,7 @@ packSeiten box flowControlBox AssistantSeiteLetzte {node} _maybeTVar = liftIO $ 
             mitWidgetHide widget
     boxPackDefault box node
     mitWidgetHide node
-    pure
-        $ PackedSeiteLetzte
-        { packedNode = node
-        }
+    pure $ PackedSeiteLetzte { packedNode = node }
 
 -- | Zeige die übergebene Seite an
 zeigeSeite :: (SpracheGuiReader r m, MonadIO m, MitWidget w, Eq w)
@@ -474,6 +460,7 @@ assistantAuswerten assistant@Assistant {fenster, seiten, auswertFunktion, tvarAk
                         -- Gebe Ergebnis zurück
                         pure result
 #endif
+
 
 
 

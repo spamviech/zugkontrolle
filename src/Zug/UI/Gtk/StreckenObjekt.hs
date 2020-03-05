@@ -195,9 +195,7 @@ data HinzufügenZiel
 
 -- | Widget zum Hinzufügen einer Wegstrecke/eines Plans
 newtype WidgetHinzufügen (e :: HinzufügenZiel) (w :: Type) (a :: Type) =
-    WidgetHinzufügen
-    { widgetHinzufügen :: w
-    }
+    WidgetHinzufügen { widgetHinzufügen :: w }
     deriving (Eq)
 
 instance (MitWidget w) => MitWidget (WidgetHinzufügen e w a) where
@@ -261,10 +259,7 @@ widgetHinzufügenContainerGefüllt =
     . widgetHinzufügen
 
 -- | Text mit Typ-Annotation
-newtype KategorieText a =
-    KategorieText
-    { kategorieText :: Sprache -> Text
-    }
+newtype KategorieText a = KategorieText { kategorieText :: Sprache -> Text }
 
 -- | Label für 'BoxWegstreckeHinzufügen'/'BoxPlanHinzufügen'
 class Kategorie a where
@@ -319,8 +314,8 @@ boxWegstreckeHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidg
 
  -- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl
 data WegstreckeCheckButton e where
-    WegstreckeCheckButton :: { wcbvRegistrierterCheckButton :: RegistrierterCheckButton
-                             } -> WegstreckeCheckButton Void
+    WegstreckeCheckButton :: { wcbvRegistrierterCheckButton :: RegistrierterCheckButton }
+        -> WegstreckeCheckButton Void
     WegstreckeCheckButtonRichtung :: { wcbrWidget :: Gtk.Widget
                                      , wcbrRegistrierterCheckButton :: RegistrierterCheckButton
                                      , wcbrRichtungsAuswahl :: AuswahlWidget Richtung
@@ -1816,6 +1811,7 @@ planPackNew plan@Plan {plAktionen} = do
     ausführenBefehl $ Hinzufügen $ OPlan plWidgets
     pure plWidgets
 #endif
+
 
 
 

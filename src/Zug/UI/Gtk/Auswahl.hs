@@ -55,10 +55,7 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 
 -- | Auswahl-Widget für ein 'Bounded' 'Enum'
 data AuswahlWidget e
-    = AuswahlRadioButton
-          { widget :: Gtk.Widget
-          , enumButtons :: NonEmpty (e, Gtk.RadioButton)
-          }
+    = AuswahlRadioButton { widget :: Gtk.Widget, enumButtons :: NonEmpty (e, Gtk.RadioButton) }
     | AuswahlComboBox
           { widget :: Gtk.Widget
           , comboBox :: Gtk.ComboBox
@@ -102,11 +99,7 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
     verwendeSpracheGui maybeTVar $ \sprache -> do
         forM_ enumButtons $ \(e, radioButton)
             -> Gtk.set radioButton [Gtk.buttonLabel := anzeigeFunktion e sprache]
-    pure
-        $ AuswahlRadioButton
-        { widget = erhalteWidget hBox,
-          enumButtons
-        }
+    pure $ AuswahlRadioButton { widget = erhalteWidget hBox, enumButtons }
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendung der 'Anzeige'-Instanz.
 --
@@ -161,12 +154,7 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     verwendeSpracheGui maybeTVar $ \sprache -> void $ do
         forM enumIndizes $ \(e, index) -> do
             Gtk.listStoreSetValue listStore index $ anzeigeFunktion e sprache
-    pure
-        AuswahlComboBox
-        { widget = erhalteWidget hBox,
-          comboBox,
-          enumIndizes
-        }
+    pure AuswahlComboBox { widget = erhalteWidget hBox, comboBox, enumIndizes }
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
 --
@@ -240,6 +228,7 @@ mitAuswahlWidget funktion = funktion . erhalteAuswahlWidget
 auswahlWidget :: (MitAuswahlWidget a e) => Lens.Getter a (AuswahlWidget e)
 auswahlWidget = Lens.to erhalteAuswahlWidget
 #endif
+
 
 
 

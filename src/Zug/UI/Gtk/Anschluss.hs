@@ -164,18 +164,11 @@ aktuellerAnschluss
                 port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
                 pure
                     $ vonPCF8574Port
-                    $ PCF8574Port
-                    { pcf8574 = PCF8574
-                          { variant,
-                            a0,
-                            a1,
-                            a2
-                          },
-                      port
-                    }
+                    $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2 }, port }
             -- Verwende als Standard die Pin-Eingabe
             | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
 #endif
+
 
 
 

@@ -58,6 +58,9 @@
                 }
             ]
         },
+        "layout": {
+            "record": "try-oneline"
+        },
         "indent": {
             "where": 4,
             "where-binds": "indent-by 4",
