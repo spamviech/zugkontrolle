@@ -298,7 +298,7 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
             zeigeFortschritt :: Natural -> Sprache -> IO ()
             zeigeFortschritt i =
                 Text.putStrLn
-                . (plan <:> (toEnum (fromIntegral i) / toEnum (length plAktionen) :: Double))
+                . (plan <:> (fromIntegral i / fromIntegral (length plAktionen) :: Double))
     anfrageAktualisieren (ABAktionPlanAusführend plan _neu) token =
         wähleErgebnis token [(Lexer.AusführenAbbrechen, Right $ AusführenAbbrechen plan)]
     anfrageAktualisieren (ABAktionPlanGesperrt _plan _neu _pins) token@EingabeToken {eingabe} =

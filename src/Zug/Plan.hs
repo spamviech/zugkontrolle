@@ -38,7 +38,6 @@ import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
-import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..)
@@ -96,19 +95,20 @@ instance StreckenObjekt Plan where
 instance PlanKlasse Plan where
     ausführenPlan
         :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
-    ausführenPlan plan@Plan {plName, plAktionen} showAktion endAktion =
-        void $ forkI2CReader $ void $ do
-            tvarAusführend <- erhalteMengeAusführend
-            liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
-            ausführenAux 0 plAktionen
-            liftIO $ do
-                showAktion $ fromIntegral $ length plAktionen
-                endAktion
+    ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
+        tvarAusführend <- erhalteMengeAusführend
+        liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
+        ausführenAux 0 plAktionen
+        liftIO $ do
+            showAktion $ fromIntegral $ length plAktionen
+            endAktion
         where
             ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
             ausführenAux _i [] = do
                 tvarAusführend <- erhalteMengeAusführend
                 liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+            ausführenAux _i [AktionAusführen Plan {plAktionen = plAktionen1}] =
+                ausführenAux 0 plAktionen1
             ausführenAux i (h:t) = do
                 tvarAusführend <- erhalteMengeAusführend
                 ausführend <- liftIO $ readTVarIO tvarAusführend
