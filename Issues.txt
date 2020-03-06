@@ -1,3 +1,7 @@
+Einträge erscheinen öfters in yaml-Datei
+    vermutlich von Laden -> Speichern
+    Abbrechen beim Hinzufügen?
+
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi
