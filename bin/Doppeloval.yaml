@@ -82,15 +82,15 @@ Streckenabschnitte:
   Fließend: LOW
 Bahngeschwindigkeiten:
 - GeschwindigkeitsPin:
-    Pin: 13
+    Pin: 17
   Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
   Zugtyp: Märklin
-  Fließend: LOW
+  Fließend: HIGH
 - GeschwindigkeitsPin:
-    Pin: 12
+    Pin: 18
   Name: O-B-A5.Bahngeschwindigkeit
   Zugtyp: Märklin
-  Fließend: LOW
+  Fließend: HIGH
 Kupplungen:
 - Name: A5.Kupplung
   KupplungsAnschluss:
