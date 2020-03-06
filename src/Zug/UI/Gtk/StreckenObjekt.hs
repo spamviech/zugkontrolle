@@ -844,6 +844,7 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
         scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault
             $ widgetShowNew
             $ Gtk.hScaleNewWithRange 0 100 1
+        Gtk.widgetSetSizeRequest scale 100 (-1)
         Gtk.on scale Gtk.valueChanged $ do
             wert <- Gtk.get scale Gtk.rangeValue
             flip runReaderT objektReader
