@@ -4,7 +4,7 @@ Streckenabschnitte:
     PCF8574Port:
       Variante: A
       a2: HIGH
-      PCF8574Port: 4
+      PCF8574Port: 3
       a1: LOW
       a0: LOW
   Fließend: LOW
@@ -341,14 +341,14 @@ Weichen:
     - PCF8574Port:
         Variante: A
         a2: HIGH
-        PCF8574Port: 6
+        PCF8574Port: 5
         a1: HIGH
         a0: LOW
   - - Kurve
     - PCF8574Port:
         Variante: A
         a2: HIGH
-        PCF8574Port: 7
+        PCF8574Port: 4
         a1: HIGH
         a0: LOW
   Name: Z.Kreuzung
@@ -359,14 +359,14 @@ Weichen:
     - PCF8574Port:
         Variante: A
         a2: HIGH
-        PCF8574Port: 4
+        PCF8574Port: 7
         a1: HIGH
         a0: LOW
   - - Rechts
     - PCF8574Port:
         Variante: A
         a2: HIGH
-        PCF8574Port: 5
+        PCF8574Port: 6
         a1: HIGH
         a0: LOW
   Name: Z.A1(R)-2(L)
