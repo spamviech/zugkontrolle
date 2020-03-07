@@ -41,7 +41,7 @@ import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
 import Zug.Objekt (ObjektAllgemein(..))
 import Zug.UI.Base (Status, ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen
-                  , kupplungen, wegstrecken, pläne)
+                  , kupplungen, wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.Gtk.Assistant (assistantAuswerten, AssistantResult(..))
 import Zug.UI.Gtk.Fenster.AssistantHinzufuegen (assistantHinzufügenNew)
@@ -153,6 +153,7 @@ ladeWidgets status = do
             mapM_ entferneWidgets $ status ^. kupplungen
             mapM_ entferneWidgets $ status ^. wegstrecken
             mapM_ entferneWidgets $ status ^. pläne
+            RWS.put $ statusLeer $ status ^. sprache
 
         erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
         erstelleWidgets status = do
@@ -258,6 +259,8 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                         AssistantAbbrechen -> pure ()
     pure button
 #endif
+
+
 
 
 

@@ -1,7 +1,3 @@
-Einträge erscheinen öfters in yaml-Datei
-    vermutlich von Laden -> Speichern
-    Abbrechen beim Hinzufügen?
-
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi
@@ -159,6 +155,11 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst--------------------------
+Einträge erscheinen öfters in yaml-Datei
+    vermutlich von Laden -> Speichern
+    Abbrechen beim Hinzufügen?
+    Gefixt
+
 Pläne mit Dauerschleife werden nicht ausgeführt
     Eq-Instanz versucht unendlich lange Listen zu vergleichen
     Gefixt
