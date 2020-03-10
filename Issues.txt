@@ -1,6 +1,12 @@
+Laden von Plänen funktioniert nicht
+
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi
+    AssistantHinzufügen besonders anfällig
+        neu schreiben?
+        nachdem einziger Assistant in gesamtem Programm ist allgemeine Variante nicht notwendig
+        beseitigt vermutlich nicht-skalierende Widgets
 
 Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Vermutlich ein Problem mit Assistant
