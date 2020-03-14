@@ -1,5 +1,8 @@
 Laden von Plänen funktioniert nicht
 
+Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
+    PWM über I2C hört sich nicht vielversprechend an
+
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi
