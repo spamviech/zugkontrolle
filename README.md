@@ -124,6 +124,20 @@ Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werd
 
 Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\AppData\Local\Programs\stack\x86_64-windows\ghc-8.2.2\mingw\bin\zlib1.dll\zlib1.dll`
 
+### Probleme beim komplieren von glib/pango/gtk3
+
+Bei neueren Versionen von gtk3/glib2 treten Fehler der folgenden Art auf:
+
+```
+pango       > C:/msys64/mingw64/include/glib-2.0/glib/gspawn.h:76: (column 22) [FATAL]
+pango       >   >>> Syntax error!
+pango       >   The symbol `__attribute__' does not fit here.
+```
+
+Als Lösung werden alte Versionen der MSYS2-Packete im Ordner `gtk3` mitgeliefert.
+Der Befehl zum installieren lautet:
+`pacman -U <Dateiname>
+
 ### Unterstütze Kommandozeilen-Parameter
 
 * -h | --help  
