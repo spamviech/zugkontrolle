@@ -124,7 +124,7 @@ Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werd
 
 Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\AppData\Local\Programs\stack\x86_64-windows\ghc-8.2.2\mingw\bin\zlib1.dll\zlib1.dll`
 
-### Probleme beim komplieren von glib/pango/gtk3
+### Probleme beim komplieren von glib/pango/gtk3 (Windows/MSYS2)
 
 Bei neueren Versionen von gtk3/glib2 treten Fehler der folgenden Art auf:
 
@@ -137,6 +137,9 @@ pango       >   The symbol `__attribute__' does not fit here.
 Als Lösung werden alte Versionen der MSYS2-Packete im Ordner `gtk3` mitgeliefert.
 Der Befehl zum installieren lautet:
 `pacman -U <Dateiname>
+
+Nach kompilieren der o.g. Pakete muss ein Update durchgeführt werden, da es sonst zu dll-Problemen kommt.
+Evtl. ist das bei einer frischen MSYS2-Installation nicht notwendig.
 
 ### Unterstütze Kommandozeilen-Parameter
 
