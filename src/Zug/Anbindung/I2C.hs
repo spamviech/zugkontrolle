@@ -159,21 +159,4 @@ c_wiringPiI2CWriteReg16 :: CInt -> CInt -> CInt -> IO ()
 c_wiringPiI2CWriteReg16 fileHandle register value   = putStrLn $ "I2CWriteReg16 " ++ show fileHandle ++ " r" ++ show register ++ "->" ++ show value
 -}
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

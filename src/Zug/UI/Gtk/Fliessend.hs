@@ -93,20 +93,4 @@ fließendAuswahlNew maybeTVar =
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
 aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

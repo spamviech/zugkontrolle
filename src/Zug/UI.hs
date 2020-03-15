@@ -52,18 +52,4 @@ ausführenWennRoot action = do
 #else
 ausführenWennRoot action = action
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

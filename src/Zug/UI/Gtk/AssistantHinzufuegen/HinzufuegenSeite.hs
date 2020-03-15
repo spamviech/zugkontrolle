@@ -131,7 +131,7 @@ seiteErgebnis
                         }
 seiteErgebnis
     fließendAuswahl
-    zugtypAuswahl
+    _zugtypAuswahl
     HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl} = do
     stName <- aktuellerName nameAuswahl
     stFließend <- aktuellerFließendValue fließendAuswahl
@@ -177,13 +177,13 @@ seiteErgebnis
                         }
 seiteErgebnis
     fließendAuswahl
-    zugtypAuswahl
+    _zugtypAuswahl
     HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl} = do
     kuName <- aktuellerName nameAuswahl
     kuFließend <- aktuellerFließendValue fließendAuswahl
     kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
     pure $ OKupplung Kupplung { kuName, kuFließend, kupplungsAnschluss }
-seiteErgebnis fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAuswahl} = do
+seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAuswahl} = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
     wsName <- aktuellerName nameAuswahl
@@ -244,8 +244,8 @@ seiteErgebnis fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAus
         Märklin -> OWegstrecke . ZugtypMärklin <$> gewählteWegstrecke
         Lego -> OWegstrecke . ZugtypLego <$> gewählteWegstrecke
 seiteErgebnis
-    fließendAuswahl
-    zugtypAuswahl
+    _fließendAuswahl
+    _zugtypAuswahl
     HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife} = liftIO $ do
     plName <- aktuellerName nameAuswahl
     aktionenWarteschlange <- readTVarIO tvarAktionen
@@ -259,43 +259,4 @@ seiteErgebnis
             in plan
         False -> Plan { plName, plAktionen = toList aktionenWarteschlange }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

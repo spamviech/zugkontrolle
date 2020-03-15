@@ -145,9 +145,9 @@ instance (Eq v) => Eq (FortfahrenWennToggledVar a v c) where
     (==) :: FortfahrenWennToggledVar a v c -> FortfahrenWennToggledVar a v c -> Bool
     (==)
         FortfahrenWennToggledVar
-        {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
+            {fortfahrenVar = fortfahrenVar0, varCheckButtonsRec = varCheckButtons0}
         FortfahrenWennToggledVar
-        {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
+            {fortfahrenVar = fortfahrenVar1, varCheckButtonsRec = varCheckButtons1} =
         (fortfahrenVar0 == fortfahrenVar1) && (varCheckButtons0 == varCheckButtons1)
 
 instance MitWidget (FortfahrenWennToggledVar a v c) where
@@ -183,11 +183,11 @@ fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheck
         $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
     pure
         FortfahrenWennToggledVar
-        { fortfahrenVar,
-          readVar,
-          varCheckButtonsRec,
-          foldCheckButtonsRec
-        }
+            { fortfahrenVar,
+              readVar,
+              varCheckButtonsRec,
+              foldCheckButtonsRec
+            }
 
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggledVar
@@ -245,20 +245,4 @@ instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
     erhalteRegistrierterCheckButton = id
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ --

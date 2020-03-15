@@ -130,30 +130,30 @@ anschlussAuswahlNew maybeTVar name = do
         pure aawPCF8574Port
     pure
         AnschlussAuswahlWidget
-        { aawWidget = erhalteWidget vBox,
-          aawNotebook,
-          aawPinPage,
-          aawPin,
-          aawPCF8574PortPage,
-          aawPCF8574PortVariante,
-          aawPCF8574PortA0,
-          aawPCF8574PortA1,
-          aawPCF8574PortA2,
-          aawPCF8574Port
-        }
+            { aawWidget = erhalteWidget vBox,
+              aawNotebook,
+              aawPinPage,
+              aawPin,
+              aawPCF8574PortPage,
+              aawPCF8574PortVariante,
+              aawPCF8574PortA0,
+              aawPCF8574PortA1,
+              aawPCF8574PortA2,
+              aawPCF8574Port
+            }
 
 -- | Erhalte den aktuell gewählten 'Anschluss'.
 aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
 aktuellerAnschluss
     AnschlussAuswahlWidget
-    {aawNotebook,
-     aawPin,
-     aawPCF8574PortPage,
-     aawPCF8574PortVariante,
-     aawPCF8574PortA0,
-     aawPCF8574PortA1,
-     aawPCF8574PortA2,
-     aawPCF8574Port} = liftIO $ do
+        {aawNotebook,
+         aawPin,
+         aawPCF8574PortPage,
+         aawPCF8574PortVariante,
+         aawPCF8574PortA0,
+         aawPCF8574PortA1,
+         aawPCF8574PortA2,
+         aawPCF8574Port} = liftIO $ do
     Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
@@ -168,21 +168,4 @@ aktuellerAnschluss
             -- Verwende als Standard die Pin-Eingabe
             | otherwise -> liftIO $ vonPinGpio <$> Gtk.spinButtonGetValueAsInt aawPin
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

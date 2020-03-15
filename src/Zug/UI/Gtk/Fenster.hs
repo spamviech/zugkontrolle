@@ -259,25 +259,4 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                         HinzufügenAbbrechen -> pure ()
     pure button
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

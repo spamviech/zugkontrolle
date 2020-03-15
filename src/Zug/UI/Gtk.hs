@@ -333,21 +333,4 @@ setupGUI maybeTVar = void $ do
                 panedMax <- Gtk.get paned Gtk.panedMaxPosition
                 Gtk.set paned [Gtk.panedPosition := div panedMax 2]
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--

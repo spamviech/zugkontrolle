@@ -33,7 +33,7 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackDefault, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitContainer(..))
 
-        -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
+         -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
     ZugtypSpezifisch :: { vBox :: Gtk.VBox } -> ZugtypSpezifisch Gtk.Widget
     ZugtypSpezifischButton :: { buttonVBox :: Gtk.VBox, buttonDummy :: Gtk.Button }
@@ -94,20 +94,4 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
         $ \(zugtyp, widget) -> widgetShowIf (gewählterZugtyp == zugtyp) widget
     pure ZugtypSpezifischButton { buttonVBox, buttonDummy }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--
