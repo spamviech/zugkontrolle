@@ -28,9 +28,12 @@ import qualified Data.Map.Lazy as Map
 import qualified Graphics.UI.Gtk as Gtk
 
 -- Abhängigkeiten von anderen Modulen
+import Zug.Enums (Zugtyp())
 import Zug.Language (Sprache())
 import Zug.Objekt (Objekt)
 import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite (HinzufügenSeite(..), seiteErgebnis)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget)
+import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitWindow())
 import Zug.UI.Gtk.StreckenObjekt (ObjektGui)
 import Zug.UI.StatusVar (StatusVarReader(..))
@@ -40,6 +43,8 @@ data AssistantHinzufügen =
     AssistantHinzufügen
     { window :: Gtk.Window
     , notebook :: Gtk.Notebook
+    , fließendAuswahl :: FließendAuswahlWidget
+    , zugtypAuswahl :: AuswahlWidget Zugtyp
     , indexSeiten :: Map Int HinzufügenSeite
     }
     deriving (Eq)
@@ -61,9 +66,10 @@ assistantHinzufügenAuswerten = _undefined --TODO
 -- | Erhalte das Ergebnis einer 'HinzufügenSeite'.
 hinzufügenErgebnis
     :: (StatusVarReader r ObjektGui m, MonadIO m) => AssistantHinzufügen -> m Objekt
-hinzufügenErgebnis AssistantHinzufügen {notebook, indexSeiten} = do
+hinzufügenErgebnis
+    AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten} = do
     aktuelleSeite <- liftIO $ Gtk.get notebook Gtk.notebookPage
-    seiteErgebnis $ indexSeiten Map.! aktuelleSeite
+    seiteErgebnis fließendAuswahl zugtypAuswahl $ indexSeiten Map.! aktuelleSeite
 
 -- | Erstelle einen neuen 'AssistantHinzufügen'.
 assistantHinzufügenNew :: (MitWindow p, MonadIO m)
@@ -72,6 +78,10 @@ assistantHinzufügenNew :: (MitWindow p, MonadIO m)
                         -> m AssistantHinzufügen
 assistantHinzufügenNew = _undefined --TODO
 #endif
+
+
+
+
 
 
 
