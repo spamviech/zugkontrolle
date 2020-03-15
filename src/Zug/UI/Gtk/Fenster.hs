@@ -43,8 +43,8 @@ import Zug.Objekt (ObjektAllgemein(..))
 import Zug.UI.Base (Status, ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen
                   , kupplungen, wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-import Zug.UI.Gtk.Assistant (assistantAuswerten, AssistantResult(..))
-import Zug.UI.Gtk.Fenster.AssistantHinzufuegen (assistantHinzufügenNew)
+import Zug.UI.Gtk.AssistantHinzufuegen
+       (assistantHinzufügenNew, assistantHinzufügenAuswerten, HinzufügenErgebnis(..))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel, dialogEval)
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
@@ -235,30 +235,34 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
         $ forkIO
         $ do
             flip runReaderT objektReader $ do
-                assistantAuswerten assistantHinzufügen
+                assistantHinzufügenAuswerten assistantHinzufügen
                     >>= flip auswertenStatusVarMStatusT statusVar . \case
-                        (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
+                        (HinzufügenErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
                             -> void $ bahngeschwindigkeitPackNew bgMärklin
-                        (AssistantErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
+                        (HinzufügenErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
                             -> void $ bahngeschwindigkeitPackNew bgLego
-                        (AssistantErfolgreich (OStreckenabschnitt st))
+                        (HinzufügenErfolgreich (OStreckenabschnitt st))
                             -> void $ streckenabschnittPackNew st
-                        (AssistantErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
+                        (HinzufügenErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
                             -> void $ weichePackNew weMärklin
-                        (AssistantErfolgreich (OWeiche (ZugtypLego weLego)))
+                        (HinzufügenErfolgreich (OWeiche (ZugtypLego weLego)))
                             -> void $ weichePackNew weLego
-                        (AssistantErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
-                        (AssistantErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
+                        (HinzufügenErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
+                        (HinzufügenErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
                             -> void $ wegstreckePackNew wsMärklin
-                        (AssistantErfolgreich (OWegstrecke (ZugtypLego wsLego)))
+                        (HinzufügenErfolgreich (OWegstrecke (ZugtypLego wsLego)))
                             -> void $ wegstreckePackNew wsLego
-                        (AssistantErfolgreich (OPlan pl)) -> void $ planPackNew pl
+                        (HinzufügenErfolgreich (OPlan pl)) -> void $ planPackNew pl
                         -- Kein catch-all Pattern um Fehlermeldung des Compilers
                         -- bei neu hinzugefügten Objekten nicht zu verpassen
-                        AssistantBeenden -> pure ()
-                        AssistantAbbrechen -> pure ()
+                        HinzufügenBeenden -> pure ()
+                        HinzufügenAbbrechen -> pure ()
     pure button
 #endif
+
+
+
+
 
 
 

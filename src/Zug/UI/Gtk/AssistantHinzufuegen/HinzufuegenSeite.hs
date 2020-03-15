@@ -3,7 +3,7 @@
 {-# LANGUAGE InstanceSigs #-}
 #endif
 
-module Zug.UI.Gtk.Fenster.HinzufuegenSeite
+module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   (
 #ifdef ZUGKONTROLLEGUI
     HinzufügenSeite(..)
@@ -77,4 +77,5 @@ instance MitWidget HinzufügenSeite where
 seiteErgebnis :: (MonadIO m) => HinzufügenSeite -> m Objekt
 seiteErgebnis = _
 #endif
+
 
