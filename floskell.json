@@ -81,7 +81,7 @@
         "op": {
             ",": {
                 "spaces": "after",
-                "linebreaks": "after",
+                "linebreaks": "before",
                 "force-linebreak": false
             },
             ", in declaration": {
@@ -91,12 +91,12 @@
             },
             ", in type": {
                 "spaces": "after",
-                "linebreaks": "after",
+                "linebreaks": "before",
                 "force-linebreak": false
             },
             ", in pattern": {
                 "spaces": "after",
-                "linebreaks": "after",
+                "linebreaks": "before",
                 "force-linebreak": false
             },
             ", in other": {

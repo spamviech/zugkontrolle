@@ -73,6 +73,7 @@
         "libgtk",
         "libtinfo",
         "linebreak",
+        "linebreaks",
         "llvm",
         "mappend",
         "mempty",
