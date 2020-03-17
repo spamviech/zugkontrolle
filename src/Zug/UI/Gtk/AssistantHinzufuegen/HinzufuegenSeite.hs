@@ -6,6 +6,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedLists #-}
 #endif
 
 module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
@@ -45,16 +46,19 @@ import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
                , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
-import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, aktuellerAnschluss)
+import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (RegistrierterCheckButton, registrierterCheckButtonNew, registrierterCheckButtonToggled)
-import Zug.UI.Gtk.Hilfsfunktionen (NameAuswahlWidget, aktuellerName)
+import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, boxPackWidgetNewDefault, NameAuswahlWidget
+                                 , nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 import Zug.UI.Gtk.StreckenObjekt
        (ObjektGui, StatusVarGui, WegstreckenElement(..), WegstreckeCheckButton(), WidgetsTyp(..)
       , BGWidgets(), WEWidgets(), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl)
+import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew)
 import Zug.UI.StatusVar (StatusVarReader(..), readStatusVar)
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes)
 
@@ -265,12 +269,19 @@ seiteErgebnis
             in plan
         False -> Plan { plName, plAktionen = toList aktionenWarteschlange }
 
-hinzufügenBahngeschwindigkeitNew :: (MonadIO m) => AuswahlWidget Zugtyp -> m HinzufügenSeite
-hinzufügenBahngeschwindigkeitNew auswahlZugtyp = do
-    vBox <- _undefined --TODO
-    nameAuswahl <- _undefined --TODO
-    geschwindigkeitAuswahl <- _undefined --TODO
-    fahrtrichtungsAuswahl <- _undefined --TODO
+hinzufügenBahngeschwindigkeitNew
+    :: (SpracheGuiReader r m, MonadIO m)
+    => AuswahlWidget Zugtyp
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> m HinzufügenSeite
+hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
+    vBox <- liftIO $ widgetShowNew $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
+    geschwindigkeitAuswahl
+        <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
+    fahrtrichtungsAuswahl <- anschlussAuswahlNew maybeTVar Language.fahrtrichtung
+    boxPackWidgetNewDefault vBox
+        $ zugtypSpezifischNew [(Lego, fahrtrichtungsAuswahl)] auswahlZugtyp
     pure
         HinzufügenSeiteBahngeschwindigkeit
             { vBox
