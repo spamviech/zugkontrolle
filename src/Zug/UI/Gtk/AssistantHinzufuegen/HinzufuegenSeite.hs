@@ -33,7 +33,9 @@ import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust, isJust, catMaybes)
+import qualified Data.Text as Text
 import qualified Graphics.UI.Gtk as Gtk
+import Graphics.UI.Gtk (AttrOp((:=)))
 
 -- Abhängigkeit von anderen Modulen
 import Zug.Anbindung
@@ -47,18 +49,21 @@ import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwind
                , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, MitAuswahlWidget(), aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl
+       (AuswahlWidget, auswahlRadioButtonNew, MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
-       (RegistrierterCheckButton, registrierterCheckButtonNew, registrierterCheckButtonToggled)
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, boxPackWidgetNewDefault, NameAuswahlWidget
-                                 , nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+       (FortfahrenWennToggled, fortfahrenWennToggledNew, checkButtons, RegistrierterCheckButton
+      , registrierterCheckButtonNew, registrierterCheckButtonToggled)
+import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault
+                                 , NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
        (ObjektGui, StatusVarGui, WegstreckenElement(..), WegstreckeCheckButton(), WidgetsTyp(..)
       , BGWidgets(), WEWidgets(), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl)
-import Zug.UI.Gtk.ZugtypSpezifisch (ZugtypSpezifisch(), zugtypSpezifischNew)
+import Zug.UI.Gtk.ZugtypSpezifisch
+       (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew)
 import Zug.UI.StatusVar (StatusVarReader(..), readStatusVar)
 import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetztes)
 
@@ -304,23 +309,55 @@ hinzufügenStreckenabschnittNew maybeTVar = do
 hinzufügenWeicheNew :: (SpracheGuiReader r m, MonadIO m)
                      => AuswahlWidget Zugtyp
                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                     -> m HinzufügenSeite
+                     -> m (HinzufügenSeite, ZugtypSpezifisch Gtk.Button)
 hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
-    märklinRichtungsAuswahl <- _undefined --TODO
-    legoRichtungsAuswahl <- _undefined --TODO
-    legoRichtungenAuswahl <- _undefined --TODO
+    -- Märklin
+    märklinFortfahrenWennToggled <- fortfahrenWennToggledNew maybeTVar Language.hinzufügen
+        $ anzeige <$> unterstützteRichtungen
+    let richtungenCheckButtons =
+            NonEmpty.zip unterstützteRichtungen $ checkButtons märklinFortfahrenWennToggled
+    märklinVBox <- liftIO $ Gtk.vBoxNew False 0
+    märklinRichtungsAuswahl
+        <- forM richtungenCheckButtons $ \(richtung, registrierterCheckButton) -> do
+            hBox <- liftIO $ boxPackWidgetNewDefault märklinVBox $ Gtk.hBoxNew False 0
+            boxPackDefault hBox registrierterCheckButton
+            anschlussAuswahlWidget
+                <- boxPackWidgetNewDefault hBox $ anschlussAuswahlNew maybeTVar $ const Text.empty
+            pure (richtung, registrierterCheckButton, anschlussAuswahlWidget)
+    -- Lego
+    legoButtonHinzufügen <- liftIO Gtk.buttonNew
+    legoVBox <- liftIO $ Gtk.vBoxNew False 0
+    verwendeSpracheGui maybeTVar $ \sprache
+        -> Gtk.set legoButtonHinzufügen [Gtk.buttonLabel := Language.hinzufügen sprache]
+    legoRichtungsAuswahl
+        <- boxPackWidgetNewDefault legoVBox $ anschlussAuswahlNew maybeTVar Language.richtungen
+    legoRichtungenAuswahl <- boxPackWidgetNewDefault legoVBox
+        $ auswahlRadioButtonNew
+            (NonEmpty.fromList
+             $ NonEmpty.filter (uncurry (/=))
+             $ (,) <$> unterstützteRichtungen <*> unterstützteRichtungen)
+            maybeTVar
+            Language.richtungen
+    -- ZugtypSpezifisch
+    buttonHinzufügen <- zugtypSpezifischButtonNew
+        [(Märklin, erhalteButton märklinFortfahrenWennToggled), (Lego, legoButtonHinzufügen)]
+        auswahlZugtyp
+    boxPackWidgetNewDefault vBox
+        $ zugtypSpezifischNew [(Märklin, märklinVBox), (Lego, legoVBox)] auswahlZugtyp
     pure
-        HinzufügenSeiteWeiche
-            { vBox
-            , nameAuswahl
-              -- Märklin
-            , märklinRichtungsAuswahl
-              -- Lego
-            , legoRichtungsAuswahl
-            , legoRichtungenAuswahl
-            }
+        ( HinzufügenSeiteWeiche
+              { vBox
+              , nameAuswahl
+                -- Märklin
+              , märklinRichtungsAuswahl
+                -- Lego
+              , legoRichtungsAuswahl
+              , legoRichtungenAuswahl
+              }
+        , buttonHinzufügen
+        )
 
 hinzufügenKupplungNew :: (SpracheGuiReader r m, MonadIO m)
                        => Maybe (TVar (Maybe [Sprache -> IO ()]))

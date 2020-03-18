@@ -21,7 +21,7 @@ module Zug.UI.Gtk.Auswahl
     -- * Konstruktoren
   , auswahlRadioButtonNamedNew
   , auswahlComboBoxNamedNew
-    -- ** Verwende Show-Instanz zum anzeigen
+    -- ** Verwende 'Anzeige'-Instanz zum anzeigen
   , auswahlRadioButtonNew
   , auswahlComboBoxNew
     -- ** Verwende ['minBound'..'maxBound'] zur Elemente-Auswahl
