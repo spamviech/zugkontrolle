@@ -5,6 +5,11 @@ Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
 
 Warteschlange über Data.Sequence Implementieren?
 
+Zug.UI.Gtk.StreckenObjekt ist zu groß
+    hie brauch ewig zum laden
+    aufsplitten in mehrere Untermodule sinnvoll
+        eins pro Objekt-Typ?
+
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi

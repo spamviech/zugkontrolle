@@ -40,8 +40,8 @@ import Zug.Enums (ZugtypEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
 import Zug.Objekt (ObjektAllgemein(..))
-import Zug.UI.Base (Status, ObjektReader, bahngeschwindigkeiten, streckenabschnitte, weichen
-                  , kupplungen, wegstrecken, pläne, sprache, statusLeer)
+import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen
+                  , wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.Gtk.AssistantHinzufuegen
        (assistantHinzufügenNew, assistantHinzufügenAuswerten, HinzufügenErgebnis(..))
@@ -49,7 +49,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLa
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (MStatusGuiT, IOStatusGui, ObjektGui, StatusVarGui, readSpracheGui
+       (MStatusGuiT, IOStatusGui, ObjektGuiReader, StatusVarGui, readSpracheGui
       , DynamischeWidgetsReader(..), WidgetsTyp(..), bahngeschwindigkeitPackNew, BGWidgets
       , streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew, wegstreckePackNew
       , WSWidgets, planPackNew)
@@ -60,7 +60,7 @@ import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, 
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonSpeichernPack :: forall b m.
-                    (MitBox b, ObjektReader ObjektGui m, MonadIO m)
+                    (MitBox b, ObjektGuiReader m, MonadIO m)
                     => Gtk.Window
                     -> b
                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -101,7 +101,7 @@ dialogSpeichernNew window maybeTVar = do
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonLadenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m)
+buttonLadenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadIO m)
                 => p
                 -> b
                 -> Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -139,7 +139,7 @@ buttonLadenPack parent box maybeTVar = do
                             statusVar
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui') an reinen 'Status' an.
-ladeWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
+ladeWidgets :: (ObjektGuiReader m, MonadIO m) => Status -> MStatusGuiT m ()
 ladeWidgets status = do
     löscheWidgets
     erstelleWidgets status
@@ -155,23 +155,23 @@ ladeWidgets status = do
             mapM_ entferneWidgets $ status ^. pläne
             RWS.put $ statusLeer $ status ^. sprache
 
-        erstelleWidgets :: (ObjektReader ObjektGui m, MonadIO m) => Status -> MStatusGuiT m ()
+        erstelleWidgets :: (ObjektGuiReader m, MonadIO m) => Status -> MStatusGuiT m ()
         erstelleWidgets status = do
-            let packBG :: (ObjektReader ObjektGui m, MonadIO m)
+            let packBG :: (ObjektGuiReader m, MonadIO m)
                        => ZugtypEither Bahngeschwindigkeit
                        -> MStatusGuiT m (ZugtypEither BGWidgets)
                 packBG (ZugtypMärklin bg) = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
                 packBG (ZugtypLego bg) = ZugtypLego <$> bahngeschwindigkeitPackNew bg
             mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
             mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
-            let packWE :: (ObjektReader ObjektGui m, MonadIO m)
+            let packWE :: (ObjektGuiReader m, MonadIO m)
                        => ZugtypEither Weiche
                        -> MStatusGuiT m (ZugtypEither WEWidgets)
                 packWE (ZugtypMärklin we) = ZugtypMärklin <$> weichePackNew we
                 packWE (ZugtypLego we) = ZugtypLego <$> weichePackNew we
             mapM_ packWE $ reverse $ status ^. weichen
             mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
-            let packWS :: (ObjektReader ObjektGui m, MonadIO m)
+            let packWS :: (ObjektGuiReader m, MonadIO m)
                        => ZugtypEither Wegstrecke
                        -> MStatusGuiT m (ZugtypEither WSWidgets)
                 packWS (ZugtypMärklin ws) = ZugtypMärklin <$> wegstreckePackNew ws
@@ -220,7 +220,7 @@ dialogLadenFehlerNew parent maybeTVar = do
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektReader ObjektGui m, MonadIO m)
+buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadIO m)
                       => p
                       -> b
                       -> Maybe (TVar (Maybe [Sprache -> IO ()]))

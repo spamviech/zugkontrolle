@@ -53,15 +53,19 @@ import Zug.UI.Gtk.Auswahl
        (AuswahlWidget, auswahlRadioButtonNew, MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
-       (FortfahrenWennToggled, fortfahrenWennToggledNew, checkButtons, RegistrierterCheckButton
-      , registrierterCheckButtonNew, registrierterCheckButtonToggled)
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault
-                                 , NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
+       (FortfahrenWennToggled, fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar
+      , fortfahrenWennToggledVarNew, RegistrierterCheckButton, registrierterCheckButtonNew
+      , registrierterCheckButtonToggled)
+import Zug.UI.Gtk.Hilfsfunktionen
+       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, notebookAppendPageNew
+      , NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (ObjektGui, StatusVarGui, WegstreckenElement(..), WegstreckeCheckButton(), WidgetsTyp(..)
-      , BGWidgets(), WEWidgets(), widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl)
+       (ObjektGui, StatusGui, StatusVarGui, StatusVarGuiReader, WegstreckenElement(..)
+      , WegstreckeCheckButton(), WegstreckeCheckButtonVoid, foldWegstreckeHinzufügen
+      , WidgetsTyp(..), BGWidgets(), WEWidgets(), widgetHinzufügenToggled
+      , widgetHinzufügenAktuelleAuswahl, DynamischeWidgets(..), DynamischeWidgetsReader(..))
 import Zug.UI.Gtk.ZugtypSpezifisch
        (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew)
 import Zug.UI.StatusVar (StatusVarReader(..), readStatusVar)
@@ -369,15 +373,45 @@ hinzufügenKupplungNew maybeTVar = do
         <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
-hinzufügenWegstreckeNew :: (SpracheGuiReader r m, MonadIO m)
-                         => AuswahlWidget Zugtyp
-                         -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                         -> m HinzufügenSeite
+hinzufügenWegstreckeNew
+    :: (SpracheGuiReader r m, StatusVarGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
+    => AuswahlWidget Zugtyp
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> m ( HinzufügenSeite
+         , FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
+         )
 hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
-    -- TODO Boxen mit CheckButton
-    pure HinzufügenSeiteWegstrecke { vBox, nameAuswahl }
+    DynamischeWidgets { vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+                      , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+                      , vBoxHinzufügenWegstreckeStreckenabschnitte
+                      , vBoxHinzufügenWegstreckeWeichenMärklin
+                      , vBoxHinzufügenWegstreckeWeichenLego
+                      , vBoxHinzufügenWegstreckeKupplungen} <- erhalteDynamischeWidgets
+    notebook <- liftIO $ boxPackWidgetNewDefault vBox Gtk.notebookNew
+    notebookAppendPageNew notebook maybeTVar Language.bahngeschwindigkeiten
+        $ zugtypSpezifischNew
+            [ (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin)
+            , (Lego, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego)]
+            auswahlZugtyp
+    notebookAppendPageNew notebook maybeTVar Language.streckenabschnitte
+        $ pure vBoxHinzufügenWegstreckeStreckenabschnitte
+    notebookAppendPageNew notebook maybeTVar Language.weichen
+        $ zugtypSpezifischNew
+            [ (Märklin, erhalteWidget vBoxHinzufügenWegstreckeWeichenMärklin)
+            , (Lego, erhalteWidget vBoxHinzufügenWegstreckeWeichenLego)]
+            auswahlZugtyp
+    notebookAppendPageNew notebook maybeTVar Language.kupplungen
+        $ pure vBoxHinzufügenWegstreckeKupplungen
+    statusVar <- erhalteStatusVar
+    fortfahrenWennToggled <- fortfahrenWennToggledVarNew
+        maybeTVar
+        Language.hinzufügen
+        foldWegstreckeHinzufügen
+        (atomically . readStatusVar)
+        statusVar
+    pure (HinzufügenSeiteWegstrecke { vBox, nameAuswahl }, fortfahrenWennToggled)
 
 hinzufügenPlanNew :: (SpracheGuiReader r m, MonadIO m)
                    => AuswahlWidget Zugtyp
