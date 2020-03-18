@@ -291,17 +291,23 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
             , fahrtrichtungsAuswahl
             }
 
-hinzufügenStreckenabschnittNew :: (MonadIO m) => AuswahlWidget Zugtyp -> m HinzufügenSeite
-hinzufügenStreckenabschnittNew auswahlZugtyp = do
-    vBox <- _undefined --TODO
-    nameAuswahl <- _undefined --TODO
-    stromAuswahl <- _undefined --TODO
+hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)
+                                => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                                -> m HinzufügenSeite
+hinzufügenStreckenabschnittNew maybeTVar = do
+    vBox <- liftIO $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
+    stromAuswahl
+        <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
     pure HinzufügenSeiteStreckenabschnitt { vBox, nameAuswahl, stromAuswahl }
 
-hinzufügenWeicheNew :: (MonadIO m) => AuswahlWidget Zugtyp -> m HinzufügenSeite
-hinzufügenWeicheNew auswahlZugtyp = do
-    vBox <- _undefined --TODO
-    nameAuswahl <- _undefined --TODO
+hinzufügenWeicheNew :: (SpracheGuiReader r m, MonadIO m)
+                     => AuswahlWidget Zugtyp
+                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                     -> m HinzufügenSeite
+hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
+    vBox <- liftIO $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
     märklinRichtungsAuswahl <- _undefined --TODO
     legoRichtungsAuswahl <- _undefined --TODO
     legoRichtungenAuswahl <- _undefined --TODO
@@ -316,23 +322,33 @@ hinzufügenWeicheNew auswahlZugtyp = do
             , legoRichtungenAuswahl
             }
 
-hinzufügenKupplungNew :: (MonadIO m) => AuswahlWidget Zugtyp -> m HinzufügenSeite
-hinzufügenKupplungNew auswahlZugtyp = do
-    vBox <- _undefined --TODO
-    nameAuswahl <- _undefined --TODO
-    kupplungsAuswahl <- _undefined --TODO
+hinzufügenKupplungNew :: (SpracheGuiReader r m, MonadIO m)
+                       => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                       -> m HinzufügenSeite
+hinzufügenKupplungNew maybeTVar = do
+    vBox <- liftIO $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
+    kupplungsAuswahl
+        <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
-hinzufügenWegstreckeNew :: (MonadIO m) => AuswahlWidget Zugtyp -> m HinzufügenSeite
-hinzufügenWegstreckeNew auswahlZugtyp = do
-    vBox <- _undefined --TODO
-    nameAuswahl <- _undefined --TODO
+hinzufügenWegstreckeNew :: (SpracheGuiReader r m, MonadIO m)
+                         => AuswahlWidget Zugtyp
+                         -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                         -> m HinzufügenSeite
+hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
+    vBox <- liftIO $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
+    -- TODO Boxen mit CheckButton
     pure HinzufügenSeiteWegstrecke { vBox, nameAuswahl }
 
-hinzufügenPlanNew :: (MonadIO m) => AuswahlWidget Zugtyp -> m HinzufügenSeite
-hinzufügenPlanNew auswahlZugtyp = do
-    vBox <- _undefined --TODO
-    nameAuswahl <- _undefined --TODO
+hinzufügenPlanNew :: (SpracheGuiReader r m, MonadIO m)
+                   => AuswahlWidget Zugtyp
+                   -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   -> m HinzufügenSeite
+hinzufügenPlanNew auswahlZugtyp maybeTVar = do
+    vBox <- liftIO $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
     tvarAktionen <- _undefined --TODO
     checkButtonDauerschleife <- _undefined --TODO
     pure HinzufügenSeitePlan { vBox, nameAuswahl, tvarAktionen, checkButtonDauerschleife }
