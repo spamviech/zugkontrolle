@@ -13,6 +13,8 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   (
 #ifdef ZUGKONTROLLEGUI
     HinzufügenSeite()
+  , ButtonHinzufügen(..)
+  , spezifischerButtonHinzufügen
   , seiteErgebnis
   , hinzufügenBahngeschwindigkeitNew
   , hinzufügenStreckenabschnittNew
@@ -58,10 +60,10 @@ import Zug.UI.Gtk.FortfahrenWennToggled
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, notebookAppendPageNew
       , NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (ObjektGui, StatusGui, StatusVarGui, WegstreckenElement(..), WegstreckeCheckButton()
+       (StatusGui, StatusVarGui, StatusVarGuiReader, WegstreckenElement(..), WegstreckeCheckButton()
       , WegstreckeCheckButtonVoid, WidgetsTyp(..), BGWidgets(), WEWidgets()
       , widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl, DynamischeWidgets(..)
       , DynamischeWidgetsReader(..))
@@ -87,6 +89,7 @@ data HinzufügenSeite
     | HinzufügenSeiteWeiche
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
+          , buttonHinzufügenWeiche :: ZugtypSpezifisch Gtk.Button
             -- Märklin
           , märklinRichtungsAuswahl
                 :: NonEmpty (Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)
@@ -99,10 +102,16 @@ data HinzufügenSeite
           , nameAuswahl :: NameAuswahlWidget
           , kupplungsAuswahl :: AnschlussAuswahlWidget
           }
-    | HinzufügenSeiteWegstrecke { vBox :: Gtk.VBox, nameAuswahl :: NameAuswahlWidget }
+    | HinzufügenSeiteWegstrecke
+          { vBox :: Gtk.VBox
+          , nameAuswahl :: NameAuswahlWidget
+          , buttonHinzufügenWegstrecke
+                :: FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
+          }
     | HinzufügenSeitePlan
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
+          , buttonHinzufügenPlan :: Gtk.Button
           , tvarAktionen :: TVar (Warteschlange Aktion)
           , checkButtonDauerschleife :: Gtk.CheckButton
           }
@@ -112,9 +121,43 @@ instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = Gtk.toWidget . vBox
 
+data ButtonHinzufügen
+    = ButtonHinzufügen Gtk.Button
+    | ButtonHinzufügenZugtypSpezifisch (ZugtypSpezifisch Gtk.Button)
+    | ButtonHinzufügenFortfahrenWennToggledVar (FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid)
+    deriving (Eq)
+
+instance MitWidget ButtonHinzufügen where
+    erhalteWidget :: ButtonHinzufügen -> Gtk.Widget
+    erhalteWidget (ButtonHinzufügen button) = erhalteWidget button
+    erhalteWidget (ButtonHinzufügenZugtypSpezifisch button) = erhalteWidget button
+    erhalteWidget (ButtonHinzufügenFortfahrenWennToggledVar button) = erhalteWidget button
+
+instance MitContainer ButtonHinzufügen where
+    erhalteContainer :: ButtonHinzufügen -> Gtk.Container
+    erhalteContainer (ButtonHinzufügen button) = erhalteContainer button
+    erhalteContainer (ButtonHinzufügenZugtypSpezifisch button) = erhalteContainer button
+    erhalteContainer (ButtonHinzufügenFortfahrenWennToggledVar button) = erhalteContainer button
+
+instance MitButton ButtonHinzufügen where
+    erhalteButton :: ButtonHinzufügen -> Gtk.Button
+    erhalteButton (ButtonHinzufügen button) = button
+    erhalteButton (ButtonHinzufügenZugtypSpezifisch button) = erhalteButton button
+    erhalteButton (ButtonHinzufügenFortfahrenWennToggledVar button) = erhalteButton button
+
+-- | Erhalte den Seiten-spezifischen Hinzufügen-Button (sofern vorhanden).
+spezifischerButtonHinzufügen :: HinzufügenSeite -> Maybe ButtonHinzufügen
+spezifischerButtonHinzufügen HinzufügenSeiteWeiche {buttonHinzufügenWeiche} =
+    Just $ ButtonHinzufügenZugtypSpezifisch buttonHinzufügenWeiche
+spezifischerButtonHinzufügen HinzufügenSeiteWegstrecke {buttonHinzufügenWegstrecke} =
+    Just $ ButtonHinzufügenFortfahrenWennToggledVar buttonHinzufügenWegstrecke
+spezifischerButtonHinzufügen
+    HinzufügenSeitePlan {buttonHinzufügenPlan} = Just $ ButtonHinzufügen buttonHinzufügenPlan
+spezifischerButtonHinzufügen _hinzufügenSeite = Nothing
+
 -- | Erhalte das Ergebnis einer 'HinzufügenSeite'.
 seiteErgebnis :: forall r m.
-              (StatusVarReader r ObjektGui m, MonadIO m)
+              (StatusVarGuiReader r m, MonadIO m)
               => FließendAuswahlWidget
               -> AuswahlWidget Zugtyp
               -> HinzufügenSeite
@@ -312,7 +355,7 @@ hinzufügenStreckenabschnittNew maybeTVar = do
 hinzufügenWeicheNew :: (SpracheGuiReader r m, MonadIO m)
                      => AuswahlWidget Zugtyp
                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                     -> m (HinzufügenSeite, ZugtypSpezifisch Gtk.Button)
+                     -> m HinzufügenSeite
 hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
@@ -344,23 +387,22 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
             maybeTVar
             Language.richtungen
     -- ZugtypSpezifisch
-    buttonHinzufügen <- zugtypSpezifischButtonNew
+    buttonHinzufügenWeiche <- zugtypSpezifischButtonNew
         [(Märklin, erhalteButton märklinFortfahrenWennToggled), (Lego, legoButtonHinzufügen)]
         auswahlZugtyp
     boxPackWidgetNewDefault vBox
         $ zugtypSpezifischNew [(Märklin, märklinVBox), (Lego, legoVBox)] auswahlZugtyp
     pure
-        ( HinzufügenSeiteWeiche
-              { vBox
-              , nameAuswahl
-                -- Märklin
-              , märklinRichtungsAuswahl
-                -- Lego
-              , legoRichtungsAuswahl
-              , legoRichtungenAuswahl
-              }
-        , buttonHinzufügen
-        )
+        HinzufügenSeiteWeiche
+            { vBox
+            , nameAuswahl
+            , buttonHinzufügenWeiche
+              -- Märklin
+            , märklinRichtungsAuswahl
+              -- Lego
+            , legoRichtungsAuswahl
+            , legoRichtungenAuswahl
+            }
 
 hinzufügenKupplungNew :: (SpracheGuiReader r m, MonadIO m)
                        => Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -372,13 +414,10 @@ hinzufügenKupplungNew maybeTVar = do
         <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
-hinzufügenWegstreckeNew
-    :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
-    => AuswahlWidget Zugtyp
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-    -> m ( HinzufügenSeite
-         , FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
-         )
+hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
+                         => AuswahlWidget Zugtyp
+                         -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                         -> m HinzufügenSeite
 hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
@@ -404,12 +443,17 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
             auswahlZugtyp
     notebookAppendPageNew notebook maybeTVar Language.kupplungen
         $ pure vBoxHinzufügenWegstreckeKupplungen
-    pure (HinzufügenSeiteWegstrecke { vBox, nameAuswahl }, fortfahrenWennToggledWegstrecke)
+    pure
+        HinzufügenSeiteWegstrecke
+            { vBox
+            , nameAuswahl
+            , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
+            }
 
 hinzufügenPlanNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                    => AuswahlWidget Zugtyp
                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                   -> m (HinzufügenSeite, Gtk.Button)
+                   -> m HinzufügenSeite
 hinzufügenPlanNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
@@ -442,14 +486,18 @@ hinzufügenPlanNew auswahlZugtyp maybeTVar = do
     -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
     -- evtl. über ComboBox?
     boxPackDefault vBox expanderAktionen
-    (checkButtonDauerschleife, buttonHinzufügen)
+    (checkButtonDauerschleife, buttonHinzufügenPlan)
         <- liftIO $ (,) <$> boxPackWidgetNewDefault vBox Gtk.checkButtonNew <*> Gtk.buttonNew
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
-        Gtk.set buttonHinzufügen [Gtk.buttonLabel := Language.hinzufügen sprache]
+        Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
     pure
-        ( HinzufügenSeitePlan { vBox, nameAuswahl, tvarAktionen, checkButtonDauerschleife }
-        , buttonHinzufügen
-        )
+        HinzufügenSeitePlan
+            { vBox
+            , nameAuswahl
+            , tvarAktionen
+            , checkButtonDauerschleife
+            , buttonHinzufügenPlan
+            }
 #endif
 --
