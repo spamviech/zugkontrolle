@@ -75,7 +75,6 @@ module Zug.UI.Gtk.StreckenObjekt
   , widgetHinzufügenToggled
   , widgetHinzufügenContainerRemoveJust
   , widgetHinzufügenBoxPackNew
-  , widgetHinzufügenContainerGefüllt
   , foldWegstreckeHinzufügen
   , WegstreckenElement(..)
   , entferneHinzufügenWegstreckeWidgets
@@ -256,16 +255,6 @@ widgetHinzufügenBoxPackNew :: (MitBox b, MitWidget w, MonadIO m)
                             -> m (WidgetHinzufügen e w a)
 widgetHinzufügenBoxPackNew b =
     fmap WidgetHinzufügen . boxPackWidgetNewDefault (widgetHinzufügen b)
-
--- | Teste ob ein 'WidgetHinzufügen'-'MitContainer' mindestens ein Element enthält.
-widgetHinzufügenContainerGefüllt
-    :: (MitContainer w, MonadIO m) => WidgetHinzufügen e w a -> m Bool
-widgetHinzufügenContainerGefüllt =
-    liftIO
-    . fmap ((> 1) . length)
-    . Gtk.containerGetChildren
-    . erhalteContainer
-    . widgetHinzufügen
 
 -- | Text mit Typ-Annotation
 newtype KategorieText a = KategorieText { kategorieText :: Sprache -> Text }
