@@ -45,7 +45,8 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackDefault
                                  , notebookAppendPageNew, buttonNewWithEventLabel)
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..))
+import Zug.UI.Gtk.Klassen
+       (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..), MitButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt (StatusVarGui, StatusVarGuiReader, DynamischeWidgetsReader)
 import Zug.UI.StatusVar (StatusVarReader(..))
@@ -137,16 +138,16 @@ assistantHinzufügenNew parent maybeTVar = do
             , tmVarErgebnis
             }
     statusVar <- erhalteStatusVar :: m StatusVarGui
-    buttonHinzufügen <- boxPackWidgetNewDefault functionBox
-        $ buttonNewWithEventLabel maybeTVar Language.hinzufügen
-        $ void
-        $ flip runReaderT statusVar
-        $ hinzufügenErgebnis assistantHinzufügen
-    liftIO $ do
+    buttonHinzufügen <- liftIO $ do
+        buttonHinzufügen <- boxPackWidgetNewDefault functionBox Gtk.buttonNew
         let alleButtonHinzufügen =
                 ButtonHinzufügen buttonHinzufügen
                 : catMaybes (spezifischerButtonHinzufügen <$> Map.elems indexSeiten)
-        forM_ alleButtonHinzufügen $ boxPackDefault functionBox
+        forM_ alleButtonHinzufügen $ \button -> do
+            boxPackDefault functionBox button
+            Gtk.on (erhalteButton button) Gtk.buttonActivated
+                $ flip runReaderT statusVar
+                $ hinzufügenErgebnis assistantHinzufügen
         Gtk.on notebook Gtk.switchPage $ \pageIndex -> do
             mapM_ mitWidgetHide alleButtonHinzufügen
             case Map.lookup pageIndex indexSeiten >>= spezifischerButtonHinzufügen of
@@ -154,8 +155,10 @@ assistantHinzufügenNew parent maybeTVar = do
                 _otherwise -> pure ()
         boxPackDefault functionBox fließendAuswahl
         boxPackDefault functionBox zugtypAuswahl
-    verwendeSpracheGui maybeTVar
-        $ \sprache -> Gtk.set window [Gtk.windowTitle := Language.hinzufügen sprache]
+        pure buttonHinzufügen
+    verwendeSpracheGui maybeTVar $ \sprache -> do
+        Gtk.set window [Gtk.windowTitle := Language.hinzufügen sprache]
+        Gtk.set buttonHinzufügen [Gtk.buttonLabel := Language.hinzufügen sprache]
     pure assistantHinzufügen
 #endif
 --
