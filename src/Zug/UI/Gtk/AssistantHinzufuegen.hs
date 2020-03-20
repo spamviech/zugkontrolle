@@ -43,9 +43,10 @@ import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
       , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenWegstreckeNew, hinzufügenPlanNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault
-                                 , boxPackDefault, notebookAppendPageNew, buttonNewWithEventLabel
-                                 , boxPackWidgetNew, Position(End), packingDefault, paddingDefault)
+import Zug.UI.Gtk.Hilfsfunktionen
+       (widgetShowNew, containerAddWidgetNew, boxPackDefault, notebookAppendPageNew
+      , buttonNewWithEventLabel, boxPackWidgetNew, Position(End), positionDefault, Packing(PackGrow)
+      , packingDefault, paddingDefault)
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..), MitButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
@@ -114,10 +115,11 @@ assistantHinzufügenNew parent maybeTVar = do
             atomically (putTMVar tmVarErgebnis HinzufügenBeenden)
             pure True
         vBox <- containerAddWidgetNew window $ Gtk.vBoxNew False 0
-        notebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
+        notebook <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
         pure (tmVarErgebnis, window, vBox, notebook)
-    zugtypAuswahl <- auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
-    fließendAuswahl <- fließendAuswahlNew maybeTVar
+    zugtypAuswahl
+        <- widgetShowNew $ auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
+    fließendAuswahl <- widgetShowNew $ fließendAuswahlNew maybeTVar
     indexSeiten <- foldM
         (\acc (konstruktor, name) -> do
              (seite, seitenIndex) <- notebookAppendPageNew notebook maybeTVar name konstruktor
@@ -129,7 +131,6 @@ assistantHinzufügenNew parent maybeTVar = do
         , (hinzufügenKupplungNew maybeTVar, Language.kupplung)
         , (hinzufügenWegstreckeNew zugtypAuswahl maybeTVar, Language.wegstrecke)
         , (hinzufügenPlanNew zugtypAuswahl maybeTVar, Language.plan)]
-    functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     let assistantHinzufügen =
             AssistantHinzufügen
             { window
@@ -139,6 +140,8 @@ assistantHinzufügenNew parent maybeTVar = do
             , indexSeiten
             , tmVarErgebnis
             }
+    functionBox
+        <- liftIO $ boxPackWidgetNew vBox packingDefault paddingDefault End $ Gtk.hBoxNew False 0
     statusVar <- erhalteStatusVar :: m StatusVarGui
     buttonHinzufügen <- liftIO $ do
         buttonHinzufügen <- widgetShowNew Gtk.buttonNew

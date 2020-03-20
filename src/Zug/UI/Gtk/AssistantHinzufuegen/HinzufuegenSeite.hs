@@ -58,8 +58,9 @@ import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
       , registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, notebookAppendPageNew
-      , NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
+       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew, Packing(PackGrow)
+      , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
+      , nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
@@ -428,7 +429,8 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
                       , vBoxHinzufügenWegstreckeWeichenLego
                       , vBoxHinzufügenWegstreckeKupplungen
                       , fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
-    notebook <- liftIO $ boxPackWidgetNewDefault vBox Gtk.notebookNew
+    notebook
+        <- liftIO $ boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
     notebookAppendPageNew notebook maybeTVar Language.bahngeschwindigkeiten
         $ zugtypSpezifischNew
             [ (Märklin, erhalteWidget vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin)

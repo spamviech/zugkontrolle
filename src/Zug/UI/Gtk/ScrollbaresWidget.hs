@@ -104,15 +104,15 @@ instance (MitRadioButton w) => MitRadioButton (ScrollbaresWidget w) where
 -- | Erstelle neues 'ScrollbaresWidget'
 scrollbaresWidgetNew :: (MonadIO m, MitWidget w) => m w -> m (ScrollbaresWidget w)
 scrollbaresWidgetNew konstruktor = do
-    widget <- widgetShowNew konstruktor
+    swWidget <- widgetShowNew konstruktor
     liftIO $ do
         swScrolledWindow <- widgetShowNew $ Gtk.scrolledWindowNew Nothing Nothing
         Gtk.set
             swScrolledWindow
-            [Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic,
-             Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
-        Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget widget
-        pure ScrollbaresWidget { swScrolledWindow, swWidget = widget }
+            [ Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic
+            , Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
+        Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget swWidget
+        pure ScrollbaresWidget { swScrolledWindow, swWidget }
 
 -- | Erstelle neues 'ScrollbaresWidget'und füge sie zu 'MitContainer' hinzu
 scrollbaresWidgetAddNew
