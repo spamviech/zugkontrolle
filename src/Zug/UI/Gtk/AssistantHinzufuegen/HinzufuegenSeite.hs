@@ -51,8 +51,7 @@ import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwind
                , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
-import Zug.UI.Gtk.Auswahl
-       (AuswahlWidget, auswahlRadioButtonNew, MitAuswahlWidget(), aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
@@ -349,8 +348,7 @@ hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)
 hinzufügenStreckenabschnittNew maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
-    stromAuswahl
-        <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
+    stromAuswahl <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.strom
     pure HinzufügenSeiteStreckenabschnitt { vBox, nameAuswahl, stromAuswahl }
 
 hinzufügenWeicheNew :: (SpracheGuiReader r m, MonadIO m)
@@ -370,8 +368,9 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
         <- forM richtungenCheckButtons $ \(richtung, registrierterCheckButton) -> do
             hBox <- liftIO $ boxPackWidgetNewDefault märklinVBox $ Gtk.hBoxNew False 0
             boxPackDefault hBox registrierterCheckButton
-            anschlussAuswahlWidget
-                <- boxPackWidgetNewDefault hBox $ anschlussAuswahlNew maybeTVar $ const Text.empty
+            anschlussAuswahlWidget <- boxPackWidgetNew hBox PackGrow paddingDefault positionDefault
+                $ anschlussAuswahlNew maybeTVar
+                $ anzeige richtung
             pure (richtung, registrierterCheckButton, anschlussAuswahlWidget)
     -- Lego
     legoButtonHinzufügen <- liftIO Gtk.buttonNew
@@ -381,7 +380,7 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
     legoRichtungsAuswahl
         <- boxPackWidgetNewDefault legoVBox $ anschlussAuswahlNew maybeTVar Language.richtungen
     legoRichtungenAuswahl <- boxPackWidgetNewDefault legoVBox
-        $ auswahlRadioButtonNew
+        $ auswahlComboBoxNew
             (NonEmpty.fromList
              $ NonEmpty.filter (uncurry (/=))
              $ (,) <$> unterstützteRichtungen <*> unterstützteRichtungen)
@@ -412,7 +411,7 @@ hinzufügenKupplungNew maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
     kupplungsAuswahl
-        <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.geschwindigkeit
+        <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.kupplung
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
 hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
