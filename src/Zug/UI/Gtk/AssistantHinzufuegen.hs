@@ -22,7 +22,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen
 
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
 import Control.Monad (void, forM_, foldM)
 import Control.Monad.Reader (runReaderT)
@@ -42,15 +41,13 @@ import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
        (HinzufügenSeite(), ButtonHinzufügen(ButtonHinzufügen), spezifischerButtonHinzufügen
       , seiteErgebnis, hinzufügenBahngeschwindigkeitNew, hinzufügenStreckenabschnittNew
       , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenWegstreckeNew, hinzufügenPlanNew)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, aktuelleAuswahl)
-import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew, aktuellerFließendValue)
-import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggled, FortfahrenWennToggledVar)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
+import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackDefault
                                  , notebookAppendPageNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
-import Zug.UI.Gtk.StreckenObjekt (ObjektGui, StatusVarGui, StatusVarGuiReader, StatusGui
-                                , WegstreckeCheckButtonVoid, DynamischeWidgetsReader)
+import Zug.UI.Gtk.StreckenObjekt (StatusVarGui, StatusVarGuiReader, DynamischeWidgetsReader)
 import Zug.UI.StatusVar (StatusVarReader(..))
 
 -- | Seiten des Hinzufügen-'Assistant'
