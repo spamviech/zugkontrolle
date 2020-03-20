@@ -485,9 +485,13 @@ hinzufügenPlanNew auswahlZugtyp maybeTVar = do
         $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
     -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
     -- evtl. über ComboBox?
+    -- TODO Rückgängig-Button
     boxPackDefault vBox expanderAktionen
-    (checkButtonDauerschleife, buttonHinzufügenPlan)
-        <- liftIO $ (,) <$> boxPackWidgetNewDefault vBox Gtk.checkButtonNew <*> Gtk.buttonNew
+    (checkButtonDauerschleife, buttonHinzufügenPlan) <- liftIO $ do
+        checkButtonDauerschleife <- boxPackWidgetNewDefault vBox Gtk.checkButtonNew
+        buttonHinzufügenPlan <- Gtk.buttonNew
+        Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+        pure (checkButtonDauerschleife, buttonHinzufügenPlan)
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
         Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
