@@ -192,21 +192,21 @@ setupGUI maybeTVar = void $ do
         $ labelSpracheNew maybeTVar Language.pläne
     -- DynamischeWidgets
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanBahngeschwindigkeitenLego
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenWegstreckeStreckenabschnitte
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanStreckenabschnitte
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenWegstreckeWeichenMärklin
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenWegstreckeWeichenLego
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
+        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanWeichenGeradeMärklin
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanWeichenGeradeLego
@@ -223,8 +223,7 @@ setupGUI maybeTVar = void $ do
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanWeichenRechtsLego
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenWegstreckeKupplungen
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew maybeTVar
+    vBoxHinzufügenWegstreckeKupplungen <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanKupplungen <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar

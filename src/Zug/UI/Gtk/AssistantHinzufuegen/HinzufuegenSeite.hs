@@ -28,13 +28,14 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Concurrent.STM (TVar, atomically, readTVarIO, newTVarIO)
-import Control.Lens ((^.))
+import Control.Lens ((^.), Field2(..))
+import qualified Control.Lens as Lens
 import Control.Monad (forM, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (fromJust, isJust, catMaybes)
+import Data.Maybe (fromJust, isJust, catMaybes, listToMaybe)
 import qualified Data.Text as Text
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
@@ -363,15 +364,35 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
         $ anzeige <$> unterstützteRichtungen
     let richtungenCheckButtons =
             NonEmpty.zip unterstützteRichtungen $ checkButtons märklinFortfahrenWennToggled
-    märklinVBox <- liftIO $ Gtk.vBoxNew False 0
+    märklinGrid <- liftIO Gtk.gridNew
+    let foldFn :: (SpracheGuiReader r m, MonadIO m)
+               => [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)]
+               -> (Richtung, RegistrierterCheckButton)
+               -> m [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)]
+        foldFn acc (richtung, registrierterCheckButton) = do
+            let maybeTop = erhalteWidget . Lens.view _2 <$> listToMaybe acc
+                registrierterCheckButtonWidget = erhalteWidget registrierterCheckButton
+            liftIO
+                $ Gtk.gridAttachNextTo
+                    märklinGrid
+                    registrierterCheckButtonWidget
+                    maybeTop
+                    Gtk.PosBottom
+                    1
+                    1
+            anschlussAuswahlWidget
+                <- widgetShowNew $ anschlussAuswahlNew maybeTVar $ anzeige richtung
+            liftIO
+                $ Gtk.gridAttachNextTo
+                    märklinGrid
+                    (erhalteWidget anschlussAuswahlWidget)
+                    (Just registrierterCheckButtonWidget)
+                    Gtk.PosRight
+                    1
+                    1
+            pure $ (richtung, registrierterCheckButton, anschlussAuswahlWidget) : acc
     märklinRichtungsAuswahl
-        <- forM richtungenCheckButtons $ \(richtung, registrierterCheckButton) -> do
-            hBox <- liftIO $ boxPackWidgetNewDefault märklinVBox $ Gtk.hBoxNew False 0
-            boxPackDefault hBox registrierterCheckButton
-            anschlussAuswahlWidget <- boxPackWidgetNew hBox PackGrow paddingDefault positionDefault
-                $ anschlussAuswahlNew maybeTVar
-                $ anzeige richtung
-            pure (richtung, registrierterCheckButton, anschlussAuswahlWidget)
+        <- NonEmpty.fromList . reverse <$> foldM foldFn [] richtungenCheckButtons
     -- Lego
     legoButtonHinzufügen <- liftIO Gtk.buttonNew
     legoVBox <- liftIO $ Gtk.vBoxNew False 0
@@ -391,7 +412,9 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
         [(Märklin, erhalteButton märklinFortfahrenWennToggled), (Lego, legoButtonHinzufügen)]
         auswahlZugtyp
     boxPackWidgetNewDefault vBox
-        $ zugtypSpezifischNew [(Märklin, märklinVBox), (Lego, legoVBox)] auswahlZugtyp
+        $ zugtypSpezifischNew
+            [(Märklin, erhalteWidget märklinGrid), (Lego, erhalteWidget legoVBox)]
+            auswahlZugtyp
     pure
         HinzufügenSeiteWeiche
             { vBox
