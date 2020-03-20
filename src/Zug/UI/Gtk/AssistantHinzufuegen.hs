@@ -43,9 +43,9 @@ import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
       , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenWegstreckeNew, hinzufügenPlanNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
-import Zug.UI.Gtk.Hilfsfunktionen
-       (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackDefault, notebookAppendPageNew
-      , buttonNewWithEventLabel, boxPackWidgetNew, Position(End), packingDefault, paddingDefault)
+import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault
+                                 , boxPackDefault, notebookAppendPageNew, buttonNewWithEventLabel
+                                 , boxPackWidgetNew, Position(End), packingDefault, paddingDefault)
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..), MitButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
@@ -141,7 +141,7 @@ assistantHinzufügenNew parent maybeTVar = do
             }
     statusVar <- erhalteStatusVar :: m StatusVarGui
     buttonHinzufügen <- liftIO $ do
-        buttonHinzufügen <- boxPackWidgetNewDefault functionBox Gtk.buttonNew
+        buttonHinzufügen <- widgetShowNew Gtk.buttonNew
         let alleButtonHinzufügen =
                 ButtonHinzufügen buttonHinzufügen
                 : catMaybes (spezifischerButtonHinzufügen <$> Map.elems indexSeiten)
