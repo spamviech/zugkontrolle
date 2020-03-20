@@ -116,7 +116,9 @@ setupGUI maybeTVar = void $ do
         windowMain
         [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sprache]
     -- Drücken des X-Knopfes beendet das gesamte Program
-    Gtk.on windowMain Gtk.deleteEvent $ liftIO $ Gtk.mainQuit >> pure False
+    Gtk.on windowMain Gtk.deleteEvent $ liftIO $ do
+        Gtk.mainQuit
+        pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
     tvarMaps <- tvarMapsNeu
     statusVar <- statusVarNew $ statusLeer spracheGui
@@ -251,42 +253,42 @@ setupGUI maybeTVar = void $ do
     tmvarPlanObjekt <- newEmptyTMVarIO
     let dynamischeWidgets =
             DynamischeWidgets
-            { vBoxBahngeschwindigkeiten,
-              vBoxStreckenabschnitte,
-              vBoxWeichen,
-              vBoxKupplungen,
-              vBoxWegstrecken,
-              vBoxPläne,
-              vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin,
-              vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego,
-              vBoxHinzufügenPlanBahngeschwindigkeitenMärklin,
-              vBoxHinzufügenPlanBahngeschwindigkeitenLego,
-              vBoxHinzufügenWegstreckeStreckenabschnitte,
-              vBoxHinzufügenPlanStreckenabschnitte,
-              vBoxHinzufügenWegstreckeWeichenMärklin,
-              vBoxHinzufügenWegstreckeWeichenLego,
-              vBoxHinzufügenPlanWeichenGeradeMärklin,
-              vBoxHinzufügenPlanWeichenGeradeLego,
-              vBoxHinzufügenPlanWeichenKurveMärklin,
-              vBoxHinzufügenPlanWeichenKurveLego,
-              vBoxHinzufügenPlanWeichenLinksMärklin,
-              vBoxHinzufügenPlanWeichenLinksLego,
-              vBoxHinzufügenPlanWeichenRechtsMärklin,
-              vBoxHinzufügenPlanWeichenRechtsLego,
-              vBoxHinzufügenWegstreckeKupplungen,
-              vBoxHinzufügenPlanKupplungen,
-              vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin,
-              vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego,
-              vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin,
-              vBoxHinzufügenPlanWegstreckenStreckenabschnittLego,
-              vBoxHinzufügenPlanWegstreckenKupplungMärklin,
-              vBoxHinzufügenPlanWegstreckenKupplungLego,
-              vBoxHinzufügenPlanWegstreckenMärklin,
-              vBoxHinzufügenPlanWegstreckenLego,
-              vBoxHinzufügenPlanPläne,
-              windowMain,
-              fortfahrenWennToggledWegstrecke,
-              tmvarPlanObjekt
+            { vBoxBahngeschwindigkeiten
+            , vBoxStreckenabschnitte
+            , vBoxWeichen
+            , vBoxKupplungen
+            , vBoxWegstrecken
+            , vBoxPläne
+            , vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+            , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+            , vBoxHinzufügenPlanBahngeschwindigkeitenLego
+            , vBoxHinzufügenWegstreckeStreckenabschnitte
+            , vBoxHinzufügenPlanStreckenabschnitte
+            , vBoxHinzufügenWegstreckeWeichenMärklin
+            , vBoxHinzufügenWegstreckeWeichenLego
+            , vBoxHinzufügenPlanWeichenGeradeMärklin
+            , vBoxHinzufügenPlanWeichenGeradeLego
+            , vBoxHinzufügenPlanWeichenKurveMärklin
+            , vBoxHinzufügenPlanWeichenKurveLego
+            , vBoxHinzufügenPlanWeichenLinksMärklin
+            , vBoxHinzufügenPlanWeichenLinksLego
+            , vBoxHinzufügenPlanWeichenRechtsMärklin
+            , vBoxHinzufügenPlanWeichenRechtsLego
+            , vBoxHinzufügenWegstreckeKupplungen
+            , vBoxHinzufügenPlanKupplungen
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+            , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+            , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+            , vBoxHinzufügenPlanWegstreckenKupplungMärklin
+            , vBoxHinzufügenPlanWegstreckenKupplungLego
+            , vBoxHinzufügenPlanWegstreckenMärklin
+            , vBoxHinzufügenPlanWegstreckenLego
+            , vBoxHinzufügenPlanPläne
+            , windowMain
+            , fortfahrenWennToggledWegstrecke
+            , tmvarPlanObjekt
             }
     let objektReader = (tvarMaps, dynamischeWidgets, statusVar)
     -- Knopf-Leiste mit globalen Funktionen

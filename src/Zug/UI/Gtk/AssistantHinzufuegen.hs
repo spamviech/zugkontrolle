@@ -23,7 +23,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
-import Control.Monad (void, forM_, foldM)
+import Control.Monad (forM_, foldM)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Map.Lazy (Map)
@@ -43,8 +43,9 @@ import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
       , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenWegstreckeNew, hinzufügenPlanNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
-import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackDefault
-                                 , notebookAppendPageNew, buttonNewWithEventLabel)
+import Zug.UI.Gtk.Hilfsfunktionen
+       (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackDefault, notebookAppendPageNew
+      , buttonNewWithEventLabel, boxPackWidgetNew, Position(End), packingDefault, paddingDefault)
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..), MitButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
@@ -105,12 +106,16 @@ assistantHinzufügenNew
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> m AssistantHinzufügen
 assistantHinzufügenNew parent maybeTVar = do
-    (window, vBox, notebook) <- liftIO $ do
+    (tmVarErgebnis, window, vBox, notebook) <- liftIO $ do
+        tmVarErgebnis <- atomically newEmptyTMVar
         window <- Gtk.windowNew
         Gtk.set window [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
+        Gtk.on window Gtk.deleteEvent $ liftIO $ do
+            atomically (putTMVar tmVarErgebnis HinzufügenBeenden)
+            pure True
         vBox <- containerAddWidgetNew window $ Gtk.vBoxNew False 0
         notebook <- boxPackWidgetNewDefault vBox Gtk.notebookNew
-        pure (window, vBox, notebook)
+        pure (tmVarErgebnis, window, vBox, notebook)
     zugtypAuswahl <- auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
     fließendAuswahl <- fließendAuswahlNew maybeTVar
     indexSeiten <- foldM
@@ -124,10 +129,7 @@ assistantHinzufügenNew parent maybeTVar = do
         , (hinzufügenKupplungNew maybeTVar, Language.kupplung)
         , (hinzufügenWegstreckeNew zugtypAuswahl maybeTVar, Language.wegstrecke)
         , (hinzufügenPlanNew zugtypAuswahl maybeTVar, Language.plan)]
-    (functionBox, tmVarErgebnis) <- liftIO $ do
-        functionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-        tmVarErgebnis <- atomically newEmptyTMVar
-        pure (functionBox, tmVarErgebnis)
+    functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     let assistantHinzufügen =
             AssistantHinzufügen
             { window
@@ -152,10 +154,14 @@ assistantHinzufügenNew parent maybeTVar = do
             mapM_ mitWidgetHide alleButtonHinzufügen
             case Map.lookup pageIndex indexSeiten >>= spezifischerButtonHinzufügen of
                 (Just button) -> mitWidgetShow button
-                _otherwise -> pure ()
+                _otherwise -> mitWidgetShow buttonHinzufügen
         boxPackDefault functionBox fließendAuswahl
         boxPackDefault functionBox zugtypAuswahl
         pure buttonHinzufügen
+    boxPackWidgetNew functionBox packingDefault paddingDefault End
+        $ buttonNewWithEventLabel maybeTVar Language.abbrechen
+        $ atomically
+        $ putTMVar tmVarErgebnis HinzufügenAbbrechen
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set window [Gtk.windowTitle := Language.hinzufügen sprache]
         Gtk.set buttonHinzufügen [Gtk.buttonLabel := Language.hinzufügen sprache]

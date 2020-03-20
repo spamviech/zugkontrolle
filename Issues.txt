@@ -1,3 +1,5 @@
+(Zugkontrolle.EXE:12684): Gtk-CRITICAL **: 12:24:34.096: gtk_box_pack: assertion '_gtk_widget_get_parent (child) == NULL' failed
+
 Laden von Plänen funktioniert nicht
 
 Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
