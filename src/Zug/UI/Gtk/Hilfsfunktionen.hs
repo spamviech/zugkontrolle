@@ -287,7 +287,7 @@ nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b)
 nameAuswahlPackNew box maybeTVar = do
     hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar $ Language.name <:> Text.empty
-    entry <- liftIO $ boxPackWidgetNewDefault hBox Gtk.entryNew
+    entry <- liftIO $ boxPackWidgetNew hBox PackGrow paddingDefault positionDefault Gtk.entryNew
     verwendeSpracheGui maybeTVar $ \sprache
         -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
     pure $ NameAuswahlWidget entry

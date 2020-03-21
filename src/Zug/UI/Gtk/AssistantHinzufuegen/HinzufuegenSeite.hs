@@ -31,7 +31,7 @@ import Control.Concurrent.STM
        (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar, takeTMVar)
 import Control.Lens ((^.), Field2(..))
 import qualified Control.Lens as Lens
-import Control.Monad (forM, foldM)
+import Control.Monad (forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty())
@@ -520,7 +520,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 expanderAktionen
                 [ Gtk.expanderLabel
                       := leseSprache (Language.aktionen <:> length aktionen) spracheGui]
-    (windowObjektAuswahl, sBG, sST, sGerade, sKurve, sLinks, sRechts, sKU, sWS, sPL) <- liftIO $ do
+    windowObjektAuswahl <- liftIO $ do
         windowObjektAuswahl <- Gtk.windowNew
         Gtk.set
             windowObjektAuswahl
@@ -619,38 +619,39 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             showWS = hideExcept [erhalteWidget ztWegstreckenWS]
             showPL :: IO ()
             showPL = hideExcept [erhalteWidget vBoxHinzufügenPlanPläne]
-        pure
-            ( windowObjektAuswahl
-            , showBG
-            , showST
-            , showGerade
-            , showKurve
-            , showLinks
-            , showRechts
-            , showKU
-            , showWS
-            , showPL
-            )
-    -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
-    -- evtl. über ComboBox?
-    -- TODO Rückgängig-Button
+        -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
+        -- evtl. über ComboBox?
+        pure windowObjektAuswahl
     boxPackDefault vBox expanderAktionen
-    buttonHinzufügenPlan <- liftIO $ do
+    (buttonHinzufügenPlan, resetBox) <- liftIO $ do
         buttonHinzufügenPlan <- Gtk.buttonNew
         Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
-        pure buttonHinzufügenPlan
-    boxPackWidgetNewDefault vBox $ buttonNewWithEventLabel maybeTVar Language.rückgängig $ do
-        aktuelleAktionen <- readTVarIO tvarAktionen
-        neueAktionen <- case zeigeLetztes aktuelleAktionen of
-            Leer -> do
-                Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
-                pure leer
-            Gefüllt (_aktion, widget) t -> do
+        resetBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+        pure (buttonHinzufügenPlan, resetBox)
+    boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
+        $ buttonNewWithEventLabel maybeTVar Language.rückgängig
+        $ do
+            aktuelleAktionen <- readTVarIO tvarAktionen
+            neueAktionen <- case zeigeLetztes aktuelleAktionen of
+                Leer -> do
+                    Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+                    pure leer
+                Gefüllt (_aktion, widget) t -> do
+                    Gtk.containerRemove vBoxAktionen widget
+                    Gtk.widgetDestroy widget
+                    pure t
+            atomically $ writeTVar tvarAktionen neueAktionen
+            aktualisiereExpanderText neueAktionen
+    boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
+        $ buttonNewWithEventLabel maybeTVar Language.zurücksetzen
+        $ do
+            aktuelleAktionen <- readTVarIO tvarAktionen
+            forM_ (snd <$> aktuelleAktionen) $ \widget -> do
                 Gtk.containerRemove vBoxAktionen widget
                 Gtk.widgetDestroy widget
-                pure t
-        atomically $ writeTVar tvarAktionen neueAktionen
-        aktualisiereExpanderText neueAktionen
+            Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+            atomically $ writeTVar tvarAktionen leer
+            aktualisiereExpanderText leer
     checkButtonDauerschleife <- liftIO $ boxPackWidgetNewDefault vBox Gtk.checkButtonNew
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]

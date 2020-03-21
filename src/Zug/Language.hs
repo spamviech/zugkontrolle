@@ -22,6 +22,7 @@ module Zug.Language
   , beenden
   , abbrechen
   , rückgängig
+  , zurücksetzen
   , weiter
   , zurück
   , hinzufügen
@@ -204,6 +205,11 @@ abbrechen Englisch = "Cancel"
 rückgängig :: Sprache -> Text
 rückgängig Deutsch = "Rückgängig"
 rückgängig Englisch = "Undo"
+
+-- | Reset
+zurücksetzen :: Sprache -> Text
+zurücksetzen Deutsch = "Zurücksetzen"
+zurücksetzen Englisch = "Reset"
 
 -- | Language
 sprache :: Sprache -> Text
