@@ -73,7 +73,7 @@ Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip
 TODO!!!!
 	https://docs.haskellstack.org/en/stable/install_and_upgrade/
     `curl -sSL https://get.haskellstack.org/ | sh`
-(Probleme mit neuester Stack-Version, daher Version 1.9.3 im Repository enthalten)
+(Probleme mit neuester Stack-Version, daher Version 1.9.3 in [Zugkontrolle-Resourcen](https://github.com/spamviech/ZugkontrolleResourcen) enthalten)
 (LLVM-3.9 nicht vergessen)
 sudo apt-get install libtinfo-dev llvm-3.9-de
 (LLVM-3.9 Ordner zu PATH hinzufügen? Siehe https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
