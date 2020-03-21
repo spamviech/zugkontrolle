@@ -29,7 +29,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 -- Bibliotheken
 import Control.Concurrent.STM
        (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar, takeTMVar)
-import Control.Lens ((^.), Field2(..))
+import Control.Lens ((^.), Field1(_1), Field2(_2))
 import qualified Control.Lens as Lens
 import Control.Monad (forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
@@ -59,8 +59,9 @@ import Zug.UI.Gtk.FortfahrenWennToggled
       , registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
-      , containerAddWidgetNew, buttonNewWithEventLabel, Packing(PackGrow), paddingDefault
-      , positionDefault, notebookAppendPageNew, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
+      , containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
+      , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
+      , nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..), MitContainer(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
@@ -114,7 +115,8 @@ data HinzufügenSeite
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
           , buttonHinzufügenPlan :: Gtk.Button
-          , tvarAktionen :: TVar (Warteschlange (Aktion, Gtk.Label))
+          , tvarAktionen
+                :: TVar (Warteschlange (Aktion, Gtk.Label, TVar (Maybe [Sprache -> IO ()])))
           , checkButtonDauerschleife :: Gtk.CheckButton
           }
     deriving (Eq)
@@ -318,10 +320,10 @@ seiteErgebnis
                         { plName
                         , plAktionen = toList
                               $ anhängen (AktionAusführen plan)
-                              $ fst <$> aktionenWarteschlange
+                              $ Lens.view _1 <$> aktionenWarteschlange
                         }
                 in plan
-        False -> Plan { plName, plAktionen = toList $ fst <$> aktionenWarteschlange }
+        False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
 
 hinzufügenBahngeschwindigkeitNew
     :: (SpracheGuiReader r m, MonadIO m)
@@ -514,13 +516,26 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
         vBoxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
         pure (tvarAktionen, expanderAktionen, vBoxAktionen)
-    let aktualisiereExpanderText :: Warteschlange (Aktion, Gtk.Label) -> IO ()
+    let aktualisiereExpanderText :: Warteschlange a -> IO ()
         aktualisiereExpanderText aktionen = do
             Gtk.set
                 expanderAktionen
                 [ Gtk.expanderLabel
                       := leseSprache (Language.aktionen <:> length aktionen) spracheGui]
-    windowObjektAuswahl <- liftIO $ do
+        aktionHinzufügen :: (SpracheGuiReader r m, MonadIO m) => Aktion -> m ()
+        aktionHinzufügen aktion = do
+            (aktuelleAktionen, tvarSprache) <- liftIO $ do
+                aktuelleAktionen <- readTVarIO tvarAktionen
+                tvarSprache <- newTVarIO $ Just []
+                pure (aktuelleAktionen, tvarSprache)
+            label <- boxPackWidgetNewDefault vBoxAktionen
+                $ labelSpracheNew (Just tvarSprache)
+                $ anzeige aktion
+            liftIO
+                $ atomically
+                $ writeTVar tvarAktionen
+                $ anhängen (aktion, label, tvarSprache) aktuelleAktionen
+    liftIO $ do
         windowObjektAuswahl <- Gtk.windowNew
         Gtk.set
             windowObjektAuswahl
@@ -621,7 +636,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             showPL = hideExcept [erhalteWidget vBoxHinzufügenPlanPläne]
         -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
         -- evtl. über ComboBox?
-        pure windowObjektAuswahl
+        pure ()
     boxPackDefault vBox expanderAktionen
     (buttonHinzufügenPlan, resetBox) <- liftIO $ do
         buttonHinzufügenPlan <- Gtk.buttonNew
@@ -636,9 +651,10 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 Leer -> do
                     Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
                     pure leer
-                Gefüllt (_aktion, widget) t -> do
+                Gefüllt (_aktion, widget, tvarSprache) t -> do
                     Gtk.containerRemove vBoxAktionen widget
                     Gtk.widgetDestroy widget
+                    atomically $ writeTVar tvarSprache Nothing
                     pure t
             atomically $ writeTVar tvarAktionen neueAktionen
             aktualisiereExpanderText neueAktionen
@@ -646,9 +662,10 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         $ buttonNewWithEventLabel maybeTVar Language.zurücksetzen
         $ do
             aktuelleAktionen <- readTVarIO tvarAktionen
-            forM_ (snd <$> aktuelleAktionen) $ \widget -> do
+            forM_ aktuelleAktionen $ \(_aktion, widget, tvarAktionen) -> do
                 Gtk.containerRemove vBoxAktionen widget
                 Gtk.widgetDestroy widget
+                atomically $ writeTVar tvarAktionen Nothing
             Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
             atomically $ writeTVar tvarAktionen leer
             aktualisiereExpanderText leer
