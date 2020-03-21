@@ -47,7 +47,7 @@ import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(
 -- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
-import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>), (<#>))
+import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
@@ -150,7 +150,7 @@ instance Eq Aktion where
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
-    anzeige (Warten time) = Language.warten <:> time <#> Language.wartenEinheit
+    anzeige (Warten time) = Language.warten <:> time
     anzeige (AWegstreckeMärklin aktion) = Language.wegstrecke <~> aktion
     anzeige (AWegstreckeLego aktion) = Language.wegstrecke <~> aktion
     anzeige (AWeiche aktion) = Language.weiche <~> aktion
@@ -240,7 +240,7 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
--- | Aktionen einer Bahngeschwindigkeit
+  -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
     Geschwindigkeit :: bg z -> Natural -> AktionBahngeschwindigkeit bg z
     Umdrehen :: bg 'Märklin -> AktionBahngeschwindigkeit bg 'Märklin
@@ -258,11 +258,11 @@ instance (StreckenObjekt (bg z)) => Anzeige (AktionBahngeschwindigkeit bg z) whe
     anzeige (FahrtrichtungEinstellen bg fahrtrichtung) =
         erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
 
-instance (BahngeschwindigkeitKlasse bg,
-          Show (bg z),
-          StreckenObjekt (bg 'Märklin),
-          StreckenObjekt (bg 'Lego),
-          StreckenObjekt (bg z)
+instance ( BahngeschwindigkeitKlasse bg
+         , Show (bg z)
+         , StreckenObjekt (bg 'Märklin)
+         , StreckenObjekt (bg 'Lego)
+         , StreckenObjekt (bg z)
          ) => StreckenObjekt (AktionBahngeschwindigkeit bg z) where
     anschlüsse :: AktionBahngeschwindigkeit bg z -> [Anschluss]
     anschlüsse (Geschwindigkeit bg _wert) = anschlüsse bg

@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Description: Stellt eine Funktion zur Verfügung einen Thread für eine bestimmte Zeit zu pausieren.
@@ -19,10 +20,11 @@ import Control.Concurrent (threadDelay)
 import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Semigroup (Semigroup(..))
+import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Language (Anzeige(..))
+import Zug.Language (Anzeige(..), Sprache(), (<#>))
 
 -- | Warte mindestens das Argument in µs.
 --
@@ -49,7 +51,15 @@ data Wartezeit
     | Tage Natural
     deriving (Read, Show)
 
-instance Anzeige Wartezeit
+instance Anzeige Wartezeit where
+    anzeige :: Wartezeit -> Sprache -> Text
+    anzeige (NanoSekunden n) = n <#> ("ns" :: Text)
+    anzeige (MikroSekunden n) = n <#> ("µs" :: Text)
+    anzeige (MilliSekunden n) = n <#> ("ms" :: Text)
+    anzeige (Sekunden n) = n <#> ("s" :: Text)
+    anzeige (Minuten n) = n <#> ("min" :: Text)
+    anzeige (Stunden n) = n <#> ("h" :: Text)
+    anzeige (Tage n) = n <#> ("d" :: Text)
 
 instance Ord Wartezeit where
     compare :: Wartezeit -> Wartezeit -> Ordering

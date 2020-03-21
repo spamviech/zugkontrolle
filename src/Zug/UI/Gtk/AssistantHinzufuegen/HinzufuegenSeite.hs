@@ -31,18 +31,20 @@ import Control.Concurrent.STM
        (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar, takeTMVar)
 import Control.Lens ((^.), Field1(_1), Field2(_2))
 import qualified Control.Lens as Lens
-import Control.Monad (forM, forM_, foldM)
+import Control.Monad (void, forM, forM_, foldM)
+import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust, isJust, catMaybes, listToMaybe)
+import qualified Data.Text as Text
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
 -- Abhängigkeit von anderen Modulen
-import Zug.Anbindung
-       (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
+import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
+                    , Wegstrecke(..), Wartezeit(..))
 import Zug.Enums
        (Richtung(), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..))
 import qualified Zug.Language as Language
@@ -52,7 +54,8 @@ import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwind
                , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, MitAuswahlWidget(), aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlComboBoxNamedNew
+                         , MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
@@ -510,18 +513,29 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         , vBoxHinzufügenPlanPläne
         , tmvarPlanObjekt} <- erhalteDynamischeWidgets
     spracheGui <- erhalteSpracheGui
-    (tvarAktionen, expanderAktionen, vBoxAktionen) <- liftIO $ do
-        tvarAktionen <- newTVarIO leer
-        expanderAktionen <- widgetShowNew
-            $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
-        vBoxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
-        pure (tvarAktionen, expanderAktionen, vBoxAktionen)
-    let aktualisiereExpanderText :: Warteschlange a -> IO ()
+    (tvarAktionen, expanderAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit, sbWartezeit)
+        <- liftIO $ do
+            tvarAktionen <- newTVarIO leer
+            expanderAktionen <- widgetShowNew
+                $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
+            vBoxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
+            tvarExpander <- newTVarIO $ Just []
+            hBoxWartezeit <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+            spinButtonWartezeit <- widgetShowNew $ Gtk.spinButtonNewWithRange 1 999 1
+            pure
+                ( tvarAktionen
+                , expanderAktionen
+                , vBoxAktionen
+                , tvarExpander
+                , hBoxWartezeit
+                , spinButtonWartezeit
+                )
+    let aktualisiereExpanderText :: (SpracheGuiReader r m, MonadIO m) => Warteschlange a -> m ()
         aktualisiereExpanderText aktionen = do
-            Gtk.set
+            liftIO $ atomically $ writeTVar tvarExpander $ Just []
+            verwendeSpracheGui (Just tvarExpander) $ \sprache -> Gtk.set
                 expanderAktionen
-                [ Gtk.expanderLabel
-                      := leseSprache (Language.aktionen <:> length aktionen) spracheGui]
+                [Gtk.expanderLabel := (Language.aktionen <:> length aktionen) sprache]
         aktionHinzufügen :: (SpracheGuiReader r m, MonadIO m) => Aktion -> m ()
         aktionHinzufügen aktion = do
             (aktuelleAktionen, tvarSprache) <- liftIO $ do
@@ -531,10 +545,25 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             label <- boxPackWidgetNewDefault vBoxAktionen
                 $ labelSpracheNew (Just tvarSprache)
                 $ anzeige aktion
-            liftIO
-                $ atomically
-                $ writeTVar tvarAktionen
-                $ anhängen (aktion, label, tvarSprache) aktuelleAktionen
+            let neueAktionen = anhängen (aktion, label, tvarSprache) aktuelleAktionen
+            liftIO $ atomically $ writeTVar tvarAktionen neueAktionen
+            aktualisiereExpanderText neueAktionen
+    comboBoxWartezeit <- widgetShowNew
+        $ auswahlComboBoxNamedNew ["µs", "ms", "s", "min", "h", "d"] maybeTVar (const Text.empty)
+        $ const . Text.pack
+    boxPackWidgetNewDefault hBoxWartezeit $ buttonNewWithEventLabel maybeTVar Language.warten $ do
+        wert <- floor <$> Gtk.get sbWartezeit Gtk.spinButtonValue
+        void $ flip runReaderT spracheGui $ aktuelleAuswahl comboBoxWartezeit >>= \case
+            "µs" -> aktionHinzufügen $ Warten $ MikroSekunden wert
+            "ms" -> aktionHinzufügen $ Warten $ MilliSekunden wert
+            "s" -> aktionHinzufügen $ Warten $ Sekunden wert
+            "min" -> aktionHinzufügen $ Warten $ Minuten wert
+            "h" -> aktionHinzufügen $ Warten $ Stunden wert
+            "d" -> aktionHinzufügen $ Warten $ Tage wert
+            zeiteinheit
+                -> error $ "Unbekannte Zeiteinheit für Wartezeit gewählt: " ++ zeiteinheit
+    boxPackDefault hBoxWartezeit sbWartezeit
+    boxPackDefault hBoxWartezeit comboBoxWartezeit
     liftIO $ do
         windowObjektAuswahl <- Gtk.windowNew
         Gtk.set
@@ -657,7 +686,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                     atomically $ writeTVar tvarSprache Nothing
                     pure t
             atomically $ writeTVar tvarAktionen neueAktionen
-            aktualisiereExpanderText neueAktionen
+            flip runReaderT spracheGui $ aktualisiereExpanderText neueAktionen
     boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
         $ buttonNewWithEventLabel maybeTVar Language.zurücksetzen
         $ do
@@ -668,7 +697,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 atomically $ writeTVar tvarAktionen Nothing
             Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
             atomically $ writeTVar tvarAktionen leer
-            aktualisiereExpanderText leer
+            flip runReaderT spracheGui $ aktualisiereExpanderText leer
     checkButtonDauerschleife <- liftIO $ boxPackWidgetNewDefault vBox Gtk.checkButtonNew
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
