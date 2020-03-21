@@ -27,16 +27,16 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
-import Control.Concurrent.STM (TVar, atomically, readTVarIO, newTVarIO, writeTVar)
+import Control.Concurrent.STM
+       (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar, takeTMVar)
 import Control.Lens ((^.), Field2(..))
 import qualified Control.Lens as Lens
-import Control.Monad (forM, forM_, foldM)
+import Control.Monad (forM, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust, isJust, catMaybes, listToMaybe)
-import qualified Data.Text as Text
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
@@ -58,10 +58,11 @@ import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
       , registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
+       (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
       , containerAddWidgetNew, buttonNewWithEventLabel, Packing(PackGrow), paddingDefault
       , positionDefault, notebookAppendPageNew, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..))
+import Zug.UI.Gtk.Klassen
+       (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..), MitContainer(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
        (StatusGui, StatusVarGui, StatusVarGuiReader, WegstreckenElement(..), WegstreckeCheckButton()
@@ -475,11 +476,12 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
             , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
             }
 
-hinzufügenPlanNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
-                   => AuswahlWidget Zugtyp
+hinzufügenPlanNew :: (MitWindow p, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
+                   => p
+                   -> AuswahlWidget Zugtyp
                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
                    -> m HinzufügenSeite
-hinzufügenPlanNew auswahlZugtyp maybeTVar = do
+hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
     DynamischeWidgets
@@ -503,7 +505,8 @@ hinzufügenPlanNew auswahlZugtyp maybeTVar = do
         , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
         , vBoxHinzufügenPlanWegstreckenKupplungLego
         , vBoxHinzufügenPlanWegstreckenLego
-        , vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
+        , vBoxHinzufügenPlanPläne
+        , tmvarPlanObjekt} <- erhalteDynamischeWidgets
     spracheGui <- erhalteSpracheGui
     (tvarAktionen, expanderAktionen, vBoxAktionen) <- liftIO $ do
         tvarAktionen <- newTVarIO leer
@@ -517,6 +520,117 @@ hinzufügenPlanNew auswahlZugtyp maybeTVar = do
                 expanderAktionen
                 [ Gtk.expanderLabel
                       := leseSprache (Language.aktionen <:> length aktionen) spracheGui]
+    (windowObjektAuswahl, sBG, sST, sGerade, sKurve, sLinks, sRechts, sKU, sWS, sPL) <- liftIO $ do
+        windowObjektAuswahl <- Gtk.windowNew
+        Gtk.set
+            windowObjektAuswahl
+            [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
+        Gtk.on windowObjektAuswahl Gtk.deleteEvent $ liftIO $ do
+            atomically $ putTMVar tmvarPlanObjekt Nothing
+            pure True
+        vBox <- containerAddWidgetNew windowObjektAuswahl $ Gtk.vBoxNew False 0
+        ztBahngeschwindigkeiten <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenLego)]
+                auswahlZugtyp
+        boxPackDefault vBox vBoxHinzufügenPlanStreckenabschnitte
+        ztWeichenGerade <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenGeradeMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenGeradeLego)]
+                auswahlZugtyp
+        ztWeichenKurve <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenKurveMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenKurveLego)]
+                auswahlZugtyp
+        ztWeichenLinks <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenLinksMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenLinksLego)]
+                auswahlZugtyp
+        ztWeichenRechts <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenRechtsMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenRechtsLego)]
+                auswahlZugtyp
+        boxPackDefault vBox vBoxHinzufügenPlanKupplungen
+        ztWegstreckenBG <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ ( Märklin
+                  , erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                  )
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego)]
+                auswahlZugtyp
+        ztWegstreckenST <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittLego)]
+                auswahlZugtyp
+        ztWegstreckenKU <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungLego)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungMärklin)]
+                auswahlZugtyp
+        ztWegstreckenWS <- boxPackWidgetNewDefault vBox
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenMärklin)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenLego)]
+                auswahlZugtyp
+        boxPackDefault vBox vBoxHinzufügenPlanPläne
+        let hideExcept :: [Gtk.Widget] -> IO ()
+            hideExcept shownWidgets =
+                mapM_
+                    (\widget -> widgetShowIf (erhalteWidget widget `elem` shownWidgets) widget)
+                    ([ erhalteWidget ztBahngeschwindigkeiten
+                     , erhalteWidget vBoxHinzufügenPlanStreckenabschnitte
+                     , erhalteWidget ztWeichenGerade
+                     , erhalteWidget ztWeichenKurve
+                     , erhalteWidget ztWeichenLinks
+                     , erhalteWidget ztWeichenRechts
+                     , erhalteWidget vBoxHinzufügenPlanKupplungen
+                     , erhalteWidget ztWegstreckenBG
+                     , erhalteWidget ztWegstreckenST
+                     , erhalteWidget ztWegstreckenKU
+                     , erhalteWidget ztWegstreckenWS
+                     , erhalteWidget vBoxHinzufügenPlanPläne] :: [Gtk.Widget])
+            showBG :: IO ()
+            showBG =
+                hideExcept [erhalteWidget ztBahngeschwindigkeiten, erhalteWidget ztWegstreckenBG]
+            showST :: IO ()
+            showST =
+                hideExcept
+                    [ erhalteWidget vBoxHinzufügenPlanStreckenabschnitte
+                    , erhalteWidget ztWegstreckenST]
+            showGerade :: IO ()
+            showGerade = hideExcept [erhalteWidget ztWeichenGerade]
+            showKurve :: IO ()
+            showKurve = hideExcept [erhalteWidget ztWeichenKurve]
+            showLinks :: IO ()
+            showLinks = hideExcept [erhalteWidget ztWeichenLinks]
+            showRechts :: IO ()
+            showRechts = hideExcept [erhalteWidget ztWeichenRechts]
+            showKU :: IO ()
+            showKU =
+                hideExcept
+                    [erhalteWidget vBoxHinzufügenPlanKupplungen, erhalteWidget ztWegstreckenKU]
+            showWS :: IO ()
+            showWS = hideExcept [erhalteWidget ztWegstreckenWS]
+            showPL :: IO ()
+            showPL = hideExcept [erhalteWidget vBoxHinzufügenPlanPläne]
+        pure
+            ( windowObjektAuswahl
+            , showBG
+            , showST
+            , showGerade
+            , showKurve
+            , showLinks
+            , showRechts
+            , showKU
+            , showWS
+            , showPL
+            )
     -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
     -- evtl. über ComboBox?
     -- TODO Rückgängig-Button

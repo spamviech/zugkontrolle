@@ -130,7 +130,7 @@ assistantHinzufügenNew parent maybeTVar = do
         , (hinzufügenWeicheNew zugtypAuswahl maybeTVar, Language.weiche)
         , (hinzufügenKupplungNew maybeTVar, Language.kupplung)
         , (hinzufügenWegstreckeNew zugtypAuswahl maybeTVar, Language.wegstrecke)
-        , (hinzufügenPlanNew zugtypAuswahl maybeTVar, Language.plan)]
+        , (hinzufügenPlanNew window zugtypAuswahl maybeTVar, Language.plan)]
     let assistantHinzufügen =
             AssistantHinzufügen
             { window
