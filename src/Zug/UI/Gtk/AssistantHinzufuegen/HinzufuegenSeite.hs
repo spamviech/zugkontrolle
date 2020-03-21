@@ -635,21 +635,23 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
     -- evtl. über ComboBox?
     -- TODO Rückgängig-Button
     boxPackDefault vBox expanderAktionen
+    buttonHinzufügenPlan <- liftIO $ do
+        buttonHinzufügenPlan <- Gtk.buttonNew
+        Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+        pure buttonHinzufügenPlan
     boxPackWidgetNewDefault vBox $ buttonNewWithEventLabel maybeTVar Language.rückgängig $ do
         aktuelleAktionen <- readTVarIO tvarAktionen
         neueAktionen <- case zeigeLetztes aktuelleAktionen of
-            Leer -> pure leer
+            Leer -> do
+                Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+                pure leer
             Gefüllt (_aktion, widget) t -> do
                 Gtk.containerRemove vBoxAktionen widget
                 Gtk.widgetDestroy widget
                 pure t
         atomically $ writeTVar tvarAktionen neueAktionen
         aktualisiereExpanderText neueAktionen
-    (checkButtonDauerschleife, buttonHinzufügenPlan) <- liftIO $ do
-        checkButtonDauerschleife <- boxPackWidgetNewDefault vBox Gtk.checkButtonNew
-        buttonHinzufügenPlan <- Gtk.buttonNew
-        Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
-        pure (checkButtonDauerschleife, buttonHinzufügenPlan)
+    checkButtonDauerschleife <- liftIO $ boxPackWidgetNewDefault vBox Gtk.checkButtonNew
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
         Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
