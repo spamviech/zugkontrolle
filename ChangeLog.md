@@ -130,6 +130,8 @@
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Größe des Fensters wird explizit gesetzt. Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
 - Gtk-UI: Fenster wird bei Programstart maximiert.
-- GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen
-- GTK-UI: Jeder Plan erhält seine eigene ProgressBar
+- GTK-UI: Verwendung von HPaned/VPaned um mehrere Kategorien gleichzeitig anzuzeigen.
+- GTK-UI: Jeder Plan erhält seine eigene ProgressBar.
+- Gtk-UI, Hinzufügen: Eingabefelder für Namen werden nicht mehr zurückgesetzt.
+- Gtk-UI, Hinzufügen: Alle bisher gewählten Aktionen können durch "Zurücksetzen" entfernt werden.
 - Tests entfernt. Wurden nicht gepflegt, somit ist deren Nicht-Existenz die ehrlichere Lösung.

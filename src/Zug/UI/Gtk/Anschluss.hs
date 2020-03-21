@@ -118,11 +118,11 @@ anschlussAuswahlNew maybeTVar name = do
     aawPCF8574PortVariante <- boxPackWidgetNewDefault pcf8574Box
         $ boundedEnumAuswahlComboBoxNew VariantA maybeTVar Language.variante
     aawPCF8574PortA0 <- boxPackWidgetNewDefault pcf8574Box
-        $ boundedEnumAuswahlRadioButtonNew LOW maybeTVar Language.a0
+        $ boundedEnumAuswahlRadioButtonNew HIGH maybeTVar Language.a0
     aawPCF8574PortA1 <- boxPackWidgetNewDefault pcf8574Box
-        $ boundedEnumAuswahlRadioButtonNew LOW maybeTVar Language.a1
+        $ boundedEnumAuswahlRadioButtonNew HIGH maybeTVar Language.a1
     aawPCF8574PortA2 <- boxPackWidgetNewDefault pcf8574Box
-        $ boundedEnumAuswahlRadioButtonNew LOW maybeTVar Language.a2
+        $ boundedEnumAuswahlRadioButtonNew HIGH maybeTVar Language.a2
     boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew maybeTVar $ Language.port <:> Text.empty
     aawPCF8574Port <- liftIO $ do
         aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
@@ -130,30 +130,30 @@ anschlussAuswahlNew maybeTVar name = do
         pure aawPCF8574Port
     pure
         AnschlussAuswahlWidget
-            { aawWidget = erhalteWidget vBox,
-              aawNotebook,
-              aawPinPage,
-              aawPin,
-              aawPCF8574PortPage,
-              aawPCF8574PortVariante,
-              aawPCF8574PortA0,
-              aawPCF8574PortA1,
-              aawPCF8574PortA2,
-              aawPCF8574Port
+            { aawWidget = erhalteWidget vBox
+            , aawNotebook
+            , aawPinPage
+            , aawPin
+            , aawPCF8574PortPage
+            , aawPCF8574PortVariante
+            , aawPCF8574PortA0
+            , aawPCF8574PortA1
+            , aawPCF8574PortA2
+            , aawPCF8574Port
             }
 
 -- | Erhalte den aktuell gewählten 'Anschluss'.
 aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
 aktuellerAnschluss
     AnschlussAuswahlWidget
-        {aawNotebook,
-         aawPin,
-         aawPCF8574PortPage,
-         aawPCF8574PortVariante,
-         aawPCF8574PortA0,
-         aawPCF8574PortA1,
-         aawPCF8574PortA2,
-         aawPCF8574Port} = liftIO $ do
+        { aawNotebook
+        , aawPin
+        , aawPCF8574PortPage
+        , aawPCF8574PortVariante
+        , aawPCF8574PortA0
+        , aawPCF8574PortA1
+        , aawPCF8574PortA2
+        , aawPCF8574Port} = liftIO $ do
     Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
