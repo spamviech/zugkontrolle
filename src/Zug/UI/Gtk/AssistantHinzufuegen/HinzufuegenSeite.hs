@@ -27,10 +27,10 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
-import Control.Concurrent.STM (TVar, atomically, readTVarIO, newTVarIO)
+import Control.Concurrent.STM (TVar, atomically, readTVarIO, newTVarIO, writeTVar)
 import Control.Lens ((^.), Field2(..))
 import qualified Control.Lens as Lens
-import Control.Monad (forM, foldM)
+import Control.Monad (forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
 import Data.List.NonEmpty (NonEmpty())
@@ -58,9 +58,9 @@ import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
       , registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew, Packing(PackGrow)
-      , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
-      , nameAuswahlPackNew, aktuellerName)
+       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
+      , containerAddWidgetNew, buttonNewWithEventLabel, Packing(PackGrow), paddingDefault
+      , positionDefault, notebookAppendPageNew, NameAuswahlWidget, nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
@@ -113,7 +113,7 @@ data HinzufügenSeite
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
           , buttonHinzufügenPlan :: Gtk.Button
-          , tvarAktionen :: TVar (Warteschlange Aktion)
+          , tvarAktionen :: TVar (Warteschlange (Aktion, Gtk.Label))
           , checkButtonDauerschleife :: Gtk.CheckButton
           }
     deriving (Eq)
@@ -312,14 +312,15 @@ seiteErgebnis
     plName <- aktuellerName nameAuswahl
     aktionenWarteschlange <- readTVarIO tvarAktionen
     Gtk.get checkButtonDauerschleife Gtk.toggleButtonActive >>= pure . OPlan . \case
-        True
-         -> let plan =
-                    Plan
-                    { plName
-                    , plAktionen = toList $ anhängen (AktionAusführen plan) aktionenWarteschlange
-                    }
-            in plan
-        False -> Plan { plName, plAktionen = toList aktionenWarteschlange }
+        True -> let plan =
+                        Plan
+                        { plName
+                        , plAktionen = toList
+                              $ anhängen (AktionAusführen plan)
+                              $ fst <$> aktionenWarteschlange
+                        }
+                in plan
+        False -> Plan { plName, plAktionen = toList $ fst <$> aktionenWarteschlange }
 
 hinzufügenBahngeschwindigkeitNew
     :: (SpracheGuiReader r m, MonadIO m)
@@ -504,13 +505,32 @@ hinzufügenPlanNew auswahlZugtyp maybeTVar = do
         , vBoxHinzufügenPlanWegstreckenLego
         , vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
     spracheGui <- erhalteSpracheGui
-    tvarAktionen <- liftIO $ newTVarIO leer
-    expanderAktionen <- liftIO
-        $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
+    (tvarAktionen, expanderAktionen, vBoxAktionen) <- liftIO $ do
+        tvarAktionen <- newTVarIO leer
+        expanderAktionen <- widgetShowNew
+            $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
+        vBoxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
+        pure (tvarAktionen, expanderAktionen, vBoxAktionen)
+    let aktualisiereExpanderText :: Warteschlange (Aktion, Gtk.Label) -> IO ()
+        aktualisiereExpanderText aktionen = do
+            Gtk.set
+                expanderAktionen
+                [ Gtk.expanderLabel
+                      := leseSprache (Language.aktionen <:> length aktionen) spracheGui]
     -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
     -- evtl. über ComboBox?
     -- TODO Rückgängig-Button
     boxPackDefault vBox expanderAktionen
+    boxPackWidgetNewDefault vBox $ buttonNewWithEventLabel maybeTVar Language.rückgängig $ do
+        aktuelleAktionen <- readTVarIO tvarAktionen
+        neueAktionen <- case zeigeLetztes aktuelleAktionen of
+            Leer -> pure leer
+            Gefüllt (_aktion, widget) t -> do
+                Gtk.containerRemove vBoxAktionen widget
+                Gtk.widgetDestroy widget
+                pure t
+        atomically $ writeTVar tvarAktionen neueAktionen
+        aktualisiereExpanderText neueAktionen
     (checkButtonDauerschleife, buttonHinzufügenPlan) <- liftIO $ do
         checkButtonDauerschleife <- boxPackWidgetNewDefault vBox Gtk.checkButtonNew
         buttonHinzufügenPlan <- Gtk.buttonNew

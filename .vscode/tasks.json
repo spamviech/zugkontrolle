@@ -29,7 +29,7 @@
         {
             "label": "exec",
             "type": "shell",
-            "command": "stack run --cwd=./bin -- --load Zugkontrolle.yaml",
+            "command": "stack run --load bin/Zugkontrolle.yaml",
             "group": "none",
             "problemMatcher": []
         },
