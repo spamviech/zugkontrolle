@@ -1,6 +1,8 @@
 .stack-work/
 *~
 Zugkontrolle.cabal
+/bin/Zugkontrolle
+/bin/Zugkontrolle.exe
 
 /Schaltpläne/*.aux
 /Schaltpläne/*.log
