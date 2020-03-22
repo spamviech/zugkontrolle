@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE LambdaCase #-}
 #endif
 
 {-|
@@ -9,7 +10,6 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 module Zug.UI.Gtk (main, setupGUI) where
 
 -- Bibliotheken
-import Control.Concurrent (forkIO, threadDelay)
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
 #else
@@ -99,18 +99,11 @@ setupGUI maybeTVar = void $ do
     Options {load = dateipfad, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
-    windowMain <- widgetShowNew Gtk.windowNew
+    windowMain <- Gtk.windowNew
     -- native Auflösung des Raspi 7'' TouchScreen ist 800x480
     -- leicht kleinere Werte um Menüleisten zu berücksichtigen
     Gtk.set windowMain [Gtk.windowDefaultWidth := 720, Gtk.windowDefaultHeight := 450]
-    -- Breite & Höhe überprüfen und wenn nötig auf Mindestgröße erhöhen.
-    -- windowDefaultWidth/Height wird aus irgendeinem Grund ignoriert.
-    -- Dementsprechend wird es hier explizit gesetzt.
-    (width, height) <- Gtk.windowGetSize windowMain
-    (defaultWidth, defaultHeight) <- Gtk.windowGetDefaultSize windowMain
-    let newWidth = max width defaultWidth
-        newHeight = max height defaultHeight
-    Gtk.windowResize windowMain newWidth newHeight
+    Gtk.windowMaximize windowMain
     -- Titel
     verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache -> Gtk.set
         windowMain
@@ -190,6 +183,18 @@ setupGUI maybeTVar = void $ do
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPläne
         $ labelSpracheNew maybeTVar Language.pläne
+    -- Paned mittig setzten
+    Gtk.screenGetDefault >>= \case
+        (Just screen) -> do
+            screenWidth <- Gtk.screenGetWidth screen
+            forM_ [panedEinzelObjekte, panedSammelObjekte] $ \paned -> do
+                Gtk.set paned [Gtk.panedPosition := div screenWidth 2]
+            screenHeight <- Gtk.screenGetHeight screen
+            -- estimated Value
+            let decoratorHeight = 50
+            forM_ [vPanedLeft, vPanedRight] $ \paned -> do
+                Gtk.set paned [Gtk.panedPosition := div (screenHeight - decoratorHeight) 2]
+        Nothing -> pure ()
     -- DynamischeWidgets
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
         <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
@@ -317,21 +322,7 @@ setupGUI maybeTVar = void $ do
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
     flip runReaderT objektReader
         $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
-    -- Die folgenden Befehle werden verzögert ausgeführt, da GTK etwas Zeit benötigt
-    -- Ansonsten funktionieren sie nicht (richtig)
-    forkIO $ do
-        let guiDelay = 300000
-        -- Maximiere Fenster
-        threadDelay guiDelay
-        Gtk.postGUIAsync $ Gtk.windowMaximize windowMain
-        -- Position der Paned-Fenster anpassen (mittig setzten)
-        threadDelay guiDelay
-        Gtk.postGUIAsync $ do
-            forM_ [panedEinzelObjekte, panedSammelObjekte] $ \paned -> do
-                panedMax <- Gtk.get paned Gtk.panedMaxPosition
-                Gtk.set paned [Gtk.panedPosition := div panedMax 2]
-            forM_ [vPanedLeft, vPanedRight] $ \paned -> do
-                panedMax <- Gtk.get paned Gtk.panedMaxPosition
-                Gtk.set paned [Gtk.panedPosition := div panedMax 2]
+    -- Fenster wird erst hier angezeigt, weil sonst windowDefaultWidth/Height keinen Effekt zeigen
+    Gtk.widgetShow windowMain
 #endif
 --
