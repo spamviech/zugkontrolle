@@ -26,9 +26,11 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Enums (ZugtypEither(..), Zugtyp(..), Fahrtrichtung(Vorwärts))
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit))
-import Zug.Plan (Aktion(ABahngeschwindigkeitMärklin, ABahngeschwindigkeitLego)
-               , AktionBahngeschwindigkeit(..))
+import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit, OWegstrecke))
+import Zug.Plan
+       (Aktion(ABahngeschwindigkeitMärklin, ABahngeschwindigkeitLego,
+       AWegstreckeMärklin, AWegstreckeLego)
+      , AktionBahngeschwindigkeit(..), AktionWegstrecke(AWSBahngeschwindigkeit))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, boxPack, Packing(PackGrow)
@@ -81,6 +83,14 @@ aktionBahngeschwindigkeitAuswahlPackNew
                         $ Geschwindigkeit bg wert
                     (Just (OBahngeschwindigkeit (ZugtypLego bg)))
                         -> aktionHinzufügen $ ABahngeschwindigkeitLego $ Geschwindigkeit bg wert
+                    (Just (OWegstrecke (ZugtypMärklin ws))) -> aktionHinzufügen
+                        $ AWegstreckeMärklin
+                        $ AWSBahngeschwindigkeit
+                        $ Geschwindigkeit ws wert
+                    (Just (OWegstrecke (ZugtypLego ws))) -> aktionHinzufügen
+                        $ AWegstreckeLego
+                        $ AWSBahngeschwindigkeit
+                        $ Geschwindigkeit ws wert
                     _sonst -> pure ()
     boxPack
         hBoxBahngeschwindigkeit
@@ -100,6 +110,8 @@ aktionBahngeschwindigkeitAuswahlPackNew
         flip runReaderT spracheGui $ case maybeObjekt of
             (Just (OBahngeschwindigkeit (ZugtypMärklin bg)))
                 -> aktionHinzufügen $ ABahngeschwindigkeitMärklin $ Umdrehen bg
+            (Just (OWegstrecke (ZugtypMärklin ws)))
+                -> aktionHinzufügen $ AWegstreckeMärklin $ AWSBahngeschwindigkeit $ Umdrehen ws
             _sonst -> pure ()
     hBoxFahrtrichtung <- liftIO $ Gtk.hBoxNew False 0
     auswahlFahrtrichtung
@@ -125,6 +137,10 @@ aktionBahngeschwindigkeitAuswahlPackNew
                     (Just (OBahngeschwindigkeit (ZugtypLego bg))) -> aktionHinzufügen
                         $ ABahngeschwindigkeitLego
                         $ FahrtrichtungEinstellen bg fahrtrichtung
+                    (Just (OWegstrecke (ZugtypLego ws))) -> aktionHinzufügen
+                        $ AWegstreckeLego
+                        $ AWSBahngeschwindigkeit
+                        $ FahrtrichtungEinstellen ws fahrtrichtung
                     _sonst -> pure ()
     boxPackDefault hBoxFahrtrichtung auswahlFahrtrichtung
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
