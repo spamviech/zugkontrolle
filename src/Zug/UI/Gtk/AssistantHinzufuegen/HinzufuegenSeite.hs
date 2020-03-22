@@ -576,56 +576,56 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             atomically $ putTMVar tmvarPlanObjekt Nothing
             pure True
         vBox <- containerAddWidgetNew windowObjektAuswahl $ Gtk.vBoxNew False 0
-        ztBahngeschwindigkeiten <- boxPackWidgetNewDefault vBox
+        ztBahngeschwindigkeiten <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanBahngeschwindigkeitenLego)]
                 auswahlZugtyp
-        boxPackDefault vBox vBoxHinzufügenPlanStreckenabschnitte
-        ztWeichenGerade <- boxPackWidgetNewDefault vBox
+        boxPack vBox vBoxHinzufügenPlanStreckenabschnitte PackGrow paddingDefault positionDefault
+        ztWeichenGerade <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenGeradeMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenGeradeLego)]
                 auswahlZugtyp
-        ztWeichenKurve <- boxPackWidgetNewDefault vBox
+        ztWeichenKurve <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenKurveMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenKurveLego)]
                 auswahlZugtyp
-        ztWeichenLinks <- boxPackWidgetNewDefault vBox
+        ztWeichenLinks <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenLinksMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenLinksLego)]
                 auswahlZugtyp
-        ztWeichenRechts <- boxPackWidgetNewDefault vBox
+        ztWeichenRechts <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWeichenRechtsMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWeichenRechtsLego)]
                 auswahlZugtyp
-        boxPackDefault vBox vBoxHinzufügenPlanKupplungen
-        ztWegstreckenBG <- boxPackWidgetNewDefault vBox
+        boxPack vBox vBoxHinzufügenPlanKupplungen PackGrow paddingDefault positionDefault
+        ztWegstreckenBG <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ ( Märklin
                   , erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
                   )
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego)]
                 auswahlZugtyp
-        ztWegstreckenST <- boxPackWidgetNewDefault vBox
+        ztWegstreckenST <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenStreckenabschnittLego)]
                 auswahlZugtyp
-        ztWegstreckenKU <- boxPackWidgetNewDefault vBox
+        ztWegstreckenKU <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungLego)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungMärklin)]
                 auswahlZugtyp
-        ztWegstreckenWS <- boxPackWidgetNewDefault vBox
+        ztWegstreckenWS <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenMärklin)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenLego)]
                 auswahlZugtyp
-        boxPackDefault vBox vBoxHinzufügenPlanPläne
+        boxPack vBox vBoxHinzufügenPlanPläne PackGrow paddingDefault positionDefault
         let hideExcept :: [Gtk.Widget] -> IO ()
             hideExcept shownWidgets =
                 mapM_

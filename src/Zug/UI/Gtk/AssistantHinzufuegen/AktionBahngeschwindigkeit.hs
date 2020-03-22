@@ -20,10 +20,11 @@ import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Text as Text
+import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..), Zugtyp(..), Fahrtrichtung(Vorwärts))
-import Zug.Language (Sprache())
+import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit))
 import Zug.Plan (Aktion(ABahngeschwindigkeitMärklin, ABahngeschwindigkeitLego)
@@ -66,6 +67,10 @@ aktionBahngeschwindigkeitAuswahlPackNew
             wert <- floor <$> Gtk.get scaleBahngeschwindigkeit Gtk.rangeValue
             forkIO $ do
                 Gtk.postGUIAsync $ do
+                    Gtk.set
+                        windowObjektAuswahl
+                        [ Gtk.windowTitle
+                              := leseSprache (Language.geschwindigkeit <:> wert) spracheGui]
                     showBG
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
@@ -85,6 +90,9 @@ aktionBahngeschwindigkeitAuswahlPackNew
         positionDefault
     buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIO $ do
         Gtk.postGUIAsync $ do
+            Gtk.set
+                windowObjektAuswahl
+                [Gtk.windowTitle := leseSprache Language.umdrehen spracheGui]
             showBG
             mitWidgetShow windowObjektAuswahl
         maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
@@ -103,6 +111,12 @@ aktionBahngeschwindigkeitAuswahlPackNew
             fahrtrichtung <- aktuelleAuswahl auswahlFahrtrichtung
             forkIO $ do
                 Gtk.postGUIAsync $ do
+                    Gtk.set
+                        windowObjektAuswahl
+                        [ Gtk.windowTitle
+                              := leseSprache
+                                  (Language.fahrtrichtungEinstellen <:> fahrtrichtung)
+                                  spracheGui]
                     showBG
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
