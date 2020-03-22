@@ -240,7 +240,7 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
-  -- | Aktionen einer Bahngeschwindigkeit
+   -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
     Geschwindigkeit :: bg z -> Natural -> AktionBahngeschwindigkeit bg z
     Umdrehen :: bg 'Märklin -> AktionBahngeschwindigkeit bg 'Märklin
@@ -285,8 +285,8 @@ data AktionStreckenabschnitt st = Strom st Strom
 
 instance (StreckenObjekt st) => Anzeige (AktionStreckenabschnitt st) where
     anzeige :: AktionStreckenabschnitt st -> Sprache -> Text
-    anzeige (Strom st Fließend) = erhalteName st <°> Language.strom <=> Language.an
-    anzeige (Strom st Gesperrt) = erhalteName st <°> Language.strom <=> Language.aus
+    anzeige (Strom st Fließend) = erhalteName st <°> Language.strom <=> Language.fließend
+    anzeige (Strom st Gesperrt) = erhalteName st <°> Language.strom <=> Language.gesperrt
 
 instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStreckenabschnitt st) where
     anschlüsse :: AktionStreckenabschnitt st -> [Anschluss]
