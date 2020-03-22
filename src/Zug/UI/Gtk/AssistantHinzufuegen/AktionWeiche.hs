@@ -51,20 +51,23 @@ aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen akti
     auswahlRichtung <- widgetShowNew
         $ boundedEnumAuswahlRadioButtonNew (fst $ NonEmpty.head showRichtungen) maybeTVar
         $ const Text.empty
-    boxPackWidgetNewDefault hBoxWeiche $ buttonNewWithEventLabel maybeTVar Language.strom $ void $ do
-        richtung <- aktuelleAuswahl auswahlRichtung
-        forkIO $ do
-            Gtk.postGUIAsync $ do
-                Gtk.set
-                    windowObjektAuswahl
-                    [Gtk.windowTitle := leseSprache (Language.stellen <:> richtung) spracheGui]
-                snd $ head $ NonEmpty.filter ((== richtung) . fst) showRichtungen
-                mitWidgetShow windowObjektAuswahl
-            maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
-            Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
-            flip runReaderT spracheGui $ case maybeObjekt of
-                (Just (OWeiche we)) -> aktionHinzufügen $ AWeiche $ Stellen we richtung
-                _sonst -> pure ()
+    boxPackWidgetNewDefault hBoxWeiche
+        $ buttonNewWithEventLabel maybeTVar Language.stellen
+        $ void
+        $ do
+            richtung <- aktuelleAuswahl auswahlRichtung
+            forkIO $ do
+                Gtk.postGUIAsync $ do
+                    Gtk.set
+                        windowObjektAuswahl
+                        [Gtk.windowTitle := leseSprache (Language.stellen <:> richtung) spracheGui]
+                    snd $ head $ NonEmpty.filter ((== richtung) . fst) showRichtungen
+                    mitWidgetShow windowObjektAuswahl
+                maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+                Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+                flip runReaderT spracheGui $ case maybeObjekt of
+                    (Just (OWeiche we)) -> aktionHinzufügen $ AWeiche $ Stellen we richtung
+                    _sonst -> pure ()
     boxPackDefault hBoxWeiche auswahlRichtung
     pure hBoxWeiche
 #endif
