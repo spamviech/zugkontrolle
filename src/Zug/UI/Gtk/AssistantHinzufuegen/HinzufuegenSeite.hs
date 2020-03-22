@@ -45,7 +45,7 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
                     , Wegstrecke(..), Wartezeit(..))
 import Zug.Enums
-       (Richtung(), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..))
+       (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
@@ -54,8 +54,12 @@ import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplung
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
        (aktionBahngeschwindigkeitAuswahlPackNew)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionKupplung (aktionKupplungAuswahlPackNew)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionPlan (aktionPlanAuswahlPackNew)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
        (aktionStreckenabschnittAuswahlPackNew)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionWegstrecke (aktionWegstreckeAuswahlPackNew)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionWeiche (aktionWeicheAuswahlPackNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlComboBoxNamedNew
                          , MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
@@ -687,6 +691,15 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         sBG
         aktionHinzufügen
     aktionStreckenabschnittAuswahlPackNew vBox windowObjektAuswahl maybeTVar sST aktionHinzufügen
+    aktionWeicheAuswahlPackNew
+        vBox
+        windowObjektAuswahl
+        maybeTVar
+        [(Gerade, sGerade), (Kurve, sKurve), (Links, sLinks), (Rechts, sRechts)]
+        aktionHinzufügen
+    aktionKupplungAuswahlPackNew vBox windowObjektAuswahl maybeTVar sKU aktionHinzufügen
+    aktionWegstreckeAuswahlPackNew vBox windowObjektAuswahl maybeTVar sWS aktionHinzufügen
+    aktionPlanAuswahlPackNew vBox windowObjektAuswahl maybeTVar sPL aktionHinzufügen
     -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
     -- evtl. über ComboBox?
     boxPackDefault vBox expanderAktionen

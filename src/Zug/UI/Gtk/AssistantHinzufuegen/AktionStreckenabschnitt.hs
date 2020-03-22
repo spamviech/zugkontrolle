@@ -2,7 +2,6 @@
 #ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE MonoLocalBinds #-}
 #endif
 
