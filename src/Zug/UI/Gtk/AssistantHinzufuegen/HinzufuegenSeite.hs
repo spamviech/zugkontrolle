@@ -71,7 +71,9 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , boxPack, containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
       , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
       , nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..), MitWindow(..))
+import Zug.UI.Gtk.Klassen
+       (MitWidget(..), MitButton(..), MitContainer(..), mitContainerRemove, MitWindow(..))
+import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
        (StatusGui, StatusVarGui, StatusVarGuiReader, WegstreckenElement(..), WegstreckeCheckButton()
@@ -523,7 +525,9 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             tvarAktionen <- newTVarIO leer
             expanderAktionen <- widgetShowNew
                 $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
-            vBoxAktionen <- containerAddWidgetNew expanderAktionen $ Gtk.vBoxNew False 0
+            vBoxAktionen <- containerAddWidgetNew expanderAktionen
+                $ scrollbaresWidgetNew
+                $ Gtk.vBoxNew False 0
             tvarExpander <- newTVarIO $ Just []
             hBoxWartezeit <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
             spinButtonWartezeit <- widgetShowNew $ Gtk.spinButtonNewWithRange 1 999 1
@@ -700,8 +704,6 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
     aktionKupplungAuswahlPackNew vBox windowObjektAuswahl maybeTVar sKU aktionHinzufügen
     aktionWegstreckeAuswahlPackNew vBox windowObjektAuswahl maybeTVar sWS aktionHinzufügen
     aktionPlanAuswahlPackNew vBox windowObjektAuswahl maybeTVar sPL aktionHinzufügen
-    -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
-    -- evtl. über ComboBox?
     boxPackDefault vBox expanderAktionen
     (buttonHinzufügenPlan, resetBox) <- liftIO $ do
         buttonHinzufügenPlan <- Gtk.buttonNew
@@ -717,7 +719,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                     Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
                     pure leer
                 Gefüllt (_aktion, widget, tvarSprache) t -> do
-                    Gtk.containerRemove vBoxAktionen widget
+                    mitContainerRemove vBoxAktionen widget
                     Gtk.widgetDestroy widget
                     atomically $ writeTVar tvarSprache Nothing
                     pure t
@@ -728,7 +730,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         $ do
             aktuelleAktionen <- readTVarIO tvarAktionen
             forM_ aktuelleAktionen $ \(_aktion, widget, tvarAktionen) -> do
-                Gtk.containerRemove vBoxAktionen widget
+                mitContainerRemove vBoxAktionen widget
                 Gtk.widgetDestroy widget
                 atomically $ writeTVar tvarAktionen Nothing
             Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]

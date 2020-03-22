@@ -1,5 +1,3 @@
-(Zugkontrolle.EXE:12684): Gtk-CRITICAL **: 12:24:34.096: gtk_box_pack: assertion '_gtk_widget_get_parent (child) == NULL' failed
-
 Laden von Plänen funktioniert nicht
 
 Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
@@ -12,6 +10,9 @@ Zug.UI.Gtk.StreckenObjekt ist zu groß
     aufsplitten in mehrere Untermodule sinnvoll
         eins pro Objekt-Typ?
 
+Plan Hinzufügen:
+    Ersetzten des Auswahl-Fensters durch ComboBox?
+
 GTK stürzt öfters ab
     Zu viele Widgets?
     Passiert vor allem auf raspi
@@ -19,14 +20,6 @@ GTK stürzt öfters ab
         neu schreiben?
         nachdem einziger Assistant in gesamtem Programm ist allgemeine Variante nicht notwendig
         beseitigt vermutlich nicht-skalierende Widgets
-
-Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
-    Vermutlich ein Problem mit Assistant
-        evtl. muss Gtk.widgetExpand/Gtk.widgetVExpand explizit gesetzt werden
-    Könnte auch ein Problem mit ZugtypSpezifisch sein
-    Funktioniert auf raspi!!!!
-        Warum????
-    Plan hinzufügen: gleiches Problem, diesmal auch auf raspi
 
 Ändere Liste zu (Map Name a)
     newtype NameSet a = NameSet (Set (Benannt a))
@@ -173,6 +166,15 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst--------------------------
+Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
+    Vermutlich ein Problem mit Assistant
+        evtl. muss Gtk.widgetExpand/Gtk.widgetVExpand explizit gesetzt werden
+    Könnte auch ein Problem mit ZugtypSpezifisch sein
+    Funktioniert auf raspi!!!!
+        Warum????
+    Plan hinzufügen: gleiches Problem, diesmal auch auf raspi
+    fixed (war ein problem mit ScrollbaresWidget)
+
 Einträge erscheinen öfters in yaml-Datei
     vermutlich von Laden -> Speichern
     Abbrechen beim Hinzufügen?
