@@ -571,7 +571,10 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         windowObjektAuswahl <- Gtk.windowNew
         Gtk.set
             windowObjektAuswahl
-            [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
+            [ Gtk.windowTransientFor := erhalteWindow parent
+            , Gtk.windowModal := True
+            , Gtk.windowDefaultHeight := 400
+            , Gtk.windowDefaultWidth := 300]
         Gtk.on windowObjektAuswahl Gtk.deleteEvent $ liftIO $ do
             atomically $ putTMVar tmvarPlanObjekt Nothing
             pure True
