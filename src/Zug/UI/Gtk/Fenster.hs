@@ -45,7 +45,8 @@ import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, 
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.Gtk.AssistantHinzufuegen
        (assistantHinzufügenNew, assistantHinzufügenAuswerten, HinzufügenErgebnis(..))
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel, dialogEval)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, packingDefault
+                                 , paddingDefault, Position(), buttonNewWithEventLabel, dialogEval)
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
@@ -59,22 +60,26 @@ import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, 
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonSpeichernPack :: forall b m.
-                    (MitBox b, ObjektGuiReader m, MonadIO m)
-                    => Gtk.Window
-                    -> b
-                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                    -> m Gtk.Button
-buttonSpeichernPack windowMain box maybeTVar = do
+buttonSpeichernPack
+    :: forall b m.
+    (MitBox b, ObjektGuiReader m, MonadIO m)
+    => Gtk.Window
+    -> b
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Position
+    -> m Gtk.Button
+buttonSpeichernPack windowMain box maybeTVar position = do
     dialogSpeichern <- dialogSpeichernNew windowMain maybeTVar
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventLabel maybeTVar Language.speichern $ do
-        antwort <- dialogEval dialogSpeichern
-        when (antwort == Gtk.ResponseOk) $ void $ do
-            (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
-            flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (Speichern dateipfad) statusVar
+    boxPackWidgetNew box packingDefault paddingDefault position
+        $ buttonNewWithEventLabel maybeTVar Language.speichern
+        $ do
+            antwort <- dialogEval dialogSpeichern
+            when (antwort == Gtk.ResponseOk) $ void $ do
+                (Just dateipfad) <- Gtk.fileChooserGetFilename dialogSpeichern
+                flip runReaderT objektReader
+                    $ ausführenStatusVarBefehl (Speichern dateipfad) statusVar
 
 dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    => Gtk.Window
@@ -105,38 +110,43 @@ buttonLadenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadIO m)
                 => p
                 -> b
                 -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                -> Position
                 -> m Gtk.Button
-buttonLadenPack parent box maybeTVar = do
+buttonLadenPack parent box maybeTVar position = do
     dialogLaden <- dialogLadenNew parent maybeTVar
     dialogLadenFehler <- dialogLadenFehlerNew parent maybeTVar
     statusVar <- erhalteStatusVar
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventLabel maybeTVar Language.laden $ do
-        antwort <- dialogEval dialogLaden
-        when (antwort == Gtk.ResponseOk) $ void $ do
-            Gtk.fileChooserGetFilename dialogLaden >>= \case
-                Nothing -> void $ do
-                    spracheGui <- readSpracheGui statusVar
-                    Gtk.set
-                        dialogLadenFehler
-                        [Gtk.windowTitle := leseSprache Language.nichtGefundeneDatei spracheGui]
-                    dialogEval dialogLadenFehler
-                (Just dateipfad) -> void $ do
-                    let ladeAktion :: Status -> IOStatusGui ()
-                        ladeAktion statusNeu = do
-                            state0 <- RWS.get
-                            state1 <- liftIO
-                                $ flip runReaderT objektReader
-                                $ fst <$> RWS.execRWST (ladeWidgets statusNeu) objektReader state0
-                            RWS.put state1
-                        fehlerBehandlung :: IOStatusGui ()
-                        fehlerBehandlung = liftIO $ void $ do
-                            Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
-                            dialogEval dialogLadenFehler
-                    flip runReaderT objektReader
-                        $ ausführenStatusVarBefehl
-                            (Laden dateipfad ladeAktion fehlerBehandlung)
-                            statusVar
+    boxPackWidgetNew box packingDefault paddingDefault position
+        $ buttonNewWithEventLabel maybeTVar Language.laden
+        $ do
+            antwort <- dialogEval dialogLaden
+            when (antwort == Gtk.ResponseOk) $ void $ do
+                Gtk.fileChooserGetFilename dialogLaden >>= \case
+                    Nothing -> void $ do
+                        spracheGui <- readSpracheGui statusVar
+                        Gtk.set
+                            dialogLadenFehler
+                            [ Gtk.windowTitle
+                                  := leseSprache Language.nichtGefundeneDatei spracheGui]
+                        dialogEval dialogLadenFehler
+                    (Just dateipfad) -> void $ do
+                        let ladeAktion :: Status -> IOStatusGui ()
+                            ladeAktion statusNeu = do
+                                state0 <- RWS.get
+                                state1 <- liftIO
+                                    $ flip runReaderT objektReader
+                                    $ fst
+                                    <$> RWS.execRWST (ladeWidgets statusNeu) objektReader state0
+                                RWS.put state1
+                            fehlerBehandlung :: IOStatusGui ()
+                            fehlerBehandlung = liftIO $ void $ do
+                                Gtk.set dialogLadenFehler [Gtk.windowTitle := dateipfad]
+                                dialogEval dialogLadenFehler
+                        flip runReaderT objektReader
+                            $ ausführenStatusVarBefehl
+                                (Laden dateipfad ladeAktion fehlerBehandlung)
+                                statusVar
 
 -- | Passe angezeigte Widgets (inkl. 'StatusGui') an reinen 'Status' an.
 ladeWidgets :: (ObjektGuiReader m, MonadIO m) => Status -> MStatusGuiT m ()

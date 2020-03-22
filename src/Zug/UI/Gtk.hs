@@ -116,11 +116,16 @@ setupGUI maybeTVar = void $ do
     tvarMaps <- tvarMapsNeu
     statusVar <- statusVarNew $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
-    notebookElemente
+    -- Einzelseite-Variante
+    notebookElementeEinzelseiten
+        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
+    Gtk.widgetHide notebookElementeEinzelseiten
+    -- Paned-Variante
+    notebookElementePaned
         <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
     (panedEinzelObjekte, _page) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
-            notebookElemente
+            notebookElementePaned
             maybeTVar
             (Language.bahngeschwindigkeiten
              <|> Language.streckenabschnitte
@@ -132,57 +137,74 @@ setupGUI maybeTVar = void $ do
     frameLeftTop <- widgetShowNew Gtk.frameNew
     Gtk.set frameLeftTop [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 vPanedLeft frameLeftTop
-    vBoxBahngeschwindigkeiten
-        <- containerAddWidgetNew frameLeftTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxLeftTop <- containerAddWidgetNew frameLeftTop $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten
+        $ boxPackWidgetNewDefault vBoxLeftTop
         $ labelSpracheNew maybeTVar Language.bahngeschwindigkeiten
+    vBoxBahngeschwindigkeiten
+        <- boxPackWidgetNew vBoxLeftTop PackGrow paddingDefault positionDefault
+        $ scrollbaresWidgetNew
+        $ Gtk.vBoxNew False 0
     frameLeftBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameLeftBot [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 vPanedLeft frameLeftBot
-    vBoxStreckenabschnitte
-        <- containerAddWidgetNew frameLeftBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxLeftBot <- containerAddWidgetNew frameLeftBot $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxStreckenabschnitte
+        $ boxPackWidgetNewDefault vBoxLeftBot
         $ labelSpracheNew maybeTVar Language.streckenabschnitte
+    vBoxStreckenabschnitte <- boxPackWidgetNew vBoxLeftBot PackGrow paddingDefault positionDefault
+        $ scrollbaresWidgetNew
+        $ Gtk.vBoxNew False 0
     vPanedRight <- widgetShowNew Gtk.vPanedNew
     Gtk.panedAdd2 panedEinzelObjekte vPanedRight
     frameRightTop <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightTop [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 vPanedRight frameRightTop
-    vBoxWeichen <- containerAddWidgetNew frameRightTop $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxRightTop <- containerAddWidgetNew frameRightTop $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxWeichen
+        $ boxPackWidgetNewDefault vBoxRightTop
         $ labelSpracheNew maybeTVar Language.weichen
+    vBoxWeichen <- boxPackWidgetNew vBoxRightTop PackGrow paddingDefault positionDefault
+        $ scrollbaresWidgetNew
+        $ Gtk.vBoxNew False 0
     frameRightBot <- widgetShowNew Gtk.frameNew
     Gtk.set frameRightBot [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 vPanedRight frameRightBot
-    vBoxKupplungen
-        <- containerAddWidgetNew frameRightBot $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxRightBot <- containerAddWidgetNew frameRightBot $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxKupplungen
+        $ boxPackWidgetNewDefault vBoxRightBot
         $ labelSpracheNew maybeTVar Language.kupplungen
+    vBoxKupplungen <- boxPackWidgetNew vBoxRightBot PackGrow paddingDefault positionDefault
+        $ scrollbaresWidgetNew
+        $ Gtk.vBoxNew False 0
     (panedSammelObjekte, _page) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
-            notebookElemente
+            notebookElementePaned
             maybeTVar
             (Language.wegstrecken <|> Language.pläne)
         $ liftIO Gtk.hPanedNew
     frameWegstrecken <- widgetShowNew Gtk.frameNew
     Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd1 panedSammelObjekte frameWegstrecken
-    vBoxWegstrecken
-        <- containerAddWidgetNew frameWegstrecken $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxWegstreckenOuter <- containerAddWidgetNew frameWegstrecken $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxWegstrecken
+        $ boxPackWidgetNewDefault vBoxWegstreckenOuter
         $ labelSpracheNew maybeTVar Language.wegstrecken
+    vBoxWegstrecken
+        <- boxPackWidgetNew vBoxWegstreckenOuter PackGrow paddingDefault positionDefault
+        $ scrollbaresWidgetNew
+        $ Gtk.vBoxNew False 0
     framePläne <- widgetShowNew Gtk.frameNew
     Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 panedSammelObjekte framePläne
-    vBoxPläne <- containerAddWidgetNew framePläne $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxPläneOuter
+        <- containerAddWidgetNew framePläne $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPläne
+        $ boxPackWidgetNewDefault vBoxPläneOuter
         $ labelSpracheNew maybeTVar Language.pläne
+    vBoxPläne <- boxPackWidgetNew vBoxPläneOuter PackGrow paddingDefault positionDefault
+        $ scrollbaresWidgetNew
+        $ Gtk.vBoxNew False 0
     -- Paned mittig setzten
     Gtk.screenGetDefault >>= \case
         (Just screen) -> do
@@ -305,11 +327,11 @@ setupGUI maybeTVar = void $ do
             spracheGuiNeu <- sprachwechsel spracheGui sprache
             flip runReaderT objektReader
                 $ ausführenStatusVarBefehl (SprachWechsel spracheGuiNeu) statusVar
-        buttonSpeichernPack windowMain functionBox maybeTVar
-        buttonLadenPack windowMain functionBox maybeTVar
         boxPackWidgetNew functionBox packingDefault paddingDefault End
             $ buttonNewWithEventLabel maybeTVar Language.beenden
             $ Gtk.mainQuit
+        buttonLadenPack windowMain functionBox maybeTVar End
+        buttonSpeichernPack windowMain functionBox maybeTVar End
     -- Lade Datei angegeben in Kommandozeilenargument
     let ladeAktion :: Status -> IOStatusGui ()
         ladeAktion statusNeu = do
