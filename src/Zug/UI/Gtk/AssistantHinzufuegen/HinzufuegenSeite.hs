@@ -27,9 +27,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
-import Control.Concurrent (forkIO)
-import Control.Concurrent.STM
-       (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar, takeTMVar)
+import Control.Concurrent.STM (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar)
 import Control.Lens ((^.), Field1(_1), Field2(_2))
 import qualified Control.Lens as Lens
 import Control.Monad (void, forM, forM_, foldM)
@@ -51,12 +49,13 @@ import Zug.Enums
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
-import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
-               , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
+import Zug.Plan (Plan(..), Aktion(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
        (aktionBahngeschwindigkeitAuswahlPackNew)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
+       (aktionStreckenabschnittAuswahlPackNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlComboBoxNamedNew
                          , MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
@@ -68,8 +67,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , boxPack, containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
       , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
       , nameAuswahlPackNew, aktuellerName)
-import Zug.UI.Gtk.Klassen
-       (MitWidget(..), mitWidgetShow, mitWidgetHide, MitButton(..), MitContainer(..), MitWindow(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
        (StatusGui, StatusVarGui, StatusVarGuiReader, WegstreckenElement(..), WegstreckeCheckButton()
@@ -688,6 +686,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         maybeTVar
         sBG
         aktionHinzufügen
+    aktionStreckenabschnittAuswahlPackNew vBox windowObjektAuswahl maybeTVar sST aktionHinzufügen
     -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
     -- evtl. über ComboBox?
     boxPackDefault vBox expanderAktionen
