@@ -27,6 +27,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 
 #ifdef ZUGKONTROLLEGUI
 -- Bibliotheken
+import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
        (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar, takeTMVar)
 import Control.Lens ((^.), Field1(_1), Field2(_2))
@@ -54,6 +55,8 @@ import Zug.Plan (Plan(..), Aktion(..), AktionWegstrecke(..), AktionBahngeschwind
                , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
 import Zug.UI.Gtk.Anschluss (AnschlussAuswahlWidget, anschlussAuswahlNew, aktuellerAnschluss)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
+       (aktionBahngeschwindigkeitAuswahlPackNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlComboBoxNamedNew
                          , MitAuswahlWidget(), aktuelleAuswahl)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
@@ -62,7 +65,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled
       , registrierterCheckButtonToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
-      , containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
+      , boxPack, containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
       , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
       , nameAuswahlPackNew, aktuellerName)
 import Zug.UI.Gtk.Klassen
@@ -564,7 +567,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 -> error $ "Unbekannte Zeiteinheit für Wartezeit gewählt: " ++ zeiteinheit
     boxPackDefault hBoxWartezeit sbWartezeit
     boxPackDefault hBoxWartezeit comboBoxWartezeit
-    liftIO $ do
+    (windowObjektAuswahl, sBG, sST, sGerade, sKurve, sLinks, sRechts, sKU, sWS, sPL) <- liftIO $ do
         windowObjektAuswahl <- Gtk.windowNew
         Gtk.set
             windowObjektAuswahl
@@ -639,7 +642,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                      , erhalteWidget ztWegstreckenKU
                      , erhalteWidget ztWegstreckenWS
                      , erhalteWidget vBoxHinzufügenPlanPläne] :: [Gtk.Widget])
-            showBG :: IO ()
+        let showBG :: IO ()
             showBG =
                 hideExcept [erhalteWidget ztBahngeschwindigkeiten, erhalteWidget ztWegstreckenBG]
             showST :: IO ()
@@ -663,9 +666,27 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             showWS = hideExcept [erhalteWidget ztWegstreckenWS]
             showPL :: IO ()
             showPL = hideExcept [erhalteWidget vBoxHinzufügenPlanPläne]
-        -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
-        -- evtl. über ComboBox?
-        pure ()
+        pure
+            ( windowObjektAuswahl
+            , showBG
+            , showST
+            , showGerade
+            , showKurve
+            , showLinks
+            , showRechts
+            , showKU
+            , showWS
+            , showPL
+            )
+    aktionBahngeschwindigkeitAuswahlPackNew
+        vBox
+        windowObjektAuswahl
+        auswahlZugtyp
+        maybeTVar
+        sBG
+        aktionHinzufügen
+    -- TODO Aktions-Auswahl; StreckenObjekt-Auswahl
+    -- evtl. über ComboBox?
     boxPackDefault vBox expanderAktionen
     (buttonHinzufügenPlan, resetBox) <- liftIO $ do
         buttonHinzufügenPlan <- Gtk.buttonNew
