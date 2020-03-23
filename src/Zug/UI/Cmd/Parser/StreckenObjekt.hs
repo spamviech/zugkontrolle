@@ -161,8 +161,8 @@ instance MitAnfrage Anschluss where
     anfrageAktualisieren APCF8574Port token =
         wähleZwischenwert
             token
-            [(Lexer.A, APCF8574PortVariant VariantA),
-             (Lexer.Normal, APCF8574PortVariant VariantNormal)]
+            [ (Lexer.A, APCF8574PortVariant VariantA)
+            , (Lexer.Normal, APCF8574PortVariant VariantNormal)]
     anfrageAktualisieren (APCF8574PortVariant variante) token@EingabeToken {eingabe} =
         case wähleValue token of
             (Just a0) -> AFZwischenwert $ APCF8574PortVariantA0 variante a0
@@ -325,8 +325,10 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
     anfrageAktualisieren AMärklinBahngeschwindigkeitName {abgmName} token =
         wähleZwischenwert
             token
-            [(Lexer.HIGH, AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss),
-             (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
+            [ ( Lexer.HIGH
+                  , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss
+                  )
+            , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließend
                      bgmName
@@ -347,9 +349,9 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
             anschlussVerwenden bgmGeschwindigkeitsAnschluss =
                 AFErgebnis
                     MärklinBahngeschwindigkeit
-                    { bgmName,
-                      bgmFließend,
-                      bgmGeschwindigkeitsAnschluss
+                    { bgmName
+                    , bgmFließend
+                    , bgmGeschwindigkeitsAnschluss
                     }
 
 instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
@@ -365,8 +367,8 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
     anfrageAktualisieren ALegoBahngeschwindigkeitName {abglName} token =
         wähleZwischenwert
             token
-            [(Lexer.HIGH, ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss),
-             (Lexer.LOW, ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
+            [ (Lexer.HIGH, ALegoBahngeschwindigkeitNameFließend abglName HIGH AnfrageAnschluss)
+            , (Lexer.LOW, ALegoBahngeschwindigkeitNameFließend abglName LOW AnfrageAnschluss)]
     anfrageAktualisieren
         anfrage@(ALegoBahngeschwindigkeitNameFließend name fließend geschwindigkeitsAnschluss)
         token =
@@ -409,10 +411,10 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
             anschlussVerwenden bglFahrtrichtungsAnschluss =
                 AFErgebnis
                     LegoBahngeschwindigkeit
-                    { bglName,
-                      bglFließend,
-                      bglGeschwindigkeitsAnschluss,
-                      bglFahrtrichtungsAnschluss
+                    { bglName
+                    , bglFließend
+                    , bglGeschwindigkeitsAnschluss
+                    , bglFahrtrichtungsAnschluss
                     }
 
 -- | Unvollständiger 'Streckenabschnitt'
@@ -470,8 +472,8 @@ instance MitAnfrage Streckenabschnitt where
     anfrageAktualisieren (AStreckenabschnittName name) token =
         wähleZwischenwert
             token
-            [(Lexer.HIGH, AStreckenabschnittNameFließend name HIGH AnfrageAnschluss),
-             (Lexer.LOW, AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
+            [ (Lexer.HIGH, AStreckenabschnittNameFließend name HIGH AnfrageAnschluss)
+            , (Lexer.LOW, AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren
         anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
         token =
@@ -637,8 +639,8 @@ instance MitAnfrage (Weiche 'Märklin) where
     anfrageAktualisieren (AMärklinWeicheName name) token =
         wähleZwischenwert
             token
-            [(Lexer.HIGH, AMärklinWeicheNameFließend name HIGH),
-             (Lexer.LOW, AMärklinWeicheNameFließend name LOW)]
+            [ (Lexer.HIGH, AMärklinWeicheNameFließend name HIGH)
+            , (Lexer.LOW, AMärklinWeicheNameFließend name LOW)]
     anfrageAktualisieren
         (AMärklinWeicheNameFließend name fließend)
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
@@ -686,9 +688,9 @@ instance MitAnfrage (Weiche 'Märklin) where
                 | otherwise =
                     AFErgebnis
                         MärklinWeiche
-                        { wemName,
-                          wemFließend,
-                          wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
+                        { wemName
+                        , wemFließend
+                        , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
                         }
 
 instance MitAnfrage (Weiche 'Lego) where
@@ -703,8 +705,8 @@ instance MitAnfrage (Weiche 'Lego) where
     anfrageAktualisieren (ALegoWeicheName name) token =
         wähleZwischenwert
             token
-            [(Lexer.HIGH, ALegoWeicheNameFließend name HIGH),
-             (Lexer.LOW, ALegoWeicheNameFließend name LOW)]
+            [ (Lexer.HIGH, ALegoWeicheNameFließend name HIGH)
+            , (Lexer.LOW, ALegoWeicheNameFließend name LOW)]
     anfrageAktualisieren (ALegoWeicheNameFließend name fließend) token@EingabeToken {eingabe} =
         case wähleRichtung token of
             Nothing -> AFFehler eingabe
@@ -742,10 +744,10 @@ instance MitAnfrage (Weiche 'Lego) where
             anschlussVerwenden welRichtungsAnschluss =
                 AFErgebnis
                     LegoWeiche
-                    { welName,
-                      welFließend,
-                      welRichtungsAnschluss,
-                      welRichtungen = (richtung1, richtung2)
+                    { welName
+                    , welFließend
+                    , welRichtungsAnschluss
+                    , welRichtungen = (richtung1, richtung2)
                     }
 
 instance MitAnfrageZugtyp AnfrageWeiche where
@@ -809,8 +811,8 @@ instance MitAnfrage Kupplung where
     anfrageAktualisieren (AKupplungName name) token =
         wähleZwischenwert
             token
-            [(Lexer.HIGH, AKupplungNameFließend name HIGH AnfrageAnschluss),
-             (Lexer.LOW, AKupplungNameFließend name LOW AnfrageAnschluss)]
+            [ (Lexer.HIGH, AKupplungNameFließend name HIGH AnfrageAnschluss)
+            , (Lexer.LOW, AKupplungNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren anfrage@(AKupplungNameFließend kuName kuFließend anfrageAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
         $<< anfrageAktualisieren anfrageAnschluss token
@@ -950,11 +952,11 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, g
         (Just anzahl) -> AFZwischenwert
             $ AWegstreckeNameAnzahl
                 Wegstrecke
-                { wsName,
-                  wsBahngeschwindigkeiten = [],
-                  wsStreckenabschnitte = [],
-                  wsWeichenRichtungen = [],
-                  wsKupplungen = []
+                { wsName
+                , wsBahngeschwindigkeiten = []
+                , wsStreckenabschnitte = []
+                , wsWeichenRichtungen = []
+                , wsKupplungen = []
                 }
                 anzahl
 anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token =
@@ -972,10 +974,10 @@ anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token 
         anfrageWegstreckenElement token@EingabeToken {eingabe} =
             wähleBefehl
                 token
-                [(Lexer.Weiche, AWSEWeiche),
-                 (Lexer.Bahngeschwindigkeit, AWSEBahngeschwindigkeit),
-                 (Lexer.Streckenabschnitt, AWSEStreckenabschnitt),
-                 (Lexer.Kupplung, AWSEKupplung)]
+                [ (Lexer.Weiche, AWSEWeiche)
+                , (Lexer.Bahngeschwindigkeit, AWSEBahngeschwindigkeit)
+                , (Lexer.Streckenabschnitt, AWSEStreckenabschnitt)
+                , (Lexer.Kupplung, AWSEKupplung)]
             $ AWSEUnbekannt eingabe
 
         eitherObjektAnhängen :: Wegstrecke (FixerZugtyp z)
@@ -1114,19 +1116,19 @@ instance MitAnfrage Objekt where
     anfrageAktualisieren AnfrageObjekt token =
         wähleZwischenwert
             token
-            [(Lexer.Bahngeschwindigkeit,
-              AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit
-                 ),
-             (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt),
-             (Lexer.Weiche, AOWeiche $ AnfrageNothing AnfrageWeiche),
-             (Lexer.Wegstrecke, AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp),
-             (Lexer.Kupplung, AOKupplung AnfrageKupplung),
-             (Lexer.Plan, AOPlan AnfragePlan)]
+            [ ( Lexer.Bahngeschwindigkeit
+                  , AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit
+                  )
+            , (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt)
+            , (Lexer.Weiche, AOWeiche $ AnfrageNothing AnfrageWeiche)
+            , (Lexer.Wegstrecke, AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp)
+            , (Lexer.Kupplung, AOKupplung AnfrageKupplung)
+            , (Lexer.Plan, AOPlan AnfragePlan)]
     anfrageAktualisieren (AOBahngeschwindigkeit (AnfrageNothing AnfrageBahngeschwindigkeit)) token =
         (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren (AOBahngeschwindigkeit (AnfrageMärklin aBahngeschwindigkeit)) token =
-        (AFErgebnis . OBahngeschwindigkeit . ZugtypMärklin,
-         AOBahngeschwindigkeit . AnfrageMärklin
+        ( AFErgebnis . OBahngeschwindigkeit . ZugtypMärklin
+        , AOBahngeschwindigkeit . AnfrageMärklin
         )
         $<< anfrageAktualisieren aBahngeschwindigkeit token
     anfrageAktualisieren (AOBahngeschwindigkeit (AnfrageLego aBahngeschwindigkeit)) token =

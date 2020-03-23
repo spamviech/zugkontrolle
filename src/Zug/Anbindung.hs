@@ -332,9 +332,9 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             (umdrehenAux
                  bg
                  bgmGeschwindigkeitsAnschluss
-                 [pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert pwmGrenze,
-                  warte umdrehenZeit,
-                  pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0])
+                 [ pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert pwmGrenze
+                 , warte umdrehenZeit
+                 , pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0])
             ("Umdrehen (" <> showText bgmGeschwindigkeitsAnschluss <> ")")
 
     fahrtrichtungEinstellen
@@ -346,11 +346,11 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             (umdrehenAux
                  bg
                  bglGeschwindigkeitsAnschluss
-                 [anschlussWrite bglFahrtrichtungsAnschluss
-                      $ (if fahrtrichtung == Vorwärts
-                             then fließend
-                             else gesperrt)
-                          bg])
+                 [ anschlussWrite bglFahrtrichtungsAnschluss
+                       $ (if fahrtrichtung == Vorwärts
+                              then fließend
+                              else gesperrt)
+                           bg])
             ("Umdrehen ("
              <> (showText bglGeschwindigkeitsAnschluss <^> showText bglFahrtrichtungsAnschluss
                  $ Language.Deutsch)

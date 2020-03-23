@@ -106,8 +106,8 @@ instance AktionBahngeschwindigkeitZugtyp 'Märklin where
         token@EingabeToken {eingabe} =
         wähleBefehl
             token
-            [(Lexer.Geschwindigkeit, AFZwischenwert $ AABGGeschwindigkeit bahngeschwindigkeit),
-             (Lexer.Umdrehen, AFErgebnis $ Umdrehen bahngeschwindigkeit)]
+            [ (Lexer.Geschwindigkeit, AFZwischenwert $ AABGGeschwindigkeit bahngeschwindigkeit)
+            , (Lexer.Umdrehen, AFErgebnis $ Umdrehen bahngeschwindigkeit)]
         $ AFFehler eingabe
     wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
@@ -119,8 +119,8 @@ instance AktionBahngeschwindigkeitZugtyp 'Lego where
     wähleAktionBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit) token =
         wähleZwischenwert
             token
-            [(Lexer.Geschwindigkeit, AABGGeschwindigkeit bahngeschwindigkeit),
-             (Lexer.FahrtrichtungEinstellen, AABGFahrtrichtungEinstellen bahngeschwindigkeit)]
+            [ (Lexer.Geschwindigkeit, AABGGeschwindigkeit bahngeschwindigkeit)
+            , (Lexer.FahrtrichtungEinstellen, AABGFahrtrichtungEinstellen bahngeschwindigkeit)]
     wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
 instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
@@ -142,8 +142,8 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
     anfrageAktualisieren (AABGFahrtrichtungEinstellen bahngeschwindigkeit) token =
         wähleErgebnis
             token
-            [(Lexer.Vorwärts, FahrtrichtungEinstellen bahngeschwindigkeit Vorwärts),
-             (Lexer.Rückwärts, FahrtrichtungEinstellen bahngeschwindigkeit Rückwärts)]
+            [ (Lexer.Vorwärts, FahrtrichtungEinstellen bahngeschwindigkeit Vorwärts)
+            , (Lexer.Rückwärts, FahrtrichtungEinstellen bahngeschwindigkeit Rückwärts)]
 
 -- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
 data AnfrageAktionStreckenabschnitt s
@@ -182,10 +182,10 @@ instance (StreckenabschnittKlasse s) => MitAnfrage (AktionStreckenabschnitt s) w
     anfrageAktualisieren (AASTStrom streckenabschnitt) token =
         wähleErgebnis
             token
-            [(Lexer.Fließend, Strom streckenabschnitt Fließend),
-             (Lexer.An, Strom streckenabschnitt Fließend),
-             (Lexer.Gesperrt, Strom streckenabschnitt Gesperrt),
-             (Lexer.Aus, Strom streckenabschnitt Gesperrt)]
+            [ (Lexer.Fließend, Strom streckenabschnitt Fließend)
+            , (Lexer.An, Strom streckenabschnitt Fließend)
+            , (Lexer.Gesperrt, Strom streckenabschnitt Gesperrt)
+            , (Lexer.Aus, Strom streckenabschnitt Gesperrt)]
 
 -- | Unvollständige 'Aktion' einer 'Weiche'
 data AnfrageAktionWeiche w
@@ -304,13 +304,13 @@ instance AktionWegstreckeZugtyp 'Märklin where
     wähleAktionWegstrecke (AnfrageAktionWegstrecke wegstrecke) token@EingabeToken {eingabe} =
         wähleBefehl
             token
-            [(Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke),
-             (Lexer.Geschwindigkeit,
-              AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
-                 ),
-             (Lexer.Umdrehen, AFErgebnis $ AWSBahngeschwindigkeit $ Umdrehen wegstrecke),
-             (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
-             (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
+            [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
+            , ( Lexer.Geschwindigkeit
+                  , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
+                  )
+            , (Lexer.Umdrehen, AFErgebnis $ AWSBahngeschwindigkeit $ Umdrehen wegstrecke)
+            , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
+            , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
     wähleAktionWegstrecke _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
@@ -322,22 +322,24 @@ instance AktionWegstreckeZugtyp 'Lego where
     wähleAktionWegstrecke (AnfrageAktionWegstrecke wegstrecke) token@EingabeToken {eingabe} =
         wähleBefehl
             token
-            [(Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke),
-             (Lexer.Geschwindigkeit,
-              AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
-                 ),
-             (Lexer.FahrtrichtungEinstellen,
-              AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGFahrtrichtungEinstellen wegstrecke
-                 ),
-             (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke),
-             (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
+            [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
+            , ( Lexer.Geschwindigkeit
+                  , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
+                  )
+            , ( Lexer.FahrtrichtungEinstellen
+                  , AFZwischenwert
+                    $ AAWSBahngeschwindigkeit
+                    $ AABGFahrtrichtungEinstellen wegstrecke
+                  )
+            , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
+            , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
     wähleAktionWegstrecke _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
-instance (AktionWegstreckeZugtyp z,
-          WegstreckeKlasse (w z),
-          BahngeschwindigkeitKlasse w,
-          AktionBahngeschwindigkeitZugtyp z
+instance ( AktionWegstreckeZugtyp z
+         , WegstreckeKlasse (w z)
+         , BahngeschwindigkeitKlasse w
+         , AktionBahngeschwindigkeitZugtyp z
          ) => MitAnfrage (AktionWegstrecke w z) where
     type AnfrageTyp (AktionWegstrecke w z) = AnfrageAktionWegstrecke w z
 
@@ -492,13 +494,13 @@ instance MitAnfrage Aktion where
             anfrageAktionElement token@EingabeToken {eingabe} =
                 wähleBefehl
                     token
-                    [(Lexer.Rückgängig, AAERückgängig),
-                     (Lexer.Warten, AAEWarten),
-                     (Lexer.Wegstrecke, AAEWegstrecke),
-                     (Lexer.Weiche, AAEWeiche),
-                     (Lexer.Bahngeschwindigkeit, AAEBahngeschwindigkeit),
-                     (Lexer.Streckenabschnitt, AAEStreckenabschnitt),
-                     (Lexer.Kupplung, AAEKupplung)]
+                    [ (Lexer.Rückgängig, AAERückgängig)
+                    , (Lexer.Warten, AAEWarten)
+                    , (Lexer.Wegstrecke, AAEWegstrecke)
+                    , (Lexer.Weiche, AAEWeiche)
+                    , (Lexer.Bahngeschwindigkeit, AAEBahngeschwindigkeit)
+                    , (Lexer.Streckenabschnitt, AAEStreckenabschnitt)
+                    , (Lexer.Kupplung, AAEKupplung)]
                 $ AAEUnbekannt eingabe
     anfrageAktualisieren _anfrage EingabeToken {möglichkeiten}
         | Lexer.Rückgängig `elem` möglichkeiten = AFZwischenwert AnfrageAktion
@@ -630,13 +632,13 @@ instance MitAnfrage Plan where
     anfrageAktualisieren (APlanNameAktionen plName aktionen) token =
         wähleErgebnis
             token
-            [(Lexer.EinfachAusführen, Plan { plName, plAktionen = toList aktionen }),
-             (Lexer.Dauerschleife, dauerschleife)]
+            [ (Lexer.EinfachAusführen, Plan { plName, plAktionen = toList aktionen })
+            , (Lexer.Dauerschleife, dauerschleife)]
         where
             dauerschleife :: Plan
             dauerschleife =
                 Plan
-                { plName,
-                  plAktionen = toList
+                { plName
+                , plAktionen = toList
                       $ Warteschlange.anhängen (AktionAusführen dauerschleife) aktionen
                 }

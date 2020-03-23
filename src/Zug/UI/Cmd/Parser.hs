@@ -86,20 +86,20 @@ import Zug.UI.Cmd.Parser.StreckenObjekt
 -- | Auswerten von Befehlen, so weit es ohne Status-Informationen möglich ist
 parser :: AnfrageBefehl
        -> [EingabeTokenAllgemein]
-       -> ([Befehl],
-           AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl),
-           [EingabeTokenAllgemein],
-           AnfrageBefehl
+       -> ( [Befehl]
+          , AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+          , [EingabeTokenAllgemein]
+          , AnfrageBefehl
           )
 parser = parserAux []
     where
         parserAux :: [Befehl]
                   -> AnfrageBefehl
                   -> [EingabeTokenAllgemein]
-                  -> ([Befehl],
-                      AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl),
-                      [EingabeTokenAllgemein],
-                      AnfrageBefehl
+                  -> ( [Befehl]
+                     , AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+                     , [EingabeTokenAllgemein]
+                     , AnfrageBefehl
                      )
         parserAux acc anfrage@AnfrageBefehl [] = parserErgebnisOk acc anfrage
         parserAux acc anfrage@(ABAktionPlanAusführend plan Neu) [] =
@@ -130,20 +130,20 @@ parser = parserAux []
                        -> [EingabeTokenAllgemein]
                        -> AnfrageBefehl
                        -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
-                       -> ([Befehl],
-                           AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl),
-                           [EingabeTokenAllgemein],
-                           AnfrageBefehl
+                       -> ( [Befehl]
+                          , AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+                          , [EingabeTokenAllgemein]
+                          , AnfrageBefehl
                           )
         parserErgebnis acc eingabeRest backup anfrageFortsetzung =
             (reverse acc, anfrageFortsetzung, eingabeRest, backup)
 
         parserErgebnisOk :: [Befehl]
                          -> AnfrageBefehl
-                         -> ([Befehl],
-                             AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl),
-                             [EingabeTokenAllgemein],
-                             AnfrageBefehl
+                         -> ( [Befehl]
+                            , AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+                            , [EingabeTokenAllgemein]
+                            , AnfrageBefehl
                             )
         parserErgebnisOk befehle backup =
             parserErgebnis befehle [] backup $ AFZwischenwert AnfrageBefehl
@@ -252,17 +252,17 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
     anfrageAktualisieren AnfrageBefehl token@EingabeToken {eingabe} =
         wähleBefehl
             token
-            [(Lexer.Beenden, AFErgebnis $ Right $ UI Beenden),
-             (Lexer.Hinzufügen, AFZwischenwert $ ABHinzufügen AnfrageObjekt),
-             (Lexer.Entfernen, AFZwischenwert ABEntfernen),
-             (Lexer.Speichern, AFZwischenwert ABSpeichern),
-             (Lexer.Laden, AFZwischenwert ABLaden),
-             (Lexer.Plan, AFZwischenwert $ ABStatusAnfrage SAOPlan planWählen),
-             (Lexer.Wegstrecke, anfrageAktualisieren (ABAktion AnfrageAktion) token),
-             (Lexer.Weiche, anfrageAktualisieren (ABAktion AnfrageAktion) token),
-             (Lexer.Bahngeschwindigkeit, anfrageAktualisieren (ABAktion AnfrageAktion) token),
-             (Lexer.Streckenabschnitt, anfrageAktualisieren (ABAktion AnfrageAktion) token),
-             (Lexer.Kupplung, anfrageAktualisieren (ABAktion AnfrageAktion) token)]
+            [ (Lexer.Beenden, AFErgebnis $ Right $ UI Beenden)
+            , (Lexer.Hinzufügen, AFZwischenwert $ ABHinzufügen AnfrageObjekt)
+            , (Lexer.Entfernen, AFZwischenwert ABEntfernen)
+            , (Lexer.Speichern, AFZwischenwert ABSpeichern)
+            , (Lexer.Laden, AFZwischenwert ABLaden)
+            , (Lexer.Plan, AFZwischenwert $ ABStatusAnfrage SAOPlan planWählen)
+            , (Lexer.Wegstrecke, anfrageAktualisieren (ABAktion AnfrageAktion) token)
+            , (Lexer.Weiche, anfrageAktualisieren (ABAktion AnfrageAktion) token)
+            , (Lexer.Bahngeschwindigkeit, anfrageAktualisieren (ABAktion AnfrageAktion) token)
+            , (Lexer.Streckenabschnitt, anfrageAktualisieren (ABAktion AnfrageAktion) token)
+            , (Lexer.Kupplung, anfrageAktualisieren (ABAktion AnfrageAktion) token)]
         $ AFFehler eingabe
         where
             planWählen :: Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
@@ -275,8 +275,8 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
     anfrageAktualisieren ABSprache token =
         wähleErgebnis
             token
-            [(Lexer.Deutsch, Right $ SprachWechsel Deutsch),
-             (Lexer.Englisch, Right $ SprachWechsel Englisch)]
+            [ (Lexer.Deutsch, Right $ SprachWechsel Deutsch)
+            , (Lexer.Englisch, Right $ SprachWechsel Englisch)]
     anfrageAktualisieren (ABHinzufügen anfrageObjekt) token =
         (AFErgebnis . Right . Hinzufügen, ABHinzufügen)
         $<< anfrageAktualisieren anfrageObjekt token
@@ -317,10 +317,10 @@ anfrageObjektExistierend :: EingabeToken -> Maybe (EingabeToken -> StatusAnfrage
 anfrageObjektExistierend token@EingabeToken {} =
     wähleBefehl
         token
-        [(Lexer.Plan, Just SAOPlan),
-         (Lexer.Wegstrecke, Just SAOWegstrecke),
-         (Lexer.Weiche, Just SAOWeiche),
-         (Lexer.Bahngeschwindigkeit, Just SAOBahngeschwindigkeit),
-         (Lexer.Streckenabschnitt, Just SAOStreckenabschnitt),
-         (Lexer.Kupplung, Just SAOKupplung)]
+        [ (Lexer.Plan, Just SAOPlan)
+        , (Lexer.Wegstrecke, Just SAOWegstrecke)
+        , (Lexer.Weiche, Just SAOWeiche)
+        , (Lexer.Bahngeschwindigkeit, Just SAOBahngeschwindigkeit)
+        , (Lexer.Streckenabschnitt, Just SAOStreckenabschnitt)
+        , (Lexer.Kupplung, Just SAOKupplung)]
         Nothing

@@ -589,10 +589,10 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-                { wcbrWidget = erhalteWidget hBox
-                , wcbrRegistrierterCheckButton
-                , wcbrRichtungsAuswahl
-                }
+            { wcbrWidget = erhalteWidget hBox
+            , wcbrRegistrierterCheckButton
+            , wcbrRichtungsAuswahl
+            }
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 --
@@ -1539,7 +1539,7 @@ wegstreckePackNew :: forall m z.
                   -> MStatusGuiT m (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke
-        {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
+    {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets

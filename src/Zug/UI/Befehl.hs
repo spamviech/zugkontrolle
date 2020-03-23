@@ -84,19 +84,19 @@ instance BefehlKlasse UIBefehlAllgemein o where
     ausführenBefehl Beenden = pure True
     ausführenBefehl Abbrechen = pure False
 
-instance (ObjektKlasse o,
-          ToJSON o,
-          Eq ((BG o) 'Märklin),
-          Eq ((BG o) 'Lego),
-          Eq (ST o),
-          Eq ((WE o) 'Märklin),
-          Eq ((WE o) 'Lego),
-          Eq (KU o),
-          Eq ((WS o) 'Märklin),
-          Eq ((WS o) 'Lego),
-          Eq (PL o),
-          MitSprache (SP o),
-          MitTVarMaps (ReaderFamilie o)
+instance ( ObjektKlasse o
+         , ToJSON o
+         , Eq ((BG o) 'Märklin)
+         , Eq ((BG o) 'Lego)
+         , Eq (ST o)
+         , Eq ((WE o) 'Märklin)
+         , Eq ((WE o) 'Lego)
+         , Eq (KU o)
+         , Eq ((WS o) 'Märklin)
+         , Eq ((WS o) 'Lego)
+         , Eq (PL o)
+         , MitSprache (SP o)
+         , MitTVarMaps (ReaderFamilie o)
          ) => BefehlKlasse BefehlAllgemein o where
     ausführenBefehl :: (MonadIO m) => BefehlAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl befehl = ausführenBefehlAux befehl >> pure (istBeenden befehl)
@@ -107,20 +107,20 @@ instance (ObjektKlasse o,
 
             ausführenBefehlAux
                 :: forall o m.
-                (ObjektKlasse o,
-                 ToJSON o,
-                 Eq ((BG o) 'Märklin),
-                 Eq ((BG o) 'Lego),
-                 Eq (ST o),
-                 Eq ((WE o) 'Märklin),
-                 Eq ((WE o) 'Lego),
-                 Eq (KU o),
-                 Eq ((WS o) 'Märklin),
-                 Eq ((WS o) 'Lego),
-                 Eq (PL o),
-                 MitSprache (SP o),
-                 MitTVarMaps (ReaderFamilie o),
-                 MonadIO m
+                ( ObjektKlasse o
+                , ToJSON o
+                , Eq ((BG o) 'Märklin)
+                , Eq ((BG o) 'Lego)
+                , Eq (ST o)
+                , Eq ((WE o) 'Märklin)
+                , Eq ((WE o) 'Lego)
+                , Eq (KU o)
+                , Eq ((WS o) 'Märklin)
+                , Eq ((WS o) 'Lego)
+                , Eq (PL o)
+                , MitSprache (SP o)
+                , MitTVarMaps (ReaderFamilie o)
+                , MonadIO m
                 )
                 => BefehlAllgemein o
                 -> MStatusAllgemeinT m o ()
@@ -176,38 +176,38 @@ newtype BefehlListeAllgemein o = BefehlListe { getBefehlListe :: [BefehlAllgemei
 -- | 'BefehlListeAllgemein' spezialisiert auf 'Objekt'
 type BefehlListe = BefehlListeAllgemein Objekt
 
-instance (ObjektKlasse o,
-          ToJSON o,
-          Eq ((BG o) 'Märklin),
-          Eq ((BG o) 'Lego),
-          Eq (ST o),
-          Eq ((WE o) 'Märklin),
-          Eq ((WE o) 'Lego),
-          Eq (KU o),
-          Eq ((WS o) 'Märklin),
-          Eq ((WS o) 'Lego),
-          Eq (PL o),
-          MitSprache (SP o),
-          MitTVarMaps (ReaderFamilie o)
+instance ( ObjektKlasse o
+         , ToJSON o
+         , Eq ((BG o) 'Märklin)
+         , Eq ((BG o) 'Lego)
+         , Eq (ST o)
+         , Eq ((WE o) 'Märklin)
+         , Eq ((WE o) 'Lego)
+         , Eq (KU o)
+         , Eq ((WS o) 'Märklin)
+         , Eq ((WS o) 'Lego)
+         , Eq (PL o)
+         , MitSprache (SP o)
+         , MitTVarMaps (ReaderFamilie o)
          ) => BefehlKlasse BefehlListeAllgemein o where
     ausführenBefehl :: (MonadIO m) => BefehlListeAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
             ausführenBefehlAux
-                :: (ObjektKlasse o,
-                    ToJSON o,
-                    Eq ((BG o) 'Märklin),
-                    Eq ((BG o) 'Lego),
-                    Eq (ST o),
-                    Eq ((WE o) 'Märklin),
-                    Eq ((WE o) 'Lego),
-                    Eq (KU o),
-                    Eq ((WS o) 'Märklin),
-                    Eq ((WS o) 'Lego),
-                    Eq (PL o),
-                    MitSprache (SP o),
-                    MitTVarMaps (ReaderFamilie o),
-                    MonadIO m
+                :: ( ObjektKlasse o
+                   , ToJSON o
+                   , Eq ((BG o) 'Märklin)
+                   , Eq ((BG o) 'Lego)
+                   , Eq (ST o)
+                   , Eq ((WE o) 'Märklin)
+                   , Eq ((WE o) 'Lego)
+                   , Eq (KU o)
+                   , Eq ((WS o) 'Märklin)
+                   , Eq ((WS o) 'Lego)
+                   , Eq (PL o)
+                   , MitSprache (SP o)
+                   , MitTVarMaps (ReaderFamilie o)
+                   , MonadIO m
                    )
                 => [BefehlAllgemein o]
                 -> MStatusAllgemeinT m o Bool

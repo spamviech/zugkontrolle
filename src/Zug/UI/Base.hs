@@ -116,22 +116,22 @@ data StatusAllgemein o =
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
 
-deriving instance (Eq (ZugtypEither (BG o)),
-                   Eq (ST o),
-                   Eq (ZugtypEither (WE o)),
-                   Eq (KU o),
-                   Eq (ZugtypEither (WS o)),
-                   Eq (PL o),
-                   Eq (SP o)
+deriving instance ( Eq (ZugtypEither (BG o))
+                  , Eq (ST o)
+                  , Eq (ZugtypEither (WE o))
+                  , Eq (KU o)
+                  , Eq (ZugtypEither (WS o))
+                  , Eq (PL o)
+                  , Eq (SP o)
                   ) => Eq (StatusAllgemein o)
 
-deriving instance (Show (ZugtypEither (BG o)),
-                   Show (ST o),
-                   Show (ZugtypEither (WE o)),
-                   Show (KU o),
-                   Show (ZugtypEither (WS o)),
-                   Show (PL o),
-                   Show (SP o)
+deriving instance ( Show (ZugtypEither (BG o))
+                  , Show (ST o)
+                  , Show (ZugtypEither (WE o))
+                  , Show (KU o)
+                  , Show (ZugtypEither (WS o))
+                  , Show (PL o)
+                  , Show (SP o)
                   ) => Show (StatusAllgemein o)
 
 -- | Simple Copy&Paste from the lens-definition (remove need for CPP).
@@ -174,12 +174,12 @@ pläne = lens _pläne $ \status pls -> status { _pläne = pls }
 sprache :: Lens' (StatusAllgemein o) (SP o)
 sprache = lens _sprache $ \status sp -> status { _sprache = sp }
 
-instance (Anzeige (ZugtypEither (BG o)),
-          Anzeige (ST o),
-          Anzeige (ZugtypEither (WE o)),
-          Anzeige (KU o),
-          Anzeige (ZugtypEither (WS o)),
-          Anzeige (PL o)
+instance ( Anzeige (ZugtypEither (BG o))
+         , Anzeige (ST o)
+         , Anzeige (ZugtypEither (WE o))
+         , Anzeige (KU o)
+         , Anzeige (ZugtypEither (WS o))
+         , Anzeige (PL o)
          ) => Anzeige (StatusAllgemein o) where
     anzeige :: StatusAllgemein o -> Sprache -> Text
     anzeige status =
@@ -217,13 +217,13 @@ instance (Anzeige (ZugtypEither (BG o)),
 statusLeer :: SP o -> StatusAllgemein o
 statusLeer _sprache =
     Status
-    { _bahngeschwindigkeiten = [],
-      _streckenabschnitte = [],
-      _weichen = [],
-      _kupplungen = [],
-      _wegstrecken = [],
-      _pläne = [],
-      _sprache
+    { _bahngeschwindigkeiten = []
+    , _streckenabschnitte = []
+    , _weichen = []
+    , _kupplungen = []
+    , _wegstrecken = []
+    , _pläne = []
+    , _sprache
     }
 
 -- | Sammlung aller benötigten 'TVar's

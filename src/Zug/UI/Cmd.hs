@@ -76,10 +76,10 @@ mainStatus = do
 statusParser :: [EingabeTokenAllgemein] -> IOStatus Bool
 statusParser = statusParserAux . parser AnfrageBefehl
     where
-        statusParserAux :: ([Befehl],
-                            AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl),
-                            [EingabeTokenAllgemein],
-                            AnfrageBefehl
+        statusParserAux :: ( [Befehl]
+                           , AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
+                           , [EingabeTokenAllgemein]
+                           , AnfrageBefehl
                            )
                         -> IOStatus Bool
         statusParserAux (befehle, fortsetzung, eingabeRest, backup) = do

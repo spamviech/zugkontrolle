@@ -32,54 +32,54 @@ lexEinen eingabe
 lexEinen eingabe =
     Tk
     $ EingabeToken
-    { eingabe,
-      möglichkeiten = [token | (befehl, token) <- befehlToken, istBefehl eingabe befehl],
-      ganzzahl = readMaybe $ unpack eingabe
+    { eingabe
+    , möglichkeiten = [token | (befehl, token) <- befehlToken, istBefehl eingabe befehl]
+    , ganzzahl = readMaybe $ unpack eingabe
     }
     where
         befehlToken :: [(Sprache -> Text, Token)]
         befehlToken =
-            [(Language.beenden, Beenden),
-             (Language.abbrechen, Abbrechen),
-             (Language.rückgängig, Rückgängig),
-             (Language.hinzufügen, Hinzufügen),
-             (Language.entfernen, Entfernen),
-             (Language.speichern, Speichern),
-             (Language.laden, Laden),
-             (Language.geschwindigkeit, Geschwindigkeit),
-             (Language.umdrehen, Umdrehen),
-             (Language.fahrtrichtungEinstellen, FahrtrichtungEinstellen),
-             (Language.stellen, Stellen),
-             (Language.strom, Strom),
-             (Language.fließend, Fließend),
-             (Language.gesperrt, Gesperrt),
-             (Language.an, An),
-             (Language.aus, Aus),
-             (Language.kuppeln, Kuppeln),
-             (Language.einstellen, Einstellen),
-             (Language.ausführen, Ausführen),
-             (Language.ausführenAbbrechen, AusführenAbbrechen),
-             (Language.warten, Warten),
-             (Language.plan, Plan),
-             (Language.wegstrecke, Wegstrecke),
-             (Language.weiche, Weiche),
-             (Language.bahngeschwindigkeit, Bahngeschwindigkeit),
-             (Language.streckenabschnitt, Streckenabschnitt),
-             (Language.kupplung, Kupplung),
-             (Language.märklin, Märklin),
-             (Language.lego, Lego),
-             (Language.pin, Pin),
-             (Language.pcf8574Port, PCF8574Port),
-             (Language.normal, Normal),
-             (Language.a, A),
-             (Language.gerade, Gerade),
-             (Language.kurve, Kurve),
-             (Language.links, Links),
-             (Language.rechts, Rechts),
-             (Language.vorwärts, Vorwärts),
-             (Language.rückwärts, Rückwärts),
-             (Language.high, HIGH),
-             (Language.low, LOW)]
+            [ (Language.beenden, Beenden)
+            , (Language.abbrechen, Abbrechen)
+            , (Language.rückgängig, Rückgängig)
+            , (Language.hinzufügen, Hinzufügen)
+            , (Language.entfernen, Entfernen)
+            , (Language.speichern, Speichern)
+            , (Language.laden, Laden)
+            , (Language.geschwindigkeit, Geschwindigkeit)
+            , (Language.umdrehen, Umdrehen)
+            , (Language.fahrtrichtungEinstellen, FahrtrichtungEinstellen)
+            , (Language.stellen, Stellen)
+            , (Language.strom, Strom)
+            , (Language.fließend, Fließend)
+            , (Language.gesperrt, Gesperrt)
+            , (Language.an, An)
+            , (Language.aus, Aus)
+            , (Language.kuppeln, Kuppeln)
+            , (Language.einstellen, Einstellen)
+            , (Language.ausführen, Ausführen)
+            , (Language.ausführenAbbrechen, AusführenAbbrechen)
+            , (Language.warten, Warten)
+            , (Language.plan, Plan)
+            , (Language.wegstrecke, Wegstrecke)
+            , (Language.weiche, Weiche)
+            , (Language.bahngeschwindigkeit, Bahngeschwindigkeit)
+            , (Language.streckenabschnitt, Streckenabschnitt)
+            , (Language.kupplung, Kupplung)
+            , (Language.märklin, Märklin)
+            , (Language.lego, Lego)
+            , (Language.pin, Pin)
+            , (Language.pcf8574Port, PCF8574Port)
+            , (Language.normal, Normal)
+            , (Language.a, A)
+            , (Language.gerade, Gerade)
+            , (Language.kurve, Kurve)
+            , (Language.links, Links)
+            , (Language.rechts, Rechts)
+            , (Language.vorwärts, Vorwärts)
+            , (Language.rückwärts, Rückwärts)
+            , (Language.high, HIGH)
+            , (Language.low, LOW)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
 data EingabeTokenAllgemein

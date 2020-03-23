@@ -147,22 +147,22 @@ ausführenStatusVarAktion aktion = auswertenStatusVarIOStatus $ ausführenAktion
 
 -- | Führe einen Befehl mit einem in einer 'StatusVar' gespeichertem Zustand aus
 ausführenStatusVarBefehl
-    :: (ObjektReader o m,
-        MonadIO m,
-        BefehlKlasse b o,
-        ObjektKlasse o,
-        ToJSON o,
-        Eq ((BG o) 'Märklin),
-        Eq ((BG o) 'Lego),
-        Eq (ST o),
-        Eq ((WE o) 'Märklin),
-        Eq ((WE o) 'Lego),
-        Eq (KU o),
-        Eq ((WS o) 'Märklin),
-        Eq ((WS o) 'Lego),
-        Eq (PL o),
-        MitSprache (SP o),
-        MitTVarMaps (ReaderFamilie o)
+    :: ( ObjektReader o m
+       , MonadIO m
+       , BefehlKlasse b o
+       , ObjektKlasse o
+       , ToJSON o
+       , Eq ((BG o) 'Märklin)
+       , Eq ((BG o) 'Lego)
+       , Eq (ST o)
+       , Eq ((WE o) 'Märklin)
+       , Eq ((WE o) 'Lego)
+       , Eq (KU o)
+       , Eq ((WS o) 'Märklin)
+       , Eq ((WS o) 'Lego)
+       , Eq (PL o)
+       , MitSprache (SP o)
+       , MitTVarMaps (ReaderFamilie o)
        )
     => b o
     -> StatusVar o

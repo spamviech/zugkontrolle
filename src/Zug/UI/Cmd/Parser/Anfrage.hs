@@ -123,18 +123,18 @@ instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'Anf
     show (AnfrageMärklin a) = show a
     show (AnfrageLego a) = show a
 
-instance (Anzeige (a 'AnfrageZugtyp),
-          Anzeige (a 'AnfrageZugtypMärklin),
-          Anzeige (a 'AnfrageZugtypLego)
+instance ( Anzeige (a 'AnfrageZugtyp)
+         , Anzeige (a 'AnfrageZugtypMärklin)
+         , Anzeige (a 'AnfrageZugtypLego)
          ) => Anzeige (AnfrageZugtypEither a) where
     anzeige :: AnfrageZugtypEither a -> Sprache -> Text
     anzeige (AnfrageNothing a) = anzeige a
     anzeige (AnfrageMärklin a) = anzeige a
     anzeige (AnfrageLego a) = anzeige a
 
-instance (Anfrage (a 'AnfrageZugtyp),
-          Anfrage (a 'AnfrageZugtypMärklin),
-          Anfrage (a 'AnfrageZugtypLego)
+instance ( Anfrage (a 'AnfrageZugtyp)
+         , Anfrage (a 'AnfrageZugtypMärklin)
+         , Anfrage (a 'AnfrageZugtypLego)
          ) => Anfrage (AnfrageZugtypEither a) where
     zeigeAnfrage :: AnfrageZugtypEither a -> Sprache -> Text
     zeigeAnfrage (AnfrageNothing a) = zeigeAnfrage a
@@ -321,10 +321,10 @@ wähleRichtung :: EingabeToken -> Maybe Richtung
 wähleRichtung token =
     wähleBefehl
         token
-        [(Lexer.Gerade, Just Gerade),
-         (Lexer.Kurve, Just Kurve),
-         (Lexer.Links, Just Links),
-         (Lexer.Rechts, Just Rechts)]
+        [ (Lexer.Gerade, Just Gerade)
+        , (Lexer.Kurve, Just Kurve)
+        , (Lexer.Links, Just Links)
+        , (Lexer.Rechts, Just Rechts)]
         Nothing
 
 -- | Gebe (falls möglich) den zur Eingabe passenden 'Value' zurück.
@@ -377,24 +377,24 @@ verwendeAnfrageFortsetzung
     anfrageFunktion
     AFStatusAnfrage {anfrageObjekt, konstruktor} =
     AFStatusAnfrage
-    { anfrageObjekt,
-      konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor
+    { anfrageObjekt
+    , konstruktor = (wertFunktion, anfrageFunktion) .<< konstruktor
     }
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
     AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} =
     AFStatusAnfrageMärklin
-    { anfrageObjektMärklin,
-      konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin
+    { anfrageObjektMärklin
+    , konstruktorMärklin = (wertFunktion, anfrageFunktion) .<< konstruktorMärklin
     }
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
     AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} =
     AFStatusAnfrageLego
-    { anfrageObjektLego,
-      konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego
+    { anfrageObjektLego
+    , konstruktorLego = (wertFunktion, anfrageFunktion) .<< konstruktorLego
     }
 verwendeAnfrageFortsetzung _wertFunktion _anfrageFunktion AFFehler {unbekannteEingabe} =
     AFFehler { unbekannteEingabe }
@@ -410,10 +410,10 @@ infixr 0 $<<
 infixr 9 .<<
 
 -- | Verkette zwei Funktionen, die als Ergebnis eine 'AnfrageFortsetzung' haben.
-(.<<) :: (e
-              -> AnfrageFortsetzung b f,
-          a
-              -> b
+(.<<) :: ( e
+               -> AnfrageFortsetzung b f
+         , a
+               -> b
          )
       -> (o -> AnfrageFortsetzung a e)
       -> (o -> AnfrageFortsetzung b f)

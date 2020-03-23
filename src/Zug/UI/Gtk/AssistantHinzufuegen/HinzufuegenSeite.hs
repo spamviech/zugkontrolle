@@ -180,7 +180,7 @@ seiteErgebnis
     fließendAuswahl
     zugtypAuswahl
     HinzufügenSeiteBahngeschwindigkeit
-        {nameAuswahl, geschwindigkeitAuswahl, fahrtrichtungsAuswahl} = do
+    {nameAuswahl, geschwindigkeitAuswahl, fahrtrichtungsAuswahl} = do
     name <- aktuellerName nameAuswahl
     fließend <- aktuellerFließendValue fließendAuswahl
     geschwindigkeitsAnschluss <- aktuellerAnschluss geschwindigkeitAuswahl
@@ -189,21 +189,21 @@ seiteErgebnis
             $ OBahngeschwindigkeit
             $ ZugtypMärklin
                 MärklinBahngeschwindigkeit
-                    { bgmName = name
-                    , bgmFließend = fließend
-                    , bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
-                    }
+                { bgmName = name
+                , bgmFließend = fließend
+                , bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
+                }
         Lego -> do
             bglFahrtrichtungsAnschluss <- aktuellerAnschluss fahrtrichtungsAuswahl
             pure
                 $ OBahngeschwindigkeit
                 $ ZugtypLego
                     LegoBahngeschwindigkeit
-                        { bglName = name
-                        , bglFließend = fließend
-                        , bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
-                        , bglFahrtrichtungsAnschluss
-                        }
+                    { bglName = name
+                    , bglFließend = fließend
+                    , bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
+                    , bglFahrtrichtungsAnschluss
+                    }
 seiteErgebnis
     fließendAuswahl
     _zugtypAuswahl
@@ -216,7 +216,7 @@ seiteErgebnis
     fließendAuswahl
     zugtypAuswahl
     HinzufügenSeiteWeiche
-        {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} = do
+    {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} = do
     name <- aktuellerName nameAuswahl
     fließend <- aktuellerFließendValue fließendAuswahl
     aktuelleAuswahl zugtypAuswahl >>= \case
@@ -234,10 +234,10 @@ seiteErgebnis
                 $ OWeiche
                 $ ZugtypMärklin
                     MärklinWeiche
-                        { wemName = name
-                        , wemFließend = fließend
-                        , wemRichtungsAnschlüsse
-                        }
+                    { wemName = name
+                    , wemFließend = fließend
+                    , wemRichtungsAnschlüsse
+                    }
         Lego -> do
             welRichtungen <- aktuelleAuswahl legoRichtungenAuswahl
             welRichtungsAnschluss <- aktuellerAnschluss legoRichtungsAuswahl
@@ -245,11 +245,11 @@ seiteErgebnis
                 $ OWeiche
                 $ ZugtypLego
                     LegoWeiche
-                        { welName = name
-                        , welFließend = fließend
-                        , welRichtungen
-                        , welRichtungsAnschluss
-                        }
+                    { welName = name
+                    , welFließend = fließend
+                    , welRichtungen
+                    , welRichtungsAnschluss
+                    }
 seiteErgebnis
     fließendAuswahl
     _zugtypAuswahl
@@ -284,12 +284,12 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
             wsKupplungen <- foldM anhängenWennToggled [] $ aktuellerStatus ^. kupplungen
             pure
                 Wegstrecke
-                    { wsName
-                    , wsBahngeschwindigkeiten
-                    , wsStreckenabschnitte
-                    , wsWeichenRichtungen
-                    , wsKupplungen
-                    }
+                { wsName
+                , wsBahngeschwindigkeiten
+                , wsStreckenabschnitte
+                , wsWeichenRichtungen
+                , wsKupplungen
+                }
         anhängenWennToggled :: (WidgetsTyp a, WegstreckenElement a, MonadIO m)
                              => [ObjektTyp a]
                              -> a
@@ -350,12 +350,12 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
         $ zugtypSpezifischNew [(Lego, fahrtrichtungsAuswahl)] auswahlZugtyp
     pure
         HinzufügenSeiteBahngeschwindigkeit
-            { vBox
-            , nameAuswahl
-            , geschwindigkeitAuswahl
-              -- Lego
-            , fahrtrichtungsAuswahl
-            }
+        { vBox
+        , nameAuswahl
+        , geschwindigkeitAuswahl
+          -- Lego
+        , fahrtrichtungsAuswahl
+        }
 
 hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)
                                 => Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -431,15 +431,15 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
             auswahlZugtyp
     pure
         HinzufügenSeiteWeiche
-            { vBox
-            , nameAuswahl
-            , buttonHinzufügenWeiche
-              -- Märklin
-            , märklinRichtungsAuswahl
-              -- Lego
-            , legoRichtungsAuswahl
-            , legoRichtungenAuswahl
-            }
+        { vBox
+        , nameAuswahl
+        , buttonHinzufügenWeiche
+          -- Märklin
+        , märklinRichtungsAuswahl
+          -- Lego
+        , legoRichtungsAuswahl
+        , legoRichtungenAuswahl
+        }
 
 hinzufügenKupplungNew :: (SpracheGuiReader r m, MonadIO m)
                        => Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -483,10 +483,10 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
         $ pure vBoxHinzufügenWegstreckeKupplungen
     pure
         HinzufügenSeiteWegstrecke
-            { vBox
-            , nameAuswahl
-            , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
-            }
+        { vBox
+        , nameAuswahl
+        , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
+        }
 
 hinzufügenPlanNew :: (MitWindow p, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                    => p
@@ -615,8 +615,8 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         ztWegstreckenBG <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ ( Märklin
-                  , erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                  )
+                      , erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                      )
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego)]
                 auswahlZugtyp
         ztWegstreckenST <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
@@ -742,11 +742,11 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
     pure
         HinzufügenSeitePlan
-            { vBox
-            , nameAuswahl
-            , tvarAktionen
-            , checkButtonDauerschleife
-            , buttonHinzufügenPlan
-            }
+        { vBox
+        , nameAuswahl
+        , tvarAktionen
+        , checkButtonDauerschleife
+        , buttonHinzufügenPlan
+        }
 #endif
 --
