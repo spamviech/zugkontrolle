@@ -46,39 +46,19 @@ Streckenabschnitte:
   Fließend: LOW
 - Name: B.St
   StromPin:
-    PCF8574Port:
-      Variante: A
-      a2: LOW
-      PCF8574Port: 3
-      a1: LOW
-      a0: LOW
+    Pin: 25
   Fließend: LOW
 - Name: Z.St
   StromPin:
-    PCF8574Port:
-      Variante: A
-      a2: LOW
-      PCF8574Port: 2
-      a1: LOW
-      a0: LOW
+    Pin: 8
   Fließend: LOW
 - Name: I.St
   StromPin:
-    PCF8574Port:
-      Variante: A
-      a2: LOW
-      PCF8574Port: 1
-      a1: LOW
-      a0: LOW
+    Pin: 7
   Fließend: LOW
 - Name: O.St
   StromPin:
-    PCF8574Port:
-      Variante: A
-      a2: LOW
-      PCF8574Port: 0
-      a1: LOW
-      a0: LOW
+    Pin: 1
   Fließend: LOW
 Bahngeschwindigkeiten:
 - GeschwindigkeitsPin:
@@ -395,21 +375,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 0
-        a1: LOW
-        a0: LOW
+      Pin: 1
     Fließend: LOW
   - Name: B.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 3
-        a1: LOW
-        a0: LOW
+      Pin: 25
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
@@ -556,12 +526,7 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 0
-        a1: LOW
-        a0: LOW
+      Pin: 1
     Fließend: LOW
   - Name: A5.St
     StromPin:
@@ -726,21 +691,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 1
-        a1: LOW
-        a0: LOW
+      Pin: 7
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 2
-        a1: LOW
-        a0: LOW
+      Pin: 8
     Fließend: LOW
   - Name: A4.St
     StromPin:
@@ -915,21 +870,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 1
-        a1: LOW
-        a0: LOW
+      Pin: 7
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 2
-        a1: LOW
-        a0: LOW
+      Pin: 8
     Fließend: LOW
   - Name: A3.St
     StromPin:
@@ -1104,21 +1049,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 1
-        a1: LOW
-        a0: LOW
+      Pin: 7
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 2
-        a1: LOW
-        a0: LOW
+      Pin: 8
     Fließend: LOW
   - Name: A2.St
     StromPin:
@@ -1293,21 +1228,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 1
-        a1: LOW
-        a0: LOW
+      Pin: 7
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 2
-        a1: LOW
-        a0: LOW
+      Pin: 8
     Fließend: LOW
   - Name: A1.St
     StromPin:
@@ -1482,21 +1407,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 1
-        a1: LOW
-        a0: LOW
+      Pin: 7
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 2
-        a1: LOW
-        a0: LOW
+      Pin: 8
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
@@ -1643,12 +1558,7 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 1
-        a1: LOW
-        a0: LOW
+      Pin: 7
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
@@ -1776,12 +1686,7 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
     StromPin:
-      PCF8574Port:
-        Variante: A
-        a2: LOW
-        PCF8574Port: 0
-        a1: LOW
-        a0: LOW
+      Pin: 1
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
