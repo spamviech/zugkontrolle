@@ -21,6 +21,7 @@ import System.Console.ANSI
 import System.IO (hFlush, stdout)
 
 -- Abhängigkeiten von anderen Modulen
+import Zug.Anbindung (Wartezeit())
 import Zug.Enums (ZugtypKlasse())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), ($#), (<~>), (<\>), (<=>), (<!>), (<:>)
@@ -39,14 +40,14 @@ import Zug.UI.Cmd.Parser
 import qualified Zug.UI.Save as Save
 
 -- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
-main :: IO ()
-main = do
+main :: Wartezeit -> IO ()
+main i2cRefreshRate = do
     -- Lade Datei angegeben in Kommandozeilenargument
     Options {load = path, sprache} <- getOptions
     Save.laden path pure sprache >>= \case
-        Nothing -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
+        Nothing -> auswertenLeererIOStatus mainStatus (tvarMapsNeu i2cRefreshRate) sprache
         (Just anfangsZustand) -> do
-            tvarMaps <- tvarMapsNeu
+            tvarMaps <- tvarMapsNeu i2cRefreshRate
             void $ evalRWST mainStatus tvarMaps anfangsZustand
 
 -- | main loop

@@ -29,6 +29,7 @@ module Zug.Anbindung
   , i2cMapEmpty
   , MitI2CMap(..)
   , I2CReader(..)
+  , i2cContinuousRefresh
   , Value(..)
   , alleValues
   , Pin()
@@ -81,7 +82,7 @@ import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..), pinMode, pwmSetR
 import Zug.Anbindung.Anschluss
        (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPin, zuPin, vonPinGpio
       , zuPinGpio, vonPCF8574Port, zuPCF8574Port, anschlussWrite, Value(..), I2CMap, i2cMapEmpty
-      , MitI2CMap(..), I2CReader(..))
+      , MitI2CMap(..), I2CReader(..), i2cContinuousRefresh)
 import Zug.Anbindung.SoftwarePWM
        (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
 import Zug.Anbindung.Wartezeit
@@ -243,7 +244,7 @@ instance (StreckenAtom (a 'Märklin), StreckenAtom (a 'Lego)) => StreckenAtom (Z
     fließend (ZugtypMärklin a) = fließend a
     fließend (ZugtypLego a) = fließend a
 
--- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
+  -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
 data Bahngeschwindigkeit (z :: Zugtyp) where
     LegoBahngeschwindigkeit :: { bglName :: Text
                                , bglFließend :: Value
@@ -405,7 +406,7 @@ instance StreckenabschnittKlasse Streckenabschnitt where
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
 
--- | Stellen einer 'Weiche'
+  -- | Stellen einer 'Weiche'
 data Weiche (z :: Zugtyp) where
     LegoWeiche :: { welName :: Text
                   , welFließend :: Value
@@ -594,8 +595,11 @@ data Wegstrecke (z :: Zugtyp) =
 instance Anzeige (Wegstrecke z) where
     anzeige :: Wegstrecke z -> Sprache -> Text
     anzeige
-        Wegstrecke
-        {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
+        Wegstrecke { wsName
+                   , wsBahngeschwindigkeiten
+                   , wsStreckenabschnitte
+                   , wsWeichenRichtungen
+                   , wsKupplungen} =
         Language.wegstrecke
         <:> Language.name
         <=> wsName
@@ -610,7 +614,7 @@ instance StreckenObjekt (Wegstrecke z) where
     anschlüsse :: Wegstrecke z -> [Anschluss]
     anschlüsse
         Wegstrecke
-        {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
+            {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
         join
         $ map anschlüsse wsBahngeschwindigkeiten
         ++ map anschlüsse wsStreckenabschnitte

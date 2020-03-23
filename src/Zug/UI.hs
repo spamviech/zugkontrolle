@@ -7,15 +7,15 @@ Description : Auswahl des verwendeten UI-Funktion anhand der Kommandozeilen-Para
 module Zug.UI (main) where
 
 #ifdef ZUGKONTROLLERASPI
--- Überprüfe, ob das Programm mit Root-Rechten aufgeführt wird
 import qualified Data.Text.IO as Text
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 import System.Posix.User (getRealUserID)
+#endif
 
--- Abhängigkeiten von anderen Modulen
+import Zug.Anbindung (Wartezeit(MilliSekunden))
+#ifdef ZUGKONTROLLERASPI
 import qualified Zug.Language as Language
 #endif
--- Abhängigkeiten von anderen Modulen
 #ifdef ZUGKONTROLLERASPI
 import Zug.Options (getOptions, Options(..), UI(..), PWM(SoftwarePWM, HardwarePWM))
 #else
@@ -31,8 +31,11 @@ main :: IO ()
 main = ausführenWennRoot $ do
     Options {ui} <- getOptions
     case ui of
-        Gtk -> Gtk.main
-        Cmd -> Cmd.main
+        Gtk -> Gtk.main i2cRefreshRate
+        Cmd -> Cmd.main i2cRefreshRate
+
+i2cRefreshRate :: Wartezeit
+i2cRefreshRate = MilliSekunden 500
 
 ausführenWennRoot :: IO () -> IO ()
 

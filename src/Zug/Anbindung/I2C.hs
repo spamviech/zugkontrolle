@@ -24,11 +24,12 @@ module Zug.Anbindung.I2C
   , i2cRead
   , I2CAddress(..)
   , BitValue(..)
+  , i2cContinuousRefresh
   ) where
 
 import Control.Concurrent (forkIO, ThreadId)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
-import Control.Monad (void)
+import Control.Monad (void, forM_)
 import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (Bits, complement, zeroBits)
@@ -36,6 +37,8 @@ import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as Map
 import Data.Word (Word8)
 import Foreign.C.Types (CInt(..))
+
+import Zug.Anbindung.Wartezeit (Wartezeit(), warte)
 
 -- | 'FileHandle' und aktuell gesetzter 'BitValue' eines I2C-Kanals
 type I2CMap = Map I2CAddress (FileHandle, BitValue)
@@ -120,6 +123,16 @@ i2cRead i2cAddress = do
     liftIO $ do
         c_result <- c_wiringPiI2CRead (fromFileHandle fileHandle)
         pure $ BitValue $ fromIntegral c_result
+
+-- | Schreibe alle aktuellen I2C-Werte kontinuierlich in den I2C-Kanal.
+i2cContinuousRefresh :: (I2CReader r m, MonadIO m) => Wartezeit -> m ()
+i2cContinuousRefresh i2cRefreshRate = void $ do
+    tvarI2CMap <- erhalteI2CMap
+    liftIO $ forkIO $ do
+        i2cMap <- readTVarIO tvarI2CMap
+        forM_ i2cMap $ \(fileHandle, bitValue) -> do
+            c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
+            warte i2cRefreshRate
 
 -- | File Handle eines I2C-Channel
 newtype FileHandle = FileHandle { fromFileHandle :: CInt }

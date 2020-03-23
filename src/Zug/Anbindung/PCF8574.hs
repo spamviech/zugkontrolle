@@ -12,6 +12,7 @@ module Zug.Anbindung.PCF8574
   , i2cMapEmpty
   , MitI2CMap(..)
   , I2CReader(..)
+  , i2cContinuousRefresh
     -- * I2CAddresse des PCF8574
   , PCF8574(..)
   , PCF8574Variant(..)
@@ -42,7 +43,7 @@ import Text.Read.Lex (numberToInteger, Lexeme(..))
 
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..)
-                        , i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
+                        , i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..), i2cContinuousRefresh)
 import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 

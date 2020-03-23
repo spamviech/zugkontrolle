@@ -81,7 +81,7 @@ module Zug.UI.Base
 -- Bibliotheken
 import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS)
-import Control.Monad.Reader.Class (MonadReader(..), asks)
+import Control.Monad.Reader (MonadReader(..), asks, runReaderT)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
@@ -93,7 +93,7 @@ import Numeric.Natural (Natural)
 
 -- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty
-                    , MitI2CMap(..), StreckenObjekt(..))
+                    , MitI2CMap(..), StreckenObjekt(..), i2cContinuousRefresh, Wartezeit())
 import Zug.Enums (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
@@ -234,9 +234,15 @@ data TVarMaps =
     , tvarI2CMap :: TVar I2CMap
     }
 
--- | Erzeuge neue, leere 'TVarMaps'
-tvarMapsNeu :: IO TVarMaps
-tvarMapsNeu = TVarMaps <$> newTVarIO leer <*> newTVarIO pwmMapEmpty <*> newTVarIO i2cMapEmpty
+-- | Erzeuge neue, leere 'TVarMaps'. Die übergebene Wartezeit gibt die Refresh-Rate der I2C-Kanäle an.
+tvarMapsNeu :: Wartezeit -> IO TVarMaps
+tvarMapsNeu wartezeit = do
+    tvarAusführend <- newTVarIO leer
+    tvarPwmMap <- newTVarIO pwmMapEmpty
+    tvarI2CMap <- newTVarIO i2cMapEmpty
+    let tvarMaps = TVarMaps { tvarAusführend, tvarPwmMap, tvarI2CMap }
+    flip runReaderT tvarMaps $ i2cContinuousRefresh wartezeit
+    pure tvarMaps
 
 -- | Typ-Familie für Reader-Typ aus der 'RWST'-Monade
 type family ReaderFamilie o
