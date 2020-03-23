@@ -29,7 +29,7 @@ module Zug.Anbindung.I2C
 
 import Control.Concurrent (forkIO, ThreadId)
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, modifyTVar)
-import Control.Monad (void, forM_)
+import Control.Monad (void, forM_, forever)
 import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (Bits, complement, zeroBits)
@@ -128,7 +128,7 @@ i2cRead i2cAddress = do
 i2cContinuousRefresh :: (I2CReader r m, MonadIO m) => Wartezeit -> m ()
 i2cContinuousRefresh i2cRefreshRate = void $ do
     tvarI2CMap <- erhalteI2CMap
-    liftIO $ forkIO $ do
+    liftIO $ forkIO $ forever $ do
         i2cMap <- readTVarIO tvarI2CMap
         forM_ i2cMap $ \(fileHandle, bitValue) -> do
             c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
