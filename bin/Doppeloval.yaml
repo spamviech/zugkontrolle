@@ -46,19 +46,19 @@ Streckenabschnitte:
   Fließend: LOW
 - Name: B.St
   StromPin:
-    Pin: 25
+    Pin: 19
   Fließend: LOW
 - Name: Z.St
   StromPin:
-    Pin: 8
+    Pin: 13
   Fließend: LOW
 - Name: I.St
   StromPin:
-    Pin: 7
+    Pin: 6
   Fließend: LOW
 - Name: O.St
   StromPin:
-    Pin: 1
+    Pin: 5
   Fließend: LOW
 Bahngeschwindigkeiten:
 - GeschwindigkeitsPin:
@@ -375,11 +375,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
     StromPin:
-      Pin: 1
+      Pin: 5
     Fließend: LOW
   - Name: B.St
     StromPin:
-      Pin: 25
+      Pin: 19
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
@@ -526,7 +526,7 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
     StromPin:
-      Pin: 1
+      Pin: 5
     Fließend: LOW
   - Name: A5.St
     StromPin:
@@ -691,11 +691,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      Pin: 7
+      Pin: 6
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      Pin: 8
+      Pin: 13
     Fließend: LOW
   - Name: A4.St
     StromPin:
@@ -870,11 +870,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      Pin: 7
+      Pin: 6
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      Pin: 8
+      Pin: 13
     Fließend: LOW
   - Name: A3.St
     StromPin:
@@ -1049,11 +1049,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      Pin: 7
+      Pin: 6
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      Pin: 8
+      Pin: 13
     Fließend: LOW
   - Name: A2.St
     StromPin:
@@ -1228,11 +1228,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      Pin: 7
+      Pin: 6
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      Pin: 8
+      Pin: 13
     Fließend: LOW
   - Name: A1.St
     StromPin:
@@ -1407,11 +1407,11 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      Pin: 7
+      Pin: 6
     Fließend: LOW
   - Name: Z.St
     StromPin:
-      Pin: 8
+      Pin: 13
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
@@ -1558,7 +1558,7 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
     StromPin:
-      Pin: 7
+      Pin: 6
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
@@ -1686,7 +1686,7 @@ Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
     StromPin:
-      Pin: 1
+      Pin: 5
     Fließend: LOW
   Bahngeschwindigkeiten:
   - GeschwindigkeitsPin:
