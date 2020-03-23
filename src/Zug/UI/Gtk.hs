@@ -50,9 +50,11 @@ import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, buttonNewWithEventLabel, containerAddWidgetNew, boxPackWidgetNew
-      , boxPackWidgetNewDefault, Packing(..), packingDefault, paddingDefault, Position(..)
-      , positionDefault, notebookAppendPageNew, labelSpracheNew)
+       (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
+      , boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), packingDefault, paddingDefault
+      , Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
+      , toggleButtonNewWithEvent)
+import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel)
 import Zug.UI.Gtk.StreckenObjekt
@@ -120,6 +122,43 @@ setupGUI maybeTVar = void $ do
     notebookElementeEinzelseiten
         <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
     Gtk.widgetHide notebookElementeEinzelseiten
+    (vBoxBG, vBoxST, vBoxWE, vBoxKU, vBoxWS, vBoxPL) <- flip runReaderT spracheGui $ do
+        (vBoxBahngeschwindigkeitenEinzel, _page) <- notebookAppendPageNew
+            notebookElementeEinzelseiten
+            maybeTVar
+            Language.bahngeschwindigkeiten
+            $ liftIO
+            $ Gtk.vBoxNew False 0
+        (vBoxStreckenabschnitteEinzel, _page) <- notebookAppendPageNew
+            notebookElementeEinzelseiten
+            maybeTVar
+            Language.streckenabschnitte
+            $ liftIO
+            $ Gtk.vBoxNew False 0
+        (vBoxWeichenEinzel, _page)
+            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.weichen
+            $ liftIO
+            $ Gtk.vBoxNew False 0
+        (vBoxKupplungenEinzel, _page)
+            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.kupplungen
+            $ liftIO
+            $ Gtk.vBoxNew False 0
+        (vBoxWegstreckenEinzel, _page)
+            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.wegstrecken
+            $ liftIO
+            $ Gtk.vBoxNew False 0
+        (vBoxPläneEinzel, _page)
+            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.pläne
+            $ liftIO
+            $ Gtk.vBoxNew False 0
+        pure
+            ( vBoxBahngeschwindigkeitenEinzel
+            , vBoxStreckenabschnitteEinzel
+            , vBoxWeichenEinzel
+            , vBoxKupplungenEinzel
+            , vBoxWegstreckenEinzel
+            , vBoxPläneEinzel
+            )
     -- Paned-Variante
     notebookElementePaned
         <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
@@ -197,8 +236,7 @@ setupGUI maybeTVar = void $ do
     framePläne <- widgetShowNew Gtk.frameNew
     Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowIn]
     Gtk.panedAdd2 panedSammelObjekte framePläne
-    vBoxPläneOuter
-        <- containerAddWidgetNew framePläne $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    vBoxPläneOuter <- containerAddWidgetNew framePläne $ Gtk.vBoxNew False 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPläneOuter
         $ labelSpracheNew maybeTVar Language.pläne
@@ -320,6 +358,7 @@ setupGUI maybeTVar = void $ do
     -- Knopf-Leiste mit globalen Funktionen
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End $ Gtk.hBoxNew False 0
     flip runReaderT objektReader $ do
+        -- Linke Seite
         buttonHinzufügenPack windowMain functionBox maybeTVar
         spracheAuswahl <- boxPackWidgetNewDefault functionBox
             $ boundedEnumAuswahlComboBoxNew Language.Deutsch maybeTVar Language.sprache
@@ -327,11 +366,34 @@ setupGUI maybeTVar = void $ do
             spracheGuiNeu <- sprachwechsel spracheGui sprache
             flip runReaderT objektReader
                 $ ausführenStatusVarBefehl (SprachWechsel spracheGuiNeu) statusVar
+        -- Rechte seite
         boxPackWidgetNew functionBox packingDefault paddingDefault End
             $ buttonNewWithEventLabel maybeTVar Language.beenden
             $ Gtk.mainQuit
         buttonLadenPack windowMain functionBox maybeTVar End
         buttonSpeichernPack windowMain functionBox maybeTVar End
+    checkButtonNotebook <- boxPackWidgetNewDefault functionBox
+        $ toggleButtonNewWithEvent Gtk.checkButtonNew
+        $ \toggled -> do
+            widgetShowIf toggled notebookElementeEinzelseiten
+            widgetShowIf (not toggled) notebookElementePaned
+            case toggled of
+                True -> do
+                    Gtk.widgetReparent (erhalteWidget vBoxBahngeschwindigkeiten) vBoxBG
+                    Gtk.widgetReparent (erhalteWidget vBoxStreckenabschnitte) vBoxST
+                    Gtk.widgetReparent (erhalteWidget vBoxWeichen) vBoxWE
+                    Gtk.widgetReparent (erhalteWidget vBoxKupplungen) vBoxKU
+                    Gtk.widgetReparent (erhalteWidget vBoxWegstrecken) vBoxWS
+                    Gtk.widgetReparent (erhalteWidget vBoxPläne) vBoxPL
+                False -> do
+                    Gtk.widgetReparent (erhalteWidget vBoxBahngeschwindigkeiten) vBoxLeftTop
+                    Gtk.widgetReparent (erhalteWidget vBoxStreckenabschnitte) vBoxLeftBot
+                    Gtk.widgetReparent (erhalteWidget vBoxWeichen) vBoxRightTop
+                    Gtk.widgetReparent (erhalteWidget vBoxKupplungen) vBoxRightBot
+                    Gtk.widgetReparent (erhalteWidget vBoxWegstrecken) vBoxWegstreckenOuter
+                    Gtk.widgetReparent (erhalteWidget vBoxPläne) vBoxPläneOuter
+    verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache
+        -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sprache]
     -- Lade Datei angegeben in Kommandozeilenargument
     let ladeAktion :: Status -> IOStatusGui ()
         ladeAktion statusNeu = do

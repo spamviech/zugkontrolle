@@ -106,6 +106,7 @@ module Zug.Language
   , zugtyp
   , welchesObjektHinzufügen
   , ausführModus
+  , einzelseiten
   , indexOderName
   , anzahl
     -- * Fehlermeldungen / Error Messages
@@ -618,6 +619,11 @@ ausführModus Englisch = "Execution mode"
 welchesObjektHinzufügen :: Sprache -> Text
 welchesObjektHinzufügen Deutsch = "Welches Objekt soll hinzugefügt werden?"
 welchesObjektHinzufügen Englisch = "Which object should be added?"
+
+-- | Single Pages
+einzelseiten :: Sprache -> Text
+einzelseiten Deutsch = "Einzelseiten"
+einzelseiten Englisch = "Single Pages"
 
 -- | Ask to specify the object (type indicated by /s/) either by its index or name
 indexOderName :: Sprache -> Text -> Text
