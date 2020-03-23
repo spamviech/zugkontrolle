@@ -132,7 +132,7 @@ i2cContinuousRefresh i2cRefreshRate = void $ do
         i2cMap <- readTVarIO tvarI2CMap
         forM_ i2cMap $ \(fileHandle, bitValue) -> do
             c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
-            warte i2cRefreshRate
+        warte i2cRefreshRate
 
 -- | File Handle eines I2C-Channel
 newtype FileHandle = FileHandle { fromFileHandle :: CInt }
