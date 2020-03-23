@@ -16,11 +16,9 @@ module Zug.Warteschlange
   , Anzeige(..)
   ) where
 
--- Bibliotheken
 import Data.Foldable (toList)
 import Data.Text (Text)
 
--- Abhängigkeit von anderen Modulen
 import qualified Zug.Language as Language
 
 -- | Single-Ended Queue

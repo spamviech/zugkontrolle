@@ -12,7 +12,6 @@ module Zug.Options
   , alleSprachen
   ) where
 
--- Bibliotheken
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Semigroup (Semigroup(..))
 import Data.Text (unpack)
@@ -20,7 +19,6 @@ import Options.Applicative
        (ParserInfo(), Parser(), execParser, info, helper, fullDesc, progDesc, header, infoOption
       , long, short, help, switch, option, auto, metavar, showDefault, value, strOption)
 
--- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(..), alleSprachen)
 import qualified Zug.Language as Language
 

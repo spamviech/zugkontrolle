@@ -39,7 +39,6 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 
--- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..)
                     , Kupplung(..), Wegstrecke(..), Anschluss(..), Value(..), alleValues
                     , PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
@@ -183,7 +182,7 @@ instance MitAnfrage Anschluss where
             $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2 }, port = fromIntegral port }
         Nothing -> AFFehler eingabe
 
-   -- | Unvollständige 'Bahngeschwindigkeit'
+    -- | Unvollständige 'Bahngeschwindigkeit'
 data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
     AnfrageBahngeschwindigkeit :: AnfrageBahngeschwindigkeit 'AnfrageZugtyp
     AMärklinBahngeschwindigkeit :: AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
@@ -489,7 +488,7 @@ instance MitAnfrage Streckenabschnitt where
             anschlussVerwenden stromAnschluss =
                 AFErgebnis Streckenabschnitt { stName, stFließend, stromAnschluss }
 
-   -- | Unvollständige 'Weiche'
+    -- | Unvollständige 'Weiche'
 data AnfrageWeiche (z :: AnfrageZugtyp) where
     AnfrageWeiche :: AnfrageWeiche 'AnfrageZugtyp
     AMärklinWeiche :: AnfrageWeiche 'AnfrageZugtypMärklin
@@ -850,7 +849,7 @@ instance AnfrageZugtypKlasse 'AnfrageZugtypLego where
                     -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)
     afStatusAnfrage = AFStatusAnfrageLego
 
-   -- | Unvollständige 'Wegstrecke'
+    -- | Unvollständige 'Wegstrecke'
 data AnfrageWegstrecke (z :: AnfrageZugtyp) where
     AnfrageWegstreckeZugtyp :: AnfrageWegstrecke 'AnfrageZugtyp
     AnfrageWegstrecke :: AnfrageWegstrecke z

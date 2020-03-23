@@ -19,13 +19,11 @@ module Zug.UI.Gtk.SpracheGui
   , verwendeSpracheGuiFn
   ) where
 
--- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar, writeTVar)
 import Control.Monad (when, foldM)
 import Control.Monad.Reader.Class (MonadReader(..))
 import Control.Monad.Trans (MonadIO(..))
 
--- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(), MitSprache(..))
 
 -- | 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.

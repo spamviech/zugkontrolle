@@ -1,9 +1,7 @@
 module Main (main) where
 
--- Bibliotheken
 import System.Environment (getArgs, withArgs)
 
--- Abhängigkeit von anderen Modulen
 import qualified Zug.UI as UI
 
 main :: IO ()

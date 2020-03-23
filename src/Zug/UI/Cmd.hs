@@ -17,7 +17,6 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 -- Farbige Konsolenausgabe
 import System.Console.ANSI
--- Bibliotheken
 import System.IO (hFlush, stdout)
 
 -- Abhängigkeiten von anderen Modulen

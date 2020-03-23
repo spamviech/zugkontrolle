@@ -32,7 +32,6 @@ module Zug.Plan
   , AktionWegstrecke(..)
   ) where
 
--- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
@@ -240,7 +239,7 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
-   -- | Aktionen einer Bahngeschwindigkeit
+    -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
     Geschwindigkeit :: bg z -> Natural -> AktionBahngeschwindigkeit bg z
     Umdrehen :: bg 'Märklin -> AktionBahngeschwindigkeit bg 'Märklin

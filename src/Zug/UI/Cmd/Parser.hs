@@ -51,7 +51,6 @@ module Zug.UI.Cmd.Parser
   , AnfrageWegstrecke(..)
   ) where
 
--- Bibliotheken
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
 import qualified Data.Text as Text

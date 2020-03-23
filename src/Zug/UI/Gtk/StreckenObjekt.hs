@@ -84,7 +84,6 @@ module Zug.UI.Gtk.StreckenObjekt
   ) where
 
 #ifdef ZUGKONTROLLEGUI
--- Bibliotheken
 import Control.Applicative (ZipList(..))
 import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, TMVar, putTMVar)
 import Control.Lens ((^.), (^..), (??))
@@ -305,7 +304,7 @@ boxWegstreckeHinzufügenNew =
 
 deriving instance (Eq e) => Eq (WegstreckeCheckButton e)
 
-       -- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl
+        -- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl
 data WegstreckeCheckButton e where
     WegstreckeCheckButton :: { wcbvRegistrierterCheckButton :: RegistrierterCheckButton }
         -> WegstreckeCheckButton Void

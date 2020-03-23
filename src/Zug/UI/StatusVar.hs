@@ -31,7 +31,6 @@ module Zug.UI.StatusVar
   , ausführenStatusVarAktion
   ) where
 
--- Bibliotheken
 import Control.Concurrent.STM (STM, atomically, TVar, readTVar, writeTVar, retry, newTVarIO)
 import Control.Monad.RWS.Lazy (runRWS, runRWST)
 import Control.Monad.Reader.Class (MonadReader(..), asks)
@@ -39,7 +38,6 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON())
 import Numeric.Natural (Natural)
 
--- Abhängigkeit von anderen Modulen
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache())
 import Zug.Objekt (ObjektKlasse(..))

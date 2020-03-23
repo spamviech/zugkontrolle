@@ -22,7 +22,6 @@ module Zug.Anbindung.SoftwarePWM
   , pwmGrenze
   ) where
 
--- Bibliotheken
 import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
 import Control.Monad (void, when)
 import Control.Monad.Reader (ReaderT, asks)
@@ -33,7 +32,6 @@ import Data.Maybe (isNothing)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (PwmValue(), Value(..))
 
--- Abhängigkeit von anderen Modulen
 import Zug.Anbindung.Anschluss (Anschluss(), anschlussWrite, MitI2CMap(), I2CReader(..))
 import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), differenz, multiplizieren, dividieren)
 

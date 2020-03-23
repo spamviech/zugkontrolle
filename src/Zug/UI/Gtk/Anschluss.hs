@@ -29,7 +29,6 @@ import Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
--- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Anschluss(), vonPinGpio, vonPCF8574Port, PCF8574Port(..), PCF8574(..)
                     , PCF8574Variant(..), Value(..))
 import Zug.Language (Sprache(..), (<->), (<:>))

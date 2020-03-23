@@ -44,7 +44,6 @@ import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
--- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt()
                     , Weiche(), Kupplung(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))

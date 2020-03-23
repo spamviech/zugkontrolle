@@ -78,7 +78,6 @@ module Zug.UI.Base
   , AusführenMöglich(..)
   ) where
 
--- Bibliotheken
 import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS)
 import Control.Monad.Reader (MonadReader(..), asks, runReaderT)

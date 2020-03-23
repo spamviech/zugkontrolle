@@ -26,7 +26,6 @@ import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
--- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache())
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, containerAddWidgetNew, boxPackWidgetNew, Packing(..), paddingDefault

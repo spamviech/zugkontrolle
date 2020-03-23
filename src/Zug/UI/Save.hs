@@ -20,7 +20,6 @@ module Zug.UI.Save
   , laden
   ) where
 
--- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
 import Data.Aeson.Types
@@ -167,9 +166,9 @@ parseAnschluss :: Object -> Text -> Text -> Parser Anschluss
 parseAnschluss v anschlussJS pinJS =
     (v .: anschlussJS) <|> (vonPinGpio <$> (v .: pinJS :: Parser Natural))
 
-   -- Instanz-Deklarationen für Anschluss
-   -- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
-   -- Bei diesen war nur ein Pin-Anschluss erlaubt, wodurch ein Anschluss nur durch eine Zahl gespeichert wurde.
+    -- Instanz-Deklarationen für Anschluss
+    -- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+    -- Bei diesen war nur ein Pin-Anschluss erlaubt, wodurch ein Anschluss nur durch eine Zahl gespeichert wurde.
 instance FromJSON Anschluss where
     parseJSON :: Value -> Parser Anschluss
     parseJSON (Object v) =
@@ -196,7 +195,7 @@ a1JS = "a1"
 a2JS :: Text
 a2JS = "a2"
 
-   -- Instanz-Deklarationen für PCF8574Port
+    -- Instanz-Deklarationen für PCF8574Port
 instance FromJSON PCF8574Port where
     parseJSON :: Value -> Parser PCF8574Port
     parseJSON (Object v) =
@@ -216,7 +215,7 @@ variantNormalJS = "Normal"
 variantAJS :: Text
 variantAJS = "A"
 
-   -- Instanz-Deklarationen für PCF8574Variant
+    -- Instanz-Deklarationen für PCF8574Variant
 instance FromJSON PCF8574Variant where
     parseJSON :: Value -> Parser PCF8574Variant
     parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
@@ -248,9 +247,9 @@ hJS = "h"
 dJS :: Text
 dJS = "d"
 
-   -- Instanz-Deklarationen für Wartezeit
-   -- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
-   -- Bei diesen wurde implizit immer Mikrosekunden angenommen, wodurch nur eine Zahl gespeichert wurde.
+    -- Instanz-Deklarationen für Wartezeit
+    -- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+    -- Bei diesen wurde implizit immer Mikrosekunden angenommen, wodurch nur eine Zahl gespeichert wurde.
 instance FromJSON Wartezeit where
     parseJSON :: Value -> Parser Wartezeit
     parseJSON (Object v) =
@@ -287,7 +286,7 @@ linksJS = "Links"
 rechtsJS :: Text
 rechtsJS = "Rechts"
 
-   -- Instanz-Deklaration für Richtung
+    -- Instanz-Deklaration für Richtung
 instance FromJSON Richtung where
     parseJSON :: Value -> Parser Richtung
     parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
@@ -306,7 +305,7 @@ märklinJS = "Märklin"
 legoJS :: Text
 legoJS = "Lego"
 
-   -- Instanz-Deklaration für Zugtyp
+    -- Instanz-Deklaration für Zugtyp
 instance FromJSON Zugtyp where
     parseJSON :: Value -> Parser Zugtyp
     parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
@@ -323,7 +322,7 @@ vorwärtsJS = "Vorwärts"
 rückwärtsJS :: Text
 rückwärtsJS = "Rückwärts"
 
-   -- Instanz-Deklaration für Fahrtrichtung
+    -- Instanz-Deklaration für Fahrtrichtung
 instance FromJSON Fahrtrichtung where
     parseJSON :: Value -> Parser Fahrtrichtung
     parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
@@ -340,7 +339,7 @@ fließendJS = "Fließend"
 gesperrtJS :: Text
 gesperrtJS = "Gesperrt"
 
-   -- Instanz-Deklaration für Strom
+    -- Instanz-Deklaration für Strom
 instance FromJSON Strom where
     parseJSON :: Value -> Parser Strom
     parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
@@ -350,7 +349,7 @@ instance ToJSON Strom where
     toJSON Fließend = String fließendJS
     toJSON Gesperrt = String gesperrtJS
 
-   -- Instanz-Deklaration für Value
+    -- Instanz-Deklaration für Value
 instance FromJSON Anbindung.Value where
     parseJSON :: Value -> Parser Anbindung.Value
     parseJSON = findeÜbereinstimmendenWert [minBound .. maxBound]
@@ -391,7 +390,7 @@ fahrtrichtungsAnschlussJS = "FahrtrichtungsPin"
 parseFließend :: Object -> Parser Anbindung.Value
 parseFließend v = (v .: fließendJS) <|> pure Anbindung.HIGH
 
-   -- Instanz-Deklarationen für Bahngeschwindigkeit
+    -- Instanz-Deklarationen für Bahngeschwindigkeit
 instance FromJSON (Bahngeschwindigkeit 'Märklin) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Märklin)
     parseJSON (Object v) = do
@@ -447,7 +446,7 @@ stromPinJS = "StromPin"
 stromAnschlussJS :: Text
 stromAnschlussJS = "StromPin"
 
-   -- Instanz-Deklarationen für Streckenabschnitt
+    -- Instanz-Deklarationen für Streckenabschnitt
 instance FromJSON Streckenabschnitt where
     parseJSON :: Value -> Parser Streckenabschnitt
     parseJSON (Object v) =
@@ -471,7 +470,7 @@ richtungenJS = "Richtungen"
 richtungsPinsJS :: Text
 richtungsPinsJS = "RichtungsPins"
 
-   -- Instanz-Deklarationen für Weiche
+    -- Instanz-Deklarationen für Weiche
 instance FromJSON (Weiche 'Märklin) where
     parseJSON :: Value -> Parser (Weiche 'Märklin)
     parseJSON (Object v) = do
@@ -516,7 +515,7 @@ kupplungsPinJS = "KupplungsPin"
 kupplungsAnschlussJS :: Text
 kupplungsAnschlussJS = "KupplungsAnschluss"
 
-   -- Instanz-Deklarationen für Kupplung
+    -- Instanz-Deklarationen für Kupplung
 instance FromJSON Kupplung where
     parseJSON :: Value -> Parser Kupplung
     parseJSON (Object v) =
@@ -537,7 +536,7 @@ instance ToJSON Kupplung where
 weichenRichtungenJS :: Text
 weichenRichtungenJS = "Weichen-Richtungen"
 
-   -- Instanz-Deklaration für Wegstrecke
+    -- Instanz-Deklaration für Wegstrecke
 instance FromJSON (Wegstrecke 'Märklin) where
     parseJSON :: Value -> Parser (Wegstrecke 'Märklin)
     parseJSON (Object v) =
@@ -637,7 +636,7 @@ planJS = "Plan"
 dauerschleifeJS :: Text
 dauerschleifeJS = "Dauerschleife"
 
-   -- Instanz-Deklaration für Plan
+    -- Instanz-Deklaration für Plan
 instance FromJSON Aktion where
     parseJSON :: Value -> Parser Aktion
     parseJSON (Object v) = (v .: aktionJS) >>= \s -> if

@@ -18,13 +18,11 @@ module Zug.Menge
   , schnittmenge
   ) where
 
--- Bibliotheken
 import Data.Foldable (Foldable(..))
 import Data.List (delete, union, intersect, nub)
 import Data.Text (Text)
 import qualified Data.Text as Text
 
--- Abhängigkeit von anderen Modulen
 import Zug.Language (Anzeige(..), Sprache(), (<#>))
 
 -- | Eine 'Menge' ist eine Sammlung an Elementen, bei denen jedes Element höchstens einmal vorkommt.

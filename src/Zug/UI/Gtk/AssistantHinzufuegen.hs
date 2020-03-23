@@ -21,7 +21,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen
   ) where
 
 #ifdef ZUGKONTROLLEGUI
--- Bibliotheken
 import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
 import Control.Monad (forM_, foldM)
 import Control.Monad.Reader (runReaderT)

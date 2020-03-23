@@ -15,7 +15,6 @@ module Zug.Anbindung.Wartezeit
   , dividieren
   ) where
 
--- Bibliotheken
 import Control.Concurrent (threadDelay)
 import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
@@ -23,7 +22,6 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
--- Abhängigkeit von anderen Modulen
 import Zug.Language (Anzeige(..), Sprache(), (<#>))
 
 -- | Warte mindestens das Argument in µs.

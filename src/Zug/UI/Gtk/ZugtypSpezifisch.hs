@@ -21,20 +21,18 @@ module Zug.UI.Gtk.ZugtypSpezifisch
   ) where
 
 #ifdef ZUGKONTROLLEGUI
--- Bibliotheken
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Graphics.UI.Gtk as Gtk
 
--- Abhängigkeit von anderen Modulen
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen
        (boxPackWidgetNew, boxPack, Packing(PackGrow), paddingDefault, positionDefault, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitContainer(..))
 
-                   -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
+                     -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
     ZugtypSpezifisch :: { vBox :: Gtk.VBox } -> ZugtypSpezifisch Gtk.Widget
     ZugtypSpezifischButton :: { buttonVBox :: Gtk.VBox, buttonDummy :: Gtk.Button }

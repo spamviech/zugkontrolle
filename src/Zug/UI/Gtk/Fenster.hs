@@ -21,7 +21,6 @@ module Zug.UI.Gtk.Fenster
   ) where
 
 #ifdef ZUGKONTROLLEGUI
--- Bibliotheken
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Lens ((^.))

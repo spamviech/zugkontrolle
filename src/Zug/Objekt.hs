@@ -9,7 +9,6 @@ Description : 'Either'-ähnlicher Datentyp für 'StreckenObjekt'-Typen.
 -}
 module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(..)) where
 
--- Bibliotheken
 import Data.Kind (Type)
 import Data.Text (Text)
 

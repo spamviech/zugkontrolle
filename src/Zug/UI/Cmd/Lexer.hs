@@ -14,7 +14,6 @@ module Zug.UI.Cmd.Lexer
 import qualified Data.Text as Text
 import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
--- Bibliotheken
 import Text.Read (readMaybe)
 
 -- Abhängigkeiten von anderen Modulen

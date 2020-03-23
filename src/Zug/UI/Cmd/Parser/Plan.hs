@@ -30,7 +30,6 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 
--- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..)
                     , Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
                     , StreckenabschnittKlasse(..), Kupplung(..), KupplungKlasse(..), Wartezeit(..))
@@ -49,7 +48,7 @@ import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandar
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
-  -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
+   -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
 data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where
     AnfrageAktionBahngeschwindigkeit :: b z                         -- ^ Bahngeschwindigkeit
         -> AnfrageAktionBahngeschwindigkeit b z

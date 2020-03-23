@@ -9,7 +9,6 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 -}
 module Zug.UI.Gtk (main, setupGUI) where
 
--- Bibliotheken
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
 #else

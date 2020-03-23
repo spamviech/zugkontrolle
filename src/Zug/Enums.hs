@@ -23,7 +23,6 @@ module Zug.Enums
   , unterstützteStromeinstellungen
   ) where
 
--- Bibliotheken
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Text (Text)

@@ -28,7 +28,6 @@ module Zug.Anbindung.PCF8574
   , pcf8574PortRead
   ) where
 
--- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (bit, (.|.), (.&.), testBit, complement)

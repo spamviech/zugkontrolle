@@ -35,7 +35,6 @@ module Zug.UI.Gtk.Auswahl
   ) where
 
 #ifdef ZUGKONTROLLEGUI
--- Bibliotheken
 import Control.Concurrent.STM.TVar (TVar)
 import qualified Control.Lens as Lens
 import Control.Monad (when, void, forM, forM_, foldM)
@@ -47,7 +46,6 @@ import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
--- Abhängigkeit von anderen Modulen
 import Zug.Language (Sprache(..), Anzeige(..))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))

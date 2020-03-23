@@ -26,7 +26,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   ) where
 
 #ifdef ZUGKONTROLLEGUI
--- Bibliotheken
 import Control.Concurrent.STM (TVar, atomically, readTVarIO, newTVarIO, writeTVar, putTMVar)
 import Control.Lens ((^.), Field1(_1), Field2(_2))
 import qualified Control.Lens as Lens
@@ -41,7 +40,6 @@ import qualified Data.Text as Text
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
--- Abhängigkeit von anderen Modulen
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
                     , Wegstrecke(..), Wartezeit(..))
 import Zug.Enums

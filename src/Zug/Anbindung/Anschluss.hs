@@ -27,7 +27,6 @@ module Zug.Anbindung.Anschluss
   , i2cContinuousRefresh
   ) where
 
--- Bibliotheken
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)

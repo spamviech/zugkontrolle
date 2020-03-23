@@ -165,7 +165,6 @@ module Zug.Language
   , (<#>)
   ) where
 
--- Bibliotheken
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
