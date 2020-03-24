@@ -377,6 +377,257 @@ Wegstrecken:
     StromPin:
       Pin: 5
     Fließend: LOW
+  - Name: I.St
+    StromPin:
+      Pin: 6
+    Fließend: LOW
+  Bahngeschwindigkeiten:
+  - GeschwindigkeitsPin:
+      Pin: 18
+    Name: O-B-A5.Bahngeschwindigkeit
+    Zugtyp: Märklin
+    Fließend: HIGH
+  - GeschwindigkeitsPin:
+      Pin: 17
+    Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
+    Zugtyp: Märklin
+    Fließend: HIGH
+  Name: IO - Wechsel
+  Weichen-Richtungen:
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 1
+            a1: HIGH
+            a0: LOW
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 0
+            a1: HIGH
+            a0: LOW
+      Name: I.I(G)Z(R)2
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Gerade
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 0
+            a1: HIGH
+            a0: LOW
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 1
+            a1: HIGH
+            a0: LOW
+      Name: I.I(G)Z(R)1
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Gerade
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 2
+            a1: HIGH
+            a0: LOW
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 3
+            a1: HIGH
+            a0: LOW
+      Name: I.I(G)O(R)4
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 4
+            a1: HIGH
+            a0: LOW
+      - - Links
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 5
+            a1: HIGH
+            a0: LOW
+      Name: I.I(G)O(L)3
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 1
+            a1: HIGH
+            a0: HIGH
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 0
+            a1: HIGH
+            a0: HIGH
+      Name: I.I(G)O(R)2
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 7
+            a1: LOW
+            a0: HIGH
+      - - Links
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 6
+            a1: LOW
+            a0: HIGH
+      Name: I.I(G)O(L)1
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  - - RichtungsPins:
+      - - Links
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 4
+            a1: LOW
+            a0: HIGH
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 5
+            a1: LOW
+            a0: HIGH
+      Name: O.O(L)B(R)
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  - - RichtungsPins:
+      - - Links
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 1
+            a1: LOW
+            a0: HIGH
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 0
+            a1: LOW
+            a0: HIGH
+      Name: O.O(R)A5(L)
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 2
+            a1: LOW
+            a0: HIGH
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 3
+            a1: LOW
+            a0: HIGH
+      Name: O.I(R)O(G)4
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 6
+            a1: HIGH
+            a0: LOW
+      - - Links
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 7
+            a1: HIGH
+            a0: LOW
+      Name: O.I(L)O(G)3
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 3
+            a1: HIGH
+            a0: LOW
+      - - Rechts
+        - PCF8574Port:
+            Variante: A
+            a2: HIGH
+            PCF8574Port: 2
+            a1: HIGH
+            a0: LOW
+      Name: O.I(R)O(G)2
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Rechts
+  - - RichtungsPins:
+      - - Gerade
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 2
+            a1: HIGH
+            a0: HIGH
+      - - Links
+        - PCF8574Port:
+            Variante: A
+            a2: LOW
+            PCF8574Port: 3
+            a1: HIGH
+            a0: HIGH
+      Name: O.I(L)O(G)1
+      Zugtyp: Märklin
+      Fließend: LOW
+    - Links
+  Kupplungen: []
+- Streckenabschnitte:
+  - Name: O.St
+    StromPin:
+      Pin: 5
+    Fließend: LOW
   - Name: B.St
     StromPin:
       Pin: 19
