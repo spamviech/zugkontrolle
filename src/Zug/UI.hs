@@ -12,7 +12,6 @@ import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..
 import System.Posix.User (getRealUserID)
 #endif
 
-import Zug.Anbindung (Wartezeit(MilliSekunden))
 #ifdef ZUGKONTROLLERASPI
 import qualified Zug.Language as Language
 #endif
@@ -31,11 +30,8 @@ main :: IO ()
 main = ausführenWennRoot $ do
     Options {ui} <- getOptions
     case ui of
-        Gtk -> Gtk.main i2cRefreshRate
-        Cmd -> Cmd.main i2cRefreshRate
-
-i2cRefreshRate :: Wartezeit
-i2cRefreshRate = MilliSekunden 500
+        Gtk -> Gtk.main
+        Cmd -> Cmd.main
 
 ausführenWennRoot :: IO () -> IO ()
 

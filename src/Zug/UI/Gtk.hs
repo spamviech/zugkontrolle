@@ -30,8 +30,6 @@ import qualified Graphics.UI.Gtk as Gtk
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 #endif
 
--- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (Wartezeit())
 #ifndef ZUGKONTROLLEGUI
 import Zug.Language (Sprache(..))
 #else
@@ -81,12 +79,12 @@ putWarningLn warning = do
 
 #else
 -- | main loop
-main :: Wartezeit -> IO ()
-main i2cRefreshRate = do
+main :: IO ()
+main = do
     -- Initialisiere GTK+ engine
     Gtk.initGUI
     -- Erstelle GUI
-    setupGUI i2cRefreshRate Nothing
+    setupGUI Nothing
     -- GTK+ main loop
     Gtk.mainGUI
 
@@ -96,8 +94,8 @@ main i2cRefreshRate = do
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-setupGUI :: Wartezeit -> Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
-setupGUI i2cRefreshRate maybeTVar = void $ do
+setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
+setupGUI maybeTVar = void $ do
     Options {load = dateipfad, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Hauptfenster
@@ -115,7 +113,7 @@ setupGUI i2cRefreshRate maybeTVar = void $ do
         Gtk.mainQuit
         pure False
     vBox <- containerAddWidgetNew windowMain $ Gtk.vBoxNew False 0
-    tvarMaps <- tvarMapsNeu i2cRefreshRate
+    tvarMaps <- tvarMapsNeu
     statusVar <- statusVarNew $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
     -- Einzelseite-Variante
