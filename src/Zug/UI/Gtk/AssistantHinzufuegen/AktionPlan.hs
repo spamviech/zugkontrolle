@@ -5,6 +5,9 @@
 {-# LANGUAGE MonoLocalBinds #-}
 #endif
 
+{-|
+Description: Seite zum Hinzufügen einer 'Plan'-'Aktion'.
+-}
 module Zug.UI.Gtk.AssistantHinzufuegen.AktionPlan
   (
 #ifdef ZUGKONTROLLEGUI
@@ -30,6 +33,7 @@ import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 
+-- | Erzeuge die Widgets zur Auswahl einer 'Plan'-'Aktion'.
 aktionPlanAuswahlPackNew
     :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
     => b

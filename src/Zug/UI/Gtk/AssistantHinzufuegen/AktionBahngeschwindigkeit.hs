@@ -6,6 +6,9 @@
 {-# LANGUAGE MonoLocalBinds #-}
 #endif
 
+{-|
+Description: Seite zum Hinzufügen einer 'Bahngeschwindigkeit's-'Aktion'.
+-}
 module Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
   (
 #ifdef ZUGKONTROLLEGUI
@@ -40,6 +43,7 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew)
 
+-- | Erzeuge die Widgets zur Auswahl einer 'Bahngeschwindigkeit's-'Aktion'.
 aktionBahngeschwindigkeitAuswahlPackNew
     :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
     => b
