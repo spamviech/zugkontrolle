@@ -51,18 +51,23 @@ class BefehlKlasse b o where
     -- | Gibt True zurück, falls das UI beendet werden soll
     ausführenBefehl :: (MonadIO m) => b o -> MStatusAllgemeinT m o Bool
 
+-- | Alle unterstützten Befehle
 data BefehlAllgemein o
     = UI (UIBefehlAllgemein o)
     | SprachWechsel (SP o)
     | Hinzufügen o
     | Entfernen o
     | Speichern FilePath
-    | Laden FilePath
-            (Status -> IOStatusAllgemein o ())  -- ^ Erfolgsaktion
-            (IOStatusAllgemein o ())            -- ^ Fehlerbehandlung
-    | Ausführen Plan
-                 (Natural -> Sprache -> IO ())       -- ^ Fortschrittsanzeige
-                 (IO ())                             -- ^ Abschlussanzeige
+    | Laden
+          { ladenPfad :: FilePath
+          , erfolgsAktion :: (Status -> IOStatusAllgemein o ())
+          , fehlerbehandlung :: (IOStatusAllgemein o ())
+          }
+    | Ausführen
+          { auszuführenderPlan :: Plan
+          , fortschrittsanzeige :: (Natural -> Sprache -> IO ())
+          , abschlussAnzeige :: (IO ())
+          }
     | AusführenAbbrechen Plan
     | AktionBefehl Aktion
 

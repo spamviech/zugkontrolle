@@ -48,14 +48,13 @@ import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandar
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
-   -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'
 data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where
-    AnfrageAktionBahngeschwindigkeit :: b z                         -- ^ Bahngeschwindigkeit
-        -> AnfrageAktionBahngeschwindigkeit b z
-    AABGGeschwindigkeit :: b z                                      -- ^ Bahngeschwindigkeit
-        -> AnfrageAktionBahngeschwindigkeit b z
-    AABGFahrtrichtungEinstellen :: b 'Lego                          -- ^ Bahngeschwindigkeit
-        -> AnfrageAktionBahngeschwindigkeit b 'Lego
+    -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'.
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
+    AnfrageAktionBahngeschwindigkeit :: b z -> AnfrageAktionBahngeschwindigkeit b z
+    AABGGeschwindigkeit :: b z -> AnfrageAktionBahngeschwindigkeit b z
+    AABGFahrtrichtungEinstellen :: b 'Lego -> AnfrageAktionBahngeschwindigkeit b 'Lego
 
 deriving instance (Eq (b z)) => Eq (AnfrageAktionBahngeschwindigkeit b z)
 
@@ -188,8 +187,8 @@ instance (StreckenabschnittKlasse s) => MitAnfrage (AktionStreckenabschnitt s) w
 
 -- | Unvollständige 'Aktion' einer 'Weiche'
 data AnfrageAktionWeiche w
-    = AnfrageAktionWeiche w           -- ^ Weiche
-    | AAWStellen w           -- ^ Weiche
+    = AnfrageAktionWeiche w
+    | AAWStellen w
     deriving (Eq, Show)
 
 instance (Anzeige w) => Anzeige (AnfrageAktionWeiche w) where
@@ -261,7 +260,7 @@ instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
 
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
 data AnfrageAktionWegstrecke w (z :: Zugtyp)
-    = AnfrageAktionWegstrecke (w z)                               -- ^ Wegstrecke
+    = AnfrageAktionWegstrecke (w z)
     | AAWSBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit w z)
     | AAWSStreckenabschnitt (AnfrageAktionStreckenabschnitt (w z))
     | AAWSKupplung (AnfrageAktionKupplung (w z))
@@ -305,8 +304,8 @@ instance AktionWegstreckeZugtyp 'Märklin where
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , ( Lexer.Geschwindigkeit
-                  , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
-                  )
+              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
+              )
             , (Lexer.Umdrehen, AFErgebnis $ AWSBahngeschwindigkeit $ Umdrehen wegstrecke)
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
@@ -323,13 +322,11 @@ instance AktionWegstreckeZugtyp 'Lego where
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , ( Lexer.Geschwindigkeit
-                  , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
-                  )
+              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
+              )
             , ( Lexer.FahrtrichtungEinstellen
-                  , AFZwischenwert
-                    $ AAWSBahngeschwindigkeit
-                    $ AABGFahrtrichtungEinstellen wegstrecke
-                  )
+              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGFahrtrichtungEinstellen wegstrecke
+              )
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
@@ -534,15 +531,18 @@ instance MitAnfrage Aktion where
 -- | Unvollständiger 'Plan'
 data AnfragePlan
     = AnfragePlan
-    | APlanName Text                    -- ^ Name
-    | APlanNameAnzahl Text                    -- ^ Name
-                      Natural                 -- ^ Verbleibende Aktionen
-                      (Warteschlange Aktion)  -- ^ Bekannte Aktionen
-                      AnfrageAktion           -- ^ Nächste Aktion
-    | APlanNameAktionen Text                    -- ^ Name
-                        (Warteschlange Aktion)  -- ^ Aktionen
-    | APlanStatusAnfrage (EingabeToken -> StatusAnfrageObjekt)
-                         (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
+    | APlanName { aplName :: Text }
+    | APlanNameAnzahl
+          { aplName :: Text
+          , aplCount :: Natural
+          , aplAkkumulator :: (Warteschlange Aktion)
+          , aplNächste :: AnfrageAktion
+          }
+    | APlanNameAktionen { aplName :: Text, aplAkkumulator :: (Warteschlange Aktion) }
+    | APlanStatusAnfrage
+          { aplStatusAnfrage :: (EingabeToken -> StatusAnfrageObjekt)
+          , aplAuswertung :: (Either (Objekt -> AnfragePlan) (Objekt -> Plan))
+          }
 
 instance Show AnfragePlan where
     show :: AnfragePlan -> String

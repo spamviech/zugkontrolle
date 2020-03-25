@@ -45,6 +45,7 @@ module Zug.UI.Gtk.StreckenObjekt
   , planPackNew
     -- * Verwaltung des aktuellen Zustands
   , DynamischeWidgets(..)
+  , MitDynamischeWidgets(..)
   , DynamischeWidgetsReader(..)
   , StatusGui
   , ObjektGui
@@ -304,8 +305,10 @@ boxWegstreckeHinzufügenNew =
 
 deriving instance (Eq e) => Eq (WegstreckeCheckButton e)
 
-        -- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl
 data WegstreckeCheckButton e where
+    -- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl.
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     WegstreckeCheckButton :: { wcbvRegistrierterCheckButton :: RegistrierterCheckButton }
         -> WegstreckeCheckButton Void
     WegstreckeCheckButtonRichtung :: { wcbrWidget :: Gtk.Widget
@@ -588,10 +591,10 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-            { wcbrWidget = erhalteWidget hBox
-            , wcbrRegistrierterCheckButton
-            , wcbrRichtungsAuswahl
-            }
+                { wcbrWidget = erhalteWidget hBox
+                , wcbrRegistrierterCheckButton
+                , wcbrRichtungsAuswahl
+                }
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 --
@@ -1538,7 +1541,7 @@ wegstreckePackNew :: forall m z.
                   -> MStatusGuiT m (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke
-    {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
+        {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets

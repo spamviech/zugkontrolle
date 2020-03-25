@@ -24,6 +24,7 @@ module Zug.Anbindung.I2C
   , i2cRead
   , I2CAddress(..)
   , BitValue(..)
+  , FileHandle()
   ) where
 
 import Control.Concurrent (forkIO, ThreadId)

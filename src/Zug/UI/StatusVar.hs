@@ -7,6 +7,10 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DataKinds #-}
 
+{-|
+Description: Eine Variation einer 'Control.Control.Concurrent.STM.TMVar',
+bei der die enthaltene 'Sprache' ohne zu blockieren gelesen werden kann
+-}
 module Zug.UI.StatusVar
   ( -- * Datentyp
     StatusVar()

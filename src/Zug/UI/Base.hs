@@ -133,44 +133,51 @@ deriving instance ( Show (ZugtypEither (BG o))
                   , Show (SP o)
                   ) => Show (StatusAllgemein o)
 
--- | Simple Copy&Paste from the lens-definition (remove need for CPP).
-type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
-
 -- | Create a Lens' from a Getter and a Setter.
 -- Simple Copy&Paste from the lens-definition (remove need for CPP).
 -- lens :: forall f. Functor f => (s -> a) -> (s -> a -> s) -> (a -> f a) -> s -> f s
-lens :: (s -> a) -> (s -> a -> s) -> Lens' s a
+lens :: (s -> a) -> (s -> a -> s) -> (forall f. Functor f => (a -> f a) -> s -> f s)
 lens sa sas afa s = sas s <$> afa (sa s)
 
 {-# INLINE lens #-}
 
--- | 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
-bahngeschwindigkeiten :: Lens' (StatusAllgemein o) [ZugtypEither (BG o)]
+-- | Lens': 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
+bahngeschwindigkeiten :: Functor f
+                      => ([ZugtypEither (BG o)] -> f [ZugtypEither (BG o)])
+                      -> (StatusAllgemein o)
+                      -> f (StatusAllgemein o)
 bahngeschwindigkeiten =
     lens _bahngeschwindigkeiten $ \status bgs -> status { _bahngeschwindigkeiten = bgs }
 
--- | 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
-streckenabschnitte :: Lens' (StatusAllgemein o) [ST o]
+-- | Lens': 'Streckenabschitt'e im aktuellen 'StatusAllgemein'.
+streckenabschnitte
+    :: Functor f => ([ST o] -> f [ST o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
 streckenabschnitte = lens _streckenabschnitte $ \status sts -> status { _streckenabschnitte = sts }
 
--- | 'Weiche'n im aktuellen 'StatusAllgemein'
-weichen :: Lens' (StatusAllgemein o) [ZugtypEither (WE o)]
+-- | Lens': 'Weiche'n im aktuellen 'StatusAllgemein'.
+weichen :: Functor f
+        => ([ZugtypEither (WE o)] -> f [ZugtypEither (WE o)])
+        -> (StatusAllgemein o)
+        -> f (StatusAllgemein o)
 weichen = lens _weichen $ \status wes -> status { _weichen = wes }
 
--- | 'Kupplung'en im aktuellen 'StatusAllgemein'
-kupplungen :: Lens' (StatusAllgemein o) [KU o]
+-- | Lens': 'Kupplung'en im aktuellen 'StatusAllgemein'.
+kupplungen :: Functor f => ([KU o] -> f [KU o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
 kupplungen = lens _kupplungen $ \status kus -> status { _kupplungen = kus }
 
--- | 'Wegstrecke'n im aktuellen 'StatusAllgemein'
-wegstrecken :: Lens' (StatusAllgemein o) [ZugtypEither (WS o)]
+-- | Lens': 'Wegstrecke'n im aktuellen 'StatusAllgemein'.
+wegstrecken :: Functor f
+            => ([ZugtypEither (WS o)] -> f [ZugtypEither (WS o)])
+            -> (StatusAllgemein o)
+            -> f (StatusAllgemein o)
 wegstrecken = lens _wegstrecken $ \status wss -> status { _wegstrecken = wss }
 
--- | Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'
-pläne :: Lens' (StatusAllgemein o) [PL o]
+-- | Lens': Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'.
+pläne :: Functor f => ([PL o] -> f [PL o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
 pläne = lens _pläne $ \status pls -> status { _pläne = pls }
 
--- | 'Sprache' im aktuellen 'StatusAllgemein'
-sprache :: Lens' (StatusAllgemein o) (SP o)
+-- | Lens': 'Sprache' im aktuellen 'StatusAllgemein'.
+sprache :: Functor f => (SP o -> f (SP o)) -> (StatusAllgemein o) -> f (StatusAllgemein o)
 sprache = lens _sprache $ \status sp -> status { _sprache = sp }
 
 instance ( Anzeige (ZugtypEither (BG o))
@@ -193,24 +200,24 @@ instance ( Anzeige (ZugtypEither (BG o))
         <\> Language.wegstrecken
         <=> zeigeUnterliste (_wegstrecken status)
         <\> Language.pläne <=> zeigeUnterliste (_pläne status)
-        -- | Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
+        where
+            zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
 
-            where
-                zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
-                zeigeUnterliste = zeigeUnterlisteAux (const "[") 0
+            --  Zeige Liste besser Lesbar, als normale Anzeige-Instanz (newlines und Index-Angabe).
+            zeigeUnterliste = zeigeUnterlisteAux (const "[") 0
 
+            zeigeUnterlisteAux
+                :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
+            zeigeUnterlisteAux acc index [] =
+                acc
+                <#> (if index == 0
+                         then "]"
+                         else "\n]" :: Text)
+            zeigeUnterlisteAux acc index (h:t) =
                 zeigeUnterlisteAux
-                    :: (Anzeige a) => (Sprache -> Text) -> Natural -> [a] -> Sprache -> Text
-                zeigeUnterlisteAux acc index [] =
-                    acc
-                    <#> (if index == 0
-                             then "]"
-                             else "\n]" :: Text)
-                zeigeUnterlisteAux acc index (h:t) =
-                    zeigeUnterlisteAux
-                        (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h)
-                        (succ index)
-                        t
+                    (acc <\> ("\t" :: Text) <#> index <#> (") " :: Text) <#> h)
+                    (succ index)
+                    t
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
 statusLeer :: SP o -> StatusAllgemein o

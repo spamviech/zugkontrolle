@@ -155,6 +155,7 @@ class MitAnfrageZugtyp (a :: AnfrageZugtyp -> Type) where
     anfrageMärklin :: a 'AnfrageZugtypMärklin
     anfrageLego :: a 'AnfrageZugtypLego
 
+-- | Bestimme den gewählten 'Zugtyp'.
 anfrageAktualisierenZugtyp
     :: (MitAnfrageZugtyp a) => EingabeToken -> AnfrageFortsetzung (AnfrageZugtypEither a) b
 anfrageAktualisierenZugtyp token =
@@ -225,6 +226,7 @@ instance Show (ObjektZugtyp z) where
     show (OZWegstrecke wegstrecke) = show wegstrecke
     show (OZPlan plan) = show plan
 
+-- | Erhalte ein 'Zugtyp'-Agnostisches 'Objekt', wenn nötig unter Verwendung eines 'ZugtypEither'.
 zuObjekt :: (ZugtypKlasse z) => ObjektZugtyp z -> Objekt
 zuObjekt (OZBahngeschwindigkeit bg) = OBahngeschwindigkeit $ zuZugtypEither bg
 zuObjekt (OZStreckenabschnitt st) = OStreckenabschnitt st

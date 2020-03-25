@@ -239,8 +239,10 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
-    -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
+    -- | Aktionen einer Bahngeschwindigkeit
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     Geschwindigkeit :: bg z -> Natural -> AktionBahngeschwindigkeit bg z
     Umdrehen :: bg 'Märklin -> AktionBahngeschwindigkeit bg 'Märklin
     FahrtrichtungEinstellen :: bg 'Lego -> Fahrtrichtung -> AktionBahngeschwindigkeit bg 'Lego

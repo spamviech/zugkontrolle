@@ -43,52 +43,6 @@ GTK stürzt öfters ab
         Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
         Nicht für Wegstrecken-Element-Listen verwenden!
 
-Haddock schlägt an Language.hs fehl
-    Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
-    Probieren ob ein-Datei-Version funktioniert
-        Funktioniert, aber jetzt stürzt Haddock nach Zug.UI.Save ab
-    Kompilationsreihenfolge:
-        [ 1 of 40] Compiling Paths_Zugkontrolle
-        [ 2 of 40] Compiling Zug.Anbindung.I2C
-        [ 3 of 40] Compiling Zug.Language
-        [ 4 of 40] Compiling Zug.Enums
-        [ 5 of 40] Compiling Zug.Anbindung.Wartezeit
-        [ 6 of 40] Compiling Zug.Anbindung.PCF8574
-        [ 7 of 40] Compiling Zug.Anbindung.Anschluss
-        [ 8 of 40] Compiling Zug.Anbindung.SoftwarePWM
-        [ 9 of 40] Compiling Zug.Menge
-        [10 of 40] Compiling Zug.Options
-        [11 of 40] Compiling Zug.Anbindung
-        [12 of 40] Compiling Zug.Plan
-        [13 of 40] Compiling Zug.Objekt
-        [14 of 40] Compiling Zug.UI.Base
-        [15 of 40] Compiling Zug.UI.Cmd.Lexer
-        [16 of 40] Compiling Zug.UI.Cmd.Parser.Anfrage
-        [17 of 40] Compiling Zug.UI.Gtk.Klassen.TemplateHaskell
-        [18 of 40] Compiling Zug.UI.Gtk.Klassen
-        [19 of 40] Compiling Zug.UI.Gtk.SpracheGui
-        [20 of 40] Compiling Zug.UI.Gtk.Hilfsfunktionen
-        [21 of 40] Compiling Zug.UI.Gtk.ScrollbaresWidget
-        [22 of 40] Compiling Zug.UI.Gtk.FortfahrenWennToggled
-        [23 of 40] Compiling Zug.UI.Gtk.Auswahl
-        [24 of 40] Compiling Zug.UI.Gtk.Fliessend
-        [25 of 40] Compiling Zug.UI.Gtk.Anschluss
-        [26 of 40] Compiling Zug.UI.Gtk.ZugtypSpezifisch
-        [27 of 40] Compiling Zug.UI.Save
-        [28 of 40] Compiling Zug.UI.Befehl
-        [29 of 40] Compiling Zug.UI.StatusVar
-        [30 of 40] Compiling Zug.UI.Gtk.StreckenObjekt
-        [31 of 40] Compiling Zug.UI.Gtk.Assistant
-        [32 of 40] Compiling Zug.Warteschlange
-        [33 of 40] Compiling Zug.UI.Gtk.Fenster.AssistantHinzufuegen
-        [34 of 40] Compiling Zug.UI.Gtk.Fenster
-        [35 of 40] Compiling Zug.UI.Gtk
-        [36 of 40] Compiling Zug.UI.Cmd.Parser.Plan
-        [37 of 40] Compiling Zug.UI.Cmd.Parser.StreckenObjekt
-        [38 of 40] Compiling Zug.UI.Cmd.Parser
-        [39 of 40] Compiling Zug.UI.Cmd
-        [40 of 40] Compiling Zug.UI
-
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
         GUI-Darstellung:
@@ -169,6 +123,15 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst--------------------------
+Haddock schlägt an Language.hs fehl
+    Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
+    Probieren ob ein-Datei-Version funktioniert
+        Funktioniert, aber jetzt stürzt Haddock nach Zug.Options ab
+    kritische Haddock-Fehlermeldungen werden nicht immer am Ende angezeigt!
+        floskell rückt bei GADTs die Haddock-Dokumentation ein
+        -- ^ Dokumentation von Konstruktor-Argumenten führt zu haddock-Fehlern
+    fixed
+
 Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
     Vermutlich ein Problem mit Assistant
         evtl. muss Gtk.widgetExpand/Gtk.widgetVExpand explizit gesetzt werden

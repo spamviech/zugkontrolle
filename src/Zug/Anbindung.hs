@@ -242,8 +242,10 @@ instance (StreckenAtom (a 'Märklin), StreckenAtom (a 'Lego)) => StreckenAtom (Z
     fließend (ZugtypMärklin a) = fließend a
     fließend (ZugtypLego a) = fließend a
 
-       -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
 data Bahngeschwindigkeit (z :: Zugtyp) where
+    -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     LegoBahngeschwindigkeit :: { bglName :: Text
                                , bglFließend :: Value
                                , bglGeschwindigkeitsAnschluss :: Anschluss
@@ -404,8 +406,10 @@ instance StreckenabschnittKlasse Streckenabschnitt where
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
 
-       -- | Stellen einer 'Weiche'
 data Weiche (z :: Zugtyp) where
+    -- | Stellen einer 'Weiche'.
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     LegoWeiche :: { welName :: Text
                   , welFließend :: Value
                   , welRichtungsAnschluss :: Anschluss

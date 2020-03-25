@@ -9,6 +9,9 @@
 {-# LANGUAGE OverloadedLists #-}
 #endif
 
+{-|
+Description: Seiten eines AssistantHinzufügen.
+-}
 module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   (
 #ifdef ZUGKONTROLLEGUI
@@ -133,6 +136,7 @@ instance MitWidget HinzufügenSeite where
     erhalteWidget :: HinzufügenSeite -> Gtk.Widget
     erhalteWidget = Gtk.toWidget . vBox
 
+-- | Varianten eines 'Gtk.Button', um das Hinzufügen auszulösen.
 data ButtonHinzufügen
     = ButtonHinzufügen Gtk.Button
     | ButtonHinzufügenZugtypSpezifisch (ZugtypSpezifisch Gtk.Button)
@@ -178,7 +182,7 @@ seiteErgebnis
     fließendAuswahl
     zugtypAuswahl
     HinzufügenSeiteBahngeschwindigkeit
-    {nameAuswahl, geschwindigkeitAuswahl, fahrtrichtungsAuswahl} = do
+        {nameAuswahl, geschwindigkeitAuswahl, fahrtrichtungsAuswahl} = do
     name <- aktuellerName nameAuswahl
     fließend <- aktuellerFließendValue fließendAuswahl
     geschwindigkeitsAnschluss <- aktuellerAnschluss geschwindigkeitAuswahl
@@ -187,21 +191,21 @@ seiteErgebnis
             $ OBahngeschwindigkeit
             $ ZugtypMärklin
                 MärklinBahngeschwindigkeit
-                { bgmName = name
-                , bgmFließend = fließend
-                , bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
-                }
+                    { bgmName = name
+                    , bgmFließend = fließend
+                    , bgmGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
+                    }
         Lego -> do
             bglFahrtrichtungsAnschluss <- aktuellerAnschluss fahrtrichtungsAuswahl
             pure
                 $ OBahngeschwindigkeit
                 $ ZugtypLego
                     LegoBahngeschwindigkeit
-                    { bglName = name
-                    , bglFließend = fließend
-                    , bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
-                    , bglFahrtrichtungsAnschluss
-                    }
+                        { bglName = name
+                        , bglFließend = fließend
+                        , bglGeschwindigkeitsAnschluss = geschwindigkeitsAnschluss
+                        , bglFahrtrichtungsAnschluss
+                        }
 seiteErgebnis
     fließendAuswahl
     _zugtypAuswahl
@@ -214,7 +218,7 @@ seiteErgebnis
     fließendAuswahl
     zugtypAuswahl
     HinzufügenSeiteWeiche
-    {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} = do
+        {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl} = do
     name <- aktuellerName nameAuswahl
     fließend <- aktuellerFließendValue fließendAuswahl
     aktuelleAuswahl zugtypAuswahl >>= \case
@@ -232,10 +236,10 @@ seiteErgebnis
                 $ OWeiche
                 $ ZugtypMärklin
                     MärklinWeiche
-                    { wemName = name
-                    , wemFließend = fließend
-                    , wemRichtungsAnschlüsse
-                    }
+                        { wemName = name
+                        , wemFließend = fließend
+                        , wemRichtungsAnschlüsse
+                        }
         Lego -> do
             welRichtungen <- aktuelleAuswahl legoRichtungenAuswahl
             welRichtungsAnschluss <- aktuellerAnschluss legoRichtungsAuswahl
@@ -243,11 +247,11 @@ seiteErgebnis
                 $ OWeiche
                 $ ZugtypLego
                     LegoWeiche
-                    { welName = name
-                    , welFließend = fließend
-                    , welRichtungen
-                    , welRichtungsAnschluss
-                    }
+                        { welName = name
+                        , welFließend = fließend
+                        , welRichtungen
+                        , welRichtungsAnschluss
+                        }
 seiteErgebnis
     fließendAuswahl
     _zugtypAuswahl
@@ -282,12 +286,12 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
             wsKupplungen <- foldM anhängenWennToggled [] $ aktuellerStatus ^. kupplungen
             pure
                 Wegstrecke
-                { wsName
-                , wsBahngeschwindigkeiten
-                , wsStreckenabschnitte
-                , wsWeichenRichtungen
-                , wsKupplungen
-                }
+                    { wsName
+                    , wsBahngeschwindigkeiten
+                    , wsStreckenabschnitte
+                    , wsWeichenRichtungen
+                    , wsKupplungen
+                    }
         anhängenWennToggled :: (WidgetsTyp a, WegstreckenElement a, MonadIO m)
                              => [ObjektTyp a]
                              -> a
@@ -333,6 +337,7 @@ seiteErgebnis
                 in plan
         False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
 
+-- | Erzeuge eine Seite zum hinzufügen einer 'Bahngeschwindigkeit'.
 hinzufügenBahngeschwindigkeitNew
     :: (SpracheGuiReader r m, MonadIO m)
     => AuswahlWidget Zugtyp
@@ -348,13 +353,14 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
         $ zugtypSpezifischNew [(Lego, fahrtrichtungsAuswahl)] auswahlZugtyp
     pure
         HinzufügenSeiteBahngeschwindigkeit
-        { vBox
-        , nameAuswahl
-        , geschwindigkeitAuswahl
-          -- Lego
-        , fahrtrichtungsAuswahl
-        }
+            { vBox
+            , nameAuswahl
+            , geschwindigkeitAuswahl
+              -- Lego
+            , fahrtrichtungsAuswahl
+            }
 
+-- | Erzeuge eine Seite zum hinzufügen eines 'Streckenabschnitt'.
 hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)
                                 => Maybe (TVar (Maybe [Sprache -> IO ()]))
                                 -> m HinzufügenSeite
@@ -364,6 +370,7 @@ hinzufügenStreckenabschnittNew maybeTVar = do
     stromAuswahl <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.strom
     pure HinzufügenSeiteStreckenabschnitt { vBox, nameAuswahl, stromAuswahl }
 
+-- | Erzeuge eine Seite zum hinzufügen einer 'Weiche'.
 hinzufügenWeicheNew :: (SpracheGuiReader r m, MonadIO m)
                      => AuswahlWidget Zugtyp
                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -429,16 +436,17 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
             auswahlZugtyp
     pure
         HinzufügenSeiteWeiche
-        { vBox
-        , nameAuswahl
-        , buttonHinzufügenWeiche
-          -- Märklin
-        , märklinRichtungsAuswahl
-          -- Lego
-        , legoRichtungsAuswahl
-        , legoRichtungenAuswahl
-        }
+            { vBox
+            , nameAuswahl
+            , buttonHinzufügenWeiche
+              -- Märklin
+            , märklinRichtungsAuswahl
+              -- Lego
+            , legoRichtungsAuswahl
+            , legoRichtungenAuswahl
+            }
 
+-- | Erzeuge eine Seite zum hinzufügen einer 'Kupplung'.
 hinzufügenKupplungNew :: (SpracheGuiReader r m, MonadIO m)
                        => Maybe (TVar (Maybe [Sprache -> IO ()]))
                        -> m HinzufügenSeite
@@ -449,6 +457,7 @@ hinzufügenKupplungNew maybeTVar = do
         <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.kupplung
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
+-- | Erzeuge eine Seite zum hinzufügen einer 'Wegstrecke'.
 hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                          => AuswahlWidget Zugtyp
                          -> Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -481,11 +490,12 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
         $ pure vBoxHinzufügenWegstreckeKupplungen
     pure
         HinzufügenSeiteWegstrecke
-        { vBox
-        , nameAuswahl
-        , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
-        }
+            { vBox
+            , nameAuswahl
+            , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
+            }
 
+-- | Erzeuge eine Seite zum hinzufügen eines 'Plans'.
 hinzufügenPlanNew :: (MitWindow p, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                    => p
                    -> AuswahlWidget Zugtyp
@@ -613,8 +623,8 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         ztWegstreckenBG <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
                 [ ( Märklin
-                      , erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                      )
+                  , erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                  )
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego)]
                 auswahlZugtyp
         ztWegstreckenST <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
@@ -740,11 +750,11 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
     pure
         HinzufügenSeitePlan
-        { vBox
-        , nameAuswahl
-        , tvarAktionen
-        , checkButtonDauerschleife
-        , buttonHinzufügenPlan
-        }
+            { vBox
+            , nameAuswahl
+            , tvarAktionen
+            , checkButtonDauerschleife
+            , buttonHinzufügenPlan
+            }
 #endif
 --

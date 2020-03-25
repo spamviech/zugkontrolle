@@ -17,6 +17,7 @@ module Zug.UI.Cmd.Parser.StreckenObjekt
   ( -- * Hilfstypen
     AnfrageZugtyp(..)
   , AnfrageZugtypEither(..)
+  , AnfrageZugtypKlasse(..)
   , AnfrageAnschluss(..)
     -- * StreckenObjekte
     -- ** Bahngeschwindigkeit
@@ -61,16 +62,15 @@ data AnfrageAnschluss
     = AnfrageAnschluss
     | APin
     | APCF8574Port
-    | APCF8574PortVariant PCF8574Variant          -- ^ Variante
-    | APCF8574PortVariantA0 PCF8574Variant          -- ^ Variante
-                            Value                   -- ^ a0
-    | APCF8574PortVariantA0A1 PCF8574Variant          -- ^ Variante
-                              Value                   -- ^ a0
-                              Value                   -- ^ a1
-    | APCF8574PortVariantA0A1A2 PCF8574Variant          -- ^ Variante
-                                Value                   -- ^ a0
-                                Value                   -- ^ a1
-                                Value                   -- ^ a2
+    | APCF8574PortVariant { aaVariante :: PCF8574Variant }
+    | APCF8574PortVariantA0 { aaVariante :: PCF8574Variant, aaA0 :: Value }
+    | APCF8574PortVariantA0A1 { aaVariante :: PCF8574Variant, aaA0 :: Value, aaA1 :: Value }
+    | APCF8574PortVariantA0A1A2
+          { aaVariante :: PCF8574Variant
+          , aaA0 :: Value
+          , aaA1 :: Value
+          , aaA2 :: Value
+          }
     deriving (Show, Eq)
 
 instance Anzeige AnfrageAnschluss where
@@ -182,8 +182,10 @@ instance MitAnfrage Anschluss where
             $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2 }, port = fromIntegral port }
         Nothing -> AFFehler eingabe
 
-    -- | Unvollständige 'Bahngeschwindigkeit'
 data AnfrageBahngeschwindigkeit (z :: AnfrageZugtyp) where
+    -- | Unvollständige 'Bahngeschwindigkeit'.
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageBahngeschwindigkeit :: AnfrageBahngeschwindigkeit 'AnfrageZugtyp
     AMärklinBahngeschwindigkeit :: AnfrageBahngeschwindigkeit 'AnfrageZugtypMärklin
     AMärklinBahngeschwindigkeitName :: { abgmName :: Text }
@@ -325,8 +327,8 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
         wähleZwischenwert
             token
             [ ( Lexer.HIGH
-                  , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss
-                  )
+              , AMärklinBahngeschwindigkeitNameFließend abgmName HIGH AnfrageAnschluss
+              )
             , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließend abgmName LOW AnfrageAnschluss)]
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließend
@@ -348,10 +350,10 @@ instance MitAnfrage (Bahngeschwindigkeit 'Märklin) where
             anschlussVerwenden bgmGeschwindigkeitsAnschluss =
                 AFErgebnis
                     MärklinBahngeschwindigkeit
-                    { bgmName
-                    , bgmFließend
-                    , bgmGeschwindigkeitsAnschluss
-                    }
+                        { bgmName
+                        , bgmFließend
+                        , bgmGeschwindigkeitsAnschluss
+                        }
 
 instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
     type AnfrageTyp (Bahngeschwindigkeit 'Lego) = AnfrageBahngeschwindigkeit 'AnfrageZugtypLego
@@ -410,11 +412,11 @@ instance MitAnfrage (Bahngeschwindigkeit 'Lego) where
             anschlussVerwenden bglFahrtrichtungsAnschluss =
                 AFErgebnis
                     LegoBahngeschwindigkeit
-                    { bglName
-                    , bglFließend
-                    , bglGeschwindigkeitsAnschluss
-                    , bglFahrtrichtungsAnschluss
-                    }
+                        { bglName
+                        , bglFließend
+                        , bglGeschwindigkeitsAnschluss
+                        , bglFahrtrichtungsAnschluss
+                        }
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -488,8 +490,10 @@ instance MitAnfrage Streckenabschnitt where
             anschlussVerwenden stromAnschluss =
                 AFErgebnis Streckenabschnitt { stName, stFließend, stromAnschluss }
 
-    -- | Unvollständige 'Weiche'
 data AnfrageWeiche (z :: AnfrageZugtyp) where
+    -- | Unvollständige 'Weiche'.
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageWeiche :: AnfrageWeiche 'AnfrageZugtyp
     AMärklinWeiche :: AnfrageWeiche 'AnfrageZugtypMärklin
     AMärklinWeicheName :: { awemName :: Text } -> AnfrageWeiche 'AnfrageZugtypMärklin
@@ -687,10 +691,10 @@ instance MitAnfrage (Weiche 'Märklin) where
                 | otherwise =
                     AFErgebnis
                         MärklinWeiche
-                        { wemName
-                        , wemFließend
-                        , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
-                        }
+                            { wemName
+                            , wemFließend
+                            , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
+                            }
 
 instance MitAnfrage (Weiche 'Lego) where
     type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
@@ -743,11 +747,11 @@ instance MitAnfrage (Weiche 'Lego) where
             anschlussVerwenden welRichtungsAnschluss =
                 AFErgebnis
                     LegoWeiche
-                    { welName
-                    , welFließend
-                    , welRichtungsAnschluss
-                    , welRichtungen = (richtung1, richtung2)
-                    }
+                        { welName
+                        , welFließend
+                        , welRichtungsAnschluss
+                        , welRichtungen = (richtung1, richtung2)
+                        }
 
 instance MitAnfrageZugtyp AnfrageWeiche where
     anfrageMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
@@ -849,8 +853,10 @@ instance AnfrageZugtypKlasse 'AnfrageZugtypLego where
                     -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)
     afStatusAnfrage = AFStatusAnfrageLego
 
-    -- | Unvollständige 'Wegstrecke'
 data AnfrageWegstrecke (z :: AnfrageZugtyp) where
+    -- | Unvollständige 'Wegstrecke'.
+    --
+    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageWegstreckeZugtyp :: AnfrageWegstrecke 'AnfrageZugtyp
     AnfrageWegstrecke :: AnfrageWegstrecke z
     AWegstreckeName :: { awsName :: Text } -> AnfrageWegstrecke z
@@ -951,12 +957,12 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, g
         (Just anzahl) -> AFZwischenwert
             $ AWegstreckeNameAnzahl
                 Wegstrecke
-                { wsName
-                , wsBahngeschwindigkeiten = []
-                , wsStreckenabschnitte = []
-                , wsWeichenRichtungen = []
-                , wsKupplungen = []
-                }
+                    { wsName
+                    , wsBahngeschwindigkeiten = []
+                    , wsStreckenabschnitte = []
+                    , wsWeichenRichtungen = []
+                    , wsKupplungen = []
+                    }
                 anzahl
 anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token =
     case anfrageWegstreckenElement token of
@@ -1049,7 +1055,7 @@ anfrageWegstreckeAktualisieren
         weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Wegstrecke (FixerZugtyp z)
         weicheRichtungAnhängen
             AWegstreckeNameAnzahlWeicheRichtung
-            {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
+                {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
             richtung =
             wegstrecke { wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen }
         weicheRichtungAnhängen anfrageWegstrecke _richtung =
@@ -1116,8 +1122,8 @@ instance MitAnfrage Objekt where
         wähleZwischenwert
             token
             [ ( Lexer.Bahngeschwindigkeit
-                  , AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit
-                  )
+              , AOBahngeschwindigkeit $ AnfrageNothing AnfrageBahngeschwindigkeit
+              )
             , (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt)
             , (Lexer.Weiche, AOWeiche $ AnfrageNothing AnfrageWeiche)
             , (Lexer.Wegstrecke, AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp)
