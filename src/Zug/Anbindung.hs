@@ -44,6 +44,7 @@ module Zug.Anbindung
     -- ** Bahngeschwindigkeiten
   , Bahngeschwindigkeit(..)
   , BahngeschwindigkeitKlasse(..)
+  , verwendetPwm
   , pwmEingabeMaximal
   , erhaltePwmWertVoll
   , erhaltePWMWertReduziert
@@ -310,6 +311,12 @@ instance StreckenAtom (Bahngeschwindigkeit z) where
     fließend LegoBahngeschwindigkeit {bglFließend} = bglFließend
     fließend MärklinBahngeschwindigkeitPwm {bgmFließend} = bgmFließend
     fließend MärklinBahngeschwindigkeitFesteSpannung {bgmFließend} = bgmFließend
+
+-- | Verwendet die 'Bahngeschwindigkeit' PWM zur Geschwindigkeitskontrolle?
+verwendetPwm :: Bahngeschwindigkeit z -> Bool
+verwendetPwm MärklinBahngeschwindigkeitFesteSpannung {} = False
+verwendetPwm MärklinBahngeschwindigkeitPwm {} = True
+verwendetPwm LegoBahngeschwindigkeit {} = True
 
 -- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen
 class (StreckenObjekt (b 'Märklin), StreckenObjekt (b 'Lego)) => BahngeschwindigkeitKlasse b where

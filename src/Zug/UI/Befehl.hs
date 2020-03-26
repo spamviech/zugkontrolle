@@ -30,7 +30,6 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (Sprache(), MitSprache(..))

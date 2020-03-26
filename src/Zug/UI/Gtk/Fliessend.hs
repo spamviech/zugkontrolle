@@ -27,7 +27,6 @@ import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Graphics.UI.Gtk as Gtk
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenAtom(..), Value(..))
 import Zug.Language (Sprache(), (<:>))
 import qualified Zug.Language as Language

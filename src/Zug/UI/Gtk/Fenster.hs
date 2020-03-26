@@ -34,7 +34,6 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
--- Abhängigkeiten von anderen Modulen
 import Zug.Enums (ZugtypEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))

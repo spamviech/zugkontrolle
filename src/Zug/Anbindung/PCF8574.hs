@@ -39,7 +39,6 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
 import Text.Read.Lex (numberToInteger, Lexeme(..))
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..)
                         , i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
 import Zug.Language (Anzeige(..), Sprache())

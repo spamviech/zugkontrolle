@@ -33,7 +33,6 @@ import System.Hardware.WiringPi
        (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite
                             , pcf8574PortRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
 import Zug.Language (Anzeige(..), Sprache(), showText)

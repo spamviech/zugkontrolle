@@ -90,7 +90,6 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty
                     , MitI2CMap(..), StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither())

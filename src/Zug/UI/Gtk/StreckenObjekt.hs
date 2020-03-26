@@ -96,7 +96,8 @@ import qualified Data.Aeson as Aeson
 import Data.Foldable (Foldable(..))
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Maybe (fromJust)
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.Maybe (fromJust, catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Void (Void)
@@ -104,11 +105,11 @@ import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
--- Abhängigkeiten von anderen Modulen
-import Zug.Anbindung (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader()
-                    , Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
-                    , StreckenabschnittKlasse(..), Weiche(..), WeicheKlasse(..), Kupplung(..)
-                    , KupplungKlasse(..), Wegstrecke(..), WegstreckeKlasse(..))
+import Zug.Anbindung
+       (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(), Bahngeschwindigkeit(..)
+      , verwendetPwm, BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
+      , StreckenabschnittKlasse(..), Weiche(..), WeicheKlasse(..), Kupplung(..), KupplungKlasse(..)
+      , Wegstrecke(..), WegstreckeKlasse(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither
                 , Fahrtrichtung(..), Strom(..), Richtung(..))
 import Zug.Language (MitSprache(..))
@@ -126,7 +127,7 @@ import Zug.UI.Base
       , entfernenBahngeschwindigkeit, entfernenStreckenabschnitt, entfernenWeiche, entfernenKupplung
       , entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
-import Zug.UI.Gtk.Anschluss (anschlussNew)
+import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
 import Zug.UI.Gtk.Auswahl
        (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
@@ -742,14 +743,14 @@ instance Aeson.ToJSON (BGWidgets z) where
     toJSON = Aeson.toJSON . bg
 
 instance BahngeschwindigkeitKlasse BGWidgets where
-    geschwindigkeit :: (PwmReader r m, MonadIO m) => BGWidgets z -> Natural -> m ()
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets z -> Natural -> m ()
     geschwindigkeit = geschwindigkeit . bg
 
-    umdrehen :: (PwmReader r m, MonadIO m) => BGWidgets 'Märklin -> m ()
+    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Märklin -> m ()
     umdrehen = umdrehen . bg
 
     fahrtrichtungEinstellen
-        :: (PwmReader r m, MonadIO m) => BGWidgets 'Lego -> Fahrtrichtung -> m ()
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Lego -> Fahrtrichtung -> m ()
     fahrtrichtungEinstellen = fahrtrichtungEinstellen . bg
 
 -- | 'Bahngeschwindigkeit' darstellen und zum Status hinzufügen
@@ -782,11 +783,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             , bgSpracheTVar
             }
     namePackNew hBox bahngeschwindigkeit
-    boxPackWidgetNewDefault hBox
-        $ anschlussNew justSpracheTVar Language.geschwindigkeit
-        $ getGeschwindigkeitsAnschluss bahngeschwindigkeit
-    hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew hBox bgWidgets
-    fahrtrichtungsWidgetsPackNew hBox bahngeschwindigkeit hScaleGeschwindigkeit bgSpracheTVar
+    geschwindigkeitsWidgetsPackNew hBox bgWidgets
     fließendPackNew hBox bahngeschwindigkeit justSpracheTVar
     buttonEntfernenPackNew bgWidgets bgSpracheTVar
         $ entfernenBahngeschwindigkeit
@@ -795,29 +792,55 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     ausführenBefehl $ Hinzufügen $ OBahngeschwindigkeit $ zuZugtypEither bgWidgets
     pure bgWidgets
     where
-        getGeschwindigkeitsAnschluss :: Bahngeschwindigkeit z -> Anschluss
-        getGeschwindigkeitsAnschluss MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss} =
-            bgmGeschwindigkeitsAnschluss
-        getGeschwindigkeitsAnschluss
-            LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss} = bglGeschwindigkeitsAnschluss
-
-        fahrtrichtungsWidgetsPackNew
-            :: (ObjektGuiReader m, MonadIO m, MitBox b, MitRange r)
-            => b
-            -> Bahngeschwindigkeit z
-            -> r
-            -> TVar (Maybe [Sprache -> IO ()])
-            -> m ()
-        fahrtrichtungsWidgetsPackNew box bgMärklin@MärklinBahngeschwindigkeit {} range tvar =
-            void $ buttonUmdrehenPackNew box bgMärklin range tvar
-        fahrtrichtungsWidgetsPackNew
+        geschwindigkeitsWidgetsPackNew
+            :: (ObjektGuiReader m, MonadIO m, MitBox b) => b -> BGWidgets z -> m ()
+        geschwindigkeitsWidgetsPackNew
             box
-            bgLego@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss}
-            range
-            tvar = void $ do
+            bgWidgets@BGWidgets
+                { bg = bgMärklin@MärklinBahngeschwindigkeitPwm {bgmGeschwindigkeitsPin}
+                , bgSpracheTVar} = void $ do
             boxPackWidgetNewDefault box
-                $ anschlussNew (Just tvar) Language.fahrtrichtung bglFahrtrichtungsAnschluss
-            togglebuttonFahrtrichtungEinstellenPackNew box bgLego range tvar
+                $ pinNew (Just bgSpracheTVar) Language.geschwindigkeit bgmGeschwindigkeitsPin
+            scaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew box bgWidgets
+            buttonUmdrehenPackNew
+                box
+                bgMärklin
+                (Left (erhalteRange scaleGeschwindigkeit) :| [])
+                bgSpracheTVar
+        geschwindigkeitsWidgetsPackNew
+            box
+            BGWidgets
+                { bg = bgMärklin@MärklinBahngeschwindigkeitFesteSpannung {bgmFahrstromAnschluss}
+                , bgSpracheTVar} = void $ do
+            objektReader <- ask
+            boxPackWidgetNewDefault box
+                $ anschlussNew (Just bgSpracheTVar) Language.geschwindigkeit bgmFahrstromAnschluss
+            toggleButtonFahrstrom
+                <- toggleButtonNewWithEventLabel (Just bgSpracheTVar) Language.fahrstrom
+                $ \toggled -> flip runReaderT objektReader
+                $ geschwindigkeit bgMärklin
+                $ if toggled
+                    then 100
+                    else 0
+            buttonUmdrehenPackNew box bgMärklin (Right toggleButtonFahrstrom :| []) bgSpracheTVar
+        geschwindigkeitsWidgetsPackNew
+            box
+            bgWidgets@BGWidgets { bg = bgLego@LegoBahngeschwindigkeit
+                                      {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
+                                , bgSpracheTVar} = void $ do
+            boxPackWidgetNewDefault box
+                $ pinNew (Just bgSpracheTVar) Language.geschwindigkeit bglGeschwindigkeitsPin
+            scaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew box bgWidgets
+            boxPackWidgetNewDefault box
+                $ anschlussNew
+                    (Just bgSpracheTVar)
+                    Language.fahrtrichtung
+                    bglFahrtrichtungsAnschluss
+            togglebuttonFahrtrichtungEinstellenPackNew
+                box
+                bgLego
+                (Left (erhalteRange scaleGeschwindigkeit) :| [])
+                bgSpracheTVar
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew
@@ -842,23 +865,25 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
                     statusVar
         pure scale
 
--- | Füge 'Gtk.Button' zum umdrehen/ zur Box hinzu.
+-- | Füge 'Gtk.Button' zum 'umdrehen' zur Box hinzu.
 --
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonUmdrehenPackNew
-    :: forall b bg r m.
-    (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektGuiReader m, MonadIO m)
+    :: forall b bg m.
+    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
     => b
     -> bg 'Märklin
-    -> r
+    -> NonEmpty (Either Gtk.Range Gtk.ToggleButton)
     -> TVar (Maybe [Sprache -> IO ()])
     -> m Gtk.Button
-buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit tvar = do
+buttonUmdrehenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
     boxPackWidgetNewDefault box $ buttonNewWithEventLabel (Just tvar) Language.umdrehen $ do
-        Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
+        forM_ geschwindigkeitsWidgets $ \case
+            (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
+            (Right toggleButton) -> Gtk.set toggleButton [Gtk.toggleButtonActive := False]
         flip runReaderT objektReader
             $ ausführenStatusVarAktion (Umdrehen bahngeschwindigkeit) statusVar
 
@@ -867,20 +892,22 @@ buttonUmdrehenPackNew box bahngeschwindigkeit rangeGeschwindigkeit tvar = do
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 togglebuttonFahrtrichtungEinstellenPackNew
-    :: forall b bg r m.
-    (MitBox b, BahngeschwindigkeitKlasse bg, MitRange r, ObjektGuiReader m, MonadIO m)
+    :: forall b bg m.
+    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
     => b
     -> bg 'Lego
-    -> r
+    -> NonEmpty (Either Gtk.Range Gtk.ToggleButton)
     -> TVar (Maybe [Sprache -> IO ()])
     -> m Gtk.ToggleButton
-togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit rangeGeschwindigkeit tvar = do
+togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
     tmvarStatus <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
     boxPackWidgetNewDefault box
         $ toggleButtonNewWithEventLabel (Just tvar) Language.umdrehen
         $ \vorwärts -> do
-            Gtk.set (erhalteRange rangeGeschwindigkeit) [Gtk.rangeValue := 0]
+            forM_ geschwindigkeitsWidgets $ \case
+                (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
+                (Right toggleButton) -> Gtk.set toggleButton [Gtk.toggleButtonActive := False]
             let fahrtrichtung =
                     if vorwärts
                         then Vorwärts
@@ -1178,7 +1205,7 @@ instance Aeson.ToJSON (WEWidgets z) where
     toJSON WEWidgets {we} = Aeson.toJSON we
 
 instance WeicheKlasse (WEWidgets z) where
-    stellen :: (PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
+    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
     stellen WEWidgets {we} = stellen we
 
     erhalteRichtungen :: WEWidgets z -> NonEmpty Richtung
@@ -1256,14 +1283,13 @@ weichePackNew weiche = do
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
         richtungsButtonsPackNew
-            LegoWeiche {welRichtungsAnschluss, welRichtungen = (richtung1, richtung2)}
+            LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
             box
             tvar = void $ do
             statusVar <- erhalteStatusVar :: m StatusVarGui
             objektReader <- ask
             let justTVar = Just tvar
-            boxPackWidgetNewDefault box
-                $ anschlussNew justTVar Language.richtung welRichtungsAnschluss
+            boxPackWidgetNewDefault box $ pinNew justTVar Language.richtung welRichtungsPin
             boxPackWidgetNewDefault box
                 $ buttonNewWithEventLabel justTVar (anzeige richtung1)
                 $ flip runReaderT objektReader
@@ -1512,14 +1538,14 @@ instance Aeson.ToJSON (WSWidgets z) where
     toJSON WSWidgets {ws} = Aeson.toJSON ws
 
 instance BahngeschwindigkeitKlasse WSWidgets where
-    geschwindigkeit :: (PwmReader r m, MonadIO m) => WSWidgets z -> Natural -> m ()
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> Natural -> m ()
     geschwindigkeit WSWidgets {ws} = geschwindigkeit ws
 
-    umdrehen :: (PwmReader r m, MonadIO m) => WSWidgets 'Märklin -> m ()
+    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets 'Märklin -> m ()
     umdrehen WSWidgets {ws} = umdrehen ws
 
     fahrtrichtungEinstellen
-        :: (PwmReader r m, MonadIO m) => WSWidgets 'Lego -> Fahrtrichtung -> m ()
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets 'Lego -> Fahrtrichtung -> m ()
     fahrtrichtungEinstellen WSWidgets {ws} = fahrtrichtungEinstellen ws
 
 instance StreckenabschnittKlasse (WSWidgets z) where
@@ -1531,7 +1557,7 @@ instance KupplungKlasse (WSWidgets z) where
     kuppeln WSWidgets {ws} = kuppeln ws
 
 instance WegstreckeKlasse (WSWidgets z) where
-    einstellen :: (PwmReader r m, MonadIO m) => WSWidgets z -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> m ()
     einstellen WSWidgets {ws} = einstellen ws
 
 -- | 'Wegstrecke' darstellen
@@ -1583,15 +1609,33 @@ wegstreckePackNew
             $ labelSpracheNew justSpracheTVar
             $ Language.bahngeschwindigkeiten
             <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
-        hScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew functionBox wegstrecke
+        maybeScale <- if any verwendetPwm wsBahngeschwindigkeiten
+            then Just . Left . erhalteRange <$> hScaleGeschwindigkeitPackNew functionBox wegstrecke
+            else pure Nothing
+        maybeToggleButton <- if any (not . verwendetPwm) wsBahngeschwindigkeiten
+            then Just . Right
+                <$> toggleButtonNewWithEventLabel
+                    justSpracheTVar
+                    Language.fahrstrom
+                    (\toggled -> flip runReaderT objektReader
+                     $ geschwindigkeit wegstrecke
+                     $ if toggled
+                         then 100
+                         else 0)
+            else pure Nothing
+        let geschwindigkeitsWidgets = NonEmpty.fromList $ catMaybes [maybeScale, maybeToggleButton]
         case zuZugtypEither wegstrecke of
             (ZugtypMärklin wsMärklin) -> void
-                $ buttonUmdrehenPackNew functionBox wsMärklin hScaleGeschwindigkeit wsSpracheTVar
+                $ buttonUmdrehenPackNew
+                    functionBox
+                    wsMärklin
+                    geschwindigkeitsWidgets
+                    wsSpracheTVar
             (ZugtypLego wsLego) -> void
                 $ togglebuttonFahrtrichtungEinstellenPackNew
                     functionBox
                     wsLego
-                    hScaleGeschwindigkeit
+                    geschwindigkeitsWidgets
                     wsSpracheTVar
     unless (null wsStreckenabschnitte) $ void $ do
         boxPackWidgetNewDefault vBoxExpander

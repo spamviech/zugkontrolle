@@ -14,7 +14,6 @@ import Data.Text (Text)
 
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(), Streckenabschnitt()
                     , Weiche(), Kupplung(), Wegstrecke())
--- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..))
 import Zug.Language (Sprache())
 import Zug.Plan (Plan(..))

@@ -63,7 +63,6 @@ import Graphics.UI.Gtk (Packing(..), ResponseId)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (StreckenObjekt(..))
 import Zug.Language (Sprache(..), (<:>))
 import qualified Zug.Language as Language

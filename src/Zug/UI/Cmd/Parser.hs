@@ -57,7 +57,6 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Numeric.Natural (Natural)
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Anbindung (Anschluss(..))
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<:>), (<\>), toBefehlsString)

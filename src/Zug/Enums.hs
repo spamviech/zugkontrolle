@@ -27,7 +27,6 @@ import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Text (Text)
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 

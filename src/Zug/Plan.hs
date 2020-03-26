@@ -43,7 +43,6 @@ import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(
                     , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
                     , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung()
                     , KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..))
--- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))

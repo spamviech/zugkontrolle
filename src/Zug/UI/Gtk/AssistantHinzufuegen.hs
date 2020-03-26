@@ -31,7 +31,6 @@ import Data.Maybe (catMaybes)
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(), unterstützteZugtypen)
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language

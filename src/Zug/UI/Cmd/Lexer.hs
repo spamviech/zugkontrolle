@@ -16,7 +16,6 @@ import Data.Text (Text, unpack)
 import Numeric.Natural (Natural)
 import Text.Read (readMaybe)
 
--- Abhängigkeiten von anderen Modulen
 import Zug.Language (Sprache(), alleSprachen)
 import qualified Zug.Language as Language
 
