@@ -31,7 +31,8 @@ module Zug.Anbindung
   , I2CReader(..)
   , Value(..)
   , alleValues
-  , Pin()
+  , Pin(..)
+  , pinToBcmGpio
   , vonPin
   , zuPin
   , pwmMöglich
@@ -75,7 +76,8 @@ import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import qualified Data.Text.IO as T
 import Numeric.Natural (Natural)
-import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..), pinMode, pwmSetRange, pwmWrite)
+import System.Hardware.WiringPi
+       (Pin(..), PwmValue(), Mode(..), pinMode, pwmSetRange, pwmWrite, pinToBcmGpio)
 
 import Zug.Anbindung.Anschluss
        (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPin, zuPin, vonPinGpio

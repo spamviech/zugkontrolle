@@ -54,12 +54,12 @@ class MitAusführend r where
     mengeAusführend :: r -> TVar (Menge Ausführend)
 
 -- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Menge' benötigen
-class (PwmReader r m, MitAusführend r) => AusführendReader r m where
+class (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r m where
     -- | Erhalte die aktuelle 'Ausführend'-'Menge' aus der Umgebung.
     erhalteMengeAusführend :: m (TVar (Menge Ausführend))
     erhalteMengeAusführend = asks mengeAusführend
 
-instance (PwmReader r m, MitAusführend r) => AusführendReader r m
+instance (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r m
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
@@ -236,7 +236,7 @@ instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
     erhalteName = showText
 
 instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
+    ausführenAktion :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
 data AktionBahngeschwindigkeit bg (z :: Zugtyp) where
@@ -274,7 +274,8 @@ instance ( BahngeschwindigkeitKlasse bg
     erhalteName = showText
 
 instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigkeit bg z) where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg z -> m ()
+    ausführenAktion
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg z -> m ()
     ausführenAktion (Geschwindigkeit bg wert) = geschwindigkeit bg wert
     ausführenAktion (Umdrehen bg) = umdrehen bg
     ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung) =
@@ -297,7 +298,7 @@ instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStrecken
     erhalteName = showText
 
 instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt st) where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionStreckenabschnitt st -> m ()
+    ausführenAktion :: (I2CReader r m, MonadIO m) => AktionStreckenabschnitt st -> m ()
     ausführenAktion (Strom st an) = strom st an
 
 -- | Aktionen einer Kupplung
@@ -316,5 +317,5 @@ instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) wher
     erhalteName = showText
 
 instance (KupplungKlasse ku) => AktionKlasse (AktionKupplung ku) where
-    ausführenAktion :: (PwmReader r m, MonadIO m) => AktionKupplung ku -> m ()
+    ausführenAktion :: (I2CReader r m, MonadIO m) => AktionKupplung ku -> m ()
     ausführenAktion (Kuppeln ku) = kuppeln ku
