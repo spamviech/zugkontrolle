@@ -85,10 +85,10 @@ import Zug.Anbindung.SoftwarePWM
        (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
 import Zug.Anbindung.Wartezeit
        (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
--- Abhängigkeiten von anderen Modulen
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), Richtung(..))
 import qualified Zug.Language as Language
-import Zug.Language (Anzeige(..), Sprache(), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
+import Zug.Language
+       (Anzeige(..), Sprache(Deutsch), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
 import Zug.Options (Options(..), PWM(..), getOptions)
 
 -- | Alle Möglichen Werte von 'Value'
@@ -108,27 +108,22 @@ clockMöglich = flip elem [Wpi 7, Wpi 21, Wpi 22, Wpi 29]
 
 -- * PWM-Funktion
 -- | 'pwmWrite' mit alternativer Software-basierter PWM-Funktion
-pwmSetzeWert :: (StreckenAtom s, PwmReader r m, MonadIO m)
-             => s
-             -> Anschluss
-             -> PwmValueUnmodifiziert
-             -> m ()
-pwmSetzeWert s anschluss pwmValue = do
+pwmSetzeWert
+    :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Pin -> PwmValueUnmodifiziert -> m ()
+pwmSetzeWert s pin pwmValue = do
     Options {pwm} <- getOptions
-    case zuPin anschluss of
-        (Just pin)
-            | (pwm == HardwarePWM) && pwmMöglich pin -> liftIO $ do
-                pinMode pin PWM_OUTPUT
-                pwmSetRange pwmGrenze
-                pwmWrite pin $ pwmValueModifiziert s pwmValue
-        _otherwise
-            -> pwmSoftwareSetzteWert anschluss pwmFrequenzHzNormal $ pwmValueModifiziert s pwmValue
+    if (pwm == HardwarePWM) && pwmMöglich pin
+        then liftIO $ do
+            pinMode pin PWM_OUTPUT
+            pwmSetRange pwmGrenze
+            pwmWrite pin $ pwmValueModifiziert s pwmValue
+        else pwmSoftwareSetzteWert pin pwmFrequenzHzNormal $ pwmValueModifiziert s pwmValue
 
 -- | Erzeuge PWM-Funktion für einen Servo-Motor
 --   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmGrenze und pwmValue)
-pwmServo :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Anschluss -> Natural -> m ()
-pwmServo s anschluss =
-    pwmSoftwareSetzteWert anschluss pwmFrequenzHzServo . pwmValueModifiziert s . erhaltePwmWertVoll
+pwmServo :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Pin -> Natural -> m ()
+pwmServo s pin =
+    pwmSoftwareSetzteWert pin pwmFrequenzHzServo . pwmValueModifiziert s . erhaltePwmWertVoll
 
 -- | newtype auf 'PwmValue' um ein noch bevorstehendes modifizieren bzgl. fließend-Value zu signalisieren
 newtype PwmValueUnmodifiziert = PwmValueUnmodifiziert PwmValue
@@ -248,12 +243,18 @@ data Bahngeschwindigkeit (z :: Zugtyp) where
     -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     LegoBahngeschwindigkeit :: { bglName :: Text
                                , bglFließend :: Value
-                               , bglGeschwindigkeitsAnschluss :: Anschluss
+                               , bglGeschwindigkeitsPin :: Pin
                                , bglFahrtrichtungsAnschluss :: Anschluss
                                } -> Bahngeschwindigkeit 'Lego
-    MärklinBahngeschwindigkeit
-        :: { bgmName :: Text, bgmFließend :: Value, bgmGeschwindigkeitsAnschluss :: Anschluss }
+    MärklinBahngeschwindigkeitPwm
+        :: { bgmName :: Text, bgmFließend :: Value, bgmGeschwindigkeitsPin :: Pin }
         -> Bahngeschwindigkeit 'Märklin
+    MärklinBahngeschwindigkeitFesteSpannung
+        :: { bgmName :: Text
+           , bgmFließend :: Value
+           , bgmFahrstromAnschluss :: Anschluss
+           , bgmUmdrehenAnschluss :: Anschluss
+           } -> Bahngeschwindigkeit 'Märklin
 
 deriving instance Eq (Bahngeschwindigkeit z)
 
@@ -261,49 +262,64 @@ deriving instance Show (Bahngeschwindigkeit z)
 
 instance Anzeige (Bahngeschwindigkeit z) where
     anzeige :: Bahngeschwindigkeit z -> Sprache -> Text
-    anzeige
-        LegoBahngeschwindigkeit {bglName, bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss} =
+    anzeige LegoBahngeschwindigkeit {bglName, bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
         Language.lego
         <-> Language.bahngeschwindigkeit
         <:> Language.name
         <=> bglName
         <^> Language.geschwindigkeit
-        <-> Language.anschluss
-        <=> bglGeschwindigkeitsAnschluss
+        <-> Language.pin
+        <=> bglGeschwindigkeitsPin
         <^> Language.fahrtrichtung <-> Language.anschluss <=> bglFahrtrichtungsAnschluss
-    anzeige MärklinBahngeschwindigkeit {bgmName, bgmGeschwindigkeitsAnschluss} =
+    anzeige MärklinBahngeschwindigkeitPwm {bgmName, bgmGeschwindigkeitsPin} =
+        Language.märklin
+        <-> Language.bahngeschwindigkeit
+        <:> Language.name
+        <=> bgmName <^> Language.geschwindigkeit <-> Language.pin <=> bgmGeschwindigkeitsPin
+    anzeige
+        MärklinBahngeschwindigkeitFesteSpannung
+            {bgmName, bgmFahrstromAnschluss, bgmUmdrehenAnschluss} =
         Language.märklin
         <-> Language.bahngeschwindigkeit
         <:> Language.name
         <=> bgmName
-        <^> Language.geschwindigkeit <-> Language.anschluss <=> bgmGeschwindigkeitsAnschluss
+        <^> Language.fahrstrom
+        <-> Language.anschluss
+        <=> bgmFahrstromAnschluss
+        <^> Language.umdrehen <-> Language.anschluss <=> bgmUmdrehenAnschluss
 
 instance StreckenObjekt (Bahngeschwindigkeit z) where
     anschlüsse :: Bahngeschwindigkeit z -> [Anschluss]
-    anschlüsse LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss} =
-        [bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss]
+    anschlüsse LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
+        [AnschlussPin bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss]
+    anschlüsse MärklinBahngeschwindigkeitPwm {bgmGeschwindigkeitsPin} =
+        [AnschlussPin bgmGeschwindigkeitsPin]
     anschlüsse
-        MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss} = [bgmGeschwindigkeitsAnschluss]
+        MärklinBahngeschwindigkeitFesteSpannung {bgmFahrstromAnschluss, bgmUmdrehenAnschluss} =
+        [bgmFahrstromAnschluss, bgmUmdrehenAnschluss]
 
     erhalteName :: Bahngeschwindigkeit z -> Text
     erhalteName LegoBahngeschwindigkeit {bglName} = bglName
-    erhalteName MärklinBahngeschwindigkeit {bgmName} = bgmName
+    erhalteName MärklinBahngeschwindigkeitPwm {bgmName} = bgmName
+    erhalteName MärklinBahngeschwindigkeitFesteSpannung {bgmName} = bgmName
 
 instance StreckenAtom (Bahngeschwindigkeit z) where
     fließend :: Bahngeschwindigkeit z -> Value
     fließend LegoBahngeschwindigkeit {bglFließend} = bglFließend
-    fließend MärklinBahngeschwindigkeit {bgmFließend} = bgmFließend
+    fließend MärklinBahngeschwindigkeitPwm {bgmFließend} = bgmFließend
+    fließend MärklinBahngeschwindigkeitFesteSpannung {bgmFließend} = bgmFließend
 
 -- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen
 class (StreckenObjekt (b 'Märklin), StreckenObjekt (b 'Lego)) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
-    geschwindigkeit :: (PwmReader r m, MonadIO m) => b z -> Natural -> m ()
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m) => b z -> Natural -> m ()
 
     -- | Gebe allen Zügen den Befehl zum Umdrehen
-    umdrehen :: (PwmReader r m, MonadIO m) => b 'Märklin -> m ()
+    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => b 'Märklin -> m ()
 
     -- | Gebe allen Zügen den Befehl in einer bestimmen Richtung zu fahren
-    fahrtrichtungEinstellen :: (PwmReader r m, MonadIO m) => b 'Lego -> Fahrtrichtung -> m ()
+    fahrtrichtungEinstellen
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => b 'Lego -> Fahrtrichtung -> m ()
     {-# MINIMAL geschwindigkeit, umdrehen, fahrtrichtungEinstellen #-}
 
 -- | Zeit, die Strom beim Umdrehen einer Märklin-Bahngeschwindigkeit anliegt
@@ -311,59 +327,83 @@ umdrehenZeit :: Wartezeit
 umdrehenZeit = MilliSekunden 250
 
 instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
-    geschwindigkeit :: (PwmReader r m, MonadIO m) => Bahngeschwindigkeit z -> Natural -> m ()
-    geschwindigkeit bg@LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss} geschwindigkeit =
+    geschwindigkeit
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit z -> Natural -> m ()
+    geschwindigkeit bg@LegoBahngeschwindigkeit {bglGeschwindigkeitsPin} geschwindigkeit =
         befehlAusführen
-            (pwmSetzeWert bg bglGeschwindigkeitsAnschluss $ erhaltePwmWertVoll geschwindigkeit)
+            (pwmSetzeWert bg bglGeschwindigkeitsPin $ erhaltePwmWertVoll geschwindigkeit)
             ("Geschwindigkeit ("
-             <> showText bglGeschwindigkeitsAnschluss
+             <> showText bglGeschwindigkeitsPin
              <> ")->"
              <> showText geschwindigkeit)
-    geschwindigkeit bg@MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss} geschwindigkeit =
+    geschwindigkeit bg@MärklinBahngeschwindigkeitPwm {bgmGeschwindigkeitsPin} geschwindigkeit =
         befehlAusführen
-            (pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ erhaltePWMWertReduziert geschwindigkeit)
+            (pwmSetzeWert bg bgmGeschwindigkeitsPin $ erhaltePWMWertReduziert geschwindigkeit)
             ("Geschwindigkeit ("
-             <> showText bgmGeschwindigkeitsAnschluss
+             <> showText bgmGeschwindigkeitsPin
              <> ")->"
              <> showText geschwindigkeit)
-
-    umdrehen :: (PwmReader r m, MonadIO m) => Bahngeschwindigkeit 'Märklin -> m ()
-    umdrehen bg@MärklinBahngeschwindigkeit {bgmGeschwindigkeitsAnschluss} =
+    geschwindigkeit
+        bg@MärklinBahngeschwindigkeitFesteSpannung {bgmFahrstromAnschluss, bgmUmdrehenAnschluss}
+        0 =
         befehlAusführen
-            (umdrehenAux
-                 bg
-                 bgmGeschwindigkeitsAnschluss
-                 [ pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert pwmGrenze
-                 , warte umdrehenZeit
-                 , pwmSetzeWert bg bgmGeschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0])
-            ("Umdrehen (" <> showText bgmGeschwindigkeitsAnschluss <> ")")
+            (anschlussWrite bgmUmdrehenAnschluss (erhalteValue Gesperrt bg)
+             >> anschlussWrite bgmFahrstromAnschluss (erhalteValue Gesperrt bg))
+            ("Geschwindigkeit ("
+             <> showText bgmFahrstromAnschluss
+             <> ")->"
+             <> Language.gesperrt Deutsch)
+    geschwindigkeit
+        bg@MärklinBahngeschwindigkeitFesteSpannung {bgmFahrstromAnschluss, bgmUmdrehenAnschluss}
+        _geschwindigkeit =
+        befehlAusführen
+            (anschlussWrite bgmUmdrehenAnschluss (erhalteValue Gesperrt bg)
+             >> anschlussWrite bgmFahrstromAnschluss (erhalteValue Fließend bg))
+            ("Geschwindigkeit ("
+             <> showText bgmFahrstromAnschluss
+             <> ")->"
+             <> Language.fließend Deutsch)
 
+    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit 'Märklin -> m ()
+    umdrehen bg@MärklinBahngeschwindigkeitPwm {bgmGeschwindigkeitsPin} =
+        befehlAusführen
+            (pwmSetzeWert bg bgmGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+             >> warte umdrehenZeit
+             >> pwmSetzeWert bg bgmGeschwindigkeitsPin (PwmValueUnmodifiziert pwmGrenze)
+             >> warte umdrehenZeit
+             >> pwmSetzeWert bg bgmGeschwindigkeitsPin (PwmValueUnmodifiziert 0))
+            ("Umdrehen (" <> showText bgmGeschwindigkeitsPin <> ")")
+    umdrehen
+        bg@MärklinBahngeschwindigkeitFesteSpannung {bgmFahrstromAnschluss, bgmUmdrehenAnschluss} =
+        befehlAusführen
+            (anschlussWrite bgmFahrstromAnschluss (erhalteValue Gesperrt bg)
+             >> warte umdrehenZeit
+             >> anschlussWrite bgmUmdrehenAnschluss (erhalteValue Fließend bg)
+             >> warte umdrehenZeit
+             >> anschlussWrite bgmUmdrehenAnschluss (erhalteValue Gesperrt bg))
+            ("Umdrehen (" <> showText bgmUmdrehenAnschluss <> ")")
+
+    fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
+                            => Bahngeschwindigkeit 'Lego
+                            -> Fahrtrichtung
+                            -> m ()
     fahrtrichtungEinstellen
-        :: (PwmReader r m, MonadIO m) => Bahngeschwindigkeit 'Lego -> Fahrtrichtung -> m ()
-    fahrtrichtungEinstellen
-        bg@LegoBahngeschwindigkeit {bglGeschwindigkeitsAnschluss, bglFahrtrichtungsAnschluss}
+        bg@LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
         fahrtrichtung =
         befehlAusführen
-            (umdrehenAux
-                 bg
-                 bglGeschwindigkeitsAnschluss
-                 [ anschlussWrite bglFahrtrichtungsAnschluss
-                       $ (if fahrtrichtung == Vorwärts
-                              then fließend
-                              else gesperrt)
-                           bg])
+            (pwmSetzeWert bg bglGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+             >> warte umdrehenZeit
+             >> anschlussWrite
+                 bglFahrtrichtungsAnschluss
+                 ((if fahrtrichtung == Vorwärts
+                       then fließend
+                       else gesperrt)
+                      bg))
             ("Umdrehen ("
-             <> (showText bglGeschwindigkeitsAnschluss <^> showText bglFahrtrichtungsAnschluss
+             <> (showText bglGeschwindigkeitsPin <^> showText bglFahrtrichtungsAnschluss
                  $ Language.Deutsch)
              <> ")->"
              <> showText fahrtrichtung)
-
-umdrehenAux :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Anschluss -> [m ()] -> m ()
-umdrehenAux s geschwindigkeitsAnschluss umdrehenAktionen = do
-    pwmSetzeWert s geschwindigkeitsAnschluss $ PwmValueUnmodifiziert 0
-    warte umdrehenZeit
-    sequence_ umdrehenAktionen
-    warte umdrehenZeit
 
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt =
@@ -412,7 +452,7 @@ data Weiche (z :: Zugtyp) where
     -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     LegoWeiche :: { welName :: Text
                   , welFließend :: Value
-                  , welRichtungsAnschluss :: Anschluss
+                  , welRichtungsPin :: Pin
                   , welRichtungen :: (Richtung, Richtung)
                   } -> Weiche 'Lego
     MärklinWeiche :: { wemName :: Text
@@ -426,14 +466,13 @@ deriving instance Show (Weiche z)
 
 instance Anzeige (Weiche z) where
     anzeige :: Weiche z -> Sprache -> Text
-    anzeige LegoWeiche {welName, welRichtungsAnschluss, welRichtungen = (richtung1, richtung2)} =
+    anzeige LegoWeiche {welName, welRichtungsPin, welRichtungen = (richtung1, richtung2)} =
         Language.lego
         <-> Language.weiche
         <:> Language.name
         <=> welName
         <^> Language.richtung
-        <-> Language.anschluss
-        <=> welRichtungsAnschluss <^> Language.richtungen <=> richtung1 <|> richtung2
+        <-> Language.pin <=> welRichtungsPin <^> Language.richtungen <=> richtung1 <|> richtung2
     anzeige MärklinWeiche {wemName, wemRichtungsAnschlüsse} =
         Language.märklin
         <-> Language.weiche
@@ -446,7 +485,7 @@ instance Anzeige (Weiche z) where
 
 instance StreckenObjekt (Weiche z) where
     anschlüsse :: Weiche z -> [Anschluss]
-    anschlüsse LegoWeiche {welRichtungsAnschluss} = [welRichtungsAnschluss]
+    anschlüsse LegoWeiche {welRichtungsPin} = [AnschlussPin welRichtungsPin]
     anschlüsse
         MärklinWeiche {wemRichtungsAnschlüsse} = map snd $ NE.toList wemRichtungsAnschlüsse
 
@@ -462,7 +501,7 @@ instance StreckenAtom (Weiche z) where
 -- | Sammel-Klasse für 'Weiche'n-artige Typen
 class (StreckenObjekt w) => WeicheKlasse w where
     -- | Weiche einstellen
-    stellen :: (PwmReader r m, MonadIO m) => w -> Richtung -> m ()
+    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => w -> Richtung -> m ()
 
     -- | Überprüfe, ob Weiche eine Richtung unterstützt
     hatRichtung :: w -> Richtung -> Bool
@@ -474,7 +513,7 @@ class (StreckenObjekt w) => WeicheKlasse w where
 
 instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
     => WeicheKlasse (ZugtypEither we) where
-    stellen :: (PwmReader r m, MonadIO m) => ZugtypEither we -> Richtung -> m ()
+    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => ZugtypEither we -> Richtung -> m ()
     stellen (ZugtypMärklin a) = stellen a
     stellen (ZugtypLego a) = stellen a
 
@@ -487,20 +526,20 @@ weicheZeit :: Wartezeit
 weicheZeit = MilliSekunden 250
 
 instance WeicheKlasse (Weiche z) where
-    stellen :: (PwmReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
-    stellen we@LegoWeiche {welRichtungsAnschluss, welRichtungen} richtung
+    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
+    stellen we@LegoWeiche {welRichtungsPin, welRichtungen} richtung
         | richtung == fst welRichtungen =
             befehlAusführen
-                (pwmServo we welRichtungsAnschluss 25
+                (pwmServo we welRichtungsPin 25
                  >> warte weicheZeit
-                 >> pwmServo we welRichtungsAnschluss 0)
-                ("Stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
+                 >> pwmServo we welRichtungsPin 0)
+                ("Stellen (" <> showText welRichtungsPin <> ") -> " <> showText richtung)
         | richtung == snd welRichtungen =
             befehlAusführen
-                (pwmServo we welRichtungsAnschluss 75
+                (pwmServo we welRichtungsPin 75
                  >> warte weicheZeit
-                 >> pwmServo we welRichtungsAnschluss 0)
-                ("stellen (" <> showText welRichtungsAnschluss <> ") -> " <> showText richtung)
+                 >> pwmServo we welRichtungsPin 0)
+                ("stellen (" <> showText welRichtungsPin <> ") -> " <> showText richtung)
         | otherwise = pure ()
     stellen we@MärklinWeiche {wemRichtungsAnschlüsse} richtung =
         befehlAusführen
@@ -627,16 +666,16 @@ instance StreckenObjekt (Wegstrecke z) where
     erhalteName Wegstrecke {wsName} = wsName
 
 instance BahngeschwindigkeitKlasse Wegstrecke where
-    geschwindigkeit :: (PwmReader r m, MonadIO m) => Wegstrecke z -> Natural -> m ()
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke z -> Natural -> m ()
     geschwindigkeit Wegstrecke {wsBahngeschwindigkeiten} wert =
         mapM_ (forkI2CReader . flip geschwindigkeit wert) wsBahngeschwindigkeiten
 
-    umdrehen :: (PwmReader r m, MonadIO m) => Wegstrecke 'Märklin -> m ()
+    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Märklin -> m ()
     umdrehen Wegstrecke {wsBahngeschwindigkeiten} =
         mapM_ (forkI2CReader . umdrehen) wsBahngeschwindigkeiten
 
     fahrtrichtungEinstellen
-        :: (PwmReader r m, MonadIO m) => Wegstrecke 'Lego -> Fahrtrichtung -> m ()
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Lego -> Fahrtrichtung -> m ()
     fahrtrichtungEinstellen Wegstrecke {wsBahngeschwindigkeiten} neueFahrtrichtung =
         mapM_
             (forkI2CReader . flip fahrtrichtungEinstellen neueFahrtrichtung)
@@ -653,17 +692,17 @@ instance KupplungKlasse (Wegstrecke z) where
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
-    einstellen :: (PwmReader r m, MonadIO m) => w -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => w -> m ()
     {-# MINIMAL einstellen #-}
 
 instance (WegstreckeKlasse (w 'Märklin), WegstreckeKlasse (w 'Lego))
     => WegstreckeKlasse (ZugtypEither w) where
-    einstellen :: (PwmReader r m, MonadIO m) => ZugtypEither w -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => ZugtypEither w -> m ()
     einstellen (ZugtypMärklin a) = einstellen a
     einstellen (ZugtypLego a) = einstellen a
 
 instance WegstreckeKlasse (Wegstrecke z) where
-    einstellen :: (PwmReader r m, MonadIO m) => Wegstrecke z -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke z -> m ()
     einstellen Wegstrecke {wsWeichenRichtungen} =
         mapM_ (forkI2CReader . uncurry stellen) wsWeichenRichtungen
 

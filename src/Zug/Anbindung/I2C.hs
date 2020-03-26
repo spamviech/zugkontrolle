@@ -29,7 +29,7 @@ module Zug.Anbindung.I2C
   ) where
 
 import Control.Concurrent (forkIO, ThreadId)
-import Control.Concurrent.STM (atomically, retry, TVar, readTVarIO, readTVar, writeTVar, modifyTVar)
+import Control.Concurrent.STM (atomically, retry, TVar, readTVar, writeTVar, modifyTVar)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))

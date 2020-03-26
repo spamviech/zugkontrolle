@@ -1,10 +1,20 @@
+Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
+    PWM über I2C hört sich nicht vielversprechend an
+    Gleichstrom (PWM) funktioniert nur bei einigen Loks/benötigt je nach Lok eine eigene Frequenz?
+        Umstellen auf konstante Wechselstrom-Fahrströme (16V/25V)
+
+Gtk-UI benötigt lange, bis etwas zu sehen ist
+    Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
+
 Laden von Plänen funktioniert nicht
     Zugkontrolle.yaml funktioniert
         Problem mit PCF8574Port?
         evtl. falsche Beobachtung?
 
-Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
-    PWM über I2C hört sich nicht vielversprechend an
+Einstellungen in yaml-Datei speichern?
+    Sprache
+    Gtk-UI: Einzelseiten
+    UI?
 
 Warteschlange über Data.Sequence Implementieren?
 
@@ -12,6 +22,7 @@ Zug.UI.Gtk.StreckenObjekt ist zu groß
     hie brauch ewig zum laden
     aufsplitten in mehrere Untermodule sinnvoll
         eins pro Objekt-Typ?
+    Zug.UI.Cmd.Parser.StreckenObjekt hat das gleiche Problem
 
 Plan Hinzufügen:
     Ersetzten des Auswahl-Fensters durch ComboBox?

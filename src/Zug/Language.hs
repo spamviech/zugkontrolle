@@ -35,6 +35,7 @@ module Zug.Language
     -- * Spezielle Befehle / Special Orders
   , geschwindigkeit
   , umdrehen
+  , fahrstrom
   , fahrtrichtungEinstellen
   , stellen
   , strom
@@ -173,7 +174,7 @@ import Data.Version (Version, showVersion)
 import Numeric.Natural (Natural)
 -- Auto-generiertes Cabal-Modul
 import qualified Paths_Zugkontrolle as Paths
-import System.Hardware.WiringPi (Value(..))
+import System.Hardware.WiringPi (Pin, Value(..))
 
 -- * Titel / Title
 -- | Train Control
@@ -266,6 +267,11 @@ geschwindigkeit Englisch = "Speed"
 umdrehen :: Sprache -> Text
 umdrehen Deutsch = "Umdrehen"
 umdrehen Englisch = "Turn around"
+
+-- | Traction current
+fahrstrom :: Sprache -> Text
+fahrstrom Deutsch = "Fahrstrom"
+fahrstrom Englisch = "Traction current"
 
 -- | Direction of Travel
 fahrtrichtungEinstellen :: Sprache -> Text
@@ -823,6 +829,8 @@ instance Anzeige Int
 instance Anzeige Double
 
 instance Anzeige Value
+
+instance Anzeige Pin
 
 instance Anzeige Sprache where
     anzeige :: Sprache -> Sprache -> Text
