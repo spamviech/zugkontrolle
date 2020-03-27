@@ -72,12 +72,12 @@ instance ZugtypKlasse 'Lego where
     zuZugtypEither = ZugtypLego
 
 -- | Führe eine 'Zugtyp'-generische Funktion auf einem 'ZugtypEither' aus
-mapZugtypEither :: (forall z. (ZugtypKlasse z) => a z -> b z) -> ZugtypEither a -> ZugtypEither b
+mapZugtypEither :: (forall (z :: Zugtyp). a z -> b z) -> ZugtypEither a -> ZugtypEither b
 mapZugtypEither f (ZugtypMärklin a) = ZugtypMärklin $ f a
 mapZugtypEither f (ZugtypLego a) = ZugtypLego $ f a
 
 -- | Erhalte das Ergebnis einer 'Zugtyp'-generischen Funktion aus einem 'ZugtypEither'
-ausZugtypEither :: (forall z. a z -> b) -> ZugtypEither a -> b
+ausZugtypEither :: (forall (z :: Zugtyp). a z -> b) -> ZugtypEither a -> b
 ausZugtypEither f (ZugtypMärklin a) = f a
 ausZugtypEither f (ZugtypLego a) = f a
 

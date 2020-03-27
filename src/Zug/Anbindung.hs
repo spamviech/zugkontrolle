@@ -7,6 +7,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Ebene.
@@ -44,6 +45,9 @@ module Zug.Anbindung
     -- ** Bahngeschwindigkeiten
   , GeschwindigkeitVariante(..)
   , GeschwindigkeitEither(..)
+  , GeschwindigkeitEitherKlasse(..)
+  , mapGeschwindigkeitEither
+  , ausGeschwindigkeitEither
   , GeschwindigkeitPhantom(..)
   , Bahngeschwindigkeit(..)
   , BahngeschwindigkeitKlasse(..)
@@ -346,6 +350,41 @@ instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
     erhalteName :: GeschwindigkeitEither bg z -> Text
     erhalteName (GeschwindigkeitPwm bg) = erhalteName bg
     erhalteName (GeschwindigkeitKonstanteSpannung bg) = erhalteName bg
+
+-- | Führe eine 'GeschwindigkeitVariante'-generische Funktion auf einem 'GeschwindigkeitEither' aus.
+mapGeschwindigkeitEither :: (forall (g :: GeschwindigkeitVariante). a g z -> b g z)
+                         -> GeschwindigkeitEither a z
+                         -> GeschwindigkeitEither b z
+mapGeschwindigkeitEither f (GeschwindigkeitPwm a) = GeschwindigkeitPwm $ f a
+mapGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) =
+    GeschwindigkeitKonstanteSpannung $ f a
+
+-- | Erhalte das Ergebnis einer 'GeschwindigkeitVariante'-generischen Funktion aus einem 'GeschwindigkeitEither'.
+ausGeschwindigkeitEither
+    :: (forall (g :: GeschwindigkeitVariante). a g z -> b) -> GeschwindigkeitEither a z -> b
+ausGeschwindigkeitEither f (GeschwindigkeitPwm a) = f a
+ausGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) = f a
+
+-- | Klasse zur Extraktion aus 'GeschwindigkeitEither'
+class GeschwindigkeitEitherKlasse (g :: GeschwindigkeitVariante) where
+    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a g z)
+    zuGeschwindigkeitEither :: a g z -> GeschwindigkeitEither a z
+
+instance GeschwindigkeitEitherKlasse 'Pwm where
+    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'Pwm z)
+    vonGeschwindigkeitEither (GeschwindigkeitPwm a) = Just a
+    vonGeschwindigkeitEither _zugtypEither = Nothing
+
+    zuGeschwindigkeitEither :: a 'Pwm z -> GeschwindigkeitEither a z
+    zuGeschwindigkeitEither = GeschwindigkeitPwm
+
+instance GeschwindigkeitEitherKlasse 'KonstanteSpannung where
+    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'KonstanteSpannung z)
+    vonGeschwindigkeitEither (GeschwindigkeitKonstanteSpannung a) = Just a
+    vonGeschwindigkeitEither _zugtypEither = Nothing
+
+    zuGeschwindigkeitEither :: a 'KonstanteSpannung z -> GeschwindigkeitEither a z
+    zuGeschwindigkeitEither = GeschwindigkeitKonstanteSpannung
 
 -- | Sammle alle 'PWM'-Typen
 catPwm :: [GeschwindigkeitEither bg z] -> [bg 'Pwm z]
