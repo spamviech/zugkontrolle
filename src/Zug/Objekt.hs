@@ -12,15 +12,16 @@ module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(
 import Data.Kind (Type)
 import Data.Text (Text)
 
-import Zug.Anbindung (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(), Streckenabschnitt()
-                    , Weiche(), Kupplung(), Wegstrecke())
-import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(..))
+import Zug.Anbindung
+       (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(..), Streckenabschnitt(), Weiche()
+      , Kupplung(), Wegstrecke(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..))
 import Zug.Language (Sprache())
 import Zug.Plan (Plan(..))
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ws pl
-    = OBahngeschwindigkeit (ZugtypEither bg)
+    = OBahngeschwindigkeit (ZugtypEither (GeschwindigkeitEither bg))
     | OStreckenabschnitt st
     | OWeiche (ZugtypEither we)
     | OKupplung ku
@@ -33,16 +34,20 @@ type Objekt = ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kuppl
 deriving instance ( Eq st
                   , Eq ku
                   , Eq pl
-                  , Eq (bg 'Märklin)
-                  , Eq (bg 'Lego)
+                  , Eq (bg 'Pwm 'Märklin)
+                  , Eq (bg 'KonstanteSpannung 'Märklin)
+                  , Eq (bg 'Pwm 'Lego)
+                  , Eq (bg 'KonstanteSpannung 'Lego)
                   , Eq (we 'Märklin)
                   , Eq (we 'Lego)
                   , Eq (ws 'Märklin)
                   , Eq (ws 'Lego)
                   ) => Eq (ObjektAllgemein bg st we ku ws pl)
 
-instance ( Show (bg 'Märklin)
-         , Show (bg 'Lego)
+instance ( Show (bg 'Pwm 'Märklin)
+         , Show (bg 'KonstanteSpannung 'Märklin)
+         , Show (bg 'Pwm 'Lego)
+         , Show (bg 'KonstanteSpannung 'Lego)
          , Show st
          , Show (we 'Märklin)
          , Show (we 'Lego)
@@ -63,9 +68,14 @@ instance ( Show (bg 'Märklin)
 class ObjektElement e where
     zuObjekt :: e -> Objekt
 
-instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit z) where
-    zuObjekt :: Bahngeschwindigkeit z -> Objekt
-    zuObjekt = OBahngeschwindigkeit . zuZugtypEither
+instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit g z) where
+    zuObjekt :: Bahngeschwindigkeit g z -> Objekt
+    zuObjekt bg@MärklinBahngeschwindigkeitPwm {} =
+        OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitPwm bg
+    zuObjekt bg@MärklinBahngeschwindigkeitKonstanteSpannung {} =
+        OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bg
+    zuObjekt
+        bg@LegoBahngeschwindigkeit {} = OBahngeschwindigkeit $ ZugtypLego $ GeschwindigkeitPwm bg
 
 instance ObjektElement Streckenabschnitt where
     zuObjekt :: Streckenabschnitt -> Objekt
@@ -90,7 +100,7 @@ instance ObjektElement Plan where
 -- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where
     -- | Bahngeschwindigkeit
-    type BG o :: Zugtyp -> Type
+    type BG o :: GeschwindigkeitVariante -> Zugtyp -> Type
 
     -- | Streckenabschnitt
     type ST o :: Type
@@ -138,8 +148,10 @@ instance ObjektKlasse Objekt where
     ausObjekt = id
 
 instance ( StreckenObjekt pl
-         , StreckenObjekt (bg 'Märklin)
-         , StreckenObjekt (bg 'Lego)
+         , StreckenObjekt (bg 'Pwm 'Märklin)
+         , StreckenObjekt (bg 'KonstanteSpannung 'Märklin)
+         , StreckenObjekt (bg 'Pwm 'Lego)
+         , StreckenObjekt (bg 'KonstanteSpannung 'Lego)
          , StreckenObjekt st
          , StreckenObjekt ku
          , StreckenObjekt (we 'Märklin)
