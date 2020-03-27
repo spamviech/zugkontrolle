@@ -91,7 +91,7 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty
-                    , MitI2CMap(..), StreckenObjekt(..))
+                    , MitI2CMap(..), StreckenObjekt(..), GeschwindigkeitEither())
 import Zug.Enums (Zugtyp(..), ZugtypEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
@@ -102,7 +102,7 @@ import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..
 -- | Aktueller Status
 data StatusAllgemein o =
     Status
-    { _bahngeschwindigkeiten :: [ZugtypEither (BG o)]
+    { _bahngeschwindigkeiten :: [ZugtypEither (GeschwindigkeitEither (BG o))]
     , _streckenabschnitte :: [ST o]
     , _weichen :: [ZugtypEither (WE o)]
     , _kupplungen :: [KU o]
@@ -114,7 +114,7 @@ data StatusAllgemein o =
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
 type Status = StatusAllgemein Objekt
 
-deriving instance ( Eq (ZugtypEither (BG o))
+deriving instance ( Eq (ZugtypEither (GeschwindigkeitEither (BG o)))
                   , Eq (ST o)
                   , Eq (ZugtypEither (WE o))
                   , Eq (KU o)
@@ -123,7 +123,7 @@ deriving instance ( Eq (ZugtypEither (BG o))
                   , Eq (SP o)
                   ) => Eq (StatusAllgemein o)
 
-deriving instance ( Show (ZugtypEither (BG o))
+deriving instance ( Show (ZugtypEither (GeschwindigkeitEither (BG o)))
                   , Show (ST o)
                   , Show (ZugtypEither (WE o))
                   , Show (KU o)
@@ -142,7 +142,8 @@ lens sa sas afa s = sas s <$> afa (sa s)
 
 -- | Lens': 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
 bahngeschwindigkeiten :: Functor f
-                      => ([ZugtypEither (BG o)] -> f [ZugtypEither (BG o)])
+                      => ([ZugtypEither (GeschwindigkeitEither (BG o))]
+                          -> f [ZugtypEither (GeschwindigkeitEither (BG o))])
                       -> (StatusAllgemein o)
                       -> f (StatusAllgemein o)
 bahngeschwindigkeiten =
@@ -179,7 +180,7 @@ pläne = lens _pläne $ \status pls -> status { _pläne = pls }
 sprache :: Functor f => (SP o -> f (SP o)) -> (StatusAllgemein o) -> f (StatusAllgemein o)
 sprache = lens _sprache $ \status sp -> status { _sprache = sp }
 
-instance ( Anzeige (ZugtypEither (BG o))
+instance ( Anzeige (ZugtypEither (GeschwindigkeitEither (BG o)))
          , Anzeige (ST o)
          , Anzeige (ZugtypEither (WE o))
          , Anzeige (KU o)
@@ -319,7 +320,8 @@ instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
 
 -- * Erhalte aktuellen Status.
 -- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
-getBahngeschwindigkeiten :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (BG o)]
+getBahngeschwindigkeiten
+    :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (GeschwindigkeitEither (BG o))]
 getBahngeschwindigkeiten = gets _bahngeschwindigkeiten
 
 -- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
@@ -348,7 +350,8 @@ getSprache = gets _sprache
 
 -- * Ändere aktuellen Status
 -- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
-putBahngeschwindigkeiten :: (Monad m) => [ZugtypEither (BG o)] -> MStatusAllgemeinT m o ()
+putBahngeschwindigkeiten
+    :: (Monad m) => [ZugtypEither (GeschwindigkeitEither (BG o))] -> MStatusAllgemeinT m o ()
 putBahngeschwindigkeiten bgs = modify $ \status -> status { _bahngeschwindigkeiten = bgs }
 
 -- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
@@ -377,7 +380,8 @@ putSprache sprache = modify $ \status -> status { _sprache = sprache }
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
-hinzufügenBahngeschwindigkeit :: (Monad m) => ZugtypEither (BG o) -> MStatusAllgemeinT m o ()
+hinzufügenBahngeschwindigkeit
+    :: (Monad m) => ZugtypEither (GeschwindigkeitEither (BG o)) -> MStatusAllgemeinT m o ()
 hinzufügenBahngeschwindigkeit bahngeschwindigkeit = do
     bahngeschwindigkeiten <- getBahngeschwindigkeiten
     putBahngeschwindigkeiten $ bahngeschwindigkeit : bahngeschwindigkeiten
@@ -412,9 +416,13 @@ hinzufügenPlan plan = do
 
 -- * Elemente entfernen
 -- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'
-entfernenBahngeschwindigkeit :: (Monad m, Eq ((BG o) 'Märklin), Eq ((BG o) 'Lego))
-                             => ZugtypEither (BG o)
-                             -> MStatusAllgemeinT m o ()
+entfernenBahngeschwindigkeit
+    :: ( Monad m
+       , Eq ((GeschwindigkeitEither (BG o)) 'Märklin)
+       , Eq ((GeschwindigkeitEither (BG o)) 'Lego)
+       )
+    => ZugtypEither (GeschwindigkeitEither (BG o))
+    -> MStatusAllgemeinT m o ()
 entfernenBahngeschwindigkeit
     bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten
     -> putBahngeschwindigkeiten $ delete bahngeschwindigkeit bahngeschwindigkeiten
