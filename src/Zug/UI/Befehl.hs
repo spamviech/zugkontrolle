@@ -30,7 +30,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
+import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty, GeschwindigkeitVariante(..))
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (Sprache(), MitSprache(..))
 import Zug.Menge (entfernen)
@@ -89,8 +89,10 @@ instance BefehlKlasse UIBefehlAllgemein o where
 
 instance ( ObjektKlasse o
          , ToJSON o
-         , Eq ((BG o) 'Märklin)
-         , Eq ((BG o) 'Lego)
+         , Eq ((BG o) 'Pwm 'Märklin)
+         , Eq ((BG o) 'KonstanteSpannung 'Märklin)
+         , Eq ((BG o) 'Pwm 'Lego)
+         , Eq ((BG o) 'KonstanteSpannung 'Lego)
          , Eq (ST o)
          , Eq ((WE o) 'Märklin)
          , Eq ((WE o) 'Lego)
@@ -112,8 +114,10 @@ instance ( ObjektKlasse o
                 :: forall o m.
                 ( ObjektKlasse o
                 , ToJSON o
-                , Eq ((BG o) 'Märklin)
-                , Eq ((BG o) 'Lego)
+                , Eq ((BG o) 'Pwm 'Märklin)
+                , Eq ((BG o) 'KonstanteSpannung 'Märklin)
+                , Eq ((BG o) 'Pwm 'Lego)
+                , Eq ((BG o) 'KonstanteSpannung 'Lego)
                 , Eq (ST o)
                 , Eq ((WE o) 'Märklin)
                 , Eq ((WE o) 'Lego)
@@ -181,8 +185,10 @@ type BefehlListe = BefehlListeAllgemein Objekt
 
 instance ( ObjektKlasse o
          , ToJSON o
-         , Eq ((BG o) 'Märklin)
-         , Eq ((BG o) 'Lego)
+         , Eq ((BG o) 'Pwm 'Märklin)
+         , Eq ((BG o) 'KonstanteSpannung 'Märklin)
+         , Eq ((BG o) 'Pwm 'Lego)
+         , Eq ((BG o) 'KonstanteSpannung 'Lego)
          , Eq (ST o)
          , Eq ((WE o) 'Märklin)
          , Eq ((WE o) 'Lego)
@@ -199,8 +205,10 @@ instance ( ObjektKlasse o
             ausführenBefehlAux
                 :: ( ObjektKlasse o
                    , ToJSON o
-                   , Eq ((BG o) 'Märklin)
-                   , Eq ((BG o) 'Lego)
+                   , Eq ((BG o) 'Pwm 'Märklin)
+                   , Eq ((BG o) 'KonstanteSpannung 'Märklin)
+                   , Eq ((BG o) 'Pwm 'Lego)
+                   , Eq ((BG o) 'KonstanteSpannung 'Lego)
                    , Eq (ST o)
                    , Eq ((WE o) 'Märklin)
                    , Eq ((WE o) 'Lego)
