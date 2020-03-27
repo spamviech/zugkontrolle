@@ -415,7 +415,7 @@ instance FromJSON (Bahngeschwindigkeit 'Märklin) where
                 bgmFahrstromAnschluss <- v .: fahrstromAnschlussJS
                 bgmUmdrehenAnschluss <- v .: umdrehenAnschlussJS
                 pure
-                    MärklinBahngeschwindigkeitFesteSpannung
+                    MärklinBahngeschwindigkeitKonstanteSpannung
                         { bgmName
                         , bgmFließend
                         , bgmFahrstromAnschluss
@@ -460,7 +460,7 @@ instance ToJSON (Bahngeschwindigkeit z) where
             , geschwindigkeitsPinJS .= fromMaybe 0 (pinToBcmGpio bgmGeschwindigkeitsPin)
             , zugtypJS .= Märklin]
     toJSON
-        MärklinBahngeschwindigkeitFesteSpannung
+        MärklinBahngeschwindigkeitKonstanteSpannung
             {bgmName, bgmFließend, bgmFahrstromAnschluss, bgmUmdrehenAnschluss} =
         object
             [ nameJS .= bgmName

@@ -76,6 +76,8 @@ module Zug.Language
   , pläne
   , märklin
   , lego
+  , geschwindigkeitPwm
+  , geschwindigkeitKonstanteSpannung
   , gerade
   , kurve
   , links
@@ -105,6 +107,7 @@ module Zug.Language
   , aktion
   , aktionen
   , zugtyp
+  , geschwindigkeitVariante
   , welchesObjektHinzufügen
   , ausführModus
   , einzelseiten
@@ -479,6 +482,16 @@ lego :: Sprache -> Text
 lego Deutsch = "Lego"
 lego Englisch = "Lego"
 
+-- | Pwm
+geschwindigkeitPwm :: Sprache -> Text
+geschwindigkeitPwm Deutsch = "PWM"
+geschwindigkeitPwm Englisch = "PWM"
+
+-- | Constant Voltage
+geschwindigkeitKonstanteSpannung :: Sprache -> Text
+geschwindigkeitKonstanteSpannung Deutsch = "Konstante Spannung"
+geschwindigkeitKonstanteSpannung Englisch = "Constant Voltage"
+
 -- | Straight
 gerade :: Sprache -> Text
 gerade Deutsch = "Gerade"
@@ -614,6 +627,11 @@ aktionen Englisch = "Actions"
 zugtyp :: Sprache -> Text
 zugtyp Deutsch = "Zugtyp"
 zugtyp Englisch = "Train model"
+
+-- | Speed variant
+geschwindigkeitVariante :: Sprache -> Text
+geschwindigkeitVariante Deutsch = "Geschwindigkeits-Variante"
+geschwindigkeitVariante Englisch = "Speed variant"
 
 -- | Execution mode
 ausführModus :: Sprache -> Text
