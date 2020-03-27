@@ -42,6 +42,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON())
 import Numeric.Natural (Natural)
 
+import Zug.Anbindung (GeschwindigkeitVariante(..))
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache())
 import Zug.Objekt (ObjektKlasse(..))
@@ -154,8 +155,10 @@ ausführenStatusVarBefehl
        , BefehlKlasse b o
        , ObjektKlasse o
        , ToJSON o
-       , Eq ((BG o) 'Märklin)
-       , Eq ((BG o) 'Lego)
+       , Eq ((BG o) 'Pwm 'Märklin)
+       , Eq ((BG o) 'KonstanteSpannung 'Märklin)
+       , Eq ((BG o) 'Pwm 'Lego)
+       , Eq ((BG o) 'KonstanteSpannung 'Lego)
        , Eq (ST o)
        , Eq ((WE o) 'Märklin)
        , Eq ((WE o) 'Lego)
