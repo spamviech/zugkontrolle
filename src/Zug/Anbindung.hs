@@ -368,6 +368,14 @@ instance (StreckenObjekt (a z)) => StreckenObjekt (GeschwindigkeitPhantom a g z)
     erhalteName :: GeschwindigkeitPhantom a g z -> Text
     erhalteName (GeschwindigkeitPhantom a) = erhalteName a
 
+instance (Show (a z)) => Show (GeschwindigkeitPhantom a g z) where
+    show :: GeschwindigkeitPhantom a g z -> String
+    show (GeschwindigkeitPhantom a) = show a
+
+instance (Eq (a z)) => Eq (GeschwindigkeitPhantom a g z) where
+    (==) :: GeschwindigkeitPhantom a g z -> GeschwindigkeitPhantom a g z -> Bool
+    (==) (GeschwindigkeitPhantom a) (GeschwindigkeitPhantom b) = a == b
+
 instance Anzeige GeschwindigkeitVariante where
     anzeige :: GeschwindigkeitVariante -> Sprache -> Text
     anzeige Pwm = Language.geschwindigkeitPwm
