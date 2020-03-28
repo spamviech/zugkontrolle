@@ -19,6 +19,7 @@ module Zug.UI.Cmd.Parser.Anfrage
   , ($<<)
   , (.<<)
   , MitAnfrage(..)
+  , AnfrageGeschwindigkeitVariante(..)
   , AnfrageZugtyp(..)
   , AnfrageZugtypEither(..)
   , MitAnfrageZugtyp(..)
@@ -114,6 +115,12 @@ class MitAnfrage a where
 
     -- | Eingabe eines Typs mit 'AnfrageTyp'
     anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> AnfrageFortsetzung (AnfrageTyp a) a
+
+-- | Enumeration-Typ für eventuell noch unbestimmte 'GeschwindigkeitVariante'
+data AnfrageGeschwindigkeitVariante
+    = AnfrageGeschwindigkeitVariante
+    | AnfrageGeschwindigkeitVariantePwm
+    | AnfrageGeschwindigkeitVarianteKonstanteSpannung
 
 -- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'
 data AnfrageZugtyp
