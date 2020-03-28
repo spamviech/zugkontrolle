@@ -125,6 +125,7 @@ module Zug.Language
   , richtungZuWenig
   , wegstreckeLeer
   , valueErwartet
+  , stromErwartet
   , unbekannt
   , erwartet
   , mindestens
@@ -700,6 +701,10 @@ valueErwartet = erwartet $# ("Value" :: Text)
 -- | erwartet richtung
 richtungErwartet :: Sprache -> Text
 richtungErwartet = erwartet $# richtung
+
+-- | erwartet strom
+stromErwartet :: Sprache -> Text
+stromErwartet = erwartet $# strom
 
 -- | mindestens $ "one" <~> richtung
 richtungZuWenig :: Sprache -> Text

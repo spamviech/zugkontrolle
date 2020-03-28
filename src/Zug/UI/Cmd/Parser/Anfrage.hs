@@ -44,8 +44,9 @@ import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt()
-                    , Weiche(), Kupplung(), Wegstrecke())
+import Zug.Anbindung
+       (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(), Weiche()
+      , Kupplung(), Wegstrecke(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
 import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
@@ -70,6 +71,20 @@ class Anfrage a where
 -- | Standard-Implementierung zum Anzeigen einer fehlgeschlagenen 'Anfrage'
 zeigeAnfrageFehlgeschlagenStandard :: (Anfrage a) => a -> Text -> Sprache -> Text
 zeigeAnfrageFehlgeschlagenStandard a eingabe = Language.unbekannt $# zeigeAnfrage a <=> eingabe
+
+instance (Anfrage (a 'Pwm z), Anfrage (a 'KonstanteSpannung z))
+    => Anfrage (GeschwindigkeitEither a z) where
+    zeigeAnfrage :: GeschwindigkeitEither a z -> Sprache -> Text
+    zeigeAnfrage (GeschwindigkeitPwm a) = zeigeAnfrage a
+    zeigeAnfrage (GeschwindigkeitKonstanteSpannung a) = zeigeAnfrage a
+
+    zeigeAnfrageFehlgeschlagen :: GeschwindigkeitEither a z -> Text -> Sprache -> Text
+    zeigeAnfrageFehlgeschlagen (GeschwindigkeitPwm a) = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen (GeschwindigkeitKonstanteSpannung a) = zeigeAnfrageFehlgeschlagen a
+
+    zeigeAnfrageOptionen :: GeschwindigkeitEither a z -> Maybe (Sprache -> Text)
+    zeigeAnfrageOptionen (GeschwindigkeitPwm a) = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen (GeschwindigkeitKonstanteSpannung a) = zeigeAnfrageOptionen a
 
 instance (Anfrage (a 'Märklin), Anfrage (a 'Lego)) => Anfrage (ZugtypEither a) where
     zeigeAnfrage :: ZugtypEither a -> Sprache -> Text
@@ -209,7 +224,7 @@ statusAnfrageObjekt (SAOPlan eingabe) = statusAnfrageObjektAux eingabe getPläne
 
 -- | Ein Objekt mit bestimmten Zugtyp
 data ObjektZugtyp (z :: Zugtyp)
-    = OZBahngeschwindigkeit (Bahngeschwindigkeit z)
+    = OZBahngeschwindigkeit (GeschwindigkeitEither Bahngeschwindigkeit z)
     | OZStreckenabschnitt Streckenabschnitt
     | OZWeiche (Weiche z)
     | OZKupplung Kupplung

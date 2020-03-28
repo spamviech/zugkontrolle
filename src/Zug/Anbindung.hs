@@ -415,6 +415,10 @@ instance (Eq (a z)) => Eq (GeschwindigkeitPhantom a g z) where
     (==) :: GeschwindigkeitPhantom a g z -> GeschwindigkeitPhantom a g z -> Bool
     (==) (GeschwindigkeitPhantom a) (GeschwindigkeitPhantom b) = a == b
 
+instance (Anzeige (a z)) => Anzeige (GeschwindigkeitPhantom a g z) where
+    anzeige :: GeschwindigkeitPhantom a g z -> Sprache -> Text
+    anzeige (GeschwindigkeitPhantom a) = anzeige a
+
 instance Anzeige GeschwindigkeitVariante where
     anzeige :: GeschwindigkeitVariante -> Sprache -> Text
     anzeige Pwm = Language.geschwindigkeitPwm

@@ -45,6 +45,7 @@ lexEinen eingabe =
             , (Language.speichern, Speichern)
             , (Language.laden, Laden)
             , (Language.geschwindigkeit, Geschwindigkeit)
+            , (Language.fahrstrom, Fahrstrom)
             , (Language.umdrehen, Umdrehen)
             , (Language.fahrtrichtungEinstellen, FahrtrichtungEinstellen)
             , (Language.stellen, Stellen)
@@ -108,6 +109,7 @@ data Token
     | Speichern
     | Laden
     | Geschwindigkeit
+    | Fahrstrom
     | Umdrehen
     | FahrtrichtungEinstellen
     | Stellen

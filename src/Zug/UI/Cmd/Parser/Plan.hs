@@ -6,6 +6,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -30,9 +31,11 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..)
-                    , Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
-                    , StreckenabschnittKlasse(..), Kupplung(..), KupplungKlasse(..), Wartezeit(..))
+import Zug.Anbindung
+       (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..), Bahngeschwindigkeit(..)
+      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(..), StreckenabschnittKlasse(..)
+      , Kupplung(..), KupplungKlasse(..), Wartezeit(..), GeschwindigkeitVariante(..)
+      , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..)
                 , Fahrtrichtung(..), unterstützteFahrtrichtungen)
 import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
@@ -48,57 +51,66 @@ import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandar
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
-data AnfrageAktionBahngeschwindigkeit b (z :: Zugtyp) where
+data AnfrageAktionBahngeschwindigkeit b (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'.
     --
     -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
-    AnfrageAktionBahngeschwindigkeit :: b z -> AnfrageAktionBahngeschwindigkeit b z
-    AABGGeschwindigkeit :: b z -> AnfrageAktionBahngeschwindigkeit b z
-    AABGFahrtrichtungEinstellen :: b 'Lego -> AnfrageAktionBahngeschwindigkeit b 'Lego
+    AnfrageAktionBahngeschwindigkeit :: b g z -> AnfrageAktionBahngeschwindigkeit b g z
+    AABGGeschwindigkeit :: b 'Pwm z -> AnfrageAktionBahngeschwindigkeit b 'Pwm z
+    AABGFahrstrom
+        :: b 'KonstanteSpannung z -> AnfrageAktionBahngeschwindigkeit b 'KonstanteSpannung z
+    AABGFahrtrichtungEinstellen :: b g 'Lego -> AnfrageAktionBahngeschwindigkeit b g 'Lego
 
-deriving instance (Eq (b z)) => Eq (AnfrageAktionBahngeschwindigkeit b z)
+deriving instance (Eq (b g z)) => Eq (AnfrageAktionBahngeschwindigkeit b g z)
 
-deriving instance (Show (b z)) => Show (AnfrageAktionBahngeschwindigkeit b z)
+deriving instance (Show (b g z)) => Show (AnfrageAktionBahngeschwindigkeit b g z)
 
-instance (Anzeige (b z)) => Anzeige (AnfrageAktionBahngeschwindigkeit b z) where
-    anzeige :: AnfrageAktionBahngeschwindigkeit b z -> Sprache -> Text
+instance (Anzeige (b g z)) => Anzeige (AnfrageAktionBahngeschwindigkeit b g z) where
+    anzeige :: AnfrageAktionBahngeschwindigkeit b g z -> Sprache -> Text
     anzeige (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit) =
         Language.bahngeschwindigkeit <=> bahngeschwindigkeit
     anzeige (AABGGeschwindigkeit bahngeschwindigkeit) =
         Language.bahngeschwindigkeit <=> bahngeschwindigkeit <^> Language.geschwindigkeit
+    anzeige (AABGFahrstrom bahngeschwindigkeit) =
+        Language.bahngeschwindigkeit <=> bahngeschwindigkeit <^> Language.fahrstrom
     anzeige (AABGFahrtrichtungEinstellen bahngeschwindigkeit) =
         Language.bahngeschwindigkeit <=> bahngeschwindigkeit <^> Language.fahrtrichtungEinstellen
 
-instance Anfrage (AnfrageAktionBahngeschwindigkeit b z) where
-    zeigeAnfrage :: AnfrageAktionBahngeschwindigkeit b z -> Sprache -> Text
+instance Anfrage (AnfrageAktionBahngeschwindigkeit b g z) where
+    zeigeAnfrage :: AnfrageAktionBahngeschwindigkeit b g z -> Sprache -> Text
     zeigeAnfrage (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) = Language.aktion
     zeigeAnfrage (AABGGeschwindigkeit _bahngeschwindigkeit) = Language.geschwindigkeit
+    zeigeAnfrage (AABGFahrstrom _bahngeschwindigkeit) = Language.fahrstrom
     zeigeAnfrage (AABGFahrtrichtungEinstellen _bahngeschwindigkeit) = Language.fahrtrichtung
 
-    zeigeAnfrageFehlgeschlagen :: AnfrageAktionBahngeschwindigkeit b z -> Text -> Sprache -> Text
+    zeigeAnfrageFehlgeschlagen :: AnfrageAktionBahngeschwindigkeit b g z -> Text -> Sprache -> Text
     zeigeAnfrageFehlgeschlagen anfrage@(AABGGeschwindigkeit _bahngeschwindigkeit) eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen anfrage@(AABGFahrstrom _bahngeschwindigkeit) eingabe =
+        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.stromErwartet
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
-    zeigeAnfrageOptionen :: AnfrageAktionBahngeschwindigkeit b z -> Maybe (Sprache -> Text)
+    zeigeAnfrageOptionen :: AnfrageAktionBahngeschwindigkeit b g z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) =
         Just $ toBefehlsString . Language.aktionBahngeschwindigkeit
     zeigeAnfrageOptionen (AABGGeschwindigkeit _bahngeschwindigkeit) = Nothing
+    zeigeAnfrageOptionen (AABGFahrstrom _bahngeschwindigkeit) = Just $ \sprache -> toBefehlsString
+        $ map ($ sprache) [Language.an, Language.aus]
     zeigeAnfrageOptionen (AABGFahrtrichtungEinstellen _bahngeschwindigkeit) =
         Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache)
                                   $ NE.toList unterstützteFahrtrichtungen)
 
-class AktionBahngeschwindigkeitZugtyp (z :: Zugtyp) where
+class AktionBahngeschwindigkeitZugtyp (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     wähleAktionBahngeschwindigkeit
-        :: AnfrageAktionBahngeschwindigkeit bg z
+        :: AnfrageAktionBahngeschwindigkeit bg g z
         -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg z) (AktionBahngeschwindigkeit bg z)
+        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg g z) (AktionBahngeschwindigkeit bg g z)
 
-instance AktionBahngeschwindigkeitZugtyp 'Märklin where
+instance AktionBahngeschwindigkeitZugtyp 'Pwm 'Märklin where
     wähleAktionBahngeschwindigkeit
-        :: AnfrageAktionBahngeschwindigkeit bg 'Märklin
+        :: AnfrageAktionBahngeschwindigkeit bg 'Pwm 'Märklin
         -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Märklin) (AktionBahngeschwindigkeit bg 'Märklin)
+        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Pwm 'Märklin) (AktionBahngeschwindigkeit bg 'Pwm 'Märklin)
     wähleAktionBahngeschwindigkeit
         (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
         token@EingabeToken {eingabe} =
@@ -109,11 +121,26 @@ instance AktionBahngeschwindigkeitZugtyp 'Märklin where
         $ AFFehler eingabe
     wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
-instance AktionBahngeschwindigkeitZugtyp 'Lego where
+instance AktionBahngeschwindigkeitZugtyp 'KonstanteSpannung 'Märklin where
     wähleAktionBahngeschwindigkeit
-        :: AnfrageAktionBahngeschwindigkeit bg 'Lego
+        :: AnfrageAktionBahngeschwindigkeit bg 'KonstanteSpannung 'Märklin
         -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Lego) (AktionBahngeschwindigkeit bg 'Lego)
+        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'KonstanteSpannung 'Märklin) (AktionBahngeschwindigkeit bg 'KonstanteSpannung 'Märklin)
+    wähleAktionBahngeschwindigkeit
+        (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
+        token@EingabeToken {eingabe} =
+        wähleBefehl
+            token
+            [ (Lexer.Fahrstrom, AFZwischenwert $ AABGFahrstrom bahngeschwindigkeit)
+            , (Lexer.Umdrehen, AFErgebnis $ Umdrehen bahngeschwindigkeit)]
+        $ AFFehler eingabe
+    wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
+
+instance AktionBahngeschwindigkeitZugtyp 'Pwm 'Lego where
+    wähleAktionBahngeschwindigkeit
+        :: AnfrageAktionBahngeschwindigkeit bg 'Pwm 'Lego
+        -> EingabeToken
+        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'Pwm 'Lego) (AktionBahngeschwindigkeit bg 'Pwm 'Lego)
     wähleAktionBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit) token =
         wähleZwischenwert
             token
@@ -121,15 +148,29 @@ instance AktionBahngeschwindigkeitZugtyp 'Lego where
             , (Lexer.FahrtrichtungEinstellen, AABGFahrtrichtungEinstellen bahngeschwindigkeit)]
     wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
 
-instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
-    => MitAnfrage (AktionBahngeschwindigkeit b z) where
-    type AnfrageTyp (AktionBahngeschwindigkeit b z) = AnfrageAktionBahngeschwindigkeit b z
+instance AktionBahngeschwindigkeitZugtyp 'KonstanteSpannung 'Lego where
+    wähleAktionBahngeschwindigkeit
+        :: AnfrageAktionBahngeschwindigkeit bg 'KonstanteSpannung 'Lego
+        -> EingabeToken
+        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit bg 'KonstanteSpannung 'Lego) (AktionBahngeschwindigkeit bg 'KonstanteSpannung 'Lego)
+    wähleAktionBahngeschwindigkeit
+        (AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit)
+        token@EingabeToken {} =
+        wähleZwischenwert
+            token
+            [ (Lexer.Fahrstrom, AABGFahrstrom bahngeschwindigkeit)
+            , (Lexer.FahrtrichtungEinstellen, AABGFahrtrichtungEinstellen bahngeschwindigkeit)]
+    wähleAktionBahngeschwindigkeit _anfrage EingabeToken {eingabe} = AFFehler eingabe
+
+instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp g z)
+    => MitAnfrage (AktionBahngeschwindigkeit b g z) where
+    type AnfrageTyp (AktionBahngeschwindigkeit b g z) = AnfrageAktionBahngeschwindigkeit b g z
 
     -- | Eingabe einer Bahngeschwindigkeit-Aktion
     anfrageAktualisieren
-        :: AnfrageAktionBahngeschwindigkeit b z
+        :: AnfrageAktionBahngeschwindigkeit b g z
         -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit b z) (AktionBahngeschwindigkeit b z)
+        -> AnfrageFortsetzung (AnfrageAktionBahngeschwindigkeit b g z) (AktionBahngeschwindigkeit b g z)
     anfrageAktualisieren anfrage@(AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) token =
         wähleAktionBahngeschwindigkeit anfrage token
     anfrageAktualisieren
@@ -137,6 +178,13 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp z)
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
         (Just wert) -> AFErgebnis $ Geschwindigkeit bahngeschwindigkeit wert
+    anfrageAktualisieren (AABGFahrstrom bahngeschwindigkeit) token =
+        wähleErgebnis
+            token
+            [ (Lexer.Fließend, Fahrstrom bahngeschwindigkeit Fließend)
+            , (Lexer.An, Fahrstrom bahngeschwindigkeit Fließend)
+            , (Lexer.Gesperrt, Fahrstrom bahngeschwindigkeit Gesperrt)
+            , (Lexer.Aus, Fahrstrom bahngeschwindigkeit Gesperrt)]
     anfrageAktualisieren (AABGFahrtrichtungEinstellen bahngeschwindigkeit) token =
         wähleErgebnis
             token
@@ -160,6 +208,11 @@ instance Anfrage (AnfrageAktionStreckenabschnitt st) where
     zeigeAnfrage :: AnfrageAktionStreckenabschnitt st -> Sprache -> Text
     zeigeAnfrage (AnfrageAktionStreckenabschnitt _streckenabschnitt) = Language.aktion
     zeigeAnfrage (AASTStrom _streckenabschnitt) = Language.fließend <|> Language.gesperrt
+
+    zeigeAnfrageFehlgeschlagen :: AnfrageAktionStreckenabschnitt st -> Text -> Sprache -> Text
+    zeigeAnfrageFehlgeschlagen anfrage@(AASTStrom _streckenabschnitt) eingabe =
+        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.stromErwartet
+    zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
     zeigeAnfrageOptionen :: AnfrageAktionStreckenabschnitt st -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen (AnfrageAktionStreckenabschnitt _streckenabschnitt) =
@@ -261,7 +314,7 @@ instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
 data AnfrageAktionWegstrecke w (z :: Zugtyp)
     = AnfrageAktionWegstrecke (w z)
-    | AAWSBahngeschwindigkeit (AnfrageAktionBahngeschwindigkeit w z)
+    | AAWSBahngeschwindigkeit (GeschwindigkeitEither (AnfrageAktionBahngeschwindigkeit (GeschwindigkeitPhantom w)) z)
     | AAWSStreckenabschnitt (AnfrageAktionStreckenabschnitt (w z))
     | AAWSKupplung (AnfrageAktionKupplung (w z))
     deriving (Eq, Show)
@@ -304,9 +357,26 @@ instance AktionWegstreckeZugtyp 'Märklin where
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , ( Lexer.Geschwindigkeit
-              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
+              , AFZwischenwert
+                    $ AAWSBahngeschwindigkeit
+                    $ GeschwindigkeitPwm
+                    $ AABGGeschwindigkeit
+                    $ GeschwindigkeitPhantom wegstrecke
               )
-            , (Lexer.Umdrehen, AFErgebnis $ AWSBahngeschwindigkeit $ Umdrehen wegstrecke)
+            , ( Lexer.Fahrstrom
+              , AFZwischenwert
+                    $ AAWSBahngeschwindigkeit
+                    $ GeschwindigkeitKonstanteSpannung
+                    $ AABGFahrstrom
+                    $ GeschwindigkeitPhantom wegstrecke
+              )
+            , ( Lexer.Umdrehen
+              , AFErgebnis
+                    $ AWSBahngeschwindigkeit
+                    $ GeschwindigkeitPwm
+                    $ Umdrehen
+                    $ GeschwindigkeitPhantom wegstrecke
+              )
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
@@ -322,10 +392,24 @@ instance AktionWegstreckeZugtyp 'Lego where
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , ( Lexer.Geschwindigkeit
-              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGGeschwindigkeit wegstrecke
+              , AFZwischenwert
+                    $ AAWSBahngeschwindigkeit
+                    $ GeschwindigkeitPwm
+                    $ AABGGeschwindigkeit
+                    $ GeschwindigkeitPhantom wegstrecke
+              )
+            , ( Lexer.Fahrstrom
+              , AFZwischenwert
+                    $ AAWSBahngeschwindigkeit
+                    $ GeschwindigkeitKonstanteSpannung
+                    $ AABGFahrstrom (GeschwindigkeitPhantom wegstrecke)
               )
             , ( Lexer.FahrtrichtungEinstellen
-              , AFZwischenwert $ AAWSBahngeschwindigkeit $ AABGFahrtrichtungEinstellen wegstrecke
+              , AFZwischenwert
+                    $ AAWSBahngeschwindigkeit
+                    $ GeschwindigkeitPwm
+                    $ AABGFahrtrichtungEinstellen
+                    $ GeschwindigkeitPhantom wegstrecke
               )
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
@@ -334,8 +418,9 @@ instance AktionWegstreckeZugtyp 'Lego where
 
 instance ( AktionWegstreckeZugtyp z
          , WegstreckeKlasse (w z)
-         , BahngeschwindigkeitKlasse w
-         , AktionBahngeschwindigkeitZugtyp z
+         , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom w)
+         , AktionBahngeschwindigkeitZugtyp 'Pwm z
+         , AktionBahngeschwindigkeitZugtyp 'KonstanteSpannung z
          ) => MitAnfrage (AktionWegstrecke w z) where
     type AnfrageTyp (AktionWegstrecke w z) = AnfrageAktionWegstrecke w z
 
@@ -345,8 +430,17 @@ instance ( AktionWegstreckeZugtyp z
                          -> AnfrageFortsetzung (AnfrageAktionWegstrecke w z) (AktionWegstrecke w z)
     anfrageAktualisieren anfrage@(AnfrageAktionWegstrecke _wegstrecke) token =
         wähleAktionWegstrecke anfrage token
-    anfrageAktualisieren (AAWSBahngeschwindigkeit aAktion0) token =
-        (AFErgebnis . AWSBahngeschwindigkeit, AAWSBahngeschwindigkeit)
+    anfrageAktualisieren (AAWSBahngeschwindigkeit (GeschwindigkeitPwm aAktion0)) token =
+        ( AFErgebnis . AWSBahngeschwindigkeit . GeschwindigkeitPwm
+        , AAWSBahngeschwindigkeit . GeschwindigkeitPwm
+        )
+        $<< anfrageAktualisieren aAktion0 token
+    anfrageAktualisieren
+        (AAWSBahngeschwindigkeit (GeschwindigkeitKonstanteSpannung aAktion0))
+        token =
+        ( AFErgebnis . AWSBahngeschwindigkeit . GeschwindigkeitKonstanteSpannung
+        , AAWSBahngeschwindigkeit . GeschwindigkeitKonstanteSpannung
+        )
         $<< anfrageAktualisieren aAktion0 token
     anfrageAktualisieren (AAWSStreckenabschnitt aAktion0) token =
         (AFErgebnis . AWSStreckenabschnitt, AAWSStreckenabschnitt)
@@ -362,8 +456,10 @@ data AnfrageAktion
     | AAWegstreckeMärklin (AnfrageAktionWegstrecke Wegstrecke 'Märklin)
     | AAWegstreckeLego (AnfrageAktionWegstrecke Wegstrecke 'Lego)
     | AAWeiche (AnfrageAktionWeiche (ZugtypEither Weiche))
-    | AABahngeschwindigkeitMärklin (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'Märklin)
-    | AABahngeschwindigkeitLego (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'Lego)
+    | AABahngeschwindigkeitMärklinPwm (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Märklin)
+    | AABahngeschwindigkeitMärklinKonstanteSpannung (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
+    | AABahngeschwindigkeitLegoPwm (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Lego)
+    | AABahngeschwindigkeitLegoKonstanteSpannung (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
     | AAStreckenabschnitt (AnfrageAktionStreckenabschnitt Streckenabschnitt)
     | AAKupplung (AnfrageAktionKupplung Kupplung)
     | AAStatusAnfrage (EingabeToken -> StatusAnfrageObjekt)
@@ -377,9 +473,13 @@ instance Anzeige AnfrageAktion where
     anzeige (AAWegstreckeMärklin aAktionWegstrecke) = Language.aktion <^> aAktionWegstrecke
     anzeige (AAWegstreckeLego aAktionWegstrecke) = Language.aktion <^> aAktionWegstrecke
     anzeige (AAWeiche aAktionWeiche) = Language.aktion <^> aAktionWeiche
-    anzeige (AABahngeschwindigkeitMärklin aAktionBahngeschwindigkeit) =
+    anzeige (AABahngeschwindigkeitMärklinPwm aAktionBahngeschwindigkeit) =
         Language.aktion <^> aAktionBahngeschwindigkeit
-    anzeige (AABahngeschwindigkeitLego aAktionBahngeschwindigkeit) =
+    anzeige (AABahngeschwindigkeitMärklinKonstanteSpannung aAktionBahngeschwindigkeit) =
+        Language.aktion <^> aAktionBahngeschwindigkeit
+    anzeige (AABahngeschwindigkeitLegoPwm aAktionBahngeschwindigkeit) =
+        Language.aktion <^> aAktionBahngeschwindigkeit
+    anzeige (AABahngeschwindigkeitLegoKonstanteSpannung aAktionBahngeschwindigkeit) =
         Language.aktion <^> aAktionBahngeschwindigkeit
     anzeige (AAStreckenabschnitt aAktionStreckenabschnitt) =
         Language.aktion <^> aAktionStreckenabschnitt
@@ -395,9 +495,13 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrage (AAWegstreckeMärklin aAktionWegstrecke) = zeigeAnfrage aAktionWegstrecke
     zeigeAnfrage (AAWegstreckeLego aAktionWegstrecke) = zeigeAnfrage aAktionWegstrecke
     zeigeAnfrage (AAWeiche aAktionWeiche) = zeigeAnfrage aAktionWeiche
-    zeigeAnfrage (AABahngeschwindigkeitMärklin aAktionBahngeschwindigkeit) =
+    zeigeAnfrage (AABahngeschwindigkeitMärklinPwm aAktionBahngeschwindigkeit) =
         zeigeAnfrage aAktionBahngeschwindigkeit
-    zeigeAnfrage (AABahngeschwindigkeitLego aAktionBahngeschwindigkeit) =
+    zeigeAnfrage (AABahngeschwindigkeitMärklinKonstanteSpannung aAktionBahngeschwindigkeit) =
+        zeigeAnfrage aAktionBahngeschwindigkeit
+    zeigeAnfrage (AABahngeschwindigkeitLegoPwm aAktionBahngeschwindigkeit) =
+        zeigeAnfrage aAktionBahngeschwindigkeit
+    zeigeAnfrage (AABahngeschwindigkeitLegoKonstanteSpannung aAktionBahngeschwindigkeit) =
         zeigeAnfrage aAktionBahngeschwindigkeit
     zeigeAnfrage (AAStreckenabschnitt aAktionStreckenabschnitt) =
         zeigeAnfrage aAktionStreckenabschnitt
@@ -419,9 +523,14 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrageOptionen (AAWegstreckeLego aAktionWegstrecke) =
         zeigeAnfrageOptionen aAktionWegstrecke
     zeigeAnfrageOptionen (AAWeiche aAktionWeiche) = zeigeAnfrageOptionen aAktionWeiche
-    zeigeAnfrageOptionen (AABahngeschwindigkeitMärklin aAktionBahngeschwindigkeit) =
+    zeigeAnfrageOptionen (AABahngeschwindigkeitMärklinPwm aAktionBahngeschwindigkeit) =
         zeigeAnfrageOptionen aAktionBahngeschwindigkeit
-    zeigeAnfrageOptionen (AABahngeschwindigkeitLego aAktionBahngeschwindigkeit) =
+    zeigeAnfrageOptionen
+        (AABahngeschwindigkeitMärklinKonstanteSpannung aAktionBahngeschwindigkeit) =
+        zeigeAnfrageOptionen aAktionBahngeschwindigkeit
+    zeigeAnfrageOptionen (AABahngeschwindigkeitLegoPwm aAktionBahngeschwindigkeit) =
+        zeigeAnfrageOptionen aAktionBahngeschwindigkeit
+    zeigeAnfrageOptionen (AABahngeschwindigkeitLegoKonstanteSpannung aAktionBahngeschwindigkeit) =
         zeigeAnfrageOptionen aAktionBahngeschwindigkeit
     zeigeAnfrageOptionen (AAStreckenabschnitt aAktionStreckenabschnitt) =
         zeigeAnfrageOptionen aAktionStreckenabschnitt
@@ -470,12 +579,22 @@ instance MitAnfrage Aktion where
             where
                 erhalteBahngeschwindigkeitAktion :: Objekt -> AnfrageAktion
                 erhalteBahngeschwindigkeitAktion
-                    (OBahngeschwindigkeit (ZugtypMärklin bahngeschwindigkeit)) =
-                    AABahngeschwindigkeitMärklin
+                    (OBahngeschwindigkeit (ZugtypMärklin (GeschwindigkeitPwm bahngeschwindigkeit))) =
+                    AABahngeschwindigkeitMärklinPwm
                     $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
                 erhalteBahngeschwindigkeitAktion
-                    (OBahngeschwindigkeit (ZugtypLego bahngeschwindigkeit)) =
-                    AABahngeschwindigkeitLego
+                    (OBahngeschwindigkeit
+                         (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bahngeschwindigkeit))) =
+                    AABahngeschwindigkeitMärklinKonstanteSpannung
+                    $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
+                erhalteBahngeschwindigkeitAktion
+                    (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitPwm bahngeschwindigkeit))) =
+                    AABahngeschwindigkeitLegoPwm
+                    $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
+                erhalteBahngeschwindigkeitAktion
+                    (OBahngeschwindigkeit
+                         (ZugtypLego (GeschwindigkeitKonstanteSpannung bahngeschwindigkeit))) =
+                    AABahngeschwindigkeitLegoKonstanteSpannung
                     $ AnfrageAktionBahngeschwindigkeit bahngeschwindigkeit
                 erhalteBahngeschwindigkeitAktion _objekt = AnfrageAktion
         AAEStreckenabschnitt -> AFZwischenwert
@@ -515,11 +634,21 @@ instance MitAnfrage Aktion where
         $<< anfrageAktualisieren anfrageAktion token
     anfrageAktualisieren (AAWeiche anfrageAktion) token =
         (AFErgebnis . AWeiche, AAWeiche) $<< anfrageAktualisieren anfrageAktion token
-    anfrageAktualisieren (AABahngeschwindigkeitMärklin anfrageAktion) token =
-        (AFErgebnis . ABahngeschwindigkeitMärklin, AABahngeschwindigkeitMärklin)
+    anfrageAktualisieren (AABahngeschwindigkeitMärklinPwm anfrageAktion) token =
+        (AFErgebnis . ABahngeschwindigkeitMärklinPwm, AABahngeschwindigkeitMärklinPwm)
         $<< anfrageAktualisieren anfrageAktion token
-    anfrageAktualisieren (AABahngeschwindigkeitLego anfrageAktion) token =
-        (AFErgebnis . ABahngeschwindigkeitLego, AABahngeschwindigkeitLego)
+    anfrageAktualisieren (AABahngeschwindigkeitMärklinKonstanteSpannung anfrageAktion) token =
+        ( AFErgebnis . ABahngeschwindigkeitMärklinKonstanteSpannung
+        , AABahngeschwindigkeitMärklinKonstanteSpannung
+        )
+        $<< anfrageAktualisieren anfrageAktion token
+    anfrageAktualisieren (AABahngeschwindigkeitLegoPwm anfrageAktion) token =
+        (AFErgebnis . ABahngeschwindigkeitLegoPwm, AABahngeschwindigkeitLegoPwm)
+        $<< anfrageAktualisieren anfrageAktion token
+    anfrageAktualisieren (AABahngeschwindigkeitLegoKonstanteSpannung anfrageAktion) token =
+        ( AFErgebnis . ABahngeschwindigkeitLegoKonstanteSpannung
+        , AABahngeschwindigkeitLegoKonstanteSpannung
+        )
         $<< anfrageAktualisieren anfrageAktion token
     anfrageAktualisieren (AAStreckenabschnitt anfrageAktion) token =
         (AFErgebnis . AStreckenabschnitt, AAStreckenabschnitt)
