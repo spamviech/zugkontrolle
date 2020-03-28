@@ -138,7 +138,8 @@ data Aktion
     | AWeiche (AktionWeiche (ZugtypEither Weiche))
     | ABahngeschwindigkeitMärklinPwm (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Märklin)
     | ABahngeschwindigkeitMärklinKonstanteSpannung (AktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
-    | ABahngeschwindigkeitLego (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Lego)
+    | ABahngeschwindigkeitLegoPwm (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Lego)
+    | ABahngeschwindigkeitLegoKonstanteSpannung (AktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
     | AStreckenabschnitt (AktionStreckenabschnitt Streckenabschnitt)
     | AKupplung (AktionKupplung Kupplung)
     | AktionAusführen Plan
@@ -157,7 +158,10 @@ instance Eq Aktion where
     (==)
         (ABahngeschwindigkeitMärklinKonstanteSpannung a0)
         (ABahngeschwindigkeitMärklinKonstanteSpannung a1) = a0 == a1
-    (==) (ABahngeschwindigkeitLego a0) (ABahngeschwindigkeitLego a1) = a0 == a1
+    (==) (ABahngeschwindigkeitLegoPwm a0) (ABahngeschwindigkeitLegoPwm a1) = a0 == a1
+    (==)
+        (ABahngeschwindigkeitLegoKonstanteSpannung a0)
+        (ABahngeschwindigkeitLegoKonstanteSpannung a1) = a0 == a1
     (==) (AStreckenabschnitt a0) (AStreckenabschnitt a1) = a0 == a1
     (==) (AKupplung a0) (AKupplung a1) = a0 == a1
     (==) (AktionAusführen Plan {plName = p0}) (AktionAusführen Plan {plName = p1}) = p0 == p1
@@ -172,7 +176,9 @@ instance Anzeige Aktion where
     anzeige (ABahngeschwindigkeitMärklinPwm aktion) = Language.bahngeschwindigkeit <~> aktion
     anzeige (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
         Language.bahngeschwindigkeit <~> aktion
-    anzeige (ABahngeschwindigkeitLego aktion) = Language.bahngeschwindigkeit <~> aktion
+    anzeige (ABahngeschwindigkeitLegoPwm aktion) = Language.bahngeschwindigkeit <~> aktion
+    anzeige (ABahngeschwindigkeitLegoKonstanteSpannung aktion) =
+        Language.bahngeschwindigkeit <~> aktion
     anzeige (AStreckenabschnitt aktion) = Language.streckenabschnitt <~> aktion
     anzeige (AKupplung aktion) = Language.kupplung <~> aktion
     anzeige (AktionAusführen Plan {plName}) = Language.ausführen <:> plName
@@ -185,7 +191,8 @@ instance StreckenObjekt Aktion where
     anschlüsse (AWeiche aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitMärklinPwm aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) = anschlüsse aktion
-    anschlüsse (ABahngeschwindigkeitLego aktion) = anschlüsse aktion
+    anschlüsse (ABahngeschwindigkeitLegoPwm aktion) = anschlüsse aktion
+    anschlüsse (ABahngeschwindigkeitLegoKonstanteSpannung aktion) = anschlüsse aktion
     anschlüsse (AStreckenabschnitt aktion) = anschlüsse aktion
     anschlüsse (AKupplung aktion) = anschlüsse aktion
     anschlüsse (AktionAusführen plan) = anschlüsse plan
@@ -202,7 +209,8 @@ instance AktionKlasse Aktion where
     ausführenAktion (ABahngeschwindigkeitMärklinPwm aktion) = ausführenAktion aktion
     ausführenAktion (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
         ausführenAktion aktion
-    ausführenAktion (ABahngeschwindigkeitLego aktion) = ausführenAktion aktion
+    ausführenAktion (ABahngeschwindigkeitLegoPwm aktion) = ausführenAktion aktion
+    ausführenAktion (ABahngeschwindigkeitLegoKonstanteSpannung aktion) = ausführenAktion aktion
     ausführenAktion (AStreckenabschnitt aktion) = ausführenAktion aktion
     ausführenAktion (AKupplung aktion) = ausführenAktion aktion
     ausführenAktion (AktionAusführen plan) = ausführenPlan plan (const $ pure ()) (pure ())

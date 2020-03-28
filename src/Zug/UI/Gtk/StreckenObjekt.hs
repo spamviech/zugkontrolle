@@ -224,24 +224,15 @@ widgetHinzufügenZugtypEither
     :: WidgetHinzufügen e w (a z) -> WidgetHinzufügen e w (ZugtypEither a)
 widgetHinzufügenZugtypEither = WidgetHinzufügen . widgetHinzufügen
 
--- | Konvertiere ein 'WidgetHinzufügen' in das zugehörige 'GeschwindigkeitEither'-Äquivalent
+-- | Konvertiere ein 'WidgetHinzufügen' in das zugehörige 'GeschwindigkeitEither'-Äquivalent.
 widgetHinzufügenGeschwindigkeitEither
     :: WidgetHinzufügen e w (a g z) -> WidgetHinzufügen e w (GeschwindigkeitEither a z)
 widgetHinzufügenGeschwindigkeitEither = WidgetHinzufügen . widgetHinzufügen
 
--- | Erhalte 'vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin',
--- konvertiert in eine beliebige 'GeschwindigkeitVariante'.
-vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklinGeschwindigkeitVariante
-    :: DynamischeWidgets -> BoxWegstreckeHinzufügen (BGWidgets b 'Märklin)
-vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklinGeschwindigkeitVariante =
-    WidgetHinzufügen . widgetHinzufügen . vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-
--- | Erhalte 'vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego',
--- konvertiert in eine beliebige 'GeschwindigkeitVariante'.
-vBoxHinzufügenWegstreckeBahngeschwindigkeitenLegoGeschwindigkeitVariante
-    :: DynamischeWidgets -> BoxWegstreckeHinzufügen (BGWidgets b 'Lego)
-vBoxHinzufügenWegstreckeBahngeschwindigkeitenLegoGeschwindigkeitVariante =
-    WidgetHinzufügen . widgetHinzufügen . vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+-- | Konvertiere ein 'WidgetHinzufügen' in eine beliebiges 'GeschwindigkeitVariante'-Äquivalent.
+widgetHinzufügenGeschwindigkeitVariante
+    :: WidgetHinzufügen e w (GeschwindigkeitEither a z) -> WidgetHinzufügen e w (a g z)
+widgetHinzufügenGeschwindigkeitVariante = WidgetHinzufügen . widgetHinzufügen
 
 -- | Konvertiere ein 'WidgetHinzufügen'-'MitRegistrierterCheckButton' in den zugehörigen 'Void'-Typ
 widgetHinzufügenRegistrierterCheckButtonVoid
@@ -319,9 +310,6 @@ type BoxWegstreckeHinzufügen a =
     WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
 
 -- | Erstelle eine neue 'BoxWegstreckeHinzufügen'.
---
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
--- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 boxWegstreckeHinzufügenNew :: (MonadIO m) => m (BoxWegstreckeHinzufügen a)
 boxWegstreckeHinzufügenNew =
     liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
@@ -391,10 +379,14 @@ data DynamischeWidgets =
           :: BoxWegstreckeHinzufügen (GeschwindigkeitEither BGWidgets 'Märklin)
     , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
           :: BoxWegstreckeHinzufügen (GeschwindigkeitEither BGWidgets 'Lego)
+    , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+          :: BoxPlanHinzufügen (GeschwindigkeitEither BGWidgets 'Märklin)
     , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
           :: BoxPlanHinzufügen (BGWidgets 'Pwm 'Märklin)
     , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
           :: BoxPlanHinzufügen (BGWidgets 'KonstanteSpannung 'Märklin)
+    , vBoxHinzufügenPlanBahngeschwindigkeitenLego
+          :: BoxPlanHinzufügen (GeschwindigkeitEither BGWidgets 'Lego)
     , vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm :: BoxPlanHinzufügen (BGWidgets 'Pwm 'Lego)
     , vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
           :: BoxPlanHinzufügen (BGWidgets 'KonstanteSpannung 'Lego)
@@ -412,6 +404,8 @@ data DynamischeWidgets =
     , vBoxHinzufügenPlanWeichenRechtsLego :: BoxPlanHinzufügen (WEWidgets 'Lego)
     , vBoxHinzufügenWegstreckeKupplungen :: BoxWegstreckeHinzufügen KUWidgets
     , vBoxHinzufügenPlanKupplungen :: BoxPlanHinzufügen KUWidgets
+    , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+          :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
           :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
@@ -420,6 +414,7 @@ data DynamischeWidgets =
           :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenKupplungMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
+    , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
           :: BoxPlanHinzufügen (WSWidgets 'Lego)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
@@ -656,7 +651,9 @@ data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
     { bg :: Bahngeschwindigkeit g z
     , bgWidget :: Gtk.HBox
     , bgHinzWS :: CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
-    , bgHinzPL :: ButtonPlanHinzufügen (BGWidgets g z)
+    , bgHinzPL :: ( ButtonPlanHinzufügen (BGWidgets g z)
+                  , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
+                  )
     , bgSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
     }
 
@@ -693,7 +690,9 @@ instance WegstreckenElement (BGWidgets g 'Märklin) where
         :: Bahngeschwindigkeit g 'Märklin
         -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (BGWidgets g 'Märklin))
     boxWegstrecke _bahngeschwindigkeit =
-        Lens.to vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklinGeschwindigkeitVariante
+        Lens.to
+        $ widgetHinzufügenGeschwindigkeitVariante
+        . vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
 
 instance WegstreckenElement (BGWidgets g 'Lego) where
     getterWegstrecke
@@ -703,11 +702,54 @@ instance WegstreckenElement (BGWidgets g 'Lego) where
     boxWegstrecke :: Bahngeschwindigkeit g 'Lego
                   -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (BGWidgets g 'Lego))
     boxWegstrecke _bahngeschwindigkeit =
-        Lens.to vBoxHinzufügenWegstreckeBahngeschwindigkeitenLegoGeschwindigkeitVariante
+        Lens.to
+        $ widgetHinzufügenGeschwindigkeitVariante
+        . vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
 
 instance MitWidget (GeschwindigkeitEither BGWidgets z) where
     erhalteWidget :: GeschwindigkeitEither BGWidgets z -> Gtk.Widget
     erhalteWidget = ausGeschwindigkeitEither erhalteWidget
+
+instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
+    getterWegstrecke
+        :: Lens.Getter (GeschwindigkeitEither BGWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin))
+    getterWegstrecke =
+        Lens.to $ ausGeschwindigkeitEither (widgetHinzufügenGeschwindigkeitEither . bgHinzWS)
+
+    boxWegstrecke
+        :: GeschwindigkeitEither Bahngeschwindigkeit 'Märklin
+        -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (GeschwindigkeitEither BGWidgets 'Märklin))
+    boxWegstrecke _bgWidgets = Lens.to $ vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+
+instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Lego) where
+    getterWegstrecke
+        :: Lens.Getter (GeschwindigkeitEither BGWidgets 'Lego) (CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Lego))
+    getterWegstrecke =
+        Lens.to $ ausGeschwindigkeitEither (widgetHinzufügenGeschwindigkeitEither . bgHinzWS)
+
+    boxWegstrecke
+        :: GeschwindigkeitEither Bahngeschwindigkeit 'Lego
+        -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (GeschwindigkeitEither BGWidgets 'Lego))
+    boxWegstrecke _bgWidgets = Lens.to vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+
+instance ( WegstreckenElement (BGWidgets 'Pwm z)
+         , WegstreckenElement (BGWidgets 'KonstanteSpannung z)
+         ) => WidgetsTyp (GeschwindigkeitEither BGWidgets z) where
+    type ObjektTyp (GeschwindigkeitEither BGWidgets z) =
+        GeschwindigkeitEither Bahngeschwindigkeit z
+
+    erhalteObjektTyp
+        :: GeschwindigkeitEither BGWidgets z -> GeschwindigkeitEither Bahngeschwindigkeit z
+    erhalteObjektTyp = mapGeschwindigkeitEither bg
+
+    entferneWidgets
+        :: (MonadIO m, DynamischeWidgetsReader r m) => GeschwindigkeitEither BGWidgets z -> m ()
+    entferneWidgets (GeschwindigkeitPwm bgWidgets) = entferneWidgets bgWidgets
+    entferneWidgets (GeschwindigkeitKonstanteSpannung bgWidgets) = entferneWidgets bgWidgets
+
+    boxButtonEntfernen :: GeschwindigkeitEither BGWidgets z -> Gtk.Box
+    boxButtonEntfernen (GeschwindigkeitPwm bgWidgets) = boxButtonEntfernen bgWidgets
+    boxButtonEntfernen (GeschwindigkeitKonstanteSpannung bgWidgets) = boxButtonEntfernen bgWidgets
 
 instance WidgetsTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     type ObjektTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) =
@@ -758,53 +800,90 @@ instance WegstreckenElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) whe
 instance PlanElement (BGWidgets b 'Märklin) where
     foldPlan
         :: Lens.Fold (BGWidgets b 'Märklin) (Maybe (ButtonPlanHinzufügen (BGWidgets b 'Märklin)))
-    foldPlan = Lens.to $ Just . bgHinzPL
+    foldPlan = Lens.folding $ \BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)}
+        -> Just <$> [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
 
     boxenPlan :: Bahngeschwindigkeit b 'Märklin
               -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (BGWidgets b 'Märklin))
     boxenPlan MärklinBahngeschwindigkeitPwm {} =
-        Lens.to vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+        Lens.folding
+        $ \DynamischeWidgets { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+                             , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin}
+        -> [ vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+           , widgetHinzufügenGeschwindigkeitVariante
+                 vBoxHinzufügenPlanBahngeschwindigkeitenMärklin]
     boxenPlan MärklinBahngeschwindigkeitKonstanteSpannung {} =
-        Lens.to vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+        Lens.folding
+        $ \DynamischeWidgets { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+                             , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin}
+        -> [ vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+           , widgetHinzufügenGeschwindigkeitVariante
+                 vBoxHinzufügenPlanBahngeschwindigkeitenMärklin]
 
 instance PlanElement (BGWidgets b 'Lego) where
     foldPlan :: Lens.Fold (BGWidgets b 'Lego) (Maybe (ButtonPlanHinzufügen (BGWidgets b 'Lego)))
-    foldPlan = Lens.to $ Just . bgHinzPL
+    foldPlan = Lens.folding $ \BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)}
+        -> Just <$> [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
 
     boxenPlan :: Bahngeschwindigkeit b 'Lego
               -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (BGWidgets b 'Lego))
-    boxenPlan LegoBahngeschwindigkeit {} = Lens.to vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+    boxenPlan LegoBahngeschwindigkeit {} =
+        Lens.folding
+        $ \DynamischeWidgets { vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+                             , vBoxHinzufügenPlanBahngeschwindigkeitenLego}
+        -> [ vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+           , widgetHinzufügenGeschwindigkeitVariante vBoxHinzufügenPlanBahngeschwindigkeitenLego]
 
 instance PlanElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     foldPlan :: Lens.Fold (ZugtypEither (GeschwindigkeitEither BGWidgets)) (Maybe (ButtonPlanHinzufügen (ZugtypEither (GeschwindigkeitEither BGWidgets))))
-    foldPlan =
-        Lens.to
-        $ ausZugtypEither
-        $ ausGeschwindigkeitEither
-        $ Just . widgetHinzufügenZugtypEither . widgetHinzufügenGeschwindigkeitEither . bgHinzPL
+    foldPlan = Lens.folding $ \bgWidgets -> Just <$> ausZugtypEither buttonList bgWidgets
+        where
+            buttonList :: (GeschwindigkeitEither BGWidgets) z
+                       -> [ButtonPlanHinzufügen (ZugtypEither (GeschwindigkeitEither BGWidgets))]
+            buttonList
+                (GeschwindigkeitPwm BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
+                widgetHinzufügenZugtypEither
+                <$> [widgetHinzufügenGeschwindigkeitEither buttonSpezifisch, buttonAllgemein]
+            buttonList
+                (GeschwindigkeitKonstanteSpannung
+                     BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
+                widgetHinzufügenZugtypEither
+                <$> [widgetHinzufügenGeschwindigkeitEither buttonSpezifisch, buttonAllgemein]
 
     boxenPlan :: ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)
               -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither (GeschwindigkeitEither BGWidgets)))
     boxenPlan (ZugtypMärklin (GeschwindigkeitPwm _bahngeschwindigkeit)) =
-        Lens.to
-        $ widgetHinzufügenZugtypEither
-        . widgetHinzufügenGeschwindigkeitEither
-        . vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+        Lens.folding
+        $ \DynamischeWidgets
+        { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+        , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin} -> widgetHinzufügenZugtypEither
+        <$> [ widgetHinzufügenGeschwindigkeitEither
+                  vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin]
     boxenPlan (ZugtypMärklin (GeschwindigkeitKonstanteSpannung _bahngeschwindigkeit)) =
-        Lens.to
-        $ widgetHinzufügenZugtypEither
-        . widgetHinzufügenGeschwindigkeitEither
-        . vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+        Lens.folding
+        $ \DynamischeWidgets
+        { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+        , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin} -> widgetHinzufügenZugtypEither
+        <$> [ widgetHinzufügenGeschwindigkeitEither
+                  vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin]
     boxenPlan (ZugtypLego (GeschwindigkeitPwm _bahngeschwindigkeit)) =
-        Lens.to
-        $ widgetHinzufügenZugtypEither
-        . widgetHinzufügenGeschwindigkeitEither
-        . vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+        Lens.folding
+        $ \DynamischeWidgets
+        { vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+        , vBoxHinzufügenPlanBahngeschwindigkeitenLego} -> widgetHinzufügenZugtypEither
+        <$> [ widgetHinzufügenGeschwindigkeitEither
+                  vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+            , vBoxHinzufügenPlanBahngeschwindigkeitenLego]
     boxenPlan (ZugtypLego (GeschwindigkeitKonstanteSpannung _bahngeschwindigkeit)) =
-        Lens.to
-        $ widgetHinzufügenZugtypEither
-        . widgetHinzufügenGeschwindigkeitEither
-        . vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
+        Lens.folding
+        $ \DynamischeWidgets
+        { vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
+        , vBoxHinzufügenPlanBahngeschwindigkeitenLego} -> widgetHinzufügenZugtypEither
+        <$> [ widgetHinzufügenGeschwindigkeitEither
+                  vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
+            , vBoxHinzufügenPlanBahngeschwindigkeitenLego]
 
 instance StreckenObjekt (BGWidgets g z) where
     anschlüsse :: BGWidgets g z -> [Anschluss]
@@ -854,8 +933,15 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWidgetWegstrecke
         <- hinzufügenWidgetWegstreckePackNew bahngeschwindigkeit bgSpracheTVar
-    let boxPlan = head $ dynamischeWidgets ^.. boxenPlan bahngeschwindigkeit
-    hinzufügenWidgetPlan <- hinzufügenWidgetPlanPackNew boxPlan bahngeschwindigkeit bgSpracheTVar
+    hinzufügenWidgetPlanSpezifisch <- hinzufügenWidgetPlanPackNew
+        (fromJust $ Lens.firstOf (boxenPlan bahngeschwindigkeit) dynamischeWidgets)
+        bahngeschwindigkeit
+        bgSpracheTVar
+    hinzufügenWidgetPlanAllgemein <- widgetHinzufügenGeschwindigkeitEither
+        <$> hinzufügenWidgetPlanPackNew
+            (fromJust $ Lens.lastOf (boxenPlan bahngeschwindigkeit) dynamischeWidgets)
+            bahngeschwindigkeit
+            bgSpracheTVar
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.hBoxNew False 0
     let bgWidgets =
@@ -863,7 +949,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             { bg = bahngeschwindigkeit
             , bgWidget = hBox
             , bgHinzWS = hinzufügenWidgetWegstrecke
-            , bgHinzPL = hinzufügenWidgetPlan
+            , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
             , bgSpracheTVar
             }
     namePackNew hBox bahngeschwindigkeit
@@ -1513,7 +1599,8 @@ data WSWidgets (z :: Zugtyp) =
 -- | Widget zum Hinzufügen einer 'Wegstrecke' zu einem 'Plan'
 data WegstreckePlanHinzufügenWidget (z :: Zugtyp) =
     WegstreckePlanHinzufügenWidget
-    { bahngeschwindigkeitPwm :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
+    { bahngeschwindigkeit :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
+    , bahngeschwindigkeitPwm :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     , bahngeschwindigkeitKonstanteSpannung :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     , streckenabschnitt :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     , kupplung :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
@@ -1563,6 +1650,7 @@ instance PlanElement (WSWidgets 'Märklin) where
         $ (??)
             [ bahngeschwindigkeitPwm
             , bahngeschwindigkeitKonstanteSpannung
+            , bahngeschwindigkeit
             , streckenabschnitt
             , kupplung
             , wegstrecke]
@@ -1575,6 +1663,7 @@ instance PlanElement (WSWidgets 'Märklin) where
         $ (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin
             , vBoxHinzufügenPlanWegstreckenMärklin]
@@ -1586,6 +1675,7 @@ instance PlanElement (WSWidgets 'Lego) where
         $ (??)
             [ bahngeschwindigkeitPwm
             , bahngeschwindigkeitKonstanteSpannung
+            , bahngeschwindigkeit
             , streckenabschnitt
             , kupplung
             , wegstrecke]
@@ -1598,6 +1688,7 @@ instance PlanElement (WSWidgets 'Lego) where
         $ (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungLego
             , vBoxHinzufügenPlanWegstreckenLego]
@@ -1611,6 +1702,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
         . (??)
             [ bahngeschwindigkeitPwm
             , bahngeschwindigkeitKonstanteSpannung
+            , bahngeschwindigkeit
             , streckenabschnitt
             , kupplung
             , wegstrecke]
@@ -1624,6 +1716,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
         . (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin
             , vBoxHinzufügenPlanWegstreckenMärklin]
@@ -1633,6 +1726,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
         . (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungLego
             , vBoxHinzufügenPlanWegstreckenLego]
@@ -1705,11 +1799,14 @@ wegstreckePackNew
     hinzufügenPlanWidgetBGPwm <- if any
         (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
         wsBahngeschwindigkeiten
-        then pure Nothing
-        else Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
+        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
+        else pure Nothing
     hinzufügenPlanWidgetBGKonstanteSpannung <- if any
         (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
         wsBahngeschwindigkeiten
+        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
+        else pure Nothing
+    hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
         then pure Nothing
         else Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
     hinzufügenPlanWidgetST <- if null wsStreckenabschnitte
@@ -1725,6 +1822,7 @@ wegstreckePackNew
             WegstreckePlanHinzufügenWidget
             { bahngeschwindigkeitPwm = hinzufügenPlanWidgetBGPwm
             , bahngeschwindigkeitKonstanteSpannung = hinzufügenPlanWidgetBGKonstanteSpannung
+            , bahngeschwindigkeit = hinzufügenPlanWidgetBG
             , streckenabschnitt = hinzufügenPlanWidgetST
             , kupplung = hinzufügenPlanWidgetKU
             , wegstrecke = hinzufügenPlanWidgetWS

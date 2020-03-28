@@ -709,7 +709,7 @@ instance FromJSON Aktion where
              . Geschwindigkeit (GeschwindigkeitPhantom w)
              <$> v .: wertJS)
             (\v -> (ABahngeschwindigkeitMärklinPwm <$> geschwindigkeitParserMärklin v)
-             <|> (ABahngeschwindigkeitLego <$> geschwindigkeitParserLego v))
+             <|> (ABahngeschwindigkeitLegoPwm <$> geschwindigkeitParserLego v))
         | s == fahrstromJS -> parseMaybeWegstrecke
             v
             (\w v -> AWSBahngeschwindigkeit
@@ -740,8 +740,12 @@ instance FromJSON Aktion where
              . GeschwindigkeitPwm
              . FahrtrichtungEinstellen (GeschwindigkeitPhantom w)
              <$> v .: fahrtrichtungJS)
-            (\v -> ABahngeschwindigkeitLego
-             <$> (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS <*> v .: fahrtrichtungJS))
+            (\v -> (ABahngeschwindigkeitLegoPwm
+                    <$> (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS
+                         <*> v .: fahrtrichtungJS))
+             <|> (ABahngeschwindigkeitLegoKonstanteSpannung
+                  <$> (FahrtrichtungEinstellen <$> v .: bahngeschwindigkeitJS
+                       <*> v .: fahrtrichtungJS)))
         | s == stromJS -> parseMaybeWegstrecke
             v
             (\w v -> AWSStreckenabschnitt . Strom w <$> v .: anJS)
@@ -855,15 +859,21 @@ aktionToJSON _name (AWeiche (Stellen w richtung)) =
     object [weicheJS .= w, aktionJS .= stellenJS, richtungJS .= richtung]
 aktionToJSON _name (ABahngeschwindigkeitMärklinPwm (Geschwindigkeit b wert)) =
     object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
-aktionToJSON _name (ABahngeschwindigkeitLego (Geschwindigkeit b wert)) =
+aktionToJSON _name (ABahngeschwindigkeitLegoPwm (Geschwindigkeit b wert)) =
     object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, wertJS .= wert]
 aktionToJSON _name (ABahngeschwindigkeitMärklinKonstanteSpannung (Fahrstrom b strom)) =
     object [bahngeschwindigkeitJS .= b, aktionJS .= fahrstromJS, stromJS .= strom]
+aktionToJSON _name (ABahngeschwindigkeitLegoKonstanteSpannung (Fahrstrom b strom)) =
+    object [bahngeschwindigkeitJS .= b, aktionJS .= geschwindigkeitJS, stromJS .= strom]
 aktionToJSON _name (ABahngeschwindigkeitMärklinPwm (Umdrehen b)) =
     object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS]
 aktionToJSON _name (ABahngeschwindigkeitMärklinKonstanteSpannung (Umdrehen b)) =
     object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS]
-aktionToJSON _name (ABahngeschwindigkeitLego (FahrtrichtungEinstellen b fahrtrichtung)) =
+aktionToJSON _name (ABahngeschwindigkeitLegoPwm (FahrtrichtungEinstellen b fahrtrichtung)) =
+    object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
+aktionToJSON
+    _name
+    (ABahngeschwindigkeitLegoKonstanteSpannung (FahrtrichtungEinstellen b fahrtrichtung)) =
     object [bahngeschwindigkeitJS .= b, aktionJS .= umdrehenJS, fahrtrichtungJS .= fahrtrichtung]
 aktionToJSON _name (AStreckenabschnitt (Strom s an)) =
     object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]

@@ -6,6 +6,7 @@
         "APCF",
         "AWSE",
         "Combinators",
+        "Contravariant",
         "Deps",
         "Eval",
         "Fliessend",
