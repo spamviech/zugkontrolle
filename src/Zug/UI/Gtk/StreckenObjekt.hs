@@ -1798,25 +1798,25 @@ wegstreckePackNew
     wsSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just wsSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    let [ boxBahngeschwindigkeitPwm
-        , boxBahngeschwindigkeitKonstanteSpannung
-        , boxBahngeschwindigkeit
-        , boxStreckenabschnitt
-        , boxKupplung
-        , boxWegstrecke] = dynamischeWidgets ^.. boxenPlan wegstrecke
-    hinzufügenPlanWidgetBGPwm <- if any
-        (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
-        wsBahngeschwindigkeiten
-        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeitPwm wegstrecke wsSpracheTVar
-        else pure Nothing
+    let [boxBGPwm, boxBGKonstanteSpannung, boxBG, boxStreckenabschnitt, boxKupplung, boxWegstrecke] =
+            dynamischeWidgets ^.. boxenPlan wegstrecke
+    hinzufügenPlanWidgetBGPwm
+        <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
+            then Just
+                <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsSpracheTVar
+            else pure Nothing
     hinzufügenPlanWidgetBGKonstanteSpannung <- if any
         (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
         wsBahngeschwindigkeiten
-        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeitKonstanteSpannung wegstrecke wsSpracheTVar
+        then Just
+            <$> hinzufügenWidgetPlanPackNew
+                boxBGKonstanteSpannung
+                wegstrecke
+                wsSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
         then pure Nothing
-        else Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
+        else Just <$> hinzufügenWidgetPlanPackNew boxBG wegstrecke wsSpracheTVar
     hinzufügenPlanWidgetST <- if null wsStreckenabschnitte
         then pure Nothing
         else Just <$> hinzufügenWidgetPlanPackNew boxStreckenabschnitt wegstrecke wsSpracheTVar
