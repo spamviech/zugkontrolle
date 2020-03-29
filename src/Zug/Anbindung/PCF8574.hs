@@ -54,7 +54,6 @@ minI2CAddress :: PCF8574Variant -> I2CAddress
 minI2CAddress VariantNormal = I2CAddress $ bit 5
 minI2CAddress VariantA = I2CAddress $ bit 5 .|. bit 4 .|. bit 3
 
--- TODO: Memoisieren?
 -- | Berechne die 'I2CAddress' eines /PCF8574/ anhand der variablen Address-Bits.
 toI2CAddress :: PCF8574 -> I2CAddress
 toI2CAddress PCF8574 {variant, a0, a1, a2} =
