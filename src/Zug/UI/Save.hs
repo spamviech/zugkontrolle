@@ -482,7 +482,8 @@ instance ToJSON (Bahngeschwindigkeit b z) where
             [ nameJS .= bgmkName
             , fließendJS .= bgmkFließend
             , fahrstromAnschlussJS .= bgmkFahrstromAnschluss
-            , umdrehenAnschlussJS .= bgmkUmdrehenAnschluss]
+            , umdrehenAnschlussJS .= bgmkUmdrehenAnschluss
+            , zugtypJS .= Märklin]
 
 -- Instanz-Deklarationen für Streckenabschnitt
 -- neue Feld-Namen/Bezeichner in json-Datei
