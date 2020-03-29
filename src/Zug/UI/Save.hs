@@ -524,7 +524,7 @@ instance FromJSON (Weiche 'Märklin) where
     parseJSON (Object v) = do
         Märklin <- v .: zugtypJS
         wemName <- v .: nameJS
-        wemRichtungsAnschlüsse <- v .: richtungsPinsJS
+        wemRichtungsAnschlüsse <- v .: richtungsPinsJS <|> v .: richtungsAnschlüsseJS
         wemFließend <- parseFließend v
         pure MärklinWeiche { wemName, wemFließend, wemRichtungsAnschlüsse }
     parseJSON _value = mzero
