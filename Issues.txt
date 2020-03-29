@@ -1,3 +1,7 @@
+Gtk-UI:
+    Wegstrecken->Wegstrecken-Elemente (Expander)
+        Scrollbares Widget im Expander (vor allem für Horizontale Überlänge)
+
 Gtk-UI benötigt lange, bis etwas zu sehen ist
     Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
 
