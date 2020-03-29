@@ -97,8 +97,7 @@ import Zug.Anbindung.Wartezeit
        (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), Richtung(..))
 import qualified Zug.Language as Language
-import Zug.Language
-       (Anzeige(..), Sprache(Deutsch), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
+import Zug.Language (Anzeige(..), Sprache(), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
 import Zug.Options (Options(..), PWM(..), getOptions)
 
 -- | Alle Möglichen Werte von 'Value'
@@ -483,10 +482,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         befehlAusführen
             (anschlussWrite bgmkUmdrehenAnschluss (erhalteValue Gesperrt bg)
              >> anschlussWrite bgmkFahrstromAnschluss (erhalteValue strom bg))
-            ("Geschwindigkeit ("
-             <> showText bgmkFahrstromAnschluss
-             <> ")->"
-             <> Language.fließend Deutsch)
+            ("Geschwindigkeit (" <> showText bgmkFahrstromAnschluss <> ")->" <> showText strom)
 
     umdrehen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit b 'Märklin -> m ()

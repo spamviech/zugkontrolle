@@ -1861,10 +1861,10 @@ wegstreckePackNew
                     justSpracheTVar
                     Language.fahrstrom
                     (\toggled -> flip runReaderT objektReader
-                     $ geschwindigkeit (GeschwindigkeitPhantom wegstrecke)
+                     $ fahrstrom (GeschwindigkeitPhantom wegstrecke)
                      $ if toggled
-                         then 100
-                         else 0)
+                         then Fließend
+                         else Gesperrt)
             else pure Nothing
         let geschwindigkeitsWidgets = NonEmpty.fromList $ catMaybes [maybeScale, maybeToggleButton]
         case zuZugtypEither wegstrecke of
