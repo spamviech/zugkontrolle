@@ -78,7 +78,9 @@ lexEinen eingabe =
             , (Language.vorwärts, Vorwärts)
             , (Language.rückwärts, Rückwärts)
             , (Language.high, HIGH)
-            , (Language.low, LOW)]
+            , (Language.low, LOW)
+            , (Language.geschwindigkeitPwm, Pwm)
+            , (Language.geschwindigkeitKonstanteSpannung, KonstanteSpannung)]
 
 -- | Summen-Typ aus UI-Befehlen oder 'EingabeToken'
 data EingabeTokenAllgemein
@@ -146,6 +148,8 @@ data Token
     | Rückwärts
     | HIGH
     | LOW
+    | Pwm
+    | KonstanteSpannung
     deriving (Eq, Show)
 
 -- * Hilfs-Befehle

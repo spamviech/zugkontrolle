@@ -20,6 +20,7 @@ module Zug.UI.Cmd.Parser.Anfrage
   , (.<<)
   , MitAnfrage(..)
   , AnfrageGeschwindigkeitVariante(..)
+  , AnfrageGeschwindigkeitEither(..)
   , AnfrageZugtyp(..)
   , AnfrageZugtypEither(..)
   , MitAnfrageZugtyp(..)
@@ -116,19 +117,70 @@ class MitAnfrage a where
     -- | Eingabe eines Typs mit 'AnfrageTyp'
     anfrageAktualisieren :: AnfrageTyp a -> EingabeToken -> AnfrageFortsetzung (AnfrageTyp a) a
 
--- | Enumeration-Typ für eventuell noch unbestimmte 'GeschwindigkeitVariante'
+-- | Enumeration-Typ für eventuell noch unbestimmte 'GeschwindigkeitVariante'.
 data AnfrageGeschwindigkeitVariante
     = AnfrageGeschwindigkeitVariante
-    | AnfrageGeschwindigkeitVariantePwm
-    | AnfrageGeschwindigkeitVarianteKonstanteSpannung
+    | AnfragePwm
+    | AnfrageKonstanteSpannung
 
--- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'
+-- | Analogon zu 'GeschwindigkeitEither' für 'AnfrageGeschwindigkeitVariante'.
+data AnfrageGeschwindigkeitEither (a :: AnfrageGeschwindigkeitVariante
+                                   -> AnfrageZugtyp
+                                   -> Type) (z :: AnfrageZugtyp)
+    = AnfrageGeschwindigkeitNothing (a 'AnfrageGeschwindigkeitVariante z)
+    | AnfrageGeschwindigkeitPwm (a 'AnfragePwm z)
+    | AnfrageGeschwindigkeitKonstanteSpannung (a 'AnfrageKonstanteSpannung z)
+
+deriving instance ( Eq (a 'AnfrageGeschwindigkeitVariante z)
+                  , Eq (a 'AnfragePwm z)
+                  , Eq (a 'AnfrageKonstanteSpannung z)
+                  ) => Eq (AnfrageGeschwindigkeitEither a z)
+
+instance ( Show (a 'AnfrageGeschwindigkeitVariante z)
+         , Show (a 'AnfragePwm z)
+         , Show (a 'AnfrageKonstanteSpannung z)
+         ) => Show (AnfrageGeschwindigkeitEither a z) where
+    show :: AnfrageGeschwindigkeitEither a z -> String
+    show (AnfrageGeschwindigkeitNothing a) = show a
+    show (AnfrageGeschwindigkeitPwm a) = show a
+    show (AnfrageGeschwindigkeitKonstanteSpannung a) = show a
+
+instance ( Anzeige (a 'AnfrageGeschwindigkeitVariante z)
+         , Anzeige (a 'AnfragePwm z)
+         , Anzeige (a 'AnfrageKonstanteSpannung z)
+         ) => Anzeige (AnfrageGeschwindigkeitEither a z) where
+    anzeige :: AnfrageGeschwindigkeitEither a z -> Sprache -> Text
+    anzeige (AnfrageGeschwindigkeitNothing a) = anzeige a
+    anzeige (AnfrageGeschwindigkeitPwm a) = anzeige a
+    anzeige (AnfrageGeschwindigkeitKonstanteSpannung a) = anzeige a
+
+instance ( Anfrage (a 'AnfrageGeschwindigkeitVariante z)
+         , Anfrage (a 'AnfragePwm z)
+         , Anfrage (a 'AnfrageKonstanteSpannung z)
+         ) => Anfrage (AnfrageGeschwindigkeitEither a z) where
+    zeigeAnfrage :: AnfrageGeschwindigkeitEither a z -> Sprache -> Text
+    zeigeAnfrage (AnfrageGeschwindigkeitNothing a) = zeigeAnfrage a
+    zeigeAnfrage (AnfrageGeschwindigkeitPwm a) = zeigeAnfrage a
+    zeigeAnfrage (AnfrageGeschwindigkeitKonstanteSpannung a) = zeigeAnfrage a
+
+    zeigeAnfrageFehlgeschlagen :: AnfrageGeschwindigkeitEither a z -> Text -> Sprache -> Text
+    zeigeAnfrageFehlgeschlagen (AnfrageGeschwindigkeitNothing a) = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen (AnfrageGeschwindigkeitPwm a) = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen (AnfrageGeschwindigkeitKonstanteSpannung a) =
+        zeigeAnfrageFehlgeschlagen a
+
+    zeigeAnfrageOptionen :: AnfrageGeschwindigkeitEither a z -> Maybe (Sprache -> Text)
+    zeigeAnfrageOptionen (AnfrageGeschwindigkeitNothing a) = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen (AnfrageGeschwindigkeitPwm a) = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen (AnfrageGeschwindigkeitKonstanteSpannung a) = zeigeAnfrageOptionen a
+
+-- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'.
 data AnfrageZugtyp
     = AnfrageZugtyp
     | AnfrageZugtypMärklin
     | AnfrageZugtypLego
 
--- | Analog zu 'ZugtypEither' für 'AnfrageZugtyp'
+-- | Analogon zu 'ZugtypEither' für 'AnfrageZugtyp'.
 data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
     = AnfrageNothing (a 'AnfrageZugtyp)
     | AnfrageMärklin (a 'AnfrageZugtypMärklin)
