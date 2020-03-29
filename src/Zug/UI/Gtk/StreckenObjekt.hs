@@ -1798,17 +1798,21 @@ wegstreckePackNew
     wsSpracheTVar <- liftIO $ newTVarIO $ Just []
     let justSpracheTVar = Just wsSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    let [boxBahngeschwindigkeit, boxStreckenabschnitt, boxKupplung, boxWegstrecke] =
-            dynamischeWidgets ^.. boxenPlan wegstrecke
+    let [ boxBahngeschwindigkeitPwm
+        , boxBahngeschwindigkeitKonstanteSpannung
+        , boxBahngeschwindigkeit
+        , boxStreckenabschnitt
+        , boxKupplung
+        , boxWegstrecke] = dynamischeWidgets ^.. boxenPlan wegstrecke
     hinzufügenPlanWidgetBGPwm <- if any
         (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
         wsBahngeschwindigkeiten
-        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
+        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeitPwm wegstrecke wsSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetBGKonstanteSpannung <- if any
         (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
         wsBahngeschwindigkeiten
-        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeit wegstrecke wsSpracheTVar
+        then Just <$> hinzufügenWidgetPlanPackNew boxBahngeschwindigkeitKonstanteSpannung wegstrecke wsSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
         then pure Nothing
