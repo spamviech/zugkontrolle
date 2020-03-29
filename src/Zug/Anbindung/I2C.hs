@@ -15,7 +15,7 @@ Description : Funktionen zur Verwendung der I2C-Schnittstelle
 module Zug.Anbindung.I2C
   ( -- * Map über aktuelle I2C-Kanäle
     I2CMap
-  , I2CSetupFinished
+  , I2CChannelStatus()
   , i2cMapEmpty
   , MitI2CMap(..)
   , I2CReader(..)
@@ -39,13 +39,14 @@ import qualified Data.Map.Lazy as Map
 import Data.Word (Word8)
 import Foreign.C.Types (CInt(..))
 
--- | Ist das Setup eines I2C-Kanals beendet
-data I2CSetupFinished
+-- | Status eines I2C-Kanals (verhindern von Race-Conditions).
+data I2CChannelStatus
     = I2CSetupInProgress
-    | I2CSetupFinished FileHandle BitValue
+    | I2CChannelInUse
+    | I2CChannelReady FileHandle BitValue
 
 -- | 'FileHandle' und aktuell gesetzter 'BitValue' eines I2C-Kanals
-type I2CMap = Map I2CAddress I2CSetupFinished
+type I2CMap = Map I2CAddress I2CChannelStatus
 
 -- | Leere 'I2CMap'
 i2cMapEmpty :: I2CMap
@@ -78,7 +79,8 @@ i2cKanalLookup i2cAddress = do
             i2cKanäle <- readTVar tvarI2CKanäle
             case Map.lookup i2cAddress i2cKanäle of
                 (Just I2CSetupInProgress) -> retry
-                (Just kanal) -> pure $ Just kanal
+                (Just I2CChannelInUse) -> retry
+                (Just (I2CChannelReady fileHandle bitValue)) -> pure $ Just (fileHandle, bitValue)
                 Nothing -> do
                     writeTVar tvarI2CKanäle $ Map.insert i2cAddress I2CSetupInProgress i2cKanäle
                     pure Nothing
@@ -88,10 +90,9 @@ i2cKanalLookup i2cAddress = do
                 atomically
                     $ modifyTVar tvarI2CKanäle
                     $ Map.insert i2cAddress
-                    $ I2CSetupFinished (FileHandle fileHandle) fullBitValue
+                    $ I2CChannelReady (FileHandle fileHandle) fullBitValue
                 pure ((FileHandle fileHandle), fullBitValue)
-            (Just (I2CSetupFinished fileHandle bitValue)) -> pure (fileHandle, bitValue)
-            (Just I2CSetupInProgress) -> error "I2CSetup restarted during lookup!"
+            (Just kanal) -> pure kanal
 
 -- | I2C-Adresse eines /PCF8574/
 newtype I2CAddress = I2CAddress { fromI2CAddress :: Word8 }
@@ -117,14 +118,29 @@ fullBitValue = complement zeroBits
 i2cWrite :: (I2CReader r m, MonadIO m) => I2CAddress -> BitValue -> m ()
 i2cWrite i2cAddress bitValue = do
     tvarI2CKanäle <- erhalteI2CMap
-    (fileHandle, _oldBitValue) <- i2cKanalLookup i2cAddress
     liftIO $ do
-        -- Unvollständiges Pattern hier ok, da I2CSetupFinished durch i2cKanalLookup sichergestellt wird
+        maybeI2CKanal <- atomically $ do
+            i2cKanäle <- readTVar tvarI2CKanäle
+            case Map.lookup i2cAddress i2cKanäle of
+                (Just I2CSetupInProgress) -> retry
+                (Just I2CChannelInUse) -> retry
+                (Just (I2CChannelReady fileHandle bitValue)) -> do
+                    modifyTVar tvarI2CKanäle $ Map.insert i2cAddress I2CChannelInUse
+                    pure $ Just (fileHandle, bitValue)
+                Nothing -> do
+                    modifyTVar tvarI2CKanäle $ Map.insert i2cAddress I2CSetupInProgress
+                    pure Nothing
+        fileHandle <- case maybeI2CKanal of
+            Nothing -> do
+                fileHandle <- c_wiringPiI2CSetup $ fromIntegral $ fromI2CAddress i2cAddress
+                atomically $ modifyTVar tvarI2CKanäle $ Map.insert i2cAddress $ I2CChannelInUse
+                pure (FileHandle fileHandle)
+            (Just (fileHandle, _bitValue)) -> pure fileHandle
+        c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
         atomically
             $ modifyTVar tvarI2CKanäle
-            $ Map.adjust (\(I2CSetupFinished fileHandle _oldBitValue)
-                          -> (I2CSetupFinished fileHandle bitValue)) i2cAddress
-        c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue bitValue
+            $ Map.insert i2cAddress
+            $ I2CChannelReady fileHandle bitValue
 
 -- | Ändere den geschriebenen 'BitValue' in einem I2C-Kanal.
 -- Die aktuelle Ausgabe wird über der übergebenen Funktion angepasst und neu gesetzt.
@@ -136,25 +152,24 @@ i2cWriteAdjust i2cAddress bitValueFunktion = do
             i2cKanäle <- readTVar tvarI2CKanäle
             case Map.lookup i2cAddress i2cKanäle of
                 (Just I2CSetupInProgress) -> retry
-                (Just (I2CSetupFinished fileHandle oldBitValue))
-                    -> pure $ Just $ I2CSetupFinished fileHandle $ bitValueFunktion oldBitValue
+                (Just I2CChannelInUse) -> retry
+                (Just (I2CChannelReady fileHandle oldBitValue)) -> do
+                    modifyTVar tvarI2CKanäle $ Map.insert i2cAddress $ I2CChannelInUse
+                    pure $ Just (fileHandle, oldBitValue)
                 Nothing -> do
                     writeTVar tvarI2CKanäle $ Map.insert i2cAddress I2CSetupInProgress i2cKanäle
                     pure Nothing
-        case maybeI2CKanal of
+        (fileHandle, newBitValue) <- case maybeI2CKanal of
             Nothing -> do
                 fileHandle <- c_wiringPiI2CSetup $ fromIntegral $ fromI2CAddress i2cAddress
-                let newBitValue = bitValueFunktion fullBitValue
-                atomically
-                    $ modifyTVar tvarI2CKanäle
-                    $ Map.insert i2cAddress
-                    $ I2CSetupFinished (FileHandle fileHandle) newBitValue
-                c_wiringPiI2CWrite fileHandle $ fromIntegral $ fromBitValue newBitValue
-            (Just (I2CSetupFinished fileHandle bitValue)) -> c_wiringPiI2CWrite
-                (fromFileHandle fileHandle)
-                $ fromIntegral
-                $ fromBitValue bitValue
-            (Just I2CSetupInProgress) -> error "I2CSetup restarted during lookup!"
+                atomically $ modifyTVar tvarI2CKanäle $ Map.insert i2cAddress $ I2CChannelInUse
+                pure (FileHandle fileHandle, bitValueFunktion fullBitValue)
+            (Just (fileHandle, oldBitValue)) -> pure (fileHandle, bitValueFunktion oldBitValue)
+        c_wiringPiI2CWrite (fromFileHandle fileHandle) $ fromIntegral $ fromBitValue newBitValue
+        atomically
+            $ modifyTVar tvarI2CKanäle
+            $ Map.insert i2cAddress
+            $ I2CChannelReady fileHandle newBitValue
 
 -- | Lese den aktuellen Wert aus einem I2C-Kanal
 i2cRead :: (I2CReader r m, MonadIO m) => I2CAddress -> m BitValue
