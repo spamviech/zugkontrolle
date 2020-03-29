@@ -763,6 +763,8 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 mapM_
                     (\widget -> widgetShowIf (erhalteWidget widget `elem` shownWidgets) widget)
                     ([ erhalteWidget ztBahngeschwindigkeiten
+                     , erhalteWidget ztBahngeschwindigkeitenPwm
+                     , erhalteWidget ztBahngeschwindigkeitenKonstanteSpannung
                      , erhalteWidget vBoxHinzufügenPlanStreckenabschnitte
                      , erhalteWidget ztWeichenGerade
                      , erhalteWidget ztWeichenKurve
@@ -770,6 +772,8 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                      , erhalteWidget ztWeichenRechts
                      , erhalteWidget vBoxHinzufügenPlanKupplungen
                      , erhalteWidget ztWegstreckenBG
+                     , erhalteWidget ztWegstreckenBGPwm
+                     , erhalteWidget ztWegstreckenBGKonstanteSpannung
                      , erhalteWidget ztWegstreckenST
                      , erhalteWidget ztWegstreckenKU
                      , erhalteWidget ztWegstreckenWS
