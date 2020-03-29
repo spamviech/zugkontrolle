@@ -1,11 +1,10 @@
 Streckenabschnitte:
 - Name: st
-  StromPin:
+  StromAnschluss:
     Pin: 26
   Fließend: LOW
 Bahngeschwindigkeiten:
-- GeschwindigkeitsPin:
-    Pin: 26
+- GeschwindigkeitsPin: 26
   Name: bg
   Zugtyp: Märklin
   Fließend: HIGH
@@ -15,7 +14,7 @@ Kupplungen:
     Pin: 26
   Fließend: LOW
 Weichen:
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - Pin: 26
   Name: we
@@ -25,18 +24,17 @@ Pläne: []
 Wegstrecken:
 - Streckenabschnitte:
   - Name: st
-    StromPin:
+    StromAnschluss:
       Pin: 26
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 26
+  - GeschwindigkeitsPin: 26
     Name: bg
     Zugtyp: Märklin
     Fließend: HIGH
   Name: ws
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - Pin: 26
       Name: we

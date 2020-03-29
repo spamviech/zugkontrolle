@@ -1,114 +1,114 @@
 Streckenabschnitte:
 - Name: '0'
-  StromPin:
+  StromAnschluss:
     Pin: 0
   Fließend: HIGH
 - Name: '1'
-  StromPin:
+  StromAnschluss:
     Pin: 1
   Fließend: HIGH
 - Name: '2'
-  StromPin:
+  StromAnschluss:
     Pin: 2
   Fließend: HIGH
 - Name: '3'
-  StromPin:
+  StromAnschluss:
     Pin: 3
   Fließend: HIGH
 - Name: '4'
-  StromPin:
+  StromAnschluss:
     Pin: 4
   Fließend: HIGH
 - Name: '5'
-  StromPin:
+  StromAnschluss:
     Pin: 5
   Fließend: HIGH
 - Name: '6'
-  StromPin:
+  StromAnschluss:
     Pin: 6
   Fließend: HIGH
 - Name: '7'
-  StromPin:
+  StromAnschluss:
     Pin: 7
   Fließend: HIGH
 - Name: '8'
-  StromPin:
+  StromAnschluss:
     Pin: 8
   Fließend: HIGH
 - Name: '9'
-  StromPin:
+  StromAnschluss:
     Pin: 9
   Fließend: HIGH
 - Name: '10'
-  StromPin:
+  StromAnschluss:
     Pin: 10
   Fließend: HIGH
 - Name: '11'
-  StromPin:
+  StromAnschluss:
     Pin: 11
   Fließend: HIGH
 - Name: '12'
-  StromPin:
+  StromAnschluss:
     Pin: 12
   Fließend: HIGH
 - Name: '13'
-  StromPin:
+  StromAnschluss:
     Pin: 13
   Fließend: HIGH
 - Name: '14'
-  StromPin:
+  StromAnschluss:
     Pin: 14
   Fließend: HIGH
 - Name: '15'
-  StromPin:
+  StromAnschluss:
     Pin: 15
   Fließend: HIGH
 - Name: '16'
-  StromPin:
+  StromAnschluss:
     Pin: 16
   Fließend: HIGH
 - Name: '17'
-  StromPin:
+  StromAnschluss:
     Pin: 17
   Fließend: HIGH
 - Name: '18'
-  StromPin:
+  StromAnschluss:
     Pin: 18
   Fließend: HIGH
 - Name: '19'
-  StromPin:
+  StromAnschluss:
     Pin: 19
   Fließend: HIGH
 - Name: '20'
-  StromPin:
+  StromAnschluss:
     Pin: 20
   Fließend: HIGH
 - Name: '21'
-  StromPin:
+  StromAnschluss:
     Pin: 21
   Fließend: HIGH
 - Name: '22'
-  StromPin:
+  StromAnschluss:
     Pin: 22
   Fließend: HIGH
 - Name: '23'
-  StromPin:
+  StromAnschluss:
     Pin: 23
   Fließend: HIGH
 - Name: '24'
-  StromPin:
+  StromAnschluss:
     Pin: 24
   Fließend: HIGH
 - Name: '25'
-  StromPin:
+  StromAnschluss:
     Pin: 25
   Fließend: HIGH
 - Name: '26'
-  StromPin:
+  StromAnschluss:
     Pin: 26
   Fließend: HIGH
 - Name: '27'
-  StromPin:
+  StromAnschluss:
     Pin: 27
   Fließend: HIGH
 Bahngeschwindigkeiten: []
@@ -118,115 +118,115 @@ Pläne: []
 Wegstrecken:
 - Streckenabschnitte:
   - Name: '0'
-    StromPin:
+    StromAnschluss:
       Pin: 0
     Fließend: HIGH
   - Name: '1'
-    StromPin:
+    StromAnschluss:
       Pin: 1
     Fließend: HIGH
   - Name: '2'
-    StromPin:
+    StromAnschluss:
       Pin: 2
     Fließend: HIGH
   - Name: '3'
-    StromPin:
+    StromAnschluss:
       Pin: 3
     Fließend: HIGH
   - Name: '4'
-    StromPin:
+    StromAnschluss:
       Pin: 4
     Fließend: HIGH
   - Name: '5'
-    StromPin:
+    StromAnschluss:
       Pin: 5
     Fließend: HIGH
   - Name: '6'
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: HIGH
   - Name: '7'
-    StromPin:
+    StromAnschluss:
       Pin: 7
     Fließend: HIGH
   - Name: '8'
-    StromPin:
+    StromAnschluss:
       Pin: 8
     Fließend: HIGH
   - Name: '9'
-    StromPin:
+    StromAnschluss:
       Pin: 9
     Fließend: HIGH
   - Name: '10'
-    StromPin:
+    StromAnschluss:
       Pin: 10
     Fließend: HIGH
   - Name: '11'
-    StromPin:
+    StromAnschluss:
       Pin: 11
     Fließend: HIGH
   - Name: '12'
-    StromPin:
+    StromAnschluss:
       Pin: 12
     Fließend: HIGH
   - Name: '13'
-    StromPin:
+    StromAnschluss:
       Pin: 13
     Fließend: HIGH
   - Name: '14'
-    StromPin:
+    StromAnschluss:
       Pin: 14
     Fließend: HIGH
   - Name: '15'
-    StromPin:
+    StromAnschluss:
       Pin: 15
     Fließend: HIGH
   - Name: '16'
-    StromPin:
+    StromAnschluss:
       Pin: 16
     Fließend: HIGH
   - Name: '17'
-    StromPin:
+    StromAnschluss:
       Pin: 17
     Fließend: HIGH
   - Name: '18'
-    StromPin:
+    StromAnschluss:
       Pin: 18
     Fließend: HIGH
   - Name: '19'
-    StromPin:
+    StromAnschluss:
       Pin: 19
     Fließend: HIGH
   - Name: '20'
-    StromPin:
+    StromAnschluss:
       Pin: 20
     Fließend: HIGH
   - Name: '21'
-    StromPin:
+    StromAnschluss:
       Pin: 21
     Fließend: HIGH
   - Name: '22'
-    StromPin:
+    StromAnschluss:
       Pin: 22
     Fließend: HIGH
   - Name: '23'
-    StromPin:
+    StromAnschluss:
       Pin: 23
     Fließend: HIGH
   - Name: '24'
-    StromPin:
+    StromAnschluss:
       Pin: 24
     Fließend: HIGH
   - Name: '25'
-    StromPin:
+    StromAnschluss:
       Pin: 25
     Fließend: HIGH
   - Name: '26'
-    StromPin:
+    StromAnschluss:
       Pin: 26
     Fließend: HIGH
   - Name: '27'
-    StromPin:
+    StromAnschluss:
       Pin: 27
     Fließend: HIGH
   Bahngeschwindigkeiten: []

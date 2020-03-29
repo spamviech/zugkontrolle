@@ -1,21 +1,26 @@
 Streckenabschnitte:
 - Name: welt
-  StromPin:
+  Fließend: HIGH
+  StromAnschluss:
     Pin: 1
-  Fließend: HIGH
 Bahngeschwindigkeiten:
-- GeschwindigkeitsPin:
+- UmdrehenAnschluss:
     Pin: 0
-  Name: hallo
+  FahrstromAnschluss:
+    PCF8574Port:
+      Variante: A
+      a2: HIGH
+      PCF8574Port: 0
+      a1: LOW
+      a0: HIGH
+  Name: Konstante Spannung
+  Fließend: LOW
   Zugtyp: Märklin
-  Fließend: HIGH
-- GeschwindigkeitsPin:
-    Pin: 19
+- GeschwindigkeitsPin: 19
   Name: HardwarePWM
   Zugtyp: Märklin
   Fließend: HIGH
-- GeschwindigkeitsPin:
-    Pin: 26
+- GeschwindigkeitsPin: 26
   Name: SoftwarePWM
   Zugtyp: Märklin
   Fließend: HIGH
@@ -25,31 +30,31 @@ Kupplungen:
     Pin: 5
   Fließend: HIGH
 Weichen:
-- RichtungsPins:
+- Name: bla
+  Zugtyp: Märklin
+  Fließend: HIGH
+  RichtungsAnschlüsse:
   - - Links
     - Pin: 5
   - - Gerade
     - Pin: 4
-  Name: bla
+- Name: blubb
   Zugtyp: Märklin
   Fließend: HIGH
-- RichtungsPins:
+  RichtungsAnschlüsse:
   - - Rechts
     - Pin: 3
   - - Gerade
     - Pin: 2
-  Name: blubb
-  Zugtyp: Märklin
-  Fließend: HIGH
 Pläne:
 - Dauerschleife: true
   Name: Dauerschleife
   Aktionen:
   - Streckenabschnitt:
       Name: welt
-      StromPin:
-        Pin: 1
       Fließend: HIGH
+      StromAnschluss:
+        Pin: 1
     Aktion: Strom
     Fließend: Fließend
   - Wert:
@@ -57,9 +62,9 @@ Pläne:
     Aktion: Warten
   - Streckenabschnitt:
       Name: welt
-      StromPin:
-        Pin: 1
       Fließend: HIGH
+      StromAnschluss:
+        Pin: 1
     Aktion: Strom
     Fließend: Gesperrt
   - Wert:
@@ -70,8 +75,7 @@ Pläne:
   Aktionen:
   - Wert: 0
     Bahngeschwindigkeit:
-      GeschwindigkeitsPin:
-        Pin: 26
+      GeschwindigkeitsPin: 26
       Name: SoftwarePWM
       Zugtyp: Märklin
       Fließend: HIGH
@@ -81,16 +85,14 @@ Pläne:
   Aktionen:
   - Wert: 23
     Bahngeschwindigkeit:
-      GeschwindigkeitsPin:
-        Pin: 26
+      GeschwindigkeitsPin: 26
       Name: SoftwarePWM
       Zugtyp: Märklin
       Fließend: HIGH
     Aktion: Geschwindigkeit
   - Wert: 79
     Bahngeschwindigkeit:
-      GeschwindigkeitsPin:
-        Pin: 19
+      GeschwindigkeitsPin: 19
       Name: HardwarePWM
       Zugtyp: Märklin
       Fließend: HIGH
@@ -100,16 +102,14 @@ Pläne:
     Aktion: Warten
   - Wert: 0
     Bahngeschwindigkeit:
-      GeschwindigkeitsPin:
-        Pin: 26
+      GeschwindigkeitsPin: 26
       Name: SoftwarePWM
       Zugtyp: Märklin
       Fließend: HIGH
     Aktion: Geschwindigkeit
   - Wert: 0
     Bahngeschwindigkeit:
-      GeschwindigkeitsPin:
-        Pin: 19
+      GeschwindigkeitsPin: 19
       Name: HardwarePWM
       Zugtyp: Märklin
       Fließend: HIGH
@@ -117,24 +117,31 @@ Pläne:
 Wegstrecken:
 - Streckenabschnitte:
   - Name: welt
-    StromPin:
+    Fließend: HIGH
+    StromAnschluss:
       Pin: 1
-    Fließend: HIGH
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
+  - UmdrehenAnschluss:
       Pin: 0
-    Name: hallo
+    FahrstromAnschluss:
+      PCF8574Port:
+        Variante: A
+        a2: HIGH
+        PCF8574Port: 0
+        a1: LOW
+        a0: HIGH
+    Name: Konstante Spannung
     Zugtyp: Märklin
-    Fließend: HIGH
+    Fließend: LOW
   Name: HalloWelt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - Name: blubb
+      Zugtyp: Märklin
+      Fließend: HIGH
+      RichtungsAnschlüsse:
       - - Rechts
         - Pin: 3
       - - Gerade
         - Pin: 2
-      Name: blubb
-      Zugtyp: Märklin
-      Fließend: HIGH
     - Rechts
   Kupplungen: []

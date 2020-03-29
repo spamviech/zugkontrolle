@@ -1,6 +1,6 @@
 Streckenabschnitte:
 - Name: A5.St
-  StromPin:
+  StromAnschluss:
     PCF8574Port:
       Variante: A
       a2: HIGH
@@ -9,7 +9,7 @@ Streckenabschnitte:
       a0: LOW
   Fließend: LOW
 - Name: A4.St
-  StromPin:
+  StromAnschluss:
     PCF8574Port:
       Variante: A
       a2: HIGH
@@ -18,7 +18,7 @@ Streckenabschnitte:
       a0: LOW
   Fließend: LOW
 - Name: A3.St
-  StromPin:
+  StromAnschluss:
     PCF8574Port:
       Variante: A
       a2: HIGH
@@ -27,7 +27,7 @@ Streckenabschnitte:
       a0: LOW
   Fließend: LOW
 - Name: A2.St
-  StromPin:
+  StromAnschluss:
     PCF8574Port:
       Variante: A
       a2: HIGH
@@ -36,7 +36,7 @@ Streckenabschnitte:
       a0: LOW
   Fließend: LOW
 - Name: A1.St
-  StromPin:
+  StromAnschluss:
     PCF8574Port:
       Variante: A
       a2: HIGH
@@ -45,29 +45,27 @@ Streckenabschnitte:
       a0: LOW
   Fließend: LOW
 - Name: B.St
-  StromPin:
+  StromAnschluss:
     Pin: 19
   Fließend: LOW
 - Name: Z.St
-  StromPin:
+  StromAnschluss:
     Pin: 13
   Fließend: LOW
 - Name: I.St
-  StromPin:
+  StromAnschluss:
     Pin: 6
   Fließend: LOW
 - Name: O.St
-  StromPin:
+  StromAnschluss:
     Pin: 5
   Fließend: LOW
 Bahngeschwindigkeiten:
-- GeschwindigkeitsPin:
-    Pin: 17
+- GeschwindigkeitsPin: 17
   Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
   Zugtyp: Märklin
   Fließend: HIGH
-- GeschwindigkeitsPin:
-    Pin: 18
+- GeschwindigkeitsPin: 18
   Name: O-B-A5.Bahngeschwindigkeit
   Zugtyp: Märklin
   Fließend: HIGH
@@ -82,7 +80,7 @@ Kupplungen:
       a0: HIGH
   Fließend: LOW
 Weichen:
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -100,7 +98,7 @@ Weichen:
   Name: O.I(L)O(G)1
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -118,7 +116,7 @@ Weichen:
   Name: O.I(R)O(G)2
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -136,7 +134,7 @@ Weichen:
   Name: O.I(L)O(G)3
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -154,7 +152,7 @@ Weichen:
   Name: O.I(R)O(G)4
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Links
     - PCF8574Port:
         Variante: A
@@ -172,7 +170,7 @@ Weichen:
   Name: O.O(R)A5(L)
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Links
     - PCF8574Port:
         Variante: A
@@ -190,7 +188,7 @@ Weichen:
   Name: O.O(L)B(R)
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Links
     - PCF8574Port:
         Variante: A
@@ -208,7 +206,7 @@ Weichen:
   Name: O.B(R)A5(L)
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -226,7 +224,7 @@ Weichen:
   Name: I.I(G)O(L)1
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -244,7 +242,7 @@ Weichen:
   Name: I.I(G)O(R)2
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -262,7 +260,7 @@ Weichen:
   Name: I.I(G)O(L)3
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -280,7 +278,7 @@ Weichen:
   Name: I.I(G)O(R)4
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -298,7 +296,7 @@ Weichen:
   Name: I.I(G)Z(R)1
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -316,7 +314,7 @@ Weichen:
   Name: I.I(G)Z(R)2
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Gerade
     - PCF8574Port:
         Variante: A
@@ -334,7 +332,7 @@ Weichen:
   Name: Z.Kreuzung
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Links
     - PCF8574Port:
         Variante: A
@@ -352,7 +350,7 @@ Weichen:
   Name: Z.A1(R)-2(L)
   Zugtyp: Märklin
   Fließend: LOW
-- RichtungsPins:
+- RichtungsAnschlüsse:
   - - Links
     - PCF8574Port:
         Variante: A
@@ -374,27 +372,25 @@ Pläne: []
 Wegstrecken:
 - Streckenabschnitte:
   - Name: O.St
-    StromPin:
+    StromAnschluss:
       Pin: 5
     Fließend: LOW
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 18
+  - GeschwindigkeitsPin: 18
     Name: O-B-A5.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: IO - Wechsel
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -413,7 +409,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -432,7 +428,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -451,7 +447,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -470,7 +466,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -489,7 +485,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -508,7 +504,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -527,7 +523,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -546,7 +542,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -565,7 +561,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -584,7 +580,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -603,7 +599,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -625,22 +621,21 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: O.St
-    StromPin:
+    StromAnschluss:
       Pin: 5
     Fließend: LOW
   - Name: B.St
-    StromPin:
+    StromAnschluss:
       Pin: 19
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 18
+  - GeschwindigkeitsPin: 18
     Name: O-B-A5.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: B - Einfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -659,7 +654,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -678,7 +673,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -697,7 +692,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -716,7 +711,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -735,7 +730,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -754,7 +749,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -776,11 +771,11 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: O.St
-    StromPin:
+    StromAnschluss:
       Pin: 5
     Fließend: LOW
   - Name: A5.St
-    StromPin:
+    StromAnschluss:
       PCF8574Port:
         Variante: A
         a2: HIGH
@@ -789,14 +784,13 @@ Wegstrecken:
         a0: LOW
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 18
+  - GeschwindigkeitsPin: 18
     Name: O-B-A5.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: A5 - Einfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -815,7 +809,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -834,7 +828,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -853,7 +847,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -872,7 +866,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -891,7 +885,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -910,7 +904,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -941,15 +935,15 @@ Wegstrecken:
     Fließend: LOW
 - Streckenabschnitte:
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   - Name: Z.St
-    StromPin:
+    StromAnschluss:
       Pin: 13
     Fließend: LOW
   - Name: A4.St
-    StromPin:
+    StromAnschluss:
       PCF8574Port:
         Variante: A
         a2: HIGH
@@ -958,14 +952,13 @@ Wegstrecken:
         a0: LOW
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: A4 - Einfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -984,7 +977,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1003,7 +996,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Kurve
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1022,7 +1015,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1041,7 +1034,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1060,7 +1053,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1079,7 +1072,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1098,7 +1091,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1120,15 +1113,15 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   - Name: Z.St
-    StromPin:
+    StromAnschluss:
       Pin: 13
     Fließend: LOW
   - Name: A3.St
-    StromPin:
+    StromAnschluss:
       PCF8574Port:
         Variante: A
         a2: HIGH
@@ -1137,14 +1130,13 @@ Wegstrecken:
         a0: LOW
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: A3 - Einfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -1163,7 +1155,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1182,7 +1174,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Kurve
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1201,7 +1193,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1220,7 +1212,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1239,7 +1231,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1258,7 +1250,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1277,7 +1269,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1299,15 +1291,15 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   - Name: Z.St
-    StromPin:
+    StromAnschluss:
       Pin: 13
     Fließend: LOW
   - Name: A2.St
-    StromPin:
+    StromAnschluss:
       PCF8574Port:
         Variante: A
         a2: HIGH
@@ -1316,14 +1308,13 @@ Wegstrecken:
         a0: LOW
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: A2 - Einfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -1342,7 +1333,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1361,7 +1352,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Kurve
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1380,7 +1371,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1399,7 +1390,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1418,7 +1409,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1437,7 +1428,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1456,7 +1447,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1478,15 +1469,15 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   - Name: Z.St
-    StromPin:
+    StromAnschluss:
       Pin: 13
     Fließend: LOW
   - Name: A1.St
-    StromPin:
+    StromAnschluss:
       PCF8574Port:
         Variante: A
         a2: HIGH
@@ -1495,14 +1486,13 @@ Wegstrecken:
         a0: LOW
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: A1 - Einfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -1521,7 +1511,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1540,7 +1530,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Kurve
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1559,7 +1549,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1578,7 +1568,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1597,7 +1587,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1616,7 +1606,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1635,7 +1625,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1657,22 +1647,21 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   - Name: Z.St
-    StromPin:
+    StromAnschluss:
       Pin: 13
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: Z - Diagonalfahrt
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1691,7 +1680,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1710,7 +1699,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1729,7 +1718,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1748,7 +1737,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1767,7 +1756,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1786,7 +1775,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1808,18 +1797,17 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: I.St
-    StromPin:
+    StromAnschluss:
       Pin: 6
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 17
+  - GeschwindigkeitsPin: 17
     Name: I-Z-A1-2-3-4.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: I - Innenkreis
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1838,7 +1826,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1857,7 +1845,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1876,7 +1864,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1895,7 +1883,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1914,7 +1902,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -1936,18 +1924,17 @@ Wegstrecken:
   Kupplungen: []
 - Streckenabschnitte:
   - Name: O.St
-    StromPin:
+    StromAnschluss:
       Pin: 5
     Fließend: LOW
   Bahngeschwindigkeiten:
-  - GeschwindigkeitsPin:
-      Pin: 18
+  - GeschwindigkeitsPin: 18
     Name: O-B-A5.Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: HIGH
   Name: O - Außenkreis
   Weichen-Richtungen:
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -1966,7 +1953,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Links
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Links
         - PCF8574Port:
             Variante: A
@@ -1985,7 +1972,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Rechts
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -2004,7 +1991,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -2023,7 +2010,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
@@ -2042,7 +2029,7 @@ Wegstrecken:
       Zugtyp: Märklin
       Fließend: LOW
     - Gerade
-  - - RichtungsPins:
+  - - RichtungsAnschlüsse:
       - - Gerade
         - PCF8574Port:
             Variante: A
