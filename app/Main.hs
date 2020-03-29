@@ -14,10 +14,10 @@ main = do
     withArgs argModifier UI.main
     where
         getArgModifier :: [String] -> IO [String]
-        getArgModifier [filename] = do
-            isFile <- doesFileExist filename
+        getArgModifier [singleArg] = do
+            isFile <- doesFileExist singleArg
             pure
                 $ if isFile
-                    then ["--load", filename]
-                    else []
-        getArgModifier _args = pure []
+                    then ["--load", singleArg]
+                    else [singleArg]
+        getArgModifier args = pure args
