@@ -281,6 +281,10 @@ instance Kategorie (BGWidgets g z) where
     kategorie :: KategorieText (BGWidgets g z)
     kategorie = KategorieText Language.bahngeschwindigkeiten
 
+instance Kategorie (GeschwindigkeitEither BGWidgets z) where
+    kategorie :: KategorieText (GeschwindigkeitEither BGWidgets z)
+    kategorie = KategorieText Language.bahngeschwindigkeiten
+
 instance Kategorie STWidgets where
     kategorie :: KategorieText STWidgets
     kategorie = KategorieText Language.streckenabschnitte

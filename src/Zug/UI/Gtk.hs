@@ -260,7 +260,15 @@ setupGUI maybeTVar = void $ do
         <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanBahngeschwindigkeitenLego
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenWegstreckeStreckenabschnitte
         <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
@@ -290,7 +298,15 @@ setupGUI maybeTVar = void $ do
     vBoxHinzufügenPlanKupplungen <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
+        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
     vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
         <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
@@ -324,7 +340,11 @@ setupGUI maybeTVar = void $ do
             , vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
             , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
             , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
             , vBoxHinzufügenPlanBahngeschwindigkeitenLego
+            , vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+            , vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
             , vBoxHinzufügenWegstreckeStreckenabschnitte
             , vBoxHinzufügenPlanStreckenabschnitte
             , vBoxHinzufügenWegstreckeWeichenMärklin
@@ -340,7 +360,11 @@ setupGUI maybeTVar = void $ do
             , vBoxHinzufügenWegstreckeKupplungen
             , vBoxHinzufügenPlanKupplungen
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
+            , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin

@@ -33,7 +33,8 @@ import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
+import Zug.Anbindung
+       (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..), GeschwindigkeitEither(..))
 import Zug.Enums (ZugtypEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
@@ -166,10 +167,17 @@ ladeWidgets status = do
         erstelleWidgets :: (ObjektGuiReader m, MonadIO m) => Status -> MStatusGuiT m ()
         erstelleWidgets status = do
             let packBG :: (ObjektGuiReader m, MonadIO m)
-                       => ZugtypEither Bahngeschwindigkeit
-                       -> MStatusGuiT m (ZugtypEither BGWidgets)
-                packBG (ZugtypMärklin bg) = ZugtypMärklin <$> bahngeschwindigkeitPackNew bg
-                packBG (ZugtypLego bg) = ZugtypLego <$> bahngeschwindigkeitPackNew bg
+                       => ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)
+                       -> MStatusGuiT m (ZugtypEither (GeschwindigkeitEither BGWidgets))
+                packBG (ZugtypMärklin (GeschwindigkeitPwm bg)) =
+                    ZugtypMärklin . GeschwindigkeitPwm <$> bahngeschwindigkeitPackNew bg
+                packBG (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bg)) =
+                    ZugtypMärklin . GeschwindigkeitKonstanteSpannung
+                    <$> bahngeschwindigkeitPackNew bg
+                packBG (ZugtypLego (GeschwindigkeitPwm bg)) =
+                    ZugtypLego . GeschwindigkeitPwm <$> bahngeschwindigkeitPackNew bg
+                packBG (ZugtypLego (GeschwindigkeitKonstanteSpannung bg)) =
+                    ZugtypLego . GeschwindigkeitKonstanteSpannung <$> bahngeschwindigkeitPackNew bg
             mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
             mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
             let packWE :: (ObjektGuiReader m, MonadIO m)
@@ -245,10 +253,24 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
             flip runReaderT objektReader $ do
                 assistantHinzufügenAuswerten assistantHinzufügen
                     >>= flip auswertenStatusVarMStatusT statusVar . \case
-                        (HinzufügenErfolgreich (OBahngeschwindigkeit (ZugtypMärklin bgMärklin)))
-                            -> void $ bahngeschwindigkeitPackNew bgMärklin
-                        (HinzufügenErfolgreich (OBahngeschwindigkeit (ZugtypLego bgLego)))
-                            -> void $ bahngeschwindigkeitPackNew bgLego
+                        (HinzufügenErfolgreich
+                             (OBahngeschwindigkeit
+                                  (ZugtypMärklin (GeschwindigkeitPwm bgMärklinPwm))))
+                            -> void $ bahngeschwindigkeitPackNew bgMärklinPwm
+                        (HinzufügenErfolgreich
+                             (OBahngeschwindigkeit
+                                  (ZugtypMärklin
+                                       (GeschwindigkeitKonstanteSpannung
+                                            bgMärklinKonstanteSpannung))))
+                            -> void $ bahngeschwindigkeitPackNew bgMärklinKonstanteSpannung
+                        (HinzufügenErfolgreich
+                             (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitPwm bgLegoPwm))))
+                            -> void $ bahngeschwindigkeitPackNew bgLegoPwm
+                        (HinzufügenErfolgreich
+                             (OBahngeschwindigkeit
+                                  (ZugtypLego
+                                       (GeschwindigkeitKonstanteSpannung bgLegoKonstanteSpannung))))
+                            -> void $ bahngeschwindigkeitPackNew bgLegoKonstanteSpannung
                         (HinzufügenErfolgreich (OStreckenabschnitt st))
                             -> void $ streckenabschnittPackNew st
                         (HinzufügenErfolgreich (OWeiche (ZugtypMärklin weMärklin)))

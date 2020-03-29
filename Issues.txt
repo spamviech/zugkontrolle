@@ -1,8 +1,3 @@
-Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
-    PWM über I2C hört sich nicht vielversprechend an
-    Gleichstrom (PWM) funktioniert nur bei einigen Loks/benötigt je nach Lok eine eigene Frequenz?
-        Umstellen auf konstante Wechselstrom-Fahrströme (16V/25V)
-
 Gtk-UI benötigt lange, bis etwas zu sehen ist
     Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
 
@@ -134,6 +129,12 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst--------------------------
+Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
+    PWM über I2C hört sich nicht vielversprechend an
+    Gleichstrom (PWM) funktioniert nur bei einigen Loks/benötigt je nach Lok eine eigene Frequenz?
+        Umstellen auf konstante Wechselstrom-Fahrströme (16V/25V)
+    Done
+
 Haddock schlägt an Language.hs fehl
     Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
     Probieren ob ein-Datei-Version funktioniert
