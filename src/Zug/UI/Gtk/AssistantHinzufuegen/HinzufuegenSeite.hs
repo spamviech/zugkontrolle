@@ -394,19 +394,22 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
             positionDefault
             Gtk.notebookNew
         pure (märklinVBox, notebookGeschwindigkeit)
-    (märklinGeschwindigkeitAuswahl, indexPwm)
+    (vBoxMärklinPwm, indexPwm)
         <- notebookAppendPageNew notebookGeschwindigkeit maybeTVar Language.geschwindigkeitPwm
+        $ liftIO
+        $ Gtk.vBoxNew False 0
+    märklinGeschwindigkeitAuswahl <- boxPackWidgetNewDefault vBoxMärklinPwm
         $ pinAuswahlNew maybeTVar Language.geschwindigkeit
-    (vBoxKonstanteSpannung, indexKonstanteSpannung) <- notebookAppendPageNew
+    (vBoxMärklinKonstanteSpannung, indexKonstanteSpannung) <- notebookAppendPageNew
         notebookGeschwindigkeit
         maybeTVar
         Language.geschwindigkeitKonstanteSpannung
         $ liftIO
         $ Gtk.vBoxNew False 0
     let indexSeiten = Map.fromList [(indexPwm, Pwm), (indexKonstanteSpannung, KonstanteSpannung)]
-    fahrstromAuswahl <- boxPackWidgetNewDefault vBoxKonstanteSpannung
+    fahrstromAuswahl <- boxPackWidgetNewDefault vBoxMärklinKonstanteSpannung
         $ anschlussAuswahlNew maybeTVar Language.fahrstrom
-    umdrehenAuswahl <- boxPackWidgetNewDefault vBoxKonstanteSpannung
+    umdrehenAuswahl <- boxPackWidgetNewDefault vBoxMärklinKonstanteSpannung
         $ anschlussAuswahlNew maybeTVar Language.umdrehen
     legoVBox <- liftIO $ Gtk.vBoxNew False 0
     legoGeschwindigkeitAuswahl

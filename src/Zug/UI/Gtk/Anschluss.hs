@@ -110,13 +110,13 @@ pinAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
               -> (Sprache -> Text)
               -> m PinAuswahlWidget
 pinAuswahlNew maybeTVar name = do
-    vBox <- liftIO $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault vBox $ labelSpracheNew maybeTVar $ name <-> Language.pin <:> Text.empty
+    hBox <- liftIO $ Gtk.hBoxNew False 0
+    boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar $ name <-> Language.pin <:> Text.empty
     pawSpinButton <- liftIO $ do
-        aawPin <- boxPackWidgetNewDefault vBox $ Gtk.spinButtonNewWithRange 0 27 1
+        aawPin <- boxPackWidgetNewDefault hBox $ Gtk.spinButtonNewWithRange 0 27 1
         Gtk.set aawPin [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
         pure aawPin
-    pure PinAuswahlWidget { pawWidget = erhalteWidget vBox, pawSpinButton }
+    pure PinAuswahlWidget { pawWidget = erhalteWidget hBox, pawSpinButton }
 
 -- | Erhalte den aktuell gewählten 'Pin's.
 aktuellerPin :: (MonadIO m) => PinAuswahlWidget -> m Pin

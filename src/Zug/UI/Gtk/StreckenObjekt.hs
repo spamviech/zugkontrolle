@@ -989,18 +989,20 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         geschwindigkeitsWidgetsPackNew
             box
             BGWidgets { bg = bgMärklin@MärklinBahngeschwindigkeitKonstanteSpannung
-                            {bgmkFahrstromAnschluss}
+                            {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss}
                       , bgSpracheTVar} = void $ do
             objektReader <- ask
             boxPackWidgetNewDefault box
-                $ anschlussNew (Just bgSpracheTVar) Language.geschwindigkeit bgmkFahrstromAnschluss
-            toggleButtonFahrstrom
-                <- toggleButtonNewWithEventLabel (Just bgSpracheTVar) Language.fahrstrom
+                $ anschlussNew (Just bgSpracheTVar) Language.fahrstrom bgmkFahrstromAnschluss
+            toggleButtonFahrstrom <- boxPackWidgetNewDefault box
+                $ toggleButtonNewWithEventLabel (Just bgSpracheTVar) Language.fahrstrom
                 $ \toggled -> flip runReaderT objektReader
                 $ fahrstrom bgMärklin
                 $ (if toggled
                        then Fließend
                        else Gesperrt)
+            boxPackWidgetNewDefault box
+                $ anschlussNew (Just bgSpracheTVar) Language.umdrehen bgmkUmdrehenAnschluss
             buttonUmdrehenPackNew box bgMärklin (Right toggleButtonFahrstrom :| []) bgSpracheTVar
         geschwindigkeitsWidgetsPackNew
             box
@@ -1802,17 +1804,12 @@ wegstreckePackNew
             dynamischeWidgets ^.. boxenPlan wegstrecke
     hinzufügenPlanWidgetBGPwm
         <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
-            then Just
-                <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsSpracheTVar
+            then Just <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsSpracheTVar
             else pure Nothing
     hinzufügenPlanWidgetBGKonstanteSpannung <- if any
         (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
         wsBahngeschwindigkeiten
-        then Just
-            <$> hinzufügenWidgetPlanPackNew
-                boxBGKonstanteSpannung
-                wegstrecke
-                wsSpracheTVar
+        then Just <$> hinzufügenWidgetPlanPackNew boxBGKonstanteSpannung wegstrecke wsSpracheTVar
         else pure Nothing
     hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
         then pure Nothing
@@ -1858,8 +1855,9 @@ wegstreckePackNew
         maybeToggleButton <- if any
             (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
             wsBahngeschwindigkeiten
-            then Just . Right
-                <$> toggleButtonNewWithEventLabel
+            then fmap (Just . Right)
+                $ boxPackWidgetNewDefault functionBox
+                $ toggleButtonNewWithEventLabel
                     justSpracheTVar
                     Language.fahrstrom
                     (\toggled -> flip runReaderT objektReader
