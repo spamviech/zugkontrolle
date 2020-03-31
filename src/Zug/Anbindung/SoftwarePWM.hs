@@ -27,8 +27,8 @@ import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO
 import Control.Monad (void, when)
 import Control.Monad.Reader (ReaderT, asks, MonadReader(ask), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-import Data.Map.Lazy (Map)
-import qualified Data.Map.Lazy as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (isNothing)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (PwmValue(), Value(..), Pin(), digitalWrite, Mode(OUTPUT), pinMode)

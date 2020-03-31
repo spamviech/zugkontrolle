@@ -25,8 +25,8 @@ import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar,
 import Control.Monad (forM_, foldM)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-import Data.Map.Lazy (Map)
-import qualified Data.Map.Lazy as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Maybe (catMaybes)
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))

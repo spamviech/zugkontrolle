@@ -34,8 +34,8 @@ import Control.Monad (void)
 import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (Bits, complement, zeroBits)
-import Data.Map.Lazy (Map)
-import qualified Data.Map.Lazy as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Word (Word8)
 import Foreign.C.Types (CInt(..))
 
