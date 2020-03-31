@@ -33,7 +33,7 @@ import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..
 #ifndef ZUGKONTROLLEGUI
 import Zug.Language (Sprache(..))
 #else
-import Zug.Language (Sprache(), (<~>), (<|>))
+import Zug.Language (Sprache(), MitSprache(leseSprache), (<~>), (<|>))
 #endif
 import qualified Zug.Language as Language
 #ifdef ZUGKONTROLLEGUI
@@ -98,6 +98,12 @@ setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
 setupGUI maybeTVar = void $ do
     Options {load = dateipfad, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
+    -- Dummy-Fenster, damit etwas angezeigt wird
+    windowDummy <- widgetShowNew $ Gtk.windowNew
+    Gtk.set
+        windowDummy
+        [ Gtk.windowTitle := leseSprache (Language.zugkontrolle <~> Language.version) spracheGui
+        , Gtk.windowDeletable := False]
     -- Hauptfenster
     windowMain <- Gtk.windowNew
     -- native Auflösung des Raspi 7'' TouchScreen ist 800x480
@@ -430,5 +436,7 @@ setupGUI maybeTVar = void $ do
         $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
     -- Fenster wird erst hier angezeigt, weil sonst windowDefaultWidth/Height keinen Effekt zeigen
     Gtk.widgetShow windowMain
+    -- Dummy-Fenster löschen
+    Gtk.widgetDestroy windowDummy
 #endif
 --
