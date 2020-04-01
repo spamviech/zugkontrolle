@@ -4,6 +4,10 @@ Gtk-UI:
 
 Gtk-UI benötigt lange, bis etwas zu sehen ist
     Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
+    Dummy-Fenster wird erstellt
+        momentan ohne Funktion
+        reagiert auf keine Eingaben
+        zeigt zumindest an, dass etwas passiert
 
 Laden von Plänen funktioniert nicht
     Zugkontrolle.yaml funktioniert

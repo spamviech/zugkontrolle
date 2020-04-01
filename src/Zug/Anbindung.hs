@@ -76,21 +76,23 @@ module Zug.Anbindung
   , dividieren
   ) where
 
-import Control.Monad (join)
+import Control.Concurrent (forkIO)
+import Control.Monad (join, forM_)
 import Control.Monad.Trans (MonadIO, liftIO)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Map.Strict as Map
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import qualified Data.Text.IO as T
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi
-       (Pin(..), PwmValue(), Mode(..), pinMode, pwmSetRange, pwmWrite, pinToBcmGpio)
+       (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange, pwmWrite, pinToBcmGpio)
 
 import Zug.Anbindung.Anschluss
        (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPin, zuPin, vonPinGpio
       , zuPinGpio, vonPCF8574Port, zuPCF8574Port, anschlussWrite, Value(..), I2CMap, i2cMapEmpty
-      , MitI2CMap(..), I2CReader(..))
+      , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite)
 import Zug.Anbindung.SoftwarePWM
        (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
 import Zug.Anbindung.Wartezeit
@@ -287,7 +289,7 @@ instance Anzeige (Bahngeschwindigkeit g z) where
         <=> bgmpName <^> Language.geschwindigkeit <-> Language.pin <=> bgmpGeschwindigkeitsPin
     anzeige
         MärklinBahngeschwindigkeitKonstanteSpannung
-            {bgmkName, bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
+        {bgmkName, bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
         Language.märklin
         <-> Language.bahngeschwindigkeit
         <:> Language.name
@@ -305,7 +307,7 @@ instance StreckenObjekt (Bahngeschwindigkeit b z) where
         [AnschlussPin bgmpGeschwindigkeitsPin]
     anschlüsse
         MärklinBahngeschwindigkeitKonstanteSpannung
-            {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
+        {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
         [bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss]
 
     erhalteName :: Bahngeschwindigkeit b z -> Text
@@ -477,7 +479,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         :: (I2CReader r m, MonadIO m) => Bahngeschwindigkeit 'KonstanteSpannung z -> Strom -> m ()
     fahrstrom
         bg@MärklinBahngeschwindigkeitKonstanteSpannung
-            {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss}
+        {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss}
         strom =
         befehlAusführen
             (anschlussWrite bgmkUmdrehenAnschluss (erhalteValue Gesperrt bg)
@@ -496,7 +498,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             ("Umdrehen (" <> showText bgmpGeschwindigkeitsPin <> ")")
     umdrehen
         bg@MärklinBahngeschwindigkeitKonstanteSpannung
-            {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
+        {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
         befehlAusführen
             (anschlussWrite bgmkFahrstromAnschluss (erhalteValue Gesperrt bg)
              >> warte umdrehenZeit
@@ -758,11 +760,8 @@ data Wegstrecke (z :: Zugtyp) =
 instance Anzeige (Wegstrecke z) where
     anzeige :: Wegstrecke z -> Sprache -> Text
     anzeige
-        Wegstrecke { wsName
-                   , wsBahngeschwindigkeiten
-                   , wsStreckenabschnitte
-                   , wsWeichenRichtungen
-                   , wsKupplungen} =
+        Wegstrecke
+        {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
         Language.wegstrecke
         <:> Language.name
         <=> wsName
@@ -777,7 +776,7 @@ instance StreckenObjekt (Wegstrecke z) where
     anschlüsse :: Wegstrecke z -> [Anschluss]
     anschlüsse
         Wegstrecke
-            {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
+        {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
         join
         $ map anschlüsse wsBahngeschwindigkeiten
         ++ map anschlüsse wsStreckenabschnitte
@@ -803,20 +802,118 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
         fahrstrom (GeschwindigkeitPhantom ws) Gesperrt
         warte umdrehenZeit
         strom ws Fließend
-        mapM_ (forkI2CReader . eitherUmdrehen) wsBahngeschwindigkeiten
-        where
-            eitherUmdrehen :: (I2CReader r m, PwmReader r m, MonadIO m)
-                           => GeschwindigkeitEither Bahngeschwindigkeit 'Märklin
-                           -> m ()
-            eitherUmdrehen (GeschwindigkeitPwm bg) = umdrehen bg
-            eitherUmdrehen (GeschwindigkeitKonstanteSpannung bg) = umdrehen bg
+        let (geschwindigkeitenPwm, geschwindigkeitenKonstanteSpannung) =
+                foldl splitGeschwindigkeiten ([], []) wsBahngeschwindigkeiten
+            splitGeschwindigkeiten
+                :: ( [Bahngeschwindigkeit 'Pwm 'Märklin]
+                   , [Bahngeschwindigkeit 'KonstanteSpannung 'Märklin]
+                   )
+                -> GeschwindigkeitEither Bahngeschwindigkeit 'Märklin
+                -> ( [Bahngeschwindigkeit 'Pwm 'Märklin]
+                   , [Bahngeschwindigkeit 'KonstanteSpannung 'Märklin]
+                   )
+            splitGeschwindigkeiten (p, k) (GeschwindigkeitPwm bg) = (bg : p, k)
+            splitGeschwindigkeiten (p, k) (GeschwindigkeitKonstanteSpannung bg) = (p, bg : k)
+            (umdrehenPins, umdrehenPcf8574PortsHigh, umdrehenPcf8574PortsLow) =
+                foldl splitAnschlüsse ([], [], []) geschwindigkeitenKonstanteSpannung
+            splitAnschlüsse
+                :: ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+                -> Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                -> ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                bg@MärklinBahngeschwindigkeitKonstanteSpannung
+                {bgmkUmdrehenAnschluss = AnschlussPin pin} =
+                ((pin, flip erhalteValue bg) : pins, portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                MärklinBahngeschwindigkeitKonstanteSpannung
+                {bgmkFließend = HIGH, bgmkUmdrehenAnschluss = AnschlussPCF8574Port port} =
+                (pins, port : portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                MärklinBahngeschwindigkeitKonstanteSpannung
+                {bgmkFließend = LOW, bgmkUmdrehenAnschluss = AnschlussPCF8574Port port} =
+                (pins, portsHigh, port : portsLow)
+            umdrehenPortMapHigh = pcf8574Gruppieren umdrehenPcf8574PortsHigh
+            umdrehenPortMapLow = pcf8574Gruppieren umdrehenPcf8574PortsLow
+        mapM_ (forkI2CReader . umdrehen) geschwindigkeitenPwm
+        liftIO $ forM_ umdrehenPins $ \(pin, valueFunktion) -> forkIO $ do
+            pinMode pin OUTPUT
+            digitalWrite pin $ valueFunktion Fließend
+            warte umdrehenZeit
+            digitalWrite pin $ valueFunktion Gesperrt
+        forM_ (Map.toList umdrehenPortMapHigh) $ \(pcf8574, ports) -> do
+            pcf8574MultiPortWrite pcf8574 ports HIGH
+            warte umdrehenZeit
+            pcf8574MultiPortWrite pcf8574 ports LOW
+        forM_ (Map.toList umdrehenPortMapLow) $ \(pcf8574, ports) -> do
+            pcf8574MultiPortWrite pcf8574 ports LOW
+            warte umdrehenZeit
+            pcf8574MultiPortWrite pcf8574 ports HIGH
 
     fahrstrom :: (I2CReader r m, MonadIO m)
               => GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung z
               -> Strom
               -> m ()
-    fahrstrom (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten}) strom =
-        mapM_ (forkI2CReader . flip fahrstrom strom) $ catKonstanteSpannung wsBahngeschwindigkeiten
+    fahrstrom (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten}) strom = do
+        let (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
+                foldl splitAnschlüsse ([], [], []) $ catKonstanteSpannung wsBahngeschwindigkeiten
+            splitAnschlüsse
+                :: ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+                -> Bahngeschwindigkeit 'KonstanteSpannung z
+                -> ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                bg@MärklinBahngeschwindigkeitKonstanteSpannung
+                {bgmkFahrstromAnschluss = AnschlussPin pin} =
+                ((pin, flip erhalteValue bg) : pins, portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                MärklinBahngeschwindigkeitKonstanteSpannung
+                {bgmkFließend = HIGH, bgmkFahrstromAnschluss = AnschlussPCF8574Port port} =
+                (pins, port : portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                MärklinBahngeschwindigkeitKonstanteSpannung
+                {bgmkFließend = LOW, bgmkFahrstromAnschluss = AnschlussPCF8574Port port} =
+                (pins, portsHigh, port : portsLow)
+            fahrstromPortMapHigh = pcf8574Gruppieren fahrstromPcf8574PortsHigh
+            fahrstromPortMapLow = pcf8574Gruppieren fahrstromPcf8574PortsLow
+        liftIO $ forM_ fahrstromPins $ \(pin, valueFunktion)
+            -> digitalWrite pin $ valueFunktion strom
+        forM_ (Map.toList fahrstromPortMapHigh)
+            $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports $ case strom of
+                Fließend -> HIGH
+                Gesperrt -> LOW
+        forM_ (Map.toList fahrstromPortMapLow)
+            $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports $ case strom of
+                Fließend -> LOW
+                Gesperrt -> HIGH
 
     fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
                             => GeschwindigkeitPhantom Wegstrecke b 'Lego
@@ -824,25 +921,149 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                             -> m ()
     fahrtrichtungEinstellen
         (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten})
-        neueFahrtrichtung =
-        mapM_ (forkI2CReader . eitherFahrtrichtungEinstellen) wsBahngeschwindigkeiten
-        where
-            eitherFahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
-                                          => GeschwindigkeitEither Bahngeschwindigkeit 'Lego
-                                          -> m ()
-            eitherFahrtrichtungEinstellen (GeschwindigkeitPwm bg) =
-                fahrtrichtungEinstellen bg neueFahrtrichtung
-            eitherFahrtrichtungEinstellen (GeschwindigkeitKonstanteSpannung bg) =
-                fahrtrichtungEinstellen bg neueFahrtrichtung
+        neueFahrtrichtung = do
+        let (fahrtrichtungsPins, fahrtrichtungPcf8574PortsHigh, fahrtrichtungPcf8574PortsLow) =
+                foldl splitAnschlüsse ([], [], []) wsBahngeschwindigkeiten
+            splitAnschlüsse
+                :: ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+                -> GeschwindigkeitEither Bahngeschwindigkeit 'Lego
+                -> ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                (GeschwindigkeitPwm
+                     bg@LegoBahngeschwindigkeit {bglFahrtrichtungsAnschluss = AnschlussPin pin}) =
+                ((pin, flip erhalteValue bg) : pins, portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                (GeschwindigkeitPwm
+                     LegoBahngeschwindigkeit
+                     {bglFließend = HIGH, bglFahrtrichtungsAnschluss = AnschlussPCF8574Port port}) =
+                (pins, port : portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                (GeschwindigkeitPwm
+                     LegoBahngeschwindigkeit
+                     {bglFließend = LOW, bglFahrtrichtungsAnschluss = AnschlussPCF8574Port port}) =
+                (pins, portsHigh, port : portsLow)
+            splitAnschlüsse _acc (GeschwindigkeitKonstanteSpannung _) =
+                error "Lego-Bahngeschwindigkeit mit konstanter Spannung!"
+            fahrtrichtungPortMapHigh = pcf8574Gruppieren fahrtrichtungPcf8574PortsHigh
+            fahrtrichtungPortMapLow = pcf8574Gruppieren fahrtrichtungPcf8574PortsLow
+        liftIO $ forM_ fahrtrichtungsPins $ \(pin, valueFunktion) -> forkIO $ do
+            pinMode pin OUTPUT
+            digitalWrite pin $ valueFunktion $ case neueFahrtrichtung of
+                Vorwärts -> Fließend
+                Rückwärts -> Gesperrt
+        forM_ (Map.toList fahrtrichtungPortMapHigh)
+            $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports $ case neueFahrtrichtung of
+                Vorwärts -> HIGH
+                Rückwärts -> LOW
+        forM_ (Map.toList fahrtrichtungPortMapLow)
+            $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports $ case neueFahrtrichtung of
+                Vorwärts -> LOW
+                Rückwärts -> HIGH
 
 instance StreckenabschnittKlasse (Wegstrecke z) where
     strom :: (I2CReader r m, MonadIO m) => Wegstrecke z -> Strom -> m ()
-    strom Wegstrecke {wsStreckenabschnitte} an =
-        mapM_ (forkI2CReader . flip strom an) wsStreckenabschnitte
+    strom Wegstrecke {wsStreckenabschnitte} an = do
+        let (stromPins, stromPcf8574PortsHigh, stromPcf8574PortsLow) =
+                foldl splitAnschlüsse ([], [], []) wsStreckenabschnitte
+            splitAnschlüsse
+                :: ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+                -> Streckenabschnitt
+                -> ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                st@Streckenabschnitt {stromAnschluss = AnschlussPin pin} =
+                ((pin, flip erhalteValue st) : pins, portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                Streckenabschnitt {stFließend = HIGH, stromAnschluss = AnschlussPCF8574Port port} =
+                (pins, port : portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                Streckenabschnitt {stFließend = LOW, stromAnschluss = AnschlussPCF8574Port port} =
+                (pins, portsHigh, port : portsLow)
+            stromPortMapHigh = pcf8574Gruppieren stromPcf8574PortsHigh
+            stromPortMapLow = pcf8574Gruppieren stromPcf8574PortsLow
+        liftIO $ forM_ stromPins $ \(pin, valueFunktion) -> digitalWrite pin $ valueFunktion an
+        forM_ (Map.toList stromPortMapHigh)
+            $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports HIGH
+        forM_ (Map.toList stromPortMapLow)
+            $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
 
 instance KupplungKlasse (Wegstrecke z) where
     kuppeln :: (I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
-    kuppeln Wegstrecke {wsKupplungen} = mapM_ (forkI2CReader . kuppeln) wsKupplungen
+    kuppeln Wegstrecke {wsKupplungen} = do
+        let (kupplungsPins, kupplungsPcf8574PortsHigh, kupplungsPcf8574PortsLow) =
+                foldl splitAnschlüsse ([], [], []) wsKupplungen
+            splitAnschlüsse
+                :: ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+                -> Kupplung
+                -> ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                ku@Kupplung {kupplungsAnschluss = AnschlussPin pin} =
+                ((pin, flip erhalteValue ku) : pins, portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                Kupplung {kuFließend = HIGH, kupplungsAnschluss = AnschlussPCF8574Port port} =
+                (pins, port : portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                Kupplung {kuFließend = LOW, kupplungsAnschluss = AnschlussPCF8574Port port} =
+                (pins, portsHigh, port : portsLow)
+            kupplungsPortMapHigh = pcf8574Gruppieren kupplungsPcf8574PortsHigh
+            kupplungsPortMapLow = pcf8574Gruppieren kupplungsPcf8574PortsLow
+        liftIO $ forM_ kupplungsPins $ \(pin, valueFunktion) -> forkIO $ do
+            pinMode pin OUTPUT
+            digitalWrite pin $ valueFunktion Fließend
+            warte kuppelnZeit
+            digitalWrite pin $ valueFunktion Gesperrt
+        forM_ (Map.toList kupplungsPortMapHigh) $ \(pcf8574, ports) -> do
+            pcf8574MultiPortWrite pcf8574 ports HIGH
+            warte kuppelnZeit
+            pcf8574MultiPortWrite pcf8574 ports LOW
+        forM_ (Map.toList kupplungsPortMapLow) $ \(pcf8574, ports) -> do
+            pcf8574MultiPortWrite pcf8574 ports LOW
+            warte kuppelnZeit
+            pcf8574MultiPortWrite pcf8574 ports HIGH
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
@@ -855,8 +1076,60 @@ instance (WegstreckeKlasse (w 'Märklin), WegstreckeKlasse (w 'Lego))
     einstellen (ZugtypMärklin a) = einstellen a
     einstellen (ZugtypLego a) = einstellen a
 
-instance WegstreckeKlasse (Wegstrecke z) where
-    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke z -> m ()
+instance WegstreckeKlasse (Wegstrecke 'Märklin) where
+    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Märklin -> m ()
+    einstellen Wegstrecke {wsWeichenRichtungen} = do
+        let (richtungsPins, richtungsPcf8574PortsHigh, richtungsPcf8574PortsLow) =
+                foldl splitAnschlüsse ([], [], []) wsWeichenRichtungen
+            splitAnschlüsse
+                :: ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+                -> (Weiche 'Märklin, Richtung)
+                -> ( [( Pin
+                      , Strom
+                            -> Value
+                      )]
+                   , [PCF8574Port]
+                   , [PCF8574Port]
+                   )
+            splitAnschlüsse
+                acc@(pins, portsHigh, portsLow)
+                (we@MärklinWeiche {wemFließend, wemRichtungsAnschlüsse}, richtung) =
+                case getRichtungsAnschluss richtung (NE.toList wemRichtungsAnschlüsse) of
+                    (Just (AnschlussPin pin))
+                        -> ((pin, flip erhalteValue we) : pins, portsHigh, portsLow)
+                    (Just (AnschlussPCF8574Port port)) -> case wemFließend of
+                        HIGH -> (pins, port : portsHigh, portsLow)
+                        LOW -> (pins, portsHigh, port : portsLow)
+                    Nothing -> acc
+            getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
+            getRichtungsAnschluss _richtung [] = Nothing
+            getRichtungsAnschluss richtung ((ersteRichtung, ersterAnschluss):andereRichtungen)
+                | richtung == ersteRichtung = Just ersterAnschluss
+                | otherwise = getRichtungsAnschluss richtung andereRichtungen
+            richtungsPortMapHigh = pcf8574Gruppieren richtungsPcf8574PortsHigh
+            richtungsPortMapLow = pcf8574Gruppieren richtungsPcf8574PortsLow
+        liftIO $ forM_ richtungsPins $ \(pin, valueFunktion) -> forkIO $ do
+            pinMode pin OUTPUT
+            digitalWrite pin $ valueFunktion Fließend
+            warte weicheZeit
+            digitalWrite pin $ valueFunktion Gesperrt
+        forM_ (Map.toList richtungsPortMapHigh) $ \(pcf8574, ports) -> do
+            pcf8574MultiPortWrite pcf8574 ports HIGH
+            warte weicheZeit
+            pcf8574MultiPortWrite pcf8574 ports LOW
+        forM_ (Map.toList richtungsPortMapLow) $ \(pcf8574, ports) -> do
+            pcf8574MultiPortWrite pcf8574 ports LOW
+            warte weicheZeit
+            pcf8574MultiPortWrite pcf8574 ports HIGH
+
+instance WegstreckeKlasse (Wegstrecke 'Lego) where
+    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Lego -> m ()
     einstellen Wegstrecke {wsWeichenRichtungen} =
         mapM_ (forkI2CReader . uncurry stellen) wsWeichenRichtungen
 

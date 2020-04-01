@@ -24,12 +24,16 @@ module Zug.Anbindung.PCF8574
     -- ** Auf bestimmten Port spezialisierte Funktionen
   , PCF8574Port(..)
   , pcf8574PortWrite
+  , pcf8574MultiPortWrite
+  , pcf8574Gruppieren
   , pcf8574PortRead
   ) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (bit, (.|.), (.&.), testBit, complement)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Word (Word8)
 import System.Hardware.WiringPi (Value(..))
@@ -49,7 +53,7 @@ import qualified Zug.Language as Language
 addressMöglichkeiten :: [(Value, Value, Value)]
 addressMöglichkeiten = (,,) <$> [minBound..maxBound] <*> [minBound..maxBound] <*> [minBound..maxBound]
 -}
--- | kleinste 'I2CAddress' eines /PCF8574/
+-- | kleinste 'I2CAddress' eines /PCF8574/.
 minI2CAddress :: PCF8574Variant -> I2CAddress
 minI2CAddress VariantNormal = I2CAddress $ bit 5
 minI2CAddress VariantA = I2CAddress $ bit 5 .|. bit 4 .|. bit 3
@@ -68,7 +72,7 @@ toI2CAddress PCF8574 {variant, a0, a1, a2} =
         addFirstIfHigh HIGH a b = a + b
         addFirstIfHigh LOW _a b = b
 
--- | Variante des /PCF8574/ (beeinflusst 'I2CAddress')
+-- | Variante des /PCF8574/ (beeinflusst 'I2CAddress').
 data PCF8574Variant
     = VariantNormal
     | VariantA
@@ -79,7 +83,7 @@ instance Anzeige PCF8574Variant where
     anzeige VariantNormal = Language.normal
     anzeige VariantA = Language.a
 
--- | Variante und variable Adress-Bits eines /PCF8574/
+-- | Variante und variable Adress-Bits eines /PCF8574/.
 data PCF8574 = PCF8574 { variant :: PCF8574Variant, a0, a1, a2 :: Value }
     deriving (Eq, Ord)
 
@@ -128,23 +132,23 @@ instance Read PCF8574 where
     readListPrec :: ReadPrec [PCF8574]
     readListPrec = readListPrecDefault
 
--- | Umwandeln des Anschluss-Ports in den entsprechenden 'BitValue'
+-- | Umwandeln des Anschluss-Ports in den entsprechenden 'BitValue'.
 toBitValue :: Word8 -> BitValue
 toBitValue port = BitValue $ bit $ fromIntegral $ min port $ pred numPorts
 
--- | Wert eines /PCF8574/ komplett setzten
+-- | Wert eines /PCF8574/ komplett setzten.
 pcf8574Write :: (I2CReader r m, MonadIO m) => PCF8574 -> BitValue -> m ()
 pcf8574Write pcf8574 = i2cWrite $ toI2CAddress pcf8574
 
--- | Wert eines /PCF8574/ auslesen
+-- | Wert eines /PCF8574/ auslesen.
 pcf8574Read :: (I2CReader r m, MonadIO m) => PCF8574 -> m BitValue
 pcf8574Read pcf8574 = i2cRead $ toI2CAddress pcf8574
 
--- | Anzahl IO-Ports eines /PCF8574/
+-- | Anzahl IO-Ports eines /PCF8574/.
 numPorts :: Word8
 numPorts = 8
 
--- | Verwende Port eines /PCF8574/
+-- | Verwende Port eines /PCF8574/.
 data PCF8574Port = PCF8574Port { pcf8574 :: PCF8574, port :: Word8 }
     deriving (Eq, Ord)
 
@@ -170,7 +174,7 @@ instance Read PCF8574Port where
     readListPrec :: ReadPrec [PCF8574Port]
     readListPrec = readListPrecDefault
 
--- | Wert einzelner Ports eines /PCF8574/ setzen
+-- | Wert einzelner Ports eines /PCF8574/ setzen.
 pcf8574PortWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
 pcf8574PortWrite PCF8574Port {pcf8574, port} value =
     i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
@@ -180,7 +184,23 @@ pcf8574PortWrite PCF8574Port {pcf8574, port} value =
             | value == HIGH = oldBitValue .|. toBitValue port
             | otherwise = oldBitValue .&. complement (toBitValue port)
 
--- | Wert eines einzelnen Ports eines /PCF8574/ auslesen
+-- | Wert mehrerer Ports eines /PCF8574/ setzen.
+pcf8574MultiPortWrite :: (I2CReader r m, MonadIO m) => PCF8574 -> [Word8] -> Value -> m ()
+pcf8574MultiPortWrite pcf8574 ports value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
+    where
+        bitValueFunktion :: BitValue -> BitValue
+        bitValueFunktion oldBitValue = foldl (portFunktion value) oldBitValue ports
+
+        portFunktion :: Value -> BitValue -> Word8 -> BitValue
+        portFunktion HIGH bitValue port = bitValue .|. toBitValue port
+        portFunktion LOW bitValue port = bitValue .&. complement (toBitValue port)
+
+-- | Sortiere eine Liste von 'PCF8574Port's nach ihren 'PCF8574'.
+pcf8574Gruppieren :: [PCF8574Port] -> Map PCF8574 [Word8]
+pcf8574Gruppieren = foldl (\portsMap PCF8574Port {pcf8574, port}
+                           -> Map.insertWith (++) pcf8574 [port] portsMap) Map.empty
+
+-- | Wert eines einzelnen Ports eines /PCF8574/ auslesen.
 pcf8574PortRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
 pcf8574PortRead PCF8574Port {pcf8574, port} = do
     fullBitValue <- pcf8574Read pcf8574

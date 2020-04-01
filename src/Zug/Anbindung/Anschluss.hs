@@ -10,6 +10,8 @@ module Zug.Anbindung.Anschluss
   , PCF8574Port(..)
   , PCF8574(..)
   , PCF8574Variant(..)
+  , pcf8574Gruppieren
+  , pcf8574MultiPortWrite
   , vonPin
   , zuPin
   , zuPinGpio
@@ -33,8 +35,9 @@ import System.Hardware.WiringPi
        (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 
-import Zug.Anbindung.PCF8574 (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite
-                            , pcf8574PortRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..))
+import Zug.Anbindung.PCF8574
+       (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574PortRead, I2CMap
+      , i2cMapEmpty, MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite)
 import Zug.Language (Anzeige(..), Sprache(), showText)
 
 -- | Alle unterstützten Anschlussmöglichkeiten
