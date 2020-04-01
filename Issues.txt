@@ -1,7 +1,3 @@
-Gtk-UI:
-    Wegstrecken->Wegstrecken-Elemente (Expander)
-        Scrollbares Widget im Expander (vor allem für Horizontale Überlänge)
-
 Gtk-UI benötigt lange, bis etwas zu sehen ist
     Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
     Dummy-Fenster wird erstellt
@@ -136,7 +132,12 @@ Test-Suite erstellen?
     Muss gepflegt werden um Sinn zu machen.
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
----------------------------Gelöst--------------------------
+---------------------------Gelöst----------------------------------------------------------------
+Gtk-UI:
+    Wegstrecken->Wegstrecken-Elemente (Expander)
+        Scrollbares Widget im Expander (vor allem für Horizontale Überlänge)
+    Done
+
 Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
     PWM über I2C hört sich nicht vielversprechend an
     Gleichstrom (PWM) funktioniert nur bei einigen Loks/benötigt je nach Lok eine eigene Frequenz?

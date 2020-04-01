@@ -623,10 +623,10 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-                { wcbrWidget = erhalteWidget hBox
-                , wcbrRegistrierterCheckButton
-                , wcbrRichtungsAuswahl
-                }
+            { wcbrWidget = erhalteWidget hBox
+            , wcbrRegistrierterCheckButton
+            , wcbrRichtungsAuswahl
+            }
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 --
@@ -976,8 +976,8 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         geschwindigkeitsWidgetsPackNew
             box
             bgWidgets@BGWidgets
-                { bg = bgMärklin@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
-                , bgSpracheTVar} = void $ do
+            { bg = bgMärklin@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
+            , bgSpracheTVar} = void $ do
             boxPackWidgetNewDefault box
                 $ pinNew (Just bgSpracheTVar) Language.geschwindigkeit bgmpGeschwindigkeitsPin
             scaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew box bgWidgets
@@ -1782,18 +1782,24 @@ instance KupplungKlasse (WSWidgets z) where
     kuppeln :: (I2CReader r m, MonadIO m) => WSWidgets z -> m ()
     kuppeln = kuppeln . ws
 
-instance WegstreckeKlasse (WSWidgets z) where
+instance (WegstreckeKlasse (Wegstrecke z)) => WegstreckeKlasse (WSWidgets z) where
     einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> m ()
     einstellen = einstellen . ws
 
 -- | 'Wegstrecke' darstellen
-wegstreckePackNew :: forall m z.
-                  (ObjektGuiReader m, MonadIO m, ZugtypKlasse z, PlanElement (WSWidgets z))
-                  => Wegstrecke z
-                  -> MStatusGuiT m (WSWidgets z)
+wegstreckePackNew
+    :: forall m z.
+    ( ObjektGuiReader m
+    , MonadIO m
+    , ZugtypKlasse z
+    , PlanElement (WSWidgets z)
+    , WegstreckeKlasse (Wegstrecke z)
+    )
+    => Wegstrecke z
+    -> MStatusGuiT m (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke
-        {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
+    {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
@@ -1839,7 +1845,8 @@ wegstreckePackNew
     expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
     verwendeSpracheGui justSpracheTVar
         $ \sprache -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
-    vBoxExpander <- liftIO $ containerAddWidgetNew expander $ Gtk.vBoxNew False 0
+    vBoxExpander
+        <- liftIO $ containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
     functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     unless (null wsBahngeschwindigkeiten) $ void $ do
         boxPackWidgetNewDefault vBoxExpander
