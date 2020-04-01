@@ -396,19 +396,21 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         bg@MärklinBahngeschwindigkeitKonstanteSpannung
         {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
         fahrstromAnschluss =
-        befehlAusführen
-            (anschlussWrite bgmkUmdrehenAnschluss (gesperrt bg)
-             >> liftIO (forM_ fahrstromPins $ forkIO . uncurry digitalWrite)
-             >> mapM_
-                 (\(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH)
-                 (Map.toList fahrstromPortMapHigh)
-             >> mapM_
-                 (\(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports LOW)
-                 (Map.toList fahrstromPortMapLow))
+        flip
+            befehlAusführen
             ("Fahrstrom ("
              <> showText bgmkFahrstromAnschlüsse
              <> ")->"
              <> showText fahrstromAnschluss)
+        $ do
+            anschlussWrite bgmkUmdrehenAnschluss (gesperrt bg)
+            liftIO $ forM_ fahrstromPins $ \(pin, value) -> forkIO $ do
+                pinMode pin OUTPUT
+                digitalWrite pin value
+            forM_ (Map.toList fahrstromPortMapHigh)
+                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH
+            forM_ (Map.toList fahrstromPortMapLow)
+                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports LOW
         where
             (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
                 foldl splitAnschlüsse ([], [], []) bgmkFahrstromAnschlüsse
@@ -436,21 +438,19 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     umdrehen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit b 'Märklin -> m ()
     umdrehen bg@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin} =
-        befehlAusführen
-            (pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
-             >> warte umdrehenZeit
-             >> pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert pwmGrenze)
-             >> warte umdrehenZeit
-             >> pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert 0))
-            ("Umdrehen (" <> showText bgmpGeschwindigkeitsPin <> ")")
+        flip befehlAusführen ("Umdrehen (" <> showText bgmpGeschwindigkeitsPin <> ")") $ do
+            pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+            warte umdrehenZeit
+            pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert pwmGrenze)
+            warte umdrehenZeit
+            pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
     umdrehen bg@MärklinBahngeschwindigkeitKonstanteSpannung {bgmkUmdrehenAnschluss} =
-        befehlAusführen
-            (fahrstrom bg 0
-             >> warte umdrehenZeit
-             >> anschlussWrite bgmkUmdrehenAnschluss (fließend bg)
-             >> warte umdrehenZeit
-             >> anschlussWrite bgmkUmdrehenAnschluss (gesperrt bg))
-            ("Umdrehen (" <> showText bgmkUmdrehenAnschluss <> ")")
+        flip befehlAusführen ("Umdrehen (" <> showText bgmkUmdrehenAnschluss <> ")") $ do
+            fahrstrom bg 0
+            warte umdrehenZeit
+            anschlussWrite bgmkUmdrehenAnschluss $ fließend bg
+            warte umdrehenZeit
+            anschlussWrite bgmkUmdrehenAnschluss $ gesperrt bg
 
     fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
                             => Bahngeschwindigkeit b 'Lego
@@ -459,20 +459,22 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     fahrtrichtungEinstellen
         bg@LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
         fahrtrichtung =
-        befehlAusführen
-            (pwmSetzeWert bg bglGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
-             >> warte umdrehenZeit
-             >> anschlussWrite
-                 bglFahrtrichtungsAnschluss
-                 ((if fahrtrichtung == Vorwärts
-                       then fließend
-                       else gesperrt)
-                      bg))
+        flip
+            befehlAusführen
             ("Umdrehen ("
              <> (showText bglGeschwindigkeitsPin <^> showText bglFahrtrichtungsAnschluss
                  $ Language.Deutsch)
              <> ")->"
              <> showText fahrtrichtung)
+        $ do
+            pwmSetzeWert bg bglGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+            warte umdrehenZeit
+            anschlussWrite
+                bglFahrtrichtungsAnschluss
+                ((if fahrtrichtung == Vorwärts
+                      then fließend
+                      else gesperrt)
+                     bg)
 
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt =
@@ -596,17 +598,21 @@ instance WeicheKlasse (Weiche z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
     stellen we@LegoWeiche {welRichtungsPin, welRichtungen} richtung
         | richtung == fst welRichtungen =
-            befehlAusführen
-                (pwmServo we welRichtungsPin 25
-                 >> warte weicheZeit
-                 >> pwmServo we welRichtungsPin 0)
+            flip
+                befehlAusführen
                 ("Stellen (" <> showText welRichtungsPin <> ") -> " <> showText richtung)
+            $ do
+                pwmServo we welRichtungsPin 25
+                warte weicheZeit
+                pwmServo we welRichtungsPin 0
         | richtung == snd welRichtungen =
-            befehlAusführen
-                (pwmServo we welRichtungsPin 75
-                 >> warte weicheZeit
-                 >> pwmServo we welRichtungsPin 0)
+            flip
+                befehlAusführen
                 ("stellen (" <> showText welRichtungsPin <> ") -> " <> showText richtung)
+            $ do
+                pwmServo we welRichtungsPin 75
+                warte weicheZeit
+                pwmServo we welRichtungsPin 0
         | otherwise = pure ()
     stellen we@MärklinWeiche {wemRichtungsAnschlüsse} richtung =
         befehlAusführen
@@ -683,11 +689,10 @@ kuppelnZeit = MilliSekunden 300
 instance KupplungKlasse Kupplung where
     kuppeln :: (I2CReader r m, MonadIO m) => Kupplung -> m ()
     kuppeln ku@Kupplung {kupplungsAnschluss} =
-        befehlAusführen
-            (anschlussWrite kupplungsAnschluss (fließend ku)
-             >> warte kuppelnZeit
-             >> anschlussWrite kupplungsAnschluss (gesperrt ku))
-            ("Kuppeln (" <> showText kupplungsAnschluss <> ")")
+        flip befehlAusführen ("Kuppeln (" <> showText kupplungsAnschluss <> ")") $ do
+            anschlussWrite kupplungsAnschluss $ fließend ku
+            warte kuppelnZeit
+            anschlussWrite kupplungsAnschluss $ gesperrt ku
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
 data Wegstrecke (z :: Zugtyp) =
@@ -825,7 +830,9 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
             befehlAusführen
             ("Fahrstrom (" <> showText ws <> ")->" <> showText fahrstromAnschluss)
         $ do
-            liftIO $ forM_ fahrstromPins $ uncurry digitalWrite
+            liftIO $ forM_ fahrstromPins $ \(pin, value) -> forkIO $ do
+                pinMode pin OUTPUT
+                digitalWrite pin value
             forM_ (Map.toList fahrstromPortMapHigh)
                 $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH
             forM_ (Map.toList fahrstromPortMapLow)
@@ -942,7 +949,9 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
     strom :: (I2CReader r m, MonadIO m) => Wegstrecke z -> Strom -> m ()
     strom ws@Wegstrecke {wsStreckenabschnitte} an =
         flip befehlAusführen ("Strom (" <> showText ws <> ")->" <> showText an) $ do
-            liftIO $ forM_ stromPins $ \(pin, valueFunktion) -> digitalWrite pin $ valueFunktion an
+            liftIO $ forM_ stromPins $ \(pin, valueFunktion) -> do
+                pinMode pin OUTPUT
+                digitalWrite pin $ valueFunktion an
             forM_ (Map.toList stromPortMapHigh)
                 $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH
             forM_ (Map.toList stromPortMapLow)
