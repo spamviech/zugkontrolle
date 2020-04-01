@@ -46,11 +46,10 @@ import qualified Data.Text as Text
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
-import Zug.Anbindung
-       (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..)
-      , Wartezeit(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
-import Zug.Enums
-       (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..))
+import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
+                    , Wegstrecke(..), Wartezeit(..))
+import Zug.Enums (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..)
+                , ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)

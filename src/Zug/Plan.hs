@@ -40,13 +40,12 @@ import Data.Text (Text)
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung
-       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), Bahngeschwindigkeit()
-      , BahngeschwindigkeitKlasse(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
-      , GeschwindigkeitPhantom(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche()
-      , WeicheKlasse(..), Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte
-      , Wartezeit(..))
-import Zug.Enums (Zugtyp(..), ZugtypEither(), Richtung(), Fahrtrichtung(), Strom(..))
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..)
+                    , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
+                    , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung()
+                    , KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
+                , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Menge (Menge(), hinzufügen, entfernen)

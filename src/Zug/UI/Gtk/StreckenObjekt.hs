@@ -108,14 +108,14 @@ import Numeric.Natural (Natural)
 
 import Zug.Anbindung
        (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(), Bahngeschwindigkeit(..)
-      , GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
-      , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), mapGeschwindigkeitEither
-      , ausGeschwindigkeitEither, GeschwindigkeitPhantom(..), verwendetPwm
-      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(..), StreckenabschnittKlasse(..)
-      , Weiche(..), WeicheKlasse(..), Kupplung(..), KupplungKlasse(..), Wegstrecke(..)
-      , WegstreckeKlasse(..))
+      , verwendetPwm, BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
+      , StreckenabschnittKlasse(..), Weiche(..), WeicheKlasse(..), Kupplung(..), KupplungKlasse(..)
+      , Wegstrecke(..), WegstreckeKlasse(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither
-                , Fahrtrichtung(..), Strom(..), Richtung(..))
+                , GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
+                , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), mapGeschwindigkeitEither
+                , ausGeschwindigkeitEither, GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..)
+                , Richtung(..))
 import Zug.Language (MitSprache(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>), (<°>))

@@ -46,10 +46,10 @@ import Data.Maybe (listToMaybe)
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung
-       (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt(), Weiche()
-      , Kupplung(), Wegstrecke(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), Richtung(..))
+import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt()
+                    , Weiche(), Kupplung(), Wegstrecke())
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
+                , GeschwindigkeitEither(..), Richtung(..))
 import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)

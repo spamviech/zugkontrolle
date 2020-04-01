@@ -26,9 +26,9 @@ import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung
-       (GeschwindigkeitVariante(..), GeschwindigkeitEither(..), GeschwindigkeitPhantom(..))
-import Zug.Enums (ZugtypEither(..), Zugtyp(..), Fahrtrichtung(Vorwärts), Strom(Fließend))
+import Zug.Enums
+       (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
+      , GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts), Strom(Fließend))
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit, OWegstrecke))

@@ -9,16 +9,30 @@
 Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer Weiche) repräsentieren.
 -}
 module Zug.Enums
-  ( Zugtyp(..)
+  ( -- * Zugtyp
+    Zugtyp(..)
   , ZugtypEither(..)
   , ZugtypKlasse(..)
   , mapZugtypEither
   , ausZugtypEither
   , unterstützteZugtypen
+    -- * GeschwindigkeitVariante
+  , GeschwindigkeitVariante(..)
+  , GeschwindigkeitEither(..)
+  , GeschwindigkeitEitherKlasse(..)
+  , GeschwindigkeitPhantom(..)
+  , mapGeschwindigkeitEither
+  , ausGeschwindigkeitEither
+  , unterstützteGeschwindigkeitVarianten
+  , catPwm
+  , catKonstanteSpannung
+    -- * Richtung
   , Richtung(..)
   , unterstützteRichtungen
+    -- ** Fahrtrichtung
   , Fahrtrichtung(..)
   , unterstützteFahrtrichtungen
+    -- * Strom
   , Strom(..)
   , unterstützteStromeinstellungen
   ) where
@@ -90,6 +104,96 @@ instance Anzeige Zugtyp where
     anzeige :: Zugtyp -> Sprache -> Text
     anzeige Märklin = Language.märklin
     anzeige Lego = Language.lego
+
+-- | Die Art, wie Geschwindigkeit eingestellt wird.
+data GeschwindigkeitVariante
+    = Pwm
+    | KonstanteSpannung
+    deriving (Show, Eq, Bounded, Enum)
+
+data GeschwindigkeitEither bg (z :: Zugtyp)
+    = GeschwindigkeitPwm (bg 'Pwm z)
+    | GeschwindigkeitKonstanteSpannung (bg 'KonstanteSpannung z)
+
+deriving instance (Eq (bg 'Pwm z), Eq (bg 'KonstanteSpannung z)) => Eq (GeschwindigkeitEither bg z)
+
+deriving instance (Show (bg 'Pwm z), Show (bg 'KonstanteSpannung z))
+    => Show (GeschwindigkeitEither bg z)
+
+instance (Anzeige (bg 'Pwm z), Anzeige (bg 'KonstanteSpannung z))
+    => Anzeige (GeschwindigkeitEither bg z) where
+    anzeige :: GeschwindigkeitEither bg z -> Sprache -> Text
+    anzeige (GeschwindigkeitPwm bg) = anzeige bg
+    anzeige (GeschwindigkeitKonstanteSpannung bg) = anzeige bg
+
+-- | Führe eine 'GeschwindigkeitVariante'-generische Funktion auf einem 'GeschwindigkeitEither' aus.
+mapGeschwindigkeitEither :: (forall (g :: GeschwindigkeitVariante). a g z -> b g z)
+                         -> GeschwindigkeitEither a z
+                         -> GeschwindigkeitEither b z
+mapGeschwindigkeitEither f (GeschwindigkeitPwm a) = GeschwindigkeitPwm $ f a
+mapGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) =
+    GeschwindigkeitKonstanteSpannung $ f a
+
+-- | Erhalte das Ergebnis einer 'GeschwindigkeitVariante'-generischen Funktion aus einem 'GeschwindigkeitEither'.
+ausGeschwindigkeitEither
+    :: (forall (g :: GeschwindigkeitVariante). a g z -> b) -> GeschwindigkeitEither a z -> b
+ausGeschwindigkeitEither f (GeschwindigkeitPwm a) = f a
+ausGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) = f a
+
+-- | Klasse zur Extraktion aus 'GeschwindigkeitEither'
+class GeschwindigkeitEitherKlasse (g :: GeschwindigkeitVariante) where
+    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a g z)
+    zuGeschwindigkeitEither :: a g z -> GeschwindigkeitEither a z
+
+instance GeschwindigkeitEitherKlasse 'Pwm where
+    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'Pwm z)
+    vonGeschwindigkeitEither (GeschwindigkeitPwm a) = Just a
+    vonGeschwindigkeitEither _zugtypEither = Nothing
+
+    zuGeschwindigkeitEither :: a 'Pwm z -> GeschwindigkeitEither a z
+    zuGeschwindigkeitEither = GeschwindigkeitPwm
+
+instance GeschwindigkeitEitherKlasse 'KonstanteSpannung where
+    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'KonstanteSpannung z)
+    vonGeschwindigkeitEither (GeschwindigkeitKonstanteSpannung a) = Just a
+    vonGeschwindigkeitEither _zugtypEither = Nothing
+
+    zuGeschwindigkeitEither :: a 'KonstanteSpannung z -> GeschwindigkeitEither a z
+    zuGeschwindigkeitEither = GeschwindigkeitKonstanteSpannung
+
+-- | Sammle alle 'PWM'-Typen
+catPwm :: [GeschwindigkeitEither bg z] -> [bg 'Pwm z]
+catPwm ls = [x | GeschwindigkeitPwm x <- ls]
+
+-- | Sammle alle 'KonstanteSpannung'-Typen
+catKonstanteSpannung :: [GeschwindigkeitEither bg z] -> [bg 'KonstanteSpannung z]
+catKonstanteSpannung ls = [x | GeschwindigkeitKonstanteSpannung x <- ls]
+
+-- | newtype-Wrapper um einen 'GeschwindigkeitVariante'-Phantomtyp hinzuzufügen.
+--
+-- Wird benötigt, um eine 'BahngeschwindigkeitKlasse'-Instanz von 'Wegstrecke' zu erstellen.
+newtype GeschwindigkeitPhantom a (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
+    GeschwindigkeitPhantom (a z)
+
+instance (Show (a z)) => Show (GeschwindigkeitPhantom a g z) where
+    show :: GeschwindigkeitPhantom a g z -> String
+    show (GeschwindigkeitPhantom a) = show a
+
+instance (Eq (a z)) => Eq (GeschwindigkeitPhantom a g z) where
+    (==) :: GeschwindigkeitPhantom a g z -> GeschwindigkeitPhantom a g z -> Bool
+    (==) (GeschwindigkeitPhantom a) (GeschwindigkeitPhantom b) = a == b
+
+instance (Anzeige (a z)) => Anzeige (GeschwindigkeitPhantom a g z) where
+    anzeige :: GeschwindigkeitPhantom a g z -> Sprache -> Text
+    anzeige (GeschwindigkeitPhantom a) = anzeige a
+
+instance Anzeige GeschwindigkeitVariante where
+    anzeige :: GeschwindigkeitVariante -> Sprache -> Text
+    anzeige Pwm = Language.geschwindigkeitPwm
+    anzeige KonstanteSpannung = Language.geschwindigkeitKonstanteSpannung
+
+unterstützteGeschwindigkeitVarianten :: NonEmpty GeschwindigkeitVariante
+unterstützteGeschwindigkeitVarianten = fromList [minBound .. maxBound]
 
 -- | Richtung einer 'Weiche'
 data Richtung

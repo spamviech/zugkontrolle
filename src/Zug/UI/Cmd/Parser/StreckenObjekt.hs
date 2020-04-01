@@ -42,10 +42,9 @@ import Numeric.Natural (Natural)
 
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..)
                     , Kupplung(..), Wegstrecke(..), Anschluss(..), Pin(Gpio), Value(..), alleValues
-                    , PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio
-                    , GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
-import Zug.Enums
-       (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, Richtung(..), unterstützteRichtungen)
+                    , PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, GeschwindigkeitVariante(..)
+                , GeschwindigkeitEither(..), Richtung(..), unterstützteRichtungen)
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(..))

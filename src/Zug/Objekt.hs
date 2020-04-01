@@ -12,10 +12,10 @@ module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(
 import Data.Kind (Type)
 import Data.Text (Text)
 
-import Zug.Anbindung
-       (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(..), Streckenabschnitt(), Weiche()
-      , Kupplung(), Wegstrecke(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..))
+import Zug.Anbindung (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(..), Streckenabschnitt()
+                    , Weiche(), Kupplung(), Wegstrecke())
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
+                , GeschwindigkeitEither(..))
 import Zug.Language (Sprache())
 import Zug.Plan (Plan(..))
 

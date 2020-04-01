@@ -32,13 +32,13 @@ import qualified Data.Text as Text
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung
-       (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..), Bahngeschwindigkeit(..)
-      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(..), StreckenabschnittKlasse(..)
-      , Kupplung(..), KupplungKlasse(..), Wartezeit(..), GeschwindigkeitVariante(..)
-      , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..))
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung(..), unterstützteRichtungen, Strom(..)
-                , Fahrtrichtung(..), unterstützteFahrtrichtungen)
+import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..)
+                    , Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
+                    , StreckenabschnittKlasse(..), Kupplung(..), KupplungKlasse(..), Wartezeit(..))
+import Zug.Enums
+       (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
+      , GeschwindigkeitPhantom(..), Richtung(..), unterstützteRichtungen, Strom(..)
+      , Fahrtrichtung(..), unterstützteFahrtrichtungen)
 import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)

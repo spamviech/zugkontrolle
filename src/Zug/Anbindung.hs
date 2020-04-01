@@ -43,12 +43,6 @@ module Zug.Anbindung
   , StreckenObjekt(..)
   , StreckenAtom(..)
     -- ** Bahngeschwindigkeiten
-  , GeschwindigkeitVariante(..)
-  , GeschwindigkeitEither(..)
-  , GeschwindigkeitEitherKlasse(..)
-  , mapGeschwindigkeitEither
-  , ausGeschwindigkeitEither
-  , GeschwindigkeitPhantom(..)
   , Bahngeschwindigkeit(..)
   , BahngeschwindigkeitKlasse(..)
   , verwendetPwm
@@ -98,7 +92,9 @@ import Zug.Anbindung.SoftwarePWM
        (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
 import Zug.Anbindung.Wartezeit
        (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom(..), Fahrtrichtung(..), Richtung(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
+                , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), catPwm
+                , catKonstanteSpannung, Strom(..), Fahrtrichtung(..), Richtung(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
 import Zug.Options (Options(..), PWM(..), getOptions)
@@ -220,6 +216,23 @@ instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego))
     erhalteName (ZugtypMärklin a) = erhalteName a
     erhalteName (ZugtypLego a) = erhalteName a
 
+instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
+    => StreckenObjekt (GeschwindigkeitEither bg z) where
+    anschlüsse :: GeschwindigkeitEither bg z -> [Anschluss]
+    anschlüsse (GeschwindigkeitPwm bg) = anschlüsse bg
+    anschlüsse (GeschwindigkeitKonstanteSpannung bg) = anschlüsse bg
+
+    erhalteName :: GeschwindigkeitEither bg z -> Text
+    erhalteName (GeschwindigkeitPwm bg) = erhalteName bg
+    erhalteName (GeschwindigkeitKonstanteSpannung bg) = erhalteName bg
+
+instance (StreckenObjekt (a z)) => StreckenObjekt (GeschwindigkeitPhantom a g z) where
+    anschlüsse :: GeschwindigkeitPhantom a g z -> [Anschluss]
+    anschlüsse (GeschwindigkeitPhantom a) = anschlüsse a
+
+    erhalteName :: GeschwindigkeitPhantom a g z -> Text
+    erhalteName (GeschwindigkeitPhantom a) = erhalteName a
+
 instance (StreckenObjekt a) => StreckenObjekt (Maybe a) where
     anschlüsse :: Maybe a -> [Anschluss]
     anschlüsse (Just a) = anschlüsse a
@@ -321,110 +334,6 @@ instance StreckenAtom (Bahngeschwindigkeit b z) where
     fließend LegoBahngeschwindigkeit {bglFließend} = bglFließend
     fließend MärklinBahngeschwindigkeitPwm {bgmpFließend} = bgmpFließend
     fließend MärklinBahngeschwindigkeitKonstanteSpannung {bgmkFließend} = bgmkFließend
-
--- | Die Art, wie Geschwindigkeit eingestellt wird.
-data GeschwindigkeitVariante
-    = Pwm
-    | KonstanteSpannung
-    deriving (Show, Eq)
-
-data GeschwindigkeitEither bg (z :: Zugtyp)
-    = GeschwindigkeitPwm (bg 'Pwm z)
-    | GeschwindigkeitKonstanteSpannung (bg 'KonstanteSpannung z)
-
-deriving instance (Eq (bg 'Pwm z), Eq (bg 'KonstanteSpannung z)) => Eq (GeschwindigkeitEither bg z)
-
-deriving instance (Show (bg 'Pwm z), Show (bg 'KonstanteSpannung z))
-    => Show (GeschwindigkeitEither bg z)
-
-instance (Anzeige (bg 'Pwm z), Anzeige (bg 'KonstanteSpannung z))
-    => Anzeige (GeschwindigkeitEither bg z) where
-    anzeige :: GeschwindigkeitEither bg z -> Sprache -> Text
-    anzeige (GeschwindigkeitPwm bg) = anzeige bg
-    anzeige (GeschwindigkeitKonstanteSpannung bg) = anzeige bg
-
-instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
-    => StreckenObjekt (GeschwindigkeitEither bg z) where
-    anschlüsse :: GeschwindigkeitEither bg z -> [Anschluss]
-    anschlüsse (GeschwindigkeitPwm bg) = anschlüsse bg
-    anschlüsse (GeschwindigkeitKonstanteSpannung bg) = anschlüsse bg
-
-    erhalteName :: GeschwindigkeitEither bg z -> Text
-    erhalteName (GeschwindigkeitPwm bg) = erhalteName bg
-    erhalteName (GeschwindigkeitKonstanteSpannung bg) = erhalteName bg
-
--- | Führe eine 'GeschwindigkeitVariante'-generische Funktion auf einem 'GeschwindigkeitEither' aus.
-mapGeschwindigkeitEither :: (forall (g :: GeschwindigkeitVariante). a g z -> b g z)
-                         -> GeschwindigkeitEither a z
-                         -> GeschwindigkeitEither b z
-mapGeschwindigkeitEither f (GeschwindigkeitPwm a) = GeschwindigkeitPwm $ f a
-mapGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) =
-    GeschwindigkeitKonstanteSpannung $ f a
-
--- | Erhalte das Ergebnis einer 'GeschwindigkeitVariante'-generischen Funktion aus einem 'GeschwindigkeitEither'.
-ausGeschwindigkeitEither
-    :: (forall (g :: GeschwindigkeitVariante). a g z -> b) -> GeschwindigkeitEither a z -> b
-ausGeschwindigkeitEither f (GeschwindigkeitPwm a) = f a
-ausGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) = f a
-
--- | Klasse zur Extraktion aus 'GeschwindigkeitEither'
-class GeschwindigkeitEitherKlasse (g :: GeschwindigkeitVariante) where
-    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a g z)
-    zuGeschwindigkeitEither :: a g z -> GeschwindigkeitEither a z
-
-instance GeschwindigkeitEitherKlasse 'Pwm where
-    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'Pwm z)
-    vonGeschwindigkeitEither (GeschwindigkeitPwm a) = Just a
-    vonGeschwindigkeitEither _zugtypEither = Nothing
-
-    zuGeschwindigkeitEither :: a 'Pwm z -> GeschwindigkeitEither a z
-    zuGeschwindigkeitEither = GeschwindigkeitPwm
-
-instance GeschwindigkeitEitherKlasse 'KonstanteSpannung where
-    vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'KonstanteSpannung z)
-    vonGeschwindigkeitEither (GeschwindigkeitKonstanteSpannung a) = Just a
-    vonGeschwindigkeitEither _zugtypEither = Nothing
-
-    zuGeschwindigkeitEither :: a 'KonstanteSpannung z -> GeschwindigkeitEither a z
-    zuGeschwindigkeitEither = GeschwindigkeitKonstanteSpannung
-
--- | Sammle alle 'PWM'-Typen
-catPwm :: [GeschwindigkeitEither bg z] -> [bg 'Pwm z]
-catPwm ls = [x | GeschwindigkeitPwm x <- ls]
-
--- | Sammle alle 'KonstanteSpannung'-Typen
-catKonstanteSpannung :: [GeschwindigkeitEither bg z] -> [bg 'KonstanteSpannung z]
-catKonstanteSpannung ls = [x | GeschwindigkeitKonstanteSpannung x <- ls]
-
--- | newtype-Wrapper um einen 'GeschwindigkeitVariante'-Phantomtyp hinzuzufügen.
---
--- Wird benötigt, um eine 'BahngeschwindigkeitKlasse'-Instanz von 'Wegstrecke' zu erstellen.
-newtype GeschwindigkeitPhantom a (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
-    GeschwindigkeitPhantom (a z)
-
-instance (StreckenObjekt (a z)) => StreckenObjekt (GeschwindigkeitPhantom a g z) where
-    anschlüsse :: GeschwindigkeitPhantom a g z -> [Anschluss]
-    anschlüsse (GeschwindigkeitPhantom a) = anschlüsse a
-
-    erhalteName :: GeschwindigkeitPhantom a g z -> Text
-    erhalteName (GeschwindigkeitPhantom a) = erhalteName a
-
-instance (Show (a z)) => Show (GeschwindigkeitPhantom a g z) where
-    show :: GeschwindigkeitPhantom a g z -> String
-    show (GeschwindigkeitPhantom a) = show a
-
-instance (Eq (a z)) => Eq (GeschwindigkeitPhantom a g z) where
-    (==) :: GeschwindigkeitPhantom a g z -> GeschwindigkeitPhantom a g z -> Bool
-    (==) (GeschwindigkeitPhantom a) (GeschwindigkeitPhantom b) = a == b
-
-instance (Anzeige (a z)) => Anzeige (GeschwindigkeitPhantom a g z) where
-    anzeige :: GeschwindigkeitPhantom a g z -> Sprache -> Text
-    anzeige (GeschwindigkeitPhantom a) = anzeige a
-
-instance Anzeige GeschwindigkeitVariante where
-    anzeige :: GeschwindigkeitVariante -> Sprache -> Text
-    anzeige Pwm = Language.geschwindigkeitPwm
-    anzeige KonstanteSpannung = Language.geschwindigkeitKonstanteSpannung
 
 -- | Verwendet die 'Bahngeschwindigkeit' PWM zur Geschwindigkeitskontrolle?
 verwendetPwm :: Bahngeschwindigkeit g z -> GeschwindigkeitVariante

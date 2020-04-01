@@ -34,11 +34,12 @@ import System.Directory (doesFileExist)
 
 import Zug.Anbindung
        (Wartezeit(..), Anschluss(..), Pin(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..)
-      , vonPinGpio, zuPinGpio, pinToBcmGpio, Bahngeschwindigkeit(..), GeschwindigkeitVariante(..)
-      , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Streckenabschnitt(..), Weiche(..)
-      , Kupplung(..), Wegstrecke(..))
+      , vonPinGpio, zuPinGpio, pinToBcmGpio, Bahngeschwindigkeit(..), Streckenabschnitt(..)
+      , Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
-import Zug.Enums (Richtung(..), Zugtyp(..), ZugtypEither(..), Fahrtrichtung(..), Strom(..))
+import Zug.Enums
+       (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
+      , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..))
 import Zug.Language (Sprache())
 import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
 import Zug.Plan (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)

@@ -91,8 +91,8 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty
-                    , MitI2CMap(..), StreckenObjekt(..), GeschwindigkeitEither())
-import Zug.Enums (Zugtyp(..), ZugtypEither())
+                    , MitI2CMap(..), StreckenObjekt(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
 import Zug.Menge (Menge, leer)
