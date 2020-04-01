@@ -218,8 +218,9 @@ aktuelleAuswahl AuswahlComboBox {comboBox, enumIndizes} = liftIO $ do
 -- | Führe die übergebene Aktion bei Änderung der Auswahl aus (vgl. 'Gtk.on')
 beiAuswahl :: (Eq e, MonadIO m) => AuswahlWidget e -> (e -> IO ()) -> m ()
 beiAuswahl auswahlWidget@AuswahlRadioButton {enumButtons} aktion =
-    liftIO $ forM_ enumButtons $ \(_e, radioButton)
-    -> Gtk.on radioButton Gtk.toggled $ aktuelleAuswahl auswahlWidget >>= aktion
+    liftIO $ forM_ enumButtons $ \(e, radioButton) -> Gtk.on radioButton Gtk.toggled $ do
+        auswahl <- aktuelleAuswahl auswahlWidget
+        when (e == auswahl) $ aktion e
 beiAuswahl auswahlWidget@AuswahlComboBox {comboBox} aktion =
     void $ liftIO $ Gtk.on comboBox Gtk.changed $ aktuelleAuswahl auswahlWidget >>= aktion
 
