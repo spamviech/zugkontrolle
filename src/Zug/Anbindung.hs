@@ -920,8 +920,12 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                             -> Fahrtrichtung
                             -> m ()
     fahrtrichtungEinstellen
-        (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten})
+        (GeschwindigkeitPhantom ws@Wegstrecke {wsBahngeschwindigkeiten})
         neueFahrtrichtung = do
+        geschwindigkeit (GeschwindigkeitPhantom ws) 0
+        fahrstrom (GeschwindigkeitPhantom ws) Gesperrt
+        warte umdrehenZeit
+        strom ws Fließend
         let (fahrtrichtungsPins, fahrtrichtungPcf8574PortsHigh, fahrtrichtungPcf8574PortsLow) =
                 foldl splitAnschlüsse ([], [], []) wsBahngeschwindigkeiten
             splitAnschlüsse
