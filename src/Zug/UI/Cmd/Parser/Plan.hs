@@ -357,26 +357,26 @@ instance AktionWegstreckeZugtyp 'Märklin where
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , ( Lexer.Geschwindigkeit
-              , AFZwischenwert
+                  , AFZwischenwert
                     $ AAWSBahngeschwindigkeit
                     $ GeschwindigkeitPwm
                     $ AABGGeschwindigkeit
                     $ GeschwindigkeitPhantom wegstrecke
-              )
+                  )
             , ( Lexer.Fahrstrom
-              , AFZwischenwert
+                  , AFZwischenwert
                     $ AAWSBahngeschwindigkeit
                     $ GeschwindigkeitKonstanteSpannung
                     $ AABGFahrstrom
                     $ GeschwindigkeitPhantom wegstrecke
-              )
+                  )
             , ( Lexer.Umdrehen
-              , AFErgebnis
+                  , AFErgebnis
                     $ AWSBahngeschwindigkeit
                     $ GeschwindigkeitPwm
                     $ Umdrehen
                     $ GeschwindigkeitPhantom wegstrecke
-              )
+                  )
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe
@@ -392,25 +392,25 @@ instance AktionWegstreckeZugtyp 'Lego where
             token
             [ (Lexer.Einstellen, AFErgebnis $ Einstellen wegstrecke)
             , ( Lexer.Geschwindigkeit
-              , AFZwischenwert
+                  , AFZwischenwert
                     $ AAWSBahngeschwindigkeit
                     $ GeschwindigkeitPwm
                     $ AABGGeschwindigkeit
                     $ GeschwindigkeitPhantom wegstrecke
-              )
+                  )
             , ( Lexer.Fahrstrom
-              , AFZwischenwert
+                  , AFZwischenwert
                     $ AAWSBahngeschwindigkeit
                     $ GeschwindigkeitKonstanteSpannung
                     $ AABGFahrstrom (GeschwindigkeitPhantom wegstrecke)
-              )
+                  )
             , ( Lexer.FahrtrichtungEinstellen
-              , AFZwischenwert
+                  , AFZwischenwert
                     $ AAWSBahngeschwindigkeit
                     $ GeschwindigkeitPwm
                     $ AABGFahrtrichtungEinstellen
                     $ GeschwindigkeitPhantom wegstrecke
-              )
+                  )
             , (Lexer.Strom, AFZwischenwert $ AAWSStreckenabschnitt $ AASTStrom wegstrecke)
             , (Lexer.Kuppeln, AFErgebnis $ AWSKupplung $ Kuppeln wegstrecke)]
         $ AFFehler eingabe

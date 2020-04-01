@@ -429,11 +429,11 @@ instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
         bgmkUmdrehenAnschluss <- v .: umdrehenAnschlussJS
         pure
             MärklinBahngeschwindigkeitKonstanteSpannung
-                { bgmkName
-                , bgmkFließend
-                , bgmkFahrstromAnschluss
-                , bgmkUmdrehenAnschluss
-                }
+            { bgmkName
+            , bgmkFließend
+            , bgmkFahrstromAnschluss
+            , bgmkUmdrehenAnschluss
+            }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
@@ -447,11 +447,11 @@ instance FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
         bglFließend <- parseFließend v
         pure
             LegoBahngeschwindigkeit
-                { bglName
-                , bglFließend
-                , bglGeschwindigkeitsPin
-                , bglFahrtrichtungsAnschluss
-                }
+            { bglName
+            , bglFließend
+            , bglGeschwindigkeitsPin
+            , bglFahrtrichtungsAnschluss
+            }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
@@ -462,7 +462,7 @@ instance ToJSON (Bahngeschwindigkeit b z) where
     toJSON :: Bahngeschwindigkeit b z -> Value
     toJSON
         LegoBahngeschwindigkeit
-            {bglName, bglFließend, bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
+        {bglName, bglFließend, bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
         object
             [ nameJS .= bglName
             , fließendJS .= bglFließend
@@ -477,7 +477,7 @@ instance ToJSON (Bahngeschwindigkeit b z) where
             , zugtypJS .= Märklin]
     toJSON
         MärklinBahngeschwindigkeitKonstanteSpannung
-            {bgmkName, bgmkFließend, bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
+        {bgmkName, bgmkFließend, bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
         object
             [ nameJS .= bgmkName
             , fließendJS .= bgmkFließend
@@ -609,11 +609,8 @@ instance FromJSON (Wegstrecke 'Lego) where
 instance ToJSON (Wegstrecke z) where
     toJSON :: Wegstrecke z -> Value
     toJSON
-        Wegstrecke { wsName
-                   , wsBahngeschwindigkeiten
-                   , wsStreckenabschnitte
-                   , wsWeichenRichtungen
-                   , wsKupplungen} =
+        Wegstrecke
+        {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
         object
             [ nameJS .= wsName
             , bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten

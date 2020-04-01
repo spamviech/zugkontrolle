@@ -322,7 +322,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
         zeigeAnfrage abgmkFahrstromAnfrageAnschluss
     zeigeAnfrage
         AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-            {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrage abgmkUmdrehenAnfrageAnschluss
+        {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrage abgmkUmdrehenAnfrageAnschluss
     zeigeAnfrage ALegoBahngeschwindigkeit = Language.name
     zeigeAnfrage ALegoBahngeschwindigkeitName {} = Language.fließendValue
     zeigeAnfrage ALegoBahngeschwindigkeitNameFließend {} = Language.pin
@@ -343,7 +343,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
         eingabe = zeigeAnfrageFehlgeschlagen abgmkFahrstromAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
         AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-            {abgmkUmdrehenAnfrageAnschluss}
+        {abgmkUmdrehenAnfrageAnschluss}
         eingabe = zeigeAnfrageFehlgeschlagen abgmkUmdrehenAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen anfrage@ALegoBahngeschwindigkeitName {} eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
@@ -368,7 +368,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
         zeigeAnfrageOptionen abgmkFahrstromAnfrageAnschluss
     zeigeAnfrageOptionen
         AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-            {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrageOptionen abgmkUmdrehenAnfrageAnschluss
+        {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrageOptionen abgmkUmdrehenAnfrageAnschluss
     zeigeAnfrageOptionen ALegoBahngeschwindigkeitName {} = Just $ toBefehlsString . \sprache
         -> map (`anzeige` sprache) $ NE.toList alleValues
     zeigeAnfrageOptionen
@@ -426,17 +426,17 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
         wähleZwischenwert
             token
             [ ( Lexer.HIGH
-              , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
+                  , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
                     abgmkName
                     HIGH
                     AnfrageAnschluss
-              )
+                  )
             , ( Lexer.LOW
-              , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
+                  , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
                     abgmkName
                     LOW
                     AnfrageAnschluss
-              )]
+                  )]
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
                      name
@@ -484,11 +484,11 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
             anschlussVerwenden bgmkUmdrehenAnschluss =
                 AFErgebnis
                     MärklinBahngeschwindigkeitKonstanteSpannung
-                        { bgmkName
-                        , bgmkFließend
-                        , bgmkFahrstromAnschluss
-                        , bgmkUmdrehenAnschluss
-                        }
+                    { bgmkName
+                    , bgmkFließend
+                    , bgmkFahrstromAnschluss
+                    , bgmkUmdrehenAnschluss
+                    }
 
 instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
     type AnfrageTyp (Bahngeschwindigkeit 'Pwm 'Lego) =
@@ -537,11 +537,11 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
             anschlussVerwenden bglFahrtrichtungsAnschluss =
                 AFErgebnis
                     LegoBahngeschwindigkeit
-                        { bglName
-                        , bglFließend
-                        , bglGeschwindigkeitsPin
-                        , bglFahrtrichtungsAnschluss
-                        }
+                    { bglName
+                    , bglFließend
+                    , bglGeschwindigkeitsPin
+                    , bglFahrtrichtungsAnschluss
+                    }
 
 instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
     type AnfrageTyp (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) =
@@ -817,10 +817,10 @@ instance MitAnfrage (Weiche 'Märklin) where
                 | otherwise =
                     AFErgebnis
                         MärklinWeiche
-                            { wemName
-                            , wemFließend
-                            , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
-                            }
+                        { wemName
+                        , wemFließend
+                        , wemRichtungsAnschlüsse = (richtung, anschluss) :| acc
+                        }
 
 instance MitAnfrage (Weiche 'Lego) where
     type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
@@ -1063,12 +1063,12 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, g
         (Just anzahl) -> AFZwischenwert
             $ AWegstreckeNameAnzahl
                 Wegstrecke
-                    { wsName
-                    , wsBahngeschwindigkeiten = []
-                    , wsStreckenabschnitte = []
-                    , wsWeichenRichtungen = []
-                    , wsKupplungen = []
-                    }
+                { wsName
+                , wsBahngeschwindigkeiten = []
+                , wsStreckenabschnitte = []
+                , wsWeichenRichtungen = []
+                , wsKupplungen = []
+                }
                 anzahl
 anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token =
     case anfrageWegstreckenElement token of
@@ -1161,7 +1161,7 @@ anfrageWegstreckeAktualisieren
         weicheRichtungAnhängen :: AnfrageWegstrecke z -> Richtung -> Wegstrecke (FixerZugtyp z)
         weicheRichtungAnhängen
             AWegstreckeNameAnzahlWeicheRichtung
-                {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
+            {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
             richtung =
             wegstrecke { wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen }
         weicheRichtungAnhängen anfrageWegstrecke _richtung =
@@ -1228,10 +1228,10 @@ instance MitAnfrage Objekt where
         wähleZwischenwert
             token
             [ ( Lexer.Bahngeschwindigkeit
-              , AOBahngeschwindigkeit
+                  , AOBahngeschwindigkeit
                     $ AnfrageNothing
                     $ AnfrageGeschwindigkeitNothing AnfrageBahngeschwindigkeit
-              )
+                  )
             , (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt)
             , (Lexer.Weiche, AOWeiche $ AnfrageNothing AnfrageWeiche)
             , (Lexer.Wegstrecke, AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp)
@@ -1250,16 +1250,16 @@ instance MitAnfrage Objekt where
         wähleZwischenwert
             token
             [ ( Lexer.Pwm
-              , AOBahngeschwindigkeit
+                  , AOBahngeschwindigkeit
                     $ AnfrageMärklin
                     $ AnfrageGeschwindigkeitPwm AMärklinBahngeschwindigkeitPwm
-              )
+                  )
             , ( Lexer.KonstanteSpannung
-              , AOBahngeschwindigkeit
+                  , AOBahngeschwindigkeit
                     $ AnfrageMärklin
                     $ AnfrageGeschwindigkeitKonstanteSpannung
                         AMärklinBahngeschwindigkeitKonstanteSpannung
-              )]
+                  )]
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageMärklin (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))
         token =
@@ -1281,10 +1281,10 @@ instance MitAnfrage Objekt where
         wähleZwischenwert
             token
             [ ( Lexer.Pwm
-              , AOBahngeschwindigkeit
+                  , AOBahngeschwindigkeit
                     $ AnfrageLego
                     $ AnfrageGeschwindigkeitPwm ALegoBahngeschwindigkeit
-              )]
+                  )]
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageLego (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))
         token =
