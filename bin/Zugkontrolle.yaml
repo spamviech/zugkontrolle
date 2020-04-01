@@ -6,8 +6,8 @@ Streckenabschnitte:
 Bahngeschwindigkeiten:
 - UmdrehenAnschluss:
     Pin: 0
-  FahrstromAnschluss:
-    PCF8574Port:
+  FahrstromAnschlüsse:
+  - PCF8574Port:
       Variante: A
       a2: HIGH
       PCF8574Port: 0
@@ -123,8 +123,8 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - UmdrehenAnschluss:
       Pin: 0
-    FahrstromAnschluss:
-      PCF8574Port:
+    FahrstromAnschlüsse:
+    - PCF8574Port:
         Variante: A
         a2: HIGH
         PCF8574Port: 0

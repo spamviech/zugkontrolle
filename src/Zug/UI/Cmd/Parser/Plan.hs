@@ -88,15 +88,14 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b g z) where
     zeigeAnfrageFehlgeschlagen anfrage@(AABGGeschwindigkeit _bahngeschwindigkeit) eingabe =
         zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen anfrage@(AABGFahrstrom _bahngeschwindigkeit) eingabe =
-        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.stromErwartet
+        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
     zeigeAnfrageOptionen :: AnfrageAktionBahngeschwindigkeit b g z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen (AnfrageAktionBahngeschwindigkeit _bahngeschwindigkeit) =
         Just $ toBefehlsString . Language.aktionBahngeschwindigkeit
     zeigeAnfrageOptionen (AABGGeschwindigkeit _bahngeschwindigkeit) = Nothing
-    zeigeAnfrageOptionen (AABGFahrstrom _bahngeschwindigkeit) = Just $ \sprache -> toBefehlsString
-        $ map ($ sprache) [Language.an, Language.aus]
+    zeigeAnfrageOptionen (AABGFahrstrom _bahngeschwindigkeit) = Nothing
     zeigeAnfrageOptionen (AABGFahrtrichtungEinstellen _bahngeschwindigkeit) =
         Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache)
                                   $ NE.toList unterstützteFahrtrichtungen)
@@ -182,13 +181,13 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp g z)
             $ Geschwindigkeit bahngeschwindigkeit
             $ fromIntegral
             $ min (fromIntegral (maxBound :: Word8)) wert
-    anfrageAktualisieren (AABGFahrstrom bahngeschwindigkeit) token =
-        wähleErgebnis
-            token
-            [ (Lexer.Fließend, Fahrstrom bahngeschwindigkeit Fließend)
-            , (Lexer.An, Fahrstrom bahngeschwindigkeit Fließend)
-            , (Lexer.Gesperrt, Fahrstrom bahngeschwindigkeit Gesperrt)
-            , (Lexer.Aus, Fahrstrom bahngeschwindigkeit Gesperrt)]
+    anfrageAktualisieren (AABGFahrstrom bahngeschwindigkeit) EingabeToken {eingabe, ganzzahl} =
+        case ganzzahl of
+            Nothing -> AFFehler eingabe
+            (Just wert) -> AFErgebnis
+                $ Fahrstrom bahngeschwindigkeit
+                $ fromIntegral
+                $ min (fromIntegral (maxBound :: Word8)) wert
     anfrageAktualisieren (AABGFahrtrichtungEinstellen bahngeschwindigkeit) token =
         wähleErgebnis
             token
@@ -197,8 +196,8 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp g z)
 
 -- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
 data AnfrageAktionStreckenabschnitt s
-    = AnfrageAktionStreckenabschnitt s           -- ^ Streckenabschnitt
-    | AASTStrom s           -- ^ Streckenabschnitt
+    = AnfrageAktionStreckenabschnitt s
+    | AASTStrom s
     deriving (Eq, Show)
 
 instance (Anzeige s) => Anzeige (AnfrageAktionStreckenabschnitt s) where
@@ -729,6 +728,7 @@ instance MitAnfrage Plan where
     anfrageAktualisieren AnfragePlan EingabeToken {eingabe} = AFZwischenwert $ APlanName eingabe
     anfrageAktualisieren (APlanName name) EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
+        (Just 0) -> AFFehler eingabe
         (Just anzahl)
             -> AFZwischenwert $ APlanNameAnzahl name anzahl Warteschlange.leer AnfrageAktion
     anfrageAktualisieren (APlanNameAnzahl name anzahl acc anfrageAktion) token =

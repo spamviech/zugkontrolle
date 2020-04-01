@@ -17,6 +17,7 @@ module Zug.UI.Gtk.Auswahl
     -- * Datentyp
     AuswahlWidget()
   , aktuelleAuswahl
+  , setzeAuswahl
   , beiAuswahl
     -- * Konstruktoren
   , auswahlRadioButtonNamedNew
@@ -41,6 +42,7 @@ import Control.Monad (when, void, forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Graphics.UI.Gtk (AttrOp(..))
@@ -180,7 +182,18 @@ boundedEnumAuswahlComboBoxNew
 boundedEnumAuswahlComboBoxNew
     standard = auswahlComboBoxNew $ standard :| delete standard [minBound .. maxBound]
 
--- | Erhalte den aktuell ausgewählten 'Value'
+-- | Setzte den aktuellen Wert eines 'AuswahlWidget'.
+--
+-- Wenn der Wert nicht im 'AuswahlWidget' enthalten ist wird der aktuelle Wert nicht verändert.
+setzeAuswahl :: (MonadIO m, Eq e) => AuswahlWidget e -> e -> m ()
+setzeAuswahl AuswahlRadioButton {enumButtons} wert = liftIO $ forM_ enumButtons $ \(e, radioButton)
+    -> when (e == wert) $ Gtk.set radioButton [Gtk.toggleButtonActive := True]
+setzeAuswahl AuswahlComboBox {comboBox, enumIndizes} wert =
+    case lookup wert $ NonEmpty.toList enumIndizes of
+        (Just index) -> liftIO $ Gtk.set comboBox [Gtk.comboBoxActive := index]
+        Nothing -> pure ()
+
+-- | Erhalte den aktuell ausgewählten Wert.
 aktuelleAuswahl :: (MonadIO m, Eq e) => AuswahlWidget e -> m e
 aktuelleAuswahl
     AuswahlRadioButton {enumButtons} = liftIO $ fromJust <$> foldM foldEnum Nothing enumButtons
@@ -194,7 +207,7 @@ aktuelleAuswahl
                     then Just e
                     else Nothing
 aktuelleAuswahl AuswahlComboBox {comboBox, enumIndizes} = liftIO $ do
-    activeIndex <- Gtk.comboBoxGetActive comboBox
+    activeIndex <- Gtk.get comboBox Gtk.comboBoxActive
     let foldEnum :: (Eq e) => (e, Int) -> Maybe e -> Maybe e
         foldEnum _enumIndex justE@(Just _e) = justE
         foldEnum (e, index) Nothing

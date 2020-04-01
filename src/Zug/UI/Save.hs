@@ -385,8 +385,8 @@ fahrtrichtungsPinJS = "FahrtrichtungsPin"
 fahrtrichtungsAnschlussJS :: Text
 fahrtrichtungsAnschlussJS = "FahrtrichtungsAnschluss"
 
-fahrstromAnschlussJS :: Text
-fahrstromAnschlussJS = "FahrstromAnschluss"
+fahrstromAnschlüsseJS :: Text
+fahrstromAnschlüsseJS = "FahrstromAnschlüsse"
 
 umdrehenAnschlussJS :: Text
 umdrehenAnschlussJS = "UmdrehenAnschluss"
@@ -426,13 +426,13 @@ instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
         Märklin <- v .: zugtypJS
         bgmkName <- v .: nameJS
         bgmkFließend <- parseFließend v
-        bgmkFahrstromAnschluss <- v .: fahrstromAnschlussJS
+        bgmkFahrstromAnschlüsse <- v .: fahrstromAnschlüsseJS
         bgmkUmdrehenAnschluss <- v .: umdrehenAnschlussJS
         pure
             MärklinBahngeschwindigkeitKonstanteSpannung
             { bgmkName
             , bgmkFließend
-            , bgmkFahrstromAnschluss
+            , bgmkFahrstromAnschlüsse
             , bgmkUmdrehenAnschluss
             }
     parseJSON _value = mzero
@@ -478,11 +478,11 @@ instance ToJSON (Bahngeschwindigkeit b z) where
             , zugtypJS .= Märklin]
     toJSON
         MärklinBahngeschwindigkeitKonstanteSpannung
-        {bgmkName, bgmkFließend, bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss} =
+        {bgmkName, bgmkFließend, bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
         object
             [ nameJS .= bgmkName
             , fließendJS .= bgmkFließend
-            , fahrstromAnschlussJS .= bgmkFahrstromAnschluss
+            , fahrstromAnschlüsseJS .= bgmkFahrstromAnschlüsse
             , umdrehenAnschlussJS .= bgmkUmdrehenAnschluss
             , zugtypJS .= Märklin]
 

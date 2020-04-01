@@ -42,7 +42,7 @@ instance MitSpracheGui SpracheGui where
     spracheGui = pure
 
 -- | Abkürzungen für Funktionen, die ein 'SpracheGui' benötigen.
-class (MonadReader r m) => SpracheGuiReader r m where
+class (MonadReader r m, MitSpracheGui r) => SpracheGuiReader r m where
     erhalteSpracheGui :: m SpracheGui
 
 instance (MonadReader r m, MitSpracheGui r, MonadIO m) => SpracheGuiReader r m where

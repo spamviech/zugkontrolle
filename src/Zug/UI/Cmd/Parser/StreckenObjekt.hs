@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -34,10 +35,13 @@ module Zug.UI.Cmd.Parser.StreckenObjekt
   , AnfrageObjekt(..)
   ) where
 
+import Data.Foldable (Foldable(toList))
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..)
@@ -45,7 +49,7 @@ import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..)
                     , PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), Richtung(..), unterstützteRichtungen)
-import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), toBefehlsString)
+import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), (<~>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
@@ -57,6 +61,8 @@ import Zug.UI.Cmd.Parser.Anfrage
       , AnfrageFortsetzung(..), ($<<), wähleBefehl, wähleRichtung, wähleValue, wähleZwischenwert
       , StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..))
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
+import Zug.Warteschlange (Warteschlange)
+import qualified Zug.Warteschlange as Warteschlange
 
 -- | Unvollständiger 'Anschluss'
 data AnfrageAnschluss
@@ -140,11 +146,11 @@ instance Anfrage AnfrageAnschluss where
     zeigeAnfrageOptionen APCF8574Port = Just $ toBefehlsString . \sprache
         -> map ($ sprache) [Language.normal, Language.a]
     zeigeAnfrageOptionen (APCF8574PortVariant _variante) = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen (APCF8574PortVariantA0 _variante _a0) = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen (APCF8574PortVariantA0A1 _variante _a0 _a1) =
-        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NE.toList alleValues
+        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen _anfrage = Nothing
 
 instance MitAnfrage Anschluss where
@@ -204,14 +210,19 @@ data AnfrageBahngeschwindigkeit (g :: AnfrageGeschwindigkeitVariante) (z :: Anfr
     AMärklinBahngeschwindigkeitNameKonstanteSpannung :: { abgmkName :: Text }
         -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin
     AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
+        :: { abgmkName :: Text, abgmkFließend :: Value }
+        -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin
+    AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
         :: { abgmkName :: Text
            , abgmkFließend :: Value
+           , abgmkFahrstromAnschlüsseAnzahl :: Word8
+           , abgmkFahrstromAnschlüsseAkkumulator :: Warteschlange Anschluss
            , abgmkFahrstromAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin
     AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
         :: { abgmkName :: Text
            , abgmkFließend :: Value
-           , abgmkFahrstromAnschluss :: Anschluss
+           , abgmkFahrstromAnschlüsse :: NonEmpty Anschluss
            , abgmkUmdrehenAnfrageAnschluss :: AnfrageAnschluss
            } -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin
     -- Pwm, Lego
@@ -255,23 +266,34 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
         Language.märklin
         <-> Language.geschwindigkeitKonstanteSpannung
         <-> Language.bahngeschwindigkeit <^> Language.name <=> name
+    anzeige (AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung name fließend) =
+        Language.märklin
+        <-> Language.bahngeschwindigkeit
+        <-> Language.geschwindigkeitKonstanteSpannung
+        <^> Language.name <=> name <^> Language.fließendValue <=> fließend
     anzeige
-        (AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
+        (AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
              name
              fließend
-             fahrstromAnschluss) =
+             fahrstromAnzahl
+             fahrstromAnschlüsse
+             fahrstromAnfrageAnschluss) =
         Language.märklin
         <-> Language.bahngeschwindigkeit
         <-> Language.geschwindigkeitKonstanteSpannung
         <^> Language.name
         <=> name
         <^> Language.fließendValue
-        <=> fließend <^> Language.fahrstrom <-> Language.anschluss <=> fahrstromAnschluss
+        <=> fließend
+        <^> Language.fahrstrom
+        <-> Language.anschlüsse
+        <~> (const "(" <> anzeige fahrstromAnzahl <> const ")")
+        <=> fahrstromAnschlüsse <^> fahrstromAnfrageAnschluss
     anzeige
         (AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
              name
              fließend
-             fahrstromAnschluss
+             fahrstromAnschlüsse
              umdrehenAnschluss) =
         Language.märklin
         <-> Language.bahngeschwindigkeit
@@ -281,8 +303,8 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
         <^> Language.fließendValue
         <=> fließend
         <^> Language.fahrstrom
-        <-> Language.anschluss
-        <=> fahrstromAnschluss <^> Language.umdrehen <-> Language.anschluss <=> umdrehenAnschluss
+        <-> Language.anschlüsse
+        <=> fahrstromAnschlüsse <^> Language.umdrehen <-> Language.anschluss <=> umdrehenAnschluss
     anzeige ALegoBahngeschwindigkeit = Language.lego <-> Language.bahngeschwindigkeit
     anzeige (ALegoBahngeschwindigkeitName name) =
         Language.lego <-> Language.bahngeschwindigkeit <^> Language.name <=> name
@@ -316,9 +338,11 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
     zeigeAnfrage AMärklinBahngeschwindigkeitNameFließendPwm {} = Language.pin
     zeigeAnfrage AMärklinBahngeschwindigkeitKonstanteSpannung = Language.name
     zeigeAnfrage AMärklinBahngeschwindigkeitNameKonstanteSpannung {} = Language.fließendValue
+    zeigeAnfrage AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {} =
+        Language.anzahl $# Language.fahrstrom <-> Language.anschlüsse
     zeigeAnfrage
-        AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {abgmkFahrstromAnfrageAnschluss} =
-        zeigeAnfrage abgmkFahrstromAnfrageAnschluss
+        AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
+        {abgmkFahrstromAnfrageAnschluss} = zeigeAnfrage abgmkFahrstromAnfrageAnschluss
     zeigeAnfrage
         AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
         {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrage abgmkUmdrehenAnfrageAnschluss
@@ -338,7 +362,11 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
         anfrage@AMärklinBahngeschwindigkeitNameKonstanteSpannung {}
         eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
     zeigeAnfrageFehlgeschlagen
-        AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {abgmkFahrstromAnfrageAnschluss}
+        anfrage@AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {}
+        eingabe = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen
+        AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
+        {abgmkFahrstromAnfrageAnschluss}
         eingabe = zeigeAnfrageFehlgeschlagen abgmkFahrstromAnfrageAnschluss eingabe
     zeigeAnfrageFehlgeschlagen
         AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
@@ -355,21 +383,21 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
 
     zeigeAnfrageOptionen :: AnfrageBahngeschwindigkeit g z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen AnfrageBahngeschwindigkeit = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList unterstützteZugtypen
+        -> map (`anzeige` sprache) $ NonEmpty.toList unterstützteZugtypen
     zeigeAnfrageOptionen AMärklinBahngeschwindigkeit = Just $ toBefehlsString . \sprache
         -> map (`anzeige` sprache) $ [Pwm, KonstanteSpannung]
     zeigeAnfrageOptionen AMärklinBahngeschwindigkeitNamePwm {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen AMärklinBahngeschwindigkeitNameKonstanteSpannung {} =
-        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NE.toList alleValues
+        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen
-        AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {abgmkFahrstromAnfrageAnschluss} =
-        zeigeAnfrageOptionen abgmkFahrstromAnfrageAnschluss
+        AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
+        {abgmkFahrstromAnfrageAnschluss} = zeigeAnfrageOptionen abgmkFahrstromAnfrageAnschluss
     zeigeAnfrageOptionen
         AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
         {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrageOptionen abgmkUmdrehenAnfrageAnschluss
     zeigeAnfrageOptionen ALegoBahngeschwindigkeitName {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen
         ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss} =
         zeigeAnfrageOptionen abglFahrtrichtungsAnfrageAnschluss
@@ -425,21 +453,27 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
         wähleZwischenwert
             token
             [ ( Lexer.HIGH
-                  , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
-                    abgmkName
-                    HIGH
-                    AnfrageAnschluss
+                  , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung abgmkName HIGH
                   )
-            , ( Lexer.LOW
-                  , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
-                    abgmkName
-                    LOW
-                    AnfrageAnschluss
-                  )]
+            , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung abgmkName LOW)]
     anfrageAktualisieren
-        anfrage@(AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung
+        (AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung name fließend)
+        EingabeToken {eingabe, ganzzahl} = case ganzzahl of
+        Nothing -> AFFehler eingabe
+        (Just 0) -> AFFehler eingabe
+        (Just fahrstromAnzahl) -> AFZwischenwert
+            $ AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
+                name
+                fließend
+                (fromIntegral $ min (fromIntegral (maxBound :: Word8)) fahrstromAnzahl)
+                Warteschlange.leer
+                AnfrageAnschluss
+    anfrageAktualisieren
+        anfrage@(AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
                      name
                      fließend
+                     fahrstromAnzahl
+                     fahrstromAkkumulator
                      fahrstromAnfrageAnschluss)
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
@@ -454,18 +488,31 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
             anschlussVerwenden
                 :: Anschluss
                 -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
-            anschlussVerwenden fahrstromAnschluss =
-                AFZwischenwert
-                $ AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-                    name
-                    fließend
-                    fahrstromAnschluss
-                    AnfrageAnschluss
+            anschlussVerwenden fahrstromAnschluss
+                | fahrstromAnzahl > 1 =
+                    AFZwischenwert
+                    $ AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
+                        name
+                        fließend
+                        (pred fahrstromAnzahl)
+                        ergänzteAnschlüsse
+                        AnfrageAnschluss
+                | otherwise =
+                    AFZwischenwert
+                    $ AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
+                        name
+                        fließend
+                        (NonEmpty.fromList $ toList ergänzteAnschlüsse)
+                        AnfrageAnschluss
+                where
+                    ergänzteAnschlüsse :: Warteschlange Anschluss
+                    ergänzteAnschlüsse =
+                        Warteschlange.anhängen fahrstromAnschluss fahrstromAkkumulator
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
                      bgmkName
                      bgmkFließend
-                     bgmkFahrstromAnschluss
+                     bgmkFahrstromAnschlüsse
                      umdrehenAnfrageAnschluss)
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
@@ -485,7 +532,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
                     MärklinBahngeschwindigkeitKonstanteSpannung
                     { bgmkName
                     , bgmkFließend
-                    , bgmkFahrstromAnschluss
+                    , bgmkFahrstromAnschlüsse
                     , bgmkUmdrehenAnschluss
                     }
 
@@ -592,7 +639,7 @@ instance Anfrage AnfrageStreckenabschnitt where
 
     zeigeAnfrageOptionen :: AnfrageStreckenabschnitt -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen AStreckenabschnittName {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen AStreckenabschnittNameFließend {astStromAnfrageAnschluss} =
         zeigeAnfrageOptionen astStromAnfrageAnschluss
     zeigeAnfrageOptionen _anfrage = Nothing
@@ -736,22 +783,22 @@ instance Anfrage (AnfrageWeiche z) where
 
     zeigeAnfrageOptionen :: AnfrageWeiche z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen AnfrageWeiche = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList unterstützteZugtypen
+        -> map (`anzeige` sprache) $ NonEmpty.toList unterstützteZugtypen
     zeigeAnfrageOptionen (AMärklinWeicheName _name) = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen (AMärklinWeicheNameFließendAnzahl _name _fließend _anzahl _acc) =
         Just $ toBefehlsString . \sprache -> map (`anzeige` sprache)
-        $ NE.toList unterstützteRichtungen
+        $ NonEmpty.toList unterstützteRichtungen
     zeigeAnfrageOptionen AMärklinWeicheNameFließendAnzahlRichtung {awemAnfrageAnschluss} =
         zeigeAnfrageOptionen awemAnfrageAnschluss
     zeigeAnfrageOptionen (ALegoWeicheName _name) = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen (ALegoWeicheNameFließend _name _fließend) =
         Just $ toBefehlsString . \sprache -> map (`anzeige` sprache)
-        $ NE.toList unterstützteRichtungen
+        $ NonEmpty.toList unterstützteRichtungen
     zeigeAnfrageOptionen (ALegoWeicheNameFließendRichtung1 _name _fließend _richtung1) =
         Just $ toBefehlsString . \sprache -> map (`anzeige` sprache)
-        $ NE.toList unterstützteRichtungen
+        $ NonEmpty.toList unterstützteRichtungen
     zeigeAnfrageOptionen _anfrage = Nothing
 
 instance MitAnfrage (Weiche 'Märklin) where
@@ -773,6 +820,7 @@ instance MitAnfrage (Weiche 'Märklin) where
         (AMärklinWeicheNameFließend name fließend)
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
+        (Just 0) -> AFFehler eingabe
         (Just anzahl)
             -> AFZwischenwert $ AMärklinWeicheNameFließendAnzahl name fließend anzahl []
     anfrageAktualisieren
@@ -903,7 +951,7 @@ instance Anfrage AnfrageKupplung where
 
     zeigeAnfrageOptionen :: AnfrageKupplung -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen AKupplungName {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList alleValues
+        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen AKupplungNameFließend {akuKupplungsAnfrageAnschluss} =
         zeigeAnfrageOptionen akuKupplungsAnfrageAnschluss
     zeigeAnfrageOptionen _anfrage = Nothing
@@ -1012,11 +1060,11 @@ instance Anfrage (AnfrageWegstrecke z) where
 
     zeigeAnfrageOptionen :: AnfrageWegstrecke z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen AnfrageWegstreckeZugtyp = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList unterstützteZugtypen
+        -> map (`anzeige` sprache) $ NonEmpty.toList unterstützteZugtypen
     zeigeAnfrageOptionen
         AWegstreckeNameAnzahl {} = Just $ toBefehlsString . Language.befehlWegstreckenElemente
     zeigeAnfrageOptionen AWegstreckeNameAnzahlWeicheRichtung {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NE.toList unterstützteRichtungen
+        -> map (`anzeige` sprache) $ NonEmpty.toList unterstützteRichtungen
     zeigeAnfrageOptionen AWSStatusAnfrage {awsStatusAnfrageKonstruktor} =
         zeigeAnfrageOptionen $ awsStatusAnfrageKonstruktor leeresToken
     zeigeAnfrageOptionen _anfrage = Nothing
@@ -1059,6 +1107,7 @@ anfrageWegstreckeAktualisieren AnfrageWegstrecke EingabeToken {eingabe} =
 anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, ganzzahl} =
     case ganzzahl of
         Nothing -> AFFehler eingabe
+        (Just 0) -> AFFehler eingabe
         (Just anzahl) -> AFZwischenwert
             $ AWegstreckeNameAnzahl
                 Wegstrecke

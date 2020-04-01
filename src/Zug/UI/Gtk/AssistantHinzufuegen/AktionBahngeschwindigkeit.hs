@@ -23,12 +23,13 @@ import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Text as Text
+import Data.Word (Word8)
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Enums
        (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
-      , GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts), Strom(Fließend))
+      , GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts))
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit, OWegstrecke))
@@ -112,18 +113,20 @@ aktionBahngeschwindigkeitAuswahlPackNew
         PackGrow
         paddingDefault
         positionDefault
-    auswahlFahrstrom
-        <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend maybeTVar $ const Text.empty
+    spinButtonFahrstrom <- liftIO
+        $ widgetShowNew
+        $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.fahrstrom
         $ void
         $ do
-            strom <- aktuelleAuswahl auswahlFahrstrom
+            fahrstromAnschluss <- floor <$> Gtk.get spinButtonFahrstrom Gtk.spinButtonValue
             forkIO $ do
                 Gtk.postGUIAsync $ do
                     Gtk.set
                         windowObjektAuswahl
-                        [Gtk.windowTitle := leseSprache (Language.fahrstrom <:> strom) spracheGui]
+                        [ Gtk.windowTitle
+                              := leseSprache (Language.fahrstrom <:> fahrstromAnschluss) spracheGui]
                     showBG $ Just KonstanteSpannung
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
@@ -134,23 +137,23 @@ aktionBahngeschwindigkeitAuswahlPackNew
                               (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bg))))
                         -> aktionHinzufügen
                         $ ABahngeschwindigkeitMärklinKonstanteSpannung
-                        $ Fahrstrom bg strom
+                        $ Fahrstrom bg fahrstromAnschluss
                     (Just (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitKonstanteSpannung bg))))
                         -> aktionHinzufügen
                         $ ABahngeschwindigkeitLegoKonstanteSpannung
-                        $ Fahrstrom bg strom
+                        $ Fahrstrom bg fahrstromAnschluss
                     (Just (OWegstrecke (ZugtypMärklin ws))) -> aktionHinzufügen
                         $ AWegstreckeMärklin
                         $ AWSBahngeschwindigkeit
                         $ GeschwindigkeitKonstanteSpannung
-                        $ Fahrstrom (GeschwindigkeitPhantom ws) strom
+                        $ Fahrstrom (GeschwindigkeitPhantom ws) fahrstromAnschluss
                     (Just (OWegstrecke (ZugtypLego ws))) -> aktionHinzufügen
                         $ AWegstreckeLego
                         $ AWSBahngeschwindigkeit
                         $ GeschwindigkeitKonstanteSpannung
-                        $ Fahrstrom (GeschwindigkeitPhantom ws) strom
+                        $ Fahrstrom (GeschwindigkeitPhantom ws) fahrstromAnschluss
                     _sonst -> pure ()
-    boxPackDefault hBoxBahngeschwindigkeit auswahlFahrstrom
+    boxPackDefault hBoxBahngeschwindigkeit spinButtonFahrstrom
     buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIO $ do
         Gtk.postGUIAsync $ do
             Gtk.set

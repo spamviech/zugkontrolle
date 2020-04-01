@@ -285,7 +285,7 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
 data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     Geschwindigkeit :: bg 'Pwm z -> Word8 -> AktionBahngeschwindigkeit bg 'Pwm z
     Fahrstrom
-        :: bg 'KonstanteSpannung z -> Strom -> AktionBahngeschwindigkeit bg 'KonstanteSpannung z
+        :: bg 'KonstanteSpannung z -> Word8 -> AktionBahngeschwindigkeit bg 'KonstanteSpannung z
     Umdrehen :: bg g 'Märklin -> AktionBahngeschwindigkeit bg g 'Märklin
     FahrtrichtungEinstellen :: bg g 'Lego -> Fahrtrichtung -> AktionBahngeschwindigkeit bg g 'Lego
 

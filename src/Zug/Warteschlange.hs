@@ -24,6 +24,29 @@ import qualified Zug.Language as Language
 -- | Single-Ended Queue
 data Warteschlange a = Warteschlange { eingabe :: [a], ausgabe :: [a] }
 
+instance Foldable Warteschlange where
+    foldMap :: Monoid m => (a -> m) -> Warteschlange a -> m
+    foldMap f seQueue = case zeigeErstes seQueue of
+        Leer -> mempty
+        (Gefüllt h t) -> mappend (f h) $ foldMap f t
+
+instance Functor Warteschlange where
+    fmap :: (a -> b) -> Warteschlange a -> Warteschlange b
+    fmap f Warteschlange {eingabe = e1, ausgabe = a1} =
+        Warteschlange { eingabe = f <$> e1, ausgabe = f <$> a1 }
+
+instance (Show a) => Show (Warteschlange a) where
+    show :: Warteschlange a -> String
+    show = show . toList
+
+instance (Language.Anzeige a) => Language.Anzeige (Warteschlange a) where
+    anzeige :: Warteschlange a -> Language.Sprache -> Text
+    anzeige = Language.anzeige . toList
+
+instance (Eq a) => Eq (Warteschlange a) where
+    (==) :: Warteschlange a -> Warteschlange a -> Bool
+    a == b = toList a == toList b
+
 -- | Ergebnis-Typ von 'zeigeErstes' und 'zeigeLetztes'
 data Anzeige a
     = Leer
@@ -62,22 +85,3 @@ zeigeLetztes Warteschlange {eingabe = [], ausgabe = a1} =
     Gefüllt (last a1) Warteschlange { eingabe = [], ausgabe = init a1 }
 zeigeLetztes Warteschlange {eingabe = (h:t), ausgabe} =
     Gefüllt h Warteschlange { eingabe = t, ausgabe }
-
-instance Foldable Warteschlange where
-    foldMap :: Monoid m => (a -> m) -> Warteschlange a -> m
-    foldMap f seQueue = case zeigeErstes seQueue of
-        Leer -> mempty
-        (Gefüllt h t) -> mappend (f h) $ foldMap f t
-
-instance Functor Warteschlange where
-    fmap :: (a -> b) -> Warteschlange a -> Warteschlange b
-    fmap f Warteschlange {eingabe = e1, ausgabe = a1} =
-        Warteschlange { eingabe = f <$> e1, ausgabe = f <$> a1 }
-
-instance (Show a) => Show (Warteschlange a) where
-    show :: Warteschlange a -> String
-    show = show . toList
-
-instance (Language.Anzeige a) => Language.Anzeige (Warteschlange a) where
-    anzeige :: Warteschlange a -> Language.Sprache -> Text
-    anzeige = Language.anzeige . toList

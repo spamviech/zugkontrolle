@@ -89,7 +89,7 @@ import Control.Applicative (ZipList(..))
 import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, TMVar, putTMVar)
 import Control.Lens ((^.), (^..), (??))
 import qualified Control.Lens as Lens
-import Control.Monad (void, unless, forM_)
+import Control.Monad (void, unless, forM_, foldM)
 import Control.Monad.Reader (MonadReader(..), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Aeson as Aeson
@@ -98,6 +98,7 @@ import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust, catMaybes)
+import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Void (Void)
@@ -114,9 +115,9 @@ import Zug.Anbindung
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither
                 , GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), mapGeschwindigkeitEither
-                , ausGeschwindigkeitEither, GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..)
-                , Richtung(..))
-import Zug.Language (MitSprache(..))
+                , ausGeschwindigkeitEither, catKonstanteSpannung, GeschwindigkeitPhantom(..)
+                , Fahrtrichtung(..), Strom(..), Richtung(..))
+import Zug.Language (MitSprache(..), (<->))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>), (<°>))
 import Zug.Menge (ausFoldable)
@@ -132,8 +133,8 @@ import Zug.UI.Base
       , entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
-import Zug.UI.Gtk.Auswahl
-       (AuswahlWidget(), aktuelleAuswahl, auswahlRadioButtonNew, MitAuswahlWidget(..))
+import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, setzeAuswahl, beiAuswahl
+                         , auswahlRadioButtonNew, auswahlComboBoxNew, MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (FortfahrenWennToggledVar, registrierterCheckButtonNew, RegistrierterCheckButton
@@ -910,7 +911,7 @@ instance BahngeschwindigkeitKlasse BGWidgets where
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Word8 -> m ()
     geschwindigkeit = geschwindigkeit . bg
 
-    fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Strom -> m ()
+    fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Word8 -> m ()
     fahrstrom = fahrstrom . bg
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Märklin -> m ()
@@ -989,22 +990,35 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bgSpracheTVar
         geschwindigkeitsWidgetsPackNew
             box
-            BGWidgets { bg = bgMärklin@MärklinBahngeschwindigkeitKonstanteSpannung
-                            {bgmkFahrstromAnschluss, bgmkUmdrehenAnschluss}
-                      , bgSpracheTVar} = void $ do
-            objektReader <- ask
-            boxPackWidgetNewDefault box
-                $ anschlussNew (Just bgSpracheTVar) Language.fahrstrom bgmkFahrstromAnschluss
-            toggleButtonFahrstrom <- boxPackWidgetNewDefault box
-                $ toggleButtonNewWithEventLabel (Just bgSpracheTVar) Language.fahrstrom
-                $ \toggled -> flip runReaderT objektReader
-                $ fahrstrom bgMärklin
-                $ (if toggled
-                       then Fließend
-                       else Gesperrt)
+            bgWidgets@BGWidgets { bg = bgMärklin@MärklinBahngeschwindigkeitKonstanteSpannung
+                                      {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
+                                , bgSpracheTVar} = void $ do
+            let justSpracheTVar = Just bgSpracheTVar
+            expander <- liftIO
+                $ boxPackWidgetNew box PackGrow paddingDefault positionDefault
+                $ Gtk.expanderNew Text.empty
+            verwendeSpracheGui justSpracheTVar $ \sprache -> Gtk.set
+                expander
+                [Gtk.expanderLabel := (Language.fahrstrom <-> Language.anschlüsse) sprache]
+            vBoxFahrstromAnschlüsse <- liftIO
+                $ containerAddWidgetNew expander
+                $ scrollbaresWidgetNew
+                $ Gtk.vBoxNew False 0
+            let erstelleFahrstromAnschlussWidget
+                    :: (MonadIO m, SpracheGuiReader r m) => Natural -> Anschluss -> m Natural
+                erstelleFahrstromAnschlussWidget i anschluss = do
+                    boxPackWidgetNewDefault vBoxFahrstromAnschlüsse
+                        $ anschlussNew justSpracheTVar (Language.fahrstrom <> anzeige i) anschluss
+                    pure $ succ i
+            foldM erstelleFahrstromAnschlussWidget 1 bgmkFahrstromAnschlüsse
+            auswahlFahrstrom <- auswahlFahrstromPackNew
+                box
+                (fromIntegral $ length bgmkFahrstromAnschlüsse)
+                bgSpracheTVar
+                bgWidgets
             boxPackWidgetNewDefault box
                 $ anschlussNew (Just bgSpracheTVar) Language.umdrehen bgmkUmdrehenAnschluss
-            buttonUmdrehenPackNew box bgMärklin (Right toggleButtonFahrstrom :| []) bgSpracheTVar
+            buttonUmdrehenPackNew box bgMärklin (Right auswahlFahrstrom :| []) bgSpracheTVar
         geschwindigkeitsWidgetsPackNew
             box
             bgWidgets@BGWidgets { bg = bgLego@LegoBahngeschwindigkeit
@@ -1047,6 +1061,31 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
                     statusVar
         pure scale
 
+-- | Füge 'AuswahlWidget' zum einstellen des Fahrstroms zur Box hinzu
+auswahlFahrstromPackNew
+    :: forall b bg m z.
+    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
+    => b
+    -> Word8
+    -> TVar (Maybe [Sprache -> IO ()])
+    -> bg 'KonstanteSpannung z
+    -> m (AuswahlWidget Word8)
+auswahlFahrstromPackNew box maxWert tvarSprache bahngeschwindigkeit = do
+    statusVar <- erhalteStatusVar :: m StatusVarGui
+    objektReader <- ask
+    auswahlWidget <- boxPackWidgetNewDefault box
+        $ widgetShowNew
+        $ (if maxWert < 5
+               then auswahlRadioButtonNew
+               else auswahlComboBoxNew)
+            (NonEmpty.fromList $ [maxWert, pred maxWert .. 0])
+            (Just tvarSprache)
+            Language.fahrstrom
+    setzeAuswahl auswahlWidget 0
+    beiAuswahl auswahlWidget $ \wert -> flip runReaderT objektReader
+        $ ausführenStatusVarAktion (Fahrstrom bahngeschwindigkeit wert) statusVar
+    pure auswahlWidget
+
 -- | Füge 'Gtk.Button' zum 'umdrehen' zur Box hinzu.
 --
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
@@ -1056,7 +1095,7 @@ buttonUmdrehenPackNew
     (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
     => b
     -> bg g 'Märklin
-    -> NonEmpty (Either Gtk.Range Gtk.ToggleButton)
+    -> NonEmpty (Either Gtk.Range (AuswahlWidget Word8))
     -> TVar (Maybe [Sprache -> IO ()])
     -> m Gtk.Button
 buttonUmdrehenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
@@ -1065,7 +1104,7 @@ buttonUmdrehenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
     boxPackWidgetNewDefault box $ buttonNewWithEventLabel (Just tvar) Language.umdrehen $ do
         forM_ geschwindigkeitsWidgets $ \case
             (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
-            (Right toggleButton) -> Gtk.set toggleButton [Gtk.toggleButtonActive := False]
+            (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
         flip runReaderT objektReader
             $ ausführenStatusVarAktion (Umdrehen bahngeschwindigkeit) statusVar
 
@@ -1078,7 +1117,7 @@ togglebuttonFahrtrichtungEinstellenPackNew
     (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
     => b
     -> bg g 'Lego
-    -> NonEmpty (Either Gtk.Range Gtk.ToggleButton)
+    -> NonEmpty (Either Gtk.Range (AuswahlWidget Word8))
     -> TVar (Maybe [Sprache -> IO ()])
     -> m Gtk.ToggleButton
 togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
@@ -1089,7 +1128,7 @@ togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit geschwindigke
         $ \vorwärts -> do
             forM_ geschwindigkeitsWidgets $ \case
                 (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
-                (Right toggleButton) -> Gtk.set toggleButton [Gtk.toggleButtonActive := False]
+                (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
             let fahrtrichtung =
                     if vorwärts
                         then Vorwärts
@@ -1759,7 +1798,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
 
     fahrstrom :: (I2CReader r m, MonadIO m)
               => GeschwindigkeitPhantom WSWidgets 'KonstanteSpannung z
-              -> Strom
+              -> Word8
               -> m ()
     fahrstrom (GeschwindigkeitPhantom WSWidgets {ws}) = fahrstrom $ GeschwindigkeitPhantom ws
 
@@ -1860,21 +1899,19 @@ wegstreckePackNew
             then Just . Left . erhalteRange
                 <$> hScaleGeschwindigkeitPackNew functionBox (GeschwindigkeitPhantom wegstrecke)
             else pure Nothing
-        maybeToggleButton <- if any
-            (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
-            wsBahngeschwindigkeiten
-            then fmap (Just . Right)
-                $ boxPackWidgetNewDefault functionBox
-                $ toggleButtonNewWithEventLabel
-                    justSpracheTVar
-                    Language.fahrstrom
-                    (\toggled -> flip runReaderT objektReader
-                     $ fahrstrom (GeschwindigkeitPhantom wegstrecke)
-                     $ if toggled
-                         then Fließend
-                         else Gesperrt)
-            else pure Nothing
-        let geschwindigkeitsWidgets = NonEmpty.fromList $ catMaybes [maybeScale, maybeToggleButton]
+        let geschwindigkeitenKonstanteSpannung = catKonstanteSpannung wsBahngeschwindigkeiten
+        maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
+            then pure Nothing
+            else fmap (Just . Right)
+                $ auswahlFahrstromPackNew
+                    functionBox
+                    (maximum
+                     $ fromIntegral . length . fahrstromAnschlüsse
+                     <$> geschwindigkeitenKonstanteSpannung)
+                    wsSpracheTVar
+                    (GeschwindigkeitPhantom wegstrecke)
+        let geschwindigkeitsWidgets =
+                NonEmpty.fromList $ catMaybes [maybeScale, maybeAuswahlFahrstrom]
         case zuZugtypEither wegstrecke of
             (ZugtypMärklin wsMärklin) -> void
                 $ buttonUmdrehenPackNew
@@ -1921,13 +1958,17 @@ wegstreckePackNew
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets
     pure wsWidgets
-    -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime
+    where
+        appendName :: (StreckenObjekt o) => Maybe (Sprache -> Text) -> o -> Maybe (Sprache -> Text)
 
-        where
-            appendName
-                :: (StreckenObjekt o) => Maybe (Sprache -> Text) -> o -> Maybe (Sprache -> Text)
-            appendName Nothing objekt = Just $ const $ erhalteName objekt
-            appendName (Just acc) objekt = Just $ acc <^> erhalteName objekt
+        -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime
+        appendName Nothing objekt = Just $ const $ erhalteName objekt
+        appendName (Just acc) objekt = Just $ acc <^> erhalteName objekt
+
+        fahrstromAnschlüsse :: Bahngeschwindigkeit 'KonstanteSpannung z -> NonEmpty Anschluss
+        fahrstromAnschlüsse
+            MärklinBahngeschwindigkeitKonstanteSpannung {bgmkFahrstromAnschlüsse} =
+            bgmkFahrstromAnschlüsse
 
 -- ** Plan
 -- | 'Plan' mit zugehörigen Widgets
