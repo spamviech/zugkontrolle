@@ -57,6 +57,15 @@ Dazu muss der Installations-Befehl erweitert werden um die flag gui auf false zu
 Eine Verwendung des GTK-UI ist dann natürlich nicht mehr möglich.  
 Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip-Rechner über das GTK-UI, speichern und kopieren in einer json-Datei und anschließendes Ausführen mit Cmd-UI auf dem Raspberry Pi.
 
+## Installation von stack
+TODO
+https://docs.haskellstack.org/en/stable/README/#how-to-install
+Aktuell ist der Befehl zur Installation
+    `curl -sSL https://get.haskellstack.org/ | sh`
+TODO
+    Probleme mit neuester stack-version (fehlendes haddock?)
+    v1.9.3 in ZugkontrolleResourcen
+
 ## Installation von WiringPi
 Unter Raspian ist standardmäßig eine Version von wiringpi installiert.  
 Um die neueste Version zu installieren ist es zu empfehlen die Installationsanweisungen unter http://wiringpi.com/download-and-install/ zu berücksichtigen.
