@@ -29,6 +29,7 @@ import Data.Foldable (Foldable(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
@@ -177,7 +178,10 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp g z)
         (AABGGeschwindigkeit bahngeschwindigkeit)
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         Nothing -> AFFehler eingabe
-        (Just wert) -> AFErgebnis $ Geschwindigkeit bahngeschwindigkeit wert
+        (Just wert) -> AFErgebnis
+            $ Geschwindigkeit bahngeschwindigkeit
+            $ fromIntegral
+            $ min (fromIntegral (maxBound :: Word8)) wert
     anfrageAktualisieren (AABGFahrstrom bahngeschwindigkeit) token =
         wähleErgebnis
             token

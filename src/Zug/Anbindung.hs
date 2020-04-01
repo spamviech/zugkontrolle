@@ -85,6 +85,7 @@ import qualified Data.Map.Strict as Map
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import qualified Data.Text.IO as T
+import Data.Word (Word8)
 import Numeric.Natural (Natural)
 import System.Hardware.WiringPi
        (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange, pwmWrite, pinToBcmGpio)
@@ -176,7 +177,7 @@ erhaltePwmWert pwmGrenzeMax wert = PwmValueUnmodifiziert $ fromIntegral ergebnis
 
 -- | Maximaler Eingabewert für 'geschwindigkeit'.
 pwmEingabeMaximal :: Natural
-pwmEingabeMaximal = 100
+pwmEingabeMaximal = fromIntegral $ (maxBound :: Word8)
 
 -- | Vollständige pwmGrenze als Natural.
 pwmGrenzeVoll :: Natural
@@ -438,7 +439,7 @@ class ( StreckenObjekt (b 'Pwm 'Märklin)
       , StreckenObjekt (b 'KonstanteSpannung 'Lego)
       ) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
-    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m) => b 'Pwm z -> Natural -> m ()
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m) => b 'Pwm z -> Word8 -> m ()
 
     -- | Fahrstrom ein-/ausschalten
     fahrstrom :: (I2CReader r m, MonadIO m) => b 'KonstanteSpannung z -> Strom -> m ()
@@ -456,10 +457,8 @@ umdrehenZeit :: Wartezeit
 umdrehenZeit = MilliSekunden 250
 
 instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
-    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m)
-                    => Bahngeschwindigkeit 'Pwm z
-                    -> Natural
-                    -> m ()
+    geschwindigkeit
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit 'Pwm z -> Word8 -> m ()
     geschwindigkeit bg@LegoBahngeschwindigkeit {bglGeschwindigkeitsPin} geschwindigkeit =
         befehlAusführen
             (pwmSetzeWert bg bglGeschwindigkeitsPin $ erhaltePwmWertVoll geschwindigkeit)
@@ -789,7 +788,7 @@ instance StreckenObjekt (Wegstrecke z) where
 instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
     geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m)
                     => GeschwindigkeitPhantom Wegstrecke 'Pwm z
-                    -> Natural
+                    -> Word8
                     -> m ()
     geschwindigkeit (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten}) wert =
         mapM_ (forkI2CReader . flip geschwindigkeit wert) $ catPwm wsBahngeschwindigkeiten

@@ -101,6 +101,7 @@ import Data.Maybe (fromJust, catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Void (Void)
+import Data.Word (Word8)
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
@@ -906,7 +907,7 @@ instance Aeson.ToJSON (BGWidgets g z) where
 
 instance BahngeschwindigkeitKlasse BGWidgets where
     geschwindigkeit
-        :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Natural -> m ()
+        :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Word8 -> m ()
     geschwindigkeit = geschwindigkeit . bg
 
     fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Strom -> m ()
@@ -1036,7 +1037,7 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
     liftIO $ do
         scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault
             $ widgetShowNew
-            $ Gtk.hScaleNewWithRange 0 100 1
+            $ Gtk.hScaleNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
         Gtk.widgetSetSizeRequest scale 100 (-1)
         Gtk.on scale Gtk.valueChanged $ do
             wert <- Gtk.get scale Gtk.rangeValue
@@ -1751,7 +1752,7 @@ instance Aeson.ToJSON (WSWidgets z) where
 instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
     geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m)
                     => GeschwindigkeitPhantom WSWidgets 'Pwm z
-                    -> Natural
+                    -> Word8
                     -> m ()
     geschwindigkeit (GeschwindigkeitPhantom WSWidgets {ws}) =
         geschwindigkeit $ GeschwindigkeitPhantom ws

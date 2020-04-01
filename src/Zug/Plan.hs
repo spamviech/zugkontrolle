@@ -37,6 +37,7 @@ import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
+import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
@@ -281,11 +282,9 @@ instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
     ausführenAktion :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
+-- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
-    -- | Aktionen einer Bahngeschwindigkeit
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
-    Geschwindigkeit :: bg 'Pwm z -> Natural -> AktionBahngeschwindigkeit bg 'Pwm z
+    Geschwindigkeit :: bg 'Pwm z -> Word8 -> AktionBahngeschwindigkeit bg 'Pwm z
     Fahrstrom
         :: bg 'KonstanteSpannung z -> Strom -> AktionBahngeschwindigkeit bg 'KonstanteSpannung z
     Umdrehen :: bg g 'Märklin -> AktionBahngeschwindigkeit bg g 'Märklin

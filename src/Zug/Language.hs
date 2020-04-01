@@ -175,6 +175,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Version (Version, showVersion)
+import Data.Word (Word8)
 import Numeric.Natural (Natural)
 -- Auto-generiertes Cabal-Modul
 import qualified Paths_Zugkontrolle as Paths
@@ -850,6 +851,10 @@ instance Anzeige Natural
 instance Anzeige Int
 
 instance Anzeige Double
+
+instance Anzeige Word
+
+instance Anzeige Word8
 
 instance Anzeige Value
 
