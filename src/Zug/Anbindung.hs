@@ -408,9 +408,9 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                 pinMode pin OUTPUT
                 digitalWrite pin value
             forM_ (Map.toList fahrstromPortMapHigh)
-                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports HIGH
             forM_ (Map.toList fahrstromPortMapLow)
-                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports LOW
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
         where
             (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
                 foldl splitAnschlüsse ([], [], []) bgmkFahrstromAnschlüsse
@@ -759,11 +759,11 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 digitalWrite pin $ valueFunktion Fließend
                 warte umdrehenZeit
                 digitalWrite pin $ valueFunktion Gesperrt
-            forM_ (Map.toList umdrehenPortMapHigh) $ \(pcf8574, ports) -> forkI2CReader $ do
+            forM_ (Map.toList umdrehenPortMapHigh) $ \(pcf8574, ports) -> do
                 pcf8574MultiPortWrite pcf8574 ports HIGH
                 warte umdrehenZeit
                 pcf8574MultiPortWrite pcf8574 ports LOW
-            forM_ (Map.toList umdrehenPortMapLow) $ \(pcf8574, ports) -> forkI2CReader $ do
+            forM_ (Map.toList umdrehenPortMapLow) $ \(pcf8574, ports) -> do
                 pcf8574MultiPortWrite pcf8574 ports LOW
                 warte umdrehenZeit
                 pcf8574MultiPortWrite pcf8574 ports HIGH
@@ -834,9 +834,9 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 pinMode pin OUTPUT
                 digitalWrite pin value
             forM_ (Map.toList fahrstromPortMapHigh)
-                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports HIGH
             forM_ (Map.toList fahrstromPortMapLow)
-                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports LOW
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
         where
             (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
                 foldl splitBahngeschwindigkeiten ([], [], [])
@@ -953,9 +953,9 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
                 pinMode pin OUTPUT
                 digitalWrite pin $ valueFunktion an
             forM_ (Map.toList stromPortMapHigh)
-                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports HIGH
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports HIGH
             forM_ (Map.toList stromPortMapLow)
-                $ \(pcf8574, ports) -> forkI2CReader $ pcf8574MultiPortWrite pcf8574 ports LOW
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
         where
             (stromPins, stromPcf8574PortsHigh, stromPcf8574PortsLow) =
                 foldl splitAnschlüsse ([], [], []) wsStreckenabschnitte
@@ -1002,11 +1002,11 @@ instance KupplungKlasse (Wegstrecke z) where
                 digitalWrite pin $ valueFunktion Fließend
                 warte kuppelnZeit
                 digitalWrite pin $ valueFunktion Gesperrt
-            forM_ (Map.toList kupplungsPortMapHigh) $ \(pcf8574, ports) -> forkI2CReader $ do
+            forM_ (Map.toList kupplungsPortMapHigh) $ \(pcf8574, ports) -> do
                 pcf8574MultiPortWrite pcf8574 ports HIGH
                 warte kuppelnZeit
                 pcf8574MultiPortWrite pcf8574 ports LOW
-            forM_ (Map.toList kupplungsPortMapLow) $ \(pcf8574, ports) -> forkI2CReader $ do
+            forM_ (Map.toList kupplungsPortMapLow) $ \(pcf8574, ports) -> do
                 pcf8574MultiPortWrite pcf8574 ports LOW
                 warte kuppelnZeit
                 pcf8574MultiPortWrite pcf8574 ports HIGH
@@ -1067,11 +1067,11 @@ instance WegstreckeKlasse (Wegstrecke 'Märklin) where
                 digitalWrite pin $ valueFunktion Fließend
                 warte weicheZeit
                 digitalWrite pin $ valueFunktion Gesperrt
-            forM_ (Map.toList richtungsPortMapHigh) $ \(pcf8574, ports) -> forkI2CReader $ do
+            forM_ (Map.toList richtungsPortMapHigh) $ \(pcf8574, ports) -> do
                 pcf8574MultiPortWrite pcf8574 ports HIGH
                 warte weicheZeit
                 pcf8574MultiPortWrite pcf8574 ports LOW
-            forM_ (Map.toList richtungsPortMapLow) $ \(pcf8574, ports) -> forkI2CReader $ do
+            forM_ (Map.toList richtungsPortMapLow) $ \(pcf8574, ports) -> do
                 pcf8574MultiPortWrite pcf8574 ports LOW
                 warte weicheZeit
                 pcf8574MultiPortWrite pcf8574 ports HIGH
