@@ -75,7 +75,19 @@ TODO!!!!
     `curl -sSL https://get.haskellstack.org/ | sh`
 (Probleme mit neuester Stack-Version, daher Version 1.9.3 in [Zugkontrolle-Resourcen](https://github.com/spamviech/ZugkontrolleResourcen) enthalten)
 (LLVM-3.9 nicht vergessen)
-sudo apt-get install libtinfo-dev llvm-3.9-de
+    Download von hier: https://releases.llvm.org/download.html#3.9.1
+    Zum kompilieren wird cmake benötigt: https://www.llvm.org/docs/CMake.html
+    ```
+        sudo apt-get install cmake
+        mkdir mybuilddir
+        cd mybuilddir
+        cmake path/to/llvm/source/root
+        cmake --build .
+        cmake --build . --target install
+    ```
+    Alternativ die dort vorhandenen binaries (armv7a Linux) herunterladen und im PATH auffindbar entpacken.
+(libtinfo-dev benötigt, sonst gitb es Probleme beim linken/TemplateHaskell-Modulen)
+    `sudo apt-get install libtinfo-dev`
 (LLVM-3.9 Ordner zu PATH hinzufügen? Siehe https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
 
 
