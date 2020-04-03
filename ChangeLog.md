@@ -35,7 +35,8 @@
 - GTK-UI:
   - nameEntry erhält PlaceholderText (wird gezeigt, wenn Entry leer und nicht fokussiert)
 - Erlaube Kompilation ohne GTK-UI:
-    gtk3- und lens-Pakete setzen Cabal-Packet vorraus, dessen Installation sehr lange (und viel Arbeitsspeicher) braucht.
+    gtk3- und lens-Pakete setzen Cabal-Packet vorraus, dessen Installation sehr lange
+      (und viel Arbeitsspeicher) braucht.
     Wer nicht so lange warten will kann auf das Kommandozeilen-basiertes UI zurückgreifen.
     Installation ohne GTK-UI erfolgt durch den Befehl "stack build --flag Zugkontrolle:-gui"
 
@@ -59,7 +60,8 @@
 - SEQueue-Funktionen umbenannt
 - LinkedMVar:
   - Update-Aktion nicht mehr als Argument übergeben
-  - Hinzufügen einer zusätzlichen Update-Aktion erzeugt keine neue LinkedMVar, sondern verändert die aktuelle LinkedMVar
+  - Hinzufügen einer zusätzlichen Update-Aktion erzeugt keine neue LinkedMVar,
+      sondern verändert die aktuelle LinkedMVar
 
 1.0.0.9:
 
@@ -69,26 +71,28 @@
 1.0.0.10:
 
 - HIGH/Low vertauscht (unverändert für PWM-Output)
-    kann per Kommandozeilenargument "--fließend=\<Value\>" eingestellt werden
+    kann per Kommandozeilenargument `--fließend=\<Value\>` eingestellt werden
 - SoftwarePWM kann auf allen Pins per Kommandozeile "--pwm=SoftwarePWM" erzwungen werden
 
 1.0.0.11:
 
-- Bugfix (GTK-UI): Weiche werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben und nicht umgekehrt
+- Bugfix (GTK-UI): Weichen werden beim Plan erstellen nur dann angezeigt, wenn sie diese haben
+    und nicht umgekehrt
 - GTK-UI:
-
-  - Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen nur bei passendem Zugtyp angezeigt
+  - Beim Plan erstellen werden Bahngeschwindigkeiten und Wegstrecken zum Umdrehen
+      nur bei passendem Zugtyp angezeigt
   - Laden dreht nicht mehr die Reihenfolge um
-
 - Aktionen einer Wegstrecke (z.B. Weichen einstellen) laufen nun parallel ab
 - Bei Verwenden von --pwm=SoftwarePWM werden keine Root-Rechte benötigt
-- Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl. Es werden nun alle korrekt formatierten Teilestücke geladen.
+- Laden schlägt bei fehlerhaften Teilstück nicht komplett fehl.
+    Es werden nun alle korrekt formatierten Teilestücke geladen.
 - Zum Laden werden immer deutsche Namen (unabhängig von Language.hs) verwendet.
     Einmal erzeugte json-Dateien können somit unabhängig von der Sprache verwendet werden.
 - Beim Hilfe-Text werden unterstützte Optionen angezeigt.
 - Flag -v|--version hinzugefügt
 - Bugfix: getPWMValue reagiert nun richtig auf eine reduzierte PWMRange
-- PWMValue skaliert nur quadratisch mit dem Eingabewert. Dadurch skaliert der Eingabewert linear zur Effektivspannung.
+- PWMValue skaliert nur quadratisch mit dem Eingabewert.
+    Dadurch skaliert der Eingabewert linear zur Effektivspannung.
 
 1.0.0.12:
 
@@ -100,7 +104,7 @@
 
 - Bugfix (Cmd-UI): Zeile zum Unterstreichen erscheint nun auch unter dem Titel und ist lang genug
 - Umdrehen erhält eine automatische Wartezeit nach der Umdrehen-Aktion
-- Englische Sprache hinzugefügt. Sie kann über die Kommandozeilen-Option `--sprache=Englisch` ausgewählt werden.
+- Englische Sprache hinzugefügt. Auswahl über die Kommandozeilen-Option `--sprache=Englisch`.
 - Durch ziehen einer .json-Datei auf die Executable wird versucht diese bei Programmstart zu laden.
 - SoftwarePWM-Frequenz auf 500Hz erhöht.
 
@@ -115,7 +119,8 @@
 1.0.0.15:
 
 - Bugfix: Cmd-UI erkennt wieder, wann ein Plan ausgeführt wird (war invertiert).
-- Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist. Man muss nicht erst ins Hauptmenü zurückkehren.
+- Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist.
+    Man muss nicht erst ins Hauptmenü zurückkehren.
 
 ## Unreleased changes
 
@@ -128,7 +133,8 @@
 - Bei Märklin-Zugtyp ist eine alternative BahngeschwindigkeitVariante möglich.
     Zwei Pins, einer für Fahrstrom (<=16V), einer für Umdrehen-Strom (25V).
 - Sprachwechsel möglich, ohne das Programm neu starten zu müssen.
-- /yaml/ anstelle von /json/ als Speicherformat verwendet. Alte Speicherdateien können weiterverwendet werden.
+- /yaml/ anstelle von /json/ als Speicherformat verwendet.
+    Alte Speicherdateien können weiterverwendet werden.
 - Cmd-UI: ..Unbekannt/..StatusAnfrage-Konstruktoren in AnfrageFortsetzung-Datentyp ausgelagert
 - Gtk-UI: Das Fenster sollte beim Programmstart nicht mehr zu klein sein.
 - Gtk-UI: Fenster wird bei Programstart maximiert.

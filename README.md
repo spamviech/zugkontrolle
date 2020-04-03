@@ -71,20 +71,25 @@ Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip
 ### Installation von stack
 
 TODO!!!!
-    https://docs.haskellstack.org/en/stable/install_and_upgrade/
+[stack-Anleitung](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
     `curl -sSL https://get.haskellstack.org/ | sh`
-(Probleme mit neuester Stack-Version, daher Version 1.9.3 in [Zugkontrolle-Resourcen](https://github.com/spamviech/ZugkontrolleResourcen) enthalten)
+(Probleme mit neuester Stack-Version, daher Version 1.9.3 in
+[Zugkontrolle-Resourcen](https://github.com/spamviech/ZugkontrolleResourcen) enthalten)
+
 (Swap-Datei erstellen)
+
+```sh
+    sudo dphys-swapfile swapoff   # disable swap
+    sudo nano /etc/dphys-swapfile # and set 'CONF_SWAPSIZE' to 1024
+    sudo dphys-swapfile setup     # refresh with new settings
+    sudo dphys-swapfile swapon    # re-enable swap
 ```
-sudo dphys-swapfile swapoff   # disable swap
-sudo nano /etc/dphys-swapfile # and set 'CONF_SWAPSIZE' to 1024
-sudo dphys-swapfile setup     # refresh with new settings
-sudo dphys-swapfile swapon    # re-enable swap
-```
+
 (LLVM-3.9 nicht vergessen)
-    Download von hier: https://releases.llvm.org/download.html#3.9.1
+    Download von der [LLVM Download-Seite](https://releases.llvm.org/download.html#3.9.1)
     Ich empfehle die dort vorhandenen binaries (armv7a Linux) herunterladen und entpacken.
-```
+
+```sh
     tar -xf clang+llvm-3.9.1-armv7a-linux-gnueabihf.tar.xz
     cd clang+llvm-3.9.1-armv7a-linux-gnueabihf/
     sudo mkdir /usr/lib/llvm-3.9
@@ -99,17 +104,21 @@ sudo dphys-swapfile swapon    # re-enable swap
     sudo mkdir /usr/lib/llvm-3.9/share
     sudo mv share/* /usr/lib/llvm-3.9/share/
 ```
+
 Jetzt muss noch sichergestellt werden, dass stack/ghc die erzeugten Dateien auch findet.
 Dazu kann die PATH-Variable ergänzt werden.
 Alternativ können folgende Zeilen zur `config.yaml` hinzugefügt werden.
-```
+
+```yaml
 extra-path:
 - /usr/lib/llvm-3.9/bin
 ```
-    Alternativ kompilieren aus Quellcode.
-    (Dauert ewig, bei mir mit Fehlermeldung abgebrochen)
-    Es wird cmake benötigt: https://www.llvm.org/docs/CMake.html
-```
+
+Alternativ kompilieren aus Quellcode.
+(Dauert ewig, bei mir mit Fehlermeldung abgebrochen)
+Es wird cmake benötigt: [LLVM CMake Anleitung](https://www.llvm.org/docs/CMake.html)
+
+```sh
     sudo apt-get install cmake
     mkdir mybuilddir
     cd mybuilddir
@@ -117,10 +126,11 @@ extra-path:
     cmake --build .
     cmake --build . --target install
 ```
+
 (libtinfo-dev benötigt, sonst gitb es Probleme beim linken/TemplateHaskell-Modulen)
     `sudo apt-get install libtinfo-dev`
-(https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
 
+[Relevanter Blog-Post](https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
 
 ### Installation von WiringPi
 
@@ -167,19 +177,19 @@ Alle vor der im MSYS2-Ordner befindlichen müssen mit dieser überschrieben werd
 
 Im Normalfall (bei Ausführung über stack exec) betrifft das eine Datei: `~\AppData\Local\Programs\stack\x86_64-windows\ghc-8.2.2\mingw\bin\zlib1.dll\zlib1.dll`
 
-### Probleme beim komplieren von glib/pango/gtk3 (Windows/MSYS2)
+### Probleme beim kompilieren von glib/pango/gtk3 (Windows/MSYS2)
 
 Bei neueren Versionen von gtk3/glib2 treten Fehler der folgenden Art auf:
 
-```
+```stack
 pango       > C:/msys64/mingw64/include/glib-2.0/glib/gspawn.h:76: (column 22) [FATAL]
 pango       >   >>> Syntax error!
 pango       >   The symbol `__attribute__' does not fit here.
 ```
 
-Als Lösung werden alte Versionen der MSYS2-Packete im Ordner `gtk3` mitgeliefert.
+Als Lösung werden alte Versionen der MSYS2-Pakete im Ordner `gtk3` mitgeliefert.
 Der Befehl zum installieren lautet:
-`pacman -U <Dateiname>`
+    `pacman -U <Dateiname>`
 
 Nach kompilieren der o.g. Pakete muss ein Update durchgeführt werden, da es sonst zu dll-Problemen kommt.
 Evtl. ist das bei einer frischen MSYS2-Installation nicht notwendig.
@@ -224,6 +234,7 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
     Exec=sh -c "/home/pi/Desktop/Zugkontrolle-bin/Zugkontrolle %f"
     ```
 
-    TODO: Anleitung aus folgenden Quellen:
-    https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus
-    https://stackoverflow.com/a/56202419
+  TODO: Anleitung aus folgenden Quellen:
+
+  * [Nautilus drag-and-drop](https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus)
+  * [aktueller Ordner in .desktop Datei](https://stackoverflow.com/a/56202419)
