@@ -71,24 +71,55 @@ Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip
 ### Installation von stack
 
 TODO!!!!
-	https://docs.haskellstack.org/en/stable/install_and_upgrade/
+    https://docs.haskellstack.org/en/stable/install_and_upgrade/
     `curl -sSL https://get.haskellstack.org/ | sh`
 (Probleme mit neuester Stack-Version, daher Version 1.9.3 in [Zugkontrolle-Resourcen](https://github.com/spamviech/ZugkontrolleResourcen) enthalten)
+(Swap-Datei erstellen)
+```
+sudo dphys-swapfile swapoff   # disable swap
+sudo nano /etc/dphys-swapfile # and set 'CONF_SWAPSIZE' to 1024
+sudo dphys-swapfile setup     # refresh with new settings
+sudo dphys-swapfile swapon    # re-enable swap
+```
 (LLVM-3.9 nicht vergessen)
     Download von hier: https://releases.llvm.org/download.html#3.9.1
-    Zum kompilieren wird cmake benötigt: https://www.llvm.org/docs/CMake.html
-    ```
-        sudo apt-get install cmake
-        mkdir mybuilddir
-        cd mybuilddir
-        cmake path/to/llvm/source/root
-        cmake --build .
-        cmake --build . --target install
-    ```
-    Alternativ die dort vorhandenen binaries (armv7a Linux) herunterladen und im PATH auffindbar entpacken.
+    Ich empfehle die dort vorhandenen binaries (armv7a Linux) herunterladen und entpacken.
+```
+    tar -xf clang+llvm-3.9.1-armv7a-linux-gnueabihf.tar.xz
+    cd clang+llvm-3.9.1-armv7a-linux-gnueabihf/
+    sudo mkdir /usr/lib/llvm-3.9
+    sudo mkdir /usr/lib/llvm-3.9/bin
+    sudo mv bin/* /usr/lib/llvm-3.9/bin/
+    sudo mkdir /usr/lib/llvm-3.9/include
+    sudo mv include/* /usr/lib/llvm-3.9/include/
+    sudo mkdir /usr/lib/llvm-3.9/lib
+    sudo mv lib/* /usr/lib/llvm-3.9/lib/
+    sudo mkdir /usr/lib/llvm-3.9/libexec
+    sudo mv libexec/* /usr/lib/llvm-3.9/libexec/
+    sudo mkdir /usr/lib/llvm-3.9/share
+    sudo mv share/* /usr/lib/llvm-3.9/share/
+```
+Jetzt muss noch sichergestellt werden, dass stack/ghc die erzeugten Dateien auch findet.
+Dazu kann die PATH-Variable ergänzt werden.
+Alternativ können folgende Zeilen zur `config.yaml` hinzugefügt werden.
+```
+extra-path:
+- /usr/lib/llvm-3.9/bin
+```
+    Alternativ kompilieren aus Quellcode.
+    (Dauert ewig, bei mir mit Fehlermeldung abgebrochen)
+    Es wird cmake benötigt: https://www.llvm.org/docs/CMake.html
+```
+    sudo apt-get install cmake
+    mkdir mybuilddir
+    cd mybuilddir
+    cmake path/to/llvm/source/root
+    cmake --build .
+    cmake --build . --target install
+```
 (libtinfo-dev benötigt, sonst gitb es Probleme beim linken/TemplateHaskell-Modulen)
     `sudo apt-get install libtinfo-dev`
-(LLVM-3.9 Ordner zu PATH hinzufügen? Siehe https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
+(https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
 
 
 ### Installation von WiringPi
@@ -148,7 +179,7 @@ pango       >   The symbol `__attribute__' does not fit here.
 
 Als Lösung werden alte Versionen der MSYS2-Packete im Ordner `gtk3` mitgeliefert.
 Der Befehl zum installieren lautet:
-`pacman -U <Dateiname>
+`pacman -U <Dateiname>`
 
 Nach kompilieren der o.g. Pakete muss ein Update durchgeführt werden, da es sonst zu dll-Problemen kommt.
 Evtl. ist das bei einer frischen MSYS2-Installation nicht notwendig.
