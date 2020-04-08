@@ -64,7 +64,7 @@ Bahngeschwindigkeiten:
 - UmdrehenAnschluss:
     Pin: 16
   FahrstromAnschlüsse:
-    [Pin: 20, Pin: 21]
+    [Pin: 21, Pin: 20]
   Name: Bahngeschwindigkeit
   Zugtyp: Märklin
   Fließend: LOW
@@ -382,7 +382,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -630,7 +630,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -788,7 +788,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -959,7 +959,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -1140,7 +1140,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -1321,7 +1321,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -1502,7 +1502,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -1674,7 +1674,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -1823,7 +1823,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
@@ -1953,7 +1953,7 @@ Wegstrecken:
   - UmdrehenAnschluss:
       Pin: 16
     FahrstromAnschlüsse:
-      [Pin: 20, Pin: 21]
+      [Pin: 21, Pin: 20]
     Name: Bahngeschwindigkeit
     Zugtyp: Märklin
     Fließend: LOW
