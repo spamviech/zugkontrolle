@@ -80,7 +80,7 @@ TODO!!!!
 
 ```sh
     sudo dphys-swapfile swapoff   # disable swap
-    sudo nano /etc/dphys-swapfile # and set 'CONF_SWAPSIZE' to 1024
+    sudo nano /etc/dphys-swapfile # and set 'CONF_SWAPSIZE' to 2048
     sudo dphys-swapfile setup     # refresh with new settings
     sudo dphys-swapfile swapon    # re-enable swap
 ```
