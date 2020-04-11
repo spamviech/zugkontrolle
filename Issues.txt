@@ -1,14 +1,24 @@
+Pin-Setup bei Hinzufügen
+    pinMode pin OUTPUT
+
+Gtk-UI: Widgets synchronisieren
+    Jedes Widget enthält ein (TVar Bool), welches angibt ob der Effekt ausgelöst wird
+    Wegstrecke wird gesetzt ->
+        Alle enthaltenen Elemente werden angepasst
+        Andere Wegstrecken werden gesetzt, wenn alle relevanten Elemente übereinstimmen
+    WegstreckenElement wird gesetzt ->
+        Wegstrecke wird gesetzt, falls es das einzige Element der Kategorie ist
+
+Gtk-UI:
+    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
+        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
+
 Gtk-UI benötigt lange, bis etwas zu sehen ist
     Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
     Dummy-Fenster wird erstellt
         momentan ohne Funktion
         reagiert auf keine Eingaben
         zeigt zumindest an, dass etwas passiert
-
-Laden von Plänen funktioniert nicht
-    Zugkontrolle.yaml funktioniert
-        Problem mit PCF8574Port?
-        evtl. falsche Beobachtung?
 
 Einstellungen in yaml-Datei speichern?
     Sprache
