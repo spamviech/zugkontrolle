@@ -2077,6 +2077,7 @@ wegstreckePackNew
                                                     <°> richtung) Nothing wsWeichenRichtungen)
         boxPackWidgetNewDefault functionBox
             $ buttonNewWithEventLabel justSpracheTVar Language.einstellen
+            $ eventAusführen wsWidgets
             $ flip runReaderT objektReader
             $ ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
     unless (null wsKupplungen) $ void $ do
