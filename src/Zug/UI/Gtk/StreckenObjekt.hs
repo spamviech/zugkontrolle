@@ -86,10 +86,10 @@ module Zug.UI.Gtk.StreckenObjekt
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Applicative (ZipList(..))
-import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, TMVar, putTMVar)
+import Control.Concurrent.STM (atomically, TVar, writeTVar, newTVarIO, readTVarIO, TMVar, putTMVar)
 import Control.Lens ((^.), (^..), (??))
 import qualified Control.Lens as Lens
-import Control.Monad (void, unless, forM_, foldM)
+import Control.Monad (void, unless, when, forM_, foldM)
 import Control.Monad.Reader (MonadReader(..), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Aeson as Aeson
@@ -133,8 +133,9 @@ import Zug.UI.Base
       , entfernenWegstrecke, entfernenPlan)
 import Zug.UI.Befehl (BefehlAllgemein(..), BefehlKlasse(..))
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget(), aktuelleAuswahl, setzeAuswahl, beiAuswahl
-                         , auswahlRadioButtonNew, auswahlComboBoxNew, MitAuswahlWidget(..))
+import Zug.UI.Gtk.Auswahl
+       (AuswahlWidget(), aktuelleAuswahl, setzeAuswahl, beiAuswahl, auswahlRadioButtonNew
+      , auswahlComboBoxNew, boundedEnumAuswahlRadioButtonNew, MitAuswahlWidget(..))
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (FortfahrenWennToggledVar, registrierterCheckButtonNew, RegistrierterCheckButton
@@ -490,6 +491,16 @@ class (MitWidget s) => WidgetsTyp s where
     -- Hier definiert, damit keine 'MitBox'-Instanz notwendig ist.
     boxButtonEntfernen :: s -> Gtk.Box
 
+    -- | Erhalte die 'TVar', die steuert welche Widgets bei 'Zug.UI.Gtk.SpracheGui.sprachwechsel'
+    -- angepasst werden.
+    tvarSprache :: s -> TVar (Maybe [Sprache -> IO ()])
+
+    -- | Erhalte die 'TVar', die steuert ob Events ausgeführt werden.
+    tvarEvent :: s -> TVar Bool
+
+eventAusführen :: (WidgetsTyp s) => s -> IO () -> IO ()
+eventAusführen s aktion = readTVarIO (tvarEvent s) >>= flip when aktion
+
 -- | Klasse für Gui-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
 class (WidgetsTyp s) => WegstreckenElement s where
     -- | Auswahl-Typ beim erstellen einer Wegstrecke
@@ -559,16 +570,13 @@ entferneHinzufügenPlanWidgets planElement = do
 --
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonEntfernenPackNew :: (WidgetsTyp w, ObjektGuiReader m, MonadIO m)
-                       => w
-                       -> TVar (Maybe [Sprache -> IO ()])
-                       -> IOStatusGui ()
-                       -> m Gtk.Button
-buttonEntfernenPackNew w tvar entfernenAktion = do
+buttonEntfernenPackNew
+    :: (WidgetsTyp w, ObjektGuiReader m, MonadIO m) => w -> IOStatusGui () -> m Gtk.Button
+buttonEntfernenPackNew w entfernenAktion = do
     statusVar <- erhalteStatusVar
     objektReader <- ask
     boxPackWidgetNew (boxButtonEntfernen w) PackNatural paddingDefault End
-        $ buttonNewWithEventLabel (Just tvar) Language.entfernen
+        $ buttonNewWithEventLabel (Just $ tvarSprache w) Language.entfernen
         $ flip runReaderT objektReader
         $ do
             auswertenStatusVarIOStatus entfernenAktion statusVar
@@ -661,6 +669,7 @@ data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
                   , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
                   )
     , bgSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
+    , bgTVarEvent :: TVar Bool
     }
 
 deriving instance (Eq (ObjektTyp (BGWidgets g z))) => Eq (BGWidgets g z)
@@ -686,6 +695,12 @@ instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
 
     boxButtonEntfernen :: BGWidgets g z -> Gtk.Box
     boxButtonEntfernen = erhalteBox . bgWidget
+
+    tvarSprache :: BGWidgets g z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache = bgSpracheTVar
+
+    tvarEvent :: BGWidgets g z -> TVar Bool
+    tvarEvent = bgTVarEvent
 
 instance WegstreckenElement (BGWidgets g 'Märklin) where
     getterWegstrecke
@@ -757,6 +772,14 @@ instance ( WegstreckenElement (BGWidgets 'Pwm z)
     boxButtonEntfernen (GeschwindigkeitPwm bgWidgets) = boxButtonEntfernen bgWidgets
     boxButtonEntfernen (GeschwindigkeitKonstanteSpannung bgWidgets) = boxButtonEntfernen bgWidgets
 
+    tvarSprache :: GeschwindigkeitEither BGWidgets z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache (GeschwindigkeitPwm bgWidgets) = tvarSprache bgWidgets
+    tvarSprache (GeschwindigkeitKonstanteSpannung bgWidgets) = tvarSprache bgWidgets
+
+    tvarEvent :: GeschwindigkeitEither BGWidgets z -> TVar Bool
+    tvarEvent (GeschwindigkeitPwm bgWidgets) = tvarEvent bgWidgets
+    tvarEvent (GeschwindigkeitKonstanteSpannung bgWidgets) = tvarEvent bgWidgets
+
 instance WidgetsTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     type ObjektTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) =
         ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)
@@ -783,6 +806,20 @@ instance WidgetsTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     boxButtonEntfernen (ZugtypLego (GeschwindigkeitPwm bgWidgets)) = boxButtonEntfernen bgWidgets
     boxButtonEntfernen (ZugtypLego (GeschwindigkeitKonstanteSpannung bgWidgets)) =
         boxButtonEntfernen bgWidgets
+
+    tvarSprache :: ZugtypEither (GeschwindigkeitEither BGWidgets)
+                -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache (ZugtypMärklin (GeschwindigkeitPwm bgWidgets)) = tvarSprache bgWidgets
+    tvarSprache (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bgWidgets)) =
+        tvarSprache bgWidgets
+    tvarSprache (ZugtypLego (GeschwindigkeitPwm bgWidgets)) = tvarSprache bgWidgets
+    tvarSprache (ZugtypLego (GeschwindigkeitKonstanteSpannung bgWidgets)) = tvarSprache bgWidgets
+
+    tvarEvent :: ZugtypEither (GeschwindigkeitEither BGWidgets) -> TVar Bool
+    tvarEvent (ZugtypMärklin (GeschwindigkeitPwm bgWidgets)) = tvarEvent bgWidgets
+    tvarEvent (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bgWidgets)) = tvarEvent bgWidgets
+    tvarEvent (ZugtypLego (GeschwindigkeitPwm bgWidgets)) = tvarEvent bgWidgets
+    tvarEvent (ZugtypLego (GeschwindigkeitKonstanteSpannung bgWidgets)) = tvarEvent bgWidgets
 
 instance WegstreckenElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     getterWegstrecke
@@ -934,7 +971,10 @@ bahngeschwindigkeitPackNew
     -> MStatusGuiT m (BGWidgets g z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     dynamischeWidgets@DynamischeWidgets {vBoxBahngeschwindigkeiten} <- erhalteDynamischeWidgets
-    bgSpracheTVar <- liftIO $ newTVarIO $ Just []
+    (bgSpracheTVar, bgTVarEvent) <- liftIO $ do
+        bgSpracheTVar <- newTVarIO $ Just []
+        bgTVarEvent <- newTVarIO True
+        pure (bgSpracheTVar, bgTVarEvent)
     let justSpracheTVar = Just bgSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWidgetWegstrecke
@@ -957,11 +997,12 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             , bgHinzWS = hinzufügenWidgetWegstrecke
             , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
             , bgSpracheTVar
+            , bgTVarEvent
             }
     namePackNew hBox bahngeschwindigkeit
     geschwindigkeitsWidgetsPackNew hBox bgWidgets
     fließendPackNew hBox bahngeschwindigkeit justSpracheTVar
-    buttonEntfernenPackNew bgWidgets bgSpracheTVar
+    buttonEntfernenPackNew bgWidgets
         $ entfernenBahngeschwindigkeit
         $ zuZugtypEither
         $ zuGeschwindigkeitEither bgWidgets
@@ -978,19 +1019,18 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         geschwindigkeitsWidgetsPackNew
             box
             bgWidgets@BGWidgets
-            { bg = bgMärklin@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
-            , bgSpracheTVar} = void $ do
-            boxPackWidgetNewDefault box
-                $ pinNew (Just bgSpracheTVar) Language.geschwindigkeit bgmpGeschwindigkeitsPin
-            scaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew box bgWidgets
-            buttonUmdrehenPackNew
-                box
-                bgMärklin
-                (Left (erhalteRange scaleGeschwindigkeit) :| [])
-                bgSpracheTVar
+            {bg = MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}, bgSpracheTVar} =
+            void $ do
+                boxPackWidgetNewDefault box
+                    $ pinNew (Just bgSpracheTVar) Language.geschwindigkeit bgmpGeschwindigkeitsPin
+                scaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew box bgWidgets
+                buttonUmdrehenPackNew
+                    box
+                    bgWidgets
+                    (Left (erhalteRange scaleGeschwindigkeit) :| [])
         geschwindigkeitsWidgetsPackNew
             box
-            bgWidgets@BGWidgets { bg = bgMärklin@MärklinBahngeschwindigkeitKonstanteSpannung
+            bgWidgets@BGWidgets { bg = MärklinBahngeschwindigkeitKonstanteSpannung
                                       {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
                                 , bgSpracheTVar} = void $ do
             let justSpracheTVar = Just bgSpracheTVar
@@ -1014,16 +1054,15 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             auswahlFahrstrom <- auswahlFahrstromPackNew
                 box
                 (fromIntegral $ length bgmkFahrstromAnschlüsse)
-                bgSpracheTVar
                 bgWidgets
             boxPackWidgetNewDefault box
                 $ anschlussNew (Just bgSpracheTVar) Language.umdrehen bgmkUmdrehenAnschluss
-            buttonUmdrehenPackNew box bgMärklin (Right auswahlFahrstrom :| []) bgSpracheTVar
+            buttonUmdrehenPackNew box bgWidgets (Right auswahlFahrstrom :| [])
         geschwindigkeitsWidgetsPackNew
             box
-            bgWidgets@BGWidgets { bg = bgLego@LegoBahngeschwindigkeit
-                                      {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
-                                , bgSpracheTVar} = void $ do
+            bgWidgets@BGWidgets
+            { bg = LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
+            , bgSpracheTVar} = void $ do
             boxPackWidgetNewDefault box
                 $ pinNew (Just bgSpracheTVar) Language.geschwindigkeit bglGeschwindigkeitsPin
             scaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew box bgWidgets
@@ -1034,14 +1073,13 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                     bglFahrtrichtungsAnschluss
             togglebuttonFahrtrichtungEinstellenPackNew
                 box
-                bgLego
+                bgWidgets
                 (Left (erhalteRange scaleGeschwindigkeit) :| [])
-                bgSpracheTVar
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew
     :: forall b bg m z.
-    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
+    (MitBox b, WidgetsTyp (bg 'Pwm z), BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
     => b
     -> bg 'Pwm z
     -> m Gtk.HScale
@@ -1053,7 +1091,7 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
             $ widgetShowNew
             $ Gtk.hScaleNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
         Gtk.widgetSetSizeRequest scale 100 (-1)
-        Gtk.on scale Gtk.valueChanged $ do
+        Gtk.on scale Gtk.valueChanged $ eventAusführen bahngeschwindigkeit $ do
             wert <- Gtk.get scale Gtk.rangeValue
             flip runReaderT objektReader
                 $ ausführenStatusVarAktion
@@ -1064,13 +1102,17 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit = do
 -- | Füge 'AuswahlWidget' zum einstellen des Fahrstroms zur Box hinzu
 auswahlFahrstromPackNew
     :: forall b bg m z.
-    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
+    ( MitBox b
+    , WidgetsTyp (bg 'KonstanteSpannung z)
+    , BahngeschwindigkeitKlasse bg
+    , ObjektGuiReader m
+    , MonadIO m
+    )
     => b
     -> Word8
-    -> TVar (Maybe [Sprache -> IO ()])
     -> bg 'KonstanteSpannung z
     -> m (AuswahlWidget Word8)
-auswahlFahrstromPackNew box maxWert tvarSprache bahngeschwindigkeit = do
+auswahlFahrstromPackNew box maxWert bahngeschwindigkeit = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
     auswahlWidget <- boxPackWidgetNewDefault box
@@ -1079,10 +1121,11 @@ auswahlFahrstromPackNew box maxWert tvarSprache bahngeschwindigkeit = do
                then auswahlRadioButtonNew
                else auswahlComboBoxNew)
             (NonEmpty.fromList $ [maxWert, pred maxWert .. 0])
-            (Just tvarSprache)
+            (Just $ tvarSprache bahngeschwindigkeit)
             Language.fahrstrom
     setzeAuswahl auswahlWidget 0
-    beiAuswahl auswahlWidget $ \wert -> flip runReaderT objektReader
+    beiAuswahl auswahlWidget $ \wert -> eventAusführen bahngeschwindigkeit
+        $ flip runReaderT objektReader
         $ ausführenStatusVarAktion (Fahrstrom bahngeschwindigkeit wert) statusVar
     pure auswahlWidget
 
@@ -1092,21 +1135,28 @@ auswahlFahrstromPackNew box maxWert tvarSprache bahngeschwindigkeit = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonUmdrehenPackNew
     :: forall b bg g m.
-    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
+    ( MitBox b
+    , WidgetsTyp (bg g 'Märklin)
+    , BahngeschwindigkeitKlasse bg
+    , ObjektGuiReader m
+    , MonadIO m
+    )
     => b
     -> bg g 'Märklin
     -> NonEmpty (Either Gtk.Range (AuswahlWidget Word8))
-    -> TVar (Maybe [Sprache -> IO ()])
     -> m Gtk.Button
-buttonUmdrehenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
+buttonUmdrehenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ buttonNewWithEventLabel (Just tvar) Language.umdrehen $ do
-        forM_ geschwindigkeitsWidgets $ \case
-            (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
-            (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
-        flip runReaderT objektReader
-            $ ausführenStatusVarAktion (Umdrehen bahngeschwindigkeit) statusVar
+    boxPackWidgetNewDefault box
+        $ buttonNewWithEventLabel (Just $ tvarSprache bahngeschwindigkeit) Language.umdrehen
+        $ eventAusführen bahngeschwindigkeit
+        $ do
+            forM_ geschwindigkeitsWidgets $ \case
+                (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
+                (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
+            flip runReaderT objektReader
+                $ ausführenStatusVarAktion (Umdrehen bahngeschwindigkeit) statusVar
 
 -- | Füge 'Gtk.ToggleButton' zum Fahrtrichtung einstellen zur Box hinzu.
 --
@@ -1114,29 +1164,28 @@ buttonUmdrehenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 togglebuttonFahrtrichtungEinstellenPackNew
     :: forall b bg g m.
-    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
+    (MitBox b, WidgetsTyp (bg g 'Lego), BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
     => b
     -> bg g 'Lego
     -> NonEmpty (Either Gtk.Range (AuswahlWidget Word8))
-    -> TVar (Maybe [Sprache -> IO ()])
-    -> m Gtk.ToggleButton
-togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets tvar = do
+    -> m (AuswahlWidget Fahrtrichtung)
+togglebuttonFahrtrichtungEinstellenPackNew box bahngeschwindigkeit geschwindigkeitsWidgets = do
     tmvarStatus <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box
-        $ toggleButtonNewWithEventLabel (Just tvar) Language.umdrehen
-        $ \vorwärts -> do
-            forM_ geschwindigkeitsWidgets $ \case
-                (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
-                (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
-            let fahrtrichtung =
-                    if vorwärts
-                        then Vorwärts
-                        else Rückwärts
-            flip runReaderT objektReader
-                $ ausführenStatusVarAktion
-                    (FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung)
-                    tmvarStatus
+    auswahlFahrtrichtung <- boxPackWidgetNewDefault box
+        $ boundedEnumAuswahlRadioButtonNew
+            Vorwärts
+            (Just $ tvarSprache bahngeschwindigkeit)
+            Language.fahrtrichtung
+    beiAuswahl auswahlFahrtrichtung $ \fahrtrichtung -> eventAusführen bahngeschwindigkeit $ do
+        forM_ geschwindigkeitsWidgets $ \case
+            (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
+            (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
+        flip runReaderT objektReader
+            $ ausführenStatusVarAktion
+                (FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung)
+                tmvarStatus
+    pure auswahlFahrtrichtung
 
 -- ** Streckenabschnitt
 -- | 'Streckenabschnitt' mit zugehörigen Widgets
@@ -1147,6 +1196,7 @@ data STWidgets =
     , stHinzWS :: CheckButtonWegstreckeHinzufügen Void STWidgets
     , stHinzPL :: ButtonPlanHinzufügen STWidgets
     , stSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
+    , stTVarEvent :: TVar Bool
     }
     deriving (Eq)
 
@@ -1170,6 +1220,12 @@ instance WidgetsTyp STWidgets where
 
     boxButtonEntfernen :: STWidgets -> Gtk.Box
     boxButtonEntfernen = erhalteBox . stWidget
+
+    tvarSprache :: STWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache = stSpracheTVar
+
+    tvarEvent :: STWidgets -> TVar Bool
+    tvarEvent = stTVarEvent
 
 instance WegstreckenElement STWidgets where
     getterWegstrecke :: Lens.Getter STWidgets (CheckButtonWegstreckeHinzufügen Void STWidgets)
@@ -1207,7 +1263,10 @@ streckenabschnittPackNew
 streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = do
     DynamischeWidgets
         {vBoxStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte} <- erhalteDynamischeWidgets
-    stSpracheTVar <- liftIO $ newTVarIO $ Just []
+    (stSpracheTVar, stTVarEvent) <- liftIO $ do
+        stSpracheTVar <- newTVarIO $ Just []
+        stTVarEvent <- newTVarIO True
+        pure (stSpracheTVar, stTVarEvent)
     let justSpracheTVar = Just stSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget
@@ -1218,10 +1277,6 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
         stSpracheTVar
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ liftIO $ Gtk.hBoxNew False 0
-    namePackNew hBox streckenabschnitt
-    boxPackWidgetNewDefault hBox $ anschlussNew justSpracheTVar Language.strom stromAnschluss
-    toggleButtonStromPackNew hBox streckenabschnitt stSpracheTVar
-    fließendPackNew hBox streckenabschnitt justSpracheTVar
     let stWidgets =
             STWidgets
             { st = streckenabschnitt
@@ -1229,8 +1284,13 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
             , stHinzPL = hinzufügenPlanWidget
             , stHinzWS = hinzufügenWegstreckeWidget
             , stSpracheTVar
+            , stTVarEvent
             }
-    buttonEntfernenPackNew stWidgets stSpracheTVar $ entfernenStreckenabschnitt stWidgets
+    namePackNew hBox streckenabschnitt
+    boxPackWidgetNewDefault hBox $ anschlussNew justSpracheTVar Language.strom stromAnschluss
+    toggleButtonStromPackNew hBox stWidgets
+    fließendPackNew hBox streckenabschnitt justSpracheTVar
+    buttonEntfernenPackNew stWidgets $ entfernenStreckenabschnitt stWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OStreckenabschnitt stWidgets
     pure stWidgets
@@ -1241,16 +1301,16 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonStromPackNew
     :: forall m b s.
-    (ObjektGuiReader m, MonadIO m, MitBox b, StreckenabschnittKlasse s)
+    (ObjektGuiReader m, MonadIO m, MitBox b, WidgetsTyp s, StreckenabschnittKlasse s)
     => b
     -> s
-    -> TVar (Maybe [Sprache -> IO ()])
     -> m Gtk.ToggleButton
-toggleButtonStromPackNew box streckenabschnitt tvar = do
+toggleButtonStromPackNew box streckenabschnitt = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
-    boxPackWidgetNewDefault box $ toggleButtonNewWithEventLabel (Just tvar) Language.strom $ \an
-        -> do
+    boxPackWidgetNewDefault box
+        $ toggleButtonNewWithEventLabel (Just $ tvarSprache streckenabschnitt) Language.strom
+        $ \an -> eventAusführen streckenabschnitt $ do
             let fließend =
                     if an
                         then Fließend
@@ -1267,6 +1327,7 @@ data WEWidgets (z :: Zugtyp) =
     , weHinzWS :: CheckButtonWegstreckeHinzufügen Richtung (WEWidgets z)
     , weHinzPL :: WeichePlanHinzufügenWidgets z
     , weSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
+    , weTVarEvent :: TVar Bool
     }
     deriving (Eq)
 
@@ -1302,6 +1363,12 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
     boxButtonEntfernen :: WEWidgets z -> Gtk.Box
     boxButtonEntfernen = erhalteBox . weWidget
 
+    tvarSprache :: WEWidgets z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache = weSpracheTVar
+
+    tvarEvent :: WEWidgets z -> TVar Bool
+    tvarEvent = weTVarEvent
+
 instance WidgetsTyp (ZugtypEither WEWidgets) where
     type ObjektTyp (ZugtypEither WEWidgets) = ZugtypEither Weiche
 
@@ -1315,6 +1382,14 @@ instance WidgetsTyp (ZugtypEither WEWidgets) where
     boxButtonEntfernen :: ZugtypEither WEWidgets -> Gtk.Box
     boxButtonEntfernen (ZugtypMärklin weWidgets) = boxButtonEntfernen weWidgets
     boxButtonEntfernen (ZugtypLego weWidgets) = boxButtonEntfernen weWidgets
+
+    tvarSprache :: ZugtypEither WEWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache (ZugtypMärklin weWidgets) = tvarSprache weWidgets
+    tvarSprache (ZugtypLego weWidgets) = tvarSprache weWidgets
+
+    tvarEvent :: ZugtypEither WEWidgets -> TVar Bool
+    tvarEvent (ZugtypMärklin weWidgets) = tvarEvent weWidgets
+    tvarEvent (ZugtypLego weWidgets) = tvarEvent weWidgets
 
 instance WegstreckenElement (WEWidgets 'Märklin) where
     type CheckButtonAuswahl (WEWidgets 'Märklin) = Richtung
@@ -1444,7 +1519,10 @@ weichePackNew :: forall m z.
               -> MStatusGuiT m (WEWidgets z)
 weichePackNew weiche = do
     dynamischeWidgets@DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
-    weSpracheTVar <- liftIO $ newTVarIO $ Just []
+    (weSpracheTVar, weTVarEvent) <- liftIO $ do
+        weSpracheTVar <- newTVarIO $ Just []
+        weTVarEvent <- newTVarIO True
+        pure (weSpracheTVar, weTVarEvent)
     let justSpracheTVar = Just weSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeRichtungPackNew
@@ -1473,9 +1551,6 @@ weichePackNew weiche = do
             }
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.hBoxNew False 0
-    namePackNew hBox weiche
-    richtungsButtonsPackNew weiche hBox weSpracheTVar
-    fließendPackNew hBox weiche justSpracheTVar
     let weWidgets =
             WEWidgets
             { we = weiche
@@ -1483,40 +1558,45 @@ weichePackNew weiche = do
             , weHinzWS = hinzufügenWegstreckeWidget
             , weHinzPL = hinzufügenPlanWidget
             , weSpracheTVar
+            , weTVarEvent
             }
-    buttonEntfernenPackNew weWidgets weSpracheTVar $ entfernenWeiche $ zuZugtypEither weWidgets
+    namePackNew hBox weiche
+    richtungsButtonsPackNew weWidgets hBox
+    fließendPackNew hBox weiche justSpracheTVar
+    buttonEntfernenPackNew weWidgets $ entfernenWeiche $ zuZugtypEither weWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OWeiche $ zuZugtypEither weWidgets
     pure weWidgets
     where
         richtungsButtonsPackNew
-            :: forall b m z.
-            (MitBox b, MonadIO m, ObjektGuiReader m)
-            => Weiche z
-            -> b
-            -> TVar (Maybe [Sprache -> IO ()])
-            -> m ()
-        richtungsButtonsPackNew MärklinWeiche {wemRichtungsAnschlüsse} box tvar = do
+            :: forall b m z. (MitBox b, MonadIO m, ObjektGuiReader m) => WEWidgets z -> b -> m ()
+        richtungsButtonsPackNew
+            weWidgets@WEWidgets {we = MärklinWeiche {wemRichtungsAnschlüsse}, weSpracheTVar}
+            box = do
             statusVar <- erhalteStatusVar :: m StatusVarGui
             objektReader <- ask
             forM_ wemRichtungsAnschlüsse $ \(richtung, anschluss) -> boxPackWidgetNewDefault box
-                $ buttonNewWithEventLabel (Just tvar) (richtung <:> anschluss)
+                $ buttonNewWithEventLabel (Just weSpracheTVar) (richtung <:> anschluss)
+                $ eventAusführen weWidgets
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
         richtungsButtonsPackNew
-            LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
-            box
-            tvar = void $ do
+            weWidgets@WEWidgets
+            { we = LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
+            , weSpracheTVar}
+            box = void $ do
             statusVar <- erhalteStatusVar :: m StatusVarGui
             objektReader <- ask
-            let justTVar = Just tvar
+            let justTVar = Just weSpracheTVar
             boxPackWidgetNewDefault box $ pinNew justTVar Language.richtung welRichtungsPin
             boxPackWidgetNewDefault box
                 $ buttonNewWithEventLabel justTVar (anzeige richtung1)
+                $ eventAusführen weWidgets
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung1) statusVar
             boxPackWidgetNewDefault box
                 $ buttonNewWithEventLabel justTVar (anzeige richtung2)
+                $ eventAusführen weWidgets
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
 
@@ -1529,6 +1609,7 @@ data KUWidgets =
     , kuHinzWS :: CheckButtonWegstreckeHinzufügen Void KUWidgets
     , kuHinzPL :: ButtonPlanHinzufügen KUWidgets
     , kuSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
+    , kuTVarEvent :: TVar Bool
     }
     deriving (Eq)
 
@@ -1552,6 +1633,12 @@ instance WidgetsTyp KUWidgets where
 
     boxButtonEntfernen :: KUWidgets -> Gtk.Box
     boxButtonEntfernen = erhalteBox . kuWidget
+
+    tvarSprache :: KUWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache = kuSpracheTVar
+
+    tvarEvent :: KUWidgets -> TVar Bool
+    tvarEvent = kuTVarEvent
 
 instance WegstreckenElement KUWidgets where
     getterWegstrecke :: Lens.Getter KUWidgets (CheckButtonWegstreckeHinzufügen Void KUWidgets)
@@ -1586,7 +1673,10 @@ instance KupplungKlasse KUWidgets where
 kupplungPackNew :: forall m. (ObjektGuiReader m, MonadIO m) => Kupplung -> MStatusGuiT m KUWidgets
 kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     DynamischeWidgets {vBoxKupplungen, vBoxHinzufügenPlanKupplungen} <- erhalteDynamischeWidgets
-    kuSpracheTVar <- liftIO $ newTVarIO $ Just []
+    (kuSpracheTVar, kuTVarEvent) <- liftIO $ do
+        kuSpracheTVar <- newTVarIO $ Just []
+        kuTVarEvent <- newTVarIO True
+        pure (kuSpracheTVar, kuTVarEvent)
     let justSpracheTVar = Just kuSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew kupplung kuSpracheTVar
@@ -1594,11 +1684,6 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung kuSpracheTVar
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.hBoxNew False 0
-    namePackNew hBox kupplung
-    boxPackWidgetNewDefault hBox
-        $ anschlussNew justSpracheTVar Language.kupplung kupplungsAnschluss
-    buttonKuppelnPackNew hBox kupplung kuSpracheTVar
-    fließendPackNew hBox kupplung justSpracheTVar
     let kuWidgets =
             KUWidgets
             { ku = kupplung
@@ -1606,8 +1691,14 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
             , kuHinzPL = hinzufügenPlanWidget
             , kuHinzWS = hinzufügenWegstreckeWidget
             , kuSpracheTVar
+            , kuTVarEvent
             }
-    buttonEntfernenPackNew kuWidgets kuSpracheTVar $ entfernenKupplung kuWidgets
+    namePackNew hBox kupplung
+    boxPackWidgetNewDefault hBox
+        $ anschlussNew justSpracheTVar Language.kupplung kupplungsAnschluss
+    buttonKuppelnPackNew hBox kuWidgets
+    fließendPackNew hBox kupplung justSpracheTVar
+    buttonEntfernenPackNew kuWidgets $ entfernenKupplung kuWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OKupplung kuWidgets
     pure kuWidgets
@@ -1617,16 +1708,16 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonKuppelnPackNew :: forall b k m.
-                     (MitBox b, KupplungKlasse k, ObjektGuiReader m, MonadIO m)
+                     (MitBox b, WidgetsTyp k, KupplungKlasse k, ObjektGuiReader m, MonadIO m)
                      => b
                      -> k
-                     -> TVar (Maybe [Sprache -> IO ()])
                      -> m Gtk.Button
-buttonKuppelnPackNew box kupplung tvar = do
+buttonKuppelnPackNew box kupplung = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
     boxPackWidgetNewDefault box
-        $ buttonNewWithEventLabel (Just tvar) Language.kuppeln
+        $ buttonNewWithEventLabel (Just $ tvarSprache kupplung) Language.kuppeln
+        $ eventAusführen kupplung
         $ flip runReaderT objektReader
         $ ausführenStatusVarAktion (Kuppeln kupplung) statusVar
 
@@ -1639,6 +1730,7 @@ data WSWidgets (z :: Zugtyp) =
     , wsFunktionBox :: Gtk.Box
     , wsHinzPL :: WegstreckePlanHinzufügenWidget z
     , wsSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
+    , wsTVarEvent :: TVar Bool
     }
     deriving (Eq)
 
@@ -1658,6 +1750,10 @@ instance MitWidget (WSWidgets z) where
     erhalteWidget :: WSWidgets z -> Gtk.Widget
     erhalteWidget = erhalteWidget . wsWidget
 
+instance MitWidget (GeschwindigkeitPhantom WSWidgets g z) where
+    erhalteWidget :: GeschwindigkeitPhantom WSWidgets g z -> Gtk.Widget
+    erhalteWidget (GeschwindigkeitPhantom wsWidgets) = erhalteWidget wsWidgets
+
 instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
     type ObjektTyp (WSWidgets z) = Wegstrecke z
 
@@ -1674,6 +1770,12 @@ instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
     boxButtonEntfernen :: WSWidgets z -> Gtk.Box
     boxButtonEntfernen = wsFunktionBox
 
+    tvarSprache :: WSWidgets z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache = wsSpracheTVar
+
+    tvarEvent :: WSWidgets z -> TVar Bool
+    tvarEvent = wsTVarEvent
+
 instance WidgetsTyp (ZugtypEither WSWidgets) where
     type ObjektTyp (ZugtypEither WSWidgets) = ZugtypEither Wegstrecke
 
@@ -1687,6 +1789,34 @@ instance WidgetsTyp (ZugtypEither WSWidgets) where
     boxButtonEntfernen :: ZugtypEither WSWidgets -> Gtk.Box
     boxButtonEntfernen (ZugtypMärklin wsWidgets) = boxButtonEntfernen wsWidgets
     boxButtonEntfernen (ZugtypLego wsWidgets) = boxButtonEntfernen wsWidgets
+
+    tvarSprache :: ZugtypEither WSWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache (ZugtypMärklin wsWidgets) = tvarSprache wsWidgets
+    tvarSprache (ZugtypLego wsWidgets) = tvarSprache wsWidgets
+
+    tvarEvent :: ZugtypEither WSWidgets -> TVar Bool
+    tvarEvent (ZugtypMärklin wsWidgets) = tvarEvent wsWidgets
+    tvarEvent (ZugtypLego wsWidgets) = tvarEvent wsWidgets
+
+instance (PlanElement (WSWidgets z)) => WidgetsTyp (GeschwindigkeitPhantom WSWidgets g z) where
+    type ObjektTyp (GeschwindigkeitPhantom WSWidgets g z) = GeschwindigkeitPhantom Wegstrecke g z
+
+    erhalteObjektTyp
+        :: GeschwindigkeitPhantom WSWidgets g z -> GeschwindigkeitPhantom Wegstrecke g z
+    erhalteObjektTyp (GeschwindigkeitPhantom WSWidgets {ws}) = GeschwindigkeitPhantom ws
+
+    entferneWidgets
+        :: (MonadIO m, DynamischeWidgetsReader r m) => GeschwindigkeitPhantom WSWidgets g z -> m ()
+    entferneWidgets (GeschwindigkeitPhantom wsWidgets) = entferneWidgets wsWidgets
+
+    boxButtonEntfernen :: GeschwindigkeitPhantom WSWidgets g z -> Gtk.Box
+    boxButtonEntfernen (GeschwindigkeitPhantom wsWidgets) = boxButtonEntfernen wsWidgets
+
+    tvarSprache :: GeschwindigkeitPhantom WSWidgets g z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache (GeschwindigkeitPhantom wsWidgets) = tvarSprache wsWidgets
+
+    tvarEvent :: GeschwindigkeitPhantom WSWidgets g z -> TVar Bool
+    tvarEvent (GeschwindigkeitPhantom wsWidgets) = tvarEvent wsWidgets
 
 instance PlanElement (WSWidgets 'Märklin) where
     foldPlan
@@ -1843,7 +1973,10 @@ wegstreckePackNew
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusGuiT m StatusVarGui
     dynamischeWidgets@DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
-    wsSpracheTVar <- liftIO $ newTVarIO $ Just []
+    (wsSpracheTVar, wsTVarEvent) <- liftIO $ do
+        wsSpracheTVar <- newTVarIO $ Just []
+        wsTVarEvent <- newTVarIO True
+        pure (wsSpracheTVar, wsTVarEvent)
     let justSpracheTVar = Just wsSpracheTVar
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     let [boxBGPwm, boxBGKonstanteSpannung, boxBG, boxStreckenabschnitt, boxKupplung, boxWegstrecke] =
@@ -1888,17 +2021,25 @@ wegstreckePackNew
     vBoxExpander
         <- liftIO $ containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
     functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    let wsWidgets =
+            WSWidgets
+            { ws = wegstrecke
+            , wsWidget = frame
+            , wsFunktionBox = erhalteBox functionBox
+            , wsHinzPL = hinzufügenPlanWidget
+            , wsSpracheTVar
+            , wsTVarEvent
+            }
     unless (null wsBahngeschwindigkeiten) $ void $ do
         boxPackWidgetNewDefault vBoxExpander
             $ labelSpracheNew justSpracheTVar
             $ Language.bahngeschwindigkeiten
             <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
-        maybeScale <- if any
-            (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
-            wsBahngeschwindigkeiten
-            then Just . Left . erhalteRange
-                <$> hScaleGeschwindigkeitPackNew functionBox (GeschwindigkeitPhantom wegstrecke)
-            else pure Nothing
+        maybeScale
+            <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
+                then Just . Left . erhalteRange
+                    <$> hScaleGeschwindigkeitPackNew functionBox (GeschwindigkeitPhantom wsWidgets)
+                else pure Nothing
         let geschwindigkeitenKonstanteSpannung = catKonstanteSpannung wsBahngeschwindigkeiten
         maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
             then pure Nothing
@@ -1908,29 +2049,26 @@ wegstreckePackNew
                     (maximum
                      $ fromIntegral . length . fahrstromAnschlüsse
                      <$> geschwindigkeitenKonstanteSpannung)
-                    wsSpracheTVar
-                    (GeschwindigkeitPhantom wegstrecke)
+                    (GeschwindigkeitPhantom wsWidgets)
         let geschwindigkeitsWidgets =
                 NonEmpty.fromList $ catMaybes [maybeScale, maybeAuswahlFahrstrom]
-        case zuZugtypEither wegstrecke of
+        case zuZugtypEither wsWidgets of
             (ZugtypMärklin wsMärklin) -> void
                 $ buttonUmdrehenPackNew
                     functionBox
                     (GeschwindigkeitPhantom wsMärklin)
                     geschwindigkeitsWidgets
-                    wsSpracheTVar
             (ZugtypLego wsLego) -> void
                 $ togglebuttonFahrtrichtungEinstellenPackNew
                     functionBox
                     (GeschwindigkeitPhantom wsLego)
                     geschwindigkeitsWidgets
-                    wsSpracheTVar
     unless (null wsStreckenabschnitte) $ void $ do
         boxPackWidgetNewDefault vBoxExpander
             $ labelSpracheNew justSpracheTVar
             $ Language.streckenabschnitte
             <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
-        toggleButtonStromPackNew functionBox wegstrecke wsSpracheTVar
+        toggleButtonStromPackNew functionBox wsWidgets
     unless (null wsWeichenRichtungen) $ void $ do
         boxPackWidgetNewDefault vBoxExpander
             $ labelSpracheNew justSpracheTVar
@@ -1945,16 +2083,8 @@ wegstreckePackNew
         boxPackWidgetNewDefault vBoxExpander
             $ labelSpracheNew justSpracheTVar
             $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
-        buttonKuppelnPackNew functionBox wegstrecke wsSpracheTVar
-    let wsWidgets =
-            WSWidgets
-            { ws = wegstrecke
-            , wsWidget = frame
-            , wsFunktionBox = erhalteBox functionBox
-            , wsHinzPL = hinzufügenPlanWidget
-            , wsSpracheTVar
-            }
-    buttonEntfernenPackNew wsWidgets wsSpracheTVar $ entfernenWegstrecke $ zuZugtypEither wsWidgets
+        buttonKuppelnPackNew functionBox wsWidgets
+    buttonEntfernenPackNew wsWidgets $ entfernenWegstrecke $ zuZugtypEither wsWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets
     pure wsWidgets
@@ -1979,6 +2109,7 @@ data PLWidgets =
     , plFunktionBox :: Gtk.Box
     , plHinzPL :: ButtonPlanHinzufügen PLWidgets
     , plSpracheTVar :: TVar (Maybe [Sprache -> IO ()])
+    , plTVarEvent :: TVar Bool
     }
     deriving (Eq)
 
@@ -2000,6 +2131,12 @@ instance WidgetsTyp PLWidgets where
 
     boxButtonEntfernen :: PLWidgets -> Gtk.Box
     boxButtonEntfernen = plFunktionBox
+
+    tvarSprache :: PLWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache = plSpracheTVar
+
+    tvarEvent :: PLWidgets -> TVar Bool
+    tvarEvent = plTVarEvent
 
 instance PlanElement PLWidgets where
     foldPlan :: Lens.Fold PLWidgets (Maybe (ButtonPlanHinzufügen PLWidgets))
@@ -2032,81 +2169,87 @@ planPackNew plan@Plan {plAktionen} = do
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets
         {vBoxPläne, windowMain, vBoxHinzufügenPlanPläne} <- erhalteDynamischeWidgets
-    (plSpracheTVar, frame, fnBox, expander, btAusführen, btAbbrechen, dialogGesperrt) <- liftIO $ do
-        plSpracheTVar <- newTVarIO $ Just []
-        -- Widget erstellen
-        frame <- boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
-        vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
-        namePackNew vBox plan
-        expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Text.empty
-        vBoxExpander <- containerAddWidgetNew expander $ Gtk.vBoxNew False 0
-        forM_ plAktionen
-            $ boxPackWidgetNewDefault vBoxExpander
-            . Gtk.labelNew
-            . Just
-            . flip leseSprache spracheGui
-            . anzeige
-        functionBox <- boxPackWidgetNewDefault vBox Gtk.hButtonBoxNew
-        buttonAusführen <- boxPackWidgetNew functionBox PackNatural paddingDefault positionDefault
-            $ Gtk.buttonNew
-        buttonAbbrechen <- boxPackWidgetNew functionBox PackNatural paddingDefault positionDefault
-            $ Gtk.buttonNew
-        Gtk.widgetHide buttonAbbrechen
-        dialogGesperrt <- Gtk.messageDialogNew
-            (Just windowMain)
-            []
-            Gtk.MessageError
-            Gtk.ButtonsOk
-            ("" :: Text)
-        progressBar <- boxPackWidgetNew
-            functionBox
-            PackGrow
-            paddingDefault
-            positionDefault
-            Gtk.progressBarNew
-        Gtk.on buttonAusführen Gtk.buttonActivated
-            $ flip runReaderT objektReader
-            $ auswertenStatusVarIOStatus (ausführenMöglich plan) statusVar >>= \case
-                AusführenMöglich -> void $ do
-                    liftIO $ do
-                        Gtk.widgetHide buttonAusführen
-                        Gtk.widgetShow buttonAbbrechen
-                    ausführenStatusVarBefehl
-                        (Ausführen plan (const . anzeigeAktion) abschlussAktion)
-                        statusVar
-                    where
-                        anzeigeAktion :: Natural -> IO ()
-                        anzeigeAktion wert =
-                            Gtk.set
-                                progressBar
-                                [ Gtk.progressBarFraction := (fromIntegral wert)
-                                      / (fromIntegral $ length plAktionen)]
-
-                        abschlussAktion :: IO ()
-                        abschlussAktion = do
-                            Gtk.widgetShow buttonAusführen
-                            Gtk.widgetHide buttonAbbrechen
-                WirdAusgeführt -> error "Ausführen in GTK-UI erneut gestartet."
-                (AnschlüsseBelegt anschlüsse) -> void $ do
-                    liftIO $ flip leseSprache spracheGui $ \sprache -> Gtk.set
-                        dialogGesperrt
-                        [ Gtk.messageDialogText := Just
-                              $ (Language.ausführenGesperrt $# ausFoldable anschlüsse) sprache]
-                    dialogEval dialogGesperrt
-        Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
-            flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (AusführenAbbrechen plan) statusVar
-            Gtk.widgetShow buttonAusführen
+    (plSpracheTVar, plTVarEvent, frame, fnBox, expander, btAusführen, btAbbrechen, dialogGesperrt)
+        <- liftIO $ do
+            plSpracheTVar <- newTVarIO $ Just []
+            plTVarEvent <- newTVarIO True
+            -- Widget erstellen
+            frame <- boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
+            vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
+            namePackNew vBox plan
+            expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Text.empty
+            vBoxExpander <- containerAddWidgetNew expander $ Gtk.vBoxNew False 0
+            forM_ plAktionen
+                $ boxPackWidgetNewDefault vBoxExpander
+                . Gtk.labelNew
+                . Just
+                . flip leseSprache spracheGui
+                . anzeige
+            functionBox <- boxPackWidgetNewDefault vBox Gtk.hButtonBoxNew
+            buttonAusführen
+                <- boxPackWidgetNew functionBox PackNatural paddingDefault positionDefault
+                $ Gtk.buttonNew
+            buttonAbbrechen
+                <- boxPackWidgetNew functionBox PackNatural paddingDefault positionDefault
+                $ Gtk.buttonNew
             Gtk.widgetHide buttonAbbrechen
-        pure
-            ( plSpracheTVar
-            , frame
-            , functionBox
-            , expander
-            , buttonAusführen
-            , buttonAbbrechen
-            , dialogGesperrt
-            )
+            dialogGesperrt <- Gtk.messageDialogNew
+                (Just windowMain)
+                []
+                Gtk.MessageError
+                Gtk.ButtonsOk
+                ("" :: Text)
+            progressBar <- boxPackWidgetNew
+                functionBox
+                PackGrow
+                paddingDefault
+                positionDefault
+                Gtk.progressBarNew
+            Gtk.on buttonAusführen Gtk.buttonActivated
+                $ flip runReaderT objektReader
+                $ auswertenStatusVarIOStatus (ausführenMöglich plan) statusVar >>= \case
+                    AusführenMöglich -> void $ do
+                        liftIO $ do
+                            Gtk.widgetHide buttonAusführen
+                            Gtk.widgetShow buttonAbbrechen
+                        ausführenStatusVarBefehl
+                            (Ausführen plan (const . anzeigeAktion) abschlussAktion)
+                            statusVar
+                        where
+                            anzeigeAktion :: Natural -> IO ()
+                            anzeigeAktion wert =
+                                Gtk.set
+                                    progressBar
+                                    [ Gtk.progressBarFraction := (fromIntegral wert)
+                                          / (fromIntegral $ length plAktionen)]
+
+                            abschlussAktion :: IO ()
+                            abschlussAktion = do
+                                Gtk.widgetShow buttonAusführen
+                                Gtk.widgetHide buttonAbbrechen
+                    WirdAusgeführt -> error "Ausführen in GTK-UI erneut gestartet."
+                    (AnschlüsseBelegt anschlüsse) -> void $ do
+                        liftIO $ flip leseSprache spracheGui $ \sprache -> Gtk.set
+                            dialogGesperrt
+                            [ Gtk.messageDialogText := Just
+                                  $ (Language.ausführenGesperrt $# ausFoldable anschlüsse)
+                                      sprache]
+                        dialogEval dialogGesperrt
+            Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
+                flip runReaderT objektReader
+                    $ ausführenStatusVarBefehl (AusführenAbbrechen plan) statusVar
+                Gtk.widgetShow buttonAusführen
+                Gtk.widgetHide buttonAbbrechen
+            pure
+                ( plSpracheTVar
+                , plTVarEvent
+                , frame
+                , functionBox
+                , expander
+                , buttonAusführen
+                , buttonAbbrechen
+                , dialogGesperrt
+                )
     plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan plSpracheTVar
     let plWidgets =
             PLWidgets
@@ -2115,8 +2258,9 @@ planPackNew plan@Plan {plAktionen} = do
             , plFunktionBox = erhalteBox fnBox
             , plHinzPL
             , plSpracheTVar
+            , plTVarEvent
             }
-    buttonEntfernenPackNew plWidgets plSpracheTVar $ entfernenPlan plWidgets
+    buttonEntfernenPackNew plWidgets $ entfernenPlan plWidgets
     let justSpracheTVar = Just plSpracheTVar
     verwendeSpracheGui justSpracheTVar $ \sprache -> do
         Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
