@@ -2012,15 +2012,16 @@ wegstreckePackNew
             , wegstrecke = hinzufügenPlanWidgetWS
             }
     -- Widget erstellen
-    frame <- liftIO $ boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
-    vBox <- liftIO $ containerAddWidgetNew frame $ Gtk.vBoxNew False 0
-    namePackNew vBox wegstrecke
-    expander <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
+    (frame, expander, vBoxExpander, functionBox) <- liftIO $ do
+        frame <- boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
+        vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
+        namePackNew vBox wegstrecke
+        expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
+        vBoxExpander <- containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+        functionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+        pure (frame, expander, vBoxExpander, functionBox)
     verwendeSpracheGui justSpracheTVar
         $ \sprache -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
-    vBoxExpander
-        <- liftIO $ containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-    functionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     let wsWidgets =
             WSWidgets
             { ws = wegstrecke
