@@ -1004,9 +1004,13 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
                 pinMode pin OUTPUT
                 digitalWrite pin $ valueFunktion an
             forM_ (Map.toList stromPortMapHigh)
-                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports HIGH
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports $ case an of
+                    Fließend -> HIGH
+                    Gesperrt -> LOW
             forM_ (Map.toList stromPortMapLow)
-                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
+                $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports $ case an of
+                    Fließend -> LOW
+                    Gesperrt -> HIGH
         where
             (stromPins, stromPcf8574PortsHigh, stromPcf8574PortsLow) =
                 foldl splitAnschlüsse ([], [], []) wsStreckenabschnitte
