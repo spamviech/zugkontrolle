@@ -1,5 +1,5 @@
 {-|
-Description : Kommandozeilen-Optionen
+Description : Kommandozeilen-Optionen.
 -}
 module Zug.Options
   ( Options(..)
@@ -10,6 +10,8 @@ module Zug.Options
   , allePWMOptionen
   , Sprache(..)
   , alleSprachen
+  , GtkSeiten(..)
+  , alleGtkSeiten
   ) where
 
 import Control.Monad.Trans (MonadIO, liftIO)
@@ -22,66 +24,71 @@ import Options.Applicative
 import Zug.Language (Sprache(..), alleSprachen)
 import qualified Zug.Language as Language
 
--- | Erhalte Kommandozeilen-Argumente
+-- | Erhalte Kommandozeilen-Argumente.
 getOptions :: (MonadIO m) => m Options
 getOptions = liftIO $ execParser optionen
 
--- | Unterstützte Kommandozeilen-Argumente
+-- | Unterstützte Kommandozeilen-Argumente.
 data Options =
-    Options { printCmd :: Bool, ui :: UI, sprache :: Sprache, load :: String, pwm :: PWM }
+    Options
+    { printCmd :: Bool
+    , ui :: UI
+    , sprache :: Sprache
+    , load :: FilePath
+    , pwm :: PWM
+    , gtkSeiten :: GtkSeiten
+    }
     deriving (Show)
 
 optionen :: ParserInfo Options
 optionen =
-    info
-        (helper <*> versionOpt <*> kombinierteOptionen)
-        (fullDesc
-         <> progDesc
-             "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle."
-         <> header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn.")
+    info (helper <*> versionOpt <*> kombinierteOptionen)
+    $ fullDesc
+    <> progDesc
+        "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle."
+    <> header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn."
 
 versionOpt :: Parser (a -> a)
 versionOpt =
-    infoOption
-        ("Zugkontrolle Version: " ++ unpack Language.version)
-        (long "version" <> short 'v' <> help "Zeige die aktuelle Version an.")
+    infoOption ("Zugkontrolle Version: " ++ unpack Language.version)
+    $ long "version" <> short 'v' <> help "Zeige die aktuelle Version an."
 
 kombinierteOptionen :: Parser Options
-kombinierteOptionen = Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt
+kombinierteOptionen =
+    Options <$> printOpt <*> uiOpt <*> spracheOpt <*> ladeOpt <*> pwmOpt <*> gtkSeitenOpt
 
 printOpt :: Parser Bool
 printOpt =
-    switch (long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi.")
+    switch $ long "print" <> short 'p' <> help "Verwende Konsolenausgabe anstelle von wiringPi."
 
--- | Unterstützte Benutzer-Schnittstellen
+-- | Unterstützte Benutzer-Schnittstellen.
 data UI
     = Gtk
     | Cmd
     deriving (Show, Read, Enum, Bounded, Eq)
 
--- | Alle unterstützten UI-Optionen
+-- | Alle unterstützten UI-Optionen.
 alleUI :: [UI]
 alleUI = [minBound .. maxBound]
 
 uiOpt :: Parser UI
 uiOpt =
-    option
-        auto
-        (long "ui"
-         <> metavar "UI"
-         <> showDefault
-         <> value Gtk
-         <> help ("Verwende UI=" ++ zeigeMöglichkeiten alleUI ++ " als Benutzer-Schnittstelle."))
+    option auto
+    $ long "ui"
+    <> metavar "UI"
+    <> showDefault
+    <> value Gtk
+    <> help ("Verwende UI=" ++ zeigeMöglichkeiten alleUI ++ " als Benutzer-Schnittstelle.")
 
 ladeOpt :: Parser String
 ladeOpt =
     strOption
-        (long "load"
-         <> short 'l'
-         <> metavar "DATEINAME"
-         <> showDefault
-         <> value ""
-         <> help "Lade DATEINAME zum Programmstart.")
+    $ long "load"
+    <> short 'l'
+    <> metavar "DATEINAME"
+    <> showDefault
+    <> value ""
+    <> help "Lade DATEINAME zum Programmstart."
 
 -- | Verwende Hardware-PWM wenn möglich?
 data PWM
@@ -89,32 +96,51 @@ data PWM
     | HardwarePWM
     deriving (Show, Read, Enum, Bounded, Eq)
 
--- | Alle unterstützten PWM-Optionen
+-- | Alle unterstützten PWM-Optionen.
 allePWMOptionen :: [PWM]
 allePWMOptionen = [minBound .. maxBound]
 
 pwmOpt :: Parser PWM
 pwmOpt =
-    option
-        auto
-        (long "pwm"
-         <> metavar "PWMTYP"
-         <> showDefault
-         <> value SoftwarePWM
-         <> help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich."))
+    option auto
+    $ long "pwm"
+    <> metavar "PWMTYP"
+    <> showDefault
+    <> value SoftwarePWM
+    <> help ("Verwende PWMTYP=" ++ zeigeMöglichkeiten allePWMOptionen ++ " wenn möglich.")
 
 spracheOpt :: Parser Sprache
 spracheOpt =
-    option
-        auto
-        (long "sprache"
-         <> metavar "SPRACHE"
-         <> showDefault
-         <> value Deutsch
-         <> help
-             ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?"))
+    option auto
+    $ long "sprache"
+    <> metavar "SPRACHE"
+    <> showDefault
+    <> value Deutsch
+    <> help ("Welche Sprache (" ++ zeigeMöglichkeiten alleSprachen ++ ") soll verwendet werden?")
 
--- | Hilfsfunktion um mögliche Optionen anzuzeigen
+-- | Soll im 'Gtk'-UI jede Kategorie eine eigene Seite bekommen?
+data GtkSeiten
+    = Einzelseiten
+    | Sammelseiten
+    deriving (Show, Read, Enum, Bounded, Eq)
+
+-- | Alle unterstützen Seiten-Konfigurationen im Gtk-UI.
+alleGtkSeiten :: [GtkSeiten]
+alleGtkSeiten = [minBound .. maxBound]
+
+gtkSeitenOpt :: Parser GtkSeiten
+gtkSeitenOpt =
+    option auto
+    $ long "seiten"
+    <> metavar "KONFIGURATION"
+    <> showDefault
+    <> value Sammelseiten
+    <> help
+        ("Soll im Gtk-UI jede Kategorie eine eigene Seite bekommen ("
+         ++ zeigeMöglichkeiten alleGtkSeiten
+         ++ ")? Diese Option hat keine Auswirkung, wenn dass Cmd-UI verwendet wird.")
+
+-- | Hilfsfunktion um mögliche Optionen anzuzeigen.
 zeigeMöglichkeiten :: (Show a) => [a] -> String
 zeigeMöglichkeiten [] = ""
 zeigeMöglichkeiten [h] = show h

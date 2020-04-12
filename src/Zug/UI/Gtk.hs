@@ -15,7 +15,7 @@ import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
 import Control.Concurrent.STM.TVar (TVar)
 #endif
 #ifdef ZUGKONTROLLEGUI
-import Control.Monad (void, forM_)
+import Control.Monad (void, when, forM_)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (liftIO)
@@ -37,7 +37,7 @@ import Zug.Language (Sprache(), MitSprache(leseSprache), (<~>), (<|>))
 #endif
 import qualified Zug.Language as Language
 #ifdef ZUGKONTROLLEGUI
-import Zug.Options (Options(..), getOptions)
+import Zug.Options (Options(..), getOptions, GtkSeiten(Einzelseiten))
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 #endif
@@ -96,7 +96,7 @@ main = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
 setupGUI maybeTVar = void $ do
-    Options {load = dateipfad, sprache} <- getOptions
+    Options {load = dateipfad, gtkSeiten, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Dummy-Fenster, damit etwas angezeigt wird
     windowDummy <- widgetShowNew $ Gtk.windowNew
@@ -434,6 +434,8 @@ setupGUI maybeTVar = void $ do
         fehlerBehandlung = RWS.put $ statusLeer spracheGui
     flip runReaderT objektReader
         $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
+    -- Zeige Einzelseiten an (falls gewünscht)
+    when (gtkSeiten == Einzelseiten) $ Gtk.set checkButtonNotebook [Gtk.toggleButtonActive := True]
     -- Fenster wird erst hier angezeigt, weil sonst windowDefaultWidth/Height keinen Effekt zeigen
     Gtk.widgetShow windowMain
     -- Dummy-Fenster löschen
