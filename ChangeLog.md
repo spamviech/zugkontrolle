@@ -143,4 +143,7 @@
 - Gtk.UI: Wegstrecken-Elemente werden scrollbar angezeigt (weiterhin in einem Expander versteckt).
 - Gtk-UI, Hinzufügen: Eingabefelder für Namen werden nicht mehr zurückgesetzt.
 - Gtk-UI, Hinzufügen: Alle bisher gewählten Aktionen können durch "Zurücksetzen" entfernt werden.
+- Gtk-UI: Widgets werden synchronisiert.
+    Wird z.B. der Strom einer Wegstrecke auf fließend gesetzt passiert das auch bei der Anzeige
+    aller enthaltenen Streckenabschnitte.
 - Tests entfernt. Wurden nicht gepflegt, somit ist deren Nicht-Existenz die ehrlichere Lösung.

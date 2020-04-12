@@ -37,6 +37,7 @@ module Zug.Enums
   , unterstützteStromeinstellungen
   ) where
 
+import qualified Data.Foldable as Foldable
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Text (Text)
@@ -48,7 +49,7 @@ import qualified Zug.Language as Language
 data Zugtyp
     = Märklin
     | Lego
-    deriving (Eq, Show, Bounded, Enum)
+    deriving (Eq, Show, Bounded, Enum, Ord)
 
 -- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datentypen
 data ZugtypEither (a :: Zugtyp -> Type)
@@ -56,6 +57,8 @@ data ZugtypEither (a :: Zugtyp -> Type)
     | ZugtypLego (a 'Lego)
 
 deriving instance (Eq (a 'Märklin), Eq (a 'Lego)) => Eq (ZugtypEither a)
+
+deriving instance (Ord (a 'Märklin), Ord (a 'Lego)) => Ord (ZugtypEither a)
 
 deriving instance (Show (a 'Märklin), Show (a 'Lego)) => Show (ZugtypEither a)
 
@@ -109,13 +112,16 @@ instance Anzeige Zugtyp where
 data GeschwindigkeitVariante
     = Pwm
     | KonstanteSpannung
-    deriving (Show, Eq, Bounded, Enum)
+    deriving (Show, Eq, Bounded, Enum, Ord)
 
 data GeschwindigkeitEither bg (z :: Zugtyp)
     = GeschwindigkeitPwm (bg 'Pwm z)
     | GeschwindigkeitKonstanteSpannung (bg 'KonstanteSpannung z)
 
 deriving instance (Eq (bg 'Pwm z), Eq (bg 'KonstanteSpannung z)) => Eq (GeschwindigkeitEither bg z)
+
+deriving instance (Ord (bg 'Pwm z), Ord (bg 'KonstanteSpannung z))
+    => Ord (GeschwindigkeitEither bg z)
 
 deriving instance (Show (bg 'Pwm z), Show (bg 'KonstanteSpannung z))
     => Show (GeschwindigkeitEither bg z)
@@ -162,26 +168,23 @@ instance GeschwindigkeitEitherKlasse 'KonstanteSpannung where
     zuGeschwindigkeitEither = GeschwindigkeitKonstanteSpannung
 
 -- | Sammle alle 'PWM'-Typen
-catPwm :: [GeschwindigkeitEither bg z] -> [bg 'Pwm z]
-catPwm ls = [x | GeschwindigkeitPwm x <- ls]
+catPwm :: (Foldable t) => t (GeschwindigkeitEither bg z) -> [bg 'Pwm z]
+catPwm ls = [x | GeschwindigkeitPwm x <- Foldable.toList ls]
 
 -- | Sammle alle 'KonstanteSpannung'-Typen
-catKonstanteSpannung :: [GeschwindigkeitEither bg z] -> [bg 'KonstanteSpannung z]
-catKonstanteSpannung ls = [x | GeschwindigkeitKonstanteSpannung x <- ls]
+catKonstanteSpannung :: (Foldable t) => t (GeschwindigkeitEither bg z) -> [bg 'KonstanteSpannung z]
+catKonstanteSpannung ls = [x | GeschwindigkeitKonstanteSpannung x <- Foldable.toList ls]
 
 -- | newtype-Wrapper um einen 'GeschwindigkeitVariante'-Phantomtyp hinzuzufügen.
 --
 -- Wird benötigt, um eine 'BahngeschwindigkeitKlasse'-Instanz von 'Wegstrecke' zu erstellen.
 newtype GeschwindigkeitPhantom a (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
     GeschwindigkeitPhantom (a z)
+    deriving (Eq, Ord)
 
 instance (Show (a z)) => Show (GeschwindigkeitPhantom a g z) where
     show :: GeschwindigkeitPhantom a g z -> String
     show (GeschwindigkeitPhantom a) = show a
-
-instance (Eq (a z)) => Eq (GeschwindigkeitPhantom a g z) where
-    (==) :: GeschwindigkeitPhantom a g z -> GeschwindigkeitPhantom a g z -> Bool
-    (==) (GeschwindigkeitPhantom a) (GeschwindigkeitPhantom b) = a == b
 
 instance (Anzeige (a z)) => Anzeige (GeschwindigkeitPhantom a g z) where
     anzeige :: GeschwindigkeitPhantom a g z -> Sprache -> Text
@@ -201,7 +204,7 @@ data Richtung
     | Kurve
     | Links
     | Rechts
-    deriving (Eq, Show, Bounded, Enum)
+    deriving (Eq, Show, Bounded, Enum, Ord)
 
 -- | Alle 'Richtung'en
 unterstützteRichtungen :: NonEmpty Richtung
@@ -219,7 +222,7 @@ instance Anzeige Richtung where
 data Fahrtrichtung
     = Vorwärts
     | Rückwärts
-    deriving (Eq, Show, Bounded, Enum)
+    deriving (Eq, Show, Bounded, Enum, Ord)
 
 -- | Alle 'Fahrtrichtung'en
 unterstützteFahrtrichtungen :: NonEmpty Fahrtrichtung
@@ -235,7 +238,7 @@ instance Anzeige Fahrtrichtung where
 data Strom
     = Fließend
     | Gesperrt
-    deriving (Eq, Show, Bounded, Enum)
+    deriving (Eq, Show, Bounded, Enum, Ord)
 
 instance Anzeige Strom where
     -- | Anzeigen von 'Strom'

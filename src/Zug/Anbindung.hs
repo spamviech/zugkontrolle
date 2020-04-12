@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedLists #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Ebene.
@@ -71,13 +72,15 @@ module Zug.Anbindung
   ) where
 
 import Control.Concurrent (forkIO)
-import Control.Monad (join, forM_)
+import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO, liftIO)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import Data.Semigroup (Semigroup(..))
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text.IO as T
 import Data.Word (Word8)
@@ -108,12 +111,12 @@ alleValues = NE.fromList [minBound .. maxBound]
 -- | Unterstützt der 'Pin'
 -- >'pinMode' pin 'PWM_OUTPUT'
 pwmMöglich :: Pin -> Bool
-pwmMöglich = flip elem [Wpi 1, Wpi 23, Wpi 24, Wpi 26]
+pwmMöglich = flip elem ([Wpi 1, Wpi 23, Wpi 24, Wpi 26] :: [Pin])
 
 -- | Unterstützt der 'Pin'
 -- >'pinMode' pin 'GPIO_CLOCK'
 clockMöglich :: Pin -> Bool
-clockMöglich = flip elem [Wpi 7, Wpi 21, Wpi 22, Wpi 29]
+clockMöglich = flip elem ([Wpi 7, Wpi 21, Wpi 22, Wpi 29] :: [Pin])
 
 -- * PWM-Funktion
 -- | 'pwmWrite' mit alternativer Software-basierter PWM-Funktion
@@ -203,13 +206,13 @@ erhaltePWMWertReduziert = erhaltePwmWert pwmGrenzeReduziert
 -- * Repräsentation von StreckenObjekten
 -- | Klassen-Definitionen
 class StreckenObjekt s where
-    anschlüsse :: s -> [Anschluss]
+    anschlüsse :: s -> Set Anschluss
     erhalteName :: s -> Text
     {-# MINIMAL anschlüsse, erhalteName #-}
 
 instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego))
     => StreckenObjekt (ZugtypEither a) where
-    anschlüsse :: ZugtypEither a -> [Anschluss]
+    anschlüsse :: ZugtypEither a -> Set Anschluss
     anschlüsse (ZugtypMärklin a) = anschlüsse a
     anschlüsse (ZugtypLego a) = anschlüsse a
 
@@ -219,7 +222,7 @@ instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego))
 
 instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
     => StreckenObjekt (GeschwindigkeitEither bg z) where
-    anschlüsse :: GeschwindigkeitEither bg z -> [Anschluss]
+    anschlüsse :: GeschwindigkeitEither bg z -> Set Anschluss
     anschlüsse (GeschwindigkeitPwm bg) = anschlüsse bg
     anschlüsse (GeschwindigkeitKonstanteSpannung bg) = anschlüsse bg
 
@@ -228,14 +231,14 @@ instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
     erhalteName (GeschwindigkeitKonstanteSpannung bg) = erhalteName bg
 
 instance (StreckenObjekt (a z)) => StreckenObjekt (GeschwindigkeitPhantom a g z) where
-    anschlüsse :: GeschwindigkeitPhantom a g z -> [Anschluss]
+    anschlüsse :: GeschwindigkeitPhantom a g z -> Set Anschluss
     anschlüsse (GeschwindigkeitPhantom a) = anschlüsse a
 
     erhalteName :: GeschwindigkeitPhantom a g z -> Text
     erhalteName (GeschwindigkeitPhantom a) = erhalteName a
 
 instance (StreckenObjekt a) => StreckenObjekt (Maybe a) where
-    anschlüsse :: Maybe a -> [Anschluss]
+    anschlüsse :: Maybe a -> Set Anschluss
     anschlüsse (Just a) = anschlüsse a
     anschlüsse Nothing = []
 
@@ -282,6 +285,50 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
 
 deriving instance Eq (Bahngeschwindigkeit g z)
 
+instance Ord (Bahngeschwindigkeit b z) where
+    compare :: Bahngeschwindigkeit b z -> Bahngeschwindigkeit b z -> Ordering
+    compare
+        LegoBahngeschwindigkeit { bglName = n0
+                                , bglFließend = f0
+                                , bglGeschwindigkeitsPin = gp0
+                                , bglFahrtrichtungsAnschluss = fa0}
+        LegoBahngeschwindigkeit { bglName = n1
+                                , bglFließend = f1
+                                , bglGeschwindigkeitsPin = gp1
+                                , bglFahrtrichtungsAnschluss = fa1} = case compare n0 n1 of
+        EQ -> case compare f0 f1 of
+            EQ -> case compare gp0 gp1 of
+                EQ -> compare fa0 fa1
+                ordering -> ordering
+            ordering -> ordering
+        ordering -> ordering
+    compare
+        MärklinBahngeschwindigkeitPwm
+        {bgmpName = n0, bgmpFließend = f0, bgmpGeschwindigkeitsPin = gp0}
+        MärklinBahngeschwindigkeitPwm
+        {bgmpName = n1, bgmpFließend = f1, bgmpGeschwindigkeitsPin = gp1} = case compare n0 n1 of
+        EQ -> case compare f0 f1 of
+            EQ -> compare gp0 gp1
+            ordering -> ordering
+        ordering -> ordering
+    compare
+        MärklinBahngeschwindigkeitKonstanteSpannung
+        { bgmkName = n0
+        , bgmkFließend = f0
+        , bgmkFahrstromAnschlüsse = fa0
+        , bgmkUmdrehenAnschluss = ua0}
+        MärklinBahngeschwindigkeitKonstanteSpannung
+        { bgmkName = n1
+        , bgmkFließend = f1
+        , bgmkFahrstromAnschlüsse = fa1
+        , bgmkUmdrehenAnschluss = ua1} = case compare n0 n1 of
+        EQ -> case compare f0 f1 of
+            EQ -> case compare fa0 fa1 of
+                EQ -> compare ua0 ua1
+                ordering -> ordering
+            ordering -> ordering
+        ordering -> ordering
+
 deriving instance Show (Bahngeschwindigkeit g z)
 
 instance Anzeige (Bahngeschwindigkeit g z) where
@@ -313,7 +360,7 @@ instance Anzeige (Bahngeschwindigkeit g z) where
         <^> Language.umdrehen <-> Language.anschluss <=> bgmkUmdrehenAnschluss
 
 instance StreckenObjekt (Bahngeschwindigkeit b z) where
-    anschlüsse :: Bahngeschwindigkeit b z -> [Anschluss]
+    anschlüsse :: Bahngeschwindigkeit b z -> Set Anschluss
     anschlüsse LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
         [AnschlussPin bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss]
     anschlüsse MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin} =
@@ -321,7 +368,7 @@ instance StreckenObjekt (Bahngeschwindigkeit b z) where
     anschlüsse
         MärklinBahngeschwindigkeitKonstanteSpannung
         {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
-        bgmkUmdrehenAnschluss : NonEmpty.toList bgmkFahrstromAnschlüsse
+        Set.insert bgmkUmdrehenAnschluss $ Set.fromList $ NonEmpty.toList bgmkFahrstromAnschlüsse
 
     erhalteName :: Bahngeschwindigkeit b z -> Text
     erhalteName LegoBahngeschwindigkeit {bglName} = bglName
@@ -479,7 +526,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
 -- | Steuere die Stromzufuhr einer Schiene
 data Streckenabschnitt =
     Streckenabschnitt { stName :: Text, stFließend :: Value, stromAnschluss :: Anschluss }
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance Anzeige Streckenabschnitt where
     anzeige :: Streckenabschnitt -> Sprache -> Text
@@ -488,7 +535,7 @@ instance Anzeige Streckenabschnitt where
         <:> Language.name <=> stName <^> Language.strom <-> Language.anschluss <=> stromAnschluss
 
 instance StreckenObjekt Streckenabschnitt where
-    anschlüsse :: Streckenabschnitt -> [Anschluss]
+    anschlüsse :: Streckenabschnitt -> Set Anschluss
     anschlüsse Streckenabschnitt {stromAnschluss} = [stromAnschluss]
 
     erhalteName :: Streckenabschnitt -> Text
@@ -531,6 +578,8 @@ data Weiche (z :: Zugtyp) where
 
 deriving instance Eq (Weiche z)
 
+deriving instance Ord (Weiche z)
+
 deriving instance Show (Weiche z)
 
 instance Anzeige (Weiche z) where
@@ -553,10 +602,10 @@ instance Anzeige (Weiche z) where
             wemRichtungsAnschlüsse
 
 instance StreckenObjekt (Weiche z) where
-    anschlüsse :: Weiche z -> [Anschluss]
+    anschlüsse :: Weiche z -> Set Anschluss
     anschlüsse LegoWeiche {welRichtungsPin} = [AnschlussPin welRichtungsPin]
-    anschlüsse
-        MärklinWeiche {wemRichtungsAnschlüsse} = map snd $ NE.toList wemRichtungsAnschlüsse
+    anschlüsse MärklinWeiche {wemRichtungsAnschlüsse} =
+        Set.fromList $ map snd $ NE.toList wemRichtungsAnschlüsse
 
     erhalteName :: Weiche z -> Text
     erhalteName LegoWeiche {welName} = welName
@@ -650,7 +699,7 @@ instance WeicheKlasse (Weiche z) where
 
 -- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden
 data Kupplung = Kupplung { kuName :: Text, kuFließend :: Value, kupplungsAnschluss :: Anschluss }
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance Anzeige Kupplung where
     anzeige :: Kupplung -> Sprache -> Text
@@ -660,7 +709,7 @@ instance Anzeige Kupplung where
         <=> kuName <^> Language.kupplung <-> Language.anschluss <=> kupplungsAnschluss
 
 instance StreckenObjekt Kupplung where
-    anschlüsse :: Kupplung -> [Anschluss]
+    anschlüsse :: Kupplung -> Set Anschluss
     anschlüsse Kupplung {kupplungsAnschluss} = [kupplungsAnschluss]
 
     erhalteName :: Kupplung -> Text
@@ -698,12 +747,12 @@ instance KupplungKlasse Kupplung where
 data Wegstrecke (z :: Zugtyp) =
     Wegstrecke
     { wsName :: Text
-    , wsBahngeschwindigkeiten :: [GeschwindigkeitEither Bahngeschwindigkeit z]
-    , wsStreckenabschnitte :: [Streckenabschnitt]
-    , wsWeichenRichtungen :: [(Weiche z, Richtung)]
-    , wsKupplungen :: [Kupplung]
+    , wsBahngeschwindigkeiten :: Set (GeschwindigkeitEither Bahngeschwindigkeit z)
+    , wsStreckenabschnitte :: Set Streckenabschnitt
+    , wsWeichenRichtungen :: Set (Weiche z, Richtung)
+    , wsKupplungen :: Set Kupplung
     }
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance Anzeige (Wegstrecke z) where
     anzeige :: Wegstrecke z -> Sprache -> Text
@@ -718,18 +767,20 @@ instance Anzeige (Wegstrecke z) where
         <^> Language.streckenabschnitte
         <=> wsStreckenabschnitte
         <^> Language.weichen
-        <=> map (uncurry (<°>)) wsWeichenRichtungen <^> Language.kupplungen <=> wsKupplungen
+        <=> map (uncurry (<°>)) (Set.toList wsWeichenRichtungen)
+        <^> Language.kupplungen <=> wsKupplungen
 
 instance StreckenObjekt (Wegstrecke z) where
-    anschlüsse :: Wegstrecke z -> [Anschluss]
+    anschlüsse :: Wegstrecke z -> Set Anschluss
     anschlüsse
         Wegstrecke
         {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
-        join
-        $ map anschlüsse wsBahngeschwindigkeiten
-        ++ map anschlüsse wsStreckenabschnitte
-        ++ map (anschlüsse . fst) wsWeichenRichtungen
-        ++ map anschlüsse wsKupplungen
+        Set.unions
+        $ Set.toList
+        $ Set.map anschlüsse wsBahngeschwindigkeiten
+        <> Set.map anschlüsse wsStreckenabschnitte
+        <> Set.map (anschlüsse . fst) wsWeichenRichtungen
+        <> Set.map anschlüsse wsKupplungen
 
     erhalteName :: Wegstrecke z -> Text
     erhalteName Wegstrecke {wsName} = wsName

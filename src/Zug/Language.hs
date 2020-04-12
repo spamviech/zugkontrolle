@@ -174,6 +174,8 @@ module Zug.Language
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Semigroup (Semigroup(..))
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
@@ -885,6 +887,15 @@ instance (Anzeige a) => Anzeige [a] where
 instance (Anzeige a) => Anzeige (NonEmpty a) where
     anzeige :: NonEmpty a -> Sprache -> Text
     anzeige = anzeige . NonEmpty.toList
+
+instance (Anzeige a) => Anzeige (Set a) where
+    anzeige :: Set a -> Sprache -> Text
+    anzeige set = ("{" :: Text) <#> anzeigeAux (Set.toList set) <#> ("}" :: Text)
+        where
+            anzeigeAux :: (Anzeige b) => [b] -> Sprache -> Text
+            anzeigeAux [] = const ""
+            anzeigeAux [b] = anzeige b
+            anzeigeAux (h:t) = h <^> anzeigeAux t
 
 instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
     anzeige :: (a, b) -> Sprache -> Text

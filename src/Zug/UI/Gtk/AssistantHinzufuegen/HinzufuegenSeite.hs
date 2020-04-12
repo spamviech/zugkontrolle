@@ -45,6 +45,8 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust, isJust, catMaybes, listToMaybe)
 import Data.Semigroup (Semigroup((<>)))
+import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Word (Word8)
 import qualified Graphics.UI.Gtk as Gtk
@@ -316,17 +318,17 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
                )
             => m (Wegstrecke z)
         gewählteWegstrecke = do
-            wsBahngeschwindigkeiten <- foldM anhängenWennToggled []
+            wsBahngeschwindigkeiten <- foldM anhängenWennToggled Set.empty
                 $ catMaybes
                 $ map vonZugtypEither
                 $ aktuellerStatus ^. bahngeschwindigkeiten
             wsStreckenabschnitte
-                <- foldM anhängenWennToggled [] $ aktuellerStatus ^. streckenabschnitte
-            wsWeichenRichtungen <- foldM weichenRichtungAnhängenWennToggled []
+                <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. streckenabschnitte
+            wsWeichenRichtungen <- foldM weichenRichtungAnhängenWennToggled Set.empty
                 $ catMaybes
                 $ map vonZugtypEither
                 $ aktuellerStatus ^. weichen
-            wsKupplungen <- foldM anhängenWennToggled [] $ aktuellerStatus ^. kupplungen
+            wsKupplungen <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kupplungen
             pure
                 Wegstrecke
                 { wsName
@@ -335,28 +337,28 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
                 , wsWeichenRichtungen
                 , wsKupplungen
                 }
-        anhängenWennToggled :: (WidgetsTyp a, WegstreckenElement a, MonadIO m)
-                             => [ObjektTyp a]
+        anhängenWennToggled :: (WidgetsTyp a, Ord (ObjektTyp a), WegstreckenElement a, MonadIO m)
+                             => Set (ObjektTyp a)
                              -> a
-                             -> m [ObjektTyp a]
+                             -> m (Set (ObjektTyp a))
         anhängenWennToggled acc a = widgetHinzufügenToggled (a ^. getterWegstrecke) >>= \case
-            True -> pure $ erhalteObjektTyp a : acc
+            True -> pure $ Set.insert (erhalteObjektTyp a) acc
             False -> pure acc
         weichenRichtungAnhängenWennToggled
             :: ( WegstreckenElement (WEWidgets z)
                , MonadIO m
                , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung
                )
-            => [(Weiche z, Richtung)]
+            => Set (Weiche z, Richtung)
             -> WEWidgets z
-            -> m [(Weiche z, Richtung)]
+            -> m (Set (Weiche z, Richtung))
         weichenRichtungAnhängenWennToggled acc weiche = do
             let widgetHinzufügen = weiche ^. getterWegstrecke
             toggled <- widgetHinzufügenToggled widgetHinzufügen
             if toggled
                 then do
                     richtung <- widgetHinzufügenAktuelleAuswahl widgetHinzufügen
-                    pure $ (erhalteObjektTyp weiche, richtung) : acc
+                    pure $ Set.insert (erhalteObjektTyp weiche, richtung) acc
                 else pure acc
     -- Explizite Zugtyp-Auswahl notwendig für den Typ-Checker
     -- Dieser kann sonst Typ-Klassen nicht überprüfen

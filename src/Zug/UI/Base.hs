@@ -84,9 +84,11 @@ import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
-import Data.List (delete, intersect)
+import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
@@ -95,7 +97,6 @@ import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
-import Zug.Menge (Menge, leer)
 import Zug.Objekt (ObjektKlasse(..), Objekt)
 import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
 
@@ -235,14 +236,14 @@ statusLeer _sprache =
 -- | Sammlung aller benötigten 'TVar's
 data TVarMaps =
     TVarMaps
-    { tvarAusführend :: TVar (Menge Ausführend)
+    { tvarAusführend :: TVar (Set Ausführend)
     , tvarPwmMap :: TVar PwmMap
     , tvarI2CMap :: TVar I2CMap
     }
 
 -- | Erzeuge neue, leere 'TVarMaps'. Die übergebene Wartezeit gibt die Refresh-Rate der I2C-Kanäle an.
 tvarMapsNeu :: IO TVarMaps
-tvarMapsNeu = TVarMaps <$> newTVarIO leer <*> newTVarIO pwmMapEmpty <*> newTVarIO i2cMapEmpty
+tvarMapsNeu = TVarMaps <$> newTVarIO Set.empty <*> newTVarIO pwmMapEmpty <*> newTVarIO i2cMapEmpty
 
 -- | Typ-Familie für Reader-Typ aus der 'RWST'-Monade
 type family ReaderFamilie o
@@ -313,7 +314,7 @@ instance (MitTVarMaps r) => MitPwmMap r where
     pwmMap = tvarPwmMap . tvarMaps
 
 instance (MitTVarMaps r) => MitAusführend r where
-    mengeAusführend :: r -> TVar (Menge Ausführend)
+    mengeAusführend :: r -> TVar (Set Ausführend)
     mengeAusführend = tvarAusführend . tvarMaps
 
 instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
@@ -462,11 +463,14 @@ ausführenMöglich
 ausführenMöglich plan = do
     tvarAusführend <- erhalteMengeAusführend
     ausführend <- liftIO $ readTVarIO tvarAusführend
-    let belegtePins = concat (anschlüsse <$> ausführend) `intersect` anschlüsse plan
+    let belegtePins =
+            mconcat (Set.toList $ Set.map anschlüsse ausführend)
+            `Set.intersection` anschlüsse plan
     pure
         $ if
             | elem (Ausführend plan) ausführend -> WirdAusgeführt
-            | not $ null belegtePins -> AnschlüsseBelegt $ NonEmpty.fromList belegtePins
+            | not $ null belegtePins
+                -> AnschlüsseBelegt $ NonEmpty.fromList $ Set.toList belegtePins
             | otherwise -> AusführenMöglich
 
 -- | Ist ein Ausführen eines Plans möglich?

@@ -10,6 +10,7 @@ Description : 'Either'-ähnlicher Datentyp für 'StreckenObjekt'-Typen.
 module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(..)) where
 
 import Data.Kind (Type)
+import Data.Set (Set)
 import Data.Text (Text)
 
 import Zug.Anbindung (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(..), Streckenabschnitt()
@@ -167,7 +168,7 @@ instance ( StreckenObjekt pl
     erhalteName (OStreckenabschnitt st) = erhalteName st
     erhalteName (OKupplung ku) = erhalteName ku
 
-    anschlüsse :: ObjektAllgemein bg st we ku ws pl -> [Anschluss]
+    anschlüsse :: ObjektAllgemein bg st we ku ws pl -> Set Anschluss
     anschlüsse (OPlan pl) = anschlüsse pl
     anschlüsse (OWegstrecke ws) = anschlüsse ws
     anschlüsse (OWeiche we) = anschlüsse we

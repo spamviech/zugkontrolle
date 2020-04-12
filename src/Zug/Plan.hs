@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverloadedLists #-}
 
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
@@ -36,6 +37,8 @@ import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
@@ -48,16 +51,15 @@ import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), Gesch
                 , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
-import Zug.Menge (Menge(), hinzufügen, entfernen)
 
 -- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
 class MitAusführend r where
-    mengeAusführend :: r -> TVar (Menge Ausführend)
+    mengeAusführend :: r -> TVar (Set Ausführend)
 
--- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Menge' benötigen
+-- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Set' benötigen
 class (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r m where
     -- | Erhalte die aktuelle 'Ausführend'-'Menge' aus der Umgebung.
-    erhalteMengeAusführend :: m (TVar (Menge Ausführend))
+    erhalteMengeAusführend :: m (TVar (Set Ausführend))
     erhalteMengeAusführend = asks mengeAusführend
 
 instance (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r m
@@ -65,7 +67,7 @@ instance (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  
 -- Nach der kompletten Ausführung soll der End-Aktion ausgeführt werden.  
--- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-'Menge' vorhanden ist.
+-- Die Ausführung soll abgebrochen werden, sobald der Plan nicht mehr in der 'TVar'-'Set' vorhanden ist.
 class PlanKlasse pl where
     ausführenPlan
         :: (AusführendReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
@@ -74,7 +76,7 @@ class PlanKlasse pl where
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
 data Plan = Plan { plName :: Text, plAktionen :: [Aktion] }
-    deriving (Eq)
+    deriving (Eq, Ord)
 
 deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                   , Show (GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung 'Märklin)
@@ -82,7 +84,7 @@ deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
 
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend = Ausführend Plan
-    deriving (Eq, StreckenObjekt)
+    deriving (Eq, Ord, StreckenObjekt)
 
 deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                   , Show (GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung 'Märklin)
@@ -94,7 +96,7 @@ instance Anzeige Plan where
         Language.plan <:> Language.name <=> plName <^> Language.aktionen <=> plAktionen
 
 instance StreckenObjekt Plan where
-    anschlüsse :: Plan -> [Anschluss]
+    anschlüsse :: Plan -> Set Anschluss
     anschlüsse Plan {plAktionen} = foldMap anschlüsse plAktionen
 
     erhalteName :: Plan -> Text
@@ -105,7 +107,7 @@ instance PlanKlasse Plan where
         :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
     ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
         tvarAusführend <- erhalteMengeAusführend
-        liftIO $ atomically $ modifyTVar tvarAusführend $ hinzufügen (Ausführend plan)
+        liftIO $ atomically $ modifyTVar tvarAusführend $ Set.insert $ Ausführend plan
         ausführenAux 0 plAktionen
         liftIO $ do
             showAktion $ fromIntegral $ length plAktionen
@@ -114,7 +116,7 @@ instance PlanKlasse Plan where
             ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
             ausführenAux _i [] = do
                 tvarAusführend <- erhalteMengeAusführend
-                liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+                liftIO $ atomically $ modifyTVar tvarAusführend $ Set.delete $ Ausführend plan
             ausführenAux _i [AktionAusführen Plan {plAktionen = plAktionen1}] =
                 ausführenAux 0 plAktionen1
             ausführenAux i (h:t) = do
@@ -150,22 +152,149 @@ deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
 
 instance Eq Aktion where
     (==) :: Aktion -> Aktion -> Bool
-    (==) (Warten w0) (Warten w1) = w0 == w1
-    (==) (AWegstreckeMärklin a0) (AWegstreckeMärklin a1) = a0 == a1
-    (==) (AWegstreckeLego a0) (AWegstreckeLego a1) = a0 == a1
-    (==) (AWeiche a0) (AWeiche a1) = a0 == a1
-    (==) (ABahngeschwindigkeitMärklinPwm a0) (ABahngeschwindigkeitMärklinPwm a1) = a0 == a1
-    (==)
+    (==) a0 a1 = compare a0 a1 == EQ
+
+instance Ord Aktion where
+    compare :: Aktion -> Aktion -> Ordering
+    compare (Warten w0) (Warten w1) = compare w0 w1
+    compare (Warten _w0) (AWegstreckeMärklin _a1) = GT
+    compare (Warten _w0) (AWegstreckeLego _a1) = GT
+    compare (Warten _w0) (AWeiche _a1) = GT
+    compare (Warten _w0) (ABahngeschwindigkeitMärklinPwm _a1) = GT
+    compare (Warten _w0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = GT
+    compare (Warten _w0) (ABahngeschwindigkeitLegoPwm _a1) = GT
+    compare (Warten _w0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (Warten _w0) (AStreckenabschnitt _a1) = GT
+    compare (Warten _w0) (AKupplung _a1) = GT
+    compare (Warten _w0) (AktionAusführen _p1) = GT
+    compare (AWegstreckeMärklin _w0) (Warten _w1) = LT
+    compare (AWegstreckeMärklin a0) (AWegstreckeMärklin a1) = compare a0 a1
+    compare (AWegstreckeMärklin _a0) (AWegstreckeLego _a1) = GT
+    compare (AWegstreckeMärklin _a0) (AWeiche _a1) = GT
+    compare (AWegstreckeMärklin _a0) (ABahngeschwindigkeitMärklinPwm _a1) = GT
+    compare (AWegstreckeMärklin _a0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = GT
+    compare (AWegstreckeMärklin _a0) (ABahngeschwindigkeitLegoPwm _a1) = GT
+    compare (AWegstreckeMärklin _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (AWegstreckeMärklin _a0) (AStreckenabschnitt _a1) = GT
+    compare (AWegstreckeMärklin _a0) (AKupplung _a1) = GT
+    compare (AWegstreckeMärklin _a0) (AktionAusführen _p1) = GT
+    compare (AWegstreckeLego _a0) (Warten _w1) = LT
+    compare (AWegstreckeLego _a0) (AWegstreckeMärklin _a1) = LT
+    compare (AWegstreckeLego a0) (AWegstreckeLego a1) = compare a0 a1
+    compare (AWegstreckeLego _a0) (AWeiche _a1) = GT
+    compare (AWegstreckeLego _a0) (ABahngeschwindigkeitMärklinPwm _a1) = GT
+    compare (AWegstreckeLego _a0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = GT
+    compare (AWegstreckeLego _a0) (ABahngeschwindigkeitLegoPwm _a1) = GT
+    compare (AWegstreckeLego _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (AWegstreckeLego _a0) (AStreckenabschnitt _a1) = GT
+    compare (AWegstreckeLego _a0) (AKupplung _a1) = GT
+    compare (AWegstreckeLego _a0) (AktionAusführen _p1) = GT
+    compare (AWeiche _a0) (Warten _w1) = LT
+    compare (AWeiche _a0) (AWegstreckeMärklin _a1) = LT
+    compare (AWeiche _a0) (AWegstreckeLego _a1) = LT
+    compare (AWeiche a0) (AWeiche a1) = compare a0 a1
+    compare (AWeiche _a0) (ABahngeschwindigkeitMärklinPwm _a1) = GT
+    compare (AWeiche _a0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = GT
+    compare (AWeiche _a0) (ABahngeschwindigkeitLegoPwm _a1) = GT
+    compare (AWeiche _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (AWeiche _a0) (AStreckenabschnitt _a1) = GT
+    compare (AWeiche _a0) (AKupplung _a1) = GT
+    compare (AWeiche _a0) (AktionAusführen _p1) = GT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (AWegstreckeMärklin _a1) = LT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (AWegstreckeLego _a1) = LT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (AWeiche _a1) = LT
+    compare (ABahngeschwindigkeitMärklinPwm a0) (ABahngeschwindigkeitMärklinPwm a1) =
+        compare a0 a1
+    compare
+        (ABahngeschwindigkeitMärklinPwm _a0)
+        (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = GT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (ABahngeschwindigkeitLegoPwm _a1) = GT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) =
+        GT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (AStreckenabschnitt _a1) = GT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (AKupplung _a1) = GT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (AktionAusführen _p1) = GT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AWegstreckeMärklin _a1) = LT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AWegstreckeLego _a1) = LT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AWeiche _a1) = LT
+    compare
+        (ABahngeschwindigkeitMärklinKonstanteSpannung _a0)
+        (ABahngeschwindigkeitMärklinPwm _a1) = LT
+    compare
         (ABahngeschwindigkeitMärklinKonstanteSpannung a0)
-        (ABahngeschwindigkeitMärklinKonstanteSpannung a1) = a0 == a1
-    (==) (ABahngeschwindigkeitLegoPwm a0) (ABahngeschwindigkeitLegoPwm a1) = a0 == a1
-    (==)
+        (ABahngeschwindigkeitMärklinKonstanteSpannung a1) = compare a0 a1
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (ABahngeschwindigkeitLegoPwm _a1) =
+        GT
+    compare
+        (ABahngeschwindigkeitMärklinKonstanteSpannung _a0)
+        (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AStreckenabschnitt _a1) = GT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AKupplung _a1) = GT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AktionAusführen _p1) = GT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (AWegstreckeMärklin _a1) = LT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (AWegstreckeLego _a1) = LT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (AWeiche _a1) = LT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (ABahngeschwindigkeitMärklinPwm _a1) = LT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) =
+        LT
+    compare (ABahngeschwindigkeitLegoPwm a0) (ABahngeschwindigkeitLegoPwm a1) = compare a0 a1
+    compare (ABahngeschwindigkeitLegoPwm _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (AStreckenabschnitt _a1) = GT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (AKupplung _a1) = GT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (AktionAusführen _p1) = GT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AWegstreckeMärklin _a1) = LT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AWegstreckeLego _a1) = LT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AWeiche _a1) = LT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (ABahngeschwindigkeitMärklinPwm _a1) =
+        LT
+    compare
+        (ABahngeschwindigkeitLegoKonstanteSpannung _a0)
+        (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = LT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (ABahngeschwindigkeitLegoPwm _a1) = LT
+    compare
         (ABahngeschwindigkeitLegoKonstanteSpannung a0)
-        (ABahngeschwindigkeitLegoKonstanteSpannung a1) = a0 == a1
-    (==) (AStreckenabschnitt a0) (AStreckenabschnitt a1) = a0 == a1
-    (==) (AKupplung a0) (AKupplung a1) = a0 == a1
-    (==) (AktionAusführen Plan {plName = p0}) (AktionAusführen Plan {plName = p1}) = p0 == p1
-    (==) _a0 _a1 = False
+        (ABahngeschwindigkeitLegoKonstanteSpannung a1) = compare a0 a1
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AStreckenabschnitt _a1) = GT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AKupplung _a1) = GT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AktionAusführen _p1) = GT
+    compare (AStreckenabschnitt _a0) (Warten _w1) = LT
+    compare (AStreckenabschnitt _a0) (AWegstreckeMärklin _a1) = LT
+    compare (AStreckenabschnitt _a0) (AWegstreckeLego _a1) = LT
+    compare (AStreckenabschnitt _a0) (AWeiche _a1) = LT
+    compare (AStreckenabschnitt _a0) (ABahngeschwindigkeitMärklinPwm _a1) = LT
+    compare (AStreckenabschnitt _a0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = LT
+    compare (AStreckenabschnitt _a0) (ABahngeschwindigkeitLegoPwm _a1) = LT
+    compare (AStreckenabschnitt _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = LT
+    compare (AStreckenabschnitt a0) (AStreckenabschnitt a1) = compare a0 a1
+    compare (AStreckenabschnitt _a0) (AKupplung _a1) = GT
+    compare (AStreckenabschnitt _a0) (AktionAusführen _a1) = GT
+    compare (AKupplung _a0) (Warten _w1) = LT
+    compare (AKupplung _a0) (AWegstreckeMärklin _a1) = LT
+    compare (AKupplung _a0) (AWegstreckeLego _a1) = LT
+    compare (AKupplung _a0) (AWeiche _a1) = LT
+    compare (AKupplung _a0) (ABahngeschwindigkeitMärklinPwm _a1) = LT
+    compare (AKupplung _a0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = LT
+    compare (AKupplung _a0) (ABahngeschwindigkeitLegoPwm _a1) = LT
+    compare (AKupplung _a0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = LT
+    compare (AKupplung _a0) (AStreckenabschnitt _a1) = LT
+    compare (AKupplung a0) (AKupplung a1) = compare a0 a1
+    compare (AKupplung _a0) (AktionAusführen _p1) = GT
+    compare (AktionAusführen _p0) (Warten _w1) = LT
+    compare (AktionAusführen _p0) (AWegstreckeMärklin _a1) = LT
+    compare (AktionAusführen _p0) (AWegstreckeLego _a1) = LT
+    compare (AktionAusführen _p0) (AWeiche _a1) = LT
+    compare (AktionAusführen _p0) (ABahngeschwindigkeitMärklinPwm _a1) = LT
+    compare (AktionAusführen _p0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = LT
+    compare (AktionAusführen _p0) (ABahngeschwindigkeitLegoPwm _a1) = LT
+    compare (AktionAusführen _p0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = LT
+    compare (AktionAusführen _p0) (AStreckenabschnitt _a1) = LT
+    compare (AktionAusführen _p0) (AKupplung _a1) = LT
+    compare (AktionAusführen Plan {plName = p0}) (AktionAusführen Plan {plName = p1}) =
+        compare p0 p1
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
@@ -184,7 +313,7 @@ instance Anzeige Aktion where
     anzeige (AktionAusführen Plan {plName}) = Language.ausführen <:> plName
 
 instance StreckenObjekt Aktion where
-    anschlüsse :: Aktion -> [Anschluss]
+    anschlüsse :: Aktion -> Set Anschluss
     anschlüsse (Warten _zeit) = []
     anschlüsse (AWegstreckeMärklin aktion) = anschlüsse aktion
     anschlüsse (AWegstreckeLego aktion) = anschlüsse aktion
@@ -227,6 +356,11 @@ deriving instance ( Eq (ws z)
                   , Eq (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
                   ) => Eq (AktionWegstrecke ws z)
 
+deriving instance ( Ord (ws z)
+                  , Ord (GeschwindigkeitPhantom ws 'Pwm z)
+                  , Ord (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
+                  ) => Ord (AktionWegstrecke ws z)
+
 deriving instance ( Show (ws z)
                   , Show (GeschwindigkeitPhantom ws 'Pwm z)
                   , Show (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
@@ -243,7 +377,7 @@ instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , WegstreckeKlasse (ws z)
          , Show (ws z)
          ) => StreckenObjekt (AktionWegstrecke ws z) where
-    anschlüsse :: AktionWegstrecke ws z -> [Anschluss]
+    anschlüsse :: AktionWegstrecke ws z -> Set Anschluss
     anschlüsse (Einstellen ws) = anschlüsse ws
     anschlüsse (AWSBahngeschwindigkeit aktion) = anschlüsse aktion
     anschlüsse (AWSStreckenabschnitt aktion) = anschlüsse aktion
@@ -264,14 +398,14 @@ instance (BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws), WegstreckeKlass
 
 -- | Bekannte 'Aktion'en einer 'Weiche'
 data AktionWeiche we = Stellen we Richtung
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance (StreckenObjekt we) => Anzeige (AktionWeiche we) where
     anzeige :: AktionWeiche we -> Sprache -> Text
     anzeige (Stellen we richtung) = erhalteName we <°> Language.stellen <=> showText richtung
 
 instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
-    anschlüsse :: AktionWeiche we -> [Anschluss]
+    anschlüsse :: AktionWeiche we -> Set Anschluss
     anschlüsse (Stellen we _richtung) = anschlüsse we
 
     erhalteName :: AktionWeiche we -> Text
@@ -291,6 +425,29 @@ data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) w
 
 deriving instance (Eq (bg g z)) => Eq (AktionBahngeschwindigkeit bg g z)
 
+instance (Ord (bg g z)) => Ord (AktionBahngeschwindigkeit bg g z) where
+    compare :: AktionBahngeschwindigkeit bg g z -> AktionBahngeschwindigkeit bg g z -> Ordering
+    compare (Geschwindigkeit bg0 wert0) (Geschwindigkeit bg1 wert1) = case compare bg0 bg1 of
+        EQ -> compare wert0 wert1
+        ordering -> ordering
+    compare (Geschwindigkeit _bg0 _wert0) (Umdrehen _bg1) = GT
+    compare (Geschwindigkeit _bg0 _wert0) (FahrtrichtungEinstellen _bg1 _fahrtrichtung1) = GT
+    compare (Fahrstrom bg0 wert0) (Fahrstrom bg1 wert1) = case compare bg0 bg1 of
+        EQ -> compare wert0 wert1
+        ordering -> ordering
+    compare (Fahrstrom _bg0 _wert0) (Umdrehen _bg1) = GT
+    compare (Fahrstrom _bg0 _wert0) (FahrtrichtungEinstellen _bg1 _fahrtrichtung) = GT
+    compare (Umdrehen bg0) (Umdrehen bg1) = compare bg0 bg1
+    compare (Umdrehen _bg0) (Geschwindigkeit _bg1 _wert1) = LT
+    compare (Umdrehen _bg0) (Fahrstrom _bg1 _wert1) = LT
+    compare
+        (FahrtrichtungEinstellen bg0 fahrtrichtung0)
+        (FahrtrichtungEinstellen bg1 fahrtrichtung1) = case compare bg0 bg1 of
+        EQ -> compare fahrtrichtung0 fahrtrichtung1
+        ordering -> ordering
+    compare (FahrtrichtungEinstellen _bg0 _fahrtrichtung0) (Geschwindigkeit _bg1 _wert1) = LT
+    compare (FahrtrichtungEinstellen _bg0 _fahrtrichtung0) (Fahrstrom _bg1 _wert1) = LT
+
 deriving instance (Show (bg g z)) => Show (AktionBahngeschwindigkeit bg g z)
 
 instance (StreckenObjekt (bg g z)) => Anzeige (AktionBahngeschwindigkeit bg g z) where
@@ -308,7 +465,7 @@ instance ( BahngeschwindigkeitKlasse bg
          , StreckenObjekt (bg g 'Lego)
          , StreckenObjekt (bg g z)
          ) => StreckenObjekt (AktionBahngeschwindigkeit bg g z) where
-    anschlüsse :: AktionBahngeschwindigkeit bg g z -> [Anschluss]
+    anschlüsse :: AktionBahngeschwindigkeit bg g z -> Set Anschluss
     anschlüsse (Geschwindigkeit bg _wert) = anschlüsse bg
     anschlüsse (Fahrstrom bg _strom) = anschlüsse bg
     anschlüsse (Umdrehen bg) = anschlüsse bg
@@ -328,7 +485,7 @@ instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigke
 
 -- | Aktionen eines Streckenabschnitts
 data AktionStreckenabschnitt st = Strom st Strom
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance (StreckenObjekt st) => Anzeige (AktionStreckenabschnitt st) where
     anzeige :: AktionStreckenabschnitt st -> Sprache -> Text
@@ -336,7 +493,7 @@ instance (StreckenObjekt st) => Anzeige (AktionStreckenabschnitt st) where
     anzeige (Strom st Gesperrt) = erhalteName st <°> Language.strom <=> Language.gesperrt
 
 instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStreckenabschnitt st) where
-    anschlüsse :: AktionStreckenabschnitt st -> [Anschluss]
+    anschlüsse :: AktionStreckenabschnitt st -> Set Anschluss
     anschlüsse (Strom st _an) = anschlüsse st
 
     erhalteName :: AktionStreckenabschnitt st -> Text
@@ -348,14 +505,14 @@ instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt s
 
 -- | Aktionen einer Kupplung
 newtype AktionKupplung ku = Kuppeln ku
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance (StreckenObjekt ku) => Anzeige (AktionKupplung ku) where
     anzeige :: AktionKupplung ku -> Sprache -> Text
     anzeige (Kuppeln ku) = erhalteName ku <°> Language.kuppeln
 
 instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) where
-    anschlüsse :: AktionKupplung ku -> [Anschluss]
+    anschlüsse :: AktionKupplung ku -> Set Anschluss
     anschlüsse (Kuppeln ku) = anschlüsse ku
 
     erhalteName :: AktionKupplung ku -> Text

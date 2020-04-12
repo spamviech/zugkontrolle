@@ -39,6 +39,7 @@ import Data.Foldable (Foldable(toList))
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Semigroup (Semigroup((<>)))
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word8)
@@ -1112,10 +1113,10 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, g
             $ AWegstreckeNameAnzahl
                 Wegstrecke
                 { wsName
-                , wsBahngeschwindigkeiten = []
-                , wsStreckenabschnitte = []
-                , wsWeichenRichtungen = []
-                , wsKupplungen = []
+                , wsBahngeschwindigkeiten = Set.empty
+                , wsStreckenabschnitte = Set.empty
+                , wsWeichenRichtungen = Set.empty
+                , wsKupplungen = Set.empty
                 }
                 anzahl
 anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token =
@@ -1151,13 +1152,15 @@ anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token 
         objektAnhängen
             wegstrecke@Wegstrecke {wsBahngeschwindigkeiten}
             (OZBahngeschwindigkeit bahngeschwindigkeit) =
-            wegstrecke { wsBahngeschwindigkeiten = bahngeschwindigkeit : wsBahngeschwindigkeiten }
+            wegstrecke
+            { wsBahngeschwindigkeiten = Set.insert bahngeschwindigkeit wsBahngeschwindigkeiten
+            }
         objektAnhängen
             wegstrecke@Wegstrecke {wsStreckenabschnitte}
             (OZStreckenabschnitt streckenabschnitt) =
-            wegstrecke { wsStreckenabschnitte = streckenabschnitt : wsStreckenabschnitte }
+            wegstrecke { wsStreckenabschnitte = Set.insert streckenabschnitt wsStreckenabschnitte }
         objektAnhängen wegstrecke@Wegstrecke {wsKupplungen} (OZKupplung kupplung) =
-            wegstrecke { wsKupplungen = kupplung : wsKupplungen }
+            wegstrecke { wsKupplungen = Set.insert kupplung wsKupplungen }
         -- Ignoriere invalide Eingaben; Sollte nie aufgerufen werden
         objektAnhängen wegstrecke objekt =
             error
@@ -1211,7 +1214,9 @@ anfrageWegstreckeAktualisieren
             AWegstreckeNameAnzahlWeicheRichtung
             {awsAkkumulator = wegstrecke@Wegstrecke {wsWeichenRichtungen}, awsWeiche}
             richtung =
-            wegstrecke { wsWeichenRichtungen = (awsWeiche, richtung) : wsWeichenRichtungen }
+            wegstrecke
+            { wsWeichenRichtungen = Set.insert (awsWeiche, richtung) wsWeichenRichtungen
+            }
         weicheRichtungAnhängen anfrageWegstrecke _richtung =
             error
             $ "weicheRichtungAnhängen mit unerwarteter anfrageWegstrecke aufgerufen: "

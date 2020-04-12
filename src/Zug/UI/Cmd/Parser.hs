@@ -52,6 +52,8 @@ module Zug.UI.Cmd.Parser
   ) where
 
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
@@ -61,7 +63,6 @@ import Zug.Anbindung (Anschluss(..))
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<:>), (<\>), toBefehlsString)
 import qualified Zug.Language as Language
-import qualified Zug.Menge as Menge
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
 import Zug.Plan (Plan, Plan(..))
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
@@ -194,7 +195,7 @@ instance Anzeige AnfrageBefehl where
     anzeige (ABAktionPlan plan) = Language.aktion <^> plan
     anzeige (ABAktionPlanAusführend plan _neu) = Language.wirdAusgeführt $# plan
     anzeige (ABAktionPlanGesperrt plan _neu pins) =
-        (Language.ausführenGesperrt $# anzeige $ Menge.ausFoldable pins) <\> plan
+        (Language.ausführenGesperrt $# anzeige $ Set.fromList $ NonEmpty.toList pins) <\> plan
     anzeige (ABAktion anfrageAktion) = anzeige anfrageAktion
     anzeige (ABStatusAnfrage anfrageKonstruktor _eitherF) =
         anzeige $ anfrageKonstruktor leeresToken

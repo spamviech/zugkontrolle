@@ -28,12 +28,12 @@ import Control.Concurrent.STM (atomically, writeTVar, modifyTVar)
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON)
+import qualified Data.Set as Set
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache(..))
-import Zug.Menge (entfernen)
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
 import Zug.Plan
        (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
@@ -173,7 +173,7 @@ instance ( ObjektKlasse o
                 ausführenPlan plan (leseSprache (flip showAction) mitSprache) endAktion
             ausführenBefehlAux (AusführenAbbrechen plan) = do
                 tvarAusführend <- erhalteMengeAusführend
-                liftIO $ atomically $ modifyTVar tvarAusführend $ entfernen $ Ausführend plan
+                liftIO $ atomically $ modifyTVar tvarAusführend $ Set.delete $ Ausführend plan
             ausführenBefehlAux (AktionBefehl aktion) = ausführenAktion aktion
 
 -- | Normale Listen von 'BefehlAllgemein' haben den falschen Kind um eine 'BefehlKlasse'-Instanz zu erhalten.
