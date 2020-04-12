@@ -22,7 +22,7 @@
 #endif
 
 {-|
-Description : Erstelle zusammengesetzte 
+Description : Erstelle zusammengesetzte Widgets.
 
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
@@ -102,7 +102,7 @@ import Data.Foldable (Foldable(..))
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (fromJust, catMaybes)
+import Data.Maybe (fromJust)
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -153,7 +153,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , buttonNewWithEventLabel, toggleButtonNewWithEventLabel, namePackNew, widgetShowNew
       , labelSpracheNew)
 import Zug.UI.Gtk.Klassen
-       (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..), MitRange(..))
+       (MitWidget(..), MitContainer(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (SpracheGui, SpracheGuiReader(..), MitSpracheGui(..), verwendeSpracheGui)
@@ -1216,12 +1216,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 $ pinNew (Just bgpmTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
             bgpmScaleGeschwindigkeit
                 <- hScaleGeschwindigkeitPackNew box bahngeschwindigkeit bgpmTVarEvent
-            buttonUmdrehenPackNew
-                box
-                bahngeschwindigkeit
-                bgpmTVarSprache
-                bgpmTVarEvent
-                (Left (erhalteRange bgpmScaleGeschwindigkeit) :| [])
+            buttonUmdrehenPackNew box bahngeschwindigkeit bgpmTVarSprache bgpmTVarEvent
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgpmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
                 <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgpmTVarSprache
@@ -1267,12 +1262,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bgkmTVarEvent
             boxPackWidgetNewDefault box
                 $ anschlussNew (Just bgkmTVarSprache) Language.umdrehen bgmkUmdrehenAnschluss
-            buttonUmdrehenPackNew
-                box
-                bahngeschwindigkeit
-                bgkmTVarSprache
-                bgkmTVarEvent
-                (Right bgkmAuswahlFahrstrom :| [])
+            buttonUmdrehenPackNew box bahngeschwindigkeit bgkmTVarSprache bgkmTVarEvent
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgkmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
                 <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgkmTVarSprache
@@ -1304,7 +1294,6 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bahngeschwindigkeit
                 bgplTVarSprache
                 bgplTVarEvent
-                (Left (erhalteRange bgplScaleGeschwindigkeit) :| [])
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgplHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
                 <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgplTVarSprache
@@ -1541,30 +1530,136 @@ auswahlFahrstromPackNew box bahngeschwindigkeit maxWert tvarSprachwechsel tvarEv
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonUmdrehenPackNew
     :: forall b bg g m.
-    (MitBox b, BahngeschwindigkeitKlasse bg, ObjektGuiReader m, MonadIO m)
+    ( MitBox b
+    , BahngeschwindigkeitKlasse bg
+    , BGWidgetsKlasse bg
+    , STWidgetsKlasse (bg g 'Märklin)
+    , ObjektGuiReader m
+    , MonadIO m
+    , GeschwindigkeitEitherKlasse g
+    , GeschwindigkeitVarianteKlasse g
+    )
     => b
     -> bg g 'Märklin
     -> TVar (Maybe [Sprache -> IO ()])
     -> TVar EventAusführen
-    -> NonEmpty (Either Gtk.Range (AuswahlWidget Word8))
     -> m Gtk.Button
-buttonUmdrehenPackNew
-    box
-    bahngeschwindigkeit
-    tvarSprachwechsel
-    tvarEventAusführen
-    geschwindigkeitsWidgets = do
+buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusführen = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     objektReader <- ask
     boxPackWidgetNewDefault box
         $ buttonNewWithEventLabel (Just tvarSprachwechsel) Language.umdrehen
         $ eventAusführen tvarEventAusführen
+        $ flip runReaderT objektReader
+        $ flip auswertenStatusVarMStatusT statusVar
         $ do
-            forM_ geschwindigkeitsWidgets $ \case
-                (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
-                (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
-            flip runReaderT objektReader
-                $ ausführenStatusVarAktion (Umdrehen bahngeschwindigkeit) statusVar
+            ausführenAktion $ Umdrehen bahngeschwindigkeit
+            -- Widgets synchronisieren
+            bahngeschwindigkeiten <- getBahngeschwindigkeiten
+            liftIO $ forM_ bahngeschwindigkeiten $ bgWidgetsSynchronisieren
+            streckenabschnitte <- getStreckenabschnitte
+            liftIO $ forM_ streckenabschnitte $ stWidgetsSynchronisieren
+            wegstrecken <- getWegstrecken
+            liftIO $ forM_ wegstrecken $ wsWidgetsSynchronisieren
+    where
+        bgWidgetsSynchronisieren :: ZugtypEither (GeschwindigkeitEither BGWidgets) -> IO ()
+        bgWidgetsSynchronisieren
+            (ZugtypMärklin
+                 (GeschwindigkeitPwm
+                      BGWidgetsPwmMärklin {bgpm, bgpmTVarEvent, bgpmScaleGeschwindigkeit}))
+            | elem (ZugtypMärklin $ GeschwindigkeitPwm bgpm)
+                $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
+                $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
+                ohneEvent bgpmTVarEvent $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := 0]
+        bgWidgetsSynchronisieren
+            (ZugtypMärklin
+                 (GeschwindigkeitKonstanteSpannung
+                      BGWidgetsKonstanteSpannungMärklin
+                      {bgkm, bgkmTVarEvent, bgkmAuswahlFahrstrom}))
+            | elem (ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bgkm)
+                $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
+                $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
+                ohneEvent bgkmTVarEvent $ setzeAuswahl bgkmAuswahlFahrstrom 0
+        bgWidgetsSynchronisieren
+            (ZugtypLego
+                 (GeschwindigkeitPwm
+                      BGWidgetsPwmLego {bgpl, bgplTVarEvent, bgplScaleGeschwindigkeit}))
+            | elem (ZugtypLego $ GeschwindigkeitPwm bgpl)
+                $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
+                $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
+                ohneEvent bgplTVarEvent $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := 0]
+        bgWidgetsSynchronisieren
+            (ZugtypLego
+                 (GeschwindigkeitKonstanteSpannung
+                      BGWidgetsKonstanteSpannungLego {bgkl, bgklTVarEvent, bgklAuswahlFahrstrom}))
+            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl)
+                $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
+                $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
+                ohneEvent bgklTVarEvent $ setzeAuswahl bgklAuswahlFahrstrom 0
+        bgWidgetsSynchronisieren _bgWidgets = pure ()
+
+        stWidgetsSynchronisieren :: STWidgets -> IO ()
+        stWidgetsSynchronisieren STWidgets {st, stTVarEvent, stTogglebuttonStrom}
+            | elem st $ enthalteneStreckenabschnitte bahngeschwindigkeit =
+                ohneEvent stTVarEvent
+                $ Gtk.set stTogglebuttonStrom [Gtk.toggleButtonActive := True]
+        stWidgetsSynchronisieren _stWidgets = pure ()
+
+        wsWidgetsSynchronisieren :: ZugtypEither WSWidgets -> IO ()
+        wsWidgetsSynchronisieren
+            (ZugtypMärklin
+                 WSWidgets { ws = Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte}
+                           , wsTVarEvent
+                           , wsToggleButtonStrom
+                           , wsScaleGeschwindigkeit
+                           , wsAuswahlFahrstrom}) = do
+            case wsToggleButtonStrom of
+                (Just toggleButtonStrom)
+                    | Set.isSubsetOf wsStreckenabschnitte
+                        $ enthalteneStreckenabschnitte bahngeschwindigkeit -> ohneEvent wsTVarEvent
+                        $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := True]
+                _otherwise -> pure ()
+            let istBahngeschwindigkeitTeilmenge =
+                    Set.isSubsetOf (Set.map zuZugtypEither wsBahngeschwindigkeiten)
+                    $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
+                    $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit
+            case wsScaleGeschwindigkeit of
+                (Just scaleGeschwindigkeit)
+                    | istBahngeschwindigkeitTeilmenge -> ohneEvent wsTVarEvent
+                        $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := 0]
+                _otherwise -> pure ()
+            case wsAuswahlFahrstrom of
+                (Just auswahlFahrstrom)
+                    | istBahngeschwindigkeitTeilmenge
+                        -> ohneEvent wsTVarEvent $ setzeAuswahl auswahlFahrstrom 0
+                _otherwise -> pure ()
+        wsWidgetsSynchronisieren
+            (ZugtypLego
+                 WSWidgets { ws = Wegstrecke {wsBahngeschwindigkeiten, wsStreckenabschnitte}
+                           , wsTVarEvent
+                           , wsToggleButtonStrom
+                           , wsScaleGeschwindigkeit
+                           , wsAuswahlFahrstrom}) = do
+            case wsToggleButtonStrom of
+                (Just toggleButtonStrom)
+                    | Set.isSubsetOf wsStreckenabschnitte
+                        $ enthalteneStreckenabschnitte bahngeschwindigkeit -> ohneEvent wsTVarEvent
+                        $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := True]
+                _otherwise -> pure ()
+            let istBahngeschwindigkeitTeilmenge =
+                    Set.isSubsetOf (Set.map zuZugtypEither wsBahngeschwindigkeiten)
+                    $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
+                    $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit
+            case wsScaleGeschwindigkeit of
+                (Just scaleGeschwindigkeit)
+                    | istBahngeschwindigkeitTeilmenge -> ohneEvent wsTVarEvent
+                        $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := 0]
+                _otherwise -> pure ()
+            case wsAuswahlFahrstrom of
+                (Just auswahlFahrstrom)
+                    | istBahngeschwindigkeitTeilmenge
+                        -> ohneEvent wsTVarEvent $ setzeAuswahl auswahlFahrstrom 0
+                _otherwise -> pure ()
 
 -- | Füge 'AuswahlWidget' zum Fahrtrichtung einstellen zur Box hinzu.
 --
@@ -1584,55 +1679,52 @@ auswahlFahrtrichtungEinstellenPackNew
     -> bg g 'Lego
     -> TVar (Maybe [Sprache -> IO ()])
     -> TVar EventAusführen
-    -> NonEmpty (Either Gtk.Range (AuswahlWidget Word8))
     -> m (AuswahlWidget Fahrtrichtung)
-auswahlFahrtrichtungEinstellenPackNew
-    box
-    bahngeschwindigkeit
-    tvarSprachwechsel
-    tvarEventAusführen
-    geschwindigkeitsWidgets = do
-    statusVar <- erhalteStatusVar :: m StatusVarGui
-    objektReader <- ask
-    auswahlFahrtrichtung <- boxPackWidgetNewDefault box
-        $ boundedEnumAuswahlRadioButtonNew
-            Vorwärts
-            (Just tvarSprachwechsel)
-            Language.fahrtrichtung
-    beiAuswahl auswahlFahrtrichtung $ \fahrtrichtung -> eventAusführen tvarEventAusführen $ do
-        forM_ geschwindigkeitsWidgets $ \case
-            (Left range) -> Gtk.set range [Gtk.rangeValue := 0]
-            (Right auswahlWidget) -> setzeAuswahl auswahlWidget 0
-        flip runReaderT objektReader $ flip auswertenStatusVarMStatusT statusVar $ do
-            ausführenAktion $ FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung
-            -- Widgets synchronisieren
-            bahngeschwindigkeiten <- getBahngeschwindigkeiten
-            liftIO $ forM_ bahngeschwindigkeiten $ flip bgWidgetsSynchronisieren fahrtrichtung
-            wegstrecken <- getWegstrecken
-            liftIO $ forM_ wegstrecken $ flip wsWidgetsSynchronisieren fahrtrichtung
-    pure auswahlFahrtrichtung
+auswahlFahrtrichtungEinstellenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusführen =
+    do
+        statusVar <- erhalteStatusVar :: m StatusVarGui
+        objektReader <- ask
+        auswahlFahrtrichtung <- boxPackWidgetNewDefault box
+            $ boundedEnumAuswahlRadioButtonNew
+                Vorwärts
+                (Just tvarSprachwechsel)
+                Language.fahrtrichtung
+        beiAuswahl auswahlFahrtrichtung $ \fahrtrichtung -> eventAusführen tvarEventAusführen $ do
+            flip runReaderT objektReader $ flip auswertenStatusVarMStatusT statusVar $ do
+                ausführenAktion $ FahrtrichtungEinstellen bahngeschwindigkeit fahrtrichtung
+                -- Widgets synchronisieren
+                bahngeschwindigkeiten <- getBahngeschwindigkeiten
+                liftIO $ forM_ bahngeschwindigkeiten $ flip bgWidgetsSynchronisieren fahrtrichtung
+                wegstrecken <- getWegstrecken
+                liftIO $ forM_ wegstrecken $ flip wsWidgetsSynchronisieren fahrtrichtung
+        pure auswahlFahrtrichtung
     where
         bgWidgetsSynchronisieren
             :: ZugtypEither (GeschwindigkeitEither BGWidgets) -> Fahrtrichtung -> IO ()
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitPwm
-                      BGWidgetsPwmLego {bgpl, bgplTVarEvent, bgplAuswahlFahrtrichtung}))
+                      BGWidgetsPwmLego
+                      {bgpl, bgplTVarEvent, bgplScaleGeschwindigkeit, bgplAuswahlFahrtrichtung}))
             fahrtrichtung
             | elem (ZugtypLego $ GeschwindigkeitPwm bgpl)
                 $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgplTVarEvent $ setzeAuswahl bgplAuswahlFahrtrichtung fahrtrichtung
+                ohneEvent bgplTVarEvent $ do
+                    Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                    setzeAuswahl bgplAuswahlFahrtrichtung fahrtrichtung
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitKonstanteSpannung
                       BGWidgetsKonstanteSpannungLego
-                      {bgkl, bgklTVarEvent, bgklAuswahlFahrtrichtung}))
+                      {bgkl, bgklTVarEvent, bgklAuswahlFahrstrom, bgklAuswahlFahrtrichtung}))
             fahrtrichtung
             | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl)
                 $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgklTVarEvent $ setzeAuswahl bgklAuswahlFahrtrichtung fahrtrichtung
+                ohneEvent bgklTVarEvent $ do
+                    setzeAuswahl bgklAuswahlFahrstrom 0
+                    setzeAuswahl bgklAuswahlFahrtrichtung fahrtrichtung
         bgWidgetsSynchronisieren _bgWidgets _wert = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither WSWidgets -> Fahrtrichtung -> IO ()
@@ -1640,12 +1732,25 @@ auswahlFahrtrichtungEinstellenPackNew
             (ZugtypLego
                  WSWidgets { ws = Wegstrecke {wsBahngeschwindigkeiten}
                            , wsTVarEvent
-                           , wsAuswahlFahrtrichtung = Just auswahlFahrtrichtung})
+                           , wsScaleGeschwindigkeit
+                           , wsAuswahlFahrstrom
+                           , wsAuswahlFahrtrichtung})
             fahrtrichtung
             | Set.isSubsetOf (Set.map zuZugtypEither wsBahngeschwindigkeiten)
                 $ Set.map (zuZugtypEither . zuGeschwindigkeitEither)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent wsTVarEvent $ setzeAuswahl auswahlFahrtrichtung fahrtrichtung
+                ohneEvent wsTVarEvent $ do
+                    case wsScaleGeschwindigkeit of
+                        (Just scaleGeschwindigkeit)
+                            -> Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := 0]
+                        Nothing -> pure ()
+                    case wsAuswahlFahrstrom of
+                        (Just auswahlFahrstrom) -> setzeAuswahl auswahlFahrstrom 0
+                        Nothing -> pure ()
+                    case wsAuswahlFahrtrichtung of
+                        (Just auswahlFahrtrichtung)
+                            -> setzeAuswahl auswahlFahrtrichtung fahrtrichtung
+                        Nothing -> pure ()
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
 
 -- ** Streckenabschnitt
@@ -1773,6 +1878,10 @@ instance STWidgetsKlasse Streckenabschnitt where
 instance STWidgetsKlasse STWidgets where
     enthalteneStreckenabschnitte :: STWidgets -> Set Streckenabschnitt
     enthalteneStreckenabschnitte = Set.singleton . st
+
+instance STWidgetsKlasse (Bahngeschwindigkeit g z) where
+    enthalteneStreckenabschnitte :: Bahngeschwindigkeit g z -> Set Streckenabschnitt
+    enthalteneStreckenabschnitte = const Set.empty
 
 -- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu.
 --
@@ -2527,6 +2636,11 @@ instance STWidgetsKlasse (WSWidgets z) where
     enthalteneStreckenabschnitte :: WSWidgets z -> Set Streckenabschnitt
     enthalteneStreckenabschnitte = wsStreckenabschnitte . ws
 
+instance STWidgetsKlasse (GeschwindigkeitPhantom Wegstrecke g z) where
+    enthalteneStreckenabschnitte :: GeschwindigkeitPhantom Wegstrecke g z -> Set Streckenabschnitt
+    enthalteneStreckenabschnitte (GeschwindigkeitPhantom Wegstrecke {wsStreckenabschnitte}) =
+        wsStreckenabschnitte
+
 -- | 'Wegstrecke' darstellen
 wegstreckePackNew
     :: forall m z.
@@ -2622,18 +2736,14 @@ wegstreckePackNew
                          <$> geschwindigkeitenKonstanteSpannung)
                         wsTVarSprache
                         wsTVarEvent
-            let geschwindigkeitsWidgets =
-                    NonEmpty.fromList
-                    $ catMaybes
-                        [Left . erhalteRange <$> maybeScale, Right <$> maybeAuswahlFahrstrom]
             eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
                 (ZugtypMärklin wsMärklin) -> Left
                     <$> buttonUmdrehenPackNew
                         functionBox
-                        (GeschwindigkeitPhantom wsMärklin)
+                        (GeschwindigkeitPhantom wsMärklin
+                         :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                         wsTVarSprache
                         wsTVarEvent
-                        geschwindigkeitsWidgets
                 (ZugtypLego wsLego) -> Right
                     <$> auswahlFahrtrichtungEinstellenPackNew
                         functionBox
@@ -2641,7 +2751,6 @@ wegstreckePackNew
                          :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
                         wsTVarSprache
                         wsTVarEvent
-                        geschwindigkeitsWidgets
             pure (maybeScale, maybeAuswahlFahrstrom, rightToMaybe eitherFahrtrichtungWidget)
     wsToggleButtonStrom <- if null wsStreckenabschnitte
         then pure Nothing
