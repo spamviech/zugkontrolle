@@ -330,10 +330,8 @@ boxWegstreckeHinzufügenNew =
 
 deriving instance (Eq e) => Eq (WegstreckeCheckButton e)
 
+-- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl.
 data WegstreckeCheckButton e where
-    -- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl.
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     WegstreckeCheckButton :: { wcbvRegistrierterCheckButton :: RegistrierterCheckButton }
         -> WegstreckeCheckButton Void
     WegstreckeCheckButtonRichtung :: { wcbrWidget :: Gtk.Widget

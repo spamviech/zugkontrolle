@@ -9,7 +9,7 @@
 #endif
 
 {-|
-Description: Widget zur Auswahl eines Bounded Enums
+Description: Widget zur Auswahl eines Werts.
 -}
 module Zug.UI.Gtk.Auswahl
   (

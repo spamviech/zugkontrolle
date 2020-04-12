@@ -9,7 +9,7 @@
 #endif
 
 {-|
-Description: Widget zur Auswahl eines Bounded Enums
+Description: Widget mit Zugtyp-spezifischer Darstellung.
 -}
 module Zug.UI.Gtk.ZugtypSpezifisch
   (
@@ -32,10 +32,8 @@ import Zug.UI.Gtk.Hilfsfunktionen
        (boxPackWidgetNew, boxPack, Packing(PackGrow), paddingDefault, positionDefault, widgetShowIf)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitWidgetShow, MitButton(..), MitContainer(..))
 
+-- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
 data ZugtypSpezifisch w where
-    -- | Widgets, die nur bei passender 'Zugtyp'-Auswahl angezeigt werden.
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     ZugtypSpezifisch :: { vBox :: Gtk.VBox } -> ZugtypSpezifisch Gtk.Widget
     ZugtypSpezifischButton :: { buttonVBox :: Gtk.VBox, buttonDummy :: Gtk.Button }
         -> ZugtypSpezifisch Gtk.Button

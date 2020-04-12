@@ -114,6 +114,7 @@ data GeschwindigkeitVariante
     | KonstanteSpannung
     deriving (Show, Eq, Bounded, Enum, Ord)
 
+-- | 'Either'-Like Datentyp für 'GeschwindigkeitVariante'-Abhängige Datentypen
 data GeschwindigkeitEither bg (z :: Zugtyp)
     = GeschwindigkeitPwm (bg 'Pwm z)
     | GeschwindigkeitKonstanteSpannung (bg 'KonstanteSpannung z)
@@ -195,6 +196,7 @@ instance Anzeige GeschwindigkeitVariante where
     anzeige Pwm = Language.geschwindigkeitPwm
     anzeige KonstanteSpannung = Language.geschwindigkeitKonstanteSpannung
 
+-- | Alle 'GeschwindigkeitVariante'n.
 unterstützteGeschwindigkeitVarianten :: NonEmpty GeschwindigkeitVariante
 unterstützteGeschwindigkeitVarianten = fromList [minBound .. maxBound]
 
@@ -206,7 +208,7 @@ data Richtung
     | Rechts
     deriving (Eq, Show, Bounded, Enum, Ord)
 
--- | Alle 'Richtung'en
+-- | Alle 'Richtung'en.
 unterstützteRichtungen :: NonEmpty Richtung
 unterstützteRichtungen = fromList [minBound .. maxBound]
 

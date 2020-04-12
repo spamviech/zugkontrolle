@@ -52,10 +52,8 @@ import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandar
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
+-- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'.
 data AnfrageAktionBahngeschwindigkeit b (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
-    -- | Unvollständige 'Aktion' einer 'Bahngeschwindigkeit'.
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageAktionBahngeschwindigkeit :: b g z -> AnfrageAktionBahngeschwindigkeit b g z
     AABGGeschwindigkeit :: b 'Pwm z -> AnfrageAktionBahngeschwindigkeit b 'Pwm z
     AABGFahrstrom
@@ -100,6 +98,8 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b g z) where
         Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache)
                                   $ NE.toList unterstützteFahrtrichtungen)
 
+-- | Auswahl der 'Bahngeschwindigkeit' für eine 'AktionBahngeschwindigkeit'
+-- (beliebiger 'Zugtyp' & 'GeschwindigkeitVariante').
 class AktionBahngeschwindigkeitZugtyp (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     wähleAktionBahngeschwindigkeit
         :: AnfrageAktionBahngeschwindigkeit bg g z
@@ -344,6 +344,7 @@ instance Anfrage (AnfrageAktionWegstrecke w z) where
     zeigeAnfrageOptionen (AAWSStreckenabschnitt anfrageAktion) = zeigeAnfrageOptionen anfrageAktion
     zeigeAnfrageOptionen (AAWSKupplung anfrageAktion) = zeigeAnfrageOptionen anfrageAktion
 
+-- | Auswahl der 'Wegstrecke' für eine 'AktionWegstrecke' (beliebiger 'Zugtyp').
 class AktionWegstreckeZugtyp (z :: Zugtyp) where
     wähleAktionWegstrecke
         :: AnfrageAktionWegstrecke ws z

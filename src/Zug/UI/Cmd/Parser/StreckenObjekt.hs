@@ -190,10 +190,8 @@ instance MitAnfrage Anschluss where
             $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2 }, port = fromIntegral port }
         Nothing -> AFFehler eingabe
 
+-- | Unvollständige 'Bahngeschwindigkeit'.
 data AnfrageBahngeschwindigkeit (g :: AnfrageGeschwindigkeitVariante) (z :: AnfrageZugtyp) where
-    -- | Unvollständige 'Bahngeschwindigkeit'.
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageBahngeschwindigkeit
         :: AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante 'AnfrageZugtyp
     -- Märklin
@@ -674,10 +672,8 @@ instance MitAnfrage Streckenabschnitt where
             anschlussVerwenden stromAnschluss =
                 AFErgebnis Streckenabschnitt { stName, stFließend, stromAnschluss }
 
+-- | Unvollständige 'Weiche'.
 data AnfrageWeiche (z :: AnfrageZugtyp) where
-    -- | Unvollständige 'Weiche'.
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageWeiche :: AnfrageWeiche 'AnfrageZugtyp
     AMärklinWeiche :: AnfrageWeiche 'AnfrageZugtypMärklin
     AMärklinWeicheName :: { awemName :: Text } -> AnfrageWeiche 'AnfrageZugtypMärklin
@@ -982,6 +978,7 @@ instance MitAnfrage Kupplung where
             anschlussVerwenden kupplungsAnschluss =
                 AFErgebnis Kupplung { kuName, kuFließend, kupplungsAnschluss }
 
+-- | Anfrage nach dem 'Zugtyp'.
 class AnfrageZugtypKlasse (z :: AnfrageZugtyp) where
     type FixerZugtyp z :: Zugtyp
 
@@ -1007,10 +1004,8 @@ instance AnfrageZugtypKlasse 'AnfrageZugtypLego where
                     -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)
     afStatusAnfrage = AFStatusAnfrageLego
 
+-- | Unvollständige 'Wegstrecke'.
 data AnfrageWegstrecke (z :: AnfrageZugtyp) where
-    -- | Unvollständige 'Wegstrecke'.
-    --
-    -- (Dokumentation hier, weil sonst floskell den Kommentar einrückt, was zu haddock-Fehlern führt)
     AnfrageWegstreckeZugtyp :: AnfrageWegstrecke 'AnfrageZugtyp
     AnfrageWegstrecke :: AnfrageWegstrecke z
     AWegstreckeName :: { awsName :: Text } -> AnfrageWegstrecke z
