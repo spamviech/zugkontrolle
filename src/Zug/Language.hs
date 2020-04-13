@@ -187,10 +187,9 @@ import qualified Paths_Zugkontrolle as Paths
 import System.Hardware.WiringPi (Pin, Value(..))
 
 -- * Titel / Title
--- | Train Control
+-- | Zugkontrolle
 zugkontrolle :: Sprache -> Text
-zugkontrolle Deutsch = "Zugkontrolle"
-zugkontrolle Englisch = "Train Control"
+zugkontrolle = const "Zugkontrolle"
 
 -- ** Version
 -- | Aktuelle Version
