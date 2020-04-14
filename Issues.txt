@@ -27,14 +27,7 @@ Zug.UI.Gtk.StreckenObjekt ist zu groß
 
 Plan Hinzufügen:
     Ersetzten des Auswahl-Fensters durch ComboBox?
-
-GTK stürzt öfters ab
-    Zu viele Widgets?
-    Passiert vor allem auf raspi
-    AssistantHinzufügen besonders anfällig
-        neu schreiben?
-        nachdem einziger Assistant in gesamtem Programm ist allgemeine Variante nicht notwendig
-        beseitigt vermutlich nicht-skalierende Widgets
+        muss bei öffnen des Dialogs jedesmal neu gefüllt/an aktuellen Zustand angepasst werden
 
 Ändere Liste zu (Map Name a)
     newtype NameSet a = NameSet (Set (Benannt a))
@@ -135,6 +128,15 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst----------------------------------------------------------------
+GTK stürzt öfters ab
+    Zu viele Widgets?
+    Passiert vor allem auf raspi
+    AssistantHinzufügen besonders anfällig
+        neu schreiben?
+        nachdem einziger Assistant in gesamtem Programm ist allgemeine Variante nicht notwendig
+        beseitigt vermutlich nicht-skalierende Widgets
+    Scheint gefixt zu sein
+
 Gtk-UI: Widgets synchronisieren
     Jedes Widget enthält ein (TVar Bool), welches angibt ob der Effekt ausgelöst wird
     Wegstrecke wird gesetzt ->

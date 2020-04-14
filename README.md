@@ -58,25 +58,37 @@ Beim ausführen eines Plans werden diese nacheinander aufgerufen.
 
 ## Installation
 
-Zur Installation wird stack empfohlen.  
+Zur Installation aus dem Quellcode wird stack empfohlen.  
 Nach Installation aller Abhängigkeiten (siehe Unten) kann durch den Aufruf von `stack build` eine Executable in einem Unterordner von `./.stack-work` erstellt werden.
 Durch Aufruf von `stack install` wird eine Kopie der Executable im Unterordner "./bin" erstellt.
 
-Nachdem die Installation der Pakete "gtk3" und "lens" eine Installation des "Cabal"-Pakets vorraussetzen, welches sehr lange dauert (bei mir ~1 Tag) wird eine Installation ohne beide Pakete unterstützt.  
-Dazu muss der Installations-Befehl erweitert werden um die flag gui auf false zu setzten. Der neue Installationsbefehl lautet somit:
+Nachdem die Installation der Pakete "gtk3" und "lens" eine Installation des "Cabal"-Pakets
+vorraussetzen, welches sehr lange dauert (bei mir ~1 Tag) wird eine Installation ohne beide
+Pakete unterstützt.   Dazu muss der Installations-Befehl erweitert werden um die flag gui auf false
+zu setzten. Der neue Installationsbefehl lautet somit:
     `stack install --flag Zugkontrolle:-gui`  
 Eine Verwendung des GTK-UI ist dann natürlich nicht mehr möglich.  
-Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation z.B. auf Cip-Rechner über das GTK-UI, speichern und kopieren in einer json-Datei und anschließendes Ausführen mit Cmd-UI auf dem Raspberry Pi.
+Ein möglicher Arbeitsablauf ist dann Erstellen der Repräsentation auf einem Desktop-Rechner, speichern
+und  kopieren in einer yaml-Datei und anschließendes Ausführen mit Cmd-UI auf dem Raspberry Pi.
+
+Alternativ wird für jede Release-Version eine vorkompilierte binary im Unterordner `bin` angeboten.
 
 ### Installation von stack
 
-TODO!!!!
-[stack-Anleitung](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+Zur Installation von stack wird empfohlen die Anleitung auf der
+[zugehörigen Website](https://docs.haskellstack.org/en/stable/install_and_upgrade/) zu befolgen.
+Im moment lautet der Befehl
     `curl -sSL https://get.haskellstack.org/ | sh`
-(Probleme mit neuester Stack-Version, daher Version 1.9.3 in
-[Zugkontrolle-Resourcen](https://github.com/spamviech/ZugkontrolleResourcen) enthalten)
 
-(Swap-Datei erstellen)
+Leider bricht die neueste stack-Version beim kompilieren mit einer Fehlermeldung wegen fehlender
+haddock-binary ab. Als Abhilfe wird
+[Version 1.9.3 in Zugkontrolle-Ressourcen](https://github.com/spamviech/ZugkontrolleRessourcen)
+bereitgestellt.
+
+### Swap-Datei erstellen
+
+Wird ein kompilieren inklusive des Gtk-UI gewünscht reicht der Arbeitsspeicher eines RaspberryPi v3B+
+leider nicht aus. Deswegen muss eine swap-Datei erstellt werden:
 
 ```sh
     sudo dphys-swapfile swapoff   # disable swap
@@ -85,9 +97,11 @@ TODO!!!!
     sudo dphys-swapfile swapon    # re-enable swap
 ```
 
-(LLVM-3.9 nicht vergessen)
-    Download von der [LLVM Download-Seite](https://releases.llvm.org/download.html#3.9.1)
-    Ich empfehle die dort vorhandenen binaries (armv7a Linux) herunterladen und entpacken.
+#### LLVM 3.9
+
+ghc-8.2.2 benötigt weiterhin LLVM 3.9 um zu funktionieren.
+Der Download ist von der [LLVM Seite](https://releases.llvm.org/download.html#3.9.1) möglich.
+Ich empfehle die dort vorhandenen binaries (armv7a Linux) herunterzuladen und zu entpacken:
 
 ```sh
     tar -xf clang+llvm-3.9.1-armv7a-linux-gnueabihf.tar.xz
@@ -106,7 +120,7 @@ TODO!!!!
 ```
 
 Jetzt muss noch sichergestellt werden, dass stack/ghc die erzeugten Dateien auch findet.
-Dazu kann die PATH-Variable ergänzt werden.
+Dazu kann die PATH-Variable ergänzt werden (export PATH=/usr/lib/llvm-3.9/bin:$PATH).
 Alternativ können folgende Zeilen zur `config.yaml` hinzugefügt werden.
 
 ```yaml
@@ -114,8 +128,9 @@ extra-path:
 - /usr/lib/llvm-3.9/bin
 ```
 
-Alternativ kompilieren aus Quellcode.
-(Dauert ewig, bei mir mit Fehlermeldung abgebrochen)
+Alternativ ist es möglich LLVM aus dem Quellcode zu kompilieren.
+Leider brach das bei mir nach langer Wartezeit mit einer Fehlermeldung ab, so dass ich hier nur die
+Befehle aus der Anleitung wiedergeben kann.
 Es wird cmake benötigt: [LLVM CMake Anleitung](https://www.llvm.org/docs/CMake.html)
 
 ```sh
@@ -127,10 +142,22 @@ Es wird cmake benötigt: [LLVM CMake Anleitung](https://www.llvm.org/docs/CMake.
     cmake --build . --target install
 ```
 
-(libtinfo-dev benötigt, sonst gitb es Probleme beim linken/TemplateHaskell-Modulen)
-    `sudo apt-get install libtinfo-dev`
+#### libtinfo-dev
 
-[Relevanter Blog-Post](https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/)
+Wer jetzt `stack build` eingibt wird festellen, dass ghc mit einer Fehlermeldung beim ersten
+TemplateHaskell-Modul (Zug.UI.Gtk.Klassen) abstürzt. Ohne TemplateHaskell würde die Fehlermeldung
+beim linken auftreten. Um das Problem zu lösen muss das Paket `libtinfo-dev` installiert werden:
+
+```sh
+sudo apt-get install libtinfo-dev
+```
+
+#### Relevanter Blog-Post
+
+Viele der Informationen wurden aktualisiert anhand
+[dieses Blog-Posts](https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/).
+Sollten sie nicht mehr aktuell sein ist es ratsam, nach aktuelleren Anleitungen für dann aktuelle
+RaspberryPi-Versionen zu suchen.
 
 ### Installation von WiringPi
 
@@ -151,6 +178,14 @@ Dazu ist am besten die Anleitung auf [der Gtk-Website](https://www.gtk.org/downl
 
     Wenn man keine selbst gepflegte MSYS2-Installation wünscht kann man die von stack mitgebrachte verwenden.
     Die Installation von gtk3 erfolgt dann über `stack exec -- pacman -S mingw-w64-x86_64-gtk3`
+
+#### Probleme bei neueren Versionen (Windows)
+
+Bei aktuellen Versionen unter Windows schlägt das kompilieren der `cairo`- und `gtk3`-Bibliotheken fehl.
+Als Workaround werden alte Versionen der __MSYS2__-Pakete in
+[Zugkontrolle-Ressourcen](https://github.com/spamviech/ZugkontrolleRessourcen) angeboten.  
+Diese werden über folgenden Befehl installiert: `pacman -U <Dateiname>`  
+Zum Glück ist nach erstmaligem Kompilieren ein updaten auf die neueste Version wieder möglich.
 
 ## Ausführen des Programms
 
@@ -215,6 +250,9 @@ Evtl. ist das bei einer frischen MSYS2-Installation nicht notwendig.
     Nachdem nur das Einstellen der hardware-basierten PWM-Funktion Root-Rechte benötigt werden diese bei Verwendung von `--pwm=SoftwarePWM` nicht benötigt.
 * --sprache=Deutsch | Englisch  
     Wähle die verwendete Sprache. Ein Wechsel ist nur durch einen Neustart möglich.
+* --seiten=Einzelseiten | Sammelseiten  
+    Soll im Gtk-UI jede Kategorie eine eigene Seite bekommen?  
+    Vor allem auf kleineren Bildschirmen ist die Option `--seiten=Einzelseiten` zu empfehlen.
 
 ### Starten durch ziehen einer Datei auf die binary
 
@@ -234,7 +272,7 @@ Wird nur ein Kommandozeilenargument übergeben wird versucht dieses als Datei zu
     Exec=sh -c "/home/pi/Desktop/Zugkontrolle-bin/Zugkontrolle %f"
     ```
 
-  TODO: Anleitung aus folgenden Quellen:
+  Die Anleitung stammt aus folgenden Quellen:
 
   * [Nautilus drag-and-drop](https://askubuntu.com/questions/52789/drag-and-drop-file-onto-script-in-nautilus)
   * [aktueller Ordner in .desktop Datei](https://stackoverflow.com/a/56202419)

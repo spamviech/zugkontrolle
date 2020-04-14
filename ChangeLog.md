@@ -122,7 +122,7 @@
 - Cmd-UI: Bei gesperrtem Plan kann gewartet werden, bis eine Ausführung wieder möglich ist.
     Man muss nicht erst ins Hauptmenü zurückkehren.
 
-## Unreleased changes
+1.1.0.0:
 
 - Support für PCF8574 hinzugefügt
 - MVar durch TVar/TMVar ersetzt, LinkedMVar entfernt
@@ -147,3 +147,5 @@
     Wird z.B. der Strom einer Wegstrecke auf fließend gesetzt passiert das auch bei der Anzeige
     aller enthaltenen Streckenabschnitte.
 - Tests entfernt. Wurden nicht gepflegt, somit ist deren Nicht-Existenz die ehrlichere Lösung.
+
+## Unreleased changes
