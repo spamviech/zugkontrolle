@@ -124,9 +124,9 @@ import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEithe
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), ausGeschwindigkeitEither
                 , catKonstanteSpannung, GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..)
                 , Richtung(..))
-import Zug.Language (MitSprache(..), (<->))
+import Zug.Language (MitSprache(..), (<°>))
 import qualified Zug.Language as Language
-import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>), (<°>))
+import Zug.Language (Sprache(), Anzeige(..), ($#), (<^>), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), ObjektElement(..), Objekt, ObjektKlasse(..))
 import Zug.Plan (PlanKlasse(..), Plan(..), AusführendReader(), AktionKlasse(..)
                , AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..), AktionWeiche(..)
@@ -1151,8 +1151,28 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     -- Widget erstellen
     hBox <- liftIO $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.hBoxNew False 0
     namePackNew hBox bahngeschwindigkeit
-    bgWidgets <- geschwindigkeitsWidgetsPackNew hBox bahngeschwindigkeit tvarSprache tvarEvent
-    fließendPackNew hBox bahngeschwindigkeit justTVarSprache
+    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
+        expanderAnschlüsse <- boxPackWidgetNew
+            hBox
+            (if verwendetPwm bahngeschwindigkeit == Pwm
+                 then PackNatural
+                 else PackGrow)
+            paddingDefault
+            positionDefault
+            $ Gtk.expanderNew Text.empty
+        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+            $ scrollbaresWidgetNew
+            $ Gtk.vBoxNew False 0
+        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    verwendeSpracheGui justTVarSprache $ \sprache
+        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    bgWidgets <- geschwindigkeitsWidgetsPackNew
+        hBox
+        bahngeschwindigkeit
+        vBoxAnschlüsse
+        tvarSprache
+        tvarEvent
+    fließendPackNew vBoxAnschlüsse bahngeschwindigkeit justTVarSprache
     buttonEntfernenPackNew bgWidgets
         $ entfernenBahngeschwindigkeit
         $ zuZugtypEither
@@ -1201,15 +1221,17 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             :: (ObjektGuiReader m, MonadIO m)
             => Gtk.HBox
             -> Bahngeschwindigkeit g z
+            -> ScrollbaresWidget Gtk.VBox
             -> TVar (Maybe [Sprache -> IO ()])
             -> TVar EventAusführen
             -> m (BGWidgets g z)
         geschwindigkeitsWidgetsPackNew
             box
             bahngeschwindigkeit@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
+            vBoxAnschlüsse
             bgpmTVarSprache
             bgpmTVarEvent = do
-            boxPackWidgetNewDefault box
+            boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew (Just bgpmTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
             bgpmScaleGeschwindigkeit
                 <- hScaleGeschwindigkeitPackNew box bahngeschwindigkeit bgpmTVarEvent
@@ -1231,23 +1253,14 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             box
             bahngeschwindigkeit@MärklinBahngeschwindigkeitKonstanteSpannung
             {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
+            vBoxAnschlüsse
             bgkmTVarSprache
             bgkmTVarEvent = do
             let justTVarSprache = Just bgkmTVarSprache
-            expander <- liftIO
-                $ boxPackWidgetNew box PackGrow paddingDefault positionDefault
-                $ Gtk.expanderNew Text.empty
-            verwendeSpracheGui justTVarSprache $ \sprache -> Gtk.set
-                expander
-                [Gtk.expanderLabel := (Language.fahrstrom <-> Language.anschlüsse) sprache]
-            vBoxFahrstromAnschlüsse <- liftIO
-                $ containerAddWidgetNew expander
-                $ scrollbaresWidgetNew
-                $ Gtk.vBoxNew False 0
             let erstelleFahrstromAnschlussWidget
                     :: (MonadIO m, SpracheGuiReader r m) => Natural -> Anschluss -> m Natural
                 erstelleFahrstromAnschlussWidget i anschluss = do
-                    boxPackWidgetNewDefault vBoxFahrstromAnschlüsse
+                    boxPackWidgetNewDefault vBoxAnschlüsse
                         $ anschlussNew justTVarSprache (Language.fahrstrom <> anzeige i) anschluss
                     pure $ succ i
             foldM erstelleFahrstromAnschlussWidget 1 bgmkFahrstromAnschlüsse
@@ -1257,8 +1270,8 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 (fromIntegral $ length bgmkFahrstromAnschlüsse)
                 bgkmTVarSprache
                 bgkmTVarEvent
-            boxPackWidgetNewDefault box
-                $ anschlussNew (Just bgkmTVarSprache) Language.umdrehen bgmkUmdrehenAnschluss
+            boxPackWidgetNewDefault vBoxAnschlüsse
+                $ anschlussNew justTVarSprache Language.umdrehen bgmkUmdrehenAnschluss
             buttonUmdrehenPackNew box bahngeschwindigkeit bgkmTVarSprache bgkmTVarEvent
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgkmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
@@ -1277,14 +1290,15 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             box
             bahngeschwindigkeit@LegoBahngeschwindigkeit
             {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
+            vBoxAnschlüsse
             bgplTVarSprache
             bgplTVarEvent = do
             let justTVarSprache = Just bgplTVarSprache
-            boxPackWidgetNewDefault box
+            boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew justTVarSprache Language.geschwindigkeit bglGeschwindigkeitsPin
             bgplScaleGeschwindigkeit
                 <- hScaleGeschwindigkeitPackNew box bahngeschwindigkeit bgplTVarEvent
-            boxPackWidgetNewDefault box
+            boxPackWidgetNewDefault vBoxAnschlüsse
                 $ anschlussNew justTVarSprache Language.fahrtrichtung bglFahrtrichtungsAnschluss
             bgplAuswahlFahrtrichtung <- auswahlFahrtrichtungEinstellenPackNew
                 box
@@ -1797,10 +1811,20 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     -- Widget erstellen
     hBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ liftIO $ Gtk.hBoxNew False 0
     namePackNew hBox streckenabschnitt
-    boxPackWidgetNewDefault hBox $ anschlussNew justTVarSprache Language.strom stromAnschluss
+    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
+        expanderAnschlüsse <- boxPackWidgetNew hBox PackGrow paddingDefault positionDefault
+            $ Gtk.expanderNew Text.empty
+        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+            $ scrollbaresWidgetNew
+            $ Gtk.vBoxNew False 0
+        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    verwendeSpracheGui justTVarSprache $ \sprache
+        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    boxPackWidgetNewDefault vBoxAnschlüsse
+        $ anschlussNew justTVarSprache Language.strom stromAnschluss
     stTogglebuttonStrom
         <- toggleButtonStromPackNew hBox streckenabschnitt stTVarSprache stTVarEvent
-    fließendPackNew hBox streckenabschnitt justTVarSprache
+    fließendPackNew vBoxAnschlüsse streckenabschnitt justTVarSprache
     let stWidgets =
             STWidgets
             { st = streckenabschnitt
@@ -2134,34 +2158,56 @@ weichePackNew weiche = do
             , weTVarEvent
             }
     namePackNew hBox weiche
-    richtungsButtonsPackNew weWidgets hBox
-    fließendPackNew hBox weiche justTVarSprache
+    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
+        expanderAnschlüsse <- boxPackWidgetNew hBox PackGrow paddingDefault positionDefault
+            $ Gtk.expanderNew Text.empty
+        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+            $ scrollbaresWidgetNew
+            $ Gtk.vBoxNew False 0
+        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    verwendeSpracheGui justTVarSprache $ \sprache
+        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    richtungsButtonsPackNew weWidgets hBox vBoxAnschlüsse
+    fließendPackNew vBoxAnschlüsse weiche justTVarSprache
     buttonEntfernenPackNew weWidgets $ entfernenWeiche $ zuZugtypEither weWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OWeiche $ zuZugtypEither weWidgets
     pure weWidgets
     where
         richtungsButtonsPackNew
-            :: forall b m z. (MitBox b, MonadIO m, ObjektGuiReader m) => WEWidgets z -> b -> m ()
+            :: forall m z.
+            (MonadIO m, ObjektGuiReader m)
+            => WEWidgets z
+            -> Gtk.HBox
+            -> ScrollbaresWidget Gtk.VBox
+            -> m ()
         richtungsButtonsPackNew
             WEWidgets {we = MärklinWeiche {wemRichtungsAnschlüsse}, weTVarSprache, weTVarEvent}
-            box = do
+            box
+            vBoxAktionen = do
             statusVar <- erhalteStatusVar :: m StatusVarGui
             objektReader <- ask
-            forM_ wemRichtungsAnschlüsse $ \(richtung, anschluss) -> boxPackWidgetNewDefault box
-                $ buttonNewWithEventLabel (Just weTVarSprache) (richtung <:> anschluss)
-                $ eventAusführen weTVarEvent
-                $ flip runReaderT objektReader
-                $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
+            forM_ wemRichtungsAnschlüsse $ \(richtung, anschluss) -> do
+                let justTVarSprache = Just weTVarSprache
+                    anzeigeRichtung = anzeige richtung
+                boxPackWidgetNewDefault box
+                    $ buttonNewWithEventLabel justTVarSprache anzeigeRichtung
+                    $ eventAusführen weTVarEvent
+                    $ flip runReaderT objektReader
+                    $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
+                boxPackWidgetNewDefault vBoxAktionen
+                    $ anschlussNew justTVarSprache anzeigeRichtung anschluss
         richtungsButtonsPackNew
             WEWidgets { we = LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
                       , weTVarSprache
                       , weTVarEvent}
-            box = void $ do
+            box
+            vBoxAktionen = void $ do
             statusVar <- erhalteStatusVar :: m StatusVarGui
             objektReader <- ask
             let justTVar = Just weTVarSprache
-            boxPackWidgetNewDefault box $ pinNew justTVar Language.richtung welRichtungsPin
+            boxPackWidgetNewDefault vBoxAktionen
+                $ pinNew justTVar Language.richtung welRichtungsPin
             boxPackWidgetNewDefault box
                 $ buttonNewWithEventLabel justTVar (anzeige richtung1)
                 $ eventAusführen weTVarEvent
@@ -2267,10 +2313,19 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
             , kuTVarEvent
             }
     namePackNew hBox kupplung
-    boxPackWidgetNewDefault hBox
+    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
+        expanderAnschlüsse <- boxPackWidgetNew hBox PackGrow paddingDefault positionDefault
+            $ Gtk.expanderNew Text.empty
+        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+            $ scrollbaresWidgetNew
+            $ Gtk.vBoxNew False 0
+        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    verwendeSpracheGui justTVarSprache $ \sprache
+        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
     buttonKuppelnPackNew hBox kupplung kuTVarSprache kuTVarEvent
-    fließendPackNew hBox kupplung justTVarSprache
+    fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
     buttonEntfernenPackNew kuWidgets $ entfernenKupplung kuWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ OKupplung kuWidgets

@@ -151,3 +151,4 @@
 ## Unreleased changes
 
 - Gtk-UI: Plan & Märklin-Weiche Hinzufügen in ScrollbaresWidget angezeigt.
+- Gtk-UI: Anschlüsse werde gruppiert in einem Expander angezeigt.
