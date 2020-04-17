@@ -63,6 +63,7 @@ Streckenabschnitte:
 Bahngeschwindigkeiten:
 - FahrstromAnschlüsse:
   - Pin: 21
+  - Pin: 26
   - Pin: 20
   UmdrehenAnschluss:
     Pin: 16
@@ -382,6 +383,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -631,6 +633,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -880,6 +883,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -1129,6 +1133,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -1378,6 +1383,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -1537,6 +1543,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -1709,6 +1716,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -1891,6 +1899,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -2073,6 +2082,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -2255,6 +2265,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -2428,6 +2439,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -2578,6 +2590,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
@@ -2709,6 +2722,7 @@ Wegstrecken:
   Bahngeschwindigkeiten:
   - FahrstromAnschlüsse:
     - Pin: 21
+    - Pin: 26
     - Pin: 20
     UmdrehenAnschluss:
       Pin: 16
