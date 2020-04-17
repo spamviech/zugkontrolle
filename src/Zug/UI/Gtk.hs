@@ -99,11 +99,13 @@ setupGUI maybeTVar = void $ do
     Options {load = dateipfad, gtkSeiten, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Dummy-Fenster, damit etwas angezeigt wird
-    windowDummy <- widgetShowNew $ Gtk.windowNew
+    windowDummy <- Gtk.windowNew
     Gtk.set
         windowDummy
         [ Gtk.windowTitle := leseSprache (Language.zugkontrolle <~> Language.version) spracheGui
-        , Gtk.windowDeletable := False]
+        , Gtk.windowDeletable := False
+        , Gtk.windowDefaultWidth := 400]
+    Gtk.widgetShow windowDummy
     -- Hauptfenster
     windowMain <- Gtk.windowNew
     -- native Auflösung des Raspi 7'' TouchScreen ist 800x480
