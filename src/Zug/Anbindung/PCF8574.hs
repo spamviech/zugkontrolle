@@ -20,6 +20,8 @@ module Zug.Anbindung.PCF8574
   , pcf8574Write
   , pcf8574Read
   , BitValue(..)
+  , emptyBitValue
+  , fullBitValue
   , toBitValue
     -- ** Auf bestimmten Port spezialisierte Funktionen
   , PCF8574Port(..)
@@ -43,8 +45,9 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
 import Text.Read.Lex (numberToInteger, Lexeme(..))
 
-import Zug.Anbindung.I2C (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..)
-                        , i2cWrite, i2cWriteAdjust, i2cRead, BitValue(..))
+import Zug.Anbindung.I2C
+       (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..), i2cWrite, i2cWriteAdjust
+      , i2cRead, BitValue(..), emptyBitValue, fullBitValue)
 import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 

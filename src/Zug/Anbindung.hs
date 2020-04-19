@@ -93,13 +93,14 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
-import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange
-                               , pwmWrite, pinToBcmGpio, wiringPiISR, IntEdge(..))
+import System.Hardware.WiringPi
+       (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange, pwmWrite, pinToBcmGpio)
 
 import Zug.Anbindung.Anschluss
        (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPin, zuPin, vonPinGpio
       , zuPinGpio, vonPCF8574Port, zuPCF8574Port, anschlussWrite, Value(..), I2CMap, i2cMapEmpty
-      , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite)
+      , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite, beiÄnderung
+      , InterruptReader(..), IntEdge(..))
 import Zug.Anbindung.SoftwarePWM
        (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
 import Zug.Anbindung.Wartezeit
@@ -473,11 +474,13 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             splitAnschlüsse :: ([(Pin, Value)], [PCF8574Port], [PCF8574Port])
                              -> Anschluss
                              -> ([(Pin, Value)], [PCF8574Port], [PCF8574Port])
-            splitAnschlüsse (pins, portsHigh, portsLow) anschluss@(AnschlussPin pin) =
+            splitAnschlüsse (pins, portsHigh, portsLow) anschluss@AnschlussPin {pin} =
                 ((pin, anschlussValue anschluss) : pins, portsHigh, portsLow)
-            splitAnschlüsse (pins, portsHigh, portsLow) anschluss@(AnschlussPCF8574Port port)
-                | anschlussValue anschluss == HIGH = (pins, port : portsHigh, portsLow)
-                | otherwise = (pins, portsHigh, port : portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                anschluss@AnschlussPCF8574Port {pcf8574Port}
+                | anschlussValue anschluss == HIGH = (pins, pcf8574Port : portsHigh, portsLow)
+                | otherwise = (pins, portsHigh, pcf8574Port : portsLow)
 
             fahrstromPortMapHigh = pcf8574Gruppieren fahrstromPcf8574PortsHigh
 
@@ -758,12 +761,12 @@ data SignalErhalten
     deriving (Show, Eq, Ord)
 
 -- | Erhalte ein Signal, wenn ein Zug eine Kontaktschiene erreicht.
-data Kontakt = KontaktCons Text Value Anschluss (TVar SignalErhalten)
+data Kontakt = MkKontakt Text Value Anschluss (TVar SignalErhalten)
     deriving (Eq)
 
 pattern Kontakt :: Text -> Value -> Anschluss -> TVar SignalErhalten -> Kontakt
 pattern Kontakt {koName, koFließend, kontaktAnschluss, koTVarSignal}
-    <- KontaktCons koName koFließend kontaktAnschluss koTVarSignal
+    <- MkKontakt koName koFließend kontaktAnschluss koTVarSignal
 
 {-# COMPLETE Kontakt #-}
 
@@ -823,17 +826,18 @@ instance KontaktKlasse Kontakt where
 
 -- | Erzeuge einen neuen 'Kontakt' und stelle sicher, dass der zugehörige 'Anschluss' auf
 -- Eingaben reagiert.
-kontaktNew :: (MonadIO m) => Text -> Value -> Anschluss -> m Kontakt
-kontaktNew koName koFließend kontaktAnschluss = liftIO $ do
-    koTVarSignal <- newTVarIO WarteAufSignal
-    wiringPiISR
-        (_interruptPin kontaktAnschluss)
+kontaktNew
+    :: (InterruptReader r m, I2CReader r m, MonadIO m) => Text -> Value -> Anschluss -> m Kontakt
+kontaktNew koName koFließend kontaktAnschluss = do
+    koTVarSignal <- liftIO $ newTVarIO WarteAufSignal
+    beiÄnderung
+        kontaktAnschluss
         (if koFließend == LOW
              then INT_EDGE_FALLING
              else INT_EDGE_RISING)
         $ atomically
         $ writeTVar koTVarSignal SignalErhalten
-    pure $ KontaktCons koName koFließend kontaktAnschluss koTVarSignal
+    pure $ MkKontakt koName koFließend kontaktAnschluss koTVarSignal
 
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
 data Wegstrecke (z :: Zugtyp) =
@@ -952,13 +956,13 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
                 MärklinBahngeschwindigkeitKonstanteSpannung
-                {bgmkFließend = HIGH, bgmkUmdrehenAnschluss = AnschlussPCF8574Port port} =
-                (pins, port : portsHigh, portsLow)
+                {bgmkFließend = HIGH, bgmkUmdrehenAnschluss = AnschlussPCF8574Port {pcf8574Port}} =
+                (pins, pcf8574Port : portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
                 MärklinBahngeschwindigkeitKonstanteSpannung
-                {bgmkFließend = LOW, bgmkUmdrehenAnschluss = AnschlussPCF8574Port port} =
-                (pins, portsHigh, port : portsLow)
+                {bgmkFließend = LOW, bgmkUmdrehenAnschluss = AnschlussPCF8574Port {pcf8574Port}} =
+                (pins, portsHigh, pcf8574Port : portsLow)
 
             umdrehenPortMapHigh = pcf8574Gruppieren umdrehenPcf8574PortsHigh
 
@@ -997,11 +1001,14 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                              -> ([(Pin, Value)], [PCF8574Port], [PCF8574Port])
                              -> Anschluss
                              -> ([(Pin, Value)], [PCF8574Port], [PCF8574Port])
-            splitAnschlüsse bg (pins, portsHigh, portsLow) anschluss@(AnschlussPin pin) =
+            splitAnschlüsse bg (pins, portsHigh, portsLow) anschluss@AnschlussPin {pin} =
                 ((pin, anschlussValue bg anschluss) : pins, portsHigh, portsLow)
-            splitAnschlüsse bg (pins, portsHigh, portsLow) anschluss@(AnschlussPCF8574Port port)
-                | anschlussValue bg anschluss == HIGH = (pins, port : portsHigh, portsLow)
-                | otherwise = (pins, portsHigh, port : portsLow)
+            splitAnschlüsse
+                bg
+                (pins, portsHigh, portsLow)
+                anschluss@AnschlussPCF8574Port {pcf8574Port}
+                | anschlussValue bg anschluss == HIGH = (pins, pcf8574Port : portsHigh, portsLow)
+                | otherwise = (pins, portsHigh, pcf8574Port : portsLow)
 
             fahrstromPortMapHigh = pcf8574Gruppieren fahrstromPcf8574PortsHigh
 
@@ -1073,14 +1080,16 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 (pins, portsHigh, portsLow)
                 (GeschwindigkeitPwm
                      LegoBahngeschwindigkeit
-                     {bglFließend = HIGH, bglFahrtrichtungsAnschluss = AnschlussPCF8574Port port}) =
-                (pins, port : portsHigh, portsLow)
+                     { bglFließend = HIGH
+                     , bglFahrtrichtungsAnschluss = AnschlussPCF8574Port {pcf8574Port}}) =
+                (pins, pcf8574Port : portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
                 (GeschwindigkeitPwm
                      LegoBahngeschwindigkeit
-                     {bglFließend = LOW, bglFahrtrichtungsAnschluss = AnschlussPCF8574Port port}) =
-                (pins, portsHigh, port : portsLow)
+                     { bglFließend = LOW
+                     , bglFahrtrichtungsAnschluss = AnschlussPCF8574Port {pcf8574Port}}) =
+                (pins, portsHigh, pcf8574Port : portsLow)
             splitAnschlüsse _acc (GeschwindigkeitKonstanteSpannung _) =
                 error "Lego-Bahngeschwindigkeit mit konstanter Spannung!"
 
@@ -1129,12 +1138,14 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
                 ((pin, flip erhalteValue st) : pins, portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                Streckenabschnitt {stFließend = HIGH, stromAnschluss = AnschlussPCF8574Port port} =
-                (pins, port : portsHigh, portsLow)
+                Streckenabschnitt
+                {stFließend = HIGH, stromAnschluss = AnschlussPCF8574Port {pcf8574Port}} =
+                (pins, pcf8574Port : portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                Streckenabschnitt {stFließend = LOW, stromAnschluss = AnschlussPCF8574Port port} =
-                (pins, portsHigh, port : portsLow)
+                Streckenabschnitt
+                {stFließend = LOW, stromAnschluss = AnschlussPCF8574Port {pcf8574Port}} =
+                (pins, portsHigh, pcf8574Port : portsLow)
 
             stromPortMapHigh = pcf8574Gruppieren stromPcf8574PortsHigh
 
@@ -1183,12 +1194,14 @@ instance KupplungKlasse (Wegstrecke z) where
                 ((pin, flip erhalteValue ku) : pins, portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                Kupplung {kuFließend = HIGH, kupplungsAnschluss = AnschlussPCF8574Port port} =
-                (pins, port : portsHigh, portsLow)
+                Kupplung
+                {kuFließend = HIGH, kupplungsAnschluss = AnschlussPCF8574Port {pcf8574Port}} =
+                (pins, pcf8574Port : portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                Kupplung {kuFließend = LOW, kupplungsAnschluss = AnschlussPCF8574Port port} =
-                (pins, portsHigh, port : portsLow)
+                Kupplung
+                {kuFließend = LOW, kupplungsAnschluss = AnschlussPCF8574Port {pcf8574Port}} =
+                (pins, portsHigh, pcf8574Port : portsLow)
 
             kupplungsPortMapHigh = pcf8574Gruppieren kupplungsPcf8574PortsHigh
 
@@ -1246,11 +1259,11 @@ instance WegstreckeKlasse (Wegstrecke 'Märklin) where
                 acc@(pins, portsHigh, portsLow)
                 (we@MärklinWeiche {wemFließend, wemRichtungsAnschlüsse}, richtung) =
                 case getRichtungsAnschluss richtung (NE.toList wemRichtungsAnschlüsse) of
-                    (Just (AnschlussPin pin))
+                    (Just AnschlussPin {pin})
                         -> ((pin, flip erhalteValue we) : pins, portsHigh, portsLow)
-                    (Just (AnschlussPCF8574Port port)) -> case wemFließend of
-                        HIGH -> (pins, port : portsHigh, portsLow)
-                        LOW -> (pins, portsHigh, port : portsLow)
+                    (Just AnschlussPCF8574Port {pcf8574Port}) -> case wemFließend of
+                        HIGH -> (pins, pcf8574Port : portsHigh, portsLow)
+                        LOW -> (pins, portsHigh, pcf8574Port : portsLow)
                     Nothing -> acc
 
             getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss

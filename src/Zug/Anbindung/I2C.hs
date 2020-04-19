@@ -25,6 +25,8 @@ module Zug.Anbindung.I2C
   , i2cRead
   , I2CAddress(..)
   , BitValue(..)
+  , emptyBitValue
+  , fullBitValue
   , FileHandle()
   ) where
 
@@ -110,7 +112,11 @@ instance Show BitValue where
     show :: BitValue -> String
     show = show . fromBitValue
 
--- | 'BitValue' with ever Bit set
+-- | 'BitValue' with no Bit set.
+emptyBitValue :: BitValue
+emptyBitValue = complement zeroBits
+
+-- | 'BitValue' with every Bit set.
 fullBitValue :: BitValue
 fullBitValue = complement zeroBits
 
