@@ -187,7 +187,7 @@ instance MitAnfrage Anschluss where
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         (Just port) -> AFErgebnis
             $ AnschlussPCF8574Port
-            $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2 }, port = fromIntegral port }
+            $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin = Nothing }, port = fromIntegral port }
         Nothing -> AFFehler eingabe
 
 -- | Unvollständige 'Bahngeschwindigkeit'.

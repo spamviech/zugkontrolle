@@ -36,9 +36,10 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (bit, (.|.), (.&.), testBit, complement)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Word (Word8)
-import System.Hardware.WiringPi (Value(..))
+import System.Hardware.WiringPi (Value(..), Pin(Gpio), pinToBcmGpio)
 import Text.ParserCombinators.ReadP (ReadP())
 import qualified Text.ParserCombinators.ReadP as ReadP
 import qualified Text.ParserCombinators.ReadPrec as ReadPrec
@@ -87,21 +88,27 @@ instance Anzeige PCF8574Variant where
     anzeige VariantA = Language.a
 
 -- | Variante und variable Adress-Bits eines /PCF8574/.
-data PCF8574 = PCF8574 { variant :: PCF8574Variant, a0, a1, a2 :: Value }
+data PCF8574 =
+    PCF8574 { variant :: PCF8574Variant, a0, a1, a2 :: Value, interruptPin :: Maybe Pin }
     deriving (Eq, Ord)
 
 instance Show PCF8574 where
     show :: PCF8574 -> String
-    show PCF8574 {variant, a0, a1, a2} =
+    show PCF8574 {variant, a0, a1, a2, interruptPin} =
         "PCF8574"
         ++ (if variant == VariantA
                 then "A"
                 else "")
-        ++ ['_', showAddress a0, showAddress a1, showAddress a2]
+        ++ ['-', showAddress a0, showAddress a1, showAddress a2]
+        ++ showInterruptPin interruptPin
         where
             showAddress :: Value -> Char
             showAddress HIGH = 'H'
             showAddress LOW = 'L'
+
+            showInterruptPin :: Maybe Pin -> String
+            showInterruptPin (Just pin) = '-' : 'I' : show (fromMaybe 0 $ pinToBcmGpio pin)
+            showInterruptPin Nothing = []
 
 instance Anzeige PCF8574
 
@@ -119,7 +126,14 @@ instance Read PCF8574 where
             variant <- ReadP.option VariantNormal parseA
             ReadP.char '-'
             pure variant
-        PCF8574 variant <$> parseValue <*> parseValue <*> parseValue
+        PCF8574 variant <$> parseValue
+            <*> parseValue
+            <*> parseValue
+            <*> (Just
+                 <$> (readPrec
+                      <|> (ReadPrec.lift (ReadP.char 'I' <|> ReadP.char 'i')
+                           *> (Gpio <$> readPrec)))
+                 <|> pure Nothing)
         where
             parseA :: ReadP PCF8574Variant
             parseA = ReadP.get >>= \case

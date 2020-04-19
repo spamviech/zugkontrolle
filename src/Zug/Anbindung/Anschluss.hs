@@ -13,18 +13,15 @@ Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichke
 module Zug.Anbindung.Anschluss
   ( -- * Anschluss-Datentyp
     Anschluss(..)
+  , AnschlussKlasse(..)
   , PCF8574Port(..)
   , PCF8574(..)
   , PCF8574Variant(..)
   , pcf8574Gruppieren
   , pcf8574MultiPortWrite
   , vonPin
-  , zuPin
-  , zuPinGpio
   , vonPinGpio
   , vonPCF8574Port
-  , zuPCF8574Port
-  , interruptPin
     -- * Schreibe/Lese-Aktionen
   , Value(..)
   , anschlussWrite
@@ -65,7 +62,7 @@ import Zug.Language (Anzeige(..), Sprache(), showText)
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss
     = AnschlussPin { pin :: Pin }
-    | AnschlussPCF8574Port { pcf8574Port :: PCF8574Port, pcf8574InterruptPin :: Maybe Pin }
+    | AnschlussPCF8574Port { pcf8574Port :: PCF8574Port }
     deriving (Eq, Show, Ord)
 
 instance Anzeige Anschluss where
@@ -75,9 +72,7 @@ instance Anzeige Anschluss where
 
 instance Read Anschluss where
     readPrec :: ReadPrec Anschluss
-    readPrec =
-        (AnschlussPin <$> readPrec)
-        <|> (AnschlussPCF8574Port <$> readPrec <*> (Just <$> readPrec <|> pure Nothing))
+    readPrec = (AnschlussPin <$> readPrec) <|> (AnschlussPCF8574Port <$> readPrec)
 
     readListPrec :: ReadPrec [Anschluss]
     readListPrec = readListPrecDefault
@@ -86,32 +81,79 @@ instance Read Anschluss where
 vonPin :: Pin -> Anschluss
 vonPin = AnschlussPin
 
--- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Pin'
-zuPin :: Anschluss -> Maybe Pin
-zuPin (AnschlussPin pin) = Just pin
-zuPin _anschluss = Nothing
-
 -- | Konvertiere einen 'Integral' in einen 'AnschlussPin'
 vonPinGpio :: (Integral n) => n -> Anschluss
 vonPinGpio = vonPin . Gpio . fromIntegral
 
--- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Num'.
--- Der Wert entspricht der GPIO-Nummerierung. Invalide Werte werden auf 0 normiert.
--- 'Nothing' wird dementsprechend nur bei einer anderen Anschlussart zurückgegeben.
-zuPinGpio :: (Num n) => Anschluss -> Maybe n
-zuPinGpio (AnschlussPin pin) = Just $ case pinToBcmGpio pin of
-    (Just gpio) -> fromIntegral gpio
-    Nothing -> 0
-zuPinGpio _anschluss = Nothing
-
 -- | Konvertiere einen 'PCF8574Port' in einen 'Anschluss'.
 vonPCF8574Port :: PCF8574Port -> Anschluss
-vonPCF8574Port = flip AnschlussPCF8574Port Nothing
+vonPCF8574Port = AnschlussPCF8574Port
 
--- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'PCF8574Port'.
-zuPCF8574Port :: Anschluss -> Maybe PCF8574Port
-zuPCF8574Port AnschlussPCF8574Port {pcf8574Port} = Just pcf8574Port
-zuPCF8574Port _anschluss = Nothing
+-- | Klasse für 'Anschluss'-Typen.
+class AnschlussKlasse a where
+    -- | Erzeuge einen 'Anschluss'.
+    zuAnschluss :: a -> Anschluss
+
+    -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Pin'
+    zuPin :: a -> Maybe Pin
+
+    -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Num'.
+    -- Der Wert entspricht der GPIO-Nummerierung. Invalide Werte werden auf 0 normiert.
+    -- 'Nothing' wird dementsprechend nur bei einer anderen Anschlussart zurückgegeben.
+    zuPinGpio :: (Num n) => a -> Maybe n
+    zuPinGpio (zuPin -> Just pin) = Just $ case pinToBcmGpio pin of
+        (Just gpio) -> fromIntegral gpio
+        Nothing -> 0
+    zuPinGpio _anschluss = Nothing
+
+    -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'PCF8574Port'.
+    zuPCF8574Port :: a -> Maybe PCF8574Port
+
+instance AnschlussKlasse Anschluss where
+    zuAnschluss :: Anschluss -> Anschluss
+    zuAnschluss = id
+
+    zuPin :: Anschluss -> Maybe Pin
+    zuPin AnschlussPin {pin} = Just pin
+    zuPin _anschluss = Nothing
+
+    zuPinGpio :: (Num n) => Anschluss -> Maybe n
+    zuPinGpio (AnschlussPin pin) = Just $ case pinToBcmGpio pin of
+        (Just gpio) -> fromIntegral gpio
+        Nothing -> 0
+    zuPinGpio _anschluss = Nothing
+
+    zuPCF8574Port :: Anschluss -> Maybe PCF8574Port
+    zuPCF8574Port AnschlussPCF8574Port {pcf8574Port} = Just pcf8574Port
+    zuPCF8574Port _anschluss = Nothing
+
+instance AnschlussKlasse Pin where
+    zuAnschluss :: Pin -> Anschluss
+    zuAnschluss = AnschlussPin
+
+    zuPin :: Pin -> Maybe Pin
+    zuPin = Just
+
+    zuPinGpio :: (Num n) => Pin -> Maybe n
+    zuPinGpio pin = Just $ case pinToBcmGpio pin of
+        (Just gpio) -> fromIntegral gpio
+        Nothing -> 0
+
+    zuPCF8574Port :: Pin -> Maybe PCF8574Port
+    zuPCF8574Port = const Nothing
+
+instance AnschlussKlasse PCF8574Port where
+    zuAnschluss :: PCF8574Port -> Anschluss
+    zuAnschluss = AnschlussPCF8574Port
+
+    zuPin :: PCF8574Port -> Maybe Pin
+    zuPin = const Nothing
+
+    zuPinGpio :: (Num n) => PCF8574Port -> Maybe n
+    zuPinGpio = const Nothing
+
+    zuPCF8574Port :: PCF8574Port -> Maybe PCF8574Port
+    zuPCF8574Port = Just
 
 -- | Schreibe einen 'Value' in einen Anschlussmöglichkeit
 anschlussWrite :: (I2CReader r m, MonadIO m) => Anschluss -> Value -> m ()
@@ -124,9 +166,11 @@ anschlussRead AnschlussPin {pin} = liftIO $ pinMode pin INPUT >> digitalRead pin
 anschlussRead AnschlussPCF8574Port {pcf8574Port} = pcf8574PortRead pcf8574Port
 
 -- | Erhalte den 'Pin', welche eine Änderung der eingehenden Spannung angibt.
-interruptPin :: Anschluss -> Maybe Pin
-interruptPin AnschlussPin {pin} = Just pin
-interruptPin AnschlussPCF8574Port {pcf8574InterruptPin} = pcf8574InterruptPin
+anschlussInterruptPin :: Anschluss -> Maybe Pin
+anschlussInterruptPin AnschlussPin {pin} = Just pin
+anschlussInterruptPin
+    AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574 = PCF8574 {interruptPin}}} =
+    interruptPin
 
 type InterruptMap = Map Pin ([(BitValue, BitValue) -> IO ()], BitValue)
 
@@ -157,7 +201,7 @@ instance (MonadReader r m, MitInterruptMap r) => InterruptReader r m
 -- Diese Funktion hat nur für Anschlüsse mit 'interruptPin' einen Effekt.
 beiÄnderung
     :: (InterruptReader r m, I2CReader r m, MonadIO m) => Anschluss -> IntEdge -> IO () -> m ()
-beiÄnderung anschluss@(interruptPin -> Just pin) intEdge aktion = do
+beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
     reader <- ask
     tvarInterruptMap <- erhalteInterruptMap
     interruptMap <- liftIO $ readTVarIO tvarInterruptMap

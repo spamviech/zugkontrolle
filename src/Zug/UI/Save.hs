@@ -23,7 +23,7 @@ module Zug.UI.Save
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
 import Data.Aeson.Types
-       (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
+       (FromJSON(..), ToJSON(..), Value(..), Parser, Object, Pair, object, (.:), (.:?), (.=))
 import Data.List (partition)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (isJust, fromJust, fromMaybe)
@@ -180,9 +180,8 @@ instance FromJSON Anschluss where
 
 instance ToJSON Anschluss where
     toJSON :: Anschluss -> Value
-    toJSON anschluss@(AnschlussPin _pin) =
-        object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
-    toJSON (AnschlussPCF8574Port port) = object [portJS .= port]
+    toJSON anschluss@AnschlussPin {} = object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
+    toJSON AnschlussPCF8574Port {pcf8574Port} = object [portJS .= pcf8574Port]
 
 -- Instanz-Deklarationen für PCF8574Port
 -- neue Feld-Namen/Bezeichner in json-Datei
@@ -198,17 +197,32 @@ a1JS = "a1"
 a2JS :: Text
 a2JS = "a2"
 
+interruptPinJS :: Text
+interruptPinJS = "InterruptPin"
+
 instance FromJSON PCF8574Port where
     parseJSON :: Value -> Parser PCF8574Port
     parseJSON (Object v) =
-        PCF8574Port <$> (PCF8574 <$> v .: variantJS <*> v .: a0JS <*> v .: a1JS <*> v .: a2JS)
+        PCF8574Port
+        <$> (PCF8574 <$> v .: variantJS
+             <*> v .: a0JS
+             <*> v .: a1JS
+             <*> v .: a2JS
+             <*> (fmap Gpio <$> v .:? interruptPinJS))
         <*> (v .: portJS)
     parseJSON _anschluss = mzero
 
 instance ToJSON PCF8574Port where
     toJSON :: PCF8574Port -> Value
-    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port} =
-        object [variantJS .= variant, a0JS .= a0, a1JS .= a1, a2JS .= a2, portJS .= port]
+    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2, interruptPin}, port} =
+        object
+        $ mitInterruptPin
+            interruptPin
+            [variantJS .= variant, a0JS .= a0, a1JS .= a1, a2JS .= a2, portJS .= port]
+        where
+            mitInterruptPin :: Maybe Pin -> [Pair] -> [Pair]
+            mitInterruptPin (Just pin) = (interruptPinJS .= (fromJust $ zuPinGpio pin :: Word) :)
+            mitInterruptPin Nothing = id
 
 -- Instanz-Deklarationen für PCF8574Variant
 -- neue Feld-Namen/Bezeichner in json-Datei
