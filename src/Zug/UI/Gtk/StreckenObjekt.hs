@@ -19,7 +19,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
