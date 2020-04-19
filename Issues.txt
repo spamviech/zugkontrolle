@@ -1,33 +1,6 @@
 Pin-Setup bei Hinzufügen
     pinMode pin OUTPUT
-
-Gtk-UI:
-    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
-        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
-
-Gtk-UI benötigt lange, bis etwas zu sehen ist
-    Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
-    Dummy-Fenster wird erstellt
-        momentan ohne Funktion
-        reagiert auf keine Eingaben
-        zeigt zumindest an, dass etwas passiert
-
-Einstellungen in yaml-Datei speichern?
-    Sprache
-    Gtk-UI: Einzelseiten
-    UI?
-
-Warteschlange über Data.Sequence Implementieren?
-
-Zug.UI.Gtk.StreckenObjekt ist zu groß
-    hie brauch ewig zum laden
-    aufsplitten in mehrere Untermodule sinnvoll
-        eins pro Objekt-Typ?
-    Zug.UI.Cmd.Parser.StreckenObjekt hat das gleiche Problem
-
-Plan Hinzufügen:
-    Ersetzten des Auswahl-Fensters durch ComboBox?
-        muss bei öffnen des Dialogs jedesmal neu gefüllt/an aktuellen Zustand angepasst werden
+        INPUT bei Signal-Pins
 
 Ändere Liste zu (Map Name a)
     newtype NameSet a = NameSet (Set (Benannt a))
@@ -47,6 +20,39 @@ Plan Hinzufügen:
         Elementweise überprüfen und nur fehlgeschlagene ignorieren
         Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
         Nicht für Wegstrecken-Element-Listen verwenden!
+    Entfernen funktioniert nur, wenn keine Wegstrecke/Plan betroffen
+        Alternativ ebenfalls entfernen
+
+Gtk-UI:
+    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
+        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
+
+Gtk-UI benötigt lange, bis etwas zu sehen ist
+    Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
+    Dummy-Fenster wird erstellt
+        momentan ohne Funktion
+        reagiert auf keine Eingaben
+        zeigt zumindest an, dass etwas passiert
+
+Einstellungen in yaml-Datei speichern?
+    Sprache
+    Gtk-UI: Einzelseiten
+    UI?
+
+Warteschlange über Data.Sequence Implementieren?
+
+Polysemy anstelle von mtl verwenden
+    Hauptsächlich zum ausprobieren, ich mag aber auch die Constraints
+
+Zug.UI.Gtk.StreckenObjekt ist zu groß
+    hie brauch ewig zum laden
+    aufsplitten in mehrere Untermodule sinnvoll
+        eins pro Objekt-Typ?
+    Zug.UI.Cmd.Parser.StreckenObjekt hat das gleiche Problem
+
+Gtk-UI, Plan Hinzufügen:
+    Ersetzten des Auswahl-Fensters durch ComboBox?
+        muss bei öffnen des Dialogs jedesmal neu gefüllt/an aktuellen Zustand angepasst werden
 
 Erlaube "Warten auf Signal"
     Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
@@ -71,9 +77,6 @@ Implementiere Server/Client-Modus:
 
 Code-Stil vereinheitlichen:
     hlint berücksichtigen(?)
-    Konstruktoren nur wenn notwendig in Klammern setzten
-    Argumente von Typkonstruktoren eingerückt, jeweils in neuer Zeile
-    Funktionen ohne Pattern match (nur ein Variablen-Pattern) ohne extra Leerzeichen
     Alle (auch eigene) Module mit Import-Liste
     Namen auf Deutsch
     Verwendung der Spracherweiterungen
@@ -86,6 +89,10 @@ Code-Stil vereinheitlichen:
             Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
             Done
     floskell.json verbessern
+        alte Ideen:
+            Konstruktoren nur wenn notwendig in Klammern setzten
+            Argumente von Typkonstruktoren eingerückt, jeweils in neuer Zeile
+            Funktionen ohne Pattern match (nur ein Variablen-Pattern) ohne extra Leerzeichen
         aktuelle Version sollte für alle Dateien angewendet sein
         formatOnSave ist ebenfalls aktiviert
     etc.
@@ -100,7 +107,7 @@ CPP im Code entfernen
         https://hackage.haskell.org/package/dynamic-loader
     Verschiedene Executables (in package.yaml) macht mehr Sinn
 
-Allgemeines Anschluss-Objekt mit allen möglichen Funktionen erstellen?
+Allgemeines(Debug) Anschluss-Objekt mit allen möglichen Funktionen erstellen?
     Strom an/aus
         permanent
         auf Zeit
