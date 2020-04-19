@@ -70,6 +70,8 @@ module Zug.Language
   , weichen
   , kupplung
   , kupplungen
+  , kontakt
+  , kontakte
   , wegstrecke
   , wegstrecken
   , plan
@@ -457,6 +459,16 @@ kupplung Englisch = "Coupler"
 kupplungen :: Sprache -> Text
 kupplungen Deutsch = "Kupplungen"
 kupplungen Englisch = "Couplers"
+
+-- | Contact
+kontakt :: Sprache -> Text
+kontakt Deutsch = "Kontakt"
+kontakt Englisch = "Contact"
+
+-- | Contacts
+kontakte :: Sprache -> Text
+kontakte Deutsch = "Kontakte"
+kontakte Englisch = "Contacts"
 
 -- | Rail collection
 wegstrecke :: Sprache -> Text

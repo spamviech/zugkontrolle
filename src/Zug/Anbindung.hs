@@ -9,6 +9,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 {-|
 Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Ebene.
@@ -59,6 +61,10 @@ module Zug.Anbindung
     -- ** Kupplungen
   , Kupplung(..)
   , KupplungKlasse(..)
+    -- ** Kontakt
+  , Kontakt(Kontakt)
+  , kontaktNew
+  , KontaktKlasse(..)
     -- ** Wegstrecken
   , Wegstrecke(..)
   , WegstreckeKlasse(..)
@@ -72,6 +78,7 @@ module Zug.Anbindung
   ) where
 
 import Control.Concurrent (forkIO)
+import Control.Concurrent.STM (atomically, readTVar, writeTVar, retry, newTVarIO, TVar)
 import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO, liftIO)
 import qualified Data.List.NonEmpty as NE
@@ -82,11 +89,12 @@ import Data.Semigroup (Semigroup(..))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import qualified Data.Text.IO as T
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
-import System.Hardware.WiringPi
-       (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange, pwmWrite, pinToBcmGpio)
+import System.Hardware.WiringPi (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange
+                               , pwmWrite, pinToBcmGpio, wiringPiISR, IntEdge(..))
 
 import Zug.Anbindung.Anschluss
        (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPin, zuPin, vonPinGpio
@@ -743,6 +751,90 @@ instance KupplungKlasse Kupplung where
             warte kuppelnZeit
             anschlussWrite kupplungsAnschluss $ gesperrt ku
 
+-- | Wurde ein Signal bei einem 'Kontakt' registriert.
+data SignalErhalten
+    = WarteAufSignal
+    | SignalErhalten
+    deriving (Show, Eq, Ord)
+
+-- | Erhalte ein Signal, wenn ein Zug eine Kontaktschiene erreicht.
+data Kontakt = KontaktCons Text Value Anschluss (TVar SignalErhalten)
+    deriving (Eq)
+
+pattern Kontakt :: Text -> Value -> Anschluss -> TVar SignalErhalten -> Kontakt
+pattern Kontakt {koName, koFließend, kontaktAnschluss, koTVarSignal}
+    <- KontaktCons koName koFließend kontaktAnschluss koTVarSignal
+
+{-# COMPLETE Kontakt #-}
+
+instance Show Kontakt where
+    show :: Kontakt -> String
+    show ko = Text.unpack $ anzeige ko Language.Deutsch
+
+instance Ord Kontakt where
+    compare :: Kontakt -> Kontakt -> Ordering
+    compare
+        Kontakt {koName = name0, koFließend = fließend0, kontaktAnschluss = anschluss0}
+        Kontakt {koName = name1, koFließend = fließend1, kontaktAnschluss = anschluss1} =
+        case compare name0 name1 of
+            EQ -> case compare fließend0 fließend1 of
+                EQ -> compare anschluss0 anschluss1
+                ordering -> ordering
+            ordering -> ordering
+
+instance Anzeige Kontakt where
+    anzeige :: Kontakt -> Sprache -> Text
+    anzeige Kontakt {koName, kontaktAnschluss} =
+        Language.kontakt
+        <:> Language.name
+        <=> koName <^> Language.kontakt <-> Language.anschluss <=> kontaktAnschluss
+
+instance StreckenObjekt Kontakt where
+    anschlüsse :: Kontakt -> Set Anschluss
+    anschlüsse Kontakt {kontaktAnschluss} = [kontaktAnschluss]
+
+    erhalteName :: Kontakt -> Text
+    erhalteName = koName
+
+instance StreckenAtom Kontakt where
+    fließend :: Kontakt -> Value
+    fließend = koFließend
+
+-- | Sammel-Klasse für 'Kontakt'-artige Typen
+class (StreckenObjekt k) => KontaktKlasse k where
+    -- | Blockiere den aktuellen Thread, bis ein 'Kontakt'-Ereignis eintritt.
+    warteAufSignal :: (MonadIO m) => k -> m ()
+
+instance (KontaktKlasse (k 'Märklin), KontaktKlasse (k 'Lego))
+    => KontaktKlasse (ZugtypEither k) where
+    warteAufSignal :: (MonadIO m) => ZugtypEither k -> m ()
+    warteAufSignal (ZugtypMärklin k) = warteAufSignal k
+    warteAufSignal (ZugtypLego k) = warteAufSignal k
+
+instance KontaktKlasse Kontakt where
+    warteAufSignal :: (MonadIO m) => Kontakt -> m ()
+    warteAufSignal Kontakt {koTVarSignal} = liftIO $ do
+        -- Stelle sicher, dass nur neue Signale die Blockade aufheben.
+        atomically $ writeTVar koTVarSignal WarteAufSignal
+        -- Blockiere, bis das erste Signal registriert wird.
+        atomically $ readTVar koTVarSignal >>= \case
+            SignalErhalten -> pure ()
+            WarteAufSignal -> retry
+
+-- | Erzeuge einen neuen 'Kontakt' und stelle sicher, dass der zugehörige 'Anschluss' auf
+-- Eingaben reagiert.
+kontaktNew :: (MonadIO m) => Text -> Value -> Anschluss -> m Kontakt
+kontaktNew koName koFließend kontaktAnschluss = liftIO $ do
+    koTVarSignal <- newTVarIO WarteAufSignal
+    wiringPiISR
+        (_interruptPin kontaktAnschluss)
+        (if koFließend == LOW
+             then INT_EDGE_FALLING
+             else INT_EDGE_RISING)
+        $ atomically
+        $ writeTVar koTVarSignal SignalErhalten
+    pure $ KontaktCons koName koFließend kontaktAnschluss koTVarSignal
+
 -- | Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
 data Wegstrecke (z :: Zugtyp) =
     Wegstrecke
@@ -1181,5 +1273,5 @@ befehlAusführen :: (MonadIO m) => m () -> Text -> m ()
 befehlAusführen ioAction ersatzNachricht = do
     Options {printCmd} <- getOptions
     if printCmd
-        then liftIO $ T.putStrLn ersatzNachricht
+        then liftIO $ Text.putStrLn ersatzNachricht
         else ioAction

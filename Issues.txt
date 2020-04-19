@@ -39,6 +39,17 @@ Einstellungen in yaml-Datei speichern?
     Gtk-UI: Einzelseiten
     UI?
 
+mdo/rec verwenden?
+    Spracherweiterung RecursiveDo
+    Definitionen in einem Do-Block sind überall verfügbar, nicht nur danach
+        Monade benötigt MonadFix-Typklasse (für IO gegeben, vermutlich nicht State/RWS)
+    Vor allem für Gtk-UI nützlich
+        Würde helfen häufiges Pattern
+            Widget erzeugen
+            verwenden
+            danach erst in Box packen
+        durch einfaches boxPackWidgetNew zu ersetzen
+
 Warteschlange über Data.Sequence Implementieren?
 
 Polysemy anstelle von mtl verwenden
