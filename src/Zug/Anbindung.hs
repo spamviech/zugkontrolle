@@ -33,7 +33,6 @@ module Zug.Anbindung
   , Value(..)
   , alleValues
   , Pin(..)
-  , pinToBcmGpio
   , pwmMöglich
   , clockMöglich
   , PwmValueUnmodifiziert
@@ -85,7 +84,7 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word8)
-import System.Hardware.WiringPi (Pin(..), Mode(..), pinMode, digitalWrite, pinToBcmGpio)
+import System.Hardware.WiringPi (Pin(..), Mode(..), pinMode, digitalWrite)
 
 import Zug.Anbindung.Anschluss
        (Anschluss(..), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..)
@@ -94,236 +93,19 @@ import Zug.Anbindung.Anschluss
 import Zug.Anbindung.Bahngeschwindigkeit (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
                                         , verwendetPwm, umdrehenZeit, positionOderLetztes)
 import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..), befehlAusführen)
+import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit)
 import Zug.Anbindung.Pwm (pwmServo, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmMöglich
                         , clockMöglich, PwmValueUnmodifiziert, pwmEingabeMaximal)
 import Zug.Anbindung.SoftwarePWM (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..))
+import Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..))
 import Zug.Anbindung.Wartezeit
        (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
+import Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(..), weicheZeit)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), catPwm
                 , catKonstanteSpannung, Strom(..), Fahrtrichtung(..), Richtung(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
-
--- | Steuere die Stromzufuhr einer Schiene
-data Streckenabschnitt =
-    Streckenabschnitt { stName :: Text, stFließend :: Value, stromAnschluss :: Anschluss }
-    deriving (Eq, Ord, Show)
-
-instance Anzeige Streckenabschnitt where
-    anzeige :: Streckenabschnitt -> Sprache -> Text
-    anzeige Streckenabschnitt {stName, stromAnschluss} =
-        Language.streckenabschnitt
-        <:> Language.name <=> stName <^> Language.strom <-> Language.anschluss <=> stromAnschluss
-
-instance StreckenObjekt Streckenabschnitt where
-    anschlüsse :: Streckenabschnitt -> Set Anschluss
-    anschlüsse Streckenabschnitt {stromAnschluss} = [stromAnschluss]
-
-    erhalteName :: Streckenabschnitt -> Text
-    erhalteName Streckenabschnitt {stName} = stName
-
-instance StreckenAtom Streckenabschnitt where
-    fließend :: Streckenabschnitt -> Value
-    fließend = stFließend
-
--- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen
-class (StreckenObjekt s) => StreckenabschnittKlasse s where
-    -- | Strom ein-/ausschalten
-    strom :: (I2CReader r m, MonadIO m) => s -> Strom -> m ()
-    {-# MINIMAL strom #-}
-
-instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Lego))
-    => StreckenabschnittKlasse (ZugtypEither s) where
-    strom :: (I2CReader r m, MonadIO m) => ZugtypEither s -> Strom -> m ()
-    strom (ZugtypMärklin a) = strom a
-    strom (ZugtypLego a) = strom a
-
-instance StreckenabschnittKlasse Streckenabschnitt where
-    strom :: (I2CReader r m, MonadIO m) => Streckenabschnitt -> Strom -> m ()
-    strom st@Streckenabschnitt {stromAnschluss} an =
-        befehlAusführen
-            (anschlussWrite stromAnschluss $ erhalteValue an st)
-            ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
-
--- | Stellen einer 'Weiche'.
-data Weiche (z :: Zugtyp) where
-    LegoWeiche :: { welName :: Text
-                  , welFließend :: Value
-                  , welRichtungsPin :: Pin
-                  , welRichtungen :: (Richtung, Richtung)
-                  } -> Weiche 'Lego
-    MärklinWeiche :: { wemName :: Text
-                      , wemFließend :: Value
-                      , wemRichtungsAnschlüsse :: NonEmpty (Richtung, Anschluss)
-                      } -> Weiche 'Märklin
-
-deriving instance Eq (Weiche z)
-
-deriving instance Ord (Weiche z)
-
-deriving instance Show (Weiche z)
-
-instance Anzeige (Weiche z) where
-    anzeige :: Weiche z -> Sprache -> Text
-    anzeige LegoWeiche {welName, welRichtungsPin, welRichtungen = (richtung1, richtung2)} =
-        Language.lego
-        <-> Language.weiche
-        <:> Language.name
-        <=> welName
-        <^> Language.richtung
-        <-> Language.pin <=> welRichtungsPin <^> Language.richtungen <=> richtung1 <|> richtung2
-    anzeige MärklinWeiche {wemName, wemRichtungsAnschlüsse} =
-        Language.märklin
-        <-> Language.weiche
-        <:> Language.name
-        <=> wemName
-        <^> foldl
-            (\acc (anschluss, richtung) -> acc <^> richtung <=> anschluss)
-            (const "")
-            wemRichtungsAnschlüsse
-
-instance StreckenObjekt (Weiche z) where
-    anschlüsse :: Weiche z -> Set Anschluss
-    anschlüsse LegoWeiche {welRichtungsPin} = [AnschlussPin welRichtungsPin]
-    anschlüsse MärklinWeiche {wemRichtungsAnschlüsse} =
-        Set.fromList $ map snd $ NE.toList wemRichtungsAnschlüsse
-
-    erhalteName :: Weiche z -> Text
-    erhalteName LegoWeiche {welName} = welName
-    erhalteName MärklinWeiche {wemName} = wemName
-
-instance StreckenAtom (Weiche z) where
-    fließend :: Weiche z -> Value
-    fließend LegoWeiche {welFließend} = welFließend
-    fließend MärklinWeiche {wemFließend} = wemFließend
-
--- | Sammel-Klasse für 'Weiche'n-artige Typen
-class (StreckenObjekt w) => WeicheKlasse w where
-    -- | Weiche einstellen
-    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => w -> Richtung -> m ()
-
-    -- | Überprüfe, ob Weiche eine Richtung unterstützt
-    hatRichtung :: w -> Richtung -> Bool
-    hatRichtung weiche richtung = elem richtung $ erhalteRichtungen weiche
-
-    -- | Erhalte alle Richtungen einer Weiche
-    erhalteRichtungen :: w -> NonEmpty Richtung
-    {-# MINIMAL stellen, erhalteRichtungen #-}
-
-instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
-    => WeicheKlasse (ZugtypEither we) where
-    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => ZugtypEither we -> Richtung -> m ()
-    stellen (ZugtypMärklin a) = stellen a
-    stellen (ZugtypLego a) = stellen a
-
-    erhalteRichtungen :: ZugtypEither we -> NonEmpty Richtung
-    erhalteRichtungen (ZugtypMärklin a) = erhalteRichtungen a
-    erhalteRichtungen (ZugtypLego a) = erhalteRichtungen a
-
--- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
-weicheZeit :: Wartezeit
-weicheZeit = MilliSekunden 250
-
-instance WeicheKlasse (Weiche z) where
-    stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
-    stellen we@LegoWeiche {welRichtungsPin, welRichtungen} richtung
-        | richtung == fst welRichtungen =
-            flip
-                befehlAusführen
-                ("Stellen (" <> showText welRichtungsPin <> ") -> " <> showText richtung)
-            $ do
-                pwmServo we welRichtungsPin 25
-                warte weicheZeit
-                pwmServo we welRichtungsPin 0
-        | richtung == snd welRichtungen =
-            flip
-                befehlAusführen
-                ("stellen (" <> showText welRichtungsPin <> ") -> " <> showText richtung)
-            $ do
-                pwmServo we welRichtungsPin 75
-                warte weicheZeit
-                pwmServo we welRichtungsPin 0
-        | otherwise = pure ()
-    stellen we@MärklinWeiche {wemRichtungsAnschlüsse} richtung =
-        befehlAusführen
-            richtungStellen
-            ("Stellen ("
-             <> showText (getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschlüsse)
-             <> ") -> "
-             <> showText richtung)
-        where
-            richtungStellen :: (I2CReader r m, MonadIO m) => m ()
-            richtungStellen =
-                case getRichtungsAnschluss richtung $ NE.toList wemRichtungsAnschlüsse of
-                    Nothing -> pure ()
-                    (Just richtungsAnschluss) -> do
-                        anschlussWrite richtungsAnschluss $ fließend we
-                        warte weicheZeit
-                        anschlussWrite richtungsAnschluss $ gesperrt we
-
-            getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
-            getRichtungsAnschluss _richtung [] = Nothing
-            getRichtungsAnschluss richtung ((ersteRichtung, ersterAnschluss):andereRichtungen)
-                | richtung == ersteRichtung = Just ersterAnschluss
-                | otherwise = getRichtungsAnschluss richtung andereRichtungen
-
-    hatRichtung :: Weiche z -> Richtung -> Bool
-    hatRichtung LegoWeiche {welRichtungen = (erste, zweite)} richtung =
-        (erste == richtung) || (zweite == richtung)
-    hatRichtung MärklinWeiche {wemRichtungsAnschlüsse} richtung =
-        any ((richtung ==) . fst) wemRichtungsAnschlüsse
-
-    erhalteRichtungen :: Weiche z -> NonEmpty Richtung
-    erhalteRichtungen
-        LegoWeiche {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]
-    erhalteRichtungen MärklinWeiche {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse
-
--- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden
-data Kupplung = Kupplung { kuName :: Text, kuFließend :: Value, kupplungsAnschluss :: Anschluss }
-    deriving (Eq, Ord, Show)
-
-instance Anzeige Kupplung where
-    anzeige :: Kupplung -> Sprache -> Text
-    anzeige Kupplung {kuName, kupplungsAnschluss} =
-        Language.kupplung
-        <:> Language.name
-        <=> kuName <^> Language.kupplung <-> Language.anschluss <=> kupplungsAnschluss
-
-instance StreckenObjekt Kupplung where
-    anschlüsse :: Kupplung -> Set Anschluss
-    anschlüsse Kupplung {kupplungsAnschluss} = [kupplungsAnschluss]
-
-    erhalteName :: Kupplung -> Text
-    erhalteName Kupplung {kuName} = kuName
-
-instance StreckenAtom Kupplung where
-    fließend :: Kupplung -> Value
-    fließend = kuFließend
-
--- | Sammel-Klasse für 'Kupplung'-artige Typen
-class (StreckenObjekt k) => KupplungKlasse k where
-    -- | Kupplung betätigen
-    kuppeln :: (I2CReader r m, MonadIO m) => k -> m ()
-    {-# MINIMAL kuppeln #-}
-
-instance (KupplungKlasse (ku 'Märklin), KupplungKlasse (ku 'Lego))
-    => KupplungKlasse (ZugtypEither ku) where
-    kuppeln :: (I2CReader r m, MonadIO m) => ZugtypEither ku -> m ()
-    kuppeln (ZugtypMärklin a) = kuppeln a
-    kuppeln (ZugtypLego a) = kuppeln a
-
--- | Zeit, die Strom beim Kuppeln anliegt
-kuppelnZeit :: Wartezeit
-kuppelnZeit = MilliSekunden 300
-
-instance KupplungKlasse Kupplung where
-    kuppeln :: (I2CReader r m, MonadIO m) => Kupplung -> m ()
-    kuppeln ku@Kupplung {kupplungsAnschluss} =
-        flip befehlAusführen ("Kuppeln (" <> showText kupplungsAnschluss <> ")") $ do
-            anschlussWrite kupplungsAnschluss $ fließend ku
-            warte kuppelnZeit
-            anschlussWrite kupplungsAnschluss $ gesperrt ku
 
 -- | Wurde ein Signal bei einem 'Kontakt' registriert.
 data SignalErhalten
