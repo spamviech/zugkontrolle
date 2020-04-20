@@ -18,13 +18,10 @@ Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Eben
 module Zug.Anbindung
   ( -- * Anschluss-Repräsentation
     Anschluss(..)
+  , AnschlussKlasse(..)
   , PCF8574Port(..)
   , PCF8574(..)
   , PCF8574Variant(..)
-  , vonPinGpio
-  , zuPinGpio
-  , vonPCF8574Port
-  , zuPCF8574Port
   , PwmMap
   , pwmMapEmpty
   , MitPwmMap(..)
@@ -37,8 +34,6 @@ module Zug.Anbindung
   , alleValues
   , Pin(..)
   , pinToBcmGpio
-  , vonPin
-  , zuPin
   , pwmMöglich
   , clockMöglich
   , PwmValueUnmodifiziert
@@ -51,7 +46,7 @@ module Zug.Anbindung
   , verwendetPwm
   , pwmEingabeMaximal
   , erhaltePwmWertVoll
-  , erhaltePWMWertReduziert
+  , erhaltePwmWertReduziert
     -- ** Streckenabschnitte
   , Streckenabschnitt(..)
   , StreckenabschnittKlasse(..)
@@ -92,17 +87,16 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Word (Word8)
-import Numeric.Natural (Natural)
-import System.Hardware.WiringPi
-       (Pin(..), PwmValue(), Mode(..), pinMode, digitalWrite, pwmSetRange, pwmWrite, pinToBcmGpio)
+import System.Hardware.WiringPi (Pin(..), Mode(..), pinMode, digitalWrite, pinToBcmGpio)
 
 import Zug.Anbindung.Anschluss
-       (Anschluss(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPin, zuPin, vonPinGpio
-      , zuPinGpio, vonPCF8574Port, zuPCF8574Port, anschlussWrite, Value(..), I2CMap, i2cMapEmpty
-      , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite, beiÄnderung
-      , InterruptReader(..), IntEdge(..))
-import Zug.Anbindung.SoftwarePWM
-       (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze, pwmSoftwareSetzteWert)
+       (Anschluss(..), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..)
+      , anschlussWrite, Value(..), alleValues, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..)
+      , pcf8574Gruppieren, pcf8574MultiPortWrite, beiÄnderung, InterruptReader(..), IntEdge(..))
+import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..))
+import Zug.Anbindung.Pwm (pwmSetzeWert, pwmServo, erhaltePwmWertVoll, erhaltePwmWertReduziert
+                        , pwmMöglich, clockMöglich, PwmValueUnmodifiziert, pwmEingabeMaximal)
+import Zug.Anbindung.SoftwarePWM (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..), pwmGrenze)
 import Zug.Anbindung.Wartezeit
        (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
@@ -110,170 +104,7 @@ import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
                 , catKonstanteSpannung, Strom(..), Fahrtrichtung(..), Richtung(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<^>), (<=>), (<->), (<|>), (<:>), (<°>))
-import Zug.Options (Options(..), PWM(..), getOptions)
-
--- | Alle Möglichen Werte von 'Value'
-alleValues :: NonEmpty Value
-alleValues = NE.fromList [minBound .. maxBound]
-
--- * Test-Funktionen, ob Anschluss bestimmte Funktionen unterstützen
--- | Unterstützt der 'Pin'
--- >'pinMode' pin 'PWM_OUTPUT'
-pwmMöglich :: Pin -> Bool
-pwmMöglich = flip elem ([Wpi 1, Wpi 23, Wpi 24, Wpi 26] :: [Pin])
-
--- | Unterstützt der 'Pin'
--- >'pinMode' pin 'GPIO_CLOCK'
-clockMöglich :: Pin -> Bool
-clockMöglich = flip elem ([Wpi 7, Wpi 21, Wpi 22, Wpi 29] :: [Pin])
-
--- * PWM-Funktion
--- | 'pwmWrite' mit alternativer Software-basierter PWM-Funktion
-pwmSetzeWert
-    :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Pin -> PwmValueUnmodifiziert -> m ()
-pwmSetzeWert s pin pwmValue = do
-    Options {pwm} <- getOptions
-    if (pwm == HardwarePWM) && pwmMöglich pin
-        then liftIO $ do
-            pinMode pin PWM_OUTPUT
-            pwmSetRange pwmGrenze
-            pwmWrite pin $ pwmValueModifiziert s pwmValue
-        else pwmSoftwareSetzteWert pin pwmFrequenzHzNormal $ pwmValueModifiziert s pwmValue
-
--- | Erzeuge PWM-Funktion für einen Servo-Motor
---   Nutze SoftwarePWM für eine konstante Frequenz (sonst abhängig pwmGrenze und pwmValue)
-pwmServo :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Pin -> Natural -> m ()
-pwmServo s pin =
-    pwmSoftwareSetzteWert pin pwmFrequenzHzServo . pwmValueModifiziert s . erhaltePwmWertVoll
-
--- | newtype auf 'PwmValue' um ein noch bevorstehendes modifizieren bzgl. fließend-Value zu signalisieren
-newtype PwmValueUnmodifiziert = PwmValueUnmodifiziert PwmValue
-
--- | Berechne den PWM-Wert abhängig davon, bei welchen 'Anschluss'-Output ('HIGH'/'LOW') der Strom fließt.
-pwmValueModifiziert :: (StreckenAtom s) => s -> PwmValueUnmodifiziert -> PwmValue
-pwmValueModifiziert s (PwmValueUnmodifiziert pwmValue) = case fließend s of
-    HIGH -> pwmValue
-    LOW -> pwmGrenze - pwmValue
-
--- ** Frequenzen
--- | 50 Hz Frequenz; Standard-Wert von Servo-Motoren
-pwmFrequenzHzServo :: Natural
-pwmFrequenzHzServo = 50
-
--- | Normale PWM-Frequenz
-pwmFrequenzHzNormal :: Natural
-pwmFrequenzHzNormal = 500
-
--- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und 'pwmEingabeMaximal'.
-erhaltePwmWert :: (Integral i) => Natural -> i -> PwmValueUnmodifiziert
-erhaltePwmWert pwmGrenzeMax wert = PwmValueUnmodifiziert $ fromIntegral ergebnis
-    {-
-            Verwende Natural um Fehler wegen zu kleinem Wertebereich zu vermeiden.
-            Multipliziere zuerst alle Werte, bevor sie normalisiert werden um Rundungsfehler zu verhindern.
-            Möglich, nachdem die Funktion nicht in Performance-kritischen Bereichen (und selten) aufgerufen wird.
-            Effektivspannung skaliert wie die Wurzel des PwmValue.
-            Der Eingabewert wird daher quadriert um linear mit der Effektivspannung zu skalieren.
-        -}
-        where
-            ergebnis :: Natural
-            ergebnis = div wertSkaliert (pwmEingabeMaximal * pwmEingabeMaximal)
-
-            wertSkaliert :: Natural
-            wertSkaliert = pwmGrenzeMax * wertBegrenzt * wertBegrenzt
-
-            wertBegrenzt :: Natural
-            wertBegrenzt = min pwmEingabeMaximal $ fromIntegral wert
-
--- | Maximaler Eingabewert für 'geschwindigkeit'.
-pwmEingabeMaximal :: Natural
-pwmEingabeMaximal = fromIntegral $ (maxBound :: Word8)
-
--- | Vollständige pwmGrenze als Natural.
-pwmGrenzeVoll :: Natural
-pwmGrenzeVoll = fromIntegral pwmGrenze
-
--- | Maximal erlaubter pwmGrenze um eine Effektivspannung von 16V zu erhalten.
-pwmGrenzeReduziert :: Natural
-pwmGrenzeReduziert =
-    div (pwmGrenzeVoll * spannungFahrt * spannungFahrt) (spannungQuelle * spannungQuelle)
--- Effektivspannung skaliert wie die Wurzel des PwmValues.
-    where
-        spannungFahrt :: Natural
-        spannungFahrt = 16
-
-        spannungQuelle :: Natural
-        spannungQuelle = 25
-
--- | Nutze komplette pwmGrenze
-erhaltePwmWertVoll :: (Integral i) => i -> PwmValueUnmodifiziert
-erhaltePwmWertVoll = erhaltePwmWert pwmGrenzeVoll
-
--- | Nutze einen reduzierten Bereich der pwmGrenze (maximal 16V von 24V Maximalspannung)
-erhaltePWMWertReduziert :: (Integral i) => i -> PwmValueUnmodifiziert
-erhaltePWMWertReduziert = erhaltePwmWert pwmGrenzeReduziert
-
--- * Repräsentation von StreckenObjekten
--- | Klassen-Definitionen
-class StreckenObjekt s where
-    anschlüsse :: s -> Set Anschluss
-    erhalteName :: s -> Text
-    {-# MINIMAL anschlüsse, erhalteName #-}
-
-instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego))
-    => StreckenObjekt (ZugtypEither a) where
-    anschlüsse :: ZugtypEither a -> Set Anschluss
-    anschlüsse (ZugtypMärklin a) = anschlüsse a
-    anschlüsse (ZugtypLego a) = anschlüsse a
-
-    erhalteName :: ZugtypEither a -> Text
-    erhalteName (ZugtypMärklin a) = erhalteName a
-    erhalteName (ZugtypLego a) = erhalteName a
-
-instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
-    => StreckenObjekt (GeschwindigkeitEither bg z) where
-    anschlüsse :: GeschwindigkeitEither bg z -> Set Anschluss
-    anschlüsse (GeschwindigkeitPwm bg) = anschlüsse bg
-    anschlüsse (GeschwindigkeitKonstanteSpannung bg) = anschlüsse bg
-
-    erhalteName :: GeschwindigkeitEither bg z -> Text
-    erhalteName (GeschwindigkeitPwm bg) = erhalteName bg
-    erhalteName (GeschwindigkeitKonstanteSpannung bg) = erhalteName bg
-
-instance (StreckenObjekt (a z)) => StreckenObjekt (GeschwindigkeitPhantom a g z) where
-    anschlüsse :: GeschwindigkeitPhantom a g z -> Set Anschluss
-    anschlüsse (GeschwindigkeitPhantom a) = anschlüsse a
-
-    erhalteName :: GeschwindigkeitPhantom a g z -> Text
-    erhalteName (GeschwindigkeitPhantom a) = erhalteName a
-
-instance (StreckenObjekt a) => StreckenObjekt (Maybe a) where
-    anschlüsse :: Maybe a -> Set Anschluss
-    anschlüsse (Just a) = anschlüsse a
-    anschlüsse Nothing = []
-
-    erhalteName (Just a) = erhalteName a
-    erhalteName Nothing = ""
-
--- | Eine Klasse für alle Typen, die direkt mit wiringPi interagieren.
-class StreckenAtom s where
-    fließend :: s -> Value
-    fließend = erhalteValue Fließend
-
-    gesperrt :: s -> Value
-    gesperrt s = case fließend s of
-        HIGH -> LOW
-        LOW -> HIGH
-
-    erhalteValue :: Strom -> s -> Value
-    erhalteValue Fließend = fließend
-    erhalteValue Gesperrt = gesperrt
-
-    {-# MINIMAL fließend | erhalteValue #-}
-
-instance (StreckenAtom (a 'Märklin), StreckenAtom (a 'Lego)) => StreckenAtom (ZugtypEither a) where
-    fließend :: ZugtypEither a -> Value
-    fließend (ZugtypMärklin a) = fließend a
-    fließend (ZugtypLego a) = fließend a
+import Zug.Options (Options(..), getOptions)
 
 -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung
 data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
@@ -440,7 +271,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
              <> showText geschwindigkeit)
     geschwindigkeit bg@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin} geschwindigkeit =
         befehlAusführen
-            (pwmSetzeWert bg bgmpGeschwindigkeitsPin $ erhaltePWMWertReduziert geschwindigkeit)
+            (pwmSetzeWert bg bgmpGeschwindigkeitsPin $ erhaltePwmWertReduziert geschwindigkeit)
             ("Geschwindigkeit ("
              <> showText bgmpGeschwindigkeitsPin
              <> ")->"
@@ -497,11 +328,11 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
         :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit b 'Märklin -> m ()
     umdrehen bg@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin} =
         flip befehlAusführen ("Umdrehen (" <> showText bgmpGeschwindigkeitsPin <> ")") $ do
-            pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+            pwmSetzeWert bg bgmpGeschwindigkeitsPin $ erhaltePwmWertVoll (0 :: Word)
             warte umdrehenZeit
-            pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert pwmGrenze)
+            pwmSetzeWert bg bgmpGeschwindigkeitsPin $ erhaltePwmWertVoll pwmGrenze
             warte umdrehenZeit
-            pwmSetzeWert bg bgmpGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+            pwmSetzeWert bg bgmpGeschwindigkeitsPin $ erhaltePwmWertVoll (0 :: Word)
     umdrehen bg@MärklinBahngeschwindigkeitKonstanteSpannung {bgmkUmdrehenAnschluss} =
         flip befehlAusführen ("Umdrehen (" <> showText bgmkUmdrehenAnschluss <> ")") $ do
             fahrstrom bg 0
@@ -525,7 +356,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
              <> ")->"
              <> showText fahrtrichtung)
         $ do
-            pwmSetzeWert bg bglGeschwindigkeitsPin (PwmValueUnmodifiziert 0)
+            pwmSetzeWert bg bglGeschwindigkeitsPin $ erhaltePwmWertVoll (0 :: Word)
             warte umdrehenZeit
             anschlussWrite
                 bglFahrtrichtungsAnschluss

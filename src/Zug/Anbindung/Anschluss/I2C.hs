@@ -12,7 +12,7 @@
 {-|
 Description : Funktionen zur Verwendung der I2C-Schnittstelle
 -}
-module Zug.Anbindung.I2C
+module Zug.Anbindung.Anschluss.I2C
   ( -- * Map über aktuelle I2C-Kanäle
     I2CMap
   , I2CChannelStatus()

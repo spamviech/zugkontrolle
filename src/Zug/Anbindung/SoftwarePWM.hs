@@ -20,6 +20,7 @@ module Zug.Anbindung.SoftwarePWM
     -- * Aufruf der PWM-Funktionen
   , pwmSoftwareSetzteWert
   , pwmGrenze
+  , PwmValue
   ) where
 
 import Control.Concurrent (forkIO, ThreadId)
@@ -31,7 +32,7 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isNothing)
 import Numeric.Natural (Natural)
-import System.Hardware.WiringPi (PwmValue(), Value(..), Pin(), digitalWrite, Mode(OUTPUT), pinMode)
+import System.Hardware.WiringPi (PwmValue, Value(..), Pin(), digitalWrite, Mode(OUTPUT), pinMode)
 
 import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), differenz, multiplizieren, dividieren)
 

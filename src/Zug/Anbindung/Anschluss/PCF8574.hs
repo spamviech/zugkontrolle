@@ -6,7 +6,7 @@
 {-|
 Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstelle
 -}
-module Zug.Anbindung.PCF8574
+module Zug.Anbindung.Anschluss.PCF8574
   ( -- * Map über aktuelle I2C-Kanäle
     I2CMap
   , i2cMapEmpty
@@ -46,7 +46,7 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.Read (Read(..), ReadPrec, lexP, readListPrecDefault)
 import Text.Read.Lex (numberToInteger, Lexeme(..))
 
-import Zug.Anbindung.I2C
+import Zug.Anbindung.Anschluss.I2C
        (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..), i2cWrite, i2cWriteAdjust
       , i2cRead, BitValue(..), emptyBitValue, fullBitValue)
 import Zug.Language (Anzeige(..), Sprache())

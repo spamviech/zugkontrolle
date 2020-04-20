@@ -13,19 +13,16 @@ Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichke
 module Zug.Anbindung.Anschluss
   ( -- * Anschluss-Datentyp
     Anschluss(..)
-  , AnschlussKlasse(..)
+  , Pin(..)
   , PCF8574Port(..)
   , PCF8574(..)
   , PCF8574Variant(..)
   , pcf8574Gruppieren
   , pcf8574MultiPortWrite
-  , vonPin
-  , vonPinGpio
-  , vonPCF8574Port
-    -- * Schreibe/Lese-Aktionen
+    -- * Typ-Klasse
+  , AnschlussKlasse(..)
   , Value(..)
-  , anschlussWrite
-  , anschlussRead
+  , alleValues
   , I2CMap
   , i2cMapEmpty
   , MitI2CMap(..)
@@ -46,6 +43,8 @@ import Control.Monad (void)
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (testBit)
+import Data.List.NonEmpty (NonEmpty())
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -53,11 +52,15 @@ import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, dig
                                , pinToBcmGpio, pinMode, IntEdge(..), wiringPiISR)
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 
-import Zug.Anbindung.PCF8574
+import Zug.Anbindung.Anschluss.PCF8574
        (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574Read
       , pcf8574PortRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), pcf8574Gruppieren
       , pcf8574MultiPortWrite, BitValue(..), emptyBitValue, fullBitValue)
 import Zug.Language (Anzeige(..), Sprache(), showText)
+
+-- | Alle Möglichen Werte von 'Value'.
+alleValues :: NonEmpty Value
+alleValues = NonEmpty.fromList [minBound .. maxBound]
 
 -- | Alle unterstützten Anschlussmöglichkeiten
 data Anschluss
@@ -77,21 +80,9 @@ instance Read Anschluss where
     readListPrec :: ReadPrec [Anschluss]
     readListPrec = readListPrecDefault
 
--- | Konvertiere einen 'Pin' in einen 'Anschluss'
-vonPin :: Pin -> Anschluss
-vonPin = AnschlussPin
-
--- | Konvertiere einen 'Integral' in einen 'AnschlussPin'
-vonPinGpio :: (Integral n) => n -> Anschluss
-vonPinGpio = vonPin . Gpio . fromIntegral
-
--- | Konvertiere einen 'PCF8574Port' in einen 'Anschluss'.
-vonPCF8574Port :: PCF8574Port -> Anschluss
-vonPCF8574Port = AnschlussPCF8574Port
-
 -- | Klasse für 'Anschluss'-Typen.
 class AnschlussKlasse a where
-    -- | Erzeuge einen 'Anschluss'.
+    -- | Konvertiere in einen 'Anschluss'.
     zuAnschluss :: a -> Anschluss
 
     -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Pin'
@@ -108,6 +99,12 @@ class AnschlussKlasse a where
 
     -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'PCF8574Port'.
     zuPCF8574Port :: a -> Maybe PCF8574Port
+
+    -- | Schreibe einen 'Value' in einen Anschlussmöglichkeit.
+    anschlussWrite :: (I2CReader r m, MonadIO m) => a -> Value -> m ()
+
+    -- | Lese einen 'Value' aus einem 'Anschluss'.
+    anschlussRead :: (I2CReader r m, MonadIO m) => a -> m Value
 
 instance AnschlussKlasse Anschluss where
     zuAnschluss :: Anschluss -> Anschluss
@@ -127,6 +124,14 @@ instance AnschlussKlasse Anschluss where
     zuPCF8574Port AnschlussPCF8574Port {pcf8574Port} = Just pcf8574Port
     zuPCF8574Port _anschluss = Nothing
 
+    anschlussWrite :: (I2CReader r m, MonadIO m) => Anschluss -> Value -> m ()
+    anschlussWrite AnschlussPin {pin} = liftIO . (pinMode pin OUTPUT >>) . digitalWrite pin
+    anschlussWrite AnschlussPCF8574Port {pcf8574Port} = pcf8574PortWrite pcf8574Port
+
+    anschlussRead :: (I2CReader r m, MonadIO m) => Anschluss -> m Value
+    anschlussRead AnschlussPin {pin} = liftIO $ pinMode pin INPUT >> digitalRead pin
+    anschlussRead AnschlussPCF8574Port {pcf8574Port} = pcf8574PortRead pcf8574Port
+
 instance AnschlussKlasse Pin where
     zuAnschluss :: Pin -> Anschluss
     zuAnschluss = AnschlussPin
@@ -142,6 +147,12 @@ instance AnschlussKlasse Pin where
     zuPCF8574Port :: Pin -> Maybe PCF8574Port
     zuPCF8574Port = const Nothing
 
+    anschlussWrite :: (I2CReader r m, MonadIO m) => Pin -> Value -> m ()
+    anschlussWrite pin = liftIO . (pinMode pin OUTPUT >>) . digitalWrite pin
+
+    anschlussRead :: (I2CReader r m, MonadIO m) => Pin -> m Value
+    anschlussRead pin = liftIO $ pinMode pin INPUT >> digitalRead pin
+
 instance AnschlussKlasse PCF8574Port where
     zuAnschluss :: PCF8574Port -> Anschluss
     zuAnschluss = AnschlussPCF8574Port
@@ -155,15 +166,11 @@ instance AnschlussKlasse PCF8574Port where
     zuPCF8574Port :: PCF8574Port -> Maybe PCF8574Port
     zuPCF8574Port = Just
 
--- | Schreibe einen 'Value' in einen Anschlussmöglichkeit
-anschlussWrite :: (I2CReader r m, MonadIO m) => Anschluss -> Value -> m ()
-anschlussWrite AnschlussPin {pin} = liftIO . (pinMode pin OUTPUT >>) . digitalWrite pin
-anschlussWrite AnschlussPCF8574Port {pcf8574Port} = pcf8574PortWrite pcf8574Port
+    anschlussWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
+    anschlussWrite pcf8574Port = pcf8574PortWrite pcf8574Port
 
--- | Lese einen 'Value' aus einem 'Anschluss'
-anschlussRead :: (I2CReader r m, MonadIO m) => Anschluss -> m Value
-anschlussRead AnschlussPin {pin} = liftIO $ pinMode pin INPUT >> digitalRead pin
-anschlussRead AnschlussPCF8574Port {pcf8574Port} = pcf8574PortRead pcf8574Port
+    anschlussRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
+    anschlussRead pcf8574Port = pcf8574PortRead pcf8574Port
 
 -- | Erhalte den 'Pin', welche eine Änderung der eingehenden Spannung angibt.
 anschlussInterruptPin :: Anschluss -> Maybe Pin
