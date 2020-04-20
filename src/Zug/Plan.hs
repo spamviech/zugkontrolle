@@ -43,10 +43,11 @@ import Data.Text (Text)
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..)
-                    , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
-                    , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung()
-                    , KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..))
+import Zug.Anbindung
+       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), Bahngeschwindigkeit()
+      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche()
+      , WeicheKlasse(..), Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte
+      , Wartezeit(..), Kontakt(..), KontaktKlasse(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
                 , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
@@ -135,6 +136,7 @@ class AktionKlasse a where
 -- Die Update-Funktion wird nicht aufgerufen.
 data Aktion
     = Warten Wartezeit
+    | WartenAuf Kontakt
     | AWegstreckeMärklin (AktionWegstrecke Wegstrecke 'Märklin)
     | AWegstreckeLego (AktionWegstrecke Wegstrecke 'Lego)
     | AWeiche (AktionWeiche (ZugtypEither Weiche))
@@ -157,6 +159,7 @@ instance Eq Aktion where
 instance Ord Aktion where
     compare :: Aktion -> Aktion -> Ordering
     compare (Warten w0) (Warten w1) = compare w0 w1
+    compare (Warten _w0) (WartenAuf _k1) = GT
     compare (Warten _w0) (AWegstreckeMärklin _a1) = GT
     compare (Warten _w0) (AWegstreckeLego _a1) = GT
     compare (Warten _w0) (AWeiche _a1) = GT
@@ -167,7 +170,20 @@ instance Ord Aktion where
     compare (Warten _w0) (AStreckenabschnitt _a1) = GT
     compare (Warten _w0) (AKupplung _a1) = GT
     compare (Warten _w0) (AktionAusführen _p1) = GT
+    compare (WartenAuf _k0) (Warten _w1) = LT
+    compare (WartenAuf k0) (WartenAuf k1) = compare k0 k1
+    compare (WartenAuf _k0) (AWegstreckeMärklin _a1) = GT
+    compare (WartenAuf _k0) (AWegstreckeLego _a1) = GT
+    compare (WartenAuf _k0) (AWeiche _a1) = GT
+    compare (WartenAuf _k0) (ABahngeschwindigkeitMärklinPwm _a1) = GT
+    compare (WartenAuf _k0) (ABahngeschwindigkeitMärklinKonstanteSpannung _a1) = GT
+    compare (WartenAuf _k0) (ABahngeschwindigkeitLegoPwm _a1) = GT
+    compare (WartenAuf _k0) (ABahngeschwindigkeitLegoKonstanteSpannung _a1) = GT
+    compare (WartenAuf _k0) (AStreckenabschnitt _a1) = GT
+    compare (WartenAuf _k0) (AKupplung _a1) = GT
+    compare (WartenAuf _k0) (AktionAusführen _p1) = GT
     compare (AWegstreckeMärklin _w0) (Warten _w1) = LT
+    compare (AWegstreckeMärklin _w0) (WartenAuf _k1) = LT
     compare (AWegstreckeMärklin a0) (AWegstreckeMärklin a1) = compare a0 a1
     compare (AWegstreckeMärklin _a0) (AWegstreckeLego _a1) = GT
     compare (AWegstreckeMärklin _a0) (AWeiche _a1) = GT
@@ -179,6 +195,7 @@ instance Ord Aktion where
     compare (AWegstreckeMärklin _a0) (AKupplung _a1) = GT
     compare (AWegstreckeMärklin _a0) (AktionAusführen _p1) = GT
     compare (AWegstreckeLego _a0) (Warten _w1) = LT
+    compare (AWegstreckeLego _a0) (WartenAuf _k1) = LT
     compare (AWegstreckeLego _a0) (AWegstreckeMärklin _a1) = LT
     compare (AWegstreckeLego a0) (AWegstreckeLego a1) = compare a0 a1
     compare (AWegstreckeLego _a0) (AWeiche _a1) = GT
@@ -190,6 +207,7 @@ instance Ord Aktion where
     compare (AWegstreckeLego _a0) (AKupplung _a1) = GT
     compare (AWegstreckeLego _a0) (AktionAusführen _p1) = GT
     compare (AWeiche _a0) (Warten _w1) = LT
+    compare (AWeiche _a0) (WartenAuf _k1) = LT
     compare (AWeiche _a0) (AWegstreckeMärklin _a1) = LT
     compare (AWeiche _a0) (AWegstreckeLego _a1) = LT
     compare (AWeiche a0) (AWeiche a1) = compare a0 a1
@@ -201,6 +219,7 @@ instance Ord Aktion where
     compare (AWeiche _a0) (AKupplung _a1) = GT
     compare (AWeiche _a0) (AktionAusführen _p1) = GT
     compare (ABahngeschwindigkeitMärklinPwm _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitMärklinPwm _a0) (WartenAuf _k1) = LT
     compare (ABahngeschwindigkeitMärklinPwm _a0) (AWegstreckeMärklin _a1) = LT
     compare (ABahngeschwindigkeitMärklinPwm _a0) (AWegstreckeLego _a1) = LT
     compare (ABahngeschwindigkeitMärklinPwm _a0) (AWeiche _a1) = LT
@@ -216,6 +235,7 @@ instance Ord Aktion where
     compare (ABahngeschwindigkeitMärklinPwm _a0) (AKupplung _a1) = GT
     compare (ABahngeschwindigkeitMärklinPwm _a0) (AktionAusführen _p1) = GT
     compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (WartenAuf _k1) = LT
     compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AWegstreckeMärklin _a1) = LT
     compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AWegstreckeLego _a1) = LT
     compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AWeiche _a1) = LT
@@ -234,6 +254,7 @@ instance Ord Aktion where
     compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AKupplung _a1) = GT
     compare (ABahngeschwindigkeitMärklinKonstanteSpannung _a0) (AktionAusführen _p1) = GT
     compare (ABahngeschwindigkeitLegoPwm _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitLegoPwm _a0) (WartenAuf _k1) = LT
     compare (ABahngeschwindigkeitLegoPwm _a0) (AWegstreckeMärklin _a1) = LT
     compare (ABahngeschwindigkeitLegoPwm _a0) (AWegstreckeLego _a1) = LT
     compare (ABahngeschwindigkeitLegoPwm _a0) (AWeiche _a1) = LT
@@ -246,6 +267,7 @@ instance Ord Aktion where
     compare (ABahngeschwindigkeitLegoPwm _a0) (AKupplung _a1) = GT
     compare (ABahngeschwindigkeitLegoPwm _a0) (AktionAusführen _p1) = GT
     compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (Warten _w1) = LT
+    compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (WartenAuf _k1) = LT
     compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AWegstreckeMärklin _a1) = LT
     compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AWegstreckeLego _a1) = LT
     compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AWeiche _a1) = LT
@@ -262,6 +284,7 @@ instance Ord Aktion where
     compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AKupplung _a1) = GT
     compare (ABahngeschwindigkeitLegoKonstanteSpannung _a0) (AktionAusführen _p1) = GT
     compare (AStreckenabschnitt _a0) (Warten _w1) = LT
+    compare (AStreckenabschnitt _a0) (WartenAuf _k1) = LT
     compare (AStreckenabschnitt _a0) (AWegstreckeMärklin _a1) = LT
     compare (AStreckenabschnitt _a0) (AWegstreckeLego _a1) = LT
     compare (AStreckenabschnitt _a0) (AWeiche _a1) = LT
@@ -273,6 +296,7 @@ instance Ord Aktion where
     compare (AStreckenabschnitt _a0) (AKupplung _a1) = GT
     compare (AStreckenabschnitt _a0) (AktionAusführen _a1) = GT
     compare (AKupplung _a0) (Warten _w1) = LT
+    compare (AKupplung _a0) (WartenAuf _k1) = LT
     compare (AKupplung _a0) (AWegstreckeMärklin _a1) = LT
     compare (AKupplung _a0) (AWegstreckeLego _a1) = LT
     compare (AKupplung _a0) (AWeiche _a1) = LT
@@ -284,6 +308,7 @@ instance Ord Aktion where
     compare (AKupplung a0) (AKupplung a1) = compare a0 a1
     compare (AKupplung _a0) (AktionAusführen _p1) = GT
     compare (AktionAusführen _p0) (Warten _w1) = LT
+    compare (AktionAusführen _p0) (WartenAuf _k1) = LT
     compare (AktionAusführen _p0) (AWegstreckeMärklin _a1) = LT
     compare (AktionAusführen _p0) (AWegstreckeLego _a1) = LT
     compare (AktionAusführen _p0) (AWeiche _a1) = LT
@@ -298,7 +323,8 @@ instance Ord Aktion where
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
-    anzeige (Warten time) = Language.warten <:> time
+    anzeige (Warten zeit) = Language.warten <:> zeit
+    anzeige (WartenAuf kontakt) = Language.warten <:> kontakt
     anzeige (AWegstreckeMärklin aktion) = Language.wegstrecke <~> aktion
     anzeige (AWegstreckeLego aktion) = Language.wegstrecke <~> aktion
     anzeige (AWeiche aktion) = Language.weiche <~> aktion
@@ -314,7 +340,8 @@ instance Anzeige Aktion where
 
 instance StreckenObjekt Aktion where
     anschlüsse :: Aktion -> Set Anschluss
-    anschlüsse (Warten _zeit) = []
+    anschlüsse (Warten _zeit) = Set.empty
+    anschlüsse (WartenAuf kontakt) = anschlüsse kontakt
     anschlüsse (AWegstreckeMärklin aktion) = anschlüsse aktion
     anschlüsse (AWegstreckeLego aktion) = anschlüsse aktion
     anschlüsse (AWeiche aktion) = anschlüsse aktion
@@ -332,6 +359,7 @@ instance StreckenObjekt Aktion where
 instance AktionKlasse Aktion where
     ausführenAktion :: (AusführendReader r m, MonadIO m) => Aktion -> m ()
     ausführenAktion (Warten time) = warte time
+    ausführenAktion (WartenAuf kontakt) = warteAufSignal kontakt
     ausführenAktion (AWegstreckeMärklin aktion) = ausführenAktion aktion
     ausführenAktion (AWegstreckeLego aktion) = ausführenAktion aktion
     ausführenAktion (AWeiche aktion) = ausführenAktion aktion
