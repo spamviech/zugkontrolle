@@ -167,10 +167,10 @@ instance AnschlussKlasse PCF8574Port where
     zuPCF8574Port = Just
 
     anschlussWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
-    anschlussWrite pcf8574Port = pcf8574PortWrite pcf8574Port
+    anschlussWrite = pcf8574PortWrite
 
     anschlussRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
-    anschlussRead pcf8574Port = pcf8574PortRead pcf8574Port
+    anschlussRead = pcf8574PortRead
 
 -- | Erhalte den 'Pin', welche eine Änderung der eingehenden Spannung angibt.
 anschlussInterruptPin :: Anschluss -> Maybe Pin

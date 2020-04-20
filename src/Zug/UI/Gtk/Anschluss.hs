@@ -34,7 +34,7 @@ import Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Anschluss(), vonPin, vonPCF8574Port, PCF8574Port(..), PCF8574(..)
+import Zug.Anbindung (Anschluss(), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..)
                     , PCF8574Variant(..), Value(..), Pin(Gpio))
 import Zug.Language (Sprache(..), (<->), (<:>))
 import qualified Zug.Language as Language
@@ -215,12 +215,12 @@ aktuellerAnschluss
                 a2 <- aktuelleAuswahl aawPCF8574PortA2
                 port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
                 pure
-                    $ vonPCF8574Port
+                    $ zuAnschluss
                     $ PCF8574Port
                     { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin = Nothing }
                     , port
                     }
             -- Verwende als Standard die Pin-Eingabe
-            | otherwise -> vonPin <$> aktuellerPin aawPin
+            | otherwise -> zuAnschluss <$> aktuellerPin aawPin
 #endif
 --

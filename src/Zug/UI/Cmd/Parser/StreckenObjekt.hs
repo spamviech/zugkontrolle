@@ -45,9 +45,10 @@ import qualified Data.Text as Text
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..)
-                    , Kupplung(..), Wegstrecke(..), Anschluss(..), Pin(Gpio), Value(..), alleValues
-                    , PCF8574Port(..), PCF8574(..), PCF8574Variant(..), vonPinGpio)
+import Zug.Anbindung
+       (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), WeicheKlasse(..), Kupplung(..)
+      , Wegstrecke(..), Anschluss(..), AnschlussKlasse(zuAnschluss), Pin(Gpio), Value(..)
+      , alleValues, PCF8574Port(..), PCF8574(..), PCF8574Variant(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), unterstützteZugtypen, GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), Richtung(..), unterstützteRichtungen)
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<=>), (<->), (<~>), toBefehlsString)
@@ -163,7 +164,7 @@ instance MitAnfrage Anschluss where
     anfrageAktualisieren AnfrageAnschluss token =
         wähleZwischenwert token [(Lexer.Pin, APin), (Lexer.PCF8574Port, APCF8574Port)]
     anfrageAktualisieren APin EingabeToken {eingabe, ganzzahl} = case ganzzahl of
-        (Just pin) -> AFErgebnis $ vonPinGpio pin
+        (Just pin) -> AFErgebnis $ zuAnschluss $ Gpio $ fromIntegral pin
         Nothing -> AFFehler eingabe
     anfrageAktualisieren APCF8574Port token =
         wähleZwischenwert
@@ -187,7 +188,10 @@ instance MitAnfrage Anschluss where
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         (Just port) -> AFErgebnis
             $ AnschlussPCF8574Port
-            $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin = Nothing }, port = fromIntegral port }
+            $ PCF8574Port
+            { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin = Nothing }
+            , port = fromIntegral port
+            }
         Nothing -> AFFehler eingabe
 
 -- | Unvollständige 'Bahngeschwindigkeit'.

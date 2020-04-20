@@ -28,14 +28,14 @@ import Data.List (partition)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import Data.Text (Text)
+import Data.Word (Word8)
 import Data.Yaml (encodeFile, decodeFileEither)
 import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 
-import Zug.Anbindung
-       (Wartezeit(..), Anschluss(..), Pin(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..)
-      , vonPinGpio, zuPinGpio, pinToBcmGpio, Bahngeschwindigkeit(..), Streckenabschnitt(..)
-      , Weiche(..), Kupplung(..), Wegstrecke(..))
+import Zug.Anbindung (Wartezeit(..), Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..)
+                    , PCF8574(..), PCF8574Variant(..), Bahngeschwindigkeit(..)
+                    , Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Enums
        (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
@@ -168,14 +168,14 @@ portJS = "PCF8574Port"
 -- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
 -- Bei diesen war nur ein Pin-Anschluss erlaubt, weshalb die JSON-Felder anders hießen.
 parseAnschluss :: Object -> Text -> Text -> Parser Anschluss
-parseAnschluss v anschlussJS pinJS =
-    (v .: anschlussJS) <|> (vonPinGpio <$> (v .: pinJS :: Parser Natural))
+parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (zuAnschluss . Gpio <$> v .: pinJS)
 
 instance FromJSON Anschluss where
     parseJSON :: Value -> Parser Anschluss
     parseJSON (Object v) =
-        (vonPinGpio <$> (v .: pinJS :: Parser Int)) <|> (AnschlussPCF8574Port <$> v .: portJS)
-    parseJSON (Number pin) = pure $ vonPinGpio (floor pin :: Natural)
+        (zuAnschluss . Gpio <$> (v .: pinJS :: Parser Int))
+        <|> (AnschlussPCF8574Port <$> v .: portJS)
+    parseJSON (Number pin) = pure $ zuAnschluss $ Gpio $ floor pin
     parseJSON _value = mzero
 
 instance ToJSON Anschluss where
@@ -481,14 +481,14 @@ instance ToJSON (Bahngeschwindigkeit b z) where
         object
             [ nameJS .= bglName
             , fließendJS .= bglFließend
-            , geschwindigkeitsPinJS .= fromMaybe 0 (pinToBcmGpio bglGeschwindigkeitsPin)
+            , geschwindigkeitsPinJS .= (fromJust $ zuPinGpio bglGeschwindigkeitsPin :: Word8)
             , zugtypJS .= Lego
             , fahrtrichtungsAnschlussJS .= bglFahrtrichtungsAnschluss]
     toJSON MärklinBahngeschwindigkeitPwm {bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin} =
         object
             [ nameJS .= bgmpName
             , fließendJS .= bgmpFließend
-            , geschwindigkeitsPinJS .= fromMaybe 0 (pinToBcmGpio bgmpGeschwindigkeitsPin)
+            , geschwindigkeitsPinJS .= (fromJust $ zuPinGpio bgmpGeschwindigkeitsPin :: Word8)
             , zugtypJS .= Märklin]
     toJSON
         MärklinBahngeschwindigkeitKonstanteSpannung
@@ -562,7 +562,7 @@ instance ToJSON (Weiche z) where
         object
             [ nameJS .= welName
             , fließendJS .= welFließend
-            , richtungsPinJS .= fromMaybe 0 (pinToBcmGpio welRichtungsPin)
+            , richtungsPinJS .= (fromJust $ zuPinGpio welRichtungsPin :: Word8)
             , richtungenJS .= welRichtungen
             , zugtypJS .= Lego]
     toJSON MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse} =
@@ -637,6 +637,9 @@ instance ToJSON (Wegstrecke z) where
 -- neue Feld-Namen/Bezeichner in json-Datei
 wartenJS :: Text
 wartenJS = "Warten"
+
+kontaktJS :: Text
+kontaktJS = "Kontakt"
 
 einstellenJS :: Text
 einstellenJS = "Einstellen"
