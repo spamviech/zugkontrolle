@@ -41,7 +41,7 @@ module Zug.Anbindung.Anschluss
 
 import Control.Applicative (Alternative(..))
 import Control.Concurrent (forkIO, ThreadId())
-import Control.Concurrent.STM (TVar, readTVarIO, atomically, modifyTVar)
+import Control.Concurrent.STM (TVar, readTVarIO, atomically, readTVar, writeTVar, modifyTVar)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
@@ -273,9 +273,17 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
         aktionenAusführen :: (InterruptReader r m, I2CReader r m, MonadIO m) => m ()
         aktionenAusführen = do
             tvarInterruptMap <- erhalteInterruptMap
-            interruptMap <- liftIO $ readTVarIO tvarInterruptMap
             wert <- anschlussReadBitValue anschluss
-            case Map.lookup pin interruptMap of
-                (Just (aktionen, alterWert)) -> liftIO $ mapM_ ($ (wert, alterWert)) aktionen
-                Nothing -> pure ()
+            liftIO $ do
+                interruptMap <- atomically $ do
+                    interruptMap <- readTVar tvarInterruptMap
+                    writeTVar tvarInterruptMap
+                        $ Map.update
+                            (\(aktionen, _alterWert) -> Just (aktionen, wert))
+                            pin
+                            interruptMap
+                    pure interruptMap
+                case Map.lookup pin interruptMap of
+                    (Just (aktionen, alterWert)) -> mapM_ ($ (wert, alterWert)) aktionen
+                    Nothing -> pure ()
 beiÄnderung _anschluss _intEdge _aktion = pure ()
