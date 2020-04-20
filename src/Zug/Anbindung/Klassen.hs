@@ -1,20 +1,38 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 {-|
 Description : Typ-Klassen.
 -}
-module Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..)) where
+module Zug.Anbindung.Klassen
+  ( -- * Typ-Klassen
+    StreckenObjekt(..)
+  , StreckenAtom(..)
+    -- * Hilfsfunktionen
+  , befehlAusführen
+  ) where
 
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 
 import Zug.Anbindung.Anschluss (Anschluss(), Value(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Strom(..))
+import Zug.Options (Options(..), getOptions)
+
+-- | Ausführen einer IO-Aktion, bzw. Ausgabe eines Strings, abhängig vom Kommandozeilen-Argument
+befehlAusführen :: (MonadIO m) => m () -> Text -> m ()
+befehlAusführen ioAction ersatzNachricht = do
+    Options {printCmd} <- getOptions
+    if printCmd
+        then liftIO $ Text.putStrLn ersatzNachricht
+        else ioAction
 
 -- | Klasse für Typen mit Name und Anschlüssen.
 class StreckenObjekt s where

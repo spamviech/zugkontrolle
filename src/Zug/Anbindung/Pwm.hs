@@ -13,6 +13,7 @@ module Zug.Anbindung.Pwm
   , erhaltePwmWertVoll
   , erhaltePwmWertReduziert
   , pwmEingabeMaximal
+  , pwmGrenze
   , pwmMöglich
   , clockMöglich
   ) where
