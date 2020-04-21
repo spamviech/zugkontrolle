@@ -603,17 +603,17 @@ kontaktAnschlussJS :: Text
 kontaktAnschlussJS = "KontaktAnschluss"
 
 -- | Hilfs-Typ für laden eines 'Kontakt's.
-data KontaktHelper = KontaktHelper Text Anbindung.Value Anschluss
+data KontaktHelfer = KontaktHelfer Text Anbindung.Value Anschluss
 
 -- | Erzeuge einen 'Kontakt' aus einem 'KontaktHelper'.
-kontaktErstellen :: (InterruptReader r m, I2CReader r m, MonadIO m) => KontaktHelper -> m Kontakt
-kontaktErstellen (KontaktHelper name fließend kontaktAnschluss) =
+kontaktErstellen :: (InterruptReader r m, I2CReader r m, MonadIO m) => KontaktHelfer -> m Kontakt
+kontaktErstellen (KontaktHelfer name fließend kontaktAnschluss) =
     kontaktNew name fließend kontaktAnschluss
 
-instance FromJSON KontaktHelper where
-    parseJSON :: Value -> Parser KontaktHelper
+instance FromJSON KontaktHelfer where
+    parseJSON :: Value -> Parser KontaktHelfer
     parseJSON (Object v) =
-        KontaktHelper <$> v .: nameJS <*> v .: fließendJS <*> v .: kontaktAnschlussJS
+        KontaktHelfer <$> v .: nameJS <*> v .: fließendJS <*> v .: kontaktAnschlussJS
     parseJSON _value = mzero
 
 instance ToJSON Kontakt where

@@ -6,14 +6,16 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-|
 Description: Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
 -}
 module Zug.Anbindung.Wegstrecke (Wegstrecke(..), WegstreckeKlasse(..)) where
 
+import Control.Concurrent.STM (atomically, STM, TVar, writeTVar, readTVar, retry)
 import Control.Monad (forM_)
-import Control.Monad.Trans (MonadIO())
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import Data.Semigroup (Semigroup((<>)))
@@ -28,6 +30,7 @@ import Zug.Anbindung.Anschluss
 import Zug.Anbindung.Bahngeschwindigkeit
        (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), umdrehenZeit, positionOderLetztes)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
+import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..), SignalErhalten(..))
 import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit)
 import Zug.Anbindung.Pwm (PwmReader())
 import Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..))
@@ -47,6 +50,7 @@ data Wegstrecke (z :: Zugtyp) =
     , wsStreckenabschnitte :: Set Streckenabschnitt
     , wsWeichenRichtungen :: Set (Weiche z, Richtung)
     , wsKupplungen :: Set Kupplung
+    , wsKontakte :: Set Kontakt
     }
     deriving (Eq, Ord, Show)
 
@@ -399,6 +403,23 @@ instance KupplungKlasse (Wegstrecke z) where
             kupplungsPortMapHigh = pcf8574Gruppieren kupplungsPcf8574PortsHigh
 
             kupplungsPortMapLow = pcf8574Gruppieren kupplungsPcf8574PortsLow
+
+instance KontaktKlasse (Wegstrecke z) where
+    warteAufSignal :: (MonadIO m) => Wegstrecke z -> m ()
+    warteAufSignal Wegstrecke {wsKontakte} = liftIO $ do
+        let listTVarSignal = map koTVarSignal $ Set.toList wsKontakte
+        -- Stelle sicher, dass nur neue Signale die Blockade aufheben.
+        atomically $ forM_ listTVarSignal $ flip writeTVar WarteAufSignal
+        -- Blockiere, bis das erste Signal registriert wird.
+        atomically $ tryAllTVars SignalErhalten listTVarSignal >>= \case
+            SignalErhalten -> pure ()
+            WarteAufSignal -> retry
+        where
+            tryAllTVars :: SignalErhalten -> [TVar SignalErhalten] -> STM SignalErhalten
+            tryAllTVars signalErhalten [] = pure signalErhalten
+            tryAllTVars _signalErhalten (h:t) = readTVar h >>= \case
+                SignalErhalten -> pure SignalErhalten
+                WarteAufSignal -> tryAllTVars WarteAufSignal t
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where

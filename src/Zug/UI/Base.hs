@@ -35,6 +35,7 @@ module Zug.UI.Base
   , streckenabschnitte
   , weichen
   , kupplungen
+  , kontakte
   , wegstrecken
   , pläne
   , sprache
@@ -50,12 +51,14 @@ module Zug.UI.Base
   , hinzufügenStreckenabschnitt
   , hinzufügenWeiche
   , hinzufügenKupplung
+  , hinzufügenKontakt
   , hinzufügenWegstrecke
   , hinzufügenPlan
   , entfernenBahngeschwindigkeit
   , entfernenStreckenabschnitt
   , entfernenWeiche
   , entfernenKupplung
+  , entfernenKontakt
   , entfernenWegstrecke
   , entfernenPlan
     -- ** Spezialisierte Funktionen der Zustands-Monade
@@ -63,6 +66,7 @@ module Zug.UI.Base
   , getStreckenabschnitte
   , getWeichen
   , getKupplungen
+  , getKontakte
   , getWegstrecken
   , getPläne
   , getSprache
@@ -70,6 +74,7 @@ module Zug.UI.Base
   , putStreckenabschnitte
   , putWeichen
   , putKupplungen
+  , putKontakte
   , putWegstrecken
   , putPläne
   , putSprache
@@ -107,6 +112,7 @@ data StatusAllgemein o =
     , _streckenabschnitte :: [ST o]
     , _weichen :: [ZugtypEither (WE o)]
     , _kupplungen :: [KU o]
+    , _kontakte :: [KO o]
     , _wegstrecken :: [ZugtypEither (WS o)]
     , _pläne :: [PL o]
     , _sprache :: SP o
@@ -119,6 +125,7 @@ deriving instance ( Eq (ZugtypEither (GeschwindigkeitEither (BG o)))
                   , Eq (ST o)
                   , Eq (ZugtypEither (WE o))
                   , Eq (KU o)
+                  , Eq (KO o)
                   , Eq (ZugtypEither (WS o))
                   , Eq (PL o)
                   , Eq (SP o)
@@ -128,6 +135,7 @@ deriving instance ( Show (ZugtypEither (GeschwindigkeitEither (BG o)))
                   , Show (ST o)
                   , Show (ZugtypEither (WE o))
                   , Show (KU o)
+                  , Show (KO o)
                   , Show (ZugtypEither (WS o))
                   , Show (PL o)
                   , Show (SP o)
@@ -165,6 +173,10 @@ weichen = lens _weichen $ \status wes -> status { _weichen = wes }
 -- | Lens': 'Kupplung'en im aktuellen 'StatusAllgemein'.
 kupplungen :: Functor f => ([KU o] -> f [KU o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
 kupplungen = lens _kupplungen $ \status kus -> status { _kupplungen = kus }
+
+-- | Lens': 'Kontakt'en im aktuellen 'StatusAllgemein'.
+kontakte :: Functor f => ([KO o] -> f [KO o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
+kontakte = lens _kontakte $ \status kus -> status { _kontakte = kus }
 
 -- | Lens': 'Wegstrecke'n im aktuellen 'StatusAllgemein'.
 wegstrecken :: Functor f
@@ -228,6 +240,7 @@ statusLeer _sprache =
     , _streckenabschnitte = []
     , _weichen = []
     , _kupplungen = []
+    , _kontakte = []
     , _wegstrecken = []
     , _pläne = []
     , _sprache
@@ -320,103 +333,117 @@ instance (MitTVarMaps r) => MitAusführend r where
 instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
 
 -- * Erhalte aktuellen Status.
--- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
+-- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
 getBahngeschwindigkeiten
     :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (GeschwindigkeitEither (BG o))]
 getBahngeschwindigkeiten = gets _bahngeschwindigkeiten
 
--- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
+-- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'.
 getStreckenabschnitte :: (Monad m) => MStatusAllgemeinT m o [ST o]
 getStreckenabschnitte = gets _streckenabschnitte
 
--- | Erhalte 'Weiche'n im aktuellen 'StatusAllgemein'
+-- | Erhalte 'Weiche'n im aktuellen 'StatusAllgemein'.
 getWeichen :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (WE o)]
 getWeichen = gets _weichen
 
--- | Erhalte 'Kupplung'en im aktuellen 'StatusAllgemein'
+-- | Erhalte 'Kupplung'en im aktuellen 'StatusAllgemein'.
 getKupplungen :: (Monad m) => MStatusAllgemeinT m o [KU o]
 getKupplungen = gets _kupplungen
+
+-- | Erhalte 'Kontakt'e im aktuellen 'StatusAllgemein'.
+getKontakte :: (Monad m) => MStatusAllgemeinT m o [KO o]
+getKontakte = gets _kontakte
 
 -- | Erhalte 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 getWegstrecken :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (WS o)]
 getWegstrecken = gets _wegstrecken
 
--- | Erhalte Pläne ('Plan') im aktuellen 'StatusAllgemein'
+-- | Erhalte Pläne ('Plan') im aktuellen 'StatusAllgemein'.
 getPläne :: (Monad m) => MStatusAllgemeinT m o [PL o]
 getPläne = gets _pläne
 
--- | Erhalte 'Sprache' im aktuellen 'StatusAllgemein'
+-- | Erhalte 'Sprache' im aktuellen 'StatusAllgemein'.
 getSprache :: (Monad m) => MStatusAllgemeinT m o (SP o)
 getSprache = gets _sprache
 
 -- * Ändere aktuellen Status
--- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'
+-- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
 putBahngeschwindigkeiten
     :: (Monad m) => [ZugtypEither (GeschwindigkeitEither (BG o))] -> MStatusAllgemeinT m o ()
 putBahngeschwindigkeiten bgs = modify $ \status -> status { _bahngeschwindigkeiten = bgs }
 
--- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'
+-- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'.
 putStreckenabschnitte :: (Monad m) => [ST o] -> MStatusAllgemeinT m o ()
 putStreckenabschnitte sts = modify $ \status -> status { _streckenabschnitte = sts }
 
--- | Setze 'Streckenabschitt'e im aktuellen 'StatusAllgemein'
+-- | Setze 'Weiche'en im aktuellen 'StatusAllgemein'.
 putWeichen :: (Monad m) => [ZugtypEither (WE o)] -> MStatusAllgemeinT m o ()
 putWeichen wes = modify $ \status -> status { _weichen = wes }
 
--- | Setze 'Weiche'n im aktuellen 'StatusAllgemein'
+-- | Setze 'Kupplung'en im aktuellen 'StatusAllgemein'.
 putKupplungen :: (Monad m) => [KU o] -> MStatusAllgemeinT m o ()
 putKupplungen kus = modify $ \status -> status { _kupplungen = kus }
 
--- | Setze 'Kupplung'en im akutellen 'StatusAllgemein'
+-- | Setze 'Kontakt'e im aktuellen 'StatusAllgemein'.
+putKontakte :: (Monad m) => [KO o] -> MStatusAllgemeinT m o ()
+putKontakte kos = modify $ \status -> status { _kontakte = kos }
+
+-- | Setze 'Wegstrecke'n im akutellen 'StatusAllgemein'.
 putWegstrecken :: (Monad m) => [ZugtypEither (WS o)] -> MStatusAllgemeinT m o ()
 putWegstrecken wss = modify $ \status -> status { _wegstrecken = wss }
 
--- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'
+-- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'.
 putPläne :: (Monad m) => [PL o] -> MStatusAllgemeinT m o ()
 putPläne pls = modify $ \status -> status { _pläne = pls }
 
--- | Setze 'Sprache' im aktuellen 'StatusAllgemein'
+-- | Setze 'Sprache' im aktuellen 'StatusAllgemein'.
 putSprache :: (Monad m) => SP o -> MStatusAllgemeinT m o ()
 putSprache sprache = modify $ \status -> status { _sprache = sprache }
 
 -- * Elemente hinzufügen
--- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu
+-- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu.
 hinzufügenBahngeschwindigkeit
     :: (Monad m) => ZugtypEither (GeschwindigkeitEither (BG o)) -> MStatusAllgemeinT m o ()
 hinzufügenBahngeschwindigkeit bahngeschwindigkeit = do
     bahngeschwindigkeiten <- getBahngeschwindigkeiten
     putBahngeschwindigkeiten $ bahngeschwindigkeit : bahngeschwindigkeiten
 
--- | Füge einen 'Streckenabschnitt' zum aktuellen 'StatusAllgemein' hinzu
+-- | Füge einen 'Streckenabschnitt' zum aktuellen 'StatusAllgemein' hinzu.
 hinzufügenStreckenabschnitt :: (Monad m) => ST o -> MStatusAllgemeinT m o ()
 hinzufügenStreckenabschnitt streckenabschnitt = do
     streckenabschnitte <- getStreckenabschnitte
     putStreckenabschnitte $ streckenabschnitt : streckenabschnitte
 
--- | Füge eine 'Weiche' zum aktuellen 'StatusAllgemein' hinzu
+-- | Füge eine 'Weiche' zum aktuellen 'StatusAllgemein' hinzu.
 hinzufügenWeiche :: (Monad m) => ZugtypEither (WE o) -> MStatusAllgemeinT m o ()
 hinzufügenWeiche weiche = getWeichen >>= \weichen -> putWeichen $ weiche : weichen
 
--- | Füge eine 'Kupplung' zum aktuellen 'StatusAllgemein' hinzu
+-- | Füge eine 'Kupplung' zum aktuellen 'StatusAllgemein' hinzu.
 hinzufügenKupplung :: (Monad m) => KU o -> MStatusAllgemeinT m o ()
 hinzufügenKupplung kupplung = do
     kupplungen <- getKupplungen
     putKupplungen $ kupplung : kupplungen
 
--- | Füge eine 'Wegstrecke' zum aktuellen 'StatusAllgemein' hinzu
+-- | Füge einen 'Kontakt' zum aktuellen 'StatusAllgemein' hinzu.
+hinzufügenKontakt :: (Monad m) => KO o -> MStatusAllgemeinT m o ()
+hinzufügenKontakt kontakt = do
+    kontakte <- getKontakte
+    putKontakte $ kontakt : kontakte
+
+-- | Füge eine 'Wegstrecke' zum aktuellen 'StatusAllgemein' hinzu.
 hinzufügenWegstrecke :: (Monad m) => ZugtypEither (WS o) -> MStatusAllgemeinT m o ()
 hinzufügenWegstrecke wegstrecke = do
     wegstrecken <- getWegstrecken
     putWegstrecken $ wegstrecke : wegstrecken
 
--- | Füge einen 'Plan' zum aktuellen 'StatusAllgemein' hinzu
+-- | Füge einen 'Plan' zum aktuellen 'StatusAllgemein' hinzu.
 hinzufügenPlan :: (Monad m) => PL o -> MStatusAllgemeinT m o ()
 hinzufügenPlan plan = do
     pläne <- getPläne
     putPläne $ plan : pläne
 
 -- * Elemente entfernen
--- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'
+-- | Entferne eine 'Bahngeschwindigkeit' aus dem aktuellen 'StatusAllgemein'.
 entfernenBahngeschwindigkeit
     :: ( Monad m
        , Eq ((GeschwindigkeitEither (BG o)) 'Märklin)
@@ -428,12 +455,12 @@ entfernenBahngeschwindigkeit
     bahngeschwindigkeit = getBahngeschwindigkeiten >>= \bahngeschwindigkeiten
     -> putBahngeschwindigkeiten $ delete bahngeschwindigkeit bahngeschwindigkeiten
 
--- | Entferne einen 'Streckenabschnitt' aus dem aktuellen 'StatusAllgemein'
+-- | Entferne einen 'Streckenabschnitt' aus dem aktuellen 'StatusAllgemein'.
 entfernenStreckenabschnitt :: (Monad m, Eq (ST o)) => ST o -> MStatusAllgemeinT m o ()
 entfernenStreckenabschnitt streckenabschnitt = getStreckenabschnitte >>= \streckenabschnitte
     -> putStreckenabschnitte $ delete streckenabschnitt streckenabschnitte
 
--- | Entferne eine 'Weiche' aus dem aktuellen 'StatusAllgemein'
+-- | Entferne eine 'Weiche' aus dem aktuellen 'StatusAllgemein'.
 entfernenWeiche :: (Monad m, Eq ((WE o) 'Märklin), Eq ((WE o) 'Lego))
                 => ZugtypEither (WE o)
                 -> MStatusAllgemeinT m o ()
@@ -444,14 +471,20 @@ entfernenKupplung :: (Monad m, Eq (KU o)) => KU o -> MStatusAllgemeinT m o ()
 entfernenKupplung
     kupplung = getKupplungen >>= \kupplungen -> putKupplungen $ delete kupplung kupplungen
 
--- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusAllgemein'
+-- | Entferne einen 'Kontakt' aus dem aktuellen 'StatusAllgemein'
+entfernenKontakt :: (Monad m, Eq (KO o)) => KO o -> MStatusAllgemeinT m o ()
+entfernenKontakt kontakt = do
+    kontakte <- getKontakte
+    putKontakte $ delete kontakt kontakte
+
+-- | Entferne eine 'Wegstrecke' aus dem aktuellen 'StatusAllgemein'.
 entfernenWegstrecke :: (Monad m, Eq ((WS o) 'Märklin), Eq ((WS o) 'Lego))
                     => ZugtypEither (WS o)
                     -> MStatusAllgemeinT m o ()
 entfernenWegstrecke
     wegstrecke = getWegstrecken >>= \wegstrecken -> putWegstrecken $ delete wegstrecke wegstrecken
 
--- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'
+-- | Entferne einen 'Plan' aus dem aktuellen 'StatusAllgemein'.
 entfernenPlan :: (Monad m, Eq (PL o)) => PL o -> MStatusAllgemeinT m o ()
 entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 
