@@ -33,7 +33,7 @@ import Data.Word (Word8)
 
 import Zug.Anbindung.Anschluss
        (Value(..), Anschluss(..), Pin(), PCF8574Port(), I2CReader(forkI2CReader)
-      , AnschlussKlasse(..), pcf8574MultiPortWrite, pcf8574Gruppieren)
+      , AnschlussKlasse(anschlussWrite), pcf8574MultiPortWrite, pcf8574Gruppieren)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
