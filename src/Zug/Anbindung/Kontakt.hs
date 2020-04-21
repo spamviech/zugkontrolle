@@ -7,7 +7,13 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Zug.Anbindung.Kontakt (Kontakt(Kontakt), kontaktNew, KontaktKlasse(..), SignalErhalten(..)) where
+module Zug.Anbindung.Kontakt
+  ( Kontakt(Kontakt, koName, koFließend, kontaktAnschluss,
+        koTVarSignal)
+  , kontaktNew
+  , KontaktKlasse(..)
+  , SignalErhalten(..)
+  ) where
 
 import Control.Concurrent.STM (atomically, TVar, writeTVar, readTVar, retry, newTVarIO)
 import Control.Monad.Trans (MonadIO(liftIO))

@@ -22,20 +22,21 @@ module Zug.UI.Save
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
+import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types
        (FromJSON(..), ToJSON(..), Value(..), Parser, Object, Pair, object, (.:), (.:?), (.=))
 import Data.List (partition)
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (isJust, fromJust, fromMaybe)
+import Data.Maybe (isJust, fromJust)
 import Data.Text (Text)
 import Data.Word (Word8)
 import Data.Yaml (encodeFile, decodeFileEither)
-import Numeric.Natural (Natural)
 import System.Directory (doesFileExist)
 
-import Zug.Anbindung (Wartezeit(..), Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..)
-                    , PCF8574(..), PCF8574Variant(..), Bahngeschwindigkeit(..)
-                    , Streckenabschnitt(..), Weiche(..), Kupplung(..), Wegstrecke(..))
+import Zug.Anbindung
+       (Wartezeit(..), Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..), PCF8574(..)
+      , PCF8574Variant(..), Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
+      , Kontakt(..), kontaktNew, Wegstrecke(..), InterruptReader(), I2CReader())
 import qualified Zug.Anbindung as Anbindung
 import Zug.Enums
        (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
@@ -595,6 +596,31 @@ instance ToJSON Kupplung where
             [ nameJS .= kuName
             , fließendJS .= kuFließend
             , kupplungsAnschlussJS .= kupplungsAnschluss]
+
+-- Instanz-Deklarationen für Kontakt
+-- neue Feld-Namen/Bezeichner in json-Datei
+kontaktAnschlussJS :: Text
+kontaktAnschlussJS = "KontaktAnschluss"
+
+-- | Hilfs-Typ für laden eines 'Kontakt's.
+data KontaktHelper = KontaktHelper Text Anbindung.Value Anschluss
+
+-- | Erzeuge einen 'Kontakt' aus einem 'KontaktHelper'.
+kontaktErstellen :: (InterruptReader r m, I2CReader r m, MonadIO m) => KontaktHelper -> m Kontakt
+kontaktErstellen (KontaktHelper name fließend kontaktAnschluss) =
+    kontaktNew name fließend kontaktAnschluss
+
+instance FromJSON KontaktHelper where
+    parseJSON :: Value -> Parser KontaktHelper
+    parseJSON (Object v) =
+        KontaktHelper <$> v .: nameJS <*> v .: fließendJS <*> v .: kontaktAnschlussJS
+    parseJSON _value = mzero
+
+instance ToJSON Kontakt where
+    toJSON :: Kontakt -> Value
+    toJSON Kontakt {koName, koFließend, kontaktAnschluss} =
+        object
+            [nameJS .= koName, fließendJS .= koFließend, kontaktAnschlussJS .= kontaktAnschluss]
 
 -- Instanz-Deklaration für Wegstrecke
 -- neue Feld-Namen/Bezeichner in json-Datei
