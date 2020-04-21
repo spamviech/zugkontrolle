@@ -382,6 +382,52 @@ seiteErgebnis
                 in plan
         False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
 
+-- | Versuche die aktuelle Auswahl einer 'HinzufügenSeite' zu setzen.
+setzeSeite :: forall r m.
+           (StatusVarGuiReader r m, MonadIO m)
+           => FließendAuswahlWidget
+           -> AuswahlWidget Zugtyp
+           -> HinzufügenSeite
+           -> Objekt
+           -> m ()
+setzeSeite
+    auswahlFließend
+    auswahlZugtyp
+    HinzufügenSeiteBahngeschwindigkeit
+    { nameAuswahl
+    , notebookGeschwindigkeit
+    , indexSeiten
+    , märklinGeschwindigkeitAuswahl
+    , tvarFahrstromAuswahlWidgets
+    , umdrehenAuswahl
+    , legoGeschwindigkeitAuswahl
+    , fahrtrichtungsAuswahl}
+    (OBahngeschwindigkeit bg) = _undefined --TODO
+setzeSeite
+    auswahlFließend
+    auswahlZugtyp
+    HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl}
+    (OStreckenabschnitt st) = _undefined --TODO
+setzeSeite
+    auswahlFließend
+    auswahlZugtyp
+    HinzufügenSeiteWeiche
+    {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl}
+    (OWeiche we) = _undefined --TODO
+setzeSeite
+    auswahlFließend
+    auswahlZugtyp
+    HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl}
+    (OKupplung ku) = _undefined --TODO
+setzeSeite auswahlFließend auswahlZugtyp HinzufügenSeiteWegstrecke {nameAuswahl} (OWegstrecke ws) =
+    _undefined --TODO
+setzeSeite
+    auswahlFließend
+    auswahlZugtyp
+    HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife}
+    (OPlan pl) = _undefined --TODO
+setzeSeite _auswahlFließend _auswahlZugtyp _hinzufügenSeite _objekt = pure ()
+
 -- | Erzeuge eine Seite zum hinzufügen einer 'Bahngeschwindigkeit'.
 hinzufügenBahngeschwindigkeitNew
     :: (SpracheGuiReader r m, MonadIO m)
