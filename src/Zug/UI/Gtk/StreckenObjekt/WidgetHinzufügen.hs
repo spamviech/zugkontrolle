@@ -9,7 +9,35 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen where
+{-|
+Description: Spezielle Widgets, die für den AssistantHinzufügen benötigt werden.
+-}
+module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+  ( -- * Datentyp und Typ-Klassen
+    WidgetHinzufügen()
+  , Kategorie(..)
+  , KategorieText(..)
+  , HinzufügenZiel(..)
+    -- * Wegstrecke Hinzufügen
+  , BoxWegstreckeHinzufügen
+  , boxWegstreckeHinzufügenNew
+  , CheckButtonWegstreckeHinzufügen
+  , WegstreckeCheckButton(..)
+    -- * Plan Hinzufügen
+  , BoxPlanHinzufügen
+  , boxPlanHinzufügenNew
+  , ButtonPlanHinzufügen
+    -- * Hilfsfunktionen
+  , widgetHinzufügenContainerRemoveJust
+  , widgetHinzufügenBoxPackNew
+  , widgetHinzufügenRegistrierterCheckButtonVoid
+  , widgetHinzufügenAktuelleAuswahl
+  , widgetHinzufügenToggled
+    -- * Spezielle Typ-Konvertierungen
+  , widgetHinzufügenGeschwindigkeitVariante
+  , widgetHinzufügenGeschwindigkeitEither
+  , widgetHinzufügenZugtypEither
+  ) where
 
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(liftIO))
