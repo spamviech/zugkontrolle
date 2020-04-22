@@ -44,10 +44,10 @@ import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
-       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), Bahngeschwindigkeit()
-      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche()
-      , WeicheKlasse(..), Kupplung(), KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte
-      , Wartezeit(..), Kontakt(..), KontaktKlasse(..))
+       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), InterruptReader()
+      , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
+      , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..)
+      , Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..), KontaktKlasse(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
                 , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
@@ -58,12 +58,14 @@ class MitAusführend r where
     mengeAusführend :: r -> TVar (Set Ausführend)
 
 -- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Set' benötigen
-class (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r m where
+class (I2CReader r m, PwmReader r m, InterruptReader r m, MitAusführend r)
+    => AusführendReader r m where
     -- | Erhalte die aktuelle 'Ausführend'-'Menge' aus der Umgebung.
     erhalteMengeAusführend :: m (TVar (Set Ausführend))
     erhalteMengeAusführend = asks mengeAusführend
 
-instance (I2CReader r m, PwmReader r m, MitAusführend r) => AusführendReader r m
+instance (I2CReader r m, PwmReader r m, InterruptReader r m, MitAusführend r)
+    => AusführendReader r m
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
 -- Sie können selbst entscheiden, wann sie die mitgegebene Update-Funktion über den Fortschritt informieren.  

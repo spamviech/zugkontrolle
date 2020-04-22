@@ -55,9 +55,7 @@ module Zug.Anbindung
   , KupplungKlasse(..)
     -- ** Kontakt
   , Kontakt(..)
-  , kontaktNew
   , KontaktKlasse(..)
-  , SignalErhalten(..)
     -- ** Wegstrecken
   , Wegstrecke(..)
   , WegstreckeKlasse(..)
@@ -78,7 +76,7 @@ import Zug.Anbindung.Anschluss
 import Zug.Anbindung.Bahngeschwindigkeit
        (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), verwendetPwm)
 import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..))
-import Zug.Anbindung.Kontakt (Kontakt(..), kontaktNew, KontaktKlasse(..), SignalErhalten(..))
+import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
 import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..))
 import Zug.Anbindung.Pwm (pwmSetzeWert, pwmServo, erhaltePwmWertVoll, erhaltePwmWertReduziert
                         , pwmMöglich, clockMöglich, PwmValueUnmodifiziert, pwmEingabeMaximal)

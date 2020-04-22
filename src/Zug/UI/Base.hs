@@ -83,7 +83,7 @@ module Zug.UI.Base
   , AusführenMöglich(..)
   ) where
 
-import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
+import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO, TMVar, newTMVarIO)
 import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
@@ -97,8 +97,9 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty
-                    , MitI2CMap(..), StreckenObjekt(..))
+import Zug.Anbindung
+       (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..)
+      , InterruptMap, MitInterruptMap(..), interruptMapEmpty, StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitEither())
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
@@ -252,11 +253,16 @@ data TVarMaps =
     { tvarAusführend :: TVar (Set Ausführend)
     , tvarPwmMap :: TVar PwmMap
     , tvarI2CMap :: TVar I2CMap
+    , tmvarInterruptMap :: TMVar InterruptMap
     }
 
 -- | Erzeuge neue, leere 'TVarMaps'. Die übergebene Wartezeit gibt die Refresh-Rate der I2C-Kanäle an.
 tvarMapsNeu :: IO TVarMaps
-tvarMapsNeu = TVarMaps <$> newTVarIO Set.empty <*> newTVarIO pwmMapEmpty <*> newTVarIO i2cMapEmpty
+tvarMapsNeu =
+    TVarMaps <$> newTVarIO Set.empty
+    <*> newTVarIO pwmMapEmpty
+    <*> newTVarIO i2cMapEmpty
+    <*> newTMVarIO interruptMapEmpty
 
 -- | Typ-Familie für Reader-Typ aus der 'RWST'-Monade
 type family ReaderFamilie o
@@ -329,6 +335,10 @@ instance (MitTVarMaps r) => MitPwmMap r where
 instance (MitTVarMaps r) => MitAusführend r where
     mengeAusführend :: r -> TVar (Set Ausführend)
     mengeAusführend = tvarAusführend . tvarMaps
+
+instance (MitTVarMaps r) => MitInterruptMap r where
+    interruptMap :: r -> TMVar InterruptMap
+    interruptMap = tmvarInterruptMap . tvarMaps
 
 instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
 
@@ -490,7 +500,11 @@ entfernenPlan plan = getPläne >>= \pläne -> putPläne $ delete plan pläne
 
 -- | Überprüfe, ob ein Plan momentan ausgeführt werden kann.
 ausführenMöglich
-    :: (MitAusführend (ReaderFamilie o), MitPwmMap (ReaderFamilie o), MitI2CMap (ReaderFamilie o))
+    :: ( MitAusführend (ReaderFamilie o)
+       , MitPwmMap (ReaderFamilie o)
+       , MitI2CMap (ReaderFamilie o)
+       , MitInterruptMap (ReaderFamilie o)
+       )
     => Plan
     -> IOStatusAllgemein o AusführenMöglich
 ausführenMöglich plan = do

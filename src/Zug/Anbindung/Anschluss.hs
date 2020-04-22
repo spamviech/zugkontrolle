@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 {-|
 Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichkeiten zur Verfügung.
@@ -33,13 +34,16 @@ module Zug.Anbindung.Anschluss
   , MitInterruptMap(..)
   , InterruptReader(..)
   , beiÄnderung
+  , warteAufÄnderung
   , IntEdge(..)
+  , EventBehalten(..)
   ) where
 
 import Control.Applicative (Alternative(..))
 import Control.Concurrent (forkIO, ThreadId())
-import Control.Concurrent.STM (TVar, readTVarIO, atomically, readTVar, writeTVar, modifyTVar)
-import Control.Monad (void)
+import Control.Concurrent.STM
+       (atomically, retry, newTVarIO, readTVar, writeTVar, TMVar, takeTMVar, putTMVar)
+import Control.Monad (void, forM, foldM)
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (testBit)
@@ -179,7 +183,13 @@ anschlussInterruptPin
     AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574 = PCF8574 {interruptPin}}} =
     interruptPin
 
-type InterruptMap = Map Pin ([(BitValue, BitValue) -> IO ()], BitValue)
+-- | Soll ein Event mehrfach ausgeführt werden?
+data EventBehalten
+    = EventBehalten
+    | EventLöschen
+    deriving (Show, Eq, Ord)
+
+type InterruptMap = Map Pin ([(BitValue, BitValue) -> IO EventBehalten], BitValue)
 
 -- | Leere 'InterruptMap'.
 interruptMapEmpty :: InterruptMap
@@ -187,12 +197,12 @@ interruptMapEmpty = Map.empty
 
 -- | Klasse für Typen mit der aktuellen 'InterruptMap'.
 class MitInterruptMap r where
-    interruptMap :: r -> TVar InterruptMap
+    interruptMap :: r -> TMVar InterruptMap
 
 -- | Abkürzung für Funktionen, die die aktuelle 'I2CMap' benötigen
 class (MonadReader r m, MitInterruptMap r) => InterruptReader r m | m -> r where
     -- | Erhalte die aktuelle 'I2CMap' aus der Umgebung.
-    erhalteInterruptMap :: m (TVar InterruptMap)
+    erhalteInterruptMap :: m (TMVar InterruptMap)
     erhalteInterruptMap = asks interruptMap
 
     -- | 'forkIO' in die 'InterruptReader'-Monade geliftet; Die aktuellen Umgebung soll übergeben werden.
@@ -204,41 +214,52 @@ class (MonadReader r m, MitInterruptMap r) => InterruptReader r m | m -> r where
 instance (MonadReader r m, MitInterruptMap r) => InterruptReader r m
 
 -- | Registriere ein Event für einen 'Anschluss'.
+-- Wenn das Ergebnis der Aktion 'EventBehalten' ist wird sie beim nächsten Event erneut ausgeführt,
+-- ansonsten ('EventLöschen') wird sie nur einmal ausgeführt.
 --
 -- Diese Funktion hat nur für Anschlüsse mit 'interruptPin' einen Effekt.
-beiÄnderung
-    :: (InterruptReader r m, I2CReader r m, MonadIO m) => Anschluss -> IntEdge -> IO () -> m ()
+beiÄnderung :: (InterruptReader r m, I2CReader r m, MonadIO m)
+             => Anschluss
+             -> IntEdge
+             -> IO EventBehalten
+             -> m ()
 beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
     reader <- ask
-    tvarInterruptMap <- erhalteInterruptMap
-    interruptMap <- liftIO $ readTVarIO tvarInterruptMap
+    tmvarInterruptMap <- erhalteInterruptMap
+    interruptMap <- liftIO $ atomically $ takeTMVar tmvarInterruptMap
     case Map.lookup pin interruptMap of
         (Just (aktionen, alterWert)) -> liftIO
             $ atomically
-            $ modifyTVar tvarInterruptMap
-            $ Map.insert pin
-            $ (beiRichtigemBitValue anschluss intEdge aktion : aktionen, alterWert)
+            $ putTMVar tmvarInterruptMap
+            $ Map.insert
+                pin
+                (beiRichtigemBitValue anschluss intEdge aktion : aktionen, alterWert)
+                interruptMap
         Nothing -> do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
                 wiringPiISR pin (verwendeteIntEdge anschluss)
                     $ runReaderT aktionenAusführen reader
                 atomically
-                    $ modifyTVar tvarInterruptMap
-                    $ Map.insert pin ([beiRichtigemBitValue anschluss intEdge aktion], wert)
+                    $ putTMVar tmvarInterruptMap
+                    $ Map.insert
+                        pin
+                        ([beiRichtigemBitValue anschluss intEdge aktion], wert)
+                        interruptMap
     where
         verwendeteIntEdge :: Anschluss -> IntEdge
         verwendeteIntEdge AnschlussPin {} = INT_EDGE_BOTH
         verwendeteIntEdge AnschlussPCF8574Port {} = INT_EDGE_FALLING
 
-        beiRichtigemBitValue :: Anschluss -> IntEdge -> IO () -> (BitValue, BitValue) -> IO ()
+        beiRichtigemBitValue
+            :: Anschluss -> IntEdge -> IO EventBehalten -> (BitValue, BitValue) -> IO EventBehalten
         beiRichtigemBitValue AnschlussPin {} INT_EDGE_BOTH aktion _werte = aktion
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
             INT_EDGE_BOTH
             aktion
             (wert, alterWert)
-            | testBit wert port == testBit alterWert port = pure ()
+            | testBit wert port == testBit alterWert port = pure EventBehalten
             | otherwise = aktion
         beiRichtigemBitValue
             AnschlussPin {}
@@ -246,29 +267,29 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
             aktion
             (fromBitValue -> wert, fromBitValue -> alterWert)
             | alterWert > wert = aktion
-            | otherwise = pure ()
+            | otherwise = pure EventBehalten
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
             INT_EDGE_FALLING
             aktion
             (wert, alterWert)
             | testBit alterWert port && not (testBit wert port) = aktion
-            | otherwise = pure ()
+            | otherwise = pure EventBehalten
         beiRichtigemBitValue
             AnschlussPin {}
             INT_EDGE_RISING
             aktion
             (fromBitValue -> wert, fromBitValue -> alterWert)
             | alterWert < wert = aktion
-            | otherwise = pure ()
+            | otherwise = pure EventBehalten
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
             INT_EDGE_RISING
             aktion
             (wert, alterWert)
             | not (testBit alterWert port) && testBit wert port = aktion
-            | otherwise = pure ()
-        beiRichtigemBitValue _anschluss INT_EDGE_SETUP _aktion _werte = pure ()
+            | otherwise = pure EventBehalten
+        beiRichtigemBitValue _anschluss INT_EDGE_SETUP _aktion _werte = pure EventBehalten
 
         anschlussReadBitValue :: (I2CReader r m, MonadIO m) => Anschluss -> m BitValue
         anschlussReadBitValue AnschlussPin {pin} = liftIO $ digitalRead pin >>= pure . \case
@@ -279,18 +300,52 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
 
         aktionenAusführen :: (InterruptReader r m, I2CReader r m, MonadIO m) => m ()
         aktionenAusführen = do
-            tvarInterruptMap <- erhalteInterruptMap
+            tmvarInterruptMap <- erhalteInterruptMap
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
-                interruptMap <- atomically $ do
-                    interruptMap <- readTVar tvarInterruptMap
-                    writeTVar tvarInterruptMap
-                        $ Map.update
-                            (\(aktionen, _alterWert) -> Just (aktionen, wert))
-                            pin
-                            interruptMap
-                    pure interruptMap
-                case Map.lookup pin interruptMap of
-                    (Just (aktionen, alterWert)) -> mapM_ ($ (wert, alterWert)) aktionen
-                    Nothing -> pure ()
+                interruptMap <- atomically $ takeTMVar tmvarInterruptMap
+                eintragAnpassen <- case Map.lookup pin interruptMap of
+                    (Just (aktionen, alterWert)) -> do
+                        verbliebeneAktionen
+                            <- foldM (aktionAusführen (wert, alterWert)) [] aktionen
+                        pure $ Map.insert pin (verbliebeneAktionen, wert)
+                    Nothing -> pure id
+                atomically $ putTMVar tmvarInterruptMap $ eintragAnpassen interruptMap
+
+        aktionAusführen :: (BitValue, BitValue)
+                         -> [(BitValue, BitValue)
+                            -> IO EventBehalten]
+                         -> ((BitValue, BitValue) -> IO EventBehalten)
+                         -> IO [(BitValue, BitValue)
+                               -> IO EventBehalten]
+        aktionAusführen bitValues acc aktion = aktion bitValues >>= \case
+            EventBehalten -> pure $ aktion : acc
+            EventLöschen -> pure acc
 beiÄnderung _anschluss _intEdge _aktion = pure ()
+
+-- | Wurde ein Signal bei einem 'Kontakt' registriert.
+data SignalErhalten
+    = WarteAufSignal
+    | SignalErhalten
+    deriving (Show, Eq, Ord)
+
+-- | Blockiere den aktuellen Thread, bis die spezifizierte 'IntEdge' bei einem der
+-- übergebenen Anschlüsse auftritt.
+-- Wird eine leere Liste übergeben wird der aktuelle Thread nicht blockiert.
+--
+-- Alle Einschränkungen von 'beiÄnderung' treffen auch auf diese Funktion zu.
+warteAufÄnderung
+    :: (InterruptReader r m, I2CReader r m, MonadIO m) => [(Anschluss, IntEdge)] -> m ()
+warteAufÄnderung [] = pure ()
+warteAufÄnderung anschlüsseIntEdge = do
+    listeTVarSignal <- forM anschlüsseIntEdge $ \(anschluss, intEdge) -> do
+        tvarSignal <- liftIO $ newTVarIO WarteAufSignal
+        beiÄnderung anschluss intEdge $ do
+            atomically $ writeTVar tvarSignal SignalErhalten
+            pure EventLöschen
+        pure tvarSignal
+    liftIO $ atomically $ do
+        listeSignalErhalten <- mapM readTVar listeTVarSignal
+        if elem SignalErhalten listeSignalErhalten
+            then pure ()
+            else retry

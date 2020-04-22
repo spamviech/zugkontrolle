@@ -13,9 +13,8 @@ Description: Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegeben
 -}
 module Zug.Anbindung.Wegstrecke (Wegstrecke(..), WegstreckeKlasse(..)) where
 
-import Control.Concurrent.STM (atomically, STM, TVar, writeTVar, readTVar, retry)
 import Control.Monad (forM_)
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.Trans (MonadIO())
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import Data.Semigroup (Semigroup((<>)))
@@ -24,13 +23,13 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import Data.Word (Word8)
 
-import Zug.Anbindung.Anschluss
-       (Anschluss(..), AnschlussKlasse(anschlussWrite), Pin(), PCF8574Port(), pcf8574MultiPortWrite
-      , pcf8574Gruppieren, I2CReader(forkI2CReader), Value(..))
+import Zug.Anbindung.Anschluss (Anschluss(..), AnschlussKlasse(anschlussWrite), Pin(), PCF8574Port()
+                              , pcf8574MultiPortWrite, pcf8574Gruppieren, I2CReader(forkI2CReader)
+                              , Value(..), InterruptReader(), warteAufÄnderung, IntEdge(..))
 import Zug.Anbindung.Bahngeschwindigkeit
        (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), umdrehenZeit, positionOderLetztes)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
-import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..), SignalErhalten(..))
+import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
 import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit)
 import Zug.Anbindung.Pwm (PwmReader())
 import Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..))
@@ -405,21 +404,16 @@ instance KupplungKlasse (Wegstrecke z) where
             kupplungsPortMapLow = pcf8574Gruppieren kupplungsPcf8574PortsLow
 
 instance KontaktKlasse (Wegstrecke z) where
-    warteAufSignal :: (MonadIO m) => Wegstrecke z -> m ()
-    warteAufSignal Wegstrecke {wsKontakte} = liftIO $ do
-        let listTVarSignal = map koTVarSignal $ Set.toList wsKontakte
-        -- Stelle sicher, dass nur neue Signale die Blockade aufheben.
-        atomically $ forM_ listTVarSignal $ flip writeTVar WarteAufSignal
-        -- Blockiere, bis das erste Signal registriert wird.
-        atomically $ tryAllTVars SignalErhalten listTVarSignal >>= \case
-            SignalErhalten -> pure ()
-            WarteAufSignal -> retry
-        where
-            tryAllTVars :: SignalErhalten -> [TVar SignalErhalten] -> STM SignalErhalten
-            tryAllTVars signalErhalten [] = pure signalErhalten
-            tryAllTVars _signalErhalten (h:t) = readTVar h >>= \case
-                SignalErhalten -> pure SignalErhalten
-                WarteAufSignal -> tryAllTVars WarteAufSignal t
+    warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
+    warteAufSignal Wegstrecke {wsKontakte} = do
+        let listeAnschlussIntEdge =
+                map (\Kontakt {kontaktAnschluss, koFließend}
+                     -> ( kontaktAnschluss
+                        , if koFließend == LOW
+                              then INT_EDGE_FALLING
+                              else INT_EDGE_RISING
+                        )) $ Set.toList wsKontakte
+        warteAufÄnderung listeAnschlussIntEdge
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
