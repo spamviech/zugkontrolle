@@ -39,10 +39,11 @@ import Zug.Plan
        (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
 import Zug.UI.Base
        (StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ReaderFamilie, TVarMaps(..)
-      , MitTVarMaps(), TVarMapsReader(..), liftIOStatus, hinzufügenPlan, entfernenPlan
-      , hinzufügenWegstrecke, entfernenWegstrecke, hinzufügenWeiche, entfernenWeiche
-      , hinzufügenBahngeschwindigkeit, entfernenBahngeschwindigkeit, hinzufügenStreckenabschnitt
-      , entfernenStreckenabschnitt, hinzufügenKupplung, entfernenKupplung, getSprache, putSprache)
+      , MitTVarMaps(), TVarMapsReader(..), liftIOStatus, hinzufügenBahngeschwindigkeit
+      , entfernenBahngeschwindigkeit, hinzufügenStreckenabschnitt, entfernenStreckenabschnitt
+      , hinzufügenWeiche, entfernenWeiche, hinzufügenKupplung, entfernenKupplung
+      , hinzufügenKontakt, entfernenKontakt, hinzufügenWegstrecke, entfernenWegstrecke
+      , hinzufügenPlan, entfernenPlan, getSprache, putSprache)
 import qualified Zug.UI.Save as Save
 
 -- | Ausführen eines Befehls
@@ -97,6 +98,7 @@ instance ( ObjektKlasse o
          , Eq ((WE o) 'Märklin)
          , Eq ((WE o) 'Lego)
          , Eq (KU o)
+         , Eq (KO o)
          , Eq ((WS o) 'Märklin)
          , Eq ((WS o) 'Lego)
          , Eq (PL o)
@@ -122,6 +124,7 @@ instance ( ObjektKlasse o
                 , Eq ((WE o) 'Märklin)
                 , Eq ((WE o) 'Lego)
                 , Eq (KU o)
+                , Eq (KO o)
                 , Eq ((WS o) 'Märklin)
                 , Eq ((WS o) 'Lego)
                 , Eq (PL o)
@@ -134,23 +137,25 @@ instance ( ObjektKlasse o
             ausführenBefehlAux (UI _uiAction) = pure ()
             ausführenBefehlAux (SprachWechsel sprache) = putSprache sprache
             ausführenBefehlAux (Hinzufügen objekt) = case erhalteObjekt objekt of
-                (OPlan plan) -> hinzufügenPlan plan
-                (OWegstrecke wegstrecke) -> hinzufügenWegstrecke wegstrecke
-                (OWeiche weiche) -> hinzufügenWeiche weiche
                 (OBahngeschwindigkeit bahngeschwindigkeit)
                     -> hinzufügenBahngeschwindigkeit bahngeschwindigkeit
                 (OStreckenabschnitt streckenabschnitt)
                     -> hinzufügenStreckenabschnitt streckenabschnitt
+                (OWeiche weiche) -> hinzufügenWeiche weiche
                 (OKupplung kupplung) -> hinzufügenKupplung kupplung
+                (OKontakt kontakt) -> hinzufügenKontakt kontakt
+                (OWegstrecke wegstrecke) -> hinzufügenWegstrecke wegstrecke
+                (OPlan plan) -> hinzufügenPlan plan
             ausführenBefehlAux (Entfernen objekt) = case erhalteObjekt objekt of
-                (OPlan plan) -> entfernenPlan plan
-                (OWegstrecke wegstrecke) -> entfernenWegstrecke wegstrecke
-                (OWeiche weiche) -> entfernenWeiche weiche
                 (OBahngeschwindigkeit bahngeschwindigkeit)
                     -> entfernenBahngeschwindigkeit bahngeschwindigkeit
                 (OStreckenabschnitt streckenabschnitt)
                     -> entfernenStreckenabschnitt streckenabschnitt
+                (OWeiche weiche) -> entfernenWeiche weiche
                 (OKupplung kupplung) -> entfernenKupplung kupplung
+                (OKontakt kontakt) -> entfernenKontakt kontakt
+                (OWegstrecke wegstrecke) -> entfernenWegstrecke wegstrecke
+                (OPlan plan) -> entfernenPlan plan
             ausführenBefehlAux (Speichern dateipfad) =
                 RWS.get >>= liftIO . flip Save.speichern dateipfad
             ausführenBefehlAux (Laden dateipfad erfolgsAktion fehlerbehandlung) = do
@@ -193,6 +198,7 @@ instance ( ObjektKlasse o
          , Eq ((WE o) 'Märklin)
          , Eq ((WE o) 'Lego)
          , Eq (KU o)
+         , Eq (KO o)
          , Eq ((WS o) 'Märklin)
          , Eq ((WS o) 'Lego)
          , Eq (PL o)
@@ -213,6 +219,7 @@ instance ( ObjektKlasse o
                    , Eq ((WE o) 'Märklin)
                    , Eq ((WE o) 'Lego)
                    , Eq (KU o)
+                   , Eq (KO o)
                    , Eq ((WS o) 'Märklin)
                    , Eq ((WS o) 'Lego)
                    , Eq (PL o)
