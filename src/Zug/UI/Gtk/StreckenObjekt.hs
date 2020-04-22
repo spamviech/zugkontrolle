@@ -31,18 +31,20 @@ module Zug.UI.Gtk.StreckenObjekt
 #ifdef ZUGKONTROLLEGUI
     -- ** Spezifisches StreckenObjekt darstellen
     BGWidgets()
-  , STWidgets()
-  , WEWidgets()
-  , KUWidgets()
-  , WSWidgets()
-  , PLWidgets()
-  , WidgetsTyp(..)
   , bahngeschwindigkeitPackNew
+  , STWidgets()
   , streckenabschnittPackNew
+  , WEWidgets()
   , weichePackNew
+  , KUWidgets()
   , kupplungPackNew
+  , KOWidgets()
+  , kontaktPackNew
+  , WSWidgets()
   , wegstreckePackNew
+  , PLWidgets()
   , planPackNew
+  , WidgetsTyp(..)
     -- * Verwaltung des aktuellen Zustands
   , DynamischeWidgets(..)
   , MitDynamischeWidgets(..)
@@ -118,7 +120,7 @@ import Zug.Anbindung
        (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(), Bahngeschwindigkeit(..)
       , verwendetPwm, BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
       , StreckenabschnittKlasse(..), Weiche(..), WeicheKlasse(..), Kupplung(..), KupplungKlasse(..)
-      , Wegstrecke(..), WegstreckeKlasse(..))
+      , Kontakt(..), KontaktKlasse(..), Wegstrecke(..), WegstreckeKlasse(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither
                 , GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), ausGeschwindigkeitEither
@@ -156,13 +158,22 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, 
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (SpracheGui, SpracheGuiReader(..), MitSpracheGui(..), verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+       (Kategorie(..), KategorieText(..), WidgetHinzufügen, HinzufügenZiel(..)
+      , BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew, CheckButtonWegstreckeHinzufügen
+      , WegstreckeCheckButton(..), BoxPlanHinzufügen, boxPlanHinzufügenNew, ButtonPlanHinzufügen
+      , widgetHinzufügenContainerRemoveJust, widgetHinzufügenBoxPackNew
+      , widgetHinzufügenRegistrierterCheckButtonVoid, widgetHinzufügenAktuelleAuswahl
+      , widgetHinzufügenToggled, widgetHinzufügenGeschwindigkeitVariante
+      , widgetHinzufügenGeschwindigkeitEither, widgetHinzufügenZugtypEither)
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(..), tryReadStatusVar
                        , auswertenStatusVarIOStatus, ausführenStatusVarBefehl
                        , ausführenStatusVarAktion, auswertenStatusVarMStatusT)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialisiert auf Gui-Typen
-type ObjektGui = ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets WSWidgets PLWidgets
+type ObjektGui =
+    ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets PLWidgets
 
 -- | 'ObjektReader' spezialisiert auf Gui-Typen
 type ObjektGuiReader m = ObjektReader ObjektGui m
@@ -197,6 +208,8 @@ instance ObjektKlasse ObjektGui where
 
     type KU ObjektGui = KUWidgets
 
+    type KO ObjektGui = KOWidgets
+
     type WS ObjektGui = WSWidgets
 
     type PL ObjektGui = PLWidgets
@@ -208,83 +221,6 @@ instance ObjektKlasse ObjektGui where
 
     ausObjekt :: ObjektGui -> ObjektGui
     ausObjekt = id
-
--- | Auswahlmöglichkeiten zu 'WidgetHinzufügen'
-data HinzufügenZiel
-    = HinzufügenWegstrecke
-    | HinzufügenPlan
-
--- | Widget zum Hinzufügen einer Wegstrecke/eines Plans
-newtype WidgetHinzufügen (e :: HinzufügenZiel) (w :: Type) (a :: Type) =
-    WidgetHinzufügen { widgetHinzufügen :: w }
-    deriving (Eq)
-
-instance (MitWidget w) => MitWidget (WidgetHinzufügen e w a) where
-    erhalteWidget :: WidgetHinzufügen e w a -> Gtk.Widget
-    erhalteWidget = erhalteWidget . widgetHinzufügen
-
-instance (MitRegistrierterCheckButton w)
-    => MitRegistrierterCheckButton (WidgetHinzufügen e w a) where
-    erhalteRegistrierterCheckButton :: WidgetHinzufügen e w a -> RegistrierterCheckButton
-    erhalteRegistrierterCheckButton = erhalteRegistrierterCheckButton . widgetHinzufügen
-
--- | Konvertiere ein 'WidgetHinzufügen' in das zugehörige 'ZugtypEither'-Äquivalent
-widgetHinzufügenZugtypEither
-    :: WidgetHinzufügen e w (a z) -> WidgetHinzufügen e w (ZugtypEither a)
-widgetHinzufügenZugtypEither = WidgetHinzufügen . widgetHinzufügen
-
--- | Konvertiere ein 'WidgetHinzufügen' in das zugehörige 'GeschwindigkeitEither'-Äquivalent.
-widgetHinzufügenGeschwindigkeitEither
-    :: WidgetHinzufügen e w (a g z) -> WidgetHinzufügen e w (GeschwindigkeitEither a z)
-widgetHinzufügenGeschwindigkeitEither = WidgetHinzufügen . widgetHinzufügen
-
--- | Konvertiere ein 'WidgetHinzufügen' in eine beliebiges 'GeschwindigkeitVariante'-Äquivalent.
-widgetHinzufügenGeschwindigkeitVariante
-    :: WidgetHinzufügen e w (GeschwindigkeitEither a z) -> WidgetHinzufügen e w (a g z)
-widgetHinzufügenGeschwindigkeitVariante = WidgetHinzufügen . widgetHinzufügen
-
--- | Konvertiere ein 'WidgetHinzufügen'-'MitRegistrierterCheckButton' in den zugehörigen 'Void'-Typ
-widgetHinzufügenRegistrierterCheckButtonVoid
-    :: (MitRegistrierterCheckButton r)
-    => WidgetHinzufügen e r a
-    -> WidgetHinzufügen e RegistrierterCheckButton Void
-widgetHinzufügenRegistrierterCheckButtonVoid =
-    WidgetHinzufügen . erhalteRegistrierterCheckButton . widgetHinzufügen
-
--- | Erhalte die aktuelle Auswahl des inkludierten 'MitAuswahlWidget'
-widgetHinzufügenAktuelleAuswahl
-    :: (Eq b, MitAuswahlWidget w b, MonadIO m) => WidgetHinzufügen e w a -> m b
-widgetHinzufügenAktuelleAuswahl = aktuelleAuswahl . erhalteAuswahlWidget . widgetHinzufügen
-
--- | Überprüfe, ob der inkludierte 'MitRegistrierterCheckButton' aktuell gedrückt ist.
-widgetHinzufügenToggled
-    :: (MitRegistrierterCheckButton t, MonadIO m) => WidgetHinzufügen e t a -> m Bool
-widgetHinzufügenToggled =
-    registrierterCheckButtonToggled . erhalteRegistrierterCheckButton . widgetHinzufügen
-
--- | Entferne ein 'WidgetHinzufügen' (falls vorhanden) aus dem zugehörigen Container
-widgetHinzufügenContainerRemoveJust
-    :: (MitContainer c, MitWidget w, MonadIO m)
-    => WidgetHinzufügen e c a
-    -> Maybe (WidgetHinzufügen e w a)
-    -> m ()
-widgetHinzufügenContainerRemoveJust c w =
-    containerRemoveJust (widgetHinzufügen c) $ widgetHinzufügen <$> w
-
--- | Füge ein 'WidgetHinzufügen' zu einer zugehörigen Box hinzu
-widgetHinzufügenBoxPackNew :: (MitBox b, MitWidget w, MonadIO m)
-                            => WidgetHinzufügen e b a
-                            -> m w
-                            -> m (WidgetHinzufügen e w a)
-widgetHinzufügenBoxPackNew b =
-    fmap WidgetHinzufügen . boxPackWidgetNewDefault (widgetHinzufügen b)
-
--- | Text mit Typ-Annotation
-newtype KategorieText a = KategorieText { kategorieText :: Sprache -> Text }
-
--- | Label für 'BoxWegstreckeHinzufügen'/'BoxPlanHinzufügen'
-class Kategorie a where
-    kategorie :: KategorieText a
 
 instance Kategorie (BGWidgets g z) where
     kategorie :: KategorieText (BGWidgets g z)
@@ -306,6 +242,10 @@ instance Kategorie KUWidgets where
     kategorie :: KategorieText KUWidgets
     kategorie = KategorieText Language.kupplungen
 
+instance Kategorie KOWidgets where
+    kategorie :: KategorieText KOWidgets
+    kategorie = KategorieText Language.kontakte
+
 instance Kategorie (WSWidgets z) where
     kategorie :: KategorieText (WSWidgets z)
     kategorie = KategorieText Language.wegstrecken
@@ -313,69 +253,6 @@ instance Kategorie (WSWidgets z) where
 instance Kategorie PLWidgets where
     kategorie :: KategorieText PLWidgets
     kategorie = KategorieText Language.pläne
-
--- | CheckButton zum hinzufügen zu einer Wegstrecke
-type CheckButtonWegstreckeHinzufügen e a =
-    WidgetHinzufügen 'HinzufügenWegstrecke (WegstreckeCheckButton e) a
-
--- | Box zur Auswahl der 'Wegstrecke'n-Elemente
-type BoxWegstreckeHinzufügen a =
-    WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
-
--- | Erstelle eine neue 'BoxWegstreckeHinzufügen'.
-boxWegstreckeHinzufügenNew :: (MonadIO m) => m (BoxWegstreckeHinzufügen a)
-boxWegstreckeHinzufügenNew =
-    liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-
-deriving instance (Eq e) => Eq (WegstreckeCheckButton e)
-
--- | 'RegistrierterCheckButton', potentiell mit zusätzlicher Richtungsauswahl.
-data WegstreckeCheckButton e where
-    WegstreckeCheckButton :: { wcbvRegistrierterCheckButton :: RegistrierterCheckButton }
-        -> WegstreckeCheckButton Void
-    WegstreckeCheckButtonRichtung :: { wcbrWidget :: Gtk.Widget
-                                     , wcbrRegistrierterCheckButton :: RegistrierterCheckButton
-                                     , wcbrRichtungsAuswahl :: AuswahlWidget Richtung
-                                     } -> WegstreckeCheckButton Richtung
-
-instance MitWidget (WegstreckeCheckButton e) where
-    erhalteWidget :: WegstreckeCheckButton e -> Gtk.Widget
-    erhalteWidget WegstreckeCheckButton {wcbvRegistrierterCheckButton} =
-        erhalteWidget wcbvRegistrierterCheckButton
-    erhalteWidget WegstreckeCheckButtonRichtung {wcbrWidget} = wcbrWidget
-
-instance MitRegistrierterCheckButton (WegstreckeCheckButton e) where
-    erhalteRegistrierterCheckButton :: WegstreckeCheckButton e -> RegistrierterCheckButton
-    erhalteRegistrierterCheckButton
-        WegstreckeCheckButton {wcbvRegistrierterCheckButton} = wcbvRegistrierterCheckButton
-    erhalteRegistrierterCheckButton
-        WegstreckeCheckButtonRichtung {wcbrRegistrierterCheckButton} = wcbrRegistrierterCheckButton
-
-instance MitAuswahlWidget (WegstreckeCheckButton Richtung) Richtung where
-    erhalteAuswahlWidget :: WegstreckeCheckButton Richtung -> AuswahlWidget Richtung
-    erhalteAuswahlWidget
-        WegstreckeCheckButtonRichtung {wcbrRichtungsAuswahl} = wcbrRichtungsAuswahl
-
--- | Button zum hinzufügen eines Plans
-type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
-
--- | Box zum hinzufügen eines Plans
-type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
-
--- | Erstelle eine neue 'BoxPlanHinzufügen'.
---
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
--- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-boxPlanHinzufügenNew :: forall a r m.
-                      (Kategorie a, SpracheGuiReader r m, MonadIO m)
-                      => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                      -> m (BoxPlanHinzufügen a)
-boxPlanHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
-    box <- liftIO $ Gtk.vBoxNew False 0
-    boxPackWidgetNewDefault box
-        $ labelSpracheNew maybeTVar
-        $ kategorieText (kategorie :: KategorieText a)
-    pure box
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets =
@@ -2373,6 +2250,17 @@ buttonKuppelnPackNew box kupplung tvarSprachwechsel tvarEventAusführen = do
         $ eventAusführen tvarEventAusführen
         $ flip runReaderT objektReader
         $ ausführenStatusVarAktion (Kuppeln kupplung) statusVar
+
+-- ** Kontakt
+data KOWidgets = KOWidgets
+    deriving Eq
+
+kontaktPackNew :: (MonadIO m) => Kontakt -> m KOWidgets
+kontaktPackNew = _undefined --TODO
+
+instance Aeson.ToJSON KOWidgets where
+    toJSON :: KOWidgets -> Aeson.Value
+    toJSON = _undefined --TODO
 
 -- ** Wegstrecke
 -- | 'Wegstrecke' mit zugehörigen Widgets
