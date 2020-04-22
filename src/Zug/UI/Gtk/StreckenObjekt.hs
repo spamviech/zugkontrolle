@@ -158,6 +158,12 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), mitContainerRemove, 
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (SpracheGui, SpracheGuiReader(..), MitSpracheGui(..), verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
+       (WegstreckenElement(..), WegstreckeCheckButtonVoid, MitFortfahrenWennToggledWegstrecke(..)
+      , FortfahrenWenToggledWegstreckeReader(..), hinzufügenWidgetWegstreckePackNew
+      , hinzufügenWidgetWegstreckeRichtungPackNew, entferneHinzufügenWegstreckeWidgets
+      , foldWegstreckeHinzufügen, PlanElement(..), MitTMVarPlanObjekt(..)
+      , TMVarPlanObjektReader(..), hinzufügenWidgetPlanPackNew, entferneHinzufügenPlanWidgets)
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), WidgetHinzufügen, HinzufügenZiel(..)
       , BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew, CheckButtonWegstreckeHinzufügen
@@ -166,6 +172,8 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
       , widgetHinzufügenRegistrierterCheckButtonVoid, widgetHinzufügenAktuelleAuswahl
       , widgetHinzufügenToggled, widgetHinzufügenGeschwindigkeitVariante
       , widgetHinzufügenGeschwindigkeitEither, widgetHinzufügenZugtypEither)
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
+       (WidgetsTyp(..), EventAusführen(..), eventAusführen, ohneEvent)
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(..), tryReadStatusVar
                        , auswertenStatusVarIOStatus, ausführenStatusVarBefehl
                        , ausführenStatusVarAktion, auswertenStatusVarMStatusT)
@@ -357,113 +365,6 @@ readSpracheGui statusVar = liftIO $ atomically (tryReadStatusVar statusVar) >>= 
     (Left status) -> status ^. sprache
     (Right spracheGui) -> spracheGui
 
--- | Klasse für Widgets-Repräsentation von Objekt-Typen
-class (MitWidget s) => WidgetsTyp s where
-    -- | Assoziierter 'Objekt'-Typ
-    type ObjektTyp s
-
-    -- | Erhalte den eingebetteten 'ObjektTyp'
-    erhalteObjektTyp :: s -> ObjektTyp s
-
-    -- | Entferne Widgets inklusive aller Hilfswidgets aus den entsprechenden Boxen.
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => s -> m ()
-
-    -- | 'Gtk.Box', in die der Entfernen-Knopf von 'buttonEntfernenPack' gepackt wird.
-    -- Hier definiert, damit keine 'MitBox'-Instanz notwendig ist.
-    boxButtonEntfernen :: s -> Gtk.Box
-
-    -- | Erhalte die 'TVar', die steuert welche Widgets bei 'Zug.UI.Gtk.SpracheGui.sprachwechsel'
-    -- angepasst werden.
-    tvarSprache :: s -> TVar (Maybe [Sprache -> IO ()])
-
-    -- | Erhalte die 'TVar', die steuert ob Events ausgeführt werden.
-    tvarEvent :: s -> TVar EventAusführen
-
--- | Soll das zugehörige Event ausgeführt werden?
-data EventAusführen
-    = EventAusführen
-    | EventIgnorieren
-    deriving (Eq, Show)
-
--- | Führe ein Event aus oder ignoriere es.
-eventAusführen :: (MonadIO m) => TVar EventAusführen -> m () -> m ()
-eventAusführen tvar aktion = liftIO (readTVarIO tvar) >>= \case
-    EventAusführen -> aktion
-    EventIgnorieren -> pure ()
-
--- | Führe eine Gtk-Aktion ohne zugehöriges Event aus.
-ohneEvent :: TVar EventAusführen -> IO () -> IO ()
-ohneEvent tvarEventAusführen aktion = Gtk.postGUIAsync $ do
-    alterWert <- atomically $ swapTVar tvarEventAusführen EventIgnorieren
-    aktion
-    when (alterWert == EventAusführen)
-        $ atomically
-        $ writeTVar tvarEventAusführen EventAusführen
-
--- | Klasse für Gui-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
-class (WidgetsTyp s) => WegstreckenElement s where
-    -- | Auswahl-Typ beim erstellen einer Wegstrecke
-    type CheckButtonAuswahl s
-
-    type CheckButtonAuswahl s = Void
-
-    -- | Getter auf 'RegistrierterCheckButton', ob 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll
-    getterWegstrecke :: Lens.Getter s (CheckButtonWegstreckeHinzufügen (CheckButtonAuswahl s) s)
-
-    -- | Assoziierte 'BoxWegstreckeHinzufügen', in der 'MitRegistrierterCheckButton' gepackt ist.
-    boxWegstrecke :: ObjektTyp s -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen s)
-
--- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
-entferneHinzufügenWegstreckeWidgets
-    :: forall s r m. (WegstreckenElement s, DynamischeWidgetsReader r m, MonadIO m) => s -> m ()
-entferneHinzufügenWegstreckeWidgets wegsteckenElement = do
-    box <- Lens.view (boxWegstrecke $ erhalteObjektTyp wegsteckenElement)
-        <$> erhalteDynamischeWidgets :: m (BoxWegstreckeHinzufügen s)
-    widgetHinzufügenContainerRemoveJust box $ Just $ wegsteckenElement ^. getterWegstrecke
-
--- | Typ-unspezifischer 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke
-type WegstreckeCheckButtonVoid =
-    WidgetHinzufügen 'HinzufügenWegstrecke RegistrierterCheckButton Void
-
--- | Alle 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke im aktuellen 'StatusGui'
-foldWegstreckeHinzufügen :: Lens.Fold StatusGui WegstreckeCheckButtonVoid
-foldWegstreckeHinzufügen = Lens.folding registrierteCheckButtons
-    where
-        registrierteCheckButtons :: StatusGui -> [WegstreckeCheckButtonVoid]
-        registrierteCheckButtons status =
-            map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. bahngeschwindigkeiten)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. streckenabschnitte)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. weichen)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. kupplungen)
-
--- | Klasse für Gui-Darstellungen von Typen, die zur Erstellung eines 'Plan's verwendet werden.
-class (WidgetsTyp s) => PlanElement s where
-    -- | Faltung auf 'Gtk.Button's (falls vorhanden), welches 'StreckenObjekt' für eine 'Aktion' verwendet werden soll
-    foldPlan :: Lens.Fold s (Maybe (ButtonPlanHinzufügen s))
-
-    -- | Aller assoziierten 'BoxPlanHinzufügen', in denen jeweiliger 'ButtonPlanHinzufügen' gepackt ist.
-    -- Die Reihenfolge muss zum Ergebnis von 'foldPlan' passen.
-    -- Wird für 'entferneHinzufügenPlanWidgets' benötigt.
-    boxenPlan :: ObjektTyp s -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen s)
-
--- | Entferne 'Widget's zum 'Plan' erstellen aus den entsprechenden 'Box'en.
-entferneHinzufügenPlanWidgets
-    :: forall s r m. (PlanElement s, DynamischeWidgetsReader r m, MonadIO m) => s -> m ()
-entferneHinzufügenPlanWidgets planElement = do
-    boxenPlan <- Lens.toListOf (boxenPlan $ erhalteObjektTyp planElement)
-        <$> erhalteDynamischeWidgets :: m [BoxPlanHinzufügen s]
-    sequence_
-        $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlan
-        <*> ZipList (planElement ^.. foldPlan)
-
 -- | Neuen Entfernen-Knopf an das Ende der zugehörigen 'Box' hinzufügen.
 -- Beim drücken werden 'entferneWidgets' und die übergebene 'IOStatusGui'-Aktion ausgeführt.
 --
@@ -480,81 +381,6 @@ buttonEntfernenPackNew w entfernenAktion = do
         $ do
             auswertenStatusVarIOStatus entfernenAktion statusVar
             entferneWidgets w
-
--- ** Widget mit Name und CheckButton erstellen
--- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen.
---
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
--- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-hinzufügenWidgetWegstreckePackNew
-    :: forall o m.
-    (ObjektGuiReader m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m)
-    => ObjektTyp o
-    -> TVar (Maybe [Sprache -> IO ()])
-    -> m (CheckButtonWegstreckeHinzufügen Void o)
-hinzufügenWidgetWegstreckePackNew objekt tvar = do
-    dynamischeWidgets@DynamischeWidgets
-        {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
-    let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
-    widgetHinzufügenBoxPackNew box
-        $ WegstreckeCheckButton
-        <$> registrierterCheckButtonNew
-            (Just tvar)
-            (const $ erhalteName objekt)
-            fortfahrenWennToggledWegstrecke
-
--- | Erzeuge einen 'RegistrierterCheckButton'.
--- Dieser enthält ein 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
---
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
--- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-hinzufügenWidgetWegstreckeRichtungPackNew
-    :: forall o m.
-    (ObjektGuiReader m, StreckenObjekt (ObjektTyp o), WegstreckenElement o, MonadIO m)
-    => ObjektTyp o
-    -> NonEmpty Richtung
-    -> TVar (Maybe [Sprache -> IO ()])
-    -> m (CheckButtonWegstreckeHinzufügen Richtung o)
-hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
-    dynamischeWidgets@DynamischeWidgets
-        {fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
-    let box = dynamischeWidgets ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
-    let justTVar = Just tvar
-    widgetHinzufügenBoxPackNew box $ do
-        hBox <- liftIO $ Gtk.hBoxNew False 0
-        wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox
-            $ registrierterCheckButtonNew
-                justTVar
-                (const $ erhalteName objekt)
-                fortfahrenWennToggledWegstrecke
-        wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox
-            $ auswahlRadioButtonNew richtungen justTVar
-            $ const Text.empty
-        pure
-            WegstreckeCheckButtonRichtung
-            { wcbrWidget = erhalteWidget hBox
-            , wcbrRegistrierterCheckButton
-            , wcbrRichtungsAuswahl
-            }
-
--- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
---
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
--- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-hinzufügenWidgetPlanPackNew
-    :: (ObjektGuiReader m, StreckenObjekt (ObjektTyp o), ObjektElement (ObjektTyp o), MonadIO m)
-    => BoxPlanHinzufügen o
-    -> ObjektTyp o
-    -> TVar (Maybe [Sprache -> IO ()])
-    -> m (ButtonPlanHinzufügen o)
-hinzufügenWidgetPlanPackNew box objekt tvar = do
-    DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
-    widgetHinzufügenBoxPackNew box
-        $ buttonNewWithEventLabel (Just tvar) (const $ erhalteName objekt)
-        $ atomically
-        $ putTMVar tmvarPlanObjekt
-        $ Just
-        $ zuObjekt objekt
 
 -- * Darstellung von Streckenobjekten
 -- ** Bahngeschwindigkeit
