@@ -22,7 +22,6 @@ module Zug.UI.Save
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
-import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types
        (FromJSON(..), ToJSON(..), Value(..), Parser, Object, Pair, object, (.:), (.:?), (.=))
 import Data.List (partition)
@@ -33,10 +32,9 @@ import Data.Word (Word8)
 import Data.Yaml (encodeFile, decodeFileEither)
 import System.Directory (doesFileExist)
 
-import Zug.Anbindung
-       (Wartezeit(..), Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..), PCF8574(..)
-      , PCF8574Variant(..), Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
-      , Kontakt(..), kontaktNew, Wegstrecke(..), InterruptReader(), I2CReader())
+import Zug.Anbindung (Wartezeit(..), Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..)
+                    , PCF8574(..), PCF8574Variant(..), Bahngeschwindigkeit(..)
+                    , Streckenabschnitt(..), Weiche(..), Kupplung(..), Kontakt(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Enums
        (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
@@ -78,6 +76,9 @@ weichenJS = "Weichen"
 kupplungenJS :: Text
 kupplungenJS = "Kupplungen"
 
+kontakteJS :: Text
+kontakteJS = "Kontakte"
+
 wegstreckenJS :: Text
 wegstreckenJS = "Wegstrecken"
 
@@ -91,6 +92,7 @@ instance FromJSON (Sprache -> Status) where
         <*> ((v .: streckenabschnitteJS) <|> pure [])
         <*> ((v .: weichenJS) <|> pure [])
         <*> ((v .: kupplungenJS) <|> pure [])
+        <*> ((v .: kontakteJS) <|> pure [])
         <*> ((v .: wegstreckenJS) <|> pure [])
         <*> ((v .: pläneJS) <|> pure [])
     parseJSON _value = mzero
@@ -114,11 +116,12 @@ instance ( FromJSON (GeschwindigkeitEither bg 'Märklin)
          , FromJSON (we 'Märklin)
          , FromJSON (we 'Lego)
          , FromJSON ku
+         , FromJSON ko
          , FromJSON (ws 'Lego)
          , FromJSON (ws 'Märklin)
          , FromJSON pl
-         ) => FromJSON (ObjektAllgemein bg st we ku ws pl) where
-    parseJSON :: Value -> Parser (ObjektAllgemein bg st we ku ws pl)
+         ) => FromJSON (ObjektAllgemein bg st we ku ko ws pl) where
+    parseJSON :: Value -> Parser (ObjektAllgemein bg st we ku ko ws pl)
     parseJSON value =
         OBahngeschwindigkeit
         <$> parseJSON value <|> OStreckenabschnitt
@@ -134,15 +137,17 @@ instance ( ToJSON (GeschwindigkeitEither bg 'Märklin)
          , ToJSON (we 'Märklin)
          , ToJSON (we 'Lego)
          , ToJSON ku
+         , ToJSON ko
          , ToJSON (ws 'Märklin)
          , ToJSON (ws 'Lego)
          , ToJSON pl
-         ) => ToJSON (ObjektAllgemein bg st we ku ws pl) where
-    toJSON :: ObjektAllgemein bg st we ku ws pl -> Value
+         ) => ToJSON (ObjektAllgemein bg st we ku ko ws pl) where
+    toJSON :: ObjektAllgemein bg st we ku ko ws pl -> Value
     toJSON (OBahngeschwindigkeit bg) = toJSON bg
     toJSON (OStreckenabschnitt st) = toJSON st
     toJSON (OWeiche we) = toJSON we
     toJSON (OKupplung ku) = toJSON ku
+    toJSON (OKontakt ko) = toJSON ko
     toJSON (OWegstrecke ws) = toJSON ws
     toJSON (OPlan pl) = toJSON pl
 
@@ -602,18 +607,9 @@ instance ToJSON Kupplung where
 kontaktAnschlussJS :: Text
 kontaktAnschlussJS = "KontaktAnschluss"
 
--- | Hilfs-Typ für laden eines 'Kontakt's.
-data KontaktHelfer = KontaktHelfer Text Anbindung.Value Anschluss
-
--- | Erzeuge einen 'Kontakt' aus einem 'KontaktHelper'.
-kontaktErstellen :: (InterruptReader r m, I2CReader r m, MonadIO m) => KontaktHelfer -> m Kontakt
-kontaktErstellen (KontaktHelfer name fließend kontaktAnschluss) =
-    kontaktNew name fließend kontaktAnschluss
-
-instance FromJSON KontaktHelfer where
-    parseJSON :: Value -> Parser KontaktHelfer
-    parseJSON (Object v) =
-        KontaktHelfer <$> v .: nameJS <*> v .: fließendJS <*> v .: kontaktAnschlussJS
+instance FromJSON Kontakt where
+    parseJSON :: Value -> Parser Kontakt
+    parseJSON (Object v) = Kontakt <$> v .: nameJS <*> v .: fließendJS <*> v .: kontaktAnschlussJS
     parseJSON _value = mzero
 
 instance ToJSON Kontakt where
@@ -627,24 +623,16 @@ instance ToJSON Kontakt where
 weichenRichtungenJS :: Text
 weichenRichtungenJS = "Weichen-Richtungen"
 
-instance FromJSON (Wegstrecke 'Märklin) where
-    parseJSON :: Value -> Parser (Wegstrecke 'Märklin)
+instance (FromJSON (GeschwindigkeitEither Bahngeschwindigkeit z), FromJSON (Weiche z))
+    => FromJSON (Wegstrecke z) where
+    parseJSON :: Value -> Parser (Wegstrecke z)
     parseJSON (Object v) =
         Wegstrecke <$> (v .: nameJS)
-        <*> (v .: bahngeschwindigkeitenJS)
-        <*> (v .: streckenabschnitteJS)
-        <*> (v .: weichenRichtungenJS)
-        <*> (v .: kupplungenJS)
-    parseJSON _value = mzero
-
-instance FromJSON (Wegstrecke 'Lego) where
-    parseJSON :: Value -> Parser (Wegstrecke 'Lego)
-    parseJSON (Object v) =
-        Wegstrecke <$> (v .: nameJS)
-        <*> (v .: bahngeschwindigkeitenJS)
-        <*> (v .: streckenabschnitteJS)
-        <*> (v .: weichenRichtungenJS)
-        <*> (v .: kupplungenJS)
+        <*> v .: bahngeschwindigkeitenJS
+        <*> v .: streckenabschnitteJS
+        <*> v .: weichenRichtungenJS
+        <*> v .: kupplungenJS
+        <*> v .: kontakteJS
     parseJSON _value = mzero
 
 instance ToJSON (Wegstrecke z) where
@@ -736,7 +724,7 @@ dauerschleifeJS = "Dauerschleife"
 instance FromJSON Aktion where
     parseJSON :: Value -> Parser Aktion
     parseJSON (Object v) = (v .: aktionJS) >>= \s -> if
-        | s == wartenJS -> Warten <$> v .: wertJS
+        | s == wartenJS -> (Warten <$> v .: wertJS) <|> (WartenAuf <$> v .: kontaktJS)
         | s == einstellenJS -> (AWegstreckeMärklin . Einstellen <$> v .: wegstreckeJS)
             <|> (AWegstreckeLego . Einstellen <$> v .: wegstreckeJS)
         | s == stellenJS -> AWeiche <$> (Stellen <$> v .: weicheJS <*> v .: richtungJS)
@@ -836,6 +824,7 @@ instance FromJSON Aktion where
 
 aktionToJSON :: Text -> Aktion -> Value
 aktionToJSON _name (Warten wert) = object [aktionJS .= wartenJS, wertJS .= wert]
+aktionToJSON _name (WartenAuf kontakt) = object [aktionJS .= wartenJS, kontaktJS .= kontakt]
 aktionToJSON _name (AWegstreckeMärklin (Einstellen w)) =
     object [wegstreckeJS .= w, aktionJS .= einstellenJS]
 aktionToJSON _name (AWegstreckeLego (Einstellen w)) =
