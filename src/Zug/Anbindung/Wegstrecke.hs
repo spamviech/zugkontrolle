@@ -6,7 +6,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 
 {-|
 Description: Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegebene Richtung.
@@ -296,6 +295,11 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
 
             fahrtrichtungPortMapLow = pcf8574Gruppieren fahrtrichtungPcf8574PortsLow
 
+    enthalteneBahngeschwindigkeiten :: GeschwindigkeitPhantom Wegstrecke b z
+                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
+    enthalteneBahngeschwindigkeiten (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten}) =
+        wsBahngeschwindigkeiten
+
 instance StreckenabschnittKlasse (Wegstrecke z) where
     strom :: (I2CReader r m, MonadIO m) => Wegstrecke z -> Strom -> m ()
     strom ws@Wegstrecke {wsStreckenabschnitte} an =
@@ -347,6 +351,9 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
             stromPortMapHigh = pcf8574Gruppieren stromPcf8574PortsHigh
 
             stromPortMapLow = pcf8574Gruppieren stromPcf8574PortsLow
+
+    enthalteneStreckenabschnitte :: Wegstrecke z -> Set Streckenabschnitt
+    enthalteneStreckenabschnitte Wegstrecke {wsStreckenabschnitte} = wsStreckenabschnitte
 
 instance KupplungKlasse (Wegstrecke z) where
     kuppeln :: (I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
@@ -403,6 +410,9 @@ instance KupplungKlasse (Wegstrecke z) where
 
             kupplungsPortMapLow = pcf8574Gruppieren kupplungsPcf8574PortsLow
 
+    enthalteneKupplungen :: Wegstrecke z -> Set Kupplung
+    enthalteneKupplungen Wegstrecke {wsKupplungen} = wsKupplungen
+
 instance KontaktKlasse (Wegstrecke z) where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
     warteAufSignal Wegstrecke {wsKontakte} = do
@@ -414,6 +424,9 @@ instance KontaktKlasse (Wegstrecke z) where
                               else INT_EDGE_RISING
                         )) $ Set.toList wsKontakte
         warteAufÄnderung listeAnschlussIntEdge
+
+    enthalteneKontakte :: Wegstrecke z -> Set Kontakt
+    enthalteneKontakte Wegstrecke {wsKontakte} = wsKontakte
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where

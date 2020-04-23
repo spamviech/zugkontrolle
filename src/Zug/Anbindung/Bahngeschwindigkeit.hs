@@ -38,7 +38,8 @@ import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusfü
 import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), Fahrtrichtung(Vorwärts))
+import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither()
+                , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), Fahrtrichtung(Vorwärts))
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
 import qualified Zug.Language as Language
 
@@ -181,7 +182,11 @@ class ( StreckenObjekt (b 'Pwm 'Märklin)
     -- | Gebe allen Zügen den Befehl in einer bestimmen Richtung zu fahren
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => b g 'Lego -> Fahrtrichtung -> m ()
-    {-# MINIMAL geschwindigkeit, fahrstrom, umdrehen, fahrtrichtungEinstellen #-}
+
+    -- | Alle enthaltenen Bahngeschwindigkeiten.
+    enthalteneBahngeschwindigkeiten :: (GeschwindigkeitEitherKlasse g)
+                                    => b g z
+                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
 
 -- | Erhalte das Element an Position /i/, angefangen bei /1/.
 -- Ist die Position größer als die Länge der Liste wird das letzte Element zurückgegeben.
@@ -297,3 +302,8 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                        then fließend
                        else gesperrt)
                     bg
+
+    enthalteneBahngeschwindigkeiten :: (GeschwindigkeitEitherKlasse g)
+                                    => Bahngeschwindigkeit g z
+                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
+    enthalteneBahngeschwindigkeiten = Set.singleton . zuGeschwindigkeitEither

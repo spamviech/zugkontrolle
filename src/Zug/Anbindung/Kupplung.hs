@@ -14,6 +14,7 @@ module Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit) wh
 import Control.Monad.Trans (MonadIO())
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss (Value(), Anschluss(), AnschlussKlasse(anschlussWrite), I2CReader())
@@ -49,13 +50,19 @@ instance StreckenAtom Kupplung where
 class (StreckenObjekt k) => KupplungKlasse k where
     -- | Kupplung betätigen
     kuppeln :: (I2CReader r m, MonadIO m) => k -> m ()
-    {-# MINIMAL kuppeln #-}
+
+    -- | Alle enthaltenen Kupplungen.
+    enthalteneKupplungen :: k -> Set Kupplung
 
 instance (KupplungKlasse (ku 'Märklin), KupplungKlasse (ku 'Lego))
     => KupplungKlasse (ZugtypEither ku) where
     kuppeln :: (I2CReader r m, MonadIO m) => ZugtypEither ku -> m ()
     kuppeln (ZugtypMärklin a) = kuppeln a
     kuppeln (ZugtypLego a) = kuppeln a
+
+    enthalteneKupplungen :: ZugtypEither ku -> Set Kupplung
+    enthalteneKupplungen (ZugtypMärklin a) = enthalteneKupplungen a
+    enthalteneKupplungen (ZugtypLego a) = enthalteneKupplungen a
 
 -- | Zeit, die Strom beim Kuppeln anliegt
 kuppelnZeit :: Wartezeit
@@ -68,3 +75,6 @@ instance KupplungKlasse Kupplung where
             anschlussWrite kupplungsAnschluss $ fließend ku
             warte kuppelnZeit
             anschlussWrite kupplungsAnschluss $ gesperrt ku
+
+    enthalteneKupplungen :: Kupplung -> Set Kupplung
+    enthalteneKupplungen = Set.singleton

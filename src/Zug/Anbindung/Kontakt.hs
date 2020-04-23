@@ -10,6 +10,7 @@ module Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..)) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss
@@ -46,11 +47,18 @@ class (StreckenObjekt k) => KontaktKlasse k where
     -- | Blockiere den aktuellen Thread, bis ein 'Kontakt'-Ereignis eintritt.
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => k -> m ()
 
+    -- | Alle enthaltenen Kontakte.
+    enthalteneKontakte :: k -> Set Kontakt
+
 instance (KontaktKlasse (k 'Märklin), KontaktKlasse (k 'Lego))
     => KontaktKlasse (ZugtypEither k) where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => ZugtypEither k -> m ()
     warteAufSignal (ZugtypMärklin k) = warteAufSignal k
     warteAufSignal (ZugtypLego k) = warteAufSignal k
+
+    enthalteneKontakte :: ZugtypEither k -> Set Kontakt
+    enthalteneKontakte (ZugtypMärklin k) = enthalteneKontakte k
+    enthalteneKontakte (ZugtypLego k) = enthalteneKontakte k
 
 instance KontaktKlasse Kontakt where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => Kontakt -> m ()
@@ -61,3 +69,6 @@ instance KontaktKlasse Kontakt where
                     then INT_EDGE_FALLING
                     else INT_EDGE_RISING
                   )]
+
+    enthalteneKontakte :: Kontakt -> Set Kontakt
+    enthalteneKontakte = Set.singleton

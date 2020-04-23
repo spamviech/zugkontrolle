@@ -26,7 +26,7 @@ import Zug.Anbindung.Anschluss
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Pwm (PwmReader, pwmServo)
 import Zug.Anbindung.Wartezeit (Wartezeit(MilliSekunden), warte)
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), Richtung())
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), Richtung())
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->), (<|>))
 import qualified Zug.Language as Language
 
@@ -93,7 +93,10 @@ class (StreckenObjekt w) => WeicheKlasse w where
 
     -- | Erhalte alle Richtungen einer Weiche
     erhalteRichtungen :: w -> NonEmpty Richtung
-    {-# MINIMAL stellen, erhalteRichtungen #-}
+
+    -- | Alle enthaltenen Weichen.
+    enthalteneWeichen :: w -> Set (ZugtypEither Weiche)
+    {-# MINIMAL stellen, erhalteRichtungen, enthalteneWeichen #-}
 
 instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
     => WeicheKlasse (ZugtypEither we) where
@@ -105,11 +108,15 @@ instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
     erhalteRichtungen (ZugtypMärklin a) = erhalteRichtungen a
     erhalteRichtungen (ZugtypLego a) = erhalteRichtungen a
 
+    enthalteneWeichen :: ZugtypEither we -> Set (ZugtypEither Weiche)
+    enthalteneWeichen (ZugtypMärklin a) = enthalteneWeichen a
+    enthalteneWeichen (ZugtypLego a) = enthalteneWeichen a
+
 -- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
 weicheZeit :: Wartezeit
 weicheZeit = MilliSekunden 250
 
-instance WeicheKlasse (Weiche z) where
+instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
     stellen we@LegoWeiche {welRichtungsPin, welRichtungen} richtung
         | richtung == fst welRichtungen =
@@ -162,3 +169,6 @@ instance WeicheKlasse (Weiche z) where
     erhalteRichtungen
         LegoWeiche {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]
     erhalteRichtungen MärklinWeiche {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse
+
+    enthalteneWeichen :: Weiche z -> Set (ZugtypEither Weiche)
+    enthalteneWeichen = Set.singleton . zuZugtypEither

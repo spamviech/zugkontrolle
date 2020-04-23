@@ -14,6 +14,7 @@ module Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), Streckenabschnitt
 import Control.Monad.Trans (MonadIO())
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss (Value(), Anschluss(), AnschlussKlasse(anschlussWrite), I2CReader())
@@ -48,7 +49,9 @@ instance StreckenAtom Streckenabschnitt where
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
     strom :: (I2CReader r m, MonadIO m) => s -> Strom -> m ()
-    {-# MINIMAL strom #-}
+
+    -- | Alle enthaltenen 'Streckenabschnitt'e.
+    enthalteneStreckenabschnitte :: s -> Set Streckenabschnitt
 
 instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Lego))
     => StreckenabschnittKlasse (ZugtypEither s) where
@@ -56,9 +59,16 @@ instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Leg
     strom (ZugtypMärklin a) = strom a
     strom (ZugtypLego a) = strom a
 
+    enthalteneStreckenabschnitte :: ZugtypEither s -> Set Streckenabschnitt
+    enthalteneStreckenabschnitte (ZugtypMärklin a) = enthalteneStreckenabschnitte a
+    enthalteneStreckenabschnitte (ZugtypLego a) = enthalteneStreckenabschnitte a
+
 instance StreckenabschnittKlasse Streckenabschnitt where
     strom :: (I2CReader r m, MonadIO m) => Streckenabschnitt -> Strom -> m ()
     strom st@Streckenabschnitt {stromAnschluss} an =
         befehlAusführen
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
+
+    enthalteneStreckenabschnitte :: Streckenabschnitt -> Set Streckenabschnitt
+    enthalteneStreckenabschnitte = Set.singleton
