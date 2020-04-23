@@ -1,9 +1,11 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
   ( WidgetsTyp(..)
+  , WidgetsTypReader
   , EventAusführen(..)
   , eventAusführen
   , ohneEvent
@@ -38,7 +40,7 @@ class (MitWidget s) => WidgetsTyp s where
     erhalteObjektTyp :: s -> ObjektTyp s
 
     -- | Entferne Widgets inklusive aller Hilfswidgets aus den entsprechenden Boxen.
-    entferneWidgets :: (MonadIO m, MonadReader r m, ReaderConstraint s r) => s -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r s m) => s -> m ()
 
     -- | 'Gtk.Box', in die der Entfernen-Knopf von 'buttonEntfernenPack' gepackt wird.
     -- Hier definiert, damit keine 'MitBox'-Instanz notwendig ist.
@@ -50,6 +52,9 @@ class (MitWidget s) => WidgetsTyp s where
 
     -- | Erhalte die 'TVar', die steuert ob Events ausgeführt werden.
     tvarEvent :: s -> TVar EventAusführen
+
+-- | 'ReaderConstraint' für einen 'MonadReader'.
+type WidgetsTypReader r s m = (MonadReader r m, ReaderConstraint s r)
 
 -- | Soll das zugehörige Event ausgeführt werden?
 data EventAusführen

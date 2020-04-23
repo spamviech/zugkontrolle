@@ -54,7 +54,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
       , CheckButtonWegstreckeHinzufügen, WegstreckeCheckButton(..), BoxPlanHinzufügen
       , ButtonPlanHinzufügen, widgetHinzufügenBoxPackNew, widgetHinzufügenContainerRemoveJust
       , widgetHinzufügenRegistrierterCheckButtonVoid)
-import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..), WidgetsTypReader)
 import Zug.UI.StatusVar (StatusVar())
 
 -- | Klasse für Gui-Darstellung von Typen, die zur Erstellung einer 'Wegstrecke' verwendet werden.
@@ -90,22 +90,22 @@ instance (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetWegstreckePackNew
-    :: forall o r m.
-    ( FortfahrenWenToggledWegstreckeReader r o m
-    , ReaderConstraint o r
+    :: forall s r m.
+    ( FortfahrenWenToggledWegstreckeReader r s m
+    , WidgetsTypReader r s m
     , SpracheGuiReader r m
-    , StreckenObjekt (ObjektTyp o)
-    , WegstreckenElement o
+    , StreckenObjekt (ObjektTyp s)
+    , WegstreckenElement s
     , MonadIO m
     )
-    => ObjektTyp o
+    => ObjektTyp s
     -> TVar (Maybe [Sprache -> IO ()])
-    -> m (CheckButtonWegstreckeHinzufügen Void o)
+    -> m (CheckButtonWegstreckeHinzufügen Void s)
 hinzufügenWidgetWegstreckePackNew objekt tvar = do
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: m (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: m (FortfahrenWennToggledVar (StatusAllgemein s) (StatusVar s) WegstreckeCheckButtonVoid)
     reader <- ask
-    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
+    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
     widgetHinzufügenBoxPackNew box
         $ WegstreckeCheckButton
         <$> registrierterCheckButtonNew
@@ -119,23 +119,23 @@ hinzufügenWidgetWegstreckePackNew objekt tvar = do
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetWegstreckeRichtungPackNew
-    :: forall o r m.
-    ( FortfahrenWenToggledWegstreckeReader r o m
-    , ReaderConstraint o r
+    :: forall s r m.
+    ( FortfahrenWenToggledWegstreckeReader r s m
+    , WidgetsTypReader r s m
     , SpracheGuiReader r m
-    , StreckenObjekt (ObjektTyp o)
-    , WegstreckenElement o
+    , StreckenObjekt (ObjektTyp s)
+    , WegstreckenElement s
     , MonadIO m
     )
-    => ObjektTyp o
+    => ObjektTyp s
     -> NonEmpty Richtung
     -> TVar (Maybe [Sprache -> IO ()])
-    -> m (CheckButtonWegstreckeHinzufügen Richtung o)
+    -> m (CheckButtonWegstreckeHinzufügen Richtung s)
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: m (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: m (FortfahrenWennToggledVar (StatusAllgemein s) (StatusVar s) WegstreckeCheckButtonVoid)
     reader <- ask
-    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen o
+    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
     let justTVar = Just tvar
     widgetHinzufügenBoxPackNew box $ do
         hBox <- liftIO $ Gtk.hBoxNew False 0
@@ -156,10 +156,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets
-    :: forall s r m.
-    (WegstreckenElement s, MonadReader r m, ReaderConstraint s r, MonadIO m)
-    => s
-    -> m ()
+    :: forall s r m. (WegstreckenElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenWegstreckeWidgets wegsteckenElement = do
     box <- Lens.view (boxWegstrecke $ erhalteObjektTyp wegsteckenElement) <$> ask
         :: m (BoxWegstreckeHinzufügen s)
@@ -251,7 +248,7 @@ hinzufügenWidgetPlanPackNew box objekt tvar = do
 
 -- | Entferne 'Widget's zum 'Plan' erstellen aus den entsprechenden 'Box'en.
 entferneHinzufügenPlanWidgets
-    :: forall s r m. (PlanElement s, MonadReader r m, ReaderConstraint s r, MonadIO m) => s -> m ()
+    :: forall s r m. (PlanElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenPlanWidgets planElement = do
     boxenPlan <- Lens.toListOf (boxenPlan $ erhalteObjektTyp planElement) <$> ask
         :: m [BoxPlanHinzufügen s]
