@@ -173,7 +173,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
       , widgetHinzufügenToggled, widgetHinzufügenGeschwindigkeitVariante
       , widgetHinzufügenGeschwindigkeitEither, widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-       (WidgetsTyp(..), EventAusführen(..), eventAusführen, ohneEvent)
+       (WidgetsTyp(..), EventAusführen(..), eventAusführen, ohneEvent, buttonEntfernenPackNew)
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(..), tryReadStatusVar
                        , auswertenStatusVarIOStatus, ausführenStatusVarBefehl
                        , ausführenStatusVarAktion, auswertenStatusVarMStatusT)
@@ -229,38 +229,6 @@ instance ObjektKlasse ObjektGui where
 
     ausObjekt :: ObjektGui -> ObjektGui
     ausObjekt = id
-
-instance Kategorie (BGWidgets g z) where
-    kategorie :: KategorieText (BGWidgets g z)
-    kategorie = KategorieText Language.bahngeschwindigkeiten
-
-instance Kategorie (GeschwindigkeitEither BGWidgets z) where
-    kategorie :: KategorieText (GeschwindigkeitEither BGWidgets z)
-    kategorie = KategorieText Language.bahngeschwindigkeiten
-
-instance Kategorie STWidgets where
-    kategorie :: KategorieText STWidgets
-    kategorie = KategorieText Language.streckenabschnitte
-
-instance Kategorie (WEWidgets z) where
-    kategorie :: KategorieText (WEWidgets z)
-    kategorie = KategorieText Language.weichen
-
-instance Kategorie KUWidgets where
-    kategorie :: KategorieText KUWidgets
-    kategorie = KategorieText Language.kupplungen
-
-instance Kategorie KOWidgets where
-    kategorie :: KategorieText KOWidgets
-    kategorie = KategorieText Language.kontakte
-
-instance Kategorie (WSWidgets z) where
-    kategorie :: KategorieText (WSWidgets z)
-    kategorie = KategorieText Language.wegstrecken
-
-instance Kategorie PLWidgets where
-    kategorie :: KategorieText PLWidgets
-    kategorie = KategorieText Language.pläne
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets =
@@ -365,25 +333,16 @@ readSpracheGui statusVar = liftIO $ atomically (tryReadStatusVar statusVar) >>= 
     (Left status) -> status ^. sprache
     (Right spracheGui) -> spracheGui
 
--- | Neuen Entfernen-Knopf an das Ende der zugehörigen 'Box' hinzufügen.
--- Beim drücken werden 'entferneWidgets' und die übergebene 'IOStatusGui'-Aktion ausgeführt.
---
--- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
--- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonEntfernenPackNew
-    :: (WidgetsTyp w, ObjektGuiReader m, MonadIO m) => w -> IOStatusGui () -> m Gtk.Button
-buttonEntfernenPackNew w entfernenAktion = do
-    statusVar <- erhalteStatusVar
-    objektReader <- ask
-    boxPackWidgetNew (boxButtonEntfernen w) PackNatural paddingDefault End
-        $ buttonNewWithEventLabel (Just $ tvarSprache w) Language.entfernen
-        $ flip runReaderT objektReader
-        $ do
-            auswertenStatusVarIOStatus entfernenAktion statusVar
-            entferneWidgets w
-
 -- * Darstellung von Streckenobjekten
 -- ** Bahngeschwindigkeit
+instance Kategorie (BGWidgets g z) where
+    kategorie :: KategorieText (BGWidgets g z)
+    kategorie = KategorieText Language.bahngeschwindigkeiten
+
+instance Kategorie (GeschwindigkeitEither BGWidgets z) where
+    kategorie :: KategorieText (GeschwindigkeitEither BGWidgets z)
+    kategorie = KategorieText Language.bahngeschwindigkeiten
+
 -- | 'Bahngeschwindigkeit' mit zugehörigen Widgets
 data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     BGWidgetsPwmMärklin
@@ -1425,6 +1384,10 @@ auswahlFahrtrichtungEinstellenPackNew box bahngeschwindigkeit tvarSprachwechsel 
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
 
 -- ** Streckenabschnitt
+instance Kategorie STWidgets where
+    kategorie :: KategorieText STWidgets
+    kategorie = KategorieText Language.streckenabschnitte
+
 -- | 'Streckenabschnitt' mit zugehörigen Widgets
 data STWidgets =
     STWidgets
@@ -1628,6 +1591,10 @@ toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusfü
         wsWidgetsSynchronisieren _wsWidget _fließend = pure ()
 
 -- ** Weiche
+instance Kategorie (WEWidgets z) where
+    kategorie :: KategorieText (WEWidgets z)
+    kategorie = KategorieText Language.weichen
+
 -- | 'Weiche' mit zugehörigen Widgets
 data WEWidgets (z :: Zugtyp) =
     WEWidgets
@@ -1938,6 +1905,10 @@ weichePackNew weiche = do
                 $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
 
 -- ** Kupplung
+instance Kategorie KUWidgets where
+    kategorie :: KategorieText KUWidgets
+    kategorie = KategorieText Language.kupplungen
+
 -- | 'Kupplung' mit zugehörigen Widgets
 data KUWidgets =
     KUWidgets
@@ -2078,6 +2049,10 @@ buttonKuppelnPackNew box kupplung tvarSprachwechsel tvarEventAusführen = do
         $ ausführenStatusVarAktion (Kuppeln kupplung) statusVar
 
 -- ** Kontakt
+instance Kategorie KOWidgets where
+    kategorie :: KategorieText KOWidgets
+    kategorie = KategorieText Language.kontakte
+
 data KOWidgets = KOWidgets
     deriving Eq
 
@@ -2089,6 +2064,10 @@ instance Aeson.ToJSON KOWidgets where
     toJSON = _undefined --TODO
 
 -- ** Wegstrecke
+instance Kategorie (WSWidgets z) where
+    kategorie :: KategorieText (WSWidgets z)
+    kategorie = KategorieText Language.wegstrecken
+
 -- | 'Wegstrecke' mit zugehörigen Widgets
 data WSWidgets (z :: Zugtyp) =
     WSWidgets
@@ -2545,6 +2524,10 @@ wegstreckePackNew
             bgmkFahrstromAnschlüsse
 
 -- ** Plan
+instance Kategorie PLWidgets where
+    kategorie :: KategorieText PLWidgets
+    kategorie = KategorieText Language.pläne
+
 -- | 'Plan' mit zugehörigen Widgets
 data PLWidgets =
     PLWidgets

@@ -1,22 +1,30 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
   ( WidgetsTyp(..)
   , EventAusführen(..)
   , eventAusführen
   , ohneEvent
+  , buttonEntfernenPackNew
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, swapTVar)
 import Control.Monad (when)
-import Control.Monad.Reader.Class (MonadReader())
+import Control.Monad.Reader (MonadReader(ask), runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Kind (Type, Constraint)
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Language (Sprache())
+import qualified Zug.Language as Language
+import Zug.UI.Base (ReaderFamilie, IOStatusAllgemein)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, buttonNewWithEventLabel, Packing(PackNatural)
+                                 , paddingDefault, Position(End))
 import Zug.UI.Gtk.Klassen (MitWidget())
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+import Zug.UI.StatusVar (StatusVarReader(erhalteStatusVar), auswertenStatusVarIOStatus)
 
 -- | Klasse für Widgets-Repräsentation von Objekt-Typen.
 class (MitWidget s) => WidgetsTyp s where
@@ -63,3 +71,29 @@ ohneEvent tvarEventAusführen aktion = Gtk.postGUIAsync $ do
     when (alterWert == EventAusführen)
         $ atomically
         $ writeTVar tvarEventAusführen EventAusführen
+
+-- | Neuen Entfernen-Knopf an das Ende der zugehörigen 'Box' hinzufügen.
+-- Beim drücken werden 'entferneWidgets' und die übergebene 'IOStatusGui'-Aktion ausgeführt.
+--
+-- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+buttonEntfernenPackNew
+    :: ( WidgetsTyp w
+       , MonadReader (ReaderFamilie o) m
+       , ReaderConstraint w (ReaderFamilie o)
+       , StatusVarReader (ReaderFamilie o) o m
+       , SpracheGuiReader (ReaderFamilie o) m
+       , MonadIO m
+       )
+    => w
+    -> IOStatusAllgemein o ()
+    -> m Gtk.Button
+buttonEntfernenPackNew w entfernenAktion = do
+    statusVar <- erhalteStatusVar
+    objektReader <- ask
+    boxPackWidgetNew (boxButtonEntfernen w) PackNatural paddingDefault End
+        $ buttonNewWithEventLabel (Just $ tvarSprache w) Language.entfernen
+        $ flip runReaderT objektReader
+        $ do
+            auswertenStatusVarIOStatus entfernenAktion statusVar
+            entferneWidgets w
