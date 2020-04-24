@@ -36,7 +36,7 @@ import Zug.Enums
       , Zugtyp(..), ZugtypEither(..), ZugtypKlasse(), Fahrtrichtung())
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
-import Zug.Objekt (Objekt, ObjektElement(..))
+import Zug.Objekt (Objekt, ObjektElement(..), ObjektKlasse(..))
 import Zug.UI.Base (MStatusAllgemeinT)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox())
