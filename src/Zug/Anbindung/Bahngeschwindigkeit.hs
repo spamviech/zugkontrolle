@@ -39,7 +39,7 @@ import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusfü
 import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
-import Zug.DeriveOrd (deriveOrd)
+import Zug.Derive.Ord (deriveOrd)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither()
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), Fahrtrichtung(Vorwärts))
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
@@ -62,7 +62,7 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
            , bgmkUmdrehenAnschluss :: Anschluss
            } -> Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
 
-deriveOrd ''Bahngeschwindigkeit
+deriveOrd $ Left ''Bahngeschwindigkeit
 
 deriving instance Eq (Bahngeschwindigkeit g z)
 

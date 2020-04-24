@@ -22,14 +22,14 @@ module Zug.Plan
     PlanKlasse(..)
   , MitAusführend(..)
   , AusführendReader(..)
+  , Ausführend(..)
   , Plan(..)
   , AktionKlasse(..)
   , Aktion(..)
-  , Ausführend(..)
     -- * Spezialisierte Aktionen
-  , AktionWeiche(..)
   , AktionBahngeschwindigkeit(..)
   , AktionStreckenabschnitt(..)
+  , AktionWeiche(..)
   , AktionKupplung(..)
   , AktionWegstrecke(..)
   ) where
@@ -49,11 +49,12 @@ import Zug.Anbindung
       , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
       , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..)
       , Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..), KontaktKlasse(..))
-import Zug.DeriveOrd (deriveOrd)
+import Zug.Derive.Ord (deriveOrd)
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
                 , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
+import Zug.Plan.TemplateHaskell (aktionBahngeschwindigkeitCxtType)
 
 -- | Aktionen einer Bahngeschwindigkeit
 data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
@@ -64,8 +65,6 @@ data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) w
     FahrtrichtungEinstellen :: bg g 'Lego -> Fahrtrichtung -> AktionBahngeschwindigkeit bg g 'Lego
 
 deriving instance (Eq (bg g z)) => Eq (AktionBahngeschwindigkeit bg g z)
-
-deriveOrd ''AktionBahngeschwindigkeit
 
 deriving instance (Show (bg g z)) => Show (AktionBahngeschwindigkeit bg g z)
 
@@ -151,7 +150,10 @@ deriving instance ( Eq (ws z)
                   , Eq (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
                   ) => Eq (AktionWegstrecke ws z)
 
-deriving instance ( Ord (ws z)
+deriving instance ( Eq (ws z)
+                  , Ord (ws z)
+                  , Ord (ws 'Märklin)
+                  , Ord (ws 'Lego)
                   , Ord (GeschwindigkeitPhantom ws 'Pwm z)
                   , Ord (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
                   ) => Ord (AktionWegstrecke ws z)
@@ -205,8 +207,6 @@ instance Eq Aktion where
     (==) :: Aktion -> Aktion -> Bool
     (==) a0 a1 = compare a0 a1 == EQ
 
-deriveOrd ''Aktion
-
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
     anzeige (Warten zeit) = Language.warten <:> zeit
@@ -242,6 +242,15 @@ instance StreckenObjekt Aktion where
     erhalteName :: Aktion -> Text
     erhalteName = showText
 
+-- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
+-- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
+data Plan = Plan { plName :: Text, plAktionen :: [Aktion] }
+    deriving (Eq)
+
+-- | newtype für ausführende Pläne ('Plan')
+newtype Ausführend = Ausführend Plan
+    deriving (Eq, StreckenObjekt)
+
 -- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
 class MitAusführend r where
     mengeAusführend :: r -> TVar (Set Ausführend)
@@ -265,18 +274,9 @@ class PlanKlasse pl where
         :: (AusführendReader r m, MonadIO m) => pl -> (Natural -> IO ()) -> IO () -> m ()
     {-# MINIMAL ausführenPlan #-}
 
--- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
--- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
-data Plan = Plan { plName :: Text, plAktionen :: [Aktion] }
-    deriving (Eq, Ord)
-
 deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                   , Show (GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung 'Märklin)
                   ) => Show Plan
-
--- | newtype für ausführende Pläne ('Plan')
-newtype Ausführend = Ausführend Plan
-    deriving (Eq, Ord, StreckenObjekt)
 
 deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                   , Show (GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung 'Märklin)
@@ -369,3 +369,12 @@ instance AktionKlasse Aktion where
     ausführenAktion (AStreckenabschnitt aktion) = ausführenAktion aktion
     ausführenAktion (AKupplung aktion) = ausführenAktion aktion
     ausführenAktion (AktionAusführen plan) = ausführenPlan plan (const $ pure ()) (pure ())
+
+-- Template-Haskell: Ord-Deriving
+deriveOrd $ Right aktionBahngeschwindigkeitCxtType
+
+deriveOrd $ Left ''Aktion
+
+deriveOrd $ Left ''Plan
+
+deriveOrd $ Left ''Ausführend

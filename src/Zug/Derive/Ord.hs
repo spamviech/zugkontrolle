@@ -1,49 +1,57 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 
 {-|
 Description: TemplateHaskell-deriving von Ord für GADTs.
 -}
-module Zug.DeriveOrd (deriveOrd) where
+module Zug.Derive.Ord (deriveOrd) where
 
-import Control.Monad (forM, foldM)
+import Control.Monad (forM)
 import Data.Either (partitionEithers)
 import qualified Language.Haskell.TH as TH
 
 -- | Automatische deriving von 'Ord' schlägt bei GADTs mit mehreren (Phantom)-Typen schlägt fehl.
 -- Diese TemplateHaskell-Funktion bietet einen Ersatz, wobei ein Vergleich nur bei
 -- kompatiblen Typen erfolgt.
-deriveOrd :: TH.Name -> TH.Q [TH.Dec]
-deriveOrd name = TH.reify name >>= \case
-    (TH.TyConI tyDec) -> do
-        (tyVarBndrs, cons) <- case tyDec of
-            (TH.DataD _cxt _name tyVarBndrs Nothing cons _deriveClauses) -> pure (tyVarBndrs, cons)
-            (TH.DataD _cxt _name _tyVarBndrs (Just kind) _cons _deriveClauses)
-                -> fail $ "Nicht unterstützter Kind: " ++ show kind
-            (TH.NewtypeD _cxt _name tyVarBndrs Nothing con _deriveClauses)
-                -> pure (tyVarBndrs, [con])
-            (TH.NewtypeD _cxt _name _tyVarBndrs (Just kind) _con _deriveClauses)
-                -> fail $ "Nicht unterstützter Kind: " ++ show kind
-            _tyDec -> fail $ '"' : show name ++ "\" hat unerwartete TyConI: " ++ show tyDec
-        ty <- makeType name tyVarBndrs
-        case partitionEithers $ map conInfo cons of
-            ([], []) -> pure [TH.InstanceD Nothing [] ty []]
-            (conInfos, []) -> do
-                clauses <- compareClauses conInfos
-                pure [TH.InstanceD Nothing [] ty $ [TH.FunD 'compare clauses]]
-            (_conInfos, fails) -> fail $ show fails
-    info -> fail $ '"' : show name ++ "\" ist kein Typ: " ++ show info
+deriveOrd :: Either TH.Name (TH.Cxt, TH.Type) -> TH.Q [TH.Dec]
+deriveOrd eitherNameOrCxtType =
+    let (cxt, name) = getCxtName eitherNameOrCxtType
+    in TH.reify name >>= \case
+           (TH.TyConI tyDec) -> do
+               (tyVarBndrs, cons) <- case tyDec of
+                   (TH.DataD _cxt _name tyVarBndrs Nothing cons _deriveClauses)
+                       -> pure (tyVarBndrs, cons)
+                   (TH.DataD _cxt _name _tyVarBndrs (Just kind) _cons _deriveClauses)
+                       -> fail $ "Nicht unterstützter Kind: " ++ show kind
+                   (TH.NewtypeD _cxt _name tyVarBndrs Nothing con _deriveClauses)
+                       -> pure (tyVarBndrs, [con])
+                   (TH.NewtypeD _cxt _name _tyVarBndrs (Just kind) _con _deriveClauses)
+                       -> fail $ "Nicht unterstützter Kind: " ++ show kind
+                   _tyDec -> fail $ '"' : show name ++ "\" hat unerwartete TyConI: " ++ show tyDec
+               let ty = makeType eitherNameOrCxtType tyVarBndrs
+               case partitionEithers $ map conInfo cons of
+                   ([], []) -> pure [TH.InstanceD Nothing cxt ty []]
+                   (conInfos, []) -> do
+                       clauses <- compareClauses conInfos
+                       pure [TH.InstanceD Nothing cxt ty [TH.FunD 'compare clauses]]
+                   (_conInfos, fails) -> fail $ show fails
+           info -> fail $ '"' : show name ++ "\" ist kein Typ: " ++ show info
     where
-        makeType :: TH.Name -> [TH.TyVarBndr] -> TH.Q TH.Type
-        makeType name tyVarBndrs = do
-            (ty, names) <- foldM applyBndr (TH.ConT name, []) tyVarBndrs
-            pure $ TH.ForallT (map TH.PlainTV names) [] $ TH.AppT (TH.ConT ''Ord) ty
+        getCxtName :: Either TH.Name (TH.Cxt, TH.Type) -> (TH.Cxt, TH.Name)
+        getCxtName (Left name) = ([], name)
+        getCxtName (Right (cxt, TH.ConT name)) = (cxt, name)
+        getCxtName (Right (cxt, TH.AppT ty0 _ty1)) = getCxtName $ Right (cxt, ty0)
+        getCxtName (Right (_cxt, ty)) =
+            error $ "Typ, der nicht mit Konstruktor startet: " ++ show ty
 
-        applyBndr :: (TH.Type, [TH.Name]) -> TH.TyVarBndr -> TH.Q (TH.Type, [TH.Name])
-        applyBndr (ty, names) tyVarBndr = do
-            n <- TH.newName $ show $ bndrName tyVarBndr
-            pure (TH.AppT ty (TH.VarT n), n : names)
+        makeType :: Either TH.Name (TH.Cxt, TH.Type) -> [TH.TyVarBndr] -> TH.Type
+        makeType (Left name) tyVarBndrs =
+            let ty = foldl applyBndr (TH.ConT name) tyVarBndrs
+            in TH.ForallT tyVarBndrs [] $ TH.AppT (TH.ConT ''Ord) ty
+        makeType (Right (_cxt, ty)) _tyVarBndrs = TH.AppT (TH.ConT ''Ord) ty
+
+        applyBndr :: TH.Type -> TH.TyVarBndr -> TH.Type
+        applyBndr ty tyVarBndr = TH.AppT ty $ TH.VarT $ bndrName tyVarBndr
 
         bndrName :: TH.TyVarBndr -> TH.Name
         bndrName (TH.PlainTV name) = name
@@ -68,7 +76,7 @@ deriveOrd name = TH.reify name >>= \case
             tailClauses <- compareClauses t
             pure $ varClause : foldMap (compareCons h) t ++ tailClauses
 
-        compareVars :: TH.Name -> [a] -> TH.Q TH.Clause
+        compareVars :: TH.Name -> [TH.Type] -> TH.Q TH.Clause
         compareVars conName vars = do
             varNames0 <- forM vars $ const $ TH.newName "a"
             varNames1 <- forM vars $ const $ TH.newName "b"
