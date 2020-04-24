@@ -191,8 +191,7 @@ instance StreckenabschnittKlasse STWidgets where
 -- | 'Streckenabschnitt' darstellen und zum Status hinzufügen
 streckenabschnittPackNew
     :: forall o m.
-    ( ReaderConstraint Streckenabschnitt (ReaderFamilie o)
-    , MitStatusVar (ReaderFamilie o) o
+    ( MitStatusVar (ReaderFamilie o) o
     , MitSTWidgetsBoxen (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) STWidgets
@@ -267,8 +266,9 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
                 stTVarSprache
                 stTVarEvent
                 stToggleButtonStrom
-    buttonEntfernenPackNew stWidgets
-        $ (entfernenStreckenabschnitt stWidgets :: IOStatusAllgemein o ())
+    buttonEntfernenPackNew
+        stWidgets
+        (entfernenStreckenabschnitt stWidgets :: IOStatusAllgemein o ())
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OStreckenabschnitt stWidgets
     pure stWidgets
@@ -286,7 +286,7 @@ instance STWidgetsKlasse STWidgets where
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonStromPackNew
     :: forall m b s r o.
-    ( WidgetsTypReader r s m
+    ( WidgetsTypReader r STWidgets m
     , SpracheGuiReader r m
     , MitTVarMaps r
     , r ~ ReaderFamilie o
