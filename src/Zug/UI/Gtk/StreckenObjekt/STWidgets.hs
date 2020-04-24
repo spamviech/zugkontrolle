@@ -157,22 +157,29 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     pure stWidgets
 
 class (WidgetsTyp st) => STWidgetsKlasse st where
-
+    toggleButtonStrom :: st -> Maybe Gtk.ToggleButton
 
 -- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu.
 --
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonStromPackNew
-    :: forall m b s.
-    (ObjektGuiReader m, MonadIO m, MitBox b, StreckenabschnittKlasse s, STWidgetsKlasse s)
+    :: forall m b s r o.
+    ( WidgetsTypReader r s m
+    , MonadIO m
+    , MitBox b
+    , StreckenabschnittKlasse s
+    , StatusVarReader r o m
+    , STWidgetsKlasse (ST o)
+    , STWidgetsKlasse (WS o)
+    )
     => b
     -> s
     -> TVar (Maybe [Sprache -> IO ()])
     -> TVar EventAusführen
     -> m Gtk.ToggleButton
 toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusführen = do
-    statusVar <- erhalteStatusVar :: m StatusVarGui
+    statusVar <- erhalteStatusVar :: m (StatusVar o)
     objektReader <- ask
     boxPackWidgetNewDefault box
         $ toggleButtonNewWithEventLabel (Just tvarSprachwechsel) Language.strom

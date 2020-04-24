@@ -6,6 +6,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {-|
 Description: Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung.
@@ -38,6 +39,7 @@ import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusfü
 import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
+import Zug.DeriveOrd (deriveOrd)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither()
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), Fahrtrichtung(Vorwärts))
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
@@ -60,51 +62,9 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
            , bgmkUmdrehenAnschluss :: Anschluss
            } -> Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
 
-deriving instance Eq (Bahngeschwindigkeit g z)
+deriveOrd ''Bahngeschwindigkeit
 
-instance Ord (Bahngeschwindigkeit b z) where
-    compare :: Bahngeschwindigkeit b z -> Bahngeschwindigkeit b z -> Ordering
-    compare
-        LegoBahngeschwindigkeit { bglName = n0
-                                , bglFließend = f0
-                                , bglGeschwindigkeitsPin = gp0
-                                , bglFahrtrichtungsAnschluss = fa0}
-        LegoBahngeschwindigkeit { bglName = n1
-                                , bglFließend = f1
-                                , bglGeschwindigkeitsPin = gp1
-                                , bglFahrtrichtungsAnschluss = fa1} = case compare n0 n1 of
-        EQ -> case compare f0 f1 of
-            EQ -> case compare gp0 gp1 of
-                EQ -> compare fa0 fa1
-                ordering -> ordering
-            ordering -> ordering
-        ordering -> ordering
-    compare
-        MärklinBahngeschwindigkeitPwm
-        {bgmpName = n0, bgmpFließend = f0, bgmpGeschwindigkeitsPin = gp0}
-        MärklinBahngeschwindigkeitPwm
-        {bgmpName = n1, bgmpFließend = f1, bgmpGeschwindigkeitsPin = gp1} = case compare n0 n1 of
-        EQ -> case compare f0 f1 of
-            EQ -> compare gp0 gp1
-            ordering -> ordering
-        ordering -> ordering
-    compare
-        MärklinBahngeschwindigkeitKonstanteSpannung
-        { bgmkName = n0
-        , bgmkFließend = f0
-        , bgmkFahrstromAnschlüsse = fa0
-        , bgmkUmdrehenAnschluss = ua0}
-        MärklinBahngeschwindigkeitKonstanteSpannung
-        { bgmkName = n1
-        , bgmkFließend = f1
-        , bgmkFahrstromAnschlüsse = fa1
-        , bgmkUmdrehenAnschluss = ua1} = case compare n0 n1 of
-        EQ -> case compare f0 f1 of
-            EQ -> case compare fa0 fa1 of
-                EQ -> compare ua0 ua1
-                ordering -> ordering
-            ordering -> ordering
-        ordering -> ordering
+deriving instance Eq (Bahngeschwindigkeit g z)
 
 deriving instance Show (Bahngeschwindigkeit g z)
 
