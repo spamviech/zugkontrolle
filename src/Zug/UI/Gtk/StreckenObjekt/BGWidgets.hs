@@ -157,7 +157,7 @@ instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
     erhalteObjektTyp BGWidgetsPwmLego {bgpl} = bgpl
     erhalteObjektTyp BGWidgetsKonstanteSpannungLego {bgkl} = bgkl
 
-    entferneWidgets :: (MonadIO m, WidgetsTypReader r s m) => BGWidgets g z -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r (BGWidgets g z) m) => BGWidgets g z -> m ()
     entferneWidgets bgWidgets = do
         vBoxBahngeschwindigkeiten <- asks vBoxBahngeschwindigkeiten
         mitContainerRemove vBoxBahngeschwindigkeiten bgWidgets

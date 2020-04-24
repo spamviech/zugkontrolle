@@ -1,29 +1,54 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets(), STWidgetsKlasse(..)) where
 
-import Control.Concurrent.STM.TVar (TVar)
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
-import Control.Monad.Trans (MonadIO())
+import Control.Monad.Reader.Class (MonadReader(ask), asks)
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Void (Void)
+import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Streckenabschnitt(), StreckenabschnittKlasse(..), StreckenObjekt(..)
+import Zug.Anbindung (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenObjekt(..)
                     , Anschluss(), I2CReader())
-import Zug.Enums (Strom())
+import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..))
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Klassen (MitWidget(..))
-import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
+import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt))
+import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt)
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Gtk.Anschluss (anschlussNew)
+import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.Hilfsfunktionen
+       (boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow), paddingDefault
+      , positionDefault, containerAddWidgetNew, namePackNew)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
+import Zug.UI.Gtk.SpracheGui (verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
+       (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
+      , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
+      , hinzufügenWidgetPlanPackNew)
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
       , BoxPlanHinzufügen, ButtonPlanHinzufügen)
-import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..), EventAusführen())
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
+       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
+      , ohneEvent, buttonEntfernenPackNew)
+import Zug.UI.StatusVar (StatusVar, StatusVarReader(erhalteStatusVar))
 
 instance Kategorie STWidgets where
     kategorie :: KategorieText STWidgets
@@ -43,6 +68,16 @@ data STWidgets =
     }
     deriving (Eq)
 
+data STWidgetsBoxen =
+    STWidgetsBoxen
+    { vBoxStreckenabschnitte :: ScrollbaresWidget Gtk.VBox
+    , vBoxHinzufügenWegstreckeStreckenabschnitte :: BoxWegstreckeHinzufügen STWidgets
+    , vBoxHinzufügenPlanStreckenabschnitte :: BoxPlanHinzufügen STWidgets
+    }
+
+class MitSTWidgetsBoxen r where
+    stWidgetsBoxen :: r -> STWidgetsBoxen
+
 instance MitWidget STWidgets where
     erhalteWidget :: STWidgets -> Gtk.Widget
     erhalteWidget = erhalteWidget . stWidget
@@ -50,12 +85,14 @@ instance MitWidget STWidgets where
 instance WidgetsTyp STWidgets where
     type ObjektTyp STWidgets = Streckenabschnitt
 
+    type ReaderConstraint STWidgets = MitSTWidgetsBoxen
+
     erhalteObjektTyp :: STWidgets -> Streckenabschnitt
     erhalteObjektTyp = st
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => STWidgets -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r STWidgets m) => STWidgets -> m ()
     entferneWidgets stWidgets@STWidgets {stTVarSprache} = do
-        DynamischeWidgets {vBoxStreckenabschnitte} <- erhalteDynamischeWidgets
+        STWidgetsBoxen {vBoxStreckenabschnitte} <- asks stWidgetsBoxen
         mitContainerRemove vBoxStreckenabschnitte stWidgets
         entferneHinzufügenWegstreckeWidgets stWidgets
         entferneHinzufügenPlanWidgets stWidgets
@@ -74,16 +111,20 @@ instance WegstreckenElement STWidgets where
     getterWegstrecke :: Lens.Getter STWidgets (CheckButtonWegstreckeHinzufügen Void STWidgets)
     getterWegstrecke = Lens.to stHinzWS
 
-    boxWegstrecke :: Streckenabschnitt
-                  -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen STWidgets)
-    boxWegstrecke _stWidgets = Lens.to vBoxHinzufügenWegstreckeStreckenabschnitte
+    boxWegstrecke :: (ReaderConstraint STWidgets r)
+                  => Streckenabschnitt
+                  -> Lens.Getter r (BoxWegstreckeHinzufügen STWidgets)
+    boxWegstrecke
+        _stWidgets = Lens.to $ vBoxHinzufügenWegstreckeStreckenabschnitte . stWidgetsBoxen
 
 instance PlanElement STWidgets where
     foldPlan :: Lens.Fold STWidgets (Maybe (ButtonPlanHinzufügen STWidgets))
     foldPlan = Lens.folding $ (: []) . Just . stHinzPL
 
-    boxenPlan :: Streckenabschnitt -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen STWidgets)
-    boxenPlan _stWidgets = Lens.to vBoxHinzufügenPlanStreckenabschnitte
+    boxenPlan :: (ReaderConstraint STWidgets r)
+              => Streckenabschnitt
+              -> Lens.Fold r (BoxPlanHinzufügen STWidgets)
+    boxenPlan _stWidgets = Lens.to $ vBoxHinzufügenPlanStreckenabschnitte . stWidgetsBoxen
 
 instance StreckenObjekt STWidgets where
     anschlüsse :: STWidgets -> Set Anschluss
@@ -106,10 +147,19 @@ instance StreckenabschnittKlasse STWidgets where
 
 -- | 'Streckenabschnitt' darstellen und zum Status hinzufügen
 streckenabschnittPackNew
-    :: forall m. (ObjektGuiReader m, MonadIO m) => Streckenabschnitt -> MStatusGuiT m STWidgets
+    :: forall r o m.
+    ( WidgetsTypReader r STWidgets m
+    , StatusVarReader r o m
+    , ObjektKlasse o
+    , ST o ~ STWidgets
+    , MonadIO m
+    )
+    => Streckenabschnitt
+    -> MStatusAllgemeinT m o STWidgets
 streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = do
-    DynamischeWidgets
-        {vBoxStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte} <- erhalteDynamischeWidgets
+    STWidgetsBoxen
+        {vBoxStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte} <- asks stWidgetsBoxen
+    statusVar <- erhalteStatusVar :: m (StatusVar o)
     (stTVarSprache, stTVarEvent) <- liftIO $ do
         stTVarSprache <- newTVarIO $ Just []
         stTVarEvent <- newTVarIO EventAusführen
@@ -137,8 +187,12 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.strom stromAnschluss
     stFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-    stTogglebuttonStrom
-        <- toggleButtonStromPackNew stFunctionBox streckenabschnitt stTVarSprache stTVarEvent
+    stTogglebuttonStrom <- toggleButtonStromPackNew
+        stFunctionBox
+        streckenabschnitt
+        stTVarSprache
+        stTVarEvent
+        statusVar
     fließendPackNew vBoxAnschlüsse streckenabschnitt justTVarSprache
     let stWidgets =
             STWidgets
@@ -151,12 +205,13 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
             , stTVarEvent
             , stTogglebuttonStrom
             }
-    buttonEntfernenPackNew stWidgets $ entfernenStreckenabschnitt stWidgets
+    buttonEntfernenPackNew stWidgets
+        $ (entfernenStreckenabschnitt stWidgets :: IOStatusAllgemein o ())
     -- Widgets merken
-    ausführenBefehl $ Hinzufügen $ OStreckenabschnitt stWidgets
+    ausführenBefehl $ Hinzufügen $ ausObjekt $ OStreckenabschnitt stWidgets
     pure stWidgets
 
-class (WidgetsTyp st) => STWidgetsKlasse st where
+class (StreckenabschnittKlasse st, WidgetsTyp st) => STWidgetsKlasse st where
     toggleButtonStrom :: st -> Maybe Gtk.ToggleButton
 
 -- | Füge 'Gtk.ToggleButton' zum einstellen des Stroms zur Box hinzu.
@@ -169,17 +224,17 @@ toggleButtonStromPackNew
     , MonadIO m
     , MitBox b
     , StreckenabschnittKlasse s
-    , StatusVarReader r o m
     , STWidgetsKlasse (ST o)
-    , STWidgetsKlasse (WS o)
+    , STWidgetsKlasse (WS o 'Märklin)
+    , STWidgetsKlasse (WS o 'Lego)
     )
     => b
     -> s
     -> TVar (Maybe [Sprache -> IO ()])
     -> TVar EventAusführen
+    -> StatusVar o
     -> m Gtk.ToggleButton
-toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusführen = do
-    statusVar <- erhalteStatusVar :: m (StatusVar o)
+toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusführen statusVar = do
     objektReader <- ask
     boxPackWidgetNewDefault box
         $ toggleButtonNewWithEventLabel (Just tvarSprachwechsel) Language.strom
@@ -205,23 +260,10 @@ toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusfü
                 $ Gtk.set stTogglebuttonStrom [Gtk.toggleButtonActive := (fließend == Fließend)]
         stWidgetsSynchronisieren _stWidgets _fließend = pure ()
 
-        wsWidgetsSynchronisieren :: ZugtypEither WSWidgets -> Strom -> IO ()
-        wsWidgetsSynchronisieren
-            (ZugtypMärklin
-                 WSWidgets { ws = Wegstrecke {wsStreckenabschnitte}
-                           , wsTVarEvent
-                           , wsToggleButtonStrom = Just toggleButtonStrom})
-            fließend
-            | Set.isSubsetOf wsStreckenabschnitte $ enthalteneStreckenabschnitte streckenabschnitt =
-                ohneEvent wsTVarEvent
-                $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (fließend == Fließend)]
-        wsWidgetsSynchronisieren
-            (ZugtypLego
-                 WSWidgets { ws = Wegstrecke {wsStreckenabschnitte}
-                           , wsTVarEvent
-                           , wsToggleButtonStrom = Just toggleButtonStrom})
-            fließend
-            | Set.isSubsetOf wsStreckenabschnitte $ enthalteneStreckenabschnitte streckenabschnitt =
+        wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Strom -> IO ()
+        wsWidgetsSynchronisieren ws@(toggleButtonStrom -> Just toggleButtonStrom) fließend
+            | Set.isSubsetOf (enthalteneStreckenabschnitte ws)
+                $ enthalteneStreckenabschnitte streckenabschnitt =
                 ohneEvent wsTVarEvent
                 $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (fließend == Fließend)]
         wsWidgetsSynchronisieren _wsWidget _fließend = pure ()
