@@ -13,6 +13,7 @@
 
 module Zug.UI.Gtk.StreckenObjekt.BGWidgets
   ( BGWidgets()
+  , BGWidgetsKlasse(..)
   , bahngeschwindigkeitPackNew
   , hScaleGeschwindigkeitPackNew
   , auswahlFahrstromPackNew
@@ -23,13 +24,13 @@ module Zug.UI.Gtk.StreckenObjekt.BGWidgets
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Lens ((^.))
 import qualified Control.Lens as Lens
-import Control.Monad (forM_)
+import Control.Monad (forM_, foldM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import qualified Data.Aeson as Aeson
-import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
+import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
@@ -43,12 +44,12 @@ import Numeric.Natural (Natural)
 import Zug.Anbindung
        (StreckenObjekt(..), Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
       , BahngeschwindigkeitContainer(..), StreckenabschnittContainer(enthalteneStreckenabschnitte)
-      , Wegstrecke(..), Anschluss(), I2CReader(), PwmReader())
+      , Anschluss(), I2CReader(), PwmReader())
 import Zug.Enums
        (GeschwindigkeitEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEitherKlasse(..)
       , GeschwindigkeitPhantom(..), ausGeschwindigkeitEither, Zugtyp(..), ZugtypEither(..)
       , ZugtypKlasse(..), ausZugtypEither, Fahrtrichtung(Vorwärts))
-import Zug.Language (Sprache())
+import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt
        (Objekt, ObjektAllgemein(OBahngeschwindigkeit), ObjektElement(..), ObjektKlasse(..))
@@ -57,18 +58,20 @@ import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenBahngeschwind
                   , ReaderFamilie, getBahngeschwindigkeiten, getStreckenabschnitte, getWegstrecken
                   , ObjektReader(), MitTVarMaps())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
-import Zug.UI.Gtk.Auswahl
-       (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, beiAuswahl, setzeAuswahl)
+import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlRadioButtonNew
+                         , boundedEnumAuswahlRadioButtonNew, beiAuswahl, setzeAuswahl)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
-      , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
+       (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew
+      , Packing(PackGrow), paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-       (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets, PlanElement(..)
-      , entferneHinzufügenPlanWidgets)
+       (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
+      , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets(..), STWidgetsKlasse(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
@@ -77,7 +80,8 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
       , ohneEvent, buttonEntfernenPackNew)
-import Zug.UI.StatusVar (StatusVar, StatusVarReader(..), auswertenStatusVarMStatusT)
+import Zug.UI.StatusVar
+       (StatusVar, StatusVarReader(erhalteStatusVar), MitStatusVar(), auswertenStatusVarMStatusT)
 
 instance Kategorie (BGWidgets g z) where
     kategorie :: KategorieText (BGWidgets g z)
@@ -623,13 +627,37 @@ instance BahngeschwindigkeitContainer (ZugtypEither (GeschwindigkeitEither BGWid
 -- | 'Bahngeschwindigkeit' darstellen und zum Status hinzufügen
 bahngeschwindigkeitPackNew
     :: forall o g z m.
-    ( MitBGWidgetsBoxen (ReaderFamilie o)
-    , MonadIO m
-    , ZugtypKlasse z
-    , GeschwindigkeitEitherKlasse g
+    ( GeschwindigkeitEitherKlasse g
     , WegstreckenElement (BGWidgets g z)
     , PlanElement (BGWidgets g z)
+    , ObjektKlasse o
+    , Aeson.ToJSON o
     , BG o ~ BGWidgets
+    , ST o ~ STWidgets
+    , Eq (WE o 'Märklin)
+    , Eq (WE o 'Lego)
+    , Eq (KO o)
+    , Eq (KU o)
+    , Eq (WS o 'Märklin)
+    , Eq (WS o 'Lego)
+    , BGWidgetsKlasse (GeschwindigkeitPhantom (WS o))
+    , BahngeschwindigkeitContainer (WS o 'Märklin)
+    , BahngeschwindigkeitContainer (WS o 'Lego)
+    , STWidgetsKlasse (WS o 'Märklin)
+    , STWidgetsKlasse (WS o 'Lego)
+    , StreckenabschnittContainer (WS o 'Märklin)
+    , StreckenabschnittContainer (WS o 'Lego)
+    , Eq (PL o)
+    , MitSprache (SP o)
+    , MitBGWidgetsBoxen (ReaderFamilie o)
+    , MitStatusVar (ReaderFamilie o) o
+    , MitTVarMaps (ReaderFamilie o)
+    , MitSpracheGui (ReaderFamilie o)
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) (BGWidgets g z)
+    , MitTMVarPlanObjekt (ReaderFamilie o)
+    , ObjektReader o m
+    , MonadIO m
+    , ZugtypKlasse z
     )
     => Bahngeschwindigkeit g z
     -> MStatusAllgemeinT m o (BGWidgets g z)
@@ -652,12 +680,13 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    bgWidgets <- geschwindigkeitsWidgetsPackNew
-        vBox
-        bahngeschwindigkeit
-        vBoxAnschlüsse
-        tvarSprache
-        tvarEvent
+    bgWidgets <- lift
+        $ geschwindigkeitsWidgetsPackNew
+            vBox
+            bahngeschwindigkeit
+            vBoxAnschlüsse
+            tvarSprache
+            tvarEvent
     fließendPackNew vBoxAnschlüsse bahngeschwindigkeit justTVarSprache
     buttonEntfernenPackNew
         bgWidgets
@@ -673,29 +702,23 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     pure bgWidgets
     where
         hinzufügenWidgetsPackNew
-            :: ( WidgetsTypReader r (BGWidgets g z) m
-               , MonadIO m
-               , WegstreckenElement (BGWidgets g z)
-               , PlanElement (BGWidgets g z)
-               , ZugtypKlasse z
-               )
-            => Bahngeschwindigkeit g z
+            :: Bahngeschwindigkeit g z
             -> TVar (Maybe [Sprache -> IO ()])
             -> m ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
                  , ButtonPlanHinzufügen (BGWidgets g z)
                  , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
                  )
         hinzufügenWidgetsPackNew bahngeschwindigkeit tvarSprache = do
-            dynamischeWidgets <- erhalteDynamischeWidgets
+            objektReader <- ask
             hinzufügenWidgetWegstrecke
                 <- hinzufügenWidgetWegstreckePackNew bahngeschwindigkeit tvarSprache
             hinzufügenWidgetPlanSpezifisch <- hinzufügenWidgetPlanPackNew
-                (fromJust $ Lens.firstOf (boxenPlan bahngeschwindigkeit) dynamischeWidgets)
+                (fromJust $ Lens.firstOf (boxenPlan bahngeschwindigkeit) objektReader)
                 bahngeschwindigkeit
                 tvarSprache
             hinzufügenWidgetPlanAllgemein <- widgetHinzufügenGeschwindigkeitEither
                 <$> hinzufügenWidgetPlanPackNew
-                    (fromJust $ Lens.lastOf (boxenPlan bahngeschwindigkeit) dynamischeWidgets)
+                    (fromJust $ Lens.lastOf (boxenPlan bahngeschwindigkeit) objektReader)
                     bahngeschwindigkeit
                     tvarSprache
             pure
@@ -705,8 +728,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 )
 
         geschwindigkeitsWidgetsPackNew
-            :: (WidgetsTypReader r (BGWidgets g z) m, MonadIO m)
-            => Gtk.VBox
+            :: Gtk.VBox
             -> Bahngeschwindigkeit g z
             -> ScrollbaresWidget Gtk.VBox
             -> TVar (Maybe [Sprache -> IO ()])
@@ -718,12 +740,21 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             vBoxAnschlüsse
             bgpmTVarSprache
             bgpmTVarEvent = do
+            statusVar <- erhalteStatusVar :: m (StatusVar o)
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew (Just bgpmTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
             bgpmFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            bgpmScaleGeschwindigkeit
-                <- hScaleGeschwindigkeitPackNew bgpmFunctionBox bahngeschwindigkeit bgpmTVarEvent
-            buttonUmdrehenPackNew bgpmFunctionBox bahngeschwindigkeit bgpmTVarSprache bgpmTVarEvent
+            bgpmScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
+                bgpmFunctionBox
+                bahngeschwindigkeit
+                bgpmTVarEvent
+                statusVar
+            buttonUmdrehenPackNew
+                bgpmFunctionBox
+                bahngeschwindigkeit
+                bgpmTVarSprache
+                bgpmTVarEvent
+                statusVar
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgpmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
                 <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgpmTVarSprache
@@ -745,6 +776,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             vBoxAnschlüsse
             bgkmTVarSprache
             bgkmTVarEvent = do
+            statusVar <- erhalteStatusVar :: m (StatusVar o)
             let justTVarSprache = Just bgkmTVarSprache
             let erstelleFahrstromAnschlussWidget
                     :: (MonadIO m, SpracheGuiReader r m) => Natural -> Anschluss -> m Natural
@@ -760,9 +792,15 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 (fromIntegral $ length bgmkFahrstromAnschlüsse)
                 bgkmTVarSprache
                 bgkmTVarEvent
+                statusVar
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ anschlussNew justTVarSprache Language.umdrehen bgmkUmdrehenAnschluss
-            buttonUmdrehenPackNew bgkmFunctionBox bahngeschwindigkeit bgkmTVarSprache bgkmTVarEvent
+            buttonUmdrehenPackNew
+                bgkmFunctionBox
+                bahngeschwindigkeit
+                bgkmTVarSprache
+                bgkmTVarEvent
+                statusVar
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgkmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
                 <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgkmTVarSprache
@@ -784,12 +822,16 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             vBoxAnschlüsse
             bgplTVarSprache
             bgplTVarEvent = do
+            statusVar <- erhalteStatusVar :: m (StatusVar o)
             let justTVarSprache = Just bgplTVarSprache
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew justTVarSprache Language.geschwindigkeit bglGeschwindigkeitsPin
             bgplFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            bgplScaleGeschwindigkeit
-                <- hScaleGeschwindigkeitPackNew bgplFunctionBox bahngeschwindigkeit bgplTVarEvent
+            bgplScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
+                bgplFunctionBox
+                bahngeschwindigkeit
+                bgplTVarEvent
+                statusVar
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ anschlussNew justTVarSprache Language.fahrtrichtung bglFahrtrichtungsAnschluss
             bgplAuswahlFahrtrichtung <- auswahlFahrtrichtungEinstellenPackNew
@@ -797,6 +839,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bahngeschwindigkeit
                 bgplTVarSprache
                 bgplTVarEvent
+                statusVar
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
             (bgplHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
                 <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgplTVarSprache
@@ -826,15 +869,18 @@ class ( WidgetsTyp (bg 'Pwm 'Märklin)
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew
-    :: forall b bg o r m z.
+    :: forall b bg o m z.
     ( MitBox b
     , BahngeschwindigkeitKlasse bg
-    , BGWidgetsKlasse bg
-    , WidgetsTypReader r (bg 'Pwm z) m
-    , BGWidgetsKlasse (BG o)
+    , BahngeschwindigkeitContainer (bg 'Pwm z)
+    , BG o ~ BGWidgets
     , BGWidgetsKlasse (GeschwindigkeitPhantom (WS o))
+    , BahngeschwindigkeitContainer (WS o 'Märklin)
+    , BahngeschwindigkeitContainer (WS o 'Lego)
     , STWidgetsKlasse (WS o 'Märklin)
     , STWidgetsKlasse (WS o 'Lego)
+    , MitTVarMaps (ReaderFamilie o)
+    , ObjektReader o m
     , MonadIO m
     , ZugtypKlasse z
     )
@@ -869,7 +915,6 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
                       BGWidgetsPwmMärklin {bgpm, bgpmTVarEvent, bgpmScaleGeschwindigkeit}))
             wert
             | elem (ZugtypMärklin $ GeschwindigkeitPwm bgpm)
-                $ Set.map zuZugtypEither
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgpmTVarEvent
                 $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
@@ -879,7 +924,6 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
                       BGWidgetsPwmLego {bgpl, bgplTVarEvent, bgplScaleGeschwindigkeit}))
             wert
             | elem (ZugtypLego $ GeschwindigkeitPwm bgpl)
-                $ Set.map zuZugtypEither
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgplTVarEvent
                 $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
@@ -887,18 +931,18 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Word8 -> IO ()
         wsWidgetsSynchronisieren
-            (ZugtypMärklin ws@(scaleGeschwindigkeit -> Just scaleGeschwindigkeit))
+            (ZugtypMärklin
+                 ws@(scaleGeschwindigkeit . GeschwindigkeitPhantom -> Just scaleGeschwindigkeit))
             wert
-            | Set.isSubsetOf (Set.map zuZugtypEither wsBahngeschwindigkeiten)
-                $ Set.map zuZugtypEither
+            | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws)
                 $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
         wsWidgetsSynchronisieren
-            (ZugtypLego ws@(scaleGeschwindigkeit -> Just scaleGeschwindigkeit))
+            (ZugtypLego
+                 ws@(scaleGeschwindigkeit . GeschwindigkeitPhantom -> Just scaleGeschwindigkeit))
             wert
-            | Set.isSubsetOf (Set.map zuZugtypEither wsBahngeschwindigkeiten)
-                $ Set.map zuZugtypEither
+            | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws)
                 $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
@@ -907,7 +951,21 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
 -- | Füge 'AuswahlWidget' zum einstellen des Fahrstroms zur Box hinzu
 auswahlFahrstromPackNew
     :: forall b bg o m z.
-    (MitBox b, BahngeschwindigkeitKlasse bg, BGWidgetsKlasse bg, MonadIO m, ZugtypKlasse z)
+    ( MitBox b
+    , BahngeschwindigkeitKlasse bg
+    , BahngeschwindigkeitContainer (bg 'KonstanteSpannung z)
+    , BG o ~ BGWidgets
+    , WidgetsTyp (WS o 'Märklin)
+    , BahngeschwindigkeitContainer (WS o 'Märklin)
+    , WidgetsTyp (WS o 'Lego)
+    , BGWidgetsKlasse (GeschwindigkeitPhantom (WS o))
+    , BahngeschwindigkeitContainer (WS o 'Lego)
+    , MitSpracheGui (ReaderFamilie o)
+    , MitTVarMaps (ReaderFamilie o)
+    , ObjektReader o m
+    , MonadIO m
+    , ZugtypKlasse z
+    )
     => b
     -> bg 'KonstanteSpannung z
     -> Word8

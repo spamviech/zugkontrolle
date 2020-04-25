@@ -118,9 +118,11 @@ import Numeric.Natural (Natural)
 
 import Zug.Anbindung
        (StreckenObjekt(..), Anschluss(), PwmReader(), I2CReader(), Bahngeschwindigkeit(..)
-      , verwendetPwm, BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
-      , StreckenabschnittKlasse(..), Weiche(..), WeicheKlasse(..), Kupplung(..), KupplungKlasse(..)
-      , Kontakt(..), KontaktKlasse(..), Wegstrecke(..), WegstreckeKlasse(..))
+      , verwendetPwm, BahngeschwindigkeitKlasse(..), BahngeschwindigkeitContainer(..)
+      , Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..)
+      , Weiche(..), WeicheKlasse(..), WeicheContainer(..), Kupplung(..), KupplungKlasse(..)
+      , KupplungContainer(..), Kontakt(..), KontaktKlasse(..), KontaktContainer(..), Wegstrecke(..)
+      , WegstreckeKlasse(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), ausZugtypEither, mapZugtypEither
                 , GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), ausGeschwindigkeitEither
@@ -177,8 +179,8 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
       , widgetHinzufügenRegistrierterCheckButtonVoid, widgetHinzufügenAktuelleAuswahl
       , widgetHinzufügenToggled, widgetHinzufügenGeschwindigkeitVariante
       , widgetHinzufügenGeschwindigkeitEither, widgetHinzufügenZugtypEither)
-import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-       (WidgetsTyp(..), EventAusführen(..), eventAusführen, ohneEvent, buttonEntfernenPackNew)
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..), WidgetsTypReader, EventAusführen(..)
+                                           , eventAusführen, ohneEvent, buttonEntfernenPackNew)
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(..), tryReadStatusVar
                        , auswertenStatusVarIOStatus, ausführenStatusVarBefehl
                        , ausführenStatusVarAktion, auswertenStatusVarMStatusT)
@@ -380,7 +382,7 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
     erhalteObjektTyp :: WEWidgets z -> Weiche z
     erhalteObjektTyp = we
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => WEWidgets z -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r (WEWidgets z) m) => WEWidgets z -> m ()
     entferneWidgets weWidgets@WEWidgets {weTVarSprache} = do
         DynamischeWidgets {vBoxWeichen} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxWeichen weWidgets
@@ -403,7 +405,9 @@ instance WidgetsTyp (ZugtypEither WEWidgets) where
     erhalteObjektTyp :: ZugtypEither WEWidgets -> ZugtypEither Weiche
     erhalteObjektTyp = mapZugtypEither we
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => ZugtypEither WEWidgets -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r (ZugtypEither WEWidgets) m)
+                    => ZugtypEither WEWidgets
+                    -> m ()
     entferneWidgets (ZugtypMärklin weWidgets) = entferneWidgets weWidgets
     entferneWidgets (ZugtypLego weWidgets) = entferneWidgets weWidgets
 
@@ -426,8 +430,9 @@ instance WegstreckenElement (WEWidgets 'Märklin) where
         :: Lens.Getter (WEWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Märklin))
     getterWegstrecke = Lens.to weHinzWS
 
-    boxWegstrecke :: Weiche 'Märklin
-                  -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (WEWidgets 'Märklin))
+    boxWegstrecke :: (ReaderConstraint (WEWidgets 'Märklin) r)
+                  => Weiche 'Märklin
+                  -> Lens.Getter r (BoxWegstreckeHinzufügen (WEWidgets 'Märklin))
     boxWegstrecke _weWidgets = Lens.to vBoxHinzufügenWegstreckeWeichenMärklin
 
 instance WegstreckenElement (WEWidgets 'Lego) where
@@ -437,8 +442,9 @@ instance WegstreckenElement (WEWidgets 'Lego) where
         :: Lens.Getter (WEWidgets 'Lego) (CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Lego))
     getterWegstrecke = Lens.to weHinzWS
 
-    boxWegstrecke :: Weiche 'Lego
-                  -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (WEWidgets 'Lego))
+    boxWegstrecke :: (ReaderConstraint (WEWidgets 'Lego) r)
+                  => Weiche 'Lego
+                  -> Lens.Getter r (BoxWegstreckeHinzufügen (WEWidgets 'Lego))
     boxWegstrecke _weWidgets = Lens.to vBoxHinzufügenWegstreckeWeichenLego
 
 instance WegstreckenElement (ZugtypEither WEWidgets) where
@@ -448,9 +454,9 @@ instance WegstreckenElement (ZugtypEither WEWidgets) where
         :: Lens.Getter (ZugtypEither WEWidgets) (CheckButtonWegstreckeHinzufügen Richtung (ZugtypEither WEWidgets))
     getterWegstrecke = Lens.to $ ausZugtypEither $ widgetHinzufügenZugtypEither . weHinzWS
 
-    boxWegstrecke
-        :: ZugtypEither Weiche
-        -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen (ZugtypEither WEWidgets))
+    boxWegstrecke :: (ReaderConstraint (ZugtypEither WEWidgets) r)
+                  => ZugtypEither Weiche
+                  -> Lens.Getter r (BoxWegstreckeHinzufügen (ZugtypEither WEWidgets))
     boxWegstrecke (ZugtypMärklin _weWidgets) =
         Lens.to $ widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenMärklin
     boxWegstrecke (ZugtypLego _weWidgets) =
@@ -464,8 +470,9 @@ instance PlanElement (WEWidgets 'Märklin) where
         $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> [gerade, kurve, links, rechts]
 
-    boxenPlan :: Weiche 'Märklin
-              -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WEWidgets 'Märklin))
+    boxenPlan :: (ReaderConstraint (WEWidgets 'Märklin) r)
+              => Weiche 'Märklin
+              -> Lens.Fold r (BoxPlanHinzufügen (WEWidgets 'Märklin))
     boxenPlan _weWidgets =
         Lens.folding
         $ (??)
@@ -481,7 +488,9 @@ instance PlanElement (WEWidgets 'Lego) where
         $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> [gerade, kurve, links, rechts]
 
-    boxenPlan :: Weiche 'Lego -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WEWidgets 'Lego))
+    boxenPlan :: (ReaderConstraint (WEWidgets 'Lego) r)
+              => Weiche 'Lego
+              -> Lens.Fold r (BoxPlanHinzufügen (WEWidgets 'Lego))
     boxenPlan _weWidgets =
         Lens.folding
         $ (??)
@@ -498,8 +507,9 @@ instance PlanElement (ZugtypEither WEWidgets) where
         $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> fmap widgetHinzufügenZugtypEither <$> [gerade, kurve, links, rechts]
 
-    boxenPlan :: ZugtypEither Weiche
-              -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WEWidgets))
+    boxenPlan :: (ReaderConstraint (ZugtypEither WEWidgets) r)
+              => ZugtypEither Weiche
+              -> Lens.Fold r (BoxPlanHinzufügen (ZugtypEither WEWidgets))
     boxenPlan (ZugtypMärklin _weiche) =
         Lens.folding
         $ fmap widgetHinzufügenZugtypEither
@@ -528,7 +538,7 @@ instance Aeson.ToJSON (WEWidgets z) where
     toJSON :: WEWidgets z -> Aeson.Value
     toJSON WEWidgets {we} = Aeson.toJSON we
 
-instance WeicheKlasse (WEWidgets z) where
+instance (ZugtypKlasse z) => WeicheKlasse (WEWidgets z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
     stellen WEWidgets {we} = stellen we
 
@@ -683,7 +693,7 @@ instance WidgetsTyp KUWidgets where
     erhalteObjektTyp :: KUWidgets -> Kupplung
     erhalteObjektTyp = ku
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => KUWidgets -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r KUWidgets m) => KUWidgets -> m ()
     entferneWidgets kuWidgets@KUWidgets {kuTVarSprache} = do
         DynamischeWidgets {vBoxKupplungen} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxKupplungen kuWidgets
@@ -704,14 +714,17 @@ instance WegstreckenElement KUWidgets where
     getterWegstrecke :: Lens.Getter KUWidgets (CheckButtonWegstreckeHinzufügen Void KUWidgets)
     getterWegstrecke = Lens.to kuHinzWS
 
-    boxWegstrecke :: Kupplung -> Lens.Getter DynamischeWidgets (BoxWegstreckeHinzufügen KUWidgets)
+    boxWegstrecke :: (ReaderConstraint KUWidgets r)
+                  => Kupplung
+                  -> Lens.Getter r (BoxWegstreckeHinzufügen KUWidgets)
     boxWegstrecke _kuWidgets = Lens.to vBoxHinzufügenWegstreckeKupplungen
 
 instance PlanElement KUWidgets where
     foldPlan :: Lens.Fold KUWidgets (Maybe (ButtonPlanHinzufügen KUWidgets))
     foldPlan = Lens.to $ Just . kuHinzPL
 
-    boxenPlan :: Kupplung -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen KUWidgets)
+    boxenPlan
+        :: (ReaderConstraint KUWidgets r) => Kupplung -> Lens.Fold r (BoxPlanHinzufügen KUWidgets)
     boxenPlan _kuWidgets = Lens.to vBoxHinzufügenPlanKupplungen
 
 instance StreckenObjekt KUWidgets where
@@ -861,7 +874,7 @@ instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
     erhalteObjektTyp :: WSWidgets z -> Wegstrecke z
     erhalteObjektTyp = ws
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => WSWidgets z -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r (WSWidgets z) m) => WSWidgets z -> m ()
     entferneWidgets wsWidgets@WSWidgets {wsTVarSprache} = do
         DynamischeWidgets {vBoxWegstrecken} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxWegstrecken wsWidgets
@@ -883,7 +896,9 @@ instance WidgetsTyp (ZugtypEither WSWidgets) where
     erhalteObjektTyp :: ZugtypEither WSWidgets -> ZugtypEither Wegstrecke
     erhalteObjektTyp = mapZugtypEither ws
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => ZugtypEither WSWidgets -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r (ZugtypEither WSWidgets) m)
+                    => ZugtypEither WSWidgets
+                    -> m ()
     entferneWidgets (ZugtypMärklin wsWidgets) = entferneWidgets wsWidgets
     entferneWidgets (ZugtypLego wsWidgets) = entferneWidgets wsWidgets
 
@@ -906,8 +921,9 @@ instance (PlanElement (WSWidgets z)) => WidgetsTyp (GeschwindigkeitPhantom WSWid
         :: GeschwindigkeitPhantom WSWidgets g z -> GeschwindigkeitPhantom Wegstrecke g z
     erhalteObjektTyp (GeschwindigkeitPhantom WSWidgets {ws}) = GeschwindigkeitPhantom ws
 
-    entferneWidgets
-        :: (MonadIO m, DynamischeWidgetsReader r m) => GeschwindigkeitPhantom WSWidgets g z -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r (GeschwindigkeitPhantom WSWidgets g z) m)
+                    => GeschwindigkeitPhantom WSWidgets g z
+                    -> m ()
     entferneWidgets (GeschwindigkeitPhantom wsWidgets) = entferneWidgets wsWidgets
 
     boxButtonEntfernen :: GeschwindigkeitPhantom WSWidgets g z -> Gtk.Box
@@ -933,8 +949,9 @@ instance PlanElement (WSWidgets 'Märklin) where
             , wegstrecke]
         . wsHinzPL
 
-    boxenPlan :: Wegstrecke 'Märklin
-              -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WSWidgets 'Märklin))
+    boxenPlan :: (ReaderConstraint (WSWidgets 'Märklin) r)
+              => Wegstrecke 'Märklin
+              -> Lens.Fold r (BoxPlanHinzufügen (WSWidgets 'Märklin))
     boxenPlan _wsWidgets =
         Lens.folding
         $ (??)
@@ -958,8 +975,9 @@ instance PlanElement (WSWidgets 'Lego) where
             , wegstrecke]
         . wsHinzPL
 
-    boxenPlan :: Wegstrecke 'Lego
-              -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (WSWidgets 'Lego))
+    boxenPlan :: (ReaderConstraint (WSWidgets 'Lego) r)
+              => Wegstrecke 'Lego
+              -> Lens.Fold r (BoxPlanHinzufügen (WSWidgets 'Lego))
     boxenPlan _wsWidgets =
         Lens.folding
         $ (??)
@@ -985,8 +1003,9 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , wegstrecke]
         . wsHinzPL
 
-    boxenPlan :: ZugtypEither Wegstrecke
-              -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen (ZugtypEither WSWidgets))
+    boxenPlan :: (ReaderConstraint (ZugtypEither WSWidgets) r)
+              => ZugtypEither Wegstrecke
+              -> Lens.Fold r (BoxPlanHinzufügen (ZugtypEither WSWidgets))
     boxenPlan (ZugtypMärklin _wegstrecke) =
         Lens.folding
         $ map widgetHinzufügenZugtypEither
@@ -1082,33 +1101,26 @@ instance (WegstreckeKlasse (Wegstrecke z)) => WegstreckeKlasse (WSWidgets z) whe
     einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> m ()
     einstellen WSWidgets {ws, wsTVarEvent} = eventAusführen wsTVarEvent $ einstellen ws
 
-instance BGWidgetsKlasse (GeschwindigkeitPhantom Wegstrecke) where
-    enthalteneBahngeschwindigkeiten :: (GeschwindigkeitEitherKlasse g)
-                                    => GeschwindigkeitPhantom Wegstrecke g z
-                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
-    enthalteneBahngeschwindigkeiten (GeschwindigkeitPhantom Wegstrecke {wsBahngeschwindigkeiten}) =
-        wsBahngeschwindigkeiten
-
-instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
-    enthalteneBahngeschwindigkeiten :: (GeschwindigkeitEitherKlasse g)
-                                    => GeschwindigkeitPhantom WSWidgets g z
-                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
+instance (ZugtypKlasse z) => BahngeschwindigkeitContainer (WSWidgets z) where
     enthalteneBahngeschwindigkeiten
-        (GeschwindigkeitPhantom WSWidgets {ws = Wegstrecke {wsBahngeschwindigkeiten}}) =
-        wsBahngeschwindigkeiten
+        :: WSWidgets z -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten = enthalteneBahngeschwindigkeiten . ws
 
-instance STWidgetsKlasse (Wegstrecke z) where
-    enthalteneStreckenabschnitte :: Wegstrecke z -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte = wsStreckenabschnitte
-
-instance STWidgetsKlasse (WSWidgets z) where
+instance StreckenabschnittContainer (WSWidgets z) where
     enthalteneStreckenabschnitte :: WSWidgets z -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte = wsStreckenabschnitte . ws
+    enthalteneStreckenabschnitte = enthalteneStreckenabschnitte . ws
 
-instance STWidgetsKlasse (GeschwindigkeitPhantom Wegstrecke g z) where
-    enthalteneStreckenabschnitte :: GeschwindigkeitPhantom Wegstrecke g z -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte (GeschwindigkeitPhantom Wegstrecke {wsStreckenabschnitte}) =
-        wsStreckenabschnitte
+instance (ZugtypKlasse z) => WeicheContainer (WSWidgets z) where
+    enthalteneWeichen :: WSWidgets z -> Set (ZugtypEither Weiche)
+    enthalteneWeichen = enthalteneWeichen . ws
+
+instance KupplungContainer (WSWidgets z) where
+    enthalteneKupplungen :: WSWidgets z -> Set Kupplung
+    enthalteneKupplungen = enthalteneKupplungen . ws
+
+instance KontaktContainer (WSWidgets z) where
+    enthalteneKontakte :: WSWidgets z -> Set Kontakt
+    enthalteneKontakte = enthalteneKontakte . ws
 
 -- | 'Wegstrecke' darstellen
 wegstreckePackNew
@@ -1192,6 +1204,7 @@ wegstreckePackNew
                         functionBox
                         (GeschwindigkeitPhantom wegstrecke)
                         wsTVarEvent
+                        statusVar
                 else pure Nothing
             let geschwindigkeitenKonstanteSpannung = catKonstanteSpannung wsBahngeschwindigkeiten
             maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
@@ -1205,6 +1218,7 @@ wegstreckePackNew
                          <$> geschwindigkeitenKonstanteSpannung)
                         wsTVarSprache
                         wsTVarEvent
+                        statusVar
             eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
                 (ZugtypMärklin wsMärklin) -> Left
                     <$> buttonUmdrehenPackNew
@@ -1213,6 +1227,7 @@ wegstreckePackNew
                          :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                         wsTVarSprache
                         wsTVarEvent
+                        statusVar
                 (ZugtypLego wsLego) -> Right
                     <$> auswahlFahrtrichtungEinstellenPackNew
                         functionBox
@@ -1220,6 +1235,7 @@ wegstreckePackNew
                          :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
                         wsTVarSprache
                         wsTVarEvent
+                        statusVar
             pure (maybeScale, maybeAuswahlFahrstrom, rightToMaybe eitherFahrtrichtungWidget)
     wsToggleButtonStrom <- if null wsStreckenabschnitte
         then pure Nothing
@@ -1228,7 +1244,7 @@ wegstreckePackNew
                 $ labelSpracheNew justTVarSprache
                 $ Language.streckenabschnitte
                 <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
-            Just <$> toggleButtonStromPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent
+            Just <$> toggleButtonStromPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent statusVar
     unless (null wsWeichenRichtungen) $ void $ do
         boxPackWidgetNewDefault vBoxExpander
             $ labelSpracheNew justTVarSprache
@@ -1301,7 +1317,7 @@ instance WidgetsTyp PLWidgets where
     erhalteObjektTyp :: PLWidgets -> Plan
     erhalteObjektTyp = pl
 
-    entferneWidgets :: (MonadIO m, DynamischeWidgetsReader r m) => PLWidgets -> m ()
+    entferneWidgets :: (MonadIO m, WidgetsTypReader r PLWidgets m) => PLWidgets -> m ()
     entferneWidgets plWidgets@PLWidgets {plTVarSprache} = do
         DynamischeWidgets {vBoxPläne} <- erhalteDynamischeWidgets
         mitContainerRemove vBoxPläne plWidgets
@@ -1320,7 +1336,7 @@ instance PlanElement PLWidgets where
     foldPlan :: Lens.Fold PLWidgets (Maybe (ButtonPlanHinzufügen PLWidgets))
     foldPlan = Lens.to $ Just . plHinzPL
 
-    boxenPlan :: Plan -> Lens.Fold DynamischeWidgets (BoxPlanHinzufügen PLWidgets)
+    boxenPlan :: (ReaderConstraint PLWidgets r) => Plan -> Lens.Fold r (BoxPlanHinzufügen PLWidgets)
     boxenPlan _kuWidgets = Lens.to vBoxHinzufügenPlanPläne
 
 instance StreckenObjekt PLWidgets where
