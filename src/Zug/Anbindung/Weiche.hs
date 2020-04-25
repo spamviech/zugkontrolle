@@ -7,11 +7,12 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
 Description: Stellen einer Weiche.
 -}
-module Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(..), weicheZeit) where
+module Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(..), WeicheContainer(..), weicheZeit) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.List.NonEmpty (NonEmpty((:|)))
@@ -93,10 +94,12 @@ class (StreckenObjekt w) => WeicheKlasse w where
 
     -- | Erhalte alle Richtungen einer Weiche
     erhalteRichtungen :: w -> NonEmpty Richtung
+    {-# MINIMAL stellen, erhalteRichtungen #-}
 
+-- | Typen, die 'Weiche'n enthalten können.
+class WeicheContainer w where
     -- | Alle enthaltenen Weichen.
     enthalteneWeichen :: w -> Set (ZugtypEither Weiche)
-    {-# MINIMAL stellen, erhalteRichtungen, enthalteneWeichen #-}
 
 instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
     => WeicheKlasse (ZugtypEither we) where
@@ -107,10 +110,6 @@ instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
     erhalteRichtungen :: ZugtypEither we -> NonEmpty Richtung
     erhalteRichtungen (ZugtypMärklin a) = erhalteRichtungen a
     erhalteRichtungen (ZugtypLego a) = erhalteRichtungen a
-
-    enthalteneWeichen :: ZugtypEither we -> Set (ZugtypEither Weiche)
-    enthalteneWeichen (ZugtypMärklin a) = enthalteneWeichen a
-    enthalteneWeichen (ZugtypLego a) = enthalteneWeichen a
 
 -- | Zeit, die Strom beim Stellen einer Märklin-Weiche anliegt
 weicheZeit :: Wartezeit
@@ -170,5 +169,14 @@ instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
         LegoWeiche {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]
     erhalteRichtungen MärklinWeiche {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse
 
+instance (ZugtypKlasse z) => WeicheContainer (Weiche z) where
     enthalteneWeichen :: Weiche z -> Set (ZugtypEither Weiche)
     enthalteneWeichen = Set.singleton . zuZugtypEither
+
+instance WeicheContainer (ZugtypEither Weiche) where
+    enthalteneWeichen :: ZugtypEither Weiche -> Set (ZugtypEither Weiche)
+    enthalteneWeichen = Set.singleton
+
+instance {-# OVERLAPPABLE #-}WeicheContainer a where
+    enthalteneWeichen :: a -> Set (ZugtypEither Weiche)
+    enthalteneWeichen = const Set.empty

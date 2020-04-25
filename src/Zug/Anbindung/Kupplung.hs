@@ -5,11 +5,17 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
 Description: Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden.
 -}
-module Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit) where
+module Zug.Anbindung.Kupplung
+  ( Kupplung(..)
+  , KupplungKlasse(..)
+  , KupplungContainer(..)
+  , kuppelnZeit
+  ) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.Semigroup (Semigroup((<>)))
@@ -46,11 +52,13 @@ instance StreckenAtom Kupplung where
     fließend :: Kupplung -> Value
     fließend = kuFließend
 
--- | Sammel-Klasse für 'Kupplung'-artige Typen
+-- | Sammel-Klasse für 'Kupplung'-artige Typen.
 class (StreckenObjekt k) => KupplungKlasse k where
     -- | Kupplung betätigen
     kuppeln :: (I2CReader r m, MonadIO m) => k -> m ()
 
+-- | Typen, die 'Kupplung'en enthalten können.
+class KupplungContainer k where
     -- | Alle enthaltenen Kupplungen.
     enthalteneKupplungen :: k -> Set Kupplung
 
@@ -59,10 +67,6 @@ instance (KupplungKlasse (ku 'Märklin), KupplungKlasse (ku 'Lego))
     kuppeln :: (I2CReader r m, MonadIO m) => ZugtypEither ku -> m ()
     kuppeln (ZugtypMärklin a) = kuppeln a
     kuppeln (ZugtypLego a) = kuppeln a
-
-    enthalteneKupplungen :: ZugtypEither ku -> Set Kupplung
-    enthalteneKupplungen (ZugtypMärklin a) = enthalteneKupplungen a
-    enthalteneKupplungen (ZugtypLego a) = enthalteneKupplungen a
 
 -- | Zeit, die Strom beim Kuppeln anliegt
 kuppelnZeit :: Wartezeit
@@ -76,5 +80,10 @@ instance KupplungKlasse Kupplung where
             warte kuppelnZeit
             anschlussWrite kupplungsAnschluss $ gesperrt ku
 
+instance KupplungContainer Kupplung where
     enthalteneKupplungen :: Kupplung -> Set Kupplung
     enthalteneKupplungen = Set.singleton
+
+instance {-# OVERLAPPABLE #-}KupplungContainer a where
+    enthalteneKupplungen :: a -> Set Kupplung
+    enthalteneKupplungen = const Set.empty

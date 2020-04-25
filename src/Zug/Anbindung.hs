@@ -43,19 +43,24 @@ module Zug.Anbindung
     -- ** Bahngeschwindigkeiten
   , Bahngeschwindigkeit(..)
   , BahngeschwindigkeitKlasse(..)
+  , BahngeschwindigkeitContainer(..)
   , verwendetPwm
     -- ** Streckenabschnitte
   , Streckenabschnitt(..)
   , StreckenabschnittKlasse(..)
+  , StreckenabschnittContainer(..)
     -- ** Weichen
   , Weiche(..)
   , WeicheKlasse(..)
+  , WeicheContainer(..)
     -- ** Kupplungen
   , Kupplung(..)
   , KupplungKlasse(..)
+  , KupplungContainer(..)
     -- ** Kontakt
   , Kontakt(..)
   , KontaktKlasse(..)
+  , KontaktContainer(..)
     -- ** Wegstrecken
   , Wegstrecke(..)
   , WegstreckeKlasse(..)
@@ -73,16 +78,17 @@ import Zug.Anbindung.Anschluss
       , PCF8574Variant(..), anschlussWrite, Value(..), alleValues, I2CMap, i2cMapEmpty
       , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite, beiÄnderung
       , InterruptMap, interruptMapEmpty, MitInterruptMap(..), InterruptReader(..), IntEdge(..))
-import Zug.Anbindung.Bahngeschwindigkeit
-       (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), verwendetPwm)
+import Zug.Anbindung.Bahngeschwindigkeit (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
+                                        , BahngeschwindigkeitContainer(..), verwendetPwm)
 import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..))
-import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
-import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..))
+import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..), KontaktContainer(..))
+import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), KupplungContainer(..))
 import Zug.Anbindung.Pwm (pwmSetzeWert, pwmServo, erhaltePwmWertVoll, erhaltePwmWertReduziert
                         , pwmMöglich, clockMöglich, PwmValueUnmodifiziert, pwmEingabeMaximal)
 import Zug.Anbindung.SoftwarePWM (PwmMap, pwmMapEmpty, MitPwmMap(..), PwmReader(..))
-import Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..))
+import Zug.Anbindung.Streckenabschnitt
+       (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..))
 import Zug.Anbindung.Wartezeit
        (warte, Wartezeit(..), addition, differenz, multiplizieren, dividieren)
 import Zug.Anbindung.Wegstrecke (Wegstrecke(..), WegstreckeKlasse(..))
-import Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(..))
+import Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(..), WeicheContainer(..))

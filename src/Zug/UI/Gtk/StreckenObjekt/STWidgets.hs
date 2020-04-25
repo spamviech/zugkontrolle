@@ -32,8 +32,8 @@ import Data.Void (Void)
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenObjekt(..)
-                    , Anschluss(), I2CReader())
+import Zug.Anbindung (Streckenabschnitt(..), StreckenabschnittKlasse(..)
+                    , StreckenabschnittContainer(..), StreckenObjekt(..), Anschluss(), I2CReader())
 import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
@@ -185,6 +185,7 @@ instance StreckenabschnittKlasse STWidgets where
             $ ohneEvent stTVarEvent
             $ Gtk.set stToggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
 
+instance StreckenabschnittContainer STWidgets where
     enthalteneStreckenabschnitte :: STWidgets -> Set Streckenabschnitt
     enthalteneStreckenabschnitte = enthalteneStreckenabschnitte . st
 
@@ -213,7 +214,9 @@ streckenabschnittPackNew
     , Aeson.ToJSON o
     , ST o ~ STWidgets
     , STWidgetsKlasse (WS o 'Märklin)
+    , StreckenabschnittContainer (WS o 'Märklin)
     , STWidgetsKlasse (WS o 'Lego)
+    , StreckenabschnittContainer (WS o 'Lego)
     , MonadIO m
     )
     => Streckenabschnitt
@@ -293,9 +296,12 @@ toggleButtonStromPackNew
     , MonadIO m
     , MitBox b
     , StreckenabschnittKlasse s
+    , StreckenabschnittContainer s
     , ST o ~ STWidgets
     , STWidgetsKlasse (WS o 'Märklin)
+    , StreckenabschnittContainer (WS o 'Märklin)
     , STWidgetsKlasse (WS o 'Lego)
+    , StreckenabschnittContainer (WS o 'Lego)
     )
     => b
     -> s

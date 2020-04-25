@@ -6,6 +6,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-|
@@ -15,6 +16,7 @@ module Zug.Anbindung.Bahngeschwindigkeit
   ( -- * Datentyp und Typ-Klasse
     Bahngeschwindigkeit(..)
   , BahngeschwindigkeitKlasse(..)
+  , BahngeschwindigkeitContainer(..)
     -- * Hilfsfunktionen
   , verwendetPwm
   , umdrehenZeit
@@ -40,7 +42,8 @@ import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
 import Zug.Derive.Ord (deriveOrd)
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither()
+import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(zuZugtypEither)
+                , GeschwindigkeitVariante(..), GeschwindigkeitEither()
                 , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), Fahrtrichtung(Vorwärts))
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
 import qualified Zug.Language as Language
@@ -124,7 +127,7 @@ verwendetPwm MärklinBahngeschwindigkeitKonstanteSpannung {} = KonstanteSpannung
 verwendetPwm MärklinBahngeschwindigkeitPwm {} = Pwm
 verwendetPwm LegoBahngeschwindigkeit {} = Pwm
 
--- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen
+-- | Sammel-Klasse für 'Bahngeschwindigkeit'-artige Typen.
 class ( StreckenObjekt (b 'Pwm 'Märklin)
       , StreckenObjekt (b 'Pwm 'Lego)
       , StreckenObjekt (b 'KonstanteSpannung 'Märklin)
@@ -143,10 +146,11 @@ class ( StreckenObjekt (b 'Pwm 'Märklin)
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => b g 'Lego -> Fahrtrichtung -> m ()
 
+-- | Typen, die 'Bahngeschwindigkeit'en enthalten können.
+class BahngeschwindigkeitContainer b where
     -- | Alle enthaltenen Bahngeschwindigkeiten.
-    enthalteneBahngeschwindigkeiten :: (GeschwindigkeitEitherKlasse g)
-                                    => b g z
-                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
+    enthalteneBahngeschwindigkeiten
+        :: b -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
 
 -- | Erhalte das Element an Position /i/, angefangen bei /1/.
 -- Ist die Position größer als die Länge der Liste wird das letzte Element zurückgegeben.
@@ -263,7 +267,27 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                        else gesperrt)
                     bg
 
-    enthalteneBahngeschwindigkeiten :: (GeschwindigkeitEitherKlasse g)
-                                    => Bahngeschwindigkeit g z
-                                    -> Set (GeschwindigkeitEither Bahngeschwindigkeit z)
-    enthalteneBahngeschwindigkeiten = Set.singleton . zuGeschwindigkeitEither
+instance (GeschwindigkeitEitherKlasse g, ZugtypKlasse z)
+    => BahngeschwindigkeitContainer (Bahngeschwindigkeit g z) where
+    enthalteneBahngeschwindigkeiten
+        :: Bahngeschwindigkeit g z
+        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten = Set.singleton . zuZugtypEither . zuGeschwindigkeitEither
+
+instance (ZugtypKlasse z)
+    => BahngeschwindigkeitContainer (GeschwindigkeitEither Bahngeschwindigkeit z) where
+    enthalteneBahngeschwindigkeiten
+        :: GeschwindigkeitEither Bahngeschwindigkeit z
+        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten = Set.singleton . zuZugtypEither
+
+instance BahngeschwindigkeitContainer (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)) where
+    enthalteneBahngeschwindigkeiten
+        :: (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten = Set.singleton
+
+instance {-# OVERLAPPABLE #-}BahngeschwindigkeitContainer a where
+    enthalteneBahngeschwindigkeiten
+        :: a -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten = const Set.empty

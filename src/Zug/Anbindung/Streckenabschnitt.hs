@@ -5,11 +5,16 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-|
 Description: Steuere die Stromzufuhr einer Schiene.
 -}
-module Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..)) where
+module Zug.Anbindung.Streckenabschnitt
+  ( Streckenabschnitt(..)
+  , StreckenabschnittKlasse(..)
+  , StreckenabschnittContainer(..)
+  ) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.Semigroup (Semigroup((<>)))
@@ -45,11 +50,13 @@ instance StreckenAtom Streckenabschnitt where
     fließend :: Streckenabschnitt -> Value
     fließend = stFließend
 
--- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen
+-- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen.
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
     strom :: (I2CReader r m, MonadIO m) => s -> Strom -> m ()
 
+-- | Typen, die 'Streckenabschnitt'e enthalten können.
+class StreckenabschnittContainer s where
     -- | Alle enthaltenen 'Streckenabschnitt'e.
     enthalteneStreckenabschnitte :: s -> Set Streckenabschnitt
 
@@ -59,10 +66,6 @@ instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Leg
     strom (ZugtypMärklin a) = strom a
     strom (ZugtypLego a) = strom a
 
-    enthalteneStreckenabschnitte :: ZugtypEither s -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte (ZugtypMärklin a) = enthalteneStreckenabschnitte a
-    enthalteneStreckenabschnitte (ZugtypLego a) = enthalteneStreckenabschnitte a
-
 instance StreckenabschnittKlasse Streckenabschnitt where
     strom :: (I2CReader r m, MonadIO m) => Streckenabschnitt -> Strom -> m ()
     strom st@Streckenabschnitt {stromAnschluss} an =
@@ -70,5 +73,10 @@ instance StreckenabschnittKlasse Streckenabschnitt where
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
 
+instance StreckenabschnittContainer Streckenabschnitt where
     enthalteneStreckenabschnitte :: Streckenabschnitt -> Set Streckenabschnitt
     enthalteneStreckenabschnitte = Set.singleton
+
+instance {-# OVERLAPPABLE #-}StreckenabschnittContainer a where
+    enthalteneStreckenabschnitte :: a -> Set Streckenabschnitt
+    enthalteneStreckenabschnitte = const Set.empty
