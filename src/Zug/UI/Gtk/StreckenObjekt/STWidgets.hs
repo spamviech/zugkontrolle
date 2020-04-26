@@ -6,13 +6,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 module Zug.UI.Gtk.StreckenObjekt.STWidgets
-  ( STWidgets(STWidgets, st, stWidget, stFunctionBox, stHinzWS,
-          stHinzPL, stTVarSprache, stTVarEvent, stToggleButtonStrom)
-  , STWidgetsKlasse(..)
+  ( STWidgets()
   , streckenabschnittPackNew
+  , STWidgetsKlasse(..)
   , toggleButtonStromPackNew
   , STWidgetsBoxen(..)
   , MitSTWidgetsBoxen(..)
@@ -69,44 +67,17 @@ instance Kategorie STWidgets where
 
 -- | 'Streckenabschnitt' mit zugehörigen Widgets
 data STWidgets =
-    MkSTWidgets Streckenabschnitt
-                Gtk.VBox
-                Gtk.HBox
-                (CheckButtonWegstreckeHinzufügen Void STWidgets)
-                (ButtonPlanHinzufügen STWidgets)
-                (TVar (Maybe [Sprache -> IO ()]))
-                (TVar EventAusführen)
-                Gtk.ToggleButton
+    STWidgets
+    { st :: Streckenabschnitt
+    , stWidget :: Gtk.VBox
+    , stFunctionBox :: Gtk.HBox
+    , stHinzWS :: CheckButtonWegstreckeHinzufügen Void STWidgets
+    , stHinzPL :: ButtonPlanHinzufügen STWidgets
+    , stTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , stTVarEvent :: TVar EventAusführen
+    , stToggleButtonStrom :: Gtk.ToggleButton
+    }
     deriving (Eq)
-
-pattern STWidgets :: Streckenabschnitt
-    -> Gtk.VBox
-    -> Gtk.HBox
-    -> CheckButtonWegstreckeHinzufügen Void STWidgets
-    -> ButtonPlanHinzufügen STWidgets
-    -> TVar (Maybe [Sprache -> IO ()])
-    -> TVar EventAusführen
-    -> Gtk.ToggleButton
-    -> STWidgets
-pattern STWidgets { st
-                  , stWidget
-                  , stFunctionBox
-                  , stHinzWS
-                  , stHinzPL
-                  , stTVarSprache
-                  , stTVarEvent
-                  , stToggleButtonStrom}
-    <- MkSTWidgets
-        st
-        stWidget
-        stFunctionBox
-        stHinzWS
-        stHinzPL
-        stTVarSprache
-        stTVarEvent
-        stToggleButtonStrom
-
-{-# COMPLETE STWidgets #-}
 
 data STWidgetsBoxen =
     STWidgetsBoxen
@@ -117,6 +88,10 @@ data STWidgetsBoxen =
 
 class MitSTWidgetsBoxen r where
     stWidgetsBoxen :: r -> STWidgetsBoxen
+
+instance MitSTWidgetsBoxen STWidgetsBoxen where
+    stWidgetsBoxen :: STWidgetsBoxen -> STWidgetsBoxen
+    stWidgetsBoxen = id
 
 instance MitWidget STWidgets where
     erhalteWidget :: STWidgets -> Gtk.Widget
@@ -260,7 +235,7 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
         statusVar
     fließendPackNew vBoxAnschlüsse streckenabschnitt justTVarSprache
     let stWidgets =
-            MkSTWidgets
+            STWidgets
                 streckenabschnitt
                 vBox
                 stFunctionBox

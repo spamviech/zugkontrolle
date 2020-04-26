@@ -13,12 +13,14 @@
 
 module Zug.UI.Gtk.StreckenObjekt.BGWidgets
   ( BGWidgets()
-  , BGWidgetsKlasse(..)
   , bahngeschwindigkeitPackNew
+  , BGWidgetsKlasse(..)
   , hScaleGeschwindigkeitPackNew
   , auswahlFahrstromPackNew
   , buttonUmdrehenPackNew
   , auswahlFahrtrichtungEinstellenPackNew
+  , BGWidgetsBoxen(..)
+  , MitBGWidgetsBoxen(..)
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
@@ -72,7 +74,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
       , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
-import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets(..), STWidgetsKlasse(..))
+import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets, STWidgetsKlasse(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
       , BoxPlanHinzufügen, ButtonPlanHinzufügen, widgetHinzufügenGeschwindigkeitVariante
@@ -177,6 +179,10 @@ data BGWidgetsBoxen =
 
 class MitBGWidgetsBoxen r where
     bgWidgetsBoxen :: r -> BGWidgetsBoxen
+
+instance MitBGWidgetsBoxen BGWidgetsBoxen where
+    bgWidgetsBoxen :: BGWidgetsBoxen -> BGWidgetsBoxen
+    bgWidgetsBoxen = id
 
 instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
     => WidgetsTyp (BGWidgets g z) where
@@ -1120,10 +1126,11 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
         bgWidgetsSynchronisieren _bgWidgets = pure ()
 
         stWidgetsSynchronisieren :: STWidgets -> IO ()
-        stWidgetsSynchronisieren STWidgets {st, stTVarEvent, stToggleButtonStrom}
-            | elem st $ enthalteneStreckenabschnitte bahngeschwindigkeit =
-                ohneEvent stTVarEvent
-                $ Gtk.set stToggleButtonStrom [Gtk.toggleButtonActive := True]
+        stWidgetsSynchronisieren st@(toggleButtonStrom -> Just toggleButtonStrom)
+            | Set.isSubsetOf (enthalteneStreckenabschnitte st)
+                $ enthalteneStreckenabschnitte bahngeschwindigkeit =
+                ohneEvent (tvarEvent st)
+                $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := True]
         stWidgetsSynchronisieren _stWidgets = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> IO ()
