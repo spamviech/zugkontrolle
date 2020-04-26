@@ -1,7 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -359,10 +358,16 @@ weichePackNew weiche = do
             , rechts = hinzufügenPlanWidgetRechts
             }
     -- Widget erstellen
-    (vBox, weFunctionBox) <- liftIO $ do
-        vBox <- boxPackWidgetNewDefault vBoxWeichen $ Gtk.vBoxNew False 0
-        weFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-        pure (vBox, weFunctionBox)
+    vBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.vBoxNew False 0
+    namePackNew vBox weiche
+    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
+        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
+            $ Gtk.expanderNew Text.empty
+        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+            $ scrollbaresWidgetNew
+            $ Gtk.vBoxNew False 0
+        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    weFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     let weWidgets =
             WEWidgets
             { we = weiche
@@ -373,15 +378,6 @@ weichePackNew weiche = do
             , weTVarSprache
             , weTVarEvent
             }
-    namePackNew weFunctionBox weiche
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse
-            <- boxPackWidgetNew weFunctionBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     lift $ richtungsButtonsPackNew weWidgets weFunctionBox vBoxAnschlüsse

@@ -7,11 +7,13 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets (PLWidgets(), planPackNew) where
 import qualified Data.Aeson as Aeson
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Plan (PlanAllgemein(..), PlanKlasse(..))
+import Zug.Anbindung (StreckenObjekt(..))
+import Zug.Plan (Plan(..), PlanKlasse(..))
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (PlanElement(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen (Kategorie(..), KategorieText(..))
+import qualified Zug.Language as Language
 
 instance Kategorie PLWidgets where
     kategorie :: KategorieText PLWidgets

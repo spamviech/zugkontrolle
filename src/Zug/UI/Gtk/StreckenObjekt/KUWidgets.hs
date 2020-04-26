@@ -6,7 +6,7 @@ module Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets(), kupplungPackNew) where
 import qualified Data.Aeson as Aeson
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Kupplung(..), KupplungKlasse(..))
+import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..))
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen (Kategorie(..), KategorieText(..))
@@ -102,21 +102,8 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung kuTVarSprache
     -- Widget erstellen
-    (vBox, kuFunctionBox) <- liftIO $ do
-        vBox <- boxPackWidgetNewDefault vBoxKupplungen $ Gtk.vBoxNew False 0
-        kuFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-        pure (vBox, kuFunctionBox)
-    let kuWidgets =
-            KUWidgets
-            { ku = kupplung
-            , kuWidget = vBox
-            , kuFunctionBox
-            , kuHinzPL = hinzufügenPlanWidget
-            , kuHinzWS = hinzufügenWegstreckeWidget
-            , kuTVarSprache
-            , kuTVarEvent
-            }
-    namePackNew kuFunctionBox kupplung
+    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.vBoxNew False 0
+    namePackNew vBox kupplung
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
         expanderAnschlüsse
             <- boxPackWidgetNew kuFunctionBox PackGrow paddingDefault positionDefault
@@ -129,6 +116,18 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
+    kuFunctionBox
+        <- liftIO $ boxPackWidgetNew packingDefault paddingDefault End vBox $ Gtk.hBoxNew False 0
+    let kuWidgets =
+            KUWidgets
+            { ku = kupplung
+            , kuWidget = vBox
+            , kuFunctionBox
+            , kuHinzPL = hinzufügenPlanWidget
+            , kuHinzWS = hinzufügenWegstreckeWidget
+            , kuTVarSprache
+            , kuTVarEvent
+            }
     buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent
     fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
     buttonEntfernenPackNew kuWidgets $ entfernenKupplung kuWidgets

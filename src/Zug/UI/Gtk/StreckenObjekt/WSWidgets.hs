@@ -11,7 +11,11 @@ import Zug.Anbindung
       , StreckenabschnittKlasse(..), StreckenabschnittContainer(..), WeicheContainer(..)
       , KupplungKlasse(..), KupplungContainer(..), KontaktKlasse(..), KontaktContainer(..))
 import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.UI.Gtk.StreckenObjekt.BGWidgets ()
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
+import Zug.UI.Gtk.StreckenObjekt.KOWidgets ()
+import Zug.UI.Gtk.StreckenObjekt.KUWidgets ()
+import Zug.UI.Gtk.StreckenObjekt.STWidgets ()
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen (Kategorie(..), KategorieText(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
 
