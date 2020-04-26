@@ -3,6 +3,15 @@
 
 module Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets(), kupplungPackNew) where
 
+import qualified Data.Aeson as Aeson
+import qualified Graphics.UI.Gtk as Gtk
+
+import Zug.Anbindung (Kupplung(..), KupplungKlasse(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen (Kategorie(..), KategorieText(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
+
 instance Kategorie KUWidgets where
     kategorie :: KategorieText KUWidgets
     kategorie = KategorieText Language.kupplungen

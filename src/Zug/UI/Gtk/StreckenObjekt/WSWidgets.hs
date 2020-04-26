@@ -3,6 +3,18 @@
 
 module Zug.UI.Gtk.StreckenObjekt.WSWidgets (WSWidgets(), wegstreckePackNew) where
 
+import qualified Data.Aeson as Aeson
+import qualified Graphics.UI.Gtk as Gtk
+
+import Zug.Anbindung
+       (StreckenObjekt(..), BahngeschwindigkeitKlasse(..), BahngeschwindigkeitContainer(..)
+      , StreckenabschnittKlasse(..), StreckenabschnittContainer(..), WeicheContainer(..)
+      , KupplungKlasse(..), KupplungContainer(..), KontaktKlasse(..), KontaktContainer(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen (Kategorie(..), KategorieText(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
+
 instance Kategorie (WSWidgets z) where
     kategorie :: KategorieText (WSWidgets z)
     kategorie = KategorieText Language.wegstrecken
@@ -271,6 +283,10 @@ instance StreckenabschnittKlasse (WSWidgets z) where
 instance KupplungKlasse (WSWidgets z) where
     kuppeln :: (I2CReader r m, MonadIO m) => WSWidgets z -> m ()
     kuppeln WSWidgets {ws, wsTVarEvent} = eventAusführen wsTVarEvent $ kuppeln ws
+
+instance KontaktKlasse (WSWidgets z) where
+    warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => WSWidgets z -> m ()
+    warteAufSignal WSWidgets {ws, wsTVarEvent} = eventAusführen wsTVarEvent $ warteAufSignal ws
 
 instance (WegstreckeKlasse (Wegstrecke z)) => WegstreckeKlasse (WSWidgets z) where
     einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> m ()
