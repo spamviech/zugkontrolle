@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Zug.UI.Gtk.StreckenObjekt.WSWidgets
   ( WSWidgets()
@@ -16,9 +17,14 @@ module Zug.UI.Gtk.StreckenObjekt.WSWidgets
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
-import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Control.Lens ((??), (^..))
+import Control.Monad (void, unless)
+import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
+import Data.Either.Combinators (rightToMaybe)
 import Data.List.NonEmpty (NonEmpty())
+import Data.Maybe (fromJust)
 import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -28,33 +34,44 @@ import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung
        (StreckenObjekt(..), Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
-      , BahngeschwindigkeitContainer(..), Streckenabschnitt(), StreckenabschnittKlasse(..)
-      , StreckenabschnittContainer(..), Weiche(), WeicheContainer(..), Kupplung()
-      , KupplungKlasse(..), KupplungContainer(..), Kontakt(), KontaktKlasse(..)
+      , BahngeschwindigkeitContainer(..), verwendetPwm, Streckenabschnitt()
+      , StreckenabschnittKlasse(..), StreckenabschnittContainer(..), Weiche(), WeicheContainer(..)
+      , Kupplung(), KupplungKlasse(..), KupplungContainer(..), Kontakt(), KontaktKlasse(..)
       , KontaktContainer(..), Wegstrecke(..), WegstreckeKlasse(..), Anschluss(), I2CReader()
       , PwmReader(), InterruptReader())
-import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(), GeschwindigkeitVariante(..)
-                , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(), Strom())
-import Zug.Language (Sprache(), MitSprache())
+import Zug.Enums
+       (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither, ausZugtypEither
+      , GeschwindigkeitVariante(..), GeschwindigkeitEither(..), GeschwindigkeitPhantom(..)
+      , ausGeschwindigkeitEither, catKonstanteSpannung, Fahrtrichtung(), Strom(Fließend))
+import Zug.Language (Sprache(), MitSprache(), (<:>), (<°>), (<^>))
 import qualified Zug.Language as Language
-import Zug.UI.Base
-       (MStatusAllgemeinT, IOStatusAllgemein, entfernenWegstrecke, ObjektReader, ReaderFamilie)
-import Zug.UI.Gtk.Auswahl (AuswahlWidget)
-import Zug.UI.Gtk.Klassen (MitWidget(..))
+import Zug.Objekt (ObjektAllgemein(OWegstrecke), ObjektKlasse(..))
+import Zug.Plan (AktionWegstrecke(..))
+import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenWegstrecke, ObjektReader
+                  , ReaderFamilie, MitTVarMaps)
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, setzeAuswahl)
+import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, namePackNew
+                                 , labelSpracheNew, buttonNewWithEventLabel)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.StreckenObjekt.BGWidgets ()
-import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
-import Zug.UI.Gtk.StreckenObjekt.KOWidgets ()
-import Zug.UI.Gtk.StreckenObjekt.KUWidgets ()
-import Zug.UI.Gtk.StreckenObjekt.STWidgets ()
+import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt.BGWidgets
+       (BGWidgets, BGWidgetsKlasse(..), hScaleGeschwindigkeitPackNew, auswahlFahrstromPackNew
+      , buttonUmdrehenPackNew, auswahlFahrtrichtungEinstellenPackNew)
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (PlanElement(..), entferneHinzufügenPlanWidgets
+                                               , hinzufügenWidgetPlanPackNew, MitTMVarPlanObjekt())
+import Zug.UI.Gtk.StreckenObjekt.KUWidgets (buttonKuppelnPackNew)
+import Zug.UI.Gtk.StreckenObjekt.STWidgets
+       (STWidgets, STWidgetsKlasse(..), toggleButtonStromPackNew)
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
-       (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
-      , BoxPlanHinzufügen, ButtonPlanHinzufügen)
+       (Kategorie(..), KategorieText(..), BoxPlanHinzufügen, ButtonPlanHinzufügen
+      , widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
       , ohneEvent, buttonEntfernenPackNew)
 import Zug.UI.StatusVar
-       (StatusVar, MitStatusVar, StatusVarReader(erhalteStatusVar), auswertenStatusVarMStatusT)
+       (StatusVar, MitStatusVar, StatusVarReader(erhalteStatusVar), ausführenStatusVarAktion)
 
 instance Kategorie (WSWidgets z) where
     kategorie :: KategorieText (WSWidgets z)
@@ -99,13 +116,25 @@ instance MitWidget (GeschwindigkeitPhantom WSWidgets g z) where
 data WSWidgetsBoxen =
     WSWidgetsBoxen
     { vBoxWegstrecken :: ScrollbaresWidget Gtk.VBox
+    , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+          :: BoxPlanHinzufügen (WSWidgets 'Märklin)
+    , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
+          :: BoxPlanHinzufügen (WSWidgets 'Märklin)
+    , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+          :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
           :: BoxPlanHinzufügen (WSWidgets 'Lego)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
           :: BoxPlanHinzufügen (WSWidgets 'Lego)
+    , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+          :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
+    , vBoxHinzufügenPlanWegstreckenKupplungMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenKupplungLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
+    , vBoxHinzufügenPlanWegstreckenKontakteMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
+    , vBoxHinzufügenPlanWegstreckenKontakteLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
+    , vBoxHinzufügenPlanWegstreckenMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
     }
 
@@ -169,6 +198,8 @@ instance WidgetsTyp (ZugtypEither WSWidgets) where
 instance (PlanElement (WSWidgets z)) => WidgetsTyp (GeschwindigkeitPhantom WSWidgets g z) where
     type ObjektTyp (GeschwindigkeitPhantom WSWidgets g z) = GeschwindigkeitPhantom Wegstrecke g z
 
+    type ReaderConstraint (GeschwindigkeitPhantom WSWidgets g z) = MitWSWidgetsBoxen
+
     erhalteObjektTyp
         :: GeschwindigkeitPhantom WSWidgets g z -> GeschwindigkeitPhantom Wegstrecke g z
     erhalteObjektTyp (GeschwindigkeitPhantom WSWidgets {ws}) = GeschwindigkeitPhantom ws
@@ -213,6 +244,7 @@ instance PlanElement (WSWidgets 'Märklin) where
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin
             , vBoxHinzufügenPlanWegstreckenMärklin]
+        . wsWidgetsBoxen
 
 instance PlanElement (WSWidgets 'Lego) where
     foldPlan :: Lens.Fold (WSWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WSWidgets 'Lego)))
@@ -239,6 +271,7 @@ instance PlanElement (WSWidgets 'Lego) where
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungLego
             , vBoxHinzufügenPlanWegstreckenLego]
+        . wsWidgetsBoxen
 
 instance PlanElement (ZugtypEither WSWidgets) where
     foldPlan :: Lens.Fold (ZugtypEither WSWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WSWidgets)))
@@ -268,6 +301,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin
             , vBoxHinzufügenPlanWegstreckenMärklin]
+        . wsWidgetsBoxen
     boxenPlan (ZugtypLego _wegstrecke) =
         Lens.folding
         $ map widgetHinzufügenZugtypEither
@@ -278,6 +312,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungLego
             , vBoxHinzufügenPlanWegstreckenLego]
+        . wsWidgetsBoxen
 
 instance StreckenObjekt (WSWidgets z) where
     anschlüsse :: WSWidgets z -> Set Anschluss
@@ -335,6 +370,18 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
                 -> liftIO $ ohneEvent wsTVarEvent $ setzeAuswahl auswahlFahrtrichtung wert
             Nothing -> pure ()
 
+instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
+    scaleGeschwindigkeit :: GeschwindigkeitPhantom WSWidgets 'Pwm z -> Maybe Gtk.HScale
+    scaleGeschwindigkeit (GeschwindigkeitPhantom ws) = wsScaleGeschwindigkeit ws
+
+    auswahlFahrstrom :: GeschwindigkeitPhantom WSWidgets 'KonstanteSpannung z
+                     -> Maybe (AuswahlWidget Word8)
+    auswahlFahrstrom (GeschwindigkeitPhantom ws) = wsAuswahlFahrstrom ws
+
+    auswahlFahrtrichtung :: GeschwindigkeitPhantom WSWidgets g 'Lego
+                         -> Maybe (AuswahlWidget Fahrtrichtung)
+    auswahlFahrtrichtung (GeschwindigkeitPhantom ws) = wsAuswahlFahrtrichtung ws
+
 instance StreckenabschnittKlasse (WSWidgets z) where
     strom :: (I2CReader r m, MonadIO m) => WSWidgets z -> Strom -> m ()
     strom WSWidgets {ws, wsToggleButtonStrom, wsTVarEvent} wert = do
@@ -344,6 +391,10 @@ instance StreckenabschnittKlasse (WSWidgets z) where
                 $ ohneEvent wsTVarEvent
                 $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
             Nothing -> pure ()
+
+instance (PlanElement (WSWidgets z)) => STWidgetsKlasse (WSWidgets z) where
+    toggleButtonStrom :: WSWidgets z -> Maybe Gtk.ToggleButton
+    toggleButtonStrom = wsToggleButtonStrom
 
 instance KupplungKlasse (WSWidgets z) where
     kuppeln :: (I2CReader r m, MonadIO m) => WSWidgets z -> m ()
@@ -381,7 +432,23 @@ instance KontaktContainer (WSWidgets z) where
 -- | 'Wegstrecke' darstellen
 wegstreckePackNew
     :: forall o m z.
-    ( ObjektReader o m
+    ( BG o ~ BGWidgets
+    , ST o ~ STWidgets
+    , Eq (WE o 'Märklin)
+    , Eq (WE o 'Lego)
+    , Eq (KU o)
+    , Eq (KO o)
+    , WS o ~ WSWidgets
+    , Eq (PL o)
+    , MitSprache (SP o)
+    , ObjektKlasse o
+    , Aeson.ToJSON o
+    , ObjektReader o m
+    , MitStatusVar (ReaderFamilie o) o
+    , MitWSWidgetsBoxen (ReaderFamilie o)
+    , MitSpracheGui (ReaderFamilie o)
+    , MitTMVarPlanObjekt (ReaderFamilie o)
+    , MitTVarMaps (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
     , PlanElement (WSWidgets z)
@@ -522,7 +589,7 @@ wegstreckePackNew
         boxPackWidgetNewDefault vBoxExpander
             $ labelSpracheNew justTVarSprache
             $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
-        buttonKuppelnPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent
+        buttonKuppelnPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent statusVar
     let wsWidgets =
             WSWidgets
             { ws = wegstrecke
@@ -536,12 +603,17 @@ wegstreckePackNew
             , wsAuswahlFahrtrichtung
             , wsToggleButtonStrom
             }
-    buttonEntfernenPackNew wsWidgets $ entfernenWegstrecke $ zuZugtypEither wsWidgets
+    buttonEntfernenPackNew wsWidgets
+        $ (entfernenWegstrecke $ zuZugtypEither wsWidgets :: IOStatusAllgemein o ())
     -- Widgets merken
-    ausführenBefehl $ Hinzufügen $ OWegstrecke $ zuZugtypEither wsWidgets
+    ausführenBefehl $ Hinzufügen $ ausObjekt $ OWegstrecke $ zuZugtypEither wsWidgets
     pure wsWidgets
     where
-        appendName :: (StreckenObjekt o) => Maybe (Sprache -> Text) -> o -> Maybe (Sprache -> Text)
+        appendName :: forall o.
+                   (StreckenObjekt o)
+                   => Maybe (Sprache -> Text)
+                   -> o
+                   -> Maybe (Sprache -> Text)
 
         -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime
         appendName Nothing objekt = Just $ const $ erhalteName objekt
