@@ -80,10 +80,10 @@ class (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
     => FortfahrenWenToggledWegstreckeReader r o m | m -> r where
     erhalteFortfahrenWennToggledWegstrecke
         :: m (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+    erhalteFortfahrenWennToggledWegstrecke = asks fortfahrenWennToggledWegstrecke
 
 instance (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
-    => FortfahrenWenToggledWegstreckeReader r o m where
-    erhalteFortfahrenWennToggledWegstrecke = asks fortfahrenWennToggledWegstrecke
+    => FortfahrenWenToggledWegstreckeReader r o m
 
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen.
 --
@@ -218,9 +218,9 @@ class MitTMVarPlanObjekt r where
 
 class (MonadReader r m, MitTMVarPlanObjekt r) => TMVarPlanObjektReader r m | m -> r where
     erhalteTMVarPlanObjekt :: m (TMVar (Maybe Objekt))
-
-instance (MonadReader r m, MitTMVarPlanObjekt r) => TMVarPlanObjektReader r m where
     erhalteTMVarPlanObjekt = asks tmvarPlanObjekt
+
+instance (MonadReader r m, MitTMVarPlanObjekt r) => TMVarPlanObjektReader r m
 
 -- | Füge einen Knopf mit dem Namen zur Box hinzu. Beim drücken wird die 'TMVar' mit dem Objekt gefüllt.
 --

@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -21,6 +22,7 @@ module Zug.UI.Gtk.StreckenObjekt.BGWidgets
   , auswahlFahrtrichtungEinstellenPackNew
   , BGWidgetsBoxen(..)
   , MitBGWidgetsBoxen(..)
+  , BGWidgetsBoxenReader(..)
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
@@ -184,6 +186,12 @@ instance MitBGWidgetsBoxen BGWidgetsBoxen where
     bgWidgetsBoxen :: BGWidgetsBoxen -> BGWidgetsBoxen
     bgWidgetsBoxen = id
 
+class (MonadReader r m, MitBGWidgetsBoxen r) => BGWidgetsBoxenReader r m | m -> r where
+    erhalteBGWidgetsBoxen :: m BGWidgetsBoxen
+    erhalteBGWidgetsBoxen = asks bgWidgetsBoxen
+
+instance (MonadReader r m, MitBGWidgetsBoxen r) => BGWidgetsBoxenReader r m
+
 instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
     => WidgetsTyp (BGWidgets g z) where
     type ObjektTyp (BGWidgets g z) = Bahngeschwindigkeit g z
@@ -198,7 +206,7 @@ instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (BGWidgets g z) m) => BGWidgets g z -> m ()
     entferneWidgets bgWidgets = do
-        BGWidgetsBoxen {vBoxBahngeschwindigkeiten} <- asks bgWidgetsBoxen
+        BGWidgetsBoxen {vBoxBahngeschwindigkeiten} <- erhalteBGWidgetsBoxen
         mitContainerRemove vBoxBahngeschwindigkeiten bgWidgets
         entferneHinzufügenWegstreckeWidgets bgWidgets
         entferneHinzufügenPlanWidgets bgWidgets
@@ -667,7 +675,7 @@ bahngeschwindigkeitPackNew
     => Bahngeschwindigkeit g z
     -> MStatusAllgemeinT m o (BGWidgets g z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
-    BGWidgetsBoxen {vBoxBahngeschwindigkeiten} <- asks bgWidgetsBoxen
+    BGWidgetsBoxen {vBoxBahngeschwindigkeiten} <- erhalteBGWidgetsBoxen
     (tvarSprache, tvarEvent) <- liftIO $ do
         tvarSprache <- newTVarIO $ Just []
         tvarEvent <- newTVarIO EventAusführen

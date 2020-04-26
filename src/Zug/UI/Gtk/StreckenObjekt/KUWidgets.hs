@@ -4,9 +4,19 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets(), kupplungPackNew, buttonKuppelnPackNew) where
+module Zug.UI.Gtk.StreckenObjekt.KUWidgets
+  ( KUWidgets()
+  , kupplungPackNew
+  , buttonKuppelnPackNew
+  , KUWidgetsBoxen(..)
+  , MitKUWidgetsBoxen(..)
+  , KUWidgetsBoxenReader(..)
+  ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
@@ -85,6 +95,12 @@ instance MitKUWidgetsBoxen KUWidgetsBoxen where
     kuWidgetsBoxen :: KUWidgetsBoxen -> KUWidgetsBoxen
     kuWidgetsBoxen = id
 
+class (MonadReader r m, MitKUWidgetsBoxen r) => KUWidgetsBoxenReader r m | m -> r where
+    erhalteKUWidgetsBoxen :: m KUWidgetsBoxen
+    erhalteKUWidgetsBoxen = asks kuWidgetsBoxen
+
+instance (MonadReader r m, MitKUWidgetsBoxen r) => KUWidgetsBoxenReader r m
+
 instance WidgetsTyp KUWidgets where
     type ObjektTyp KUWidgets = Kupplung
 
@@ -95,7 +111,7 @@ instance WidgetsTyp KUWidgets where
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r KUWidgets m) => KUWidgets -> m ()
     entferneWidgets kuWidgets@KUWidgets {kuTVarSprache} = do
-        KUWidgetsBoxen {vBoxKupplungen} <- asks kuWidgetsBoxen
+        KUWidgetsBoxen {vBoxKupplungen} <- erhalteKUWidgetsBoxen
         mitContainerRemove vBoxKupplungen kuWidgets
         entferneHinzufügenWegstreckeWidgets kuWidgets
         entferneHinzufügenPlanWidgets kuWidgets
@@ -171,7 +187,7 @@ kupplungPackNew
     => Kupplung
     -> MStatusAllgemeinT m o KUWidgets
 kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
-    KUWidgetsBoxen {vBoxKupplungen, vBoxHinzufügenPlanKupplungen} <- asks kuWidgetsBoxen
+    KUWidgetsBoxen {vBoxKupplungen, vBoxHinzufügenPlanKupplungen} <- erhalteKUWidgetsBoxen
     statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
     (kuTVarSprache, kuTVarEvent) <- liftIO $ do
         kuTVarSprache <- newTVarIO $ Just []

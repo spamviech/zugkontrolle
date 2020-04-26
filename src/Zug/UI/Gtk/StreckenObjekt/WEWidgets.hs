@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Zug.UI.Gtk.StreckenObjekt.WEWidgets
@@ -13,6 +14,7 @@ module Zug.UI.Gtk.StreckenObjekt.WEWidgets
   , weichePackNew
   , WEWidgetsBoxen(..)
   , MitWEWidgetsBoxen(..)
+  , WEWidgetsBoxenReader(..)
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
@@ -110,6 +112,12 @@ instance MitWEWidgetsBoxen WEWidgetsBoxen where
     weWidgetsBoxen :: WEWidgetsBoxen -> WEWidgetsBoxen
     weWidgetsBoxen = id
 
+class (MonadReader r m, MitWEWidgetsBoxen r) => WEWidgetsBoxenReader r m | m -> r where
+    erhalteWEWidgetsBoxen :: m WEWidgetsBoxen
+    erhalteWEWidgetsBoxen = asks weWidgetsBoxen
+
+instance (MonadReader r m, MitWEWidgetsBoxen r) => WEWidgetsBoxenReader r m
+
 instance MitWidget (WEWidgets z) where
     erhalteWidget :: WEWidgets z -> Gtk.Widget
     erhalteWidget = erhalteWidget . weWidget
@@ -125,7 +133,7 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (WEWidgets z) m) => WEWidgets z -> m ()
     entferneWidgets weWidgets@WEWidgets {weTVarSprache} = do
-        WEWidgetsBoxen {vBoxWeichen} <- asks weWidgetsBoxen
+        WEWidgetsBoxen {vBoxWeichen} <- erhalteWEWidgetsBoxen
         mitContainerRemove vBoxWeichen weWidgets
         entferneHinzufügenWegstreckeWidgets weWidgets
         entferneHinzufügenPlanWidgets weWidgets
@@ -326,7 +334,7 @@ weichePackNew
     => Weiche z
     -> MStatusAllgemeinT m o (WEWidgets z)
 weichePackNew weiche = do
-    weWidgetsBoxen@WEWidgetsBoxen {vBoxWeichen} <- asks weWidgetsBoxen
+    weWidgetsBoxen@WEWidgetsBoxen {vBoxWeichen} <- erhalteWEWidgetsBoxen
     (weTVarSprache, weTVarEvent) <- liftIO $ do
         weTVarSprache <- newTVarIO $ Just []
         weTVarEvent <- newTVarIO EventAusführen

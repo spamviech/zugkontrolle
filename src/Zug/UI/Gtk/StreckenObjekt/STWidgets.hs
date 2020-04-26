@@ -5,6 +5,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Zug.UI.Gtk.StreckenObjekt.STWidgets
@@ -14,6 +17,7 @@ module Zug.UI.Gtk.StreckenObjekt.STWidgets
   , toggleButtonStromPackNew
   , STWidgetsBoxen(..)
   , MitSTWidgetsBoxen(..)
+  , STWidgetsBoxenReader(..)
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
@@ -94,6 +98,12 @@ instance MitSTWidgetsBoxen STWidgetsBoxen where
     stWidgetsBoxen :: STWidgetsBoxen -> STWidgetsBoxen
     stWidgetsBoxen = id
 
+class (MonadReader r m, MitSTWidgetsBoxen r) => STWidgetsBoxenReader r m | m -> r where
+    erhalteSTWidgetsBoxen :: m STWidgetsBoxen
+    erhalteSTWidgetsBoxen = asks stWidgetsBoxen
+
+instance (MonadReader r m, MitSTWidgetsBoxen r) => STWidgetsBoxenReader r m
+
 instance MitWidget STWidgets where
     erhalteWidget :: STWidgets -> Gtk.Widget
     erhalteWidget = erhalteWidget . stWidget
@@ -108,7 +118,7 @@ instance WidgetsTyp STWidgets where
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r STWidgets m) => STWidgets -> m ()
     entferneWidgets stWidgets@STWidgets {stTVarSprache} = do
-        STWidgetsBoxen {vBoxStreckenabschnitte} <- asks stWidgetsBoxen
+        STWidgetsBoxen {vBoxStreckenabschnitte} <- erhalteSTWidgetsBoxen
         mitContainerRemove vBoxStreckenabschnitte stWidgets
         entferneHinzufügenWegstreckeWidgets stWidgets
         entferneHinzufügenPlanWidgets stWidgets
@@ -199,7 +209,7 @@ streckenabschnittPackNew
     -> MStatusAllgemeinT m o STWidgets
 streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = do
     STWidgetsBoxen
-        {vBoxStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte} <- asks stWidgetsBoxen
+        {vBoxStreckenabschnitte, vBoxHinzufügenPlanStreckenabschnitte} <- erhalteSTWidgetsBoxen
     statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
     (stTVarSprache, stTVarEvent) <- liftIO $ do
         stTVarSprache <- newTVarIO $ Just []

@@ -4,13 +4,22 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Zug.UI.Gtk.StreckenObjekt.KOWidgets (KOWidgets, kontaktPackNew) where
+module Zug.UI.Gtk.StreckenObjekt.KOWidgets
+  ( KOWidgets
+  , kontaktPackNew
+  , KOWidgetsBoxen(..)
+  , MitKOWidgetsBoxen(..)
+  , KOWidgetsBoxenReader(..)
+  ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
-import Control.Monad.Reader (asks)
+import Control.Monad.Reader (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
@@ -84,6 +93,12 @@ instance MitKOWidgetsBoxen KOWidgetsBoxen where
     koWidgetsBoxen :: KOWidgetsBoxen -> KOWidgetsBoxen
     koWidgetsBoxen = id
 
+class (MonadReader r m, MitKOWidgetsBoxen r) => KOWidgetsBoxenReader r m | m -> r where
+    erhalteKOWidgetsBoxen :: m KOWidgetsBoxen
+    erhalteKOWidgetsBoxen = asks koWidgetsBoxen
+
+instance (MonadReader r m, MitKOWidgetsBoxen r) => KOWidgetsBoxenReader r m
+
 instance WidgetsTyp KOWidgets where
     type ObjektTyp KOWidgets = Kontakt
 
@@ -94,7 +109,7 @@ instance WidgetsTyp KOWidgets where
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r KOWidgets m) => KOWidgets -> m ()
     entferneWidgets koWidgets@KOWidgets {koTVarSprache} = do
-        KOWidgetsBoxen {vBoxKontakte} <- asks koWidgetsBoxen
+        KOWidgetsBoxen {vBoxKontakte} <- erhalteKOWidgetsBoxen
         mitContainerRemove vBoxKontakte koWidgets
         entferneHinzufügenWegstreckeWidgets koWidgets
         entferneHinzufügenPlanWidgets koWidgets
@@ -165,7 +180,7 @@ kontaktPackNew
     => Kontakt
     -> MStatusAllgemeinT m o KOWidgets
 kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
-    KOWidgetsBoxen {vBoxKontakte, vBoxHinzufügenPlanKontakte} <- asks koWidgetsBoxen
+    KOWidgetsBoxen {vBoxKontakte, vBoxHinzufügenPlanKontakte} <- erhalteKOWidgetsBoxen
     (koTVarSprache, koTVarEvent) <- liftIO $ do
         koTVarSprache <- newTVarIO $ Just []
         koTVarEvent <- newTVarIO EventAusführen

@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Zug.UI.Gtk.StreckenObjekt.WSWidgets
@@ -13,6 +14,7 @@ module Zug.UI.Gtk.StreckenObjekt.WSWidgets
   , wegstreckePackNew
   , WSWidgetsBoxen(..)
   , MitWSWidgetsBoxen(..)
+  , WSWidgetsBoxenReader(..)
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
@@ -145,6 +147,12 @@ instance MitWSWidgetsBoxen WSWidgetsBoxen where
     wsWidgetsBoxen :: WSWidgetsBoxen -> WSWidgetsBoxen
     wsWidgetsBoxen = id
 
+class (MonadReader r m, MitWSWidgetsBoxen r) => WSWidgetsBoxenReader r m | m -> r where
+    erhalteWSWidgetsBoxen :: m WSWidgetsBoxen
+    erhalteWSWidgetsBoxen = asks wsWidgetsBoxen
+
+instance (MonadReader r m, MitWSWidgetsBoxen r) => WSWidgetsBoxenReader r m
+
 instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
     type ObjektTyp (WSWidgets z) = Wegstrecke z
 
@@ -155,7 +163,7 @@ instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (WSWidgets z) m) => WSWidgets z -> m ()
     entferneWidgets wsWidgets@WSWidgets {wsTVarSprache} = do
-        WSWidgetsBoxen {vBoxWegstrecken} <- asks wsWidgetsBoxen
+        WSWidgetsBoxen {vBoxWegstrecken} <- erhalteWSWidgetsBoxen
         mitContainerRemove vBoxWegstrecken wsWidgets
         entferneHinzufügenPlanWidgets wsWidgets
         liftIO $ atomically $ writeTVar wsTVarSprache Nothing
@@ -461,7 +469,7 @@ wegstreckePackNew
     {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
     objektReader <- ask
     statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-    wsWidgetsBoxen@WSWidgetsBoxen {vBoxWegstrecken} <- asks wsWidgetsBoxen
+    wsWidgetsBoxen@WSWidgetsBoxen {vBoxWegstrecken} <- erhalteWSWidgetsBoxen
     (wsTVarSprache, wsTVarEvent) <- liftIO $ do
         wsTVarSprache <- newTVarIO $ Just []
         wsTVarEvent <- newTVarIO EventAusführen

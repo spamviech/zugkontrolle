@@ -96,12 +96,11 @@ instance MitStatusVar (StatusVar o) o where
     statusVar = id
 
 -- | Abkürzung für Funktionen, die den in einer 'TMVar' gespeicherten 'StatusAllgemein' benötigen.
-class (MonadReader r m) => StatusVarReader r o m | m -> r where
-    erhalteStatusVar :: m (StatusVar o)
-
-instance (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m where
+class (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m | m -> r where
     erhalteStatusVar :: m (StatusVar o)
     erhalteStatusVar = asks statusVar
+
+instance (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m
 
 -- | Führe 'IO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
 auswertenStatusVarIOStatus
