@@ -11,7 +11,7 @@ module Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets(), kupplungPackNew, button
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
-import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import Data.Text (Text)
@@ -166,7 +166,6 @@ kupplungPackNew
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
-    , ObjektReader o m
     , MonadIO m
     )
     => Kupplung
@@ -208,7 +207,7 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
             , kuTVarSprache
             , kuTVarEvent
             }
-    lift $ buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
+    buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
     buttonEntfernenPackNew kuWidgets $ (entfernenKupplung kuWidgets :: IOStatusAllgemein o ())
     -- Widgets merken

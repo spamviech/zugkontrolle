@@ -28,7 +28,7 @@ import Control.Lens ((^.))
 import qualified Control.Lens as Lens
 import Control.Monad (forM_, foldM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
-import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
@@ -69,7 +69,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , Packing(PackGrow), paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -661,7 +661,6 @@ bahngeschwindigkeitPackNew
     , MitSpracheGui (ReaderFamilie o)
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) (BGWidgets g z)
     , MitTMVarPlanObjekt (ReaderFamilie o)
-    , ObjektReader o m
     , MonadIO m
     , ZugtypKlasse z
     )
@@ -686,13 +685,12 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    bgWidgets <- lift
-        $ geschwindigkeitsWidgetsPackNew
-            vBox
-            bahngeschwindigkeit
-            vBoxAnschlüsse
-            tvarSprache
-            tvarEvent
+    bgWidgets <- geschwindigkeitsWidgetsPackNew
+        vBox
+        bahngeschwindigkeit
+        vBoxAnschlüsse
+        tvarSprache
+        tvarEvent
     fließendPackNew vBoxAnschlüsse bahngeschwindigkeit justTVarSprache
     buttonEntfernenPackNew
         bgWidgets
@@ -710,10 +708,10 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         hinzufügenWidgetsPackNew
             :: Bahngeschwindigkeit g z
             -> TVar (Maybe [Sprache -> IO ()])
-            -> m ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
-                 , ButtonPlanHinzufügen (BGWidgets g z)
-                 , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
-                 )
+            -> MStatusAllgemeinT m o ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
+                                     , ButtonPlanHinzufügen (BGWidgets g z)
+                                     , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
+                                     )
         hinzufügenWidgetsPackNew bahngeschwindigkeit tvarSprache = do
             objektReader <- ask
             hinzufügenWidgetWegstrecke
@@ -739,14 +737,14 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             -> ScrollbaresWidget Gtk.VBox
             -> TVar (Maybe [Sprache -> IO ()])
             -> TVar EventAusführen
-            -> m (BGWidgets g z)
+            -> MStatusAllgemeinT m o (BGWidgets g z)
         geschwindigkeitsWidgetsPackNew
             box
             bahngeschwindigkeit@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
             vBoxAnschlüsse
             bgpmTVarSprache
             bgpmTVarEvent = do
-            statusVar <- erhalteStatusVar :: m (StatusVar o)
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew (Just bgpmTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
             bgpmFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
@@ -782,10 +780,10 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             vBoxAnschlüsse
             bgkmTVarSprache
             bgkmTVarEvent = do
-            statusVar <- erhalteStatusVar :: m (StatusVar o)
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             let justTVarSprache = Just bgkmTVarSprache
             let erstelleFahrstromAnschlussWidget
-                    :: (MonadIO m, SpracheGuiReader r m) => Natural -> Anschluss -> m Natural
+                    :: Natural -> Anschluss -> MStatusAllgemeinT m o Natural
                 erstelleFahrstromAnschlussWidget i anschluss = do
                     boxPackWidgetNewDefault vBoxAnschlüsse
                         $ anschlussNew justTVarSprache (Language.fahrstrom <> anzeige i) anschluss
@@ -828,7 +826,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             vBoxAnschlüsse
             bgplTVarSprache
             bgplTVarEvent = do
-            statusVar <- erhalteStatusVar :: m (StatusVar o)
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             let justTVarSprache = Just bgplTVarSprache
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew justTVarSprache Language.geschwindigkeit bglGeschwindigkeitsPin

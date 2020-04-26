@@ -20,7 +20,7 @@ import Control.Lens ((??), (^..))
 import qualified Control.Lens as Lens
 import Control.Monad (forM_, void)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
-import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.List.NonEmpty (NonEmpty())
 import Data.Set (Set)
@@ -380,7 +380,7 @@ weichePackNew weiche = do
             }
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    lift $ richtungsButtonsPackNew weWidgets weFunctionBox vBoxAnschlüsse
+    richtungsButtonsPackNew weWidgets weFunctionBox vBoxAnschlüsse
     fließendPackNew vBoxAnschlüsse weiche justTVarSprache
     buttonEntfernenPackNew weWidgets
         $ (entfernenWeiche $ zuZugtypEither weWidgets :: IOStatusAllgemein o ())
@@ -388,12 +388,13 @@ weichePackNew weiche = do
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OWeiche $ zuZugtypEither weWidgets
     pure weWidgets
     where
-        richtungsButtonsPackNew :: WEWidgets z -> Gtk.HBox -> ScrollbaresWidget Gtk.VBox -> m ()
+        richtungsButtonsPackNew
+            :: WEWidgets z -> Gtk.HBox -> ScrollbaresWidget Gtk.VBox -> MStatusAllgemeinT m o ()
         richtungsButtonsPackNew
             WEWidgets {we = MärklinWeiche {wemRichtungsAnschlüsse}, weTVarSprache, weTVarEvent}
             box
             vBoxAktionen = do
-            statusVar <- erhalteStatusVar :: m (StatusVar o)
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             objektReader <- ask
             forM_ wemRichtungsAnschlüsse $ \(richtung, anschluss) -> do
                 let justTVarSprache = Just weTVarSprache
@@ -411,7 +412,7 @@ weichePackNew weiche = do
                       , weTVarEvent}
             box
             vBoxAktionen = void $ do
-            statusVar <- erhalteStatusVar :: m (StatusVar o)
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             objektReader <- ask
             let justTVar = Just weTVarSprache
             boxPackWidgetNewDefault vBoxAktionen

@@ -37,8 +37,9 @@ import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt))
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
-import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt
-                  , getStreckenabschnitte, getWegstrecken, ReaderFamilie, MitTVarMaps)
+import Zug.UI.Base
+       (MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt, getStreckenabschnitte
+      , getWegstrecken, ReaderFamilie, MitTVarMaps, ObjektReader())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
@@ -47,7 +48,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , positionDefault, containerAddWidgetNew, namePackNew, toggleButtonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, MitSpracheGui())
+import Zug.UI.Gtk.SpracheGui (verwendeSpracheGui, MitSpracheGui())
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -263,11 +264,10 @@ instance STWidgetsKlasse STWidgets where
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonStromPackNew
-    :: forall m b s r o.
-    ( WidgetsTypReader r STWidgets m
-    , SpracheGuiReader r m
-    , MitTVarMaps r
-    , r ~ ReaderFamilie o
+    :: forall m b s o.
+    ( ObjektReader o m
+    , MitSpracheGui (ReaderFamilie o)
+    , MitTVarMaps (ReaderFamilie o)
     , MonadIO m
     , MitBox b
     , StreckenabschnittKlasse s
