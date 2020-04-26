@@ -25,7 +25,7 @@ module Zug.UI.Befehl
   ) where
 
 import Control.Concurrent.STM (atomically, writeTVar, modifyTVar)
-import qualified Control.Monad.RWS as RWS
+import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON)
 import qualified Data.Set as Set

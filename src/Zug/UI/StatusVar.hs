@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description: Eine Variation einer 'Control.Control.Concurrent.STM.TMVar',
@@ -36,7 +37,7 @@ module Zug.UI.StatusVar
   ) where
 
 import Control.Concurrent.STM (STM, atomically, TVar, readTVar, writeTVar, retry, newTVarIO)
-import Control.Monad.RWS.Lazy (runRWS, runRWST)
+import Control.Monad.RWS.Strict (runRWS, runRWST)
 import Control.Monad.Reader.Class (MonadReader(..), asks)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson (ToJSON())

@@ -84,7 +84,7 @@ module Zug.UI.Base
   ) where
 
 import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO, TMVar, newTMVarIO)
-import Control.Monad.RWS.Lazy (RWST, runRWST, evalRWST, RWS)
+import Control.Monad.RWS.Strict (RWST, runRWST, evalRWST, RWS)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
 import Control.Monad.Trans (MonadIO(..))
@@ -339,8 +339,6 @@ instance (MitTVarMaps r) => MitAusführend r where
 instance (MitTVarMaps r) => MitInterruptMap r where
     interruptMap :: r -> TMVar InterruptMap
     interruptMap = tmvarInterruptMap . tvarMaps
-
-instance (Monad m) => ObjektReader Objekt (RWST TVarMaps () Status m)
 
 -- * Erhalte aktuellen Status.
 -- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
