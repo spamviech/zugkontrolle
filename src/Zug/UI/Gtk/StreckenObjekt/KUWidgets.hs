@@ -1,16 +1,54 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets(), kupplungPackNew) where
+module Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets(), kupplungPackNew, buttonKuppelnPackNew) where
 
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
+import qualified Control.Lens as Lens
+import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
+import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import qualified Data.Aeson as Aeson
+import Data.Set (Set)
+import Data.Text (Text)
+import qualified Data.Text as Text
+import Data.Void (Void)
+import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..))
-import Zug.UI.Gtk.Klassen (MitWidget(..))
-import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckenElement(..), PlanElement(..))
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen (Kategorie(..), KategorieText(..))
-import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
+import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), Anschluss(), I2CReader)
+import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
+import Zug.Language (Sprache(), MitSprache())
+import qualified Zug.Language as Language
+import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..))
+import Zug.Plan (AktionKupplung(..))
+import Zug.UI.Base (ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein, entfernenKupplung
+                  , ReaderFamilie, MitTVarMaps())
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Gtk.Anschluss (anschlussNew)
+import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.Hilfsfunktionen
+       (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
+      , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
+import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
+       (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
+      , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+       (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
+      , ButtonPlanHinzufügen, BoxPlanHinzufügen)
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
+       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew
+      , eventAusführen)
+import Zug.UI.StatusVar
+       (StatusVar, MitStatusVar(), StatusVarReader(erhalteStatusVar), ausführenStatusVarAktion)
 
 instance Kategorie KUWidgets where
     kategorie :: KategorieText KUWidgets
@@ -33,15 +71,31 @@ instance MitWidget KUWidgets where
     erhalteWidget :: KUWidgets -> Gtk.Widget
     erhalteWidget = erhalteWidget . kuWidget
 
+data KUWidgetsBoxen =
+    KUWidgetsBoxen
+    { vBoxKupplungen :: ScrollbaresWidget Gtk.VBox
+    , vBoxHinzufügenWegstreckeKupplungen :: BoxWegstreckeHinzufügen KUWidgets
+    , vBoxHinzufügenPlanKupplungen :: BoxPlanHinzufügen KUWidgets
+    }
+
+class MitKUWidgetsBoxen r where
+    kuWidgetsBoxen :: r -> KUWidgetsBoxen
+
+instance MitKUWidgetsBoxen KUWidgetsBoxen where
+    kuWidgetsBoxen :: KUWidgetsBoxen -> KUWidgetsBoxen
+    kuWidgetsBoxen = id
+
 instance WidgetsTyp KUWidgets where
     type ObjektTyp KUWidgets = Kupplung
+
+    type ReaderConstraint KUWidgets = MitKUWidgetsBoxen
 
     erhalteObjektTyp :: KUWidgets -> Kupplung
     erhalteObjektTyp = ku
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r KUWidgets m) => KUWidgets -> m ()
     entferneWidgets kuWidgets@KUWidgets {kuTVarSprache} = do
-        DynamischeWidgets {vBoxKupplungen} <- erhalteDynamischeWidgets
+        KUWidgetsBoxen {vBoxKupplungen} <- asks kuWidgetsBoxen
         mitContainerRemove vBoxKupplungen kuWidgets
         entferneHinzufügenWegstreckeWidgets kuWidgets
         entferneHinzufügenPlanWidgets kuWidgets
@@ -63,7 +117,7 @@ instance WegstreckenElement KUWidgets where
     boxWegstrecke :: (ReaderConstraint KUWidgets r)
                   => Kupplung
                   -> Lens.Getter r (BoxWegstreckeHinzufügen KUWidgets)
-    boxWegstrecke _kuWidgets = Lens.to vBoxHinzufügenWegstreckeKupplungen
+    boxWegstrecke _kuWidgets = Lens.to $ vBoxHinzufügenWegstreckeKupplungen . kuWidgetsBoxen
 
 instance PlanElement KUWidgets where
     foldPlan :: Lens.Fold KUWidgets (Maybe (ButtonPlanHinzufügen KUWidgets))
@@ -71,7 +125,7 @@ instance PlanElement KUWidgets where
 
     boxenPlan
         :: (ReaderConstraint KUWidgets r) => Kupplung -> Lens.Fold r (BoxPlanHinzufügen KUWidgets)
-    boxenPlan _kuWidgets = Lens.to vBoxHinzufügenPlanKupplungen
+    boxenPlan _kuWidgets = Lens.to $ vBoxHinzufügenPlanKupplungen . kuWidgetsBoxen
 
 instance StreckenObjekt KUWidgets where
     anschlüsse :: KUWidgets -> Set Anschluss
@@ -89,9 +143,37 @@ instance KupplungKlasse KUWidgets where
     kuppeln KUWidgets {ku} = kuppeln ku
 
 -- | 'Kupplung' darstellen und zum Status hinzufügen
-kupplungPackNew :: forall m. (ObjektGuiReader m, MonadIO m) => Kupplung -> MStatusGuiT m KUWidgets
+kupplungPackNew
+    :: forall o m.
+    ( Eq (BG o 'Pwm 'Märklin)
+    , Eq (BG o 'KonstanteSpannung 'Märklin)
+    , Eq (BG o 'Pwm 'Lego)
+    , Eq (BG o 'KonstanteSpannung 'Lego)
+    , Eq (ST o)
+    , Eq (WE o 'Märklin)
+    , Eq (WE o 'Lego)
+    , Eq (KO o)
+    , KU o ~ KUWidgets
+    , Eq (WS o 'Märklin)
+    , Eq (WS o 'Lego)
+    , Eq (PL o)
+    , MitSprache (SP o)
+    , ObjektKlasse o
+    , Aeson.ToJSON o
+    , MitKUWidgetsBoxen (ReaderFamilie o)
+    , MitStatusVar (ReaderFamilie o) o
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) KUWidgets
+    , MitTMVarPlanObjekt (ReaderFamilie o)
+    , MitSpracheGui (ReaderFamilie o)
+    , MitTVarMaps (ReaderFamilie o)
+    , ObjektReader o m
+    , MonadIO m
+    )
+    => Kupplung
+    -> MStatusAllgemeinT m o KUWidgets
 kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
-    DynamischeWidgets {vBoxKupplungen, vBoxHinzufügenPlanKupplungen} <- erhalteDynamischeWidgets
+    KUWidgetsBoxen {vBoxKupplungen, vBoxHinzufügenPlanKupplungen} <- asks kuWidgetsBoxen
+    statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
     (kuTVarSprache, kuTVarEvent) <- liftIO $ do
         kuTVarSprache <- newTVarIO $ Just []
         kuTVarEvent <- newTVarIO EventAusführen
@@ -105,8 +187,7 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     vBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.vBoxNew False 0
     namePackNew vBox kupplung
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse
-            <- boxPackWidgetNew kuFunctionBox PackGrow paddingDefault positionDefault
+        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
             $ Gtk.expanderNew Text.empty
         vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
             $ scrollbaresWidgetNew
@@ -116,8 +197,7 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
-    kuFunctionBox
-        <- liftIO $ boxPackWidgetNew packingDefault paddingDefault End vBox $ Gtk.hBoxNew False 0
+    kuFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     let kuWidgets =
             KUWidgets
             { ku = kupplung
@@ -128,11 +208,11 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
             , kuTVarSprache
             , kuTVarEvent
             }
-    buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent
+    lift $ buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
-    buttonEntfernenPackNew kuWidgets $ entfernenKupplung kuWidgets
+    buttonEntfernenPackNew kuWidgets $ (entfernenKupplung kuWidgets :: IOStatusAllgemein o ())
     -- Widgets merken
-    ausführenBefehl $ Hinzufügen $ OKupplung kuWidgets
+    ausführenBefehl $ Hinzufügen $ ausObjekt $ OKupplung kuWidgets
     pure kuWidgets
 
 -- | Füge 'Gtk.Button' zum kuppeln zur Box hinzu.
@@ -141,15 +221,21 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
 -- 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonKuppelnPackNew
-    :: forall b k m.
-    (MitBox b, KupplungKlasse k, ObjektGuiReader m, MonadIO m)
+    :: forall b k o m.
+    ( MitBox b
+    , KupplungKlasse k
+    , MitSpracheGui (ReaderFamilie o)
+    , MitTVarMaps (ReaderFamilie o)
+    , ObjektReader o m
+    , MonadIO m
+    )
     => b
     -> k
     -> TVar (Maybe [Sprache -> IO ()])
     -> TVar EventAusführen
+    -> StatusVar o
     -> m Gtk.Button
-buttonKuppelnPackNew box kupplung tvarSprachwechsel tvarEventAusführen = do
-    statusVar <- erhalteStatusVar :: m StatusVarGui
+buttonKuppelnPackNew box kupplung tvarSprachwechsel tvarEventAusführen statusVar = do
     objektReader <- ask
     boxPackWidgetNewDefault box
         $ buttonNewWithEventLabel (Just tvarSprachwechsel) Language.kuppeln

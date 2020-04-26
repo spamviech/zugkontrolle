@@ -123,6 +123,7 @@ aktuellerPin :: (MonadIO m) => PinAuswahlWidget -> m Pin
 aktuellerPin
     PinAuswahlWidget {pawSpinButton} = liftIO $ Gpio <$> Gtk.spinButtonGetValueAsInt pawSpinButton
 
+-- TODO Interrupt-Pin
 -- | Widgets zum erzeugen eines 'Anschluss'.
 data AnschlussAuswahlWidget =
     AnschlussAuswahlWidget
