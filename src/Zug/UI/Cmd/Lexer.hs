@@ -65,6 +65,7 @@ lexEinen eingabe =
             , (Language.bahngeschwindigkeit, Bahngeschwindigkeit)
             , (Language.streckenabschnitt, Streckenabschnitt)
             , (Language.kupplung, Kupplung)
+            , (Language.kontakt, Kontakt)
             , (Language.märklin, Märklin)
             , (Language.lego, Lego)
             , (Language.pin, Pin)
@@ -128,12 +129,13 @@ data Token
     | Ausführen
     | AusführenAbbrechen
     | Warten
-    | Plan
-    | Wegstrecke
-    | Weiche
     | Bahngeschwindigkeit
     | Streckenabschnitt
+    | Weiche
+    | Kontakt
     | Kupplung
+    | Wegstrecke
+    | Plan
     | Märklin
     | Lego
     | Pin

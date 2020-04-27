@@ -24,6 +24,7 @@ module Zug.UI.Cmd.Parser.Anfrage
   , AnfrageZugtyp(..)
   , AnfrageZugtypEither(..)
   , MitAnfrageZugtyp(..)
+  , AnfrageZugtypKlasse(..)
   , anfrageAktualisierenZugtyp
     -- * Suche ein existierendes Objekt im Status
   , StatusAnfrageObjekt(..)
@@ -47,7 +48,7 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (StreckenObjekt(..), Value(..), Bahngeschwindigkeit(), Streckenabschnitt()
-                    , Weiche(), Kupplung(), Wegstrecke())
+                    , Weiche(), Kupplung(), Kontakt(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), Richtung(..))
 import Zug.Language (Anzeige(..), ($#), Sprache(), (<=>), (<^>), fehlerText)
@@ -55,7 +56,7 @@ import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan())
 import Zug.UI.Base (MStatusT, getPläne, getWegstrecken, getWeichen, getBahngeschwindigkeiten
-                  , getStreckenabschnitte, getKupplungen)
+                  , getStreckenabschnitte, getKupplungen, getKontakte)
 import Zug.UI.Cmd.Lexer (EingabeToken(..), Token())
 import qualified Zug.UI.Cmd.Lexer as Lexer
 
@@ -237,12 +238,39 @@ anfrageAktualisierenZugtyp token =
         token
         [(Lexer.Märklin, AnfrageMärklin anfrageMärklin), (Lexer.Lego, AnfrageLego anfrageLego)]
 
+-- | Anfrage nach dem 'Zugtyp'.
+class AnfrageZugtypKlasse (z :: AnfrageZugtyp) where
+    type FixerZugtyp z :: Zugtyp
+
+    afStatusAnfrage
+        :: StatusAnfrageObjektZugtyp (FixerZugtyp z)
+        -> (ObjektZugtyp (FixerZugtyp z) -> AnfrageFortsetzung (a z) (e (FixerZugtyp z)))
+        -> AnfrageFortsetzung (a z) (e (FixerZugtyp z))
+
+instance AnfrageZugtypKlasse 'AnfrageZugtypMärklin where
+    type FixerZugtyp 'AnfrageZugtypMärklin = 'Märklin
+
+    afStatusAnfrage
+        :: StatusAnfrageObjektZugtyp 'Märklin
+        -> (ObjektZugtyp 'Märklin -> AnfrageFortsetzung (a 'AnfrageZugtypMärklin) (e 'Märklin))
+        -> AnfrageFortsetzung (a 'AnfrageZugtypMärklin) (e 'Märklin)
+    afStatusAnfrage = AFStatusAnfrageMärklin
+
+instance AnfrageZugtypKlasse 'AnfrageZugtypLego where
+    type FixerZugtyp 'AnfrageZugtypLego = 'Lego
+
+    afStatusAnfrage :: StatusAnfrageObjektZugtyp 'Lego
+                    -> (ObjektZugtyp 'Lego -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego))
+                    -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)
+    afStatusAnfrage = AFStatusAnfrageLego
+
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
     = SAOBahngeschwindigkeit EingabeToken
     | SAOStreckenabschnitt EingabeToken
     | SAOWeiche EingabeToken
     | SAOKupplung EingabeToken
+    | SAOKontakt EingabeToken
     | SAOWegstrecke EingabeToken
     | SAOPlan EingabeToken
     deriving (Eq, Show)
@@ -253,6 +281,7 @@ instance Anzeige StatusAnfrageObjekt where
     anzeige (SAOStreckenabschnitt _token) = Language.streckenabschnitt
     anzeige (SAOWeiche _token) = Language.weiche
     anzeige (SAOKupplung _token) = Language.kupplung
+    anzeige (SAOKontakt _token) = Language.kontakt
     anzeige (SAOWegstrecke _token) = Language.wegstrecke
     anzeige (SAOPlan _token) = Language.plan
 
@@ -264,6 +293,7 @@ instance Anfrage StatusAnfrageObjekt where
         Language.indexOderName $# Language.streckenabschnitt
     zeigeAnfrage (SAOWeiche _token) = Language.indexOderName $# Language.weiche
     zeigeAnfrage (SAOKupplung _token) = Language.indexOderName $# Language.kupplung
+    zeigeAnfrage (SAOKontakt _token) = Language.indexOderName $# Language.kontakt
     zeigeAnfrage (SAOWegstrecke _token) = Language.indexOderName $# Language.wegstrecke
     zeigeAnfrage (SAOPlan _token) = Language.indexOderName $# Language.plan
 
@@ -277,6 +307,8 @@ statusAnfrageObjekt (SAOWeiche eingabe) =
     statusAnfrageObjektAux eingabe getWeichen $ Just . OWeiche
 statusAnfrageObjekt (SAOKupplung eingabe) =
     statusAnfrageObjektAux eingabe getKupplungen $ Just . OKupplung
+statusAnfrageObjekt (SAOKontakt eingabe) =
+    statusAnfrageObjektAux eingabe getKontakte $ Just . OKontakt
 statusAnfrageObjekt (SAOWegstrecke eingabe) =
     statusAnfrageObjektAux eingabe getWegstrecken $ Just . OWegstrecke
 statusAnfrageObjekt (SAOPlan eingabe) = statusAnfrageObjektAux eingabe getPläne $ Just . OPlan
@@ -287,6 +319,7 @@ data ObjektZugtyp (z :: Zugtyp)
     | OZStreckenabschnitt Streckenabschnitt
     | OZWeiche (Weiche z)
     | OZKupplung Kupplung
+    | OZKontakt Kontakt
     | OZWegstrecke (Wegstrecke z)
     | OZPlan Plan
     deriving (Eq)
@@ -297,6 +330,7 @@ instance Show (ObjektZugtyp z) where
     show (OZStreckenabschnitt streckenabschnitt) = show streckenabschnitt
     show (OZWeiche weiche) = show weiche
     show (OZKupplung kupplung) = show kupplung
+    show (OZKontakt kontakt) = show kontakt
     show (OZWegstrecke wegstrecke) = show wegstrecke
     show (OZPlan plan) = show plan
 
@@ -306,6 +340,7 @@ zuObjekt (OZBahngeschwindigkeit bg) = OBahngeschwindigkeit $ zuZugtypEither bg
 zuObjekt (OZStreckenabschnitt st) = OStreckenabschnitt st
 zuObjekt (OZWeiche we) = OWeiche $ zuZugtypEither we
 zuObjekt (OZKupplung ku) = OKupplung ku
+zuObjekt (OZKontakt ko) = OKontakt ko
 zuObjekt (OZWegstrecke ws) = OWegstrecke $ zuZugtypEither ws
 zuObjekt (OZPlan pl) = OPlan pl
 
@@ -315,6 +350,7 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
     | SAOZStreckenabschnitt EingabeToken
     | SAOZWeiche EingabeToken
     | SAOZKupplung EingabeToken
+    | SAOZKontakt EingabeToken
     | SAOZWegstrecke EingabeToken
     | SAOZPlan EingabeToken
     deriving (Eq, Show)
@@ -325,6 +361,7 @@ instance Anzeige (StatusAnfrageObjektZugtyp z) where
     anzeige (SAOZStreckenabschnitt _token) = Language.streckenabschnitt
     anzeige (SAOZWeiche _token) = Language.weiche
     anzeige (SAOZKupplung _token) = Language.kupplung
+    anzeige (SAOZKontakt _token) = Language.kontakt
     anzeige (SAOZWegstrecke _token) = Language.wegstrecke
     anzeige (SAOZPlan _token) = Language.plan
 
@@ -336,6 +373,7 @@ instance Anfrage (StatusAnfrageObjektZugtyp z) where
         Language.indexOderName $# Language.streckenabschnitt
     zeigeAnfrage (SAOZWeiche _token) = Language.indexOderName $# Language.weiche
     zeigeAnfrage (SAOZKupplung _token) = Language.indexOderName $# Language.kupplung
+    zeigeAnfrage (SAOZKontakt _token) = Language.indexOderName $# Language.kontakt
     zeigeAnfrage (SAOZWegstrecke _token) = Language.indexOderName $# Language.wegstrecke
     zeigeAnfrage (SAOZPlan _token) = Language.indexOderName $# Language.plan
 
@@ -352,6 +390,8 @@ statusAnfrageObjektZugtyp (SAOZWeiche eingabe) =
     statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getWeichen) $ fmap OZWeiche
 statusAnfrageObjektZugtyp (SAOZKupplung eingabe) =
     statusAnfrageObjektAux eingabe getKupplungen $ Just . OZKupplung
+statusAnfrageObjektZugtyp (SAOZKontakt eingabe) =
+    statusAnfrageObjektAux eingabe getKontakte $ Just . OZKontakt
 statusAnfrageObjektZugtyp (SAOZWegstrecke eingabe) =
     statusAnfrageObjektAux eingabe (fmap vonZugtypEither <$> getWegstrecken) $ fmap OZWegstrecke
 statusAnfrageObjektZugtyp (SAOZPlan eingabe) =
