@@ -66,7 +66,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
     showBG
     aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
-    DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
+    DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     (hBoxBahngeschwindigkeit, scaleBahngeschwindigkeit) <- liftIO $ do
         hBoxBahngeschwindigkeit <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
         scaleBahngeschwindigkeit <- widgetShowNew $ Gtk.hScaleNewWithRange 0 100 1
@@ -84,7 +84,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
                               := leseSprache (Language.geschwindigkeit <:> wert) spracheGui]
                     showBG $ Just Pwm
                     mitWidgetShow windowObjektAuswahl
-                maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+                maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
                 Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OBahngeschwindigkeit (ZugtypMärklin (GeschwindigkeitPwm bg))))
@@ -128,7 +128,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
                               := leseSprache (Language.fahrstrom <:> fahrstromAnschluss) spracheGui]
                     showBG $ Just KonstanteSpannung
                     mitWidgetShow windowObjektAuswahl
-                maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+                maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
                 Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just
@@ -160,7 +160,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
                 [Gtk.windowTitle := leseSprache Language.umdrehen spracheGui]
             showBG Nothing
             mitWidgetShow windowObjektAuswahl
-        maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+        maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
         Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
         flip runReaderT spracheGui $ case maybeObjekt of
             (Just (OBahngeschwindigkeit (ZugtypMärklin (GeschwindigkeitPwm bg))))
@@ -191,7 +191,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
                                   spracheGui]
                     showBG Nothing
                     mitWidgetShow windowObjektAuswahl
-                maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+                maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
                 Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitPwm bg))))

@@ -45,7 +45,7 @@ aktionWegstreckeAuswahlPackNew
     -> m Gtk.HBox
 aktionWegstreckeAuswahlPackNew box windowObjektAuswahl maybeTVar showWS aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
-    DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
+    DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     hBoxWegstrecke <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBoxWegstrecke
         $ buttonNewWithEventLabel maybeTVar Language.einstellen
@@ -58,7 +58,7 @@ aktionWegstreckeAuswahlPackNew box windowObjektAuswahl maybeTVar showWS aktionHi
                     [Gtk.windowTitle := leseSprache Language.einstellen spracheGui]
                 showWS
                 mitWidgetShow windowObjektAuswahl
-            maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+            maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
             Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
             flip runReaderT spracheGui $ case maybeObjekt of
                 (Just (OWegstrecke (ZugtypMärklin ws)))

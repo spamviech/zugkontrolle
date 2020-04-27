@@ -49,7 +49,7 @@ aktionStreckenabschnittAuswahlPackNew
     -> m Gtk.HBox
 aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
-    DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
+    DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     hBoxStreckenabschnitt <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     auswahlStrom
         <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Fließend maybeTVar $ const Text.empty
@@ -65,7 +65,7 @@ aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST a
                         [Gtk.windowTitle := leseSprache (Language.strom <:> strom) spracheGui]
                     showST
                     mitWidgetShow windowObjektAuswahl
-                maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+                maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
                 Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OStreckenabschnitt st))

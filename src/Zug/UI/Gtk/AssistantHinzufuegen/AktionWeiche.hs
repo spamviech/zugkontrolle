@@ -50,7 +50,7 @@ aktionWeicheAuswahlPackNew
     -> m Gtk.HBox
 aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
-    DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
+    DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     hBoxWeiche <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     auswahlRichtung <- widgetShowNew
         $ boundedEnumAuswahlRadioButtonNew (fst $ NonEmpty.head showRichtungen) maybeTVar
@@ -67,7 +67,7 @@ aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen akti
                         [Gtk.windowTitle := leseSprache (Language.stellen <:> richtung) spracheGui]
                     snd $ head $ NonEmpty.filter ((== richtung) . fst) showRichtungen
                     mitWidgetShow windowObjektAuswahl
-                maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+                maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
                 Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OWeiche we)) -> aktionHinzufügen $ AWeiche $ Stellen we richtung

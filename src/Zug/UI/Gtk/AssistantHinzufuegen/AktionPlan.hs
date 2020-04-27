@@ -44,7 +44,7 @@ aktionPlanAuswahlPackNew
     -> m Gtk.HBox
 aktionPlanAuswahlPackNew box windowObjektAuswahl maybeTVar showPL aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
-    DynamischeWidgets {tmvarPlanObjekt} <- erhalteDynamischeWidgets
+    DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     hBoxPlan <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBoxPlan
         $ buttonNewWithEventLabel maybeTVar Language.ausführen
@@ -57,7 +57,7 @@ aktionPlanAuswahlPackNew box windowObjektAuswahl maybeTVar showPL aktionHinzufü
                     [Gtk.windowTitle := leseSprache Language.ausführen spracheGui]
                 showPL
                 mitWidgetShow windowObjektAuswahl
-            maybeObjekt <- atomically $ takeTMVar tmvarPlanObjekt
+            maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
             Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
             flip runReaderT spracheGui $ case maybeObjekt of
                 (Just (OPlan pl)) -> aktionHinzufügen $ AktionAusführen pl
