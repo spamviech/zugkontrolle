@@ -11,13 +11,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Zug.UI.Gtk.StreckenObjekt.PLWidgets
-  ( PLWidgets()
+  (   -- * PLWidgets
+    PLWidgets()
   , planPackNew
   , PLWidgetsBoxen(..)
   , MitPLWidgetsBoxen(..)
   , PLWidgetsBoxenReader(..)
   , MitWindowMain(..)
   , WindowMainReader(..)
+    -- * ObjektGui (hier definiert um Orphan-Instances zu vermeiden)
+  , ObjektGui
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
@@ -34,7 +37,6 @@ import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (StreckenObjekt(..), Anschluss())
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..))
@@ -49,9 +51,15 @@ import Zug.UI.Gtk.Hilfsfunktionen
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget)
 import Zug.UI.Gtk.SpracheGui
-       (MitSpracheGui(), SpracheGuiReader(erhalteSpracheGui), verwendeSpracheGui)
+       (SpracheGui, MitSpracheGui(), SpracheGuiReader(erhalteSpracheGui), verwendeSpracheGui)
+import Zug.UI.Gtk.StreckenObjekt.BGWidgets (BGWidgets)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (PlanElement(..), hinzufügenWidgetPlanPackNew, MitTMVarPlanObjekt())
+import Zug.UI.Gtk.StreckenObjekt.KOWidgets (KOWidgets)
+import Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets)
+import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets)
+import Zug.UI.Gtk.StreckenObjekt.WEWidgets (WEWidgets)
+import Zug.UI.Gtk.StreckenObjekt.WSWidgets (WSWidgets)
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
@@ -157,35 +165,19 @@ class (MonadReader r m, MitWindowMain r) => WindowMainReader r m | m -> r where
 instance (MonadReader r m, MitWindowMain r) => WindowMainReader r m
 
 -- | 'Plan' darstellen.
-planPackNew
-    :: forall o m.
-    ( Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (ST o)
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KU o)
-    , Eq (KO o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , PL o ~ PLWidgets
-    , MitSprache (SP o)
-    , ObjektKlasse o
-    , Aeson.ToJSON o
-    , MitTVarMaps (ReaderFamilie o)
-    , MitStatusVar (ReaderFamilie o) o
-    , MitSpracheGui (ReaderFamilie o)
-    , MitPLWidgetsBoxen (ReaderFamilie o)
-    , MitWindowMain (ReaderFamilie o)
-    , MitTMVarPlanObjekt (ReaderFamilie o)
-    , MonadIO m
-    )
-    => Plan
-    -> MStatusAllgemeinT m o PLWidgets
+planPackNew :: forall m.
+            ( MitTVarMaps (ReaderFamilie ObjektGui)
+            , MitStatusVar (ReaderFamilie ObjektGui) ObjektGui
+            , MitSpracheGui (ReaderFamilie ObjektGui)
+            , MitPLWidgetsBoxen (ReaderFamilie ObjektGui)
+            , MitWindowMain (ReaderFamilie ObjektGui)
+            , MitTMVarPlanObjekt (ReaderFamilie ObjektGui)
+            , MonadIO m
+            )
+            => Plan
+            -> MStatusAllgemeinT m ObjektGui PLWidgets
 planPackNew plan@Plan {plAktionen} = do
-    statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
+    statusVar <- erhalteStatusVar :: MStatusAllgemeinT m ObjektGui (StatusVar ObjektGui)
     objektReader <- ask
     spracheGui <- erhalteSpracheGui
     windowMain <- erhalteWindowMain
@@ -281,7 +273,7 @@ planPackNew plan@Plan {plAktionen} = do
             , plTVarSprache
             , plTVarEvent
             }
-    buttonEntfernenPackNew plWidgets $ (entfernenPlan plWidgets :: IOStatusAllgemein o ())
+    buttonEntfernenPackNew plWidgets $ (entfernenPlan plWidgets :: IOStatusAllgemein ObjektGui ())
     let justTVarSprache = Just plTVarSprache
     verwendeSpracheGui justTVarSprache $ \sprache -> do
         Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
@@ -291,3 +283,29 @@ planPackNew plan@Plan {plAktionen} = do
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OPlan plWidgets
     pure plWidgets
+
+type ObjektGui =
+    ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets PLWidgets
+
+instance ObjektKlasse ObjektGui where
+    type BG ObjektGui = BGWidgets
+
+    type ST ObjektGui = STWidgets
+
+    type WE ObjektGui = WEWidgets
+
+    type KU ObjektGui = KUWidgets
+
+    type KO ObjektGui = KOWidgets
+
+    type WS ObjektGui = WSWidgets
+
+    type PL ObjektGui = PLWidgets
+
+    type SP ObjektGui = SpracheGui
+
+    erhalteObjekt :: ObjektGui -> ObjektGui
+    erhalteObjekt = id
+
+    ausObjekt :: ObjektGui -> ObjektGui
+    ausObjekt = id

@@ -62,6 +62,19 @@ module Zug.UI.Gtk.StreckenObjekt
   , StatusVarGui
   , StatusVarGuiReader
   , readSpracheGui
+    -- * Widgets für den Hinzufügen-Dialog
+  , WidgetsTyp(..)
+  , WidgetHinzufügen()
+  , WegstreckenElement(..)
+  , BoxWegstreckeHinzufügen
+  , boxWegstreckeHinzufügenNew
+  , WegstreckeCheckButton()
+  , WegstreckeCheckButtonVoid
+  , PlanElement(..)
+  , BoxPlanHinzufügen
+  , boxPlanHinzufügenNew
+  , widgetHinzufügenToggled
+  , widgetHinzufügenAktuelleAuswahl
 #endif
   ) where
 
@@ -72,7 +85,7 @@ import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Objekt (ObjektKlasse(..), Objekt, ObjektAllgemein())
+import Zug.Objekt (Objekt)
 import Zug.UI.Base (StatusAllgemein, MStatusAllgemeinT, MStatusAllgemein, IOStatusAllgemein
                   , ObjektReader(), ReaderFamilie, TVarMaps(), MitTVarMaps(..), sprache)
 import Zug.UI.Befehl (BefehlAllgemein())
@@ -80,28 +93,30 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(..))
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets
        (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..))
-import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckeCheckButtonVoid)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-       (MitFortfahrenWennToggledWegstrecke(..), MitTMVarPlanObjekt(..))
+       (MitFortfahrenWennToggledWegstrecke(..), MitTMVarPlanObjekt(..), WegstreckenElement(..)
+      , WegstreckeCheckButtonVoid, PlanElement(..))
 import Zug.UI.Gtk.StreckenObjekt.KOWidgets
        (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..), MitKOWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets
        (KUWidgets, kupplungPackNew, KUWidgetsBoxen(..), MitKUWidgetsBoxen(..))
-import Zug.UI.Gtk.StreckenObjekt.PLWidgets
-       (PLWidgets, planPackNew, PLWidgetsBoxen(..), MitPLWidgetsBoxen(..), MitWindowMain(..))
+import Zug.UI.Gtk.StreckenObjekt.PLWidgets (PLWidgets, planPackNew, PLWidgetsBoxen(..)
+                                          , MitPLWidgetsBoxen(..), MitWindowMain(..), ObjektGui)
 import Zug.UI.Gtk.StreckenObjekt.STWidgets
        (STWidgets, streckenabschnittPackNew, STWidgetsBoxen(..), MitSTWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.WEWidgets
        (WEWidgets, weichePackNew, WEWidgetsBoxen(..), MitWEWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.WSWidgets
        (WSWidgets, wegstreckePackNew, WSWidgetsBoxen(..), MitWSWidgetsBoxen(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+       (WidgetHinzufügen(), BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew
+      , WegstreckeCheckButton(), BoxPlanHinzufügen, boxPlanHinzufügenNew, widgetHinzufügenToggled
+      , widgetHinzufügenAktuelleAuswahl)
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
 -- | Sammel-Typ spezialisiert auf Gui-Typen
-type ObjektGui =
-    ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets PLWidgets
-
 -- | 'ObjektReader' spezialisiert auf Gui-Typen
 type ObjektGuiReader m = ObjektReader ObjektGui m
 
@@ -125,29 +140,6 @@ type MStatusGui a = MStatusAllgemein ObjektGui a
 
 -- | Zustands-Monaden-Transformer spezialisiert auf Gui-Typen
 type MStatusGuiT m a = MStatusAllgemeinT m ObjektGui a
-
-instance ObjektKlasse ObjektGui where
-    type BG ObjektGui = BGWidgets
-
-    type ST ObjektGui = STWidgets
-
-    type WE ObjektGui = WEWidgets
-
-    type KU ObjektGui = KUWidgets
-
-    type KO ObjektGui = KOWidgets
-
-    type WS ObjektGui = WSWidgets
-
-    type PL ObjektGui = PLWidgets
-
-    type SP ObjektGui = SpracheGui
-
-    erhalteObjekt :: ObjektGui -> ObjektGui
-    erhalteObjekt = id
-
-    ausObjekt :: ObjektGui -> ObjektGui
-    ausObjekt = id
 
 -- | Sammlung aller Widgets, welche während der Laufzeit benötigt werden.
 data DynamischeWidgets =
