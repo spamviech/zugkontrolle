@@ -17,7 +17,8 @@ import Zug.UI.Cmd.Lexer (EingabeToken(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard
                                 , AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
-import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
+import Zug.UI.Cmd.Parser.Anschluss
+       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinEgal))
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -74,8 +75,12 @@ instance MitAnfrage Streckenabschnitt where
     anfrageAktualisieren (AStreckenabschnittName name) token =
         wähleZwischenwert
             token
-            [ (Lexer.HIGH, AStreckenabschnittNameFließend name HIGH AnfrageAnschluss)
-            , (Lexer.LOW, AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
+            [ ( Lexer.HIGH
+                  , AStreckenabschnittNameFließend name HIGH $ AnfrageAnschluss InterruptPinEgal
+                  )
+            , ( Lexer.LOW
+                  , AStreckenabschnittNameFließend name LOW $ AnfrageAnschluss InterruptPinEgal
+                  )]
     anfrageAktualisieren
         anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
         token =

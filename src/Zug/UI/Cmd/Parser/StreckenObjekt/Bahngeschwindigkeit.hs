@@ -28,7 +28,8 @@ import Zug.UI.Cmd.Parser.Anfrage
        (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..), AnfrageZugtyp(..)
       , MitAnfrageZugtyp(..), AnfrageGeschwindigkeitVariante(..), AnfrageGeschwindigkeitEither(..)
       , AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
-import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
+import Zug.UI.Cmd.Parser.Anschluss
+       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinEgal))
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
 
@@ -308,7 +309,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
                 fließend
                 (fromIntegral $ min (fromIntegral (maxBound :: Word8)) fahrstromAnzahl)
                 Warteschlange.leer
-                AnfrageAnschluss
+            $ AnfrageAnschluss InterruptPinEgal
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
                      name
@@ -337,14 +338,14 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
                         fließend
                         (pred fahrstromAnzahl)
                         ergänzteAnschlüsse
-                        AnfrageAnschluss
+                    $ AnfrageAnschluss InterruptPinEgal
                 | otherwise =
                     AFZwischenwert
                     $ AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
                         name
                         fließend
                         (NonEmpty.fromList $ toList ergänzteAnschlüsse)
-                        AnfrageAnschluss
+                    $ AnfrageAnschluss InterruptPinEgal
                 where
                     ergänzteAnschlüsse :: Warteschlange Anschluss
                     ergänzteAnschlüsse =
@@ -401,7 +402,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
                 name
                 fließend
                 (Gpio $ fromIntegral pin)
-                AnfrageAnschluss
+            $ AnfrageAnschluss InterruptPinEgal
         Nothing -> AFFehler eingabe
     anfrageAktualisieren
         anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit

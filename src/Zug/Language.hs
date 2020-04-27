@@ -104,6 +104,7 @@ module Zug.Language
   , a1
   , a2
   , port
+  , interrupt
     -- * Query-Abfragen / Queries
   , wegstreckenElement
   , wegstreckenElemente
@@ -605,6 +606,11 @@ a2 Englisch = "a2"
 port :: Sprache -> Text
 port Deutsch = "Port"
 port Englisch = "Port"
+
+-- | Interrupt
+interrupt :: Sprache -> Text
+interrupt Deutsch = "Interrupt"
+interrupt Englisch = "Interrupt"
 
 -- | Name
 name :: Sprache -> Text

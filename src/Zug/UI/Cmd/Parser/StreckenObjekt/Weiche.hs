@@ -24,7 +24,8 @@ import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage
        (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard, AnfrageZugtyp(..)
       , MitAnfrageZugtyp(..), AnfrageFortsetzung(..), wähleZwischenwert, ($<<), wähleRichtung)
-import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
+import Zug.UI.Cmd.Parser.Anschluss
+       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinEgal))
 
 -- | Unvollständige 'Weiche'.
 data AnfrageWeiche (z :: AnfrageZugtyp) where
@@ -179,13 +180,8 @@ instance MitAnfrage (Weiche 'Märklin) where
         token@EingabeToken {eingabe} = case wähleRichtung token of
         Nothing -> AFFehler eingabe
         (Just richtung) -> AFZwischenwert
-            $ AMärklinWeicheNameFließendAnzahlRichtung
-                name
-                fließend
-                anzahl
-                acc
-                richtung
-                AnfrageAnschluss
+            $ AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung
+            $ AnfrageAnschluss InterruptPinEgal
     anfrageAktualisieren
         anfrage@(AMärklinWeicheNameFließendAnzahlRichtung
                      wemName

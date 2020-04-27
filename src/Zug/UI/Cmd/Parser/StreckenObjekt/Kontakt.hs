@@ -16,7 +16,8 @@ import Zug.UI.Cmd.Lexer (EingabeToken(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard
                                 , AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
-import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
+import Zug.UI.Cmd.Parser.Anschluss
+       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinBenötigt))
 
 -- | Unvollständiger 'Kontakt'.
 data AnfrageKontakt
@@ -72,8 +73,10 @@ instance MitAnfrage Kontakt where
     anfrageAktualisieren (AKontaktName name) token =
         wähleZwischenwert
             token
-            [ (Lexer.HIGH, AKontaktNameFließend name HIGH AnfrageAnschluss)
-            , (Lexer.LOW, AKontaktNameFließend name LOW AnfrageAnschluss)]
+            [ ( Lexer.HIGH
+                  , AKontaktNameFließend name HIGH $ AnfrageAnschluss InterruptPinBenötigt
+                  )
+            , (Lexer.LOW, AKontaktNameFließend name LOW $ AnfrageAnschluss InterruptPinBenötigt)]
     anfrageAktualisieren anfrage@(AKontaktNameFließend koName koFließend anfrageAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
         $<< anfrageAktualisieren anfrageAnschluss token
