@@ -261,7 +261,8 @@ instance MitAnfrage (Either BefehlSofort Befehl) where
             , (Lexer.Weiche, anfrageAktualisieren (ABAktion AnfrageAktion) token)
             , (Lexer.Bahngeschwindigkeit, anfrageAktualisieren (ABAktion AnfrageAktion) token)
             , (Lexer.Streckenabschnitt, anfrageAktualisieren (ABAktion AnfrageAktion) token)
-            , (Lexer.Kupplung, anfrageAktualisieren (ABAktion AnfrageAktion) token)]
+            , (Lexer.Kupplung, anfrageAktualisieren (ABAktion AnfrageAktion) token)
+            , (Lexer.Kontakt, anfrageAktualisieren (ABAktion AnfrageAktion) token)]
         $ AFFehler eingabe
         where
             planWählen :: Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl)
