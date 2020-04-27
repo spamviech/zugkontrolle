@@ -60,7 +60,7 @@ import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..))
-import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen)
+import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte)
 import Zug.UI.Gtk.Anschluss (PinAuswahlWidget, pinAuswahlNew, aktuellerPin, AnschlussAuswahlWidget
                            , anschlussAuswahlNew, aktuellerAnschluss)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
@@ -87,10 +87,11 @@ import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..), MitGr
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (StatusGui, StatusVarGui, StatusVarGuiReader, WegstreckenElement(..), WegstreckeCheckButton()
-      , WegstreckeCheckButtonVoid, WidgetsTyp(..), BGWidgets(), WEWidgets()
+       (StatusGui, StatusVarGui, StatusVarGuiReader, BGWidgets(), WEWidgets()
+      , WegstreckenElement(..), WegstreckeCheckButton(), WegstreckeCheckButtonVoid, WidgetsTyp(..)
       , widgetHinzufügenToggled, widgetHinzufügenAktuelleAuswahl, DynamischeWidgets(..)
-      , DynamischeWidgetsReader(..))
+      , DynamischeWidgetsReader(..), BGWidgetsBoxen(..), STWidgetsBoxen(..), WEWidgetsBoxen(..)
+      , KUWidgetsBoxen(..), KOWidgetsBoxen(..), WSWidgetsBoxen(..), PLWidgetsBoxen(..))
 import Zug.UI.Gtk.ZugtypSpezifisch
        (ZugtypSpezifisch(), zugtypSpezifischNew, zugtypSpezifischButtonNew)
 import Zug.UI.StatusVar (StatusVarReader(..), readStatusVar)
@@ -329,6 +330,7 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
                 $ map vonZugtypEither
                 $ aktuellerStatus ^. weichen
             wsKupplungen <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kupplungen
+            wsKontakte <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kontakte
             pure
                 Wegstrecke
                 { wsName
@@ -336,6 +338,7 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
                 , wsStreckenabschnitte
                 , wsWeichenRichtungen
                 , wsKupplungen
+                , wsKontakte
                 }
         anhängenWennToggled :: (WidgetsTyp a, Ord (ObjektTyp a), WegstreckenElement a, MonadIO m)
                              => Set (ObjektTyp a)
@@ -576,13 +579,16 @@ hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, 
 hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
-    DynamischeWidgets { vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-                      , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-                      , vBoxHinzufügenWegstreckeStreckenabschnitte
-                      , vBoxHinzufügenWegstreckeWeichenMärklin
-                      , vBoxHinzufügenWegstreckeWeichenLego
-                      , vBoxHinzufügenWegstreckeKupplungen
-                      , fortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
+    DynamischeWidgets
+        { dynBGWidgetsBoxen = BGWidgetsBoxen
+              { vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+              , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego}
+        , dynSTWidgetsBoxen = STWidgetsBoxen {vBoxHinzufügenWegstreckeStreckenabschnitte}
+        , dynWEWidgetsBoxen = WEWidgetsBoxen
+              {vBoxHinzufügenWegstreckeWeichenMärklin, vBoxHinzufügenWegstreckeWeichenLego}
+        , dynKUWidgetsBoxen = KUWidgetsBoxen {vBoxHinzufügenWegstreckeKupplungen}
+        , dynKOWidgetsBoxen = KOWidgetsBoxen {vBoxHinzufügenWegstreckeKontakte}
+        , dynFortfahrenWennToggledWegstrecke} <- erhalteDynamischeWidgets
     notebook
         <- liftIO $ boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
     notebookAppendPageNew notebook maybeTVar Language.bahngeschwindigkeiten
@@ -599,11 +605,13 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
             auswahlZugtyp
     notebookAppendPageNew notebook maybeTVar Language.kupplungen
         $ pure vBoxHinzufügenWegstreckeKupplungen
+    notebookAppendPageNew notebook maybeTVar Language.kupplungen
+        $ pure vBoxHinzufügenWegstreckeKontakte
     pure
         HinzufügenSeiteWegstrecke
         { vBox
         , nameAuswahl
-        , buttonHinzufügenWegstrecke = fortfahrenWennToggledWegstrecke
+        , buttonHinzufügenWegstrecke = dynFortfahrenWennToggledWegstrecke
         }
 
 -- | Erzeuge eine Seite zum hinzufügen eines 'Plans'.
@@ -620,36 +628,42 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         $ scrollbaresWidgetNew
         $ Gtk.vBoxNew False 0
     DynamischeWidgets
-        { vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-        , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
-        , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
-        , vBoxHinzufügenPlanBahngeschwindigkeitenLego
-        , vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
-        , vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
-        , vBoxHinzufügenPlanStreckenabschnitte
-        , vBoxHinzufügenPlanWeichenGeradeMärklin
-        , vBoxHinzufügenPlanWeichenKurveMärklin
-        , vBoxHinzufügenPlanWeichenLinksMärklin
-        , vBoxHinzufügenPlanWeichenRechtsMärklin
-        , vBoxHinzufügenPlanWeichenGeradeLego
-        , vBoxHinzufügenPlanWeichenKurveLego
-        , vBoxHinzufügenPlanWeichenLinksLego
-        , vBoxHinzufügenPlanWeichenRechtsLego
-        , vBoxHinzufügenPlanKupplungen
-        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
-        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
-        , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-        , vBoxHinzufügenPlanWegstreckenKupplungMärklin
-        , vBoxHinzufügenPlanWegstreckenMärklin
-        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
-        , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
-        , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-        , vBoxHinzufügenPlanWegstreckenKupplungLego
-        , vBoxHinzufügenPlanWegstreckenLego
-        , vBoxHinzufügenPlanPläne
-        , tmvarPlanObjekt} <- erhalteDynamischeWidgets
+        { dynBGWidgetsBoxen = BGWidgetsBoxen
+              { vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+              , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+              , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+              , vBoxHinzufügenPlanBahngeschwindigkeitenLego
+              , vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+              , vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung}
+        , dynSTWidgetsBoxen = STWidgetsBoxen {vBoxHinzufügenPlanStreckenabschnitte}
+        , dynWEWidgetsBoxen = WEWidgetsBoxen
+              { vBoxHinzufügenPlanWeichenGeradeMärklin
+              , vBoxHinzufügenPlanWeichenKurveMärklin
+              , vBoxHinzufügenPlanWeichenLinksMärklin
+              , vBoxHinzufügenPlanWeichenRechtsMärklin
+              , vBoxHinzufügenPlanWeichenGeradeLego
+              , vBoxHinzufügenPlanWeichenKurveLego
+              , vBoxHinzufügenPlanWeichenLinksLego
+              , vBoxHinzufügenPlanWeichenRechtsLego}
+        , dynKUWidgetsBoxen = KUWidgetsBoxen {vBoxHinzufügenPlanKupplungen}
+        , dynKOWidgetsBoxen = KOWidgetsBoxen {vBoxHinzufügenPlanKontakte}
+        , dynWSWidgetsBoxen = WSWidgetsBoxen
+              { vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+              , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
+              , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+              , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+              , vBoxHinzufügenPlanWegstreckenKupplungMärklin
+              , vBoxHinzufügenPlanWegstreckenKontaktMärklin
+              , vBoxHinzufügenPlanWegstreckenMärklin
+              , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+              , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
+              , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
+              , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+              , vBoxHinzufügenPlanWegstreckenKupplungLego
+              , vBoxHinzufügenPlanWegstreckenKontaktLego
+              , vBoxHinzufügenPlanWegstreckenLego}
+        , dynPLWidgetsBoxen = PLWidgetsBoxen {vBoxHinzufügenPlanPläne}
+        , dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     spracheGui <- erhalteSpracheGui
     (tvarAktionen, expanderAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit, sbWartezeit)
         <- liftIO $ do
@@ -704,7 +718,18 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 -> error $ "Unbekannte Zeiteinheit für Wartezeit gewählt: " ++ zeiteinheit
     boxPackDefault hBoxWartezeit sbWartezeit
     boxPackDefault hBoxWartezeit comboBoxWartezeit
-    (windowObjektAuswahl, sBG, sST, sGerade, sKurve, sLinks, sRechts, sKU, sWS, sPL) <- liftIO $ do
+    ( windowObjektAuswahl
+        , showBG
+        , showST
+        , showGerade
+        , showKurve
+        , showLinks
+        , showRechts
+        , showKU
+        , showKO
+        , showWS
+        , showPL
+        ) <- liftIO $ do
         windowObjektAuswahl <- Gtk.windowNew
         Gtk.set
             windowObjektAuswahl
@@ -713,7 +738,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             , Gtk.windowDefaultHeight := 400
             , Gtk.windowDefaultWidth := 300]
         Gtk.on windowObjektAuswahl Gtk.deleteEvent $ liftIO $ do
-            atomically $ putTMVar tmvarPlanObjekt Nothing
+            atomically $ putTMVar dynTMVarPlanObjekt Nothing
             pure True
         vBoxObjektAuswahl <- containerAddWidgetNew windowObjektAuswahl $ Gtk.vBoxNew False 0
         ztBahngeschwindigkeiten
@@ -775,6 +800,12 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             PackGrow
             paddingDefault
             positionDefault
+        boxPack
+            vBoxObjektAuswahl
+            vBoxHinzufügenPlanKontakte
+            PackGrow
+            paddingDefault
+            positionDefault
         ztWegstreckenBG
             <- boxPackWidgetNew vBoxObjektAuswahl PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
@@ -815,6 +846,12 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungLego)
                 , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenKupplungMärklin)]
                 auswahlZugtyp
+        ztWegstreckenKO
+            <- boxPackWidgetNew vBoxObjektAuswahl PackGrow paddingDefault positionDefault
+            $ zugtypSpezifischNew
+                [ (Märklin, erhalteWidget vBoxHinzufügenPlanWegstreckenKontaktLego)
+                , (Lego, erhalteWidget vBoxHinzufügenPlanWegstreckenKontaktMärklin)]
+                auswahlZugtyp
         ztWegstreckenWS
             <- boxPackWidgetNew vBoxObjektAuswahl PackGrow paddingDefault positionDefault
             $ zugtypSpezifischNew
@@ -835,11 +872,13 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                      , erhalteWidget ztWeichenLinks
                      , erhalteWidget ztWeichenRechts
                      , erhalteWidget vBoxHinzufügenPlanKupplungen
+                     , erhalteWidget vBoxHinzufügenPlanKontakte
                      , erhalteWidget ztWegstreckenBG
                      , erhalteWidget ztWegstreckenBGPwm
                      , erhalteWidget ztWegstreckenBGKonstanteSpannung
                      , erhalteWidget ztWegstreckenST
                      , erhalteWidget ztWegstreckenKU
+                     , erhalteWidget ztWegstreckenKO
                      , erhalteWidget ztWegstreckenWS
                      , erhalteWidget vBoxHinzufügenPlanPläne] :: [Gtk.Widget])
         let showBG :: Maybe GeschwindigkeitVariante -> IO ()
@@ -869,6 +908,10 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             showKU =
                 hideExcept
                     [erhalteWidget vBoxHinzufügenPlanKupplungen, erhalteWidget ztWegstreckenKU]
+            showKO :: IO ()
+            showKO =
+                hideExcept
+                    [erhalteWidget vBoxHinzufügenPlanKontakte, erhalteWidget ztWegstreckenKO]
             showWS :: IO ()
             showWS = hideExcept [erhalteWidget ztWegstreckenWS]
             showPL :: IO ()
@@ -882,6 +925,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
             , showLinks
             , showRechts
             , showKU
+            , showKO
             , showWS
             , showPL
             )
@@ -890,37 +934,38 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         windowObjektAuswahl
         auswahlZugtyp
         maybeTVar
-        sBG
+        showBG
         aktionHinzufügen
     aktionStreckenabschnittAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl
         maybeTVar
-        sST
+        showST
         aktionHinzufügen
     aktionWeicheAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl
         maybeTVar
-        [(Gerade, sGerade), (Kurve, sKurve), (Links, sLinks), (Rechts, sRechts)]
+        [(Gerade, showGerade), (Kurve, showKurve), (Links, showLinks), (Rechts, showRechts)]
         aktionHinzufügen
     aktionKupplungAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl
         maybeTVar
-        sKU
+        showKU
         aktionHinzufügen
+    -- TODO aktionKontaktAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showKO aktionHinzfügen
     aktionWegstreckeAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl
         maybeTVar
-        sWS
+        showWS
         aktionHinzufügen
     aktionPlanAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl
         maybeTVar
-        sPL
+        showPL
         aktionHinzufügen
     boxPackDefault vBoxAktionenWidgets expanderAktionen
     (buttonHinzufügenPlan, resetBox) <- liftIO $ do
