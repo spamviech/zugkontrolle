@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -231,6 +232,58 @@ instance MitStatusVar (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektG
 instance MitSpracheGui (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> m SpracheGui
     spracheGui (_tvarMaps, _dynamischeWidgets, statusVar) = readSpracheGui statusVar
+
+instance MitWindowMain (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    windowMain :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> Gtk.Window
+    windowMain (_tvarMaps, DynamischeWidgets {dynWindowMain}, _tmvarStatus) = dynWindowMain
+
+instance MitFortfahrenWennToggledWegstrecke (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektGui where
+    fortfahrenWennToggledWegstrecke
+        :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui)
+        -> FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
+    fortfahrenWennToggledWegstrecke
+        (_tvarMaps, DynamischeWidgets {dynFortfahrenWennToggledWegstrecke}, _tmvarStatus) =
+        dynFortfahrenWennToggledWegstrecke
+
+instance MitTMVarPlanObjekt (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    tmvarPlanObjekt :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> TMVar (Maybe Objekt)
+    tmvarPlanObjekt
+        (_tvarMaps, DynamischeWidgets {dynTMVarPlanObjekt}, _tmvarStatus) = dynTMVarPlanObjekt
+
+instance MitBGWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    bgWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> BGWidgetsBoxen
+    bgWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynBGWidgetsBoxen}, _tmvarStatus) = dynBGWidgetsBoxen
+
+instance MitSTWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    stWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> STWidgetsBoxen
+    stWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynSTWidgetsBoxen}, _tmvarStatus) = dynSTWidgetsBoxen
+
+instance MitWEWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    weWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> WEWidgetsBoxen
+    weWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynWEWidgetsBoxen}, _tmvarStatus) = dynWEWidgetsBoxen
+
+instance MitKUWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    kuWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> KUWidgetsBoxen
+    kuWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynKUWidgetsBoxen}, _tmvarStatus) = dynKUWidgetsBoxen
+
+instance MitKOWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    koWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> KOWidgetsBoxen
+    koWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynKOWidgetsBoxen}, _tmvarStatus) = dynKOWidgetsBoxen
+
+instance MitWSWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    wsWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> WSWidgetsBoxen
+    wsWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynWSWidgetsBoxen}, _tmvarStatus) = dynWSWidgetsBoxen
+
+instance MitPLWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
+    plWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> PLWidgetsBoxen
+    plWidgetsBoxen
+        (_tvarMaps, DynamischeWidgets {dynPLWidgetsBoxen}, _tmvarStatus) = dynPLWidgetsBoxen
 
 -- | Lese die 'SpracheGui' aus einer 'StatusVarGui'.
 readSpracheGui :: (MonadIO m) => StatusVarGui -> m SpracheGui

@@ -34,11 +34,12 @@ import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKontakt), ObjektKlasse(..))
-import Zug.UI.Base
-       (MStatusAllgemeinT, IOStatusAllgemein, entfernenKontakt, ReaderFamilie, MitTVarMaps())
+import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenKontakt
+                  , ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew
                                  , Packing(PackGrow), paddingDefault, positionDefault, namePackNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
@@ -47,13 +48,14 @@ import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
-      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
+      , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew)
-import Zug.UI.StatusVar (MitStatusVar())
+import Zug.UI.StatusVar (StatusVar, MitStatusVar())
 
 instance Kategorie KOWidgets where
     kategorie :: KategorieText KOWidgets
@@ -170,7 +172,7 @@ kontaktPackNew
     , ObjektKlasse o
     , Aeson.ToJSON o
     , MitKOWidgetsBoxen (ReaderFamilie o)
-    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) KOWidgets
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
@@ -187,7 +189,10 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
         pure (koTVarSprache, koTVarEvent)
     let justTVarSprache = Just koTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew kontakt koTVarSprache
+    fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+    hinzufügenWegstreckeWidget
+        <- hinzufügenWidgetWegstreckePackNew kontakt koTVarSprache fortfahrenWennToggledWegstrecke
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKontakte kontakt koTVarSprache
     -- Widget erstellen

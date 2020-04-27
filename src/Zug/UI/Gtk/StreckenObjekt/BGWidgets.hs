@@ -58,14 +58,15 @@ import qualified Zug.Language as Language
 import Zug.Objekt
        (Objekt, ObjektAllgemein(OBahngeschwindigkeit), ObjektElement(..), ObjektKlasse(..))
 import Zug.Plan (AktionKlasse(..), AktionBahngeschwindigkeit(..))
-import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenBahngeschwindigkeit
-                  , ReaderFamilie, getBahngeschwindigkeiten, getStreckenabschnitte, getWegstrecken
-                  , ObjektReader(), MitTVarMaps())
+import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein
+                  , entfernenBahngeschwindigkeit, ReaderFamilie, getBahngeschwindigkeiten
+                  , getStreckenabschnitte, getWegstrecken, ObjektReader(), MitTVarMaps())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlRadioButtonNew
                          , boundedEnumAuswahlRadioButtonNew, beiAuswahl, setzeAuswahl)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew
       , Packing(PackGrow), paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
@@ -75,7 +76,8 @@ import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
-      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
+      , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets, STWidgetsKlasse(..))
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
@@ -667,7 +669,7 @@ bahngeschwindigkeitPackNew
     , MitStatusVar (ReaderFamilie o) o
     , MitTVarMaps (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
-    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) (BGWidgets g z)
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
@@ -722,8 +724,12 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                                      )
         hinzufügenWidgetsPackNew bahngeschwindigkeit tvarSprache = do
             objektReader <- ask
-            hinzufügenWidgetWegstrecke
-                <- hinzufügenWidgetWegstreckePackNew bahngeschwindigkeit tvarSprache
+            fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
+                :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+            hinzufügenWidgetWegstrecke <- hinzufügenWidgetWegstreckePackNew
+                bahngeschwindigkeit
+                tvarSprache
+                fortfahrenWennToggledWegstrecke
             hinzufügenWidgetPlanSpezifisch <- hinzufügenWidgetPlanPackNew
                 (fromJust $ Lens.firstOf (boxenPlan bahngeschwindigkeit) objektReader)
                 bahngeschwindigkeit

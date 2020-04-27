@@ -42,11 +42,12 @@ import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt))
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
 import Zug.UI.Base
-       (MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt, getStreckenabschnitte
-      , getWegstrecken, ReaderFamilie, MitTVarMaps, ObjektReader())
+       (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt
+      , getStreckenabschnitte, getWegstrecken, ReaderFamilie, MitTVarMaps, ObjektReader())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
        (boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow), paddingDefault
       , positionDefault, containerAddWidgetNew, namePackNew, toggleButtonNewWithEventLabel)
@@ -56,7 +57,8 @@ import Zug.UI.Gtk.SpracheGui (verwendeSpracheGui, MitSpracheGui())
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
-      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
+      , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
       , BoxPlanHinzufügen, ButtonPlanHinzufügen)
@@ -181,7 +183,7 @@ streckenabschnittPackNew
     ( MitStatusVar (ReaderFamilie o) o
     , MitSTWidgetsBoxen (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
-    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) STWidgets
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
     , ObjektKlasse o
@@ -217,8 +219,12 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
         pure (stTVarSprache, stTVarEvent)
     let justTVarSprache = Just stTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget
-        <- hinzufügenWidgetWegstreckePackNew streckenabschnitt stTVarSprache
+    fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
+        streckenabschnitt
+        stTVarSprache
+        fortfahrenWennToggledWegstrecke
     hinzufügenPlanWidget <- hinzufügenWidgetPlanPackNew
         vBoxHinzufügenPlanStreckenabschnitte
         streckenabschnitt

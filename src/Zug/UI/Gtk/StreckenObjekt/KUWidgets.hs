@@ -36,11 +36,12 @@ import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..))
 import Zug.Plan (AktionKupplung(..))
-import Zug.UI.Base (ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein, entfernenKupplung
-                  , ReaderFamilie, MitTVarMaps())
+import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
+                  , entfernenKupplung, ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
        (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
       , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
@@ -50,7 +51,8 @@ import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
-      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
+      , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen)
@@ -178,7 +180,7 @@ kupplungPackNew
     , Aeson.ToJSON o
     , MitKUWidgetsBoxen (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
-    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) KUWidgets
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
@@ -195,7 +197,12 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
         pure (kuTVarSprache, kuTVarEvent)
     let justTVarSprache = Just kuTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew kupplung kuTVarSprache
+    fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+    hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
+        kupplung
+        kuTVarSprache
+        fortfahrenWennToggledWegstrecke
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung kuTVarSprache
     -- Widget erstellen

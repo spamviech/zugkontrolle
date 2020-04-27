@@ -39,11 +39,12 @@ import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OWeiche), ObjektKlasse(..))
 import Zug.Plan (AktionWeiche(..))
-import Zug.UI.Base (ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein, entfernenWeiche
-                  , ReaderFamilie, MitTVarMaps())
+import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
+                  , entfernenWeiche, ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
+import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
        (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
       , paddingDefault, positionDefault, buttonNewWithEventLabel, namePackNew)
@@ -53,7 +54,8 @@ import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckeRichtungPackNew, PlanElement(..), entferneHinzufügenPlanWidgets
-      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke(), MitTMVarPlanObjekt())
+      , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
+      , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen, widgetHinzufügenZugtypEither)
@@ -326,7 +328,7 @@ weichePackNew
     , MitSpracheGui (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
-    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) (WEWidgets z)
+    , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
@@ -341,10 +343,13 @@ weichePackNew weiche = do
         pure (weTVarSprache, weTVarEvent)
     let justTVarSprache = Just weTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
+    fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeRichtungPackNew
         weiche
         (erhalteRichtungen weiche)
         weTVarSprache
+        fortfahrenWennToggledWegstrecke
     let [boxGerade, boxKurve, boxLinks, boxRechts] = weWidgetsBoxen ^.. boxenPlan weiche
     hinzufügenPlanWidgetGerade <- if hatRichtung weiche Gerade
         then Just <$> hinzufügenWidgetPlanPackNew boxGerade weiche weTVarSprache

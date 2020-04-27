@@ -13,7 +13,7 @@ module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
     WegstreckenElement(..)
   , WegstreckeCheckButtonVoid
   , MitFortfahrenWennToggledWegstrecke(..)
-  , FortfahrenWenToggledWegstreckeReader(..)
+  , FortfahrenWennToggledWegstreckeReader(..)
   , hinzufügenWidgetWegstreckePackNew
   , hinzufügenWidgetWegstreckeRichtungPackNew
   , entferneHinzufügenWegstreckeWidgets
@@ -77,33 +77,31 @@ class MitFortfahrenWennToggledWegstrecke r o where
         -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
 
 class (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
-    => FortfahrenWenToggledWegstreckeReader r o m | m -> r where
+    => FortfahrenWennToggledWegstreckeReader r o m | m -> r where
     erhalteFortfahrenWennToggledWegstrecke
         :: m (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     erhalteFortfahrenWennToggledWegstrecke = asks fortfahrenWennToggledWegstrecke
 
 instance (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
-    => FortfahrenWenToggledWegstreckeReader r o m
+    => FortfahrenWennToggledWegstreckeReader r o m
 
 -- | Erzeuge einen 'RegistrierterCheckButton' mit einem 'Label' für den Namen.
 --
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetWegstreckePackNew
-    :: forall s r m.
-    ( FortfahrenWenToggledWegstreckeReader r s m
+    :: forall s o r m.
+    ( SpracheGuiReader r m
     , WidgetsTypReader r s m
-    , SpracheGuiReader r m
     , StreckenObjekt (ObjektTyp s)
     , WegstreckenElement s
     , MonadIO m
     )
     => ObjektTyp s
     -> TVar (Maybe [Sprache -> IO ()])
+    -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
     -> m (CheckButtonWegstreckeHinzufügen Void s)
-hinzufügenWidgetWegstreckePackNew objekt tvar = do
-    fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: m (FortfahrenWennToggledVar (StatusAllgemein s) (StatusVar s) WegstreckeCheckButtonVoid)
+hinzufügenWidgetWegstreckePackNew objekt tvar fortfahrenWennToggledWegstrecke = do
     reader <- ask
     let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
     widgetHinzufügenBoxPackNew box
@@ -119,10 +117,9 @@ hinzufügenWidgetWegstreckePackNew objekt tvar = do
 -- Mit der übergebenen 'TVar' kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 hinzufügenWidgetWegstreckeRichtungPackNew
-    :: forall s r m.
-    ( FortfahrenWenToggledWegstreckeReader r s m
+    :: forall s o r m.
+    ( SpracheGuiReader r m
     , WidgetsTypReader r s m
-    , SpracheGuiReader r m
     , StreckenObjekt (ObjektTyp s)
     , WegstreckenElement s
     , MonadIO m
@@ -130,29 +127,29 @@ hinzufügenWidgetWegstreckeRichtungPackNew
     => ObjektTyp s
     -> NonEmpty Richtung
     -> TVar (Maybe [Sprache -> IO ()])
+    -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
     -> m (CheckButtonWegstreckeHinzufügen Richtung s)
-hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar = do
-    fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: m (FortfahrenWennToggledVar (StatusAllgemein s) (StatusVar s) WegstreckeCheckButtonVoid)
-    reader <- ask
-    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
-    let justTVar = Just tvar
-    widgetHinzufügenBoxPackNew box $ do
-        hBox <- liftIO $ Gtk.hBoxNew False 0
-        wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox
-            $ registrierterCheckButtonNew
-                justTVar
-                (const $ erhalteName objekt)
-                fortfahrenWennToggledWegstrecke
-        wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox
-            $ auswahlRadioButtonNew richtungen justTVar
-            $ const Text.empty
-        pure
-            WegstreckeCheckButtonRichtung
-            { wcbrWidget = erhalteWidget hBox
-            , wcbrRegistrierterCheckButton
-            , wcbrRichtungsAuswahl
-            }
+hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWennToggledWegstrecke =
+    do
+        reader <- ask
+        let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
+        let justTVar = Just tvar
+        widgetHinzufügenBoxPackNew box $ do
+            hBox <- liftIO $ Gtk.hBoxNew False 0
+            wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox
+                $ registrierterCheckButtonNew
+                    justTVar
+                    (const $ erhalteName objekt)
+                    fortfahrenWennToggledWegstrecke
+            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox
+                $ auswahlRadioButtonNew richtungen justTVar
+                $ const Text.empty
+            pure
+                WegstreckeCheckButtonRichtung
+                { wcbrWidget = erhalteWidget hBox
+                , wcbrRegistrierterCheckButton
+                , wcbrRichtungsAuswahl
+                }
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets
