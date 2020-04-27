@@ -9,7 +9,7 @@ Description : Starte Main-Loop für Kommandozeilen-basiertes UI.
 module Zug.UI.Cmd (main, mainStatus) where
 
 import Control.Monad (unless, void)
-import Control.Monad.RWS (evalRWST)
+import Control.Monad.RWS.Strict (evalRWST)
 import Control.Monad.State.Class (MonadState(..))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
