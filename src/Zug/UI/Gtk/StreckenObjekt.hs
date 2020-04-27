@@ -79,22 +79,22 @@ import Zug.UI.Befehl (BefehlAllgemein())
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(..))
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets
-       (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..)
-      , BGWidgetsBoxenReader(..))
+       (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckeCheckButtonVoid)
-import Zug.UI.Gtk.StreckenObjekt.KOWidgets (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..)
-                                          , MitKOWidgetsBoxen(..), KOWidgetsBoxenReader(..))
-import Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets, kupplungPackNew, KUWidgetsBoxen(..)
-                                          , MitKUWidgetsBoxen(..), KUWidgetsBoxenReader(..))
+import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
+       (MitFortfahrenWennToggledWegstrecke(..), MitTMVarPlanObjekt(..))
+import Zug.UI.Gtk.StreckenObjekt.KOWidgets
+       (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..), MitKOWidgetsBoxen(..))
+import Zug.UI.Gtk.StreckenObjekt.KUWidgets
+       (KUWidgets, kupplungPackNew, KUWidgetsBoxen(..), MitKUWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.PLWidgets
-       (PLWidgets, planPackNew, PLWidgetsBoxen(..), MitPLWidgetsBoxen(..), PLWidgetsBoxenReader(..)
-      , MitWindowMain(..))
-import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets, streckenabschnittPackNew, STWidgetsBoxen(..)
-                                          , MitSTWidgetsBoxen(..), STWidgetsBoxenReader(..))
-import Zug.UI.Gtk.StreckenObjekt.WEWidgets (WEWidgets, weichePackNew, WEWidgetsBoxen(..)
-                                          , MitWEWidgetsBoxen(..), WEWidgetsBoxenReader(..))
-import Zug.UI.Gtk.StreckenObjekt.WSWidgets (WSWidgets, wegstreckePackNew, WSWidgetsBoxen(..)
-                                          , MitWSWidgetsBoxen(..), WSWidgetsBoxenReader(..))
+       (PLWidgets, planPackNew, PLWidgetsBoxen(..), MitPLWidgetsBoxen(..), MitWindowMain(..))
+import Zug.UI.Gtk.StreckenObjekt.STWidgets
+       (STWidgets, streckenabschnittPackNew, STWidgetsBoxen(..), MitSTWidgetsBoxen(..))
+import Zug.UI.Gtk.StreckenObjekt.WEWidgets
+       (WEWidgets, weichePackNew, WEWidgetsBoxen(..), MitWEWidgetsBoxen(..))
+import Zug.UI.Gtk.StreckenObjekt.WSWidgets
+       (WSWidgets, wegstreckePackNew, WSWidgetsBoxen(..), MitWSWidgetsBoxen(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
@@ -176,6 +176,44 @@ instance MitDynamischeWidgets DynamischeWidgets where
 instance MitWindowMain DynamischeWidgets where
     windowMain :: DynamischeWidgets -> Gtk.Window
     windowMain = dynWindowMain
+
+instance MitFortfahrenWennToggledWegstrecke DynamischeWidgets ObjektGui where
+    fortfahrenWennToggledWegstrecke
+        :: DynamischeWidgets
+        -> FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
+    fortfahrenWennToggledWegstrecke = dynFortfahrenWennToggledWegstrecke
+
+instance MitTMVarPlanObjekt DynamischeWidgets where
+    tmvarPlanObjekt :: DynamischeWidgets -> TMVar (Maybe Objekt)
+    tmvarPlanObjekt = dynTMVarPlanObjekt
+
+instance MitBGWidgetsBoxen DynamischeWidgets where
+    bgWidgetsBoxen :: DynamischeWidgets -> BGWidgetsBoxen
+    bgWidgetsBoxen = dynBGWidgetsBoxen
+
+instance MitSTWidgetsBoxen DynamischeWidgets where
+    stWidgetsBoxen :: DynamischeWidgets -> STWidgetsBoxen
+    stWidgetsBoxen = dynSTWidgetsBoxen
+
+instance MitWEWidgetsBoxen DynamischeWidgets where
+    weWidgetsBoxen :: DynamischeWidgets -> WEWidgetsBoxen
+    weWidgetsBoxen = dynWEWidgetsBoxen
+
+instance MitKUWidgetsBoxen DynamischeWidgets where
+    kuWidgetsBoxen :: DynamischeWidgets -> KUWidgetsBoxen
+    kuWidgetsBoxen = dynKUWidgetsBoxen
+
+instance MitKOWidgetsBoxen DynamischeWidgets where
+    koWidgetsBoxen :: DynamischeWidgets -> KOWidgetsBoxen
+    koWidgetsBoxen = dynKOWidgetsBoxen
+
+instance MitWSWidgetsBoxen DynamischeWidgets where
+    wsWidgetsBoxen :: DynamischeWidgets -> WSWidgetsBoxen
+    wsWidgetsBoxen = dynWSWidgetsBoxen
+
+instance MitPLWidgetsBoxen DynamischeWidgets where
+    plWidgetsBoxen :: DynamischeWidgets -> PLWidgetsBoxen
+    plWidgetsBoxen = dynPLWidgetsBoxen
 
 -- | Abkürzung für Funktionen, die 'DynamischeWidgets' benötigen
 class (MonadReader r m, MitDynamischeWidgets r) => DynamischeWidgetsReader r m | m -> r where
