@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -8,15 +10,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.WEWidgets
-  ( WEWidgets()
+  (
+#ifdef ZUGKONTROLLEGUI
+    WEWidgets()
   , weichePackNew
   , WEWidgetsBoxen(..)
   , MitWEWidgetsBoxen(..)
   , WEWidgetsBoxenReader(..)
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Lens ((??), (^..))
 import qualified Control.Lens as Lens
@@ -56,7 +63,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
       , hinzufügenWidgetWegstreckeRichtungPackNew, PlanElement(..), entferneHinzufügenPlanWidgets
       , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
       , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen, widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
@@ -440,3 +447,5 @@ weichePackNew weiche = do
                 $ eventAusführen weTVarEvent
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
+#endif
+--

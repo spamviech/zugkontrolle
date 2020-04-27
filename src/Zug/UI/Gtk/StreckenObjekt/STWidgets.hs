@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -9,17 +11,22 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.STWidgets
-  ( STWidgets()
+  (
+#ifdef ZUGKONTROLLEGUI
+    STWidgets()
   , streckenabschnittPackNew
   , STWidgetsKlasse(..)
   , toggleButtonStromPackNew
   , STWidgetsBoxen(..)
   , MitSTWidgetsBoxen(..)
   , STWidgetsBoxenReader(..)
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Monad (forM_)
@@ -59,7 +66,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
       , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
       , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
       , BoxPlanHinzufügen, ButtonPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
@@ -342,3 +349,5 @@ toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusfü
                 ohneEvent (tvarEvent ws)
                 $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (fließend == Fließend)]
         wsWidgetsSynchronisieren _wsWidget _fließend = pure ()
+#endif
+--

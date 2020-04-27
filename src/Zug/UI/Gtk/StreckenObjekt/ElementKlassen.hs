@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -7,9 +9,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-  ( -- * Wegstrecken-Element
+  (
+#ifdef ZUGKONTROLLEGUI
+    -- * Wegstrecken-Element
     WegstreckenElement(..)
   , WegstreckeCheckButtonVoid
   , MitFortfahrenWennToggledWegstrecke(..)
@@ -24,8 +29,10 @@ module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
   , TMVarPlanObjektReader(..)
   , hinzufügenWidgetPlanPackNew
   , entferneHinzufügenPlanWidgets
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Applicative (ZipList(..))
 import Control.Concurrent.STM (atomically, TVar, TMVar, putTMVar)
 import Control.Lens ((^.), (^..))
@@ -49,7 +56,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (WidgetHinzufügen, HinzufügenZiel(..), BoxWegstreckeHinzufügen
       , CheckButtonWegstreckeHinzufügen, WegstreckeCheckButton(..), BoxPlanHinzufügen
       , ButtonPlanHinzufügen, widgetHinzufügenBoxPackNew, widgetHinzufügenContainerRemoveJust
@@ -252,3 +259,5 @@ entferneHinzufügenPlanWidgets planElement = do
     sequence_
         $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlan
         <*> ZipList (planElement ^.. foldPlan)
+#endif
+--

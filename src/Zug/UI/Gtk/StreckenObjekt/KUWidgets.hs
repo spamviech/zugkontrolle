@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -8,16 +10,21 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.KUWidgets
-  ( KUWidgets()
+  (
+#ifdef ZUGKONTROLLEGUI
+    KUWidgets()
   , kupplungPackNew
   , buttonKuppelnPackNew
   , KUWidgetsBoxen(..)
   , MitKUWidgetsBoxen(..)
   , KUWidgetsBoxenReader(..)
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -53,7 +60,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
       , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
       , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
@@ -264,3 +271,5 @@ buttonKuppelnPackNew box kupplung tvarSprachwechsel tvarEventAusführen statusVa
         $ eventAusführen tvarEventAusführen
         $ flip runReaderT objektReader
         $ ausführenStatusVarAktion (Kuppeln kupplung) statusVar
+#endif
+--

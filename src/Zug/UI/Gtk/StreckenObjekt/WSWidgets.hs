@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -8,15 +10,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.WSWidgets
-  ( WSWidgets()
+  (
+#ifdef ZUGKONTROLLEGUI
+    WSWidgets()
   , wegstreckePackNew
   , WSWidgetsBoxen(..)
   , MitWSWidgetsBoxen(..)
   , WSWidgetsBoxenReader(..)
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Lens ((??), (^..))
@@ -66,7 +73,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (PlanElement(..), entferneHinzuf
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets (buttonKuppelnPackNew)
 import Zug.UI.Gtk.StreckenObjekt.STWidgets
        (STWidgets, STWidgetsKlasse(..), toggleButtonStromPackNew)
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), BoxPlanHinzufügen, ButtonPlanHinzufügen
       , widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
@@ -653,3 +660,5 @@ wegstreckePackNew
         fahrstromAnschlüsse
             MärklinBahngeschwindigkeitKonstanteSpannung {bgmkFahrstromAnschlüsse} =
             bgmkFahrstromAnschlüsse
+#endif
+--

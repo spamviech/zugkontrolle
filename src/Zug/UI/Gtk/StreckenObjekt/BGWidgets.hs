@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -11,9 +13,12 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.BGWidgets
-  ( BGWidgets()
+  (
+#ifdef ZUGKONTROLLEGUI
+    BGWidgets()
   , bahngeschwindigkeitPackNew
   , BGWidgetsKlasse(..)
   , hScaleGeschwindigkeitPackNew
@@ -23,8 +28,10 @@ module Zug.UI.Gtk.StreckenObjekt.BGWidgets
   , BGWidgetsBoxen(..)
   , MitBGWidgetsBoxen(..)
   , BGWidgetsBoxenReader(..)
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Lens ((^.))
 import qualified Control.Lens as Lens
@@ -79,7 +86,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
       , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
       , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
 import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets, STWidgetsKlasse(..))
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), BoxWegstreckeHinzufügen, CheckButtonWegstreckeHinzufügen
       , BoxPlanHinzufügen, ButtonPlanHinzufügen, widgetHinzufügenGeschwindigkeitVariante
       , widgetHinzufügenGeschwindigkeitEither, widgetHinzufügenZugtypEither)
@@ -1274,3 +1281,5 @@ auswahlFahrtrichtungEinstellenPackNew
                             -> setzeAuswahl auswahlFahrtrichtung fahrtrichtung
                         Nothing -> pure ()
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
+#endif
+--

@@ -1,17 +1,24 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-  ( WidgetsTyp(..)
+  (
+#ifdef ZUGKONTROLLEGUI
+    WidgetsTyp(..)
   , WidgetsTypReader
   , EventAusführen(..)
   , eventAusführen
   , ohneEvent
   , buttonEntfernenPackNew
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, swapTVar)
 import Control.Monad (when)
 import Control.Monad.Reader (MonadReader(ask), runReaderT)
@@ -102,3 +109,5 @@ buttonEntfernenPackNew w entfernenAktion = do
         $ do
             auswertenStatusVarIOStatus entfernenAktion statusVar
             entferneWidgets w
+#endif
+--

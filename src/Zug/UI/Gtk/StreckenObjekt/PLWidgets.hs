@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
@@ -9,9 +11,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.PLWidgets
-  (   -- * PLWidgets
+  (
+#ifdef ZUGKONTROLLEGUI
+    -- * PLWidgets
     PLWidgets()
   , planPackNew
   , PLWidgetsBoxen(..)
@@ -21,8 +26,10 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets
   , WindowMainReader(..)
     -- * ObjektGui (hier definiert um Orphan-Instances zu vermeiden)
   , ObjektGui
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Monad (void, forM_)
@@ -60,7 +67,7 @@ import Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets)
 import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets)
 import Zug.UI.Gtk.StreckenObjekt.WEWidgets (WEWidgets)
 import Zug.UI.Gtk.StreckenObjekt.WSWidgets (WSWidgets)
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
@@ -309,3 +316,5 @@ instance ObjektKlasse ObjektGui where
 
     ausObjekt :: ObjektGui -> ObjektGui
     ausObjekt = id
+#endif
+ --

@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -8,12 +10,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 {-|
 Description: Spezielle Widgets, die für den AssistantHinzufügen benötigt werden.
 -}
-module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
-  ( -- * Datentyp und Typ-Klassen
+module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
+  (
+#ifdef ZUGKONTROLLEGUI
+    -- * Datentyp und Typ-Klassen
     WidgetHinzufügen()
   , Kategorie(..)
   , KategorieText(..)
@@ -37,8 +42,10 @@ module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
   , widgetHinzufügenGeschwindigkeitVariante
   , widgetHinzufügenGeschwindigkeitEither
   , widgetHinzufügenZugtypEither
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Kind (Type)
@@ -196,3 +203,5 @@ boxPlanHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidgetNew 
         $ labelSpracheNew maybeTVar
         $ kategorieText (kategorie :: KategorieText a)
     pure box
+#endif
+--

@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -8,15 +10,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#endif
 
 module Zug.UI.Gtk.StreckenObjekt.KOWidgets
-  ( KOWidgets
+  (
+#ifdef ZUGKONTROLLEGUI
+    KOWidgets()
   , kontaktPackNew
   , KOWidgetsBoxen(..)
   , MitKOWidgetsBoxen(..)
   , KOWidgetsBoxenReader(..)
+#endif
   ) where
 
+#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Monad.Reader (MonadReader(), asks)
@@ -50,7 +57,7 @@ import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
       , hinzufügenWidgetPlanPackNew, MitFortfahrenWennToggledWegstrecke()
       , WegstreckeCheckButtonVoid, FortfahrenWennToggledWegstreckeReader(..), MitTMVarPlanObjekt())
-import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufügen
+import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
@@ -229,3 +236,5 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OKontakt koWidgets
     pure koWidgets
+#endif
+
