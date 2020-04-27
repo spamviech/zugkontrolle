@@ -103,6 +103,7 @@ data WegstreckePlanHinzufügenWidget (z :: Zugtyp) =
     , bahngeschwindigkeitKonstanteSpannung :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     , streckenabschnitt :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     , kupplung :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
+    , kontakt :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     , wegstrecke :: Maybe (ButtonPlanHinzufügen (WSWidgets z))
     }
     deriving (Eq)
@@ -134,8 +135,8 @@ data WSWidgetsBoxen =
     , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
     , vBoxHinzufügenPlanWegstreckenKupplungMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenKupplungLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
-    , vBoxHinzufügenPlanWegstreckenKontakteMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
-    , vBoxHinzufügenPlanWegstreckenKontakteLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
+    , vBoxHinzufügenPlanWegstreckenKontaktMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
+    , vBoxHinzufügenPlanWegstreckenKontaktLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
     , vBoxHinzufügenPlanWegstreckenMärklin :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenLego :: BoxPlanHinzufügen (WSWidgets 'Lego)
     }
@@ -237,6 +238,7 @@ instance PlanElement (WSWidgets 'Märklin) where
             , bahngeschwindigkeit
             , streckenabschnitt
             , kupplung
+            , kontakt
             , wegstrecke]
         . wsHinzPL
 
@@ -251,6 +253,7 @@ instance PlanElement (WSWidgets 'Märklin) where
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin
+            , vBoxHinzufügenPlanWegstreckenKontaktMärklin
             , vBoxHinzufügenPlanWegstreckenMärklin]
         . wsWidgetsBoxen
 
@@ -264,6 +267,7 @@ instance PlanElement (WSWidgets 'Lego) where
             , bahngeschwindigkeit
             , streckenabschnitt
             , kupplung
+            , kontakt
             , wegstrecke]
         . wsHinzPL
 
@@ -278,6 +282,7 @@ instance PlanElement (WSWidgets 'Lego) where
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungLego
+            , vBoxHinzufügenPlanWegstreckenKontaktLego
             , vBoxHinzufügenPlanWegstreckenLego]
         . wsWidgetsBoxen
 
@@ -293,6 +298,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , bahngeschwindigkeit
             , streckenabschnitt
             , kupplung
+            , kontakt
             , wegstrecke]
         . wsHinzPL
 
@@ -308,6 +314,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
             , vBoxHinzufügenPlanWegstreckenKupplungMärklin
+            , vBoxHinzufügenPlanWegstreckenKontaktMärklin
             , vBoxHinzufügenPlanWegstreckenMärklin]
         . wsWidgetsBoxen
     boxenPlan (ZugtypLego _wegstrecke) =
@@ -319,6 +326,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
             , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
             , vBoxHinzufügenPlanWegstreckenKupplungLego
+            , vBoxHinzufügenPlanWegstreckenKontaktLego
             , vBoxHinzufügenPlanWegstreckenLego]
         . wsWidgetsBoxen
 
@@ -466,156 +474,170 @@ wegstreckePackNew
     -> MStatusAllgemeinT m o (WSWidgets z)
 wegstreckePackNew
     wegstrecke@Wegstrecke
-    {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} = do
-    objektReader <- ask
-    statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-    wsWidgetsBoxen@WSWidgetsBoxen {vBoxWegstrecken} <- erhalteWSWidgetsBoxen
-    (wsTVarSprache, wsTVarEvent) <- liftIO $ do
-        wsTVarSprache <- newTVarIO $ Just []
-        wsTVarEvent <- newTVarIO EventAusführen
-        pure (wsTVarSprache, wsTVarEvent)
-    let justTVarSprache = Just wsTVarSprache
-    -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-    let [boxBGPwm, boxBGKonstanteSpannung, boxBG, boxStreckenabschnitt, boxKupplung, boxWegstrecke] =
-            wsWidgetsBoxen ^.. boxenPlan wegstrecke
-    hinzufügenPlanWidgetBGPwm
-        <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
-            then Just <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsTVarSprache
-            else pure Nothing
-    hinzufügenPlanWidgetBGKonstanteSpannung <- if any
-        (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
-        wsBahngeschwindigkeiten
-        then Just <$> hinzufügenWidgetPlanPackNew boxBGKonstanteSpannung wegstrecke wsTVarSprache
-        else pure Nothing
-    hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
-        then pure Nothing
-        else Just <$> hinzufügenWidgetPlanPackNew boxBG wegstrecke wsTVarSprache
-    hinzufügenPlanWidgetST <- if null wsStreckenabschnitte
-        then pure Nothing
-        else Just <$> hinzufügenWidgetPlanPackNew boxStreckenabschnitt wegstrecke wsTVarSprache
-    hinzufügenPlanWidgetKU <- if null wsKupplungen
-        then pure Nothing
-        else Just <$> hinzufügenWidgetPlanPackNew boxKupplung wegstrecke wsTVarSprache
-    hinzufügenPlanWidgetWS <- if null wsWeichenRichtungen
-        then pure Nothing
-        else Just <$> hinzufügenWidgetPlanPackNew boxWegstrecke wegstrecke wsTVarSprache
-    let hinzufügenPlanWidget =
-            WegstreckePlanHinzufügenWidget
-            { bahngeschwindigkeitPwm = hinzufügenPlanWidgetBGPwm
-            , bahngeschwindigkeitKonstanteSpannung = hinzufügenPlanWidgetBGKonstanteSpannung
-            , bahngeschwindigkeit = hinzufügenPlanWidgetBG
-            , streckenabschnitt = hinzufügenPlanWidgetST
-            , kupplung = hinzufügenPlanWidgetKU
-            , wegstrecke = hinzufügenPlanWidgetWS
-            }
-    -- Widget erstellen
-    (frame, expander, vBoxExpander, functionBox) <- liftIO $ do
-        frame <- boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
-        vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
-        namePackNew vBox wegstrecke
-        expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
-        vBoxExpander <- containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-        functionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-        pure (frame, expander, vBoxExpander, functionBox)
-    verwendeSpracheGui justTVarSprache
-        $ \sprache -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
-    (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsAuswahlFahrtrichtung) <- if null
-        wsBahngeschwindigkeiten
-        then pure (Nothing, Nothing, Nothing)
-        else do
-            boxPackWidgetNewDefault vBoxExpander
-                $ labelSpracheNew justTVarSprache
-                $ Language.bahngeschwindigkeiten
-                <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
-            maybeScale <- if any
-                (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
-                wsBahngeschwindigkeiten
-                then Just
-                    <$> hScaleGeschwindigkeitPackNew
-                        functionBox
-                        (GeschwindigkeitPhantom wegstrecke)
-                        wsTVarEvent
-                        statusVar
+    {wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen, wsKontakte} =
+    do
+        objektReader <- ask
+        statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
+        wsWidgetsBoxen@WSWidgetsBoxen {vBoxWegstrecken} <- erhalteWSWidgetsBoxen
+        (wsTVarSprache, wsTVarEvent) <- liftIO $ do
+            wsTVarSprache <- newTVarIO $ Just []
+            wsTVarEvent <- newTVarIO EventAusführen
+            pure (wsTVarSprache, wsTVarEvent)
+        let justTVarSprache = Just wsTVarSprache
+        -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
+        let [ boxBGPwm
+                , boxBGKonstanteSpannung
+                , boxBG
+                , boxStreckenabschnitt
+                , boxKupplung
+                , boxKontakte
+                , boxWegstrecke] = wsWidgetsBoxen ^.. boxenPlan wegstrecke
+        hinzufügenPlanWidgetBGPwm
+            <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
+                then Just <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsTVarSprache
                 else pure Nothing
-            let geschwindigkeitenKonstanteSpannung = catKonstanteSpannung wsBahngeschwindigkeiten
-            maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
-                then pure Nothing
-                else fmap Just
-                    $ auswahlFahrstromPackNew
+        hinzufügenPlanWidgetBGKonstanteSpannung <- if any
+            (ausGeschwindigkeitEither $ (== KonstanteSpannung) . verwendetPwm)
+            wsBahngeschwindigkeiten
+            then Just
+                <$> hinzufügenWidgetPlanPackNew boxBGKonstanteSpannung wegstrecke wsTVarSprache
+            else pure Nothing
+        hinzufügenPlanWidgetBG <- if null wsBahngeschwindigkeiten
+            then pure Nothing
+            else Just <$> hinzufügenWidgetPlanPackNew boxBG wegstrecke wsTVarSprache
+        hinzufügenPlanWidgetST <- if null wsStreckenabschnitte
+            then pure Nothing
+            else Just
+                <$> hinzufügenWidgetPlanPackNew boxStreckenabschnitt wegstrecke wsTVarSprache
+        hinzufügenPlanWidgetKU <- if null wsKupplungen
+            then pure Nothing
+            else Just <$> hinzufügenWidgetPlanPackNew boxKupplung wegstrecke wsTVarSprache
+        hinzufügenPlanWidgetKO <- if null wsKontakte
+            then pure Nothing
+            else Just <$> hinzufügenWidgetPlanPackNew boxKontakte wegstrecke wsTVarSprache
+        hinzufügenPlanWidgetWS <- if null wsWeichenRichtungen
+            then pure Nothing
+            else Just <$> hinzufügenWidgetPlanPackNew boxWegstrecke wegstrecke wsTVarSprache
+        let hinzufügenPlanWidget =
+                WegstreckePlanHinzufügenWidget
+                { bahngeschwindigkeitPwm = hinzufügenPlanWidgetBGPwm
+                , bahngeschwindigkeitKonstanteSpannung = hinzufügenPlanWidgetBGKonstanteSpannung
+                , bahngeschwindigkeit = hinzufügenPlanWidgetBG
+                , streckenabschnitt = hinzufügenPlanWidgetST
+                , kupplung = hinzufügenPlanWidgetKU
+                , kontakt = hinzufügenPlanWidgetKO
+                , wegstrecke = hinzufügenPlanWidgetWS
+                }
+        -- Widget erstellen
+        (frame, expander, vBoxExpander, functionBox) <- liftIO $ do
+            frame <- boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
+            vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
+            namePackNew vBox wegstrecke
+            expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
+            vBoxExpander
+                <- containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+            functionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+            pure (frame, expander, vBoxExpander, functionBox)
+        verwendeSpracheGui justTVarSprache $ \sprache
+            -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
+        (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsAuswahlFahrtrichtung) <- if null
+            wsBahngeschwindigkeiten
+            then pure (Nothing, Nothing, Nothing)
+            else do
+                boxPackWidgetNewDefault vBoxExpander
+                    $ labelSpracheNew justTVarSprache
+                    $ Language.bahngeschwindigkeiten
+                    <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
+                maybeScale <- if any
+                    (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
+                    wsBahngeschwindigkeiten
+                    then Just
+                        <$> hScaleGeschwindigkeitPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wegstrecke)
+                            wsTVarEvent
+                            statusVar
+                    else pure Nothing
+                let geschwindigkeitenKonstanteSpannung =
+                        catKonstanteSpannung wsBahngeschwindigkeiten
+                maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
+                    then pure Nothing
+                    else fmap Just
+                        $ auswahlFahrstromPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wegstrecke)
+                            (maximum
+                             $ fromIntegral . length . fahrstromAnschlüsse
+                             <$> geschwindigkeitenKonstanteSpannung)
+                            wsTVarSprache
+                            wsTVarEvent
+                            statusVar
+                eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
+                    (ZugtypMärklin wsMärklin) -> Left
+                        <$> buttonUmdrehenPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wsMärklin
+                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
+                            wsTVarSprache
+                            wsTVarEvent
+                            statusVar
+                    (ZugtypLego wsLego) -> Right
+                        <$> auswahlFahrtrichtungEinstellenPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wsLego
+                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
+                            wsTVarSprache
+                            wsTVarEvent
+                            statusVar
+                pure (maybeScale, maybeAuswahlFahrstrom, rightToMaybe eitherFahrtrichtungWidget)
+        wsToggleButtonStrom <- if null wsStreckenabschnitte
+            then pure Nothing
+            else do
+                boxPackWidgetNewDefault vBoxExpander
+                    $ labelSpracheNew justTVarSprache
+                    $ Language.streckenabschnitte
+                    <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
+                Just
+                    <$> toggleButtonStromPackNew
                         functionBox
-                        (GeschwindigkeitPhantom wegstrecke)
-                        (maximum
-                         $ fromIntegral . length . fahrstromAnschlüsse
-                         <$> geschwindigkeitenKonstanteSpannung)
+                        wegstrecke
                         wsTVarSprache
                         wsTVarEvent
                         statusVar
-            eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
-                (ZugtypMärklin wsMärklin) -> Left
-                    <$> buttonUmdrehenPackNew
-                        functionBox
-                        (GeschwindigkeitPhantom wsMärklin
-                         :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
-                        wsTVarSprache
-                        wsTVarEvent
-                        statusVar
-                (ZugtypLego wsLego) -> Right
-                    <$> auswahlFahrtrichtungEinstellenPackNew
-                        functionBox
-                        (GeschwindigkeitPhantom wsLego
-                         :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
-                        wsTVarSprache
-                        wsTVarEvent
-                        statusVar
-            pure (maybeScale, maybeAuswahlFahrstrom, rightToMaybe eitherFahrtrichtungWidget)
-    wsToggleButtonStrom <- if null wsStreckenabschnitte
-        then pure Nothing
-        else do
+        unless (null wsWeichenRichtungen) $ void $ do
             boxPackWidgetNewDefault vBoxExpander
                 $ labelSpracheNew justTVarSprache
-                $ Language.streckenabschnitte
-                <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
-            Just
-                <$> toggleButtonStromPackNew
-                    functionBox
-                    wegstrecke
-                    wsTVarSprache
-                    wsTVarEvent
-                    statusVar
-    unless (null wsWeichenRichtungen) $ void $ do
-        boxPackWidgetNewDefault vBoxExpander
-            $ labelSpracheNew justTVarSprache
-            $ Language.weichen <:> fromJust (foldl (\acc (weiche, richtung) -> Just
-                                                    $ fromJust (appendName acc weiche)
-                                                    <°> richtung) Nothing wsWeichenRichtungen)
-        boxPackWidgetNewDefault functionBox
-            $ buttonNewWithEventLabel justTVarSprache Language.einstellen
-            $ eventAusführen wsTVarEvent
-            $ flip runReaderT objektReader
-            $ ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
-    unless (null wsKupplungen) $ void $ do
-        boxPackWidgetNewDefault vBoxExpander
-            $ labelSpracheNew justTVarSprache
-            $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
-        buttonKuppelnPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent statusVar
-    let wsWidgets =
-            WSWidgets
-            { ws = wegstrecke
-            , wsWidget = frame
-            , wsFunktionBox = erhalteBox functionBox
-            , wsHinzPL = hinzufügenPlanWidget
-            , wsTVarSprache
-            , wsTVarEvent
-            , wsScaleGeschwindigkeit
-            , wsAuswahlFahrstrom
-            , wsAuswahlFahrtrichtung
-            , wsToggleButtonStrom
-            }
-    buttonEntfernenPackNew wsWidgets
-        $ (entfernenWegstrecke $ zuZugtypEither wsWidgets :: IOStatusAllgemein o ())
-    -- Widgets merken
-    ausführenBefehl $ Hinzufügen $ ausObjekt $ OWegstrecke $ zuZugtypEither wsWidgets
-    pure wsWidgets
+                $ Language.weichen <:> fromJust (foldl (\acc (weiche, richtung) -> Just
+                                                        $ fromJust (appendName acc weiche)
+                                                        <°> richtung) Nothing wsWeichenRichtungen)
+            boxPackWidgetNewDefault functionBox
+                $ buttonNewWithEventLabel justTVarSprache Language.einstellen
+                $ eventAusführen wsTVarEvent
+                $ flip runReaderT objektReader
+                $ ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
+        unless (null wsKupplungen) $ void $ do
+            boxPackWidgetNewDefault vBoxExpander
+                $ labelSpracheNew justTVarSprache
+                $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
+            buttonKuppelnPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent statusVar
+        let wsWidgets =
+                WSWidgets
+                { ws = wegstrecke
+                , wsWidget = frame
+                , wsFunktionBox = erhalteBox functionBox
+                , wsHinzPL = hinzufügenPlanWidget
+                , wsTVarSprache
+                , wsTVarEvent
+                , wsScaleGeschwindigkeit
+                , wsAuswahlFahrstrom
+                , wsAuswahlFahrtrichtung
+                , wsToggleButtonStrom
+                }
+        buttonEntfernenPackNew wsWidgets
+            $ (entfernenWegstrecke $ zuZugtypEither wsWidgets :: IOStatusAllgemein o ())
+        -- Widgets merken
+        ausführenBefehl $ Hinzufügen $ ausObjekt $ OWegstrecke $ zuZugtypEither wsWidgets
+        pure wsWidgets
     where
         appendName :: forall o.
                    (StreckenObjekt o)
