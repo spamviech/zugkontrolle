@@ -21,6 +21,7 @@
         "GADTs",
         "ViewPatterns",
         "TemplateHaskell",
+        "FunctionalDependencies",
         "CPP"
     ],
     "style": "johan-tibell",

@@ -27,9 +27,8 @@ import Data.Word (Word8)
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Enums
-       (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
-      , GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts))
+import Zug.Enums (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..)
+                , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts))
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit, OWegstrecke))

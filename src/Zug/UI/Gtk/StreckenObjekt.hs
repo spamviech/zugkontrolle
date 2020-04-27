@@ -24,44 +24,30 @@ module Zug.UI.Gtk.StreckenObjekt
     BGWidgets()
   , bahngeschwindigkeitPackNew
   , BGWidgetsBoxen(..)
-  , MitBGWidgetsBoxen(..)
-  , BGWidgetsBoxenReader(..)
     -- ** Streckenabschnitt
   , STWidgets()
   , streckenabschnittPackNew
   , STWidgetsBoxen(..)
-  , MitSTWidgetsBoxen(..)
-  , STWidgetsBoxenReader(..)
     -- ** Weiche
   , WEWidgets()
   , weichePackNew
   , WEWidgetsBoxen(..)
-  , MitWEWidgetsBoxen(..)
-  , WEWidgetsBoxenReader(..)
     -- ** Kupplung
   , KUWidgets()
   , kupplungPackNew
   , KUWidgetsBoxen(..)
-  , MitKUWidgetsBoxen(..)
-  , KUWidgetsBoxenReader(..)
     -- ** Kontakt
   , KOWidgets()
   , kontaktPackNew
   , KOWidgetsBoxen(..)
-  , MitKOWidgetsBoxen(..)
-  , KOWidgetsBoxenReader(..)
     -- ** Wegstrecke
   , WSWidgets()
   , wegstreckePackNew
   , WSWidgetsBoxen(..)
-  , MitWSWidgetsBoxen(..)
-  , WSWidgetsBoxenReader(..)
     -- ** Plan
   , PLWidgets()
   , planPackNew
   , PLWidgetsBoxen(..)
-  , MitPLWidgetsBoxen(..)
-  , PLWidgetsBoxenReader(..)
     -- * Verwaltung des aktuellen Zustands
   , DynamischeWidgets(..)
   , MitDynamischeWidgets(..)
@@ -76,31 +62,6 @@ module Zug.UI.Gtk.StreckenObjekt
   , StatusVarGui
   , StatusVarGuiReader
   , readSpracheGui
-  , MitWindowMain(..)
-    -- * Hinzufügen zu einem Plan/einer Wegstrecke
-  , WidgetHinzufügen()
-  , HinzufügenZiel(..)
-  , CheckButtonWegstreckeHinzufügen
-  , WegstreckeCheckButton()
-  , WegstreckeCheckButtonVoid
-  , KategorieText(..)
-  , Kategorie(..)
-  , BoxWegstreckeHinzufügen
-  , boxWegstreckeHinzufügenNew
-  , ButtonPlanHinzufügen
-  , BoxPlanHinzufügen
-  , boxPlanHinzufügenNew
-  , widgetHinzufügenZugtypEither
-  , widgetHinzufügenRegistrierterCheckButtonVoid
-  , widgetHinzufügenAktuelleAuswahl
-  , widgetHinzufügenToggled
-  , widgetHinzufügenContainerRemoveJust
-  , widgetHinzufügenBoxPackNew
-  , foldWegstreckeHinzufügen
-  , WegstreckenElement(..)
-  , entferneHinzufügenWegstreckeWidgets
-  , PlanElement(..)
-  , entferneHinzufügenPlanWidgets
 #endif
   ) where
 
@@ -111,7 +72,6 @@ import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitEither())
 import Zug.Objekt (ObjektKlasse(..), Objekt, ObjektAllgemein())
 import Zug.UI.Base (StatusAllgemein, MStatusAllgemeinT, MStatusAllgemein, IOStatusAllgemein
                   , ObjektReader(), ReaderFamilie, TVarMaps(), MitTVarMaps(..), sprache)
@@ -119,20 +79,22 @@ import Zug.UI.Befehl (BefehlAllgemein())
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(..))
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets
-       (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..), BGWidgetsBoxenReader(..))
+       (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..)
+      , BGWidgetsBoxenReader(..))
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen (WegstreckeCheckButtonVoid)
-import Zug.UI.Gtk.StreckenObjekt.KOWidgets
-       (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..), MitKOWidgetsBoxen(..), KOWidgetsBoxenReader(..))
-import Zug.UI.Gtk.StreckenObjekt.KUWidgets
-       (KUWidgets, kupplungPackNew, KUWidgetsBoxen(..), MitKUWidgetsBoxen(..), KUWidgetsBoxenReader(..))
+import Zug.UI.Gtk.StreckenObjekt.KOWidgets (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..)
+                                          , MitKOWidgetsBoxen(..), KOWidgetsBoxenReader(..))
+import Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets, kupplungPackNew, KUWidgetsBoxen(..)
+                                          , MitKUWidgetsBoxen(..), KUWidgetsBoxenReader(..))
 import Zug.UI.Gtk.StreckenObjekt.PLWidgets
-       (PLWidgets, planPackNew, PLWidgetsBoxen(..), MitPLWidgetsBoxen(..), PLWidgetsBoxenReader(..), MitWindowMain(..))
-import Zug.UI.Gtk.StreckenObjekt.STWidgets
-       (STWidgets, streckenabschnittPackNew, STWidgetsBoxen(..), MitSTWidgetsBoxen(..), STWidgetsBoxenReader(..))
-import Zug.UI.Gtk.StreckenObjekt.WEWidgets
-       (WEWidgets, weichePackNew, WEWidgetsBoxen(..), MitWEWidgetsBoxen(..), WEWidgetsBoxenReader(..))
-import Zug.UI.Gtk.StreckenObjekt.WSWidgets
-       (WSWidgets, wegstreckePackNew, WSWidgetsBoxen(..), MitWSWidgetsBoxen(..), WSWidgetsBoxenReader(..))
+       (PLWidgets, planPackNew, PLWidgetsBoxen(..), MitPLWidgetsBoxen(..), PLWidgetsBoxenReader(..)
+      , MitWindowMain(..))
+import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets, streckenabschnittPackNew, STWidgetsBoxen(..)
+                                          , MitSTWidgetsBoxen(..), STWidgetsBoxenReader(..))
+import Zug.UI.Gtk.StreckenObjekt.WEWidgets (WEWidgets, weichePackNew, WEWidgetsBoxen(..)
+                                          , MitWEWidgetsBoxen(..), WEWidgetsBoxenReader(..))
+import Zug.UI.Gtk.StreckenObjekt.WSWidgets (WSWidgets, wegstreckePackNew, WSWidgetsBoxen(..)
+                                          , MitWSWidgetsBoxen(..), WSWidgetsBoxenReader(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
@@ -210,6 +172,10 @@ class MitDynamischeWidgets r where
 instance MitDynamischeWidgets DynamischeWidgets where
     dynamischeWidgets :: DynamischeWidgets -> DynamischeWidgets
     dynamischeWidgets = id
+
+instance MitWindowMain DynamischeWidgets where
+    windowMain :: DynamischeWidgets -> Gtk.Window
+    windowMain = dynWindowMain
 
 -- | Abkürzung für Funktionen, die 'DynamischeWidgets' benötigen
 class (MonadReader r m, MitDynamischeWidgets r) => DynamischeWidgetsReader r m | m -> r where

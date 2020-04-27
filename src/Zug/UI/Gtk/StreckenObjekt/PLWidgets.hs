@@ -154,7 +154,7 @@ class (MonadReader r m, MitWindowMain r) => WindowMainReader r m | m -> r where
     erhalteWindowMain :: m Gtk.Window
     erhalteWindowMain = asks windowMain
 
-instance (MonadReader r m, MitWindowMain r ) => WindowMainReader r m
+instance (MonadReader r m, MitWindowMain r) => WindowMainReader r m
 
 -- | 'Plan' darstellen.
 planPackNew
