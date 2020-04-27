@@ -272,6 +272,11 @@ setupGUI maybeTVar = void $ do
     -- Paned mittig setzten
     Gtk.screenGetDefault >>= \case
         (Just screen) -> do
+            -- TODO Seitenverteilung Ändern
+            -- (Eine Paned-Ebene entfernen, nachdem Anfangsposition nicht gesetzt werden kann)
+            -- Bahngeschwindigkeit | Kupplung | Kontakt
+            -- Streckenabschnitt | Weiche
+            -- Wegstrecke | Plan
             screenWidth <- Gtk.screenGetWidth screen
             Gtk.set panedSammelObjekte [Gtk.panedPosition := div screenWidth 2]
             forM_ [panedEinzelObjekte, hPanedRightBack]
