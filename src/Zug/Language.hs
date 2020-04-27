@@ -145,6 +145,7 @@ module Zug.Language
   , aktionBahngeschwindigkeit
   , aktionStreckenabschnitt
   , aktionKupplung
+  , aktionKontakt
   , aktionWegstrecke
   , toBefehlsString
     -- * Unbekannte Eingabe melden
@@ -771,7 +772,7 @@ befehlObjekte sprache = [wegstrecke sprache] <> befehlWegstreckenElemente sprach
 -- | All supported Orders, classified by a train collection element
 befehlWegstreckenElemente :: Sprache -> [Text]
 befehlWegstreckenElemente sprache =
-    map ($ sprache) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung]
+    map ($ sprache) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung, kontakt]
 
 -- | All supported actions
 aktionGruppen :: Sprache -> [Text]
@@ -796,6 +797,7 @@ aktionWegstrecke sprache =
     <> aktionBahngeschwindigkeit sprache
     <> aktionStreckenabschnitt sprache
     <> aktionKupplung sprache
+    <> aktionKontakt sprache
 
 -- | All supported actions for a switch ('Weiche')
 aktionWeiche :: Sprache -> [Text]
@@ -812,6 +814,10 @@ aktionStreckenabschnitt sprache = [strom sprache]
 -- | All supported actions for a coupler ('Kupplung')
 aktionKupplung :: Sprache -> [Text]
 aktionKupplung sprache = [kuppeln sprache]
+
+-- | All supported actions for a contact ('Kontakt')
+aktionKontakt :: Sprache -> [Text]
+aktionKontakt sprache = [warten sprache]
 
 -- | Concatenate a list of strings to an eye-pleasing format
 toBefehlsString :: [Text] -> Text

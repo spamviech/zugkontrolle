@@ -31,6 +31,7 @@ module Zug.Plan
   , AktionStreckenabschnitt(..)
   , AktionWeiche(..)
   , AktionKupplung(..)
+  , AktionKontakt(..)
   , AktionWegstrecke(..)
   ) where
 
@@ -56,7 +57,7 @@ import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
 import Zug.Plan.TemplateHaskell (aktionBahngeschwindigkeitCxtType)
 
--- | Aktionen einer Bahngeschwindigkeit
+-- | 'Aktion'en einer 'Bahngeschwindigkeit'.
 data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     Geschwindigkeit :: bg 'Pwm z -> Word8 -> AktionBahngeschwindigkeit bg 'Pwm z
     Fahrstrom
@@ -92,7 +93,7 @@ instance ( BahngeschwindigkeitKlasse bg
     erhalteName :: AktionBahngeschwindigkeit bg g z -> Text
     erhalteName = showText
 
--- | Aktionen eines Streckenabschnitts
+-- | 'Aktion'en eines 'Streckenabschnitt's.
 data AktionStreckenabschnitt st = Strom st Strom
     deriving (Eq, Ord, Show)
 
@@ -108,7 +109,7 @@ instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStrecken
     erhalteName :: AktionStreckenabschnitt st -> Text
     erhalteName = showText
 
--- | Bekannte 'Aktion'en einer 'Weiche'
+-- | 'Aktion'en einer 'Weiche'.
 data AktionWeiche we = Stellen we Richtung
     deriving (Eq, Ord, Show)
 
@@ -123,7 +124,7 @@ instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
     erhalteName :: AktionWeiche we -> Text
     erhalteName = showText
 
--- | Aktionen einer Kupplung
+-- | Aktionen einer 'Kupplung'.
 newtype AktionKupplung ku = Kuppeln ku
     deriving (Eq, Ord, Show)
 
@@ -138,12 +139,28 @@ instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) wher
     erhalteName :: AktionKupplung ku -> Text
     erhalteName = showText
 
--- | Bekannte 'Aktion'en einer 'Wegstrecke'
+-- | Aktionen eines 'Kontakt's.
+newtype AktionKontakt ko = WartenAuf ko
+    deriving (Eq, Ord, Show)
+
+instance (Anzeige ko) => Anzeige (AktionKontakt ko) where
+    anzeige :: AktionKontakt ko -> Sprache -> Text
+    anzeige (WartenAuf ko) = Language.warten <:> ko
+
+instance (StreckenObjekt ko, Show ko) => StreckenObjekt (AktionKontakt ko) where
+    anschlüsse :: AktionKontakt ko -> Set Anschluss
+    anschlüsse (WartenAuf ko) = anschlüsse ko
+
+    erhalteName :: AktionKontakt ko -> Text
+    erhalteName = showText
+
+-- | Bekannte 'Aktion'en einer 'Wegstrecke'.
 data AktionWegstrecke ws (z :: Zugtyp)
     = Einstellen (ws z)
     | AWSBahngeschwindigkeit (GeschwindigkeitEither (AktionBahngeschwindigkeit (GeschwindigkeitPhantom ws)) z)
     | AWSStreckenabschnitt (AktionStreckenabschnitt (ws z))
     | AWSKupplung (AktionKupplung (ws z))
+    | AWSKontakt (AktionKontakt (ws z))
 
 deriving instance ( Eq (ws z)
                   , Eq (GeschwindigkeitPhantom ws 'Pwm z)
@@ -163,22 +180,25 @@ deriving instance ( Show (ws z)
                   , Show (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
                   ) => Show (AktionWegstrecke ws z)
 
-instance (StreckenObjekt (ws z)) => Anzeige (AktionWegstrecke ws z) where
+instance (StreckenObjekt (ws z), Anzeige (ws z)) => Anzeige (AktionWegstrecke ws z) where
     anzeige :: AktionWegstrecke ws z -> Sprache -> Text
     anzeige (Einstellen wegstrecke) = erhalteName wegstrecke <°> Language.einstellen
     anzeige (AWSBahngeschwindigkeit aktion) = anzeige aktion
     anzeige (AWSStreckenabschnitt aktion) = anzeige aktion
     anzeige (AWSKupplung aktion) = anzeige aktion
+    anzeige (AWSKontakt aktion) = anzeige aktion
 
 instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , WegstreckeKlasse (ws z)
          , Show (ws z)
+         , Anzeige (ws z)
          ) => StreckenObjekt (AktionWegstrecke ws z) where
     anschlüsse :: AktionWegstrecke ws z -> Set Anschluss
     anschlüsse (Einstellen ws) = anschlüsse ws
     anschlüsse (AWSBahngeschwindigkeit aktion) = anschlüsse aktion
     anschlüsse (AWSStreckenabschnitt aktion) = anschlüsse aktion
     anschlüsse (AWSKupplung aktion) = anschlüsse aktion
+    anschlüsse (AWSKontakt aktion) = anschlüsse aktion
 
     erhalteName :: AktionWegstrecke ws z -> Text
     erhalteName = showText
@@ -187,16 +207,16 @@ instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
 -- Die Update-Funktion wird nicht aufgerufen.
 data Aktion
     = Warten Wartezeit
-    | WartenAuf Kontakt
-    | AWegstreckeMärklin (AktionWegstrecke Wegstrecke 'Märklin)
-    | AWegstreckeLego (AktionWegstrecke Wegstrecke 'Lego)
-    | AWeiche (AktionWeiche (ZugtypEither Weiche))
     | ABahngeschwindigkeitMärklinPwm (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Märklin)
     | ABahngeschwindigkeitMärklinKonstanteSpannung (AktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
     | ABahngeschwindigkeitLegoPwm (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Lego)
     | ABahngeschwindigkeitLegoKonstanteSpannung (AktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
     | AStreckenabschnitt (AktionStreckenabschnitt Streckenabschnitt)
+    | AWeiche (AktionWeiche (ZugtypEither Weiche))
     | AKupplung (AktionKupplung Kupplung)
+    | AKontakt (AktionKontakt Kontakt)
+    | AWegstreckeMärklin (AktionWegstrecke Wegstrecke 'Märklin)
+    | AWegstreckeLego (AktionWegstrecke Wegstrecke 'Lego)
     | AktionAusführen Plan
 
 deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
@@ -210,33 +230,33 @@ instance Eq Aktion where
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
     anzeige (Warten zeit) = Language.warten <:> zeit
-    anzeige (WartenAuf kontakt) = Language.warten <:> kontakt
-    anzeige (AWegstreckeMärklin aktion) = Language.wegstrecke <~> aktion
-    anzeige (AWegstreckeLego aktion) = Language.wegstrecke <~> aktion
-    anzeige (AWeiche aktion) = Language.weiche <~> aktion
     anzeige (ABahngeschwindigkeitMärklinPwm aktion) = Language.bahngeschwindigkeit <~> aktion
     anzeige (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
         Language.bahngeschwindigkeit <~> aktion
     anzeige (ABahngeschwindigkeitLegoPwm aktion) = Language.bahngeschwindigkeit <~> aktion
     anzeige (ABahngeschwindigkeitLegoKonstanteSpannung aktion) =
         Language.bahngeschwindigkeit <~> aktion
+    anzeige (AWeiche aktion) = Language.weiche <~> aktion
     anzeige (AStreckenabschnitt aktion) = Language.streckenabschnitt <~> aktion
     anzeige (AKupplung aktion) = Language.kupplung <~> aktion
+    anzeige (AKontakt aktion) = Language.kontakt <~> aktion
+    anzeige (AWegstreckeMärklin aktion) = Language.wegstrecke <~> aktion
+    anzeige (AWegstreckeLego aktion) = Language.wegstrecke <~> aktion
     anzeige (AktionAusführen Plan {plName}) = Language.ausführen <:> plName
 
 instance StreckenObjekt Aktion where
     anschlüsse :: Aktion -> Set Anschluss
     anschlüsse (Warten _zeit) = Set.empty
-    anschlüsse (WartenAuf kontakt) = anschlüsse kontakt
-    anschlüsse (AWegstreckeMärklin aktion) = anschlüsse aktion
-    anschlüsse (AWegstreckeLego aktion) = anschlüsse aktion
-    anschlüsse (AWeiche aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitMärklinPwm aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitLegoPwm aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitLegoKonstanteSpannung aktion) = anschlüsse aktion
+    anschlüsse (AWeiche aktion) = anschlüsse aktion
     anschlüsse (AStreckenabschnitt aktion) = anschlüsse aktion
     anschlüsse (AKupplung aktion) = anschlüsse aktion
+    anschlüsse (AKontakt aktion) = anschlüsse aktion
+    anschlüsse (AWegstreckeMärklin aktion) = anschlüsse aktion
+    anschlüsse (AWegstreckeLego aktion) = anschlüsse aktion
     anschlüsse (AktionAusführen plan) = anschlüsse plan
 
     erhalteName :: Aktion -> Text
@@ -344,30 +364,38 @@ instance (KupplungKlasse ku) => AktionKlasse (AktionKupplung ku) where
     ausführenAktion :: (I2CReader r m, MonadIO m) => AktionKupplung ku -> m ()
     ausführenAktion (Kuppeln ku) = kuppeln ku
 
-instance (BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws), WegstreckeKlasse (ws z))
-    => AktionKlasse (AktionWegstrecke ws z) where
-    ausführenAktion :: (AusführendReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
+instance (KontaktKlasse ko) => AktionKlasse (AktionKontakt ko) where
+    ausführenAktion :: (I2CReader r m, InterruptReader r m, MonadIO m) => AktionKontakt ko -> m ()
+    ausführenAktion (WartenAuf ko) = warteAufSignal ko
+
+instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
+         , KontaktKlasse (ws z)
+         , WegstreckeKlasse (ws z)
+         ) => AktionKlasse (AktionWegstrecke ws z) where
+    ausführenAktion
+        :: (AusführendReader r m, InterruptReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
     ausführenAktion (Einstellen ws) = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit (GeschwindigkeitPwm aktion)) = ausführenAktion aktion
     ausführenAktion (AWSBahngeschwindigkeit (GeschwindigkeitKonstanteSpannung aktion)) =
         ausführenAktion aktion
     ausführenAktion (AWSStreckenabschnitt aktion) = ausführenAktion aktion
     ausführenAktion (AWSKupplung aktion) = ausführenAktion aktion
+    ausführenAktion (AWSKontakt aktion) = ausführenAktion aktion
 
 instance AktionKlasse Aktion where
     ausführenAktion :: (AusführendReader r m, MonadIO m) => Aktion -> m ()
     ausführenAktion (Warten time) = warte time
-    ausführenAktion (WartenAuf kontakt) = warteAufSignal kontakt
-    ausführenAktion (AWegstreckeMärklin aktion) = ausführenAktion aktion
-    ausführenAktion (AWegstreckeLego aktion) = ausführenAktion aktion
-    ausführenAktion (AWeiche aktion) = ausführenAktion aktion
     ausführenAktion (ABahngeschwindigkeitMärklinPwm aktion) = ausführenAktion aktion
     ausführenAktion (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
         ausführenAktion aktion
     ausführenAktion (ABahngeschwindigkeitLegoPwm aktion) = ausführenAktion aktion
     ausführenAktion (ABahngeschwindigkeitLegoKonstanteSpannung aktion) = ausführenAktion aktion
     ausführenAktion (AStreckenabschnitt aktion) = ausführenAktion aktion
+    ausführenAktion (AWeiche aktion) = ausführenAktion aktion
     ausführenAktion (AKupplung aktion) = ausführenAktion aktion
+    ausführenAktion (AKontakt aktion) = ausführenAktion aktion
+    ausführenAktion (AWegstreckeMärklin aktion) = ausführenAktion aktion
+    ausführenAktion (AWegstreckeLego aktion) = ausführenAktion aktion
     ausführenAktion (AktionAusführen plan) = ausführenPlan plan (const $ pure ()) (pure ())
 
 -- Template-Haskell: Ord-Deriving

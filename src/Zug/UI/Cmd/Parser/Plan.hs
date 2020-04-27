@@ -32,9 +32,10 @@ import qualified Data.Text as Text
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..)
-                    , Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), Streckenabschnitt(..)
-                    , StreckenabschnittKlasse(..), Kupplung(..), KupplungKlasse(..), Wartezeit(..))
+import Zug.Anbindung
+       (Wegstrecke(..), WegstreckeKlasse(..), Weiche(..), WeicheKlasse(..), Bahngeschwindigkeit(..)
+      , BahngeschwindigkeitKlasse(..), Streckenabschnitt(..), StreckenabschnittKlasse(..)
+      , Kupplung(..), KupplungKlasse(..), Kontakt(..), KontaktKlasse(..), Wartezeit(..))
 import Zug.Enums
        (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
       , GeschwindigkeitPhantom(..), Richtung(..), unterstützteRichtungen, Strom(..)
@@ -42,8 +43,9 @@ import Zug.Enums
 import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
-import Zug.Plan (Plan(..), Aktion(..), AktionStreckenabschnitt(..), AktionWegstrecke(..)
-               , AktionBahngeschwindigkeit(..), AktionWeiche(..), AktionKupplung(..))
+import Zug.Plan
+       (Plan(..), Aktion(..), AktionStreckenabschnitt(..), AktionWegstrecke(..)
+      , AktionBahngeschwindigkeit(..), AktionWeiche(..), AktionKupplung(..), AktionKontakt(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..)
@@ -194,7 +196,7 @@ instance (BahngeschwindigkeitKlasse b, AktionBahngeschwindigkeitZugtyp g z)
             [ (Lexer.Vorwärts, FahrtrichtungEinstellen bahngeschwindigkeit Vorwärts)
             , (Lexer.Rückwärts, FahrtrichtungEinstellen bahngeschwindigkeit Rückwärts)]
 
--- | Unvollständige 'Aktion' eines 'Streckenabschnitt's
+-- | Unvollständige 'Aktion' eines 'Streckenabschnitt's.
 data AnfrageAktionStreckenabschnitt s
     = AnfrageAktionStreckenabschnitt s
     | AASTStrom s
@@ -241,7 +243,7 @@ instance (StreckenabschnittKlasse s) => MitAnfrage (AktionStreckenabschnitt s) w
             , (Lexer.Gesperrt, Strom streckenabschnitt Gesperrt)
             , (Lexer.Aus, Strom streckenabschnitt Gesperrt)]
 
--- | Unvollständige 'Aktion' einer 'Weiche'
+-- | Unvollständige 'Aktion' einer 'Weiche'.
 data AnfrageAktionWeiche w
     = AnfrageAktionWeiche w
     | AAWStellen w
@@ -288,7 +290,7 @@ instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
             mitRichtung anfrage _richtung =
                 error $ "mitRichtung mit unerwarteter Anfrage aufgerufen: " ++ show anfrage
 
--- | Unvollständige 'Aktion' einer 'Kupplung'
+-- | Unvollständige 'Aktion' einer 'Kupplung'.
 newtype AnfrageAktionKupplung k = AnfrageAktionKupplung k   -- ^ Kupplung
     deriving (Show, Eq)
 
@@ -313,6 +315,32 @@ instance (KupplungKlasse k) => MitAnfrage (AktionKupplung k) where
                          -> AnfrageFortsetzung (AnfrageAktionKupplung k) (AktionKupplung k)
     anfrageAktualisieren (AnfrageAktionKupplung kupplung) token =
         wähleErgebnis token [(Lexer.Kuppeln, Kuppeln kupplung)]
+
+-- | Unvollständige 'Aktion' eines 'Kontakt's.
+newtype AnfrageAktionKontakt k = AnfrageAktionKontakt k   -- ^ Kontakt
+    deriving (Show, Eq)
+
+instance (Anzeige k) => Anzeige (AnfrageAktionKontakt k) where
+    anzeige :: AnfrageAktionKontakt k -> Sprache -> Text
+    anzeige (AnfrageAktionKontakt kontakt) = Language.kontakt <=> kontakt
+
+instance Anfrage (AnfrageAktionKontakt k) where
+    zeigeAnfrage :: AnfrageAktionKontakt k -> Sprache -> Text
+    zeigeAnfrage (AnfrageAktionKontakt _kontakt) = Language.aktion
+
+    zeigeAnfrageOptionen :: AnfrageAktionKontakt k -> Maybe (Sprache -> Text)
+    zeigeAnfrageOptionen (AnfrageAktionKontakt _kontakt) =
+        Just $ toBefehlsString . Language.aktionKontakt
+
+instance (KontaktKlasse k) => MitAnfrage (AktionKontakt k) where
+    type AnfrageTyp (AktionKontakt k) = AnfrageAktionKontakt k
+
+    -- | Eingabe einer Kupplung-Aktion
+    anfrageAktualisieren :: AnfrageAktionKontakt k
+                         -> EingabeToken
+                         -> AnfrageFortsetzung (AnfrageAktionKontakt k) (AktionKontakt k)
+    anfrageAktualisieren (AnfrageAktionKontakt kontakt) token =
+        wähleErgebnis token [(Lexer.Warten, WartenAuf kontakt)]
 
 -- | Unvollständige 'Aktion' einer 'Wegstrecke'
 data AnfrageAktionWegstrecke w (z :: Zugtyp)
@@ -466,6 +494,7 @@ data AnfrageAktion
     | AABahngeschwindigkeitLegoKonstanteSpannung (AnfrageAktionBahngeschwindigkeit Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
     | AAStreckenabschnitt (AnfrageAktionStreckenabschnitt Streckenabschnitt)
     | AAKupplung (AnfrageAktionKupplung Kupplung)
+    | AAKontakt (AnfrageAktionKontakt Kontakt)
     | AAStatusAnfrage (EingabeToken -> StatusAnfrageObjekt)
                       (Either (Objekt -> AnfrageAktion) (Objekt -> Aktion))
 
@@ -488,6 +517,7 @@ instance Anzeige AnfrageAktion where
     anzeige (AAStreckenabschnitt aAktionStreckenabschnitt) =
         Language.aktion <^> aAktionStreckenabschnitt
     anzeige (AAKupplung aAktionKupplung) = Language.aktion <^> aAktionKupplung
+    anzeige (AAKontakt aAktionKontakt) = Language.aktion <^> aAktionKontakt
     anzeige (AAStatusAnfrage anfrageKonstruktor _eitherF) =
         Language.aktion <-> Language.objekt <^> anfrageKonstruktor leeresToken
 
@@ -510,6 +540,7 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrage (AAStreckenabschnitt aAktionStreckenabschnitt) =
         zeigeAnfrage aAktionStreckenabschnitt
     zeigeAnfrage (AAKupplung aAktionKupplung) = zeigeAnfrage aAktionKupplung
+    zeigeAnfrage (AAKontakt aAktionKontakt) = zeigeAnfrage aAktionKontakt
     zeigeAnfrage (AAStatusAnfrage anfrageKonstruktor _eitherF) =
         zeigeAnfrage $ anfrageKonstruktor leeresToken
 
@@ -539,6 +570,7 @@ instance Anfrage AnfrageAktion where
     zeigeAnfrageOptionen (AAStreckenabschnitt aAktionStreckenabschnitt) =
         zeigeAnfrageOptionen aAktionStreckenabschnitt
     zeigeAnfrageOptionen (AAKupplung aAktionKupplung) = zeigeAnfrageOptionen aAktionKupplung
+    zeigeAnfrageOptionen (AAKontakt aAktionKontakt) = zeigeAnfrageOptionen aAktionKontakt
     zeigeAnfrageOptionen (AAStatusAnfrage anfrageKonstruktor _eitherF) =
         zeigeAnfrageOptionen $ anfrageKonstruktor leeresToken
 
@@ -553,6 +585,7 @@ data AnfrageAktionElement
     | AAEBahngeschwindigkeit
     | AAEStreckenabschnitt
     | AAEKupplung
+    | AAEKontakt
 
 instance MitAnfrage Aktion where
     type AnfrageTyp Aktion = AnfrageAktion
@@ -608,6 +641,8 @@ instance MitAnfrage Aktion where
             -> AAStreckenabschnitt $ AnfrageAktionStreckenabschnitt streckenabschnitt
         AAEKupplung -> AFZwischenwert $ AAStatusAnfrage SAOKupplung $ Left $ \(OKupplung kupplung)
             -> AAKupplung $ AnfrageAktionKupplung kupplung
+        AAEKontakt -> AFZwischenwert $ AAStatusAnfrage SAOKontakt $ Left $ \(OKontakt kontakt)
+            -> AAKontakt $ AnfrageAktionKontakt kontakt
         where
             anfrageAktionElement :: EingabeToken -> AnfrageAktionElement
             anfrageAktionElement token@EingabeToken {eingabe} =
@@ -619,7 +654,8 @@ instance MitAnfrage Aktion where
                     , (Lexer.Weiche, AAEWeiche)
                     , (Lexer.Bahngeschwindigkeit, AAEBahngeschwindigkeit)
                     , (Lexer.Streckenabschnitt, AAEStreckenabschnitt)
-                    , (Lexer.Kupplung, AAEKupplung)]
+                    , (Lexer.Kupplung, AAEKupplung)
+                    , (Lexer.Kontakt, AAEKontakt)]
                 $ AAEUnbekannt eingabe
     anfrageAktualisieren _anfrage EingabeToken {möglichkeiten}
         | Lexer.Rückgängig `elem` möglichkeiten = AFZwischenwert AnfrageAktion
@@ -659,6 +695,8 @@ instance MitAnfrage Aktion where
         $<< anfrageAktualisieren anfrageAktion token
     anfrageAktualisieren (AAKupplung anfrageAktion) token =
         (AFErgebnis . AKupplung, AAKupplung) $<< anfrageAktualisieren anfrageAktion token
+    anfrageAktualisieren (AAKontakt anfrageAktion) token =
+        (AFErgebnis . AKontakt, AAKontakt) $<< anfrageAktualisieren anfrageAktion token
     anfrageAktualisieren anfrage@AARückgängig _token = AFZwischenwert anfrage
 
 -- | Unvollständiger 'Plan'

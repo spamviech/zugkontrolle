@@ -41,8 +41,9 @@ import Zug.Enums
       , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..))
 import Zug.Language (Sprache())
 import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
-import Zug.Plan (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
-               , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..), Plan(..))
+import Zug.Plan
+       (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..)
+      , AktionWeiche(..), AktionKupplung(..), AktionKontakt(..), Plan(..))
 import Zug.UI.Base (StatusAllgemein(..), Status)
 
 -- | Speichere aktuellen Zustand in Datei
@@ -724,7 +725,12 @@ dauerschleifeJS = "Dauerschleife"
 instance FromJSON Aktion where
     parseJSON :: Value -> Parser Aktion
     parseJSON (Object v) = (v .: aktionJS) >>= \s -> if
-        | s == wartenJS -> (Warten <$> v .: wertJS) <|> (WartenAuf <$> v .: kontaktJS)
+        | s == wartenJS -> (Warten <$> v .: wertJS)
+            <|> parseMaybeWegstrecke
+                v
+                (\w _v -> pure $ AWSKontakt $ WartenAuf w)
+                (\w _v -> pure $ AWSKontakt $ WartenAuf w)
+                (\v -> AKontakt . WartenAuf <$> v .: kontaktJS)
         | s == einstellenJS -> (AWegstreckeMärklin . Einstellen <$> v .: wegstreckeJS)
             <|> (AWegstreckeLego . Einstellen <$> v .: wegstreckeJS)
         | s == stellenJS -> AWeiche <$> (Stellen <$> v .: weicheJS <*> v .: richtungJS)
@@ -824,7 +830,6 @@ instance FromJSON Aktion where
 
 aktionToJSON :: Text -> Aktion -> Value
 aktionToJSON _name (Warten wert) = object [aktionJS .= wartenJS, wertJS .= wert]
-aktionToJSON _name (WartenAuf kontakt) = object [aktionJS .= wartenJS, kontaktJS .= kontakt]
 aktionToJSON _name (AWegstreckeMärklin (Einstellen w)) =
     object [wegstreckeJS .= w, aktionJS .= einstellenJS]
 aktionToJSON _name (AWegstreckeLego (Einstellen w)) =
@@ -886,6 +891,10 @@ aktionToJSON _name (AWegstreckeMärklin (AWSKupplung (Kuppeln w))) =
     object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
 aktionToJSON _name (AWegstreckeLego (AWSKupplung (Kuppeln w))) =
     object [wegstreckeJS .= w, aktionJS .= kuppelnJS]
+aktionToJSON _name (AWegstreckeMärklin (AWSKontakt (WartenAuf w))) =
+    object [wegstreckeJS .= w, aktionJS .= wartenJS]
+aktionToJSON _name (AWegstreckeLego (AWSKontakt (WartenAuf w))) =
+    object [wegstreckeJS .= w, aktionJS .= wartenJS]
 aktionToJSON _name (AWeiche (Stellen w richtung)) =
     object [weicheJS .= w, aktionJS .= stellenJS, richtungJS .= richtung]
 aktionToJSON _name (ABahngeschwindigkeitMärklinPwm (Geschwindigkeit b wert)) =
@@ -909,6 +918,7 @@ aktionToJSON
 aktionToJSON _name (AStreckenabschnitt (Strom s an)) =
     object [streckenabschnittJS .= s, aktionJS .= stromJS, anJS .= an]
 aktionToJSON _name (AKupplung (Kuppeln k)) = object [kupplungJS .= k, aktionJS .= kuppelnJS]
+aktionToJSON _name (AKontakt (WartenAuf k)) = object [kontaktJS .= k, aktionJS .= wartenJS]
 aktionToJSON name (AktionAusführen plan@Plan {plName})
     | name == plName =
         -- Verwende Name als Marker für Namensgleichheit (== angenommene Dauerschleife)
