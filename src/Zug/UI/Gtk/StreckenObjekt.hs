@@ -66,11 +66,14 @@ module Zug.UI.Gtk.StreckenObjekt
     -- * Widgets für den Hinzufügen-Dialog
   , WidgetsTyp(..)
   , WidgetHinzufügen()
+    -- ** Wegstrecke
   , WegstreckenElement(..)
   , BoxWegstreckeHinzufügen
   , boxWegstreckeHinzufügenNew
   , WegstreckeCheckButton()
   , WegstreckeCheckButtonVoid
+  , foldWegstreckeHinzufügen
+    -- ** Plan
   , PlanElement(..)
   , BoxPlanHinzufügen
   , boxPlanHinzufügenNew
@@ -96,7 +99,7 @@ import Zug.UI.Gtk.StreckenObjekt.BGWidgets
        (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (MitFortfahrenWennToggledWegstrecke(..), MitTMVarPlanObjekt(..), WegstreckenElement(..)
-      , WegstreckeCheckButtonVoid, PlanElement(..))
+      , WegstreckeCheckButtonVoid, foldWegstreckeHinzufügen, PlanElement(..))
 import Zug.UI.Gtk.StreckenObjekt.KOWidgets
        (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..), MitKOWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets

@@ -133,6 +133,7 @@ data HinzufügenSeite
           , nameAuswahl :: NameAuswahlWidget
           , kupplungsAuswahl :: AnschlussAuswahlWidget
           }
+      -- TODO HinzufügenSeiteKontakt
     | HinzufügenSeiteWegstrecke
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
@@ -571,6 +572,7 @@ hinzufügenKupplungNew maybeTVar = do
         <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.kupplung
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
+-- TODO hinzufügenKontaktNew
 -- | Erzeuge eine Seite zum hinzufügen einer 'Wegstrecke'.
 hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                          => AuswahlWidget Zugtyp

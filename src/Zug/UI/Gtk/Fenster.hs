@@ -25,7 +25,7 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Lens ((^.))
 import Control.Monad (void, when)
-import qualified Control.Monad.RWS as RWS
+import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
@@ -38,7 +38,7 @@ import Zug.Enums (ZugtypEither(..), GeschwindigkeitEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
 import Zug.Objekt (ObjektAllgemein(..))
-import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen
+import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte
                   , wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.Gtk.AssistantHinzufuegen
@@ -50,8 +50,8 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
        (MStatusGuiT, IOStatusGui, ObjektGuiReader, StatusVarGui, readSpracheGui
       , DynamischeWidgetsReader(..), WidgetsTyp(..), bahngeschwindigkeitPackNew, BGWidgets
-      , streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew, wegstreckePackNew
-      , WSWidgets, planPackNew)
+      , streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew, kontaktPackNew
+      , wegstreckePackNew, WSWidgets, planPackNew)
 import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
 
 -- | Speichern des aktuellen 'StatusGui'.
@@ -159,6 +159,7 @@ ladeWidgets status = do
             mapM_ entferneWidgets $ status ^. streckenabschnitte
             mapM_ entferneWidgets $ status ^. weichen
             mapM_ entferneWidgets $ status ^. kupplungen
+            mapM_ entferneWidgets $ status ^. kontakte
             mapM_ entferneWidgets $ status ^. wegstrecken
             mapM_ entferneWidgets $ status ^. pläne
             RWS.put $ statusLeer $ status ^. sprache
@@ -186,6 +187,7 @@ ladeWidgets status = do
                 packWE (ZugtypLego we) = ZugtypLego <$> weichePackNew we
             mapM_ packWE $ reverse $ status ^. weichen
             mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
+            mapM_ kontaktPackNew $ reverse $ status ^. kontakte
             let packWS :: (ObjektGuiReader m, MonadIO m)
                        => ZugtypEither Wegstrecke
                        -> MStatusGuiT m (ZugtypEither WSWidgets)
@@ -277,6 +279,7 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                         (HinzufügenErfolgreich (OWeiche (ZugtypLego weLego)))
                             -> void $ weichePackNew weLego
                         (HinzufügenErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
+                        (HinzufügenErfolgreich (OKontakt ko)) -> void $ kontaktPackNew ko
                         (HinzufügenErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
                             -> void $ wegstreckePackNew wsMärklin
                         (HinzufügenErfolgreich (OWegstrecke (ZugtypLego wsLego)))
