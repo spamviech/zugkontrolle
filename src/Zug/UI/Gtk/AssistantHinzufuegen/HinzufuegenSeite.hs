@@ -62,7 +62,7 @@ import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..)
                     , StreckenAtom(fließend), Anschluss())
 import Zug.Enums
        (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..)
-      , zugtyp, GeschwindigkeitVariante(..), GeschwindigkeitEither(..), geschwindigkeitVariante)
+      , zugtyp, ausZugtypEither, GeschwindigkeitVariante(..), GeschwindigkeitEither(..), geschwindigkeitVariante)
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
@@ -442,6 +442,9 @@ setzeSeite
     setzeName nameAuswahl $ erhalteName bg
     setzeFließendValue fließendAuswahl $ fließend bg
     setzeAuswahl zugtypAuswahl $ zugtyp bg
+    liftIO $ forM (Map.toList indexSeiten) $ \(index, variante) ->
+        when (variante == ausZugtypEither geschwindigkeitVariante bg) 
+        $ Gtk.set notebookGeschwindigkeit [Gtk.notebookPage := index]
     case bg of
         (ZugtypMärklin
              (GeschwindigkeitPwm MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}))
