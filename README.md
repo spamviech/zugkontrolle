@@ -21,7 +21,8 @@ Eine Bahngeschwindigkeit regelt die Geschwindigkeit von allen Zügen auf den zug
 Dazu wird ein PWM-Signal erzeugt um ausgehend von einer Maximal-Spannung eine effektiv geringere Fahrspannung zu erzeugen.
 
 Bei __Märklin__-Modellbahnen wird __1__ Pin benötigt. Die Maximalspannung sollte __24V__ (Umdrehen-Spannung) betragen.
-Bei __Lego__-Modellbahnen werden __2__ Pins benötigt. Je ein Pin kümmert sich dabei um Geschwindigkeit und Fahrtrichtung.
+Bei __Lego__-Modellbahnen werden __2__ Pins benötigt.
+Je ein Pin kümmert sich dabei um Geschwindigkeit und Fahrtrichtung.
     Die Maximalspannung bei der Geschwindigkeit hängt vom Modell ab.
     Bei der letzten Version mit leitenden schienen sollte sie __9V__ betragen.
 
@@ -33,15 +34,23 @@ Ein Streckenabschnitt regelt, welche Gleis-Abschnitte mit Strom versorgt werden.
 
 Weichen und Kreuzungen, bei denen die Fahrtrichtung geändert werden kann.
 
-Bei __Märklin__-Modellbahnen wird pro Richtung __1__ Pin benötigt.
+Bei __Märklin__-Modellbahnen wird pro Richtung __1__ Anschluss benötigt.
 Bei __Lego__-Modellbahnen ist ein Umschalten über einen Servo-Motor angedacht. Es werden nur __2__ Richtungen unterstützt und __1__ Pin benötigt.
 
 ### Kupplung
 
-Eine Kupplung ist eine Schiene bei der Zug-Elemente (Lokomotive/Wagon) voneinander getrennt werden können. Es wird __1__ Pin benötigt.
+Eine Kupplung ist eine Schiene bei der Zug-Elemente (Lokomotive/Wagon) voneinander getrennt werden können. Es wird __1__ Anschluss benötigt.
 
 __Anmerkung:__
     Mir sind keine Kupplungsschienen für __Lego__-Modellbahnen bekannt.
+
+### Kontakt
+
+Ein Kontakt ist ein Eingangssignal. Es wird durch einen Zug ausgelöst und ist hauptsächlich für den
+automatischen Betrieb (Plan) interessant.
+
+Soll ein PCF8574Port verwenden werden wird der zugehörige InterruptPin benötigt.
+Es wird empfohlen den zugehörigen PCF8574 nicht gleichzeitig für Output zu verwenden.
 
 ### Wegstrecke
 
@@ -50,6 +59,7 @@ Eine mögliche Anwendung ist das fahren von/auf ein Abstellgleis.
 
 Wegstrecken unterstützen sämtliche Funktionen ihrer Elemente, welche immer auf einmal ausgeführt werden.
 Weichen können dabei nur auf ihre festgelegte Richtung eingestellt werden.
+Bei Kontakten wird auf ein beliebiges Signal gewartet.
 
 ### Plan
 

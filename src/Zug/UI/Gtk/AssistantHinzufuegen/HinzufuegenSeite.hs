@@ -25,6 +25,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   , hinzufügenStreckenabschnittNew
   , hinzufügenWeicheNew
   , hinzufügenKupplungNew
+  , hinzufügenKontaktNew
   , hinzufügenWegstreckeNew
   , hinzufügenPlanNew
 #endif
@@ -53,7 +54,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
 import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
-                    , Wegstrecke(..), Wartezeit(..))
+                    , Kontakt(..), Wegstrecke(..), Wartezeit(..))
 import Zug.Enums (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..)
                 , ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
 import qualified Zug.Language as Language
@@ -61,10 +62,12 @@ import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte)
-import Zug.UI.Gtk.Anschluss (PinAuswahlWidget, pinAuswahlNew, aktuellerPin, AnschlussAuswahlWidget
-                           , anschlussAuswahlNew, aktuellerAnschluss)
+import Zug.UI.Gtk.Anschluss
+       (PinAuswahlWidget, pinAuswahlNew, aktuellerPin, AnschlussAuswahlWidget, anschlussAuswahlNew
+      , anschlussAuswahlInterruptPinNew, aktuellerAnschluss)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
        (aktionBahngeschwindigkeitAuswahlPackNew)
+import Zug.UI.Gtk.AssistantHinzufuegen.AktionKontakt (aktionKontaktAuswahlPackNew)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionKupplung (aktionKupplungAuswahlPackNew)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionPlan (aktionPlanAuswahlPackNew)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
@@ -133,7 +136,11 @@ data HinzufügenSeite
           , nameAuswahl :: NameAuswahlWidget
           , kupplungsAuswahl :: AnschlussAuswahlWidget
           }
-      -- TODO HinzufügenSeiteKontakt
+    | HinzufügenSeiteKontakt
+          { vBox :: Gtk.VBox
+          , nameAuswahl :: NameAuswahlWidget
+          , kontaktAuswahl :: AnschlussAuswahlWidget
+          }
     | HinzufügenSeiteWegstrecke
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
@@ -307,6 +314,14 @@ seiteErgebnis
     kuFließend <- aktuellerFließendValue fließendAuswahl
     kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
     pure $ OKupplung Kupplung { kuName, kuFließend, kupplungsAnschluss }
+seiteErgebnis
+    fließendAuswahl
+    _zugtypAuswahl
+    HinzufügenSeiteKontakt {nameAuswahl, kontaktAuswahl} = do
+    koName <- aktuellerName nameAuswahl
+    koFließend <- aktuellerFließendValue fließendAuswahl
+    kontaktAnschluss <- aktuellerAnschluss kontaktAuswahl
+    pure $ OKontakt Kontakt { koName, koFließend, kontaktAnschluss }
 seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAuswahl} = do
     statusVar <- erhalteStatusVar :: m StatusVarGui
     aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
@@ -572,7 +587,17 @@ hinzufügenKupplungNew maybeTVar = do
         <- boxPackWidgetNewDefault vBox $ anschlussAuswahlNew maybeTVar Language.kupplung
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
--- TODO hinzufügenKontaktNew
+-- | Erzeuge eine Seite zum hinzufügen eines 'Kontakt's.
+hinzufügenKontaktNew :: (SpracheGuiReader r m, MonadIO m)
+                      => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                      -> m HinzufügenSeite
+hinzufügenKontaktNew maybeTVar = do
+    vBox <- liftIO $ Gtk.vBoxNew False 0
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
+    kontaktAuswahl <- boxPackWidgetNewDefault vBox
+        $ anschlussAuswahlInterruptPinNew maybeTVar Language.kupplung
+    pure HinzufügenSeiteKontakt { vBox, nameAuswahl, kontaktAuswahl }
+
 -- | Erzeuge eine Seite zum hinzufügen einer 'Wegstrecke'.
 hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                          => AuswahlWidget Zugtyp
@@ -956,7 +981,12 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         maybeTVar
         showKU
         aktionHinzufügen
-    -- TODO aktionKontaktAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showKO aktionHinzfügen
+    aktionKontaktAuswahlPackNew
+        vBoxAktionenWidgets
+        windowObjektAuswahl
+        maybeTVar
+        showKO
+        aktionHinzufügen
     aktionWegstreckeAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl

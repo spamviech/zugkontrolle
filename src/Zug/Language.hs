@@ -50,6 +50,7 @@ module Zug.Language
   , aktionGesperrt
   , warten
   , wartenEinheit
+  , wartenAuf
   , zeit
   , fließendValue
   , high
@@ -375,6 +376,11 @@ warten Englisch = "Wait"
 wartenEinheit :: Sprache -> Text
 wartenEinheit Deutsch = "µs"
 wartenEinheit Englisch = "µs"
+
+-- | Wait for
+wartenAuf :: Sprache -> Text
+wartenAuf Deutsch = "Warten auf"
+wartenAuf Englisch = "Wait for"
 
 -- | Time
 zeit :: Sprache -> Text

@@ -17,6 +17,7 @@ module Zug.UI.Gtk.Anschluss
   , pinNew
   , AnschlussWidget()
   , anschlussNew
+  , anschlussAuswahlInterruptPinNew
   , PinAuswahlWidget()
   , pinAuswahlNew
   , aktuellerPin
@@ -123,7 +124,6 @@ aktuellerPin :: (MonadIO m) => PinAuswahlWidget -> m Pin
 aktuellerPin
     PinAuswahlWidget {pawSpinButton} = liftIO $ Gpio <$> Gtk.spinButtonGetValueAsInt pawSpinButton
 
--- TODO Interrupt-Pin
 -- | Widgets zum erzeugen eines 'Anschluss'.
 data AnschlussAuswahlWidget =
     AnschlussAuswahlWidget
@@ -132,11 +132,13 @@ data AnschlussAuswahlWidget =
     , aawPinPage :: Int
     , aawPin :: PinAuswahlWidget
     , aawPCF8574PortPage :: Int
+    , aawPCF8574PortBox :: Gtk.HBox
     , aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant
     , aawPCF8574PortA0 :: AuswahlWidget Value
     , aawPCF8574PortA1 :: AuswahlWidget Value
     , aawPCF8574PortA2 :: AuswahlWidget Value
     , aawPCF8574Port :: Gtk.SpinButton
+    , aawPCF8574PortInterruptPin :: Maybe PinAuswahlWidget
     }
     deriving (Eq)
 
@@ -146,7 +148,8 @@ instance MitWidget AnschlussAuswahlWidget where
 
 -- | Erzeugen eines'Anschluss'.
 --
--- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Wird eine 'TVar' übergeben kann das Anpassen der Label aus
+-- 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
                     => Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -161,24 +164,27 @@ anschlussAuswahlNew maybeTVar name = do
     (aawPin, aawPinPage)
         <- notebookAppendPageNew aawNotebook maybeTVar Language.pin $ pinAuswahlNew maybeTVar name
     -- PCF8574Port
-    (pcf8574Box, aawPCF8574PortPage)
+    (aawPCF8574PortBox, aawPCF8574PortPage)
         <- notebookAppendPageNew aawNotebook maybeTVar Language.pcf8574Port
         $ liftIO
         $ Gtk.hBoxNew False 0
-    boxPackWidgetNewDefault pcf8574Box
+    boxPackWidgetNewDefault aawPCF8574PortBox
         $ labelSpracheNew maybeTVar
         $ name <-> Language.pcf8574Port <:> Text.empty
-    aawPCF8574PortVariante <- boxPackWidgetNewDefault pcf8574Box
+    aawPCF8574PortVariante <- boxPackWidgetNewDefault aawPCF8574PortBox
         $ boundedEnumAuswahlComboBoxNew VariantA maybeTVar Language.variante
-    aawPCF8574PortA0 <- boxPackWidgetNewDefault pcf8574Box
+    aawPCF8574PortA0 <- boxPackWidgetNewDefault aawPCF8574PortBox
         $ boundedEnumAuswahlRadioButtonNew HIGH maybeTVar Language.a0
-    aawPCF8574PortA1 <- boxPackWidgetNewDefault pcf8574Box
+    aawPCF8574PortA1 <- boxPackWidgetNewDefault aawPCF8574PortBox
         $ boundedEnumAuswahlRadioButtonNew HIGH maybeTVar Language.a1
-    aawPCF8574PortA2 <- boxPackWidgetNewDefault pcf8574Box
+    aawPCF8574PortA2 <- boxPackWidgetNewDefault aawPCF8574PortBox
         $ boundedEnumAuswahlRadioButtonNew HIGH maybeTVar Language.a2
-    boxPackWidgetNewDefault pcf8574Box $ labelSpracheNew maybeTVar $ Language.port <:> Text.empty
+    boxPackWidgetNewDefault aawPCF8574PortBox
+        $ labelSpracheNew maybeTVar
+        $ Language.port <:> Text.empty
     aawPCF8574Port <- liftIO $ do
-        aawPCF8574Port <- boxPackWidgetNewDefault pcf8574Box $ Gtk.spinButtonNewWithRange 0 7 1
+        aawPCF8574Port
+            <- boxPackWidgetNewDefault aawPCF8574PortBox $ Gtk.spinButtonNewWithRange 0 7 1
         Gtk.set aawPCF8574Port [Gtk.spinButtonSnapToTicks := True, Gtk.spinButtonNumeric := True]
         pure aawPCF8574Port
     pure
@@ -188,12 +194,31 @@ anschlussAuswahlNew maybeTVar name = do
         , aawPinPage
         , aawPin
         , aawPCF8574PortPage
+        , aawPCF8574PortBox
         , aawPCF8574PortVariante
         , aawPCF8574PortA0
         , aawPCF8574PortA1
         , aawPCF8574PortA2
         , aawPCF8574Port
+        , aawPCF8574PortInterruptPin = Nothing
         }
+
+-- | Erzeugen eines'Anschluss' mit InterruptPin.
+--
+-- Wird eine 'TVar' übergeben kann das Anpassen der Label aus
+-- 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
+-- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
+anschlussAuswahlInterruptPinNew
+    :: (SpracheGuiReader r m, MonadIO m)
+    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> (Sprache -> Text)
+    -> m AnschlussAuswahlWidget
+anschlussAuswahlInterruptPinNew maybeTVar name = do
+    anschlussAuswahlWidget@AnschlussAuswahlWidget
+        {aawPCF8574PortBox} <- anschlussAuswahlNew maybeTVar name
+    auswahlInterruptPin
+        <- boxPackWidgetNewDefault aawPCF8574PortBox $ pinAuswahlNew maybeTVar Language.interrupt
+    pure anschlussAuswahlWidget { aawPCF8574PortInterruptPin = Just auswahlInterruptPin }
 
 -- | Erhalte den aktuell gewählten 'Anschluss'.
 aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
@@ -206,7 +231,8 @@ aktuellerAnschluss
     , aawPCF8574PortA0
     , aawPCF8574PortA1
     , aawPCF8574PortA2
-    , aawPCF8574Port} = liftIO $ do
+    , aawPCF8574Port
+    , aawPCF8574PortInterruptPin} = liftIO $ do
     Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
@@ -215,12 +241,12 @@ aktuellerAnschluss
                 a1 <- aktuelleAuswahl aawPCF8574PortA1
                 a2 <- aktuelleAuswahl aawPCF8574PortA2
                 port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
+                interruptPin <- case aawPCF8574PortInterruptPin of
+                    (Just pinAuswahl) -> Just <$> aktuellerPin pinAuswahl
+                    Nothing -> pure Nothing
                 pure
                     $ zuAnschluss
-                    $ PCF8574Port
-                    { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin = Nothing }
-                    , port
-                    }
+                    $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin }, port }
             -- Verwende als Standard die Pin-Eingabe
             | otherwise -> zuAnschluss <$> aktuellerPin aawPin
 #endif

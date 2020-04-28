@@ -150,6 +150,11 @@
 
 ## Unreleased changes
 
+- Neues StreckenObjekt: Kontakt
+    Ein Kontakt repräsentiert ein Einganssignal, typischerweise eine Kontakt-Schiene.
+    Es kann gewartet werden, bis bei einem Kontakt ein Signal eingeht.
+    Eine Wegstrecke wartet, bis bei einem ihrer Kontakte ein Signal eingeht.
+    Im Zuge dessen wurden Sammelseiten neu sortiert.
 - Gtk-UI: Plan & Märklin-Weiche Hinzufügen in ScrollbaresWidget angezeigt.
 - Gtk-UI: Anschlüsse werde gruppiert in einem Expander angezeigt.
 - Gtk-UI: Dummy-Fenster vergrößert, damit der Title lesbar ist.
