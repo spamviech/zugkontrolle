@@ -10,6 +10,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
@@ -39,6 +40,7 @@ import Control.Concurrent.STM
 import Control.Lens ((^.), Field1(_1), Field2(_2))
 import qualified Control.Lens as Lens
 import Control.Monad (void, forM, forM_, foldM, when)
+import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT, MonadReader(ask))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
@@ -157,6 +159,9 @@ data HinzufügenSeite
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
           , buttonHinzufügenPlan :: Gtk.Button
+          , expanderAktionen :: Gtk.Expander
+          , tvarExpander :: TVar (Maybe [Sprache -> IO ()])
+          , vBoxAktionen :: ScrollbaresWidget Gtk.VBox
           , tvarAktionen
                 :: TVar (Warteschlange (Aktion, Gtk.Label, TVar (Maybe [Sprache -> IO ()])))
           , checkButtonDauerschleife :: Gtk.CheckButton
@@ -400,12 +405,16 @@ seiteErgebnis
         True -> let plan =
                         Plan
                         { plName
-                        , plAktionen = toList
+                        , plAktionen = NonEmpty.fromList
+                              $ toList
                               $ anhängen (AktionAusführen plan)
                               $ Lens.view _1 <$> aktionenWarteschlange
                         }
                 in plan
-        False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
+        False -> Plan
+            { plName
+            , plAktionen = NonEmpty.fromList $ toList $ Lens.view _1 <$> aktionenWarteschlange
+            }
 
 -- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
 setzeSeite :: forall r m.
@@ -609,23 +618,20 @@ setzeSeite
 setzeSeite
     _fließendAuswahl
     _zugtypAuswahl
-    HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife}
-    (OPlan pl) = liftIO $ do
-    setzeName nameAuswahl $ erhalteName pl
-    _undefined --TODO
-    void $ do
-        plName <- aktuellerName nameAuswahl
-        aktionenWarteschlange <- readTVarIO tvarAktionen
-        Gtk.get checkButtonDauerschleife Gtk.toggleButtonActive >>= pure . OPlan . \case
-            True -> let plan =
-                            Plan
-                            { plName
-                            , plAktionen = toList
-                                  $ anhängen (AktionAusführen plan)
-                                  $ Lens.view _1 <$> aktionenWarteschlange
-                            }
-                    in plan
-            False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
+    seite@HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife}
+    (OPlan Plan {plName, plAktionen}) = do
+    setzeName nameAuswahl plName
+    let führtSelbstAus :: Aktion -> Bool
+        führtSelbstAus (AktionAusführen Plan {plName = name}) = plName == name
+        führtSelbstAus _aktion = False
+        aktionen :: [Aktion]
+        aktionen = NonEmpty.takeWhile (not . führtSelbstAus)  plAktionen
+    liftIO $ do
+        alteAktionsWidgets <- fmap (fmap $ Lens.view _2) $ atomically $ swapTVar tvarAktionen leer
+        mapM_ Gtk.widgetDestroy alteAktionsWidgets
+        Gtk.set checkButtonDauerschleife
+            [Gtk.toggleButtonActive := (length aktionen /= length plAktionen)]
+    forM_ aktionen $ aktionHinzufügen seite
 setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure ()
 
 -- | Erzeuge eine Seite zum hinzufügen einer 'Bahngeschwindigkeit'.
@@ -874,12 +880,13 @@ hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
         }
 
 -- | Erzeuge eine Seite zum hinzufügen eines 'Plans'.
-hinzufügenPlanNew :: (MitWindow p, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
-                   => p
-                   -> AuswahlWidget Zugtyp
-                   -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                   -> m HinzufügenSeite
-hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
+hinzufügenPlanNew
+    :: (MitWindow p, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadFix m, MonadIO m)
+    => p
+    -> AuswahlWidget Zugtyp
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> m HinzufügenSeite
+hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
     vBoxAktionenWidgets <- liftIO
@@ -943,36 +950,18 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 , hBoxWartezeit
                 , spinButtonWartezeit
                 )
-    let aktualisiereExpanderText :: (SpracheGuiReader r m, MonadIO m) => Warteschlange a -> m ()
-        aktualisiereExpanderText aktionen = do
-            liftIO $ atomically $ writeTVar tvarExpander $ Just []
-            verwendeSpracheGui (Just tvarExpander) $ \sprache -> Gtk.set
-                expanderAktionen
-                [Gtk.expanderLabel := (Language.aktionen <:> length aktionen) sprache]
-        aktionHinzufügen :: (SpracheGuiReader r m, MonadIO m) => Aktion -> m ()
-        aktionHinzufügen aktion = do
-            (aktuelleAktionen, tvarSprache) <- liftIO $ do
-                aktuelleAktionen <- readTVarIO tvarAktionen
-                tvarSprache <- newTVarIO $ Just []
-                pure (aktuelleAktionen, tvarSprache)
-            label <- boxPackWidgetNewDefault vBoxAktionen
-                $ labelSpracheNew (Just tvarSprache)
-                $ anzeige aktion
-            let neueAktionen = anhängen (aktion, label, tvarSprache) aktuelleAktionen
-            liftIO $ atomically $ writeTVar tvarAktionen neueAktionen
-            aktualisiereExpanderText neueAktionen
     comboBoxWartezeit <- widgetShowNew
         $ auswahlComboBoxNamedNew ["µs", "ms", "s", "min", "h", "d"] maybeTVar (const Text.empty)
         $ const . Text.pack
     boxPackWidgetNewDefault hBoxWartezeit $ buttonNewWithEventLabel maybeTVar Language.warten $ do
         wert <- floor <$> Gtk.get sbWartezeit Gtk.spinButtonValue
         void $ flip runReaderT spracheGui $ aktuelleAuswahl comboBoxWartezeit >>= \case
-            "µs" -> aktionHinzufügen $ Warten $ MikroSekunden wert
-            "ms" -> aktionHinzufügen $ Warten $ MilliSekunden wert
-            "s" -> aktionHinzufügen $ Warten $ Sekunden wert
-            "min" -> aktionHinzufügen $ Warten $ Minuten wert
-            "h" -> aktionHinzufügen $ Warten $ Stunden wert
-            "d" -> aktionHinzufügen $ Warten $ Tage wert
+            "µs" -> aktionHinzufügen seite $ Warten $ MikroSekunden wert
+            "ms" -> aktionHinzufügen seite $ Warten $ MilliSekunden wert
+            "s" -> aktionHinzufügen seite $ Warten $ Sekunden wert
+            "min" -> aktionHinzufügen seite $ Warten $ Minuten wert
+            "h" -> aktionHinzufügen seite $ Warten $ Stunden wert
+            "d" -> aktionHinzufügen seite $ Warten $ Tage wert
             zeiteinheit
                 -> error $ "Unbekannte Zeiteinheit für Wartezeit gewählt: " ++ zeiteinheit
     boxPackDefault hBoxWartezeit sbWartezeit
@@ -1194,43 +1183,23 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
         auswahlZugtyp
         maybeTVar
         showBG
-        aktionHinzufügen
-    aktionStreckenabschnittAuswahlPackNew
-        vBoxAktionenWidgets
-        windowObjektAuswahl
-        maybeTVar
-        showST
-        aktionHinzufügen
+        $ aktionHinzufügen seite
+    aktionStreckenabschnittAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showST
+        $ aktionHinzufügen seite
     aktionWeicheAuswahlPackNew
         vBoxAktionenWidgets
         windowObjektAuswahl
         maybeTVar
         [(Gerade, showGerade), (Kurve, showKurve), (Links, showLinks), (Rechts, showRechts)]
-        aktionHinzufügen
-    aktionKupplungAuswahlPackNew
-        vBoxAktionenWidgets
-        windowObjektAuswahl
-        maybeTVar
-        showKU
-        aktionHinzufügen
-    aktionKontaktAuswahlPackNew
-        vBoxAktionenWidgets
-        windowObjektAuswahl
-        maybeTVar
-        showKO
-        aktionHinzufügen
-    aktionWegstreckeAuswahlPackNew
-        vBoxAktionenWidgets
-        windowObjektAuswahl
-        maybeTVar
-        showWS
-        aktionHinzufügen
-    aktionPlanAuswahlPackNew
-        vBoxAktionenWidgets
-        windowObjektAuswahl
-        maybeTVar
-        showPL
-        aktionHinzufügen
+        $ aktionHinzufügen seite
+    aktionKupplungAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showKU
+        $ aktionHinzufügen seite
+    aktionKontaktAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showKO
+        $ aktionHinzufügen seite
+    aktionWegstreckeAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showWS
+        $ aktionHinzufügen seite
+    aktionPlanAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showPL
+        $ aktionHinzufügen seite
     boxPackDefault vBoxAktionenWidgets expanderAktionen
     (buttonHinzufügenPlan, resetBox) <- liftIO $ do
         buttonHinzufügenPlan <- Gtk.buttonNew
@@ -1251,7 +1220,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                     atomically $ writeTVar tvarSprache Nothing
                     pure t
             atomically $ writeTVar tvarAktionen neueAktionen
-            flip runReaderT spracheGui $ aktualisiereExpanderText neueAktionen
+            flip runReaderT spracheGui $ aktualisiereExpanderText seite neueAktionen
     boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
         $ buttonNewWithEventLabel maybeTVar Language.zurücksetzen
         $ do
@@ -1262,19 +1231,47 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = do
                 atomically $ writeTVar tvarAktionen Nothing
             Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
             atomically $ writeTVar tvarAktionen leer
-            flip runReaderT spracheGui $ aktualisiereExpanderText leer
+            flip runReaderT spracheGui $ aktualisiereExpanderText seite leer
     checkButtonDauerschleife
         <- liftIO $ boxPackWidgetNewDefault vBoxAktionenWidgets Gtk.checkButtonNew
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
         Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
-    pure
-        HinzufügenSeitePlan
-        { vBox
-        , nameAuswahl
-        , tvarAktionen
-        , checkButtonDauerschleife
-        , buttonHinzufügenPlan
-        }
+    let seite = HinzufügenSeitePlan
+            { vBox
+            , nameAuswahl
+            , tvarAktionen
+            , expanderAktionen
+            , tvarExpander
+            , vBoxAktionen
+            , checkButtonDauerschleife
+            , buttonHinzufügenPlan
+            }
+    pure seite
+
+aktualisiereExpanderText
+    :: (SpracheGuiReader r m, MonadIO m) => HinzufügenSeite -> Warteschlange a -> m ()
+aktualisiereExpanderText HinzufügenSeitePlan {tvarExpander, expanderAktionen} aktionen = do
+    liftIO $ atomically $ writeTVar tvarExpander $ Just []
+    verwendeSpracheGui (Just tvarExpander) $ \sprache -> Gtk.set
+        expanderAktionen
+        [Gtk.expanderLabel := (Language.aktionen <:> length aktionen) sprache]
+aktualisiereExpanderText _hinzufügenSeite _aktionen =
+    error "aktualisiereExpanderText mit falscher Seite aufgerufen!"
+
+aktionHinzufügen :: (SpracheGuiReader r m, MonadIO m) => HinzufügenSeite -> Aktion -> m ()
+aktionHinzufügen seite@HinzufügenSeitePlan {vBoxAktionen, tvarAktionen} aktion = do
+    (aktuelleAktionen, tvarSprache) <- liftIO $ do
+        aktuelleAktionen <- readTVarIO tvarAktionen
+        tvarSprache <- newTVarIO $ Just []
+        pure (aktuelleAktionen, tvarSprache)
+    label <- boxPackWidgetNewDefault vBoxAktionen
+        $ labelSpracheNew (Just tvarSprache)
+        $ anzeige aktion
+    let neueAktionen = anhängen (aktion, label, tvarSprache) aktuelleAktionen
+    liftIO $ atomically $ writeTVar tvarAktionen neueAktionen
+    aktualisiereExpanderText seite neueAktionen
+aktionHinzufügen _hinzufügenSeite _aktion =
+    error "aktionHinzufügen mit falscher Seite aufgerufen!"
 #endif
 --

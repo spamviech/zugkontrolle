@@ -39,6 +39,8 @@ import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -264,7 +266,7 @@ instance StreckenObjekt Aktion where
 
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
-data Plan = Plan { plName :: Text, plAktionen :: [Aktion] }
+data Plan = Plan { plName :: Text, plAktionen :: NonEmpty Aktion }
     deriving (Eq)
 
 -- | newtype für ausführende Pläne ('Plan')
@@ -320,7 +322,7 @@ instance PlanKlasse Plan where
     ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
         tvarAusführend <- erhalteMengeAusführend
         liftIO $ atomically $ modifyTVar tvarAusführend $ Set.insert $ Ausführend plan
-        ausführenAux 0 plAktionen
+        ausführenAux 0 $ NonEmpty.toList plAktionen
         liftIO $ do
             showAktion $ fromIntegral $ length plAktionen
             endAktion
@@ -330,7 +332,7 @@ instance PlanKlasse Plan where
                 tvarAusführend <- erhalteMengeAusführend
                 liftIO $ atomically $ modifyTVar tvarAusführend $ Set.delete $ Ausführend plan
             ausführenAux _i [AktionAusführen Plan {plAktionen = plAktionen1}] =
-                ausführenAux 0 plAktionen1
+                ausführenAux 0 $ NonEmpty.toList plAktionen1
             ausführenAux i (h:t) = do
                 tvarAusführend <- erhalteMengeAusführend
                 ausführend <- liftIO $ readTVarIO tvarAusführend

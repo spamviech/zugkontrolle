@@ -26,7 +26,7 @@ module Zug.UI.Cmd.Parser.Plan
   ) where
 
 import Data.Foldable (Foldable(..))
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word8)
@@ -98,7 +98,7 @@ instance Anfrage (AnfrageAktionBahngeschwindigkeit b g z) where
     zeigeAnfrageOptionen (AABGFahrstrom _bahngeschwindigkeit) = Nothing
     zeigeAnfrageOptionen (AABGFahrtrichtungEinstellen _bahngeschwindigkeit) =
         Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache)
-                                  $ NE.toList unterstützteFahrtrichtungen)
+                                  $ NonEmpty.toList unterstützteFahrtrichtungen)
 
 -- | Auswahl der 'Bahngeschwindigkeit' für eine 'AktionBahngeschwindigkeit'
 -- (beliebiger 'Zugtyp' & 'GeschwindigkeitVariante').
@@ -264,7 +264,7 @@ instance Anfrage (AnfrageAktionWeiche w) where
         Just $ toBefehlsString . Language.aktionWeiche
     zeigeAnfrageOptionen (AAWStellen _weiche) =
         Just $ toBefehlsString . (\sprache -> map (`anzeige` sprache)
-                                  $ NE.toList unterstützteRichtungen)
+                                  $ NonEmpty.toList unterstützteRichtungen)
 
 instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
     type AnfrageTyp (AktionWeiche w) = AnfrageAktionWeiche w
@@ -803,13 +803,16 @@ instance MitAnfrage Plan where
     anfrageAktualisieren (APlanNameAktionen plName aktionen) token =
         wähleErgebnis
             token
-            [ (Lexer.EinfachAusführen, Plan { plName, plAktionen = toList aktionen })
+            [ ( Lexer.EinfachAusführen
+                  , Plan { plName, plAktionen = NonEmpty.fromList $ toList aktionen }
+                  )
             , (Lexer.Dauerschleife, dauerschleife)]
         where
             dauerschleife :: Plan
             dauerschleife =
                 Plan
                 { plName
-                , plAktionen = toList
+                , plAktionen = NonEmpty.fromList
+                      $ toList
                       $ Warteschlange.anhängen (AktionAusführen dauerschleife) aktionen
                 }

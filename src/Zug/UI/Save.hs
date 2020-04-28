@@ -24,9 +24,10 @@ import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
 import Data.Aeson.Types
        (FromJSON(..), ToJSON(..), Value(..), Parser, Object, Pair, object, (.:), (.:?), (.=))
-import Data.List (partition)
-import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, fromJust)
+import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import Data.Word (Word8)
 import Data.Yaml (encodeFile, decodeFileEither)
@@ -576,7 +577,7 @@ instance ToJSON (Weiche z) where
         object
             [ nameJS .= wemName
             , fließendJS .= wemFließend
-            , richtungsAnschlüsseJS .= NE.toList wemRichtungsAnschlüsse
+            , richtungsAnschlüsseJS .= NonEmpty.toList wemRichtungsAnschlüsse
             , zugtypJS .= Märklin]
 
 -- Instanz-Deklarationen für Kupplung
@@ -933,7 +934,7 @@ instance FromJSON Plan where
         aktionen <- v .: aktionenJS
         let erzeugeDauerschleife :: Maybe Bool -> Plan
             erzeugeDauerschleife (Just True) =
-                let plan = Plan { plName, plAktionen = aktionen ++ [AktionAusführen plan] }
+                let plan = Plan { plName, plAktionen = aktionen <> (AktionAusführen plan :| []) }
                 in plan
             erzeugeDauerschleife _NothingOderFalse = Plan { plName, plAktionen = aktionen }
         erzeugeDauerschleife <$> (v .:? dauerschleifeJS)
@@ -942,10 +943,12 @@ instance FromJSON Plan where
 instance ToJSON Plan where
     toJSON :: Plan -> Value
     toJSON Plan {plName, plAktionen} =
-        let (nullValues, aktionen) =
-                partition ((==) $ String plName) $ map (aktionToJSON plName) plAktionen
+        let aktionen =
+                NonEmpty.takeWhile ((/=) $ String plName) $ fmap (aktionToJSON plName) plAktionen
         in object
-               [nameJS .= plName, aktionenJS .= aktionen, dauerschleifeJS .= not (null nullValues)]
+               [ nameJS .= plName
+               , aktionenJS .= aktionen
+               , dauerschleifeJS .= (length aktionen /= length plAktionen)]
 
 -- Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen
 findeÜbereinstimmendenWert :: (ToJSON a) => [a] -> Value -> Parser a
