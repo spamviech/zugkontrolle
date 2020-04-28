@@ -21,26 +21,29 @@ module Zug.UI.Gtk.Anschluss
   , PinAuswahlWidget()
   , pinAuswahlNew
   , aktuellerPin
+  , setzePin
   , AnschlussAuswahlWidget()
   , anschlussAuswahlNew
   , aktuellerAnschluss
+  , setzeAnschluss
 #endif
   ) where
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Anschluss(), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..)
+import Zug.Anbindung (Anschluss(..), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..)
                     , PCF8574Variant(..), Value(..), Pin(Gpio))
 import Zug.Language (Sprache(..), (<->), (<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl, boundedEnumAuswahlRadioButtonNew
-                         , boundedEnumAuswahlComboBoxNew)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl, setzeAuswahl
+                         , boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitNotebook(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
@@ -123,6 +126,11 @@ pinAuswahlNew maybeTVar name = do
 aktuellerPin :: (MonadIO m) => PinAuswahlWidget -> m Pin
 aktuellerPin
     PinAuswahlWidget {pawSpinButton} = liftIO $ Gpio <$> Gtk.spinButtonGetValueAsInt pawSpinButton
+
+-- | Setze den aktuellen Pin.
+setzePin :: (MonadIO m) => PinAuswahlWidget -> Pin -> m ()
+setzePin PinAuswahlWidget {pawSpinButton} pin =
+    liftIO $ Gtk.set pawSpinButton [Gtk.spinButtonValue := fromJust (zuPinGpio pin)]
 
 -- | Widgets zum erzeugen eines 'Anschluss'.
 data AnschlussAuswahlWidget =
@@ -232,8 +240,8 @@ aktuellerAnschluss
     , aawPCF8574PortA1
     , aawPCF8574PortA2
     , aawPCF8574Port
-    , aawPCF8574PortInterruptPin} = liftIO $ do
-    Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
+    , aawPCF8574PortInterruptPin} =
+    liftIO $ Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
                 variant <- aktuelleAuswahl aawPCF8574PortVariante
@@ -245,9 +253,37 @@ aktuellerAnschluss
                     (Just pinAuswahl) -> Just <$> aktuellerPin pinAuswahl
                     Nothing -> pure Nothing
                 pure
-                    $ zuAnschluss
+                    $ AnschlussPCF8574Port
                     $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin }, port }
             -- Verwende als Standard die Pin-Eingabe
-            | otherwise -> zuAnschluss <$> aktuellerPin aawPin
+            | otherwise -> AnschlussPin <$> aktuellerPin aawPin
+
+-- | Setze den aktuellen 'Anschluss'.
+setzeAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> Anschluss -> m ()
+setzeAnschluss AnschlussAuswahlWidget {aawNotebook, aawPin, aawPinPage} (AnschlussPin pin) =
+    liftIO $ do
+        Gtk.set aawNotebook [Gtk.notebookPage := aawPinPage]
+        setzePin aawPin pin
+setzeAnschluss
+    AnschlussAuswahlWidget
+    { aawNotebook
+    , aawPCF8574PortPage
+    , aawPCF8574PortVariante
+    , aawPCF8574PortA0
+    , aawPCF8574PortA1
+    , aawPCF8574PortA2
+    , aawPCF8574Port
+    , aawPCF8574PortInterruptPin}
+    (AnschlussPCF8574Port PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2, interruptPin}, port}) =
+    liftIO $ do
+        Gtk.set aawNotebook [Gtk.notebookPage := aawPCF8574PortPage]
+        setzeAuswahl aawPCF8574PortVariante variant
+        setzeAuswahl aawPCF8574PortA0 a0
+        setzeAuswahl aawPCF8574PortA1 a1
+        setzeAuswahl aawPCF8574PortA2 a2
+        Gtk.set aawPCF8574Port [Gtk.spinButtonValue := fromIntegral port]
+        case (aawPCF8574PortInterruptPin, interruptPin) of
+            (Just auswahlInterruptPin, Just pin) -> setzePin auswahlInterruptPin pin
+            _otherwise -> pure ()
 #endif
 --

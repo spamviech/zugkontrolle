@@ -36,9 +36,10 @@ import Zug.UI.Gtk.Klassen
       , MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
 
--- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport
+-- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport.
 data ScrollbaresWidget w =
     ScrollbaresWidget { swScrolledWindow :: Gtk.ScrolledWindow, swWidget :: w }
+    deriving (Eq)
 
 instance MitWidget (ScrollbaresWidget w) where
     erhalteWidget :: ScrollbaresWidget w -> Gtk.Widget

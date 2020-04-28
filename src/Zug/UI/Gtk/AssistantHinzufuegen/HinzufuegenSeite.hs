@@ -35,7 +35,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM
-       (TVar, atomically, readTVarIO, newTVarIO, writeTVar, modifyTVar, putTMVar)
+       (TVar, atomically, readTVarIO, newTVarIO, writeTVar, modifyTVar, swapTVar, putTMVar)
 import Control.Lens ((^.), Field1(_1), Field2(_2))
 import qualified Control.Lens as Lens
 import Control.Monad (void, forM, forM_, foldM, when)
@@ -55,9 +55,9 @@ import Data.Word (Word8)
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
-import Zug.Anbindung
-       (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Kontakt(..)
-      , Wegstrecke(..), Wartezeit(..), StreckenObjekt(erhalteName), StreckenAtom(fließend))
+import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
+                    , Kontakt(..), Wegstrecke(..), Wartezeit(..), StreckenObjekt(erhalteName)
+                    , StreckenAtom(fließend), Anschluss())
 import Zug.Enums
        (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..)
       , zugtyp, GeschwindigkeitVariante(..), GeschwindigkeitEither(..), geschwindigkeitVariante)
@@ -67,8 +67,8 @@ import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.Plan (Plan(..), Aktion(..))
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte)
 import Zug.UI.Gtk.Anschluss
-       (PinAuswahlWidget, pinAuswahlNew, aktuellerPin, AnschlussAuswahlWidget, anschlussAuswahlNew
-      , anschlussAuswahlInterruptPinNew, aktuellerAnschluss)
+       (PinAuswahlWidget, pinAuswahlNew, aktuellerPin, setzePin, AnschlussAuswahlWidget
+      , anschlussAuswahlNew, anschlussAuswahlInterruptPinNew, aktuellerAnschluss, setzeAnschluss)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
        (aktionBahngeschwindigkeitAuswahlPackNew)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionKontakt (aktionKontaktAuswahlPackNew)
@@ -91,7 +91,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , nameAuswahlPackNew, aktuellerName, setzeName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..), MitGrid(..)
                          , mitContainerRemove, MitWindow(..))
-import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
+import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
        (StatusGui, StatusVarGui, StatusVarGuiReader, BGWidgets(), WEWidgets()
@@ -108,11 +108,13 @@ import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetz
 data HinzufügenSeite
     = HinzufügenSeiteBahngeschwindigkeit
           { vBox :: Gtk.VBox
+          , maybeTVarSprache :: Maybe (TVar (Maybe [Sprache -> IO ()]))
           , nameAuswahl :: NameAuswahlWidget
             -- Märklin
           , notebookGeschwindigkeit :: Gtk.Notebook
           , indexSeiten :: Map Int GeschwindigkeitVariante
           , märklinGeschwindigkeitAuswahl :: PinAuswahlWidget
+          , vBoxMärklinFahrstrom :: ScrollbaresWidget Gtk.VBox
           , tvarFahrstromAuswahlWidgets :: TVar (NonEmpty AnschlussAuswahlWidget)
           , umdrehenAuswahl :: AnschlussAuswahlWidget
             -- Lego
@@ -407,7 +409,7 @@ seiteErgebnis
 
 -- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
 setzeSeite :: forall r m.
-           (StatusVarGuiReader r m, MonadIO m)
+           (StatusVarGuiReader r m, SpracheGuiReader r m, MonadIO m)
            => FließendAuswahlWidget
            -> AuswahlWidget Zugtyp
            -> HinzufügenSeite
@@ -418,86 +420,52 @@ setzeSeite
     zugtypAuswahl
     HinzufügenSeiteBahngeschwindigkeit
     { nameAuswahl
+    , maybeTVarSprache
     , notebookGeschwindigkeit
     , indexSeiten
     , märklinGeschwindigkeitAuswahl
+    , vBoxMärklinFahrstrom
     , tvarFahrstromAuswahlWidgets
     , umdrehenAuswahl
     , legoGeschwindigkeitAuswahl
     , fahrtrichtungsAuswahl}
-    (OBahngeschwindigkeit bg) = liftIO $ do
+    (OBahngeschwindigkeit bg) = do
     setzeName nameAuswahl $ erhalteName bg
     setzeFließendValue fließendAuswahl $ fließend bg
     setzeAuswahl zugtypAuswahl $ zugtyp bg
     case bg of
         (ZugtypMärklin
-             (GeschwindigkeitPwm
-                  MärklinBahngeschwindigkeitPwm
-                  {bgmpName = name, bgmpFließend = fließend, bgmpGeschwindigkeitsPin}))
-            -> _undefined --TODO
+             (GeschwindigkeitPwm MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}))
+            -> setzePin märklinGeschwindigkeitAuswahl bgmpGeschwindigkeitsPin
         (ZugtypMärklin
              (GeschwindigkeitKonstanteSpannung
                   MärklinBahngeschwindigkeitKonstanteSpannung
-                  { bgmkName = name
-                  , bgmkFließend = fließend
-                  , bgmkFahrstromAnschlüsse
-                  , bgmkUmdrehenAnschluss})) -> _undefined --TODO
+                  {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss})) -> do
+            let erstelleFahrstromAnschluss :: Anschluss -> Int -> m AnschlussAuswahlWidget
+                erstelleFahrstromAnschluss anschluss n = do
+                    anschlussAuswahlWidget <- boxPackWidgetNewDefault vBoxMärklinFahrstrom
+                        $ anschlussAuswahlNew maybeTVarSprache
+                        $ Language.fahrstrom <:> n
+                    setzeAnschluss anschlussAuswahlWidget anschluss
+                    pure anschlussAuswahlWidget
+            auswahlFahrstromAnschlüsse <- NonEmpty.fromList
+                <$> foldM (\widgets anschluss -> fmap (: widgets)
+                           $ erstelleFahrstromAnschluss anschluss
+                           $ succ
+                           $ length widgets) [] bgmkFahrstromAnschlüsse
+            liftIO $ do
+                alteAuswahlWidgets <- atomically
+                    $ swapTVar tvarFahrstromAuswahlWidgets auswahlFahrstromAnschlüsse
+                forM_ alteAuswahlWidgets $ Gtk.widgetDestroy . erhalteWidget
+                setzeAnschluss umdrehenAuswahl bgmkUmdrehenAnschluss
         (ZugtypLego
              (GeschwindigkeitPwm
-                  LegoBahngeschwindigkeit { bglName = name
-                                          , bglFließend = fließend
-                                          , bglGeschwindigkeitsPin
-                                          , bglFahrtrichtungsAnschluss})) -> _undefined --TODO
+                  LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}))
+            -> do
+                setzePin legoGeschwindigkeitAuswahl bglGeschwindigkeitsPin
+                setzeAnschluss fahrtrichtungsAuswahl bglFahrtrichtungsAnschluss
         (ZugtypLego (GeschwindigkeitKonstanteSpannung bg))
             -> error $ "Lego-Bahngeschwindigkeit mit konstanter Spannung: " ++ show bg
-    void $ do
-        name <- aktuellerName nameAuswahl
-        fließend <- aktuellerFließendValue fließendAuswahl
-        aktuelleAuswahl zugtypAuswahl >>= \case
-            Märklin -> do
-                (`Map.lookup` indexSeiten) <$> Gtk.get notebookGeschwindigkeit Gtk.notebookPage
-                    >>= \case
-                        (Just Pwm) -> do
-                            bgmpGeschwindigkeitsPin <- aktuellerPin märklinGeschwindigkeitAuswahl
-                            pure
-                                $ OBahngeschwindigkeit
-                                $ ZugtypMärklin
-                                $ GeschwindigkeitPwm
-                                    MärklinBahngeschwindigkeitPwm
-                                    { bgmpName = name
-                                    , bgmpFließend = fließend
-                                    , bgmpGeschwindigkeitsPin
-                                    }
-                        (Just KonstanteSpannung) -> do
-                            fahrstromAuswahlWidgets <- readTVarIO tvarFahrstromAuswahlWidgets
-                            bgmkFahrstromAnschlüsse
-                                <- mapM aktuellerAnschluss fahrstromAuswahlWidgets
-                            bgmkUmdrehenAnschluss <- aktuellerAnschluss umdrehenAuswahl
-                            pure
-                                $ OBahngeschwindigkeit
-                                $ ZugtypMärklin
-                                $ GeschwindigkeitKonstanteSpannung
-                                    MärklinBahngeschwindigkeitKonstanteSpannung
-                                    { bgmkName = name
-                                    , bgmkFließend = fließend
-                                    , bgmkFahrstromAnschlüsse
-                                    , bgmkUmdrehenAnschluss
-                                    }
-                        Nothing -> error
-                            "Unbekannte GeschwindigkeitVariante beim Hinzufügen einer Bahngeschwindigkeit!"
-            Lego -> do
-                bglGeschwindigkeitsPin <- aktuellerPin legoGeschwindigkeitAuswahl
-                bglFahrtrichtungsAnschluss <- aktuellerAnschluss fahrtrichtungsAuswahl
-                pure
-                    $ OBahngeschwindigkeit
-                    $ ZugtypLego
-                    $ GeschwindigkeitPwm
-                        LegoBahngeschwindigkeit
-                        { bglName = name
-                        , bglFließend = fließend
-                        , bglGeschwindigkeitsPin
-                        , bglFahrtrichtungsAnschluss
-                        }
 setzeSeite
     fließendAuswahl
     _zugtypAuswahl
@@ -681,10 +649,10 @@ hinzufügenBahngeschwindigkeitNew
     => AuswahlWidget Zugtyp
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> m HinzufügenSeite
-hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
+hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = do
     reader <- ask
     vBox <- liftIO $ widgetShowNew $ Gtk.vBoxNew False 0
-    nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
+    nameAuswahl <- nameAuswahlPackNew vBox maybeTVarSprache
     (märklinVBox, notebookGeschwindigkeit) <- liftIO $ do
         märklinVBox <- Gtk.vBoxNew False 0
         notebookGeschwindigkeit <- boxPackWidgetNew
@@ -694,21 +662,24 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
             positionDefault
             Gtk.notebookNew
         pure (märklinVBox, notebookGeschwindigkeit)
-    (vBoxMärklinPwm, indexPwm)
-        <- notebookAppendPageNew notebookGeschwindigkeit maybeTVar Language.geschwindigkeitPwm
+    (vBoxMärklinPwm, indexPwm) <- notebookAppendPageNew
+        notebookGeschwindigkeit
+        maybeTVarSprache
+        Language.geschwindigkeitPwm
         $ liftIO
         $ Gtk.vBoxNew False 0
     märklinGeschwindigkeitAuswahl <- boxPackWidgetNewDefault vBoxMärklinPwm
-        $ pinAuswahlNew maybeTVar Language.geschwindigkeit
+        $ pinAuswahlNew maybeTVarSprache Language.geschwindigkeit
     (vBoxMärklinKonstanteSpannung, indexKonstanteSpannung) <- notebookAppendPageNew
         notebookGeschwindigkeit
-        maybeTVar
+        maybeTVarSprache
         Language.geschwindigkeitKonstanteSpannung
         $ liftIO
         $ Gtk.vBoxNew False 0
     let indexSeiten = Map.fromList [(indexPwm, Pwm), (indexKonstanteSpannung, KonstanteSpannung)]
-    fahrstromAuswahlWidget1
-        <- widgetShowNew $ anschlussAuswahlNew maybeTVar $ Language.fahrstrom <:> (1 :: Word8)
+    fahrstromAuswahlWidget1 <- widgetShowNew
+        $ anschlussAuswahlNew maybeTVarSprache
+        $ Language.fahrstrom <:> (1 :: Word8)
     (vBoxMärklinFahrstrom, tvarFahrstromAuswahlWidgets, hBoxMärklinFahrstrom) <- liftIO $ do
         hBoxMärklinFahrstrom
             <- boxPackWidgetNewDefault vBoxMärklinKonstanteSpannung $ Gtk.hBoxNew False 0
@@ -722,16 +693,16 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
         tvarFahrstromAuswahlWidgets <- newTVarIO $ [fahrstromAuswahlWidget1]
         pure (vBoxMärklinFahrstrom, tvarFahrstromAuswahlWidgets, hBoxMärklinFahrstrom)
     boxPackWidgetNewDefault hBoxMärklinFahrstrom
-        $ buttonNewWithEventLabel maybeTVar (const "+")
+        $ buttonNewWithEventLabel maybeTVarSprache (const "+")
         $ do
             fahrstromAuswahlWidgets <- readTVarIO tvarFahrstromAuswahlWidgets
             fahrstromAuswahlWidgetN <- boxPackWidgetNewDefault vBoxMärklinFahrstrom
                 $ flip runReaderT reader
-                $ anschlussAuswahlNew maybeTVar
+                $ anschlussAuswahlNew maybeTVarSprache
                 $ Language.fahrstrom <:> (succ $ length fahrstromAuswahlWidgets)
             atomically $ modifyTVar tvarFahrstromAuswahlWidgets $ (<> [fahrstromAuswahlWidgetN])
     boxPackWidgetNewDefault hBoxMärklinFahrstrom
-        $ buttonNewWithEventLabel maybeTVar (const "-")
+        $ buttonNewWithEventLabel maybeTVarSprache (const "-")
         $ do
             fahrstromAuswahlWidgets <- readTVarIO tvarFahrstromAuswahlWidgets
             when (length fahrstromAuswahlWidgets > 1) $ do
@@ -741,22 +712,24 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
                     $ NonEmpty.fromList . NonEmpty.init
     boxPackDefault vBoxMärklinFahrstrom fahrstromAuswahlWidget1
     umdrehenAuswahl <- boxPackWidgetNewDefault vBoxMärklinKonstanteSpannung
-        $ anschlussAuswahlNew maybeTVar Language.umdrehen
+        $ anschlussAuswahlNew maybeTVarSprache Language.umdrehen
     legoVBox <- liftIO $ Gtk.vBoxNew False 0
-    legoGeschwindigkeitAuswahl
-        <- boxPackWidgetNewDefault legoVBox $ pinAuswahlNew maybeTVar Language.geschwindigkeit
-    fahrtrichtungsAuswahl
-        <- boxPackWidgetNewDefault legoVBox $ anschlussAuswahlNew maybeTVar Language.fahrtrichtung
+    legoGeschwindigkeitAuswahl <- boxPackWidgetNewDefault legoVBox
+        $ pinAuswahlNew maybeTVarSprache Language.geschwindigkeit
+    fahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoVBox
+        $ anschlussAuswahlNew maybeTVarSprache Language.fahrtrichtung
     boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
         $ zugtypSpezifischNew [(Märklin, märklinVBox), (Lego, legoVBox)] auswahlZugtyp
     pure
         HinzufügenSeiteBahngeschwindigkeit
         { vBox
+        , maybeTVarSprache
         , nameAuswahl
           -- Märklin
         , notebookGeschwindigkeit
         , indexSeiten
         , märklinGeschwindigkeitAuswahl
+        , vBoxMärklinFahrstrom
         , tvarFahrstromAuswahlWidgets
         , umdrehenAuswahl
           -- Lego
