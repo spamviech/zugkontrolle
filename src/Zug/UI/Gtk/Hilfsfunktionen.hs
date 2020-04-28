@@ -51,6 +51,7 @@ module Zug.UI.Gtk.Hilfsfunktionen
   , NameAuswahlWidget()
   , nameAuswahlPackNew
   , aktuellerName
+  , setzeName
 #endif
   ) where
 
@@ -247,7 +248,7 @@ labelSpracheNew maybeTVar text = do
     pure label
 
 -- * Namen
--- | Widget zur Anzeige eines Namen
+-- | Widget zur Anzeige eines Namen.
 newtype NameWidget = NameWidget Gtk.Label
     deriving (Eq)
 
@@ -259,14 +260,14 @@ instance MitLabel NameWidget where
     erhalteLabel :: NameWidget -> Gtk.Label
     erhalteLabel (NameWidget w) = w
 
--- | Name anzeigen
+-- | Name anzeigen.
 namePackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m NameWidget
 namePackNew box objekt = liftIO $ do
     label <- boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ erhalteName objekt
     Gtk.set label [Gtk.widgetMarginRight := 5]
     pure $ NameWidget label
 
--- | Widget zur Eingabe eines Namen
+-- | Widget zur Eingabe eines Namen.
 newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
     deriving (Eq)
 
@@ -278,7 +279,7 @@ instance MitEntry NameAuswahlWidget where
     erhalteEntry :: NameAuswahlWidget -> Gtk.Entry
     erhalteEntry (NameAuswahlWidget w) = w
 
--- | Name abfragen
+-- | Name abfragen.
 nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b)
                    => b
                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
@@ -291,8 +292,13 @@ nameAuswahlPackNew box maybeTVar = do
         -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
     pure $ NameAuswahlWidget entry
 
--- | Erhalte den aktuell gewählten Namen
+-- | Erhalte den aktuell gewählten Namen.
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
+
+-- | Setze den aktuellen Namen.
+setzeName :: (MonadIO m) => NameAuswahlWidget -> Text -> m ()
+setzeName nameAuswahlWidget name =
+    liftIO $ Gtk.set (erhalteEntry nameAuswahlWidget) [Gtk.entryText := name]
 #endif
 --

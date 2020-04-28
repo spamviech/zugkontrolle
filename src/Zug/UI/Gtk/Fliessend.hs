@@ -19,6 +19,7 @@ module Zug.UI.Gtk.Fliessend
   , fließendAuswahlNew
   , fließendAuswahlPackNew
   , aktuellerFließendValue
+  , setzeFließendValue
 #endif
   ) where
 
@@ -30,7 +31,8 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenAtom(..), Value(..))
 import Zug.Language (Sprache(), (<:>))
 import qualified Zug.Language as Language
-import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl
+       (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl, setzeAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen
        (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
@@ -88,8 +90,12 @@ fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
 fließendAuswahlNew maybeTVar =
     FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW maybeTVar Language.fließend
 
--- | Erhalte den aktuell gewählten Fließend-Value
+-- | Erhalte den aktuell gewählten Fließend-Value.
 aktuellerFließendValue :: (MonadIO m) => FließendAuswahlWidget -> m Value
 aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
+
+-- | Setze den aktuellen Fließend-Value.
+setzeFließendValue :: (MonadIO m) => FließendAuswahlWidget -> Value -> m ()
+setzeFließendValue = setzeAuswahl . erhalteAuswahlWidget
 #endif
 --

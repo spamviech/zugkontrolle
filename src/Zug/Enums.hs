@@ -16,6 +16,7 @@ module Zug.Enums
   , mapZugtypEither
   , ausZugtypEither
   , unterstützteZugtypen
+  , zugtyp
     -- * GeschwindigkeitVariante
   , GeschwindigkeitVariante(..)
   , GeschwindigkeitEither(..)
@@ -26,6 +27,7 @@ module Zug.Enums
   , unterstützteGeschwindigkeitVarianten
   , catPwm
   , catKonstanteSpannung
+  , geschwindigkeitVariante
     -- * Richtung
   , Richtung(..)
   , unterstützteRichtungen
@@ -97,6 +99,11 @@ mapZugtypEither f (ZugtypLego a) = ZugtypLego $ f a
 ausZugtypEither :: (forall (z :: Zugtyp). a z -> b) -> ZugtypEither a -> b
 ausZugtypEither f (ZugtypMärklin a) = f a
 ausZugtypEither f (ZugtypLego a) = f a
+
+-- | Erhalte den assoziierten 'Zugtyp' als Wert.
+zugtyp :: ZugtypEither a -> Zugtyp
+zugtyp (ZugtypMärklin _a) = Märklin
+zugtyp (ZugtypLego _a) = Lego
 
 -- | Unterstützte 'Zugtyp'en
 unterstützteZugtypen :: NonEmpty Zugtyp
@@ -175,6 +182,11 @@ catPwm ls = [x | GeschwindigkeitPwm x <- Foldable.toList ls]
 -- | Sammle alle 'KonstanteSpannung'-Typen
 catKonstanteSpannung :: (Foldable t) => t (GeschwindigkeitEither bg z) -> [bg 'KonstanteSpannung z]
 catKonstanteSpannung ls = [x | GeschwindigkeitKonstanteSpannung x <- Foldable.toList ls]
+
+-- | Erhalte die assoziierte 'GeschwindigkeitVariante' als Wert.
+geschwindigkeitVariante :: GeschwindigkeitEither a z -> GeschwindigkeitVariante
+geschwindigkeitVariante (GeschwindigkeitPwm _a) = Pwm
+geschwindigkeitVariante (GeschwindigkeitKonstanteSpannung _a) = KonstanteSpannung
 
 -- | newtype-Wrapper um einen 'GeschwindigkeitVariante'-Phantomtyp hinzuzufügen.
 --

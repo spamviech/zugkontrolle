@@ -9,6 +9,7 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 #endif
 
 {-|
@@ -21,7 +22,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   , ButtonHinzufügen(..)
   , spezifischerButtonHinzufügen
   , seiteErgebnis
-  , setzeWert
+  , setzeSeite
   , hinzufügenBahngeschwindigkeitNew
   , hinzufügenStreckenabschnittNew
   , hinzufügenWeicheNew
@@ -54,10 +55,12 @@ import Data.Word (Word8)
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk (AttrOp((:=)))
 
-import Zug.Anbindung (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..)
-                    , Kontakt(..), Wegstrecke(..), Wartezeit(..))
-import Zug.Enums (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..)
-                , ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..))
+import Zug.Anbindung
+       (Bahngeschwindigkeit(..), Streckenabschnitt(..), Weiche(..), Kupplung(..), Kontakt(..)
+      , Wegstrecke(..), Wartezeit(..), StreckenObjekt(erhalteName), StreckenAtom(fließend))
+import Zug.Enums
+       (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..), ZugtypEither(..)
+      , zugtyp, GeschwindigkeitVariante(..), GeschwindigkeitEither(..), geschwindigkeitVariante)
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
@@ -76,8 +79,8 @@ import Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionWegstrecke (aktionWegstreckeAuswahlPackNew)
 import Zug.UI.Gtk.AssistantHinzufuegen.AktionWeiche (aktionWeicheAuswahlPackNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlComboBoxNamedNew
-                         , MitAuswahlWidget(), aktuelleAuswahl)
-import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue)
+                         , MitAuswahlWidget(), aktuelleAuswahl, setzeAuswahl)
+import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue, setzeFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
       , registrierterCheckButtonToggled)
@@ -85,7 +88,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
       , boxPack, containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
       , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
-      , nameAuswahlPackNew, aktuellerName)
+      , nameAuswahlPackNew, aktuellerName, setzeName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..), MitGrid(..)
                          , mitContainerRemove, MitWindow(..))
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
@@ -402,6 +405,276 @@ seiteErgebnis
                 in plan
         False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
 
+-- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
+setzeSeite :: forall r m.
+           (StatusVarGuiReader r m, MonadIO m)
+           => FließendAuswahlWidget
+           -> AuswahlWidget Zugtyp
+           -> HinzufügenSeite
+           -> Objekt
+           -> m ()
+setzeSeite
+    fließendAuswahl
+    zugtypAuswahl
+    HinzufügenSeiteBahngeschwindigkeit
+    { nameAuswahl
+    , notebookGeschwindigkeit
+    , indexSeiten
+    , märklinGeschwindigkeitAuswahl
+    , tvarFahrstromAuswahlWidgets
+    , umdrehenAuswahl
+    , legoGeschwindigkeitAuswahl
+    , fahrtrichtungsAuswahl}
+    (OBahngeschwindigkeit bg) = liftIO $ do
+    setzeName nameAuswahl $ erhalteName bg
+    setzeFließendValue fließendAuswahl $ fließend bg
+    setzeAuswahl zugtypAuswahl $ zugtyp bg
+    case bg of
+        (ZugtypMärklin
+             (GeschwindigkeitPwm
+                  MärklinBahngeschwindigkeitPwm
+                  {bgmpName = name, bgmpFließend = fließend, bgmpGeschwindigkeitsPin}))
+            -> _undefined --TODO
+        (ZugtypMärklin
+             (GeschwindigkeitKonstanteSpannung
+                  MärklinBahngeschwindigkeitKonstanteSpannung
+                  { bgmkName = name
+                  , bgmkFließend = fließend
+                  , bgmkFahrstromAnschlüsse
+                  , bgmkUmdrehenAnschluss})) -> _undefined --TODO
+        (ZugtypLego
+             (GeschwindigkeitPwm
+                  LegoBahngeschwindigkeit { bglName = name
+                                          , bglFließend = fließend
+                                          , bglGeschwindigkeitsPin
+                                          , bglFahrtrichtungsAnschluss})) -> _undefined --TODO
+        (ZugtypLego (GeschwindigkeitKonstanteSpannung bg))
+            -> error $ "Lego-Bahngeschwindigkeit mit konstanter Spannung: " ++ show bg
+    void $ do
+        name <- aktuellerName nameAuswahl
+        fließend <- aktuellerFließendValue fließendAuswahl
+        aktuelleAuswahl zugtypAuswahl >>= \case
+            Märklin -> do
+                (`Map.lookup` indexSeiten) <$> Gtk.get notebookGeschwindigkeit Gtk.notebookPage
+                    >>= \case
+                        (Just Pwm) -> do
+                            bgmpGeschwindigkeitsPin <- aktuellerPin märklinGeschwindigkeitAuswahl
+                            pure
+                                $ OBahngeschwindigkeit
+                                $ ZugtypMärklin
+                                $ GeschwindigkeitPwm
+                                    MärklinBahngeschwindigkeitPwm
+                                    { bgmpName = name
+                                    , bgmpFließend = fließend
+                                    , bgmpGeschwindigkeitsPin
+                                    }
+                        (Just KonstanteSpannung) -> do
+                            fahrstromAuswahlWidgets <- readTVarIO tvarFahrstromAuswahlWidgets
+                            bgmkFahrstromAnschlüsse
+                                <- mapM aktuellerAnschluss fahrstromAuswahlWidgets
+                            bgmkUmdrehenAnschluss <- aktuellerAnschluss umdrehenAuswahl
+                            pure
+                                $ OBahngeschwindigkeit
+                                $ ZugtypMärklin
+                                $ GeschwindigkeitKonstanteSpannung
+                                    MärklinBahngeschwindigkeitKonstanteSpannung
+                                    { bgmkName = name
+                                    , bgmkFließend = fließend
+                                    , bgmkFahrstromAnschlüsse
+                                    , bgmkUmdrehenAnschluss
+                                    }
+                        Nothing -> error
+                            "Unbekannte GeschwindigkeitVariante beim Hinzufügen einer Bahngeschwindigkeit!"
+            Lego -> do
+                bglGeschwindigkeitsPin <- aktuellerPin legoGeschwindigkeitAuswahl
+                bglFahrtrichtungsAnschluss <- aktuellerAnschluss fahrtrichtungsAuswahl
+                pure
+                    $ OBahngeschwindigkeit
+                    $ ZugtypLego
+                    $ GeschwindigkeitPwm
+                        LegoBahngeschwindigkeit
+                        { bglName = name
+                        , bglFließend = fließend
+                        , bglGeschwindigkeitsPin
+                        , bglFahrtrichtungsAnschluss
+                        }
+setzeSeite
+    fließendAuswahl
+    _zugtypAuswahl
+    HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl}
+    (OStreckenabschnitt st) = do
+    setzeName nameAuswahl $ erhalteName st
+    setzeFließendValue fließendAuswahl $ fließend st
+    _undefined --TODO
+    void $ do
+        stName <- aktuellerName nameAuswahl
+        stFließend <- aktuellerFließendValue fließendAuswahl
+        stromAnschluss <- aktuellerAnschluss stromAuswahl
+        pure $ OStreckenabschnitt Streckenabschnitt { stName, stFließend, stromAnschluss }
+setzeSeite
+    fließendAuswahl
+    zugtypAuswahl
+    HinzufügenSeiteWeiche
+    {nameAuswahl, märklinRichtungsAuswahl, legoRichtungsAuswahl, legoRichtungenAuswahl}
+    (OWeiche we) = do
+    setzeName nameAuswahl $ erhalteName we
+    setzeFließendValue fließendAuswahl $ fließend we
+    setzeAuswahl zugtypAuswahl $ zugtyp we
+    _undefined --TODO
+    void $ do
+        name <- aktuellerName nameAuswahl
+        fließend <- aktuellerFließendValue fließendAuswahl
+        aktuelleAuswahl zugtypAuswahl >>= \case
+            Märklin -> do
+                -- Nicht-Leerheit garantiert durch FortfahrenWennToggled
+                wemRichtungsAnschlüsse <- fmap
+                    (NonEmpty.fromList . map fromJust . NonEmpty.filter isJust)
+                    $ forM märklinRichtungsAuswahl
+                    $ \(richtung, rcb, anschlussAuswahl)
+                    -> registrierterCheckButtonToggled rcb >>= \case
+                        True -> Just . (\anschluss -> (richtung, anschluss))
+                            <$> aktuellerAnschluss anschlussAuswahl
+                        False -> pure Nothing
+                pure
+                    $ OWeiche
+                    $ ZugtypMärklin
+                        MärklinWeiche
+                        { wemName = name
+                        , wemFließend = fließend
+                        , wemRichtungsAnschlüsse
+                        }
+            Lego -> do
+                welRichtungen <- aktuelleAuswahl legoRichtungenAuswahl
+                welRichtungsPin <- aktuellerPin legoRichtungsAuswahl
+                pure
+                    $ OWeiche
+                    $ ZugtypLego
+                        LegoWeiche
+                        { welName = name
+                        , welFließend = fließend
+                        , welRichtungen
+                        , welRichtungsPin
+                        }
+setzeSeite
+    fließendAuswahl
+    _zugtypAuswahl
+    HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl}
+    (OKupplung ku) = do
+    setzeName nameAuswahl $ erhalteName ku
+    setzeFließendValue fließendAuswahl $ fließend ku
+    _undefined --TODO
+    void $ do
+        kuName <- aktuellerName nameAuswahl
+        kuFließend <- aktuellerFließendValue fließendAuswahl
+        kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
+        pure $ OKupplung Kupplung { kuName, kuFließend, kupplungsAnschluss }
+setzeSeite
+    fließendAuswahl
+    _zugtypAuswahl
+    HinzufügenSeiteKontakt {nameAuswahl, kontaktAuswahl}
+    (OKontakt ko) = do
+    setzeName nameAuswahl $ erhalteName ko
+    setzeFließendValue fließendAuswahl $ fließend ko
+    _undefined --TODO
+    void $ do
+        koName <- aktuellerName nameAuswahl
+        koFließend <- aktuellerFließendValue fließendAuswahl
+        kontaktAnschluss <- aktuellerAnschluss kontaktAuswahl
+        pure $ OKontakt Kontakt { koName, koFließend, kontaktAnschluss }
+setzeSeite
+    _fließendAuswahl
+    zugtypAuswahl
+    HinzufügenSeiteWegstrecke {nameAuswahl}
+    (OWegstrecke ws) = do
+    setzeName nameAuswahl $ erhalteName ws
+    setzeAuswahl zugtypAuswahl $ zugtyp ws
+    _undefined --TODO
+    void $ do
+        statusVar <- erhalteStatusVar :: m StatusVarGui
+        aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
+        wsName <- aktuellerName nameAuswahl
+        let gewählteWegstrecke
+                :: ( MonadIO m
+                   , ZugtypKlasse z
+                   , WegstreckenElement (GeschwindigkeitEither BGWidgets z)
+                   , WegstreckenElement (WEWidgets z)
+                   , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung
+                   )
+                => m (Wegstrecke z)
+            gewählteWegstrecke = do
+                wsBahngeschwindigkeiten <- foldM anhängenWennToggled Set.empty
+                    $ catMaybes
+                    $ map vonZugtypEither
+                    $ aktuellerStatus ^. bahngeschwindigkeiten
+                wsStreckenabschnitte
+                    <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. streckenabschnitte
+                wsWeichenRichtungen <- foldM weichenRichtungAnhängenWennToggled Set.empty
+                    $ catMaybes
+                    $ map vonZugtypEither
+                    $ aktuellerStatus ^. weichen
+                wsKupplungen
+                    <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kupplungen
+                wsKontakte <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kontakte
+                pure
+                    Wegstrecke
+                    { wsName
+                    , wsBahngeschwindigkeiten
+                    , wsStreckenabschnitte
+                    , wsWeichenRichtungen
+                    , wsKupplungen
+                    , wsKontakte
+                    }
+            anhängenWennToggled
+                :: (WidgetsTyp a, Ord (ObjektTyp a), WegstreckenElement a, MonadIO m)
+                => Set (ObjektTyp a)
+                -> a
+                -> m (Set (ObjektTyp a))
+            anhängenWennToggled acc a = widgetHinzufügenToggled (a ^. getterWegstrecke) >>= \case
+                True -> pure $ Set.insert (erhalteObjektTyp a) acc
+                False -> pure acc
+            weichenRichtungAnhängenWennToggled
+                :: ( WegstreckenElement (WEWidgets z)
+                   , MonadIO m
+                   , MitAuswahlWidget (WegstreckeCheckButton (CheckButtonAuswahl (WEWidgets z))) Richtung
+                   )
+                => Set (Weiche z, Richtung)
+                -> WEWidgets z
+                -> m (Set (Weiche z, Richtung))
+            weichenRichtungAnhängenWennToggled acc weiche = do
+                let widgetHinzufügen = weiche ^. getterWegstrecke
+                toggled <- widgetHinzufügenToggled widgetHinzufügen
+                if toggled
+                    then do
+                        richtung <- widgetHinzufügenAktuelleAuswahl widgetHinzufügen
+                        pure $ Set.insert (erhalteObjektTyp weiche, richtung) acc
+                    else pure acc
+        -- Explizite Zugtyp-Auswahl notwendig für den Typ-Checker
+        -- Dieser kann sonst Typ-Klassen nicht überprüfen
+        aktuelleAuswahl zugtypAuswahl >>= \case
+            Märklin -> OWegstrecke . ZugtypMärklin <$> gewählteWegstrecke
+            Lego -> OWegstrecke . ZugtypLego <$> gewählteWegstrecke
+setzeSeite
+    _fließendAuswahl
+    _zugtypAuswahl
+    HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife}
+    (OPlan pl) = liftIO $ do
+    setzeName nameAuswahl $ erhalteName pl
+    _undefined --TODO
+    void $ do
+        plName <- aktuellerName nameAuswahl
+        aktionenWarteschlange <- readTVarIO tvarAktionen
+        Gtk.get checkButtonDauerschleife Gtk.toggleButtonActive >>= pure . OPlan . \case
+            True -> let plan =
+                            Plan
+                            { plName
+                            , plAktionen = toList
+                                  $ anhängen (AktionAusführen plan)
+                                  $ Lens.view _1 <$> aktionenWarteschlange
+                            }
+                    in plan
+            False -> Plan { plName, plAktionen = toList $ Lens.view _1 <$> aktionenWarteschlange }
+setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure ()
+
 -- | Erzeuge eine Seite zum hinzufügen einer 'Bahngeschwindigkeit'.
 hinzufügenBahngeschwindigkeitNew
     :: (SpracheGuiReader r m, MonadIO m)
@@ -490,16 +763,6 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
         , legoGeschwindigkeitAuswahl
         , fahrtrichtungsAuswahl
         }
-
--- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
-setzeWert :: forall r m.
-          (StatusVarGuiReader r m, MonadIO m)
-          => FließendAuswahlWidget
-          -> AuswahlWidget Zugtyp
-          -> HinzufügenSeite
-          -> Objekt
-          -> m Objekt
-setzeWert = _undefined --TODO
 
 -- | Erzeuge eine Seite zum hinzufügen eines 'Streckenabschnitt'.
 hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)

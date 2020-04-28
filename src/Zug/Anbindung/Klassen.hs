@@ -95,3 +95,9 @@ instance (StreckenAtom (a 'Märklin), StreckenAtom (a 'Lego)) => StreckenAtom (Z
     fließend :: ZugtypEither a -> Value
     fließend (ZugtypMärklin a) = fließend a
     fließend (ZugtypLego a) = fließend a
+
+instance (StreckenAtom (a 'Pwm z), (StreckenAtom (a 'KonstanteSpannung z)))
+    => StreckenAtom (GeschwindigkeitEither a z) where
+    fließend :: GeschwindigkeitEither a z -> Value
+    fließend (GeschwindigkeitPwm a) = fließend a
+    fließend (GeschwindigkeitKonstanteSpannung a) = fließend a
