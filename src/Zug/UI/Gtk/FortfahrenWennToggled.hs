@@ -34,6 +34,7 @@ module Zug.UI.Gtk.FortfahrenWennToggled
   , mitRegistrierterCheckButton
   , registrierterCheckButton
   , registrierterCheckButtonToggled
+  , registrierterCheckButtonSetToggled
 #endif
   ) where
 
@@ -219,11 +220,18 @@ registrierterCheckButtonNew maybeTVar label fortfahrenWennToggled = do
         $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := label sprache]
     pure $ RegistrierterCheckButton checkButton
 
--- | Überprüfe ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist
+-- | Überprüfe ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist.
 registrierterCheckButtonToggled :: (MitRegistrierterCheckButton r, MonadIO m) => r -> m Bool
 registrierterCheckButtonToggled
     (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton)) =
     liftIO $ Gtk.get checkButton Gtk.toggleButtonActive
+
+-- | Bestimme ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist.
+registrierterCheckButtonSetToggled
+    :: (MitRegistrierterCheckButton r, MonadIO m) => r -> Bool -> m ()
+registrierterCheckButtonSetToggled
+    (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton))
+    toggled = liftIO $ Gtk.set checkButton [Gtk.toggleButtonActive := toggled]
 
 -- | Klasse für Typen mit 'RegistrierterCheckButton'
 class (MitWidget c) => MitRegistrierterCheckButton c where

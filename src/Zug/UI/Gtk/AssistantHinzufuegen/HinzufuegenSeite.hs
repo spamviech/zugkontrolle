@@ -44,6 +44,7 @@ import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT, MonadReader(ask))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
+import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map.Strict (Map)
@@ -85,7 +86,7 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlComboBoxNam
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, aktuellerFließendValue, setzeFließendValue)
 import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
-      , registrierterCheckButtonToggled)
+      , registrierterCheckButtonToggled, registrierterCheckButtonSetToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
       , boxPack, containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
@@ -495,41 +496,19 @@ setzeSeite
     setzeName nameAuswahl $ erhalteName we
     setzeFließendValue fließendAuswahl $ fließend we
     setzeAuswahl zugtypAuswahl $ zugtyp we
-    _undefined --TODO
-    void $ do
-        name <- aktuellerName nameAuswahl
-        fließend <- aktuellerFließendValue fließendAuswahl
-        aktuelleAuswahl zugtypAuswahl >>= \case
-            Märklin -> do
-                -- Nicht-Leerheit garantiert durch FortfahrenWennToggled
-                wemRichtungsAnschlüsse <- fmap
-                    (NonEmpty.fromList . map fromJust . NonEmpty.filter isJust)
-                    $ forM märklinRichtungsAuswahl
-                    $ \(richtung, rcb, anschlussAuswahl)
-                    -> registrierterCheckButtonToggled rcb >>= \case
-                        True -> Just . (\anschluss -> (richtung, anschluss))
-                            <$> aktuellerAnschluss anschlussAuswahl
-                        False -> pure Nothing
-                pure
-                    $ OWeiche
-                    $ ZugtypMärklin
-                        MärklinWeiche
-                        { wemName = name
-                        , wemFließend = fließend
-                        , wemRichtungsAnschlüsse
-                        }
-            Lego -> do
-                welRichtungen <- aktuelleAuswahl legoRichtungenAuswahl
-                welRichtungsPin <- aktuellerPin legoRichtungsAuswahl
-                pure
-                    $ OWeiche
-                    $ ZugtypLego
-                        LegoWeiche
-                        { welName = name
-                        , welFließend = fließend
-                        , welRichtungen
-                        , welRichtungsPin
-                        }
+    liftIO $ case we of
+        (ZugtypMärklin MärklinWeiche { wemRichtungsAnschlüsse })
+            -> forM_ märklinRichtungsAuswahl
+                $ \(richtung, rcb, anschlussAuswahl)
+                    -> case List.lookup richtung $ NonEmpty.toList wemRichtungsAnschlüsse of
+                        (Just anschluss) -> do
+                            registrierterCheckButtonSetToggled rcb True
+                            setzeAnschluss anschlussAuswahl anschluss
+                        Nothing -> 
+                            registrierterCheckButtonSetToggled rcb False
+        (ZugtypLego LegoWeiche { welRichtungen , welRichtungsPin }) -> do
+                setzeAuswahl legoRichtungenAuswahl welRichtungen
+                setzePin legoRichtungsAuswahl welRichtungsPin
 setzeSeite
     fließendAuswahl
     _zugtypAuswahl
