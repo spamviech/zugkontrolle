@@ -606,7 +606,7 @@ hinzufügenKontaktNew maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
     kontaktAuswahl <- boxPackWidgetNewDefault vBox
-        $ anschlussAuswahlInterruptPinNew maybeTVar Language.kupplung
+        $ anschlussAuswahlInterruptPinNew maybeTVar Language.kontakt
     pure HinzufügenSeiteKontakt { vBox, nameAuswahl, kontaktAuswahl }
 
 -- | Erzeuge eine Seite zum hinzufügen einer 'Wegstrecke'.

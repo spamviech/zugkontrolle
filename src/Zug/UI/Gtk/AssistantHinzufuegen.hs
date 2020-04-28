@@ -38,7 +38,8 @@ import Zug.Objekt (Objekt)
 import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
        (HinzufügenSeite(), ButtonHinzufügen(ButtonHinzufügen), spezifischerButtonHinzufügen
       , seiteErgebnis, hinzufügenBahngeschwindigkeitNew, hinzufügenStreckenabschnittNew
-      , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenWegstreckeNew, hinzufügenPlanNew)
+      , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenKontaktNew
+      , hinzufügenWegstreckeNew, hinzufügenPlanNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
 import Zug.UI.Gtk.Hilfsfunktionen
@@ -127,6 +128,7 @@ assistantHinzufügenNew parent maybeTVar = do
         , (hinzufügenStreckenabschnittNew maybeTVar, Language.streckenabschnitt)
         , (hinzufügenWeicheNew zugtypAuswahl maybeTVar, Language.weiche)
         , (hinzufügenKupplungNew maybeTVar, Language.kupplung)
+        , (hinzufügenKontaktNew maybeTVar, Language.kontakt)
         , (hinzufügenWegstreckeNew zugtypAuswahl maybeTVar, Language.wegstrecke)
         , (hinzufügenPlanNew window zugtypAuswahl maybeTVar, Language.plan)]
     let assistantHinzufügen =
