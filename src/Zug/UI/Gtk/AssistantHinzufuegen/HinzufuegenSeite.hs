@@ -470,15 +470,10 @@ setzeSeite
     fließendAuswahl
     _zugtypAuswahl
     HinzufügenSeiteStreckenabschnitt {nameAuswahl, stromAuswahl}
-    (OStreckenabschnitt st) = do
-    setzeName nameAuswahl $ erhalteName st
-    setzeFließendValue fließendAuswahl $ fließend st
-    _undefined --TODO
-    void $ do
-        stName <- aktuellerName nameAuswahl
-        stFließend <- aktuellerFließendValue fließendAuswahl
-        stromAnschluss <- aktuellerAnschluss stromAuswahl
-        pure $ OStreckenabschnitt Streckenabschnitt { stName, stFließend, stromAnschluss }
+    (OStreckenabschnitt Streckenabschnitt {stName, stFließend, stromAnschluss}) = do
+    setzeName nameAuswahl stName
+    setzeFließendValue fließendAuswahl stFließend
+    setzeAnschluss stromAuswahl stromAnschluss
 setzeSeite
     fließendAuswahl
     zugtypAuswahl
@@ -527,28 +522,18 @@ setzeSeite
     fließendAuswahl
     _zugtypAuswahl
     HinzufügenSeiteKupplung {nameAuswahl, kupplungsAuswahl}
-    (OKupplung ku) = do
-    setzeName nameAuswahl $ erhalteName ku
-    setzeFließendValue fließendAuswahl $ fließend ku
-    _undefined --TODO
-    void $ do
-        kuName <- aktuellerName nameAuswahl
-        kuFließend <- aktuellerFließendValue fließendAuswahl
-        kupplungsAnschluss <- aktuellerAnschluss kupplungsAuswahl
-        pure $ OKupplung Kupplung { kuName, kuFließend, kupplungsAnschluss }
+    (OKupplung Kupplung {kuName, kuFließend, kupplungsAnschluss}) = do
+    setzeName nameAuswahl kuName
+    setzeFließendValue fließendAuswahl kuFließend
+    setzeAnschluss kupplungsAuswahl kupplungsAnschluss
 setzeSeite
     fließendAuswahl
     _zugtypAuswahl
     HinzufügenSeiteKontakt {nameAuswahl, kontaktAuswahl}
-    (OKontakt ko) = do
-    setzeName nameAuswahl $ erhalteName ko
-    setzeFließendValue fließendAuswahl $ fließend ko
-    _undefined --TODO
-    void $ do
-        koName <- aktuellerName nameAuswahl
-        koFließend <- aktuellerFließendValue fließendAuswahl
-        kontaktAnschluss <- aktuellerAnschluss kontaktAuswahl
-        pure $ OKontakt Kontakt { koName, koFließend, kontaktAnschluss }
+    (OKontakt Kontakt {koName, koFließend, kontaktAnschluss}) = do
+    setzeName nameAuswahl koName
+    setzeFließendValue fließendAuswahl koFließend
+    setzeAnschluss kontaktAuswahl kontaktAnschluss
 setzeSeite
     _fließendAuswahl
     zugtypAuswahl
