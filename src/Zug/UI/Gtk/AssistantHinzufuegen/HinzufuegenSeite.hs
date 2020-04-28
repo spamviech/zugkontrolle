@@ -21,6 +21,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
   , ButtonHinzufügen(..)
   , spezifischerButtonHinzufügen
   , seiteErgebnis
+  , setzeWert
   , hinzufügenBahngeschwindigkeitNew
   , hinzufügenStreckenabschnittNew
   , hinzufügenWeicheNew
@@ -489,6 +490,16 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVar = do
         , legoGeschwindigkeitAuswahl
         , fahrtrichtungsAuswahl
         }
+
+-- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
+setzeWert :: forall r m.
+          (StatusVarGuiReader r m, MonadIO m)
+          => FließendAuswahlWidget
+          -> AuswahlWidget Zugtyp
+          -> HinzufügenSeite
+          -> Objekt
+          -> m Objekt
+setzeWert = _undefined --TODO
 
 -- | Erzeuge eine Seite zum hinzufügen eines 'Streckenabschnitt'.
 hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)
