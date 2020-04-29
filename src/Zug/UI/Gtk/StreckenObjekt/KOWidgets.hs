@@ -203,10 +203,18 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKontakte kontakt koTVarSprache
     -- Widget erstellen
-    (vBox, koFunctionBox) <- liftIO $ do
-        vBox <- boxPackWidgetNewDefault vBoxKontakte $ Gtk.vBoxNew False 0
-        koFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-        pure (vBox, koFunctionBox)
+    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKontakte $ Gtk.vBoxNew False 0
+    namePackNew vBox kontakt
+    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
+        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
+            $ Gtk.expanderNew Text.empty
+        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+            $ scrollbaresWidgetNew
+            $ Gtk.vBoxNew False 0
+        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    verwendeSpracheGui justTVarSprache $ \sprache
+        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    koFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
     let koWidgets =
             KOWidgets
             { ko = kontakt
@@ -217,17 +225,6 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
             , koTVarSprache
             , koTVarEvent
             }
-    namePackNew koFunctionBox kontakt
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse
-            <- boxPackWidgetNew koFunctionBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
-    verwendeSpracheGui justTVarSprache $ \sprache
-        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kontakt kontaktAnschluss
     --TODO Kontakt-Anzeige
@@ -237,4 +234,7 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OKontakt koWidgets
     pure koWidgets
 #endif
+
+
+
 
