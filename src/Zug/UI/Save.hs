@@ -28,6 +28,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, fromJust)
 import Data.Semigroup (Semigroup((<>)))
+import qualified Data.Set as Set
 import Data.Text (Text)
 import Data.Word (Word8)
 import Data.Yaml (encodeFile, decodeFileEither)
@@ -109,6 +110,7 @@ instance forall o. (ObjektKlasse o, ToJSON o) => ToJSON (StatusAllgemein o) wher
                   .= (map (ausObjekt . OStreckenabschnitt) $ _streckenabschnitte status :: [o])
             , weichenJS .= (map (ausObjekt . OWeiche) $ _weichen status :: [o])
             , kupplungenJS .= (map (ausObjekt . OKupplung) $ _kupplungen status :: [o])
+            , kontakteJS .= (map (ausObjekt . OKontakt) $ _kontakte status :: [o])
             , wegstreckenJS .= (map (ausObjekt . OWegstrecke) $ _wegstrecken status :: [o])
             , pläneJS .= (map (ausObjekt . OPlan) $ _pläne status :: [o])]
 
@@ -625,6 +627,7 @@ instance ToJSON Kontakt where
 weichenRichtungenJS :: Text
 weichenRichtungenJS = "Weichen-Richtungen"
 
+-- Kontakte optional, um Kompatibilität mit älteren yaml-Dateien zu garantieren
 instance (FromJSON (GeschwindigkeitEither Bahngeschwindigkeit z), FromJSON (Weiche z))
     => FromJSON (Wegstrecke z) where
     parseJSON :: Value -> Parser (Wegstrecke z)
@@ -634,20 +637,25 @@ instance (FromJSON (GeschwindigkeitEither Bahngeschwindigkeit z), FromJSON (Weic
         <*> v .: streckenabschnitteJS
         <*> v .: weichenRichtungenJS
         <*> v .: kupplungenJS
-        <*> v .: kontakteJS
+        <*> (v .: kontakteJS <|> pure Set.empty)
     parseJSON _value = mzero
 
 instance ToJSON (Wegstrecke z) where
     toJSON :: Wegstrecke z -> Value
     toJSON
-        Wegstrecke
-        {wsName, wsBahngeschwindigkeiten, wsStreckenabschnitte, wsWeichenRichtungen, wsKupplungen} =
+        Wegstrecke { wsName
+                   , wsBahngeschwindigkeiten
+                   , wsStreckenabschnitte
+                   , wsWeichenRichtungen
+                   , wsKupplungen
+                   , wsKontakte} =
         object
             [ nameJS .= wsName
             , bahngeschwindigkeitenJS .= wsBahngeschwindigkeiten
             , streckenabschnitteJS .= wsStreckenabschnitte
             , weichenRichtungenJS .= wsWeichenRichtungen
-            , kupplungenJS .= wsKupplungen]
+            , kupplungenJS .= wsKupplungen
+            , kontakteJS .= wsKontakte]
 
 -- Instanz-Deklaration für Plan
 -- neue Feld-Namen/Bezeichner in json-Datei
