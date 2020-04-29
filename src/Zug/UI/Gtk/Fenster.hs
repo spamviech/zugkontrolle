@@ -25,10 +25,10 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Lens ((^.))
 import Control.Monad (void, when)
+import Control.Monad.Fix (MonadFix())
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-import Control.Monad.Fix (MonadFix())
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))

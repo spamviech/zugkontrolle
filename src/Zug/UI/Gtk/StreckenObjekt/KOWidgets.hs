@@ -234,7 +234,4 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OKontakt koWidgets
     pure koWidgets
 #endif
-
-
-
-
+--

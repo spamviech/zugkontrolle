@@ -317,4 +317,4 @@ instance ObjektKlasse ObjektGui where
     ausObjekt :: ObjektGui -> ObjektGui
     ausObjekt = id
 #endif
- --
+--
