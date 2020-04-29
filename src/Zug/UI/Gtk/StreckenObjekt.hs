@@ -78,7 +78,9 @@ module Zug.UI.Gtk.StreckenObjekt
   , BoxPlanHinzufügen
   , boxPlanHinzufügenNew
   , widgetHinzufügenToggled
+  , widgetHinzufügenSetToggled
   , widgetHinzufügenAktuelleAuswahl
+  , widgetHinzufügenSetzeAuswahl
 #endif
   ) where
 
@@ -115,7 +117,7 @@ import Zug.UI.Gtk.StreckenObjekt.WSWidgets
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (WidgetHinzufügen(), BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew
       , WegstreckeCheckButton(), BoxPlanHinzufügen, boxPlanHinzufügenNew, widgetHinzufügenToggled
-      , widgetHinzufügenAktuelleAuswahl)
+      , widgetHinzufügenSetToggled, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenSetzeAuswahl)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 

@@ -37,7 +37,9 @@ module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
   , widgetHinzufügenBoxPackNew
   , widgetHinzufügenRegistrierterCheckButtonVoid
   , widgetHinzufügenAktuelleAuswahl
+  , widgetHinzufügenSetzeAuswahl
   , widgetHinzufügenToggled
+  , widgetHinzufügenSetToggled
     -- * Spezielle Typ-Konvertierungen
   , widgetHinzufügenGeschwindigkeitVariante
   , widgetHinzufügenGeschwindigkeitEither
@@ -55,9 +57,10 @@ import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(), GeschwindigkeitEither(), Richtung())
 import Zug.Language (Sprache())
-import Zug.UI.Gtk.Auswahl (AuswahlWidget(), MitAuswahlWidget(..), aktuelleAuswahl)
+import Zug.UI.Gtk.Auswahl (AuswahlWidget(), MitAuswahlWidget(..), aktuelleAuswahl, setzeAuswahl)
 import Zug.UI.Gtk.FortfahrenWennToggled
-       (RegistrierterCheckButton, MitRegistrierterCheckButton(..), registrierterCheckButtonToggled)
+       (RegistrierterCheckButton, MitRegistrierterCheckButton(..), registrierterCheckButtonToggled
+      , registrierterCheckButtonSetToggled)
 import Zug.UI.Gtk.Hilfsfunktionen (containerRemoveJust, boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(), MitBox())
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
@@ -105,16 +108,28 @@ widgetHinzufügenRegistrierterCheckButtonVoid
 widgetHinzufügenRegistrierterCheckButtonVoid =
     WidgetHinzufügen . erhalteRegistrierterCheckButton . widgetHinzufügen
 
--- | Erhalte die aktuelle Auswahl des inkludierten 'MitAuswahlWidget'
+-- | Erhalte die aktuelle Auswahl des inkludierten 'MitAuswahlWidget'.
 widgetHinzufügenAktuelleAuswahl
     :: (Eq b, MitAuswahlWidget w b, MonadIO m) => WidgetHinzufügen e w a -> m b
 widgetHinzufügenAktuelleAuswahl = aktuelleAuswahl . erhalteAuswahlWidget . widgetHinzufügen
 
--- | Überprüfe, ob der inkludierte 'MitRegistrierterCheckButton' aktuell gedrückt ist.
+-- | Setze die aktuelle Auswahl des inkludierten 'MitAuswahlWidget'.
+widgetHinzufügenSetzeAuswahl
+    :: (Eq b, MitAuswahlWidget w b, MonadIO m) => WidgetHinzufügen e w a -> b -> m ()
+widgetHinzufügenSetzeAuswahl
+    WidgetHinzufügen {widgetHinzufügen} = setzeAuswahl $ erhalteAuswahlWidget widgetHinzufügen
+
+-- | Überprüfe ob der inkludierte 'MitRegistrierterCheckButton' aktuell gedrückt ist.
 widgetHinzufügenToggled
     :: (MitRegistrierterCheckButton t, MonadIO m) => WidgetHinzufügen e t a -> m Bool
 widgetHinzufügenToggled =
     registrierterCheckButtonToggled . erhalteRegistrierterCheckButton . widgetHinzufügen
+
+-- | Bestimme ob der inkludierte 'MitRegistrierterCheckButton' aktuell gedrückt ist.
+widgetHinzufügenSetToggled
+    :: (MitRegistrierterCheckButton t, MonadIO m) => WidgetHinzufügen e t a -> Bool -> m ()
+widgetHinzufügenSetToggled widgetHinzufügen =
+    registrierterCheckButtonSetToggled $ erhalteRegistrierterCheckButton widgetHinzufügen
 
 -- | Entferne ein 'WidgetHinzufügen' (falls vorhanden) aus dem zugehörigen Container
 widgetHinzufügenContainerRemoveJust
