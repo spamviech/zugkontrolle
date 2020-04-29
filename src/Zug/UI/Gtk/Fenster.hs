@@ -38,12 +38,13 @@ import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
 import Zug.Enums (ZugtypEither(..), GeschwindigkeitEither(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
-import Zug.Objekt (ObjektAllgemein(..))
+import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte
                   , wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
 import Zug.UI.Gtk.AssistantHinzufuegen
-       (assistantHinzufügenNew, assistantHinzufügenAuswerten, HinzufügenErgebnis(..))
+       (AssistantHinzufügen, assistantHinzufügenNew, assistantHinzufügenAuswerten
+      , HinzufügenErgebnis(..), setzeAssistantHinzufügen)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, packingDefault
                                  , paddingDefault, Position(), buttonNewWithEventLabel, dialogEval)
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
@@ -238,58 +239,60 @@ dialogLadenFehlerNew parent maybeTVar = do
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadFix m, MonadIO m)
-                      => p
-                      -> b
-                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                      -> m Gtk.Button
+buttonHinzufügenPack
+    :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadFix m, MonadIO m)
+    => p
+    -> b
+    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> m ( Gtk.Button
+         , Objekt
+               -> IO ()
+         )
 buttonHinzufügenPack parentWindow box maybeTVar = do
     assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
     objektReader <- ask
     statusVar <- erhalteStatusVar
+    let assistantAuswerten :: IO ()
+        assistantAuswerten = flip runReaderT objektReader $ do
+            assistantHinzufügenAuswerten assistantHinzufügen
+                >>= flip auswertenStatusVarMStatusT statusVar . \case
+                    (HinzufügenErfolgreich
+                         (OBahngeschwindigkeit (ZugtypMärklin (GeschwindigkeitPwm bgMärklinPwm))))
+                        -> void $ bahngeschwindigkeitPackNew bgMärklinPwm
+                    (HinzufügenErfolgreich
+                         (OBahngeschwindigkeit
+                              (ZugtypMärklin
+                                   (GeschwindigkeitKonstanteSpannung bgMärklinKonstanteSpannung))))
+                        -> void $ bahngeschwindigkeitPackNew bgMärklinKonstanteSpannung
+                    (HinzufügenErfolgreich
+                         (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitPwm bgLegoPwm))))
+                        -> void $ bahngeschwindigkeitPackNew bgLegoPwm
+                    (HinzufügenErfolgreich
+                         (OBahngeschwindigkeit
+                              (ZugtypLego
+                                   (GeschwindigkeitKonstanteSpannung bgLegoKonstanteSpannung))))
+                        -> void $ bahngeschwindigkeitPackNew bgLegoKonstanteSpannung
+                    (HinzufügenErfolgreich (OStreckenabschnitt st))
+                        -> void $ streckenabschnittPackNew st
+                    (HinzufügenErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
+                        -> void $ weichePackNew weMärklin
+                    (HinzufügenErfolgreich (OWeiche (ZugtypLego weLego)))
+                        -> void $ weichePackNew weLego
+                    (HinzufügenErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
+                    (HinzufügenErfolgreich (OKontakt ko)) -> void $ kontaktPackNew ko
+                    (HinzufügenErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
+                        -> void $ wegstreckePackNew wsMärklin
+                    (HinzufügenErfolgreich (OWegstrecke (ZugtypLego wsLego)))
+                        -> void $ wegstreckePackNew wsLego
+                    (HinzufügenErfolgreich (OPlan pl)) -> void $ planPackNew pl
+                    -- Kein catch-all Pattern um Fehlermeldung des Compilers
+                    -- bei neu hinzugefügten Objekten nicht zu verpassen
+                    HinzufügenBeenden -> pure ()
+                    HinzufügenAbbrechen -> pure ()
     button <- boxPackWidgetNewDefault box
         $ buttonNewWithEventLabel maybeTVar Language.hinzufügen
         $ void
-        $ forkIO
-        $ do
-            flip runReaderT objektReader $ do
-                assistantHinzufügenAuswerten assistantHinzufügen
-                    >>= flip auswertenStatusVarMStatusT statusVar . \case
-                        (HinzufügenErfolgreich
-                             (OBahngeschwindigkeit
-                                  (ZugtypMärklin (GeschwindigkeitPwm bgMärklinPwm))))
-                            -> void $ bahngeschwindigkeitPackNew bgMärklinPwm
-                        (HinzufügenErfolgreich
-                             (OBahngeschwindigkeit
-                                  (ZugtypMärklin
-                                       (GeschwindigkeitKonstanteSpannung
-                                            bgMärklinKonstanteSpannung))))
-                            -> void $ bahngeschwindigkeitPackNew bgMärklinKonstanteSpannung
-                        (HinzufügenErfolgreich
-                             (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitPwm bgLegoPwm))))
-                            -> void $ bahngeschwindigkeitPackNew bgLegoPwm
-                        (HinzufügenErfolgreich
-                             (OBahngeschwindigkeit
-                                  (ZugtypLego
-                                       (GeschwindigkeitKonstanteSpannung bgLegoKonstanteSpannung))))
-                            -> void $ bahngeschwindigkeitPackNew bgLegoKonstanteSpannung
-                        (HinzufügenErfolgreich (OStreckenabschnitt st))
-                            -> void $ streckenabschnittPackNew st
-                        (HinzufügenErfolgreich (OWeiche (ZugtypMärklin weMärklin)))
-                            -> void $ weichePackNew weMärklin
-                        (HinzufügenErfolgreich (OWeiche (ZugtypLego weLego)))
-                            -> void $ weichePackNew weLego
-                        (HinzufügenErfolgreich (OKupplung ku)) -> void $ kupplungPackNew ku
-                        (HinzufügenErfolgreich (OKontakt ko)) -> void $ kontaktPackNew ko
-                        (HinzufügenErfolgreich (OWegstrecke (ZugtypMärklin wsMärklin)))
-                            -> void $ wegstreckePackNew wsMärklin
-                        (HinzufügenErfolgreich (OWegstrecke (ZugtypLego wsLego)))
-                            -> void $ wegstreckePackNew wsLego
-                        (HinzufügenErfolgreich (OPlan pl)) -> void $ planPackNew pl
-                        -- Kein catch-all Pattern um Fehlermeldung des Compilers
-                        -- bei neu hinzugefügten Objekten nicht zu verpassen
-                        HinzufügenBeenden -> pure ()
-                        HinzufügenAbbrechen -> pure ()
-    pure button
+        $ forkIO assistantAuswerten
+    pure (button, \objekt -> setzeAssistantHinzufügen assistantHinzufügen objekt >> assistantAuswerten)
 #endif
 --

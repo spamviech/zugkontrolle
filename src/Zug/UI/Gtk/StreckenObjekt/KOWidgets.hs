@@ -61,7 +61,8 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew)
+       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew
+      , buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar (StatusVar, MitStatusVar())
 
 instance Kategorie KOWidgets where
@@ -183,6 +184,7 @@ kontaktPackNew
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
+    , MitAktionBearbeiten (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
     , MonadIO m
     )
@@ -230,6 +232,7 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
     --TODO Kontakt-Anzeige
     fließendPackNew vBoxAnschlüsse kontakt justTVarSprache
     buttonEntfernenPackNew koWidgets $ (entfernenKontakt koWidgets :: IOStatusAllgemein o ())
+    buttonBearbeitenPackNew koWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OKontakt koWidgets
     pure koWidgets

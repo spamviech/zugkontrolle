@@ -92,7 +92,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
       , widgetHinzufügenGeschwindigkeitEither, widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
-      , ohneEvent, buttonEntfernenPackNew)
+      , ohneEvent, buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar
        (StatusVar, StatusVarReader(erhalteStatusVar), MitStatusVar(), auswertenStatusVarMStatusT)
 
@@ -678,6 +678,7 @@ bahngeschwindigkeitPackNew
     , MitSpracheGui (ReaderFamilie o)
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
+    , MitAktionBearbeiten (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
     )
@@ -713,6 +714,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         bgWidgets
         (entfernenBahngeschwindigkeit $ zuZugtypEither $ zuGeschwindigkeitEither bgWidgets
          :: IOStatusAllgemein o ())
+    buttonBearbeitenPackNew bgWidgets
     -- Widgets merken
     ausführenBefehl
         $ Hinzufügen

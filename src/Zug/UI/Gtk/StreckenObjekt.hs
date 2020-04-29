@@ -10,6 +10,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FunctionalDependencies #-}
+
+{-# OPTIONS_GHC -Wno-orphans #-}
 #endif
 
 {-|
@@ -118,7 +120,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (WidgetHinzufügen(), BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew
       , WegstreckeCheckButton(), BoxPlanHinzufügen, boxPlanHinzufügenNew, widgetHinzufügenToggled
       , widgetHinzufügenSetToggled, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenSetzeAuswahl)
-import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..))
+import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..), MitAktionBearbeiten(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 
 -- * Sammel-Typ um dynamische Widgets zu speichern
@@ -161,6 +163,7 @@ data DynamischeWidgets =
     , dynFortfahrenWennToggledWegstrecke
           :: FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
     , dynTMVarPlanObjekt :: TMVar (Maybe Objekt)
+    , dynAktionBearbeiten :: Objekt -> IO ()
     }
 
 -- | Klasse für Typen mit 'DynamischeWidgets'
@@ -174,6 +177,10 @@ instance MitDynamischeWidgets DynamischeWidgets where
 instance MitWindowMain DynamischeWidgets where
     windowMain :: DynamischeWidgets -> Gtk.Window
     windowMain = dynWindowMain
+
+instance MitAktionBearbeiten DynamischeWidgets where
+    aktionBearbeiten :: DynamischeWidgets -> Objekt -> IO ()
+    aktionBearbeiten = dynAktionBearbeiten
 
 instance MitFortfahrenWennToggledWegstrecke DynamischeWidgets ObjektGui where
     fortfahrenWennToggledWegstrecke
@@ -238,57 +245,51 @@ instance MitSpracheGui (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> m SpracheGui
     spracheGui (_tvarMaps, _dynamischeWidgets, statusVar) = readSpracheGui statusVar
 
-instance MitWindowMain (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    windowMain :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> Gtk.Window
-    windowMain (_tvarMaps, DynamischeWidgets {dynWindowMain}, _tmvarStatus) = dynWindowMain
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitWindowMain r where
+    windowMain :: r -> Gtk.Window
+    windowMain = dynWindowMain . dynamischeWidgets
 
-instance MitFortfahrenWennToggledWegstrecke (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektGui where
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitAktionBearbeiten r where
+    aktionBearbeiten :: r -> Objekt -> IO ()
+    aktionBearbeiten = aktionBearbeiten . dynamischeWidgets
+
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r)
+    => MitFortfahrenWennToggledWegstrecke r ObjektGui where
     fortfahrenWennToggledWegstrecke
-        :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui)
-        -> FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
-    fortfahrenWennToggledWegstrecke
-        (_tvarMaps, DynamischeWidgets {dynFortfahrenWennToggledWegstrecke}, _tmvarStatus) =
-        dynFortfahrenWennToggledWegstrecke
+        :: r -> FortfahrenWennToggledVar StatusGui StatusVarGui WegstreckeCheckButtonVoid
+    fortfahrenWennToggledWegstrecke = dynFortfahrenWennToggledWegstrecke . dynamischeWidgets
 
-instance MitTMVarPlanObjekt (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    tmvarPlanObjekt :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> TMVar (Maybe Objekt)
-    tmvarPlanObjekt
-        (_tvarMaps, DynamischeWidgets {dynTMVarPlanObjekt}, _tmvarStatus) = dynTMVarPlanObjekt
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitTMVarPlanObjekt r where
+    tmvarPlanObjekt :: r -> TMVar (Maybe Objekt)
+    tmvarPlanObjekt = dynTMVarPlanObjekt . dynamischeWidgets
 
-instance MitBGWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    bgWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> BGWidgetsBoxen
-    bgWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynBGWidgetsBoxen}, _tmvarStatus) = dynBGWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitBGWidgetsBoxen r where
+    bgWidgetsBoxen :: r -> BGWidgetsBoxen
+    bgWidgetsBoxen = dynBGWidgetsBoxen . dynamischeWidgets
 
-instance MitSTWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    stWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> STWidgetsBoxen
-    stWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynSTWidgetsBoxen}, _tmvarStatus) = dynSTWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitSTWidgetsBoxen r where
+    stWidgetsBoxen :: r -> STWidgetsBoxen
+    stWidgetsBoxen = dynSTWidgetsBoxen . dynamischeWidgets
 
-instance MitWEWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    weWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> WEWidgetsBoxen
-    weWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynWEWidgetsBoxen}, _tmvarStatus) = dynWEWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitWEWidgetsBoxen r where
+    weWidgetsBoxen :: r -> WEWidgetsBoxen
+    weWidgetsBoxen = dynWEWidgetsBoxen . dynamischeWidgets
 
-instance MitKUWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    kuWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> KUWidgetsBoxen
-    kuWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynKUWidgetsBoxen}, _tmvarStatus) = dynKUWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitKUWidgetsBoxen r where
+    kuWidgetsBoxen :: r -> KUWidgetsBoxen
+    kuWidgetsBoxen = dynKUWidgetsBoxen . dynamischeWidgets
 
-instance MitKOWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    koWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> KOWidgetsBoxen
-    koWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynKOWidgetsBoxen}, _tmvarStatus) = dynKOWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitKOWidgetsBoxen r where
+    koWidgetsBoxen :: r -> KOWidgetsBoxen
+    koWidgetsBoxen = dynKOWidgetsBoxen . dynamischeWidgets
 
-instance MitWSWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    wsWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> WSWidgetsBoxen
-    wsWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynWSWidgetsBoxen}, _tmvarStatus) = dynWSWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitWSWidgetsBoxen r where
+    wsWidgetsBoxen :: r -> WSWidgetsBoxen
+    wsWidgetsBoxen = dynWSWidgetsBoxen . dynamischeWidgets
 
-instance MitPLWidgetsBoxen (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    plWidgetsBoxen :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> PLWidgetsBoxen
-    plWidgetsBoxen
-        (_tvarMaps, DynamischeWidgets {dynPLWidgetsBoxen}, _tmvarStatus) = dynPLWidgetsBoxen
+instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitPLWidgetsBoxen r where
+    plWidgetsBoxen :: r -> PLWidgetsBoxen
+    plWidgetsBoxen = dynPLWidgetsBoxen . dynamischeWidgets
 
 -- | Lese die 'SpracheGui' aus einer 'StatusVarGui'.
 readSpracheGui :: (MonadIO m) => StatusVarGui -> m SpracheGui

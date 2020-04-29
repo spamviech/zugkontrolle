@@ -78,7 +78,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
       , widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
-      , ohneEvent, buttonEntfernenPackNew)
+      , ohneEvent, buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar
        (StatusVar, MitStatusVar, StatusVarReader(erhalteStatusVar), ausführenStatusVarAktion)
 
@@ -471,6 +471,7 @@ wegstreckePackNew
     , MitWSWidgetsBoxen (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , MitTMVarPlanObjekt (ReaderFamilie o)
+    , MitAktionBearbeiten (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
@@ -642,6 +643,7 @@ wegstreckePackNew
                 }
         buttonEntfernenPackNew wsWidgets
             $ (entfernenWegstrecke $ zuZugtypEither wsWidgets :: IOStatusAllgemein o ())
+        buttonBearbeitenPackNew wsWidgets
         -- Widgets merken
         ausführenBefehl $ Hinzufügen $ ausObjekt $ OWegstrecke $ zuZugtypEither wsWidgets
         pure wsWidgets

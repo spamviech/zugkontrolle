@@ -71,7 +71,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
       , BoxPlanHinzufügen, ButtonPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
-      , ohneEvent, buttonEntfernenPackNew)
+      , ohneEvent, buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar
        (StatusVar, MitStatusVar, StatusVarReader(erhalteStatusVar), auswertenStatusVarMStatusT)
 
@@ -192,6 +192,7 @@ streckenabschnittPackNew
     , MitSpracheGui (ReaderFamilie o)
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
+    , MitAktionBearbeiten (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
     , ObjektKlasse o
     , Eq (BG o 'Pwm 'Märklin)
@@ -271,6 +272,7 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     buttonEntfernenPackNew
         stWidgets
         (entfernenStreckenabschnitt stWidgets :: IOStatusAllgemein o ())
+    buttonBearbeitenPackNew stWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OStreckenabschnitt stWidgets
     pure stWidgets

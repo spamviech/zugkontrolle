@@ -27,6 +27,7 @@ module Zug.Language
   , zurück
   , hinzufügen
   , entfernen
+  , bearbeiten
   , speichern
   , laden
   , sprache
@@ -260,6 +261,11 @@ hinzufügen Englisch = "Add"
 entfernen :: Sprache -> Text
 entfernen Deutsch = "Entfernen"
 entfernen Englisch = "Remove"
+
+-- | Edit
+bearbeiten :: Sprache -> Text
+bearbeiten Deutsch = "Bearbeiten"
+bearbeiten Englisch = "Edit"
 
 -- | Save
 speichern :: Sprache -> Text

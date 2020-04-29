@@ -17,6 +17,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen
   , AssistantHinzufügen()
   , assistantHinzufügenAuswerten
   , HinzufügenErgebnis(..)
+  , setzeAssistantHinzufügen
 #endif
   ) where
 
@@ -85,7 +86,7 @@ assistantHinzufügenAuswerten AssistantHinzufügen {window, tmVarErgebnis} = lif
     Gtk.postGUIAsync $ mitWidgetHide window
     pure ergebnis
 
--- | Erhalte das Ergebnis einer 'HinzufügenSeite'.
+-- | Erhalte das Ergebnis eines 'AssistantHinzufügen'.
 hinzufügenErgebnis :: (StatusVarGuiReader r m, MonadIO m) => AssistantHinzufügen -> m ()
 hinzufügenErgebnis
     AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis} =
@@ -93,6 +94,12 @@ hinzufügenErgebnis
         aktuelleSeite <- liftIO $ Gtk.get notebook Gtk.notebookPage
         ergebnis <- seiteErgebnis fließendAuswahl zugtypAuswahl $ indexSeiten Map.! aktuelleSeite
         liftIO $ atomically $ putTMVar tmVarErgebnis $ HinzufügenErfolgreich ergebnis
+
+-- | Setze den aktuellen Wert eines 'AssistantHinzufügen'.
+setzeAssistantHinzufügen :: (MonadIO m) => AssistantHinzufügen -> Objekt -> m ()
+setzeAssistantHinzufügen
+    AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis}
+    objekt = _undefined --TODO
 
 -- | Erstelle einen neuen 'AssistantHinzufügen'.
 assistantHinzufügenNew

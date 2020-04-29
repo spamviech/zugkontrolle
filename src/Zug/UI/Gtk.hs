@@ -2,6 +2,7 @@
 #ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
@@ -97,7 +98,7 @@ main = do
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
-setupGUI maybeTVar = void $ do
+setupGUI maybeTVar = void $ mdo
     Options {load = dateipfad, gtkSeiten, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Dummy-Fenster, damit etwas angezeigt wird
@@ -175,7 +176,7 @@ setupGUI maybeTVar = void $ do
     -- Paned-Variante
     notebookElementePaned
         <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-    (panedBahngeschwindigkeitStreckenabschnittWeiche, _page) <- flip runReaderT spracheGui
+    (panedBahngeschwindigkeitStreckenabschnittWeiche, _pageBgStWe) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
             notebookElementePaned
             maybeTVar
@@ -219,7 +220,7 @@ setupGUI maybeTVar = void $ do
     vBoxWeichen <- boxPackWidgetNew vBoxPanedWeichen PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
         $ Gtk.vBoxNew False 0
-    (panedKupplungKontakt, _page) <- flip runReaderT spracheGui
+    (panedKupplungKontakt, _pageKuKo) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
             notebookElementePaned
             maybeTVar
@@ -245,7 +246,7 @@ setupGUI maybeTVar = void $ do
     vBoxKontakte <- boxPackWidgetNew vBoxPanedKontakte PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
         $ Gtk.vBoxNew False 0
-    (panedWegstreckePlan, _page) <- flip runReaderT spracheGui
+    (panedWegstreckePlan, _pageWsPl) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
             notebookElementePaned
             maybeTVar
@@ -432,13 +433,15 @@ setupGUI maybeTVar = void $ do
             , dynWindowMain
             , dynFortfahrenWennToggledWegstrecke
             , dynTMVarPlanObjekt
+            , dynAktionBearbeiten = aktionBearbeiten
             }
     let objektReader = (tvarMaps, dynamischeWidgets, statusVar)
     -- Knopf-Leiste mit globalen Funktionen
     functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End $ Gtk.hBoxNew False 0
-    flip runReaderT objektReader $ do
+    aktionBearbeiten <- flip runReaderT objektReader $ do
         -- Linke Seite
-        buttonHinzufügenPack dynWindowMain functionBox maybeTVar
+        (_buttonHinzufügen, aktionBearbeiten)
+            <- buttonHinzufügenPack dynWindowMain functionBox maybeTVar
         spracheAuswahl <- boxPackWidgetNewDefault functionBox
             $ boundedEnumAuswahlComboBoxNew Language.Deutsch maybeTVar Language.sprache
         beiAuswahl spracheAuswahl $ \sprache -> void $ do
@@ -451,6 +454,7 @@ setupGUI maybeTVar = void $ do
             $ Gtk.mainQuit
         buttonLadenPack dynWindowMain functionBox maybeTVar End
         buttonSpeichernPack dynWindowMain functionBox maybeTVar End
+        pure aktionBearbeiten
     checkButtonNotebook <- boxPackWidgetNewDefault functionBox
         $ toggleButtonNewWithEvent Gtk.checkButtonNew
         $ \toggled -> do

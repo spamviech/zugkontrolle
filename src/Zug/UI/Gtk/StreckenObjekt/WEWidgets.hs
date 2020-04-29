@@ -67,8 +67,8 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen, widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew
-      , eventAusführen)
+       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
+      , buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar
        (StatusVar, StatusVarReader(erhalteStatusVar), MitStatusVar(), ausführenStatusVarAktion)
 
@@ -337,6 +337,7 @@ weichePackNew
     , MitStatusVar (ReaderFamilie o) o
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
+    , MitAktionBearbeiten (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
     )
@@ -404,6 +405,7 @@ weichePackNew weiche = do
     fließendPackNew vBoxAnschlüsse weiche justTVarSprache
     buttonEntfernenPackNew weWidgets
         $ (entfernenWeiche $ zuZugtypEither weWidgets :: IOStatusAllgemein o ())
+    buttonBearbeitenPackNew weWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OWeiche $ zuZugtypEither weWidgets
     pure weWidgets

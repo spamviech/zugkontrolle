@@ -64,8 +64,8 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), CheckButtonWegstreckeHinzufügen, BoxWegstreckeHinzufügen
       , ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew
-      , eventAusführen)
+       (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
+      , buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar
        (StatusVar, MitStatusVar(), StatusVarReader(erhalteStatusVar), ausführenStatusVarAktion)
 
@@ -190,6 +190,7 @@ kupplungPackNew
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
+    , MitAktionBearbeiten (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
     , MonadIO m
     )
@@ -240,6 +241,7 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
     buttonEntfernenPackNew kuWidgets $ (entfernenKupplung kuWidgets :: IOStatusAllgemein o ())
+    buttonBearbeitenPackNew kuWidgets
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OKupplung kuWidgets
     pure kuWidgets

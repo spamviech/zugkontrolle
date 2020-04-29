@@ -71,7 +71,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (Kategorie(..), KategorieText(..), ButtonPlanHinzufügen, BoxPlanHinzufügen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
-      , buttonEntfernenPackNew)
+      , buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(), StatusVarReader(erhalteStatusVar)
                        , auswertenStatusVarIOStatus, ausführenStatusVarBefehl)
 
@@ -179,6 +179,7 @@ planPackNew :: forall m.
             , MitPLWidgetsBoxen (ReaderFamilie ObjektGui)
             , MitWindowMain (ReaderFamilie ObjektGui)
             , MitTMVarPlanObjekt (ReaderFamilie ObjektGui)
+            , MitAktionBearbeiten (ReaderFamilie ObjektGui)
             , MonadIO m
             )
             => Plan
@@ -281,6 +282,7 @@ planPackNew plan@Plan {plAktionen} = do
             , plTVarEvent
             }
     buttonEntfernenPackNew plWidgets $ (entfernenPlan plWidgets :: IOStatusAllgemein ObjektGui ())
+    buttonBearbeitenPackNew plWidgets
     let justTVarSprache = Just plTVarSprache
     verwendeSpracheGui justTVarSprache $ \sprache -> do
         Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
