@@ -4,18 +4,18 @@ Streckenabschnitte:
   StromAnschluss:
     Pin: 1
 Bahngeschwindigkeiten:
-- UmdrehenAnschluss:
-    Pin: 0
-  FahrstromAnschlüsse:
+- FahrstromAnschlüsse:
   - PCF8574Port:
       Variante: A
       a2: HIGH
       PCF8574Port: 0
       a1: LOW
       a0: HIGH
+  UmdrehenAnschluss:
+    Pin: 0
   Name: Konstante Spannung
-  Fließend: LOW
   Zugtyp: Märklin
+  Fließend: LOW
 - GeschwindigkeitsPin: 19
   Name: HardwarePWM
   Zugtyp: Märklin
@@ -29,6 +29,17 @@ Kupplungen:
   KupplungsAnschluss:
     Pin: 5
   Fließend: HIGH
+Kontakte:
+- KontaktAnschluss:
+    PCF8574Port:
+      Variante: Normal
+      a2: HIGH
+      PCF8574Port: 3
+      InterruptPin: 27
+      a1: LOW
+      a0: HIGH
+  Name: muh
+  Fließend: LOW
 Weichen:
 - Name: bla
   Zugtyp: Märklin
@@ -121,15 +132,15 @@ Wegstrecken:
     StromAnschluss:
       Pin: 1
   Bahngeschwindigkeiten:
-  - UmdrehenAnschluss:
-      Pin: 0
-    FahrstromAnschlüsse:
+  - FahrstromAnschlüsse:
     - PCF8574Port:
         Variante: A
         a2: HIGH
         PCF8574Port: 0
         a1: LOW
         a0: HIGH
+    UmdrehenAnschluss:
+      Pin: 0
     Name: Konstante Spannung
     Zugtyp: Märklin
     Fließend: LOW
@@ -145,3 +156,4 @@ Wegstrecken:
         - Pin: 2
     - Rechts
   Kupplungen: []
+  Kontakte: []
