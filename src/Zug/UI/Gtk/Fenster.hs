@@ -28,6 +28,7 @@ import Control.Monad (void, when)
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Fix (MonadFix())
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
@@ -237,7 +238,7 @@ dialogLadenFehlerNew parent maybeTVar = do
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadIO m)
+buttonHinzufügenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadFix m, MonadIO m)
                       => p
                       -> b
                       -> Maybe (TVar (Maybe [Sprache -> IO ()]))

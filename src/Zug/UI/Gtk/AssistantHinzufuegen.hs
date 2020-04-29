@@ -23,6 +23,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
 import Control.Monad (forM_, foldM)
+import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Map.Strict (Map)
@@ -100,6 +101,7 @@ assistantHinzufügenNew
     , SpracheGuiReader r m
     , StatusVarGuiReader r m
     , DynamischeWidgetsReader r m
+    , MonadFix m
     , MonadIO m
     )
     => p
