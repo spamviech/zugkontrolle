@@ -42,9 +42,8 @@ import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte
                   , wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-import Zug.UI.Gtk.AssistantHinzufuegen
-       (AssistantHinzufügen, assistantHinzufügenNew, assistantHinzufügenAuswerten
-      , HinzufügenErgebnis(..), setzeAssistantHinzufügen)
+import Zug.UI.Gtk.AssistantHinzufuegen (assistantHinzufügenNew, assistantHinzufügenAuswerten
+                                      , HinzufügenErgebnis(..), setzeAssistantHinzufügen)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, packingDefault
                                  , paddingDefault, Position(), buttonNewWithEventLabel, dialogEval)
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
@@ -252,8 +251,8 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
     assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
     objektReader <- ask
     statusVar <- erhalteStatusVar
-    let assistantAuswerten :: IO ()
-        assistantAuswerten = flip runReaderT objektReader $ do
+    let assistantAuswerten :: (ObjektGuiReader m, MonadIO m) => m ()
+        assistantAuswerten = do
             assistantHinzufügenAuswerten assistantHinzufügen
                 >>= flip auswertenStatusVarMStatusT statusVar . \case
                     (HinzufügenErfolgreich
@@ -289,10 +288,16 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                     -- bei neu hinzugefügten Objekten nicht zu verpassen
                     HinzufügenBeenden -> pure ()
                     HinzufügenAbbrechen -> pure ()
+        assistantBearbeiten :: (ObjektGuiReader m, MonadIO m) => Objekt -> m ()
+        assistantBearbeiten = setzeAssistantHinzufügen assistantHinzufügen
     button <- boxPackWidgetNewDefault box
         $ buttonNewWithEventLabel maybeTVar Language.hinzufügen
         $ void
-        $ forkIO assistantAuswerten
-    pure (button, \objekt -> setzeAssistantHinzufügen assistantHinzufügen objekt >> assistantAuswerten)
+        $ forkIO
+        $ flip runReaderT objektReader
+        $ assistantAuswerten
+    pure (button, \objekt -> void $ do
+        flip runReaderT objektReader $ assistantBearbeiten objekt
+        forkIO $ runReaderT assistantAuswerten objektReader)
 #endif
 --

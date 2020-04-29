@@ -421,13 +421,16 @@ seiteErgebnis
             }
 
 -- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
+-- 
+-- Der Rückgabewert gibt an, ob das Objekt zur Seite gepasst hat ('True').
+-- Ansonsten ('False') hat diese Aktion keinen Auswirkungen.
 setzeSeite :: forall r m.
            (StatusVarGuiReader r m, SpracheGuiReader r m, MonadIO m)
            => FließendAuswahlWidget
            -> AuswahlWidget Zugtyp
            -> HinzufügenSeite
            -> Objekt
-           -> m ()
+           -> m Bool
 setzeSeite
     fließendAuswahl
     zugtypAuswahl
@@ -482,6 +485,7 @@ setzeSeite
                 setzeAnschluss fahrtrichtungsAuswahl bglFahrtrichtungsAnschluss
         (ZugtypLego (GeschwindigkeitKonstanteSpannung bg))
             -> error $ "Lego-Bahngeschwindigkeit mit konstanter Spannung: " ++ show bg
+    pure True
 setzeSeite
     fließendAuswahl
     _zugtypAuswahl
@@ -490,6 +494,7 @@ setzeSeite
     setzeName nameAuswahl stName
     setzeFließendValue fließendAuswahl stFließend
     setzeAnschluss stromAuswahl stromAnschluss
+    pure True
 setzeSeite
     fließendAuswahl
     zugtypAuswahl
@@ -510,6 +515,7 @@ setzeSeite
         (ZugtypLego LegoWeiche {welRichtungen, welRichtungsPin}) -> do
             setzeAuswahl legoRichtungenAuswahl welRichtungen
             setzePin legoRichtungsAuswahl welRichtungsPin
+    pure True
 setzeSeite
     fließendAuswahl
     _zugtypAuswahl
@@ -518,6 +524,7 @@ setzeSeite
     setzeName nameAuswahl kuName
     setzeFließendValue fließendAuswahl kuFließend
     setzeAnschluss kupplungsAuswahl kupplungsAnschluss
+    pure True
 setzeSeite
     fließendAuswahl
     _zugtypAuswahl
@@ -526,6 +533,7 @@ setzeSeite
     setzeName nameAuswahl koName
     setzeFließendValue fließendAuswahl koFließend
     setzeAnschluss kontaktAuswahl kontaktAnschluss
+    pure True
 setzeSeite
     _fließendAuswahl
     zugtypAuswahl
@@ -569,6 +577,7 @@ setzeSeite
         (koWidgets ^. getterWegstrecke)
         $ elem (erhalteObjektTyp koWidgets)
         $ enthalteneKontakte ws
+    pure True
 setzeSeite
     _fließendAuswahl
     _zugtypAuswahl
@@ -587,7 +596,8 @@ setzeSeite
             checkButtonDauerschleife
             [Gtk.toggleButtonActive := (length aktionen /= length plAktionen)]
     forM_ aktionen $ aktionHinzufügen seite
-setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure ()
+    pure True
+setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure False
 
 -- | Erzeuge eine Seite zum hinzufügen einer 'Bahngeschwindigkeit'.
 hinzufügenBahngeschwindigkeitNew

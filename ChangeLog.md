@@ -158,3 +158,5 @@
 - Gtk-UI: Plan & Märklin-Weiche Hinzufügen in ScrollbaresWidget angezeigt.
 - Gtk-UI: Anschlüsse werde gruppiert in einem Expander angezeigt.
 - Gtk-UI: Dummy-Fenster vergrößert, damit der Title lesbar ist.
+- Gtk-UI: Bearbeiten von StreckenObjekten ist möglich.
+    Das alte StreckenObjekt wird dabei nicht entfernt.

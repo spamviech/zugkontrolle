@@ -23,7 +23,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
-import Control.Monad (forM_, foldM)
+import Control.Monad (forM_, foldM, when)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
@@ -38,10 +38,10 @@ import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt)
 import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
-       (HinzufügenSeite(), ButtonHinzufügen(ButtonHinzufügen), spezifischerButtonHinzufügen
-      , seiteErgebnis, hinzufügenBahngeschwindigkeitNew, hinzufügenStreckenabschnittNew
-      , hinzufügenWeicheNew, hinzufügenKupplungNew, hinzufügenKontaktNew
-      , hinzufügenWegstreckeNew, hinzufügenPlanNew)
+       (HinzufügenSeite, ButtonHinzufügen(ButtonHinzufügen), spezifischerButtonHinzufügen
+      , seiteErgebnis, setzeSeite, hinzufügenBahngeschwindigkeitNew
+      , hinzufügenStreckenabschnittNew, hinzufügenWeicheNew, hinzufügenKupplungNew
+      , hinzufügenKontaktNew, hinzufügenWegstreckeNew, hinzufügenPlanNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
 import Zug.UI.Gtk.Hilfsfunktionen
@@ -96,10 +96,15 @@ hinzufügenErgebnis
         liftIO $ atomically $ putTMVar tmVarErgebnis $ HinzufügenErfolgreich ergebnis
 
 -- | Setze den aktuellen Wert eines 'AssistantHinzufügen'.
-setzeAssistantHinzufügen :: (MonadIO m) => AssistantHinzufügen -> Objekt -> m ()
+setzeAssistantHinzufügen :: (StatusVarGuiReader r m, SpracheGuiReader r m, MonadIO m)
+                          => AssistantHinzufügen
+                          -> Objekt
+                          -> m ()
 setzeAssistantHinzufügen
-    AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis}
-    objekt = _undefined --TODO
+    AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten}
+    objekt = forM_ (Map.toList indexSeiten) $ \(index, seite) -> do
+    richtigeSeite <- setzeSeite fließendAuswahl zugtypAuswahl seite objekt
+    liftIO $ when richtigeSeite $ Gtk.set notebook [Gtk.notebookPage := index]
 
 -- | Erstelle einen neuen 'AssistantHinzufügen'.
 assistantHinzufügenNew
