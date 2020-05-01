@@ -293,9 +293,6 @@ planPackNew plan@Plan {plAktionen} = do
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OPlan plWidgets
     pure plWidgets
 
-type ObjektGui =
-    ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets PLWidgets
-
 instance ObjektKlasse ObjektGui where
     type BG ObjektGui = BGWidgets
 
@@ -318,5 +315,8 @@ instance ObjektKlasse ObjektGui where
 
     ausObjekt :: ObjektGui -> ObjektGui
     ausObjekt = id
+
+type ObjektGui =
+    ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets PLWidgets
 #endif
 --

@@ -80,24 +80,21 @@ deriveOrd eitherNameOrCxtType =
         compareVars conName vars = do
             varNames0 <- forM vars $ const $ TH.newName "a"
             varNames1 <- forM vars $ const $ TH.newName "b"
-            exp <- compareVarExp $ zip varNames0 varNames1
             pure
                 $ TH.Clause
                     [ TH.ConP conName $ map TH.VarP varNames0
                     , TH.ConP conName $ map TH.VarP varNames1]
-                    (TH.NormalB exp)
+                    (TH.NormalB $ compareVarExp $ zip varNames0 varNames1)
                     []
 
-        compareVarExp :: [(TH.Name, TH.Name)] -> TH.Q TH.Exp
-        compareVarExp [] = pure $ TH.ConE 'EQ
-        compareVarExp ((n0, n1):t) = do
-            tExp <- compareVarExp t
-            varName <- TH.newName "ordering"
-            pure
-                $ TH.CaseE
-                    (TH.AppE (TH.AppE (TH.VarE 'compare) $ TH.VarE n0) $ TH.VarE n1)
-                    [ TH.Match (TH.ConP 'EQ []) (TH.NormalB tExp) []
-                    , TH.Match (TH.VarP varName) (TH.NormalB $ TH.VarE varName) []]
+        compareVarExp :: [(TH.Name, TH.Name)] -> TH.Exp
+        compareVarExp [] = TH.ConE 'EQ
+        compareVarExp ((n0, n1):t) =
+            TH.CondE
+                (TH.InfixE (Just $ TH.VarE n0) (TH.VarE '(==)) $ Just $ TH.VarE n1)
+                (compareVarExp t)
+            $ TH.AppE (TH.AppE (TH.VarE 'compare) $ TH.VarE n0)
+            $ TH.VarE n1
 
         compareCons :: (TH.Name, [TH.Type], Maybe TH.Type)
                     -> (TH.Name, [TH.Type], Maybe TH.Type)

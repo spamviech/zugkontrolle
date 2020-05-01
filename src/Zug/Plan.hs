@@ -39,8 +39,7 @@ import Control.Concurrent.STM (atomically, TVar, readTVarIO, modifyTVar)
 import Control.Monad (void, when)
 import Control.Monad.Reader (asks)
 import Control.Monad.Trans (MonadIO(..))
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -67,7 +66,11 @@ data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) w
     Umdrehen :: bg g 'Märklin -> AktionBahngeschwindigkeit bg g 'Märklin
     FahrtrichtungEinstellen :: bg g 'Lego -> Fahrtrichtung -> AktionBahngeschwindigkeit bg g 'Lego
 
-deriving instance (Eq (bg g z)) => Eq (AktionBahngeschwindigkeit bg g z)
+deriving instance ( Eq (bg 'Pwm z)
+                  , Eq (bg 'KonstanteSpannung z)
+                  , Eq (bg g 'Märklin)
+                  , Eq (bg g 'Lego)
+                  ) => Eq (AktionBahngeschwindigkeit bg g z)
 
 deriving instance (Show (bg g z)) => Show (AktionBahngeschwindigkeit bg g z)
 
@@ -165,6 +168,9 @@ data AktionWegstrecke ws (z :: Zugtyp)
     | AWSKontakt (AktionKontakt (ws z))
 
 deriving instance ( Eq (ws z)
+                  , Ord (ws z)
+                  , Ord (ws 'Märklin)
+                  , Ord (ws 'Lego)
                   , Eq (GeschwindigkeitPhantom ws 'Pwm z)
                   , Eq (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
                   ) => Eq (AktionWegstrecke ws z)
@@ -225,9 +231,7 @@ deriving instance ( Show (GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                   , Show (GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung 'Märklin)
                   ) => Show Aktion
 
-instance Eq Aktion where
-    (==) :: Aktion -> Aktion -> Bool
-    (==) a0 a1 = compare a0 a1 == EQ
+deriving instance Eq Aktion
 
 instance Anzeige Aktion where
     anzeige :: Aktion -> Sprache -> Text
@@ -267,7 +271,23 @@ instance StreckenObjekt Aktion where
 -- | Pläne: Benannte IO-Aktionen mit StreckenObjekten, bzw. Wartezeiten.
 -- Die Update-Funktion wird mit Index der aktuellen Aktion vor dessen Ausführung aufgerufen.
 data Plan = Plan { plName :: Text, plAktionen :: NonEmpty Aktion }
-    deriving (Eq)
+
+instance Eq Plan where
+    (==) :: Plan -> Plan -> Bool
+    (==)
+        Plan {plName = plName0, plAktionen = plAktionen0}
+        Plan {plName = plName1, plAktionen = plAktionen1} =
+        plName0 == plName1 && vergleicheAktionen plAktionen0 plAktionen1
+        where
+            vergleicheAktionen :: NonEmpty Aktion -> NonEmpty Aktion -> Bool
+            vergleicheAktionen
+                [AktionAusführen Plan {plName = n0}]
+                [AktionAusführen Plan {plName = n1}]
+                | plName0 == n0, plName1 == n1 = n0 == n1
+            vergleicheAktionen (h0 :| t0) (h1 :| t1) = h0 == h1 && case (t0, t1) of
+                (hh0:tt0, hh1:tt1) -> vergleicheAktionen (hh0 :| tt0) (hh1 :| tt1)
+                ([], []) -> True
+                _differentSizes -> False
 
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend = Ausführend Plan
@@ -319,27 +339,32 @@ instance StreckenObjekt Plan where
 instance PlanKlasse Plan where
     ausführenPlan
         :: (AusführendReader r m, MonadIO m) => Plan -> (Natural -> IO ()) -> IO () -> m ()
-    ausführenPlan plan@Plan {plAktionen} showAktion endAktion = void $ forkI2CReader $ void $ do
-        tvarAusführend <- erhalteMengeAusführend
-        liftIO $ atomically $ modifyTVar tvarAusführend $ Set.insert $ Ausführend plan
-        ausführenAux 0 $ NonEmpty.toList plAktionen
-        liftIO $ do
-            showAktion $ fromIntegral $ length plAktionen
-            endAktion
+    ausführenPlan plan@Plan {plName, plAktionen} showAktion endAktion =
+        void $ forkI2CReader $ void $ do
+            tvarAusführend <- erhalteMengeAusführend
+            liftIO $ atomically $ modifyTVar tvarAusführend $ Set.insert $ Ausführend plan
+            ausführenAux 0 plAktionen
+            liftIO $ do
+                showAktion $ fromIntegral $ length plAktionen
+                endAktion
         where
-            ausführenAux :: (AusführendReader r m, MonadIO m) => Natural -> [Aktion] -> m ()
-            ausführenAux _i [] = do
-                tvarAusführend <- erhalteMengeAusführend
-                liftIO $ atomically $ modifyTVar tvarAusführend $ Set.delete $ Ausführend plan
-            ausführenAux _i [AktionAusführen Plan {plAktionen = plAktionen1}] =
-                ausführenAux 0 $ NonEmpty.toList plAktionen1
-            ausführenAux i (h:t) = do
+            ausführenAux
+                :: (AusführendReader r m, MonadIO m) => Natural -> NonEmpty Aktion -> m ()
+            ausführenAux _i [AktionAusführen Plan {plName = plName1, plAktionen = plAktionen1}]
+                | plName == plName1 = ausführenAux 0 plAktionen1
+            ausführenAux i (h :| t) = do
                 tvarAusführend <- erhalteMengeAusführend
                 ausführend <- liftIO $ readTVarIO tvarAusführend
                 when (Ausführend plan `elem` ausführend) $ do
                     liftIO $ showAktion i
                     ausführenAktion h
-                    ausführenAux (succ i) t
+                    case t of
+                        (hh:tt) -> ausführenAux (succ i) $ hh :| tt
+                        [] -> liftIO
+                            $ atomically
+                            $ modifyTVar tvarAusführend
+                            $ Set.delete
+                            $ Ausführend plan
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where
