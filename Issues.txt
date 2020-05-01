@@ -1,3 +1,24 @@
+Allemeine (Overlappable)-Instanzen von ..Container-Klassen laden zu Fehlern ein
+    Wie gesehen bei Synchronisations-Problemen mit Fahrstrom
+
+Gtk-UI:
+    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
+        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
+
+Anschluss in GADT umwandeln
+    Mit Phantomtyp, der einen InterruptPin garantiert
+
+mdo/rec verwenden?
+    Spracherweiterung RecursiveDo
+    Definitionen in einem Do-Block sind überall verfügbar, nicht nur danach
+        Monade benötigt MonadFix-Typklasse (für IO gegeben, vermutlich nicht State/RWS)
+    Vor allem für Gtk-UI nützlich
+        Würde helfen häufiges Pattern
+            Widget erzeugen
+            verwenden
+            danach erst in Box packen
+        durch einfaches boxPackWidgetNew zu ersetzen
+
 Pin-Setup bei Hinzufügen
     pinMode pin OUTPUT
         INPUT bei Signal-Pins
@@ -23,10 +44,6 @@ Pin-Setup bei Hinzufügen
     Entfernen funktioniert nur, wenn keine Wegstrecke/Plan betroffen
         Alternativ ebenfalls entfernen
 
-Gtk-UI:
-    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
-        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
-
 Gtk-UI benötigt lange, bis etwas zu sehen ist
     Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
     Dummy-Fenster wird erstellt
@@ -38,17 +55,6 @@ Einstellungen in yaml-Datei speichern?
     Sprache
     Gtk-UI: Einzelseiten
     UI?
-
-mdo/rec verwenden?
-    Spracherweiterung RecursiveDo
-    Definitionen in einem Do-Block sind überall verfügbar, nicht nur danach
-        Monade benötigt MonadFix-Typklasse (für IO gegeben, vermutlich nicht State/RWS)
-    Vor allem für Gtk-UI nützlich
-        Würde helfen häufiges Pattern
-            Widget erzeugen
-            verwenden
-            danach erst in Box packen
-        durch einfaches boxPackWidgetNew zu ersetzen
 
 Warteschlange über Data.Sequence Implementieren?
 
