@@ -237,6 +237,7 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
         Nothing -> do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
+                pinMode pin INPUT
                 wiringPiISR pin (verwendeteIntEdge anschluss)
                     $ runReaderT aktionenAusführen reader
                 atomically
@@ -291,9 +292,11 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
         beiRichtigemBitValue _anschluss INT_EDGE_SETUP _aktion _werte = pure EventBehalten
 
         anschlussReadBitValue :: (I2CReader r m, MonadIO m) => Anschluss -> m BitValue
-        anschlussReadBitValue AnschlussPin {pin} = liftIO $ digitalRead pin >>= pure . \case
-            LOW -> emptyBitValue
-            HIGH -> fullBitValue
+        anschlussReadBitValue AnschlussPin {pin} = liftIO $ toBitValue <$> digitalRead pin
+            where
+                toBitValue :: Value -> BitValue
+                toBitValue LOW = emptyBitValue
+                toBitValue HIGH = fullBitValue
         anschlussReadBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574}} = pcf8574Read pcf8574
 

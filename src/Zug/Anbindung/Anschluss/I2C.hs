@@ -114,7 +114,7 @@ instance Show BitValue where
 
 -- | 'BitValue' with no Bit set.
 emptyBitValue :: BitValue
-emptyBitValue = complement zeroBits
+emptyBitValue = zeroBits
 
 -- | 'BitValue' with every Bit set.
 fullBitValue :: BitValue
