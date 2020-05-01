@@ -421,7 +421,7 @@ seiteErgebnis
             }
 
 -- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
--- 
+--
 -- Der Rückgabewert gibt an, ob das Objekt zur Seite gepasst hat ('True').
 -- Ansonsten ('False') hat diese Aktion keinen Auswirkungen.
 setzeSeite :: forall r m.
@@ -1176,14 +1176,13 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         $ do
             aktuelleAktionen <- readTVarIO tvarAktionen
             neueAktionen <- case zeigeLetztes aktuelleAktionen of
-                Leer -> do
-                    Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
-                    pure leer
+                Leer -> pure leer
                 Gefüllt (_aktion, widget, tvarSprache) t -> do
                     mitContainerRemove vBoxAktionen widget
                     Gtk.widgetDestroy widget
                     atomically $ writeTVar tvarSprache Nothing
                     pure t
+            Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := not (null neueAktionen)]
             atomically $ writeTVar tvarAktionen neueAktionen
             flip runReaderT spracheGui $ aktualisiereExpanderText seite neueAktionen
     boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
@@ -1226,7 +1225,9 @@ aktualisiereExpanderText _hinzufügenSeite _aktionen =
     error "aktualisiereExpanderText mit falscher Seite aufgerufen!"
 
 aktionHinzufügen :: (SpracheGuiReader r m, MonadIO m) => HinzufügenSeite -> Aktion -> m ()
-aktionHinzufügen seite@HinzufügenSeitePlan {vBoxAktionen, tvarAktionen} aktion = do
+aktionHinzufügen
+    seite@HinzufügenSeitePlan {vBoxAktionen, tvarAktionen, buttonHinzufügenPlan}
+    aktion = do
     (aktuelleAktionen, tvarSprache) <- liftIO $ do
         aktuelleAktionen <- readTVarIO tvarAktionen
         tvarSprache <- newTVarIO $ Just []
@@ -1235,7 +1236,9 @@ aktionHinzufügen seite@HinzufügenSeitePlan {vBoxAktionen, tvarAktionen} aktion
         $ labelSpracheNew (Just tvarSprache)
         $ anzeige aktion
     let neueAktionen = anhängen (aktion, label, tvarSprache) aktuelleAktionen
-    liftIO $ atomically $ writeTVar tvarAktionen neueAktionen
+    liftIO $ do
+        atomically $ writeTVar tvarAktionen neueAktionen
+        Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := True]
     aktualisiereExpanderText seite neueAktionen
 aktionHinzufügen _hinzufügenSeite _aktion =
     error "aktionHinzufügen mit falscher Seite aufgerufen!"

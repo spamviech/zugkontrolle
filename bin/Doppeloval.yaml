@@ -98,6 +98,11 @@ Kupplungen:
       a1: LOW
       a0: HIGH
   Fließend: LOW
+Kontakte:
+- KontaktAnschluss:
+    Pin: 14
+  Name: Test-Kontakt
+  Fließend: LOW
 Weichen:
 - Name: O.I(L)O(G)1
   Zugtyp: Märklin
@@ -405,7 +410,50 @@ Weichen:
         PCF8574Port: 5
         a1: LOW
         a0: HIGH
-Pläne: []
+Pläne:
+- Dauerschleife: true
+  Name: IO - Wechsel
+  Aktionen:
+  - Streckenabschnitt:
+      Name: O.St
+      Fließend: LOW
+      StromAnschluss:
+        Pin: 5
+    Aktion: Strom
+    Fließend: Fließend
+  - Streckenabschnitt:
+      Name: I.St
+      Fließend: LOW
+      StromAnschluss:
+        Pin: 6
+    Aktion: Strom
+    Fließend: Gesperrt
+  - Kontakt:
+      KontaktAnschluss:
+        Pin: 14
+      Name: Test-Kontakt
+      Fließend: LOW
+    Aktion: Warten
+  - Streckenabschnitt:
+      Name: O.St
+      Fließend: LOW
+      StromAnschluss:
+        Pin: 5
+    Aktion: Strom
+    Fließend: Gesperrt
+  - Streckenabschnitt:
+      Name: I.St
+      Fließend: LOW
+      StromAnschluss:
+        Pin: 6
+    Aktion: Strom
+    Fließend: Fließend
+  - Kontakt:
+      KontaktAnschluss:
+        Pin: 14
+      Name: Test-Kontakt
+      Fließend: LOW
+    Aktion: Warten
 Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
@@ -657,6 +705,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: I.St
     Fließend: LOW
@@ -907,6 +956,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: I.St
     Fließend: LOW
@@ -1157,6 +1207,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: I.St
     Fließend: LOW
@@ -1407,6 +1458,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: B.St
     Fließend: LOW
@@ -1562,6 +1614,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A7.St
     Fließend: LOW
@@ -1745,6 +1798,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A7.St
     Fließend: LOW
@@ -1905,6 +1959,7 @@ Wegstrecken:
             a0: HIGH
     - Kurve
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A6.St
     Fließend: LOW
@@ -2088,6 +2143,7 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A6.St
     Fließend: LOW
@@ -2248,6 +2304,7 @@ Wegstrecken:
             a0: HIGH
     - Kurve
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A5.St
     Fließend: LOW
@@ -2417,6 +2474,7 @@ Wegstrecken:
         a1: LOW
         a0: HIGH
     Fließend: LOW
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A4.St
     Fließend: LOW
@@ -2600,6 +2658,7 @@ Wegstrecken:
             a0: LOW
     - Kurve
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A3.St
     Fließend: LOW
@@ -2783,6 +2842,7 @@ Wegstrecken:
             a0: LOW
     - Kurve
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A2.St
     Fließend: LOW
@@ -2966,6 +3026,7 @@ Wegstrecken:
             a0: LOW
     - Kurve
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: A1.St
     Fließend: LOW
@@ -3149,6 +3210,7 @@ Wegstrecken:
             a0: LOW
     - Kurve
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: I.St
     Fließend: LOW
@@ -3304,6 +3366,7 @@ Wegstrecken:
             a0: LOW
     - Gerade
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: I.St
     Fließend: LOW
@@ -3436,6 +3499,7 @@ Wegstrecken:
             a0: HIGH
     - Gerade
   Kupplungen: []
+  Kontakte: []
 - Streckenabschnitte:
   - Name: O.St
     Fließend: LOW
@@ -3568,3 +3632,4 @@ Wegstrecken:
             a0: HIGH
     - Rechts
   Kupplungen: []
+  Kontakte: []
