@@ -979,6 +979,7 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
 auswahlFahrstromPackNew
     :: forall b bg o m z.
     ( MitBox b
+    , Show (bg 'KonstanteSpannung z)
     , BahngeschwindigkeitKlasse bg
     , BahngeschwindigkeitContainer (bg 'KonstanteSpannung z)
     , BG o ~ BGWidgets
@@ -1057,12 +1058,22 @@ auswahlFahrstromPackNew
             | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws) $ setzeAuswahl auswahlFahrstrom wert
+            | otherwise =
+                putStrLn
+                $ show bahngeschwindigkeit
+                ++ "->"
+                ++ show (enthalteneBahngeschwindigkeiten bahngeschwindigkeit)
         wsWidgetsSynchronisieren
             (ZugtypLego ws@(auswahlFahrstrom . GeschwindigkeitPhantom -> Just auswahlFahrstrom))
             wert
             | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws) $ setzeAuswahl auswahlFahrstrom wert
+            | otherwise =
+                putStrLn
+                $ show bahngeschwindigkeit
+                ++ "->"
+                ++ show (enthalteneBahngeschwindigkeiten bahngeschwindigkeit)
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
 
 -- | Füge 'Gtk.Button' zum 'umdrehen' zur Box hinzu.

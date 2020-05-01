@@ -303,6 +303,14 @@ instance (ZugtypKlasse z) => BahngeschwindigkeitContainer (Wegstrecke z) where
         :: Wegstrecke z -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
     enthalteneBahngeschwindigkeiten = Set.map zuZugtypEither . wsBahngeschwindigkeiten
 
+instance (ZugtypKlasse z)
+    => BahngeschwindigkeitContainer (GeschwindigkeitPhantom Wegstrecke g z) where
+    enthalteneBahngeschwindigkeiten
+        :: GeschwindigkeitPhantom Wegstrecke g z
+        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten (GeschwindigkeitPhantom ws) =
+        enthalteneBahngeschwindigkeiten ws
+
 instance BahngeschwindigkeitContainer (ZugtypEither Wegstrecke) where
     enthalteneBahngeschwindigkeiten
         :: ZugtypEither Wegstrecke

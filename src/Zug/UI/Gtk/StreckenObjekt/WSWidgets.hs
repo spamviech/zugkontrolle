@@ -436,6 +436,14 @@ instance (ZugtypKlasse z) => BahngeschwindigkeitContainer (WSWidgets z) where
         :: WSWidgets z -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
     enthalteneBahngeschwindigkeiten = enthalteneBahngeschwindigkeiten . ws
 
+instance (ZugtypKlasse z)
+    => BahngeschwindigkeitContainer (GeschwindigkeitPhantom WSWidgets g z) where
+    enthalteneBahngeschwindigkeiten
+        :: GeschwindigkeitPhantom WSWidgets g z
+        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
+    enthalteneBahngeschwindigkeiten (GeschwindigkeitPhantom ws) =
+        enthalteneBahngeschwindigkeiten ws
+
 instance StreckenabschnittContainer (WSWidgets z) where
     enthalteneStreckenabschnitte :: WSWidgets z -> Set Streckenabschnitt
     enthalteneStreckenabschnitte = enthalteneStreckenabschnitte . ws
