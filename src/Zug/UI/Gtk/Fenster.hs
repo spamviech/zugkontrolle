@@ -252,7 +252,8 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
     tmvarAssistantHinzufügen <- liftIO $ atomically $ newTMVar Nothing
     objektReader <- ask
     statusVar <- erhalteStatusVar
-    let erzeugeAssistantHinzufügen :: (ObjektGuiReader m, MonadFix m, MonadIO m) => m AssistantHinzufügen
+    let erzeugeAssistantHinzufügen
+            :: (ObjektGuiReader m, MonadFix m, MonadIO m) => m AssistantHinzufügen
         erzeugeAssistantHinzufügen =
             -- erzeuge AssistantHinzufügen nur, wenn er benötigt wird
             liftIO (atomically $ takeTMVar tmvarAssistantHinzufügen) >>= \case
