@@ -1,6 +1,3 @@
-Allemeine (Overlappable)-Instanzen von ..Container-Klassen laden zu Fehlern ein
-    Wie gesehen bei Synchronisations-Problemen mit Fahrstrom
-
 Gtk-UI:
     OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
         erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen

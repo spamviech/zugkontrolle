@@ -56,10 +56,9 @@ import Zug.Anbindung
        (StreckenObjekt(..), Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
       , BahngeschwindigkeitContainer(..), StreckenabschnittContainer(enthalteneStreckenabschnitte)
       , Anschluss(), I2CReader(), PwmReader())
-import Zug.Enums
-       (GeschwindigkeitEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEitherKlasse(..)
-      , GeschwindigkeitPhantom(..), ausGeschwindigkeitEither, Zugtyp(..), ZugtypEither(..)
-      , ZugtypKlasse(..), ausZugtypEither, Fahrtrichtung(Vorwärts))
+import Zug.Enums (GeschwindigkeitEither(..), GeschwindigkeitVariante(..), GeschwindigkeitKlasse(..)
+                , GeschwindigkeitPhantom(..), ausGeschwindigkeitEither, Zugtyp(..), ZugtypEither(..)
+                , ZugtypKlasse(..), ausZugtypEither, Fahrtrichtung(Vorwärts))
 import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt
@@ -635,22 +634,10 @@ instance BahngeschwindigkeitContainer (BGWidgets g z) where
     enthalteneBahngeschwindigkeiten BGWidgetsKonstanteSpannungLego {bgkl} =
         Set.singleton $ ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl
 
-instance BahngeschwindigkeitContainer (GeschwindigkeitEither BGWidgets z) where
-    enthalteneBahngeschwindigkeiten
-        :: GeschwindigkeitEither BGWidgets z
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = ausGeschwindigkeitEither enthalteneBahngeschwindigkeiten
-
-instance BahngeschwindigkeitContainer (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
-    enthalteneBahngeschwindigkeiten
-        :: ZugtypEither (GeschwindigkeitEither BGWidgets)
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = ausZugtypEither enthalteneBahngeschwindigkeiten
-
 -- | 'Bahngeschwindigkeit' darstellen und zum Status hinzufügen
 bahngeschwindigkeitPackNew
     :: forall o g z m.
-    ( GeschwindigkeitEitherKlasse g
+    ( GeschwindigkeitKlasse g
     , WegstreckenElement (BGWidgets g z)
     , PlanElement (BGWidgets g z)
     , ObjektKlasse o
@@ -1086,6 +1073,8 @@ buttonUmdrehenPackNew
     , BahngeschwindigkeitKlasse bg
     , BahngeschwindigkeitContainer (bg g 'Märklin)
     , BahngeschwindigkeitContainer (bg g 'Lego)
+    , StreckenabschnittContainer (bg g 'Märklin)
+    , StreckenabschnittContainer (bg g 'Lego)
     , BG o ~ BGWidgets
     , ST o ~ STWidgets
     , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom (WS o))
@@ -1100,7 +1089,7 @@ buttonUmdrehenPackNew
     , MitSpracheGui (ReaderFamilie o)
     , ObjektReader o m
     , MonadIO m
-    , GeschwindigkeitEitherKlasse g
+    , GeschwindigkeitKlasse g
     )
     => b
     -> bg g 'Märklin
@@ -1219,7 +1208,7 @@ auswahlFahrtrichtungEinstellenPackNew
     , WidgetsTyp (WS o 'Lego)
     , BG o ~ BGWidgets
     , MonadIO m
-    , GeschwindigkeitEitherKlasse g
+    , GeschwindigkeitKlasse g
     )
     => b
     -> bg g 'Lego

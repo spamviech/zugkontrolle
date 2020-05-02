@@ -20,7 +20,7 @@ module Zug.Enums
     -- * GeschwindigkeitVariante
   , GeschwindigkeitVariante(..)
   , GeschwindigkeitEither(..)
-  , GeschwindigkeitEitherKlasse(..)
+  , GeschwindigkeitKlasse(..)
   , GeschwindigkeitPhantom(..)
   , mapGeschwindigkeitEither
   , ausGeschwindigkeitEither
@@ -155,11 +155,11 @@ ausGeschwindigkeitEither f (GeschwindigkeitPwm a) = f a
 ausGeschwindigkeitEither f (GeschwindigkeitKonstanteSpannung a) = f a
 
 -- | Klasse zur Extraktion aus 'GeschwindigkeitEither'
-class GeschwindigkeitEitherKlasse (g :: GeschwindigkeitVariante) where
+class GeschwindigkeitKlasse (g :: GeschwindigkeitVariante) where
     vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a g z)
     zuGeschwindigkeitEither :: a g z -> GeschwindigkeitEither a z
 
-instance GeschwindigkeitEitherKlasse 'Pwm where
+instance GeschwindigkeitKlasse 'Pwm where
     vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'Pwm z)
     vonGeschwindigkeitEither (GeschwindigkeitPwm a) = Just a
     vonGeschwindigkeitEither _zugtypEither = Nothing
@@ -167,7 +167,7 @@ instance GeschwindigkeitEitherKlasse 'Pwm where
     zuGeschwindigkeitEither :: a 'Pwm z -> GeschwindigkeitEither a z
     zuGeschwindigkeitEither = GeschwindigkeitPwm
 
-instance GeschwindigkeitEitherKlasse 'KonstanteSpannung where
+instance GeschwindigkeitKlasse 'KonstanteSpannung where
     vonGeschwindigkeitEither :: GeschwindigkeitEither a z -> Maybe (a 'KonstanteSpannung z)
     vonGeschwindigkeitEither (GeschwindigkeitKonstanteSpannung a) = Just a
     vonGeschwindigkeitEither _zugtypEither = Nothing

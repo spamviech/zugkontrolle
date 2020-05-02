@@ -10,16 +10,11 @@
 {-|
 Description: Steuere die Stromzufuhr einer Schiene.
 -}
-module Zug.Anbindung.Streckenabschnitt
-  ( Streckenabschnitt(..)
-  , StreckenabschnittKlasse(..)
-  , StreckenabschnittContainer(..)
-  ) where
+module Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..)) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss (Value(), Anschluss(), AnschlussKlasse(anschlussWrite), I2CReader())
@@ -55,11 +50,6 @@ class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
     strom :: (I2CReader r m, MonadIO m) => s -> Strom -> m ()
 
--- | Typen, die 'Streckenabschnitt'e enthalten können.
-class StreckenabschnittContainer s where
-    -- | Alle enthaltenen 'Streckenabschnitt'e.
-    enthalteneStreckenabschnitte :: s -> Set Streckenabschnitt
-
 instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Lego))
     => StreckenabschnittKlasse (ZugtypEither s) where
     strom :: (I2CReader r m, MonadIO m) => ZugtypEither s -> Strom -> m ()
@@ -72,11 +62,3 @@ instance StreckenabschnittKlasse Streckenabschnitt where
         befehlAusführen
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
-
-instance StreckenabschnittContainer Streckenabschnitt where
-    enthalteneStreckenabschnitte :: Streckenabschnitt -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte = Set.singleton
-
-instance {-# OVERLAPPABLE #-}StreckenabschnittContainer a where
-    enthalteneStreckenabschnitte :: a -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte = const Set.empty

@@ -26,20 +26,17 @@ import Zug.Anbindung.Anschluss (Anschluss(..), AnschlussKlasse(anschlussWrite), 
                               , pcf8574MultiPortWrite, pcf8574Gruppieren, I2CReader(forkI2CReader)
                               , Value(..), InterruptReader(), warteAufÄnderung, IntEdge(..))
 import Zug.Anbindung.Bahngeschwindigkeit
-       (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), BahngeschwindigkeitContainer(..)
-      , umdrehenZeit, positionOderLetztes)
+       (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), umdrehenZeit, positionOderLetztes)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
-import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..), KontaktContainer(..))
-import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), KupplungContainer(..), kuppelnZeit)
+import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
+import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit)
 import Zug.Anbindung.Pwm (PwmReader())
-import Zug.Anbindung.Streckenabschnitt
-       (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..))
+import Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..))
 import Zug.Anbindung.Wartezeit (warte)
-import Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(stellen), WeicheContainer(..), weicheZeit)
+import Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(stellen), weicheZeit)
 import Zug.Enums
-       (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), GeschwindigkeitVariante(..)
-      , GeschwindigkeitEither(..), catPwm, catKonstanteSpannung, GeschwindigkeitPhantom(..)
-      , Richtung(), Strom(..), Fahrtrichtung(..))
+       (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..), catPwm
+      , catKonstanteSpannung, GeschwindigkeitPhantom(..), Richtung(), Strom(..), Fahrtrichtung(..))
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<°>))
 import qualified Zug.Language as Language
 
@@ -298,26 +295,6 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
 
             fahrtrichtungPortMapLow = pcf8574Gruppieren fahrtrichtungPcf8574PortsLow
 
-instance (ZugtypKlasse z) => BahngeschwindigkeitContainer (Wegstrecke z) where
-    enthalteneBahngeschwindigkeiten
-        :: Wegstrecke z -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = Set.map zuZugtypEither . wsBahngeschwindigkeiten
-
-instance (ZugtypKlasse z)
-    => BahngeschwindigkeitContainer (GeschwindigkeitPhantom Wegstrecke g z) where
-    enthalteneBahngeschwindigkeiten
-        :: GeschwindigkeitPhantom Wegstrecke g z
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten (GeschwindigkeitPhantom ws) =
-        enthalteneBahngeschwindigkeiten ws
-
-instance BahngeschwindigkeitContainer (ZugtypEither Wegstrecke) where
-    enthalteneBahngeschwindigkeiten
-        :: ZugtypEither Wegstrecke
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten (ZugtypMärklin ws) = enthalteneBahngeschwindigkeiten ws
-    enthalteneBahngeschwindigkeiten (ZugtypLego ws) = enthalteneBahngeschwindigkeiten ws
-
 instance StreckenabschnittKlasse (Wegstrecke z) where
     strom :: (I2CReader r m, MonadIO m) => Wegstrecke z -> Strom -> m ()
     strom ws@Wegstrecke {wsStreckenabschnitte} an =
@@ -369,24 +346,6 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
             stromPortMapHigh = pcf8574Gruppieren stromPcf8574PortsHigh
 
             stromPortMapLow = pcf8574Gruppieren stromPcf8574PortsLow
-
-instance StreckenabschnittContainer (Wegstrecke z) where
-    enthalteneStreckenabschnitte :: Wegstrecke z -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte = wsStreckenabschnitte
-
-instance StreckenabschnittContainer (ZugtypEither Wegstrecke) where
-    enthalteneStreckenabschnitte :: ZugtypEither Wegstrecke -> Set Streckenabschnitt
-    enthalteneStreckenabschnitte (ZugtypMärklin a) = enthalteneStreckenabschnitte a
-    enthalteneStreckenabschnitte (ZugtypLego a) = enthalteneStreckenabschnitte a
-
-instance (ZugtypKlasse z) => WeicheContainer (Wegstrecke z) where
-    enthalteneWeichen :: Wegstrecke z -> Set (ZugtypEither Weiche)
-    enthalteneWeichen = Set.map (zuZugtypEither . fst) . wsWeichenRichtungen
-
-instance WeicheContainer (ZugtypEither Wegstrecke) where
-    enthalteneWeichen :: ZugtypEither Wegstrecke -> Set (ZugtypEither Weiche)
-    enthalteneWeichen (ZugtypMärklin a) = enthalteneWeichen a
-    enthalteneWeichen (ZugtypLego a) = enthalteneWeichen a
 
 instance KupplungKlasse (Wegstrecke z) where
     kuppeln :: (I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
@@ -443,15 +402,6 @@ instance KupplungKlasse (Wegstrecke z) where
 
             kupplungsPortMapLow = pcf8574Gruppieren kupplungsPcf8574PortsLow
 
-instance KupplungContainer (Wegstrecke z) where
-    enthalteneKupplungen :: Wegstrecke z -> Set Kupplung
-    enthalteneKupplungen = wsKupplungen
-
-instance KupplungContainer (ZugtypEither Wegstrecke) where
-    enthalteneKupplungen :: ZugtypEither Wegstrecke -> Set Kupplung
-    enthalteneKupplungen (ZugtypMärklin a) = enthalteneKupplungen a
-    enthalteneKupplungen (ZugtypLego a) = enthalteneKupplungen a
-
 instance KontaktKlasse (Wegstrecke z) where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
     warteAufSignal Wegstrecke {wsKontakte} = do
@@ -463,15 +413,6 @@ instance KontaktKlasse (Wegstrecke z) where
                               else INT_EDGE_RISING
                         )) $ Set.toList wsKontakte
         warteAufÄnderung listeAnschlussIntEdge
-
-instance KontaktContainer (Wegstrecke z) where
-    enthalteneKontakte :: Wegstrecke z -> Set Kontakt
-    enthalteneKontakte = wsKontakte
-
-instance KontaktContainer (ZugtypEither Wegstrecke) where
-    enthalteneKontakte :: ZugtypEither Wegstrecke -> Set Kontakt
-    enthalteneKontakte (ZugtypMärklin k) = enthalteneKontakte k
-    enthalteneKontakte (ZugtypLego k) = enthalteneKontakte k
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where

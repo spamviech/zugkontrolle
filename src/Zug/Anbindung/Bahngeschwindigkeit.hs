@@ -16,7 +16,6 @@ module Zug.Anbindung.Bahngeschwindigkeit
   ( -- * Datentyp und Typ-Klasse
     Bahngeschwindigkeit(..)
   , BahngeschwindigkeitKlasse(..)
-  , BahngeschwindigkeitContainer(..)
     -- * Hilfsfunktionen
   , verwendetPwm
   , umdrehenZeit
@@ -42,9 +41,7 @@ import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
 import Zug.Derive.Ord (deriveOrd)
-import Zug.Enums (Zugtyp(..), ZugtypEither(), ZugtypKlasse(zuZugtypEither)
-                , GeschwindigkeitVariante(..), GeschwindigkeitEither()
-                , GeschwindigkeitEitherKlasse(zuGeschwindigkeitEither), Fahrtrichtung(Vorwärts))
+import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), Fahrtrichtung(Vorwärts))
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
 import qualified Zug.Language as Language
 
@@ -145,12 +142,6 @@ class ( StreckenObjekt (b 'Pwm 'Märklin)
     -- | Gebe allen Zügen den Befehl in einer bestimmen Richtung zu fahren
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => b g 'Lego -> Fahrtrichtung -> m ()
-
--- | Typen, die 'Bahngeschwindigkeit'en enthalten können.
-class BahngeschwindigkeitContainer b where
-    -- | Alle enthaltenen Bahngeschwindigkeiten.
-    enthalteneBahngeschwindigkeiten
-        :: b -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
 
 -- | Erhalte das Element an Position /i/, angefangen bei /1/.
 -- Ist die Position größer als die Länge der Liste wird das letzte Element zurückgegeben.
@@ -266,28 +257,3 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                        then fließend
                        else gesperrt)
                     bg
-
-instance (GeschwindigkeitEitherKlasse g, ZugtypKlasse z)
-    => BahngeschwindigkeitContainer (Bahngeschwindigkeit g z) where
-    enthalteneBahngeschwindigkeiten
-        :: Bahngeschwindigkeit g z
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = Set.singleton . zuZugtypEither . zuGeschwindigkeitEither
-
-instance (ZugtypKlasse z)
-    => BahngeschwindigkeitContainer (GeschwindigkeitEither Bahngeschwindigkeit z) where
-    enthalteneBahngeschwindigkeiten
-        :: GeschwindigkeitEither Bahngeschwindigkeit z
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = Set.singleton . zuZugtypEither
-
-instance BahngeschwindigkeitContainer (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)) where
-    enthalteneBahngeschwindigkeiten
-        :: (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-        -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = Set.singleton
-
-instance {-# OVERLAPPABLE #-}BahngeschwindigkeitContainer a where
-    enthalteneBahngeschwindigkeiten
-        :: a -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten = const Set.empty

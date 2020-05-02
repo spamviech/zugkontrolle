@@ -10,17 +10,11 @@
 {-|
 Description: Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden.
 -}
-module Zug.Anbindung.Kupplung
-  ( Kupplung(..)
-  , KupplungKlasse(..)
-  , KupplungContainer(..)
-  , kuppelnZeit
-  ) where
+module Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss (Value(), Anschluss(), AnschlussKlasse(anschlussWrite), I2CReader())
@@ -57,11 +51,6 @@ class (StreckenObjekt k) => KupplungKlasse k where
     -- | Kupplung betätigen
     kuppeln :: (I2CReader r m, MonadIO m) => k -> m ()
 
--- | Typen, die 'Kupplung'en enthalten können.
-class KupplungContainer k where
-    -- | Alle enthaltenen Kupplungen.
-    enthalteneKupplungen :: k -> Set Kupplung
-
 instance (KupplungKlasse (ku 'Märklin), KupplungKlasse (ku 'Lego))
     => KupplungKlasse (ZugtypEither ku) where
     kuppeln :: (I2CReader r m, MonadIO m) => ZugtypEither ku -> m ()
@@ -79,11 +68,3 @@ instance KupplungKlasse Kupplung where
             anschlussWrite kupplungsAnschluss $ fließend ku
             warte kuppelnZeit
             anschlussWrite kupplungsAnschluss $ gesperrt ku
-
-instance KupplungContainer Kupplung where
-    enthalteneKupplungen :: Kupplung -> Set Kupplung
-    enthalteneKupplungen = Set.singleton
-
-instance {-# OVERLAPPABLE #-}KupplungContainer a where
-    enthalteneKupplungen :: a -> Set Kupplung
-    enthalteneKupplungen = const Set.empty

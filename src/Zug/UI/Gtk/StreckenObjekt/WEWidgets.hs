@@ -33,13 +33,14 @@ import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.List.NonEmpty (NonEmpty())
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung
-       (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), Anschluss(), I2CReader(), PwmReader())
+import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheContainer(..)
+                    , Anschluss(), I2CReader(), PwmReader())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither
                 , ausZugtypEither, GeschwindigkeitVariante(..), Richtung(..))
 import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
@@ -295,21 +296,25 @@ instance PlanElement (ZugtypEither WEWidgets) where
 
 instance StreckenObjekt (WEWidgets z) where
     anschlüsse :: WEWidgets z -> Set Anschluss
-    anschlüsse WEWidgets {we} = anschlüsse we
+    anschlüsse = anschlüsse . we
 
     erhalteName :: WEWidgets z -> Text
-    erhalteName WEWidgets {we} = erhalteName we
+    erhalteName = erhalteName . we
 
 instance Aeson.ToJSON (WEWidgets z) where
     toJSON :: WEWidgets z -> Aeson.Value
-    toJSON WEWidgets {we} = Aeson.toJSON we
+    toJSON = Aeson.toJSON . we
 
 instance (ZugtypKlasse z) => WeicheKlasse (WEWidgets z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
-    stellen WEWidgets {we} = stellen we
+    stellen = stellen . we
 
     erhalteRichtungen :: WEWidgets z -> NonEmpty Richtung
-    erhalteRichtungen WEWidgets {we} = erhalteRichtungen we
+    erhalteRichtungen = erhalteRichtungen . we
+
+instance (ZugtypKlasse z) => WeicheContainer (WEWidgets z) where
+    enthalteneWeichen :: WEWidgets z -> Set (ZugtypEither Weiche)
+    enthalteneWeichen = Set.singleton . zuZugtypEither . we
 
 -- | 'Weiche' darstellen und zum Status hinzufügen
 weichePackNew

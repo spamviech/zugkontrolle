@@ -30,13 +30,14 @@ import Control.Monad.Reader (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text as Text
 import Data.Void (Void)
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), Anschluss()
-                    , InterruptReader(), I2CReader())
+import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), KontaktContainer(..)
+                    , Anschluss(), InterruptReader(), I2CReader())
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
@@ -153,14 +154,18 @@ instance PlanElement KOWidgets where
 
 instance StreckenObjekt KOWidgets where
     anschlüsse :: KOWidgets -> Set Anschluss
-    anschlüsse KOWidgets {ko} = anschlüsse ko
+    anschlüsse = anschlüsse . ko
 
     erhalteName :: KOWidgets -> Text
-    erhalteName KOWidgets {ko} = erhalteName ko
+    erhalteName = erhalteName . ko
 
 instance KontaktKlasse KOWidgets where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => KOWidgets -> m ()
     warteAufSignal = warteAufSignal . ko
+
+instance KontaktContainer KOWidgets where
+    enthalteneKontakte :: KOWidgets -> Set Kontakt
+    enthalteneKontakte = Set.singleton . ko
 
 kontaktPackNew
     :: forall o m.

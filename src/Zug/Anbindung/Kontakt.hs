@@ -7,11 +7,10 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..), KontaktContainer(..)) where
+module Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..)) where
 
 import Control.Monad.Trans (MonadIO())
 import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss
@@ -48,11 +47,6 @@ class (StreckenObjekt k) => KontaktKlasse k where
     -- | Blockiere den aktuellen Thread, bis ein 'Kontakt'-Ereignis eintritt.
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => k -> m ()
 
--- | Typen, die 'Kontakt'e enthalten können.
-class KontaktContainer k where
-    -- | Alle enthaltenen Kontakte.
-    enthalteneKontakte :: k -> Set Kontakt
-
 instance (KontaktKlasse (k 'Märklin), KontaktKlasse (k 'Lego))
     => KontaktKlasse (ZugtypEither k) where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => ZugtypEither k -> m ()
@@ -68,11 +62,3 @@ instance KontaktKlasse Kontakt where
                     then INT_EDGE_FALLING
                     else INT_EDGE_RISING
                   )]
-
-instance KontaktContainer Kontakt where
-    enthalteneKontakte :: Kontakt -> Set Kontakt
-    enthalteneKontakte = Set.singleton
-
-instance {-# OVERLAPPABLE #-}KontaktContainer a where
-    enthalteneKontakte :: a -> Set Kontakt
-    enthalteneKontakte = const Set.empty

@@ -31,13 +31,15 @@ import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Void (Void)
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), Anschluss(), I2CReader)
+import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), KupplungContainer(..)
+                    , Anschluss(), I2CReader)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
@@ -154,18 +156,22 @@ instance PlanElement KUWidgets where
 
 instance StreckenObjekt KUWidgets where
     anschlüsse :: KUWidgets -> Set Anschluss
-    anschlüsse KUWidgets {ku} = anschlüsse ku
+    anschlüsse = anschlüsse . ku
 
     erhalteName :: KUWidgets -> Text
-    erhalteName KUWidgets {ku} = erhalteName ku
+    erhalteName = erhalteName . ku
 
 instance Aeson.ToJSON KUWidgets where
     toJSON :: KUWidgets -> Aeson.Value
-    toJSON KUWidgets {ku} = Aeson.toJSON ku
+    toJSON = Aeson.toJSON . ku
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: (I2CReader r m, MonadIO m) => KUWidgets -> m ()
-    kuppeln KUWidgets {ku} = kuppeln ku
+    kuppeln = kuppeln . ku
+
+instance KupplungContainer KUWidgets where
+    enthalteneKupplungen :: KUWidgets -> Set Kupplung
+    enthalteneKupplungen = Set.singleton . ku
 
 -- | 'Kupplung' darstellen und zum Status hinzufügen
 kupplungPackNew
