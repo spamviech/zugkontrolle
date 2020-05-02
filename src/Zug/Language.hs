@@ -311,7 +311,7 @@ strom Englisch = "Current"
 -- | On
 an :: Sprache -> Text
 an Deutsch = "An"
-an Englisch = "Off"
+an Englisch = "On"
 
 -- | Off
 aus :: Sprache -> Text
