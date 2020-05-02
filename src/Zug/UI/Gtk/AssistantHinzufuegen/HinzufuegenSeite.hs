@@ -896,13 +896,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         , dynPLWidgetsBoxen = PLWidgetsBoxen {vBoxHinzufügenPlanPläne}
         , dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     spracheGui <- erhalteSpracheGui
-    (tvarAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit) <- liftIO $ do
-        tvarAktionen <- newTVarIO leer
-        vBoxAktionen
-            <- containerAddWidgetNew expanderAktionen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-        tvarExpander <- newTVarIO $ Just []
-        hBoxWartezeit <- boxPackWidgetNewDefault vBoxAktionenWidgets $ Gtk.hBoxNew False 0
-        pure (tvarAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit)
+    hBoxWartezeit <- liftIO $ boxPackWidgetNewDefault vBoxAktionenWidgets $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBoxWartezeit $ buttonNewWithEventLabel maybeTVar Language.warten $ do
         wert <- floor <$> Gtk.get spinButtonWartezeit Gtk.spinButtonValue
         einheit <- aktuelleAuswahl comboBoxWartezeit
@@ -1155,14 +1149,26 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         $ aktionHinzufügen seite
     aktionPlanAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showPL
         $ aktionHinzufügen seite
-    expanderAktionen <- liftIO
-        $ boxPackWidgetNewDefault vBoxAktionenWidgets
-        $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
-    (buttonHinzufügenPlan, resetBox) <- liftIO $ do
-        buttonHinzufügenPlan <- Gtk.buttonNew
-        Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
-        resetBox <- boxPackWidgetNewDefault vBoxAktionenWidgets $ Gtk.hBoxNew False 0
-        pure (buttonHinzufügenPlan, resetBox)
+    (expanderAktionen, tvarAktionen, vBoxAktionen, tvarExpander, buttonHinzufügenPlan, resetBox)
+        <- liftIO $ do
+            expanderAktionen <- boxPackWidgetNewDefault vBoxAktionenWidgets
+                $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
+            tvarAktionen <- newTVarIO leer
+            vBoxAktionen <- containerAddWidgetNew expanderAktionen
+                $ scrollbaresWidgetNew
+                $ Gtk.vBoxNew False 0
+            tvarExpander <- newTVarIO $ Just []
+            buttonHinzufügenPlan <- Gtk.buttonNew
+            Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+            resetBox <- boxPackWidgetNewDefault vBoxAktionenWidgets $ Gtk.hBoxNew False 0
+            pure
+                ( expanderAktionen
+                , tvarAktionen
+                , vBoxAktionen
+                , tvarExpander
+                , buttonHinzufügenPlan
+                , resetBox
+                )
     boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
         $ buttonNewWithEventLabel maybeTVar Language.rückgängig
         $ do

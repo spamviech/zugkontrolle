@@ -131,6 +131,10 @@ assistantHinzufügenNew parent maybeTVar = mdo
         vBox <- containerAddWidgetNew window $ Gtk.vBoxNew False 0
         notebook <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
         pure (tmVarErgebnis, window, vBox, notebook)
+    -- Wird in diesem Thread benötigt, bevor es erzeugt gepackt wird
+    -- Führt zu Deadlock (thread blocked indefinitely in an MVar operation), wenn mdo verwendet wird
+    zugtypAuswahl
+        <- widgetShowNew $ auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
     indexSeiten <- foldM
         (\acc (konstruktor, name) -> do
              (seite, seitenIndex) <- notebookAppendPageNew notebook maybeTVar name konstruktor
@@ -172,8 +176,7 @@ assistantHinzufügenNew parent maybeTVar = mdo
                 _otherwise -> mitWidgetShow buttonHinzufügen
         pure buttonHinzufügen
     fließendAuswahl <- boxPackWidgetNewDefault functionBox $ fließendAuswahlNew maybeTVar
-    zugtypAuswahl <- boxPackWidgetNewDefault functionBox
-        $ auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
+    boxPackDefault functionBox zugtypAuswahl
     boxPackWidgetNew functionBox packingDefault paddingDefault End
         $ buttonNewWithEventLabel maybeTVar Language.abbrechen
         $ atomically

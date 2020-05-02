@@ -160,3 +160,5 @@
 - Gtk-UI: Dummy-Fenster vergrößert, damit der Title lesbar ist.
 - Gtk-UI: Bearbeiten von StreckenObjekten ist möglich.
     Das alte StreckenObjekt wird dabei nicht entfernt.
+- Gtk-UI: AssistantHinzufügen wird nur erstellt, wenn er wirklich benötigt wird.
+    Dadurch sollte die Startzeit verkürzt werden.
