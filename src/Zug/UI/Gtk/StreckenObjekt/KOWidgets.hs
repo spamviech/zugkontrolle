@@ -24,9 +24,11 @@ module Zug.UI.Gtk.StreckenObjekt.KOWidgets
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
 import qualified Control.Lens as Lens
-import Control.Monad.Reader (MonadReader(), asks)
+import Control.Monad (forever)
+import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
@@ -37,9 +39,9 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), KontaktContainer(..)
-                    , Anschluss(), InterruptReader(), I2CReader())
+                    , Anschluss(), Value(..), InterruptReader(), I2CReader())
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
-import Zug.Language (Sprache(), MitSprache())
+import Zug.Language (Sprache(), MitSprache(leseSprache))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKontakt), ObjektKlasse(..))
 import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenKontakt
@@ -52,7 +54,8 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefaul
                                  , Packing(PackGrow), paddingDefault, positionDefault, namePackNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui
+       (SpracheGuiReader(erhalteSpracheGui), MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -195,8 +198,10 @@ kontaktPackNew
     )
     => Kontakt
     -> MStatusAllgemeinT m o KOWidgets
-kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
+kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
+    objektReader <- ask
     KOWidgetsBoxen {vBoxKontakte, vBoxHinzufügenPlanKontakte} <- erhalteKOWidgetsBoxen
+    spracheGui <- erhalteSpracheGui
     (koTVarSprache, koTVarEvent) <- liftIO $ do
         koTVarSprache <- newTVarIO $ Just []
         koTVarEvent <- newTVarIO EventAusführen
@@ -234,7 +239,24 @@ kontaktPackNew kontakt@Kontakt {kontaktAnschluss} = do
             }
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kontakt kontaktAnschluss
-    --TODO Kontakt-Anzeige
+    (labelSignal, tvarSignal) <- liftIO $ do
+        labelSignal <- boxPackWidgetNewDefault koFunctionBox $ Gtk.labelNew (Nothing :: Maybe Text)
+        tvarSignal <- newTVarIO Language.aus
+        pure (labelSignal, tvarSignal)
+    let aktualisiereLabelSignal :: Sprache -> IO ()
+        aktualisiereLabelSignal sprache = do
+            text <- readTVarIO tvarSignal
+            Gtk.set labelSignal [Gtk.labelText := text sprache]
+    verwendeSpracheGui justTVarSprache aktualisiereLabelSignal
+    liftIO $ forkIO $ forever $ do
+        flip runReaderT objektReader $ warteAufSignal kontakt
+        atomically $ writeTVar tvarSignal Language.an
+        Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGui
+        flip runReaderT objektReader $ warteAufSignal kontakt { koFließend = case koFließend of
+            HIGH -> LOW
+            LOW -> HIGH }
+        atomically $ writeTVar tvarSignal Language.aus
+        Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGui
     fließendPackNew vBoxAnschlüsse kontakt justTVarSprache
     buttonEntfernenPackNew koWidgets $ (entfernenKontakt koWidgets :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew koWidgets

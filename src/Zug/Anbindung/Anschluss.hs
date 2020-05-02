@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -5,7 +6,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE LambdaCase #-}
 
 {-|
 Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichkeiten zur Verfügung.
@@ -42,7 +42,11 @@ import Control.Applicative (Alternative(..))
 import Control.Concurrent (forkIO, ThreadId())
 import Control.Concurrent.STM
        (atomically, retry, newTVarIO, readTVar, writeTVar, TMVar, takeTMVar, putTMVar)
-import Control.Monad (void, forM, foldM)
+import Control.Monad (void, forM, unless
+#ifdef ZUGKONTROLLERASPI
+                    , foldM
+#endif
+                     )
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Bits (testBit)
@@ -51,8 +55,12 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
-import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead
-                               , pinToBcmGpio, pinMode, IntEdge(..), wiringPiISR)
+import System.Hardware.WiringPi
+       (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode, IntEdge(..)
+#ifdef ZUGKONTROLLERASPI
+      , wiringPiISR
+#endif
+       )
 import Text.Read (Read(..), ReadPrec, readListPrecDefault)
 
 import Zug.Anbindung.Anschluss.PCF8574
@@ -223,7 +231,9 @@ beiÄnderung :: (InterruptReader r m, I2CReader r m, MonadIO m)
              -> IO EventBehalten
              -> m ()
 beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
+#ifdef ZUGKONTROLLERASPI
     reader <- ask
+#endif
     tmvarInterruptMap <- erhalteInterruptMap
     interruptMap <- liftIO $ atomically $ takeTMVar tmvarInterruptMap
     case Map.lookup pin interruptMap of
@@ -238,8 +248,13 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
                 pinMode pin INPUT
+#ifdef ZUGKONTROLLERASPI
                 wiringPiISR pin (verwendeteIntEdge anschluss)
                     $ runReaderT aktionenAusführen reader
+#else
+                -- wiringPiISR führt auf Windows zu einem Auswerten von 'undefined'
+                putStrLn $ "wiringPiISR " ++ show pin ++ " " ++ show (verwendeteIntEdge anschluss)
+#endif
                 atomically
                     $ putTMVar tmvarInterruptMap
                     $ Map.insert
@@ -300,6 +315,7 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
         anschlussReadBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574}} = pcf8574Read pcf8574
 
+#ifdef ZUGKONTROLLERASPI
         aktionenAusführen :: (InterruptReader r m, I2CReader r m, MonadIO m) => m ()
         aktionenAusführen = do
             tmvarInterruptMap <- erhalteInterruptMap
@@ -320,9 +336,12 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
                          -> ((BitValue, BitValue) -> IO EventBehalten)
                          -> IO [(BitValue, BitValue)
                                -> IO EventBehalten]
-        aktionAusführen bitValues acc aktion = aktion bitValues >>= \case
-            EventBehalten -> pure $ aktion : acc
-            EventLöschen -> pure acc
+        aktionAusführen bitValues acc aktion = eventAnhängen <$> aktion bitValues
+            where
+                eventAnhängen :: EventBehalten -> [(BitValue, BitValue) -> IO EventBehalten]
+                eventAnhängen EventBehalten = aktion : acc
+                eventAnhängen EventLöschen = acc
+#endif
 beiÄnderung _anschluss _intEdge _aktion = pure ()
 
 -- | Wurde ein Signal bei einem 'Kontakt' registriert.
@@ -348,6 +367,4 @@ warteAufÄnderung anschlüsseIntEdge = do
         pure tvarSignal
     liftIO $ atomically $ do
         listeSignalErhalten <- mapM readTVar listeTVarSignal
-        if elem SignalErhalten listeSignalErhalten
-            then pure ()
-            else retry
+        unless (elem SignalErhalten listeSignalErhalten) retry
