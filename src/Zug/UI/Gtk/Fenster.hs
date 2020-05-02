@@ -22,7 +22,7 @@ module Zug.UI.Gtk.Fenster
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
-import Control.Concurrent.STM.TVar (TVar)
+import Control.Concurrent.STM (atomically, TVar, newTMVar, takeTMVar, putTMVar)
 import Control.Lens ((^.))
 import Control.Monad (void, when)
 import Control.Monad.Fix (MonadFix())
@@ -42,8 +42,9 @@ import Zug.Objekt (ObjektAllgemein(..), Objekt)
 import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte
                   , wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-import Zug.UI.Gtk.AssistantHinzufuegen (assistantHinzufügenNew, assistantHinzufügenAuswerten
-                                      , HinzufügenErgebnis(..), setzeAssistantHinzufügen)
+import Zug.UI.Gtk.AssistantHinzufuegen
+       (AssistantHinzufügen, assistantHinzufügenNew, assistantHinzufügenAuswerten
+      , HinzufügenErgebnis(..), setzeAssistantHinzufügen)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, packingDefault
                                  , paddingDefault, Position(), buttonNewWithEventLabel, dialogEval)
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
@@ -248,11 +249,24 @@ buttonHinzufügenPack
                -> IO ()
          )
 buttonHinzufügenPack parentWindow box maybeTVar = do
-    assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
+    tmvarAssistantHinzufügen <- liftIO $ atomically $ newTMVar Nothing
     objektReader <- ask
     statusVar <- erhalteStatusVar
-    let assistantAuswerten :: (ObjektGuiReader m, MonadIO m) => m ()
+    let erzeugeAssistantHinzufügen :: (ObjektGuiReader m, MonadFix m, MonadIO m) => m AssistantHinzufügen
+        erzeugeAssistantHinzufügen =
+            -- erzeuge AssistantHinzufügen nur, wenn er benötigt wird
+            liftIO (atomically $ takeTMVar tmvarAssistantHinzufügen) >>= \case
+                (Just assistantHinzufügen) -> pure assistantHinzufügen
+                Nothing -> do
+                    assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
+                    liftIO
+                        $ atomically
+                        $ putTMVar tmvarAssistantHinzufügen
+                        $ Just assistantHinzufügen
+                    pure assistantHinzufügen
+        assistantAuswerten :: (ObjektGuiReader m, MonadFix m, MonadIO m) => m ()
         assistantAuswerten = do
+            assistantHinzufügen <- erzeugeAssistantHinzufügen
             assistantHinzufügenAuswerten assistantHinzufügen
                 >>= flip auswertenStatusVarMStatusT statusVar . \case
                     (HinzufügenErfolgreich
@@ -288,8 +302,10 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                     -- bei neu hinzugefügten Objekten nicht zu verpassen
                     HinzufügenBeenden -> pure ()
                     HinzufügenAbbrechen -> pure ()
-        assistantBearbeiten :: (ObjektGuiReader m, MonadIO m) => Objekt -> m ()
-        assistantBearbeiten = setzeAssistantHinzufügen assistantHinzufügen
+        assistantBearbeiten :: (ObjektGuiReader m, MonadFix m, MonadIO m) => Objekt -> m ()
+        assistantBearbeiten objekt = do
+            assistantHinzufügen <- erzeugeAssistantHinzufügen
+            setzeAssistantHinzufügen assistantHinzufügen objekt
     button <- boxPackWidgetNewDefault box
         $ buttonNewWithEventLabel maybeTVar Language.hinzufügen
         $ void
