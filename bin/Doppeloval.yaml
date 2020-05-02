@@ -33,7 +33,7 @@ Pläne:
   - Aktion: Warten
     Kontakt:
       Name: Test-Kontakt
-      Fließend: LOW
+      Fließend: HIGH
       KontaktAnschluss:
         Pin: 14
   - Fließend: Gesperrt
@@ -53,7 +53,7 @@ Pläne:
   - Aktion: Warten
     Kontakt:
       Name: Test-Kontakt
-      Fließend: LOW
+      Fließend: HIGH
       KontaktAnschluss:
         Pin: 14
   Dauerschleife: true
