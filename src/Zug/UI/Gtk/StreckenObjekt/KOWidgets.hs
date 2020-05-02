@@ -201,7 +201,6 @@ kontaktPackNew
 kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     objektReader <- ask
     KOWidgetsBoxen {vBoxKontakte, vBoxHinzufügenPlanKontakte} <- erhalteKOWidgetsBoxen
-    spracheGui <- erhalteSpracheGui
     (koTVarSprache, koTVarEvent) <- liftIO $ do
         koTVarSprache <- newTVarIO $ Just []
         koTVarEvent <- newTVarIO EventAusführen
@@ -248,15 +247,19 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
             text <- readTVarIO tvarSignal
             Gtk.set labelSignal [Gtk.labelText := text sprache]
     verwendeSpracheGui justTVarSprache aktualisiereLabelSignal
-    liftIO $ forkIO $ forever $ do
-        flip runReaderT objektReader $ warteAufSignal kontakt
-        atomically $ writeTVar tvarSignal Language.an
-        Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGui
-        flip runReaderT objektReader $ warteAufSignal kontakt { koFließend = case koFließend of
+    liftIO $ forkIO $ forever $ flip runReaderT objektReader $ do
+        warteAufSignal kontakt
+        spracheGuiAn <- erhalteSpracheGui
+        liftIO $ do
+            atomically $ writeTVar tvarSignal Language.an
+            Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGuiAn
+        warteAufSignal kontakt { koFließend = case koFließend of
             HIGH -> LOW
             LOW -> HIGH }
-        atomically $ writeTVar tvarSignal Language.aus
-        Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGui
+        spracheGuiAus <- erhalteSpracheGui
+        liftIO $ do
+            atomically $ writeTVar tvarSignal Language.aus
+            Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGuiAus
     fließendPackNew vBoxAnschlüsse kontakt justTVarSprache
     buttonEntfernenPackNew koWidgets $ (entfernenKontakt koWidgets :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew koWidgets
