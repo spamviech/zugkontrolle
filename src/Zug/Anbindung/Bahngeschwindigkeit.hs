@@ -7,6 +7,7 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-|
@@ -34,8 +35,9 @@ import Data.Text (Text)
 import Data.Word (Word8)
 
 import Zug.Anbindung.Anschluss
-       (Value(..), Anschluss(..), Pin(), PCF8574Port(), I2CReader(forkI2CReader)
-      , AnschlussKlasse(anschlussWrite), pcf8574MultiPortWrite, pcf8574Gruppieren)
+       (Value(..), AnschlussEither(..), Anschluss(..), MitInterruptPin(OhneInterruptPin)
+      , PCF8574Klasse(ohneInterruptPin), Pin(), PCF8574Port(), I2CReader(forkI2CReader)
+      , AnschlussKlasse(anschlussWrite, zuAnschluss), pcf8574MultiPortWrite, pcf8574Gruppieren)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Pwm
        (PwmReader(), pwmSetzeWert, erhaltePwmWertVoll, erhaltePwmWertReduziert, pwmGrenze)
@@ -50,7 +52,7 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     LegoBahngeschwindigkeit :: { bglName :: Text
                                , bglFließend :: Value
                                , bglGeschwindigkeitsPin :: Pin
-                               , bglFahrtrichtungsAnschluss :: Anschluss
+                               , bglFahrtrichtungsAnschluss :: AnschlussEither
                                } -> Bahngeschwindigkeit 'Pwm 'Lego
     MärklinBahngeschwindigkeitPwm
         :: { bgmpName :: Text, bgmpFließend :: Value, bgmpGeschwindigkeitsPin :: Pin }
@@ -58,8 +60,8 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     MärklinBahngeschwindigkeitKonstanteSpannung
         :: { bgmkName :: Text
            , bgmkFließend :: Value
-           , bgmkFahrstromAnschlüsse :: NonEmpty Anschluss
-           , bgmkUmdrehenAnschluss :: Anschluss
+           , bgmkFahrstromAnschlüsse :: NonEmpty AnschlussEither
+           , bgmkUmdrehenAnschluss :: AnschlussEither
            } -> Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
 
 deriveOrd $ Left ''Bahngeschwindigkeit
@@ -97,11 +99,11 @@ instance Anzeige (Bahngeschwindigkeit g z) where
         <^> Language.umdrehen <-> Language.anschluss <=> bgmkUmdrehenAnschluss
 
 instance StreckenObjekt (Bahngeschwindigkeit b z) where
-    anschlüsse :: Bahngeschwindigkeit b z -> Set Anschluss
+    anschlüsse :: Bahngeschwindigkeit b z -> Set AnschlussEither
     anschlüsse LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
-        [AnschlussPin bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss]
+        [zuAnschluss bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss]
     anschlüsse MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin} =
-        [AnschlussPin bgmpGeschwindigkeitsPin]
+        [zuAnschluss bgmpGeschwindigkeitsPin]
     anschlüsse
         MärklinBahngeschwindigkeitKonstanteSpannung
         {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
@@ -196,25 +198,39 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
                 foldl splitAnschlüsse ([], [], []) bgmkFahrstromAnschlüsse
 
-            splitAnschlüsse :: ([(Pin, Value)], [PCF8574Port], [PCF8574Port])
-                             -> Anschluss
-                             -> ([(Pin, Value)], [PCF8574Port], [PCF8574Port])
-            splitAnschlüsse (pins, portsHigh, portsLow) anschluss@AnschlussPin {pin} =
+            splitAnschlüsse
+                :: ( [(Pin, Value)]
+                   , [PCF8574Port 'OhneInterruptPin]
+                   , [PCF8574Port 'OhneInterruptPin]
+                   )
+                -> AnschlussEither
+                -> ( [(Pin, Value)]
+                   , [PCF8574Port 'OhneInterruptPin]
+                   , [PCF8574Port 'OhneInterruptPin]
+                   )
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                anschluss@(AnschlussMit AnschlussPin {pin}) =
                 ((pin, anschlussValue anschluss) : pins, portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                anschluss@AnschlussPCF8574Port {pcf8574Port}
+                anschluss@(AnschlussOhne AnschlussPCF8574Port {pcf8574Port})
                 | anschlussValue anschluss == HIGH = (pins, pcf8574Port : portsHigh, portsLow)
                 | otherwise = (pins, portsHigh, pcf8574Port : portsLow)
+            splitAnschlüsse acc (AnschlussMit AnschlussPCF8574Port {pcf8574Port}) =
+                splitAnschlüsse acc
+                $ AnschlussOhne
+                $ AnschlussPCF8574Port
+                $ ohneInterruptPin pcf8574Port
 
             fahrstromPortMapHigh = pcf8574Gruppieren fahrstromPcf8574PortsHigh
 
             fahrstromPortMapLow = pcf8574Gruppieren fahrstromPcf8574PortsLow
 
-            anschlussValue :: Anschluss -> Value
+            anschlussValue :: AnschlussEither -> Value
             anschlussValue anschluss
                 | positionOderLetztes fahrstromAnschluss bgmkFahrstromAnschlüsse
-                    == (Just anschluss) =
+                    == Just anschluss =
                     fließend bg
                 | otherwise = gesperrt bg
 

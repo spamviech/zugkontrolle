@@ -41,8 +41,9 @@ import Data.Void (Void)
 import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Streckenabschnitt(..), StreckenabschnittKlasse(..)
-                    , StreckenabschnittContainer(..), StreckenObjekt(..), Anschluss(), I2CReader())
+import Zug.Anbindung
+       (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..)
+      , StreckenObjekt(..), AnschlussEither(), I2CReader())
 import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
@@ -162,7 +163,7 @@ instance PlanElement STWidgets where
     boxenPlan _stWidgets = Lens.to $ vBoxHinzufügenPlanStreckenabschnitte . stWidgetsBoxen
 
 instance StreckenObjekt STWidgets where
-    anschlüsse :: STWidgets -> Set Anschluss
+    anschlüsse :: STWidgets -> Set AnschlussEither
     anschlüsse STWidgets {st} = anschlüsse st
 
     erhalteName :: STWidgets -> Text

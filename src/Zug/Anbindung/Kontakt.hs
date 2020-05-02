@@ -14,14 +14,20 @@ import Data.Set (Set)
 import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss
-       (Value(..), Anschluss(), InterruptReader(), I2CReader(), warteAufÄnderung, IntEdge(..))
+       (Value(..), Anschluss(), AnschlussEither(AnschlussMit), MitInterruptPin(MitInterruptPin)
+      , InterruptReader(), I2CReader(), warteAufÄnderung, IntEdge(..))
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 import Zug.Language (Anzeige(..), Sprache(), (<:>), (<=>), (<^>), (<->))
 import qualified Zug.Language as Language
 
 -- | Erhalte ein Signal, wenn ein Zug eine Kontaktschiene erreicht.
-data Kontakt = Kontakt { koName :: Text, koFließend :: Value, kontaktAnschluss :: Anschluss }
+data Kontakt =
+    Kontakt
+    { koName :: Text
+    , koFließend :: Value
+    , kontaktAnschluss :: Anschluss 'MitInterruptPin
+    }
     deriving (Show, Eq, Ord)
 
 instance Anzeige Kontakt where
@@ -32,8 +38,8 @@ instance Anzeige Kontakt where
         <=> koName <^> Language.kontakt <-> Language.anschluss <=> kontaktAnschluss
 
 instance StreckenObjekt Kontakt where
-    anschlüsse :: Kontakt -> Set Anschluss
-    anschlüsse Kontakt {kontaktAnschluss} = [kontaktAnschluss]
+    anschlüsse :: Kontakt -> Set AnschlussEither
+    anschlüsse Kontakt {kontaktAnschluss} = [AnschlussMit kontaktAnschluss]
 
     erhalteName :: Kontakt -> Text
     erhalteName = koName

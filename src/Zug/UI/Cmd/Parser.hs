@@ -59,7 +59,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Anschluss(..))
+import Zug.Anbindung (AnschlussEither())
 import Zug.Enums (Zugtyp(..))
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<:>), (<\>), toBefehlsString)
 import qualified Zug.Language as Language
@@ -169,7 +169,7 @@ data AnfrageBefehl
     | ABLaden
     | ABAktionPlan Plan
     | ABAktionPlanAusführend Plan AnfrageNeu
-    | ABAktionPlanGesperrt Plan AnfrageNeu (NonEmpty Anschluss)
+    | ABAktionPlanGesperrt Plan AnfrageNeu (NonEmpty AnschlussEither)
     | ABAktion AnfrageAktion
     | ABStatusAnfrage (EingabeToken -> StatusAnfrageObjekt)
                       (Objekt -> AnfrageFortsetzung AnfrageBefehl (Either BefehlSofort Befehl))

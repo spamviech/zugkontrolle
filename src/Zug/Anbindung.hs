@@ -4,6 +4,10 @@ Description : Low-Level-Definition der unterstützen Aktionen auf Anschluss-Eben
 module Zug.Anbindung
   ( -- * Anschluss-Repräsentation
     Anschluss(..)
+  , AnschlussEither(..)
+  , MitInterruptPin(..)
+  , InterruptPinBenötigt(..)
+  , PCF8574Klasse(..)
   , PCF8574Port(..)
   , PCF8574(..)
   , PCF8574Variant(..)
@@ -74,7 +78,8 @@ module Zug.Anbindung
   ) where
 
 import Zug.Anbindung.Anschluss
-       (Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..), PCF8574(..)
+       (Anschluss(..), AnschlussKlasse(..), AnschlussEither(..), MitInterruptPin(..)
+      , InterruptPinBenötigt(..), PCF8574Klasse(..), Pin(..), PCF8574Port(..), PCF8574(..)
       , PCF8574Variant(..), anschlussWrite, Value(..), alleValues, I2CMap, i2cMapEmpty
       , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite, beiÄnderung
       , InterruptMap, interruptMapEmpty, MitInterruptMap(..), InterruptReader(..), IntEdge(..))

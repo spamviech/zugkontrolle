@@ -21,7 +21,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
-import Zug.Anbindung.Anschluss (Anschluss(), Value(..))
+import Zug.Anbindung.Anschluss (AnschlussEither(), Value(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Strom(..))
 import Zug.Options (Options(..), getOptions)
@@ -36,13 +36,13 @@ befehlAusführen ioAction ersatzNachricht = do
 
 -- | Klasse für Typen mit Name und Anschlüssen.
 class StreckenObjekt s where
-    anschlüsse :: s -> Set Anschluss
+    anschlüsse :: s -> Set AnschlussEither
     erhalteName :: s -> Text
     {-# MINIMAL anschlüsse, erhalteName #-}
 
 instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego))
     => StreckenObjekt (ZugtypEither a) where
-    anschlüsse :: ZugtypEither a -> Set Anschluss
+    anschlüsse :: ZugtypEither a -> Set AnschlussEither
     anschlüsse (ZugtypMärklin a) = anschlüsse a
     anschlüsse (ZugtypLego a) = anschlüsse a
 
@@ -52,7 +52,7 @@ instance (StreckenObjekt (a 'Märklin), StreckenObjekt (a 'Lego))
 
 instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
     => StreckenObjekt (GeschwindigkeitEither bg z) where
-    anschlüsse :: GeschwindigkeitEither bg z -> Set Anschluss
+    anschlüsse :: GeschwindigkeitEither bg z -> Set AnschlussEither
     anschlüsse (GeschwindigkeitPwm bg) = anschlüsse bg
     anschlüsse (GeschwindigkeitKonstanteSpannung bg) = anschlüsse bg
 
@@ -61,14 +61,14 @@ instance (StreckenObjekt (bg 'Pwm z), StreckenObjekt (bg 'KonstanteSpannung z))
     erhalteName (GeschwindigkeitKonstanteSpannung bg) = erhalteName bg
 
 instance (StreckenObjekt (a z)) => StreckenObjekt (GeschwindigkeitPhantom a g z) where
-    anschlüsse :: GeschwindigkeitPhantom a g z -> Set Anschluss
+    anschlüsse :: GeschwindigkeitPhantom a g z -> Set AnschlussEither
     anschlüsse (GeschwindigkeitPhantom a) = anschlüsse a
 
     erhalteName :: GeschwindigkeitPhantom a g z -> Text
     erhalteName (GeschwindigkeitPhantom a) = erhalteName a
 
 instance (StreckenObjekt a) => StreckenObjekt (Maybe a) where
-    anschlüsse :: Maybe a -> Set Anschluss
+    anschlüsse :: Maybe a -> Set AnschlussEither
     anschlüsse (Just a) = anschlüsse a
     anschlüsse Nothing = Set.empty
 

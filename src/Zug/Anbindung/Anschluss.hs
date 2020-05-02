@@ -1,11 +1,14 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE KindSignatures #-}
 
 {-|
 Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichkeiten zur Verfügung.
@@ -13,9 +16,14 @@ Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichke
 module Zug.Anbindung.Anschluss
   ( -- * Anschluss-Datentyp
     Anschluss(..)
+  , AnschlussEither(..)
   , Pin(..)
   , PCF8574Port(..)
   , PCF8574(..)
+  , MitInterruptPin(..)
+  , InterruptPinBenötigt(..)
+  , InterruptPinKlasse()
+  , PCF8574Klasse(..)
   , PCF8574Variant(..)
   , pcf8574Gruppieren
   , pcf8574MultiPortWrite
@@ -61,40 +69,53 @@ import System.Hardware.WiringPi
       , wiringPiISR
 #endif
        )
-import Text.Read (Read(..), ReadPrec, readListPrecDefault)
+import Text.Read (Read(..), ReadPrec)
 
 import Zug.Anbindung.Anschluss.PCF8574
        (PCF8574Port(..), PCF8574(..), PCF8574Variant(..), pcf8574PortWrite, pcf8574Read
       , pcf8574PortRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), pcf8574Gruppieren
-      , pcf8574MultiPortWrite, BitValue(..), emptyBitValue, fullBitValue)
+      , pcf8574MultiPortWrite, BitValue(..), emptyBitValue, fullBitValue, MitInterruptPin(..)
+      , PCF8574Klasse(..))
 import Zug.Language (Anzeige(..), Sprache(), showText)
+
+-- | Wird ein Interrupt-Pin für den Anschluss benötigt?
+data InterruptPinBenötigt
+    = InterruptPinBenötigt
+    | InterruptPinEgal
+    deriving (Show, Eq)
 
 -- | Alle Möglichen Werte von 'Value'.
 alleValues :: NonEmpty Value
 alleValues = NonEmpty.fromList [minBound .. maxBound]
 
--- | Alle unterstützten Anschlussmöglichkeiten
-data Anschluss
-    = AnschlussPin { pin :: Pin }
-    | AnschlussPCF8574Port { pcf8574Port :: PCF8574Port }
-    deriving (Eq, Show, Ord)
+-- | Alle unterstützten Anschlussmöglichkeiten.
+data Anschluss (i :: MitInterruptPin) where
+    AnschlussPin :: { pin :: Pin } -> Anschluss 'MitInterruptPin
+    AnschlussPCF8574Port :: { pcf8574Port :: PCF8574Port i } -> Anschluss i
 
-instance Anzeige Anschluss where
-    anzeige :: Anschluss -> Sprache -> Text
+deriving instance Eq (Anschluss i)
+
+deriving instance Show (Anschluss i)
+
+deriving instance Ord (Anschluss i)
+
+instance Anzeige (Anschluss i) where
+    anzeige :: Anschluss i -> Sprache -> Text
     anzeige AnschlussPin {pin} = const $ showText pin
     anzeige AnschlussPCF8574Port {pcf8574Port} = anzeige pcf8574Port
 
-instance Read Anschluss where
-    readPrec :: ReadPrec Anschluss
+instance Read (Anschluss 'MitInterruptPin) where
+    readPrec :: ReadPrec (Anschluss 'MitInterruptPin)
     readPrec = (AnschlussPin <$> readPrec) <|> (AnschlussPCF8574Port <$> readPrec)
 
-    readListPrec :: ReadPrec [Anschluss]
-    readListPrec = readListPrecDefault
+instance Read (Anschluss 'OhneInterruptPin) where
+    readPrec :: ReadPrec (Anschluss 'OhneInterruptPin)
+    readPrec = AnschlussPCF8574Port <$> readPrec
 
 -- | Klasse für 'Anschluss'-Typen.
 class AnschlussKlasse a where
     -- | Konvertiere in einen 'Anschluss'.
-    zuAnschluss :: a -> Anschluss
+    zuAnschluss :: a -> AnschlussEither
 
     -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'Pin'
     zuPin :: a -> Maybe Pin
@@ -109,7 +130,10 @@ class AnschlussKlasse a where
     zuPinGpio _anschluss = Nothing
 
     -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'PCF8574Port'.
-    zuPCF8574Port :: a -> Maybe PCF8574Port
+    zuPCF8574Port :: a -> Maybe (PCF8574Port 'OhneInterruptPin)
+
+    -- | Konvertiere (wenn möglich) einen 'Anschluss' in einen 'PCF8574Port' mit Interrupt-Pin.
+    zuPCF8574PortInterruptPin :: a -> Maybe (PCF8574Port 'MitInterruptPin)
 
     -- | Schreibe einen 'Value' in einen Anschlussmöglichkeit.
     anschlussWrite :: (I2CReader r m, MonadIO m) => a -> Value -> m ()
@@ -117,35 +141,42 @@ class AnschlussKlasse a where
     -- | Lese einen 'Value' aus einem 'Anschluss'.
     anschlussRead :: (I2CReader r m, MonadIO m) => a -> m Value
 
-instance AnschlussKlasse Anschluss where
-    zuAnschluss :: Anschluss -> Anschluss
-    zuAnschluss = id
+instance (InterruptPinKlasse i) => AnschlussKlasse (Anschluss i) where
+    zuAnschluss :: Anschluss i -> AnschlussEither
+    zuAnschluss = zuAnschlussEither
 
-    zuPin :: Anschluss -> Maybe Pin
+    zuPin :: Anschluss i -> Maybe Pin
     zuPin AnschlussPin {pin} = Just pin
     zuPin _anschluss = Nothing
 
-    zuPinGpio :: (Num n) => Anschluss -> Maybe n
+    zuPinGpio :: (Num n) => Anschluss i -> Maybe n
     zuPinGpio (AnschlussPin pin) = Just $ case pinToBcmGpio pin of
         (Just gpio) -> fromIntegral gpio
         Nothing -> 0
     zuPinGpio _anschluss = Nothing
 
-    zuPCF8574Port :: Anschluss -> Maybe PCF8574Port
-    zuPCF8574Port AnschlussPCF8574Port {pcf8574Port} = Just pcf8574Port
+    zuPCF8574Port :: Anschluss i -> Maybe (PCF8574Port 'OhneInterruptPin)
+    zuPCF8574Port AnschlussPCF8574Port {pcf8574Port} = Just $ ohneInterruptPin pcf8574Port
     zuPCF8574Port _anschluss = Nothing
 
-    anschlussWrite :: (I2CReader r m, MonadIO m) => Anschluss -> Value -> m ()
+    zuPCF8574PortInterruptPin :: Anschluss i -> Maybe (PCF8574Port 'MitInterruptPin)
+    zuPCF8574PortInterruptPin
+        AnschlussPCF8574Port
+        {pcf8574Port = pcf8574Port@PCF8574Port {pcf8574 = PCF8574InterruptPin {}}} =
+        Just pcf8574Port
+    zuPCF8574PortInterruptPin _anschluss = Nothing
+
+    anschlussWrite :: (I2CReader r m, MonadIO m) => Anschluss i -> Value -> m ()
     anschlussWrite AnschlussPin {pin} = liftIO . (pinMode pin OUTPUT >>) . digitalWrite pin
     anschlussWrite AnschlussPCF8574Port {pcf8574Port} = pcf8574PortWrite pcf8574Port
 
-    anschlussRead :: (I2CReader r m, MonadIO m) => Anschluss -> m Value
+    anschlussRead :: (I2CReader r m, MonadIO m) => Anschluss i -> m Value
     anschlussRead AnschlussPin {pin} = liftIO $ pinMode pin INPUT >> digitalRead pin
     anschlussRead AnschlussPCF8574Port {pcf8574Port} = pcf8574PortRead pcf8574Port
 
 instance AnschlussKlasse Pin where
-    zuAnschluss :: Pin -> Anschluss
-    zuAnschluss = AnschlussPin
+    zuAnschluss :: Pin -> AnschlussEither
+    zuAnschluss = AnschlussMit . AnschlussPin
 
     zuPin :: Pin -> Maybe Pin
     zuPin = Just
@@ -155,8 +186,11 @@ instance AnschlussKlasse Pin where
         (Just gpio) -> fromIntegral gpio
         Nothing -> 0
 
-    zuPCF8574Port :: Pin -> Maybe PCF8574Port
+    zuPCF8574Port :: Pin -> Maybe (PCF8574Port 'OhneInterruptPin)
     zuPCF8574Port = const Nothing
+
+    zuPCF8574PortInterruptPin :: Pin -> Maybe (PCF8574Port 'MitInterruptPin)
+    zuPCF8574PortInterruptPin = const Nothing
 
     anschlussWrite :: (I2CReader r m, MonadIO m) => Pin -> Value -> m ()
     anschlussWrite pin = liftIO . (pinMode pin OUTPUT >>) . digitalWrite pin
@@ -164,30 +198,94 @@ instance AnschlussKlasse Pin where
     anschlussRead :: (I2CReader r m, MonadIO m) => Pin -> m Value
     anschlussRead pin = liftIO $ pinMode pin INPUT >> digitalRead pin
 
-instance AnschlussKlasse PCF8574Port where
-    zuAnschluss :: PCF8574Port -> Anschluss
-    zuAnschluss = AnschlussPCF8574Port
+instance (InterruptPinKlasse i) => AnschlussKlasse (PCF8574Port i) where
+    zuAnschluss :: PCF8574Port i -> AnschlussEither
+    zuAnschluss = zuAnschlussEither . AnschlussPCF8574Port
 
-    zuPin :: PCF8574Port -> Maybe Pin
+    zuPin :: PCF8574Port i -> Maybe Pin
     zuPin = const Nothing
 
-    zuPinGpio :: (Num n) => PCF8574Port -> Maybe n
+    zuPinGpio :: (Num n) => PCF8574Port i -> Maybe n
     zuPinGpio = const Nothing
 
-    zuPCF8574Port :: PCF8574Port -> Maybe PCF8574Port
-    zuPCF8574Port = Just
+    zuPCF8574Port :: PCF8574Port i -> Maybe (PCF8574Port 'OhneInterruptPin)
+    zuPCF8574Port = Just . ohneInterruptPin
 
-    anschlussWrite :: (I2CReader r m, MonadIO m) => PCF8574Port -> Value -> m ()
+    zuPCF8574PortInterruptPin :: PCF8574Port i -> Maybe (PCF8574Port 'MitInterruptPin)
+    zuPCF8574PortInterruptPin
+        pcf8574Port@PCF8574Port {pcf8574 = PCF8574InterruptPin {}} = Just pcf8574Port
+    zuPCF8574PortInterruptPin _pcf8574Port = Nothing
+
+    anschlussWrite :: (I2CReader r m, MonadIO m) => PCF8574Port i -> Value -> m ()
     anschlussWrite = pcf8574PortWrite
 
-    anschlussRead :: (I2CReader r m, MonadIO m) => PCF8574Port -> m Value
+    anschlussRead :: (I2CReader r m, MonadIO m) => PCF8574Port i -> m Value
     anschlussRead = pcf8574PortRead
 
+-- | 'Anschluss' ohne Typ-Information über 'MitInterruptPin'.
+data AnschlussEither
+    = AnschlussMit (Anschluss 'MitInterruptPin)
+    | AnschlussOhne (Anschluss 'OhneInterruptPin)
+    deriving (Eq, Ord)
+
+instance Show AnschlussEither where
+    show :: AnschlussEither -> String
+    show (AnschlussMit a) = show a
+    show (AnschlussOhne a) = show a
+
+instance Read AnschlussEither where
+    readPrec :: ReadPrec AnschlussEither
+    readPrec = (AnschlussMit <$> readPrec) <|> (AnschlussOhne <$> readPrec)
+
+instance Anzeige AnschlussEither where
+    anzeige :: AnschlussEither -> Sprache -> Text
+    anzeige (AnschlussMit a) = anzeige a
+    anzeige (AnschlussOhne a) = anzeige a
+
+instance AnschlussKlasse AnschlussEither where
+    zuAnschluss :: AnschlussEither -> AnschlussEither
+    zuAnschluss = id
+
+    zuPin :: AnschlussEither -> Maybe Pin
+    zuPin (AnschlussMit a) = zuPin a
+    zuPin (AnschlussOhne a) = zuPin a
+
+    zuPinGpio :: (Num n) => AnschlussEither -> Maybe n
+    zuPinGpio (AnschlussMit a) = zuPinGpio a
+    zuPinGpio (AnschlussOhne a) = zuPinGpio a
+
+    zuPCF8574Port :: AnschlussEither -> Maybe (PCF8574Port 'OhneInterruptPin)
+    zuPCF8574Port (AnschlussMit a) = zuPCF8574Port a
+    zuPCF8574Port (AnschlussOhne a) = zuPCF8574Port a
+
+    zuPCF8574PortInterruptPin :: AnschlussEither -> Maybe (PCF8574Port 'MitInterruptPin)
+    zuPCF8574PortInterruptPin (AnschlussMit a) = zuPCF8574PortInterruptPin a
+    zuPCF8574PortInterruptPin (AnschlussOhne a) = zuPCF8574PortInterruptPin a
+
+    anschlussWrite :: (I2CReader r m, MonadIO m) => AnschlussEither -> Value -> m ()
+    anschlussWrite (AnschlussMit a) = anschlussWrite a
+    anschlussWrite (AnschlussOhne a) = anschlussWrite a
+
+    anschlussRead :: (I2CReader r m, MonadIO m) => AnschlussEither -> m Value
+    anschlussRead (AnschlussMit a) = anschlussRead a
+    anschlussRead (AnschlussOhne a) = anschlussRead a
+
+class InterruptPinKlasse (i :: MitInterruptPin) where
+    zuAnschlussEither :: Anschluss i -> AnschlussEither
+
+instance InterruptPinKlasse 'MitInterruptPin where
+    zuAnschlussEither :: Anschluss 'MitInterruptPin -> AnschlussEither
+    zuAnschlussEither = AnschlussMit
+
+instance InterruptPinKlasse 'OhneInterruptPin where
+    zuAnschlussEither :: Anschluss 'OhneInterruptPin -> AnschlussEither
+    zuAnschlussEither = AnschlussOhne
+
 -- | Erhalte den 'Pin', welche eine Änderung der eingehenden Spannung angibt.
-anschlussInterruptPin :: Anschluss -> Maybe Pin
-anschlussInterruptPin AnschlussPin {pin} = Just pin
+anschlussInterruptPin :: Anschluss 'MitInterruptPin -> Pin
+anschlussInterruptPin AnschlussPin {pin} = pin
 anschlussInterruptPin
-    AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574 = PCF8574 {interruptPin}}} =
+    AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574 = PCF8574InterruptPin {interruptPin}}} =
     interruptPin
 
 -- | Soll ein Event mehrfach ausgeführt werden?
@@ -226,48 +324,58 @@ instance (MonadReader r m, MitInterruptMap r) => InterruptReader r m
 --
 -- Diese Funktion hat nur für Anschlüsse mit 'interruptPin' einen Effekt.
 beiÄnderung :: (InterruptReader r m, I2CReader r m, MonadIO m)
-             => Anschluss
+             => Anschluss 'MitInterruptPin
              -> IntEdge
              -> IO EventBehalten
              -> m ()
-beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
+beiÄnderung anschluss intEdge aktion = do
 #ifdef ZUGKONTROLLERASPI
     reader <- ask
 #endif
     tmvarInterruptMap <- erhalteInterruptMap
     interruptMap <- liftIO $ atomically $ takeTMVar tmvarInterruptMap
-    case Map.lookup pin interruptMap of
+    case Map.lookup interruptPin interruptMap of
         (Just (aktionen, alterWert)) -> liftIO
             $ atomically
             $ putTMVar tmvarInterruptMap
             $ Map.insert
-                pin
+                interruptPin
                 (beiRichtigemBitValue anschluss intEdge aktion : aktionen, alterWert)
                 interruptMap
         Nothing -> do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
-                pinMode pin INPUT
+                pinMode interruptPin INPUT
 #ifdef ZUGKONTROLLERASPI
-                wiringPiISR pin (verwendeteIntEdge anschluss)
+                wiringPiISR interruptPin (verwendeteIntEdge anschluss)
                     $ runReaderT aktionenAusführen reader
 #else
                 -- wiringPiISR führt auf Windows zu einem Auswerten von 'undefined'
-                putStrLn $ "wiringPiISR " ++ show pin ++ " " ++ show (verwendeteIntEdge anschluss)
+                putStrLn
+                    $ "wiringPiISR "
+                    ++ show interruptPin
+                    ++ " "
+                    ++ show (verwendeteIntEdge anschluss)
 #endif
                 atomically
                     $ putTMVar tmvarInterruptMap
                     $ Map.insert
-                        pin
+                        interruptPin
                         ([beiRichtigemBitValue anschluss intEdge aktion], wert)
                         interruptMap
     where
-        verwendeteIntEdge :: Anschluss -> IntEdge
+        interruptPin :: Pin
+        interruptPin = anschlussInterruptPin anschluss
+
+        verwendeteIntEdge :: Anschluss 'MitInterruptPin -> IntEdge
         verwendeteIntEdge AnschlussPin {} = INT_EDGE_BOTH
         verwendeteIntEdge AnschlussPCF8574Port {} = INT_EDGE_FALLING
 
-        beiRichtigemBitValue
-            :: Anschluss -> IntEdge -> IO EventBehalten -> (BitValue, BitValue) -> IO EventBehalten
+        beiRichtigemBitValue :: Anschluss 'MitInterruptPin
+                             -> IntEdge
+                             -> IO EventBehalten
+                             -> (BitValue, BitValue)
+                             -> IO EventBehalten
         beiRichtigemBitValue AnschlussPin {} INT_EDGE_BOTH aktion _werte = aktion
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
@@ -306,7 +414,8 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
             | otherwise = pure EventBehalten
         beiRichtigemBitValue _anschluss INT_EDGE_SETUP _aktion _werte = pure EventBehalten
 
-        anschlussReadBitValue :: (I2CReader r m, MonadIO m) => Anschluss -> m BitValue
+        anschlussReadBitValue
+            :: (I2CReader r m, MonadIO m) => Anschluss 'MitInterruptPin -> m BitValue
         anschlussReadBitValue AnschlussPin {pin} = liftIO $ toBitValue <$> digitalRead pin
             where
                 toBitValue :: Value -> BitValue
@@ -342,7 +451,6 @@ beiÄnderung anschluss@(anschlussInterruptPin -> Just pin) intEdge aktion = do
                 eventAnhängen EventBehalten = aktion : acc
                 eventAnhängen EventLöschen = acc
 #endif
-beiÄnderung _anschluss _intEdge _aktion = pure ()
 
 -- | Wurde ein Signal bei einem 'Kontakt' registriert.
 data SignalErhalten
@@ -355,8 +463,9 @@ data SignalErhalten
 -- Wird eine leere Liste übergeben wird der aktuelle Thread nicht blockiert.
 --
 -- Alle Einschränkungen von 'beiÄnderung' treffen auch auf diese Funktion zu.
-warteAufÄnderung
-    :: (InterruptReader r m, I2CReader r m, MonadIO m) => [(Anschluss, IntEdge)] -> m ()
+warteAufÄnderung :: (InterruptReader r m, I2CReader r m, MonadIO m)
+                  => [(Anschluss 'MitInterruptPin, IntEdge)]
+                  -> m ()
 warteAufÄnderung [] = pure ()
 warteAufÄnderung anschlüsseIntEdge = do
     listeTVarSignal <- forM anschlüsseIntEdge $ \(anschluss, intEdge) -> do

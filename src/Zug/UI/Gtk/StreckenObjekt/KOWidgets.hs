@@ -39,7 +39,7 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), KontaktContainer(..)
-                    , Anschluss(), Value(..), InterruptReader(), I2CReader())
+                    , AnschlussEither(AnschlussMit), Value(..), InterruptReader(), I2CReader())
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache(leseSprache))
 import qualified Zug.Language as Language
@@ -156,7 +156,7 @@ instance PlanElement KOWidgets where
     boxenPlan _KOWidgets = Lens.to $ vBoxHinzufügenPlanKontakte . koWidgetsBoxen
 
 instance StreckenObjekt KOWidgets where
-    anschlüsse :: KOWidgets -> Set Anschluss
+    anschlüsse :: KOWidgets -> Set AnschlussEither
     anschlüsse = anschlüsse . ko
 
     erhalteName :: KOWidgets -> Text
@@ -237,7 +237,8 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
             , koTVarEvent
             }
     boxPackWidgetNewDefault vBoxAnschlüsse
-        $ anschlussNew justTVarSprache Language.kontakt kontaktAnschluss
+        $ anschlussNew justTVarSprache Language.kontakt
+        $ AnschlussMit kontaktAnschluss
     (labelSignal, tvarSignal) <- liftIO $ do
         labelSignal <- boxPackWidgetNewDefault koFunctionBox $ Gtk.labelNew (Nothing :: Maybe Text)
         tvarSignal <- newTVarIO Language.aus

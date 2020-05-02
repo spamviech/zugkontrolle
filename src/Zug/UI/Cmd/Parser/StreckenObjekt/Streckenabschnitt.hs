@@ -10,15 +10,15 @@ module Zug.UI.Cmd.Parser.StreckenObjekt.Streckenabschnitt (AnfrageStreckenabschn
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 
-import Zug.Anbindung (Value(..), alleValues, Anschluss(), Streckenabschnitt(..))
+import Zug.Anbindung (Value(..), alleValues, AnschlussEither()
+                    , InterruptPinBenötigt(InterruptPinEgal), Streckenabschnitt(..))
 import Zug.Language (Anzeige(..), Sprache(), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.UI.Cmd.Lexer (EingabeToken(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard
                                 , AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
-import Zug.UI.Cmd.Parser.Anschluss
-       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinEgal))
+import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
 
 -- | Unvollständiger 'Streckenabschnitt'
 data AnfrageStreckenabschnitt
@@ -27,7 +27,7 @@ data AnfrageStreckenabschnitt
     | AStreckenabschnittNameFließend
           { astName :: Text
           , astFließend :: Value
-          , astStromAnfrageAnschluss :: AnfrageAnschluss
+          , astStromAnfrageAnschluss :: AnfrageAnschluss 'InterruptPinEgal
           }
     deriving (Eq, Show)
 
@@ -75,23 +75,20 @@ instance MitAnfrage Streckenabschnitt where
     anfrageAktualisieren (AStreckenabschnittName name) token =
         wähleZwischenwert
             token
-            [ ( Lexer.HIGH
-                  , AStreckenabschnittNameFließend name HIGH $ AnfrageAnschluss InterruptPinEgal
-                  )
-            , ( Lexer.LOW
-                  , AStreckenabschnittNameFließend name LOW $ AnfrageAnschluss InterruptPinEgal
-                  )]
+            [ (Lexer.HIGH, AStreckenabschnittNameFließend name HIGH AnfrageAnschluss)
+            , (Lexer.LOW, AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren
         anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
         $<< anfrageAktualisieren stromAnschluss token
         where
-            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageStreckenabschnitt
+            anfrageAnschlussVerwenden
+                :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageStreckenabschnitt
             anfrageAnschlussVerwenden
                 astStromAnfrageAnschluss = anfrage { astStromAnfrageAnschluss }
 
             anschlussVerwenden
-                :: Anschluss -> AnfrageFortsetzung AnfrageStreckenabschnitt Streckenabschnitt
+                :: AnschlussEither -> AnfrageFortsetzung AnfrageStreckenabschnitt Streckenabschnitt
             anschlussVerwenden stromAnschluss =
                 AFErgebnis Streckenabschnitt { stName, stFließend, stromAnschluss }

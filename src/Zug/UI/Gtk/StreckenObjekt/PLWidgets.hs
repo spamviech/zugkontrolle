@@ -43,7 +43,7 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (StreckenObjekt(..), Anschluss())
+import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())
 import Zug.Language (Sprache(), MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..))
@@ -146,7 +146,7 @@ instance PlanElement PLWidgets where
     boxenPlan _kuWidgets = Lens.to $ vBoxHinzufügenPlanPläne . plWidgetsBoxen
 
 instance StreckenObjekt PLWidgets where
-    anschlüsse :: PLWidgets -> Set Anschluss
+    anschlüsse :: PLWidgets -> Set AnschlussEither
     anschlüsse = anschlüsse . pl
 
     erhalteName :: PLWidgets -> Text

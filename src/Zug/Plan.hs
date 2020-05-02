@@ -47,7 +47,7 @@ import Data.Word (Word8)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
-       (Anschluss(), StreckenObjekt(..), PwmReader(..), I2CReader(..), InterruptReader()
+       (AnschlussEither(), StreckenObjekt(..), PwmReader(..), I2CReader(..), InterruptReader()
       , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
       , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..)
       , Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..), KontaktKlasse(..))
@@ -89,7 +89,7 @@ instance ( BahngeschwindigkeitKlasse bg
          , StreckenObjekt (bg g 'Lego)
          , StreckenObjekt (bg g z)
          ) => StreckenObjekt (AktionBahngeschwindigkeit bg g z) where
-    anschlüsse :: AktionBahngeschwindigkeit bg g z -> Set Anschluss
+    anschlüsse :: AktionBahngeschwindigkeit bg g z -> Set AnschlussEither
     anschlüsse (Geschwindigkeit bg _wert) = anschlüsse bg
     anschlüsse (Fahrstrom bg _strom) = anschlüsse bg
     anschlüsse (Umdrehen bg) = anschlüsse bg
@@ -108,7 +108,7 @@ instance (StreckenObjekt st) => Anzeige (AktionStreckenabschnitt st) where
     anzeige (Strom st Gesperrt) = erhalteName st <°> Language.strom <=> Language.gesperrt
 
 instance (StreckenabschnittKlasse st, Show st) => StreckenObjekt (AktionStreckenabschnitt st) where
-    anschlüsse :: AktionStreckenabschnitt st -> Set Anschluss
+    anschlüsse :: AktionStreckenabschnitt st -> Set AnschlussEither
     anschlüsse (Strom st _an) = anschlüsse st
 
     erhalteName :: AktionStreckenabschnitt st -> Text
@@ -123,7 +123,7 @@ instance (StreckenObjekt we) => Anzeige (AktionWeiche we) where
     anzeige (Stellen we richtung) = erhalteName we <°> Language.stellen <=> showText richtung
 
 instance (WeicheKlasse we, Show we) => StreckenObjekt (AktionWeiche we) where
-    anschlüsse :: AktionWeiche we -> Set Anschluss
+    anschlüsse :: AktionWeiche we -> Set AnschlussEither
     anschlüsse (Stellen we _richtung) = anschlüsse we
 
     erhalteName :: AktionWeiche we -> Text
@@ -138,7 +138,7 @@ instance (StreckenObjekt ku) => Anzeige (AktionKupplung ku) where
     anzeige (Kuppeln ku) = erhalteName ku <°> Language.kuppeln
 
 instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) where
-    anschlüsse :: AktionKupplung ku -> Set Anschluss
+    anschlüsse :: AktionKupplung ku -> Set AnschlussEither
     anschlüsse (Kuppeln ku) = anschlüsse ku
 
     erhalteName :: AktionKupplung ku -> Text
@@ -148,12 +148,12 @@ instance (KupplungKlasse ku, Show ku) => StreckenObjekt (AktionKupplung ku) wher
 newtype AktionKontakt ko = WartenAuf ko
     deriving (Eq, Ord, Show)
 
-instance (Anzeige ko) => Anzeige (AktionKontakt ko) where
+instance (StreckenObjekt ko) => Anzeige (AktionKontakt ko) where
     anzeige :: AktionKontakt ko -> Sprache -> Text
-    anzeige (WartenAuf ko) = Language.warten <:> ko
+    anzeige (WartenAuf ko) = Language.warten <:> erhalteName ko
 
 instance (StreckenObjekt ko, Show ko) => StreckenObjekt (AktionKontakt ko) where
-    anschlüsse :: AktionKontakt ko -> Set Anschluss
+    anschlüsse :: AktionKontakt ko -> Set AnschlussEither
     anschlüsse (WartenAuf ko) = anschlüsse ko
 
     erhalteName :: AktionKontakt ko -> Text
@@ -201,7 +201,7 @@ instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , Show (ws z)
          , Anzeige (ws z)
          ) => StreckenObjekt (AktionWegstrecke ws z) where
-    anschlüsse :: AktionWegstrecke ws z -> Set Anschluss
+    anschlüsse :: AktionWegstrecke ws z -> Set AnschlussEither
     anschlüsse (Einstellen ws) = anschlüsse ws
     anschlüsse (AWSBahngeschwindigkeit aktion) = anschlüsse aktion
     anschlüsse (AWSStreckenabschnitt aktion) = anschlüsse aktion
@@ -251,7 +251,7 @@ instance Anzeige Aktion where
     anzeige (AktionAusführen Plan {plName}) = Language.ausführen <:> plName
 
 instance StreckenObjekt Aktion where
-    anschlüsse :: Aktion -> Set Anschluss
+    anschlüsse :: Aktion -> Set AnschlussEither
     anschlüsse (Warten _zeit) = Set.empty
     anschlüsse (ABahngeschwindigkeitMärklinPwm aktion) = anschlüsse aktion
     anschlüsse (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) = anschlüsse aktion
@@ -330,7 +330,7 @@ instance Anzeige Plan where
         Language.plan <:> Language.name <=> plName <^> Language.aktionen <=> plAktionen
 
 instance StreckenObjekt Plan where
-    anschlüsse :: Plan -> Set Anschluss
+    anschlüsse :: Plan -> Set AnschlussEither
     anschlüsse Plan {plAktionen} = foldMap anschlüsse plAktionen
 
     erhalteName :: Plan -> Text

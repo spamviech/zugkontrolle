@@ -40,7 +40,7 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheContainer(..)
-                    , Anschluss(), I2CReader(), PwmReader())
+                    , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither
                 , ausZugtypEither, GeschwindigkeitVariante(..), Richtung(..))
 import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
@@ -295,7 +295,7 @@ instance PlanElement (ZugtypEither WEWidgets) where
         . weWidgetsBoxen
 
 instance StreckenObjekt (WEWidgets z) where
-    anschlüsse :: WEWidgets z -> Set Anschluss
+    anschlüsse :: WEWidgets z -> Set AnschlussEither
     anschlüsse = anschlüsse . we
 
     erhalteName :: WEWidgets z -> Text

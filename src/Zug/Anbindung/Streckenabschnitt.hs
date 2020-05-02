@@ -17,7 +17,8 @@ import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import Data.Text (Text)
 
-import Zug.Anbindung.Anschluss (Value(), Anschluss(), AnschlussKlasse(anschlussWrite), I2CReader())
+import Zug.Anbindung.Anschluss
+       (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite), I2CReader())
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom())
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->))
@@ -25,7 +26,7 @@ import qualified Zug.Language as Language
 
 -- | Steuere die Stromzufuhr einer Schiene.
 data Streckenabschnitt =
-    Streckenabschnitt { stName :: Text, stFließend :: Value, stromAnschluss :: Anschluss }
+    Streckenabschnitt { stName :: Text, stFließend :: Value, stromAnschluss :: AnschlussEither }
     deriving (Eq, Ord, Show)
 
 instance Anzeige Streckenabschnitt where
@@ -35,7 +36,7 @@ instance Anzeige Streckenabschnitt where
         <:> Language.name <=> stName <^> Language.strom <-> Language.anschluss <=> stromAnschluss
 
 instance StreckenObjekt Streckenabschnitt where
-    anschlüsse :: Streckenabschnitt -> Set Anschluss
+    anschlüsse :: Streckenabschnitt -> Set AnschlussEither
     anschlüsse Streckenabschnitt {stromAnschluss} = [stromAnschluss]
 
     erhalteName :: Streckenabschnitt -> Text

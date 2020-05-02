@@ -17,7 +17,8 @@ import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import Data.Text (Text)
 
-import Zug.Anbindung.Anschluss (Value(), Anschluss(), AnschlussKlasse(anschlussWrite), I2CReader())
+import Zug.Anbindung.Anschluss
+       (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite), I2CReader())
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Wartezeit (Wartezeit(MilliSekunden), warte)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
@@ -25,7 +26,8 @@ import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->
 import qualified Zug.Language as Language
 
 -- | Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt werden.
-data Kupplung = Kupplung { kuName :: Text, kuFließend :: Value, kupplungsAnschluss :: Anschluss }
+data Kupplung =
+    Kupplung { kuName :: Text, kuFließend :: Value, kupplungsAnschluss :: AnschlussEither }
     deriving (Eq, Ord, Show)
 
 instance Anzeige Kupplung where
@@ -36,7 +38,7 @@ instance Anzeige Kupplung where
         <=> kuName <^> Language.kupplung <-> Language.anschluss <=> kupplungsAnschluss
 
 instance StreckenObjekt Kupplung where
-    anschlüsse :: Kupplung -> Set Anschluss
+    anschlüsse :: Kupplung -> Set AnschlussEither
     anschlüsse Kupplung {kupplungsAnschluss} = [kupplungsAnschluss]
 
     erhalteName :: Kupplung -> Text

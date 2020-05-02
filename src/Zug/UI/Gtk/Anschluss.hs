@@ -4,7 +4,11 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE StandaloneDeriving #-}
 #endif
 
 {-|
@@ -38,8 +42,10 @@ import Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
-import Zug.Anbindung (Anschluss(..), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..)
-                    , PCF8574Variant(..), Value(..), Pin(Gpio))
+import Zug.Anbindung
+       (Anschluss(..), AnschlussEither(..), MitInterruptPin(..), InterruptPinBenötigt(..)
+      , PCF8574Klasse(ohneInterruptPin), AnschlussKlasse(..), PCF8574Port(..), PCF8574(..)
+      , PCF8574Variant(..), Value(..), Pin(Gpio))
 import Zug.Language (Sprache(..), (<->), (<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl, setzeAuswahl
@@ -91,7 +97,7 @@ instance MitLabel AnschlussWidget where
 anschlussNew :: (SpracheGuiReader r m, MonadIO m)
              => Maybe (TVar (Maybe [Sprache -> IO ()]))
              -> (Sprache -> Text)
-             -> Anschluss
+             -> AnschlussEither
              -> m AnschlussWidget
 anschlussNew maybeTVar name anschluss =
     fmap AnschlussWidget $ labelSpracheNew maybeTVar $ name <-> Language.anschluss <:> anschluss
@@ -133,26 +139,32 @@ setzePin PinAuswahlWidget {pawSpinButton} pin =
     liftIO $ Gtk.set pawSpinButton [Gtk.spinButtonValue := fromJust (zuPinGpio pin)]
 
 -- | Widgets zum erzeugen eines 'Anschluss'.
-data AnschlussAuswahlWidget =
+data AnschlussAuswahlWidget (i :: InterruptPinBenötigt) where
     AnschlussAuswahlWidget
-    { aawWidget :: Gtk.Widget
-    , aawNotebook :: Gtk.Notebook
-    , aawPinPage :: Int
-    , aawPin :: PinAuswahlWidget
-    , aawPCF8574PortPage :: Int
-    , aawPCF8574PortBox :: Gtk.HBox
-    , aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant
-    , aawPCF8574PortA0 :: AuswahlWidget Value
-    , aawPCF8574PortA1 :: AuswahlWidget Value
-    , aawPCF8574PortA2 :: AuswahlWidget Value
-    , aawPCF8574Port :: Gtk.SpinButton
-    , aawPCF8574PortInterruptPin :: Maybe PinAuswahlWidget
-    }
-    deriving (Eq)
+        :: { aawWidget :: Gtk.Widget
+           , aawNotebook :: Gtk.Notebook
+           , aawPinPage :: Int
+           , aawPin :: PinAuswahlWidget
+           , aawPCF8574PortPage :: Int
+           , aawPCF8574PortBox :: Gtk.HBox
+           , aawPCF8574PortVariante :: AuswahlWidget PCF8574Variant
+           , aawPCF8574PortA0 :: AuswahlWidget Value
+           , aawPCF8574PortA1 :: AuswahlWidget Value
+           , aawPCF8574PortA2 :: AuswahlWidget Value
+           , aawPCF8574Port :: Gtk.SpinButton
+           } -> AnschlussAuswahlWidget 'InterruptPinEgal
+    AnschlussAuswahlWidgetInterruptPin
+        :: { aawAnschlussAuswahlWidget :: AnschlussAuswahlWidget 'InterruptPinEgal
+           , aawPCF8574PortInterruptPin :: PinAuswahlWidget
+           } -> AnschlussAuswahlWidget 'InterruptPinBenötigt
 
-instance MitWidget AnschlussAuswahlWidget where
-    erhalteWidget :: AnschlussAuswahlWidget -> Gtk.Widget
-    erhalteWidget = aawWidget
+deriving instance Eq (AnschlussAuswahlWidget i)
+
+instance MitWidget (AnschlussAuswahlWidget i) where
+    erhalteWidget :: AnschlussAuswahlWidget i -> Gtk.Widget
+    erhalteWidget AnschlussAuswahlWidget {aawWidget} = aawWidget
+    erhalteWidget AnschlussAuswahlWidgetInterruptPin {aawAnschlussAuswahlWidget} =
+        erhalteWidget aawAnschlussAuswahlWidget
 
 -- | Erzeugen eines'Anschluss'.
 --
@@ -162,7 +174,7 @@ instance MitWidget AnschlussAuswahlWidget where
 anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
                     => Maybe (TVar (Maybe [Sprache -> IO ()]))
                     -> (Sprache -> Text)
-                    -> m AnschlussAuswahlWidget
+                    -> m (AnschlussAuswahlWidget 'InterruptPinEgal)
 anschlussAuswahlNew maybeTVar name = do
     (vBox, aawNotebook) <- liftIO $ do
         vBox <- Gtk.vBoxNew False 0
@@ -208,7 +220,6 @@ anschlussAuswahlNew maybeTVar name = do
         , aawPCF8574PortA1
         , aawPCF8574PortA2
         , aawPCF8574Port
-        , aawPCF8574PortInterruptPin = Nothing
         }
 
 -- | Erzeugen eines'Anschluss' mit InterruptPin.
@@ -220,16 +231,24 @@ anschlussAuswahlInterruptPinNew
     :: (SpracheGuiReader r m, MonadIO m)
     => Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> (Sprache -> Text)
-    -> m AnschlussAuswahlWidget
+    -> m (AnschlussAuswahlWidget 'InterruptPinBenötigt)
 anschlussAuswahlInterruptPinNew maybeTVar name = do
-    anschlussAuswahlWidget@AnschlussAuswahlWidget
+    aawAnschlussAuswahlWidget@AnschlussAuswahlWidget
         {aawPCF8574PortBox} <- anschlussAuswahlNew maybeTVar name
     auswahlInterruptPin
         <- boxPackWidgetNewDefault aawPCF8574PortBox $ pinAuswahlNew maybeTVar Language.interrupt
-    pure anschlussAuswahlWidget { aawPCF8574PortInterruptPin = Just auswahlInterruptPin }
+    pure
+        AnschlussAuswahlWidgetInterruptPin
+        { aawAnschlussAuswahlWidget
+        , aawPCF8574PortInterruptPin = auswahlInterruptPin
+        }
+
+type family AnschlussAuswahl (i :: InterruptPinBenötigt) where
+    AnschlussAuswahl 'InterruptPinBenötigt = Anschluss 'MitInterruptPin
+    AnschlussAuswahl 'InterruptPinEgal = AnschlussEither
 
 -- | Erhalte den aktuell gewählten 'Anschluss'.
-aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> m Anschluss
+aktuellerAnschluss :: (MonadIO m) => AnschlussAuswahlWidget i -> m (AnschlussAuswahl i)
 aktuellerAnschluss
     AnschlussAuswahlWidget
     { aawNotebook
@@ -239,31 +258,64 @@ aktuellerAnschluss
     , aawPCF8574PortA0
     , aawPCF8574PortA1
     , aawPCF8574PortA2
-    , aawPCF8574Port
+    , aawPCF8574Port} = liftIO $ Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
+    page
+        | page == aawPCF8574PortPage -> liftIO $ do
+            variant <- aktuelleAuswahl aawPCF8574PortVariante
+            a0 <- aktuelleAuswahl aawPCF8574PortA0
+            a1 <- aktuelleAuswahl aawPCF8574PortA1
+            a2 <- aktuelleAuswahl aawPCF8574PortA2
+            port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
+            pure
+                $ AnschlussOhne
+                $ AnschlussPCF8574Port
+                $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2 }, port }
+        -- Verwende als Standard die Pin-Eingabe
+        | otherwise -> AnschlussMit . AnschlussPin <$> aktuellerPin aawPin
+aktuellerAnschluss
+    AnschlussAuswahlWidgetInterruptPin
+    { aawAnschlussAuswahlWidget = AnschlussAuswahlWidget
+          { aawNotebook
+          , aawPin
+          , aawPCF8574PortPage
+          , aawPCF8574PortVariante
+          , aawPCF8574PortA0
+          , aawPCF8574PortA1
+          , aawPCF8574PortA2
+          , aawPCF8574Port}
     , aawPCF8574PortInterruptPin} =
     liftIO $ Gtk.notebookGetCurrentPage (erhalteNotebook aawNotebook) >>= \case
         page
             | page == aawPCF8574PortPage -> liftIO $ do
-                variant <- aktuelleAuswahl aawPCF8574PortVariante
-                a0 <- aktuelleAuswahl aawPCF8574PortA0
-                a1 <- aktuelleAuswahl aawPCF8574PortA1
-                a2 <- aktuelleAuswahl aawPCF8574PortA2
+                iVariant <- aktuelleAuswahl aawPCF8574PortVariante
+                iA0 <- aktuelleAuswahl aawPCF8574PortA0
+                iA1 <- aktuelleAuswahl aawPCF8574PortA1
+                iA2 <- aktuelleAuswahl aawPCF8574PortA2
                 port <- fromIntegral <$> Gtk.spinButtonGetValueAsInt aawPCF8574Port
-                interruptPin <- case aawPCF8574PortInterruptPin of
-                    (Just pinAuswahl) -> Just <$> aktuellerPin pinAuswahl
-                    Nothing -> pure Nothing
+                interruptPin <- aktuellerPin aawPCF8574PortInterruptPin
                 pure
                     $ AnschlussPCF8574Port
-                    $ PCF8574Port { pcf8574 = PCF8574 { variant, a0, a1, a2, interruptPin }, port }
+                    $ PCF8574Port
+                    { pcf8574 = PCF8574InterruptPin { iVariant, iA0, iA1, iA2, interruptPin }
+                    , port
+                    }
             -- Verwende als Standard die Pin-Eingabe
             | otherwise -> AnschlussPin <$> aktuellerPin aawPin
 
 -- | Setze den aktuellen 'Anschluss'.
-setzeAnschluss :: (MonadIO m) => AnschlussAuswahlWidget -> Anschluss -> m ()
-setzeAnschluss AnschlussAuswahlWidget {aawNotebook, aawPin, aawPinPage} (AnschlussPin pin) =
-    liftIO $ do
-        Gtk.set aawNotebook [Gtk.notebookPage := aawPinPage]
-        setzePin aawPin pin
+setzeAnschluss :: (MonadIO m) => AnschlussAuswahlWidget i -> AnschlussAuswahl i -> m ()
+setzeAnschluss
+    AnschlussAuswahlWidget {aawNotebook, aawPin, aawPinPage}
+    (AnschlussMit AnschlussPin {pin}) = liftIO $ do
+    Gtk.set aawNotebook [Gtk.notebookPage := aawPinPage]
+    setzePin aawPin pin
+setzeAnschluss
+    anschlussAuswahlWidget@AnschlussAuswahlWidget {}
+    (AnschlussMit AnschlussPCF8574Port {pcf8574Port}) =
+    setzeAnschluss anschlussAuswahlWidget
+    $ AnschlussOhne
+    $ AnschlussPCF8574Port
+    $ ohneInterruptPin pcf8574Port
 setzeAnschluss
     AnschlussAuswahlWidget
     { aawNotebook
@@ -272,18 +324,43 @@ setzeAnschluss
     , aawPCF8574PortA0
     , aawPCF8574PortA1
     , aawPCF8574PortA2
-    , aawPCF8574Port
+    , aawPCF8574Port}
+    (AnschlussOhne
+         AnschlussPCF8574Port
+         {pcf8574Port = PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port}}) = liftIO $ do
+    Gtk.set aawNotebook [Gtk.notebookPage := aawPCF8574PortPage]
+    setzeAuswahl aawPCF8574PortVariante variant
+    setzeAuswahl aawPCF8574PortA0 a0
+    setzeAuswahl aawPCF8574PortA1 a1
+    setzeAuswahl aawPCF8574PortA2 a2
+    Gtk.set aawPCF8574Port [Gtk.spinButtonValue := fromIntegral port]
+setzeAnschluss
+    AnschlussAuswahlWidgetInterruptPin
+    {aawAnschlussAuswahlWidget = AnschlussAuswahlWidget {aawNotebook, aawPin, aawPinPage}}
+    AnschlussPin {pin} = liftIO $ do
+    Gtk.set aawNotebook [Gtk.notebookPage := aawPinPage]
+    setzePin aawPin pin
+setzeAnschluss
+    AnschlussAuswahlWidgetInterruptPin
+    { aawAnschlussAuswahlWidget = AnschlussAuswahlWidget
+          { aawNotebook
+          , aawPCF8574PortPage
+          , aawPCF8574PortVariante
+          , aawPCF8574PortA0
+          , aawPCF8574PortA1
+          , aawPCF8574PortA2
+          , aawPCF8574Port}
     , aawPCF8574PortInterruptPin}
-    (AnschlussPCF8574Port PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2, interruptPin}, port}) =
+    AnschlussPCF8574Port
+    { pcf8574Port =
+          PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port}} =
     liftIO $ do
         Gtk.set aawNotebook [Gtk.notebookPage := aawPCF8574PortPage]
-        setzeAuswahl aawPCF8574PortVariante variant
-        setzeAuswahl aawPCF8574PortA0 a0
-        setzeAuswahl aawPCF8574PortA1 a1
-        setzeAuswahl aawPCF8574PortA2 a2
+        setzeAuswahl aawPCF8574PortVariante iVariant
+        setzeAuswahl aawPCF8574PortA0 iA0
+        setzeAuswahl aawPCF8574PortA1 iA1
+        setzeAuswahl aawPCF8574PortA2 iA2
         Gtk.set aawPCF8574Port [Gtk.spinButtonValue := fromIntegral port]
-        case (aawPCF8574PortInterruptPin, interruptPin) of
-            (Just auswahlInterruptPin, Just pin) -> setzePin auswahlInterruptPin pin
-            _otherwise -> pure ()
+        setzePin aawPCF8574PortInterruptPin interruptPin
 #endif
 --

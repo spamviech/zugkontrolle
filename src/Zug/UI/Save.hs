@@ -23,7 +23,7 @@ module Zug.UI.Save
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
 import Data.Aeson.Types
-       (FromJSON(..), ToJSON(..), Value(..), Parser, Object, Pair, object, (.:), (.:?), (.=))
+       (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, fromJust)
@@ -34,9 +34,10 @@ import Data.Word (Word8)
 import Data.Yaml (encodeFile, decodeFileEither)
 import System.Directory (doesFileExist)
 
-import Zug.Anbindung (Wartezeit(..), Anschluss(..), AnschlussKlasse(..), Pin(..), PCF8574Port(..)
-                    , PCF8574(..), PCF8574Variant(..), Bahngeschwindigkeit(..)
-                    , Streckenabschnitt(..), Weiche(..), Kupplung(..), Kontakt(..), Wegstrecke(..))
+import Zug.Anbindung
+       (Wartezeit(..), Anschluss(..), AnschlussEither(..), MitInterruptPin(..), AnschlussKlasse(..)
+      , Pin(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), Bahngeschwindigkeit(..)
+      , Streckenabschnitt(..), Weiche(..), Kupplung(..), Kontakt(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
 import Zug.Enums
        (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
@@ -174,22 +175,37 @@ pinJS = "Pin"
 portJS :: Text
 portJS = "PCF8574Port"
 
--- | Parse einen Anschluss.
--- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
--- Bei diesen war nur ein Pin-Anschluss erlaubt, weshalb die JSON-Felder anders hießen.
-parseAnschluss :: Object -> Text -> Text -> Parser Anschluss
-parseAnschluss v anschlussJS pinJS = (v .: anschlussJS) <|> (zuAnschluss . Gpio <$> v .: pinJS)
+instance FromJSON AnschlussEither where
+    parseJSON :: Value -> Parser AnschlussEither
+    parseJSON v = (AnschlussMit <$> parseJSON v) <|> (AnschlussOhne <$> parseJSON v)
 
-instance FromJSON Anschluss where
-    parseJSON :: Value -> Parser Anschluss
+instance ToJSON AnschlussEither where
+    toJSON :: AnschlussEither -> Value
+    toJSON (AnschlussMit a) = toJSON a
+    toJSON (AnschlussOhne a) = toJSON a
+
+-- | Parse einen 'AnschlussEither'.
+--
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen war nur ein 'Pin'-Anschluss erlaubt, weshalb die JSON-Felder anders hießen.
+parseAnschlussEither :: Object -> Text -> Text -> Parser AnschlussEither
+parseAnschlussEither v anschlussJS pinJS =
+    (v .: anschlussJS) <|> (AnschlussMit . AnschlussPin . Gpio <$> v .: pinJS)
+
+instance FromJSON (Anschluss 'MitInterruptPin) where
+    parseJSON :: Value -> Parser (Anschluss 'MitInterruptPin)
     parseJSON (Object v) =
-        (zuAnschluss . Gpio <$> (v .: pinJS :: Parser Int))
-        <|> (AnschlussPCF8574Port <$> v .: portJS)
-    parseJSON (Number pin) = pure $ zuAnschluss $ Gpio $ floor pin
+        (AnschlussPin . Gpio <$> v .: pinJS) <|> (AnschlussPCF8574Port <$> v .: portJS)
+    parseJSON (Number pin) = pure $ AnschlussPin $ Gpio $ floor pin
     parseJSON _value = mzero
 
-instance ToJSON Anschluss where
-    toJSON :: Anschluss -> Value
+instance FromJSON (Anschluss 'OhneInterruptPin) where
+    parseJSON :: Value -> Parser (Anschluss 'OhneInterruptPin)
+    parseJSON (Object v) = AnschlussPCF8574Port <$> v .: portJS
+    parseJSON _value = mzero
+
+instance ToJSON (Anschluss i) where
+    toJSON :: Anschluss i -> Value
     toJSON anschluss@AnschlussPin {} = object [pinJS .= (fromJust $ zuPinGpio anschluss :: Int)]
     toJSON AnschlussPCF8574Port {pcf8574Port} = object [portJS .= pcf8574Port]
 
@@ -210,29 +226,38 @@ a2JS = "a2"
 interruptPinJS :: Text
 interruptPinJS = "InterruptPin"
 
-instance FromJSON PCF8574Port where
-    parseJSON :: Value -> Parser PCF8574Port
+instance FromJSON (PCF8574Port 'OhneInterruptPin) where
+    parseJSON :: Value -> Parser (PCF8574Port 'OhneInterruptPin)
     parseJSON (Object v) =
-        PCF8574Port
-        <$> (PCF8574 <$> v .: variantJS
-             <*> v .: a0JS
-             <*> v .: a1JS
-             <*> v .: a2JS
-             <*> (fmap Gpio <$> v .:? interruptPinJS))
+        PCF8574Port <$> (PCF8574 <$> v .: variantJS <*> v .: a0JS <*> v .: a1JS <*> v .: a2JS)
         <*> (v .: portJS)
     parseJSON _anschluss = mzero
 
-instance ToJSON PCF8574Port where
-    toJSON :: PCF8574Port -> Value
-    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2, interruptPin}, port} =
+instance FromJSON (PCF8574Port 'MitInterruptPin) where
+    parseJSON :: Value -> Parser (PCF8574Port 'MitInterruptPin)
+    parseJSON (Object v) =
+        PCF8574Port
+        <$> (PCF8574InterruptPin <$> v .: variantJS
+             <*> v .: a0JS
+             <*> v .: a1JS
+             <*> v .: a2JS
+             <*> (Gpio <$> v .: interruptPinJS))
+        <*> (v .: portJS)
+    parseJSON _anschluss = mzero
+
+instance ToJSON (PCF8574Port i) where
+    toJSON :: PCF8574Port i -> Value
+    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port} =
+        object [variantJS .= variant, a0JS .= a0, a1JS .= a1, a2JS .= a2, portJS .= port]
+    toJSON
+        PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port} =
         object
-        $ mitInterruptPin
-            interruptPin
-            [variantJS .= variant, a0JS .= a0, a1JS .= a1, a2JS .= a2, portJS .= port]
-        where
-            mitInterruptPin :: Maybe Pin -> [Pair] -> [Pair]
-            mitInterruptPin (Just pin) = (interruptPinJS .= (fromJust $ zuPinGpio pin :: Word) :)
-            mitInterruptPin Nothing = id
+            [ variantJS .= iVariant
+            , a0JS .= iA0
+            , a1JS .= iA1
+            , a2JS .= iA2
+            , portJS .= port
+            , interruptPinJS .= (fromJust $ zuPinGpio interruptPin :: Word)]
 
 -- Instanz-Deklarationen für PCF8574Variant
 -- neue Feld-Namen/Bezeichner in json-Datei
@@ -468,7 +493,7 @@ instance FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
         bglName <- v .: nameJS
         bglGeschwindigkeitsPin <- Gpio <$> v .: geschwindigkeitsPinJS
         bglFahrtrichtungsAnschluss
-            <- parseAnschluss v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
+            <- parseAnschlussEither v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
         bglFließend <- parseFließend v
         pure
             LegoBahngeschwindigkeit
@@ -523,7 +548,7 @@ instance FromJSON Streckenabschnitt where
     parseJSON (Object v) =
         Streckenabschnitt <$> v .: nameJS
         <*> parseFließend v
-        <*> parseAnschluss v stromAnschlussJS stromPinJS
+        <*> parseAnschlussEither v stromAnschlussJS stromPinJS
     parseJSON _value = mzero
 
 instance ToJSON Streckenabschnitt where
@@ -595,7 +620,7 @@ instance FromJSON Kupplung where
     parseJSON (Object v) =
         Kupplung <$> v .: nameJS
         <*> parseFließend v
-        <*> parseAnschluss v kupplungsAnschlussJS kupplungsPinJS
+        <*> parseAnschlussEither v kupplungsAnschlussJS kupplungsPinJS
     parseJSON _value = mzero
 
 instance ToJSON Kupplung where

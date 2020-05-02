@@ -46,7 +46,7 @@ import Zug.Anbindung
       , BahngeschwindigkeitContainer(..), verwendetPwm, Streckenabschnitt()
       , StreckenabschnittKlasse(..), StreckenabschnittContainer(..), Weiche(), WeicheContainer(..)
       , Kupplung(), KupplungKlasse(..), KupplungContainer(..), Kontakt(), KontaktKlasse(..)
-      , KontaktContainer(..), Wegstrecke(..), WegstreckeKlasse(..), Anschluss(), I2CReader()
+      , KontaktContainer(..), Wegstrecke(..), WegstreckeKlasse(..), AnschlussEither(), I2CReader()
       , PwmReader(), InterruptReader())
 import Zug.Enums
        (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither, ausZugtypEither
@@ -338,7 +338,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
         . wsWidgetsBoxen
 
 instance StreckenObjekt (WSWidgets z) where
-    anschlüsse :: WSWidgets z -> Set Anschluss
+    anschlüsse :: WSWidgets z -> Set AnschlussEither
     anschlüsse = anschlüsse . ws
 
     erhalteName :: WSWidgets z -> Text
@@ -658,7 +658,8 @@ wegstreckePackNew
         appendName Nothing objekt = Just $ const $ erhalteName objekt
         appendName (Just acc) objekt = Just $ acc <^> erhalteName objekt
 
-        fahrstromAnschlüsse :: Bahngeschwindigkeit 'KonstanteSpannung z -> NonEmpty Anschluss
+        fahrstromAnschlüsse
+            :: Bahngeschwindigkeit 'KonstanteSpannung z -> NonEmpty AnschlussEither
         fahrstromAnschlüsse
             MärklinBahngeschwindigkeitKonstanteSpannung {bgmkFahrstromAnschlüsse} =
             bgmkFahrstromAnschlüsse

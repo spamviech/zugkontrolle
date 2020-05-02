@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -9,15 +10,15 @@ module Zug.UI.Cmd.Parser.StreckenObjekt.Kupplung (AnfrageKupplung(..)) where
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 
-import Zug.Anbindung (Value(..), alleValues, Anschluss(), Kupplung(..))
+import Zug.Anbindung (Value(..), alleValues, AnschlussEither()
+                    , InterruptPinBenötigt(InterruptPinEgal), Kupplung(..))
 import Zug.Language (Anzeige(..), Sprache(), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.UI.Cmd.Lexer (EingabeToken(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard
                                 , AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
-import Zug.UI.Cmd.Parser.Anschluss
-       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinEgal))
+import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
 
 -- | Unvollständige 'Kupplung'.
 data AnfrageKupplung
@@ -26,7 +27,7 @@ data AnfrageKupplung
     | AKupplungNameFließend
           { akuName :: Text
           , akuFließend :: Value
-          , akuKupplungsAnfrageAnschluss :: AnfrageAnschluss
+          , akuKupplungsAnfrageAnschluss :: AnfrageAnschluss 'InterruptPinEgal
           }
     deriving (Eq, Show)
 
@@ -73,16 +74,16 @@ instance MitAnfrage Kupplung where
     anfrageAktualisieren (AKupplungName name) token =
         wähleZwischenwert
             token
-            [ (Lexer.HIGH, AKupplungNameFließend name HIGH $ AnfrageAnschluss InterruptPinEgal)
-            , (Lexer.LOW, AKupplungNameFließend name LOW $ AnfrageAnschluss InterruptPinEgal)]
+            [ (Lexer.HIGH, AKupplungNameFließend name HIGH AnfrageAnschluss)
+            , (Lexer.LOW, AKupplungNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren anfrage@(AKupplungNameFließend kuName kuFließend anfrageAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
         $<< anfrageAktualisieren anfrageAnschluss token
         where
-            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageKupplung
+            anfrageAnschlussVerwenden :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageKupplung
             anfrageAnschlussVerwenden
                 akuKupplungsAnfrageAnschluss = anfrage { akuKupplungsAnfrageAnschluss }
 
-            anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageKupplung Kupplung
+            anschlussVerwenden :: AnschlussEither -> AnfrageFortsetzung AnfrageKupplung Kupplung
             anschlussVerwenden kupplungsAnschluss =
                 AFErgebnis Kupplung { kuName, kuFließend, kupplungsAnschluss }

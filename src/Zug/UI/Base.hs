@@ -98,7 +98,7 @@ import Data.Text (Text)
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
-       (Anschluss(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..)
+       (AnschlussEither(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..)
       , InterruptMap, MitInterruptMap(..), interruptMapEmpty, StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitEither())
 import qualified Zug.Language as Language
@@ -522,4 +522,4 @@ ausführenMöglich plan = do
 data AusführenMöglich
     = AusführenMöglich
     | WirdAusgeführt
-    | AnschlüsseBelegt (NonEmpty Anschluss)
+    | AnschlüsseBelegt (NonEmpty AnschlussEither)

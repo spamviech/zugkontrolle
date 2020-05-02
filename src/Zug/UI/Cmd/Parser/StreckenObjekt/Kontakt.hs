@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -9,15 +10,16 @@ module Zug.UI.Cmd.Parser.StreckenObjekt.Kontakt (AnfrageKontakt(..)) where
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 
-import Zug.Anbindung (Value(..), alleValues, Anschluss(), Kontakt(..))
+import Zug.Anbindung
+       (Value(..), alleValues, Anschluss(), Kontakt(..), MitInterruptPin(MitInterruptPin)
+      , InterruptPinBenötigt(InterruptPinBenötigt))
 import Zug.Language (Anzeige(..), Sprache(), (<^>), (<=>), (<->), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.UI.Cmd.Lexer (EingabeToken(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard
                                 , AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
-import Zug.UI.Cmd.Parser.Anschluss
-       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinBenötigt))
+import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
 
 -- | Unvollständiger 'Kontakt'.
 data AnfrageKontakt
@@ -26,7 +28,7 @@ data AnfrageKontakt
     | AKontaktNameFließend
           { akoName :: Text
           , akoFließend :: Value
-          , akoKontaktAnfrageAnschluss :: AnfrageAnschluss
+          , akoKontaktAnfrageAnschluss :: AnfrageAnschluss 'InterruptPinBenötigt
           }
     deriving (Eq, Show)
 
@@ -73,18 +75,17 @@ instance MitAnfrage Kontakt where
     anfrageAktualisieren (AKontaktName name) token =
         wähleZwischenwert
             token
-            [ ( Lexer.HIGH
-                  , AKontaktNameFließend name HIGH $ AnfrageAnschluss InterruptPinBenötigt
-                  )
-            , (Lexer.LOW, AKontaktNameFließend name LOW $ AnfrageAnschluss InterruptPinBenötigt)]
+            [ (Lexer.HIGH, AKontaktNameFließend name HIGH AnfrageAnschluss)
+            , (Lexer.LOW, AKontaktNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren anfrage@(AKontaktNameFließend koName koFließend anfrageAnschluss) token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
         $<< anfrageAktualisieren anfrageAnschluss token
         where
-            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageKontakt
+            anfrageAnschlussVerwenden :: AnfrageAnschluss 'InterruptPinBenötigt -> AnfrageKontakt
             anfrageAnschlussVerwenden
                 akoKontaktAnfrageAnschluss = anfrage { akoKontaktAnfrageAnschluss }
 
-            anschlussVerwenden :: Anschluss -> AnfrageFortsetzung AnfrageKontakt Kontakt
+            anschlussVerwenden
+                :: Anschluss 'MitInterruptPin -> AnfrageFortsetzung AnfrageKontakt Kontakt
             anschlussVerwenden
                 kontaktAnschluss = AFErgebnis Kontakt { koName, koFließend, kontaktAnschluss }

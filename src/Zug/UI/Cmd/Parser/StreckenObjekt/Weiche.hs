@@ -5,6 +5,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -15,7 +16,8 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (Value(..), alleValues, Anschluss(), Pin(Gpio), Weiche(..))
+import Zug.Anbindung (Value(..), alleValues, AnschlussEither()
+                    , InterruptPinBenötigt(InterruptPinEgal), Pin(Gpio), Weiche(..))
 import Zug.Enums (Zugtyp(..), unterstützteZugtypen, Richtung(), unterstützteRichtungen)
 import Zug.Language (Anzeige(..), Sprache(), (<->), (<^>), (<=>), ($#), toBefehlsString)
 import qualified Zug.Language as Language
@@ -24,8 +26,7 @@ import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage
        (Anfrage(..), MitAnfrage(..), zeigeAnfrageFehlgeschlagenStandard, AnfrageZugtyp(..)
       , MitAnfrageZugtyp(..), AnfrageFortsetzung(..), wähleZwischenwert, ($<<), wähleRichtung)
-import Zug.UI.Cmd.Parser.Anschluss
-       (AnfrageAnschluss(AnfrageAnschluss), MitInterruptPin(InterruptPinEgal))
+import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
 
 -- | Unvollständige 'Weiche'.
 data AnfrageWeiche (z :: AnfrageZugtyp) where
@@ -38,15 +39,15 @@ data AnfrageWeiche (z :: AnfrageZugtyp) where
         :: { awemName :: Text
            , awemFließend :: Value
            , awemAnzahl :: Natural
-           , awemRichtungsAnschlüsse :: [(Richtung, Anschluss)]
+           , awemRichtungsAnschlüsse :: [(Richtung, AnschlussEither)]
            } -> AnfrageWeiche 'AnfrageZugtypMärklin
     AMärklinWeicheNameFließendAnzahlRichtung
         :: { awemName :: Text
            , awemFließend :: Value
            , awemAnzahl :: Natural
-           , awemRichtungsAnschlüsse :: [(Richtung, Anschluss)]
+           , awemRichtungsAnschlüsse :: [(Richtung, AnschlussEither)]
            , awemRichtung :: Richtung
-           , awemAnfrageAnschluss :: AnfrageAnschluss
+           , awemAnfrageAnschluss :: AnfrageAnschluss 'InterruptPinEgal
            } -> AnfrageWeiche 'AnfrageZugtypMärklin
     ALegoWeiche :: AnfrageWeiche 'AnfrageZugtypLego
     ALegoWeicheName :: { awelName :: Text } -> AnfrageWeiche 'AnfrageZugtypLego
@@ -180,8 +181,13 @@ instance MitAnfrage (Weiche 'Märklin) where
         token@EingabeToken {eingabe} = case wähleRichtung token of
         Nothing -> AFFehler eingabe
         (Just richtung) -> AFZwischenwert
-            $ AMärklinWeicheNameFließendAnzahlRichtung name fließend anzahl acc richtung
-            $ AnfrageAnschluss InterruptPinEgal
+            $ AMärklinWeicheNameFließendAnzahlRichtung
+                name
+                fließend
+                anzahl
+                acc
+                richtung
+                AnfrageAnschluss
     anfrageAktualisieren
         anfrage@(AMärklinWeicheNameFließendAnzahlRichtung
                      wemName
@@ -194,11 +200,12 @@ instance MitAnfrage (Weiche 'Märklin) where
         (anschlussVerwenden, anfrageAnschlussVerwenden)
         $<< anfrageAktualisieren anfrageAnschluss token
         where
-            anfrageAnschlussVerwenden :: AnfrageAnschluss -> AnfrageWeiche 'AnfrageZugtypMärklin
+            anfrageAnschlussVerwenden
+                :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageWeiche 'AnfrageZugtypMärklin
             anfrageAnschlussVerwenden awemAnfrageAnschluss = anfrage { awemAnfrageAnschluss }
 
             anschlussVerwenden
-                :: Anschluss
+                :: AnschlussEither
                 -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
             anschlussVerwenden anschluss
                 | anzahl > 1 =

@@ -39,7 +39,7 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), KupplungContainer(..)
-                    , Anschluss(), I2CReader)
+                    , AnschlussEither(), I2CReader)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache())
 import qualified Zug.Language as Language
@@ -155,7 +155,7 @@ instance PlanElement KUWidgets where
     boxenPlan _kuWidgets = Lens.to $ vBoxHinzufügenPlanKupplungen . kuWidgetsBoxen
 
 instance StreckenObjekt KUWidgets where
-    anschlüsse :: KUWidgets -> Set Anschluss
+    anschlüsse :: KUWidgets -> Set AnschlussEither
     anschlüsse = anschlüsse . ku
 
     erhalteName :: KUWidgets -> Text

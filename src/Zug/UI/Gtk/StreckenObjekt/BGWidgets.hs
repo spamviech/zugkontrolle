@@ -55,7 +55,7 @@ import Numeric.Natural (Natural)
 import Zug.Anbindung
        (StreckenObjekt(..), Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
       , BahngeschwindigkeitContainer(..), StreckenabschnittContainer(enthalteneStreckenabschnitte)
-      , Anschluss(), I2CReader(), PwmReader())
+      , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (GeschwindigkeitEither(..), GeschwindigkeitVariante(..), GeschwindigkeitKlasse(..)
                 , GeschwindigkeitPhantom(..), ausGeschwindigkeitEither, Zugtyp(..), ZugtypEither(..)
                 , ZugtypKlasse(..), ausZugtypEither, Fahrtrichtung(Vorwärts))
@@ -555,7 +555,7 @@ instance PlanElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
         . bgWidgetsBoxen
 
 instance StreckenObjekt (BGWidgets g z) where
-    anschlüsse :: BGWidgets g z -> Set Anschluss
+    anschlüsse :: BGWidgets g z -> Set AnschlussEither
     anschlüsse BGWidgetsPwmMärklin {bgpm} = anschlüsse bgpm
     anschlüsse BGWidgetsKonstanteSpannungMärklin {bgkm} = anschlüsse bgkm
     anschlüsse BGWidgetsPwmLego {bgpl} = anschlüsse bgpl
@@ -793,7 +793,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             let justTVarSprache = Just bgkmTVarSprache
             let erstelleFahrstromAnschlussWidget
-                    :: Natural -> Anschluss -> MStatusAllgemeinT m o Natural
+                    :: Natural -> AnschlussEither -> MStatusAllgemeinT m o Natural
                 erstelleFahrstromAnschlussWidget i anschluss = do
                     boxPackWidgetNewDefault vBoxAnschlüsse
                         $ anschlussNew justTVarSprache (Language.fahrstrom <> anzeige i) anschluss

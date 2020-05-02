@@ -13,8 +13,8 @@ import Data.Kind (Type)
 import Data.Set (Set)
 import Data.Text (Text)
 
-import Zug.Anbindung (Anschluss(), StreckenObjekt(..), Bahngeschwindigkeit(..), Streckenabschnitt()
-                    , Weiche(), Kupplung(), Kontakt(), Wegstrecke())
+import Zug.Anbindung (AnschlussEither(), StreckenObjekt(..), Bahngeschwindigkeit(..)
+                    , Streckenabschnitt(), Weiche(), Kupplung(), Kontakt(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..))
 import Zug.Language (Anzeige(..), Sprache())
@@ -206,7 +206,7 @@ instance ( StreckenObjekt pl
     erhalteName (OWegstrecke ws) = erhalteName ws
     erhalteName (OPlan pl) = erhalteName pl
 
-    anschlüsse :: ObjektAllgemein bg st we ku ko ws pl -> Set Anschluss
+    anschlüsse :: ObjektAllgemein bg st we ku ko ws pl -> Set AnschlussEither
     anschlüsse (OBahngeschwindigkeit bg) = anschlüsse bg
     anschlüsse (OStreckenabschnitt st) = anschlüsse st
     anschlüsse (OWeiche we) = anschlüsse we

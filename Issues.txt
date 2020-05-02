@@ -1,5 +1,6 @@
-Anschluss in GADT umwandeln
-    Mit Phantomtyp, der einen InterruptPin garantiert
+Wartezeit auf einen Konstruktor beschränken
+    Andere Konstruktoren durch PatternSynonyms ersetzen
+        COMPLETE-Pragmas nicht vergessen
 
 Pin-Setup bei Hinzufügen
     pinMode pin OUTPUT
@@ -46,8 +47,6 @@ Polysemy anstelle von mtl verwenden
 Gtk-UI, Plan Hinzufügen:
     Ersetzten des Auswahl-Fensters durch ComboBox?
         muss bei öffnen des Dialogs jedesmal neu gefüllt/an aktuellen Zustand angepasst werden
-
-
 
 Implementiere Server/Client-Modus:
     Raspi läuft im Server-Modus und reagiert auf eingehende Nachrichten (evtl. nur von fester IP-Adresse)
@@ -123,6 +122,10 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst----------------------------------------------------------------
+Anschluss in GADT umwandeln
+    Mit Phantomtyp, der einen InterruptPin garantiert
+    Done
+
 Gtk-UI:
     OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
         erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen

@@ -22,8 +22,8 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 
-import Zug.Anbindung.Anschluss
-       (Value(), Anschluss(..), Pin(), AnschlussKlasse(anschlussWrite), I2CReader())
+import Zug.Anbindung.Anschluss (Value(), AnschlussEither(), Pin()
+                              , AnschlussKlasse(anschlussWrite, zuAnschluss), I2CReader())
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Pwm (PwmReader, pwmServo)
 import Zug.Anbindung.Wartezeit (Wartezeit(MilliSekunden), warte)
@@ -40,7 +40,7 @@ data Weiche (z :: Zugtyp) where
                   } -> Weiche 'Lego
     MärklinWeiche :: { wemName :: Text
                       , wemFließend :: Value
-                      , wemRichtungsAnschlüsse :: NonEmpty (Richtung, Anschluss)
+                      , wemRichtungsAnschlüsse :: NonEmpty (Richtung, AnschlussEither)
                       } -> Weiche 'Märklin
 
 deriving instance Eq (Weiche z)
@@ -69,8 +69,8 @@ instance Anzeige (Weiche z) where
             wemRichtungsAnschlüsse
 
 instance StreckenObjekt (Weiche z) where
-    anschlüsse :: Weiche z -> Set Anschluss
-    anschlüsse LegoWeiche {welRichtungsPin} = [AnschlussPin welRichtungsPin]
+    anschlüsse :: Weiche z -> Set AnschlussEither
+    anschlüsse LegoWeiche {welRichtungsPin} = [zuAnschluss welRichtungsPin]
     anschlüsse MärklinWeiche {wemRichtungsAnschlüsse} =
         Set.fromList $ map snd $ NonEmpty.toList wemRichtungsAnschlüsse
 
@@ -147,7 +147,8 @@ instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
                         warte weicheZeit
                         anschlussWrite richtungsAnschluss $ gesperrt we
 
-            getRichtungsAnschluss :: Richtung -> [(Richtung, Anschluss)] -> Maybe Anschluss
+            getRichtungsAnschluss
+                :: Richtung -> [(Richtung, AnschlussEither)] -> Maybe AnschlussEither
             getRichtungsAnschluss _richtung [] = Nothing
             getRichtungsAnschluss richtung ((ersteRichtung, ersterAnschluss):andereRichtungen)
                 | richtung == ersteRichtung = Just ersterAnschluss

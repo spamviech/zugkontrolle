@@ -63,7 +63,7 @@ import Zug.Anbindung
        (Bahngeschwindigkeit(..), BahngeschwindigkeitContainer(..), Streckenabschnitt(..)
       , StreckenabschnittContainer(..), Weiche(..), Kupplung(..), KupplungContainer(..), Kontakt(..)
       , KontaktContainer(..), Wegstrecke(..), Wartezeit(..), StreckenObjekt(erhalteName)
-      , StreckenAtom(fließend), Anschluss())
+      , StreckenAtom(fließend), AnschlussEither(), InterruptPinBenötigt(..))
 import Zug.Enums (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlasse(..)
                 , ZugtypEither(..), zugtyp, ausZugtypEither, GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), geschwindigkeitVariante)
@@ -122,24 +122,27 @@ data HinzufügenSeite
           , indexSeiten :: Map Int GeschwindigkeitVariante
           , märklinGeschwindigkeitAuswahl :: PinAuswahlWidget
           , vBoxMärklinFahrstrom :: ScrollbaresWidget Gtk.VBox
-          , tvarFahrstromAuswahlWidgets :: TVar (NonEmpty AnschlussAuswahlWidget)
-          , umdrehenAuswahl :: AnschlussAuswahlWidget
+          , tvarFahrstromAuswahlWidgets
+                :: TVar (NonEmpty (AnschlussAuswahlWidget 'InterruptPinEgal))
+          , umdrehenAuswahl :: AnschlussAuswahlWidget 'InterruptPinEgal
             -- Lego
           , legoGeschwindigkeitAuswahl :: PinAuswahlWidget
-          , fahrtrichtungsAuswahl :: AnschlussAuswahlWidget
+          , fahrtrichtungsAuswahl :: AnschlussAuswahlWidget 'InterruptPinEgal
           }
     | HinzufügenSeiteStreckenabschnitt
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
-          , stromAuswahl :: AnschlussAuswahlWidget
+          , stromAuswahl :: AnschlussAuswahlWidget 'InterruptPinEgal
           }
     | HinzufügenSeiteWeiche
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
           , buttonHinzufügenWeiche :: ZugtypSpezifisch Gtk.Button
             -- Märklin
-          , märklinRichtungsAuswahl
-                :: NonEmpty (Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)
+          , märklinRichtungsAuswahl :: NonEmpty ( Richtung
+                                                 , RegistrierterCheckButton
+                                                 , AnschlussAuswahlWidget 'InterruptPinEgal
+                                                 )
             -- Lego
           , legoRichtungsAuswahl :: PinAuswahlWidget
           , legoRichtungenAuswahl :: AuswahlWidget (Richtung, Richtung)
@@ -147,12 +150,12 @@ data HinzufügenSeite
     | HinzufügenSeiteKupplung
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
-          , kupplungsAuswahl :: AnschlussAuswahlWidget
+          , kupplungsAuswahl :: AnschlussAuswahlWidget 'InterruptPinEgal
           }
     | HinzufügenSeiteKontakt
           { vBox :: Gtk.VBox
           , nameAuswahl :: NameAuswahlWidget
-          , kontaktAuswahl :: AnschlussAuswahlWidget
+          , kontaktAuswahl :: AnschlussAuswahlWidget 'InterruptPinBenötigt
           }
     | HinzufügenSeiteWegstrecke
           { vBox :: Gtk.VBox
@@ -461,7 +464,8 @@ setzeSeite
              (GeschwindigkeitKonstanteSpannung
                   MärklinBahngeschwindigkeitKonstanteSpannung
                   {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss})) -> do
-            let erstelleFahrstromAnschluss :: Anschluss -> Int -> m AnschlussAuswahlWidget
+            let erstelleFahrstromAnschluss
+                    :: AnschlussEither -> Int -> m (AnschlussAuswahlWidget 'InterruptPinEgal)
                 erstelleFahrstromAnschluss anschluss n = do
                     anschlussAuswahlWidget <- boxPackWidgetNewDefault vBoxMärklinFahrstrom
                         $ anschlussAuswahlNew maybeTVarSprache
@@ -718,9 +722,9 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
             NonEmpty.zip unterstützteRichtungen $ checkButtons märklinFortfahrenWennToggled
     märklinGrid <- liftIO $ scrollbaresWidgetNew Gtk.gridNew
     let foldFn :: (SpracheGuiReader r m, MonadIO m)
-               => [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)]
+               => [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget 'InterruptPinEgal)]
                -> (Richtung, RegistrierterCheckButton)
-               -> m [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget)]
+               -> m [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget 'InterruptPinEgal)]
         foldFn acc (richtung, registrierterCheckButton) = do
             let maybeTop = erhalteWidget . Lens.view _2 <$> listToMaybe acc
                 registrierterCheckButtonWidget = erhalteWidget registrierterCheckButton
