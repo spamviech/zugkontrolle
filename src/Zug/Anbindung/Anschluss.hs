@@ -431,11 +431,11 @@ beiÄnderung anschluss intEdge aktion = do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
                 interruptMap <- atomically $ takeTMVar tmvarInterruptMap
-                eintragAnpassen <- case Map.lookup pin interruptMap of
+                eintragAnpassen <- case Map.lookup interruptPin interruptMap of
                     (Just (aktionen, alterWert)) -> do
                         verbliebeneAktionen
                             <- foldM (aktionAusführen (wert, alterWert)) [] aktionen
-                        pure $ Map.insert pin (verbliebeneAktionen, wert)
+                        pure $ Map.insert interruptPin (verbliebeneAktionen, wert)
                     Nothing -> pure id
                 atomically $ putTMVar tmvarInterruptMap $ eintragAnpassen interruptMap
 
