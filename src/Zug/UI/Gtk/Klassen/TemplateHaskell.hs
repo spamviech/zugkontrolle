@@ -5,44 +5,43 @@ Description: Erzeuge Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
 -}
 module Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse) where
 
-import Control.Monad (unless)
 import Data.Char (toLower)
-import Data.Maybe (fromJust)
+import Data.Maybe (mapMaybe)
 import qualified Language.Haskell.TH as TH
+
+abortWithError :: String -> TH.Q a
+abortWithError msg = TH.reportError msg >> undefined
 
 -- | Erzeuge Klasse /Mit<name>/, sowie eine default-Implementierung über /DefaultSignatures/.
 erzeugeKlasse :: [TH.Name] -> String -> TH.Q [TH.Dec]
 erzeugeKlasse abhängigkeiten name = do
-    istTyp nameMitPräfixGtk
-        >>= flip unless (TH.reportError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name.")
-    typName <- fromJust <$> TH.lookupTypeName nameMitPräfixGtk
+    typName <- TH.lookupTypeName nameMitPräfixGtk >>= \case
+        (Just typName) -> TH.reify typName >>= \case
+            (TH.TyConI _dec) -> pure typName
+            _otherwise -> abortWithError $ '"' : nameMitPräfixGtk ++ "\" ist kein Typ."
+        Nothing -> abortWithError $ '"' : nameMitPräfixGtk ++ "\" ist kein bekannter Name."
     variablenName <- TH.newName "widget"
-    instanzDeklaration <- erzeugeInstanzDeklaration
+    instanzDeklarationen <- erzeugeInstanzDeklarationen
     eitherInstanzDeklaration <- erzeugeEitherInstanzDeklaration
     mitFunktionSignatur <- erzeugeMitFunktionSignatur
     mitFunktionDeklaration <- erzeugeMitFunktionDeklaration
     getterSignatur <- erzeugeGetterSignatur typName
     pure
-        [ TH.ClassD
-              (context variablenName)
-              klassenName
-              [TH.PlainTV variablenName]
-              funDeps
-              (deklarationen variablenName typName)
-        , instanzDeklaration
-        , eitherInstanzDeklaration
-        , mitFunktionSignatur
-        , mitFunktionDeklaration
-        , getterSignatur
-        , getterDeklaration]
+        $ [ TH.ClassD
+                (context variablenName)
+                klassenName
+                [TH.PlainTV variablenName]
+                funDeps
+                $deklarationen
+                variablenName
+                typName
+          , eitherInstanzDeklaration
+          , mitFunktionSignatur
+          , mitFunktionDeklaration
+          , getterSignatur
+          , getterDeklaration]
+        ++ instanzDeklarationen
     where
-        istTyp :: String -> TH.Q Bool
-        istTyp name = TH.lookupTypeName name >>= \case
-            Nothing -> pure False
-            (Just typName) -> (\case
-                                   (TH.TyConI _dec) -> True
-                                   _ -> False) <$> TH.reify typName
-
         namePräfixGtk :: String
         namePräfixGtk = "Gtk."
 
@@ -91,15 +90,16 @@ erzeugeKlasse abhängigkeiten name = do
         defaultImplementierung _variablenName _typName =
             TH.ValD (TH.VarP funktionName) (TH.NormalB $ TH.VarE defaultNameGtk) []
 
-        erzeugeInstanzDeklaration :: TH.Q TH.Dec
-        erzeugeInstanzDeklaration = do
-            variablenName <- TH.newName "widget"
-            pure
-                $ TH.InstanceD
-                    (Just TH.Overlappable)
-                    [TH.AppT (TH.ConT klassenNameGtk) $ TH.VarT variablenName]
-                    (TH.AppT (TH.ConT klassenName) $ TH.VarT variablenName)
-                    []
+        erzeugeInstanzDeklarationen :: TH.Q [TH.Dec]
+        erzeugeInstanzDeklarationen =
+            mapMaybe erzeugeInstanzDeklaration
+            <$> TH.reifyInstances klassenNameGtk [TH.VarT $ TH.mkName "a"]
+
+        erzeugeInstanzDeklaration :: TH.InstanceDec -> Maybe TH.Dec
+        erzeugeInstanzDeklaration
+            (TH.InstanceD _maybeOverlap _cxt (TH.AppT (TH.ConT _klassenNameGtk) ty) _decs) =
+            Just $ TH.InstanceD Nothing [] (TH.AppT (TH.ConT klassenName) ty) []
+        erzeugeInstanzDeklaration _instanceDec = Nothing
 
         erzeugeEitherInstanzDeklaration :: TH.Q TH.Dec
         erzeugeEitherInstanzDeklaration = do

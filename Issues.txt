@@ -1,7 +1,3 @@
-Gtk-UI:
-    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
-        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
-
 Anschluss in GADT umwandeln
     Mit Phantomtyp, der einen InterruptPin garantiert
 
@@ -127,6 +123,11 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst----------------------------------------------------------------
+Gtk-UI:
+    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
+        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
+    Done
+
 mdo/rec verwenden?
     Spracherweiterung RecursiveDo
     Definitionen in einem Do-Block sind überall verfügbar, nicht nur danach
