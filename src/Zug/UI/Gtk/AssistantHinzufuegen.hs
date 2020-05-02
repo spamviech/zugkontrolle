@@ -5,6 +5,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
@@ -45,9 +46,9 @@ import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew)
 import Zug.UI.Gtk.Fliessend (FließendAuswahlWidget, fließendAuswahlNew)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, containerAddWidgetNew, boxPackDefault, notebookAppendPageNew
-      , buttonNewWithEventLabel, boxPackWidgetNew, Position(End), positionDefault, Packing(PackGrow)
-      , packingDefault, paddingDefault)
+       (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault, boxPackDefault
+      , notebookAppendPageNew, buttonNewWithEventLabel, boxPackWidgetNew, Position(End)
+      , positionDefault, Packing(PackGrow), packingDefault, paddingDefault)
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..), MitButton(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
@@ -119,7 +120,7 @@ assistantHinzufügenNew
     => p
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> m AssistantHinzufügen
-assistantHinzufügenNew parent maybeTVar = do
+assistantHinzufügenNew parent maybeTVar = mdo
     (tmVarErgebnis, window, vBox, notebook) <- liftIO $ do
         tmVarErgebnis <- atomically newEmptyTMVar
         window <- Gtk.windowNew
@@ -130,9 +131,6 @@ assistantHinzufügenNew parent maybeTVar = do
         vBox <- containerAddWidgetNew window $ Gtk.vBoxNew False 0
         notebook <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
         pure (tmVarErgebnis, window, vBox, notebook)
-    zugtypAuswahl
-        <- widgetShowNew $ auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
-    fließendAuswahl <- widgetShowNew $ fließendAuswahlNew maybeTVar
     indexSeiten <- foldM
         (\acc (konstruktor, name) -> do
              (seite, seitenIndex) <- notebookAppendPageNew notebook maybeTVar name konstruktor
@@ -172,9 +170,10 @@ assistantHinzufügenNew parent maybeTVar = do
             case Map.lookup pageIndex indexSeiten >>= spezifischerButtonHinzufügen of
                 (Just button) -> mitWidgetShow button
                 _otherwise -> mitWidgetShow buttonHinzufügen
-        boxPackDefault functionBox fließendAuswahl
-        boxPackDefault functionBox zugtypAuswahl
         pure buttonHinzufügen
+    fließendAuswahl <- boxPackWidgetNewDefault functionBox $ fließendAuswahlNew maybeTVar
+    zugtypAuswahl <- boxPackWidgetNewDefault functionBox
+        $ auswahlComboBoxNew unterstützteZugtypen maybeTVar Language.zugtyp
     boxPackWidgetNew functionBox packingDefault paddingDefault End
         $ buttonNewWithEventLabel maybeTVar Language.abbrechen
         $ atomically

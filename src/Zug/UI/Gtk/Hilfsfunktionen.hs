@@ -179,7 +179,7 @@ dialogGetUpper dialog = fmap Gtk.castToBox $ Gtk.dialogGetActionArea $ erhalteDi
 -- | Knopf mit Funktion erstellen
 buttonNewWithEvent :: (MonadIO m, MitButton b) => m b -> IO () -> m b
 buttonNewWithEvent konstruktor event = do
-    button <- widgetShowNew konstruktor
+    button <- konstruktor
     liftIO $ Gtk.on (erhalteButton button) Gtk.buttonActivated event
     pure button
 
@@ -210,7 +210,7 @@ buttonNewWithEventLabel maybeTVar label event = do
 -- | ToggleButton mit Funktion erstellen
 toggleButtonNewWithEvent :: (MonadIO m, MitToggleButton b) => m b -> (Bool -> IO ()) -> m b
 toggleButtonNewWithEvent konstruktor event = do
-    mitToggleButton <- widgetShowNew konstruktor
+    mitToggleButton <- konstruktor
     let toggleButton = erhalteToggleButton mitToggleButton
     liftIO
         $ Gtk.on toggleButton Gtk.toggled

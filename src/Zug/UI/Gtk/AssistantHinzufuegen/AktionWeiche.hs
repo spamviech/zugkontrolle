@@ -3,6 +3,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
@@ -19,6 +20,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionWeiche
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, takeTMVar)
 import Control.Monad (void)
+import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty())
@@ -33,28 +35,24 @@ import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OWeiche))
 import Zug.Plan (Aktion(AWeiche), AktionWeiche(..))
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
-import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, buttonNewWithEventLabel)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Weiche'n-'Aktion'.
 aktionWeicheAuswahlPackNew
-    :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
+    :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadFix m, MonadIO m)
     => b
     -> Gtk.Window
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> NonEmpty (Richtung, IO ())
     -> (forall rr mm. (SpracheGuiReader rr mm, MonadIO mm) => Aktion -> mm ())
     -> m Gtk.HBox
-aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen aktionHinzufügen = do
+aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     hBoxWeiche <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-    auswahlRichtung <- widgetShowNew
-        $ boundedEnumAuswahlRadioButtonNew (fst $ NonEmpty.head showRichtungen) maybeTVar
-        $ const Text.empty
     boxPackWidgetNewDefault hBoxWeiche
         $ buttonNewWithEventLabel maybeTVar Language.stellen
         $ void
@@ -72,7 +70,9 @@ aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen akti
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OWeiche we)) -> aktionHinzufügen $ AWeiche $ Stellen we richtung
                     _sonst -> pure ()
-    boxPackDefault hBoxWeiche auswahlRichtung
+    auswahlRichtung <- boxPackWidgetNewDefault hBoxWeiche
+        $ boundedEnumAuswahlRadioButtonNew (fst $ NonEmpty.head showRichtungen) maybeTVar
+        $ const Text.empty
     pure hBoxWeiche
 #endif
 --

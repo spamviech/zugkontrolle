@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
@@ -20,6 +21,7 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, takeTMVar)
 import Control.Monad (void)
+import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Text as Text
@@ -40,9 +42,8 @@ import Zug.Plan
        AWegstreckeLego)
       , AktionBahngeschwindigkeit(..), AktionWegstrecke(AWSBahngeschwindigkeit))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
-import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, boxPackWidgetNewDefault, boxPackDefault, boxPack, Packing(PackGrow)
-      , paddingDefault, positionDefault, buttonNewWithEventLabel)
+import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
+                                 , paddingDefault, positionDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget), mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
@@ -50,7 +51,7 @@ import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew)
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Bahngeschwindigkeit's-'Aktion'.
 aktionBahngeschwindigkeitAuswahlPackNew
-    :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
+    :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadFix m, MonadIO m)
     => b
     -> Gtk.Window
     -> AuswahlWidget Zugtyp
@@ -64,13 +65,10 @@ aktionBahngeschwindigkeitAuswahlPackNew
     auswahlZugtyp
     maybeTVar
     showBG
-    aktionHinzufügen = do
+    aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    (hBoxBahngeschwindigkeit, scaleBahngeschwindigkeit) <- liftIO $ do
-        hBoxBahngeschwindigkeit <- boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-        scaleBahngeschwindigkeit <- widgetShowNew $ Gtk.hScaleNewWithRange 0 100 1
-        pure (hBoxBahngeschwindigkeit, scaleBahngeschwindigkeit)
+    hBoxBahngeschwindigkeit <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.geschwindigkeit
         $ void
@@ -106,15 +104,9 @@ aktionBahngeschwindigkeitAuswahlPackNew
                         $ GeschwindigkeitPwm
                         $ Geschwindigkeit (GeschwindigkeitPhantom ws) wert
                     _sonst -> pure ()
-    boxPack
-        hBoxBahngeschwindigkeit
-        scaleBahngeschwindigkeit
-        PackGrow
-        paddingDefault
-        positionDefault
-    spinButtonFahrstrom <- liftIO
-        $ widgetShowNew
-        $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
+    scaleBahngeschwindigkeit <- liftIO
+        $ boxPackWidgetNew hBoxBahngeschwindigkeit PackGrow paddingDefault positionDefault
+        $ Gtk.hScaleNewWithRange 0 100 1
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.fahrstrom
         $ void
@@ -152,7 +144,9 @@ aktionBahngeschwindigkeitAuswahlPackNew
                         $ GeschwindigkeitKonstanteSpannung
                         $ Fahrstrom (GeschwindigkeitPhantom ws) fahrstromAnschluss
                     _sonst -> pure ()
-    boxPackDefault hBoxBahngeschwindigkeit spinButtonFahrstrom
+    spinButtonFahrstrom <- liftIO
+        $ boxPackWidgetNewDefault hBoxBahngeschwindigkeit
+        $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
     buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIO $ do
         Gtk.postGUIAsync $ do
             Gtk.set
@@ -174,8 +168,6 @@ aktionBahngeschwindigkeitAuswahlPackNew
                 $ Umdrehen (GeschwindigkeitPhantom ws)
             _sonst -> pure ()
     hBoxFahrtrichtung <- liftIO $ Gtk.hBoxNew False 0
-    auswahlFahrtrichtung
-        <- widgetShowNew $ boundedEnumAuswahlRadioButtonNew Vorwärts maybeTVar $ const Text.empty
     boxPackWidgetNewDefault hBoxFahrtrichtung
         $ buttonNewWithEventLabel maybeTVar Language.fahrtrichtungEinstellen
         $ void
@@ -208,7 +200,9 @@ aktionBahngeschwindigkeitAuswahlPackNew
                         $ GeschwindigkeitPwm
                         $ FahrtrichtungEinstellen (GeschwindigkeitPhantom ws) fahrtrichtung
                     _sonst -> pure ()
-    boxPackDefault hBoxFahrtrichtung auswahlFahrtrichtung
+    auswahlFahrtrichtung <- boxPackWidgetNewDefault hBoxFahrtrichtung
+        $ boundedEnumAuswahlRadioButtonNew Vorwärts maybeTVar
+        $ const Text.empty
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ zugtypSpezifischNew
             [(Märklin, erhalteWidget buttonUmdrehen), (Lego, erhalteWidget hBoxFahrtrichtung)]

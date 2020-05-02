@@ -74,8 +74,8 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlRadioButton
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew
-      , Packing(PackGrow), paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
+       (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
+      , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
@@ -907,7 +907,6 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
     objektReader <- ask
     liftIO $ do
         scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault
-            $ widgetShowNew
             $ Gtk.hScaleNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
         Gtk.widgetSetSizeRequest scale 100 (-1)
         Gtk.on scale Gtk.valueChanged $ eventAusführen tvarEventAusführen $ do
@@ -997,7 +996,6 @@ auswahlFahrstromPackNew
     statusVar = do
     objektReader <- ask
     auswahlWidget <- boxPackWidgetNewDefault box
-        $ widgetShowNew
         $ (if maxWert < 5
                then auswahlRadioButtonNew
                else auswahlComboBoxNew)

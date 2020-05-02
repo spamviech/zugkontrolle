@@ -44,6 +44,7 @@ import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT, MonadReader(ask))
 import Control.Monad.Trans (MonadIO(..))
 import Data.Foldable (Foldable(..))
+import Data.Function ((&))
 import qualified Data.List as List
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
@@ -90,8 +91,8 @@ import Zug.UI.Gtk.FortfahrenWennToggled
        (fortfahrenWennToggledNew, checkButtons, FortfahrenWennToggledVar, RegistrierterCheckButton
       , registrierterCheckButtonToggled, registrierterCheckButtonSetToggled)
 import Zug.UI.Gtk.Hilfsfunktionen
-       (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackDefault, boxPackWidgetNew
-      , boxPack, containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
+       (widgetShowNew, widgetShowIf, boxPackWidgetNewDefault, boxPackWidgetNew, boxPack
+      , containerAddWidgetNew, labelSpracheNew, buttonNewWithEventLabel, Packing(PackGrow)
       , paddingDefault, positionDefault, notebookAppendPageNew, NameAuswahlWidget
       , nameAuswahlPackNew, aktuellerName, setzeName)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitButton(..), MitContainer(..), MitGrid(..)
@@ -601,11 +602,11 @@ setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure Fal
 
 -- | Erzeuge eine Seite zum hinzufügen einer 'Bahngeschwindigkeit'.
 hinzufügenBahngeschwindigkeitNew
-    :: (SpracheGuiReader r m, MonadIO m)
+    :: (SpracheGuiReader r m, MonadFix m, MonadIO m)
     => AuswahlWidget Zugtyp
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> m HinzufügenSeite
-hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = do
+hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = mdo
     reader <- ask
     vBox <- liftIO $ widgetShowNew $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVarSprache
@@ -633,9 +634,6 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = do
         $ liftIO
         $ Gtk.vBoxNew False 0
     let indexSeiten = Map.fromList [(indexPwm, Pwm), (indexKonstanteSpannung, KonstanteSpannung)]
-    fahrstromAuswahlWidget1 <- widgetShowNew
-        $ anschlussAuswahlNew maybeTVarSprache
-        $ Language.fahrstrom <:> (1 :: Word8)
     (vBoxMärklinFahrstrom, tvarFahrstromAuswahlWidgets, hBoxMärklinFahrstrom) <- liftIO $ do
         hBoxMärklinFahrstrom
             <- boxPackWidgetNewDefault vBoxMärklinKonstanteSpannung $ Gtk.hBoxNew False 0
@@ -666,7 +664,9 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = do
                 atomically
                     $ modifyTVar tvarFahrstromAuswahlWidgets
                     $ NonEmpty.fromList . NonEmpty.init
-    boxPackDefault vBoxMärklinFahrstrom fahrstromAuswahlWidget1
+    fahrstromAuswahlWidget1 <- boxPackWidgetNewDefault vBoxMärklinFahrstrom
+        $ anschlussAuswahlNew maybeTVarSprache
+        $ Language.fahrstrom <:> (1 :: Word8)
     umdrehenAuswahl <- boxPackWidgetNewDefault vBoxMärklinKonstanteSpannung
         $ anschlussAuswahlNew maybeTVarSprache Language.umdrehen
     legoVBox <- liftIO $ Gtk.vBoxNew False 0
@@ -896,41 +896,31 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         , dynPLWidgetsBoxen = PLWidgetsBoxen {vBoxHinzufügenPlanPläne}
         , dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
     spracheGui <- erhalteSpracheGui
-    (tvarAktionen, expanderAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit, sbWartezeit)
-        <- liftIO $ do
-            tvarAktionen <- newTVarIO leer
-            expanderAktionen <- widgetShowNew
-                $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
-            vBoxAktionen <- containerAddWidgetNew expanderAktionen
-                $ scrollbaresWidgetNew
-                $ Gtk.vBoxNew False 0
-            tvarExpander <- newTVarIO $ Just []
-            hBoxWartezeit <- boxPackWidgetNewDefault vBoxAktionenWidgets $ Gtk.hBoxNew False 0
-            spinButtonWartezeit <- widgetShowNew $ Gtk.spinButtonNewWithRange 1 999 1
-            pure
-                ( tvarAktionen
-                , expanderAktionen
-                , vBoxAktionen
-                , tvarExpander
-                , hBoxWartezeit
-                , spinButtonWartezeit
-                )
-    comboBoxWartezeit <- widgetShowNew
+    (tvarAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit) <- liftIO $ do
+        tvarAktionen <- newTVarIO leer
+        vBoxAktionen
+            <- containerAddWidgetNew expanderAktionen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+        tvarExpander <- newTVarIO $ Just []
+        hBoxWartezeit <- boxPackWidgetNewDefault vBoxAktionenWidgets $ Gtk.hBoxNew False 0
+        pure (tvarAktionen, vBoxAktionen, tvarExpander, hBoxWartezeit)
+    boxPackWidgetNewDefault hBoxWartezeit $ buttonNewWithEventLabel maybeTVar Language.warten $ do
+        wert <- floor <$> Gtk.get spinButtonWartezeit Gtk.spinButtonValue
+        einheit <- aktuelleAuswahl comboBoxWartezeit
+        void $ flip runReaderT spracheGui $ do
+            aktionHinzufügen seite $ Warten $ wert & case einheit of
+                "µs" -> MikroSekunden
+                "ms" -> MilliSekunden
+                "s" -> Sekunden
+                "min" -> Minuten
+                "h" -> Stunden
+                "d" -> Tage
+                zeiteinheit
+                    -> error $ "Unbekannte Zeiteinheit für Wartezeit gewählt: " ++ zeiteinheit
+    spinButtonWartezeit
+        <- liftIO $ boxPackWidgetNewDefault hBoxWartezeit $ Gtk.spinButtonNewWithRange 1 999 1
+    comboBoxWartezeit <- boxPackWidgetNewDefault hBoxWartezeit
         $ auswahlComboBoxNamedNew ["µs", "ms", "s", "min", "h", "d"] maybeTVar (const Text.empty)
         $ const . Text.pack
-    boxPackWidgetNewDefault hBoxWartezeit $ buttonNewWithEventLabel maybeTVar Language.warten $ do
-        wert <- floor <$> Gtk.get sbWartezeit Gtk.spinButtonValue
-        void $ flip runReaderT spracheGui $ aktuelleAuswahl comboBoxWartezeit >>= \case
-            "µs" -> aktionHinzufügen seite $ Warten $ MikroSekunden wert
-            "ms" -> aktionHinzufügen seite $ Warten $ MilliSekunden wert
-            "s" -> aktionHinzufügen seite $ Warten $ Sekunden wert
-            "min" -> aktionHinzufügen seite $ Warten $ Minuten wert
-            "h" -> aktionHinzufügen seite $ Warten $ Stunden wert
-            "d" -> aktionHinzufügen seite $ Warten $ Tage wert
-            zeiteinheit
-                -> error $ "Unbekannte Zeiteinheit für Wartezeit gewählt: " ++ zeiteinheit
-    boxPackDefault hBoxWartezeit sbWartezeit
-    boxPackDefault hBoxWartezeit comboBoxWartezeit
     ( windowObjektAuswahl
         , showBG
         , showST
@@ -1165,7 +1155,9 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         $ aktionHinzufügen seite
     aktionPlanAuswahlPackNew vBoxAktionenWidgets windowObjektAuswahl maybeTVar showPL
         $ aktionHinzufügen seite
-    boxPackDefault vBoxAktionenWidgets expanderAktionen
+    expanderAktionen <- liftIO
+        $ boxPackWidgetNewDefault vBoxAktionenWidgets
+        $ Gtk.expanderNew (leseSprache (Language.aktionen <:> (0 :: Int)) spracheGui)
     (buttonHinzufügenPlan, resetBox) <- liftIO $ do
         buttonHinzufügenPlan <- Gtk.buttonNew
         Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
