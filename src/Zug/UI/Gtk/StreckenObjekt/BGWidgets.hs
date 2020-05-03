@@ -59,7 +59,7 @@ import Zug.Anbindung
 import Zug.Enums (GeschwindigkeitEither(..), GeschwindigkeitVariante(..), GeschwindigkeitKlasse(..)
                 , GeschwindigkeitPhantom(..), ausGeschwindigkeitEither, Zugtyp(..), ZugtypEither(..)
                 , ZugtypKlasse(..), ausZugtypEither, Fahrtrichtung(Vorwärts))
-import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
+import Zug.Language (Sprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt
        (Objekt, ObjektAllgemein(OBahngeschwindigkeit), ObjektElement(..), ObjektKlasse(..))
@@ -78,7 +78,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui(), MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -658,7 +658,7 @@ bahngeschwindigkeitPackNew
     , StreckenabschnittContainer (WS o 'Märklin)
     , StreckenabschnittContainer (WS o 'Lego)
     , Eq (PL o)
-    , MitSprache (SP o)
+    , SP o ~ SpracheGui
     , MitBGWidgetsBoxen (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
     , MitTVarMaps (ReaderFamilie o)

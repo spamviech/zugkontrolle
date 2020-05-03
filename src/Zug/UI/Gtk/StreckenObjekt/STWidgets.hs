@@ -45,7 +45,7 @@ import Zug.Anbindung
        (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..)
       , StreckenObjekt(..), AnschlussEither(), I2CReader())
 import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..))
-import Zug.Language (Sprache(), MitSprache())
+import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt))
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
@@ -61,7 +61,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , positionDefault, containerAddWidgetNew, namePackNew, toggleButtonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (verwendeSpracheGui, MitSpracheGui())
+import Zug.UI.Gtk.SpracheGui (SpracheGui, verwendeSpracheGui, MitSpracheGui())
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -207,7 +207,7 @@ streckenabschnittPackNew
     , Eq (WS o 'Märklin)
     , Eq (WS o 'Lego)
     , Eq (PL o)
-    , MitSprache (SP o)
+    , SP o ~ SpracheGui
     , Aeson.ToJSON o
     , ST o ~ STWidgets
     , STWidgetsKlasse (WS o 'Märklin)

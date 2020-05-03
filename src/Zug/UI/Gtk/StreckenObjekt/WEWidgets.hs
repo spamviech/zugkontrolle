@@ -43,7 +43,7 @@ import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheCo
                     , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither
                 , ausZugtypEither, GeschwindigkeitVariante(..), Richtung(..))
-import Zug.Language (Sprache(), MitSprache(), Anzeige(anzeige))
+import Zug.Language (Sprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OWeiche), ObjektKlasse(..))
 import Zug.Plan (AktionWeiche(..))
@@ -58,7 +58,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , paddingDefault, positionDefault, buttonNewWithEventLabel, namePackNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckeRichtungPackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -332,7 +332,7 @@ weichePackNew
     , Eq (WS o 'Märklin)
     , Eq (WS o 'Lego)
     , Eq (PL o)
-    , MitSprache (SP o)
+    , SP o ~ SpracheGui
     , ObjektKlasse o
     , Aeson.ToJSON o
     , ObjektReader o m

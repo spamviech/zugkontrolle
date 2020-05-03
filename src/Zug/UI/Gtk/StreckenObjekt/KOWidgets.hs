@@ -55,7 +55,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefaul
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
-       (SpracheGuiReader(erhalteSpracheGui), MitSpracheGui(), verwendeSpracheGui)
+       (SpracheGui, SpracheGuiReader(erhalteSpracheGui), MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -184,7 +184,7 @@ kontaktPackNew
     , Eq (WS o 'Märklin)
     , Eq (WS o 'Lego)
     , Eq (PL o)
-    , MitSprache (SP o)
+    , SP o ~ SpracheGui
     , ObjektKlasse o
     , Aeson.ToJSON o
     , MitKOWidgetsBoxen (ReaderFamilie o)

@@ -7,7 +7,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 
 {-|
-Description: Allgemeine Hilfsfunktionen
+Description: 'Sprache' mit IO-Aktionen, welche bei einem 'sprachwechsel' ausgeführt werden.
 -}
 module Zug.UI.Gtk.SpracheGui
   ( SpracheGui()
@@ -33,7 +33,7 @@ instance MitSprache SpracheGui where
     leseSprache :: (Sprache -> a) -> SpracheGui -> a
     leseSprache f = f . sprache
 
--- | Klasse für Typen mit Zugriff auf 'SpracheGui'
+-- | Klasse für Typen mit Zugriff auf 'SpracheGui'.
 class MitSpracheGui r where
     spracheGui :: (MonadIO m) => r -> m SpracheGui
 
@@ -80,7 +80,8 @@ sprachwechsel spracheGui@SpracheGui {sprachwechselAktionen} sprache = liftIO $ d
 -- Speichere sie außerdem zum erneuten Aufruf bei einem 'sprachwechsel'.
 --
 -- Wenn eine 'TVar' übergeben wird gehören alle Aktionen darin zusammen.
--- Sobald ein 'sprachwechsel' durchgeführt wird während die 'TVar' als Wert 'Nothing' hat wird die Aktion gelöscht.
+-- Sobald ein 'sprachwechsel' durchgeführt wird während die 'TVar' als Wert
+-- 'Nothing' hat wird die Aktion gelöscht.
 -- Ansonsten werden alle Aktionen darin ausgeführt.
 verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m)
                    => Maybe (TVar (Maybe [Sprache -> IO ()]))

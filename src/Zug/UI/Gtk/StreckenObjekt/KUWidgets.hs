@@ -41,7 +41,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), KupplungContainer(..)
                     , AnschlussEither(), I2CReader)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
-import Zug.Language (Sprache(), MitSprache())
+import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..))
 import Zug.Plan (AktionKupplung(..))
@@ -56,7 +56,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -188,7 +188,7 @@ kupplungPackNew
     , Eq (WS o 'Märklin)
     , Eq (WS o 'Lego)
     , Eq (PL o)
-    , MitSprache (SP o)
+    , SP o ~ SpracheGui
     , ObjektKlasse o
     , Aeson.ToJSON o
     , MitKUWidgetsBoxen (ReaderFamilie o)

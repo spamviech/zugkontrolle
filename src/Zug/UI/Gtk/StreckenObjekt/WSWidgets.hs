@@ -52,7 +52,7 @@ import Zug.Enums
        (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither, ausZugtypEither
       , GeschwindigkeitVariante(..), GeschwindigkeitEither(..), GeschwindigkeitPhantom(..)
       , ausGeschwindigkeitEither, catKonstanteSpannung, Fahrtrichtung(), Strom(Fließend))
-import Zug.Language (Sprache(), MitSprache(), (<:>), (<°>), (<^>))
+import Zug.Language (Sprache(), (<:>), (<°>), (<^>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OWegstrecke), ObjektKlasse(..))
 import Zug.Plan (AktionWegstrecke(..))
@@ -64,7 +64,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefaul
                                  , labelSpracheNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets
        (BGWidgets, BGWidgetsKlasse(..), hScaleGeschwindigkeitPackNew, auswahlFahrstromPackNew
       , buttonUmdrehenPackNew, auswahlFahrtrichtungEinstellenPackNew)
@@ -463,7 +463,7 @@ wegstreckePackNew
     , Eq (KO o)
     , WS o ~ WSWidgets
     , Eq (PL o)
-    , MitSprache (SP o)
+    , SP o ~ SpracheGui
     , ObjektKlasse o
     , Aeson.ToJSON o
     , ObjektReader o m
