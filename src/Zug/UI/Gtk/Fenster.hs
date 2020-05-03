@@ -254,17 +254,14 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
     statusVar <- erhalteStatusVar
     let erzeugeAssistantHinzufügen
             :: (ObjektGuiReader m, MonadFix m, MonadIO m) => m AssistantHinzufügen
-        erzeugeAssistantHinzufügen =
+        erzeugeAssistantHinzufügen = do
             -- erzeuge AssistantHinzufügen nur, wenn er benötigt wird
-            liftIO (atomically $ takeTMVar tmvarAssistantHinzufügen) >>= \case
-                (Just assistantHinzufügen) -> pure assistantHinzufügen
-                Nothing -> do
-                    assistantHinzufügen <- assistantHinzufügenNew parentWindow maybeTVar
-                    liftIO
-                        $ atomically
-                        $ putTMVar tmvarAssistantHinzufügen
-                        $ Just assistantHinzufügen
-                    pure assistantHinzufügen
+            assistantHinzufügen
+                <- (liftIO $ atomically $ takeTMVar tmvarAssistantHinzufügen) >>= \case
+                    (Just assistantHinzufügen) -> pure assistantHinzufügen
+                    Nothing -> assistantHinzufügenNew parentWindow maybeTVar
+            liftIO $ atomically $ putTMVar tmvarAssistantHinzufügen $ Just assistantHinzufügen
+            pure assistantHinzufügen
         assistantAuswerten :: (ObjektGuiReader m, MonadFix m, MonadIO m) => m ()
         assistantAuswerten = do
             assistantHinzufügen <- erzeugeAssistantHinzufügen
