@@ -9,6 +9,10 @@ Kupplungen:
       a2: HIGH
   Fließend: LOW
 Kontakte:
+- Name: O - Außenkreis
+  Fließend: LOW
+  KontaktAnschluss:
+    Pin: 15
 - Name: Test-Kontakt
   Fließend: HIGH
   KontaktAnschluss:
