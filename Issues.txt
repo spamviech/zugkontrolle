@@ -2,6 +2,14 @@ Wartezeit auf einen Konstruktor beschränken
     Andere Konstruktoren durch PatternSynonyms ersetzen
         COMPLETE-Pragmas nicht vergessen
 
+Gtk-UI:
+    Plan synchronisiert nicht andere Widgets.
+        PlanAllgemein o, AktionAllgemein o
+        BGWidgets, etc. müssen Synchronisation übernehmen (bisher in Widget-Event!)
+    Analog für Wegstrecke?
+        Widget-Event dann ein einfaches ausführenAktion wsWidgets
+        möglich über RecursiveDo
+
 Pin-Setup bei Hinzufügen
     pinMode pin OUTPUT
         INPUT bei Signal-Pins
