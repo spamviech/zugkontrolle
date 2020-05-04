@@ -466,7 +466,7 @@ instance FromJSON (Bahngeschwindigkeit 'Pwm 'Märklin) where
         bgmpName <- v .: nameJS
         bgmpFließend <- parseFließend v
         bgmpGeschwindigkeitsPin <- Gpio <$> v .: geschwindigkeitsPinJS
-        pure MärklinBahngeschwindigkeitPwm { bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin }
+        pure BahngeschwindigkeitPwmMärklin { bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
@@ -478,7 +478,7 @@ instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
         bgmkFahrstromAnschlüsse <- v .: fahrstromAnschlüsseJS
         bgmkUmdrehenAnschluss <- v .: umdrehenAnschlussJS
         pure
-            MärklinBahngeschwindigkeitKonstanteSpannung
+            BahngeschwindigkeitKonstanteSpannungMärklin
             { bgmkName
             , bgmkFließend
             , bgmkFahrstromAnschlüsse
@@ -496,7 +496,7 @@ instance FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
             <- parseAnschlussEither v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
         bglFließend <- parseFließend v
         pure
-            LegoBahngeschwindigkeit
+            BahngeschwindigkeitPwmLego
             { bglName
             , bglFließend
             , bglGeschwindigkeitsPin
@@ -511,7 +511,7 @@ instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
 instance ToJSON (Bahngeschwindigkeit b z) where
     toJSON :: Bahngeschwindigkeit b z -> Value
     toJSON
-        LegoBahngeschwindigkeit
+        BahngeschwindigkeitPwmLego
         {bglName, bglFließend, bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
         object
             [ nameJS .= bglName
@@ -519,14 +519,14 @@ instance ToJSON (Bahngeschwindigkeit b z) where
             , geschwindigkeitsPinJS .= (fromJust $ zuPinGpio bglGeschwindigkeitsPin :: Word8)
             , zugtypJS .= Lego
             , fahrtrichtungsAnschlussJS .= bglFahrtrichtungsAnschluss]
-    toJSON MärklinBahngeschwindigkeitPwm {bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin} =
+    toJSON BahngeschwindigkeitPwmMärklin {bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin} =
         object
             [ nameJS .= bgmpName
             , fließendJS .= bgmpFließend
             , geschwindigkeitsPinJS .= (fromJust $ zuPinGpio bgmpGeschwindigkeitsPin :: Word8)
             , zugtypJS .= Märklin]
     toJSON
-        MärklinBahngeschwindigkeitKonstanteSpannung
+        BahngeschwindigkeitKonstanteSpannungMärklin
         {bgmkName, bgmkFließend, bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
         object
             [ nameJS .= bgmkName

@@ -443,7 +443,7 @@ instance PlanElement (BGWidgets b 'Märklin) where
     boxenPlan :: (ReaderConstraint (BGWidgets b 'Märklin) r)
               => Bahngeschwindigkeit b 'Märklin
               -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets b 'Märklin))
-    boxenPlan MärklinBahngeschwindigkeitPwm {} =
+    boxenPlan BahngeschwindigkeitPwmMärklin {} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
                            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin}
@@ -451,7 +451,7 @@ instance PlanElement (BGWidgets b 'Märklin) where
               , widgetHinzufügenGeschwindigkeitVariante
                     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin])
         . bgWidgetsBoxen
-    boxenPlan MärklinBahngeschwindigkeitKonstanteSpannung {} =
+    boxenPlan BahngeschwindigkeitKonstanteSpannungMärklin {} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
                            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin}
@@ -476,7 +476,7 @@ instance PlanElement (BGWidgets b 'Lego) where
     boxenPlan :: (ReaderConstraint (BGWidgets b 'Lego) r)
               => Bahngeschwindigkeit b 'Lego
               -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets b 'Lego))
-    boxenPlan LegoBahngeschwindigkeit {} =
+    boxenPlan BahngeschwindigkeitPwmLego {} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
                            , vBoxHinzufügenPlanBahngeschwindigkeitenLego}
@@ -750,7 +750,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             -> MStatusAllgemeinT m o (BGWidgets g z)
         geschwindigkeitsWidgetsPackNew
             box
-            bahngeschwindigkeit@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
+            bahngeschwindigkeit@BahngeschwindigkeitPwmMärklin {bgmpGeschwindigkeitsPin}
             vBoxAnschlüsse
             bgpmTVarSprache
             bgpmTVarEvent = do
@@ -785,7 +785,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 }
         geschwindigkeitsWidgetsPackNew
             box
-            bahngeschwindigkeit@MärklinBahngeschwindigkeitKonstanteSpannung
+            bahngeschwindigkeit@BahngeschwindigkeitKonstanteSpannungMärklin
             {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
             vBoxAnschlüsse
             bgkmTVarSprache
@@ -831,7 +831,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 }
         geschwindigkeitsWidgetsPackNew
             box
-            bahngeschwindigkeit@LegoBahngeschwindigkeit
+            bahngeschwindigkeit@BahngeschwindigkeitPwmLego
             {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
             vBoxAnschlüsse
             bgplTVarSprache

@@ -98,12 +98,12 @@ class ObjektElement e where
 
 instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit g z) where
     zuObjekt :: Bahngeschwindigkeit g z -> Objekt
-    zuObjekt bg@MärklinBahngeschwindigkeitPwm {} =
+    zuObjekt bg@BahngeschwindigkeitPwmMärklin {} =
         OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitPwm bg
-    zuObjekt bg@MärklinBahngeschwindigkeitKonstanteSpannung {} =
+    zuObjekt bg@BahngeschwindigkeitKonstanteSpannungMärklin {} =
         OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bg
-    zuObjekt
-        bg@LegoBahngeschwindigkeit {} = OBahngeschwindigkeit $ ZugtypLego $ GeschwindigkeitPwm bg
+    zuObjekt bg@BahngeschwindigkeitPwmLego {} =
+        OBahngeschwindigkeit $ ZugtypLego $ GeschwindigkeitPwm bg
 
 instance ObjektElement Streckenabschnitt where
     zuObjekt :: Streckenabschnitt -> Objekt

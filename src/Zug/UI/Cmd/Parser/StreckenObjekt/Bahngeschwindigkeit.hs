@@ -41,7 +41,7 @@ data AnfrageBahngeschwindigkeit (g :: AnfrageGeschwindigkeitVariante) (z :: Anfr
     AMärklinBahngeschwindigkeit
         :: AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante 'AnfrageZugtypMärklin
     -- Pwm, Märklin
-    AMärklinBahngeschwindigkeitPwm :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypMärklin
+    ABahngeschwindigkeitPwmMärklin :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypMärklin
     AMärklinBahngeschwindigkeitNamePwm :: { abgmpName :: Text }
         -> AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypMärklin
     AMärklinBahngeschwindigkeitNameFließendPwm :: { abgmpName :: Text, abgmpFließend :: Value }
@@ -89,7 +89,7 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
     anzeige AnfrageBahngeschwindigkeit = Language.bahngeschwindigkeit
     anzeige
         AMärklinBahngeschwindigkeit = Language.bahngeschwindigkeit <-> Language.geschwindigkeitPwm
-    anzeige AMärklinBahngeschwindigkeitPwm =
+    anzeige ABahngeschwindigkeitPwmMärklin =
         Language.märklin <-> Language.geschwindigkeitPwm <-> Language.bahngeschwindigkeit
     anzeige (AMärklinBahngeschwindigkeitNamePwm name) =
         Language.märklin
@@ -175,7 +175,7 @@ instance Anfrage (AnfrageBahngeschwindigkeit g z) where
     zeigeAnfrage :: AnfrageBahngeschwindigkeit g z -> Sprache -> Text
     zeigeAnfrage AnfrageBahngeschwindigkeit = Language.zugtyp
     zeigeAnfrage AMärklinBahngeschwindigkeit = Language.geschwindigkeitVariante
-    zeigeAnfrage AMärklinBahngeschwindigkeitPwm = Language.name
+    zeigeAnfrage ABahngeschwindigkeitPwmMärklin = Language.name
     zeigeAnfrage AMärklinBahngeschwindigkeitNamePwm {} = Language.fließendValue
     zeigeAnfrage AMärklinBahngeschwindigkeitNameFließendPwm {} = Language.pin
     zeigeAnfrage AMärklinBahngeschwindigkeitKonstanteSpannung = Language.name
@@ -262,7 +262,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Märklin) where
         :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypMärklin
         -> EingabeToken
         -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'Pwm 'Märklin)
-    anfrageAktualisieren AMärklinBahngeschwindigkeitPwm EingabeToken {eingabe} =
+    anfrageAktualisieren ABahngeschwindigkeitPwmMärklin EingabeToken {eingabe} =
         AFZwischenwert $ AMärklinBahngeschwindigkeitNamePwm eingabe
     anfrageAktualisieren AMärklinBahngeschwindigkeitNamePwm {abgmpName} token =
         wähleZwischenwert
@@ -273,7 +273,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Märklin) where
         (AMärklinBahngeschwindigkeitNameFließendPwm bgmpName bgmpFließend)
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         (Just pin) -> AFErgebnis
-            $ MärklinBahngeschwindigkeitPwm
+            $ BahngeschwindigkeitPwmMärklin
             { bgmpName
             , bgmpFließend
             , bgmpGeschwindigkeitsPin = Gpio $ fromIntegral pin
@@ -371,7 +371,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
                 -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
             anschlussVerwenden bgmkUmdrehenAnschluss =
                 AFErgebnis
-                    MärklinBahngeschwindigkeitKonstanteSpannung
+                    BahngeschwindigkeitKonstanteSpannungMärklin
                     { bgmkName
                     , bgmkFließend
                     , bgmkFahrstromAnschlüsse
@@ -424,7 +424,7 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
                 -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Pwm 'Lego)
             anschlussVerwenden bglFahrtrichtungsAnschluss =
                 AFErgebnis
-                    LegoBahngeschwindigkeit
+                    BahngeschwindigkeitPwmLego
                     { bglName
                     , bglFließend
                     , bglGeschwindigkeitsPin

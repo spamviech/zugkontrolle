@@ -661,7 +661,7 @@ wegstreckePackNew
         fahrstromAnschlüsse
             :: Bahngeschwindigkeit 'KonstanteSpannung z -> NonEmpty AnschlussEither
         fahrstromAnschlüsse
-            MärklinBahngeschwindigkeitKonstanteSpannung {bgmkFahrstromAnschlüsse} =
+            BahngeschwindigkeitKonstanteSpannungMärklin {bgmkFahrstromAnschlüsse} =
             bgmkFahrstromAnschlüsse
 #endif
 --

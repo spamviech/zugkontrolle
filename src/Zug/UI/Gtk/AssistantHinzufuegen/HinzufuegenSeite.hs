@@ -245,7 +245,7 @@ seiteErgebnis
                         $ OBahngeschwindigkeit
                         $ ZugtypMärklin
                         $ GeschwindigkeitPwm
-                            MärklinBahngeschwindigkeitPwm
+                            BahngeschwindigkeitPwmMärklin
                             { bgmpName = name
                             , bgmpFließend = fließend
                             , bgmpGeschwindigkeitsPin
@@ -258,7 +258,7 @@ seiteErgebnis
                         $ OBahngeschwindigkeit
                         $ ZugtypMärklin
                         $ GeschwindigkeitKonstanteSpannung
-                            MärklinBahngeschwindigkeitKonstanteSpannung
+                            BahngeschwindigkeitKonstanteSpannungMärklin
                             { bgmkName = name
                             , bgmkFließend = fließend
                             , bgmkFahrstromAnschlüsse
@@ -273,7 +273,7 @@ seiteErgebnis
                 $ OBahngeschwindigkeit
                 $ ZugtypLego
                 $ GeschwindigkeitPwm
-                    LegoBahngeschwindigkeit
+                    BahngeschwindigkeitPwmLego
                     { bglName = name
                     , bglFließend = fließend
                     , bglGeschwindigkeitsPin
@@ -458,11 +458,11 @@ setzeSeite
         $ Gtk.set notebookGeschwindigkeit [Gtk.notebookPage := index]
     case bg of
         (ZugtypMärklin
-             (GeschwindigkeitPwm MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}))
+             (GeschwindigkeitPwm BahngeschwindigkeitPwmMärklin {bgmpGeschwindigkeitsPin}))
             -> setzePin märklinGeschwindigkeitAuswahl bgmpGeschwindigkeitsPin
         (ZugtypMärklin
              (GeschwindigkeitKonstanteSpannung
-                  MärklinBahngeschwindigkeitKonstanteSpannung
+                  BahngeschwindigkeitKonstanteSpannungMärklin
                   {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss})) -> do
             let erstelleFahrstromAnschluss
                     :: AnschlussEither -> Int -> m (AnschlussAuswahlWidget 'InterruptPinEgal)
@@ -484,7 +484,7 @@ setzeSeite
                 setzeAnschluss umdrehenAuswahl bgmkUmdrehenAnschluss
         (ZugtypLego
              (GeschwindigkeitPwm
-                  LegoBahngeschwindigkeit {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}))
+                  BahngeschwindigkeitPwmLego {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}))
             -> do
                 setzePin legoGeschwindigkeitAuswahl bglGeschwindigkeitsPin
                 setzeAnschluss fahrtrichtungsAuswahl bglFahrtrichtungsAnschluss

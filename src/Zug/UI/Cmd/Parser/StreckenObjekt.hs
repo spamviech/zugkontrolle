@@ -130,7 +130,7 @@ instance MitAnfrage Objekt where
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
                     $ AnfrageMärklin
-                    $ AnfrageGeschwindigkeitPwm AMärklinBahngeschwindigkeitPwm
+                    $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitPwmMärklin
                   )
             , ( Lexer.KonstanteSpannung
                   , AOBahngeschwindigkeit
