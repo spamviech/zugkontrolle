@@ -64,6 +64,12 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
            , bglpGeschwindigkeitsPin :: Pin
            , bglpFahrtrichtungsAnschluss :: AnschlussEither
            } -> Bahngeschwindigkeit 'Pwm 'Lego
+    BahngeschwindigkeitKonstanteSpannungLego
+        :: { bglkName :: Text
+           , bglkFließend :: Value
+           , bglkFahrstromAnschlüsse :: NonEmpty AnschlussEither
+           , bglkFahrtrichtungsAnschluss :: AnschlussEither
+           } -> Bahngeschwindigkeit 'KonstanteSpannung 'Lego
 
 deriveOrd $ Left ''Bahngeschwindigkeit
 
