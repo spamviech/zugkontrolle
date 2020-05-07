@@ -92,8 +92,10 @@ instance ( Anzeige (bg 'Pwm 'Märklin)
     anzeige (OWegstrecke ws) = anzeige ws
     anzeige (OPlan pl) = anzeige pl
 
--- | Klasse für Typen, die ein 'Objekt' enthalten
+-- | Klasse für Typen, die ein 'Objekt' enthalten.
 class ObjektElement e where
+    type ObjektTyp e = e
+    zuObjektTyp :: e -> ObjektTyp e
     zuObjekt :: e -> Objekt
 
 instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit g z) where
@@ -124,10 +126,6 @@ instance ObjektElement Kontakt where
 instance (ZugtypKlasse z) => ObjektElement (Wegstrecke z) where
     zuObjekt :: Wegstrecke z -> Objekt
     zuObjekt = OWegstrecke . zuZugtypEither
-
-instance ObjektElement Plan where
-    zuObjekt :: Plan -> Objekt
-    zuObjekt = OPlan
 
 -- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where
