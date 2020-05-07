@@ -27,11 +27,10 @@ module Zug.UI.Gtk.StreckenObjekt.WSWidgets
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import qualified Control.Lens as Lens
 import Control.Lens ((??), (^..))
-import Control.Monad (void, unless)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
-import Data.Either.Combinators (rightToMaybe)
+import Data.Either.Combinators (leftToMaybe, rightToMaybe)
 import Data.List.NonEmpty (NonEmpty())
 import Data.Maybe (fromJust)
 import Data.Set (Set)
@@ -78,7 +77,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
       , widgetHinzufügenZugtypEither)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), eventAusführen
-      , ohneEvent, buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
+      , buttonEntfernenPackNew, buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar
        (StatusVar, MitStatusVar, StatusVarReader(erhalteStatusVar), ausführenStatusVarAktion)
 
@@ -97,8 +96,11 @@ data WSWidgets (z :: Zugtyp) =
     , wsTVarEvent :: TVar EventAusführen
     , wsScaleGeschwindigkeit :: Maybe Gtk.HScale
     , wsAuswahlFahrstrom :: Maybe (AuswahlWidget Word8)
+    , wsButtonUmdrehen :: Maybe Gtk.Button
     , wsAuswahlFahrtrichtung :: Maybe (AuswahlWidget Fahrtrichtung)
     , wsToggleButtonStrom :: Maybe Gtk.ToggleButton
+    , wsButtonKuppeln :: Maybe Gtk.Button
+    , wsButtonEinstellen :: Maybe Gtk.Button
     }
     deriving (Eq)
 
@@ -354,44 +356,33 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
                     -> Word8
                     -> m ()
     geschwindigkeit
-        (GeschwindigkeitPhantom WSWidgets {ws, wsScaleGeschwindigkeit, wsTVarEvent})
-        wert = do
-        eventAusführen wsTVarEvent $ geschwindigkeit (GeschwindigkeitPhantom ws) wert
-        case wsScaleGeschwindigkeit of
-            (Just scaleGeschwindigkeit) -> liftIO
-                $ ohneEvent wsTVarEvent
-                $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
-            Nothing -> pure ()
+        (GeschwindigkeitPhantom WSWidgets {wsScaleGeschwindigkeit = Just scaleGeschwindigkeit})
+        wert = liftIO $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+    geschwindigkeit _wsWidgets _wert = pure ()
 
     fahrstrom :: (I2CReader r m, MonadIO m)
               => GeschwindigkeitPhantom WSWidgets 'KonstanteSpannung z
               -> Word8
               -> m ()
-    fahrstrom (GeschwindigkeitPhantom WSWidgets {ws, wsAuswahlFahrstrom, wsTVarEvent}) wert = do
-        eventAusführen wsTVarEvent $ fahrstrom (GeschwindigkeitPhantom ws) wert
-        case wsAuswahlFahrstrom of
-            (Just auswahlFahrstrom)
-                -> liftIO $ ohneEvent wsTVarEvent $ setzeAuswahl auswahlFahrstrom wert
-            Nothing -> pure ()
+    fahrstrom (GeschwindigkeitPhantom WSWidgets {wsAuswahlFahrstrom = Just auswahlFahrstrom}) =
+        liftIO . setzeAuswahl auswahlFahrstrom
+    fahrstrom _bg = const $ pure ()
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m)
              => GeschwindigkeitPhantom WSWidgets g 'Märklin
              -> m ()
-    umdrehen (GeschwindigkeitPhantom WSWidgets {ws, wsTVarEvent}) =
-        eventAusführen wsTVarEvent $ umdrehen $ GeschwindigkeitPhantom ws
+    umdrehen (GeschwindigkeitPhantom WSWidgets {wsButtonUmdrehen = Just buttonUmdrehen}) =
+        liftIO $ Gtk.buttonPressed buttonUmdrehen
+    umdrehen _wsWidgets = pure ()
 
     fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
                             => GeschwindigkeitPhantom WSWidgets g 'Lego
                             -> Fahrtrichtung
                             -> m ()
     fahrtrichtungEinstellen
-        (GeschwindigkeitPhantom WSWidgets {ws, wsAuswahlFahrtrichtung, wsTVarEvent})
-        wert = do
-        eventAusführen wsTVarEvent $ fahrtrichtungEinstellen (GeschwindigkeitPhantom ws) wert
-        case wsAuswahlFahrtrichtung of
-            (Just auswahlFahrtrichtung)
-                -> liftIO $ ohneEvent wsTVarEvent $ setzeAuswahl auswahlFahrtrichtung wert
-            Nothing -> pure ()
+        (GeschwindigkeitPhantom WSWidgets {wsAuswahlFahrtrichtung = Just auswahlFahrtrichtung}) =
+        liftIO . setzeAuswahl auswahlFahrtrichtung
+    fahrtrichtungEinstellen _wsWidgets = const $ pure ()
 
 instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
     scaleGeschwindigkeit :: GeschwindigkeitPhantom WSWidgets 'Pwm z -> Maybe Gtk.HScale
@@ -407,13 +398,9 @@ instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
 
 instance StreckenabschnittKlasse (WSWidgets z) where
     strom :: (I2CReader r m, MonadIO m) => WSWidgets z -> Strom -> m ()
-    strom WSWidgets {ws, wsToggleButtonStrom, wsTVarEvent} wert = do
-        eventAusführen wsTVarEvent $ strom ws wert
-        case wsToggleButtonStrom of
-            (Just toggleButtonStrom) -> liftIO
-                $ ohneEvent wsTVarEvent
-                $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
-            Nothing -> pure ()
+    strom WSWidgets {wsToggleButtonStrom = Just toggleButtonStrom} wert =
+        liftIO $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
+    strom _wsWidgets _wert = pure ()
 
 instance (PlanElement (WSWidgets z)) => STWidgetsKlasse (WSWidgets z) where
     toggleButtonStrom :: WSWidgets z -> Maybe Gtk.ToggleButton
@@ -421,7 +408,9 @@ instance (PlanElement (WSWidgets z)) => STWidgetsKlasse (WSWidgets z) where
 
 instance KupplungKlasse (WSWidgets z) where
     kuppeln :: (I2CReader r m, MonadIO m) => WSWidgets z -> m ()
-    kuppeln WSWidgets {ws, wsTVarEvent} = eventAusführen wsTVarEvent $ kuppeln ws
+    kuppeln
+        WSWidgets {wsButtonKuppeln = Just buttonKuppeln} = liftIO $ Gtk.buttonPressed buttonKuppeln
+    kuppeln _wsWidgets = pure ()
 
 instance KontaktKlasse (WSWidgets z) where
     warteAufSignal :: (InterruptReader r m, I2CReader r m, MonadIO m) => WSWidgets z -> m ()
@@ -429,7 +418,9 @@ instance KontaktKlasse (WSWidgets z) where
 
 instance (WegstreckeKlasse (Wegstrecke z)) => WegstreckeKlasse (WSWidgets z) where
     einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> m ()
-    einstellen WSWidgets {ws, wsTVarEvent} = eventAusführen wsTVarEvent $ einstellen ws
+    einstellen WSWidgets {wsButtonEinstellen = Just buttonEinstellen} =
+        liftIO $ Gtk.buttonPressed buttonEinstellen
+    einstellen _wsWidgets = pure ()
 
 instance (ZugtypKlasse z) => BahngeschwindigkeitContainer (WSWidgets z) where
     enthalteneBahngeschwindigkeiten
@@ -548,56 +539,61 @@ wegstreckePackNew
             pure (frame, expander, vBoxExpander, functionBox)
         verwendeSpracheGui justTVarSprache $ \sprache
             -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
-        (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsAuswahlFahrtrichtung) <- if null
-            wsBahngeschwindigkeiten
-            then pure (Nothing, Nothing, Nothing)
-            else do
-                boxPackWidgetNewDefault vBoxExpander
-                    $ labelSpracheNew justTVarSprache
-                    $ Language.bahngeschwindigkeiten
-                    <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
-                maybeScale <- if any
-                    (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
-                    wsBahngeschwindigkeiten
-                    then Just
-                        <$> hScaleGeschwindigkeitPackNew
-                            functionBox
-                            (GeschwindigkeitPhantom wegstrecke)
-                            wsTVarEvent
-                            statusVar
-                    else pure Nothing
-                let geschwindigkeitenKonstanteSpannung =
-                        catKonstanteSpannung wsBahngeschwindigkeiten
-                maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
-                    then pure Nothing
-                    else fmap Just
-                        $ auswahlFahrstromPackNew
-                            functionBox
-                            (GeschwindigkeitPhantom wegstrecke)
-                            (maximum
-                             $ fromIntegral . length . fahrstromAnschlüsse
-                             <$> geschwindigkeitenKonstanteSpannung)
-                            wsTVarSprache
-                            wsTVarEvent
-                            statusVar
-                eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
-                    (ZugtypMärklin wsMärklin) -> Left
-                        <$> buttonUmdrehenPackNew
-                            functionBox
-                            (GeschwindigkeitPhantom wsMärklin
-                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
-                            wsTVarSprache
-                            wsTVarEvent
-                            statusVar
-                    (ZugtypLego wsLego) -> Right
-                        <$> auswahlFahrtrichtungEinstellenPackNew
-                            functionBox
-                            (GeschwindigkeitPhantom wsLego
-                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
-                            wsTVarSprache
-                            wsTVarEvent
-                            statusVar
-                pure (maybeScale, maybeAuswahlFahrstrom, rightToMaybe eitherFahrtrichtungWidget)
+        (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsButtonUmdrehen, wsAuswahlFahrtrichtung)
+            <- if null wsBahngeschwindigkeiten
+                then pure (Nothing, Nothing, Nothing, Nothing)
+                else do
+                    boxPackWidgetNewDefault vBoxExpander
+                        $ labelSpracheNew justTVarSprache
+                        $ Language.bahngeschwindigkeiten
+                        <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
+                    maybeScale <- if any
+                        (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
+                        wsBahngeschwindigkeiten
+                        then Just
+                            <$> hScaleGeschwindigkeitPackNew
+                                functionBox
+                                (GeschwindigkeitPhantom wegstrecke)
+                                wsTVarEvent
+                                statusVar
+                        else pure Nothing
+                    let geschwindigkeitenKonstanteSpannung =
+                            catKonstanteSpannung wsBahngeschwindigkeiten
+                    maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
+                        then pure Nothing
+                        else fmap Just
+                            $ auswahlFahrstromPackNew
+                                functionBox
+                                (GeschwindigkeitPhantom wegstrecke)
+                                (maximum
+                                 $ fromIntegral . length . fahrstromAnschlüsse
+                                 <$> geschwindigkeitenKonstanteSpannung)
+                                wsTVarSprache
+                                wsTVarEvent
+                                statusVar
+                    eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
+                        (ZugtypMärklin wsMärklin) -> Left
+                            <$> buttonUmdrehenPackNew
+                                functionBox
+                                (GeschwindigkeitPhantom wsMärklin
+                                 :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
+                                wsTVarSprache
+                                wsTVarEvent
+                                statusVar
+                        (ZugtypLego wsLego) -> Right
+                            <$> auswahlFahrtrichtungEinstellenPackNew
+                                functionBox
+                                (GeschwindigkeitPhantom wsLego
+                                 :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
+                                wsTVarSprache
+                                wsTVarEvent
+                                statusVar
+                    pure
+                        ( maybeScale
+                        , maybeAuswahlFahrstrom
+                        , leftToMaybe eitherFahrtrichtungWidget
+                        , rightToMaybe eitherFahrtrichtungWidget
+                        )
         wsToggleButtonStrom <- if null wsStreckenabschnitte
             then pure Nothing
             else do
@@ -612,22 +608,37 @@ wegstreckePackNew
                         wsTVarSprache
                         wsTVarEvent
                         statusVar
-        unless (null wsWeichenRichtungen) $ void $ do
-            boxPackWidgetNewDefault vBoxExpander
-                $ labelSpracheNew justTVarSprache
-                $ Language.weichen <:> fromJust (foldl (\acc (weiche, richtung) -> Just
-                                                        $ fromJust (appendName acc weiche)
-                                                        <°> richtung) Nothing wsWeichenRichtungen)
-            boxPackWidgetNewDefault functionBox
-                $ buttonNewWithEventLabel justTVarSprache Language.einstellen
-                $ eventAusführen wsTVarEvent
-                $ flip runReaderT objektReader
-                $ ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
-        unless (null wsKupplungen) $ void $ do
-            boxPackWidgetNewDefault vBoxExpander
-                $ labelSpracheNew justTVarSprache
-                $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
-            buttonKuppelnPackNew functionBox wegstrecke wsTVarSprache wsTVarEvent statusVar
+        wsButtonEinstellen <- if null wsWeichenRichtungen
+            then pure Nothing
+            else do
+                boxPackWidgetNewDefault vBoxExpander
+                    $ labelSpracheNew justTVarSprache
+                    $ Language.weichen
+                    <:> fromJust
+                        (foldl
+                             (\acc (weiche, richtung) -> Just
+                              $ fromJust (appendName acc weiche) <°> richtung)
+                             Nothing
+                             wsWeichenRichtungen)
+                fmap Just
+                    $ boxPackWidgetNewDefault functionBox
+                    $ buttonNewWithEventLabel justTVarSprache Language.einstellen
+                    $ eventAusführen wsTVarEvent
+                    $ flip runReaderT objektReader
+                    $ ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
+        wsButtonKuppeln <- if null wsWeichenRichtungen
+            then pure Nothing
+            else do
+                boxPackWidgetNewDefault vBoxExpander
+                    $ labelSpracheNew justTVarSprache
+                    $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
+                Just
+                    <$> buttonKuppelnPackNew
+                        functionBox
+                        wegstrecke
+                        wsTVarSprache
+                        wsTVarEvent
+                        statusVar
         let wsWidgets =
                 WSWidgets
                 { ws = wegstrecke
@@ -638,8 +649,11 @@ wegstreckePackNew
                 , wsTVarEvent
                 , wsScaleGeschwindigkeit
                 , wsAuswahlFahrstrom
+                , wsButtonUmdrehen
                 , wsAuswahlFahrtrichtung
                 , wsToggleButtonStrom
+                , wsButtonKuppeln
+                , wsButtonEinstellen
                 }
         buttonEntfernenPackNew wsWidgets
             $ (entfernenWegstrecke $ zuZugtypEither wsWidgets :: IOStatusAllgemein o ())

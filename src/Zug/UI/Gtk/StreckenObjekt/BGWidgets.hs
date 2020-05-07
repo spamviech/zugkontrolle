@@ -95,6 +95,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
 import Zug.UI.StatusVar
        (StatusVar, StatusVarReader(erhalteStatusVar), MitStatusVar(), auswertenStatusVarMStatusT)
 
+-- | Widgets zur Steuerung der Geschwindigkeit.
 data GeschwindigkeitsWidgets (g :: GeschwindigkeitVariante) where
     ScaleGeschwindigkeit :: { wScaleGeschwindigkeit :: Gtk.HScale } -> GeschwindigkeitsWidgets 'Pwm
     AuswahlFahrstrom :: { wAuswahlFahrstrom :: AuswahlWidget Word8 }
@@ -102,6 +103,7 @@ data GeschwindigkeitsWidgets (g :: GeschwindigkeitVariante) where
 
 deriving instance Eq (GeschwindigkeitsWidgets g)
 
+-- | Widgets zur Steuerung der Fahrtrichtung.
 data FahrtrichtungsWidgets (z :: Zugtyp) where
     ButtonUmdrehen :: { wButtonUmdrehen :: Gtk.Button } -> FahrtrichtungsWidgets 'Märklin
     AuswahlFahrtrichtung :: { wAuswahlFahrtrichtung :: AuswahlWidget Fahrtrichtung }
