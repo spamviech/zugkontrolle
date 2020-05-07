@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DataKinds #-}
@@ -18,7 +19,7 @@ import Zug.Anbindung (AnschlussEither(), StreckenObjekt(..), Bahngeschwindigkeit
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..))
 import Zug.Language (Anzeige(..), Sprache())
-import Zug.Plan (Plan(..))
+import Zug.Plan (Plan())
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ko ws pl
@@ -94,8 +95,13 @@ instance ( Anzeige (bg 'Pwm 'Märklin)
 
 -- | Klasse für Typen, die ein 'Objekt' enthalten.
 class ObjektElement e where
+    type ObjektTyp e :: Type
+
     type ObjektTyp e = e
     zuObjektTyp :: e -> ObjektTyp e
+    default zuObjektTyp :: (e ~ ObjektTyp e) => e -> ObjektTyp e
+    zuObjektTyp = id
+
     zuObjekt :: e -> Objekt
 
 instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit g z) where

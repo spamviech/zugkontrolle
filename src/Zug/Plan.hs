@@ -7,6 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -23,9 +24,11 @@ module Zug.Plan
   , MitAusführend(..)
   , AusführendReader(..)
   , Ausführend(..)
-  , Plan(..)
+  , PlanAllgemein(..)
+  , Plan
   , AktionKlasse(..)
-  , Aktion(..)
+  , AktionAllgemein(..)
+  , Aktion
     -- * Spezialisierte Aktionen
   , AktionBahngeschwindigkeit(..)
   , AktionStreckenabschnitt(..)
@@ -56,9 +59,9 @@ import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), Gesch
                 , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
-import {-# SOURCE #-} Zug.Objekt
-       (Objekt, ObjektKlasse(..), ObjektAllgemein(OPlan), ObjektElement(..))
-import Zug.Plan.TemplateHaskell (aktionBahngeschwindigkeitCxtType)
+import {-# SOURCE #-} Zug.Objekt (Objekt, ObjektAllgemein(OPlan), ObjektElement(..))
+import Zug.Plan.TemplateHaskell
+       (aktionBahngeschwindigkeitCxtType, aktionAllgemeinCxtType, planAllgemeinCxtType)
 
 -- | 'Aktion'en einer 'Bahngeschwindigkeit'.
 data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
@@ -462,7 +465,18 @@ instance ( Show (bg 'Pwm 'Märklin)
     erhalteName :: PlanAllgemein bg st we ku ko ws -> Text
     erhalteName Plan {plName} = plName
 
-instance PlanKlasse (PlanAllgemein bg st we ku ko ws) where
+instance ( BahngeschwindigkeitKlasse bg
+         , StreckenabschnittKlasse st
+         , WeicheKlasse (we 'Märklin)
+         , WeicheKlasse (we 'Lego)
+         , KupplungKlasse ku
+         , KontaktKlasse ko
+         , WegstreckeKlasse (ws 'Märklin)
+         , WegstreckeKlasse (ws 'Lego)
+         , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
+         , KontaktKlasse (ws 'Märklin)
+         , KontaktKlasse (ws 'Lego)
+         ) => PlanKlasse (PlanAllgemein bg st we ku ko ws) where
     ausführenPlan :: (AusführendReader r m, MonadIO m)
                    => PlanAllgemein bg st we ku ko ws
                    -> (Natural -> IO ())
@@ -480,10 +494,24 @@ instance PlanKlasse (PlanAllgemein bg st we ku ko ws) where
             ausführendPlan :: Ausführend
             ausführendPlan = Ausführend $ zuObjektTyp plan
 
-            ausführenAux :: (AusführendReader r m, MonadIO m)
-                          => Natural
-                          -> NonEmpty (AktionAllgemein bg st we ku ko ws)
-                          -> m ()
+            ausführenAux
+                :: ( BahngeschwindigkeitKlasse bg
+                   , StreckenabschnittKlasse st
+                   , WeicheKlasse (we 'Märklin)
+                   , WeicheKlasse (we 'Lego)
+                   , KupplungKlasse ku
+                   , KontaktKlasse ko
+                   , WegstreckeKlasse (ws 'Märklin)
+                   , WegstreckeKlasse (ws 'Lego)
+                   , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
+                   , KontaktKlasse (ws 'Märklin)
+                   , KontaktKlasse (ws 'Lego)
+                   , AusführendReader r m
+                   , MonadIO m
+                   )
+                => Natural
+                -> NonEmpty (AktionAllgemein bg st we ku ko ws)
+                -> m ()
             ausführenAux _i [AktionAusführen Plan {plName = plName1, plAktionen = plAktionen1}]
                 | plName == plName1 = ausführenAux 0 plAktionen1
             ausführenAux i (h :| t) = do
@@ -503,7 +531,7 @@ instance ObjektElement (PlanAllgemein bg st we ku ko ws) where
     type ObjektTyp (PlanAllgemein bg st we ku ko ws) = Plan
 
     zuObjektTyp :: PlanAllgemein bg st we ku ko ws -> Plan
-    zuObjektTyp = _
+    zuObjektTyp = _undefined --TODO
 
     zuObjekt :: PlanAllgemein bg st we ku ko ws -> Objekt
     zuObjekt = OPlan . zuObjektTyp
@@ -582,8 +610,8 @@ instance ( BahngeschwindigkeitKlasse bg
 -- Template-Haskell: Ord-Deriving
 deriveOrd $ Right aktionBahngeschwindigkeitCxtType
 
-deriveOrd $ Left ''AktionAllgemein
+deriveOrd $ Right aktionAllgemeinCxtType
 
-deriveOrd $ Left ''PlanAllgemein
+deriveOrd $ Right planAllgemeinCxtType
 
 deriveOrd $ Left ''Ausführend

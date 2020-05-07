@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektKlasse(..), ObjektElement(..)) where
 
@@ -7,7 +8,7 @@ import Data.Kind (Type)
 
 import Zug.Anbindung
        (Bahngeschwindigkeit(), Streckenabschnitt(), Weiche(), Kupplung(), Kontakt(), Wegstrecke())
-import Zug.Enums (Zugtyp(), ZugtypEither(), GeschwindigkeitVariante(), GeschwindigkeitEither())
+import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), GeschwindigkeitEither())
 import {-# SOURCE #-} Zug.Plan (Plan)
 
 data ObjektAllgemein bg st we ku ko ws pl
@@ -19,7 +20,19 @@ data ObjektAllgemein bg st we ku ko ws pl
     | OWegstrecke (ZugtypEither ws)
     | OPlan pl
 
-instance Eq (ObjektAllgemein bg st we ku ko ws pl)
+instance  ( Eq st
+          , Eq ku
+          , Eq pl
+          , Eq (bg 'Pwm 'Märklin)
+          , Eq (bg 'KonstanteSpannung 'Märklin)
+          , Eq (bg 'Pwm 'Lego)
+          , Eq (bg 'KonstanteSpannung 'Lego)
+          , Eq (we 'Märklin)
+          , Eq (we 'Lego)
+          , Eq ko
+          , Eq (ws 'Märklin)
+          , Eq (ws 'Lego)
+          ) => Eq (ObjektAllgemein bg st we ku ko ws pl)
 
 class ObjektKlasse o where
     type BG o :: GeschwindigkeitVariante -> Zugtyp -> Type
@@ -44,7 +57,10 @@ class ObjektKlasse o where
 
 class ObjektElement e where
     type ObjektTyp e :: Type
+    type ObjektTyp e = e
     zuObjektTyp :: e -> ObjektTyp e
+    default zuObjektTyp :: (e ~ ObjektTyp e) => e -> ObjektTyp e
+    zuObjektTyp = id
     zuObjekt :: e -> Objekt
 
 type Objekt =
