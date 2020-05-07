@@ -116,6 +116,7 @@ data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
            , bgpmTVarSprache :: TVar (Maybe [Sprache -> IO ()])
            , bgpmTVarEvent :: TVar EventAusführen
            , bgpmScaleGeschwindigkeit :: Gtk.HScale
+           , bgpmButtonUmdrehen :: Gtk.Button
            } -> BGWidgets 'Pwm 'Märklin
     BGWidgetsKonstanteSpannungMärklin
         :: { bgkm :: Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
@@ -129,6 +130,7 @@ data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
            , bgkmTVarSprache :: TVar (Maybe [Sprache -> IO ()])
            , bgkmTVarEvent :: TVar EventAusführen
            , bgkmAuswahlFahrstrom :: AuswahlWidget Word8
+           , bgkmButtonUmdrehen :: Gtk.Button
            } -> BGWidgets 'KonstanteSpannung 'Märklin
     BGWidgetsPwmLego
         :: { bgpl :: Bahngeschwindigkeit 'Pwm 'Lego
@@ -584,43 +586,29 @@ instance Aeson.ToJSON (BGWidgets g z) where
 instance BahngeschwindigkeitKlasse BGWidgets where
     geschwindigkeit
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Word8 -> m ()
-    geschwindigkeit BGWidgetsPwmMärklin {bgpm, bgpmScaleGeschwindigkeit, bgpmTVarEvent} wert = do
-        eventAusführen bgpmTVarEvent $ geschwindigkeit bgpm wert
-        liftIO
-            $ ohneEvent bgpmTVarEvent
-            $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
-    geschwindigkeit BGWidgetsPwmLego {bgpl, bgplScaleGeschwindigkeit, bgplTVarEvent} wert = do
-        eventAusführen bgplTVarEvent $ geschwindigkeit bgpl wert
-        liftIO
-            $ ohneEvent bgplTVarEvent
-            $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+    geschwindigkeit BGWidgetsPwmMärklin {bgpmScaleGeschwindigkeit} wert =
+        liftIO $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+    geschwindigkeit BGWidgetsPwmLego {bgplScaleGeschwindigkeit} wert =
+        liftIO $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
 
     fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Word8 -> m ()
-    fahrstrom BGWidgetsKonstanteSpannungMärklin {bgkm, bgkmAuswahlFahrstrom, bgkmTVarEvent} wert =
-        do
-            eventAusführen bgkmTVarEvent $ fahrstrom bgkm wert
-            liftIO $ ohneEvent bgkmTVarEvent $ setzeAuswahl bgkmAuswahlFahrstrom wert
-    fahrstrom BGWidgetsKonstanteSpannungLego {bgkl, bgklAuswahlFahrstrom, bgklTVarEvent} wert = do
-        eventAusführen bgklTVarEvent $ fahrstrom bgkl wert
-        liftIO $ ohneEvent bgklTVarEvent $ setzeAuswahl bgklAuswahlFahrstrom wert
+    fahrstrom BGWidgetsKonstanteSpannungMärklin {bgkmAuswahlFahrstrom} wert =
+        liftIO $ setzeAuswahl bgkmAuswahlFahrstrom wert
+    fahrstrom BGWidgetsKonstanteSpannungLego {bgklAuswahlFahrstrom} wert =
+        liftIO $ setzeAuswahl bgklAuswahlFahrstrom wert
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Märklin -> m ()
     umdrehen
-        BGWidgetsPwmMärklin {bgpm, bgpmTVarEvent} = eventAusführen bgpmTVarEvent $ umdrehen bgpm
-    umdrehen BGWidgetsKonstanteSpannungMärklin {bgkm, bgkmTVarEvent} =
-        eventAusführen bgkmTVarEvent $ umdrehen bgkm
+        BGWidgetsPwmMärklin {bgpmButtonUmdrehen} = liftIO $ Gtk.buttonPressed bgpmButtonUmdrehen
+    umdrehen BGWidgetsKonstanteSpannungMärklin {bgkmButtonUmdrehen} =
+        liftIO $ Gtk.buttonPressed bgkmButtonUmdrehen
 
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Lego -> Fahrtrichtung -> m ()
-    fahrtrichtungEinstellen BGWidgetsPwmLego {bgpl, bgplAuswahlFahrtrichtung, bgplTVarEvent} wert =
-        do
-            eventAusführen bgplTVarEvent $ fahrtrichtungEinstellen bgpl wert
-            liftIO $ ohneEvent bgplTVarEvent $ setzeAuswahl bgplAuswahlFahrtrichtung wert
-    fahrtrichtungEinstellen
-        BGWidgetsKonstanteSpannungLego {bgkl, bgklAuswahlFahrtrichtung, bgklTVarEvent}
-        wert = do
-        eventAusführen bgklTVarEvent $ fahrtrichtungEinstellen bgkl wert
-        liftIO $ ohneEvent bgklTVarEvent $ setzeAuswahl bgklAuswahlFahrtrichtung wert
+    fahrtrichtungEinstellen BGWidgetsPwmLego {bgplAuswahlFahrtrichtung} wert =
+        liftIO $ setzeAuswahl bgplAuswahlFahrtrichtung wert
+    fahrtrichtungEinstellen BGWidgetsKonstanteSpannungLego {bgklAuswahlFahrtrichtung} wert =
+        liftIO $ setzeAuswahl bgklAuswahlFahrtrichtung wert
 
 instance BahngeschwindigkeitContainer (BGWidgets g z) where
     enthalteneBahngeschwindigkeiten
@@ -763,7 +751,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 bahngeschwindigkeit
                 bgpmTVarEvent
                 statusVar
-            buttonUmdrehenPackNew
+            bgpmButtonUmdrehen <- buttonUmdrehenPackNew
                 bgpmFunctionBox
                 bahngeschwindigkeit
                 bgpmTVarSprache
@@ -782,6 +770,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 , bgpmTVarSprache
                 , bgpmTVarEvent
                 , bgpmScaleGeschwindigkeit
+                , bgpmButtonUmdrehen
                 }
         geschwindigkeitsWidgetsPackNew
             box
@@ -809,7 +798,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 statusVar
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ anschlussNew justTVarSprache Language.umdrehen bgmkUmdrehenAnschluss
-            buttonUmdrehenPackNew
+            bgkmButtonUmdrehen <- buttonUmdrehenPackNew
                 bgkmFunctionBox
                 bahngeschwindigkeit
                 bgkmTVarSprache
@@ -828,6 +817,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 , bgkmTVarSprache
                 , bgkmTVarEvent
                 , bgkmAuswahlFahrstrom
+                , bgkmButtonUmdrehen
                 }
         geschwindigkeitsWidgetsPackNew
             box
