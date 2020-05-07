@@ -175,11 +175,8 @@ instance Aeson.ToJSON STWidgets where
 
 instance StreckenabschnittKlasse STWidgets where
     strom :: (I2CReader r m, MonadIO m) => STWidgets -> Strom -> m ()
-    strom STWidgets {st, stToggleButtonStrom, stTVarEvent} wert = do
-        eventAusführen stTVarEvent $ strom st wert
-        liftIO
-            $ ohneEvent stTVarEvent
-            $ Gtk.set stToggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
+    strom STWidgets {stToggleButtonStrom} wert =
+        liftIO $ Gtk.set stToggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
 
 instance StreckenabschnittContainer STWidgets where
     enthalteneStreckenabschnitte :: STWidgets -> Set Streckenabschnitt
