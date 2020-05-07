@@ -95,6 +95,20 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
 import Zug.UI.StatusVar
        (StatusVar, StatusVarReader(erhalteStatusVar), MitStatusVar(), auswertenStatusVarMStatusT)
 
+data GeschwindigkeitsWidgets (g :: GeschwindigkeitVariante) where
+    ScaleGeschwindigkeit :: { wScaleGeschwindigkeit :: Gtk.HScale } -> GeschwindigkeitsWidgets 'Pwm
+    AuswahlFahrstrom :: { wAuswahlFahrstrom :: AuswahlWidget Word8 }
+        -> GeschwindigkeitsWidgets 'KonstanteSpannung
+
+deriving instance Eq (GeschwindigkeitsWidgets g)
+
+data FahrtrichtungsWidgets (z :: Zugtyp) where
+    ButtonUmdrehen :: { wButtonUmdrehen :: Gtk.Button } -> FahrtrichtungsWidgets 'Märklin
+    AuswahlFahrtrichtung :: { wAuswahlFahrtrichtung :: AuswahlWidget Fahrtrichtung }
+        -> FahrtrichtungsWidgets 'Lego
+
+deriving instance Eq (FahrtrichtungsWidgets z)
+
 instance Kategorie (BGWidgets g z) where
     kategorie :: KategorieText (BGWidgets g z)
     kategorie = KategorieText Language.bahngeschwindigkeiten
@@ -103,71 +117,26 @@ instance Kategorie (GeschwindigkeitEither BGWidgets z) where
     kategorie :: KategorieText (GeschwindigkeitEither BGWidgets z)
     kategorie = KategorieText Language.bahngeschwindigkeiten
 
--- | 'Bahngeschwindigkeit' mit zugehörigen Widgets
-data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
-    BGWidgetsPwmMärklin
-        :: { bgpm :: Bahngeschwindigkeit 'Pwm 'Märklin
-           , bgpmWidget :: Gtk.VBox
-           , bgpmFunctionBox :: Gtk.HBox
-           , bgpmHinzWS :: CheckButtonWegstreckeHinzufügen Void (BGWidgets 'Pwm 'Märklin)
-           , bgpmHinzPL :: ( ButtonPlanHinzufügen (BGWidgets 'Pwm 'Märklin)
-                           , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets 'Märklin)
-                           )
-           , bgpmTVarSprache :: TVar (Maybe [Sprache -> IO ()])
-           , bgpmTVarEvent :: TVar EventAusführen
-           , bgpmScaleGeschwindigkeit :: Gtk.HScale
-           , bgpmButtonUmdrehen :: Gtk.Button
-           } -> BGWidgets 'Pwm 'Märklin
-    BGWidgetsKonstanteSpannungMärklin
-        :: { bgkm :: Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
-           , bgkmWidget :: Gtk.VBox
-           , bgkmFunctionBox :: Gtk.HBox
-           , bgkmHinzWS
-                 :: CheckButtonWegstreckeHinzufügen Void (BGWidgets 'KonstanteSpannung 'Märklin)
-           , bgkmHinzPL :: ( ButtonPlanHinzufügen (BGWidgets 'KonstanteSpannung 'Märklin)
-                           , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets 'Märklin)
-                           )
-           , bgkmTVarSprache :: TVar (Maybe [Sprache -> IO ()])
-           , bgkmTVarEvent :: TVar EventAusführen
-           , bgkmAuswahlFahrstrom :: AuswahlWidget Word8
-           , bgkmButtonUmdrehen :: Gtk.Button
-           } -> BGWidgets 'KonstanteSpannung 'Märklin
-    BGWidgetsPwmLego
-        :: { bgpl :: Bahngeschwindigkeit 'Pwm 'Lego
-           , bgplWidget :: Gtk.VBox
-           , bgplFunctionBox :: Gtk.HBox
-           , bgplHinzWS :: CheckButtonWegstreckeHinzufügen Void (BGWidgets 'Pwm 'Lego)
-           , bgplHinzPL :: ( ButtonPlanHinzufügen (BGWidgets 'Pwm 'Lego)
-                           , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets 'Lego)
-                           )
-           , bgplTVarSprache :: TVar (Maybe [Sprache -> IO ()])
-           , bgplTVarEvent :: TVar EventAusführen
-           , bgplScaleGeschwindigkeit :: Gtk.HScale
-           , bgplAuswahlFahrtrichtung :: AuswahlWidget Fahrtrichtung
-           } -> BGWidgets 'Pwm 'Lego
-    BGWidgetsKonstanteSpannungLego
-        :: { bgkl :: Bahngeschwindigkeit 'KonstanteSpannung 'Lego
-           , bgklWidget :: Gtk.VBox
-           , bgklFunctionBox :: Gtk.HBox
-           , bgklHinzWS
-                 :: CheckButtonWegstreckeHinzufügen Void (BGWidgets 'KonstanteSpannung 'Lego)
-           , bgklHinzPL :: ( ButtonPlanHinzufügen (BGWidgets 'KonstanteSpannung 'Lego)
-                           , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets 'Lego)
-                           )
-           , bgklTVarSprache :: TVar (Maybe [Sprache -> IO ()])
-           , bgklTVarEvent :: TVar EventAusführen
-           , bgklAuswahlFahrstrom :: AuswahlWidget Word8
-           , bgklAuswahlFahrtrichtung :: AuswahlWidget Fahrtrichtung
-           } -> BGWidgets 'KonstanteSpannung 'Lego
-
-deriving instance (Eq (ObjektTyp (BGWidgets g z))) => Eq (BGWidgets g z)
+-- | 'Bahngeschwindigkeit' mit zugehörigen Widgets.
+data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
+    BGWidgets
+    { bg :: Bahngeschwindigkeit g z
+    , bgWidget :: Gtk.VBox
+    , bgFunctionBox :: Gtk.HBox
+    , bgHinzWS :: CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
+    , bgHinzPL :: ( ButtonPlanHinzufügen (BGWidgets g z)
+                  , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
+                  )
+    , bgTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , bgTVarEvent :: TVar EventAusführen
+    , bgGeschwindigkeitsWidgets :: GeschwindigkeitsWidgets g
+    , bgFahrtrichtungsWidgets :: FahrtrichtungsWidgets z
+    }
+    deriving (Eq)
 
 instance MitWidget (BGWidgets g z) where
     erhalteWidget :: BGWidgets g z -> Gtk.Widget
-    erhalteWidget BGWidgetsPwmMärklin {bgpmWidget} = erhalteWidget bgpmWidget
-    erhalteWidget BGWidgetsKonstanteSpannungMärklin {bgkmWidget} = erhalteWidget bgkmWidget
-    erhalteWidget BGWidgetsPwmLego {bgplWidget} = erhalteWidget bgplWidget
-    erhalteWidget BGWidgetsKonstanteSpannungLego {bgklWidget} = erhalteWidget bgklWidget
+    erhalteWidget = erhalteWidget . bgWidget
 
 data BGWidgetsBoxen =
     BGWidgetsBoxen
@@ -209,10 +178,7 @@ instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
     type ReaderConstraint (BGWidgets g z) = MitBGWidgetsBoxen
 
     erhalteObjektTyp :: BGWidgets g z -> Bahngeschwindigkeit g z
-    erhalteObjektTyp BGWidgetsPwmMärklin {bgpm} = bgpm
-    erhalteObjektTyp BGWidgetsKonstanteSpannungMärklin {bgkm} = bgkm
-    erhalteObjektTyp BGWidgetsPwmLego {bgpl} = bgpl
-    erhalteObjektTyp BGWidgetsKonstanteSpannungLego {bgkl} = bgkl
+    erhalteObjektTyp = bg
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (BGWidgets g z) m) => BGWidgets g z -> m ()
     entferneWidgets bgWidgets = do
@@ -223,36 +189,18 @@ instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
         liftIO $ atomically $ writeTVar (tvarSprache bgWidgets) Nothing
 
     boxButtonEntfernen :: BGWidgets g z -> Gtk.Box
-    boxButtonEntfernen BGWidgetsPwmMärklin {bgpmFunctionBox} = erhalteBox bgpmFunctionBox
-    boxButtonEntfernen
-        BGWidgetsKonstanteSpannungMärklin {bgkmFunctionBox} = erhalteBox bgkmFunctionBox
-    boxButtonEntfernen BGWidgetsPwmLego {bgplFunctionBox} = erhalteBox bgplFunctionBox
-    boxButtonEntfernen
-        BGWidgetsKonstanteSpannungLego {bgklFunctionBox} = erhalteBox bgklFunctionBox
+    boxButtonEntfernen = erhalteBox . bgFunctionBox
 
     tvarSprache :: BGWidgets g z -> TVar (Maybe [Sprache -> IO ()])
-    tvarSprache BGWidgetsPwmMärklin {bgpmTVarSprache} = bgpmTVarSprache
-    tvarSprache BGWidgetsKonstanteSpannungMärklin {bgkmTVarSprache} = bgkmTVarSprache
-    tvarSprache BGWidgetsPwmLego {bgplTVarSprache} = bgplTVarSprache
-    tvarSprache BGWidgetsKonstanteSpannungLego {bgklTVarSprache} = bgklTVarSprache
+    tvarSprache = bgTVarSprache
 
     tvarEvent :: BGWidgets g z -> TVar EventAusführen
-    tvarEvent BGWidgetsPwmMärklin {bgpmTVarEvent} = bgpmTVarEvent
-    tvarEvent BGWidgetsKonstanteSpannungMärklin {bgkmTVarEvent} = bgkmTVarEvent
-    tvarEvent BGWidgetsPwmLego {bgplTVarEvent} = bgplTVarEvent
-    tvarEvent BGWidgetsKonstanteSpannungLego {bgklTVarEvent} = bgklTVarEvent
+    tvarEvent = bgTVarEvent
 
 instance WegstreckenElement (BGWidgets g 'Märklin) where
     getterWegstrecke
         :: Lens.Getter (BGWidgets g 'Märklin) (CheckButtonWegstreckeHinzufügen Void (BGWidgets g 'Märklin))
-    getterWegstrecke = Lens.to erhalteCheckbuttonWegstrecke
-        where
-            erhalteCheckbuttonWegstrecke
-                :: BGWidgets g 'Märklin
-                -> CheckButtonWegstreckeHinzufügen Void (BGWidgets g 'Märklin)
-            erhalteCheckbuttonWegstrecke BGWidgetsPwmMärklin {bgpmHinzWS} = bgpmHinzWS
-            erhalteCheckbuttonWegstrecke
-                BGWidgetsKonstanteSpannungMärklin {bgkmHinzWS} = bgkmHinzWS
+    getterWegstrecke = Lens.to bgHinzWS
 
     boxWegstrecke :: (ReaderConstraint (BGWidgets g 'Märklin) r)
                   => Bahngeschwindigkeit g 'Märklin
@@ -266,12 +214,7 @@ instance WegstreckenElement (BGWidgets g 'Märklin) where
 instance WegstreckenElement (BGWidgets g 'Lego) where
     getterWegstrecke
         :: Lens.Getter (BGWidgets g 'Lego) (CheckButtonWegstreckeHinzufügen Void (BGWidgets g 'Lego))
-    getterWegstrecke = Lens.to erhalteCheckbuttonWegstrecke
-        where
-            erhalteCheckbuttonWegstrecke
-                :: BGWidgets g 'Lego -> CheckButtonWegstreckeHinzufügen Void (BGWidgets g 'Lego)
-            erhalteCheckbuttonWegstrecke BGWidgetsPwmLego {bgplHinzWS} = bgplHinzWS
-            erhalteCheckbuttonWegstrecke BGWidgetsKonstanteSpannungLego {bgklHinzWS} = bgklHinzWS
+    getterWegstrecke = Lens.to bgHinzWS
 
     boxWegstrecke :: (ReaderConstraint (BGWidgets g 'Lego) r)
                   => Bahngeschwindigkeit g 'Lego
@@ -435,11 +378,7 @@ instance PlanElement (BGWidgets b 'Märklin) where
             erhalteButtonPlanHinzufügen
                 :: BGWidgets b 'Märklin -> [ButtonPlanHinzufügen (BGWidgets b 'Märklin)]
             erhalteButtonPlanHinzufügen
-                BGWidgetsPwmMärklin {bgpmHinzPL = (buttonSpezifisch, buttonAllgemein)} =
-                [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
-            erhalteButtonPlanHinzufügen
-                BGWidgetsKonstanteSpannungMärklin
-                {bgkmHinzPL = (buttonSpezifisch, buttonAllgemein)} =
+                BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)} =
                 [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
 
     boxenPlan :: (ReaderConstraint (BGWidgets b 'Märklin) r)
@@ -469,10 +408,7 @@ instance PlanElement (BGWidgets b 'Lego) where
             erhalteButtonPlanHinzufügen
                 :: BGWidgets b 'Lego -> [ButtonPlanHinzufügen (BGWidgets b 'Lego)]
             erhalteButtonPlanHinzufügen
-                BGWidgetsPwmLego {bgplHinzPL = (buttonSpezifisch, buttonAllgemein)} =
-                [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
-            erhalteButtonPlanHinzufügen
-                BGWidgetsKonstanteSpannungLego {bgklHinzPL = (buttonSpezifisch, buttonAllgemein)} =
+                BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)} =
                 [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
 
     boxenPlan :: (ReaderConstraint (BGWidgets b 'Lego) r)
@@ -494,25 +430,12 @@ instance PlanElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
             buttonList :: (GeschwindigkeitEither BGWidgets) z
                        -> [ButtonPlanHinzufügen (ZugtypEither (GeschwindigkeitEither BGWidgets))]
             buttonList
-                (GeschwindigkeitPwm
-                     BGWidgetsPwmMärklin {bgpmHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
-                widgetHinzufügenZugtypEither
-                <$> [widgetHinzufügenGeschwindigkeitEither buttonSpezifisch, buttonAllgemein]
-            buttonList
-                (GeschwindigkeitPwm
-                     BGWidgetsPwmLego {bgplHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
+                (GeschwindigkeitPwm BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
                 widgetHinzufügenZugtypEither
                 <$> [widgetHinzufügenGeschwindigkeitEither buttonSpezifisch, buttonAllgemein]
             buttonList
                 (GeschwindigkeitKonstanteSpannung
-                     BGWidgetsKonstanteSpannungMärklin
-                     {bgkmHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
-                widgetHinzufügenZugtypEither
-                <$> [widgetHinzufügenGeschwindigkeitEither buttonSpezifisch, buttonAllgemein]
-            buttonList
-                (GeschwindigkeitKonstanteSpannung
-                     BGWidgetsKonstanteSpannungLego
-                     {bgklHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
+                     BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)}) =
                 widgetHinzufügenZugtypEither
                 <$> [widgetHinzufügenGeschwindigkeitEither buttonSpezifisch, buttonAllgemein]
 
@@ -558,69 +481,45 @@ instance PlanElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
 
 instance StreckenObjekt (BGWidgets g z) where
     anschlüsse :: BGWidgets g z -> Set AnschlussEither
-    anschlüsse BGWidgetsPwmMärklin {bgpm} = anschlüsse bgpm
-    anschlüsse BGWidgetsKonstanteSpannungMärklin {bgkm} = anschlüsse bgkm
-    anschlüsse BGWidgetsPwmLego {bgpl} = anschlüsse bgpl
-    anschlüsse BGWidgetsKonstanteSpannungLego {bgkl} = anschlüsse bgkl
+    anschlüsse = anschlüsse . bg
 
     erhalteName :: BGWidgets g z -> Text
-    erhalteName BGWidgetsPwmMärklin {bgpm} = erhalteName bgpm
-    erhalteName BGWidgetsKonstanteSpannungMärklin {bgkm} = erhalteName bgkm
-    erhalteName BGWidgetsPwmLego {bgpl} = erhalteName bgpl
-    erhalteName BGWidgetsKonstanteSpannungLego {bgkl} = erhalteName bgkl
+    erhalteName = erhalteName . bg
 
 instance (ZugtypKlasse z) => ObjektElement (BGWidgets g z) where
     zuObjekt :: BGWidgets g z -> Objekt
-    zuObjekt BGWidgetsPwmMärklin {bgpm} = zuObjekt bgpm
-    zuObjekt BGWidgetsKonstanteSpannungMärklin {bgkm} = zuObjekt bgkm
-    zuObjekt BGWidgetsPwmLego {bgpl} = zuObjekt bgpl
-    zuObjekt BGWidgetsKonstanteSpannungLego {bgkl} = zuObjekt bgkl
+    zuObjekt = zuObjekt . bg
 
 instance Aeson.ToJSON (BGWidgets g z) where
     toJSON :: BGWidgets g z -> Aeson.Value
-    toJSON BGWidgetsPwmMärklin {bgpm} = Aeson.toJSON bgpm
-    toJSON BGWidgetsKonstanteSpannungMärklin {bgkm} = Aeson.toJSON bgkm
-    toJSON BGWidgetsPwmLego {bgpl} = Aeson.toJSON bgpl
-    toJSON BGWidgetsKonstanteSpannungLego {bgkl} = Aeson.toJSON bgkl
+    toJSON = Aeson.toJSON . bg
 
 instance BahngeschwindigkeitKlasse BGWidgets where
     geschwindigkeit
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Word8 -> m ()
-    geschwindigkeit BGWidgetsPwmMärklin {bgpmScaleGeschwindigkeit} wert =
-        liftIO $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
-    geschwindigkeit BGWidgetsPwmLego {bgplScaleGeschwindigkeit} wert =
-        liftIO $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+    geschwindigkeit
+        BGWidgets {bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}
+        wert = liftIO $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
 
     fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Word8 -> m ()
-    fahrstrom BGWidgetsKonstanteSpannungMärklin {bgkmAuswahlFahrstrom} wert =
-        liftIO $ setzeAuswahl bgkmAuswahlFahrstrom wert
-    fahrstrom BGWidgetsKonstanteSpannungLego {bgklAuswahlFahrstrom} wert =
-        liftIO $ setzeAuswahl bgklAuswahlFahrstrom wert
+    fahrstrom BGWidgets {bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}} =
+        liftIO . setzeAuswahl wAuswahlFahrstrom
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Märklin -> m ()
-    umdrehen
-        BGWidgetsPwmMärklin {bgpmButtonUmdrehen} = liftIO $ Gtk.buttonPressed bgpmButtonUmdrehen
-    umdrehen BGWidgetsKonstanteSpannungMärklin {bgkmButtonUmdrehen} =
-        liftIO $ Gtk.buttonPressed bgkmButtonUmdrehen
+    umdrehen BGWidgets {bgFahrtrichtungsWidgets = ButtonUmdrehen {wButtonUmdrehen}} =
+        liftIO $ Gtk.buttonPressed wButtonUmdrehen
 
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Lego -> Fahrtrichtung -> m ()
-    fahrtrichtungEinstellen BGWidgetsPwmLego {bgplAuswahlFahrtrichtung} wert =
-        liftIO $ setzeAuswahl bgplAuswahlFahrtrichtung wert
-    fahrtrichtungEinstellen BGWidgetsKonstanteSpannungLego {bgklAuswahlFahrtrichtung} wert =
-        liftIO $ setzeAuswahl bgklAuswahlFahrtrichtung wert
+    fahrtrichtungEinstellen
+        BGWidgets {bgFahrtrichtungsWidgets = AuswahlFahrtrichtung {wAuswahlFahrtrichtung}} =
+        liftIO . setzeAuswahl wAuswahlFahrtrichtung
 
-instance BahngeschwindigkeitContainer (BGWidgets g z) where
+instance (ZugtypKlasse z, GeschwindigkeitKlasse g)
+    => BahngeschwindigkeitContainer (BGWidgets g z) where
     enthalteneBahngeschwindigkeiten
         :: BGWidgets g z -> Set (ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit))
-    enthalteneBahngeschwindigkeiten
-        BGWidgetsPwmMärklin {bgpm} = Set.singleton $ ZugtypMärklin $ GeschwindigkeitPwm bgpm
-    enthalteneBahngeschwindigkeiten BGWidgetsKonstanteSpannungMärklin {bgkm} =
-        Set.singleton $ ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bgkm
-    enthalteneBahngeschwindigkeiten
-        BGWidgetsPwmLego {bgpl} = Set.singleton $ ZugtypLego $ GeschwindigkeitPwm bgpl
-    enthalteneBahngeschwindigkeiten BGWidgetsKonstanteSpannungLego {bgkl} =
-        Set.singleton $ ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl
+    enthalteneBahngeschwindigkeiten = Set.singleton . zuZugtypEither . zuGeschwindigkeitEither . bg
 
 -- | 'Bahngeschwindigkeit' darstellen und zum Status hinzufügen
 bahngeschwindigkeitPackNew
@@ -740,47 +639,47 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             box
             bahngeschwindigkeit@MärklinBahngeschwindigkeitPwm {bgmpGeschwindigkeitsPin}
             vBoxAnschlüsse
-            bgpmTVarSprache
-            bgpmTVarEvent = do
+            bgTVarSprache
+            bgTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             boxPackWidgetNewDefault vBoxAnschlüsse
-                $ pinNew (Just bgpmTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
-            bgpmFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            bgpmScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
-                bgpmFunctionBox
+                $ pinNew (Just bgTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
+            bgFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+            wScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
+                bgFunctionBox
                 bahngeschwindigkeit
-                bgpmTVarEvent
+                bgTVarEvent
                 statusVar
-            bgpmButtonUmdrehen <- buttonUmdrehenPackNew
-                bgpmFunctionBox
+            wButtonUmdrehen <- buttonUmdrehenPackNew
+                bgFunctionBox
                 bahngeschwindigkeit
-                bgpmTVarSprache
-                bgpmTVarEvent
+                bgTVarSprache
+                bgTVarEvent
                 statusVar
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-            (bgpmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgpmTVarSprache
+            (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
             pure
-                BGWidgetsPwmMärklin
-                { bgpm = bahngeschwindigkeit
-                , bgpmWidget = box
-                , bgpmFunctionBox
-                , bgpmHinzWS
-                , bgpmHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                , bgpmTVarSprache
-                , bgpmTVarEvent
-                , bgpmScaleGeschwindigkeit
-                , bgpmButtonUmdrehen
+                BGWidgets
+                { bg = bahngeschwindigkeit
+                , bgWidget = box
+                , bgFunctionBox
+                , bgHinzWS
+                , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+                , bgTVarSprache
+                , bgTVarEvent
+                , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit { wScaleGeschwindigkeit }
+                , bgFahrtrichtungsWidgets = ButtonUmdrehen { wButtonUmdrehen }
                 }
         geschwindigkeitsWidgetsPackNew
             box
             bahngeschwindigkeit@MärklinBahngeschwindigkeitKonstanteSpannung
             {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
             vBoxAnschlüsse
-            bgkmTVarSprache
-            bgkmTVarEvent = do
+            bgTVarSprache
+            bgTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-            let justTVarSprache = Just bgkmTVarSprache
+            let justTVarSprache = Just bgTVarSprache
             let erstelleFahrstromAnschlussWidget
                     :: Natural -> AnschlussEither -> MStatusAllgemeinT m o Natural
                 erstelleFahrstromAnschlussWidget i anschluss = do
@@ -788,76 +687,76 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                         $ anschlussNew justTVarSprache (Language.fahrstrom <> anzeige i) anschluss
                     pure $ succ i
             foldM_ erstelleFahrstromAnschlussWidget 1 bgmkFahrstromAnschlüsse
-            bgkmFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            bgkmAuswahlFahrstrom <- auswahlFahrstromPackNew
-                bgkmFunctionBox
+            bgFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+            wAuswahlFahrstrom <- auswahlFahrstromPackNew
+                bgFunctionBox
                 bahngeschwindigkeit
                 (fromIntegral $ length bgmkFahrstromAnschlüsse)
-                bgkmTVarSprache
-                bgkmTVarEvent
+                bgTVarSprache
+                bgTVarEvent
                 statusVar
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ anschlussNew justTVarSprache Language.umdrehen bgmkUmdrehenAnschluss
-            bgkmButtonUmdrehen <- buttonUmdrehenPackNew
-                bgkmFunctionBox
+            wButtonUmdrehen <- buttonUmdrehenPackNew
+                bgFunctionBox
                 bahngeschwindigkeit
-                bgkmTVarSprache
-                bgkmTVarEvent
+                bgTVarSprache
+                bgTVarEvent
                 statusVar
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-            (bgkmHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgkmTVarSprache
+            (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
             pure
-                BGWidgetsKonstanteSpannungMärklin
-                { bgkm = bahngeschwindigkeit
-                , bgkmWidget = box
-                , bgkmFunctionBox
-                , bgkmHinzWS
-                , bgkmHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                , bgkmTVarSprache
-                , bgkmTVarEvent
-                , bgkmAuswahlFahrstrom
-                , bgkmButtonUmdrehen
+                BGWidgets
+                { bg = bahngeschwindigkeit
+                , bgWidget = box
+                , bgFunctionBox
+                , bgHinzWS
+                , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+                , bgTVarSprache
+                , bgTVarEvent
+                , bgGeschwindigkeitsWidgets = AuswahlFahrstrom { wAuswahlFahrstrom }
+                , bgFahrtrichtungsWidgets = ButtonUmdrehen { wButtonUmdrehen }
                 }
         geschwindigkeitsWidgetsPackNew
             box
             bahngeschwindigkeit@LegoBahngeschwindigkeit
             {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
             vBoxAnschlüsse
-            bgplTVarSprache
-            bgplTVarEvent = do
+            bgTVarSprache
+            bgTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-            let justTVarSprache = Just bgplTVarSprache
+            let justTVarSprache = Just bgTVarSprache
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ pinNew justTVarSprache Language.geschwindigkeit bglGeschwindigkeitsPin
-            bgplFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            bgplScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
-                bgplFunctionBox
+            bgFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+            wScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
+                bgFunctionBox
                 bahngeschwindigkeit
-                bgplTVarEvent
+                bgTVarEvent
                 statusVar
             boxPackWidgetNewDefault vBoxAnschlüsse
                 $ anschlussNew justTVarSprache Language.fahrtrichtung bglFahrtrichtungsAnschluss
-            bgplAuswahlFahrtrichtung <- auswahlFahrtrichtungEinstellenPackNew
-                bgplFunctionBox
+            wAuswahlFahrtrichtung <- auswahlFahrtrichtungEinstellenPackNew
+                bgFunctionBox
                 bahngeschwindigkeit
-                bgplTVarSprache
-                bgplTVarEvent
+                bgTVarSprache
+                bgTVarEvent
                 statusVar
             -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-            (bgplHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgplTVarSprache
+            (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
             pure
-                BGWidgetsPwmLego
-                { bgpl = bahngeschwindigkeit
-                , bgplWidget = box
-                , bgplFunctionBox
-                , bgplHinzWS
-                , bgplHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                , bgplTVarSprache
-                , bgplTVarEvent
-                , bgplScaleGeschwindigkeit
-                , bgplAuswahlFahrtrichtung
+                BGWidgets
+                { bg = bahngeschwindigkeit
+                , bgWidget = box
+                , bgFunctionBox
+                , bgHinzWS
+                , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+                , bgTVarSprache
+                , bgTVarEvent
+                , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit { wScaleGeschwindigkeit }
+                , bgFahrtrichtungsWidgets = AuswahlFahrtrichtung { wAuswahlFahrtrichtung }
                 }
 
 -- | Hilfsklasse um Widgets zu synchronisieren.
@@ -915,21 +814,27 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
         bgWidgetsSynchronisieren
             (ZugtypMärklin
                  (GeschwindigkeitPwm
-                      BGWidgetsPwmMärklin {bgpm, bgpmTVarEvent, bgpmScaleGeschwindigkeit}))
+                      BGWidgets
+                      { bg
+                      , bgTVarEvent
+                      , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}))
             wert
-            | elem (ZugtypMärklin $ GeschwindigkeitPwm bgpm)
+            | elem (ZugtypMärklin $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgpmTVarEvent
-                $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+                ohneEvent bgTVarEvent
+                $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitPwm
-                      BGWidgetsPwmLego {bgpl, bgplTVarEvent, bgplScaleGeschwindigkeit}))
+                      BGWidgets
+                      { bg
+                      , bgTVarEvent
+                      , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}))
             wert
-            | elem (ZugtypLego $ GeschwindigkeitPwm bgpl)
+            | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgplTVarEvent
-                $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+                ohneEvent bgTVarEvent
+                $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
         bgWidgetsSynchronisieren _bgWidgets _wert = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Word8 -> IO ()
@@ -1010,20 +915,23 @@ auswahlFahrstromPackNew
         bgWidgetsSynchronisieren
             (ZugtypMärklin
                  (GeschwindigkeitKonstanteSpannung
-                      BGWidgetsKonstanteSpannungMärklin
-                      {bgkm, bgkmTVarEvent, bgkmAuswahlFahrstrom}))
+                      BGWidgets { bg
+                                , bgTVarEvent
+                                , bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}}))
             wert
-            | elem (ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bgkm)
+            | elem (ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgkmTVarEvent $ setzeAuswahl bgkmAuswahlFahrstrom wert
+                ohneEvent bgTVarEvent $ setzeAuswahl wAuswahlFahrstrom wert
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitKonstanteSpannung
-                      BGWidgetsKonstanteSpannungLego {bgkl, bgklTVarEvent, bgklAuswahlFahrstrom}))
+                      BGWidgets { bg
+                                , bgTVarEvent
+                                , bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}}))
             wert
-            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl)
+            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgklTVarEvent $ setzeAuswahl bgklAuswahlFahrstrom wert
+                ohneEvent bgTVarEvent $ setzeAuswahl wAuswahlFahrstrom wert
         bgWidgetsSynchronisieren _bgWidgets _wert = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Word8 -> IO ()
@@ -1106,32 +1014,41 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
         bgWidgetsSynchronisieren
             (ZugtypMärklin
                  (GeschwindigkeitPwm
-                      BGWidgetsPwmMärklin {bgpm, bgpmTVarEvent, bgpmScaleGeschwindigkeit}))
-            | elem (ZugtypMärklin $ GeschwindigkeitPwm bgpm)
+                      BGWidgets
+                      { bg
+                      , bgTVarEvent
+                      , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}))
+            | elem (ZugtypMärklin $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgpmTVarEvent $ Gtk.set bgpmScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                ohneEvent bgTVarEvent $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := 0]
         bgWidgetsSynchronisieren
             (ZugtypMärklin
                  (GeschwindigkeitKonstanteSpannung
-                      BGWidgetsKonstanteSpannungMärklin
-                      {bgkm, bgkmTVarEvent, bgkmAuswahlFahrstrom}))
-            | elem (ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bgkm)
+                      BGWidgets { bg
+                                , bgTVarEvent
+                                , bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}}))
+            | elem (ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgkmTVarEvent $ setzeAuswahl bgkmAuswahlFahrstrom 0
+                ohneEvent bgTVarEvent $ setzeAuswahl wAuswahlFahrstrom 0
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitPwm
-                      BGWidgetsPwmLego {bgpl, bgplTVarEvent, bgplScaleGeschwindigkeit}))
-            | elem (ZugtypLego $ GeschwindigkeitPwm bgpl)
+                      BGWidgets
+                      { bg
+                      , bgTVarEvent
+                      , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}))
+            | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgplTVarEvent $ Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                ohneEvent bgTVarEvent $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := 0]
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitKonstanteSpannung
-                      BGWidgetsKonstanteSpannungLego {bgkl, bgklTVarEvent, bgklAuswahlFahrstrom}))
-            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl)
+                      BGWidgets { bg
+                                , bgTVarEvent
+                                , bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}}))
+            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgklTVarEvent $ setzeAuswahl bgklAuswahlFahrstrom 0
+                ohneEvent bgTVarEvent $ setzeAuswahl wAuswahlFahrstrom 0
         bgWidgetsSynchronisieren _bgWidgets = pure ()
 
         stWidgetsSynchronisieren :: STWidgets -> IO ()
@@ -1233,25 +1150,31 @@ auswahlFahrtrichtungEinstellenPackNew
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitPwm
-                      BGWidgetsPwmLego
-                      {bgpl, bgplTVarEvent, bgplScaleGeschwindigkeit, bgplAuswahlFahrtrichtung}))
+                      BGWidgets
+                      { bg
+                      , bgTVarEvent
+                      , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}
+                      , bgFahrtrichtungsWidgets = AuswahlFahrtrichtung {wAuswahlFahrtrichtung}}))
             fahrtrichtung
-            | elem (ZugtypLego $ GeschwindigkeitPwm bgpl)
+            | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgplTVarEvent $ do
-                    Gtk.set bgplScaleGeschwindigkeit [Gtk.rangeValue := 0]
-                    setzeAuswahl bgplAuswahlFahrtrichtung fahrtrichtung
+                ohneEvent bgTVarEvent $ do
+                    Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                    setzeAuswahl wAuswahlFahrtrichtung fahrtrichtung
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitKonstanteSpannung
-                      BGWidgetsKonstanteSpannungLego
-                      {bgkl, bgklTVarEvent, bgklAuswahlFahrstrom, bgklAuswahlFahrtrichtung}))
+                      BGWidgets
+                      { bg
+                      , bgTVarEvent
+                      , bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}
+                      , bgFahrtrichtungsWidgets = AuswahlFahrtrichtung {wAuswahlFahrtrichtung}}))
             fahrtrichtung
-            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bgkl)
+            | elem (ZugtypLego $ GeschwindigkeitKonstanteSpannung bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgklTVarEvent $ do
-                    setzeAuswahl bgklAuswahlFahrstrom 0
-                    setzeAuswahl bgklAuswahlFahrtrichtung fahrtrichtung
+                ohneEvent bgTVarEvent $ do
+                    setzeAuswahl wAuswahlFahrstrom 0
+                    setzeAuswahl wAuswahlFahrtrichtung fahrtrichtung
         bgWidgetsSynchronisieren _bgWidgets _wert = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Fahrtrichtung -> IO ()
