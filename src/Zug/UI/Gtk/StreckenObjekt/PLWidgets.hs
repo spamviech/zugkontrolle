@@ -46,7 +46,7 @@ import Numeric.Natural (Natural)
 import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())
 import Zug.Language (Sprache(), MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..))
+import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (PlanAllgemein(..), Plan, PlanKlasse(..), AusführendReader())
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenPlan, AusführenMöglich(..)
                   , ausführenMöglich, ReaderFamilie, MitTVarMaps())
@@ -114,13 +114,14 @@ class (MonadReader r m, MitPLWidgetsBoxen r) => PLWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitPLWidgetsBoxen r) => PLWidgetsBoxenReader r m
 
-instance WidgetsTyp PLWidgets where
+instance ObjektElement PLWidgets where
     type ObjektTyp PLWidgets = Plan
 
-    type ReaderConstraint PLWidgets = MitPLWidgetsBoxen
+    zuObjektTyp :: PLWidgets -> Plan
+    zuObjektTyp = pl
 
-    erhalteObjektTyp :: PLWidgets -> Plan
-    erhalteObjektTyp = pl
+instance WidgetsTyp PLWidgets where
+    type ReaderConstraint PLWidgets = MitPLWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r PLWidgets m) => PLWidgets -> m ()
     entferneWidgets plWidgets@PLWidgets {plTVarSprache} = do
