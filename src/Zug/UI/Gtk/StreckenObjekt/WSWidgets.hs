@@ -53,7 +53,7 @@ import Zug.Enums
       , ausGeschwindigkeitEither, catKonstanteSpannung, Fahrtrichtung(), Strom(Fließend))
 import Zug.Language (Sprache(), (<:>), (<°>), (<^>))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OWegstrecke), ObjektKlasse(..))
+import Zug.Objekt (Objekt, ObjektAllgemein(OWegstrecke), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionWegstrecke(..))
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenWegstrecke, ObjektReader
                   , ReaderFamilie, MitTVarMaps)
@@ -163,13 +163,14 @@ class (MonadReader r m, MitWSWidgetsBoxen r) => WSWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitWSWidgetsBoxen r) => WSWidgetsBoxenReader r m
 
-instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
+instance (ZugtypKlasse z) => ObjektElement (WSWidgets z) where
     type ObjektTyp (WSWidgets z) = Wegstrecke z
 
-    type ReaderConstraint (WSWidgets z) = MitWSWidgetsBoxen
+    zuObjektTyp :: WSWidgets z -> Wegstrecke z
+    zuObjektTyp = ws
 
-    erhalteObjektTyp :: WSWidgets z -> Wegstrecke z
-    erhalteObjektTyp = ws
+instance (PlanElement (WSWidgets z), ZugtypKlasse z) => WidgetsTyp (WSWidgets z) where
+    type ReaderConstraint (WSWidgets z) = MitWSWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (WSWidgets z) m) => WSWidgets z -> m ()
     entferneWidgets wsWidgets@WSWidgets {wsTVarSprache} = do
@@ -187,13 +188,17 @@ instance (PlanElement (WSWidgets z)) => WidgetsTyp (WSWidgets z) where
     tvarEvent :: WSWidgets z -> TVar EventAusführen
     tvarEvent = wsTVarEvent
 
-instance WidgetsTyp (ZugtypEither WSWidgets) where
+instance ObjektElement (ZugtypEither WSWidgets) where
     type ObjektTyp (ZugtypEither WSWidgets) = ZugtypEither Wegstrecke
 
-    type ReaderConstraint (ZugtypEither WSWidgets) = MitWSWidgetsBoxen
+    zuObjektTyp :: ZugtypEither WSWidgets -> ZugtypEither Wegstrecke
+    zuObjektTyp = mapZugtypEither ws
 
-    erhalteObjektTyp :: ZugtypEither WSWidgets -> ZugtypEither Wegstrecke
-    erhalteObjektTyp = mapZugtypEither ws
+    zuObjekt :: ZugtypEither WSWidgets -> Objekt
+    zuObjekt = OWegstrecke . mapZugtypEither ws
+
+instance WidgetsTyp (ZugtypEither WSWidgets) where
+    type ReaderConstraint (ZugtypEither WSWidgets) = MitWSWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (ZugtypEither WSWidgets) m)
                     => ZugtypEither WSWidgets
@@ -213,14 +218,18 @@ instance WidgetsTyp (ZugtypEither WSWidgets) where
     tvarEvent (ZugtypMärklin wsWidgets) = tvarEvent wsWidgets
     tvarEvent (ZugtypLego wsWidgets) = tvarEvent wsWidgets
 
-instance (PlanElement (WSWidgets z)) => WidgetsTyp (GeschwindigkeitPhantom WSWidgets g z) where
+instance (ZugtypKlasse z) => ObjektElement (GeschwindigkeitPhantom WSWidgets g z) where
     type ObjektTyp (GeschwindigkeitPhantom WSWidgets g z) = GeschwindigkeitPhantom Wegstrecke g z
 
-    type ReaderConstraint (GeschwindigkeitPhantom WSWidgets g z) = MitWSWidgetsBoxen
+    zuObjektTyp :: GeschwindigkeitPhantom WSWidgets g z -> GeschwindigkeitPhantom Wegstrecke g z
+    zuObjektTyp (GeschwindigkeitPhantom WSWidgets {ws}) = GeschwindigkeitPhantom ws
 
-    erhalteObjektTyp
-        :: GeschwindigkeitPhantom WSWidgets g z -> GeschwindigkeitPhantom Wegstrecke g z
-    erhalteObjektTyp (GeschwindigkeitPhantom WSWidgets {ws}) = GeschwindigkeitPhantom ws
+    zuObjekt :: GeschwindigkeitPhantom WSWidgets g z -> Objekt
+    zuObjekt (GeschwindigkeitPhantom ws) = zuObjekt ws
+
+instance (PlanElement (WSWidgets z), ZugtypKlasse z)
+    => WidgetsTyp (GeschwindigkeitPhantom WSWidgets g z) where
+    type ReaderConstraint (GeschwindigkeitPhantom WSWidgets g z) = MitWSWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (GeschwindigkeitPhantom WSWidgets g z) m)
                     => GeschwindigkeitPhantom WSWidgets g z
@@ -402,7 +411,7 @@ instance StreckenabschnittKlasse (WSWidgets z) where
         liftIO $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
     strom _wsWidgets _wert = pure ()
 
-instance (PlanElement (WSWidgets z)) => STWidgetsKlasse (WSWidgets z) where
+instance (PlanElement (WSWidgets z), ZugtypKlasse z) => STWidgetsKlasse (WSWidgets z) where
     toggleButtonStrom :: WSWidgets z -> Maybe Gtk.ToggleButton
     toggleButtonStrom = wsToggleButtonStrom
 
