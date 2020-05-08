@@ -26,7 +26,6 @@ module Zug.Plan
   , Ausführend(..)
   , PlanAllgemein(..)
   , Plan
-  , PlanA
   , AktionKlasse(..)
   , AktionAllgemein(..)
   , Aktion
@@ -176,9 +175,8 @@ data AktionWegstrecke ws (z :: Zugtyp)
     | AWSKontakt (AktionKontakt (ws z))
 
 deriving instance ( Eq (ws z)
-                  , Ord (ws z)
-                  , Ord (ws 'Märklin)
-                  , Ord (ws 'Lego)
+                  , Eq (ws 'Märklin)
+                  , Eq (ws 'Lego)
                   , Eq (GeschwindigkeitPhantom ws 'Pwm z)
                   , Eq (GeschwindigkeitPhantom ws 'KonstanteSpannung z)
                   ) => Eq (AktionWegstrecke ws z)
@@ -257,8 +255,8 @@ deriving instance ( Eq (bg 'Pwm 'Märklin)
                   , Eq (we 'Lego)
                   , Eq ku
                   , Eq ko
-                  , Ord (ws 'Märklin)
-                  , Ord (ws 'Lego)
+                  , Eq (ws 'Märklin)
+                  , Eq (ws 'Lego)
                   ) => Eq (AktionAllgemein bg st we ku ko ws)
 
 -- | 'AktionAllgemein' spezialisiert auf 'Zug.Objekt.Objekt'.
@@ -363,8 +361,8 @@ instance ( Eq (bg 'Pwm 'Märklin)
          , Eq (we 'Lego)
          , Eq ku
          , Eq ko
-         , Ord (ws 'Märklin)
-         , Ord (ws 'Lego)
+         , Eq (ws 'Märklin)
+         , Eq (ws 'Lego)
          ) => Eq (PlanAllgemein bg st we ku ko ws) where
     (==) :: PlanAllgemein bg st we ku ko ws -> PlanAllgemein bg st we ku ko ws -> Bool
     (==)
@@ -382,8 +380,8 @@ instance ( Eq (bg 'Pwm 'Märklin)
                    , Eq (we 'Lego)
                    , Eq ku
                    , Eq ko
-                   , Ord (ws 'Märklin)
-                   , Ord (ws 'Lego)
+                   , Eq (ws 'Märklin)
+                   , Eq (ws 'Lego)
                    )
                 => NonEmpty (AktionAllgemein bg st we ku ko ws)
                 -> NonEmpty (AktionAllgemein bg st we ku ko ws)
@@ -399,9 +397,6 @@ instance ( Eq (bg 'Pwm 'Märklin)
 
 -- | 'PlanAllgemein', spezialisiert auf 'Zug.Objekt.Objekt'.
 type Plan = PlanAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Kontakt Wegstrecke
-
--- | 'PlanAllgemein', spezialisiert auf einen 'Zug.Objekt.ObjektKlasse'-Typ.
-type PlanA o = PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
 
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend = Ausführend Plan
