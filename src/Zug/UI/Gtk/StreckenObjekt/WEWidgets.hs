@@ -45,7 +45,7 @@ import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), ma
                 , ausZugtypEither, GeschwindigkeitVariante(..), Richtung(..))
 import Zug.Language (Sprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OWeiche), ObjektKlasse(..))
+import Zug.Objekt (Objekt, ObjektAllgemein(OWeiche), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionWeiche(..))
 import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenWeiche, ReaderFamilie, MitTVarMaps())
@@ -132,14 +132,15 @@ instance MitWidget (WEWidgets z) where
     erhalteWidget :: WEWidgets z -> Gtk.Widget
     erhalteWidget = erhalteWidget . weWidget
 
-instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
-    => WidgetsTyp (WEWidgets z) where
+instance (ZugtypKlasse z) => ObjektElement (WEWidgets z) where
     type ObjektTyp (WEWidgets z) = Weiche z
 
-    type ReaderConstraint (WEWidgets z) = MitWEWidgetsBoxen
+    zuObjektTyp :: WEWidgets z -> Weiche z
+    zuObjektTyp = we
 
-    erhalteObjektTyp :: WEWidgets z -> Weiche z
-    erhalteObjektTyp = we
+instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z), ZugtypKlasse z)
+    => WidgetsTyp (WEWidgets z) where
+    type ReaderConstraint (WEWidgets z) = MitWEWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (WEWidgets z) m) => WEWidgets z -> m ()
     entferneWidgets weWidgets@WEWidgets {weTVarSprache} = do
@@ -158,13 +159,17 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
     tvarEvent :: WEWidgets z -> TVar EventAusführen
     tvarEvent = weTVarEvent
 
-instance WidgetsTyp (ZugtypEither WEWidgets) where
+instance ObjektElement (ZugtypEither WEWidgets) where
     type ObjektTyp (ZugtypEither WEWidgets) = ZugtypEither Weiche
 
-    type ReaderConstraint (ZugtypEither WEWidgets) = MitWEWidgetsBoxen
+    zuObjektTyp :: ZugtypEither WEWidgets -> ZugtypEither Weiche
+    zuObjektTyp = mapZugtypEither we
 
-    erhalteObjektTyp :: ZugtypEither WEWidgets -> ZugtypEither Weiche
-    erhalteObjektTyp = mapZugtypEither we
+    zuObjekt :: ZugtypEither WEWidgets -> Objekt
+    zuObjekt = OWeiche . mapZugtypEither we
+
+instance WidgetsTyp (ZugtypEither WEWidgets) where
+    type ReaderConstraint (ZugtypEither WEWidgets) = MitWEWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (ZugtypEither WEWidgets) m)
                     => ZugtypEither WEWidgets
