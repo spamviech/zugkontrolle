@@ -47,7 +47,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenObjekt(erhalteName))
 import Zug.Enums (Richtung(), ZugtypEither(), GeschwindigkeitEither)
 import Zug.Language (Sprache())
-import Zug.Objekt (Objekt, ObjektElement(zuObjekt), ObjektKlasse(..))
+import Zug.Objekt (Objekt, ObjektElement(zuObjekt, ObjektTyp, zuObjektTyp), ObjektKlasse(..))
 import Zug.UI.Base
        (StatusAllgemein(), bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte)
 import Zug.UI.Gtk.Auswahl (auswahlRadioButtonNew)
@@ -162,7 +162,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWenn
 entferneHinzufügenWegstreckeWidgets
     :: forall s r m. (WegstreckenElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenWegstreckeWidgets wegsteckenElement = do
-    box <- Lens.view (boxWegstrecke $ erhalteObjektTyp wegsteckenElement) <$> ask
+    box <- Lens.view (boxWegstrecke $ zuObjektTyp wegsteckenElement) <$> ask
         :: m (BoxWegstreckeHinzufügen s)
     widgetHinzufügenContainerRemoveJust box $ Just $ wegsteckenElement ^. getterWegstrecke
 
@@ -254,7 +254,7 @@ hinzufügenWidgetPlanPackNew box objekt tvar = do
 entferneHinzufügenPlanWidgets
     :: forall s r m. (PlanElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenPlanWidgets planElement = do
-    boxenPlan <- Lens.toListOf (boxenPlan $ erhalteObjektTyp planElement) <$> ask
+    boxenPlan <- Lens.toListOf (boxenPlan $ zuObjektTyp planElement) <$> ask
         :: m [BoxPlanHinzufügen s]
     sequence_
         $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlan
