@@ -452,7 +452,8 @@ instance KontaktContainer (WSWidgets z) where
     enthalteneKontakte :: WSWidgets z -> Set Kontakt
     enthalteneKontakte = enthalteneKontakte . ws
 
--- | 'Wegstrecke' darstellen
+
+-- | 'Wegstrecke' darstellen.
 wegstreckePackNew
     :: forall o m z.
     ( BG o ~ BGWidgets
@@ -635,7 +636,7 @@ wegstreckePackNew
                     $ eventAusführen wsTVarEvent
                     $ flip runReaderT objektReader
                     $ ausführenStatusVarAktion (Einstellen wegstrecke) statusVar
-        wsButtonKuppeln <- if null wsWeichenRichtungen
+        wsButtonKuppeln <- if null wsKupplungen
             then pure Nothing
             else do
                 boxPackWidgetNewDefault vBoxExpander

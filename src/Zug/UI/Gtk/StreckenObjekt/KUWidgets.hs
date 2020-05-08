@@ -85,6 +85,7 @@ data KUWidgets =
     , kuHinzPL :: ButtonPlanHinzufügen KUWidgets
     , kuTVarSprache :: TVar (Maybe [Sprache -> IO ()])
     , kuTVarEvent :: TVar EventAusführen
+    , kuButtonKuppeln :: Gtk.Button
     }
     deriving (Eq)
 
@@ -168,7 +169,7 @@ instance Aeson.ToJSON KUWidgets where
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: (I2CReader r m, MonadIO m) => KUWidgets -> m ()
-    kuppeln = kuppeln . ku
+    kuppeln = liftIO . Gtk.buttonPressed . kuButtonKuppeln
 
 instance KupplungContainer KUWidgets where
     enthalteneKupplungen :: KUWidgets -> Set Kupplung
@@ -235,6 +236,8 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
     kuFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    kuButtonKuppeln
+        <- buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     let kuWidgets =
             KUWidgets
             { ku = kupplung
@@ -244,8 +247,8 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
             , kuHinzWS = hinzufügenWegstreckeWidget
             , kuTVarSprache
             , kuTVarEvent
+            , kuButtonKuppeln
             }
-    buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
     buttonEntfernenPackNew kuWidgets $ (entfernenKupplung kuWidgets :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew kuWidgets
