@@ -52,7 +52,7 @@ import Numeric.Natural (Natural)
 
 import Zug.Anbindung
        (AnschlussEither(), StreckenObjekt(..), PwmReader(..), I2CReader(..), InterruptReader()
-      , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), Streckenabschnitt()
+      , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), PwmZugtyp(), Streckenabschnitt()
       , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..)
       , Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..), KontaktKlasse(..))
 import Zug.Derive.Ord (deriveOrd)
@@ -733,7 +733,8 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
 class AktionKlasse a where
     ausführenAktion :: (AusführendReader r m, MonadIO m) => a -> m ()
 
-instance (BahngeschwindigkeitKlasse bg) => AktionKlasse (AktionBahngeschwindigkeit bg g z) where
+instance (BahngeschwindigkeitKlasse bg, PwmZugtyp z)
+    => AktionKlasse (AktionBahngeschwindigkeit bg g z) where
     ausführenAktion
         :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg g z -> m ()
     ausführenAktion (Geschwindigkeit bg wert) = geschwindigkeit bg wert
@@ -761,6 +762,7 @@ instance (KontaktKlasse ko) => AktionKlasse (AktionKontakt ko) where
 instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , KontaktKlasse (ws z)
          , WegstreckeKlasse (ws z)
+         , PwmZugtyp z
          ) => AktionKlasse (AktionWegstrecke ws z) where
     ausführenAktion
         :: (AusführendReader r m, InterruptReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()

@@ -24,7 +24,7 @@ module Zug.UI.Save
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..))
 import Data.Aeson.Types
-       (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, (.:), (.:?), (.=))
+       (FromJSON(..), ToJSON(..), Value(..), Parser, Object, object, Pair, (.:), (.:?), (.=))
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, fromJust)
@@ -38,11 +38,12 @@ import System.Directory (doesFileExist)
 import Zug.Anbindung
        (Wartezeit(..), Anschluss(..), AnschlussEither(..), MitInterruptPin(..), AnschlussKlasse(..)
       , Pin(..), PCF8574Port(..), PCF8574(..), PCF8574Variant(..), Bahngeschwindigkeit(..)
-      , Streckenabschnitt(..), Weiche(..), Kupplung(..), Kontakt(..), Wegstrecke(..))
+      , GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..), Streckenabschnitt(..)
+      , Weiche(..), Kupplung(..), Kontakt(..), Wegstrecke(..))
 import qualified Zug.Anbindung as Anbindung
-import Zug.Enums
-       (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
-      , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..))
+import Zug.Enums (Richtung(..), Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), zugtyp
+                , GeschwindigkeitVariante(..), GeschwindigkeitEither(..), GeschwindigkeitPhantom(..)
+                , Fahrtrichtung(..), Strom(..))
 import Zug.Language (Sprache())
 import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..), ObjektElement(zuObjektTyp, ObjektTyp))
 import Zug.Plan (Aktion, AktionAllgemein(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
@@ -464,26 +465,32 @@ instance FromJSON (Bahngeschwindigkeit 'Pwm 'Märklin) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Pwm 'Märklin)
     parseJSON (Object v) = do
         Märklin <- v .: zugtypJS
-        bgmpName <- v .: nameJS
-        bgmpFließend <- parseFließend v
-        bgmpGeschwindigkeitsPin <- Gpio <$> v .: geschwindigkeitsPinJS
-        pure BahngeschwindigkeitPwmMärklin { bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin }
+        bgName <- v .: nameJS
+        bgFließend <- parseFließend v
+        geschwindigkeitsPin <- Gpio <$> v .: geschwindigkeitsPinJS
+        pure
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin { geschwindigkeitsPin }
+            , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss
+            }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
     parseJSON (Object v) = do
         Märklin <- v .: zugtypJS
-        bgmkName <- v .: nameJS
-        bgmkFließend <- parseFließend v
-        bgmkFahrstromAnschlüsse <- v .: fahrstromAnschlüsseJS
-        bgmkUmdrehenAnschluss <- v .: umdrehenAnschlussJS
+        bgName <- v .: nameJS
+        bgFließend <- parseFließend v
+        fahrstromAnschlüsse <- v .: fahrstromAnschlüsseJS
+        umdrehenAnschluss <- v .: umdrehenAnschlussJS
         pure
-            BahngeschwindigkeitKonstanteSpannungMärklin
-            { bgmkName
-            , bgmkFließend
-            , bgmkFahrstromAnschlüsse
-            , bgmkUmdrehenAnschluss
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse { fahrstromAnschlüsse }
+            , bgFahrtrichtungsAnschluss = UmdrehenAnschluss { umdrehenAnschluss }
             }
     parseJSON _value = mzero
 
@@ -491,50 +498,65 @@ instance FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'Pwm 'Lego)
     parseJSON (Object v) = do
         Lego <- v .: zugtypJS
-        bglName <- v .: nameJS
-        bglGeschwindigkeitsPin <- Gpio <$> v .: geschwindigkeitsPinJS
-        bglFahrtrichtungsAnschluss
+        bgName <- v .: nameJS
+        bgFließend <- parseFließend v
+        geschwindigkeitsPin <- Gpio <$> v .: geschwindigkeitsPinJS
+        fahrtrichtungsAnschluss
             <- parseAnschlussEither v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
-        bglFließend <- parseFließend v
         pure
-            BahngeschwindigkeitPwmLego
-            { bglName
-            , bglFließend
-            , bglGeschwindigkeitsPin
-            , bglFahrtrichtungsAnschluss
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin { geschwindigkeitsPin }
+            , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss { fahrtrichtungsAnschluss }
             }
     parseJSON _value = mzero
 
 instance FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
     parseJSON :: Value -> Parser (Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
+    parseJSON (Object v) = do
+        Lego <- v .: zugtypJS
+        bgName <- v .: nameJS
+        bgFließend <- parseFließend v
+        fahrstromAnschlüsse <- v .: fahrstromAnschlüsseJS
+        fahrtrichtungsAnschluss
+            <- parseAnschlussEither v fahrtrichtungsAnschlussJS fahrtrichtungsPinJS
+        pure
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse { fahrstromAnschlüsse }
+            , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss { fahrtrichtungsAnschluss }
+            }
     parseJSON _value = mzero
 
-instance ToJSON (Bahngeschwindigkeit b z) where
+instance (ZugtypKlasse z) => ToJSON (Bahngeschwindigkeit b z) where
     toJSON :: Bahngeschwindigkeit b z -> Value
     toJSON
-        BahngeschwindigkeitPwmLego
-        {bglName, bglFließend, bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss} =
+        bg@Bahngeschwindigkeit
+        {bgName, bgFließend, bgGeschwindigkeitsAnschlüsse, bgFahrtrichtungsAnschluss} =
         object
-            [ nameJS .= bglName
-            , fließendJS .= bglFließend
-            , geschwindigkeitsPinJS .= (fromJust $ zuPinGpio bglGeschwindigkeitsPin :: Word8)
-            , zugtypJS .= Lego
-            , fahrtrichtungsAnschlussJS .= bglFahrtrichtungsAnschluss]
-    toJSON BahngeschwindigkeitPwmMärklin {bgmpName, bgmpFließend, bgmpGeschwindigkeitsPin} =
-        object
-            [ nameJS .= bgmpName
-            , fließendJS .= bgmpFließend
-            , geschwindigkeitsPinJS .= (fromJust $ zuPinGpio bgmpGeschwindigkeitsPin :: Word8)
-            , zugtypJS .= Märklin]
-    toJSON
-        BahngeschwindigkeitKonstanteSpannungMärklin
-        {bgmkName, bgmkFließend, bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
-        object
-            [ nameJS .= bgmkName
-            , fließendJS .= bgmkFließend
-            , fahrstromAnschlüsseJS .= bgmkFahrstromAnschlüsse
-            , umdrehenAnschlussJS .= bgmkUmdrehenAnschluss
-            , zugtypJS .= Märklin]
+        $ maybe
+            id
+            (:)
+            (pairFahrtrichtungsAnschluss bgFahrtrichtungsAnschluss)
+            [ nameJS .= bgName
+            , fließendJS .= bgFließend
+            , zugtypJS .= zugtyp (zuZugtypEither bg)
+            , pairGeschwindigkeitsAnschlüsse bgGeschwindigkeitsAnschlüsse]
+        where
+            pairGeschwindigkeitsAnschlüsse :: GeschwindigkeitsAnschlüsse g -> Pair
+            pairGeschwindigkeitsAnschlüsse GeschwindigkeitsPin {geschwindigkeitsPin} =
+                geschwindigkeitsPinJS .= (fromJust $ zuPinGpio geschwindigkeitsPin :: Word8)
+            pairGeschwindigkeitsAnschlüsse FahrstromAnschlüsse {fahrstromAnschlüsse} =
+                fahrstromAnschlüsseJS .= fahrstromAnschlüsse
+
+            pairFahrtrichtungsAnschluss :: FahrtrichtungsAnschluss g z -> Maybe Pair
+            pairFahrtrichtungsAnschluss KeinExpliziterAnschluss = Nothing
+            pairFahrtrichtungsAnschluss UmdrehenAnschluss {umdrehenAnschluss} =
+                Just $ umdrehenAnschlussJS .= umdrehenAnschluss
+            pairFahrtrichtungsAnschluss FahrtrichtungsAnschluss {fahrtrichtungsAnschluss} =
+                Just $ fahrtrichtungsAnschlussJS .= fahrtrichtungsAnschluss
 
 -- Instanz-Deklarationen für Streckenabschnitt
 -- neue Feld-Namen/Bezeichner in json-Datei
@@ -666,7 +688,7 @@ instance (FromJSON (GeschwindigkeitEither Bahngeschwindigkeit z), FromJSON (Weic
         <*> (v .: kontakteJS <|> pure Set.empty)
     parseJSON _value = mzero
 
-instance ToJSON (Wegstrecke z) where
+instance (ZugtypKlasse z) => ToJSON (Wegstrecke z) where
     toJSON :: Wegstrecke z -> Value
     toJSON
         Wegstrecke { wsName

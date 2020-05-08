@@ -46,7 +46,10 @@ module Zug.Anbindung
   , StreckenAtom(..)
     -- ** Bahngeschwindigkeiten
   , Bahngeschwindigkeit(..)
+  , GeschwindigkeitsAnschlüsse(..)
+  , FahrtrichtungsAnschluss(..)
   , BahngeschwindigkeitKlasse(..)
+  , PwmZugtyp()
   , BahngeschwindigkeitContainer(..)
   , verwendetPwm
     -- ** Streckenabschnitte
@@ -61,7 +64,7 @@ module Zug.Anbindung
   , Kupplung(..)
   , KupplungKlasse(..)
   , KupplungContainer(..)
-    -- ** Kontakt
+    -- ** Kontakte
   , Kontakt(..)
   , KontaktKlasse(..)
   , KontaktContainer(..)
@@ -84,7 +87,8 @@ import Zug.Anbindung.Anschluss
       , MitI2CMap(..), I2CReader(..), pcf8574Gruppieren, pcf8574MultiPortWrite, beiÄnderung
       , InterruptMap, interruptMapEmpty, MitInterruptMap(..), InterruptReader(..), IntEdge(..))
 import Zug.Anbindung.Bahngeschwindigkeit
-       (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), verwendetPwm)
+       (Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..)
+      , BahngeschwindigkeitKlasse(..), PwmZugtyp(), verwendetPwm)
 import Zug.Anbindung.Container (BahngeschwindigkeitContainer(..), StreckenabschnittContainer(..)
                               , WeicheContainer(..), KupplungContainer(..), KontaktContainer(..))
 import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..))
