@@ -11,6 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 #endif
 
 module Zug.UI.Gtk.StreckenObjekt.PLWidgets
@@ -18,6 +19,7 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets
 #ifdef ZUGKONTROLLEGUI
     -- * PLWidgets
     PLWidgets()
+  , PlanGui
   , planPackNew
   , PLWidgetsBoxen(..)
   , MitPLWidgetsBoxen(..)
@@ -79,17 +81,21 @@ instance Kategorie PLWidgets where
     kategorie :: KategorieText PLWidgets
     kategorie = KategorieText Language.pläne
 
+-- | 'PlanAllgemein' spezialisiert auf Gui-Typen.
+type PlanGui = PlanAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
+
 -- | 'Plan' mit zugehörigen Widgets
 data PLWidgets =
     PLWidgets
-    { pl :: Plan --PlanAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
+    { pl :: PlanGui
     , plWidget :: Gtk.Frame
     , plFunktionBox :: Gtk.Box
     , plHinzPL :: ButtonPlanHinzufügen PLWidgets
     , plTVarSprache :: TVar (Maybe [Sprache -> IO ()])
     , plTVarEvent :: TVar EventAusführen
     }
-    deriving (Eq)
+
+deriving instance Eq PLWidgets
 
 instance MitWidget PLWidgets where
     erhalteWidget :: PLWidgets -> Gtk.Widget
@@ -118,7 +124,7 @@ instance ObjektElement PLWidgets where
     type ObjektTyp PLWidgets = Plan
 
     zuObjektTyp :: PLWidgets -> Plan
-    zuObjektTyp = pl
+    zuObjektTyp = zuObjektTyp . pl
 
 instance WidgetsTyp PLWidgets where
     type ReaderConstraint PLWidgets = MitPLWidgetsBoxen
@@ -148,10 +154,10 @@ instance PlanElement PLWidgets where
 
 instance StreckenObjekt PLWidgets where
     anschlüsse :: PLWidgets -> Set AnschlussEither
-    anschlüsse = anschlüsse . pl
+    anschlüsse = anschlüsse . zuObjektTyp . pl
 
     erhalteName :: PLWidgets -> Text
-    erhalteName = erhalteName . pl
+    erhalteName = erhalteName . zuObjektTyp . pl
 
 instance Aeson.ToJSON PLWidgets where
     toJSON :: PLWidgets -> Aeson.Value
@@ -183,7 +189,7 @@ planPackNew :: forall m.
             , MitAktionBearbeiten (ReaderFamilie ObjektGui)
             , MonadIO m
             )
-            => Plan
+            => PlanGui
             -> MStatusAllgemeinT m ObjektGui PLWidgets
 planPackNew plan@Plan {plAktionen} = do
     statusVar <- erhalteStatusVar :: MStatusAllgemeinT m ObjektGui (StatusVar ObjektGui)
@@ -205,7 +211,7 @@ planPackNew plan@Plan {plAktionen} = do
         -- Widget erstellen
         frame <- boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
         vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
-        namePackNew vBox plan
+        namePackNew vBox $ zuObjektTyp plan
         expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Text.empty
         vBoxExpander <- containerAddWidgetNew expander $ Gtk.vBoxNew False 0
         forM_ plAktionen
@@ -230,13 +236,13 @@ planPackNew plan@Plan {plAktionen} = do
             Gtk.progressBarNew
         Gtk.on buttonAusführen Gtk.buttonActivated
             $ flip runReaderT objektReader
-            $ auswertenStatusVarIOStatus (ausführenMöglich plan) statusVar >>= \case
+            $ auswertenStatusVarIOStatus (ausführenMöglich $ zuObjektTyp plan) statusVar >>= \case
                 AusführenMöglich -> void $ do
                     liftIO $ do
                         Gtk.widgetHide buttonAusführen
                         Gtk.widgetShow buttonAbbrechen
                     ausführenStatusVarBefehl
-                        (Ausführen plan (const . anzeigeAktion) abschlussAktion)
+                        (Ausführen (zuObjektTyp plan) (const . anzeigeAktion) abschlussAktion)
                         statusVar
                     where
                         anzeigeAktion :: Natural -> IO ()
@@ -259,7 +265,7 @@ planPackNew plan@Plan {plAktionen} = do
                     dialogEval dialogGesperrt
         Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
             flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (AusführenAbbrechen plan) statusVar
+                $ ausführenStatusVarBefehl (AusführenAbbrechen $ zuObjektTyp plan) statusVar
             Gtk.widgetShow buttonAusführen
             Gtk.widgetHide buttonAbbrechen
         pure
@@ -272,7 +278,8 @@ planPackNew plan@Plan {plAktionen} = do
             , buttonAbbrechen
             , dialogGesperrt
             )
-    plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan plTVarSprache
+    plHinzPL
+        <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne (zuObjektTyp plan) plTVarSprache
     let plWidgets =
             PLWidgets
             { pl = plan
