@@ -488,8 +488,7 @@ setzeSeite
             -> do
                 setzePin legoGeschwindigkeitAuswahl bglGeschwindigkeitsPin
                 setzeAnschluss fahrtrichtungsAuswahl bglFahrtrichtungsAnschluss
-        (ZugtypLego (GeschwindigkeitKonstanteSpannung bg))
-            -> error $ "Lego-Bahngeschwindigkeit mit konstanter Spannung: " ++ show bg
+        (ZugtypLego (GeschwindigkeitKonstanteSpannung bg)) -> _undefined --TODO
     pure True
 setzeSeite
     fließendAuswahl

@@ -440,5 +440,4 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
         :: AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypLego
         -> EingabeToken
         -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypLego) (Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
-    anfrageAktualisieren _unmöglich _token =
-        error "anfrageAktualisieren mit Bahngeschwindigkeit 'KonstanteSpannung 'Lego aufgerufen!"
+    anfrageAktualisieren _unmöglich _token = _undefined --TODO
