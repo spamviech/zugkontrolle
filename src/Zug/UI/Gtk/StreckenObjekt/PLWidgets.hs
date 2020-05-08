@@ -47,7 +47,7 @@ import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())
 import Zug.Language (Sprache(), MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..))
-import Zug.Plan (Plan(..), PlanKlasse(..), AusführendReader())
+import Zug.Plan (PlanAllgemein(..), Plan, PlanKlasse(..), AusführendReader())
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenPlan, AusführenMöglich(..)
                   , ausführenMöglich, ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl
@@ -82,7 +82,7 @@ instance Kategorie PLWidgets where
 -- | 'Plan' mit zugehörigen Widgets
 data PLWidgets =
     PLWidgets
-    { pl :: Plan
+    { pl :: Plan --PlanAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
     , plWidget :: Gtk.Frame
     , plFunktionBox :: Gtk.Box
     , plHinzPL :: ButtonPlanHinzufügen PLWidgets

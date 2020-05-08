@@ -43,7 +43,7 @@ import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), Kontak
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache(leseSprache))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OKontakt), ObjektKlasse(..))
+import Zug.Objekt (ObjektAllgemein(OKontakt), ObjektKlasse(..), ObjektElement(..))
 import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenKontakt
                   , ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
@@ -113,13 +113,14 @@ class (MonadReader r m, MitKOWidgetsBoxen r) => KOWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitKOWidgetsBoxen r) => KOWidgetsBoxenReader r m
 
-instance WidgetsTyp KOWidgets where
+instance ObjektElement KOWidgets where
     type ObjektTyp KOWidgets = Kontakt
 
-    type ReaderConstraint KOWidgets = MitKOWidgetsBoxen
+    zuObjektTyp :: KOWidgets -> Kontakt
+    zuObjektTyp = ko
 
-    erhalteObjektTyp :: KOWidgets -> Kontakt
-    erhalteObjektTyp = ko
+instance WidgetsTyp KOWidgets where
+    type ReaderConstraint KOWidgets = MitKOWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r KOWidgets m) => KOWidgets -> m ()
     entferneWidgets koWidgets@KOWidgets {koTVarSprache} = do

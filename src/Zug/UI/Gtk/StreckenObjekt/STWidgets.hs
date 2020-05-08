@@ -47,7 +47,7 @@ import Zug.Anbindung
 import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt))
+import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt), ObjektElement(..))
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
 import Zug.UI.Base
        (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt
@@ -118,13 +118,14 @@ instance MitWidget STWidgets where
     erhalteWidget :: STWidgets -> Gtk.Widget
     erhalteWidget = erhalteWidget . stWidget
 
-instance WidgetsTyp STWidgets where
+instance ObjektElement STWidgets where
     type ObjektTyp STWidgets = Streckenabschnitt
 
-    type ReaderConstraint STWidgets = MitSTWidgetsBoxen
+    zuObjektTyp :: STWidgets -> Streckenabschnitt
+    zuObjektTyp = st
 
-    erhalteObjektTyp :: STWidgets -> Streckenabschnitt
-    erhalteObjektTyp = st
+instance WidgetsTyp STWidgets where
+    type ReaderConstraint STWidgets = MitSTWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r STWidgets m) => STWidgets -> m ()
     entferneWidgets stWidgets@STWidgets {stTVarSprache} = do
