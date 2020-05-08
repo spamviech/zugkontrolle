@@ -44,7 +44,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung
        (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..)
       , StreckenObjekt(..), AnschlussEither(), I2CReader())
-import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..))
+import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..))
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt), ObjektElement(..))
@@ -52,7 +52,7 @@ import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
 import Zug.UI.Base
        (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt
       , getStreckenabschnitte, getWegstrecken, ReaderFamilie, MitTVarMaps, ObjektReader())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -193,20 +193,8 @@ streckenabschnittPackNew
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitAktionBearbeiten (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
-    , ObjektKlasse o
-    , Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KU o)
-    , Eq (KO o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
+    , BefehlConstraints o
     , SP o ~ SpracheGui
-    , Aeson.ToJSON o
     , ST o ~ STWidgets
     , STWidgetsKlasse (WS o 'Märklin)
     , StreckenabschnittContainer (WS o 'Märklin)

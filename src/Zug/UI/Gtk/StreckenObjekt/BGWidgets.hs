@@ -67,7 +67,7 @@ import Zug.Plan (AktionKlasse(..), AktionBahngeschwindigkeit(..))
 import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenBahngeschwindigkeit, ReaderFamilie, getBahngeschwindigkeiten
                   , getStreckenabschnitte, getWegstrecken, ObjektReader(), MitTVarMaps())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, auswahlComboBoxNew, auswahlRadioButtonNew
                          , boundedEnumAuswahlRadioButtonNew, beiAuswahl, setzeAuswahl)
@@ -547,16 +547,9 @@ bahngeschwindigkeitPackNew
     ( GeschwindigkeitKlasse g
     , WegstreckenElement (BGWidgets g z)
     , PlanElement (BGWidgets g z)
-    , ObjektKlasse o
-    , Aeson.ToJSON o
+    , BefehlConstraints o
     , BG o ~ BGWidgets
     , ST o ~ STWidgets
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KO o)
-    , Eq (KU o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
     , BGWidgetsKlasse (GeschwindigkeitPhantom (WS o))
     , BahngeschwindigkeitContainer (WS o 'Märklin)
     , BahngeschwindigkeitContainer (WS o 'Lego)
@@ -564,7 +557,6 @@ bahngeschwindigkeitPackNew
     , STWidgetsKlasse (WS o 'Lego)
     , StreckenabschnittContainer (WS o 'Märklin)
     , StreckenabschnittContainer (WS o 'Lego)
-    , Eq (PL o)
     , SP o ~ SpracheGui
     , MitBGWidgetsBoxen (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o

@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {-|
 Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementierung.
@@ -15,6 +16,7 @@ Description : Alle durch ein UI unterstützten Befehle, inklusive der Implementi
 module Zug.UI.Befehl
   ( -- * Klasse
     BefehlKlasse(..)
+  , BefehlConstraints
     -- * Typen
   , Befehl
   , BefehlAllgemein(..)
@@ -31,12 +33,15 @@ import Data.Aeson (ToJSON)
 import qualified Data.Set as Set
 import Numeric.Natural (Natural)
 
-import Zug.Anbindung (pwmMapEmpty, i2cMapEmpty)
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
+import Zug.Anbindung
+       (pwmMapEmpty, i2cMapEmpty, Bahngeschwindigkeit(), BahngeschwindigkeitKlasse()
+      , Streckenabschnitt(), StreckenabschnittKlasse(), Weiche(), WeicheKlasse(), Kupplung()
+      , KupplungKlasse(), Kontakt(), KontaktKlasse(), Wegstrecke(), WegstreckeKlasse())
+import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitPhantom())
 import Zug.Language (Sprache(), MitSprache(..))
-import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt)
-import Zug.Plan
-       (PlanKlasse(..), Plan(), AusführendReader(..), Ausführend(..), AktionKlasse(..), Aktion())
+import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt, ObjektElement(ObjektTyp))
+import Zug.Plan (PlanKlasse(..), Plan, PlanAllgemein(), AusführendReader(..), Ausführend(..)
+               , AktionKlasse(..), Aktion())
 import Zug.UI.Base
        (StatusAllgemein(), Status, IOStatusAllgemein, MStatusAllgemeinT, ReaderFamilie, TVarMaps(..)
       , MitTVarMaps(), TVarMapsReader(..), liftIOStatus, hinzufügenBahngeschwindigkeit
@@ -60,13 +65,13 @@ data BefehlAllgemein o
     | Speichern FilePath
     | Laden
           { ladenPfad :: FilePath
-          , erfolgsAktion :: (Status -> IOStatusAllgemein o ())
-          , fehlerbehandlung :: (IOStatusAllgemein o ())
+          , erfolgsAktion :: Status -> IOStatusAllgemein o ()
+          , fehlerbehandlung :: IOStatusAllgemein o ()
           }
     | Ausführen
-          { auszuführenderPlan :: Plan
-          , fortschrittsanzeige :: (Natural -> Sprache -> IO ())
-          , abschlussAnzeige :: (IO ())
+          { auszuführenderPlan :: PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
+          , fortschrittsanzeige :: Natural -> Sprache -> IO ()
+          , abschlussAnzeige :: IO ()
           }
     | AusführenAbbrechen Plan
     | AktionBefehl Aktion
@@ -88,52 +93,121 @@ instance BefehlKlasse UIBefehlAllgemein o where
     ausführenBefehl Beenden = pure True
     ausführenBefehl Abbrechen = pure False
 
+-- | Voraussetzungen, die ein 'ObjektKlasse'-Typ erfüllen muss,
+-- damit ein 'BefehlAllgemein' ausgeführt werden kann.
+class ( ObjektKlasse o
+      , ToJSON o
+      , ObjektElement (BG o 'Pwm 'Märklin)
+      , ObjektTyp (BG o 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+      , Eq (BG o 'Pwm 'Märklin)
+      , BahngeschwindigkeitKlasse (BG o)
+      , ObjektElement (BG o 'KonstanteSpannung 'Märklin)
+      , ObjektTyp (BG o 'KonstanteSpannung 'Märklin)
+            ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+      , Eq (BG o 'KonstanteSpannung 'Märklin)
+      , ObjektElement (BG o 'Pwm 'Lego)
+      , ObjektTyp (BG o 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+      , Eq (BG o 'Pwm 'Lego)
+      , ObjektElement (BG o 'KonstanteSpannung 'Lego)
+      , ObjektTyp (BG o 'KonstanteSpannung 'Lego) ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+      , Eq (BG o 'KonstanteSpannung 'Lego)
+      , ObjektElement (ST o)
+      , ObjektTyp (ST o) ~ Streckenabschnitt
+      , Eq (ST o)
+      , StreckenabschnittKlasse (ST o)
+      , ObjektElement (WE o 'Märklin)
+      , ObjektTyp (WE o 'Märklin) ~ Weiche 'Märklin
+      , Eq (WE o 'Märklin)
+      , WeicheKlasse (WE o 'Märklin)
+      , ObjektElement (WE o 'Lego)
+      , ObjektTyp (WE o 'Lego) ~ Weiche 'Lego
+      , Eq (WE o 'Lego)
+      , WeicheKlasse (WE o 'Lego)
+      , ObjektElement (KU o)
+      , ObjektTyp (KU o) ~ Kupplung
+      , Eq (KU o)
+      , KupplungKlasse (KU o)
+      , ObjektElement (KO o)
+      , ObjektTyp (KO o) ~ Kontakt
+      , Eq (KO o)
+      , KontaktKlasse (KO o)
+      , ObjektElement (WS o 'Märklin)
+      , ObjektTyp (WS o 'Märklin) ~ Wegstrecke 'Märklin
+      , Eq (WS o 'Märklin)
+      , KontaktKlasse (WS o 'Märklin)
+      , WegstreckeKlasse (WS o 'Märklin)
+      , ObjektElement (WS o 'Lego)
+      , ObjektTyp (WS o 'Lego) ~ Wegstrecke 'Lego
+      , Eq (WS o 'Lego)
+      , KontaktKlasse (WS o 'Lego)
+      , WegstreckeKlasse (WS o 'Lego)
+      , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom (WS o))
+      , Eq (PL o)
+      , MitSprache (SP o)
+      , MitTVarMaps (ReaderFamilie o)
+      ) => BefehlConstraints o
+
 instance ( ObjektKlasse o
          , ToJSON o
-         , Eq ((BG o) 'Pwm 'Märklin)
-         , Eq ((BG o) 'KonstanteSpannung 'Märklin)
-         , Eq ((BG o) 'Pwm 'Lego)
-         , Eq ((BG o) 'KonstanteSpannung 'Lego)
+         , ObjektElement (BG o 'Pwm 'Märklin)
+         , ObjektTyp (BG o 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+         , Eq (BG o 'Pwm 'Märklin)
+         , BahngeschwindigkeitKlasse (BG o)
+         , ObjektElement (BG o 'KonstanteSpannung 'Märklin)
+         , ObjektTyp (BG o 'KonstanteSpannung 'Märklin)
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+         , Eq (BG o 'KonstanteSpannung 'Märklin)
+         , ObjektElement (BG o 'Pwm 'Lego)
+         , ObjektTyp (BG o 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+         , Eq (BG o 'Pwm 'Lego)
+         , ObjektElement (BG o 'KonstanteSpannung 'Lego)
+         , ObjektTyp (BG o 'KonstanteSpannung 'Lego) ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+         , Eq (BG o 'KonstanteSpannung 'Lego)
+         , ObjektElement (ST o)
+         , ObjektTyp (ST o) ~ Streckenabschnitt
          , Eq (ST o)
-         , Eq ((WE o) 'Märklin)
-         , Eq ((WE o) 'Lego)
+         , StreckenabschnittKlasse (ST o)
+         , ObjektElement (WE o 'Märklin)
+         , ObjektTyp (WE o 'Märklin) ~ Weiche 'Märklin
+         , Eq (WE o 'Märklin)
+         , WeicheKlasse (WE o 'Märklin)
+         , ObjektElement (WE o 'Lego)
+         , ObjektTyp (WE o 'Lego) ~ Weiche 'Lego
+         , Eq (WE o 'Lego)
+         , WeicheKlasse (WE o 'Lego)
+         , ObjektElement (KU o)
+         , ObjektTyp (KU o) ~ Kupplung
          , Eq (KU o)
+         , KupplungKlasse (KU o)
+         , ObjektElement (KO o)
+         , ObjektTyp (KO o) ~ Kontakt
          , Eq (KO o)
-         , Eq ((WS o) 'Märklin)
-         , Eq ((WS o) 'Lego)
+         , KontaktKlasse (KO o)
+         , ObjektElement (WS o 'Märklin)
+         , ObjektTyp (WS o 'Märklin) ~ Wegstrecke 'Märklin
+         , Eq (WS o 'Märklin)
+         , KontaktKlasse (WS o 'Märklin)
+         , WegstreckeKlasse (WS o 'Märklin)
+         , ObjektElement (WS o 'Lego)
+         , ObjektTyp (WS o 'Lego) ~ Wegstrecke 'Lego
+         , Eq (WS o 'Lego)
+         , KontaktKlasse (WS o 'Lego)
+         , WegstreckeKlasse (WS o 'Lego)
+         , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom (WS o))
          , Eq (PL o)
          , MitSprache (SP o)
          , MitTVarMaps (ReaderFamilie o)
-         ) => BefehlKlasse BefehlAllgemein o where
-    ausführenBefehl :: (MonadIO m) => BefehlAllgemein o -> MStatusAllgemeinT m o Bool
+         ) => BefehlConstraints o
+
+instance forall o. (BefehlConstraints o) => BefehlKlasse BefehlAllgemein o where
+    ausführenBefehl :: forall m. (MonadIO m) => BefehlAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl befehl = ausführenBefehlAux befehl >> pure (istBeenden befehl)
         where
             istBeenden :: BefehlAllgemein o -> Bool
             istBeenden (UI Beenden) = True
             istBeenden _befehl = False
 
-            ausführenBefehlAux
-                :: forall o m.
-                ( ObjektKlasse o
-                , ToJSON o
-                , Eq ((BG o) 'Pwm 'Märklin)
-                , Eq ((BG o) 'KonstanteSpannung 'Märklin)
-                , Eq ((BG o) 'Pwm 'Lego)
-                , Eq ((BG o) 'KonstanteSpannung 'Lego)
-                , Eq (ST o)
-                , Eq ((WE o) 'Märklin)
-                , Eq ((WE o) 'Lego)
-                , Eq (KU o)
-                , Eq (KO o)
-                , Eq ((WS o) 'Märklin)
-                , Eq ((WS o) 'Lego)
-                , Eq (PL o)
-                , MitSprache (SP o)
-                , MitTVarMaps (ReaderFamilie o)
-                , MonadIO m
-                )
-                => BefehlAllgemein o
-                -> MStatusAllgemeinT m o ()
+            ausführenBefehlAux :: BefehlAllgemein o -> MStatusAllgemeinT m o ()
             ausführenBefehlAux (UI _uiAction) = pure ()
             ausführenBefehlAux (SprachWechsel sprache) = putSprache sprache
             ausführenBefehlAux (Hinzufügen objekt) = case erhalteObjekt objekt of
@@ -188,47 +262,12 @@ newtype BefehlListeAllgemein o = BefehlListe { getBefehlListe :: [BefehlAllgemei
 -- | 'BefehlListeAllgemein' spezialisiert auf 'Objekt'
 type BefehlListe = BefehlListeAllgemein Objekt
 
-instance ( ObjektKlasse o
-         , ToJSON o
-         , Eq ((BG o) 'Pwm 'Märklin)
-         , Eq ((BG o) 'KonstanteSpannung 'Märklin)
-         , Eq ((BG o) 'Pwm 'Lego)
-         , Eq ((BG o) 'KonstanteSpannung 'Lego)
-         , Eq (ST o)
-         , Eq ((WE o) 'Märklin)
-         , Eq ((WE o) 'Lego)
-         , Eq (KU o)
-         , Eq (KO o)
-         , Eq ((WS o) 'Märklin)
-         , Eq ((WS o) 'Lego)
-         , Eq (PL o)
-         , MitSprache (SP o)
-         , MitTVarMaps (ReaderFamilie o)
-         ) => BefehlKlasse BefehlListeAllgemein o where
-    ausführenBefehl :: (MonadIO m) => BefehlListeAllgemein o -> MStatusAllgemeinT m o Bool
+instance (BefehlConstraints o) => BefehlKlasse BefehlListeAllgemein o where
+    ausführenBefehl
+        :: forall m. (MonadIO m) => BefehlListeAllgemein o -> MStatusAllgemeinT m o Bool
     ausführenBefehl (BefehlListe liste) = ausführenBefehlAux liste
         where
-            ausführenBefehlAux
-                :: ( ObjektKlasse o
-                   , ToJSON o
-                   , Eq ((BG o) 'Pwm 'Märklin)
-                   , Eq ((BG o) 'KonstanteSpannung 'Märklin)
-                   , Eq ((BG o) 'Pwm 'Lego)
-                   , Eq ((BG o) 'KonstanteSpannung 'Lego)
-                   , Eq (ST o)
-                   , Eq ((WE o) 'Märklin)
-                   , Eq ((WE o) 'Lego)
-                   , Eq (KU o)
-                   , Eq (KO o)
-                   , Eq ((WS o) 'Märklin)
-                   , Eq ((WS o) 'Lego)
-                   , Eq (PL o)
-                   , MitSprache (SP o)
-                   , MitTVarMaps (ReaderFamilie o)
-                   , MonadIO m
-                   )
-                => [BefehlAllgemein o]
-                -> MStatusAllgemeinT m o Bool
+            ausführenBefehlAux :: [BefehlAllgemein o] -> MStatusAllgemeinT m o Bool
             ausführenBefehlAux [] = pure False
             ausführenBefehlAux (h:t) = do
                 ende <- ausführenBefehl h

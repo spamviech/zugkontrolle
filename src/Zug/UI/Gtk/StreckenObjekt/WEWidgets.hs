@@ -43,14 +43,14 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheContainer(..)
                     , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither
-                , ausZugtypEither, GeschwindigkeitVariante(..), Richtung(..))
+                , ausZugtypEither, Richtung(..))
 import Zug.Language (Sprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(OWeiche), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionWeiche(..))
 import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenWeiche, ReaderFamilie, MitTVarMaps())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -331,20 +331,9 @@ weichePackNew
     :: forall o m z.
     ( WegstreckenElement (WEWidgets z)
     , PlanElement (WEWidgets z)
-    , Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (ST o)
+    , BefehlConstraints o
     , WE o ~ WEWidgets
-    , Eq (KU o)
-    , Eq (KO o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
     , SP o ~ SpracheGui
-    , ObjektKlasse o
-    , Aeson.ToJSON o
     , ObjektReader o m
     , MitWEWidgetsBoxen (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)

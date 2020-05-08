@@ -57,7 +57,7 @@ import Zug.Objekt (Objekt, ObjektAllgemein(OWegstrecke), ObjektKlasse(..), Objek
 import Zug.Plan (AktionWegstrecke(..))
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenWegstrecke, ObjektReader
                   , ReaderFamilie, MitTVarMaps)
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, setzeAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, namePackNew
                                  , labelSpracheNew, buttonNewWithEventLabel)
@@ -455,17 +455,11 @@ instance KontaktContainer (WSWidgets z) where
 -- | 'Wegstrecke' darstellen.
 wegstreckePackNew
     :: forall o m z.
-    ( BG o ~ BGWidgets
+    ( BefehlConstraints o
+    , BG o ~ BGWidgets
     , ST o ~ STWidgets
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KU o)
-    , Eq (KO o)
     , WS o ~ WSWidgets
-    , Eq (PL o)
     , SP o ~ SpracheGui
-    , ObjektKlasse o
-    , Aeson.ToJSON o
     , ObjektReader o m
     , MitStatusVar (ReaderFamilie o) o
     , MitWSWidgetsBoxen (ReaderFamilie o)

@@ -251,7 +251,7 @@ planPackNew plan@Plan {plAktionen} = do
                         Gtk.widgetHide buttonAusführen
                         Gtk.widgetShow buttonAbbrechen
                     ausführenStatusVarBefehl
-                        (Ausführen (zuObjektTyp plan) (const . anzeigeAktion) abschlussAktion)
+                        (Ausführen plan (const . anzeigeAktion) abschlussAktion)
                         statusVar
                     where
                         anzeigeAktion :: Natural -> IO ()

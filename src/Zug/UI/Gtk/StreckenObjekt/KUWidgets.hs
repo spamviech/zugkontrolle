@@ -40,14 +40,13 @@ import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), KupplungContainer(..)
                     , AnschlussEither(), I2CReader)
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionKupplung(..))
 import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenKupplung, ReaderFamilie, MitTVarMaps())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -178,21 +177,9 @@ instance KupplungContainer KUWidgets where
 -- | 'Kupplung' darstellen und zum Status hinzufügen
 kupplungPackNew
     :: forall o m.
-    ( Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (ST o)
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KO o)
+    ( BefehlConstraints o
     , KU o ~ KUWidgets
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
     , SP o ~ SpracheGui
-    , ObjektKlasse o
-    , Aeson.ToJSON o
     , MitKUWidgetsBoxen (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
