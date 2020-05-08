@@ -27,11 +27,12 @@ module Zug.UI.Gtk.StreckenObjekt.WEWidgets
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Lens ((??), (^..))
 import qualified Control.Lens as Lens
-import Control.Monad (forM_, void)
+import Control.Monad (forM)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
-import Data.List.NonEmpty (NonEmpty())
+import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -42,14 +43,14 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheContainer(..)
                     , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither
-                , ausZugtypEither, GeschwindigkeitVariante(..), Richtung(..))
+                , ausZugtypEither, Richtung(..))
 import Zug.Language (Sprache(), Anzeige(anzeige))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OWeiche), ObjektKlasse(..))
+import Zug.Objekt (Objekt, ObjektAllgemein(OWeiche), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionWeiche(..))
 import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenWeiche, ReaderFamilie, MitTVarMaps())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew, pinNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -87,6 +88,7 @@ data WEWidgets (z :: Zugtyp) =
     , weHinzPL :: WeichePlanHinzufügenWidgets z
     , weTVarSprache :: TVar (Maybe [Sprache -> IO ()])
     , weTVarEvent :: TVar EventAusführen
+    , weRichtungsButtons :: NonEmpty (Richtung, Gtk.Button)
     }
     deriving (Eq)
 
@@ -132,14 +134,15 @@ instance MitWidget (WEWidgets z) where
     erhalteWidget :: WEWidgets z -> Gtk.Widget
     erhalteWidget = erhalteWidget . weWidget
 
-instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
-    => WidgetsTyp (WEWidgets z) where
+instance (ZugtypKlasse z) => ObjektElement (WEWidgets z) where
     type ObjektTyp (WEWidgets z) = Weiche z
 
-    type ReaderConstraint (WEWidgets z) = MitWEWidgetsBoxen
+    zuObjektTyp :: WEWidgets z -> Weiche z
+    zuObjektTyp = we
 
-    erhalteObjektTyp :: WEWidgets z -> Weiche z
-    erhalteObjektTyp = we
+instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z), ZugtypKlasse z)
+    => WidgetsTyp (WEWidgets z) where
+    type ReaderConstraint (WEWidgets z) = MitWEWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (WEWidgets z) m) => WEWidgets z -> m ()
     entferneWidgets weWidgets@WEWidgets {weTVarSprache} = do
@@ -158,13 +161,17 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z))
     tvarEvent :: WEWidgets z -> TVar EventAusführen
     tvarEvent = weTVarEvent
 
-instance WidgetsTyp (ZugtypEither WEWidgets) where
+instance ObjektElement (ZugtypEither WEWidgets) where
     type ObjektTyp (ZugtypEither WEWidgets) = ZugtypEither Weiche
 
-    type ReaderConstraint (ZugtypEither WEWidgets) = MitWEWidgetsBoxen
+    zuObjektTyp :: ZugtypEither WEWidgets -> ZugtypEither Weiche
+    zuObjektTyp = mapZugtypEither we
 
-    erhalteObjektTyp :: ZugtypEither WEWidgets -> ZugtypEither Weiche
-    erhalteObjektTyp = mapZugtypEither we
+    zuObjekt :: ZugtypEither WEWidgets -> Objekt
+    zuObjekt = OWeiche . mapZugtypEither we
+
+instance WidgetsTyp (ZugtypEither WEWidgets) where
+    type ReaderConstraint (ZugtypEither WEWidgets) = MitWEWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (ZugtypEither WEWidgets) m)
                     => ZugtypEither WEWidgets
@@ -307,7 +314,10 @@ instance Aeson.ToJSON (WEWidgets z) where
 
 instance (ZugtypKlasse z) => WeicheKlasse (WEWidgets z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
-    stellen = stellen . we
+    stellen WEWidgets {weRichtungsButtons} richtung =
+        case lookup richtung $ NonEmpty.toList weRichtungsButtons of
+            (Just button) -> liftIO $ Gtk.buttonPressed button
+            Nothing -> pure ()
 
     erhalteRichtungen :: WEWidgets z -> NonEmpty Richtung
     erhalteRichtungen = erhalteRichtungen . we
@@ -321,20 +331,9 @@ weichePackNew
     :: forall o m z.
     ( WegstreckenElement (WEWidgets z)
     , PlanElement (WEWidgets z)
-    , Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (ST o)
+    , BefehlConstraints o
     , WE o ~ WEWidgets
-    , Eq (KU o)
-    , Eq (KO o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
     , SP o ~ SpracheGui
-    , ObjektKlasse o
-    , Aeson.ToJSON o
     , ObjektReader o m
     , MitWEWidgetsBoxen (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
@@ -394,6 +393,10 @@ weichePackNew weiche = do
             $ Gtk.vBoxNew False 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     weFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    verwendeSpracheGui justTVarSprache $ \sprache
+        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    weRichtungsButtons
+        <- richtungsButtonsPackNew weiche weFunctionBox vBoxAnschlüsse weTVarSprache weTVarEvent
     let weWidgets =
             WEWidgets
             { we = weiche
@@ -403,10 +406,8 @@ weichePackNew weiche = do
             , weHinzPL = hinzufügenPlanWidget
             , weTVarSprache
             , weTVarEvent
+            , weRichtungsButtons
             }
-    verwendeSpracheGui justTVarSprache $ \sprache
-        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    richtungsButtonsPackNew weWidgets weFunctionBox vBoxAnschlüsse
     fließendPackNew vBoxAnschlüsse weiche justTVarSprache
     buttonEntfernenPackNew weWidgets
         $ (entfernenWeiche $ zuZugtypEither weWidgets :: IOStatusAllgemein o ())
@@ -416,43 +417,52 @@ weichePackNew weiche = do
     pure weWidgets
     where
         richtungsButtonsPackNew
-            :: WEWidgets z -> Gtk.HBox -> ScrollbaresWidget Gtk.VBox -> MStatusAllgemeinT m o ()
+            :: Weiche z
+            -> Gtk.HBox
+            -> ScrollbaresWidget Gtk.VBox
+            -> TVar (Maybe [Sprache -> IO ()])
+            -> TVar EventAusführen
+            -> MStatusAllgemeinT m o (NonEmpty (Richtung, Gtk.Button))
         richtungsButtonsPackNew
-            WEWidgets {we = MärklinWeiche {wemRichtungsAnschlüsse}, weTVarSprache, weTVarEvent}
+            MärklinWeiche {wemRichtungsAnschlüsse}
             box
-            vBoxAktionen = do
+            vBoxAktionen
+            weTVarSprache
+            weTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             objektReader <- ask
-            forM_ wemRichtungsAnschlüsse $ \(richtung, anschluss) -> do
+            forM wemRichtungsAnschlüsse $ \(richtung, anschluss) -> do
                 let justTVarSprache = Just weTVarSprache
                     anzeigeRichtung = anzeige richtung
-                boxPackWidgetNewDefault box
+                button <- boxPackWidgetNewDefault box
                     $ buttonNewWithEventLabel justTVarSprache anzeigeRichtung
                     $ eventAusführen weTVarEvent
                     $ flip runReaderT objektReader
                     $ ausführenStatusVarAktion (Stellen weiche richtung) statusVar
                 boxPackWidgetNewDefault vBoxAktionen
                     $ anschlussNew justTVarSprache anzeigeRichtung anschluss
+                pure (richtung, button)
         richtungsButtonsPackNew
-            WEWidgets { we = LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
-                      , weTVarSprache
-                      , weTVarEvent}
+            LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
             box
-            vBoxAktionen = void $ do
+            vBoxAktionen
+            weTVarSprache
+            weTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             objektReader <- ask
             let justTVar = Just weTVarSprache
             boxPackWidgetNewDefault vBoxAktionen
                 $ pinNew justTVar Language.richtung welRichtungsPin
-            boxPackWidgetNewDefault box
+            button1 <- boxPackWidgetNewDefault box
                 $ buttonNewWithEventLabel justTVar (anzeige richtung1)
                 $ eventAusführen weTVarEvent
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung1) statusVar
-            boxPackWidgetNewDefault box
+            button2 <- boxPackWidgetNewDefault box
                 $ buttonNewWithEventLabel justTVar (anzeige richtung2)
                 $ eventAusführen weTVarEvent
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
+            pure $ (richtung1, button1) :| [(richtung2, button2)]
 #endif
 --

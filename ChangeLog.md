@@ -162,3 +162,4 @@
     Das alte StreckenObjekt wird dabei nicht entfernt.
 - Gtk-UI: AssistantHinzufügen wird nur erstellt, wenn er wirklich benötigt wird.
     Dadurch sollte die Startzeit verkürzt werden.
+- Gtk-UI: Pläne synchronisieren nun ebenfalls andere Widgets.

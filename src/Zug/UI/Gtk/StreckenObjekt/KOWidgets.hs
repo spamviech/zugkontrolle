@@ -40,13 +40,12 @@ import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), KontaktContainer(..)
                     , AnschlussEither(AnschlussMit), Value(..), InterruptReader(), I2CReader())
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache(), MitSprache(leseSprache))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OKontakt), ObjektKlasse(..))
+import Zug.Objekt (ObjektAllgemein(OKontakt), ObjektKlasse(..), ObjektElement(..))
 import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenKontakt
                   , ReaderFamilie, MitTVarMaps())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -113,13 +112,14 @@ class (MonadReader r m, MitKOWidgetsBoxen r) => KOWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitKOWidgetsBoxen r) => KOWidgetsBoxenReader r m
 
-instance WidgetsTyp KOWidgets where
+instance ObjektElement KOWidgets where
     type ObjektTyp KOWidgets = Kontakt
 
-    type ReaderConstraint KOWidgets = MitKOWidgetsBoxen
+    zuObjektTyp :: KOWidgets -> Kontakt
+    zuObjektTyp = ko
 
-    erhalteObjektTyp :: KOWidgets -> Kontakt
-    erhalteObjektTyp = ko
+instance WidgetsTyp KOWidgets where
+    type ReaderConstraint KOWidgets = MitKOWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r KOWidgets m) => KOWidgets -> m ()
     entferneWidgets koWidgets@KOWidgets {koTVarSprache} = do
@@ -172,21 +172,9 @@ instance KontaktContainer KOWidgets where
 
 kontaktPackNew
     :: forall o m.
-    ( Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (ST o)
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
+    ( BefehlConstraints o
     , KO o ~ KOWidgets
-    , Eq (KU o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
     , SP o ~ SpracheGui
-    , ObjektKlasse o
-    , Aeson.ToJSON o
     , MitKOWidgetsBoxen (ReaderFamilie o)
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
     , MitTMVarPlanObjekt (ReaderFamilie o)

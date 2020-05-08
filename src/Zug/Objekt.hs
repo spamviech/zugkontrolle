@@ -1,8 +1,10 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Description : 'Either'-ähnlicher Datentyp für 'StreckenObjekt'-Typen.
@@ -16,9 +18,9 @@ import Data.Text (Text)
 import Zug.Anbindung (AnschlussEither(), StreckenObjekt(..), Bahngeschwindigkeit(..)
                     , Streckenabschnitt(), Weiche(), Kupplung(), Kontakt(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
-                , GeschwindigkeitEither(..))
+                , GeschwindigkeitEither(..), GeschwindigkeitKlasse(..))
 import Zug.Language (Anzeige(..), Sprache())
-import Zug.Plan (Plan(..))
+import Zug.Plan (Plan())
 
 -- | Summen-Typ
 data ObjektAllgemein bg st we ku ko ws pl
@@ -92,18 +94,24 @@ instance ( Anzeige (bg 'Pwm 'Märklin)
     anzeige (OWegstrecke ws) = anzeige ws
     anzeige (OPlan pl) = anzeige pl
 
--- | Klasse für Typen, die ein 'Objekt' enthalten
+-- | Klasse für Typen, die ein 'Objekt' enthalten.
 class ObjektElement e where
-    zuObjekt :: e -> Objekt
+    type ObjektTyp e :: Type
 
-instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit g z) where
+    type ObjektTyp e = e
+    zuObjektTyp :: e -> ObjektTyp e
+    default zuObjektTyp :: (e ~ ObjektTyp e) => e -> ObjektTyp e
+    zuObjektTyp = id
+
+    zuObjekt :: e -> Objekt
+    default zuObjekt :: (ObjektElement (ObjektTyp e)) => e -> Objekt
+    zuObjekt = zuObjekt . zuObjektTyp
+
+    {-# MINIMAL zuObjektTyp | zuObjekt #-}
+
+instance (ZugtypKlasse z, GeschwindigkeitKlasse g) => ObjektElement (Bahngeschwindigkeit g z) where
     zuObjekt :: Bahngeschwindigkeit g z -> Objekt
-    zuObjekt bg@BahngeschwindigkeitPwmMärklin {} =
-        OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitPwm bg
-    zuObjekt bg@BahngeschwindigkeitKonstanteSpannungMärklin {} =
-        OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bg
-    zuObjekt bg@BahngeschwindigkeitPwmLego {} =
-        OBahngeschwindigkeit $ ZugtypLego $ GeschwindigkeitPwm bg
+    zuObjekt = OBahngeschwindigkeit . zuZugtypEither . zuGeschwindigkeitEither
 
 instance ObjektElement Streckenabschnitt where
     zuObjekt :: Streckenabschnitt -> Objekt
@@ -124,10 +132,6 @@ instance ObjektElement Kontakt where
 instance (ZugtypKlasse z) => ObjektElement (Wegstrecke z) where
     zuObjekt :: Wegstrecke z -> Objekt
     zuObjekt = OWegstrecke . zuZugtypEither
-
-instance ObjektElement Plan where
-    zuObjekt :: Plan -> Objekt
-    zuObjekt = OPlan
 
 -- | Typ lässt sich in den Summen-Typ 'ObjektAllgemein'
 class ObjektKlasse o where

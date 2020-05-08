@@ -44,15 +44,9 @@ import Zug.UI.StatusVar
        (MitStatusVar(), StatusVarReader(erhalteStatusVar), auswertenStatusVarIOStatus)
 
 -- | Klasse für Widgets-Repräsentation von Objekt-Typen.
-class (MitWidget s) => WidgetsTyp s where
-    -- | Assoziierter 'Objekt'-Typ
-    type ObjektTyp s
-
+class (MitWidget s, ObjektElement s) => WidgetsTyp s where
     -- | Constraint, den ein 'MonadReader'-Typ erfüllen muss, damit entferneWidgets möglich ist.
     type ReaderConstraint s :: Type -> Constraint
-
-    -- | Erhalte den eingebetteten 'ObjektTyp'.
-    erhalteObjektTyp :: s -> ObjektTyp s
 
     -- | Entferne Widgets inklusive aller Hilfswidgets aus den entsprechenden Boxen.
     entferneWidgets :: (MonadIO m, WidgetsTypReader r s m) => s -> m ()
@@ -158,6 +152,6 @@ buttonBearbeitenPackNew w = do
         $ buttonNewWithEventLabel (Just $ tvarSprache w) Language.bearbeiten
         $ aktionBearbeiten
         $ zuObjekt
-        $ erhalteObjektTyp w
+        $ zuObjektTyp w
 #endif
 --

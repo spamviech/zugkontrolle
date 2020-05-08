@@ -49,7 +49,10 @@ module Zug.UI.Gtk.StreckenObjekt
   , WSWidgetsBoxen(..)
     -- ** Plan
   , PLWidgets()
+  , PlanGui
+  , AktionGui
   , planPackNew
+  , planGui
   , PLWidgetsBoxen(..)
     -- * Verwaltung des aktuellen Zustands
   , DynamischeWidgets(..)
@@ -108,8 +111,9 @@ import Zug.UI.Gtk.StreckenObjekt.KOWidgets
        (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..), MitKOWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets
        (KUWidgets, kupplungPackNew, KUWidgetsBoxen(..), MitKUWidgetsBoxen(..))
-import Zug.UI.Gtk.StreckenObjekt.PLWidgets (PLWidgets, planPackNew, PLWidgetsBoxen(..)
-                                          , MitPLWidgetsBoxen(..), MitWindowMain(..), ObjektGui)
+import Zug.UI.Gtk.StreckenObjekt.PLWidgets
+       (PLWidgets, PlanGui, AktionGui, planPackNew, planGui, PLWidgetsBoxen(..)
+      , MitPLWidgetsBoxen(..), MitWindowMain(..), ObjektGui)
 import Zug.UI.Gtk.StreckenObjekt.STWidgets
        (STWidgets, streckenabschnittPackNew, STWidgetsBoxen(..), MitSTWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.WEWidgets

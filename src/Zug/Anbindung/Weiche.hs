@@ -134,25 +134,17 @@ instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
         befehlAusführen
             richtungStellen
             ("Stellen ("
-             <> showText (getRichtungsAnschluss richtung $ NonEmpty.toList wemRichtungsAnschlüsse)
+             <> showText (lookup richtung $ NonEmpty.toList wemRichtungsAnschlüsse)
              <> ") -> "
              <> showText richtung)
         where
             richtungStellen :: (I2CReader r m, MonadIO m) => m ()
-            richtungStellen =
-                case getRichtungsAnschluss richtung $ NonEmpty.toList wemRichtungsAnschlüsse of
-                    Nothing -> pure ()
-                    (Just richtungsAnschluss) -> do
-                        anschlussWrite richtungsAnschluss $ fließend we
-                        warte weicheZeit
-                        anschlussWrite richtungsAnschluss $ gesperrt we
-
-            getRichtungsAnschluss
-                :: Richtung -> [(Richtung, AnschlussEither)] -> Maybe AnschlussEither
-            getRichtungsAnschluss _richtung [] = Nothing
-            getRichtungsAnschluss richtung ((ersteRichtung, ersterAnschluss):andereRichtungen)
-                | richtung == ersteRichtung = Just ersterAnschluss
-                | otherwise = getRichtungsAnschluss richtung andereRichtungen
+            richtungStellen = case lookup richtung $ NonEmpty.toList wemRichtungsAnschlüsse of
+                Nothing -> pure ()
+                (Just richtungsAnschluss) -> do
+                    anschlussWrite richtungsAnschluss $ fließend we
+                    warte weicheZeit
+                    anschlussWrite richtungsAnschluss $ gesperrt we
 
     hatRichtung :: Weiche z -> Richtung -> Bool
     hatRichtung LegoWeiche {welRichtungen = (erste, zweite)} richtung =

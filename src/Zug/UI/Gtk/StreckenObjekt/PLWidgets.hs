@@ -11,6 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 #endif
 
 module Zug.UI.Gtk.StreckenObjekt.PLWidgets
@@ -18,7 +19,10 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets
 #ifdef ZUGKONTROLLEGUI
     -- * PLWidgets
     PLWidgets()
+  , PlanGui
+  , AktionGui
   , planPackNew
+  , planGui
   , PLWidgetsBoxen(..)
   , MitPLWidgetsBoxen(..)
   , PLWidgetsBoxenReader(..)
@@ -46,8 +50,8 @@ import Numeric.Natural (Natural)
 import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())
 import Zug.Language (Sprache(), MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..))
-import Zug.Plan (Plan(..), PlanKlasse(..), AusführendReader())
+import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..), ObjektElement(..))
+import Zug.Plan (PlanAllgemein(..), Plan, PlanKlasse(..), AusführendReader(), AktionAllgemein())
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenPlan, AusführenMöglich(..)
                   , ausführenMöglich, ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl
@@ -79,17 +83,28 @@ instance Kategorie PLWidgets where
     kategorie :: KategorieText PLWidgets
     kategorie = KategorieText Language.pläne
 
+-- | 'PlanAllgemein' spezialisiert auf Gui-Typen.
+type PlanGui = PlanAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
+
+-- | 'AktionAllgemein' spezialisier auf Gui-Typen.
+type AktionGui = AktionAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
+
 -- | 'Plan' mit zugehörigen Widgets
 data PLWidgets =
     PLWidgets
-    { pl :: Plan
+    { pl :: PlanGui
     , plWidget :: Gtk.Frame
     , plFunktionBox :: Gtk.Box
     , plHinzPL :: ButtonPlanHinzufügen PLWidgets
     , plTVarSprache :: TVar (Maybe [Sprache -> IO ()])
     , plTVarEvent :: TVar EventAusführen
     }
-    deriving (Eq)
+
+-- | Erhalte den 'PlanGui' eines 'PLWidgets'.
+planGui :: PLWidgets -> PlanGui
+planGui = pl
+
+deriving instance Eq PLWidgets
 
 instance MitWidget PLWidgets where
     erhalteWidget :: PLWidgets -> Gtk.Widget
@@ -114,13 +129,14 @@ class (MonadReader r m, MitPLWidgetsBoxen r) => PLWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitPLWidgetsBoxen r) => PLWidgetsBoxenReader r m
 
-instance WidgetsTyp PLWidgets where
+instance ObjektElement PLWidgets where
     type ObjektTyp PLWidgets = Plan
 
-    type ReaderConstraint PLWidgets = MitPLWidgetsBoxen
+    zuObjektTyp :: PLWidgets -> Plan
+    zuObjektTyp = zuObjektTyp . pl
 
-    erhalteObjektTyp :: PLWidgets -> Plan
-    erhalteObjektTyp = pl
+instance WidgetsTyp PLWidgets where
+    type ReaderConstraint PLWidgets = MitPLWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r PLWidgets m) => PLWidgets -> m ()
     entferneWidgets plWidgets@PLWidgets {plTVarSprache} = do
@@ -147,10 +163,10 @@ instance PlanElement PLWidgets where
 
 instance StreckenObjekt PLWidgets where
     anschlüsse :: PLWidgets -> Set AnschlussEither
-    anschlüsse = anschlüsse . pl
+    anschlüsse = anschlüsse . zuObjektTyp . pl
 
     erhalteName :: PLWidgets -> Text
-    erhalteName = erhalteName . pl
+    erhalteName = erhalteName . zuObjektTyp . pl
 
 instance Aeson.ToJSON PLWidgets where
     toJSON :: PLWidgets -> Aeson.Value
@@ -182,7 +198,7 @@ planPackNew :: forall m.
             , MitAktionBearbeiten (ReaderFamilie ObjektGui)
             , MonadIO m
             )
-            => Plan
+            => PlanGui
             -> MStatusAllgemeinT m ObjektGui PLWidgets
 planPackNew plan@Plan {plAktionen} = do
     statusVar <- erhalteStatusVar :: MStatusAllgemeinT m ObjektGui (StatusVar ObjektGui)
@@ -204,7 +220,7 @@ planPackNew plan@Plan {plAktionen} = do
         -- Widget erstellen
         frame <- boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew
         vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
-        namePackNew vBox plan
+        namePackNew vBox $ zuObjektTyp plan
         expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew $ Text.empty
         vBoxExpander <- containerAddWidgetNew expander $ Gtk.vBoxNew False 0
         forM_ plAktionen
@@ -229,7 +245,7 @@ planPackNew plan@Plan {plAktionen} = do
             Gtk.progressBarNew
         Gtk.on buttonAusführen Gtk.buttonActivated
             $ flip runReaderT objektReader
-            $ auswertenStatusVarIOStatus (ausführenMöglich plan) statusVar >>= \case
+            $ auswertenStatusVarIOStatus (ausführenMöglich $ zuObjektTyp plan) statusVar >>= \case
                 AusführenMöglich -> void $ do
                     liftIO $ do
                         Gtk.widgetHide buttonAusführen
@@ -258,7 +274,7 @@ planPackNew plan@Plan {plAktionen} = do
                     dialogEval dialogGesperrt
         Gtk.on buttonAbbrechen Gtk.buttonActivated $ do
             flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (AusführenAbbrechen plan) statusVar
+                $ ausführenStatusVarBefehl (AusführenAbbrechen $ zuObjektTyp plan) statusVar
             Gtk.widgetShow buttonAusführen
             Gtk.widgetHide buttonAbbrechen
         pure
@@ -271,7 +287,8 @@ planPackNew plan@Plan {plAktionen} = do
             , buttonAbbrechen
             , dialogGesperrt
             )
-    plHinzPL <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne plan plTVarSprache
+    plHinzPL
+        <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne (zuObjektTyp plan) plTVarSprache
     let plWidgets =
             PLWidgets
             { pl = plan

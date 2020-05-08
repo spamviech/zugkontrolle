@@ -44,15 +44,15 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Anbindung
        (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..)
       , StreckenObjekt(..), AnschlussEither(), I2CReader())
-import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..))
+import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..))
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt))
+import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt), ObjektElement(..))
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
 import Zug.UI.Base
        (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt
       , getStreckenabschnitte, getWegstrecken, ReaderFamilie, MitTVarMaps, ObjektReader())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -118,13 +118,14 @@ instance MitWidget STWidgets where
     erhalteWidget :: STWidgets -> Gtk.Widget
     erhalteWidget = erhalteWidget . stWidget
 
-instance WidgetsTyp STWidgets where
+instance ObjektElement STWidgets where
     type ObjektTyp STWidgets = Streckenabschnitt
 
-    type ReaderConstraint STWidgets = MitSTWidgetsBoxen
+    zuObjektTyp :: STWidgets -> Streckenabschnitt
+    zuObjektTyp = st
 
-    erhalteObjektTyp :: STWidgets -> Streckenabschnitt
-    erhalteObjektTyp = st
+instance WidgetsTyp STWidgets where
+    type ReaderConstraint STWidgets = MitSTWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r STWidgets m) => STWidgets -> m ()
     entferneWidgets stWidgets@STWidgets {stTVarSprache} = do
@@ -175,11 +176,8 @@ instance Aeson.ToJSON STWidgets where
 
 instance StreckenabschnittKlasse STWidgets where
     strom :: (I2CReader r m, MonadIO m) => STWidgets -> Strom -> m ()
-    strom STWidgets {st, stToggleButtonStrom, stTVarEvent} wert = do
-        eventAusführen stTVarEvent $ strom st wert
-        liftIO
-            $ ohneEvent stTVarEvent
-            $ Gtk.set stToggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
+    strom STWidgets {stToggleButtonStrom} wert =
+        liftIO $ Gtk.set stToggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
 
 instance StreckenabschnittContainer STWidgets where
     enthalteneStreckenabschnitte :: STWidgets -> Set Streckenabschnitt
@@ -195,20 +193,8 @@ streckenabschnittPackNew
     , MitTMVarPlanObjekt (ReaderFamilie o)
     , MitAktionBearbeiten (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
-    , ObjektKlasse o
-    , Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KU o)
-    , Eq (KO o)
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
+    , BefehlConstraints o
     , SP o ~ SpracheGui
-    , Aeson.ToJSON o
     , ST o ~ STWidgets
     , STWidgetsKlasse (WS o 'Märklin)
     , StreckenabschnittContainer (WS o 'Märklin)

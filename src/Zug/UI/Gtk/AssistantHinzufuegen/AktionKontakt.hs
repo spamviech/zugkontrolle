@@ -28,8 +28,8 @@ import Zug.Enums (ZugtypEither(..))
 import Zug.Language (Sprache(), MitSprache(leseSprache))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKontakt, OWegstrecke))
-import Zug.Plan (Aktion(AKontakt, AWegstreckeMärklin, AWegstreckeLego), AktionKontakt(..)
-               , AktionWegstrecke(AWSKontakt))
+import Zug.Plan (AktionAllgemein(AKontakt, AWegstreckeMärklin, AWegstreckeLego), Aktion
+               , AktionKontakt(..), AktionWegstrecke(AWSKontakt))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))

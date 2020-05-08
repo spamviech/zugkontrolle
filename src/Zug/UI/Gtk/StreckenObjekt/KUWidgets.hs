@@ -40,14 +40,13 @@ import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), KupplungContainer(..)
                     , AnschlussEither(), I2CReader)
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language
-import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..))
+import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionKupplung(..))
 import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenKupplung, ReaderFamilie, MitTVarMaps())
-import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen))
+import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlConstraints)
 import Zug.UI.Gtk.Anschluss (anschlussNew)
 import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
@@ -85,6 +84,7 @@ data KUWidgets =
     , kuHinzPL :: ButtonPlanHinzufügen KUWidgets
     , kuTVarSprache :: TVar (Maybe [Sprache -> IO ()])
     , kuTVarEvent :: TVar EventAusführen
+    , kuButtonKuppeln :: Gtk.Button
     }
     deriving (Eq)
 
@@ -112,13 +112,14 @@ class (MonadReader r m, MitKUWidgetsBoxen r) => KUWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitKUWidgetsBoxen r) => KUWidgetsBoxenReader r m
 
-instance WidgetsTyp KUWidgets where
+instance ObjektElement KUWidgets where
     type ObjektTyp KUWidgets = Kupplung
 
-    type ReaderConstraint KUWidgets = MitKUWidgetsBoxen
+    zuObjektTyp :: KUWidgets -> Kupplung
+    zuObjektTyp = ku
 
-    erhalteObjektTyp :: KUWidgets -> Kupplung
-    erhalteObjektTyp = ku
+instance WidgetsTyp KUWidgets where
+    type ReaderConstraint KUWidgets = MitKUWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r KUWidgets m) => KUWidgets -> m ()
     entferneWidgets kuWidgets@KUWidgets {kuTVarSprache} = do
@@ -167,7 +168,7 @@ instance Aeson.ToJSON KUWidgets where
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: (I2CReader r m, MonadIO m) => KUWidgets -> m ()
-    kuppeln = kuppeln . ku
+    kuppeln = liftIO . Gtk.buttonPressed . kuButtonKuppeln
 
 instance KupplungContainer KUWidgets where
     enthalteneKupplungen :: KUWidgets -> Set Kupplung
@@ -176,21 +177,9 @@ instance KupplungContainer KUWidgets where
 -- | 'Kupplung' darstellen und zum Status hinzufügen
 kupplungPackNew
     :: forall o m.
-    ( Eq (BG o 'Pwm 'Märklin)
-    , Eq (BG o 'KonstanteSpannung 'Märklin)
-    , Eq (BG o 'Pwm 'Lego)
-    , Eq (BG o 'KonstanteSpannung 'Lego)
-    , Eq (ST o)
-    , Eq (WE o 'Märklin)
-    , Eq (WE o 'Lego)
-    , Eq (KO o)
+    ( BefehlConstraints o
     , KU o ~ KUWidgets
-    , Eq (WS o 'Märklin)
-    , Eq (WS o 'Lego)
-    , Eq (PL o)
     , SP o ~ SpracheGui
-    , ObjektKlasse o
-    , Aeson.ToJSON o
     , MitKUWidgetsBoxen (ReaderFamilie o)
     , MitStatusVar (ReaderFamilie o) o
     , MitFortfahrenWennToggledWegstrecke (ReaderFamilie o) o
@@ -234,6 +223,8 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
     kuFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    kuButtonKuppeln
+        <- buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     let kuWidgets =
             KUWidgets
             { ku = kupplung
@@ -243,8 +234,8 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
             , kuHinzWS = hinzufügenWegstreckeWidget
             , kuTVarSprache
             , kuTVarEvent
+            , kuButtonKuppeln
             }
-    buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     fließendPackNew vBoxAnschlüsse kupplung justTVarSprache
     buttonEntfernenPackNew kuWidgets $ (entfernenKupplung kuWidgets :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew kuWidgets

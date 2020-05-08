@@ -27,7 +27,7 @@ import qualified Graphics.UI.Gtk as Gtk
 import Zug.Language (Sprache(), MitSprache(leseSprache))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OPlan))
-import Zug.Plan (Aktion(AktionAusführen))
+import Zug.Plan (AktionAllgemein(AktionAusführen), Aktion)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))

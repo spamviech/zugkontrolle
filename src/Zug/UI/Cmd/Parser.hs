@@ -64,7 +64,7 @@ import Zug.Enums (Zugtyp(..))
 import Zug.Language (Anzeige(..), Sprache(..), ($#), (<^>), (<:>), (<\>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(..))
-import Zug.Plan (Plan, Plan(..))
+import Zug.Plan (Plan, PlanAllgemein(..))
 import Zug.UI.Befehl (Befehl, BefehlAllgemein(..), UIBefehlAllgemein(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), EingabeToken(..), leeresToken)

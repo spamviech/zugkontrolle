@@ -19,7 +19,7 @@ import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad (void, when, forM_)
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.Trans (liftIO)
+import Control.Monad.Trans (MonadIO(liftIO))
 #else
 import Data.Text (Text)
 import qualified Data.Text.IO as Text

@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -43,13 +44,13 @@ import Zug.Enums
        (Richtung(..), Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
       , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..))
 import Zug.Language (Sprache())
-import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
-import Zug.Plan
-       (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..)
-      , AktionWeiche(..), AktionKupplung(..), AktionKontakt(..), Plan(..))
+import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..), ObjektElement(zuObjektTyp, ObjektTyp))
+import Zug.Plan (Aktion, AktionAllgemein(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
+               , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..)
+               , AktionKontakt(..), Plan, PlanAllgemein(..))
 import Zug.UI.Base (StatusAllgemein(..), Status)
 
--- | Speichere aktuellen Zustand in Datei
+-- | Speichere aktuellen Zustand in Datei.
 speichern :: (ObjektKlasse o, ToJSON o) => StatusAllgemein o -> FilePath -> IO ()
 speichern = flip encodeFile
 
@@ -973,9 +974,32 @@ instance FromJSON Plan where
         erzeugeDauerschleife <$> (v .:? dauerschleifeJS)
     parseJSON _value = mzero
 
-instance ToJSON Plan where
-    toJSON :: Plan -> Value
-    toJSON Plan {plName, plAktionen} =
+instance ( ObjektElement (bg 'Pwm 'Märklin)
+         , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+         , ObjektElement (bg 'KonstanteSpannung 'Märklin)
+         , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+         , ObjektElement (bg 'Pwm 'Lego)
+         , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+         , ObjektElement (bg 'KonstanteSpannung 'Lego)
+         , ObjektTyp (bg 'KonstanteSpannung 'Lego) ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+         , ObjektElement st
+         , ObjektTyp st ~ Streckenabschnitt
+         , ObjektElement (we 'Märklin)
+         , ObjektTyp (we 'Märklin) ~ Weiche 'Märklin
+         , ObjektElement (we 'Lego)
+         , ObjektTyp (we 'Lego) ~ Weiche 'Lego
+         , ObjektElement ku
+         , ObjektTyp ku ~ Kupplung
+         , ObjektElement ko
+         , ObjektTyp ko ~ Kontakt
+         , ObjektElement (ws 'Märklin)
+         , ObjektTyp (ws 'Märklin) ~ Wegstrecke 'Märklin
+         , ObjektElement (ws 'Lego)
+         , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
+         ) => ToJSON (PlanAllgemein bg st we ku ko ws) where
+    toJSON :: PlanAllgemein bg st we ku ko ws -> Value
+    toJSON (zuObjektTyp -> Plan {plName, plAktionen}) =
         let aktionen =
                 NonEmpty.takeWhile ((/=) $ String plName) $ fmap (aktionToJSON plName) plAktionen
         in object
