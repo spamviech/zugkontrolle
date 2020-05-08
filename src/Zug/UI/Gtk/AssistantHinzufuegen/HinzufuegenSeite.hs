@@ -69,8 +69,8 @@ import Zug.Enums (Richtung(..), unterstützteRichtungen, Zugtyp(..), ZugtypKlass
                 , GeschwindigkeitEither(..), geschwindigkeitVariante)
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), Anzeige(..), (<:>))
-import Zug.Objekt (ObjektAllgemein(..), Objekt)
-import Zug.Plan (Plan(..), Aktion(..))
+import Zug.Objekt (ObjektAllgemein(..), Objekt, ObjektElement(..))
+import Zug.Plan (PlanAllgemein(..), AktionAllgemein(..), Aktion)
 import Zug.UI.Base (bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte)
 import Zug.UI.Gtk.Anschluss
        (PinAuswahlWidget, pinAuswahlNew, aktuellerPin, setzePin, AnschlussAuswahlWidget
@@ -380,7 +380,7 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
                              -> a
                              -> m (Set (ObjektTyp a))
         anhängenWennToggled acc a = widgetHinzufügenToggled (a ^. getterWegstrecke) >>= \case
-            True -> pure $ Set.insert (erhalteObjektTyp a) acc
+            True -> pure $ Set.insert (zuObjektTyp a) acc
             False -> pure acc
         weichenRichtungAnhängenWennToggled
             :: ( WegstreckenElement (WEWidgets z)
@@ -396,7 +396,7 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
             if toggled
                 then do
                     richtung <- widgetHinzufügenAktuelleAuswahl widgetHinzufügen
-                    pure $ Set.insert (erhalteObjektTyp weiche, richtung) acc
+                    pure $ Set.insert (zuObjektTyp weiche, richtung) acc
                 else pure acc
     -- Explizite Zugtyp-Auswahl notwendig für den Typ-Checker
     -- Dieser kann sonst Typ-Klassen nicht überprüfen
@@ -550,11 +550,11 @@ setzeSeite
     aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
     forM_ (aktuellerStatus ^. bahngeschwindigkeiten) $ \bgWidgets -> widgetHinzufügenSetToggled
         (bgWidgets ^. getterWegstrecke)
-        $ elem (erhalteObjektTyp bgWidgets)
+        $ elem (zuObjektTyp bgWidgets)
         $ enthalteneBahngeschwindigkeiten ws
     forM_ (aktuellerStatus ^. streckenabschnitte) $ \stWidgets -> widgetHinzufügenSetToggled
         (stWidgets ^. getterWegstrecke)
-        $ elem (erhalteObjektTyp stWidgets)
+        $ elem (zuObjektTyp stWidgets)
         $ enthalteneStreckenabschnitte ws
     let getWeichenRichtungen :: ZugtypEither Wegstrecke -> Map (ZugtypEither Weiche) Richtung
         getWeichenRichtungen (ZugtypMärklin wsMärklin) =
@@ -568,7 +568,7 @@ setzeSeite
                 Map.empty
             $ wsWeichenRichtungen wsLego
     forM_ (aktuellerStatus ^. weichen)
-        $ \weWidgets -> case Map.lookup (erhalteObjektTyp weWidgets) $ getWeichenRichtungen ws of
+        $ \weWidgets -> case Map.lookup (zuObjektTyp weWidgets) $ getWeichenRichtungen ws of
             (Just richtung) -> do
                 let widgetHinzufügen = weWidgets ^. getterWegstrecke
                 widgetHinzufügenSetToggled widgetHinzufügen True
@@ -576,11 +576,11 @@ setzeSeite
             Nothing -> widgetHinzufügenSetToggled (weWidgets ^. getterWegstrecke) False
     forM_ (aktuellerStatus ^. kupplungen) $ \kuWidgets -> widgetHinzufügenSetToggled
         (kuWidgets ^. getterWegstrecke)
-        $ elem (erhalteObjektTyp kuWidgets)
+        $ elem (zuObjektTyp kuWidgets)
         $ enthalteneKupplungen ws
     forM_ (aktuellerStatus ^. kontakte) $ \koWidgets -> widgetHinzufügenSetToggled
         (koWidgets ^. getterWegstrecke)
-        $ elem (erhalteObjektTyp koWidgets)
+        $ elem (zuObjektTyp koWidgets)
         $ enthalteneKontakte ws
     pure True
 setzeSeite

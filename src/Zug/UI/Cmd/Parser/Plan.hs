@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -43,9 +44,9 @@ import Zug.Enums
 import Zug.Language (Anzeige(..), Sprache(..), (<^>), (<=>), (<->), (<|>), toBefehlsString)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(..), Objekt)
-import Zug.Plan
-       (Plan(..), Aktion(..), AktionStreckenabschnitt(..), AktionWegstrecke(..)
-      , AktionBahngeschwindigkeit(..), AktionWeiche(..), AktionKupplung(..), AktionKontakt(..))
+import Zug.Plan (Plan, PlanAllgemein(..), Aktion, AktionAllgemein(..), AktionStreckenabschnitt(..)
+               , AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionWeiche(..)
+               , AktionKupplung(..), AktionKontakt(..))
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..)

@@ -35,11 +35,11 @@ import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit, OWegstrecke))
 import Zug.Plan
-       (Aktion(ABahngeschwindigkeitMärklinPwm,
-       ABahngeschwindigkeitMärklinKonstanteSpannung,
-       ABahngeschwindigkeitLegoPwm,
-       ABahngeschwindigkeitLegoKonstanteSpannung, AWegstreckeMärklin,
-       AWegstreckeLego)
+       (AktionAllgemein(ABahngeschwindigkeitMärklinPwm,
+                ABahngeschwindigkeitMärklinKonstanteSpannung,
+                ABahngeschwindigkeitLegoPwm,
+                ABahngeschwindigkeitLegoKonstanteSpannung, AWegstreckeMärklin,
+                AWegstreckeLego), Aktion
       , AktionBahngeschwindigkeit(..), AktionWegstrecke(AWSBahngeschwindigkeit))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)

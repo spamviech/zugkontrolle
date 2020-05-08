@@ -33,7 +33,7 @@ import Zug.Enums (Richtung())
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OWeiche))
-import Zug.Plan (Aktion(AWeiche), AktionWeiche(..))
+import Zug.Plan (AktionAllgemein(AWeiche), Aktion, AktionWeiche(..))
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())

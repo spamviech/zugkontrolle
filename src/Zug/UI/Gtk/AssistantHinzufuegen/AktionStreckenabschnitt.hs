@@ -31,8 +31,10 @@ import Zug.Enums (ZugtypEither(..), Strom(Fließend))
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OStreckenabschnitt, OWegstrecke))
-import Zug.Plan (Aktion(AStreckenabschnitt, AWegstreckeMärklin, AWegstreckeLego)
-               , AktionStreckenabschnitt(..), AktionWegstrecke(AWSStreckenabschnitt))
+import Zug.Plan
+       (AktionAllgemein(AStreckenabschnitt, AWegstreckeMärklin,
+                AWegstreckeLego)
+      , Aktion, AktionStreckenabschnitt(..), AktionWegstrecke(AWSStreckenabschnitt))
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
