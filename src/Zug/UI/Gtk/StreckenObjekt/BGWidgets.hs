@@ -173,14 +173,18 @@ class (MonadReader r m, MitBGWidgetsBoxen r) => BGWidgetsBoxenReader r m | m -> 
 
 instance (MonadReader r m, MitBGWidgetsBoxen r) => BGWidgetsBoxenReader r m
 
-instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
-    => WidgetsTyp (BGWidgets g z) where
+instance (ZugtypKlasse z, GeschwindigkeitKlasse g) => ObjektElement (BGWidgets g z) where
     type ObjektTyp (BGWidgets g z) = Bahngeschwindigkeit g z
 
-    type ReaderConstraint (BGWidgets g z) = MitBGWidgetsBoxen
+    zuObjektTyp :: BGWidgets g z -> Bahngeschwindigkeit g z
+    zuObjektTyp = bg
 
-    erhalteObjektTyp :: BGWidgets g z -> Bahngeschwindigkeit g z
-    erhalteObjektTyp = bg
+instance ( WegstreckenElement (BGWidgets g z)
+         , PlanElement (BGWidgets g z)
+         , ZugtypKlasse z
+         , GeschwindigkeitKlasse g
+         ) => WidgetsTyp (BGWidgets g z) where
+    type ReaderConstraint (BGWidgets g z) = MitBGWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (BGWidgets g z) m) => BGWidgets g z -> m ()
     entferneWidgets bgWidgets = do
@@ -199,7 +203,7 @@ instance (WegstreckenElement (BGWidgets g z), PlanElement (BGWidgets g z))
     tvarEvent :: BGWidgets g z -> TVar EventAusführen
     tvarEvent = bgTVarEvent
 
-instance WegstreckenElement (BGWidgets g 'Märklin) where
+instance (GeschwindigkeitKlasse g) => WegstreckenElement (BGWidgets g 'Märklin) where
     getterWegstrecke
         :: Lens.Getter (BGWidgets g 'Märklin) (CheckButtonWegstreckeHinzufügen Void (BGWidgets g 'Märklin))
     getterWegstrecke = Lens.to bgHinzWS
@@ -213,7 +217,7 @@ instance WegstreckenElement (BGWidgets g 'Märklin) where
         . vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
         . bgWidgetsBoxen
 
-instance WegstreckenElement (BGWidgets g 'Lego) where
+instance (GeschwindigkeitKlasse g) => WegstreckenElement (BGWidgets g 'Lego) where
     getterWegstrecke
         :: Lens.Getter (BGWidgets g 'Lego) (CheckButtonWegstreckeHinzufügen Void (BGWidgets g 'Lego))
     getterWegstrecke = Lens.to bgHinzWS
@@ -234,10 +238,15 @@ instance MitWidget (GeschwindigkeitEither BGWidgets z) where
 instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
     getterWegstrecke
         :: Lens.Getter (GeschwindigkeitEither BGWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin))
-    getterWegstrecke =
-        Lens.to
-        $ ausGeschwindigkeitEither
-        $ widgetHinzufügenGeschwindigkeitEither . Lens.view getterWegstrecke
+    getterWegstrecke = Lens.to checkButtonWegstreckeVoid
+        where
+            checkButtonWegstreckeVoid
+                :: GeschwindigkeitEither BGWidgets 'Märklin
+                -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
+            checkButtonWegstreckeVoid (GeschwindigkeitPwm bgWidgets) =
+                widgetHinzufügenGeschwindigkeitEither $ bgWidgets ^. getterWegstrecke
+            checkButtonWegstreckeVoid (GeschwindigkeitKonstanteSpannung bgWidgets) =
+                widgetHinzufügenGeschwindigkeitEither $ bgWidgets ^. getterWegstrecke
 
     boxWegstrecke
         :: (ReaderConstraint (GeschwindigkeitEither BGWidgets 'Märklin) r)
@@ -249,10 +258,15 @@ instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
 instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Lego) where
     getterWegstrecke
         :: Lens.Getter (GeschwindigkeitEither BGWidgets 'Lego) (CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Lego))
-    getterWegstrecke =
-        Lens.to
-        $ ausGeschwindigkeitEither
-        $ widgetHinzufügenGeschwindigkeitEither . Lens.view getterWegstrecke
+    getterWegstrecke = Lens.to checkButtonWegstreckeVoid
+        where
+            checkButtonWegstreckeVoid
+                :: GeschwindigkeitEither BGWidgets 'Lego
+                -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Lego)
+            checkButtonWegstreckeVoid (GeschwindigkeitPwm bgWidgets) =
+                widgetHinzufügenGeschwindigkeitEither $ bgWidgets ^. getterWegstrecke
+            checkButtonWegstreckeVoid (GeschwindigkeitKonstanteSpannung bgWidgets) =
+                widgetHinzufügenGeschwindigkeitEither $ bgWidgets ^. getterWegstrecke
 
     boxWegstrecke
         :: (ReaderConstraint (GeschwindigkeitEither BGWidgets 'Lego) r)
@@ -261,19 +275,23 @@ instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Lego) where
     boxWegstrecke
         _bgWidgets = Lens.to $ vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego . bgWidgetsBoxen
 
-instance ( WegstreckenElement (BGWidgets 'Pwm z)
-         , WegstreckenElement (BGWidgets 'KonstanteSpannung z)
-         ) => WidgetsTyp (GeschwindigkeitEither BGWidgets z) where
+instance (ZugtypKlasse z) => ObjektElement (GeschwindigkeitEither BGWidgets z) where
     type ObjektTyp (GeschwindigkeitEither BGWidgets z) =
         GeschwindigkeitEither Bahngeschwindigkeit z
 
-    type ReaderConstraint (GeschwindigkeitEither BGWidgets z) = MitBGWidgetsBoxen
+    zuObjektTyp :: GeschwindigkeitEither BGWidgets z -> GeschwindigkeitEither Bahngeschwindigkeit z
+    zuObjektTyp (GeschwindigkeitPwm bg) = GeschwindigkeitPwm $ zuObjektTyp bg
+    zuObjektTyp (GeschwindigkeitKonstanteSpannung bg) =
+        GeschwindigkeitKonstanteSpannung $ zuObjektTyp bg
 
-    erhalteObjektTyp
-        :: GeschwindigkeitEither BGWidgets z -> GeschwindigkeitEither Bahngeschwindigkeit z
-    erhalteObjektTyp (GeschwindigkeitPwm bg) = GeschwindigkeitPwm $ erhalteObjektTyp bg
-    erhalteObjektTyp (GeschwindigkeitKonstanteSpannung bg) =
-        GeschwindigkeitKonstanteSpannung $ erhalteObjektTyp bg
+    zuObjekt :: GeschwindigkeitEither BGWidgets z -> Objekt
+    zuObjekt = OBahngeschwindigkeit . zuZugtypEither . zuObjektTyp
+
+instance ( WegstreckenElement (BGWidgets 'Pwm z)
+         , WegstreckenElement (BGWidgets 'KonstanteSpannung z)
+         , ZugtypKlasse z
+         ) => WidgetsTyp (GeschwindigkeitEither BGWidgets z) where
+    type ReaderConstraint (GeschwindigkeitEither BGWidgets z) = MitBGWidgetsBoxen
 
     entferneWidgets :: (MonadIO m, WidgetsTypReader r (BGWidgets 'Pwm z) m)
                     => GeschwindigkeitEither BGWidgets z
@@ -293,22 +311,26 @@ instance ( WegstreckenElement (BGWidgets 'Pwm z)
     tvarEvent (GeschwindigkeitPwm bgWidgets) = tvarEvent bgWidgets
     tvarEvent (GeschwindigkeitKonstanteSpannung bgWidgets) = tvarEvent bgWidgets
 
-instance WidgetsTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
+instance ObjektElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     type ObjektTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) =
         ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)
 
-    type ReaderConstraint (ZugtypEither (GeschwindigkeitEither BGWidgets)) = MitBGWidgetsBoxen
+    zuObjektTyp :: ZugtypEither (GeschwindigkeitEither BGWidgets)
+                -> ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)
+    zuObjektTyp (ZugtypMärklin (GeschwindigkeitPwm bg)) =
+        ZugtypMärklin $ GeschwindigkeitPwm $ zuObjektTyp bg
+    zuObjektTyp (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bg)) =
+        ZugtypMärklin $ GeschwindigkeitKonstanteSpannung $ zuObjektTyp bg
+    zuObjektTyp (ZugtypLego (GeschwindigkeitPwm bg)) =
+        ZugtypLego $ GeschwindigkeitPwm $ zuObjektTyp bg
+    zuObjektTyp (ZugtypLego (GeschwindigkeitKonstanteSpannung bg)) =
+        ZugtypLego $ GeschwindigkeitKonstanteSpannung $ zuObjektTyp bg
 
-    erhalteObjektTyp :: ZugtypEither (GeschwindigkeitEither BGWidgets)
-                     -> ZugtypEither (GeschwindigkeitEither Bahngeschwindigkeit)
-    erhalteObjektTyp (ZugtypMärklin (GeschwindigkeitPwm bg)) =
-        ZugtypMärklin $ GeschwindigkeitPwm $ erhalteObjektTyp bg
-    erhalteObjektTyp (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bg)) =
-        ZugtypMärklin $ GeschwindigkeitKonstanteSpannung $ erhalteObjektTyp bg
-    erhalteObjektTyp (ZugtypLego (GeschwindigkeitPwm bg)) =
-        ZugtypLego $ GeschwindigkeitPwm $ erhalteObjektTyp bg
-    erhalteObjektTyp (ZugtypLego (GeschwindigkeitKonstanteSpannung bg)) =
-        ZugtypLego $ GeschwindigkeitKonstanteSpannung $ erhalteObjektTyp bg
+    zuObjekt :: ZugtypEither (GeschwindigkeitEither BGWidgets) -> Objekt
+    zuObjekt = OBahngeschwindigkeit . zuObjektTyp
+
+instance WidgetsTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
+    type ReaderConstraint (ZugtypEither (GeschwindigkeitEither BGWidgets)) = MitBGWidgetsBoxen
 
     entferneWidgets
         :: (MonadIO m, WidgetsTypReader r (ZugtypEither (GeschwindigkeitEither BGWidgets)) m)
@@ -372,20 +394,20 @@ instance WegstreckenElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) whe
         . vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
         . bgWidgetsBoxen
 
-instance PlanElement (BGWidgets b 'Märklin) where
+instance (GeschwindigkeitKlasse g) => PlanElement (BGWidgets g 'Märklin) where
     foldPlan
-        :: Lens.Fold (BGWidgets b 'Märklin) (Maybe (ButtonPlanHinzufügen (BGWidgets b 'Märklin)))
+        :: Lens.Fold (BGWidgets g 'Märklin) (Maybe (ButtonPlanHinzufügen (BGWidgets g 'Märklin)))
     foldPlan = Lens.folding $ map Just . erhalteButtonPlanHinzufügen
         where
             erhalteButtonPlanHinzufügen
-                :: BGWidgets b 'Märklin -> [ButtonPlanHinzufügen (BGWidgets b 'Märklin)]
+                :: BGWidgets g 'Märklin -> [ButtonPlanHinzufügen (BGWidgets g 'Märklin)]
             erhalteButtonPlanHinzufügen
                 BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)} =
                 [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
 
-    boxenPlan :: (ReaderConstraint (BGWidgets b 'Märklin) r)
-              => Bahngeschwindigkeit b 'Märklin
-              -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets b 'Märklin))
+    boxenPlan :: (ReaderConstraint (BGWidgets g 'Märklin) r)
+              => Bahngeschwindigkeit g 'Märklin
+              -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets g 'Märklin))
     boxenPlan MärklinBahngeschwindigkeitPwm {} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
@@ -403,19 +425,19 @@ instance PlanElement (BGWidgets b 'Märklin) where
                     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin])
         . bgWidgetsBoxen
 
-instance PlanElement (BGWidgets b 'Lego) where
-    foldPlan :: Lens.Fold (BGWidgets b 'Lego) (Maybe (ButtonPlanHinzufügen (BGWidgets b 'Lego)))
+instance (GeschwindigkeitKlasse g) => PlanElement (BGWidgets g 'Lego) where
+    foldPlan :: Lens.Fold (BGWidgets g 'Lego) (Maybe (ButtonPlanHinzufügen (BGWidgets g 'Lego)))
     foldPlan = Lens.folding $ map Just . erhalteButtonPlanHinzufügen
         where
             erhalteButtonPlanHinzufügen
-                :: BGWidgets b 'Lego -> [ButtonPlanHinzufügen (BGWidgets b 'Lego)]
+                :: BGWidgets g 'Lego -> [ButtonPlanHinzufügen (BGWidgets g 'Lego)]
             erhalteButtonPlanHinzufügen
                 BGWidgets {bgHinzPL = (buttonSpezifisch, buttonAllgemein)} =
                 [buttonSpezifisch, widgetHinzufügenGeschwindigkeitVariante buttonAllgemein]
 
-    boxenPlan :: (ReaderConstraint (BGWidgets b 'Lego) r)
-              => Bahngeschwindigkeit b 'Lego
-              -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets b 'Lego))
+    boxenPlan :: (ReaderConstraint (BGWidgets g 'Lego) r)
+              => Bahngeschwindigkeit g 'Lego
+              -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets g 'Lego))
     boxenPlan LegoBahngeschwindigkeit {} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
@@ -487,10 +509,6 @@ instance StreckenObjekt (BGWidgets g z) where
 
     erhalteName :: BGWidgets g z -> Text
     erhalteName = erhalteName . bg
-
-instance (ZugtypKlasse z) => ObjektElement (BGWidgets g z) where
-    zuObjekt :: BGWidgets g z -> Objekt
-    zuObjekt = zuObjekt . bg
 
 instance Aeson.ToJSON (BGWidgets g z) where
     toJSON :: BGWidgets g z -> Aeson.Value
