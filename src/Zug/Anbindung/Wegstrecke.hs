@@ -28,7 +28,8 @@ import Zug.Anbindung.Anschluss
       , pcf8574Gruppieren, I2CReader(forkI2CReader), Value(..), InterruptReader(), warteAufÄnderung
       , IntEdge(..))
 import Zug.Anbindung.Bahngeschwindigkeit
-       (Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..), umdrehenZeit, positionOderLetztes)
+       (Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..)
+      , BahngeschwindigkeitKlasse(..), umdrehenZeit, positionOderLetztes, PwmZugtyp())
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
 import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit)
@@ -86,7 +87,7 @@ instance StreckenObjekt (Wegstrecke z) where
     erhalteName Wegstrecke {wsName} = wsName
 
 instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
-    geschwindigkeit :: (I2CReader r m, PwmReader r m, MonadIO m)
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, PwmZugtyp z, MonadIO m)
                     => GeschwindigkeitPhantom Wegstrecke 'Pwm z
                     -> Word8
                     -> m ()
@@ -153,30 +154,35 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                    )
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                bg@BahngeschwindigkeitKonstanteSpannungMärklin
-                {bgmkUmdrehenAnschluss = AnschlussMit AnschlussPin {pin}} =
+                bg@Bahngeschwindigkeit { bgFahrtrichtungsAnschluss = UmdrehenAnschluss
+                                             {umdrehenAnschluss = AnschlussMit AnschlussPin {pin}}} =
                 ((pin, flip erhalteValue bg) : pins, portsHigh, portsLow)
             splitAnschlüsse
                 acc
-                bg@BahngeschwindigkeitKonstanteSpannungMärklin
-                {bgmkUmdrehenAnschluss = AnschlussMit AnschlussPCF8574Port {pcf8574Port}} =
+                bg@Bahngeschwindigkeit
+                { bgFahrtrichtungsAnschluss = UmdrehenAnschluss
+                      {umdrehenAnschluss = AnschlussMit AnschlussPCF8574Port {pcf8574Port}}} =
                 splitAnschlüsse
                     acc
                     bg
-                    { bgmkUmdrehenAnschluss =
-                          AnschlussOhne $ AnschlussPCF8574Port $ ohneInterruptPin pcf8574Port
+                    { bgFahrtrichtungsAnschluss = UmdrehenAnschluss
+                          { umdrehenAnschluss =
+                                AnschlussOhne $ AnschlussPCF8574Port $ ohneInterruptPin pcf8574Port
+                          }
                     }
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                BahngeschwindigkeitKonstanteSpannungMärklin
-                { bgmkFließend = HIGH
-                , bgmkUmdrehenAnschluss = AnschlussOhne AnschlussPCF8574Port {pcf8574Port}} =
+                Bahngeschwindigkeit
+                { bgFließend = HIGH
+                , bgFahrtrichtungsAnschluss = UmdrehenAnschluss
+                      {umdrehenAnschluss = AnschlussOhne AnschlussPCF8574Port {pcf8574Port}}} =
                 (pins, pcf8574Port : portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
-                BahngeschwindigkeitKonstanteSpannungMärklin
-                { bgmkFließend = LOW
-                , bgmkUmdrehenAnschluss = AnschlussOhne AnschlussPCF8574Port {pcf8574Port}} =
+                Bahngeschwindigkeit
+                { bgFließend = LOW
+                , bgFahrtrichtungsAnschluss = UmdrehenAnschluss
+                      {umdrehenAnschluss = AnschlussOhne AnschlussPCF8574Port {pcf8574Port}}} =
                 (pins, portsHigh, pcf8574Port : portsLow)
 
             umdrehenPortMapHigh = pcf8574Gruppieren umdrehenPcf8574PortsHigh
@@ -187,11 +193,8 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
               => GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung z
               -> Word8
               -> m ()
-    fahrstrom (GeschwindigkeitPhantom ws@Wegstrecke {wsBahngeschwindigkeiten}) fahrstromAnschluss =
-        flip
-            befehlAusführen
-            ("Fahrstrom (" <> showText ws <> ")->" <> showText fahrstromAnschluss)
-        $ do
+    fahrstrom (GeschwindigkeitPhantom ws@Wegstrecke {wsBahngeschwindigkeiten}) wert =
+        flip befehlAusführen ("Fahrstrom (" <> showText ws <> ")->" <> showText wert) $ do
             forM_ fahrstromPins $ \(pin, value) -> forkI2CReader $ anschlussWrite pin value
             forM_ (Map.toList fahrstromPortMapHigh)
                 $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports HIGH
@@ -214,8 +217,9 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                    )
             splitBahngeschwindigkeiten
                 acc
-                bg@BahngeschwindigkeitKonstanteSpannungMärklin {bgmkFahrstromAnschlüsse} =
-                foldl (splitAnschlüsse bg) acc bgmkFahrstromAnschlüsse
+                bg@Bahngeschwindigkeit
+                {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}} =
+                foldl (splitAnschlüsse bg) acc fahrstromAnschlüsse
 
             splitAnschlüsse
                 :: Bahngeschwindigkeit 'KonstanteSpannung z
@@ -251,11 +255,10 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
 
             anschlussValue :: Bahngeschwindigkeit 'KonstanteSpannung z -> AnschlussEither -> Value
             anschlussValue
-                bg@BahngeschwindigkeitKonstanteSpannungMärklin {bgmkFahrstromAnschlüsse}
+                bg@Bahngeschwindigkeit
+                {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}}
                 anschluss
-                | positionOderLetztes fahrstromAnschluss bgmkFahrstromAnschlüsse
-                    == (Just anschluss) =
-                    fließend bg
+                | positionOderLetztes wert fahrstromAnschlüsse == Just anschluss = fließend bg
                 | otherwise = gesperrt bg
 
     fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
@@ -308,36 +311,77 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
                 (GeschwindigkeitPwm
-                     bg@BahngeschwindigkeitPwmLego
-                     {bglFahrtrichtungsAnschluss = AnschlussMit (AnschlussPin pin)}) =
+                     bg@Bahngeschwindigkeit
+                     { bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                           {fahrtrichtungsAnschluss = AnschlussMit (AnschlussPin pin)}}) =
                 ((pin, flip erhalteValue bg) : pins, portsHigh, portsLow)
             splitAnschlüsse
                 acc
                 (GeschwindigkeitPwm
-                     bg@BahngeschwindigkeitPwmLego
-                     {bglFahrtrichtungsAnschluss = AnschlussMit AnschlussPCF8574Port {pcf8574Port}}) =
+                     bg@Bahngeschwindigkeit { bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                                                  { fahrtrichtungsAnschluss = AnschlussMit
+                                                        AnschlussPCF8574Port {pcf8574Port}}}) =
                 splitAnschlüsse acc
                 $ GeschwindigkeitPwm
                 $ bg
-                { bglFahrtrichtungsAnschluss =
-                      AnschlussOhne $ AnschlussPCF8574Port $ ohneInterruptPin pcf8574Port
+                { bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                      { fahrtrichtungsAnschluss =
+                            AnschlussOhne $ AnschlussPCF8574Port $ ohneInterruptPin pcf8574Port
+                      }
                 }
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
                 (GeschwindigkeitPwm
-                     BahngeschwindigkeitPwmLego { bglFließend = HIGH
-                                                , bglFahrtrichtungsAnschluss = AnschlussOhne
-                                                      AnschlussPCF8574Port {pcf8574Port}}) =
+                     Bahngeschwindigkeit { bgFließend = HIGH
+                                         , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                                               { fahrtrichtungsAnschluss = AnschlussOhne
+                                                     AnschlussPCF8574Port {pcf8574Port}}}) =
                 (pins, pcf8574Port : portsHigh, portsLow)
             splitAnschlüsse
                 (pins, portsHigh, portsLow)
                 (GeschwindigkeitPwm
-                     BahngeschwindigkeitPwmLego { bglFließend = LOW
-                                                , bglFahrtrichtungsAnschluss = AnschlussOhne
-                                                      AnschlussPCF8574Port {pcf8574Port}}) =
+                     Bahngeschwindigkeit { bgFließend = LOW
+                                         , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                                               { fahrtrichtungsAnschluss = AnschlussOhne
+                                                     AnschlussPCF8574Port {pcf8574Port}}}) =
                 (pins, portsHigh, pcf8574Port : portsLow)
-            splitAnschlüsse _acc (GeschwindigkeitKonstanteSpannung _) =
-                error "Lego-Bahngeschwindigkeit mit konstanter Spannung!"
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                (GeschwindigkeitKonstanteSpannung
+                     bg@Bahngeschwindigkeit
+                     { bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                           {fahrtrichtungsAnschluss = AnschlussMit (AnschlussPin pin)}}) =
+                ((pin, flip erhalteValue bg) : pins, portsHigh, portsLow)
+            splitAnschlüsse
+                acc
+                (GeschwindigkeitKonstanteSpannung
+                     bg@Bahngeschwindigkeit { bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                                                  { fahrtrichtungsAnschluss = AnschlussMit
+                                                        AnschlussPCF8574Port {pcf8574Port}}}) =
+                splitAnschlüsse acc
+                $ GeschwindigkeitKonstanteSpannung
+                $ bg
+                { bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                      { fahrtrichtungsAnschluss =
+                            AnschlussOhne $ AnschlussPCF8574Port $ ohneInterruptPin pcf8574Port
+                      }
+                }
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                (GeschwindigkeitKonstanteSpannung
+                     Bahngeschwindigkeit { bgFließend = HIGH
+                                         , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                                               { fahrtrichtungsAnschluss = AnschlussOhne
+                                                     AnschlussPCF8574Port {pcf8574Port}}}) =
+                (pins, pcf8574Port : portsHigh, portsLow)
+            splitAnschlüsse
+                (pins, portsHigh, portsLow)
+                (GeschwindigkeitKonstanteSpannung
+                     Bahngeschwindigkeit { bgFließend = LOW
+                                         , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss
+                                               { fahrtrichtungsAnschluss = AnschlussOhne
+                                                     AnschlussPCF8574Port {pcf8574Port}}}) =
+                (pins, portsHigh, pcf8574Port : portsLow)
 
             fahrtrichtungPortMapHigh = pcf8574Gruppieren fahrtrichtungPcf8574PortsHigh
 

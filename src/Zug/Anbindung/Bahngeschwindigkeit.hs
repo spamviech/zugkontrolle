@@ -16,6 +16,8 @@ Description: Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtric
 module Zug.Anbindung.Bahngeschwindigkeit
   ( -- * Datentyp und Typ-Klasse
     Bahngeschwindigkeit(..)
+  , GeschwindigkeitsAnschlüsse(..)
+  , FahrtrichtungsAnschluss(..)
   , BahngeschwindigkeitKlasse(..)
   , PwmZugtyp()
     -- * Hilfsfunktionen
