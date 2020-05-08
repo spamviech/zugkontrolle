@@ -1,9 +1,12 @@
 {-# LANGUAGE CPP #-}
 #ifdef ZUGKONTROLLEGUI
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 #endif
 
 {-|
@@ -24,21 +27,28 @@ module Zug.UI.Gtk.Fenster
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, newTMVar, takeTMVar, putTMVar)
 import Control.Lens ((^.))
+import qualified Control.Lens as Lens
 import Control.Monad (void, when)
 import Control.Monad.Fix (MonadFix())
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (MonadReader(..), runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import Data.List (find)
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Graphics.UI.Gtk (AttrOp(..))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
-import Zug.Enums (ZugtypEither(..), GeschwindigkeitEither(..))
+import Zug.Enums (ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitEither(..)
+                , GeschwindigkeitPhantom(..), GeschwindigkeitKlasse(..))
 import qualified Zug.Language as Language
 import Zug.Language (Sprache(), MitSprache(..), (<!>))
-import Zug.Objekt (ObjektAllgemein(..), Objekt)
+import Zug.Objekt (ObjektAllgemein(..), Objekt, ObjektElement(ObjektTyp, zuObjektTyp))
+import Zug.Plan (Plan, PlanAllgemein(..), Aktion, AktionAllgemein(..), AktionBahngeschwindigkeit(..)
+               , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..)
+               , AktionKontakt(..), AktionWegstrecke(..))
 import Zug.UI.Base (Status, bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte
                   , wegstrecken, pläne, sprache, statusLeer)
 import Zug.UI.Befehl (BefehlAllgemein(..))
@@ -50,10 +60,10 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, pa
 import Zug.UI.Gtk.Klassen (MitBox(..), MitWindow(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), verwendeSpracheGui)
 import Zug.UI.Gtk.StreckenObjekt
-       (MStatusGuiT, IOStatusGui, ObjektGuiReader, StatusVarGui, readSpracheGui
+       (MStatusGuiT, IOStatusGui, ObjektGuiReader, StatusVarGui, readSpracheGui, StatusGui
       , DynamischeWidgetsReader(..), WidgetsTyp(..), bahngeschwindigkeitPackNew, BGWidgets
       , streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew, kontaktPackNew
-      , wegstreckePackNew, WSWidgets, planPackNew)
+      , wegstreckePackNew, WSWidgets, planPackNew, PlanGui, planGui, AktionGui)
 import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
 
 -- | Speichern des aktuellen 'StatusGui'.
@@ -196,7 +206,130 @@ ladeWidgets status = do
                 packWS (ZugtypMärklin ws) = ZugtypMärklin <$> wegstreckePackNew ws
                 packWS (ZugtypLego ws) = ZugtypLego <$> wegstreckePackNew ws
             mapM_ packWS $ reverse $ status ^. wegstrecken
-            mapM_ planPackNew $ reverse $ status ^. pläne
+            statusGui <- RWS.get
+            mapM_ planPackNew $ reverse $ catMaybes $ alsPlanGui statusGui <$> status ^. pläne
+
+alsPlanGui :: StatusGui -> Plan -> Maybe PlanGui
+alsPlanGui statusGui Plan {plName, plAktionen} = do
+    guiAktionen <- mapM konvertiereAktion plAktionen
+    pure Plan { plName, plAktionen = guiAktionen }
+    where
+        lookupWidgetsTyp :: (Eq (ObjektTyp a), ObjektElement a)
+                         => Lens.Getter StatusGui [a]
+                         -> ObjektTyp a
+                         -> Maybe a
+        lookupWidgetsTyp getter objektTyp =
+            find ((==) objektTyp . zuObjektTyp) $ statusGui ^. getter
+
+        konvertiereAktion :: Aktion -> Maybe AktionGui
+        konvertiereAktion (Warten wartezeit) = Just $ Warten wartezeit
+        konvertiereAktion (ABahngeschwindigkeitMärklinPwm aktion) =
+            ABahngeschwindigkeitMärklinPwm <$> konvertiereAktionBahngeschwindigkeit aktion
+        konvertiereAktion (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
+            ABahngeschwindigkeitMärklinKonstanteSpannung
+            <$> konvertiereAktionBahngeschwindigkeit aktion
+        konvertiereAktion (ABahngeschwindigkeitLegoPwm aktion) =
+            ABahngeschwindigkeitLegoPwm <$> konvertiereAktionBahngeschwindigkeit aktion
+        konvertiereAktion (ABahngeschwindigkeitLegoKonstanteSpannung aktion) =
+            ABahngeschwindigkeitLegoKonstanteSpannung
+            <$> konvertiereAktionBahngeschwindigkeit aktion
+        konvertiereAktion (AStreckenabschnitt (Strom st fließend)) =
+            AStreckenabschnitt . flip Strom fließend <$> lookupWidgetsTyp streckenabschnitte st
+        konvertiereAktion (AWeiche (Stellen we richtung)) =
+            AWeiche . flip Stellen richtung <$> lookupWidgetsTyp weichen we
+        konvertiereAktion (AKupplung (Kuppeln ku)) =
+            AKupplung . Kuppeln <$> lookupWidgetsTyp kupplungen ku
+        konvertiereAktion (AKontakt (WartenAuf ko)) =
+            AKontakt . WartenAuf <$> lookupWidgetsTyp kontakte ko
+        konvertiereAktion (AWegstreckeMärklin aktion) =
+            AWegstreckeMärklin <$> konvertiereAktionWegstrecke aktion
+        konvertiereAktion (AWegstreckeLego aktion) =
+            AWegstreckeLego <$> konvertiereAktionWegstrecke aktion
+        konvertiereAktion (AktionAusführen pl) =
+            AktionAusführen <$> planGui <$> lookupWidgetsTyp pläne pl
+
+        lookupBG :: (ZugtypKlasse z, GeschwindigkeitKlasse g)
+                 => Bahngeschwindigkeit g z
+                 -> Maybe (BGWidgets g z)
+        lookupBG bg = do
+            bgZugtypEither <- lookupWidgetsTyp bahngeschwindigkeiten
+                $ zuZugtypEither
+                $ zuGeschwindigkeitEither bg
+            bgGeschwindigkeitEither <- vonZugtypEither bgZugtypEither
+            vonGeschwindigkeitEither bgGeschwindigkeitEither
+
+        konvertiereAktionBahngeschwindigkeit :: (ZugtypKlasse z, GeschwindigkeitKlasse g)
+                                             => AktionBahngeschwindigkeit Bahngeschwindigkeit g z
+                                             -> Maybe (AktionBahngeschwindigkeit BGWidgets g z)
+        konvertiereAktionBahngeschwindigkeit (Geschwindigkeit bg wert) =
+            flip Geschwindigkeit wert <$> lookupBG bg
+        konvertiereAktionBahngeschwindigkeit (Fahrstrom bg wert) =
+            flip Fahrstrom wert <$> lookupBG bg
+        konvertiereAktionBahngeschwindigkeit (Umdrehen bg) = Umdrehen <$> lookupBG bg
+        konvertiereAktionBahngeschwindigkeit (FahrtrichtungEinstellen bg fahrtrichtung) =
+            flip FahrtrichtungEinstellen fahrtrichtung <$> lookupBG bg
+
+        lookupWS :: (ZugtypKlasse z) => Wegstrecke z -> Maybe (WSWidgets z)
+        lookupWS ws = do
+            wsZugtypEither <- lookupWidgetsTyp wegstrecken $ zuZugtypEither ws
+            vonZugtypEither wsZugtypEither
+
+        konvertiereAktionWegstrecke :: (ZugtypKlasse z)
+                                    => AktionWegstrecke Wegstrecke z
+                                    -> Maybe (AktionWegstrecke WSWidgets z)
+        konvertiereAktionWegstrecke (Einstellen ws) = Einstellen <$> lookupWS ws
+        konvertiereAktionWegstrecke
+            (AWSBahngeschwindigkeit
+                 (GeschwindigkeitPwm (Geschwindigkeit (GeschwindigkeitPhantom ws) wert))) =
+            AWSBahngeschwindigkeit
+            . GeschwindigkeitPwm
+            . flip Geschwindigkeit wert
+            . GeschwindigkeitPhantom
+            <$> lookupWS ws
+        konvertiereAktionWegstrecke
+            (AWSBahngeschwindigkeit
+                 (GeschwindigkeitKonstanteSpannung (Fahrstrom (GeschwindigkeitPhantom ws) wert))) =
+            AWSBahngeschwindigkeit
+            . GeschwindigkeitKonstanteSpannung
+            . flip Fahrstrom wert
+            . GeschwindigkeitPhantom
+            <$> lookupWS ws
+        konvertiereAktionWegstrecke
+            (AWSBahngeschwindigkeit (GeschwindigkeitPwm (Umdrehen (GeschwindigkeitPhantom ws)))) =
+            AWSBahngeschwindigkeit . GeschwindigkeitPwm . Umdrehen . GeschwindigkeitPhantom
+            <$> lookupWS ws
+        konvertiereAktionWegstrecke
+            (AWSBahngeschwindigkeit
+                 (GeschwindigkeitKonstanteSpannung (Umdrehen (GeschwindigkeitPhantom ws)))) =
+            AWSBahngeschwindigkeit
+            . GeschwindigkeitKonstanteSpannung
+            . Umdrehen
+            . GeschwindigkeitPhantom
+            <$> lookupWS ws
+        konvertiereAktionWegstrecke
+            (AWSBahngeschwindigkeit
+                 (GeschwindigkeitPwm
+                      (FahrtrichtungEinstellen (GeschwindigkeitPhantom ws) fahrtrichtung))) =
+            AWSBahngeschwindigkeit
+            . GeschwindigkeitPwm
+            . flip FahrtrichtungEinstellen fahrtrichtung
+            . GeschwindigkeitPhantom
+            <$> lookupWS ws
+        konvertiereAktionWegstrecke
+            (AWSBahngeschwindigkeit
+                 (GeschwindigkeitKonstanteSpannung
+                      (FahrtrichtungEinstellen (GeschwindigkeitPhantom ws) fahrtrichtung))) =
+            AWSBahngeschwindigkeit
+            . GeschwindigkeitKonstanteSpannung
+            . flip FahrtrichtungEinstellen fahrtrichtung
+            . GeschwindigkeitPhantom
+            <$> lookupWS ws
+        konvertiereAktionWegstrecke (AWSStreckenabschnitt (Strom ws fließend)) =
+            AWSStreckenabschnitt . flip Strom fließend <$> lookupWS ws
+        konvertiereAktionWegstrecke (AWSKupplung (Kuppeln ws)) =
+            AWSKupplung . Kuppeln <$> lookupWS ws
+        konvertiereAktionWegstrecke (AWSKontakt (WartenAuf ws)) =
+            AWSKontakt . WartenAuf <$> lookupWS ws
 
 dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                => p
@@ -295,7 +428,13 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
                         -> void $ wegstreckePackNew wsMärklin
                     (HinzufügenErfolgreich (OWegstrecke (ZugtypLego wsLego)))
                         -> void $ wegstreckePackNew wsLego
-                    (HinzufügenErfolgreich (OPlan pl)) -> void $ planPackNew pl
+                    (HinzufügenErfolgreich (OPlan pl)) -> void $ do
+                        statusGui <- RWS.get
+                        case alsPlanGui statusGui pl of
+                            (Just planGui) -> planPackNew planGui
+                            Nothing -> error
+                                $ "Konvertieren einen neu erstellten Plans fehlgeschlagen: "
+                                ++ show pl
                     -- Kein catch-all Pattern um Fehlermeldung des Compilers
                     -- bei neu hinzugefügten Objekten nicht zu verpassen
                     HinzufügenBeenden -> pure ()

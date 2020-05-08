@@ -20,7 +20,9 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets
     -- * PLWidgets
     PLWidgets()
   , PlanGui
+  , AktionGui
   , planPackNew
+  , planGui
   , PLWidgetsBoxen(..)
   , MitPLWidgetsBoxen(..)
   , PLWidgetsBoxenReader(..)
@@ -49,7 +51,7 @@ import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())
 import Zug.Language (Sprache(), MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..), ObjektElement(..))
-import Zug.Plan (PlanAllgemein(..), Plan, PlanKlasse(..), AusführendReader())
+import Zug.Plan (PlanAllgemein(..), Plan, PlanKlasse(..), AusführendReader(), AktionAllgemein())
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenPlan, AusführenMöglich(..)
                   , ausführenMöglich, ReaderFamilie, MitTVarMaps())
 import Zug.UI.Befehl
@@ -84,6 +86,9 @@ instance Kategorie PLWidgets where
 -- | 'PlanAllgemein' spezialisiert auf Gui-Typen.
 type PlanGui = PlanAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
 
+-- | 'AktionAllgemein' spezialisier auf Gui-Typen.
+type AktionGui = AktionAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets
+
 -- | 'Plan' mit zugehörigen Widgets
 data PLWidgets =
     PLWidgets
@@ -94,6 +99,10 @@ data PLWidgets =
     , plTVarSprache :: TVar (Maybe [Sprache -> IO ()])
     , plTVarEvent :: TVar EventAusführen
     }
+
+-- | Erhalte den 'PlanGui' eines 'PLWidgets'.
+planGui :: PLWidgets -> PlanGui
+planGui = pl
 
 deriving instance Eq PLWidgets
 
