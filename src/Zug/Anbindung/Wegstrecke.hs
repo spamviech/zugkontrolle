@@ -532,7 +532,7 @@ instance WegstreckeKlasse (Wegstrecke 'Märklin) where
                    )
             splitAnschlüsse
                 acc@(pins, portsHigh, portsLow)
-                (we@MärklinWeiche {wemFließend, wemRichtungsAnschlüsse}, richtung) =
+                (we@WeicheMärklin {wemFließend, wemRichtungsAnschlüsse}, richtung) =
                 case getRichtungsAnschluss richtung (NonEmpty.toList wemRichtungsAnschlüsse) of
                     (Just (AnschlussMit AnschlussPin {pin}))
                         -> ((pin, flip erhalteValue we) : pins, portsHigh, portsLow)

@@ -424,7 +424,7 @@ weichePackNew weiche = do
             -> TVar EventAusführen
             -> MStatusAllgemeinT m o (NonEmpty (Richtung, Gtk.Button))
         richtungsButtonsPackNew
-            MärklinWeiche {wemRichtungsAnschlüsse}
+            WeicheMärklin {wemRichtungsAnschlüsse}
             box
             vBoxAktionen
             weTVarSprache
@@ -443,7 +443,7 @@ weichePackNew weiche = do
                     $ anschlussNew justTVarSprache anzeigeRichtung anschluss
                 pure (richtung, button)
         richtungsButtonsPackNew
-            LegoWeiche {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
+            WeicheLego {welRichtungsPin, welRichtungen = (richtung1, richtung2)}
             box
             vBoxAktionen
             weTVarSprache

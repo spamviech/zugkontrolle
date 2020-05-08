@@ -33,15 +33,15 @@ import qualified Zug.Language as Language
 
 -- | Stellen einer 'Weiche'.
 data Weiche (z :: Zugtyp) where
-    LegoWeiche :: { welName :: Text
+    WeicheMärklin :: { wemName :: Text
+                      , wemFließend :: Value
+                      , wemRichtungsAnschlüsse :: NonEmpty (Richtung, AnschlussEither)
+                      } -> Weiche 'Märklin
+    WeicheLego :: { welName :: Text
                   , welFließend :: Value
                   , welRichtungsPin :: Pin
                   , welRichtungen :: (Richtung, Richtung)
                   } -> Weiche 'Lego
-    MärklinWeiche :: { wemName :: Text
-                      , wemFließend :: Value
-                      , wemRichtungsAnschlüsse :: NonEmpty (Richtung, AnschlussEither)
-                      } -> Weiche 'Märklin
 
 deriving instance Eq (Weiche z)
 
@@ -51,14 +51,14 @@ deriving instance Show (Weiche z)
 
 instance Anzeige (Weiche z) where
     anzeige :: Weiche z -> Sprache -> Text
-    anzeige LegoWeiche {welName, welRichtungsPin, welRichtungen = (richtung1, richtung2)} =
+    anzeige WeicheLego {welName, welRichtungsPin, welRichtungen = (richtung1, richtung2)} =
         Language.lego
         <-> Language.weiche
         <:> Language.name
         <=> welName
         <^> Language.richtung
         <-> Language.pin <=> welRichtungsPin <^> Language.richtungen <=> richtung1 <|> richtung2
-    anzeige MärklinWeiche {wemName, wemRichtungsAnschlüsse} =
+    anzeige WeicheMärklin {wemName, wemRichtungsAnschlüsse} =
         Language.märklin
         <-> Language.weiche
         <:> Language.name
@@ -70,18 +70,18 @@ instance Anzeige (Weiche z) where
 
 instance StreckenObjekt (Weiche z) where
     anschlüsse :: Weiche z -> Set AnschlussEither
-    anschlüsse LegoWeiche {welRichtungsPin} = [zuAnschluss welRichtungsPin]
-    anschlüsse MärklinWeiche {wemRichtungsAnschlüsse} =
+    anschlüsse WeicheLego {welRichtungsPin} = [zuAnschluss welRichtungsPin]
+    anschlüsse WeicheMärklin {wemRichtungsAnschlüsse} =
         Set.fromList $ map snd $ NonEmpty.toList wemRichtungsAnschlüsse
 
     erhalteName :: Weiche z -> Text
-    erhalteName LegoWeiche {welName} = welName
-    erhalteName MärklinWeiche {wemName} = wemName
+    erhalteName WeicheLego {welName} = welName
+    erhalteName WeicheMärklin {wemName} = wemName
 
 instance StreckenAtom (Weiche z) where
     fließend :: Weiche z -> Value
-    fließend LegoWeiche {welFließend} = welFließend
-    fließend MärklinWeiche {wemFließend} = wemFließend
+    fließend WeicheLego {welFließend} = welFließend
+    fließend WeicheMärklin {wemFließend} = wemFließend
 
 -- | Sammel-Klasse für 'Weiche'n-artige Typen
 class (StreckenObjekt w) => WeicheKlasse w where
@@ -112,7 +112,7 @@ weicheZeit = MilliSekunden 250
 
 instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
-    stellen we@LegoWeiche {welRichtungsPin, welRichtungen} richtung
+    stellen we@WeicheLego {welRichtungsPin, welRichtungen} richtung
         | richtung == fst welRichtungen =
             flip
                 befehlAusführen
@@ -130,7 +130,7 @@ instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
                 warte weicheZeit
                 pwmServo we welRichtungsPin 0
         | otherwise = pure ()
-    stellen we@MärklinWeiche {wemRichtungsAnschlüsse} richtung =
+    stellen we@WeicheMärklin {wemRichtungsAnschlüsse} richtung =
         befehlAusführen
             richtungStellen
             ("Stellen ("
@@ -147,12 +147,12 @@ instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
                     anschlussWrite richtungsAnschluss $ gesperrt we
 
     hatRichtung :: Weiche z -> Richtung -> Bool
-    hatRichtung LegoWeiche {welRichtungen = (erste, zweite)} richtung =
+    hatRichtung WeicheLego {welRichtungen = (erste, zweite)} richtung =
         (erste == richtung) || (zweite == richtung)
-    hatRichtung MärklinWeiche {wemRichtungsAnschlüsse} richtung =
+    hatRichtung WeicheMärklin {wemRichtungsAnschlüsse} richtung =
         any ((richtung ==) . fst) wemRichtungsAnschlüsse
 
     erhalteRichtungen :: Weiche z -> NonEmpty Richtung
     erhalteRichtungen
-        LegoWeiche {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]
-    erhalteRichtungen MärklinWeiche {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse
+        WeicheLego {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]
+    erhalteRichtungen WeicheMärklin {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse

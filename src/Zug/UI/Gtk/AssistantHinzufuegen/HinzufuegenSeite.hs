@@ -308,7 +308,7 @@ seiteErgebnis
             pure
                 $ OWeiche
                 $ ZugtypMärklin
-                    MärklinWeiche
+                    WeicheMärklin
                     { wemName = name
                     , wemFließend = fließend
                     , wemRichtungsAnschlüsse
@@ -319,7 +319,7 @@ seiteErgebnis
             pure
                 $ OWeiche
                 $ ZugtypLego
-                    LegoWeiche
+                    WeicheLego
                     { welName = name
                     , welFließend = fließend
                     , welRichtungen
@@ -510,14 +510,14 @@ setzeSeite
     setzeFließendValue fließendAuswahl $ fließend we
     setzeAuswahl zugtypAuswahl $ zugtyp we
     liftIO $ case we of
-        (ZugtypMärklin MärklinWeiche {wemRichtungsAnschlüsse})
+        (ZugtypMärklin WeicheMärklin {wemRichtungsAnschlüsse})
             -> forM_ märklinRichtungsAuswahl $ \(richtung, rcb, anschlussAuswahl)
             -> case List.lookup richtung $ NonEmpty.toList wemRichtungsAnschlüsse of
                 (Just anschluss) -> do
                     registrierterCheckButtonSetToggled rcb True
                     setzeAnschluss anschlussAuswahl anschluss
                 Nothing -> registrierterCheckButtonSetToggled rcb False
-        (ZugtypLego LegoWeiche {welRichtungen, welRichtungsPin}) -> do
+        (ZugtypLego WeicheLego {welRichtungen, welRichtungsPin}) -> do
             setzeAuswahl legoRichtungenAuswahl welRichtungen
             setzePin legoRichtungsAuswahl welRichtungsPin
     pure True

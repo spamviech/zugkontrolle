@@ -578,7 +578,7 @@ instance FromJSON (Weiche 'Märklin) where
         wemName <- v .: nameJS
         wemRichtungsAnschlüsse <- v .: richtungsPinsJS <|> v .: richtungsAnschlüsseJS
         wemFließend <- parseFließend v
-        pure MärklinWeiche { wemName, wemFließend, wemRichtungsAnschlüsse }
+        pure WeicheMärklin { wemName, wemFließend, wemRichtungsAnschlüsse }
     parseJSON _value = mzero
 
 instance FromJSON (Weiche 'Lego) where
@@ -589,19 +589,19 @@ instance FromJSON (Weiche 'Lego) where
         welRichtungsPin <- Gpio <$> v .: richtungsPinJS
         welRichtungen <- v .: richtungenJS
         welFließend <- parseFließend v
-        pure LegoWeiche { welName, welFließend, welRichtungsPin, welRichtungen }
+        pure WeicheLego { welName, welFließend, welRichtungsPin, welRichtungen }
     parseJSON _value = mzero
 
 instance ToJSON (Weiche z) where
     toJSON :: Weiche z -> Value
-    toJSON LegoWeiche {welName, welFließend, welRichtungsPin, welRichtungen} =
+    toJSON WeicheLego {welName, welFließend, welRichtungsPin, welRichtungen} =
         object
             [ nameJS .= welName
             , fließendJS .= welFließend
             , richtungsPinJS .= (fromJust $ zuPinGpio welRichtungsPin :: Word8)
             , richtungenJS .= welRichtungen
             , zugtypJS .= Lego]
-    toJSON MärklinWeiche {wemName, wemFließend, wemRichtungsAnschlüsse} =
+    toJSON WeicheMärklin {wemName, wemFließend, wemRichtungsAnschlüsse} =
         object
             [ nameJS .= wemName
             , fließendJS .= wemFließend
