@@ -26,9 +26,11 @@ module Zug.Plan
   , Ausführend(..)
   , PlanAllgemein(..)
   , Plan
+  , PlanA
   , AktionKlasse(..)
   , AktionAllgemein(..)
   , Aktion
+  , AktionA
     -- * Spezialisierte Aktionen
   , AktionBahngeschwindigkeit(..)
   , AktionStreckenabschnitt(..)
@@ -55,11 +57,13 @@ import Zug.Anbindung
       , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..)
       , Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..), KontaktKlasse(..))
 import Zug.Derive.Ord (deriveOrd)
-import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
-                , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
+import Zug.Enums
+       (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
+      , GeschwindigkeitPhantom(..), Richtung(), Fahrtrichtung(), Strom(..))
 import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), showText, (<~>), (<^>), (<=>), (<:>), (<°>))
-import {-# SOURCE #-} Zug.Objekt (Objekt, ObjektAllgemein(OPlan), ObjektElement(..))
+import {-# SOURCE #-} Zug.Objekt
+       (Objekt, ObjektAllgemein(OPlan), ObjektElement(..), ObjektKlasse(..))
 import Zug.Plan.TemplateHaskell
        (aktionBahngeschwindigkeitCxtType, aktionAllgemeinCxtType, planAllgemeinCxtType)
 
@@ -261,6 +265,9 @@ deriving instance ( Eq (bg 'Pwm 'Märklin)
 type Aktion =
     AktionAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Kontakt Wegstrecke
 
+-- | 'AktionAllgemein' spezialisiert auf einen 'Zug.Objekt.ObjektKlasse'-Typ.
+type AktionA o = AktionAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
+
 instance ( StreckenObjekt (bg 'Pwm 'Märklin)
          , StreckenObjekt (bg 'KonstanteSpannung 'Märklin)
          , StreckenObjekt (bg 'Pwm 'Lego)
@@ -393,6 +400,9 @@ instance ( Eq (bg 'Pwm 'Märklin)
 -- | 'PlanAllgemein', spezialisiert auf 'Zug.Objekt.Objekt'.
 type Plan = PlanAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Kontakt Wegstrecke
 
+-- | 'PlanAllgemein', spezialisiert auf einen 'Zug.Objekt.ObjektKlasse'-Typ.
+type PlanA o = PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
+
 -- | newtype für ausführende Pläne ('Plan')
 newtype Ausführend = Ausführend Plan
     deriving (Eq, Show, StreckenObjekt)
@@ -476,6 +486,29 @@ instance ( BahngeschwindigkeitKlasse bg
          , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , KontaktKlasse (ws 'Märklin)
          , KontaktKlasse (ws 'Lego)
+         , ObjektElement (bg 'Pwm 'Märklin)
+         , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+         , ObjektElement (bg 'KonstanteSpannung 'Märklin)
+         , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+         , ObjektElement (bg 'Pwm 'Lego)
+         , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+         , ObjektElement (bg 'KonstanteSpannung 'Lego)
+         , ObjektTyp (bg 'KonstanteSpannung 'Lego) ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+         , ObjektElement st
+         , ObjektTyp st ~ Streckenabschnitt
+         , ObjektElement (we 'Märklin)
+         , ObjektTyp (we 'Märklin) ~ Weiche 'Märklin
+         , ObjektElement (we 'Lego)
+         , ObjektTyp (we 'Lego) ~ Weiche 'Lego
+         , ObjektElement ku
+         , ObjektTyp ku ~ Kupplung
+         , ObjektElement ko
+         , ObjektTyp ko ~ Kontakt
+         , ObjektElement (ws 'Märklin)
+         , ObjektTyp (ws 'Märklin) ~ Wegstrecke 'Märklin
+         , ObjektElement (ws 'Lego)
+         , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
          ) => PlanKlasse (PlanAllgemein bg st we ku ko ws) where
     ausführenPlan :: (AusführendReader r m, MonadIO m)
                    => PlanAllgemein bg st we ku ko ws
@@ -508,6 +541,30 @@ instance ( BahngeschwindigkeitKlasse bg
                    , KontaktKlasse (ws 'Lego)
                    , AusführendReader r m
                    , MonadIO m
+                   , ObjektElement (bg 'Pwm 'Märklin)
+                   , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+                   , ObjektElement (bg 'KonstanteSpannung 'Märklin)
+                   , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                   , ObjektElement (bg 'Pwm 'Lego)
+                   , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+                   , ObjektElement (bg 'KonstanteSpannung 'Lego)
+                   , ObjektTyp (bg 'KonstanteSpannung 'Lego)
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+                   , ObjektElement st
+                   , ObjektTyp st ~ Streckenabschnitt
+                   , ObjektElement (we 'Märklin)
+                   , ObjektTyp (we 'Märklin) ~ Weiche 'Märklin
+                   , ObjektElement (we 'Lego)
+                   , ObjektTyp (we 'Lego) ~ Weiche 'Lego
+                   , ObjektElement ku
+                   , ObjektTyp ku ~ Kupplung
+                   , ObjektElement ko
+                   , ObjektTyp ko ~ Kontakt
+                   , ObjektElement (ws 'Märklin)
+                   , ObjektTyp (ws 'Märklin) ~ Wegstrecke 'Märklin
+                   , ObjektElement (ws 'Lego)
+                   , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
                    )
                 => Natural
                 -> NonEmpty (AktionAllgemein bg st we ku ko ws)
@@ -527,11 +584,152 @@ instance ( BahngeschwindigkeitKlasse bg
                             $ modifyTVar tvarAusführend
                             $ Set.delete ausführendPlan
 
-instance ObjektElement (PlanAllgemein bg st we ku ko ws) where
+instance ( ObjektElement (bg 'Pwm 'Märklin)
+         , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+         , ObjektElement (bg 'KonstanteSpannung 'Märklin)
+         , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+         , ObjektElement (bg 'Pwm 'Lego)
+         , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+         , ObjektElement (bg 'KonstanteSpannung 'Lego)
+         , ObjektTyp (bg 'KonstanteSpannung 'Lego) ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+         , ObjektElement st
+         , ObjektTyp st ~ Streckenabschnitt
+         , ObjektElement (we 'Märklin)
+         , ObjektTyp (we 'Märklin) ~ Weiche 'Märklin
+         , ObjektElement (we 'Lego)
+         , ObjektTyp (we 'Lego) ~ Weiche 'Lego
+         , ObjektElement ku
+         , ObjektTyp ku ~ Kupplung
+         , ObjektElement ko
+         , ObjektTyp ko ~ Kontakt
+         , ObjektElement (ws 'Märklin)
+         , ObjektTyp (ws 'Märklin) ~ Wegstrecke 'Märklin
+         , ObjektElement (ws 'Lego)
+         , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
+         ) => ObjektElement (PlanAllgemein bg st we ku ko ws) where
     type ObjektTyp (PlanAllgemein bg st we ku ko ws) = Plan
 
     zuObjektTyp :: PlanAllgemein bg st we ku ko ws -> Plan
-    zuObjektTyp = _undefined --TODO
+    zuObjektTyp
+        Plan {plName, plAktionen} = Plan { plName, plAktionen = konvertiereAktion <$> plAktionen }
+        where
+            konvertiereAktion
+                :: ( ObjektElement (bg 'Pwm 'Märklin)
+                   , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+                   , ObjektElement (bg 'KonstanteSpannung 'Märklin)
+                   , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                   , ObjektElement (bg 'Pwm 'Lego)
+                   , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+                   , ObjektElement (bg 'KonstanteSpannung 'Lego)
+                   , ObjektTyp (bg 'KonstanteSpannung 'Lego)
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+                   , ObjektElement st
+                   , ObjektTyp st ~ Streckenabschnitt
+                   , ObjektElement (we 'Märklin)
+                   , ObjektTyp (we 'Märklin) ~ Weiche 'Märklin
+                   , ObjektElement (we 'Lego)
+                   , ObjektTyp (we 'Lego) ~ Weiche 'Lego
+                   , ObjektElement ku
+                   , ObjektTyp ku ~ Kupplung
+                   , ObjektElement ko
+                   , ObjektTyp ko ~ Kontakt
+                   , ObjektElement (ws 'Märklin)
+                   , ObjektTyp (ws 'Märklin) ~ Wegstrecke 'Märklin
+                   , ObjektElement (ws 'Lego)
+                   , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
+                   )
+                => AktionAllgemein bg st we ku ko ws
+                -> Aktion
+            konvertiereAktion (Warten wartezeit) = Warten wartezeit
+            konvertiereAktion (ABahngeschwindigkeitMärklinPwm aktion) =
+                ABahngeschwindigkeitMärklinPwm $ konvertiereAktionBahngeschwindigkeit aktion
+            konvertiereAktion (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
+                ABahngeschwindigkeitMärklinKonstanteSpannung
+                $ konvertiereAktionBahngeschwindigkeit aktion
+            konvertiereAktion (ABahngeschwindigkeitLegoPwm aktion) =
+                ABahngeschwindigkeitLegoPwm $ konvertiereAktionBahngeschwindigkeit aktion
+            konvertiereAktion (ABahngeschwindigkeitLegoKonstanteSpannung aktion) =
+                ABahngeschwindigkeitLegoKonstanteSpannung
+                $ konvertiereAktionBahngeschwindigkeit aktion
+            konvertiereAktion (AStreckenabschnitt (Strom st fließend)) =
+                AStreckenabschnitt $ Strom (zuObjektTyp st) fließend
+            konvertiereAktion (AWeiche (Stellen (ZugtypMärklin we) richtung)) =
+                AWeiche $ Stellen (ZugtypMärklin $ zuObjektTyp we) richtung
+            konvertiereAktion (AWeiche (Stellen (ZugtypLego we) richtung)) =
+                AWeiche $ Stellen (ZugtypLego $ zuObjektTyp we) richtung
+            konvertiereAktion (AKupplung (Kuppeln ku)) = AKupplung $ Kuppeln $ zuObjektTyp ku
+            konvertiereAktion (AKontakt (WartenAuf ko)) = AKontakt $ WartenAuf $ zuObjektTyp ko
+            konvertiereAktion (AWegstreckeMärklin aktion) =
+                AWegstreckeMärklin $ konvertiereAktionWegstrecke aktion
+            konvertiereAktion (AWegstreckeLego aktion) =
+                AWegstreckeLego $ konvertiereAktionWegstrecke aktion
+            konvertiereAktion (AktionAusführen pl) = AktionAusführen $ zuObjektTyp pl
+
+            konvertiereAktionBahngeschwindigkeit
+                :: (ObjektElement (bg g z), ObjektTyp (bg g z) ~ Bahngeschwindigkeit g z)
+                => AktionBahngeschwindigkeit bg g z
+                -> AktionBahngeschwindigkeit Bahngeschwindigkeit g z
+            konvertiereAktionBahngeschwindigkeit (Geschwindigkeit bg wert) =
+                Geschwindigkeit (zuObjektTyp bg) wert
+            konvertiereAktionBahngeschwindigkeit (Fahrstrom bg wert) =
+                Fahrstrom (zuObjektTyp bg) wert
+            konvertiereAktionBahngeschwindigkeit (Umdrehen bg) = Umdrehen $ zuObjektTyp bg
+            konvertiereAktionBahngeschwindigkeit (FahrtrichtungEinstellen bg fahrtrichtung) =
+                FahrtrichtungEinstellen (zuObjektTyp bg) fahrtrichtung
+
+            konvertiereAktionWegstrecke :: (ObjektElement (ws z), ObjektTyp (ws z) ~ Wegstrecke z)
+                                        => AktionWegstrecke ws z
+                                        -> AktionWegstrecke Wegstrecke z
+            konvertiereAktionWegstrecke (Einstellen ws) = Einstellen $ zuObjektTyp ws
+            konvertiereAktionWegstrecke
+                (AWSBahngeschwindigkeit
+                     (GeschwindigkeitPwm (Geschwindigkeit (GeschwindigkeitPhantom ws) wert))) =
+                AWSBahngeschwindigkeit
+                $ GeschwindigkeitPwm
+                $ Geschwindigkeit (GeschwindigkeitPhantom $ zuObjektTyp ws) wert
+            konvertiereAktionWegstrecke
+                (AWSBahngeschwindigkeit
+                     (GeschwindigkeitKonstanteSpannung (Fahrstrom (GeschwindigkeitPhantom ws) wert))) =
+                AWSBahngeschwindigkeit
+                $ GeschwindigkeitKonstanteSpannung
+                $ Fahrstrom (GeschwindigkeitPhantom $ zuObjektTyp ws) wert
+            konvertiereAktionWegstrecke
+                (AWSBahngeschwindigkeit (GeschwindigkeitPwm (Umdrehen (GeschwindigkeitPhantom ws)))) =
+                AWSBahngeschwindigkeit
+                $ GeschwindigkeitPwm
+                $ Umdrehen
+                $ GeschwindigkeitPhantom
+                $ zuObjektTyp ws
+            konvertiereAktionWegstrecke
+                (AWSBahngeschwindigkeit
+                     (GeschwindigkeitKonstanteSpannung (Umdrehen (GeschwindigkeitPhantom ws)))) =
+                AWSBahngeschwindigkeit
+                $ GeschwindigkeitKonstanteSpannung
+                $ Umdrehen
+                $ GeschwindigkeitPhantom
+                $ zuObjektTyp ws
+            konvertiereAktionWegstrecke
+                (AWSBahngeschwindigkeit
+                     (GeschwindigkeitPwm
+                          (FahrtrichtungEinstellen (GeschwindigkeitPhantom ws) fahrtrichtung))) =
+                AWSBahngeschwindigkeit
+                $ GeschwindigkeitPwm
+                $ FahrtrichtungEinstellen (GeschwindigkeitPhantom $ zuObjektTyp ws) fahrtrichtung
+            konvertiereAktionWegstrecke
+                (AWSBahngeschwindigkeit
+                     (GeschwindigkeitKonstanteSpannung
+                          (FahrtrichtungEinstellen (GeschwindigkeitPhantom ws) fahrtrichtung))) =
+                AWSBahngeschwindigkeit
+                $ GeschwindigkeitKonstanteSpannung
+                $ FahrtrichtungEinstellen (GeschwindigkeitPhantom $ zuObjektTyp ws) fahrtrichtung
+            konvertiereAktionWegstrecke (AWSStreckenabschnitt (Strom ws fließend)) =
+                AWSStreckenabschnitt $ Strom (zuObjektTyp ws) fließend
+            konvertiereAktionWegstrecke (AWSKupplung (Kuppeln ws)) =
+                AWSKupplung $ Kuppeln $ zuObjektTyp ws
+            konvertiereAktionWegstrecke (AWSKontakt (WartenAuf ws)) =
+                AWSKontakt $ WartenAuf $ zuObjektTyp ws
 
     zuObjekt :: PlanAllgemein bg st we ku ko ws -> Objekt
     zuObjekt = OPlan . zuObjektTyp
@@ -590,6 +788,29 @@ instance ( BahngeschwindigkeitKlasse bg
          , BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , KontaktKlasse (ws 'Märklin)
          , KontaktKlasse (ws 'Lego)
+         , ObjektElement (bg 'Pwm 'Märklin)
+         , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
+         , ObjektElement (bg 'KonstanteSpannung 'Märklin)
+         , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+         , ObjektElement (bg 'Pwm 'Lego)
+         , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
+         , ObjektElement (bg 'KonstanteSpannung 'Lego)
+         , ObjektTyp (bg 'KonstanteSpannung 'Lego) ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+         , ObjektElement st
+         , ObjektTyp st ~ Streckenabschnitt
+         , ObjektElement (we 'Märklin)
+         , ObjektTyp (we 'Märklin) ~ Weiche 'Märklin
+         , ObjektElement (we 'Lego)
+         , ObjektTyp (we 'Lego) ~ Weiche 'Lego
+         , ObjektElement ku
+         , ObjektTyp ku ~ Kupplung
+         , ObjektElement ko
+         , ObjektTyp ko ~ Kontakt
+         , ObjektElement (ws 'Märklin)
+         , ObjektTyp (ws 'Märklin) ~ Wegstrecke 'Märklin
+         , ObjektElement (ws 'Lego)
+         , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
          ) => AktionKlasse (AktionAllgemein bg st we ku ko ws) where
     ausführenAktion
         :: (AusführendReader r m, MonadIO m) => AktionAllgemein bg st we ku ko ws -> m ()

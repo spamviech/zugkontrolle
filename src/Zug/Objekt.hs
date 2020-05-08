@@ -17,7 +17,7 @@ import Data.Text (Text)
 import Zug.Anbindung (AnschlussEither(), StreckenObjekt(..), Bahngeschwindigkeit(..)
                     , Streckenabschnitt(), Weiche(), Kupplung(), Kontakt(), Wegstrecke())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(..), GeschwindigkeitVariante(..)
-                , GeschwindigkeitEither(..))
+                , GeschwindigkeitEither(..), GeschwindigkeitKlasse(..))
 import Zug.Language (Anzeige(..), Sprache())
 import Zug.Plan (Plan())
 
@@ -104,14 +104,9 @@ class ObjektElement e where
 
     zuObjekt :: e -> Objekt
 
-instance (ZugtypKlasse z) => ObjektElement (Bahngeschwindigkeit g z) where
+instance (ZugtypKlasse z, GeschwindigkeitKlasse g) => ObjektElement (Bahngeschwindigkeit g z) where
     zuObjekt :: Bahngeschwindigkeit g z -> Objekt
-    zuObjekt bg@MärklinBahngeschwindigkeitPwm {} =
-        OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitPwm bg
-    zuObjekt bg@MärklinBahngeschwindigkeitKonstanteSpannung {} =
-        OBahngeschwindigkeit $ ZugtypMärklin $ GeschwindigkeitKonstanteSpannung bg
-    zuObjekt
-        bg@LegoBahngeschwindigkeit {} = OBahngeschwindigkeit $ ZugtypLego $ GeschwindigkeitPwm bg
+    zuObjekt = OBahngeschwindigkeit . zuZugtypEither . zuGeschwindigkeitEither
 
 instance ObjektElement Streckenabschnitt where
     zuObjekt :: Streckenabschnitt -> Objekt
