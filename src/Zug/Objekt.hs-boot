@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektKlasse(..), ObjektElement(..)) where
 
@@ -57,11 +58,17 @@ class ObjektKlasse o where
 
 class ObjektElement e where
     type ObjektTyp e :: Type
+
     type ObjektTyp e = e
     zuObjektTyp :: e -> ObjektTyp e
     default zuObjektTyp :: (e ~ ObjektTyp e) => e -> ObjektTyp e
     zuObjektTyp = id
+
     zuObjekt :: e -> Objekt
+    default zuObjekt :: (ObjektElement (ObjektTyp e)) => e -> Objekt
+    zuObjekt = zuObjekt . zuObjektTyp
+
+    {-# MINIMAL zuObjektTyp | zuObjekt #-}
 
 type Objekt =
     ObjektAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Kontakt Wegstrecke Plan

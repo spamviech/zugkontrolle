@@ -4,6 +4,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Description : 'Either'-ähnlicher Datentyp für 'StreckenObjekt'-Typen.
@@ -103,6 +104,10 @@ class ObjektElement e where
     zuObjektTyp = id
 
     zuObjekt :: e -> Objekt
+    default zuObjekt :: (ObjektElement (ObjektTyp e)) => e -> Objekt
+    zuObjekt = zuObjekt . zuObjektTyp
+
+    {-# MINIMAL zuObjektTyp | zuObjekt #-}
 
 instance (ZugtypKlasse z, GeschwindigkeitKlasse g) => ObjektElement (Bahngeschwindigkeit g z) where
     zuObjekt :: Bahngeschwindigkeit g z -> Objekt
