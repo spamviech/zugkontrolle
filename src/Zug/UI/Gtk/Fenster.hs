@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecursiveDo #-}
 #endif
 
 {-|
@@ -210,9 +211,10 @@ ladeWidgets status = do
             mapM_ planPackNew $ reverse $ catMaybes $ alsPlanGui statusGui <$> status ^. pläne
 
 alsPlanGui :: StatusGui -> Plan -> Maybe PlanGui
-alsPlanGui statusGui Plan {plName, plAktionen} = do
-    guiAktionen <- mapM konvertiereAktion plAktionen
-    pure Plan { plName, plAktionen = guiAktionen }
+alsPlanGui statusGui Plan {plName, plAktionen} = mdo
+    let result = Plan { plName, plAktionen = guiAktionen }
+    guiAktionen <- mapM (konvertiereAktion result) plAktionen
+    pure result
     where
         lookupWidgetsTyp :: (Eq (ObjektTyp a), ObjektElement a)
                          => Lens.Getter StatusGui [a]
@@ -221,32 +223,36 @@ alsPlanGui statusGui Plan {plName, plAktionen} = do
         lookupWidgetsTyp getter objektTyp =
             find ((==) objektTyp . zuObjektTyp) $ statusGui ^. getter
 
-        konvertiereAktion :: Aktion -> Maybe AktionGui
-        konvertiereAktion (Warten wartezeit) = Just $ Warten wartezeit
-        konvertiereAktion (ABahngeschwindigkeitMärklinPwm aktion) =
+        konvertiereAktion :: PlanGui -> Aktion -> Maybe AktionGui
+        konvertiereAktion _result (Warten wartezeit) = Just $ Warten wartezeit
+        konvertiereAktion _result (ABahngeschwindigkeitMärklinPwm aktion) =
             ABahngeschwindigkeitMärklinPwm <$> konvertiereAktionBahngeschwindigkeit aktion
-        konvertiereAktion (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
+        konvertiereAktion _result (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
             ABahngeschwindigkeitMärklinKonstanteSpannung
             <$> konvertiereAktionBahngeschwindigkeit aktion
-        konvertiereAktion (ABahngeschwindigkeitLegoPwm aktion) =
+        konvertiereAktion _result (ABahngeschwindigkeitLegoPwm aktion) =
             ABahngeschwindigkeitLegoPwm <$> konvertiereAktionBahngeschwindigkeit aktion
-        konvertiereAktion (ABahngeschwindigkeitLegoKonstanteSpannung aktion) =
+        konvertiereAktion _result (ABahngeschwindigkeitLegoKonstanteSpannung aktion) =
             ABahngeschwindigkeitLegoKonstanteSpannung
             <$> konvertiereAktionBahngeschwindigkeit aktion
-        konvertiereAktion (AStreckenabschnitt (Strom st fließend)) =
+        konvertiereAktion _result (AStreckenabschnitt (Strom st fließend)) =
             AStreckenabschnitt . flip Strom fließend <$> lookupWidgetsTyp streckenabschnitte st
-        konvertiereAktion (AWeiche (Stellen we richtung)) =
+        konvertiereAktion _result (AWeiche (Stellen we richtung)) =
             AWeiche . flip Stellen richtung <$> lookupWidgetsTyp weichen we
-        konvertiereAktion (AKupplung (Kuppeln ku)) =
+        konvertiereAktion _result (AKupplung (Kuppeln ku)) =
             AKupplung . Kuppeln <$> lookupWidgetsTyp kupplungen ku
-        konvertiereAktion (AKontakt (WartenAuf ko)) =
+        konvertiereAktion _result (AKontakt (WartenAuf ko)) =
             AKontakt . WartenAuf <$> lookupWidgetsTyp kontakte ko
-        konvertiereAktion (AWegstreckeMärklin aktion) =
+        konvertiereAktion _result (AWegstreckeMärklin aktion) =
             AWegstreckeMärklin <$> konvertiereAktionWegstrecke aktion
-        konvertiereAktion (AWegstreckeLego aktion) =
+        konvertiereAktion _result (AWegstreckeLego aktion) =
             AWegstreckeLego <$> konvertiereAktionWegstrecke aktion
-        konvertiereAktion (AktionAusführen pl) =
-            AktionAusführen <$> planGui <$> lookupWidgetsTyp pläne pl
+        konvertiereAktion result (AktionAusführen pl@Plan {plName = plName0}) =
+            case AktionAusführen . planGui <$> lookupWidgetsTyp pläne pl of
+                justAktion@(Just _aktionGui) -> justAktion
+                Nothing
+                    | plName == plName0 -> Just $ AktionAusführen result
+                    | otherwise -> Nothing
 
         lookupBG :: (ZugtypKlasse z, GeschwindigkeitKlasse g)
                  => Bahngeschwindigkeit g z
