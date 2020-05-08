@@ -44,9 +44,9 @@ import Zug.Enums
       , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(..), Strom(..))
 import Zug.Language (Sprache())
 import Zug.Objekt (ObjektAllgemein(..), ObjektKlasse(..))
-import Zug.Plan
-       (Aktion(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..), AktionStreckenabschnitt(..)
-      , AktionWeiche(..), AktionKupplung(..), AktionKontakt(..), Plan(..))
+import Zug.Plan (Aktion, AktionAllgemein(..), AktionWegstrecke(..), AktionBahngeschwindigkeit(..)
+               , AktionStreckenabschnitt(..), AktionWeiche(..), AktionKupplung(..)
+               , AktionKontakt(..), Plan, PlanAllgemein(..))
 import Zug.UI.Base (StatusAllgemein(..), Status)
 
 -- | Speichere aktuellen Zustand in Datei
