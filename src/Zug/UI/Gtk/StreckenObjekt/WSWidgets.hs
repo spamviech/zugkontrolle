@@ -452,7 +452,6 @@ instance KontaktContainer (WSWidgets z) where
     enthalteneKontakte :: WSWidgets z -> Set Kontakt
     enthalteneKontakte = enthalteneKontakte . ws
 
-
 -- | 'Wegstrecke' darstellen.
 wegstreckePackNew
     :: forall o m z.

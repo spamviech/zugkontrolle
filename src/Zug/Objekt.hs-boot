@@ -21,19 +21,19 @@ data ObjektAllgemein bg st we ku ko ws pl
     | OWegstrecke (ZugtypEither ws)
     | OPlan pl
 
-instance  ( Eq st
-          , Eq ku
-          , Eq pl
-          , Eq (bg 'Pwm 'Märklin)
-          , Eq (bg 'KonstanteSpannung 'Märklin)
-          , Eq (bg 'Pwm 'Lego)
-          , Eq (bg 'KonstanteSpannung 'Lego)
-          , Eq (we 'Märklin)
-          , Eq (we 'Lego)
-          , Eq ko
-          , Eq (ws 'Märklin)
-          , Eq (ws 'Lego)
-          ) => Eq (ObjektAllgemein bg st we ku ko ws pl)
+instance ( Eq st
+         , Eq ku
+         , Eq pl
+         , Eq (bg 'Pwm 'Märklin)
+         , Eq (bg 'KonstanteSpannung 'Märklin)
+         , Eq (bg 'Pwm 'Lego)
+         , Eq (bg 'KonstanteSpannung 'Lego)
+         , Eq (we 'Märklin)
+         , Eq (we 'Lego)
+         , Eq ko
+         , Eq (ws 'Märklin)
+         , Eq (ws 'Lego)
+         ) => Eq (ObjektAllgemein bg st we ku ko ws pl)
 
 class ObjektKlasse o where
     type BG o :: GeschwindigkeitVariante -> Zugtyp -> Type
@@ -53,7 +53,6 @@ class ObjektKlasse o where
     type SP o :: Type
 
     erhalteObjekt :: o -> ObjektAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o) (PL o)
-
     ausObjekt :: ObjektAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o) (PL o) -> o
 
 class ObjektElement e where
