@@ -33,6 +33,7 @@ import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Word (Word8)
 
 import Zug.Anbindung.Anschluss
@@ -61,7 +62,10 @@ deriving instance Show (GeschwindigkeitsAnschlüsse g)
 
 instance Anzeige (GeschwindigkeitsAnschlüsse g) where
     anzeige :: GeschwindigkeitsAnschlüsse g -> Sprache -> Text
-    anzeige = _undefined --TODO
+    anzeige GeschwindigkeitsPin {geschwindigkeitsPin} =
+        Language.geschwindigkeit <-> Language.pin <=> geschwindigkeitsPin
+    anzeige FahrstromAnschlüsse {fahrstromAnschlüsse} =
+        Language.fahrstrom <-> Language.anschlüsse <=> fahrstromAnschlüsse
 
 data FahrtrichtungsAnschluss (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     KeinExpliziterAnschluss :: FahrtrichtungsAnschluss 'Pwm 'Märklin
@@ -78,7 +82,11 @@ deriving instance Show (FahrtrichtungsAnschluss g z)
 
 instance Anzeige (FahrtrichtungsAnschluss g z) where
     anzeige :: FahrtrichtungsAnschluss g z -> Sprache -> Text
-    anzeige = _undefined --TODO
+    anzeige KeinExpliziterAnschluss = const Text.empty
+    anzeige UmdrehenAnschluss {umdrehenAnschluss} =
+        Language.umdrehen <-> Language.anschluss <=> umdrehenAnschluss
+    anzeige FahrtrichtungsAnschluss {fahrtrichtungsAnschluss} =
+        Language.fahrtrichtung <-> Language.anschluss <=> fahrtrichtungsAnschluss
 
 -- | Kontrolliere Geschwindigkeit einer Schiene und steuere die Fahrtrichtung.
 data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
@@ -90,88 +98,51 @@ data Bahngeschwindigkeit (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
     }
     deriving (Eq, Ord, Show)
 
--- BahngeschwindigkeitPwmMärklin
---     :: { bgmpName :: Text, bgmpFließend :: Value, bgmpGeschwindigkeitsPin :: Pin }
---     -> Bahngeschwindigkeit 'Pwm 'Märklin
--- BahngeschwindigkeitKonstanteSpannungMärklin
---     :: { bgmkName :: Text
---        , bgmkFließend :: Value
---        , bgmkFahrstromAnschlüsse :: NonEmpty AnschlussEither
---        , bgmkUmdrehenAnschluss :: AnschlussEither
---        } -> Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
--- BahngeschwindigkeitPwmLego
---     :: { bglpName :: Text
---        , bglpFließend :: Value
---        , bglpGeschwindigkeitsPin :: Pin
---        , bglpFahrtrichtungsAnschluss :: AnschlussEither
---        } -> Bahngeschwindigkeit 'Pwm 'Lego
--- BahngeschwindigkeitKonstanteSpannungLego
---     :: { bglkName :: Text
---        , bglkFließend :: Value
---        , bglkFahrstromAnschlüsse :: NonEmpty AnschlussEither
---        , bglkFahrtrichtungsAnschluss :: AnschlussEither
---        } -> Bahngeschwindigkeit 'KonstanteSpannung 'Lego
--- deriveOrd $ Left ''Bahngeschwindigkeit
--- deriving instance Eq (Bahngeschwindigkeit g z)
--- deriving instance Show (Bahngeschwindigkeit g z)
 instance Anzeige (Bahngeschwindigkeit g z) where
     anzeige :: Bahngeschwindigkeit g z -> Sprache -> Text
-
-    -- anzeige BahngeschwindigkeitPwmMärklin {bgmpName, bgmpGeschwindigkeitsPin} =
-    --     Language.märklin
-    --     <-> Language.bahngeschwindigkeit
-    --     <:> Language.name
-    --     <=> bgmpName <^> Language.geschwindigkeit <-> Language.pin <=> bgmpGeschwindigkeitsPin
-    -- anzeige
-    --     BahngeschwindigkeitKonstanteSpannungMärklin
-    --     {bgmkName, bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
-    --     Language.märklin
-    --     <-> Language.bahngeschwindigkeit
-    --     <:> Language.name
-    --     <=> bgmkName
-    --     <^> Language.fahrstrom
-    --     <-> Language.anschlüsse
-    --     <=> bgmkFahrstromAnschlüsse
-    --     <^> Language.umdrehen <-> Language.anschluss <=> bgmkUmdrehenAnschluss
-    -- anzeige
-    --     BahngeschwindigkeitPwmLego {bglpName, bglpGeschwindigkeitsPin, bglpFahrtrichtungsAnschluss} =
-    --     Language.lego
-    --     <-> Language.bahngeschwindigkeit
-    --     <:> Language.name
-    --     <=> bglpName
-    --     <^> Language.geschwindigkeit
-    --     <-> Language.pin
-    --     <=> bglpGeschwindigkeitsPin
-    --     <^> Language.fahrtrichtung <-> Language.anschluss <=> bglpFahrtrichtungsAnschluss
-    anzeige = _undefined --TODO
+    anzeige bg@Bahngeschwindigkeit {bgName, bgFließend} =
+        Language.märklin
+        <-> Language.bahngeschwindigkeit
+        <:> Language.name
+        <=> bgName <^> Language.fließend <=> bgFließend <^> anzeigeAnschlüsse bg
+        where
+            anzeigeAnschlüsse :: Bahngeschwindigkeit g z -> Sprache -> Text
+            anzeigeAnschlüsse
+                Bahngeschwindigkeit { bgGeschwindigkeitsAnschlüsse
+                                    , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss} =
+                anzeige bgGeschwindigkeitsAnschlüsse
+            anzeigeAnschlüsse
+                Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse, bgFahrtrichtungsAnschluss} =
+                bgGeschwindigkeitsAnschlüsse <^> bgFahrtrichtungsAnschluss
 
 instance StreckenObjekt (Bahngeschwindigkeit b z) where
     anschlüsse :: Bahngeschwindigkeit b z -> Set AnschlussEither
-
-    -- anschlüsse BahngeschwindigkeitPwmMärklin {bgmpGeschwindigkeitsPin} =
-    --     [zuAnschluss bgmpGeschwindigkeitsPin]
-    -- anschlüsse
-    --     BahngeschwindigkeitKonstanteSpannungMärklin
-    --     {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss} =
-    --     Set.insert bgmkUmdrehenAnschluss $ Set.fromList $ NonEmpty.toList bgmkFahrstromAnschlüsse
-    -- anschlüsse BahngeschwindigkeitPwmLego {bglpGeschwindigkeitsPin, bglpFahrtrichtungsAnschluss} =
-    --     [zuAnschluss bglpGeschwindigkeitsPin, bglpFahrtrichtungsAnschluss]
-    anschlüsse = _undefined --TODO
+    anschlüsse
+        Bahngeschwindigkeit
+        { bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {geschwindigkeitsPin}
+        , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss} = [zuAnschluss geschwindigkeitsPin]
+    anschlüsse
+        Bahngeschwindigkeit
+        { bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}
+        , bgFahrtrichtungsAnschluss = UmdrehenAnschluss {umdrehenAnschluss}} =
+        Set.insert umdrehenAnschluss $ Set.fromList $ NonEmpty.toList fahrstromAnschlüsse
+    anschlüsse
+        Bahngeschwindigkeit
+        { bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {geschwindigkeitsPin}
+        , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss {fahrtrichtungsAnschluss}} =
+        [zuAnschluss geschwindigkeitsPin, fahrtrichtungsAnschluss]
+    anschlüsse
+        Bahngeschwindigkeit
+        { bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}
+        , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss {fahrtrichtungsAnschluss}} =
+        Set.insert fahrtrichtungsAnschluss $ Set.fromList $ NonEmpty.toList fahrstromAnschlüsse
 
     erhalteName :: Bahngeschwindigkeit b z -> Text
-
-    -- erhalteName BahngeschwindigkeitPwmLego {bglpName} = bglpName
-    -- erhalteName BahngeschwindigkeitPwmMärklin {bgmpName} = bgmpName
-    -- erhalteName BahngeschwindigkeitKonstanteSpannungMärklin {bgmkName} = bgmkName
-    erhalteName = _undefined --TODO
+    erhalteName = bgName
 
 instance StreckenAtom (Bahngeschwindigkeit b z) where
     fließend :: Bahngeschwindigkeit b z -> Value
-
-    -- fließend BahngeschwindigkeitPwmMärklin {bgmpFließend} = bgmpFließend
-    -- fließend BahngeschwindigkeitKonstanteSpannungMärklin {bgmkFließend} = bgmkFließend
-    -- fließend BahngeschwindigkeitPwmLego {bglpFließend} = bglpFließend
-    fließend = _undefined --TODO
+    fließend = bgFließend
 
 -- | Verwendet die 'Bahngeschwindigkeit' PWM zur Geschwindigkeitskontrolle?
 verwendetPwm :: Bahngeschwindigkeit g z -> GeschwindigkeitVariante
