@@ -24,7 +24,7 @@ import qualified Zug.Language as Language
 import Zug.UI.Cmd.Lexer (EingabeToken(..), leeresToken)
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage
-       (Anfrage(..), MitAnfrage(..), AnfrageZugtyp(..), MitAnfrageZugtyp(..)
+       (Anfrage(..), MitAnfrage(..), AnfrageZugtyp(..), FixerZugtyp, MitAnfrageZugtyp(..)
       , AnfrageZugtypKlasse(..), StatusAnfrageObjektZugtyp(..), ObjektZugtyp(..)
       , AnfrageFortsetzung(..), wähleBefehl, wähleRichtung)
 
@@ -99,21 +99,20 @@ data AnfrageWegstreckenElement
     | AWSEKontakt
 
 instance MitAnfrage (Wegstrecke 'Märklin) where
-    type AnfrageTyp (Wegstrecke 'Märklin) = AnfrageWegstrecke 'AnfrageZugtypMärklin
+    type AnfrageTyp (Wegstrecke 'Märklin) = AnfrageWegstrecke 'AnfrageMärklin
 
     anfrageAktualisieren
-        :: AnfrageWegstrecke 'AnfrageZugtypMärklin
+        :: AnfrageWegstrecke 'AnfrageMärklin
         -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageWegstrecke 'AnfrageZugtypMärklin) (Wegstrecke 'Märklin)
+        -> AnfrageFortsetzung (AnfrageWegstrecke 'AnfrageMärklin) (Wegstrecke 'Märklin)
     anfrageAktualisieren = anfrageWegstreckeAktualisieren
 
 instance MitAnfrage (Wegstrecke 'Lego) where
-    type AnfrageTyp (Wegstrecke 'Lego) = AnfrageWegstrecke 'AnfrageZugtypLego
+    type AnfrageTyp (Wegstrecke 'Lego) = AnfrageWegstrecke 'AnfrageLego
 
-    anfrageAktualisieren
-        :: AnfrageWegstrecke 'AnfrageZugtypLego
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageWegstrecke 'AnfrageZugtypLego) (Wegstrecke 'Lego)
+    anfrageAktualisieren :: AnfrageWegstrecke 'AnfrageLego
+                         -> EingabeToken
+                         -> AnfrageFortsetzung (AnfrageWegstrecke 'AnfrageLego) (Wegstrecke 'Lego)
     anfrageAktualisieren = anfrageWegstreckeAktualisieren
 
 -- | Eingabe einer Wegstrecke
@@ -245,8 +244,8 @@ anfrageWegstreckeAktualisieren
             ++ show anfrageWegstrecke
 
 instance MitAnfrageZugtyp AnfrageWegstrecke where
-    anfrageMärklin :: AnfrageWegstrecke 'AnfrageZugtypMärklin
+    anfrageMärklin :: AnfrageWegstrecke 'AnfrageMärklin
     anfrageMärklin = AnfrageWegstrecke
 
-    anfrageLego :: AnfrageWegstrecke 'AnfrageZugtypLego
+    anfrageLego :: AnfrageWegstrecke 'AnfrageLego
     anfrageLego = AnfrageWegstrecke

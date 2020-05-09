@@ -20,8 +20,10 @@ module Zug.UI.Cmd.Parser.Anfrage
   , (.<<)
   , MitAnfrage(..)
   , AnfrageGeschwindigkeitVariante(..)
+  , FixeGeschwindigkeitVariante
   , AnfrageGeschwindigkeitEither(..)
   , AnfrageZugtyp(..)
+  , FixerZugtyp
   , AnfrageZugtypEither(..)
   , MitAnfrageZugtyp(..)
   , AnfrageZugtypKlasse(..)
@@ -124,6 +126,10 @@ data AnfrageGeschwindigkeitVariante
     | AnfragePwm
     | AnfrageKonstanteSpannung
 
+type family FixeGeschwindigkeitVariante g where
+    FixeGeschwindigkeitVariante 'AnfragePwm = 'Pwm
+    FixeGeschwindigkeitVariante 'AnfrageKonstanteSpannung = 'KonstanteSpannung
+
 -- | Analogon zu 'GeschwindigkeitEither' für 'AnfrageGeschwindigkeitVariante'.
 data AnfrageGeschwindigkeitEither (a :: AnfrageGeschwindigkeitVariante
                                    -> AnfrageZugtyp
@@ -178,57 +184,57 @@ instance ( Anfrage (a 'AnfrageGeschwindigkeitVariante z)
 -- | Enumeration-Typ für eventuell noch unbestimmten 'Zugtyp'.
 data AnfrageZugtyp
     = AnfrageZugtyp
-    | AnfrageZugtypMärklin
-    | AnfrageZugtypLego
+    | AnfrageMärklin
+    | AnfrageLego
+
+type family FixerZugtyp z where
+    FixerZugtyp 'AnfrageMärklin = 'Märklin
+    FixerZugtyp 'AnfrageLego = 'Lego
 
 -- | Analogon zu 'ZugtypEither' für 'AnfrageZugtyp'.
 data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
-    = AnfrageNothing (a 'AnfrageZugtyp)
-    | AnfrageMärklin (a 'AnfrageZugtypMärklin)
-    | AnfrageLego (a 'AnfrageZugtypLego)
+    = AnfrageZugtypNothing (a 'AnfrageZugtyp)
+    | AnfrageZugtypMärklin (a 'AnfrageMärklin)
+    | AnfrageZugtypLego (a 'AnfrageLego)
 
-deriving instance (Eq (a 'AnfrageZugtyp), Eq (a 'AnfrageZugtypMärklin), Eq (a 'AnfrageZugtypLego))
+deriving instance (Eq (a 'AnfrageZugtyp), Eq (a 'AnfrageMärklin), Eq (a 'AnfrageLego))
     => Eq (AnfrageZugtypEither a)
 
-instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageZugtypMärklin), Show (a 'AnfrageZugtypLego))
+instance (Show (a 'AnfrageZugtyp), Show (a 'AnfrageMärklin), Show (a 'AnfrageLego))
     => Show (AnfrageZugtypEither a) where
     show :: AnfrageZugtypEither a -> String
-    show (AnfrageNothing a) = show a
-    show (AnfrageMärklin a) = show a
-    show (AnfrageLego a) = show a
+    show (AnfrageZugtypNothing a) = show a
+    show (AnfrageZugtypMärklin a) = show a
+    show (AnfrageZugtypLego a) = show a
 
-instance ( Anzeige (a 'AnfrageZugtyp)
-         , Anzeige (a 'AnfrageZugtypMärklin)
-         , Anzeige (a 'AnfrageZugtypLego)
-         ) => Anzeige (AnfrageZugtypEither a) where
+instance (Anzeige (a 'AnfrageZugtyp), Anzeige (a 'AnfrageMärklin), Anzeige (a 'AnfrageLego))
+    => Anzeige (AnfrageZugtypEither a) where
     anzeige :: AnfrageZugtypEither a -> Sprache -> Text
-    anzeige (AnfrageNothing a) = anzeige a
-    anzeige (AnfrageMärklin a) = anzeige a
-    anzeige (AnfrageLego a) = anzeige a
+    anzeige (AnfrageZugtypNothing a) = anzeige a
+    anzeige (AnfrageZugtypMärklin a) = anzeige a
+    anzeige (AnfrageZugtypLego a) = anzeige a
 
-instance ( Anfrage (a 'AnfrageZugtyp)
-         , Anfrage (a 'AnfrageZugtypMärklin)
-         , Anfrage (a 'AnfrageZugtypLego)
-         ) => Anfrage (AnfrageZugtypEither a) where
+instance (Anfrage (a 'AnfrageZugtyp), Anfrage (a 'AnfrageMärklin), Anfrage (a 'AnfrageLego))
+    => Anfrage (AnfrageZugtypEither a) where
     zeigeAnfrage :: AnfrageZugtypEither a -> Sprache -> Text
-    zeigeAnfrage (AnfrageNothing a) = zeigeAnfrage a
-    zeigeAnfrage (AnfrageMärklin a) = zeigeAnfrage a
-    zeigeAnfrage (AnfrageLego a) = zeigeAnfrage a
+    zeigeAnfrage (AnfrageZugtypNothing a) = zeigeAnfrage a
+    zeigeAnfrage (AnfrageZugtypMärklin a) = zeigeAnfrage a
+    zeigeAnfrage (AnfrageZugtypLego a) = zeigeAnfrage a
 
     zeigeAnfrageFehlgeschlagen :: AnfrageZugtypEither a -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen (AnfrageNothing a) = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageFehlgeschlagen (AnfrageMärklin a) = zeigeAnfrageFehlgeschlagen a
-    zeigeAnfrageFehlgeschlagen (AnfrageLego a) = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen (AnfrageZugtypNothing a) = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen (AnfrageZugtypMärklin a) = zeigeAnfrageFehlgeschlagen a
+    zeigeAnfrageFehlgeschlagen (AnfrageZugtypLego a) = zeigeAnfrageFehlgeschlagen a
 
     zeigeAnfrageOptionen :: AnfrageZugtypEither a -> Maybe (Sprache -> Text)
-    zeigeAnfrageOptionen (AnfrageNothing a) = zeigeAnfrageOptionen a
-    zeigeAnfrageOptionen (AnfrageMärklin a) = zeigeAnfrageOptionen a
-    zeigeAnfrageOptionen (AnfrageLego a) = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen (AnfrageZugtypNothing a) = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen (AnfrageZugtypMärklin a) = zeigeAnfrageOptionen a
+    zeigeAnfrageOptionen (AnfrageZugtypLego a) = zeigeAnfrageOptionen a
 
 -- | Klasse für 'AnfrageTyp'en mit 'AnfrageZugtyp'
 class MitAnfrageZugtyp (a :: AnfrageZugtyp -> Type) where
-    anfrageMärklin :: a 'AnfrageZugtypMärklin
-    anfrageLego :: a 'AnfrageZugtypLego
+    anfrageMärklin :: a 'AnfrageMärklin
+    anfrageLego :: a 'AnfrageLego
 
 -- | Bestimme den gewählten 'Zugtyp'.
 anfrageAktualisierenZugtyp
@@ -236,32 +242,27 @@ anfrageAktualisierenZugtyp
 anfrageAktualisierenZugtyp token =
     wähleZwischenwert
         token
-        [(Lexer.Märklin, AnfrageMärklin anfrageMärklin), (Lexer.Lego, AnfrageLego anfrageLego)]
+        [ (Lexer.Märklin, AnfrageZugtypMärklin anfrageMärklin)
+        , (Lexer.Lego, AnfrageZugtypLego anfrageLego)]
 
 -- | Anfrage nach dem 'Zugtyp'.
 class AnfrageZugtypKlasse (z :: AnfrageZugtyp) where
-    type FixerZugtyp z :: Zugtyp
-
     afStatusAnfrage
         :: StatusAnfrageObjektZugtyp (FixerZugtyp z)
         -> (ObjektZugtyp (FixerZugtyp z) -> AnfrageFortsetzung (a z) (e (FixerZugtyp z)))
         -> AnfrageFortsetzung (a z) (e (FixerZugtyp z))
 
-instance AnfrageZugtypKlasse 'AnfrageZugtypMärklin where
-    type FixerZugtyp 'AnfrageZugtypMärklin = 'Märklin
-
+instance AnfrageZugtypKlasse 'AnfrageMärklin where
     afStatusAnfrage
         :: StatusAnfrageObjektZugtyp 'Märklin
-        -> (ObjektZugtyp 'Märklin -> AnfrageFortsetzung (a 'AnfrageZugtypMärklin) (e 'Märklin))
-        -> AnfrageFortsetzung (a 'AnfrageZugtypMärklin) (e 'Märklin)
+        -> (ObjektZugtyp 'Märklin -> AnfrageFortsetzung (a 'AnfrageMärklin) (e 'Märklin))
+        -> AnfrageFortsetzung (a 'AnfrageMärklin) (e 'Märklin)
     afStatusAnfrage = AFStatusAnfrageMärklin
 
-instance AnfrageZugtypKlasse 'AnfrageZugtypLego where
-    type FixerZugtyp 'AnfrageZugtypLego = 'Lego
-
+instance AnfrageZugtypKlasse 'AnfrageLego where
     afStatusAnfrage :: StatusAnfrageObjektZugtyp 'Lego
-                    -> (ObjektZugtyp 'Lego -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego))
-                    -> AnfrageFortsetzung (a 'AnfrageZugtypLego) (e 'Lego)
+                    -> (ObjektZugtyp 'Lego -> AnfrageFortsetzung (a 'AnfrageLego) (e 'Lego))
+                    -> AnfrageFortsetzung (a 'AnfrageLego) (e 'Lego)
     afStatusAnfrage = AFStatusAnfrageLego
 
 -- | Ein Objekt aus dem aktuellen Status wird benötigt

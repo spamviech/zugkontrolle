@@ -53,6 +53,12 @@ data Zugtyp
     | Lego
     deriving (Eq, Show, Bounded, Enum, Ord)
 
+instance Anzeige Zugtyp where
+    -- | Anzeigen eines 'Zugtyp'
+    anzeige :: Zugtyp -> Sprache -> Text
+    anzeige Märklin = Language.märklin
+    anzeige Lego = Language.lego
+
 -- | 'Either'-Like Datentyp für 'Zugtyp'-Abhängige Datentypen
 data ZugtypEither (a :: Zugtyp -> Type)
     = ZugtypMärklin (a 'Märklin)
@@ -109,17 +115,16 @@ zugtyp (ZugtypLego _a) = Lego
 unterstützteZugtypen :: NonEmpty Zugtyp
 unterstützteZugtypen = fromList [minBound .. maxBound]
 
-instance Anzeige Zugtyp where
-    -- | Anzeigen eines 'Zugtyp'
-    anzeige :: Zugtyp -> Sprache -> Text
-    anzeige Märklin = Language.märklin
-    anzeige Lego = Language.lego
-
 -- | Die Art, wie Geschwindigkeit eingestellt wird.
 data GeschwindigkeitVariante
     = Pwm
     | KonstanteSpannung
     deriving (Show, Eq, Bounded, Enum, Ord)
+
+instance Anzeige GeschwindigkeitVariante where
+    anzeige :: GeschwindigkeitVariante -> Sprache -> Text
+    anzeige Pwm = Language.geschwindigkeitPwm
+    anzeige KonstanteSpannung = Language.geschwindigkeitKonstanteSpannung
 
 -- | 'Either'-Like Datentyp für 'GeschwindigkeitVariante'-Abhängige Datentypen
 data GeschwindigkeitEither bg (z :: Zugtyp)
@@ -202,11 +207,6 @@ instance (Show (a z)) => Show (GeschwindigkeitPhantom a g z) where
 instance (Anzeige (a z)) => Anzeige (GeschwindigkeitPhantom a g z) where
     anzeige :: GeschwindigkeitPhantom a g z -> Sprache -> Text
     anzeige (GeschwindigkeitPhantom a) = anzeige a
-
-instance Anzeige GeschwindigkeitVariante where
-    anzeige :: GeschwindigkeitVariante -> Sprache -> Text
-    anzeige Pwm = Language.geschwindigkeitPwm
-    anzeige KonstanteSpannung = Language.geschwindigkeitKonstanteSpannung
 
 -- | Alle 'GeschwindigkeitVariante'n.
 unterstützteGeschwindigkeitVarianten :: NonEmpty GeschwindigkeitVariante

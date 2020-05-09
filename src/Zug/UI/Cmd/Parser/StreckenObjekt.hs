@@ -106,100 +106,102 @@ instance MitAnfrage Objekt where
             token
             [ ( Lexer.Bahngeschwindigkeit
                   , AOBahngeschwindigkeit
-                    $ AnfrageNothing
+                    $ AnfrageZugtypNothing
                     $ AnfrageGeschwindigkeitNothing AnfrageBahngeschwindigkeit
                   )
             , (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt)
-            , (Lexer.Weiche, AOWeiche $ AnfrageNothing AnfrageWeiche)
-            , (Lexer.Wegstrecke, AOWegstrecke $ AnfrageNothing AnfrageWegstreckeZugtyp)
+            , (Lexer.Weiche, AOWeiche $ AnfrageZugtypNothing AnfrageWeiche)
+            , (Lexer.Wegstrecke, AOWegstrecke $ AnfrageZugtypNothing AnfrageWegstreckeZugtyp)
             , (Lexer.Kupplung, AOKupplung AnfrageKupplung)
             , (Lexer.Kontakt, AOKontakt AnfrageKontakt)
             , (Lexer.Plan, AOPlan AnfragePlan)]
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageNothing (AnfrageGeschwindigkeitNothing AnfrageBahngeschwindigkeit)))
+             (AnfrageZugtypNothing (AnfrageGeschwindigkeitNothing AnfrageBahngeschwindigkeit)))
         token = (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
-    anfrageAktualisieren (AOBahngeschwindigkeit (AnfrageNothing _)) token =
+    anfrageAktualisieren (AOBahngeschwindigkeit (AnfrageZugtypNothing _)) token =
         (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageMärklin (AnfrageGeschwindigkeitNothing AMärklinBahngeschwindigkeit)))
+             (AnfrageZugtypMärklin (AnfrageGeschwindigkeitNothing AMärklinBahngeschwindigkeit)))
         token =
         wähleZwischenwert
             token
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
-                    $ AnfrageMärklin
+                    $ AnfrageZugtypMärklin
                     $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitPwmMärklin
                   )
             , ( Lexer.KonstanteSpannung
                   , AOBahngeschwindigkeit
-                    $ AnfrageMärklin
+                    $ AnfrageZugtypMärklin
                     $ AnfrageGeschwindigkeitKonstanteSpannung
                         AMärklinBahngeschwindigkeitKonstanteSpannung
                   )]
     anfrageAktualisieren
-        (AOBahngeschwindigkeit (AnfrageMärklin (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))
+        (AOBahngeschwindigkeit
+             (AnfrageZugtypMärklin (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))
         token =
         ( AFErgebnis . OBahngeschwindigkeit . ZugtypMärklin . GeschwindigkeitPwm
-        , AOBahngeschwindigkeit . AnfrageMärklin . AnfrageGeschwindigkeitPwm
+        , AOBahngeschwindigkeit . AnfrageZugtypMärklin . AnfrageGeschwindigkeitPwm
         )
         $<< anfrageAktualisieren aBahngeschwindigkeit token
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageMärklin (AnfrageGeschwindigkeitKonstanteSpannung aBahngeschwindigkeit)))
+             (AnfrageZugtypMärklin (AnfrageGeschwindigkeitKonstanteSpannung aBahngeschwindigkeit)))
         token =
         ( AFErgebnis . OBahngeschwindigkeit . ZugtypMärklin . GeschwindigkeitKonstanteSpannung
-        , AOBahngeschwindigkeit . AnfrageMärklin . AnfrageGeschwindigkeitKonstanteSpannung
+        , AOBahngeschwindigkeit . AnfrageZugtypMärklin . AnfrageGeschwindigkeitKonstanteSpannung
         )
         $<< anfrageAktualisieren aBahngeschwindigkeit token
     anfrageAktualisieren
-        (AOBahngeschwindigkeit (AnfrageLego (AnfrageGeschwindigkeitNothing _aBahngeschwindigkeit)))
+        (AOBahngeschwindigkeit
+             (AnfrageZugtypLego (AnfrageGeschwindigkeitNothing _aBahngeschwindigkeit)))
         token =
         wähleZwischenwert
             token
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
-                    $ AnfrageLego
+                    $ AnfrageZugtypLego
                     $ AnfrageGeschwindigkeitPwm ALegoBahngeschwindigkeit
                   )]
     anfrageAktualisieren
-        (AOBahngeschwindigkeit (AnfrageLego (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))
+        (AOBahngeschwindigkeit (AnfrageZugtypLego (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))
         token =
         ( AFErgebnis . OBahngeschwindigkeit . ZugtypLego . GeschwindigkeitPwm
-        , AOBahngeschwindigkeit . AnfrageLego . AnfrageGeschwindigkeitPwm
+        , AOBahngeschwindigkeit . AnfrageZugtypLego . AnfrageGeschwindigkeitPwm
         )
         $<< anfrageAktualisieren aBahngeschwindigkeit token
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageLego (AnfrageGeschwindigkeitKonstanteSpannung aBahngeschwindigkeit)))
+             (AnfrageZugtypLego (AnfrageGeschwindigkeitKonstanteSpannung aBahngeschwindigkeit)))
         token =
         ( AFErgebnis . OBahngeschwindigkeit . ZugtypLego . GeschwindigkeitKonstanteSpannung
-        , AOBahngeschwindigkeit . AnfrageLego . AnfrageGeschwindigkeitKonstanteSpannung
+        , AOBahngeschwindigkeit . AnfrageZugtypLego . AnfrageGeschwindigkeitKonstanteSpannung
         )
         $<< anfrageAktualisieren aBahngeschwindigkeit token
     anfrageAktualisieren (AOStreckenabschnitt aStreckenabschnitt) token =
         (AFErgebnis . OStreckenabschnitt, AOStreckenabschnitt)
         $<< anfrageAktualisieren aStreckenabschnitt token
-    anfrageAktualisieren (AOWeiche (AnfrageNothing AnfrageWeiche)) token =
+    anfrageAktualisieren (AOWeiche (AnfrageZugtypNothing AnfrageWeiche)) token =
         (id, AOWeiche) $<< anfrageAktualisierenZugtyp token
-    anfrageAktualisieren (AOWeiche (AnfrageMärklin aWeiche)) token =
-        (AFErgebnis . OWeiche . ZugtypMärklin, AOWeiche . AnfrageMärklin)
+    anfrageAktualisieren (AOWeiche (AnfrageZugtypMärklin aWeiche)) token =
+        (AFErgebnis . OWeiche . ZugtypMärklin, AOWeiche . AnfrageZugtypMärklin)
         $<< anfrageAktualisieren aWeiche token
-    anfrageAktualisieren (AOWeiche (AnfrageLego aWeiche)) token =
-        (AFErgebnis . OWeiche . ZugtypLego, AOWeiche . AnfrageLego)
+    anfrageAktualisieren (AOWeiche (AnfrageZugtypLego aWeiche)) token =
+        (AFErgebnis . OWeiche . ZugtypLego, AOWeiche . AnfrageZugtypLego)
         $<< anfrageAktualisieren aWeiche token
     anfrageAktualisieren (AOKupplung aKupplung) token =
         (AFErgebnis . OKupplung, AOKupplung) $<< anfrageAktualisieren aKupplung token
     anfrageAktualisieren (AOKontakt aKontakt) token =
         (AFErgebnis . OKontakt, AOKontakt) $<< anfrageAktualisieren aKontakt token
-    anfrageAktualisieren (AOWegstrecke (AnfrageNothing _aWegstrecke)) token =
+    anfrageAktualisieren (AOWegstrecke (AnfrageZugtypNothing _aWegstrecke)) token =
         (id, AOWegstrecke) $<< anfrageAktualisierenZugtyp token
-    anfrageAktualisieren (AOWegstrecke (AnfrageMärklin aWegstrecke)) token =
-        (AFErgebnis . OWegstrecke . ZugtypMärklin, AOWegstrecke . AnfrageMärklin)
+    anfrageAktualisieren (AOWegstrecke (AnfrageZugtypMärklin aWegstrecke)) token =
+        (AFErgebnis . OWegstrecke . ZugtypMärklin, AOWegstrecke . AnfrageZugtypMärklin)
         $<< anfrageAktualisieren aWegstrecke token
-    anfrageAktualisieren (AOWegstrecke (AnfrageLego aWegstrecke)) token =
-        (AFErgebnis . OWegstrecke . ZugtypLego, AOWegstrecke . AnfrageLego)
+    anfrageAktualisieren (AOWegstrecke (AnfrageZugtypLego aWegstrecke)) token =
+        (AFErgebnis . OWegstrecke . ZugtypLego, AOWegstrecke . AnfrageZugtypLego)
         $<< anfrageAktualisieren aWegstrecke token
     anfrageAktualisieren (AOPlan aPlan) token =
         (AFErgebnis . OPlan, AOPlan) $<< anfrageAktualisieren aPlan token

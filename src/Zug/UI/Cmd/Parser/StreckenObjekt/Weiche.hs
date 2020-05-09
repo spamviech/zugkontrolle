@@ -31,16 +31,16 @@ import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
 -- | Unvollständige 'Weiche'.
 data AnfrageWeiche (z :: AnfrageZugtyp) where
     AnfrageWeiche :: AnfrageWeiche 'AnfrageZugtyp
-    AWeicheMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
-    AWeicheMärklinName :: { awemName :: Text } -> AnfrageWeiche 'AnfrageZugtypMärklin
+    AWeicheMärklin :: AnfrageWeiche 'AnfrageMärklin
+    AWeicheMärklinName :: { awemName :: Text } -> AnfrageWeiche 'AnfrageMärklin
     AWeicheMärklinNameFließend :: { awemName :: Text, awemFließend :: Value }
-        -> AnfrageWeiche 'AnfrageZugtypMärklin
+        -> AnfrageWeiche 'AnfrageMärklin
     AWeicheMärklinNameFließendAnzahl
         :: { awemName :: Text
            , awemFließend :: Value
            , awemAnzahl :: Natural
            , awemRichtungsAnschlüsse :: [(Richtung, AnschlussEither)]
-           } -> AnfrageWeiche 'AnfrageZugtypMärklin
+           } -> AnfrageWeiche 'AnfrageMärklin
     AWeicheMärklinNameFließendAnzahlRichtung
         :: { awemName :: Text
            , awemFließend :: Value
@@ -48,20 +48,20 @@ data AnfrageWeiche (z :: AnfrageZugtyp) where
            , awemRichtungsAnschlüsse :: [(Richtung, AnschlussEither)]
            , awemRichtung :: Richtung
            , awemAnfrageAnschluss :: AnfrageAnschluss 'InterruptPinEgal
-           } -> AnfrageWeiche 'AnfrageZugtypMärklin
-    AWeicheLego :: AnfrageWeiche 'AnfrageZugtypLego
-    AWeicheLegoName :: { awelName :: Text } -> AnfrageWeiche 'AnfrageZugtypLego
+           } -> AnfrageWeiche 'AnfrageMärklin
+    AWeicheLego :: AnfrageWeiche 'AnfrageLego
+    AWeicheLegoName :: { awelName :: Text } -> AnfrageWeiche 'AnfrageLego
     AWeicheLegoNameFließend :: { awelName :: Text, awelFließend :: Value }
-        -> AnfrageWeiche 'AnfrageZugtypLego
+        -> AnfrageWeiche 'AnfrageLego
     AWeicheLegoNameFließendRichtung1
         :: { awelName :: Text, awelFließend :: Value, awelRichtung1 :: Richtung }
-        -> AnfrageWeiche 'AnfrageZugtypLego
+        -> AnfrageWeiche 'AnfrageLego
     AWeicheLegoNameFließendRichtungen
         :: { awelName :: Text
            , awelFließend :: Value
            , awelRichtung1 :: Richtung
            , awelRichtung2 :: Richtung
-           } -> AnfrageWeiche 'AnfrageZugtypLego
+           } -> AnfrageWeiche 'AnfrageLego
 
 deriving instance Eq (AnfrageWeiche z)
 
@@ -155,13 +155,12 @@ instance Anfrage (AnfrageWeiche z) where
     zeigeAnfrageOptionen _anfrage = Nothing
 
 instance MitAnfrage (Weiche 'Märklin) where
-    type AnfrageTyp (Weiche 'Märklin) = AnfrageWeiche 'AnfrageZugtypMärklin
+    type AnfrageTyp (Weiche 'Märklin) = AnfrageWeiche 'AnfrageMärklin
 
     -- | Eingabe einer 'Märklin'-'Weiche'
-    anfrageAktualisieren
-        :: AnfrageTyp (Weiche 'Märklin)
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
+    anfrageAktualisieren :: AnfrageTyp (Weiche 'Märklin)
+                         -> EingabeToken
+                         -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageMärklin) (Weiche 'Märklin)
     anfrageAktualisieren AWeicheMärklin EingabeToken {eingabe} =
         AFZwischenwert $ AWeicheMärklinName eingabe
     anfrageAktualisieren (AWeicheMärklinName name) token =
@@ -201,12 +200,12 @@ instance MitAnfrage (Weiche 'Märklin) where
         $<< anfrageAktualisieren anfrageAnschluss token
         where
             anfrageAnschlussVerwenden
-                :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageWeiche 'AnfrageZugtypMärklin
+                :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageWeiche 'AnfrageMärklin
             anfrageAnschlussVerwenden awemAnfrageAnschluss = anfrage { awemAnfrageAnschluss }
 
             anschlussVerwenden
                 :: AnschlussEither
-                -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypMärklin) (Weiche 'Märklin)
+                -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageMärklin) (Weiche 'Märklin)
             anschlussVerwenden anschluss
                 | anzahl > 1 =
                     AFZwischenwert
@@ -224,12 +223,12 @@ instance MitAnfrage (Weiche 'Märklin) where
                         }
 
 instance MitAnfrage (Weiche 'Lego) where
-    type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageZugtypLego
+    type AnfrageTyp (Weiche 'Lego) = AnfrageWeiche 'AnfrageLego
 
     -- | Eingabe einer 'Lego'-'Weiche'
     anfrageAktualisieren :: AnfrageTyp (Weiche 'Lego)
                          -> EingabeToken
-                         -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageZugtypLego) (Weiche 'Lego)
+                         -> AnfrageFortsetzung (AnfrageWeiche 'AnfrageLego) (Weiche 'Lego)
     anfrageAktualisieren AWeicheLego EingabeToken {eingabe} =
         AFZwischenwert $ AWeicheLegoName eingabe
     anfrageAktualisieren (AWeicheLegoName name) token =
@@ -261,8 +260,8 @@ instance MitAnfrage (Weiche 'Lego) where
         Nothing -> AFFehler eingabe
 
 instance MitAnfrageZugtyp AnfrageWeiche where
-    anfrageMärklin :: AnfrageWeiche 'AnfrageZugtypMärklin
+    anfrageMärklin :: AnfrageWeiche 'AnfrageMärklin
     anfrageMärklin = AWeicheMärklin
 
-    anfrageLego :: AnfrageWeiche 'AnfrageZugtypLego
+    anfrageLego :: AnfrageWeiche 'AnfrageLego
     anfrageLego = AWeicheLego
