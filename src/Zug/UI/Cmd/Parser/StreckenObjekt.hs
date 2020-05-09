@@ -123,20 +123,20 @@ instance MitAnfrage Objekt where
         (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageZugtypMärklin (AnfrageGeschwindigkeitNothing AMärklinBahngeschwindigkeit)))
+             (AnfrageZugtypMärklin (AnfrageGeschwindigkeitNothing _ABahngeschwindigkeitMärklin)))
         token =
         wähleZwischenwert
             token
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypMärklin
-                    $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitPwmMärklin
+                    $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitMärklinPwm
                   )
             , ( Lexer.KonstanteSpannung
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypMärklin
                     $ AnfrageGeschwindigkeitKonstanteSpannung
-                        AMärklinBahngeschwindigkeitKonstanteSpannung
+                        ABahngeschwindigkeitMärklinKonstanteSpannung
                   )]
     anfrageAktualisieren
         (AOBahngeschwindigkeit
@@ -156,14 +156,20 @@ instance MitAnfrage Objekt where
         $<< anfrageAktualisieren aBahngeschwindigkeit token
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageZugtypLego (AnfrageGeschwindigkeitNothing _aBahngeschwindigkeit)))
+             (AnfrageZugtypLego (AnfrageGeschwindigkeitNothing _ABahngeschwindigkeitLego)))
         token =
         wähleZwischenwert
             token
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypLego
-                    $ AnfrageGeschwindigkeitPwm ALegoBahngeschwindigkeit
+                    $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitLegoPwm
+                  )
+            , ( Lexer.KonstanteSpannung
+                  , AOBahngeschwindigkeit
+                    $ AnfrageZugtypLego
+                    $ AnfrageGeschwindigkeitKonstanteSpannung
+                        ABahngeschwindigkeitLegoKonstanteSpannung
                   )]
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageZugtypLego (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))

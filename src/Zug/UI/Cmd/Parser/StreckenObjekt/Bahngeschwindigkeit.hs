@@ -10,7 +10,11 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit (AnfrageBahngeschwindigkeit(..)) where
+module Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit
+  ( AnfrageBahngeschwindigkeit(..)
+  , GewählteGeschwindigkeitVariante()
+  , GewählterZugtyp()
+  ) where
 
 import Data.Foldable (Foldable(toList))
 import qualified Data.List.NonEmpty as NonEmpty
@@ -267,6 +271,13 @@ class GewählteGeschwindigkeitVariante (g :: AnfrageGeschwindigkeitVariante) whe
     gewählteGeschwindigkeitVariante
         :: forall a (z :: AnfrageZugtyp). a g z -> GeschwindigkeitVariante
 
+instance GewählteGeschwindigkeitVariante 'AnfrageGeschwindigkeitVariante where
+    gewählteGeschwindigkeitVariante :: forall a (z :: AnfrageZugtyp).
+                                     a 'AnfrageGeschwindigkeitVariante z
+                                     -> GeschwindigkeitVariante
+    gewählteGeschwindigkeitVariante =
+        error "gewählteGeschwindigkeitVariante für AnfrageGeschwindigkeitVariante aufgerufen!"
+
 instance GewählteGeschwindigkeitVariante 'AnfragePwm where
     gewählteGeschwindigkeitVariante
         :: forall a (z :: AnfrageZugtyp). a 'AnfragePwm z -> GeschwindigkeitVariante
@@ -280,6 +291,10 @@ instance GewählteGeschwindigkeitVariante 'AnfrageKonstanteSpannung where
 class GewählterZugtyp (z :: AnfrageZugtyp) where
     gewählterZugtyp :: a z -> Zugtyp
 
+instance GewählterZugtyp 'AnfrageZugtyp where
+    gewählterZugtyp :: a 'AnfrageZugtyp -> Zugtyp
+    gewählterZugtyp = error "gewählterZugtyp für AnfrageZugtyp aufgerufen"
+
 instance GewählterZugtyp 'AnfrageMärklin where
     gewählterZugtyp :: a 'AnfrageMärklin -> Zugtyp
     gewählterZugtyp = const Märklin
@@ -287,18 +302,6 @@ instance GewählterZugtyp 'AnfrageMärklin where
 instance GewählterZugtyp 'AnfrageLego where
     gewählterZugtyp :: a 'AnfrageLego -> Zugtyp
     gewählterZugtyp = const Lego
-
-instance Anzeige (AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante z) where
-    anzeige :: AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante z -> Sprache -> Text
-    anzeige AnfrageBahngeschwindigkeit = Language.bahngeschwindigkeit
-    anzeige ABahngeschwindigkeitMärklin = Language.märklin <-> Language.bahngeschwindigkeit
-    anzeige ABahngeschwindigkeitLego = Language.lego <-> Language.bahngeschwindigkeit
-    anzeige ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse {} =
-        error "FixeGeschwindigkeitVariante AnfrageGeschwindigkeitVariante sollte nicht existieren!"
-    anzeige ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse {} =
-        error "FixeGeschwindigkeitVariante AnfrageGeschwindigkeitVariante sollte nicht existieren!"
-    anzeige ABahngeschwindigkeitFahrtrichtungsAnschluss {} =
-        error "FixeGeschwindigkeitVariante AnfrageGeschwindigkeitVariante sollte nicht existieren!"
 
 instance (GewählteGeschwindigkeitVariante g, GewählterZugtyp z)
     => Anzeige (AnfrageBahngeschwindigkeit g z) where
