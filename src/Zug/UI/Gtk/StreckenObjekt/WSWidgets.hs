@@ -31,7 +31,6 @@ import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Either.Combinators (leftToMaybe, rightToMaybe)
-import Data.List.NonEmpty (NonEmpty())
 import Data.Maybe (fromJust)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -41,7 +40,8 @@ import Graphics.UI.Gtk (AttrOp((:=)))
 import qualified Graphics.UI.Gtk as Gtk
 
 import Zug.Anbindung
-       (StreckenObjekt(..), Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
+       (StreckenObjekt(..), Bahngeschwindigkeit(..)
+      , GeschwindigkeitsAnschlüsse(fahrstromAnschlüsse), BahngeschwindigkeitKlasse(..), PwmZugtyp
       , BahngeschwindigkeitContainer(..), verwendetPwm, Streckenabschnitt()
       , StreckenabschnittKlasse(..), StreckenabschnittContainer(..), Weiche(), WeicheContainer(..)
       , Kupplung(), KupplungKlasse(..), KupplungContainer(..), Kontakt(), KontaktKlasse(..)
@@ -355,7 +355,7 @@ instance StreckenObjekt (WSWidgets z) where
     erhalteName :: WSWidgets z -> Text
     erhalteName = erhalteName . ws
 
-instance Aeson.ToJSON (WSWidgets z) where
+instance (ZugtypKlasse z) => Aeson.ToJSON (WSWidgets z) where
     toJSON :: WSWidgets z -> Aeson.Value
     toJSON = Aeson.toJSON . ws
 
@@ -469,6 +469,7 @@ wegstreckePackNew
     , MitTVarMaps (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
+    , PwmZugtyp z
     , PlanElement (WSWidgets z)
     , WegstreckeKlasse (Wegstrecke z)
     )
@@ -542,61 +543,65 @@ wegstreckePackNew
             pure (frame, expander, vBoxExpander, functionBox)
         verwendeSpracheGui justTVarSprache $ \sprache
             -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
-        (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsButtonUmdrehen, wsAuswahlFahrtrichtung)
-            <- if null wsBahngeschwindigkeiten
-                then pure (Nothing, Nothing, Nothing, Nothing)
-                else do
-                    boxPackWidgetNewDefault vBoxExpander
-                        $ labelSpracheNew justTVarSprache
-                        $ Language.bahngeschwindigkeiten
-                        <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
-                    maybeScale <- if any
-                        (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
-                        wsBahngeschwindigkeiten
-                        then Just
-                            <$> hScaleGeschwindigkeitPackNew
-                                functionBox
-                                (GeschwindigkeitPhantom wegstrecke)
-                                wsTVarEvent
-                                statusVar
-                        else pure Nothing
-                    let geschwindigkeitenKonstanteSpannung =
-                            catKonstanteSpannung wsBahngeschwindigkeiten
-                    maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
-                        then pure Nothing
-                        else fmap Just
-                            $ auswahlFahrstromPackNew
-                                functionBox
-                                (GeschwindigkeitPhantom wegstrecke)
-                                (maximum
-                                 $ fromIntegral . length . fahrstromAnschlüsse
-                                 <$> geschwindigkeitenKonstanteSpannung)
-                                wsTVarSprache
-                                wsTVarEvent
-                                statusVar
-                    eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
-                        (ZugtypMärklin wsMärklin) -> Left
-                            <$> buttonUmdrehenPackNew
-                                functionBox
-                                (GeschwindigkeitPhantom wsMärklin
-                                 :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
-                                wsTVarSprache
-                                wsTVarEvent
-                                statusVar
-                        (ZugtypLego wsLego) -> Right
-                            <$> auswahlFahrtrichtungEinstellenPackNew
-                                functionBox
-                                (GeschwindigkeitPhantom wsLego
-                                 :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
-                                wsTVarSprache
-                                wsTVarEvent
-                                statusVar
-                    pure
-                        ( maybeScale
-                        , maybeAuswahlFahrstrom
-                        , leftToMaybe eitherFahrtrichtungWidget
-                        , rightToMaybe eitherFahrtrichtungWidget
-                        )
+        (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsButtonUmdrehen, wsAuswahlFahrtrichtung) <- if null
+            wsBahngeschwindigkeiten
+            then pure (Nothing, Nothing, Nothing, Nothing)
+            else do
+                boxPackWidgetNewDefault vBoxExpander
+                    $ labelSpracheNew justTVarSprache
+                    $ Language.bahngeschwindigkeiten
+                    <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
+                maybeScale <- if any
+                    (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
+                    wsBahngeschwindigkeiten
+                    then Just
+                        <$> hScaleGeschwindigkeitPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wegstrecke)
+                            wsTVarEvent
+                            statusVar
+                    else pure Nothing
+                let geschwindigkeitenKonstanteSpannung =
+                        catKonstanteSpannung wsBahngeschwindigkeiten
+                maybeAuswahlFahrstrom <- if null geschwindigkeitenKonstanteSpannung
+                    then pure Nothing
+                    else fmap Just
+                        -- fahrstromAnschlüsse total, weil g ~ 'KonstanteSpannung sichergestellt ist
+                        $ auswahlFahrstromPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wegstrecke)
+                            (maximum
+                             $ fromIntegral
+                             . length
+                             . fahrstromAnschlüsse
+                             . bgGeschwindigkeitsAnschlüsse
+                             <$> geschwindigkeitenKonstanteSpannung)
+                            wsTVarSprache
+                            wsTVarEvent
+                            statusVar
+                eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
+                    (ZugtypMärklin wsMärklin) -> Left
+                        <$> buttonUmdrehenPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wsMärklin
+                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
+                            wsTVarSprache
+                            wsTVarEvent
+                            statusVar
+                    (ZugtypLego wsLego) -> Right
+                        <$> auswahlFahrtrichtungEinstellenPackNew
+                            functionBox
+                            (GeschwindigkeitPhantom wsLego
+                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
+                            wsTVarSprache
+                            wsTVarEvent
+                            statusVar
+                pure
+                    ( maybeScale
+                    , maybeAuswahlFahrstrom
+                    , leftToMaybe eitherFahrtrichtungWidget
+                    , rightToMaybe eitherFahrtrichtungWidget
+                    )
         wsToggleButtonStrom <- if null wsStreckenabschnitte
             then pure Nothing
             else do
@@ -674,11 +679,5 @@ wegstreckePackNew
         -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime
         appendName Nothing objekt = Just $ const $ erhalteName objekt
         appendName (Just acc) objekt = Just $ acc <^> erhalteName objekt
-
-        fahrstromAnschlüsse
-            :: Bahngeschwindigkeit 'KonstanteSpannung z -> NonEmpty AnschlussEither
-        fahrstromAnschlüsse
-            BahngeschwindigkeitKonstanteSpannungMärklin {bgmkFahrstromAnschlüsse} =
-            bgmkFahrstromAnschlüsse
 #endif
 --
