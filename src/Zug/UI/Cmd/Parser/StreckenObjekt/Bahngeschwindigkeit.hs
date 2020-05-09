@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -12,7 +13,6 @@
 module Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit (AnfrageBahngeschwindigkeit(..)) where
 
 import Data.Foldable (Foldable(toList))
-import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
@@ -29,9 +29,9 @@ import Zug.UI.Cmd.Lexer (EingabeToken(..))
 import qualified Zug.UI.Cmd.Lexer as Lexer
 import Zug.UI.Cmd.Parser.Anfrage
        (Anfrage(..), zeigeAnfrageFehlgeschlagenStandard, MitAnfrage(..), AnfrageZugtyp(..)
-      , MitAnfrageZugtyp(..), FixerZugtyp, AnfrageGeschwindigkeitVariante(..)
-      , AnfrageGeschwindigkeitEither(..), FixeGeschwindigkeitVariante, AnfrageFortsetzung(..)
-      , wähleZwischenwert, ($<<))
+      , MitAnfrageZugtyp(..), FixerZugtyp, AngefragterZugtyp, AnfrageGeschwindigkeitVariante(..)
+      , AnfrageGeschwindigkeitEither(..), FixeGeschwindigkeitVariante
+      , AngefragteGeschwindigkeitVariante, AnfrageFortsetzung(..), wähleZwischenwert, ($<<))
 import Zug.UI.Cmd.Parser.Anschluss (AnfrageAnschluss(AnfrageAnschluss))
 import Zug.Warteschlange (Warteschlange)
 import qualified Zug.Warteschlange as Warteschlange
@@ -240,13 +240,13 @@ data AnfrageBahngeschwindigkeit (g :: AnfrageGeschwindigkeitVariante) (z :: Anfr
     ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
         :: { abgmName :: Text
            , abgmFließend :: Value
-           , abgAnfrageGeschwindigkeitsAnschlüsse
+           , abgmAnfrageGeschwindigkeitsAnschlüsse
                  :: AnfrageGeschwindigkeitsAnschlüsse (FixeGeschwindigkeitVariante g)
            } -> AnfrageBahngeschwindigkeit g 'AnfrageMärklin
     ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
         :: { abglName :: Text
            , abglFließend :: Value
-           , abgAnfrageGeschwindigkeitsAnschlüsse
+           , abglAnfrageGeschwindigkeitsAnschlüsse
                  :: AnfrageGeschwindigkeitsAnschlüsse (FixeGeschwindigkeitVariante g)
            } -> AnfrageBahngeschwindigkeit g 'AnfrageLego
     -- FahrtrichtungsAnschluss
@@ -264,14 +264,17 @@ deriving instance Eq (AnfrageBahngeschwindigkeit g z)
 deriving instance Show (AnfrageBahngeschwindigkeit g z)
 
 class GewählteGeschwindigkeitVariante (g :: AnfrageGeschwindigkeitVariante) where
-    gewählteGeschwindigkeitVariante :: a g z -> GeschwindigkeitVariante
+    gewählteGeschwindigkeitVariante
+        :: forall a (z :: AnfrageZugtyp). a g z -> GeschwindigkeitVariante
 
 instance GewählteGeschwindigkeitVariante 'AnfragePwm where
-    gewählteGeschwindigkeitVariante :: a 'AnfragePwm z -> GeschwindigkeitVariante
+    gewählteGeschwindigkeitVariante
+        :: forall a (z :: AnfrageZugtyp). a 'AnfragePwm z -> GeschwindigkeitVariante
     gewählteGeschwindigkeitVariante = const Pwm
 
 instance GewählteGeschwindigkeitVariante 'AnfrageKonstanteSpannung where
-    gewählteGeschwindigkeitVariante :: a 'AnfrageKonstanteSpannung z -> GeschwindigkeitVariante
+    gewählteGeschwindigkeitVariante
+        :: forall a (z :: AnfrageZugtyp). a 'AnfrageKonstanteSpannung z -> GeschwindigkeitVariante
     gewählteGeschwindigkeitVariante = const KonstanteSpannung
 
 class GewählterZugtyp (z :: AnfrageZugtyp) where
@@ -285,7 +288,20 @@ instance GewählterZugtyp 'AnfrageLego where
     gewählterZugtyp :: a 'AnfrageLego -> Zugtyp
     gewählterZugtyp = const Lego
 
-instance Anzeige (AnfrageBahngeschwindigkeit g z) where
+instance Anzeige (AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante z) where
+    anzeige :: AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante z -> Sprache -> Text
+    anzeige AnfrageBahngeschwindigkeit = Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitMärklin = Language.märklin <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitLego = Language.lego <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse {} =
+        error "FixeGeschwindigkeitVariante AnfrageGeschwindigkeitVariante sollte nicht existieren!"
+    anzeige ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse {} =
+        error "FixeGeschwindigkeitVariante AnfrageGeschwindigkeitVariante sollte nicht existieren!"
+    anzeige ABahngeschwindigkeitFahrtrichtungsAnschluss {} =
+        error "FixeGeschwindigkeitVariante AnfrageGeschwindigkeitVariante sollte nicht existieren!"
+
+instance (GewählteGeschwindigkeitVariante g, GewählterZugtyp z)
+    => Anzeige (AnfrageBahngeschwindigkeit g z) where
     anzeige :: AnfrageBahngeschwindigkeit g z -> Sprache -> Text
     anzeige AnfrageBahngeschwindigkeit = Language.bahngeschwindigkeit
     anzeige ABahngeschwindigkeitMärklin = Language.märklin <-> Language.bahngeschwindigkeit
@@ -320,21 +336,22 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
         <-> Language.bahngeschwindigkeit <^> Language.name <=> abglkName
     anzeige
         anfrage@ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
-        {abgmName, abgmFließend, abgAnfrageGeschwindigkeitsAnschlüsse} =
+        {abgmName, abgmFließend, abgmAnfrageGeschwindigkeitsAnschlüsse} =
         Language.märklin
         <-> gewählteGeschwindigkeitVariante anfrage
         <-> Language.bahngeschwindigkeit
         <^> Language.name
-        <=> abgmName <^> Language.fließend <=> abgmFließend <^> (_undefined :: Text) --TODO
+        <=> abgmName
+        <^> Language.fließend <=> abgmFließend <^> abgmAnfrageGeschwindigkeitsAnschlüsse
     anzeige
         anfrage@ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
-        {abglName, abglFließend, abgAnfrageGeschwindigkeitsAnschlüsse} =
+        {abglName, abglFließend, abglAnfrageGeschwindigkeitsAnschlüsse} =
         Language.lego
         <-> gewählteGeschwindigkeitVariante anfrage
         <-> Language.bahngeschwindigkeit
         <^> Language.name
         <=> abglName
-        <^> Language.fließend <=> abglFließend <^> abgAnfrageGeschwindigkeitsAnschlüsse
+        <^> Language.fließend <=> abglFließend <^> abglAnfrageGeschwindigkeitsAnschlüsse
     anzeige
         anfrage@ABahngeschwindigkeitFahrtrichtungsAnschluss
         {abgName, abgFließend, abgGeschwindigkeitsAnschlüsse, abgAnfrageFahrtrichtungsAnschluss} =
@@ -342,279 +359,250 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
         <-> gewählteGeschwindigkeitVariante anfrage
         <-> Language.bahngeschwindigkeit
         <^> Language.name
-        <=> abglName
+        <=> abgName
         <^> Language.fließend
-        <=> abglFließend <^> abgGeschwindigkeitsAnschlüsse <^> abgAnfrageFahrtrichtungsAnschluss
+        <=> abgFließend <^> abgGeschwindigkeitsAnschlüsse <^> abgAnfrageFahrtrichtungsAnschluss
 
 instance Anfrage (AnfrageBahngeschwindigkeit g z) where
     zeigeAnfrage :: AnfrageBahngeschwindigkeit g z -> Sprache -> Text
     zeigeAnfrage AnfrageBahngeschwindigkeit = Language.zugtyp
     zeigeAnfrage ABahngeschwindigkeitMärklin = Language.geschwindigkeitVariante
     zeigeAnfrage ABahngeschwindigkeitLego = Language.geschwindigkeitVariante
-    zeigeAnfrage ABahngeschwindigkeitPwmMärklin = Language.name
-    zeigeAnfrage AMärklinBahngeschwindigkeitNamePwm {} = Language.fließendValue
-    zeigeAnfrage AMärklinBahngeschwindigkeitNameFließendPwm {} = Language.pin
-    zeigeAnfrage AMärklinBahngeschwindigkeitKonstanteSpannung = Language.name
-    zeigeAnfrage AMärklinBahngeschwindigkeitNameKonstanteSpannung {} = Language.fließendValue
-    zeigeAnfrage AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {} =
-        Language.anzahl $# Language.fahrstrom <-> Language.anschlüsse
+    zeigeAnfrage ABahngeschwindigkeitMärklinPwm = Language.name
+    zeigeAnfrage ABahngeschwindigkeitMärklinKonstanteSpannung = Language.name
+    zeigeAnfrage ABahngeschwindigkeitLegoPwm = Language.name
+    zeigeAnfrage ABahngeschwindigkeitLegoKonstanteSpannung = Language.name
+    zeigeAnfrage ABahngeschwindigkeitMärklinPwmFließend {} = Language.fließendValue
     zeigeAnfrage
-        AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
-        {abgmkFahrstromAnfrageAnschluss} = zeigeAnfrage abgmkFahrstromAnfrageAnschluss
+        ABahngeschwindigkeitMärklinKonstanteSpannungFließend {} = Language.fließendValue
+    zeigeAnfrage ABahngeschwindigkeitLegoPwmFließend {} = Language.fließendValue
+    zeigeAnfrage ABahngeschwindigkeitLegoKonstanteSpannungFließend {} = Language.fließendValue
     zeigeAnfrage
-        AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-        {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrage abgmkUmdrehenAnfrageAnschluss
-    zeigeAnfrage ALegoBahngeschwindigkeit = Language.name
-    zeigeAnfrage ALegoBahngeschwindigkeitName {} = Language.fließendValue
-    zeigeAnfrage ALegoBahngeschwindigkeitNameFließend {} = Language.pin
+        ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+        {abgmAnfrageGeschwindigkeitsAnschlüsse} =
+        zeigeAnfrage abgmAnfrageGeschwindigkeitsAnschlüsse
     zeigeAnfrage
-        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss} =
-        zeigeAnfrage abglFahrtrichtungsAnfrageAnschluss
+        ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+        {abglAnfrageGeschwindigkeitsAnschlüsse} =
+        zeigeAnfrage abglAnfrageGeschwindigkeitsAnschlüsse
+    zeigeAnfrage ABahngeschwindigkeitFahrtrichtungsAnschluss {abgAnfrageFahrtrichtungsAnschluss} =
+        zeigeAnfrage abgAnfrageFahrtrichtungsAnschluss
 
     zeigeAnfrageFehlgeschlagen :: AnfrageBahngeschwindigkeit g z -> Text -> Sprache -> Text
-    zeigeAnfrageFehlgeschlagen anfrage@AMärklinBahngeschwindigkeitNamePwm {} eingabe =
-        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen anfrage@AMärklinBahngeschwindigkeitNameFließendPwm {} eingabe =
-        zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
+    zeigeAnfrageFehlgeschlagen anfrage@ABahngeschwindigkeitMärklinPwmFließend {} eingabe =
+        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen
-        anfrage@AMärklinBahngeschwindigkeitNameKonstanteSpannung {}
-        eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
+        anfrage@ABahngeschwindigkeitMärklinKonstanteSpannungFließend {}
+        eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
+    zeigeAnfrageFehlgeschlagen anfrage@ABahngeschwindigkeitLegoPwmFließend {} eingabe =
+        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen
-        anfrage@AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung {}
-        eingabe = zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
+        anfrage@ABahngeschwindigkeitLegoKonstanteSpannungFließend {}
+        eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.valueErwartet
     zeigeAnfrageFehlgeschlagen
-        AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
-        {abgmkFahrstromAnfrageAnschluss}
-        eingabe = zeigeAnfrageFehlgeschlagen abgmkFahrstromAnfrageAnschluss eingabe
+        ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+        {abgmAnfrageGeschwindigkeitsAnschlüsse}
+        eingabe = zeigeAnfrageFehlgeschlagen abgmAnfrageGeschwindigkeitsAnschlüsse eingabe
     zeigeAnfrageFehlgeschlagen
-        AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-        {abgmkUmdrehenAnfrageAnschluss}
-        eingabe = zeigeAnfrageFehlgeschlagen abgmkUmdrehenAnfrageAnschluss eingabe
-    zeigeAnfrageFehlgeschlagen anfrage@ALegoBahngeschwindigkeitName {} eingabe =
-        zeigeAnfrageFehlgeschlagenStandard anfrage eingabe <^> Language.integerErwartet
-    zeigeAnfrageFehlgeschlagen anfrage@ALegoBahngeschwindigkeitNameFließend {} eingabe =
-        zeigeAnfrageFehlgeschlagen anfrage eingabe <^> Language.integerErwartet
+        ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+        {abglAnfrageGeschwindigkeitsAnschlüsse}
+        eingabe = zeigeAnfrageFehlgeschlagen abglAnfrageGeschwindigkeitsAnschlüsse eingabe
     zeigeAnfrageFehlgeschlagen
-        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss}
-        eingabe = zeigeAnfrageFehlgeschlagen abglFahrtrichtungsAnfrageAnschluss eingabe
+        ABahngeschwindigkeitFahrtrichtungsAnschluss {abgAnfrageFahrtrichtungsAnschluss}
+        eingabe = zeigeAnfrageFehlgeschlagen abgAnfrageFahrtrichtungsAnschluss eingabe
     zeigeAnfrageFehlgeschlagen anfrage eingabe = zeigeAnfrageFehlgeschlagenStandard anfrage eingabe
 
     zeigeAnfrageOptionen :: AnfrageBahngeschwindigkeit g z -> Maybe (Sprache -> Text)
     zeigeAnfrageOptionen AnfrageBahngeschwindigkeit = Just $ toBefehlsString . \sprache
         -> map (`anzeige` sprache) $ NonEmpty.toList unterstützteZugtypen
-    zeigeAnfrageOptionen AMärklinBahngeschwindigkeit = Just $ toBefehlsString . \sprache
+    zeigeAnfrageOptionen ABahngeschwindigkeitMärklin = Just $ toBefehlsString . \sprache
         -> map (`anzeige` sprache) $ [Pwm, KonstanteSpannung]
-    zeigeAnfrageOptionen AMärklinBahngeschwindigkeitNamePwm {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
-    zeigeAnfrageOptionen AMärklinBahngeschwindigkeitNameKonstanteSpannung {} =
+    zeigeAnfrageOptionen ABahngeschwindigkeitLego = Just $ toBefehlsString . \sprache
+        -> map (`anzeige` sprache) $ [Pwm, KonstanteSpannung]
+    zeigeAnfrageOptionen ABahngeschwindigkeitMärklinPwmFließend {} =
+        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
+    zeigeAnfrageOptionen ABahngeschwindigkeitMärklinKonstanteSpannungFließend {} =
+        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
+    zeigeAnfrageOptionen ABahngeschwindigkeitLegoPwmFließend {} =
+        Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
+    zeigeAnfrageOptionen ABahngeschwindigkeitLegoKonstanteSpannungFließend {} =
         Just $ toBefehlsString . \sprache -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
     zeigeAnfrageOptionen
-        AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
-        {abgmkFahrstromAnfrageAnschluss} = zeigeAnfrageOptionen abgmkFahrstromAnfrageAnschluss
+        ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+        {abgmAnfrageGeschwindigkeitsAnschlüsse} =
+        zeigeAnfrageOptionen abgmAnfrageGeschwindigkeitsAnschlüsse
     zeigeAnfrageOptionen
-        AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-        {abgmkUmdrehenAnfrageAnschluss} = zeigeAnfrageOptionen abgmkUmdrehenAnfrageAnschluss
-    zeigeAnfrageOptionen ALegoBahngeschwindigkeitName {} = Just $ toBefehlsString . \sprache
-        -> map (`anzeige` sprache) $ NonEmpty.toList alleValues
+        ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+        {abglAnfrageGeschwindigkeitsAnschlüsse} =
+        zeigeAnfrageOptionen abglAnfrageGeschwindigkeitsAnschlüsse
     zeigeAnfrageOptionen
-        ALegoBahngeschwindigkeitNameFließendGeschwindigkeit {abglFahrtrichtungsAnfrageAnschluss} =
-        zeigeAnfrageOptionen abglFahrtrichtungsAnfrageAnschluss
+        ABahngeschwindigkeitFahrtrichtungsAnschluss {abgAnfrageFahrtrichtungsAnschluss} =
+        zeigeAnfrageOptionen abgAnfrageFahrtrichtungsAnschluss
     zeigeAnfrageOptionen _anfrage = Nothing
 
 instance MitAnfrageZugtyp (AnfrageGeschwindigkeitEither AnfrageBahngeschwindigkeit) where
     anfrageMärklin :: AnfrageGeschwindigkeitEither AnfrageBahngeschwindigkeit 'AnfrageMärklin
-    anfrageMärklin = AnfrageGeschwindigkeitNothing AMärklinBahngeschwindigkeit
+    anfrageMärklin = AnfrageGeschwindigkeitNothing ABahngeschwindigkeitMärklin
 
     anfrageLego :: AnfrageGeschwindigkeitEither AnfrageBahngeschwindigkeit 'AnfrageLego
-    anfrageLego = AnfrageGeschwindigkeitPwm ALegoBahngeschwindigkeit
+    anfrageLego = AnfrageGeschwindigkeitNothing ABahngeschwindigkeitLego
 
-instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Märklin) where
-    type AnfrageTyp (Bahngeschwindigkeit 'Pwm 'Märklin) =
-        AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageMärklin
-
-    -- | Eingabe einer 'Märklin'-'Bahngeschwindigkeit'
-    anfrageAktualisieren
-        :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageMärklin
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageMärklin) (Bahngeschwindigkeit 'Pwm 'Märklin)
-    anfrageAktualisieren ABahngeschwindigkeitPwmMärklin EingabeToken {eingabe} =
-        AFZwischenwert $ AMärklinBahngeschwindigkeitNamePwm eingabe
-    anfrageAktualisieren AMärklinBahngeschwindigkeitNamePwm {abgmpName} token =
-        wähleZwischenwert
-            token
-            [ (Lexer.HIGH, AMärklinBahngeschwindigkeitNameFließendPwm abgmpName HIGH)
-            , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließendPwm abgmpName LOW)]
-    anfrageAktualisieren
-        (AMärklinBahngeschwindigkeitNameFließendPwm bgName bgFließend)
-        EingabeToken {eingabe, ganzzahl} = case ganzzahl of
-        (Just pin) -> AFErgebnis
-            $ Bahngeschwindigkeit
-            { bgName
-            , bgFließend
-            , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin $ Gpio $ fromIntegral pin
-            , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss
-            }
-        Nothing -> AFFehler eingabe
-
-instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
-    type AnfrageTyp (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) =
-        AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
+instance forall g z. ( FixeGeschwindigkeitVariante (AngefragteGeschwindigkeitVariante g) ~ g
+                     , FixerZugtyp (AngefragterZugtyp z) ~ z
+                     ) => MitAnfrage (Bahngeschwindigkeit g z) where
+    type AnfrageTyp (Bahngeschwindigkeit g z) =
+        AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)
 
     -- | Eingabe einer 'Märklin'-'Bahngeschwindigkeit'
     anfrageAktualisieren
-        :: AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
+        :: AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)
         -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin) (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
-    anfrageAktualisieren AMärklinBahngeschwindigkeitKonstanteSpannung EingabeToken {eingabe} =
-        AFZwischenwert $ AMärklinBahngeschwindigkeitNameKonstanteSpannung eingabe
-    anfrageAktualisieren AMärklinBahngeschwindigkeitNameKonstanteSpannung {abgmkName} token =
+        -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)) (Bahngeschwindigkeit g z)
+    anfrageAktualisieren AnfrageBahngeschwindigkeit EingabeToken {eingabe} = AFFehler eingabe
+    anfrageAktualisieren ABahngeschwindigkeitMärklin EingabeToken {eingabe} = AFFehler eingabe
+    anfrageAktualisieren ABahngeschwindigkeitLego EingabeToken {eingabe} = AFFehler eingabe
+    anfrageAktualisieren ABahngeschwindigkeitMärklinPwm EingabeToken {eingabe} =
+        AFZwischenwert $ ABahngeschwindigkeitMärklinPwmFließend eingabe
+    anfrageAktualisieren ABahngeschwindigkeitMärklinKonstanteSpannung EingabeToken {eingabe} =
+        AFZwischenwert $ ABahngeschwindigkeitMärklinKonstanteSpannungFließend eingabe
+    anfrageAktualisieren ABahngeschwindigkeitLegoPwm EingabeToken {eingabe} =
+        AFZwischenwert $ ABahngeschwindigkeitLegoPwmFließend eingabe
+    anfrageAktualisieren ABahngeschwindigkeitLegoKonstanteSpannung EingabeToken {eingabe} =
+        AFZwischenwert $ ABahngeschwindigkeitLegoKonstanteSpannungFließend eingabe
+    anfrageAktualisieren ABahngeschwindigkeitMärklinPwmFließend {abgmpName} token =
         wähleZwischenwert
             token
-            [ ( Lexer.HIGH
-                  , AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung abgmkName HIGH
-                  )
-            , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung abgmkName LOW)]
-    anfrageAktualisieren
-        (AMärklinBahngeschwindigkeitNameFließendKonstanteSpannung name fließend)
-        EingabeToken {eingabe, ganzzahl} = case ganzzahl of
-        Nothing -> AFFehler eingabe
-        (Just 0) -> AFFehler eingabe
-        (Just fahrstromAnzahl) -> AFZwischenwert
-            $ AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
-                name
-                fließend
-                (fromIntegral $ min (fromIntegral (maxBound :: Word8)) fahrstromAnzahl)
-                Warteschlange.leer
-                AnfrageAnschluss
-    anfrageAktualisieren
-        anfrage@(AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
-                     name
-                     fließend
-                     fahrstromAnzahl
-                     fahrstromAkkumulator
-                     fahrstromAnfrageAnschluss)
-        token =
-        (anschlussVerwenden, anfrageAnschlussVerwenden)
-        $<< anfrageAktualisieren fahrstromAnfrageAnschluss token
+            [(Lexer.HIGH, nächsteAnfrage HIGH), (Lexer.LOW, nächsteAnfrage LOW)]
         where
-            anfrageAnschlussVerwenden
-                :: AnfrageAnschluss 'InterruptPinEgal
-                -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
-            anfrageAnschlussVerwenden
-                abgmkFahrstromAnfrageAnschluss = anfrage { abgmkFahrstromAnfrageAnschluss }
-
-            anschlussVerwenden
-                :: AnschlussEither
-                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin) (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
-            anschlussVerwenden fahrstromAnschluss
-                | fahrstromAnzahl > 1 =
-                    AFZwischenwert
-                    $ AMärklinBahngeschwindigkeitNameFließendFahrstromAnzahlKonstanteSpannung
-                        name
-                        fließend
-                        (pred fahrstromAnzahl)
-                        ergänzteAnschlüsse
-                        AnfrageAnschluss
-                | otherwise =
-                    AFZwischenwert
-                    $ AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-                        name
-                        fließend
-                        (NonEmpty.fromList $ toList ergänzteAnschlüsse)
-                        AnfrageAnschluss
-                where
-                    ergänzteAnschlüsse :: Warteschlange AnschlussEither
-                    ergänzteAnschlüsse =
-                        Warteschlange.anhängen fahrstromAnschluss fahrstromAkkumulator
-    anfrageAktualisieren
-        anfrage@(AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-                     bgName
-                     bgFließend
-                     fahrstromAnschlüsse
-                     umdrehenAnfrageAnschluss)
-        token =
-        (anschlussVerwenden, anfrageAnschlussVerwenden)
-        $<< anfrageAktualisieren umdrehenAnfrageAnschluss token
-        where
-            anfrageAnschlussVerwenden
-                :: AnfrageAnschluss 'InterruptPinEgal
-                -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
-            anfrageAnschlussVerwenden
-                abgmkUmdrehenAnfrageAnschluss = anfrage { abgmkUmdrehenAnfrageAnschluss }
-
-            anschlussVerwenden
-                :: AnschlussEither
-                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin) (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
-            anschlussVerwenden umdrehenAnschluss =
-                AFErgebnis
-                    Bahngeschwindigkeit
-                    { bgName
-                    , bgFließend
-                    , bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse { fahrstromAnschlüsse }
-                    , bgFahrtrichtungsAnschluss = UmdrehenAnschluss { umdrehenAnschluss }
-                    }
-
-instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
-    type AnfrageTyp (Bahngeschwindigkeit 'Pwm 'Lego) =
-        AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego
-
-    -- | Eingabe einer 'Lego'-'Bahngeschwindigkeit'
-    anfrageAktualisieren
-        :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego) (Bahngeschwindigkeit 'Pwm 'Lego)
-    anfrageAktualisieren ALegoBahngeschwindigkeit EingabeToken {eingabe} =
-        AFZwischenwert $ ALegoBahngeschwindigkeitName eingabe
-    anfrageAktualisieren ALegoBahngeschwindigkeitName {abglName} token =
+            nächsteAnfrage :: Value -> AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageMärklin
+            nächsteAnfrage abgmFließend =
+                ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+                { abgmName = abgmpName
+                , abgmFließend
+                , abgmAnfrageGeschwindigkeitsAnschlüsse = AGeschwindigkeitsPin
+                }
+    anfrageAktualisieren ABahngeschwindigkeitMärklinKonstanteSpannungFließend {abgmkName} token =
         wähleZwischenwert
             token
-            [ (Lexer.HIGH, ALegoBahngeschwindigkeitNameFließend abglName HIGH)
-            , (Lexer.LOW, ALegoBahngeschwindigkeitNameFließend abglName LOW)]
+            [(Lexer.HIGH, nächsteAnfrage HIGH), (Lexer.LOW, nächsteAnfrage LOW)]
+        where
+            nächsteAnfrage
+                :: Value -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
+            nächsteAnfrage abgmFließend =
+                ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+                { abgmName = abgmkName
+                , abgmFließend
+                , abgmAnfrageGeschwindigkeitsAnschlüsse = AFahrstromAnschlüsseAnzahl
+                }
+    anfrageAktualisieren ABahngeschwindigkeitLegoPwmFließend {abglpName} token =
+        wähleZwischenwert
+            token
+            [(Lexer.HIGH, nächsteAnfrage HIGH), (Lexer.LOW, nächsteAnfrage LOW)]
+        where
+            nächsteAnfrage :: Value -> AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego
+            nächsteAnfrage abglFließend =
+                ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+                { abglName = abglpName
+                , abglFließend
+                , abglAnfrageGeschwindigkeitsAnschlüsse = AGeschwindigkeitsPin
+                }
+    anfrageAktualisieren ABahngeschwindigkeitLegoKonstanteSpannungFließend {abglkName} token =
+        wähleZwischenwert
+            token
+            [(Lexer.HIGH, nächsteAnfrage HIGH), (Lexer.LOW, nächsteAnfrage LOW)]
+        where
+            nächsteAnfrage
+                :: Value -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageLego
+            nächsteAnfrage abglFließend =
+                ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+                { abglName = abglkName
+                , abglFließend
+                , abglAnfrageGeschwindigkeitsAnschlüsse = AFahrstromAnschlüsseAnzahl
+                }
     anfrageAktualisieren
-        (ALegoBahngeschwindigkeitNameFließend name fließend)
-        EingabeToken {eingabe, ganzzahl} = case ganzzahl of
-        (Just pin) -> AFZwischenwert
-            $ ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-                name
-                fließend
-                (Gpio $ fromIntegral pin)
-                AnfrageAnschluss
-        Nothing -> AFFehler eingabe
-    anfrageAktualisieren
-        anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-                     bgName
-                     bgFließend
-                     geschwindigkeitsPin
-                     fahrtrichtungsAnschluss)
+        anfrage@ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+        {abgmName, abgmFließend, abgmAnfrageGeschwindigkeitsAnschlüsse}
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
-        $<< anfrageAktualisieren fahrtrichtungsAnschluss token
+        $<< anfrageAktualisieren abgmAnfrageGeschwindigkeitsAnschlüsse token
         where
-            anfrageAnschlussVerwenden :: AnfrageAnschluss 'InterruptPinEgal
-                                      -> AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego
             anfrageAnschlussVerwenden
-                abglFahrtrichtungsAnfrageAnschluss = anfrage { abglFahrtrichtungsAnfrageAnschluss }
+                :: AnfrageGeschwindigkeitsAnschlüsse g
+                -> AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)
+            anfrageAnschlussVerwenden anfrageGeschwindigkeitsAnschlüsse =
+                anfrage
+                { abglAnfrageGeschwindigkeitsAnschlüsse = anfrageGeschwindigkeitsAnschlüsse
+                }
 
             anschlussVerwenden
-                :: AnschlussEither
-                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego) (Bahngeschwindigkeit 'Pwm 'Lego)
-            anschlussVerwenden fahrtrichtungsAnschluss =
+                :: GeschwindigkeitsAnschlüsse g
+                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)) (Bahngeschwindigkeit g z)
+            anschlussVerwenden bgGeschwindigkeitsAnschlüsse@GeschwindigkeitsPin {} =
                 AFErgebnis
                     Bahngeschwindigkeit
-                    { bgName
-                    , bgFließend
-                    , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin { geschwindigkeitsPin }
-                    , bgFahrtrichtungsAnschluss =
-                          FahrtrichtungsAnschluss { fahrtrichtungsAnschluss }
+                    { bgName = abgmName
+                    , bgFließend = abgmFließend
+                    , bgGeschwindigkeitsAnschlüsse
+                    , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss
                     }
-
-instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
-    type AnfrageTyp (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) =
-        AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageLego
-
-    -- | Eingabe einer 'Lego'-'Bahngeschwindigkeit'
+            anschlussVerwenden abgGeschwindigkeitsAnschlüsse@FahrstromAnschlüsse {} =
+                AFZwischenwert
+                    ABahngeschwindigkeitFahrtrichtungsAnschluss
+                    { abgName = abgmName
+                    , abgFließend = abgmFließend
+                    , abgGeschwindigkeitsAnschlüsse
+                    , abgAnfrageFahrtrichtungsAnschluss =
+                          AUmdrehenAnschluss { umdrehenAnfrageAnschluss = AnfrageAnschluss }
+                    }
     anfrageAktualisieren
-        :: AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageLego
-        -> EingabeToken
-        -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageLego) (Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
-    anfrageAktualisieren _unmöglich _token = _undefined --TODO
+        anfrage@ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+        {abglName, abglFließend, abglAnfrageGeschwindigkeitsAnschlüsse}
+        token =
+        (anschlussVerwenden, anfrageAnschlussVerwenden)
+        $<< anfrageAktualisieren abglAnfrageGeschwindigkeitsAnschlüsse token
+        where
+            anfrageAnschlussVerwenden
+                :: AnfrageGeschwindigkeitsAnschlüsse g
+                -> AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)
+            anfrageAnschlussVerwenden anfrageGeschwindigkeitsAnschlüsse =
+                anfrage
+                { abglAnfrageGeschwindigkeitsAnschlüsse = anfrageGeschwindigkeitsAnschlüsse
+                }
+
+            anschlussVerwenden
+                :: GeschwindigkeitsAnschlüsse g
+                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)) (Bahngeschwindigkeit g z)
+            anschlussVerwenden abgGeschwindigkeitsAnschlüsse =
+                AFZwischenwert
+                    ABahngeschwindigkeitFahrtrichtungsAnschluss
+                    { abgName = abglName
+                    , abgFließend = abglFließend
+                    , abgGeschwindigkeitsAnschlüsse
+                    , abgAnfrageFahrtrichtungsAnschluss = AFahrtrichtungsAnschluss
+                          { fahrtrichtungsAnfrageAnschluss = AnfrageAnschluss
+                          }
+                    }
+    anfrageAktualisieren
+        anfrage@ABahngeschwindigkeitFahrtrichtungsAnschluss
+        {abgName, abgFließend, abgGeschwindigkeitsAnschlüsse, abgAnfrageFahrtrichtungsAnschluss}
+        token =
+        (anschlussVerwenden, anfrageAnschlussVerwenden)
+        $<< anfrageAktualisieren abgAnfrageFahrtrichtungsAnschluss token
+        where
+            anfrageAnschlussVerwenden
+                :: AnfrageFahrtrichtungsAnschluss g z
+                -> AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)
+            anfrageAnschlussVerwenden anfrageFahrtrichtungsAnschluss =
+                anfrage { abgAnfrageFahrtrichtungsAnschluss = anfrageFahrtrichtungsAnschluss }
+
+            anschlussVerwenden
+                :: FahrtrichtungsAnschluss g z
+                -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit (AngefragteGeschwindigkeitVariante g) (AngefragterZugtyp z)) (Bahngeschwindigkeit g z)
+            anschlussVerwenden bgFahrtrichtungsAnschluss =
+                AFErgebnis
+                    Bahngeschwindigkeit
+                    { bgName = abgName
+                    , bgFließend = abgFließend
+                    , bgGeschwindigkeitsAnschlüsse = abgGeschwindigkeitsAnschlüsse
+                    , bgFahrtrichtungsAnschluss
+                    }

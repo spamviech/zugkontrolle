@@ -21,9 +21,11 @@ module Zug.UI.Cmd.Parser.Anfrage
   , MitAnfrage(..)
   , AnfrageGeschwindigkeitVariante(..)
   , FixeGeschwindigkeitVariante
+  , AngefragteGeschwindigkeitVariante
   , AnfrageGeschwindigkeitEither(..)
   , AnfrageZugtyp(..)
   , FixerZugtyp
+  , AngefragterZugtyp
   , AnfrageZugtypEither(..)
   , MitAnfrageZugtyp(..)
   , AnfrageZugtypKlasse(..)
@@ -130,6 +132,10 @@ type family FixeGeschwindigkeitVariante g where
     FixeGeschwindigkeitVariante 'AnfragePwm = 'Pwm
     FixeGeschwindigkeitVariante 'AnfrageKonstanteSpannung = 'KonstanteSpannung
 
+type family AngefragteGeschwindigkeitVariante g where
+    AngefragteGeschwindigkeitVariante 'Pwm = 'AnfragePwm
+    AngefragteGeschwindigkeitVariante 'KonstanteSpannung = 'AnfrageKonstanteSpannung
+
 -- | Analogon zu 'GeschwindigkeitEither' für 'AnfrageGeschwindigkeitVariante'.
 data AnfrageGeschwindigkeitEither (a :: AnfrageGeschwindigkeitVariante
                                    -> AnfrageZugtyp
@@ -190,6 +196,10 @@ data AnfrageZugtyp
 type family FixerZugtyp z where
     FixerZugtyp 'AnfrageMärklin = 'Märklin
     FixerZugtyp 'AnfrageLego = 'Lego
+
+type family AngefragterZugtyp z where
+    AngefragterZugtyp 'Märklin = 'AnfrageMärklin
+    AngefragterZugtyp 'Lego = 'AnfrageLego
 
 -- | Analogon zu 'ZugtypEither' für 'AnfrageZugtyp'.
 data AnfrageZugtypEither (a :: AnfrageZugtyp -> Type)
@@ -454,7 +464,7 @@ unbekanntShowText a eingabe = fehlerText $# anzeigeMitAnfrageFehlgeschlagen a ei
 -- | Ergebnis-Typ von 'anfrageAktualisieren'.
 data AnfrageFortsetzung a e
     = AFErgebnis { ergebnis :: e }
-    | AFZwischenwert { anfrage :: a }
+    | AFZwischenwert { zwischenwert :: a }
     | AFFehler { unbekannteEingabe :: Text }
     | AFStatusAnfrage
           { anfrageObjekt :: StatusAnfrageObjekt
@@ -486,8 +496,8 @@ verwendeAnfrageFortsetzung :: (e -> AnfrageFortsetzung b f)
                            -> AnfrageFortsetzung b f
 verwendeAnfrageFortsetzung wertFunktion _anfrageFunktion AFErgebnis {ergebnis} =
     wertFunktion ergebnis
-verwendeAnfrageFortsetzung _wertFunktion anfrageFunktion AFZwischenwert {anfrage} =
-    AFZwischenwert $ anfrageFunktion anfrage
+verwendeAnfrageFortsetzung _wertFunktion anfrageFunktion AFZwischenwert {zwischenwert} =
+    AFZwischenwert $ anfrageFunktion zwischenwert
 verwendeAnfrageFortsetzung
     wertFunktion
     anfrageFunktion
