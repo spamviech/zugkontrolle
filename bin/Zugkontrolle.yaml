@@ -5,6 +5,13 @@ Streckenabschnitte:
     Pin: 1
 Bahngeschwindigkeiten:
 - FahrstromAnschlüsse:
+  - Pin: 6
+  FahrtrichtungsAnschluss:
+    Pin: 23
+  Name: Konstante Spannung, Lego
+  Zugtyp: Lego
+  Fließend: HIGH
+- FahrstromAnschlüsse:
   - PCF8574Port:
       Variante: A
       a2: HIGH
