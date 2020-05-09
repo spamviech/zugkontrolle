@@ -263,6 +263,28 @@ deriving instance Eq (AnfrageBahngeschwindigkeit g z)
 
 deriving instance Show (AnfrageBahngeschwindigkeit g z)
 
+class GewählteGeschwindigkeitVariante (g :: AnfrageGeschwindigkeitVariante) where
+    gewählteGeschwindigkeitVariante :: a g z -> GeschwindigkeitVariante
+
+instance GewählteGeschwindigkeitVariante 'AnfragePwm where
+    gewählteGeschwindigkeitVariante :: a 'AnfragePwm z -> GeschwindigkeitVariante
+    gewählteGeschwindigkeitVariante = const Pwm
+
+instance GewählteGeschwindigkeitVariante 'AnfrageKonstanteSpannung where
+    gewählteGeschwindigkeitVariante :: a 'AnfrageKonstanteSpannung z -> GeschwindigkeitVariante
+    gewählteGeschwindigkeitVariante = const KonstanteSpannung
+
+class GewählterZugtyp (z :: AnfrageZugtyp) where
+    gewählterZugtyp :: a z -> Zugtyp
+
+instance GewählterZugtyp 'AnfrageMärklin where
+    gewählterZugtyp :: a 'AnfrageMärklin -> Zugtyp
+    gewählterZugtyp = const Märklin
+
+instance GewählterZugtyp 'AnfrageLego where
+    gewählterZugtyp :: a 'AnfrageLego -> Zugtyp
+    gewählterZugtyp = const Lego
+
 instance Anzeige (AnfrageBahngeschwindigkeit g z) where
     anzeige :: AnfrageBahngeschwindigkeit g z -> Sprache -> Text
     anzeige AnfrageBahngeschwindigkeit = Language.bahngeschwindigkeit
@@ -297,17 +319,32 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
         <-> Language.geschwindigkeitKonstanteSpannung
         <-> Language.bahngeschwindigkeit <^> Language.name <=> abglkName
     anzeige
-        ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
+        anfrage@ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
         {abgmName, abgmFließend, abgAnfrageGeschwindigkeitsAnschlüsse} =
-        Language.märklin <-> Language.bahngeschwindigkeit <^> (_undefined :: Text) --TODO
+        Language.märklin
+        <-> gewählteGeschwindigkeitVariante anfrage
+        <-> Language.bahngeschwindigkeit
+        <^> Language.name
+        <=> abgmName <^> Language.fließend <=> abgmFließend <^> (_undefined :: Text) --TODO
     anzeige
-        ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+        anfrage@ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
         {abglName, abglFließend, abgAnfrageGeschwindigkeitsAnschlüsse} =
-        Language.lego <-> Language.bahngeschwindigkeit <^> (_undefined :: Text) --TODO
+        Language.lego
+        <-> gewählteGeschwindigkeitVariante anfrage
+        <-> Language.bahngeschwindigkeit
+        <^> Language.name
+        <=> abglName
+        <^> Language.fließend <=> abglFließend <^> abgAnfrageGeschwindigkeitsAnschlüsse
     anzeige
-        ABahngeschwindigkeitFahrtrichtungsAnschluss
+        anfrage@ABahngeschwindigkeitFahrtrichtungsAnschluss
         {abgName, abgFließend, abgGeschwindigkeitsAnschlüsse, abgAnfrageFahrtrichtungsAnschluss} =
-        _undefined --TODO
+        gewählterZugtyp anfrage
+        <-> gewählteGeschwindigkeitVariante anfrage
+        <-> Language.bahngeschwindigkeit
+        <^> Language.name
+        <=> abglName
+        <^> Language.fließend
+        <=> abglFließend <^> abgGeschwindigkeitsAnschlüsse <^> abgAnfrageFahrtrichtungsAnschluss
 
 instance Anfrage (AnfrageBahngeschwindigkeit g z) where
     zeigeAnfrage :: AnfrageBahngeschwindigkeit g z -> Sprache -> Text
