@@ -64,6 +64,8 @@
         "ZUGKONTROLLEVERSIONMISC",
         "Zugehörigkeitsklassen",
         "abgl",
+        "abglk",
+        "abglp",
         "abgm",
         "abgmk",
         "abgmp",
@@ -135,6 +137,7 @@
         "wcbr",
         "wcbv",
         "wiringpi",
+        "ßend",
         "üsse"
     ]
 }

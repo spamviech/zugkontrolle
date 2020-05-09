@@ -220,18 +220,40 @@ data AnfrageBahngeschwindigkeit (g :: AnfrageGeschwindigkeitVariante) (z :: Anfr
         :: AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante 'AnfrageMärklin
     ABahngeschwindigkeitLego
         :: AnfrageBahngeschwindigkeit 'AnfrageGeschwindigkeitVariante 'AnfrageLego
+    -- Name
+    ABahngeschwindigkeitMärklinPwm :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageMärklin
+    ABahngeschwindigkeitMärklinKonstanteSpannung
+        :: AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
+    ABahngeschwindigkeitLegoPwm :: AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego
+    ABahngeschwindigkeitLegoKonstanteSpannung
+        :: AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageLego
+    -- Fließend
+    ABahngeschwindigkeitMärklinPwmFließend :: { abgmpName :: Text }
+        -> AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageMärklin
+    ABahngeschwindigkeitMärklinKonstanteSpannungFließend :: { abgmkName :: Text }
+        -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageMärklin
+    ABahngeschwindigkeitLegoPwmFließend :: { abglpName :: Text }
+        -> AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageLego
+    ABahngeschwindigkeitLegoKonstanteSpannungFließend :: { abglkName :: Text }
+        -> AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageLego
     -- GeschwindigkeitsAnschlüsse
     ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
-        :: { abgAnfrageGeschwindigkeitsAnschlüsse
+        :: { abgmName :: Text
+           , abgmFließend :: Value
+           , abgAnfrageGeschwindigkeitsAnschlüsse
                  :: AnfrageGeschwindigkeitsAnschlüsse (FixeGeschwindigkeitVariante g)
            } -> AnfrageBahngeschwindigkeit g 'AnfrageMärklin
     ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
-        :: { abgAnfrageGeschwindigkeitsAnschlüsse
+        :: { abglName :: Text
+           , abglFließend :: Value
+           , abgAnfrageGeschwindigkeitsAnschlüsse
                  :: AnfrageGeschwindigkeitsAnschlüsse (FixeGeschwindigkeitVariante g)
            } -> AnfrageBahngeschwindigkeit g 'AnfrageLego
     -- FahrtrichtungsAnschluss
     ABahngeschwindigkeitFahrtrichtungsAnschluss
-        :: { abgGeschwindigkeitsAnschlüsse
+        :: { abgName :: Text
+           , abgFließend :: Value
+           , abgGeschwindigkeitsAnschlüsse
                  :: GeschwindigkeitsAnschlüsse (FixeGeschwindigkeitVariante g)
            , abgAnfrageFahrtrichtungsAnschluss
                  :: AnfrageFahrtrichtungsAnschluss (FixeGeschwindigkeitVariante g) (FixerZugtyp z)
@@ -246,20 +268,52 @@ instance Anzeige (AnfrageBahngeschwindigkeit g z) where
     anzeige AnfrageBahngeschwindigkeit = Language.bahngeschwindigkeit
     anzeige ABahngeschwindigkeitMärklin = Language.märklin <-> Language.bahngeschwindigkeit
     anzeige ABahngeschwindigkeitLego = Language.lego <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitMärklinPwm =
+        Language.märklin <-> Language.geschwindigkeitPwm <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitMärklinKonstanteSpannung =
+        Language.märklin
+        <-> Language.geschwindigkeitKonstanteSpannung
+        <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitLegoPwm =
+        Language.lego <-> Language.geschwindigkeitPwm <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitLegoKonstanteSpannung =
+        Language.lego
+        <-> Language.geschwindigkeitKonstanteSpannung
+        <-> Language.bahngeschwindigkeit
+    anzeige ABahngeschwindigkeitMärklinPwmFließend {abgmpName} =
+        Language.märklin
+        <-> Language.geschwindigkeitPwm
+        <-> Language.bahngeschwindigkeit <^> Language.name <=> abgmpName
+    anzeige ABahngeschwindigkeitMärklinKonstanteSpannungFließend {abgmkName} =
+        Language.märklin
+        <-> Language.geschwindigkeitKonstanteSpannung
+        <-> Language.bahngeschwindigkeit <^> Language.name <=> abgmkName
+    anzeige ABahngeschwindigkeitLegoPwmFließend {abglpName} =
+        Language.lego
+        <-> Language.geschwindigkeitPwm
+        <-> Language.bahngeschwindigkeit <^> Language.name <=> abglpName
+    anzeige ABahngeschwindigkeitLegoKonstanteSpannungFließend {abglkName} =
+        Language.lego
+        <-> Language.geschwindigkeitKonstanteSpannung
+        <-> Language.bahngeschwindigkeit <^> Language.name <=> abglkName
     anzeige
         ABahngeschwindigkeitMärklinGeschwindigkeitsAnschlüsse
-        {abgAnfrageGeschwindigkeitsAnschlüsse} = _undefined --TODO
+        {abgmName, abgmFließend, abgAnfrageGeschwindigkeitsAnschlüsse} =
+        Language.märklin <-> Language.bahngeschwindigkeit <^> (_undefined :: Text) --TODO
     anzeige
-        ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse {abgAnfrageGeschwindigkeitsAnschlüsse} =
-        _undefined --TODO
+        ABahngeschwindigkeitLegoGeschwindigkeitsAnschlüsse
+        {abglName, abglFließend, abgAnfrageGeschwindigkeitsAnschlüsse} =
+        Language.lego <-> Language.bahngeschwindigkeit <^> (_undefined :: Text) --TODO
     anzeige
         ABahngeschwindigkeitFahrtrichtungsAnschluss
-        {abgGeschwindigkeitsAnschlüsse, abgAnfrageFahrtrichtungsAnschluss} = _undefined --TODO
+        {abgName, abgFließend, abgGeschwindigkeitsAnschlüsse, abgAnfrageFahrtrichtungsAnschluss} =
+        _undefined --TODO
 
 instance Anfrage (AnfrageBahngeschwindigkeit g z) where
     zeigeAnfrage :: AnfrageBahngeschwindigkeit g z -> Sprache -> Text
     zeigeAnfrage AnfrageBahngeschwindigkeit = Language.zugtyp
-    zeigeAnfrage AMärklinBahngeschwindigkeit = Language.geschwindigkeitVariante
+    zeigeAnfrage ABahngeschwindigkeitMärklin = Language.geschwindigkeitVariante
+    zeigeAnfrage ABahngeschwindigkeitLego = Language.geschwindigkeitVariante
     zeigeAnfrage ABahngeschwindigkeitPwmMärklin = Language.name
     zeigeAnfrage AMärklinBahngeschwindigkeitNamePwm {} = Language.fließendValue
     zeigeAnfrage AMärklinBahngeschwindigkeitNameFließendPwm {} = Language.pin
