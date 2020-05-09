@@ -669,8 +669,8 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = mdo
         Language.geschwindigkeitPwm
         $ liftIO
         $ Gtk.vBoxNew False 0
-    geschwindigkeitAuswahl
-        <- boxPackWidgetNewDefault vBox $ pinAuswahlNew maybeTVarSprache Language.geschwindigkeit
+    geschwindigkeitAuswahl <- boxPackWidgetNewDefault vBoxPwm
+        $ pinAuswahlNew maybeTVarSprache Language.geschwindigkeit
     (vBoxKonstanteSpannung, indexKonstanteSpannung) <- notebookAppendPageNew
         notebookGeschwindigkeit
         maybeTVarSprache
@@ -718,7 +718,7 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = mdo
     legoVBoxKonstanteSpannung <- liftIO $ Gtk.vBoxNew False 0
     konstanteSpannungFahrtrichtungsAuswahl <- boxPackWidgetNewDefault legoVBoxKonstanteSpannung
         $ anschlussAuswahlNew maybeTVarSprache Language.fahrtrichtung
-    boxPackWidgetNew vBoxKonstanteSpannung PackGrow paddingDefault positionDefault
+    boxPackWidgetNewDefault vBoxKonstanteSpannung
         $ zugtypSpezifischNew
             [(Märklin, märklinVBoxKonstanteSpannung), (Lego, legoVBoxKonstanteSpannung)]
             auswahlZugtyp
