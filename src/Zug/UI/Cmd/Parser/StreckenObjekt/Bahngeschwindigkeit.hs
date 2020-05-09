@@ -18,8 +18,9 @@ import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import Data.Word (Word8)
 
-import Zug.Anbindung (AnschlussEither(), InterruptPinBenötigt(InterruptPinEgal), Pin(Gpio)
-                    , Value(..), alleValues, Bahngeschwindigkeit(..))
+import Zug.Anbindung
+       (AnschlussEither(), InterruptPinBenötigt(InterruptPinEgal), Pin(Gpio), Value(..), alleValues
+      , Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..))
 import Zug.Enums (Zugtyp(..), unterstützteZugtypen, GeschwindigkeitVariante(..))
 import Zug.Language (Anzeige(..), Sprache(), (<->), (<^>), (<=>), (<~>), ($#), toBefehlsString)
 import qualified Zug.Language as Language
@@ -270,13 +271,14 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Märklin) where
             [ (Lexer.HIGH, AMärklinBahngeschwindigkeitNameFließendPwm abgmpName HIGH)
             , (Lexer.LOW, AMärklinBahngeschwindigkeitNameFließendPwm abgmpName LOW)]
     anfrageAktualisieren
-        (AMärklinBahngeschwindigkeitNameFließendPwm bgmpName bgmpFließend)
+        (AMärklinBahngeschwindigkeitNameFließendPwm bgName bgFließend)
         EingabeToken {eingabe, ganzzahl} = case ganzzahl of
         (Just pin) -> AFErgebnis
-            $ BahngeschwindigkeitPwmMärklin
-            { bgmpName
-            , bgmpFließend
-            , bgmpGeschwindigkeitsPin = Gpio $ fromIntegral pin
+            $ Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin $ Gpio $ fromIntegral pin
+            , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss
             }
         Nothing -> AFFehler eingabe
 
@@ -352,9 +354,9 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
                         Warteschlange.anhängen fahrstromAnschluss fahrstromAkkumulator
     anfrageAktualisieren
         anfrage@(AMärklinBahngeschwindigkeitNameFließendFahrstromKonstanteSpannung
-                     bgmkName
-                     bgmkFließend
-                     bgmkFahrstromAnschlüsse
+                     bgName
+                     bgFließend
+                     fahrstromAnschlüsse
                      umdrehenAnfrageAnschluss)
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
@@ -369,13 +371,13 @@ instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
             anschlussVerwenden
                 :: AnschlussEither
                 -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfrageKonstanteSpannung 'AnfrageZugtypMärklin) (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
-            anschlussVerwenden bgmkUmdrehenAnschluss =
+            anschlussVerwenden umdrehenAnschluss =
                 AFErgebnis
-                    BahngeschwindigkeitKonstanteSpannungMärklin
-                    { bgmkName
-                    , bgmkFließend
-                    , bgmkFahrstromAnschlüsse
-                    , bgmkUmdrehenAnschluss
+                    Bahngeschwindigkeit
+                    { bgName
+                    , bgFließend
+                    , bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse { fahrstromAnschlüsse }
+                    , bgFahrtrichtungsAnschluss = UmdrehenAnschluss { umdrehenAnschluss }
                     }
 
 instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
@@ -406,9 +408,9 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
         Nothing -> AFFehler eingabe
     anfrageAktualisieren
         anfrage@(ALegoBahngeschwindigkeitNameFließendGeschwindigkeit
-                     bglName
-                     bglFließend
-                     bglGeschwindigkeitsPin
+                     bgName
+                     bgFließend
+                     geschwindigkeitsPin
                      fahrtrichtungsAnschluss)
         token =
         (anschlussVerwenden, anfrageAnschlussVerwenden)
@@ -422,13 +424,14 @@ instance MitAnfrage (Bahngeschwindigkeit 'Pwm 'Lego) where
             anschlussVerwenden
                 :: AnschlussEither
                 -> AnfrageFortsetzung (AnfrageBahngeschwindigkeit 'AnfragePwm 'AnfrageZugtypLego) (Bahngeschwindigkeit 'Pwm 'Lego)
-            anschlussVerwenden bglFahrtrichtungsAnschluss =
+            anschlussVerwenden fahrtrichtungsAnschluss =
                 AFErgebnis
-                    BahngeschwindigkeitPwmLego
-                    { bglName
-                    , bglFließend
-                    , bglGeschwindigkeitsPin
-                    , bglFahrtrichtungsAnschluss
+                    Bahngeschwindigkeit
+                    { bgName
+                    , bgFließend
+                    , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin { geschwindigkeitsPin }
+                    , bgFahrtrichtungsAnschluss =
+                          FahrtrichtungsAnschluss { fahrtrichtungsAnschluss }
                     }
 
 instance MitAnfrage (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
