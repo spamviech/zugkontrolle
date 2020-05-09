@@ -53,7 +53,8 @@ import qualified Graphics.UI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
-       (StreckenObjekt(..), Bahngeschwindigkeit(..), BahngeschwindigkeitKlasse(..)
+       (StreckenObjekt(..), Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..)
+      , FahrtrichtungsAnschluss(..), BahngeschwindigkeitKlasse(..), PwmZugtyp
       , BahngeschwindigkeitContainer(..), StreckenabschnittContainer(enthalteneStreckenabschnitte)
       , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (GeschwindigkeitEither(..), GeschwindigkeitVariante(..), GeschwindigkeitKlasse(..)
@@ -408,7 +409,7 @@ instance (GeschwindigkeitKlasse g) => PlanElement (BGWidgets g 'Märklin) where
     boxenPlan :: (ReaderConstraint (BGWidgets g 'Märklin) r)
               => Bahngeschwindigkeit g 'Märklin
               -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets g 'Märklin))
-    boxenPlan MärklinBahngeschwindigkeitPwm {} =
+    boxenPlan Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {}} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
                            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin}
@@ -416,7 +417,7 @@ instance (GeschwindigkeitKlasse g) => PlanElement (BGWidgets g 'Märklin) where
               , widgetHinzufügenGeschwindigkeitVariante
                     vBoxHinzufügenPlanBahngeschwindigkeitenMärklin])
         . bgWidgetsBoxen
-    boxenPlan BahngeschwindigkeitKonstanteSpannungMärklin {} =
+    boxenPlan Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {}} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
                            , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin}
@@ -438,11 +439,19 @@ instance (GeschwindigkeitKlasse g) => PlanElement (BGWidgets g 'Lego) where
     boxenPlan :: (ReaderConstraint (BGWidgets g 'Lego) r)
               => Bahngeschwindigkeit g 'Lego
               -> Lens.Fold r (BoxPlanHinzufügen (BGWidgets g 'Lego))
-    boxenPlan LegoBahngeschwindigkeit {} =
+    boxenPlan Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {}} =
         Lens.folding
         $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
                            , vBoxHinzufügenPlanBahngeschwindigkeitenLego}
            -> [ vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+              , widgetHinzufügenGeschwindigkeitVariante
+                    vBoxHinzufügenPlanBahngeschwindigkeitenLego])
+        . bgWidgetsBoxen
+    boxenPlan Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {}} =
+        Lens.folding
+        $ (\BGWidgetsBoxen { vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
+                           , vBoxHinzufügenPlanBahngeschwindigkeitenLego}
+           -> [ vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
               , widgetHinzufügenGeschwindigkeitVariante
                     vBoxHinzufügenPlanBahngeschwindigkeitenLego])
         . bgWidgetsBoxen
@@ -510,7 +519,7 @@ instance StreckenObjekt (BGWidgets g z) where
     erhalteName :: BGWidgets g z -> Text
     erhalteName = erhalteName . bg
 
-instance Aeson.ToJSON (BGWidgets g z) where
+instance (ZugtypKlasse z, GeschwindigkeitKlasse g) => Aeson.ToJSON (BGWidgets g z) where
     toJSON :: BGWidgets g z -> Aeson.Value
     toJSON = Aeson.toJSON . bg
 
@@ -567,16 +576,17 @@ bahngeschwindigkeitPackNew
     , MitAktionBearbeiten (ReaderFamilie o)
     , MonadIO m
     , ZugtypKlasse z
+    , PwmZugtyp z
     )
     => Bahngeschwindigkeit g z
     -> MStatusAllgemeinT m o (BGWidgets g z)
 bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     BGWidgetsBoxen {vBoxBahngeschwindigkeiten} <- erhalteBGWidgetsBoxen
-    (tvarSprache, tvarEvent) <- liftIO $ do
-        tvarSprache <- newTVarIO $ Just []
-        tvarEvent <- newTVarIO EventAusführen
-        pure (tvarSprache, tvarEvent)
-    let justTVarSprache = Just tvarSprache
+    (bgTVarSprache, bgTVarEvent) <- liftIO $ do
+        bgTVarSprache <- newTVarIO $ Just []
+        bgTVarEvent <- newTVarIO EventAusführen
+        pure (bgTVarSprache, bgTVarEvent)
+    let justTVarSprache = Just bgTVarSprache
     -- Widget erstellen
     vBox <- liftIO $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.vBoxNew False 0
     namePackNew vBox bahngeschwindigkeit
@@ -589,12 +599,34 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    bgWidgets <- geschwindigkeitsWidgetsPackNew
-        vBox
+    bgFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    bgGeschwindigkeitsWidgets <- geschwindigkeitsWidgetsPackNew
+        bgFunctionBox
         bahngeschwindigkeit
         vBoxAnschlüsse
-        tvarSprache
-        tvarEvent
+        bgTVarSprache
+        bgTVarEvent
+    bgFahrtrichtungsWidgets <- fahrtrichtungsWidgetsPackNew
+        bgFunctionBox
+        bahngeschwindigkeit
+        vBoxAnschlüsse
+        bgTVarSprache
+        bgTVarEvent
+    -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
+    (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+        <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
+    let bgWidgets =
+            BGWidgets
+            { bg = bahngeschwindigkeit
+            , bgWidget = vBox
+            , bgFunctionBox
+            , bgHinzWS
+            , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
+            , bgTVarSprache
+            , bgTVarEvent
+            , bgGeschwindigkeitsWidgets
+            , bgFahrtrichtungsWidgets
+            }
     fließendPackNew vBoxAnschlüsse bahngeschwindigkeit justTVarSprache
     buttonEntfernenPackNew
         bgWidgets
@@ -641,135 +673,116 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 )
 
         geschwindigkeitsWidgetsPackNew
-            :: Gtk.VBox
+            :: Gtk.HBox
             -> Bahngeschwindigkeit g z
             -> ScrollbaresWidget Gtk.VBox
             -> TVar (Maybe [Sprache -> IO ()])
             -> TVar EventAusführen
-            -> MStatusAllgemeinT m o (BGWidgets g z)
+            -> MStatusAllgemeinT m o (GeschwindigkeitsWidgets g)
         geschwindigkeitsWidgetsPackNew
-            box
-            bahngeschwindigkeit@BahngeschwindigkeitPwmMärklin {bgmpGeschwindigkeitsPin}
+            bgFunctionBox
+            bahngeschwindigkeit@Bahngeschwindigkeit
+            {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {geschwindigkeitsPin}}
             vBoxAnschlüsse
             bgTVarSprache
             bgTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             boxPackWidgetNewDefault vBoxAnschlüsse
-                $ pinNew (Just bgTVarSprache) Language.geschwindigkeit bgmpGeschwindigkeitsPin
-            bgFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            wScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
-                bgFunctionBox
-                bahngeschwindigkeit
-                bgTVarEvent
-                statusVar
-            wButtonUmdrehen <- buttonUmdrehenPackNew
-                bgFunctionBox
-                bahngeschwindigkeit
-                bgTVarSprache
-                bgTVarEvent
-                statusVar
-            -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-            (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
-            pure
-                BGWidgets
-                { bg = bahngeschwindigkeit
-                , bgWidget = box
-                , bgFunctionBox
-                , bgHinzWS
-                , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                , bgTVarSprache
-                , bgTVarEvent
-                , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit { wScaleGeschwindigkeit }
-                , bgFahrtrichtungsWidgets = ButtonUmdrehen { wButtonUmdrehen }
-                }
+                $ pinNew (Just bgTVarSprache) Language.geschwindigkeit geschwindigkeitsPin
+            ScaleGeschwindigkeit
+                <$> hScaleGeschwindigkeitPackNew
+                    bgFunctionBox
+                    bahngeschwindigkeit
+                    bgTVarEvent
+                    statusVar
         geschwindigkeitsWidgetsPackNew
-            box
-            bahngeschwindigkeit@BahngeschwindigkeitKonstanteSpannungMärklin
-            {bgmkFahrstromAnschlüsse, bgmkUmdrehenAnschluss}
+            bgFunctionBox
+            Bahngeschwindigkeit
+            {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}}
             vBoxAnschlüsse
             bgTVarSprache
             bgTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-            let justTVarSprache = Just bgTVarSprache
-            let erstelleFahrstromAnschlussWidget
-                    :: Natural -> AnschlussEither -> MStatusAllgemeinT m o Natural
-                erstelleFahrstromAnschlussWidget i anschluss = do
-                    boxPackWidgetNewDefault vBoxAnschlüsse
-                        $ anschlussNew justTVarSprache (Language.fahrstrom <> anzeige i) anschluss
-                    pure $ succ i
-            foldM_ erstelleFahrstromAnschlussWidget 1 bgmkFahrstromAnschlüsse
-            bgFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            wAuswahlFahrstrom <- auswahlFahrstromPackNew
-                bgFunctionBox
-                bahngeschwindigkeit
-                (fromIntegral $ length bgmkFahrstromAnschlüsse)
-                bgTVarSprache
-                bgTVarEvent
-                statusVar
-            boxPackWidgetNewDefault vBoxAnschlüsse
-                $ anschlussNew justTVarSprache Language.umdrehen bgmkUmdrehenAnschluss
-            wButtonUmdrehen <- buttonUmdrehenPackNew
-                bgFunctionBox
-                bahngeschwindigkeit
-                bgTVarSprache
-                bgTVarEvent
-                statusVar
-            -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-            (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
-            pure
-                BGWidgets
-                { bg = bahngeschwindigkeit
-                , bgWidget = box
-                , bgFunctionBox
-                , bgHinzWS
-                , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                , bgTVarSprache
-                , bgTVarEvent
-                , bgGeschwindigkeitsWidgets = AuswahlFahrstrom { wAuswahlFahrstrom }
-                , bgFahrtrichtungsWidgets = ButtonUmdrehen { wButtonUmdrehen }
-                }
-        geschwindigkeitsWidgetsPackNew
-            box
-            bahngeschwindigkeit@BahngeschwindigkeitPwmLego
-            {bglGeschwindigkeitsPin, bglFahrtrichtungsAnschluss}
+            foldM_
+                (erstelleFahrstromAnschlussWidget vBoxAnschlüsse bgTVarSprache)
+                1
+                fahrstromAnschlüsse
+            AuswahlFahrstrom
+                <$> auswahlFahrstromPackNew
+                    bgFunctionBox
+                    bahngeschwindigkeit
+                    (fromIntegral $ length fahrstromAnschlüsse)
+                    bgTVarSprache
+                    bgTVarEvent
+                    statusVar
+
+        fahrtrichtungsWidgetsPackNew
+            :: Gtk.HBox
+            -> Bahngeschwindigkeit g z
+            -> ScrollbaresWidget Gtk.VBox
+            -> TVar (Maybe [Sprache -> IO ()])
+            -> TVar EventAusführen
+            -> MStatusAllgemeinT m o (FahrtrichtungsWidgets z)
+        fahrtrichtungsWidgetsPackNew
+            bgFunctionBox
+            bahngeschwindigkeit@Bahngeschwindigkeit
+            {bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss}
+            _vBoxAnschlüsse
+            bgTVarSprache
+            bgTVarEvent = do
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
+            ButtonUmdrehen
+                <$> buttonUmdrehenPackNew
+                    bgFunctionBox
+                    bahngeschwindigkeit
+                    bgTVarSprache
+                    bgTVarEvent
+                    statusVar
+        fahrtrichtungsWidgetsPackNew
+            bgFunctionBox
+            bahngeschwindigkeit@Bahngeschwindigkeit
+            {bgFahrtrichtungsAnschluss = UmdrehenAnschluss {umdrehenAnschluss}}
             vBoxAnschlüsse
             bgTVarSprache
             bgTVarEvent = do
             statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-            let justTVarSprache = Just bgTVarSprache
             boxPackWidgetNewDefault vBoxAnschlüsse
-                $ pinNew justTVarSprache Language.geschwindigkeit bglGeschwindigkeitsPin
-            bgFunctionBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
-            wScaleGeschwindigkeit <- hScaleGeschwindigkeitPackNew
-                bgFunctionBox
-                bahngeschwindigkeit
-                bgTVarEvent
-                statusVar
+                $ anschlussNew (Just bgTVarSprache) Language.umdrehen umdrehenAnschluss
+            ButtonUmdrehen
+                <$> buttonUmdrehenPackNew
+                    bgFunctionBox
+                    bahngeschwindigkeit
+                    bgTVarSprache
+                    bgTVarEvent
+                    statusVar
+        fahrtrichtungsWidgetsPackNew
+            bgFunctionBox
+            bahngeschwindigkeit@Bahngeschwindigkeit
+            {bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss {fahrtrichtungsAnschluss}}
+            vBoxAnschlüsse
+            bgTVarSprache
+            bgTVarEvent = do
+            statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
             boxPackWidgetNewDefault vBoxAnschlüsse
-                $ anschlussNew justTVarSprache Language.fahrtrichtung bglFahrtrichtungsAnschluss
-            wAuswahlFahrtrichtung <- auswahlFahrtrichtungEinstellenPackNew
-                bgFunctionBox
-                bahngeschwindigkeit
-                bgTVarSprache
-                bgTVarEvent
-                statusVar
-            -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
-            (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
-            pure
-                BGWidgets
-                { bg = bahngeschwindigkeit
-                , bgWidget = box
-                , bgFunctionBox
-                , bgHinzWS
-                , bgHinzPL = (hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-                , bgTVarSprache
-                , bgTVarEvent
-                , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit { wScaleGeschwindigkeit }
-                , bgFahrtrichtungsWidgets = AuswahlFahrtrichtung { wAuswahlFahrtrichtung }
-                }
+                $ anschlussNew (Just bgTVarSprache) Language.fahrtrichtung fahrtrichtungsAnschluss
+            AuswahlFahrtrichtung
+                <$> auswahlFahrtrichtungEinstellenPackNew
+                    bgFunctionBox
+                    bahngeschwindigkeit
+                    bgTVarSprache
+                    bgTVarEvent
+                    statusVar
+
+        erstelleFahrstromAnschlussWidget
+            :: ScrollbaresWidget Gtk.VBox
+            -> TVar (Maybe [Sprache -> IO ()])
+            -> Natural
+            -> AnschlussEither
+            -> MStatusAllgemeinT m o Natural
+        erstelleFahrstromAnschlussWidget vBoxAnschlüsse tvarSprache i anschluss = do
+            boxPackWidgetNewDefault vBoxAnschlüsse
+                $ anschlussNew (Just tvarSprache) (Language.fahrstrom <> anzeige i) anschluss
+            pure $ succ i
 
 -- | Hilfsklasse um Widgets zu synchronisieren.
 class ( WidgetsTyp (bg 'Pwm 'Märklin)
@@ -798,6 +811,7 @@ hScaleGeschwindigkeitPackNew
     , ObjektReader o m
     , MonadIO m
     , ZugtypKlasse z
+    , PwmZugtyp z
     )
     => b
     -> bg 'Pwm z
@@ -886,6 +900,7 @@ auswahlFahrstromPackNew
     , ObjektReader o m
     , MonadIO m
     , ZugtypKlasse z
+    , PwmZugtyp z
     )
     => b
     -> bg 'KonstanteSpannung z
