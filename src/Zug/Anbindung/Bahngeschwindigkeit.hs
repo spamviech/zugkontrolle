@@ -51,6 +51,7 @@ import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), Fahrtrichtung(Vorwär
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
 import qualified Zug.Language as Language
 
+-- | 'Anschluss'-Möglichkeiten um die Geschwindigkeit zu kontrollieren.
 data GeschwindigkeitsAnschlüsse (g :: GeschwindigkeitVariante) where
     GeschwindigkeitsPin :: { geschwindigkeitsPin :: Pin } -> GeschwindigkeitsAnschlüsse 'Pwm
     FahrstromAnschlüsse :: { fahrstromAnschlüsse :: NonEmpty AnschlussEither }
@@ -69,6 +70,7 @@ instance Anzeige (GeschwindigkeitsAnschlüsse g) where
     anzeige FahrstromAnschlüsse {fahrstromAnschlüsse} =
         Language.fahrstrom <-> Language.anschlüsse <=> fahrstromAnschlüsse
 
+-- | 'Anschluss'-Möglichkeiten um die Fahrtrichtung einzustellen.
 data FahrtrichtungsAnschluss (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     KeinExpliziterAnschluss :: FahrtrichtungsAnschluss 'Pwm 'Märklin
     UmdrehenAnschluss :: { umdrehenAnschluss :: AnschlussEither }
@@ -312,6 +314,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                        else gesperrt)
                     bg
 
+-- | Setze die aktuelle Geschwindigkeit auf 0.
 stehenbleiben
     :: (I2CReader r m, PwmReader r m, PwmZugtyp z, MonadIO m) => Bahngeschwindigkeit g z -> m ()
 stehenbleiben bg@Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {}} = do

@@ -42,7 +42,8 @@ import Zug.UI.Cmd.Parser.Anfrage
       , AnfrageZugtypEither(..), AnfrageGeschwindigkeitEither(..), AnfrageFortsetzung(..)
       , wähleZwischenwert, ($<<), anfrageAktualisierenZugtyp)
 import Zug.UI.Cmd.Parser.Plan (AnfragePlan(..))
-import Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit (AnfrageBahngeschwindigkeit(..))
+import Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit
+       (AnfrageBahngeschwindigkeit(..), GeschwindigkeitVarianteDummy(..), ZugtypDummy(..))
 import Zug.UI.Cmd.Parser.StreckenObjekt.Kontakt (AnfrageKontakt(..))
 import Zug.UI.Cmd.Parser.StreckenObjekt.Kupplung (AnfrageKupplung(..))
 import Zug.UI.Cmd.Parser.StreckenObjekt.Streckenabschnitt (AnfrageStreckenabschnitt(..))
@@ -107,7 +108,7 @@ instance MitAnfrage Objekt where
             [ ( Lexer.Bahngeschwindigkeit
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypNothing
-                    $ AnfrageGeschwindigkeitNothing AnfrageBahngeschwindigkeit
+                    $ AnfrageGeschwindigkeitNothing ABahngeschwindigkeitZugtyp
                   )
             , (Lexer.Streckenabschnitt, AOStreckenabschnitt AnfrageStreckenabschnitt)
             , (Lexer.Weiche, AOWeiche $ AnfrageZugtypNothing AnfrageWeiche)
@@ -117,7 +118,7 @@ instance MitAnfrage Objekt where
             , (Lexer.Plan, AOPlan AnfragePlan)]
     anfrageAktualisieren
         (AOBahngeschwindigkeit
-             (AnfrageZugtypNothing (AnfrageGeschwindigkeitNothing AnfrageBahngeschwindigkeit)))
+             (AnfrageZugtypNothing (AnfrageGeschwindigkeitNothing ABahngeschwindigkeitZugtyp)))
         token = (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
     anfrageAktualisieren (AOBahngeschwindigkeit (AnfrageZugtypNothing _)) token =
         (id, AOBahngeschwindigkeit) $<< anfrageAktualisierenZugtyp token
@@ -130,13 +131,16 @@ instance MitAnfrage Objekt where
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypMärklin
-                    $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitMärklinPwm
+                    $ AnfrageGeschwindigkeitPwm
+                    $ ABahngeschwindigkeitName
+                        (GeschwindigkeitVarianteDummyPwm, ZugtypDummyMärklin)
                   )
             , ( Lexer.KonstanteSpannung
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypMärklin
                     $ AnfrageGeschwindigkeitKonstanteSpannung
-                        ABahngeschwindigkeitMärklinKonstanteSpannung
+                    $ ABahngeschwindigkeitName
+                        (GeschwindigkeitVarianteDummyKonstanteSpannung, ZugtypDummyMärklin)
                   )]
     anfrageAktualisieren
         (AOBahngeschwindigkeit
@@ -163,13 +167,15 @@ instance MitAnfrage Objekt where
             [ ( Lexer.Pwm
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypLego
-                    $ AnfrageGeschwindigkeitPwm ABahngeschwindigkeitLegoPwm
+                    $ AnfrageGeschwindigkeitPwm
+                    $ ABahngeschwindigkeitName (GeschwindigkeitVarianteDummyPwm, ZugtypDummyLego)
                   )
             , ( Lexer.KonstanteSpannung
                   , AOBahngeschwindigkeit
                     $ AnfrageZugtypLego
                     $ AnfrageGeschwindigkeitKonstanteSpannung
-                        ABahngeschwindigkeitLegoKonstanteSpannung
+                    $ ABahngeschwindigkeitName
+                        (GeschwindigkeitVarianteDummyKonstanteSpannung, ZugtypDummyLego)
                   )]
     anfrageAktualisieren
         (AOBahngeschwindigkeit (AnfrageZugtypLego (AnfrageGeschwindigkeitPwm aBahngeschwindigkeit)))

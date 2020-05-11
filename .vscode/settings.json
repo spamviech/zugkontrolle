@@ -90,6 +90,7 @@
         "doesn",
         "dphys",
         "elems",
+        "end",
         "floskell",
         "fmap",
         "foldl",
@@ -139,5 +140,6 @@
         "wiringpi",
         "ßend",
         "üsse"
-    ]
+    ],
+    "languageServerHaskell.hieVariant": "haskell-ide-engine"
 }
