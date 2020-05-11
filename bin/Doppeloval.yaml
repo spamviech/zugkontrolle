@@ -438,6 +438,9 @@ Pläne:
       Name: O - Außenkreis
       Fließend: LOW
     Aktion: Warten
+  - Wert:
+      s: 5
+    Aktion: Warten
   - Streckenabschnitt:
       Name: O.St
       Fließend: LOW
@@ -457,6 +460,9 @@ Pläne:
         Pin: 14
       Name: I - Innenkreis
       Fließend: LOW
+    Aktion: Warten
+  - Wert:
+      s: 5
     Aktion: Warten
 Wegstrecken:
 - Streckenabschnitte:
