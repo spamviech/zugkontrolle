@@ -2,6 +2,9 @@ Wartezeit auf einen Konstruktor beschränken
     Andere Konstruktoren durch PatternSynonyms ersetzen
         COMPLETE-Pragmas nicht vergessen
 
+Mit..-Klassen durch typ-Synonyme von it-has ersetzen
+    http://hackage.haskell.org/package/it-has
+
 Gtk-UI:
     Plan synchronisiert nicht andere Widgets.
         PlanAllgemein o, AktionAllgemein o
