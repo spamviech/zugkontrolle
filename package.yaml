@@ -42,7 +42,6 @@ when:
 
 dependencies:
   - base >= 4.7 && < 5
-  - ghc >= 8.2 && < 8.3
   - aeson >= 1.2 && < 2
   - ansi-terminal >= 0.8 && < 1
   - bytestring >= 0.10 && < 1
