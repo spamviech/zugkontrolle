@@ -11,6 +11,7 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 module Zug.UI.Gtk (main, setupGUI) where
 
 #ifdef ZUGKONTROLLEGUI
+import Control.Concurrent (runInBoundThread)
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
 #else
 import Control.Concurrent.STM.TVar (TVar)
@@ -83,7 +84,7 @@ putWarningLn warning = do
 #else
 -- | main loop
 main :: IO ()
-main = do
+main = runInBoundThread $ do
     -- Initialisiere GTK+ engine
     Gtk.initGUI
     -- Erstelle GUI
