@@ -1,17 +1,11 @@
-Wartezeit auf einen Konstruktor beschränken
-    Andere Konstruktoren durch PatternSynonyms ersetzen
-        COMPLETE-Pragmas nicht vergessen
+Warteschlange über Data.Sequence Implementieren?
 
-Mit..-Klassen durch typ-Synonyme von it-has ersetzen
+Orphans in Zug.Save vermeiden
+    From/ToJSON-Instanzen in den jeweiligen Modulen definieren.
+    Orphans erzeugen mehr Arbeit für den Compiler (darum die Warnung mit -Worphans)
+
+Mit..-Klassen durch typ-Synonyme von it-has ersetzen=
     http://hackage.haskell.org/package/it-has
-
-Gtk-UI:
-    Plan synchronisiert nicht andere Widgets.
-        PlanAllgemein o, AktionAllgemein o
-        BGWidgets, etc. müssen Synchronisation übernehmen (bisher in Widget-Event!)
-    Analog für Wegstrecke?
-        Widget-Event dann ein einfaches ausführenAktion wsWidgets
-        möglich über RecursiveDo
 
 Pin-Setup bei Hinzufügen
     pinMode pin OUTPUT
@@ -49,8 +43,6 @@ Einstellungen in yaml-Datei speichern?
     Sprache
     Gtk-UI: Einzelseiten
     UI?
-
-Warteschlange über Data.Sequence Implementieren?
 
 Polysemy anstelle von mtl verwenden
     Hauptsächlich zum ausprobieren, ich mag aber auch die Constraints
@@ -133,6 +125,20 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst----------------------------------------------------------------
+Wartezeit auf einen Konstruktor beschränken
+    Andere Konstruktoren durch PatternSynonyms ersetzen
+        COMPLETE-Pragmas nicht vergessen
+    Done
+
+Gtk-UI:
+    Plan synchronisiert nicht andere Widgets.
+        PlanAllgemein o, AktionAllgemein o
+        BGWidgets, etc. müssen Synchronisation übernehmen (bisher in Widget-Event!)
+    Analog für Wegstrecke?
+        Widget-Event dann ein einfaches ausführenAktion wsWidgets
+        möglich über RecursiveDo
+    Done
+
 Anschluss in GADT umwandeln
     Mit Phantomtyp, der einen InterruptPin garantiert
     Done

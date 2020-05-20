@@ -319,12 +319,6 @@ instance FromJSON Wartezeit where
 instance ToJSON Wartezeit where
     toJSON :: Wartezeit -> Value
     toJSON (NanoSekunden ns) = object [nsJS .= ns]
-    toJSON (MikroSekunden µs) = object [µsJS .= µs]
-    toJSON (MilliSekunden ms) = object [msJS .= ms]
-    toJSON (Sekunden s) = object [sJS .= s]
-    toJSON (Minuten min) = object [minJS .= min]
-    toJSON (Stunden h) = object [hJS .= h]
-    toJSON (Tage d) = object [dJS .= d]
 
 -- Instanz-Deklaration für Richtung
 -- neue Feld-Namen/Bezeichner in json-Datei
