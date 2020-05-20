@@ -11,7 +11,8 @@ SRC0=./src/Zug/*.hs
 SRC1=./src/Zug/*/*.hs
 SRC2=./src/Zug/*/*/*.hs
 SRC3=./src/Zug/*/*/*/*.hs
-for f in $APP0 $SRC0 $SRC1 $SRC2 $SRC3
+SRC4=./src/Zug/*/*/*/*/*.hs
+for f in $APP0 $SRC0 $SRC1 $SRC2 $SRC3 $SRC4
 do
     echo "floskell $f"
     floskell $f
