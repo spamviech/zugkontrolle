@@ -1,5 +1,3 @@
-Warteschlange über Data.Sequence Implementieren?
-
 Orphans in Zug.Save vermeiden
     From/ToJSON-Instanzen in den jeweiligen Modulen definieren.
     Orphans erzeugen mehr Arbeit für den Compiler (darum die Warnung mit -Worphans)
@@ -125,6 +123,9 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst----------------------------------------------------------------
+Warteschlange über Data.Sequence Implementieren?
+    Done
+
 Wartezeit auf einen Konstruktor beschränken
     Andere Konstruktoren durch PatternSynonyms ersetzen
         COMPLETE-Pragmas nicht vergessen
