@@ -9,7 +9,10 @@
 
 module Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..)) where
 
+import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO())
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import Data.Set (Set)
 import Data.Text (Text)
 
@@ -18,6 +21,7 @@ import Zug.Anbindung.Anschluss
       , InterruptReader(), I2CReader(), warteAufÄnderung, IntEdge(..))
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), (<:>), (<=>), (<^>), (<->))
 import qualified Zug.Language as Language
 
@@ -68,3 +72,18 @@ instance KontaktKlasse Kontakt where
                     then INT_EDGE_FALLING
                     else INT_EDGE_RISING
                   )]
+
+-- JSON-Instanz-Deklarationen für Kontakt
+instance Aeson.FromJSON Kontakt where
+    parseJSON :: Aeson.Value -> Aeson.Parser Kontakt
+    parseJSON (Aeson.Object v) =
+        Kontakt <$> v .: JS.name <*> v .: JS.fließend <*> v .: JS.kontaktAnschluss
+    parseJSON _value = empty
+
+instance Aeson.ToJSON Kontakt where
+    toJSON :: Kontakt -> Aeson.Value
+    toJSON Kontakt {koName, koFließend, kontaktAnschluss} =
+        Aeson.object
+            [ JS.name .= koName
+            , JS.fließend .= koFließend
+            , JS.kontaktAnschluss .= kontaktAnschluss]

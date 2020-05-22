@@ -7,7 +7,6 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
--- {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-|
@@ -26,11 +25,15 @@ module Zug.Anbindung.Bahngeschwindigkeit
   , positionOderLetztes
   ) where
 
+import Control.Applicative (Alternative(..))
 import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO())
+import Data.Aeson.Types ((.=), (.:))
+import qualified Data.Aeson.Types as Aeson
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromJust)
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -39,15 +42,18 @@ import qualified Data.Text as Text
 import Data.Word (Word8)
 
 import Zug.Anbindung.Anschluss
-       (Value(..), AnschlussEither(..), Anschluss(..), MitInterruptPin(OhneInterruptPin)
-      , PCF8574Klasse(ohneInterruptPin), Pin(), PCF8574Port(), I2CReader(forkI2CReader)
-      , AnschlussKlasse(anschlussWrite, zuAnschluss), pcf8574MultiPortWrite, pcf8574Gruppieren)
+       (Value(..), AnschlussEither(..), Anschluss(..), AnschlussKlasse(zuPinGpio)
+      , MitInterruptPin(OhneInterruptPin), PCF8574Klasse(ohneInterruptPin), Pin(Gpio), PCF8574Port()
+      , I2CReader(forkI2CReader), AnschlussKlasse(anschlussWrite, zuAnschluss)
+      , pcf8574MultiPortWrite, pcf8574Gruppieren, parseAnschlussEither, parseFließend)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Pwm (PwmReader(), pwmSetzeWert, PwmValueUnmodifiziert, erhaltePwmWertVoll
                         , erhaltePwmWertReduziert, pwmGrenze)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
 import Zug.Derive.Ord (deriveOrd)
-import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), Fahrtrichtung(Vorwärts))
+import Zug.Enums (Zugtyp(..), ZugtypKlasse(zuZugtypEither), zugtyp, GeschwindigkeitVariante(..)
+                , Fahrtrichtung(Vorwärts))
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText, (<->), (<:>), (<=>), (<^>))
 import qualified Zug.Language as Language
 
@@ -323,3 +329,101 @@ stehenbleiben bg@Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = Geschwindi
 stehenbleiben bg@Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {}} = do
     fahrstrom bg 0
     warte umdrehenZeit
+
+-- JSON-Instanz-Deklarationen für Bahngeschwindigkeit
+instance Aeson.FromJSON (Bahngeschwindigkeit 'Pwm 'Märklin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'Pwm 'Märklin)
+    parseJSON (Aeson.Object v) = do
+        Märklin <- v .: JS.zugtyp
+        bgName <- v .: JS.name
+        bgFließend <- parseFließend v
+        geschwindigkeitsPin <- Gpio <$> v .: JS.geschwindigkeitsPin
+        pure
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin { geschwindigkeitsPin }
+            , bgFahrtrichtungsAnschluss = KeinExpliziterAnschluss
+            }
+    parseJSON _value = empty
+
+instance Aeson.FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
+    parseJSON (Aeson.Object v) = do
+        Märklin <- v .: JS.zugtyp
+        bgName <- v .: JS.name
+        bgFließend <- parseFließend v
+        fahrstromAnschlüsse <- v .: JS.fahrstromAnschlüsse
+        umdrehenAnschluss <- v .: JS.umdrehenAnschluss
+        pure
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse { fahrstromAnschlüsse }
+            , bgFahrtrichtungsAnschluss = UmdrehenAnschluss { umdrehenAnschluss }
+            }
+    parseJSON _value = empty
+
+instance Aeson.FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'Pwm 'Lego)
+    parseJSON (Aeson.Object v) = do
+        Lego <- v .: JS.zugtyp
+        bgName <- v .: JS.name
+        bgFließend <- parseFließend v
+        geschwindigkeitsPin <- Gpio <$> v .: JS.geschwindigkeitsPin
+        fahrtrichtungsAnschluss
+            <- parseAnschlussEither v JS.fahrtrichtungsAnschluss JS.fahrtrichtungsPin
+        pure
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin { geschwindigkeitsPin }
+            , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss { fahrtrichtungsAnschluss }
+            }
+    parseJSON _value = empty
+
+instance Aeson.FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
+    parseJSON (Aeson.Object v) = do
+        Lego <- v .: JS.zugtyp
+        bgName <- v .: JS.name
+        bgFließend <- parseFließend v
+        fahrstromAnschlüsse <- v .: JS.fahrstromAnschlüsse
+        fahrtrichtungsAnschluss
+            <- parseAnschlussEither v JS.fahrtrichtungsAnschluss JS.fahrtrichtungsPin
+        pure
+            Bahngeschwindigkeit
+            { bgName
+            , bgFließend
+            , bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse { fahrstromAnschlüsse }
+            , bgFahrtrichtungsAnschluss = FahrtrichtungsAnschluss { fahrtrichtungsAnschluss }
+            }
+    parseJSON _value = empty
+
+instance (ZugtypKlasse z) => Aeson.ToJSON (Bahngeschwindigkeit b z) where
+    toJSON :: Bahngeschwindigkeit b z -> Aeson.Value
+    toJSON
+        bg@Bahngeschwindigkeit
+        {bgName, bgFließend, bgGeschwindigkeitsAnschlüsse, bgFahrtrichtungsAnschluss} =
+        Aeson.object
+        $ maybe
+            id
+            (:)
+            (pairFahrtrichtungsAnschluss bgFahrtrichtungsAnschluss)
+            [ JS.name .= bgName
+            , JS.fließend .= bgFließend
+            , JS.zugtyp .= zugtyp (zuZugtypEither bg)
+            , pairGeschwindigkeitsAnschlüsse bgGeschwindigkeitsAnschlüsse]
+        where
+            pairGeschwindigkeitsAnschlüsse :: GeschwindigkeitsAnschlüsse g -> Aeson.Pair
+            pairGeschwindigkeitsAnschlüsse GeschwindigkeitsPin {geschwindigkeitsPin} =
+                JS.geschwindigkeitsPin .= (fromJust $ zuPinGpio geschwindigkeitsPin :: Word8)
+            pairGeschwindigkeitsAnschlüsse FahrstromAnschlüsse {fahrstromAnschlüsse} =
+                JS.fahrstromAnschlüsse .= fahrstromAnschlüsse
+
+            pairFahrtrichtungsAnschluss :: FahrtrichtungsAnschluss g z -> Maybe Aeson.Pair
+            pairFahrtrichtungsAnschluss KeinExpliziterAnschluss = Nothing
+            pairFahrtrichtungsAnschluss UmdrehenAnschluss {umdrehenAnschluss} =
+                Just $ JS.umdrehenAnschluss .= umdrehenAnschluss
+            pairFahrtrichtungsAnschluss FahrtrichtungsAnschluss {fahrtrichtungsAnschluss} =
+                Just $ JS.fahrtrichtungsAnschluss .= fahrtrichtungsAnschluss

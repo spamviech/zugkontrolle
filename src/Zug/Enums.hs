@@ -4,6 +4,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Description : Datentypen, welche bestimmte Eigenschaften (z.B. Richtung einer Weiche) repräsentieren.
@@ -39,11 +40,14 @@ module Zug.Enums
   , unterstützteStromeinstellungen
   ) where
 
+import Control.Applicative (Alternative(..))
+import Data.Aeson.Types as Aeson
 import qualified Data.Foldable as Foldable
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Data.Text (Text)
 
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 
@@ -95,6 +99,17 @@ instance ZugtypKlasse 'Lego where
 
     zuZugtypEither :: a 'Lego -> ZugtypEither a
     zuZugtypEither = ZugtypLego
+
+instance (Aeson.FromJSON (a 'Märklin), Aeson.FromJSON (a 'Lego))
+    => Aeson.FromJSON (ZugtypEither a) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (ZugtypEither a)
+    parseJSON value =
+        (ZugtypMärklin <$> Aeson.parseJSON value) <|> (ZugtypLego <$> Aeson.parseJSON value)
+
+instance (Aeson.ToJSON (a 'Märklin), Aeson.ToJSON (a 'Lego)) => Aeson.ToJSON (ZugtypEither a) where
+    toJSON :: ZugtypEither a -> Aeson.Value
+    toJSON (ZugtypMärklin a) = Aeson.toJSON a
+    toJSON (ZugtypLego a) = Aeson.toJSON a
 
 -- | Führe eine 'Zugtyp'-generische Funktion auf einem 'ZugtypEither' aus
 mapZugtypEither :: (forall (z :: Zugtyp). a z -> b z) -> ZugtypEither a -> ZugtypEither b
@@ -193,6 +208,19 @@ geschwindigkeitVariante :: GeschwindigkeitEither a z -> GeschwindigkeitVariante
 geschwindigkeitVariante (GeschwindigkeitPwm _a) = Pwm
 geschwindigkeitVariante (GeschwindigkeitKonstanteSpannung _a) = KonstanteSpannung
 
+instance (Aeson.FromJSON (bg 'Pwm z), Aeson.FromJSON (bg 'KonstanteSpannung z))
+    => Aeson.FromJSON (GeschwindigkeitEither bg z) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (GeschwindigkeitEither bg z)
+    parseJSON value =
+        (GeschwindigkeitPwm <$> Aeson.parseJSON value)
+        <|> (GeschwindigkeitKonstanteSpannung <$> Aeson.parseJSON value)
+
+instance (Aeson.ToJSON (bg 'Pwm z), Aeson.ToJSON (bg 'KonstanteSpannung z))
+    => Aeson.ToJSON (GeschwindigkeitEither bg z) where
+    toJSON :: GeschwindigkeitEither bg z -> Aeson.Value
+    toJSON (GeschwindigkeitPwm bg) = Aeson.toJSON bg
+    toJSON (GeschwindigkeitKonstanteSpannung bg) = Aeson.toJSON bg
+
 -- | newtype-Wrapper um einen 'GeschwindigkeitVariante'-Phantomtyp hinzuzufügen.
 --
 -- Wird benötigt, um eine 'BahngeschwindigkeitKlasse'-Instanz von 'Wegstrecke' zu erstellen.
@@ -263,3 +291,41 @@ instance Anzeige Strom where
 -- | Alle Einstellmöglichkeiten eines Stroms
 unterstützteStromeinstellungen :: NonEmpty Strom
 unterstützteStromeinstellungen = fromList [minBound .. maxBound]
+
+instance FromJSON Richtung where
+    parseJSON :: Value -> Parser Richtung
+    parseJSON = JS.findeÜbereinstimmendenWert [minBound .. maxBound]
+
+instance ToJSON Richtung where
+    toJSON :: Richtung -> Value
+    toJSON Links = String JS.links
+    toJSON Rechts = String JS.rechts
+    toJSON Gerade = String JS.gerade
+    toJSON Kurve = String JS.kurve
+
+instance FromJSON Zugtyp where
+    parseJSON :: Value -> Parser Zugtyp
+    parseJSON = JS.findeÜbereinstimmendenWert [minBound .. maxBound]
+
+instance ToJSON Zugtyp where
+    toJSON :: Zugtyp -> Value
+    toJSON Märklin = String JS.märklin
+    toJSON Lego = String JS.lego
+
+instance FromJSON Fahrtrichtung where
+    parseJSON :: Value -> Parser Fahrtrichtung
+    parseJSON = JS.findeÜbereinstimmendenWert [minBound .. maxBound]
+
+instance ToJSON Fahrtrichtung where
+    toJSON :: Fahrtrichtung -> Value
+    toJSON Vorwärts = String JS.vorwärts
+    toJSON Rückwärts = String JS.rückwärts
+
+instance FromJSON Strom where
+    parseJSON :: Value -> Parser Strom
+    parseJSON = JS.findeÜbereinstimmendenWert [minBound .. maxBound]
+
+instance ToJSON Strom where
+    toJSON :: Strom -> Value
+    toJSON Fließend = String JS.fließend
+    toJSON Gesperrt = String JS.gesperrt

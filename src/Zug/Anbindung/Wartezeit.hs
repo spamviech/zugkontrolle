@@ -18,10 +18,12 @@ module Zug.Anbindung.Wartezeit
   , dividieren
   ) where
 
-import Control.Applicative (Alternative((<|>)))
+import Control.Applicative (Alternative(..))
 import Control.Concurrent (threadDelay)
 import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Aeson.Types ((.=), (.:))
+import qualified Data.Aeson.Types as Aeson
 import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
@@ -30,6 +32,7 @@ import qualified Text.ParserCombinators.ReadPrec as ReadPrec
 import Text.Read (Read(..), ReadPrec, lexP, parens)
 import Text.Read.Lex (numberToInteger, Lexeme(Number))
 
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), (<#>))
 
 -- | Warte mindestens das Argument in µs.
@@ -245,6 +248,7 @@ sInH = sInMin * minInH
 -- | min in an hour
 minInH :: Natural
 minInH = 60
+
 -- -- | s in a Year
 -- minInD :: Natural
 -- minInD = minInH * hInD
@@ -252,3 +256,22 @@ minInH = 60
 -- -- | hour in a day
 -- hInD :: Natural
 -- hInD = 24
+-- JSON-Instanz-Deklarationen für Wartezeit
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen wurde implizit immer Mikrosekunden angenommen, wodurch nur eine Zahl gespeichert wurde.
+instance Aeson.FromJSON Wartezeit where
+    parseJSON :: Aeson.Value -> Aeson.Parser Wartezeit
+    parseJSON (Aeson.Object v) =
+        (NanoSekunden <$> v .: JS.ns)
+        <|> (MikroSekunden <$> v .: JS.µs)
+        <|> (MilliSekunden <$> v .: JS.ms)
+        <|> (Sekunden <$> v .: JS.s)
+        <|> (Minuten <$> v .: JS.min)
+        <|> (Stunden <$> v .: JS.h)
+        <|> (Tage <$> v .: JS.d)
+    parseJSON (Aeson.Number µs) = pure $ MikroSekunden $ floor µs
+    parseJSON _value = empty
+
+instance Aeson.ToJSON Wartezeit where
+    toJSON :: Wartezeit -> Aeson.Value
+    toJSON (NanoSekunden ns) = Aeson.object [JS.ns .= ns]

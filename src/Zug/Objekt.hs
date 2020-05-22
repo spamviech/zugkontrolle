@@ -11,6 +11,8 @@ Description : 'Either'-ähnlicher Datentyp für 'StreckenObjekt'-Typen.
 -}
 module Zug.Objekt (Objekt, ObjektAllgemein(..), ObjektElement(..), ObjektKlasse(..)) where
 
+import Control.Applicative (Alternative((<|>)))
+import qualified Data.Aeson.Types as Aeson
 import Data.Kind (Type)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -93,6 +95,47 @@ instance ( Anzeige (bg 'Pwm 'Märklin)
     anzeige (OKontakt ko) = anzeige ko
     anzeige (OWegstrecke ws) = anzeige ws
     anzeige (OPlan pl) = anzeige pl
+
+instance ( Aeson.FromJSON (GeschwindigkeitEither bg 'Märklin)
+         , Aeson.FromJSON (GeschwindigkeitEither bg 'Lego)
+         , Aeson.FromJSON st
+         , Aeson.FromJSON (we 'Märklin)
+         , Aeson.FromJSON (we 'Lego)
+         , Aeson.FromJSON ku
+         , Aeson.FromJSON ko
+         , Aeson.FromJSON (ws 'Lego)
+         , Aeson.FromJSON (ws 'Märklin)
+         , Aeson.FromJSON pl
+         ) => Aeson.FromJSON (ObjektAllgemein bg st we ku ko ws pl) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (ObjektAllgemein bg st we ku ko ws pl)
+    parseJSON value =
+        OBahngeschwindigkeit
+        <$> Aeson.parseJSON value <|> OStreckenabschnitt
+        <$> Aeson.parseJSON value <|> OWeiche
+        <$> Aeson.parseJSON value <|> OKupplung
+        <$> Aeson.parseJSON value <|> OWegstrecke
+        <$> Aeson.parseJSON value <|> OPlan
+        <$> Aeson.parseJSON value
+
+instance ( Aeson.ToJSON (GeschwindigkeitEither bg 'Märklin)
+         , Aeson.ToJSON (GeschwindigkeitEither bg 'Lego)
+         , Aeson.ToJSON st
+         , Aeson.ToJSON (we 'Märklin)
+         , Aeson.ToJSON (we 'Lego)
+         , Aeson.ToJSON ku
+         , Aeson.ToJSON ko
+         , Aeson.ToJSON (ws 'Märklin)
+         , Aeson.ToJSON (ws 'Lego)
+         , Aeson.ToJSON pl
+         ) => Aeson.ToJSON (ObjektAllgemein bg st we ku ko ws pl) where
+    toJSON :: ObjektAllgemein bg st we ku ko ws pl -> Aeson.Value
+    toJSON (OBahngeschwindigkeit bg) = Aeson.toJSON bg
+    toJSON (OStreckenabschnitt st) = Aeson.toJSON st
+    toJSON (OWeiche we) = Aeson.toJSON we
+    toJSON (OKupplung ku) = Aeson.toJSON ku
+    toJSON (OKontakt ko) = Aeson.toJSON ko
+    toJSON (OWegstrecke ws) = Aeson.toJSON ws
+    toJSON (OPlan pl) = Aeson.toJSON pl
 
 -- | Klasse für Typen, die ein 'Objekt' enthalten.
 class ObjektElement e where

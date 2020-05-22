@@ -83,11 +83,14 @@ module Zug.UI.Base
   , AusführenMöglich(..)
   ) where
 
+import Control.Applicative (Alternative(..))
 import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO, TMVar, newTMVarIO)
 import Control.Monad.RWS.Strict (RWST, runRWST, evalRWST, RWS)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Aeson.Types ((.=), (.:))
+import qualified Data.Aeson.Types as Aeson
 import Data.Foldable (Foldable(..))
 import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -101,9 +104,10 @@ import Zug.Anbindung
        (AnschlussEither(), PwmMap, pwmMapEmpty, MitPwmMap(..), I2CMap, i2cMapEmpty, MitI2CMap(..)
       , InterruptMap, MitInterruptMap(..), interruptMapEmpty, StreckenObjekt(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(), GeschwindigkeitEither())
-import qualified Zug.Language as Language
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
-import Zug.Objekt (ObjektKlasse(..), Objekt)
+import qualified Zug.Language as Language
+import Zug.Objekt (ObjektKlasse(..), Objekt, ObjektAllgemein(..))
 import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
 
 -- | Aktueller Status
@@ -523,3 +527,30 @@ data AusführenMöglich
     = AusführenMöglich
     | WirdAusgeführt
     | AnschlüsseBelegt (NonEmpty AnschlussEither)
+
+-- Feld-Namen/Bezeichner in der erzeugten/erwarteten json-Datei.
+instance Aeson.FromJSON (Sprache -> Status) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Sprache -> Status)
+    parseJSON (Aeson.Object v) =
+        Status <$> ((v .: JS.bahngeschwindigkeiten) <|> pure [])
+        <*> ((v .: JS.streckenabschnitte) <|> pure [])
+        <*> ((v .: JS.weichen) <|> pure [])
+        <*> ((v .: JS.kupplungen) <|> pure [])
+        <*> ((v .: JS.kontakte) <|> pure [])
+        <*> ((v .: JS.wegstrecken) <|> pure [])
+        <*> ((v .: JS.pläne) <|> pure [])
+    parseJSON _value = empty
+
+instance forall o. (ObjektKlasse o, Aeson.ToJSON o) => Aeson.ToJSON (StatusAllgemein o) where
+    toJSON :: StatusAllgemein o -> Aeson.Value
+    toJSON status =
+        Aeson.object
+            [ JS.bahngeschwindigkeiten
+                  .= (map (ausObjekt . OBahngeschwindigkeit) $ _bahngeschwindigkeiten status :: [o])
+            , JS.streckenabschnitte
+                  .= (map (ausObjekt . OStreckenabschnitt) $ _streckenabschnitte status :: [o])
+            , JS.weichen .= (map (ausObjekt . OWeiche) $ _weichen status :: [o])
+            , JS.kupplungen .= (map (ausObjekt . OKupplung) $ _kupplungen status :: [o])
+            , JS.kontakte .= (map (ausObjekt . OKontakt) $ _kontakte status :: [o])
+            , JS.wegstrecken .= (map (ausObjekt . OWegstrecke) $ _wegstrecken status :: [o])
+            , JS.pläne .= (map (ausObjekt . OPlan) $ _pläne status :: [o])]

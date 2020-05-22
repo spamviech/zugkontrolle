@@ -12,15 +12,19 @@ Description: Steuere die Stromzufuhr einer Schiene.
 -}
 module Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..)) where
 
+import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO())
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import Data.Text (Text)
 
-import Zug.Anbindung.Anschluss
-       (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite), I2CReader())
+import Zug.Anbindung.Anschluss (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite)
+                              , I2CReader(), parseAnschlussEither, parseFließend)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom())
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->))
 import qualified Zug.Language as Language
 
@@ -63,3 +67,18 @@ instance StreckenabschnittKlasse Streckenabschnitt where
         befehlAusführen
             (anschlussWrite stromAnschluss $ erhalteValue an st)
             ("Strom (" <> showText stromAnschluss <> ")->" <> showText an)
+
+-- JSON-Instanz-Deklarationen für Streckenabschnitt
+instance Aeson.FromJSON Streckenabschnitt where
+    parseJSON :: Aeson.Value -> Aeson.Parser Streckenabschnitt
+    parseJSON (Aeson.Object v) =
+        Streckenabschnitt <$> v .: JS.name
+        <*> parseFließend v
+        <*> parseAnschlussEither v JS.stromAnschluss JS.stromPin
+    parseJSON _value = empty
+
+instance Aeson.ToJSON Streckenabschnitt where
+    toJSON :: Streckenabschnitt -> Aeson.Value
+    toJSON Streckenabschnitt {stName, stFließend, stromAnschluss} =
+        Aeson.object
+            [JS.name .= stName, JS.fließend .= stFließend, JS.stromAnschluss .= stromAnschluss]

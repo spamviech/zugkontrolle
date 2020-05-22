@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Description : Funktionen zur Verwendung eines PCF8574 über die I2C-Schnittstelle
@@ -42,6 +43,8 @@ module Zug.Anbindung.Anschluss.PCF8574
 import Control.Applicative (Alternative(..))
 import Control.Monad (void)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import Data.Bits (bit, (.|.), (.&.), testBit, complement)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -58,6 +61,7 @@ import Text.Read.Lex (numberToInteger, Lexeme(..))
 import Zug.Anbindung.Anschluss.I2C
        (I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), I2CAddress(..), i2cWrite, i2cWriteAdjust
       , i2cRead, BitValue(..), emptyBitValue, fullBitValue)
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache())
 import qualified Zug.Language as Language
 
@@ -263,3 +267,46 @@ pcf8574PortRead PCF8574Port {pcf8574, port} = do
         $ if testBit fullBitValue $ fromIntegral port
             then HIGH
             else LOW
+
+instance Aeson.FromJSON (PCF8574Port 'OhneInterruptPin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (PCF8574Port 'OhneInterruptPin)
+    parseJSON (Aeson.Object v) =
+        PCF8574Port <$> (PCF8574 <$> v .: JS.variant <*> v .: JS.a0 <*> v .: JS.a1 <*> v .: JS.a2)
+        <*> (v .: JS.port)
+    parseJSON _anschluss = empty
+
+instance Aeson.FromJSON (PCF8574Port 'MitInterruptPin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (PCF8574Port 'MitInterruptPin)
+    parseJSON (Aeson.Object v) =
+        PCF8574Port
+        <$> (PCF8574InterruptPin <$> v .: JS.variant
+             <*> v .: JS.a0
+             <*> v .: JS.a1
+             <*> v .: JS.a2
+             <*> (Gpio <$> v .: JS.interruptPin))
+        <*> (v .: JS.port)
+    parseJSON _anschluss = empty
+
+instance Aeson.ToJSON (PCF8574Port i) where
+    toJSON :: PCF8574Port i -> Aeson.Value
+    toJSON PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port} =
+        Aeson.object
+            [JS.variant .= variant, JS.a0 .= a0, JS.a1 .= a1, JS.a2 .= a2, JS.port .= port]
+    toJSON
+        PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port} =
+        Aeson.object
+            [ JS.variant .= iVariant
+            , JS.a0 .= iA0
+            , JS.a1 .= iA1
+            , JS.a2 .= iA2
+            , JS.port .= port
+            , JS.interruptPin .= Just (maybe 0 fromIntegral $ pinToBcmGpio interruptPin :: Word8)]
+
+instance Aeson.FromJSON PCF8574Variant where
+    parseJSON :: Aeson.Value -> Aeson.Parser PCF8574Variant
+    parseJSON = JS.findeÜbereinstimmendenWert [minBound .. maxBound]
+
+instance Aeson.ToJSON PCF8574Variant where
+    toJSON :: PCF8574Variant -> Aeson.Value
+    toJSON VariantNormal = Aeson.String JS.variantNormal
+    toJSON VariantA = Aeson.String JS.variantA

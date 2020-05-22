@@ -12,16 +12,20 @@ Description: Kontrolliere, wann Wagons über eine Kupplungs-Schiene abgekoppelt 
 -}
 module Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit) where
 
+import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO())
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import Data.Text (Text)
 
-import Zug.Anbindung.Anschluss
-       (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite), I2CReader())
+import Zug.Anbindung.Anschluss (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite)
+                              , I2CReader(), parseAnschlussEither, parseFließend)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Wartezeit (Wartezeit(MilliSekunden), warte)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->))
 import qualified Zug.Language as Language
 
@@ -70,3 +74,20 @@ instance KupplungKlasse Kupplung where
             anschlussWrite kupplungsAnschluss $ fließend ku
             warte kuppelnZeit
             anschlussWrite kupplungsAnschluss $ gesperrt ku
+
+-- JSON-Instanz-Deklarationen für Kupplung
+instance Aeson.FromJSON Kupplung where
+    parseJSON :: Aeson.Value -> Aeson.Parser Kupplung
+    parseJSON (Aeson.Object v) =
+        Kupplung <$> v .: JS.name
+        <*> parseFließend v
+        <*> parseAnschlussEither v JS.kupplungsAnschluss JS.kupplungsPin
+    parseJSON _value = empty
+
+instance Aeson.ToJSON Kupplung where
+    toJSON :: Kupplung -> Aeson.Value
+    toJSON Kupplung {kuName, kuFließend, kupplungsAnschluss} =
+        Aeson.object
+            [ JS.name .= kuName
+            , JS.fließend .= kuFließend
+            , JS.kupplungsAnschluss .= kupplungsAnschluss]

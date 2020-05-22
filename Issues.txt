@@ -1,8 +1,4 @@
-Orphans in Zug.Save vermeiden
-    From/ToJSON-Instanzen in den jeweiligen Modulen definieren.
-    Orphans erzeugen mehr Arbeit für den Compiler (darum die Warnung mit -Worphans)
-
-Mit..-Klassen durch typ-Synonyme von it-has ersetzen=
+Mit..-Klassen durch typ-Synonyme von it-has ersetzen?
     http://hackage.haskell.org/package/it-has
 
 Pin-Setup bei Hinzufügen
@@ -123,6 +119,11 @@ Test-Suite erstellen?
     Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
 
 ---------------------------Gelöst----------------------------------------------------------------
+Orphans in Zug.Save vermeiden
+    From/ToJSON-Instanzen in den jeweiligen Modulen definieren.
+    Orphans erzeugen mehr Arbeit für den Compiler (darum die Warnung mit -Worphans)
+    Done
+
 Warteschlange über Data.Sequence Implementieren?
     Done
 

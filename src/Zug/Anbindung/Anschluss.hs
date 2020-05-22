@@ -9,6 +9,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Description: Stellt einen Summentyp mit allen unterstützten Anschlussmöglichkeiten zur Verfügung.
@@ -27,6 +28,9 @@ module Zug.Anbindung.Anschluss
   , PCF8574Variant(..)
   , pcf8574Gruppieren
   , pcf8574MultiPortWrite
+    -- ** Hilfsfunktionen
+  , parseAnschlussEither
+  , parseFließend
     -- * Typ-Klasse
   , AnschlussKlasse(..)
   , Value(..)
@@ -57,11 +61,14 @@ import Control.Monad (void, forM, unless
                      )
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import Data.Bits (testBit)
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (fromJust)
 import Data.Text (Text)
 import System.Hardware.WiringPi
        (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode, IntEdge(..)
@@ -76,6 +83,7 @@ import Zug.Anbindung.Anschluss.PCF8574
       , pcf8574PortRead, I2CMap, i2cMapEmpty, MitI2CMap(..), I2CReader(..), pcf8574Gruppieren
       , pcf8574MultiPortWrite, BitValue(..), emptyBitValue, fullBitValue, MitInterruptPin(..)
       , PCF8574Klasse(..))
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText)
 
 -- | Wird ein Interrupt-Pin für den Anschluss benötigt?
@@ -477,3 +485,47 @@ warteAufÄnderung anschlüsseIntEdge = do
     liftIO $ atomically $ do
         listeSignalErhalten <- mapM readTVar listeTVarSignal
         unless (elem SignalErhalten listeSignalErhalten) retry
+
+-- JSON-Instanz-Deklarationen für Anschluss
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen war nur ein Pin-Anschluss erlaubt, wodurch ein Anschluss nur durch eine Zahl gespeichert wurde.
+instance Aeson.FromJSON AnschlussEither where
+    parseJSON :: Aeson.Value -> Aeson.Parser AnschlussEither
+    parseJSON v = (AnschlussMit <$> Aeson.parseJSON v) <|> (AnschlussOhne <$> Aeson.parseJSON v)
+
+instance Aeson.ToJSON AnschlussEither where
+    toJSON :: AnschlussEither -> Aeson.Value
+    toJSON (AnschlussMit a) = Aeson.toJSON a
+    toJSON (AnschlussOhne a) = Aeson.toJSON a
+
+-- | Parse einen 'AnschlussEither'.
+--
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen < 1.0.1.0 berücksichtigt.
+-- Bei diesen war nur ein 'Pin'-Anschluss erlaubt, weshalb die JSON-Felder anders hießen.
+parseAnschlussEither :: Aeson.Object -> Text -> Text -> Aeson.Parser AnschlussEither
+parseAnschlussEither v anschlussJS pinJS =
+    (v .: anschlussJS) <|> (AnschlussMit . AnschlussPin . Gpio <$> v .: pinJS)
+
+instance Aeson.FromJSON (Anschluss 'MitInterruptPin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Anschluss 'MitInterruptPin)
+    parseJSON (Aeson.Object v) =
+        (AnschlussPin . Gpio <$> v .: JS.pin) <|> (AnschlussPCF8574Port <$> v .: JS.port)
+    parseJSON (Aeson.Number pin) = pure $ AnschlussPin $ Gpio $ floor pin
+    parseJSON _value = empty
+
+instance Aeson.FromJSON (Anschluss 'OhneInterruptPin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Anschluss 'OhneInterruptPin)
+    parseJSON (Aeson.Object v) = AnschlussPCF8574Port <$> v .: JS.port
+    parseJSON _value = empty
+
+instance Aeson.ToJSON (Anschluss i) where
+    toJSON :: Anschluss i -> Aeson.Value
+    toJSON anschluss@AnschlussPin {} =
+        Aeson.object [JS.pin .= (fromJust $ zuPinGpio anschluss :: Int)]
+    toJSON AnschlussPCF8574Port {pcf8574Port} = Aeson.object [JS.port .= pcf8574Port]
+
+-- | Parse das Fließend-Feld.
+-- Dabei wird eine Rückwärtskompatibilität zu Versionen <1.0.0.14 berücksichtigt.
+-- Bei diesen wurde intern immer 'HIGH' angenommen.
+parseFließend :: Aeson.Object -> Aeson.Parser Value
+parseFließend v = (v .: JS.fließend) <|> pure HIGH

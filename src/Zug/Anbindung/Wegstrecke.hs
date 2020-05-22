@@ -12,8 +12,11 @@ Description: Zusammenfassung von Einzel-Elementen. Weichen haben eine vorgegeben
 -}
 module Zug.Anbindung.Wegstrecke (Wegstrecke(..), WegstreckeKlasse(..)) where
 
+import Control.Applicative (Alternative(..))
 import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO())
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import Data.Semigroup (Semigroup((<>)))
@@ -37,9 +40,10 @@ import Zug.Anbindung.Pwm (PwmReader())
 import Zug.Anbindung.Streckenabschnitt (Streckenabschnitt(..), StreckenabschnittKlasse(..))
 import Zug.Anbindung.Wartezeit (warte)
 import Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(stellen), weicheZeit)
-import Zug.Enums
-       (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..), catPwm
-      , catKonstanteSpannung, GeschwindigkeitPhantom(..), Richtung(), Strom(..), Fahrtrichtung(..))
+import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(), GeschwindigkeitVariante(..)
+                , GeschwindigkeitEither(..), catPwm, catKonstanteSpannung
+                , GeschwindigkeitPhantom(..), Richtung(), Strom(..), Fahrtrichtung(..))
+import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<°>))
 import qualified Zug.Language as Language
 
@@ -604,3 +608,34 @@ instance WegstreckeKlasse (Wegstrecke 'Lego) where
     einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Lego -> m ()
     einstellen Wegstrecke {wsWeichenRichtungen} =
         mapM_ (forkI2CReader . uncurry stellen) wsWeichenRichtungen
+
+-- JSON-Instanz-Deklaration für Wegstrecke
+-- Kontakte optional, um Kompatibilität mit älteren yaml-Dateien zu garantieren
+instance (Aeson.FromJSON (GeschwindigkeitEither Bahngeschwindigkeit z), Aeson.FromJSON (Weiche z))
+    => Aeson.FromJSON (Wegstrecke z) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Wegstrecke z)
+    parseJSON (Aeson.Object v) =
+        Wegstrecke <$> (v .: JS.name)
+        <*> v .: JS.bahngeschwindigkeiten
+        <*> v .: JS.streckenabschnitte
+        <*> v .: JS.weichenRichtungen
+        <*> v .: JS.kupplungen
+        <*> (v .: JS.kontakte <|> pure Set.empty)
+    parseJSON _value = empty
+
+instance (ZugtypKlasse z) => Aeson.ToJSON (Wegstrecke z) where
+    toJSON :: Wegstrecke z -> Aeson.Value
+    toJSON
+        Wegstrecke { wsName
+                   , wsBahngeschwindigkeiten
+                   , wsStreckenabschnitte
+                   , wsWeichenRichtungen
+                   , wsKupplungen
+                   , wsKontakte} =
+        Aeson.object
+            [ JS.name .= wsName
+            , JS.bahngeschwindigkeiten .= wsBahngeschwindigkeiten
+            , JS.streckenabschnitte .= wsStreckenabschnitte
+            , JS.weichenRichtungen .= wsWeichenRichtungen
+            , JS.kupplungen .= wsKupplungen
+            , JS.kontakte .= wsKontakte]

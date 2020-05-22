@@ -14,21 +14,28 @@ Description: Stellen einer Weiche.
 -}
 module Zug.Anbindung.Weiche (Weiche(..), WeicheKlasse(..), weicheZeit) where
 
+import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO())
+import Data.Aeson.Types ((.:), (.=))
+import qualified Data.Aeson.Types as Aeson
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.Maybe (fromJust)
 import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
+import Data.Word (Word8)
 
-import Zug.Anbindung.Anschluss (Value(), AnschlussEither(), Pin()
-                              , AnschlussKlasse(anschlussWrite, zuAnschluss), I2CReader())
+import Zug.Anbindung.Anschluss
+       (Value(), AnschlussEither(), Pin(Gpio)
+      , AnschlussKlasse(anschlussWrite, zuAnschluss, zuPinGpio), I2CReader(), parseFließend)
 import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
 import Zug.Anbindung.Pwm (PwmReader, pwmServo)
 import Zug.Anbindung.Wartezeit (Wartezeit(MilliSekunden), warte)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(), Richtung())
-import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->), (<|>))
+import qualified Zug.JSONStrings as JS
+import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->))
 import qualified Zug.Language as Language
 
 -- | Stellen einer 'Weiche'.
@@ -57,7 +64,7 @@ instance Anzeige (Weiche z) where
         <:> Language.name
         <=> welName
         <^> Language.richtung
-        <-> Language.pin <=> welRichtungsPin <^> Language.richtungen <=> richtung1 <|> richtung2
+        <-> Language.pin <=> welRichtungsPin <^> Language.richtungen <=> richtung1 <^> richtung2
     anzeige WeicheMärklin {wemName, wemRichtungsAnschlüsse} =
         Language.märklin
         <-> Language.weiche
@@ -156,3 +163,41 @@ instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
     erhalteRichtungen
         WeicheLego {welRichtungen = (richtung1, richtung2)} = richtung1 :| [richtung2]
     erhalteRichtungen WeicheMärklin {wemRichtungsAnschlüsse} = fst <$> wemRichtungsAnschlüsse
+
+-- JSON-Instanz-Deklarationen für Weiche
+instance Aeson.FromJSON (Weiche 'Märklin) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Weiche 'Märklin)
+    parseJSON (Aeson.Object v) = do
+        Märklin <- v .: JS.zugtyp
+        wemName <- v .: JS.name
+        wemRichtungsAnschlüsse <- v .: JS.richtungsPins <|> v .: JS.richtungsAnschlüsse
+        wemFließend <- parseFließend v
+        pure WeicheMärklin { wemName, wemFließend, wemRichtungsAnschlüsse }
+    parseJSON _value = empty
+
+instance Aeson.FromJSON (Weiche 'Lego) where
+    parseJSON :: Aeson.Value -> Aeson.Parser (Weiche 'Lego)
+    parseJSON (Aeson.Object v) = do
+        Lego <- v .: JS.zugtyp
+        welName <- v .: JS.name
+        welRichtungsPin <- Gpio <$> v .: JS.richtungsPin
+        welRichtungen <- v .: JS.richtungen
+        welFließend <- parseFließend v
+        pure WeicheLego { welName, welFließend, welRichtungsPin, welRichtungen }
+    parseJSON _value = empty
+
+instance Aeson.ToJSON (Weiche z) where
+    toJSON :: Weiche z -> Aeson.Value
+    toJSON WeicheLego {welName, welFließend, welRichtungsPin, welRichtungen} =
+        Aeson.object
+            [ JS.name .= welName
+            , JS.fließend .= welFließend
+            , JS.richtungsPin .= (fromJust $ zuPinGpio welRichtungsPin :: Word8)
+            , JS.richtungen .= welRichtungen
+            , JS.zugtyp .= Lego]
+    toJSON WeicheMärklin {wemName, wemFließend, wemRichtungsAnschlüsse} =
+        Aeson.object
+            [ JS.name .= wemName
+            , JS.fließend .= wemFließend
+            , JS.richtungsAnschlüsse .= NonEmpty.toList wemRichtungsAnschlüsse
+            , JS.zugtyp .= Märklin]
