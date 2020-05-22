@@ -1,3 +1,11 @@
+gi-gtk/gi-gtk-declarative verwenden?
+    gi-gtk scheint neuer und besser gewartet zu sein.
+    Wirft auf Raspberry Pi bisher Fehlermeldungen.
+        Warten bis eine neue GHC-Version auf Raspi funktioniert?
+            8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/
+            funktioniert auf Windows nicht (TemplateHaskell)!
+    ghc 8.10.1 scheint wieder zu funktionieren
+
 Mit..-Klassen durch typ-Synonyme von it-has ersetzen?
     http://hackage.haskell.org/package/it-has
 
@@ -97,14 +105,6 @@ Allgemeines(Debug) Anschluss-Objekt mit allen möglichen Funktionen erstellen?
     PWM
     Signal erkennen
         wenn implementiert
-
-gi-gtk/gi-gtk-declarative verwenden?
-    gi-gtk scheint neuer und besser gewartet zu sein.
-    Wirft auf Raspberry Pi bisher Fehlermeldungen.
-        Warten bis eine neue GHC-Version auf Raspi funktioniert?
-            8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/
-            funktioniert auf Windows nicht (TemplateHaskell)!
-    ghc 8.10.1 scheint wieder zu funktionieren
 
 Beispiel-Schaltpläne erstellen
     Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
