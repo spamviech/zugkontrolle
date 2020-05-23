@@ -33,29 +33,16 @@
             "dependsOrder": "sequence"
         },
         {
-            "label": "stack install",
-            "type": "shell",
-            "command": "stack install",
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "test",
-            "type": "shell",
-            "command": "stack test",
-            "group": "test"
-        },
-        {
             "label": "documentation",
             "type": "shell",
-            "command": "stack haddock --open",
+            "command": "cabal haddock --open",
             "group": "build",
             "problemMatcher": []
         },
         {
             "label": "exec",
             "type": "shell",
-            "command": "stack run -- --load bin/Zugkontrolle.yaml",
+            "command": "cabal run -- --load bin/Zugkontrolle.yaml",
             "group": "none",
             "problemMatcher": []
         },

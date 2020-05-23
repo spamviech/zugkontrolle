@@ -39,9 +39,8 @@ packages:
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
-  - wiringPi-1.0.1.1@sha256:2f7ca3fc61dd5b29965447155ccb64db3588f518008cd8b5980ab90f580bf556
-  - gtk3-0.15.0@sha256:22adbf7c19887997307449d0b9ec86dfafa8b7ed6270751a24fccbcb7e1ead53
-  - gio-0.13.5.0@sha256:1e02962f498f62ba68cff88e7f7379e2f8c192f311d867b22f4815518b2f9a86
+- wiringPi-1.0.1.1@sha256:2f7ca3fc61dd5b29965447155ccb64db3588f518008cd8b5980ab90f580bf556
+- gi-gtk-declarative-0.6.3@sha256:8db2e8a9fa20673406e4500e5040d4384eb76e362d45ffe69116575ae03ff1e3,4411 
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

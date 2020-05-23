@@ -142,6 +142,5 @@
         "wiringpi",
         "ßend",
         "üsse"
-    ],
-    "languageServerHaskell.hieVariant": "haskell-ide-engine"
+    ]
 }
