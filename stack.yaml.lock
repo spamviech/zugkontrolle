@@ -18,6 +18,13 @@ packages:
       sha256: 5871aca72517a320f9ab3b7b122daa156dc18467a1b9d65fd2b2c45ec675ed09
   original:
     hackage: gi-gtk-declarative-0.6.3@sha256:8db2e8a9fa20673406e4500e5040d4384eb76e362d45ffe69116575ae03ff1e3,4411
+- completed:
+    hackage: lens-4.19.2@sha256:d6264016fb6e8232e3b8c77ce98e6b123691723ebb84165941facf090bc58f5b,15493
+    pantry-tree:
+      size: 8330
+      sha256: 84518578f0899196983f10793d327cc153abd69b9ee029858cde7cdfc516a11e
+  original:
+    hackage: lens-4.19.2@sha256:d6264016fb6e8232e3b8c77ce98e6b123691723ebb84165941facf090bc58f5b,15493
 snapshots:
 - completed:
     size: 496112

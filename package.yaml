@@ -29,7 +29,7 @@ when:
   - condition: flag(gui)
     dependencies:
       - gi-gtk-declarative >= 0.6 && < 0.7
-      - lens >= 4.16 && < 5
+      - lens >= 4.19 && < 5
     cpp-options:
       - -DZUGKONTROLLEGUI
   - condition: os(linux)

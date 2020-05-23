@@ -4,45 +4,26 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "hpack",
+            "label": "stack install",
             "type": "shell",
-            "command": "hpack",
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "cabal v2-configure",
-            "type": "shell",
-            "command": "cabal v2-configure",
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "cabal v2-install",
-            "type": "shell",
-            "command": "cabal v2-install",
+            "command": "stack install",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": [],
-            "dependsOn": [
-                "hpack",
-                "cabal v2-configure"
-            ],
-            "dependsOrder": "sequence"
+            "problemMatcher": []
         },
         {
             "label": "documentation",
             "type": "shell",
-            "command": "cabal haddock --open",
+            "command": "stack haddock --open",
             "group": "build",
             "problemMatcher": []
         },
         {
             "label": "exec",
             "type": "shell",
-            "command": "cabal run -- --load bin/Zugkontrolle.yaml",
+            "command": "stack run -- --load bin/Zugkontrolle.yaml",
             "group": "none",
             "problemMatcher": []
         },

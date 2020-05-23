@@ -20,6 +20,12 @@
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver: lts-15.13
 
+#Overrides the compiler version in the resolver.
+# Note that the compiler-check flag also applies to the version numbers.
+# This uses the same syntax as compiler resolvers like ghc-8.6.5.
+# This can be used to override the compiler for a Stackage snapshot, like this:
+# compiler: ghc-8.10.1
+
 # User packages to be built.
 # Various formats can be used as shown in the example below.
 #
@@ -40,7 +46,8 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - wiringPi-1.0.1.1@sha256:2f7ca3fc61dd5b29965447155ccb64db3588f518008cd8b5980ab90f580bf556
-- gi-gtk-declarative-0.6.3@sha256:8db2e8a9fa20673406e4500e5040d4384eb76e362d45ffe69116575ae03ff1e3,4411 
+- gi-gtk-declarative-0.6.3@sha256:8db2e8a9fa20673406e4500e5040d4384eb76e362d45ffe69116575ae03ff1e3,4411
+- lens-4.19.2@sha256:d6264016fb6e8232e3b8c77ce98e6b123691723ebb84165941facf090bc58f5b,15493
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
