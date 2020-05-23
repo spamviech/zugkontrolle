@@ -4,13 +4,39 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "stack install",
+            "label": "hpack",
             "type": "shell",
-            "command": "stack install",
+            "command": "hpack",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "cabal v2-configure",
+            "type": "shell",
+            "command": "cabal v2-configure",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "cabal v2-install",
+            "type": "shell",
+            "command": "cabal v2-install",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": [],
+            "dependsOn": [
+                "hpack",
+                "cabal v2-configure"
+            ],
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "stack install",
+            "type": "shell",
+            "command": "stack install",
+            "group": "build",
             "problemMatcher": []
         },
         {

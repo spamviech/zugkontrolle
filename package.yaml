@@ -28,7 +28,7 @@ flags:
 when:
   - condition: flag(gui)
     dependencies:
-      - gtk3 >= 0.15 && < 1
+      - gi-gtk-declarative >= 0.6 && < 0.7
       - lens >= 4.16 && < 5
     cpp-options:
       - -DZUGKONTROLLEGUI
