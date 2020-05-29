@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1ee828056b6ad9261dc37748beeda89fa1747a1805ac7ec90a30766a0eca8af5
+-- hash: ba9938a49529a556d2e1e7fa6803c596d681fcbd19a16a1c6c4e7f1769915448
 
 name:           Zugkontrolle
-version:        1.2.0.1
+version:        1.3.0.0
 synopsis:       Steuerung einer Modelleisenbahn über einen Raspberry Pi
 description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 category:       Raspberry Pi
@@ -132,8 +132,10 @@ library
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gtk3 >=0.15 && <1
-      , lens >=4.16 && <5
+        gi-gtk ==3.*
+      , gi-gtk-declarative >=0.6 && <0.7
+      , gi-gtk-declarative-app-simple >=0.6.3 && <0.7
+      , lens >=4.19 && <5
   if os(linux)
     build-depends:
         unix
@@ -168,8 +170,10 @@ executable Zugkontrolle
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gtk3 >=0.15 && <1
-      , lens >=4.16 && <5
+        gi-gtk ==3.*
+      , gi-gtk-declarative >=0.6 && <0.7
+      , gi-gtk-declarative-app-simple >=0.6.3 && <0.7
+      , lens >=4.19 && <5
   if os(linux)
     build-depends:
         unix
