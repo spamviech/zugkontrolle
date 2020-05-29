@@ -25,7 +25,7 @@ module Zug.UI.Gtk.Klassen where
 import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk.Declarative as Gtk
 
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
