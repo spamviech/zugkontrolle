@@ -1,7 +1,6 @@
 .stack-work/
 dist-newstyle/
 *~
-Zugkontrolle.cabal
 cabal.project.local
 /bin/Zugkontrolle
 /bin/Zugkontrolle.exe
