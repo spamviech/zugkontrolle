@@ -15,7 +15,6 @@ module Zug.Options
   ) where
 
 import Control.Monad.Trans (MonadIO, liftIO)
-import Data.Semigroup (Semigroup(..))
 import Data.Text (unpack)
 import Options.Applicative
        (ParserInfo(), Parser(), execParser, info, helper, fullDesc, progDesc, header, infoOption

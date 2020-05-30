@@ -320,9 +320,7 @@ class (MonadReader r m, MitInterruptMap r) => InterruptReader r m | m -> r where
 
     -- | 'forkIO' in die 'InterruptReader'-Monade geliftet; Die aktuellen Umgebung soll übergeben werden.
     forkInterruptReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
-    forkInterruptReader action = do
-        reader <- ask
-        liftIO $ forkIO $ void $ runReaderT action reader
+    forkInterruptReader action = liftIO . forkIO . void . runReaderT action =<< ask
 
 instance (MonadReader r m, MitInterruptMap r) => InterruptReader r m
 
@@ -338,25 +336,25 @@ beiÄnderung :: (InterruptReader r m, I2CReader r m, MonadIO m)
              -> m ()
 beiÄnderung anschluss intEdge aktion = do
 #ifdef ZUGKONTROLLERASPI
-    reader <- ask
+    readerWert <- ask
 #endif
     tmvarInterruptMap <- erhalteInterruptMap
-    interruptMap <- liftIO $ atomically $ takeTMVar tmvarInterruptMap
-    case Map.lookup interruptPin interruptMap of
+    aktuelleInterruptMap <- liftIO $ atomically $ takeTMVar tmvarInterruptMap
+    case Map.lookup interruptPin aktuelleInterruptMap of
         (Just (aktionen, alterWert)) -> liftIO
             $ atomically
             $ putTMVar tmvarInterruptMap
             $ Map.insert
                 interruptPin
                 (beiRichtigemBitValue anschluss intEdge aktion : aktionen, alterWert)
-                interruptMap
+                aktuelleInterruptMap
         Nothing -> do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
                 pinMode interruptPin INPUT
 #ifdef ZUGKONTROLLERASPI
                 wiringPiISR interruptPin (verwendeteIntEdge anschluss)
-                    $ runReaderT aktionenAusführen reader
+                    $ runReaderT aktionenAusführen readerWert
 #else
                 -- wiringPiISR führt auf Windows zu einem Auswerten von 'undefined'
                 putStrLn
@@ -370,7 +368,7 @@ beiÄnderung anschluss intEdge aktion = do
                     $ Map.insert
                         interruptPin
                         ([beiRichtigemBitValue anschluss intEdge aktion], wert)
-                        interruptMap
+                        aktuelleInterruptMap
     where
         interruptPin :: Pin
         interruptPin = anschlussInterruptPin anschluss

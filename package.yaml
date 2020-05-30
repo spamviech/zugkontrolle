@@ -65,7 +65,6 @@ ghc-options:
 library:
   source-dirs: src
   ghc-options:
-    - -Wno-name-shadowing
     - -Wno-unused-do-bind
 
 executables:
