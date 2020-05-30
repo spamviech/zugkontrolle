@@ -26,8 +26,8 @@ import Data.Text (Text)
 import qualified Data.Text.IO as Text
 #endif
 #ifdef ZUGKONTROLLEGUI
-import Graphics.UI.Gtk (AttrOp(..))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 #else
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 #endif

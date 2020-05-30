@@ -21,8 +21,8 @@ import Control.Concurrent.STM (atomically, TVar, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
-import Graphics.UI.Gtk (AttrOp((:=)))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..))
 import Zug.Language (Sprache(), MitSprache(leseSprache))

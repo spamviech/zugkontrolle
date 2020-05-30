@@ -30,7 +30,7 @@ import Control.Monad (when)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Kind (Type, Constraint)
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache())
 import qualified Zug.Language as Language

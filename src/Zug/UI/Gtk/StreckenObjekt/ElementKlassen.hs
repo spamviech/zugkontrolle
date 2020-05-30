@@ -42,7 +42,7 @@ import Control.Monad.Trans (MonadIO(liftIO))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.Text as Text
 import Data.Void (Void)
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(erhalteName))
 import Zug.Enums (Richtung(), ZugtypEither(), GeschwindigkeitEither)

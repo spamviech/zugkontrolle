@@ -24,7 +24,7 @@ module Zug.UI.Gtk.ZugtypSpezifisch
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, beiAuswahl, aktuelleAuswahl)

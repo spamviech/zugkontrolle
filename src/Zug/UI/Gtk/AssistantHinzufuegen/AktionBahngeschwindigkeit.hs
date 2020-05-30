@@ -26,8 +26,8 @@ import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.Text as Text
 import Data.Word (Word8)
-import Graphics.UI.Gtk (AttrOp((:=)))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts))

@@ -48,8 +48,8 @@ import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Void (Void)
 import Data.Word (Word8)
-import Graphics.UI.Gtk (AttrOp((:=)))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung

@@ -31,8 +31,8 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (catMaybes)
-import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
 
 import Zug.Enums (Zugtyp(), unterstützteZugtypen)
 import Zug.Language (Sprache())

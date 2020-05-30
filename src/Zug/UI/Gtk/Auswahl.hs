@@ -45,8 +45,8 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import Graphics.UI.Gtk (AttrOp(..))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache(..), Anzeige(..))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, labelSpracheNew)

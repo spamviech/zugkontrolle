@@ -23,8 +23,8 @@ module Zug.UI.Gtk.ScrollbaresWidget
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
-import Graphics.UI.Gtk (AttrOp(..))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache())
 import Zug.UI.Gtk.Hilfsfunktionen

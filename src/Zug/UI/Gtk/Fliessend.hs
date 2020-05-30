@@ -26,7 +26,7 @@ module Zug.UI.Gtk.Fliessend
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenAtom(..), Value(..))
 import Zug.Language (Sprache(), (<:>))

@@ -94,7 +94,7 @@ import Control.Concurrent.STM (atomically, TMVar)
 import Control.Lens ((^.))
 import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Objekt (Objekt)
 import Zug.UI.Base (StatusAllgemein, MStatusAllgemeinT, MStatusAllgemein, IOStatusAllgemein

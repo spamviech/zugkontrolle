@@ -56,8 +56,8 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Word (Word8)
-import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
 
 import Zug.Anbindung
        (Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..)

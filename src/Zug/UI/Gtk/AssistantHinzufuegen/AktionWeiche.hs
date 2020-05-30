@@ -26,8 +26,8 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Text as Text
-import Graphics.UI.Gtk (AttrOp((:=)))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Richtung())
 import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))

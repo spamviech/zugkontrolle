@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 {-|
-Description: Erzeuge Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
+Description: Erzeuge Typklassen angelehnt an "GI.Gtk"-Typklassen
 -}
 module Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse) where
 
@@ -75,7 +75,7 @@ erzeugeKlasse abhängigkeiten name = do
             TH.SigD funktionName $ funktionTyp variablenName typName
 
         klassenNameGtk :: TH.Name
-        klassenNameGtk = TH.mkName $ namePräfixGtk ++ name ++ "Class"
+        klassenNameGtk = TH.mkName $ namePräfixGtk ++ "Is" ++ name
 
         defaultSignatur :: TH.Name -> TH.Name -> TH.Dec
         defaultSignatur variablenName typName =

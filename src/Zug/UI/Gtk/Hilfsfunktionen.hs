@@ -60,9 +60,9 @@ import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Graphics.UI.Gtk (Packing(..), ResponseId)
-import Graphics.UI.Gtk (AttrOp(..))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (Packing(..), ResponseId)
+import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..))
 import Zug.Language (Sprache(..), (<:>))

@@ -43,8 +43,8 @@ import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Graphics.UI.Gtk (AttrOp((:=)))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp((:=)))
+import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())

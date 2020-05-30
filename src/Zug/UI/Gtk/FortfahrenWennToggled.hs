@@ -45,8 +45,8 @@ import Control.Monad (foldM_, forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
-import Graphics.UI.Gtk (AttrOp(..))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache())
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew)

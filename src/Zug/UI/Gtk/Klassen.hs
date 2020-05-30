@@ -11,12 +11,12 @@
 #endif
 
 {-|
-Description: Erweiterbare Typklassen angelehnt an "Graphics.UI.Gtk"-Typklassen
+Description: Erweiterbare Typklassen angelehnt an "GI.Gtk"-Typklassen
 
-Typklassen aus "Graphics.UI.Gtk" lassen eine Instanziierung eigener Typen nicht ohne Probleme zu.
+Typklassen aus "GI.Gtk" lassen eine Instanziierung eigener Typen nicht ohne Probleme zu.
 Diese Modul stellt via Template Haskell erstellte alternative Mit-Typklassen um dieses Problem zu umgehen.
 
-Außerdem wird eine /Overlappable/-Standard Instanz für "Graphics.UI.Gtk"-Typen bereitgestellt.
+Außerdem wird eine /Overlappable/-Standard Instanz für "GI.Gtk"-Typen bereitgestellt.
 Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden die Verwendung der Spracherweiterung /MonoLocalBinds/ empfohlen.
 -}
 module Zug.UI.Gtk.Klassen where
@@ -25,7 +25,7 @@ module Zug.UI.Gtk.Klassen where
 import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
-import qualified GI.Gtk.Declarative as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)

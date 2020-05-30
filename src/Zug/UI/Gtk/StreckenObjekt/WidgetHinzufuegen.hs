@@ -53,7 +53,7 @@ import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Kind (Type)
 import Data.Text (Text)
 import Data.Void (Void)
-import qualified Graphics.UI.Gtk as Gtk
+import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(), GeschwindigkeitEither(), Richtung())
 import Zug.Language (Sprache())

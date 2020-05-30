@@ -39,8 +39,8 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Data.Text as Text
-import Graphics.UI.Gtk (AttrOp(..))
-import qualified Graphics.UI.Gtk as Gtk
+import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung
        (Anschluss(..), AnschlussEither(..), MitInterruptPin(..), InterruptPinBenötigt(..)
