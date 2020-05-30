@@ -50,8 +50,6 @@ import Data.Aeson.Types ((.:), (.:?), (.=))
 import qualified Data.Aeson.Types as Aeson
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (isJust, fromJust)
-import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -95,7 +93,7 @@ instance (StreckenObjekt (bg g z)) => Anzeige (AktionBahngeschwindigkeit bg g z)
     anzeige :: AktionBahngeschwindigkeit bg g z -> Sprache -> Text
     anzeige (Geschwindigkeit bg wert) =
         erhalteName bg <°> Language.geschwindigkeit <=> showText wert
-    anzeige (Fahrstrom bg strom) = erhalteName bg <°> Language.fahrstrom <=> strom
+    anzeige (Fahrstrom bg wert) = erhalteName bg <°> Language.fahrstrom <=> wert
     anzeige (Umdrehen bg) = erhalteName bg <°> Language.umdrehen
     anzeige (FahrtrichtungEinstellen bg fahrtrichtung) =
         erhalteName bg <°> Language.umdrehen <=> showText fahrtrichtung
@@ -747,7 +745,7 @@ instance (BahngeschwindigkeitKlasse bg, PwmZugtyp z)
     ausführenAktion
         :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg g z -> m ()
     ausführenAktion (Geschwindigkeit bg wert) = geschwindigkeit bg wert
-    ausführenAktion (Fahrstrom bg strom) = fahrstrom bg strom
+    ausführenAktion (Fahrstrom bg wert) = fahrstrom bg wert
     ausführenAktion (Umdrehen bg) = umdrehen bg
     ausführenAktion (FahrtrichtungEinstellen bg fahrtrichtung) =
         fahrtrichtungEinstellen bg fahrtrichtung
@@ -849,111 +847,96 @@ instance Aeson.FromJSON Aktion where
     parseJSON (Aeson.Object v) = (v .: JS.aktion) >>= \s -> if
         | s == JS.warten -> (Warten <$> v .: JS.wert)
             <|> parseMaybeWegstrecke
-                v
-                (\w _v -> pure $ AWSKontakt $ WartenAuf w)
-                (\w _v -> pure $ AWSKontakt $ WartenAuf w)
-                (\v -> AKontakt . WartenAuf <$> v .: JS.kontakt)
+                (\w -> pure $ AWSKontakt $ WartenAuf w)
+                (\w -> pure $ AWSKontakt $ WartenAuf w)
+                (AKontakt . WartenAuf <$> v .: JS.kontakt)
         | s == JS.einstellen -> (AWegstreckeMärklin . Einstellen <$> v .: JS.wegstrecke)
             <|> (AWegstreckeLego . Einstellen <$> v .: JS.wegstrecke)
         | s == JS.stellen -> AWeiche <$> (Stellen <$> v .: JS.weiche <*> v .: JS.richtung)
         | s == JS.geschwindigkeit -> parseMaybeWegstrecke
-            v
-            (\w v -> AWSBahngeschwindigkeit
+            (\w -> AWSBahngeschwindigkeit
              . GeschwindigkeitPwm
              . Geschwindigkeit (GeschwindigkeitPhantom w)
              <$> v .: JS.wert)
-            (\w v -> AWSBahngeschwindigkeit
+            (\w -> AWSBahngeschwindigkeit
              . GeschwindigkeitPwm
              . Geschwindigkeit (GeschwindigkeitPhantom w)
              <$> v .: JS.wert)
-            (\v -> (ABahngeschwindigkeitMärklinPwm <$> geschwindigkeitParserMärklin v)
-             <|> (ABahngeschwindigkeitLegoPwm <$> geschwindigkeitParserLego v))
+            ((ABahngeschwindigkeitMärklinPwm <$> geschwindigkeitParserMärklin)
+             <|> (ABahngeschwindigkeitLegoPwm <$> geschwindigkeitParserLego))
         | s == JS.fahrstrom -> parseMaybeWegstrecke
-            v
-            (\w v -> AWSBahngeschwindigkeit
+            (\w -> AWSBahngeschwindigkeit
              . GeschwindigkeitKonstanteSpannung
              . Fahrstrom (GeschwindigkeitPhantom w)
              <$> v .: JS.strom)
-            (\w v -> AWSBahngeschwindigkeit
+            (\w -> AWSBahngeschwindigkeit
              . GeschwindigkeitKonstanteSpannung
              . Fahrstrom (GeschwindigkeitPhantom w)
              <$> v .: JS.strom)
-            (\v -> fmap ABahngeschwindigkeitMärklinKonstanteSpannung
+            (fmap ABahngeschwindigkeitMärklinKonstanteSpannung
              $ Fahrstrom <$> v .: JS.bahngeschwindigkeit <*> v .: JS.strom)
         | s == JS.umdrehen -> parseMaybeWegstrecke
-            v
-            (\w _v -> pure
+            (\w -> pure
              $ AWSBahngeschwindigkeit
              $ GeschwindigkeitPwm
              $ Umdrehen
              $ GeschwindigkeitPhantom w)
             parseFail
-            (\v -> (ABahngeschwindigkeitMärklinPwm . Umdrehen <$> v .: JS.bahngeschwindigkeit)
+            ((ABahngeschwindigkeitMärklinPwm . Umdrehen <$> v .: JS.bahngeschwindigkeit)
              <|> (ABahngeschwindigkeitMärklinKonstanteSpannung . Umdrehen
                   <$> v .: JS.bahngeschwindigkeit))
         | s == JS.fahrtrichtungEinstellen -> parseMaybeWegstrecke
-            v
             parseFail
-            (\w v -> AWSBahngeschwindigkeit
+            (\w -> AWSBahngeschwindigkeit
              . GeschwindigkeitPwm
              . FahrtrichtungEinstellen (GeschwindigkeitPhantom w)
              <$> v .: JS.fahrtrichtung)
-            (\v -> (ABahngeschwindigkeitLegoPwm
-                    <$> (FahrtrichtungEinstellen <$> v .: JS.bahngeschwindigkeit
-                         <*> v .: JS.fahrtrichtung))
+            ((ABahngeschwindigkeitLegoPwm
+              <$> (FahrtrichtungEinstellen <$> v .: JS.bahngeschwindigkeit
+                   <*> v .: JS.fahrtrichtung))
              <|> (ABahngeschwindigkeitLegoKonstanteSpannung
                   <$> (FahrtrichtungEinstellen <$> v .: JS.bahngeschwindigkeit
                        <*> v .: JS.fahrtrichtung)))
         | s == JS.strom -> parseMaybeWegstrecke
-            v
-            (\w v -> AWSStreckenabschnitt . Strom w <$> v .: JS.an)
-            (\w v -> AWSStreckenabschnitt . Strom w <$> v .: JS.an)
-            (\v -> AStreckenabschnitt <$> (Strom <$> v .: JS.streckenabschnitt <*> v .: JS.an))
+            (\w -> AWSStreckenabschnitt . Strom w <$> v .: JS.an)
+            (\w -> AWSStreckenabschnitt . Strom w <$> v .: JS.an)
+            (AStreckenabschnitt <$> (Strom <$> v .: JS.streckenabschnitt <*> v .: JS.an))
         | s == JS.kuppeln -> parseMaybeWegstrecke
-            v
-            (\w _v -> pure $ AWSKupplung $ Kuppeln w)
-            (\w _v -> pure $ AWSKupplung $ Kuppeln w)
-            (\v -> AKupplung . Kuppeln <$> v .: JS.kupplung)
+            (\w -> pure $ AWSKupplung $ Kuppeln w)
+            (\w -> pure $ AWSKupplung $ Kuppeln w)
+            (AKupplung . Kuppeln <$> v .: JS.kupplung)
         | s == JS.ausführen -> AktionAusführen <$> v .: JS.plan
         | otherwise -> empty
         where
             parseMaybeWegstrecke
-                :: Aeson.Object
-                -> (Wegstrecke 'Märklin
-                    -> Aeson.Object
-                    -> Aeson.Parser (AktionWegstrecke Wegstrecke 'Märklin))
-                -> (Wegstrecke 'Lego
-                    -> Aeson.Object
-                    -> Aeson.Parser (AktionWegstrecke Wegstrecke 'Lego))
-                -> (Aeson.Object -> Aeson.Parser Aktion)
+                :: (Wegstrecke 'Märklin -> Aeson.Parser (AktionWegstrecke Wegstrecke 'Märklin))
+                -> (Wegstrecke 'Lego -> Aeson.Parser (AktionWegstrecke Wegstrecke 'Lego))
                 -> Aeson.Parser Aktion
-            parseMaybeWegstrecke v wsParserMärklin wsParserLego altParser = do
+                -> Aeson.Parser Aktion
+            parseMaybeWegstrecke wsParserMärklin wsParserLego altParser = do
                 maybeWegstreckeMärklin <- v .:? JS.wegstrecke
                     :: Aeson.Parser (Maybe (Wegstrecke 'Märklin))
-                maybeWegstreckeLego <- v .:? JS.wegstrecke
-                    :: Aeson.Parser (Maybe (Wegstrecke 'Lego))
-                if
-                    | isJust maybeWegstreckeMärklin -> AWegstreckeMärklin
-                        <$> wsParserMärklin (fromJust maybeWegstreckeMärklin) v
-                    | isJust maybeWegstreckeLego -> AWegstreckeLego
-                        <$> wsParserLego (fromJust maybeWegstreckeLego) v
-                    | otherwise -> altParser v
+                case maybeWegstreckeMärklin of
+                    (Just wsMärklin) -> AWegstreckeMärklin <$> wsParserMärklin wsMärklin
+                    Nothing -> do
+                        maybeWegstreckeLego <- v .:? JS.wegstrecke
+                            :: Aeson.Parser (Maybe (Wegstrecke 'Lego))
+                        case maybeWegstreckeLego of
+                            (Just wsLego) -> AWegstreckeLego <$> wsParserLego wsLego
+                            Nothing -> altParser
 
-            parseFail
-                :: Wegstrecke z -> Aeson.Object -> Aeson.Parser (AktionWegstrecke Wegstrecke z)
-            parseFail _w _v = empty
+            parseFail :: Wegstrecke z -> Aeson.Parser (AktionWegstrecke Wegstrecke z)
+            parseFail _w = empty
 
             geschwindigkeitParserMärklin
-                :: Aeson.Object
-                -> Aeson.Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Märklin)
-            geschwindigkeitParserMärklin
-                v = Geschwindigkeit <$> v .: JS.bahngeschwindigkeit <*> v .: JS.wert
+                :: Aeson.Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Märklin)
+            geschwindigkeitParserMärklin =
+                Geschwindigkeit <$> v .: JS.bahngeschwindigkeit <*> v .: JS.wert
 
             geschwindigkeitParserLego
-                :: Aeson.Object
-                -> Aeson.Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Lego)
-            geschwindigkeitParserLego
-                v = Geschwindigkeit <$> v .: JS.bahngeschwindigkeit <*> v .: JS.wert
+                :: Aeson.Parser (AktionBahngeschwindigkeit Bahngeschwindigkeit 'Pwm 'Lego)
+            geschwindigkeitParserLego =
+                Geschwindigkeit <$> v .: JS.bahngeschwindigkeit <*> v .: JS.wert
     parseJSON _value = empty
 
 aktionToJSON
@@ -999,9 +982,9 @@ aktionToJSON
     _name
     (AWegstreckeMärklin
          (AWSBahngeschwindigkeit
-              (GeschwindigkeitKonstanteSpannung (Fahrstrom (GeschwindigkeitPhantom w) strom)))) =
+              (GeschwindigkeitKonstanteSpannung (Fahrstrom (GeschwindigkeitPhantom w) wert)))) =
     Aeson.object
-        [JS.wegstrecke .= zuObjektTyp w, JS.aktion .= JS.geschwindigkeit, JS.strom .= strom]
+        [JS.wegstrecke .= zuObjektTyp w, JS.aktion .= JS.geschwindigkeit, JS.strom .= wert]
 aktionToJSON
     _name
     (AWegstreckeLego
@@ -1012,9 +995,9 @@ aktionToJSON
     _name
     (AWegstreckeLego
          (AWSBahngeschwindigkeit
-              (GeschwindigkeitKonstanteSpannung (Fahrstrom (GeschwindigkeitPhantom w) strom)))) =
+              (GeschwindigkeitKonstanteSpannung (Fahrstrom (GeschwindigkeitPhantom w) wert)))) =
     Aeson.object
-        [JS.wegstrecke .= zuObjektTyp w, JS.aktion .= JS.geschwindigkeit, JS.strom .= strom]
+        [JS.wegstrecke .= zuObjektTyp w, JS.aktion .= JS.geschwindigkeit, JS.strom .= wert]
 aktionToJSON
     _name
     (AWegstreckeMärklin
@@ -1068,14 +1051,14 @@ aktionToJSON _name (ABahngeschwindigkeitMärklinPwm (Geschwindigkeit b wert)) =
 aktionToJSON _name (ABahngeschwindigkeitLegoPwm (Geschwindigkeit b wert)) =
     Aeson.object
         [JS.bahngeschwindigkeit .= zuObjektTyp b, JS.aktion .= JS.geschwindigkeit, JS.wert .= wert]
-aktionToJSON _name (ABahngeschwindigkeitMärklinKonstanteSpannung (Fahrstrom b strom)) =
+aktionToJSON _name (ABahngeschwindigkeitMärklinKonstanteSpannung (Fahrstrom b wert)) =
     Aeson.object
-        [JS.bahngeschwindigkeit .= zuObjektTyp b, JS.aktion .= JS.fahrstrom, JS.strom .= strom]
-aktionToJSON _name (ABahngeschwindigkeitLegoKonstanteSpannung (Fahrstrom b strom)) =
+        [JS.bahngeschwindigkeit .= zuObjektTyp b, JS.aktion .= JS.fahrstrom, JS.strom .= wert]
+aktionToJSON _name (ABahngeschwindigkeitLegoKonstanteSpannung (Fahrstrom b wert)) =
     Aeson.object
         [ JS.bahngeschwindigkeit .= zuObjektTyp b
         , JS.aktion .= JS.geschwindigkeit
-        , JS.strom .= strom]
+        , JS.strom .= wert]
 aktionToJSON _name (ABahngeschwindigkeitMärklinPwm (Umdrehen b)) =
     Aeson.object [JS.bahngeschwindigkeit .= zuObjektTyp b, JS.aktion .= JS.umdrehen]
 aktionToJSON _name (ABahngeschwindigkeitMärklinKonstanteSpannung (Umdrehen b)) =

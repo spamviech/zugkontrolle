@@ -152,7 +152,7 @@ instance Read (PCF8574 'OhneInterruptPin) where
         variant <- ReadPrec.lift $ do
             parsePCF8574
             variant <- ReadP.option VariantNormal parseA
-            ReadP.char '-'
+            _ <- ReadP.char '-'
             pure variant
         PCF8574 variant <$> parseValue <*> parseValue <*> parseValue
 
@@ -162,7 +162,7 @@ instance Read (PCF8574 'MitInterruptPin) where
         variant <- ReadPrec.lift $ do
             parsePCF8574
             variant <- ReadP.option VariantNormal parseA
-            ReadP.char '-'
+            _ <- ReadP.char '-'
             pure variant
         PCF8574InterruptPin variant <$> parseValue
             <*> parseValue
@@ -171,12 +171,12 @@ instance Read (PCF8574 'MitInterruptPin) where
 
 parsePCF8574 :: ReadP ()
 parsePCF8574 = void $ do
-    ReadP.char 'P' <|> ReadP.char 'p'
-    ReadP.char 'C' <|> ReadP.char 'c'
-    ReadP.char 'F' <|> ReadP.char 'F'
-    ReadP.char '8'
-    ReadP.char '5'
-    ReadP.char '7'
+    _p <- ReadP.char 'P' <|> ReadP.char 'p'
+    _c <- ReadP.char 'C' <|> ReadP.char 'c'
+    _f <- ReadP.char 'F' <|> ReadP.char 'F'
+    _8 <- ReadP.char '8'
+    _5 <- ReadP.char '5'
+    _7 <- ReadP.char '7'
     ReadP.char '4'
 
 parseA :: ReadP PCF8574Variant
@@ -222,7 +222,7 @@ instance (Read (PCF8574 i)) => Read (PCF8574Port i) where
         where
             parsePort :: ReadPrec Word8
             parsePort = do
-                ReadPrec.lift $ ReadP.char '-'
+                _ <- ReadPrec.lift $ ReadP.char '-'
                 (Number number) <- lexP
                 case numberToInteger number >>= Just . fromInteger of
                     (Just n)
@@ -262,9 +262,9 @@ pcf8574Gruppieren = foldl (\portsMap PCF8574Port {pcf8574, port}
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen.
 pcf8574PortRead :: (I2CReader r m, MonadIO m) => (PCF8574Port i) -> m Value
 pcf8574PortRead PCF8574Port {pcf8574, port} = do
-    fullBitValue <- pcf8574Read pcf8574
+    bitValue <- pcf8574Read pcf8574
     pure
-        $ if testBit fullBitValue $ fromIntegral port
+        $ if testBit bitValue $ fromIntegral port
             then HIGH
             else LOW
 

@@ -34,7 +34,6 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
-import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -211,13 +210,10 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
     geschwindigkeit
         bg@Bahngeschwindigkeit
         {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {geschwindigkeitsPin}}
-        geschwindigkeit =
+        wert =
         befehlAusführen
-            (pwmSetzeWert bg geschwindigkeitsPin $ erhaltePwmWert bg geschwindigkeit)
-            ("Geschwindigkeit ("
-             <> showText geschwindigkeitsPin
-             <> ")->"
-             <> showText geschwindigkeit)
+            (pwmSetzeWert bg geschwindigkeitsPin $ erhaltePwmWert bg wert)
+            ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText wert)
 
     fahrstrom
         :: (I2CReader r m, MonadIO m) => Bahngeschwindigkeit 'KonstanteSpannung z -> Word8 -> m ()

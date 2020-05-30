@@ -66,9 +66,7 @@ class (MonadReader r m, MitI2CMap r) => I2CReader r m | m -> r where
 
     -- | 'forkIO' in die 'I2CReader'-Monade geliftet; Die aktuellen Umgebung soll übergeben werden.
     forkI2CReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
-    forkI2CReader action = do
-        reader <- ask
-        liftIO $ forkIO $ void $ runReaderT action reader
+    forkI2CReader action = liftIO . forkIO . void . runReaderT action =<< ask
 
 instance (MonadReader r m, MitI2CMap r) => I2CReader r m
 
@@ -130,9 +128,9 @@ i2cWrite i2cAddress bitValue = do
             case Map.lookup i2cAddress i2cKanäle of
                 (Just I2CSetupInProgress) -> retry
                 (Just I2CChannelInUse) -> retry
-                (Just (I2CChannelReady fileHandle bitValue)) -> do
+                (Just (I2CChannelReady fileHandle aktuellerBitValue)) -> do
                     modifyTVar tvarI2CKanäle $ Map.insert i2cAddress I2CChannelInUse
-                    pure $ Just (fileHandle, bitValue)
+                    pure $ Just (fileHandle, aktuellerBitValue)
                 Nothing -> do
                     modifyTVar tvarI2CKanäle $ Map.insert i2cAddress I2CSetupInProgress
                     pure Nothing

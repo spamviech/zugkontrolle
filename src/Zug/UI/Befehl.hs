@@ -249,7 +249,7 @@ instance forall o. (BefehlConstraints o) => BefehlKlasse BefehlAllgemein o where
                         RWS.put statusNeu
             ausführenBefehlAux (Ausführen plan showAction endAktion) = do
                 mitSprache <- getSprache
-                ausführenPlan plan (leseSprache (flip showAction) mitSprache) endAktion
+                ausführenPlan plan (flip leseSprache mitSprache . showAction) endAktion
             ausführenBefehlAux (AusführenAbbrechen plan) = do
                 tvarAusführend <- erhalteMengeAusführend
                 liftIO $ atomically $ modifyTVar tvarAusführend $ Set.delete $ Ausführend plan

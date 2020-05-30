@@ -106,8 +106,8 @@ pwmSoftwareSetzteWert pin pwmFrequenz pwmWert = do
 pwmSoftwareAnschlussMain :: (MitPwmMap r) => Pin -> ReaderT r IO ()
 pwmSoftwareAnschlussMain pin = do
     tvarPwmMap <- erhaltePwmMap
-    pwmMap <- liftIO $ readTVarIO tvarPwmMap
-    case Map.lookup pin pwmMap of
+    aktuellePwmMap <- liftIO $ readTVarIO tvarPwmMap
+    case Map.lookup pin aktuellePwmMap of
         Nothing -> pure ()
         (Just (pwmWert, pwmFrequenz)) -> do
             liftIO $ do

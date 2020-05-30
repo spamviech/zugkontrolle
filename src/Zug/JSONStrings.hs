@@ -28,9 +28,9 @@ instance Aeson.ToJSON Value where
 -- | Hilfsfunktion, um einfache FromJSON-Instanzen zu erstellen.
 findeÜbereinstimmendenWert :: (Aeson.ToJSON a) => [a] -> Aeson.Value -> Aeson.Parser a
 findeÜbereinstimmendenWert [] _v = empty
-findeÜbereinstimmendenWert (h:t) v
-    | v == Aeson.toJSON h = pure h
-    | otherwise = findeÜbereinstimmendenWert t v
+findeÜbereinstimmendenWert (a:as) v
+    | v == Aeson.toJSON h = pure a
+    | otherwise = findeÜbereinstimmendenWert as v
 
 gerade :: Text
 gerade = "Gerade"

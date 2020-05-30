@@ -346,7 +346,7 @@ beiÄnderung anschluss intEdge aktion = do
             $ putTMVar tmvarInterruptMap
             $ Map.insert
                 interruptPin
-                (beiRichtigemBitValue anschluss intEdge aktion : aktionen, alterWert)
+                (beiRichtigemBitValue anschluss intEdge : aktionen, alterWert)
                 aktuelleInterruptMap
         Nothing -> do
             wert <- anschlussReadBitValue anschluss
@@ -367,7 +367,7 @@ beiÄnderung anschluss intEdge aktion = do
                     $ putTMVar tmvarInterruptMap
                     $ Map.insert
                         interruptPin
-                        ([beiRichtigemBitValue anschluss intEdge aktion], wert)
+                        ([beiRichtigemBitValue anschluss intEdge], wert)
                         aktuelleInterruptMap
     where
         interruptPin :: Pin
@@ -377,48 +377,40 @@ beiÄnderung anschluss intEdge aktion = do
         verwendeteIntEdge AnschlussPin {} = INT_EDGE_BOTH
         verwendeteIntEdge AnschlussPCF8574Port {} = INT_EDGE_FALLING
 
-        beiRichtigemBitValue :: Anschluss 'MitInterruptPin
-                             -> IntEdge
-                             -> IO EventBehalten
-                             -> (BitValue, BitValue)
-                             -> IO EventBehalten
-        beiRichtigemBitValue AnschlussPin {} INT_EDGE_BOTH aktion _werte = aktion
+        beiRichtigemBitValue
+            :: Anschluss 'MitInterruptPin -> IntEdge -> (BitValue, BitValue) -> IO EventBehalten
+        beiRichtigemBitValue AnschlussPin {} INT_EDGE_BOTH _werte = aktion
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
             INT_EDGE_BOTH
-            aktion
             (wert, alterWert)
             | testBit wert port == testBit alterWert port = pure EventBehalten
             | otherwise = aktion
         beiRichtigemBitValue
             AnschlussPin {}
             INT_EDGE_FALLING
-            aktion
             (fromBitValue -> wert, fromBitValue -> alterWert)
             | alterWert > wert = aktion
             | otherwise = pure EventBehalten
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
             INT_EDGE_FALLING
-            aktion
             (wert, alterWert)
             | testBit alterWert port && not (testBit wert port) = aktion
             | otherwise = pure EventBehalten
         beiRichtigemBitValue
             AnschlussPin {}
             INT_EDGE_RISING
-            aktion
             (fromBitValue -> wert, fromBitValue -> alterWert)
             | alterWert < wert = aktion
             | otherwise = pure EventBehalten
         beiRichtigemBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {port = (fromIntegral -> port)}}
             INT_EDGE_RISING
-            aktion
             (wert, alterWert)
             | not (testBit alterWert port) && testBit wert port = aktion
             | otherwise = pure EventBehalten
-        beiRichtigemBitValue _anschluss INT_EDGE_SETUP _aktion _werte = pure EventBehalten
+        beiRichtigemBitValue _anschluss INT_EDGE_SETUP _werte = pure EventBehalten
 
         anschlussReadBitValue
             :: (I2CReader r m, MonadIO m) => Anschluss 'MitInterruptPin -> m BitValue

@@ -24,7 +24,6 @@ import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson.Types ((.=), (.:))
 import qualified Data.Aeson.Types as Aeson
-import Data.Semigroup (Semigroup(..))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 import qualified Text.ParserCombinators.ReadP as ReadP
@@ -61,8 +60,8 @@ instance Read Wartezeit where
             withConstructor :: String -> ReadPrec Natural
             withConstructor constructor = parens $ do
                 ReadPrec.lift $ do
-                    ReadP.string constructor
-                    ReadP.char ' '
+                    _string <- ReadP.string constructor
+                    _space <- ReadP.char ' '
                     ReadP.skipSpaces
                 (Number number) <- lexP
                 case numberToInteger number >>= Just . fromInteger of
@@ -72,8 +71,8 @@ instance Read Wartezeit where
             withPostfixUnit :: String -> ReadPrec Natural
             withPostfixUnit unit = parens $ do
                 (Number number) <- lexP
-                ReadPrec.lift $ do
-                    ReadP.optional $ ReadP.char ' '
+                _unit <- ReadPrec.lift $ do
+                    _maybeSpace <- ReadP.optional $ ReadP.char ' '
                     ReadP.string unit
                 case numberToInteger number >>= Just . fromInteger of
                     (Just n) -> pure n

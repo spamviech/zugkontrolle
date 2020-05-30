@@ -177,9 +177,9 @@ module Zug.Language
   , (<#>)
   ) where
 
+import Control.Monad.Trans (MonadIO())
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Semigroup (Semigroup(..))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -781,28 +781,28 @@ befehlAlle gewählteSprache =
 
 -- | All supported Orders, classified by a type
 befehlTypen :: Sprache -> [Text]
-befehlTypen sprache = [plan sprache] <> befehlObjekte sprache
+befehlTypen sp = [plan sp] <> befehlObjekte sp
 
 -- | All supported Orders, classified by a (physical) object
 befehlObjekte :: Sprache -> [Text]
-befehlObjekte sprache = [wegstrecke sprache] <> befehlWegstreckenElemente sprache
+befehlObjekte sp = [wegstrecke sp] <> befehlWegstreckenElemente sp
 
 -- | All supported Orders, classified by a train collection element
 befehlWegstreckenElemente :: Sprache -> [Text]
-befehlWegstreckenElemente sprache =
-    map ($ sprache) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung, kontakt]
+befehlWegstreckenElemente sp =
+    map ($ sp) [weiche, bahngeschwindigkeit, streckenabschnitt, kupplung, kontakt]
 
 -- | All supported actions
 aktionGruppen :: Sprache -> [Text]
-aktionGruppen sprache = map ($ sprache) [warten, aktionAusführen] <> befehlObjekte sprache
+aktionGruppen sp = map ($ sp) [warten, aktionAusführen] <> befehlObjekte sp
 
 -- | All supported actions for a 'Plan'
 aktionPlan :: Sprache -> [Text]
-aktionPlan sprache = [ausführen sprache]
+aktionPlan sp = [ausführen sp]
 
 -- | All supported actions for a currently executed 'Plan'
 aktionPlanAusführend :: Sprache -> [Text]
-aktionPlanAusführend sprache = [ausführenAbbrechen sprache]
+aktionPlanAusführend sp = [ausführenAbbrechen sp]
 
 -- | All supported actions for a blocked 'Plan'
 aktionPlanGesperrt :: Sprache -> [Text]
@@ -810,32 +810,32 @@ aktionPlanGesperrt _sprache = []
 
 -- | All supported actions for a train collection ('Wegstrecke')
 aktionWegstrecke :: Sprache -> [Text]
-aktionWegstrecke sprache =
-    [einstellen sprache]
-    <> aktionBahngeschwindigkeit sprache
-    <> aktionStreckenabschnitt sprache
-    <> aktionKupplung sprache
-    <> aktionKontakt sprache
+aktionWegstrecke sp =
+    [einstellen sp]
+    <> aktionBahngeschwindigkeit sp
+    <> aktionStreckenabschnitt sp
+    <> aktionKupplung sp
+    <> aktionKontakt sp
 
 -- | All supported actions for a switch ('Weiche')
 aktionWeiche :: Sprache -> [Text]
-aktionWeiche sprache = [stellen sprache]
+aktionWeiche sp = [stellen sp]
 
 -- | All supported actions for a train speed ('Bahngeschwindigkeit')
 aktionBahngeschwindigkeit :: Sprache -> [Text]
-aktionBahngeschwindigkeit sprache = map ($ sprache) [geschwindigkeit, umdrehen]
+aktionBahngeschwindigkeit sp = map ($ sp) [geschwindigkeit, umdrehen]
 
 -- | All supported actions for a rail section ('Streckenabschnitt')
 aktionStreckenabschnitt :: Sprache -> [Text]
-aktionStreckenabschnitt sprache = [strom sprache]
+aktionStreckenabschnitt sp = [strom sp]
 
 -- | All supported actions for a coupler ('Kupplung')
 aktionKupplung :: Sprache -> [Text]
-aktionKupplung sprache = [kuppeln sprache]
+aktionKupplung sp = [kuppeln sp]
 
 -- | All supported actions for a contact ('Kontakt')
 aktionKontakt :: Sprache -> [Text]
-aktionKontakt sprache = [warten sprache]
+aktionKontakt sp = [warten sp]
 
 -- | Concatenate a list of strings to an eye-pleasing format
 toBefehlsString :: [Text] -> Text
@@ -847,11 +847,11 @@ toBefehlsString (h:t) = h <^> toBefehlsString t $ Deutsch
 -- * Unbekannte Eingabe melden
 -- | Report an error due to _begründung_
 fehlerText :: Sprache -> Text -> Text
-fehlerText sprache begründung = ungültigeEingabe <^> begründung <!> Text.empty $ sprache
+fehlerText sp begründung = ungültigeEingabe <^> begründung <!> Text.empty $ sp
 
 -- | Report an error due to _begründung_ and print it to the console.
 fehlerhafteEingabe :: Sprache -> Text -> IO ()
-fehlerhafteEingabe sprache begründung = Text.putStrLn $ fehlerText sprache begründung
+fehlerhafteEingabe sp begründung = Text.putStrLn $ fehlerText sp begründung
 
 -- * Datentypen
 -- | Bekannte Sprachen
@@ -862,10 +862,10 @@ data Sprache
 
 -- | Klasse für Typen, die als 'Sprache' verwendet werden können.
 class MitSprache s where
-    leseSprache :: (Sprache -> a) -> s -> a
+    leseSprache :: (MonadIO m) => (Sprache -> m a) -> s -> m a
 
 instance MitSprache Sprache where
-    leseSprache :: (Sprache -> a) -> Sprache -> a
+    leseSprache :: (MonadIO m) => (Sprache -> m a) -> Sprache -> m a
     leseSprache = id
 
 -- | Alle unterstützten Sprachen
@@ -889,7 +889,7 @@ instance Anzeige (Sprache -> Text) where
 
 instance Anzeige Char where
     anzeige :: Char -> Sprache -> Text
-    anzeige a = Text.pack . const [a]
+    anzeige = const . Text.singleton
 
 instance Anzeige Natural
 
@@ -934,24 +934,24 @@ instance (Anzeige a) => Anzeige (Set a) where
 
 instance (Anzeige a, Anzeige b) => Anzeige (a, b) where
     anzeige :: (a, b) -> Sprache -> Text
-    anzeige (a, b) = ("(" :: Text) <#> a <^> b <#> (")" :: Text)
+    anzeige (s0, s1) = ("(" :: Text) <#> s0 <^> s1 <#> (")" :: Text)
 
 infixr 0 $#
 
 -- | Werte eine 'Sprache'-abhänge Funktion mit einem 'Anzeige'-Typen aus.
 -- Die Fix-Stärke ist dabei identisch zu '$' gewählt.
 ($#) :: (Anzeige a) => (Sprache -> Text -> b) -> a -> Sprache -> b
-($#) f a sprache = f sprache $ anzeige a sprache
+($#) f aa sp = f sp $ anzeige aa sp
 
 infixr 9 .#
 
 -- | Verkette eine 'Sprache'-abhängige Funktion mit einer Funktion, die einen 'Anzeige'-Typ liefert.
 (.#) :: (Anzeige b) => (Sprache -> Text -> c) -> (a -> b) -> a -> Sprache -> c
-(.#) f g a = f $# g a
+(.#) f g aa = f $# g aa
 
 -- ** Hilfsfunktionen
 verketten :: (Anzeige a, Anzeige b) => Text -> a -> b -> Sprache -> Text
-verketten trennzeichen a b sprache = anzeige a sprache <> trennzeichen <> anzeige b sprache
+verketten trennzeichen s0 s1 sp = anzeige s0 sp <> trennzeichen <> anzeige s1 sp
 
 infixr 6 <~>
 
