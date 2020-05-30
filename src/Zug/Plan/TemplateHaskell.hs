@@ -6,7 +6,6 @@ module Zug.Plan.TemplateHaskell
   , planAllgemeinCxtType
   ) where
 
-import Data.Semigroup (Semigroup((<>)))
 import qualified Language.Haskell.TH as TH
 
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))

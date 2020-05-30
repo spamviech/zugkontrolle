@@ -51,7 +51,7 @@ import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MS
                   , ReaderFamilie, ObjektReader(), MitTVarMaps(), liftIOStatus)
 import Zug.UI.Befehl (BefehlKlasse(..))
 
--- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält
+-- | 'TVar', welche gelehrt werden kann, aber immer eine 'Sprache' enthält.
 newtype StatusVar o = StatusVar { tvar :: TVar (Either (StatusAllgemein o) (SP o)) }
     deriving (Eq)
 
@@ -87,7 +87,7 @@ putStatusVar StatusVar {tvar} status = readTVar tvar >>= \case
     (Left _statusAlt) -> retry
     (Right _sprache) -> writeTVar tvar $ Left status
 
--- | Klasse für Typen mit dem in einer 'StatusVar'
+-- | Klasse für Typen mit dem in einer 'StatusVar'.
 class MitStatusVar r o where
     statusVar :: r -> StatusVar o
 
@@ -102,33 +102,33 @@ class (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m | m -> r wher
 
 instance (MonadReader r m, MitStatusVar r o) => StatusVarReader r o m
 
--- | Führe 'IO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
+-- | Führe 'IO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus.
 auswertenStatusVarIOStatus
     :: (ObjektReader o m, MonadIO m) => IOStatusAllgemein o a -> StatusVar o -> m a
 auswertenStatusVarIOStatus action = auswertenStatusVarMStatusT $ liftIOStatus action
 
--- | Führe 'MonadIO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus
+-- | Führe 'MonadIO'-Aktion mit 'StatusAllgemein' in 'StatusVar' aus.
 auswertenStatusVarMStatusT
     :: (ObjektReader o m, MonadIO m) => MStatusAllgemeinT m o a -> StatusVar o -> m a
-auswertenStatusVarMStatusT action statusVar = do
-    reader <- ask
-    status0 <- liftIO $ atomically $ takeStatusVar statusVar
-    (a, status1, ()) <- runRWST action reader status0
-    liftIO $ atomically $ putStatusVar statusVar status1
+auswertenStatusVarMStatusT action var = do
+    readerFamilie <- ask
+    status0 <- liftIO $ atomically $ takeStatusVar var
+    (a, status1, ()) <- runRWST action readerFamilie status0
+    liftIO $ atomically $ putStatusVar var status1
     pure a
 
--- | Führe Aktion mit 'StatusAllgemein' in 'StatusVar' aus
+-- | Führe Aktion mit 'StatusAllgemein' in 'StatusVar' aus.
 auswertenStatusVarMStatus
     :: (ObjektReader o m, MonadIO m) => MStatusAllgemein o a -> StatusVar o -> m a
-auswertenStatusVarMStatus action statusVar = do
-    reader <- ask
+auswertenStatusVarMStatus action var = do
+    readerFamilie <- ask
     liftIO $ atomically $ do
-        status0 <- takeStatusVar statusVar
-        let (a, status1, ()) = runRWS action reader status0
-        putStatusVar statusVar status1
+        status0 <- takeStatusVar var
+        let (a, status1, ()) = runRWS action readerFamilie status0
+        putStatusVar var status1
         pure a
 
--- | Führe einen Plan mit einem in einer 'StatusVar' gespeichertem Zustand aus
+-- | Führe einen Plan mit einem in einer 'StatusVar' gespeichertem Zustand aus.
 ausführenStatusVarPlan
     :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o))
     => PL o
@@ -139,7 +139,7 @@ ausführenStatusVarPlan
 ausführenStatusVarPlan plan showAktion endAktion =
     auswertenStatusVarIOStatus $ ausführenPlan plan showAktion endAktion
 
--- | Führe eine Aktion mit einem in einer 'StatusVar' gespeichertem Zustand aus
+-- | Führe eine Aktion mit einem in einer 'StatusVar' gespeichertem Zustand aus.
 ausführenStatusVarAktion
     :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o))
     => a
@@ -147,7 +147,7 @@ ausführenStatusVarAktion
     -> m ()
 ausführenStatusVarAktion aktion = auswertenStatusVarIOStatus $ ausführenAktion aktion
 
--- | Führe einen Befehl mit einem in einer 'StatusVar' gespeichertem Zustand aus
+-- | Führe einen Befehl mit einem in einer 'StatusVar' gespeichertem Zustand aus.
 ausführenStatusVarBefehl
     :: ( ObjektReader o m
        , MonadIO m

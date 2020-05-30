@@ -288,8 +288,8 @@ instance (Show w, WeicheKlasse w) => MitAnfrage (AktionWeiche w) where
             mitRichtung (AAWStellen weiche) richtung
                 | hatRichtung weiche richtung = AFErgebnis $ Stellen weiche richtung
                 | otherwise = AFFehler eingabe
-            mitRichtung anfrage _richtung =
-                error $ "mitRichtung mit unerwarteter Anfrage aufgerufen: " ++ show anfrage
+            mitRichtung anfrageWeiche _richtung =
+                error $ "mitRichtung mit unerwarteter Anfrage aufgerufen: " ++ show anfrageWeiche
 
 -- | Unvollständige 'Aktion' einer 'Kupplung'.
 newtype AnfrageAktionKupplung k = AnfrageAktionKupplung k   -- ^ Kupplung
@@ -594,8 +594,8 @@ instance MitAnfrage Aktion where
     -- | Eingabe einer 'Aktion'
     anfrageAktualisieren
         :: AnfrageAktion -> EingabeToken -> AnfrageFortsetzung AnfrageAktion Aktion
-    anfrageAktualisieren AnfrageAktion token = case anfrageAktionElement token of
-        (AAEUnbekannt eingabe) -> AFFehler eingabe
+    anfrageAktualisieren AnfrageAktion token@EingabeToken {eingabe} = case anfrageAktionElement of
+        (AAEUnbekannt eingabeFehler) -> AFFehler eingabeFehler
         AAERückgängig -> AFZwischenwert AARückgängig
         AAEWarten -> AFZwischenwert AAWarten
         AAEAusführen -> AFZwischenwert $ AAStatusAnfrage SAOPlan $ Right $ \(OPlan plan)
@@ -645,8 +645,8 @@ instance MitAnfrage Aktion where
         AAEKontakt -> AFZwischenwert $ AAStatusAnfrage SAOKontakt $ Left $ \(OKontakt kontakt)
             -> AAKontakt $ AnfrageAktionKontakt kontakt
         where
-            anfrageAktionElement :: EingabeToken -> AnfrageAktionElement
-            anfrageAktionElement token@EingabeToken {eingabe} =
+            anfrageAktionElement :: AnfrageAktionElement
+            anfrageAktionElement =
                 wähleBefehl
                     token
                     [ (Lexer.Rückgängig, AAERückgängig)
