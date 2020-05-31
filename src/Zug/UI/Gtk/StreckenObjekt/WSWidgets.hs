@@ -34,7 +34,6 @@ import Data.Either.Combinators (leftToMaybe, rightToMaybe)
 import Data.Maybe (fromJust)
 import Data.Set (Set)
 import Data.Text (Text)
-import qualified Data.Text as Text
 import Data.Word (Word8)
 import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
@@ -61,7 +60,7 @@ import Zug.UI.Befehl (ausführenBefehl, BefehlAllgemein(Hinzufügen), BefehlCons
 import Zug.UI.Gtk.Auswahl (AuswahlWidget, setzeAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, namePackNew
                                  , labelSpracheNew, buttonNewWithEventLabel)
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (SpracheGui, MitSpracheGui(), verwendeSpracheGui, TVarSprachewechselAktionen)
@@ -91,11 +90,11 @@ data WSWidgets (z :: Zugtyp) =
     WSWidgets
     { ws :: Wegstrecke z
     , wsWidget :: Gtk.Frame
-    , wsFunktionBox :: Gtk.Box
+    , wsFunctionBox :: Gtk.Box
     , wsHinzPL :: WegstreckePlanHinzufügenWidget z
     , wsTVarSprache :: TVarSprachewechselAktionen
     , wsTVarEvent :: TVar EventAusführen
-    , wsScaleGeschwindigkeit :: Maybe Gtk.HScale
+    , wsScaleGeschwindigkeit :: Maybe Gtk.Scale
     , wsAuswahlFahrstrom :: Maybe (AuswahlWidget Word8)
     , wsButtonUmdrehen :: Maybe Gtk.Button
     , wsAuswahlFahrtrichtung :: Maybe (AuswahlWidget Fahrtrichtung)
@@ -119,11 +118,11 @@ data WegstreckePlanHinzufügenWidget (z :: Zugtyp) =
     deriving (Eq)
 
 instance MitWidget (WSWidgets z) where
-    erhalteWidget :: WSWidgets z -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => WSWidgets z -> m Gtk.Widget
     erhalteWidget = erhalteWidget . wsWidget
 
 instance MitWidget (GeschwindigkeitPhantom WSWidgets g z) where
-    erhalteWidget :: GeschwindigkeitPhantom WSWidgets g z -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => GeschwindigkeitPhantom WSWidgets g z -> m Gtk.Widget
     erhalteWidget (GeschwindigkeitPhantom wsWidgets) = erhalteWidget wsWidgets
 
 data WSWidgetsBoxen =
@@ -181,7 +180,7 @@ instance (PlanElement (WSWidgets z), ZugtypKlasse z) => WidgetsTyp (WSWidgets z)
         liftIO $ atomically $ writeTVar wsTVarSprache Nothing
 
     boxButtonEntfernen :: WSWidgets z -> Gtk.Box
-    boxButtonEntfernen = wsFunktionBox
+    boxButtonEntfernen = wsFunctionBox
 
     tvarSprache :: WSWidgets z -> TVarSprachewechselAktionen
     tvarSprache = wsTVarSprache
@@ -365,24 +364,25 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
                     => GeschwindigkeitPhantom WSWidgets 'Pwm z
                     -> Word8
                     -> m ()
-    geschwindigkeit
-        (GeschwindigkeitPhantom WSWidgets {wsScaleGeschwindigkeit = Just scaleGeschwindigkeit})
-        wert = liftIO $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+    geschwindigkeit (GeschwindigkeitPhantom WSWidgets {wsScaleGeschwindigkeit = Just scale}) wert =
+        liftIO $ do
+            adjustment <- Gtk.get scale Gtk.rangeAdjustment
+            Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
     geschwindigkeit _wsWidgets _wert = pure ()
 
     fahrstrom :: (I2CReader r m, MonadIO m)
               => GeschwindigkeitPhantom WSWidgets 'KonstanteSpannung z
               -> Word8
               -> m ()
-    fahrstrom (GeschwindigkeitPhantom WSWidgets {wsAuswahlFahrstrom = Just auswahlFahrstrom}) =
-        liftIO . setzeAuswahl auswahlFahrstrom
+    fahrstrom (GeschwindigkeitPhantom WSWidgets {wsAuswahlFahrstrom = Just auswahl}) =
+        liftIO . setzeAuswahl auswahl
     fahrstrom _bg = const $ pure ()
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m)
              => GeschwindigkeitPhantom WSWidgets g 'Märklin
              -> m ()
     umdrehen (GeschwindigkeitPhantom WSWidgets {wsButtonUmdrehen = Just buttonUmdrehen}) =
-        liftIO $ Gtk.buttonPressed buttonUmdrehen
+        liftIO $ Gtk.buttonClicked buttonUmdrehen
     umdrehen _wsWidgets = pure ()
 
     fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
@@ -390,12 +390,12 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
                             -> Fahrtrichtung
                             -> m ()
     fahrtrichtungEinstellen
-        (GeschwindigkeitPhantom WSWidgets {wsAuswahlFahrtrichtung = Just auswahlFahrtrichtung}) =
-        liftIO . setzeAuswahl auswahlFahrtrichtung
+        (GeschwindigkeitPhantom WSWidgets {wsAuswahlFahrtrichtung = Just auswahl}) =
+        liftIO . setzeAuswahl auswahl
     fahrtrichtungEinstellen _wsWidgets = const $ pure ()
 
 instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
-    scaleGeschwindigkeit :: GeschwindigkeitPhantom WSWidgets 'Pwm z -> Maybe Gtk.HScale
+    scaleGeschwindigkeit :: GeschwindigkeitPhantom WSWidgets 'Pwm z -> Maybe Gtk.Scale
     scaleGeschwindigkeit (GeschwindigkeitPhantom ws) = wsScaleGeschwindigkeit ws
 
     auswahlFahrstrom :: GeschwindigkeitPhantom WSWidgets 'KonstanteSpannung z
@@ -408,8 +408,8 @@ instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
 
 instance StreckenabschnittKlasse (WSWidgets z) where
     strom :: (I2CReader r m, MonadIO m) => WSWidgets z -> Strom -> m ()
-    strom WSWidgets {wsToggleButtonStrom = Just toggleButtonStrom} wert =
-        liftIO $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (wert == Fließend)]
+    strom WSWidgets {wsToggleButtonStrom = Just toggleButton} wert =
+        liftIO $ Gtk.set toggleButton [Gtk.toggleButtonActive := (wert == Fließend)]
     strom _wsWidgets _wert = pure ()
 
 instance (PlanElement (WSWidgets z), ZugtypKlasse z) => STWidgetsKlasse (WSWidgets z) where
@@ -419,7 +419,7 @@ instance (PlanElement (WSWidgets z), ZugtypKlasse z) => STWidgetsKlasse (WSWidge
 instance KupplungKlasse (WSWidgets z) where
     kuppeln :: (I2CReader r m, MonadIO m) => WSWidgets z -> m ()
     kuppeln
-        WSWidgets {wsButtonKuppeln = Just buttonKuppeln} = liftIO $ Gtk.buttonPressed buttonKuppeln
+        WSWidgets {wsButtonKuppeln = Just buttonKuppeln} = liftIO $ Gtk.buttonClicked buttonKuppeln
     kuppeln _wsWidgets = pure ()
 
 instance KontaktKlasse (WSWidgets z) where
@@ -429,7 +429,7 @@ instance KontaktKlasse (WSWidgets z) where
 instance (WegstreckeKlasse (Wegstrecke z)) => WegstreckeKlasse (WSWidgets z) where
     einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WSWidgets z -> m ()
     einstellen WSWidgets {wsButtonEinstellen = Just buttonEinstellen} =
-        liftIO $ Gtk.buttonPressed buttonEinstellen
+        liftIO $ Gtk.buttonClicked buttonEinstellen
     einstellen _wsWidgets = pure ()
 
 instance (ZugtypKlasse z) => BahngeschwindigkeitContainer (WSWidgets z) where
@@ -482,7 +482,7 @@ wegstreckePackNew
     do
         objektReader <- ask
         statusVar <- erhalteStatusVar :: MStatusAllgemeinT m o (StatusVar o)
-        wsWidgetsBoxen@WSWidgetsBoxen {vBoxWegstrecken} <- erhalteWSWidgetsBoxen
+        widgetsBoxen@WSWidgetsBoxen {vBoxWegstrecken} <- erhalteWSWidgetsBoxen
         (wsTVarSprache, wsTVarEvent) <- liftIO $ do
             wsTVarSprache <- newTVarIO $ Just []
             wsTVarEvent <- newTVarIO EventAusführen
@@ -495,7 +495,7 @@ wegstreckePackNew
                 , boxStreckenabschnitt
                 , boxKupplung
                 , boxKontakte
-                , boxWegstrecke] = wsWidgetsBoxen ^.. boxenPlan wegstrecke
+                , boxWegstrecke] = widgetsBoxen ^.. boxenPlan wegstrecke
         hinzufügenPlanWidgetBGPwm
             <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
                 then Just <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsTVarSprache
@@ -533,15 +533,16 @@ wegstreckePackNew
                 , wegstrecke = hinzufügenPlanWidgetWS
                 }
         -- Widget erstellen
-        (frame, expander, vBoxExpander, functionBox) <- liftIO $ do
-            frame <- boxPackWidgetNewDefault vBoxWegstrecken Gtk.frameNew
-            vBox <- containerAddWidgetNew frame $ Gtk.vBoxNew False 0
+        (frame, expander, vBoxExpander, wsFunctionBox) <- liftIO $ do
+            frame <- boxPackWidgetNewDefault vBoxWegstrecken $ Gtk.frameNew Nothing
+            vBox <- containerAddWidgetNew frame $ Gtk.boxNew Gtk.OrientationVertical 0
             namePackNew vBox wegstrecke
-            expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Text.empty
-            vBoxExpander
-                <- containerAddWidgetNew expander $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
-            functionBox <- boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
-            pure (frame, expander, vBoxExpander, functionBox)
+            expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Nothing
+            vBoxExpander <- containerAddWidgetNew expander
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            wsFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+            pure (frame, expander, vBoxExpander, wsFunctionBox)
         verwendeSpracheGui justTVarSprache $ \sprache
             -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
         (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsButtonUmdrehen, wsAuswahlFahrtrichtung) <- if null
@@ -557,7 +558,7 @@ wegstreckePackNew
                     wsBahngeschwindigkeiten
                     then Just
                         <$> hScaleGeschwindigkeitPackNew
-                            functionBox
+                            wsFunctionBox
                             (GeschwindigkeitPhantom wegstrecke)
                             wsTVarEvent
                             statusVar
@@ -569,7 +570,7 @@ wegstreckePackNew
                     else fmap Just
                         -- fahrstromAnschlüsse total, weil g ~ 'KonstanteSpannung sichergestellt ist
                         $ auswahlFahrstromPackNew
-                            functionBox
+                            wsFunctionBox
                             (GeschwindigkeitPhantom wegstrecke)
                             (maximum
                              $ fromIntegral
@@ -583,7 +584,7 @@ wegstreckePackNew
                 eitherFahrtrichtungWidget <- case zuZugtypEither wegstrecke of
                     (ZugtypMärklin wsMärklin) -> Left
                         <$> buttonUmdrehenPackNew
-                            functionBox
+                            wsFunctionBox
                             (GeschwindigkeitPhantom wsMärklin
                              :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                             wsTVarSprache
@@ -591,7 +592,7 @@ wegstreckePackNew
                             statusVar
                     (ZugtypLego wsLego) -> Right
                         <$> auswahlFahrtrichtungEinstellenPackNew
-                            functionBox
+                            wsFunctionBox
                             (GeschwindigkeitPhantom wsLego
                              :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
                             wsTVarSprache
@@ -612,7 +613,7 @@ wegstreckePackNew
                     <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
                 Just
                     <$> toggleButtonStromPackNew
-                        functionBox
+                        wsFunctionBox
                         wegstrecke
                         wsTVarSprache
                         wsTVarEvent
@@ -630,7 +631,7 @@ wegstreckePackNew
                              Nothing
                              wsWeichenRichtungen)
                 fmap Just
-                    $ boxPackWidgetNewDefault functionBox
+                    $ boxPackWidgetNewDefault wsFunctionBox
                     $ buttonNewWithEventLabel justTVarSprache Language.einstellen
                     $ eventAusführen wsTVarEvent
                     $ flip runReaderT objektReader
@@ -643,7 +644,7 @@ wegstreckePackNew
                     $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
                 Just
                     <$> buttonKuppelnPackNew
-                        functionBox
+                        wsFunctionBox
                         wegstrecke
                         wsTVarSprache
                         wsTVarEvent
@@ -652,7 +653,7 @@ wegstreckePackNew
                 WSWidgets
                 { ws = wegstrecke
                 , wsWidget = frame
-                , wsFunktionBox = erhalteBox functionBox
+                , wsFunctionBox
                 , wsHinzPL = hinzufügenPlanWidget
                 , wsTVarSprache
                 , wsTVarEvent
@@ -671,10 +672,10 @@ wegstreckePackNew
         ausführenBefehl $ Hinzufügen $ ausObjekt $ OWegstrecke $ zuZugtypEither wsWidgets
         pure wsWidgets
     where
-        appendName :: forall o.
-                   (StreckenObjekt o)
+        appendName :: forall o1.
+                   (StreckenObjekt o1)
                    => Maybe (Sprache -> Text)
-                   -> o
+                   -> o1
                    -> Maybe (Sprache -> Text)
 
         -- Maybe necessary here, because otherwise (compare strings) this would lead to O(n!) runtime

@@ -780,9 +780,19 @@ class ( WidgetsTyp (bg 'Pwm 'Märklin)
       , WidgetsTyp (bg 'KonstanteSpannung 'Lego)
       , BahngeschwindigkeitKlasse bg
       ) => BGWidgetsKlasse bg where
-    scaleGeschwindigkeit :: bg 'Pwm z -> Maybe Gtk.HScale
+    scaleGeschwindigkeit :: bg 'Pwm z -> Maybe Gtk.Scale
     auswahlFahrstrom :: bg 'KonstanteSpannung z -> Maybe (AuswahlWidget Word8)
     auswahlFahrtrichtung :: bg g 'Lego -> Maybe (AuswahlWidget Fahrtrichtung)
+
+instance BGWidgetsKlasse BGWidgets where
+    scaleGeschwindigkeit :: BGWidgets 'Pwm z -> Maybe Gtk.Scale
+    scaleGeschwindigkeit = Just . wScaleGeschwindigkeit . bgGeschwindigkeitsWidgets
+
+    auswahlFahrstrom :: BGWidgets 'KonstanteSpannung z -> Maybe (AuswahlWidget Word8)
+    auswahlFahrstrom = Just . wAuswahlFahrstrom . bgGeschwindigkeitsWidgets
+
+    auswahlFahrtrichtung :: BGWidgets g 'Lego -> Maybe (AuswahlWidget Fahrtrichtung)
+    auswahlFahrtrichtung = Just . wAuswahlFahrtrichtung . bgFahrtrichtungsWidgets
 
 -- | Füge 'Scale' zum einstellen der Geschwindigkeit zur Box hinzu
 hScaleGeschwindigkeitPackNew
