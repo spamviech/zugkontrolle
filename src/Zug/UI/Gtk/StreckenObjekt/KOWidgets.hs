@@ -31,6 +31,7 @@ import Control.Monad (forever)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
+import qualified Data.GI.Gtk.Threading as Gtk
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text as Text
@@ -51,7 +52,7 @@ import Zug.UI.Gtk.Fliessend (fließendPackNew)
 import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew
                                  , Packing(PackGrow), paddingDefault, positionDefault, namePackNew)
-import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(erhalteSpracheGui), MitSpracheGui()
                             , verwendeSpracheGui, TVarSprachewechselAktionen)
@@ -75,8 +76,8 @@ instance Kategorie KOWidgets where
 data KOWidgets =
     KOWidgets
     { ko :: Kontakt
-    , koWidget :: Gtk.VBox
-    , koFunctionBox :: Gtk.HBox
+    , koWidget :: Gtk.Box
+    , koFunctionBox :: Gtk.Box
     , koHinzWS :: CheckButtonWegstreckeHinzufügen Void KOWidgets
     , koHinzPL :: ButtonPlanHinzufügen KOWidgets
     , koTVarSprache :: TVarSprachewechselAktionen
@@ -89,7 +90,7 @@ instance Aeson.ToJSON KOWidgets where
     toJSON = Aeson.toJSON . ko
 
 instance MitWidget KOWidgets where
-    erhalteWidget :: KOWidgets -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => KOWidgets -> m Gtk.Widget
     erhalteWidget = erhalteWidget . koWidget
 
 data KOWidgetsBoxen =
@@ -130,7 +131,7 @@ instance WidgetsTyp KOWidgets where
         liftIO $ atomically $ writeTVar koTVarSprache Nothing
 
     boxButtonEntfernen :: KOWidgets -> Gtk.Box
-    boxButtonEntfernen = erhalteBox . koFunctionBox
+    boxButtonEntfernen = koFunctionBox
 
     tvarSprache :: KOWidgets -> TVarSprachewechselAktionen
     tvarSprache = koTVarSprache
@@ -202,18 +203,18 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKontakte kontakt koTVarSprache
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKontakte $ Gtk.vBoxNew False 0
+    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox kontakt
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
         expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
+            $ Gtk.expanderNew Nothing
         vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
             $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    koFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    koFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     let koWidgets =
             KOWidgets
             { ko = kontakt
@@ -234,21 +235,21 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     let aktualisiereLabelSignal :: Sprache -> IO ()
         aktualisiereLabelSignal sprache = do
             text <- readTVarIO tvarSignal
-            Gtk.set labelSignal [Gtk.labelText := text sprache]
+            Gtk.set labelSignal [Gtk.labelLabel := text sprache]
     verwendeSpracheGui justTVarSprache aktualisiereLabelSignal
     liftIO $ forkIO $ forever $ flip runReaderT objektReader $ do
         warteAufSignal kontakt
         spracheGuiAn <- erhalteSpracheGui
         liftIO $ do
             atomically $ writeTVar tvarSignal Language.an
-            Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGuiAn
+            Gtk.postGUIASync $ leseSprache aktualisiereLabelSignal spracheGuiAn
         warteAufSignal kontakt { koFließend = case koFließend of
             HIGH -> LOW
             LOW -> HIGH }
         spracheGuiAus <- erhalteSpracheGui
         liftIO $ do
             atomically $ writeTVar tvarSignal Language.aus
-            Gtk.postGUIAsync $ leseSprache aktualisiereLabelSignal spracheGuiAus
+            Gtk.postGUIASync $ leseSprache aktualisiereLabelSignal spracheGuiAus
     fließendPackNew vBoxAnschlüsse kontakt justTVarSprache
     buttonEntfernenPackNew koWidgets $ (entfernenKontakt koWidgets :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew koWidgets

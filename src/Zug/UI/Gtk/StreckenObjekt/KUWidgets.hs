@@ -33,14 +33,12 @@ import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import qualified Data.Text as Text
 import Data.Void (Void)
 import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), KupplungContainer(..)
                     , AnschlussEither(), I2CReader)
-import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionKupplung(..))
@@ -79,8 +77,8 @@ instance Kategorie KUWidgets where
 data KUWidgets =
     KUWidgets
     { ku :: Kupplung
-    , kuWidget :: Gtk.VBox
-    , kuFunctionBox :: Gtk.HBox
+    , kuWidget :: Gtk.Box
+    , kuFunctionBox :: Gtk.Box
     , kuHinzWS :: CheckButtonWegstreckeHinzufügen Void KUWidgets
     , kuHinzPL :: ButtonPlanHinzufügen KUWidgets
     , kuTVarSprache :: TVarSprachewechselAktionen
@@ -90,7 +88,7 @@ data KUWidgets =
     deriving (Eq)
 
 instance MitWidget KUWidgets where
-    erhalteWidget :: KUWidgets -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => KUWidgets -> m Gtk.Widget
     erhalteWidget = erhalteWidget . kuWidget
 
 data KUWidgetsBoxen =
@@ -131,7 +129,7 @@ instance WidgetsTyp KUWidgets where
         liftIO $ atomically $ writeTVar kuTVarSprache Nothing
 
     boxButtonEntfernen :: KUWidgets -> Gtk.Box
-    boxButtonEntfernen = erhalteBox . kuFunctionBox
+    boxButtonEntfernen = kuFunctionBox
 
     tvarSprache :: KUWidgets -> TVarSprachewechselAktionen
     tvarSprache = kuTVarSprache
@@ -169,7 +167,7 @@ instance Aeson.ToJSON KUWidgets where
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: (I2CReader r m, MonadIO m) => KUWidgets -> m ()
-    kuppeln = liftIO . Gtk.buttonPressed . kuButtonKuppeln
+    kuppeln = liftIO . Gtk.buttonClicked . kuButtonKuppeln
 
 instance KupplungContainer KUWidgets where
     enthalteneKupplungen :: KUWidgets -> Set Kupplung
@@ -210,20 +208,20 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung kuTVarSprache
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.vBoxNew False 0
+    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox kupplung
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
         expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
+            $ Gtk.expanderNew Nothing
         vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
             $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
-    kuFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    kuFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     kuButtonKuppeln
         <- buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     let kuWidgets =
