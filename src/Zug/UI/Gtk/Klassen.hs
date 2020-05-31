@@ -78,17 +78,17 @@ erzeugeKlasse ["Widget", "Container"] "Box"
 
 -- | Füge ein 'MitWidget' zum Anfang einer 'MitBox' hinzu
 mitBoxPackStart :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Bool -> Bool -> Word32 -> m ()
-mitBoxPackStart mitBox mitWidget fill expand padding = liftIO $ do
+mitBoxPackStart mitBox mitWidget expand fill padding = liftIO $ do
     box <- erhalteBox mitBox
     widget <- erhalteWidget mitWidget
-    Gtk.boxPackStart box widget fill expand padding
+    Gtk.boxPackStart box widget expand fill padding
 
 -- | Füge ein 'MitWidget' zum Ende einer 'MitBox' hinzu
 mitBoxPackEnd :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Bool -> Bool -> Word32 -> m ()
-mitBoxPackEnd mitBox mitWidget fill expand padding = liftIO $ do
+mitBoxPackEnd mitBox mitWidget expand fill padding = liftIO $ do
     box <- erhalteBox mitBox
     widget <- erhalteWidget mitWidget
-    Gtk.boxPackEnd box widget fill expand padding
+    Gtk.boxPackEnd box widget expand fill padding
 
 erzeugeKlasse ["Widget", "Container"] "Grid"
 

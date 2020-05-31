@@ -36,7 +36,6 @@ module Zug.UI.Gtk.Hilfsfunktionen
     -- * Dialog
   , dialogGetUpper
   , dialogEval
-  , ResponseId
     -- * Button
   , buttonNewWithEvent
   , buttonNewWithEventLabel -- buttonNewWithEventMnemonic,
@@ -58,8 +57,10 @@ module Zug.UI.Gtk.Hilfsfunktionen
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Int (Int32)
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Word (Word32)
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
@@ -87,29 +88,50 @@ containerAddWidgetNew container konstruktor = do
     pure widget
 
 -- | 'Widget' in eine 'Box' packen
-boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Gtk.Align -> Padding -> Position -> m ()
+boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Packing -> Padding -> Position -> m ()
 boxPack box widget packing padding position =
-    liftIO $ boxPackPosition position box widget packing $ fromPadding padding
+    liftIO
+    $ boxPackPosition position box widget (expands packing) (fills packing)
+    $ fromPadding padding
     where
         boxPackPosition
-            :: (MitBox b, MitWidget w) => Position -> b -> w -> Gtk.Align -> Int -> IO ()
+            :: (MitBox b, MitWidget w) => Position -> b -> w -> Bool -> Bool -> Word32 -> IO ()
         boxPackPosition Start = mitBoxPackStart
         boxPackPosition End = mitBoxPackEnd
 
 -- | Neu erstelltes Widget in eine Box packen
 boxPackWidgetNew
-    :: (MonadIO m, MitBox b, MitWidget w) => b -> Gtk.Align -> Padding -> Position -> m w -> m w
+    :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
 boxPackWidgetNew box packing padding start konstruktor = do
     widget <- widgetShowNew konstruktor
     boxPack box widget packing padding start
     pure widget
 
+-- | Packing-Einstellungen. Sie werden in /expand/- und /fill/-Werte übersetzt.
+-- * PackNatural: expand=False
+-- * PackGrow: expand=True, fill=True
+-- * PackRepel: expand=True, fill=False
+data Packing
+    = PackNatural
+    | PackGrow
+    | PackRepel
+
+expands :: Packing -> Bool
+expands PackNatural = True
+expands PackGrow = False
+expands PackRepel = False
+
+fills :: Packing -> Bool
+fills PackNatural = False
+fills PackGrow = True
+fills PackRepel = False
+
 -- | Normale Packing-Einstellung
-alignDefault :: Gtk.Align
-alignDefault = AlignStart
+packingDefault :: Packing
+packingDefault = PackNatural
 
 -- | Abstand zwischen 'Widget's
-newtype Padding = Padding { fromPadding :: Int }
+newtype Padding = Padding { fromPadding :: Word32 }
     deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
 
 -- | Standart-Abstand zwischen 'Widget's in einer 'Box'
@@ -144,7 +166,7 @@ notebookAppendPageNew
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> (Sprache -> Text)
     -> m w
-    -> m (w, Int)
+    -> m (w, Int32)
 notebookAppendPageNew notebook maybeTVar name konstruktor = do
     widget <- widgetShowNew konstruktor
     page <- mitNotebookAppendPage notebook widget $ name Deutsch
@@ -164,7 +186,7 @@ widgetShowIf True = mitWidgetShow
 widgetShowIf False = mitWidgetHide
 
 -- | 'MitDialog' anzeigen, auswerten und wieder verstecken
-dialogEval :: (MonadIO m, MitDialog d) => d -> m Gtk.ResponseType
+dialogEval :: (MonadIO m, MitDialog d) => d -> m Int32
 dialogEval dialog = liftIO $ do
     mitWidgetShow dialog
     antwort <- Gtk.dialogRun $ erhalteDialog dialog
@@ -173,15 +195,17 @@ dialogEval dialog = liftIO $ do
 
 -- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
 dialogGetUpper :: (MitDialog d) => d -> IO Gtk.Box
-dialogGetUpper dialog = fmap Gtk.castToBox $ Gtk.dialogGetActionArea $ erhalteDialog dialog
+dialogGetUpper dialog = Gtk.dialogGetContentArea $ erhalteDialog dialog
 
 -- * Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
 buttonNewWithEvent :: (MonadIO m, MitButton b) => m b -> IO () -> m b
 buttonNewWithEvent konstruktor event = do
-    button <- konstruktor
-    liftIO $ Gtk.on (erhalteButton button) Gtk.buttonActivated event
-    pure button
+    mitButton <- konstruktor
+    liftIO $ do
+        button <- erhalteButton mitButton
+        Gtk.on button Gtk.buttonClicked event
+        pure mitButton
 
 -- -- | Knopf mit Mnemonic-Label und Funktion erstellen
 -- buttonNewWithEventMnemonic :: (SpracheGuiReader r m, MonadIO m) => (Sprache -> Text) -> IO () -> m Gtk.Button
@@ -211,9 +235,9 @@ buttonNewWithEventLabel maybeTVar label event = do
 toggleButtonNewWithEvent :: (MonadIO m, MitToggleButton b) => m b -> (Bool -> IO ()) -> m b
 toggleButtonNewWithEvent konstruktor event = do
     mitToggleButton <- konstruktor
-    let toggleButton = erhalteToggleButton mitToggleButton
+    toggleButton <- erhalteToggleButton mitToggleButton
     liftIO
-        $ Gtk.on toggleButton Gtk.toggled
+        $ Gtk.on toggleButton Gtk.toggleButtonToggled
         $ Gtk.get toggleButton Gtk.toggleButtonActive >>= event
     pure mitToggleButton
 
@@ -244,7 +268,7 @@ labelSpracheNew :: (SpracheGuiReader r m, MonadIO m)
                 -> m Gtk.Label
 labelSpracheNew maybeTVar text = do
     label <- liftIO $ Gtk.labelNew (Nothing :: Maybe Text)
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set label [Gtk.labelText := text sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set label [Gtk.labelLabel := text sprache]
     pure label
 
 -- * Namen
@@ -253,12 +277,12 @@ newtype NameWidget = NameWidget Gtk.Label
     deriving (Eq)
 
 instance MitWidget NameWidget where
-    erhalteWidget :: NameWidget -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => NameWidget -> m Gtk.Widget
     erhalteWidget (NameWidget w) = erhalteWidget w
 
 instance MitLabel NameWidget where
-    erhalteLabel :: NameWidget -> Gtk.Label
-    erhalteLabel (NameWidget w) = w
+    erhalteLabel :: (MonadIO m) => NameWidget -> m Gtk.Label
+    erhalteLabel (NameWidget w) = pure w
 
 -- | Name anzeigen.
 namePackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m NameWidget
@@ -272,12 +296,12 @@ newtype NameAuswahlWidget = NameAuswahlWidget Gtk.Entry
     deriving (Eq)
 
 instance MitWidget NameAuswahlWidget where
-    erhalteWidget :: NameAuswahlWidget -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => NameAuswahlWidget -> m Gtk.Widget
     erhalteWidget (NameAuswahlWidget w) = erhalteWidget w
 
 instance MitEntry NameAuswahlWidget where
-    erhalteEntry :: NameAuswahlWidget -> Gtk.Entry
-    erhalteEntry (NameAuswahlWidget w) = w
+    erhalteEntry :: (MonadIO m) => NameAuswahlWidget -> m Gtk.Entry
+    erhalteEntry (NameAuswahlWidget w) = pure w
 
 -- | Name abfragen.
 nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b)
@@ -288,8 +312,8 @@ nameAuswahlPackNew box maybeTVar = do
     hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
     boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar $ Language.name <:> Text.empty
     entry <- liftIO $ boxPackWidgetNew hBox PackGrow paddingDefault positionDefault Gtk.entryNew
-    verwendeSpracheGui maybeTVar $ \sprache
-        -> Gtk.set entry [Gtk.entryPlaceholderText := Just (Language.name sprache)]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.set entry [Gtk.entryPlaceholderText := Language.name sprache]
     pure $ NameAuswahlWidget entry
 
 -- | Erhalte den aktuell gewählten Namen.
@@ -298,7 +322,8 @@ aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
 
 -- | Setze den aktuellen Namen.
 setzeName :: (MonadIO m) => NameAuswahlWidget -> Text -> m ()
-setzeName nameAuswahlWidget name =
-    liftIO $ Gtk.set (erhalteEntry nameAuswahlWidget) [Gtk.entryText := name]
+setzeName nameAuswahlWidget name = do
+    entry <- erhalteEntry nameAuswahlWidget
+    liftIO $ Gtk.set entry [Gtk.entryText := name]
 #endif
 --
