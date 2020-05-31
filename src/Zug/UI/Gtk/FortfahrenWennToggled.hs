@@ -67,15 +67,15 @@ checkButtons :: FortfahrenWennToggled -> NonEmpty RegistrierterCheckButton
 checkButtons = checkButtonsRec
 
 instance MitWidget FortfahrenWennToggled where
-    erhalteWidget :: FortfahrenWennToggled -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => FortfahrenWennToggled -> m Gtk.Widget
     erhalteWidget = erhalteWidget . fortfahren
 
 instance MitContainer FortfahrenWennToggled where
-    erhalteContainer :: FortfahrenWennToggled -> Gtk.Container
+    erhalteContainer :: (MonadIO m) => FortfahrenWennToggled -> m Gtk.Container
     erhalteContainer = erhalteContainer . fortfahren
 
 instance MitButton FortfahrenWennToggled where
-    erhalteButton :: FortfahrenWennToggled -> Gtk.Button
+    erhalteButton :: (MonadIO m) => FortfahrenWennToggled -> m Gtk.Button
     erhalteButton = erhalteButton . fortfahren
 
 -- | Konstruktor, wenn alle 'CheckButton's beim erzeugen bekannt sind.
@@ -99,7 +99,7 @@ fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
         pure $ RegistrierterCheckButton checkButton
     let fortfahrenWennToggled = FortfahrenWennToggled { fortfahren, checkButtonsRec }
     liftIO $ forM_ checkButtonsRec $ \(RegistrierterCheckButton checkButton)
-        -> Gtk.on checkButton Gtk.toggled $ aktiviereWennToggled fortfahrenWennToggled
+        -> Gtk.onToggleButtonToggled checkButton $ aktiviereWennToggled fortfahrenWennToggled
     aktiviereWennToggled fortfahrenWennToggled
     pure fortfahrenWennToggled
 
@@ -111,12 +111,11 @@ aktiviereWennToggled FortfahrenWennToggled {fortfahren, checkButtonsRec} =
 aktiviereWennToggledAux
     :: (Foldable f, MitRegistrierterCheckButton c, MonadIO m) => Gtk.Button -> f c -> m ()
 aktiviereWennToggledAux button foldable =
-    liftIO $ foldM_ (aktiviereWennToggledCheckButton button) False foldable
+    liftIO $ foldM_ aktiviereWennToggledCheckButton False foldable
     where
-        aktiviereWennToggledCheckButton
-            :: (MitRegistrierterCheckButton c) => Gtk.Button -> Bool -> c -> IO Bool
-        aktiviereWennToggledCheckButton _button True _c = pure True
-        aktiviereWennToggledCheckButton button False c = do
+        aktiviereWennToggledCheckButton :: (MitRegistrierterCheckButton c) => Bool -> c -> IO Bool
+        aktiviereWennToggledCheckButton True _c = pure True
+        aktiviereWennToggledCheckButton False c = do
             toggled <- registrierterCheckButtonToggled $ erhalteRegistrierterCheckButton c
             Gtk.set button [Gtk.widgetSensitive := toggled]
             pure toggled
@@ -150,15 +149,15 @@ instance (Eq v) => Eq (FortfahrenWennToggledVar a v c) where
         (fortfahrenVar0 == fortfahrenVar1) && (varCheckButtons0 == varCheckButtons1)
 
 instance MitWidget (FortfahrenWennToggledVar a v c) where
-    erhalteWidget :: FortfahrenWennToggledVar a v c -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => FortfahrenWennToggledVar a v c -> m Gtk.Widget
     erhalteWidget = erhalteWidget . fortfahrenVar
 
 instance MitContainer (FortfahrenWennToggledVar a v c) where
-    erhalteContainer :: FortfahrenWennToggledVar a v c -> Gtk.Container
+    erhalteContainer :: (MonadIO m) => FortfahrenWennToggledVar a v c -> m Gtk.Container
     erhalteContainer = erhalteContainer . fortfahrenVar
 
 instance MitButton (FortfahrenWennToggledVar a v c) where
-    erhalteButton :: FortfahrenWennToggledVar a v c -> Gtk.Button
+    erhalteButton :: (MonadIO m) => FortfahrenWennToggledVar a v c -> m Gtk.Button
     erhalteButton = erhalteButton . fortfahrenVar
 
 -- | Konstruktor, wenn zu überprüfende 'CheckButton's sich während der Laufzeit ändern können.
@@ -194,8 +193,8 @@ aktiviereWennToggledVar
 aktiviereWennToggledVar
     FortfahrenWennToggledVar {fortfahrenVar, varCheckButtonsRec, readVar, foldCheckButtonsRec} =
     liftIO $ do
-        checkButtons <- readVar varCheckButtonsRec
-        aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec checkButtons
+        alleCheckButtons <- readVar varCheckButtonsRec
+        aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec alleCheckButtons
 
 -- | 'CheckButton', welcher mit einem 'FortfahrenWennToggled' assoziiert ist.
 newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
@@ -214,7 +213,7 @@ registrierterCheckButtonNew
 registrierterCheckButtonNew maybeTVar label fortfahrenWennToggled = do
     checkButton <- liftIO $ do
         checkButton <- widgetShowNew $ Gtk.checkButtonNew
-        Gtk.on checkButton Gtk.toggled $ aktiviereWennToggledVar fortfahrenWennToggled
+        Gtk.onToggleButtonToggled checkButton $ aktiviereWennToggledVar fortfahrenWennToggled
         pure checkButton
     verwendeSpracheGui maybeTVar
         $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := label sprache]
