@@ -235,19 +235,19 @@ type instance ReaderFamilie ObjektGui = (TVarMaps, DynamischeWidgets, StatusVar 
 
 instance MitTVarMaps (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     tvarMaps :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> TVarMaps
-    tvarMaps (tvarMaps, _dynamischeWidgets, _tmvarStatus) = tvarMaps
+    tvarMaps (maps, _dynamischeWidgets, _tmvarStatus) = maps
 
 instance MitDynamischeWidgets (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     dynamischeWidgets :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> DynamischeWidgets
-    dynamischeWidgets (_tvarMaps, dynamischeWidgets, _tmvarStatus) = dynamischeWidgets
+    dynamischeWidgets (_tvarMaps, dynWidgets, _tmvarStatus) = dynWidgets
 
 instance MitStatusVar (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektGui where
     statusVar :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> StatusVar ObjektGui
-    statusVar (_tvarMaps, _dynamischeWidgets, statusVar) = statusVar
+    statusVar (_tvarMaps, _dynamischeWidgets, var) = var
 
 instance MitSpracheGui (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
     spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> m SpracheGui
-    spracheGui (_tvarMaps, _dynamischeWidgets, statusVar) = readSpracheGui statusVar
+    spracheGui (_tvarMaps, _dynamischeWidgets, var) = readSpracheGui var
 
 instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitWindowMain r where
     windowMain :: r -> Gtk.Window
@@ -297,8 +297,8 @@ instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitPLWidgetsBoxen r whe
 
 -- | Lese die 'SpracheGui' aus einer 'StatusVarGui'.
 readSpracheGui :: (MonadIO m) => StatusVarGui -> m SpracheGui
-readSpracheGui statusVar = liftIO $ atomically (tryReadStatusVar statusVar) >>= pure . \case
+readSpracheGui var = liftIO $ atomically (tryReadStatusVar var) >>= pure . \case
     (Left status) -> status ^. sprache
-    (Right spracheGui) -> spracheGui
+    (Right sp) -> sp
 #endif
 --
