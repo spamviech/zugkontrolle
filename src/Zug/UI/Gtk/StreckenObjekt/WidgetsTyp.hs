@@ -29,6 +29,7 @@ import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, swapTVar
 import Control.Monad (when)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
+import Data.GI.Gtk.Threading as Gtk
 import Data.Kind (Type, Constraint)
 import qualified GI.Gtk as Gtk
 
@@ -86,7 +87,7 @@ eventAusführen tvar aktion = liftIO (readTVarIO tvar) >>= \case
 
 -- | Führe eine Gtk-Aktion ohne zugehöriges Event aus.
 ohneEvent :: TVar EventAusführen -> IO () -> IO ()
-ohneEvent tvarEventAusführen aktion = Gtk.postGUIAsync $ do
+ohneEvent tvarEventAusführen aktion = Gtk.postGUIASync $ do
     alterWert <- atomically $ swapTVar tvarEventAusführen EventIgnorieren
     aktion
     when (alterWert == EventAusführen)
@@ -147,10 +148,10 @@ buttonBearbeitenPackNew
     => w
     -> m Gtk.Button
 buttonBearbeitenPackNew w = do
-    aktionBearbeiten <- erhalteAktionBearbeiten
+    aktion <- erhalteAktionBearbeiten
     boxPackWidgetNew (boxButtonBearbeiten w) PackNatural paddingDefault End
         $ buttonNewWithEventLabel (Just $ tvarSprache w) Language.bearbeiten
-        $ aktionBearbeiten
+        $ aktion
         $ zuObjekt
         $ zuObjektTyp w
 #endif

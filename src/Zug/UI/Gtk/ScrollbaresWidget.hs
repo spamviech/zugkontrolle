@@ -22,6 +22,7 @@ module Zug.UI.Gtk.ScrollbaresWidget
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
+import Data.Int (Int32)
 import Data.Text (Text)
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
@@ -42,63 +43,63 @@ data ScrollbaresWidget w =
     deriving (Eq)
 
 instance MitWidget (ScrollbaresWidget w) where
-    erhalteWidget :: ScrollbaresWidget w -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Widget
     erhalteWidget = erhalteWidget . swScrolledWindow
 
 instance (MitContainer w) => MitContainer (ScrollbaresWidget w) where
-    erhalteContainer :: ScrollbaresWidget w -> Gtk.Container
+    erhalteContainer :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Container
     erhalteContainer = erhalteContainer . swWidget
 
 instance (MitBox w) => MitBox (ScrollbaresWidget w) where
-    erhalteBox :: ScrollbaresWidget w -> Gtk.Box
+    erhalteBox :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Box
     erhalteBox = erhalteBox . swWidget
 
 instance (MitGrid w) => MitGrid (ScrollbaresWidget w) where
-    erhalteGrid :: ScrollbaresWidget w -> Gtk.Grid
+    erhalteGrid :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Grid
     erhalteGrid = erhalteGrid . swWidget
 
 instance (MitFixed w) => MitFixed (ScrollbaresWidget w) where
-    erhalteFixed :: ScrollbaresWidget w -> Gtk.Fixed
+    erhalteFixed :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Fixed
     erhalteFixed = erhalteFixed . swWidget
 
 instance (MitLabel w) => MitLabel (ScrollbaresWidget w) where
-    erhalteLabel :: ScrollbaresWidget w -> Gtk.Label
+    erhalteLabel :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Label
     erhalteLabel = erhalteLabel . swWidget
 
 instance (MitNotebook w) => MitNotebook (ScrollbaresWidget w) where
-    erhalteNotebook :: ScrollbaresWidget w -> Gtk.Notebook
+    erhalteNotebook :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Notebook
     erhalteNotebook = erhalteNotebook . swWidget
 
 instance (MitPaned w) => MitPaned (ScrollbaresWidget w) where
-    erhaltePaned :: ScrollbaresWidget w -> Gtk.Paned
+    erhaltePaned :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Paned
     erhaltePaned = erhaltePaned . swWidget
 
 instance (MitComboBox w) => MitComboBox (ScrollbaresWidget w) where
-    erhalteComboBox :: ScrollbaresWidget w -> Gtk.ComboBox
+    erhalteComboBox :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.ComboBox
     erhalteComboBox = erhalteComboBox . swWidget
 
 instance (MitWindow w) => MitWindow (ScrollbaresWidget w) where
-    erhalteWindow :: ScrollbaresWidget w -> Gtk.Window
+    erhalteWindow :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Window
     erhalteWindow = erhalteWindow . swWidget
 
 instance (MitDialog w) => MitDialog (ScrollbaresWidget w) where
-    erhalteDialog :: ScrollbaresWidget w -> Gtk.Dialog
+    erhalteDialog :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Dialog
     erhalteDialog = erhalteDialog . swWidget
 
 instance (MitButton w) => MitButton (ScrollbaresWidget w) where
-    erhalteButton :: ScrollbaresWidget w -> Gtk.Button
+    erhalteButton :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.Button
     erhalteButton = erhalteButton . swWidget
 
 instance (MitToggleButton w) => MitToggleButton (ScrollbaresWidget w) where
-    erhalteToggleButton :: ScrollbaresWidget w -> Gtk.ToggleButton
+    erhalteToggleButton :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.ToggleButton
     erhalteToggleButton = erhalteToggleButton . swWidget
 
 instance (MitCheckButton w) => MitCheckButton (ScrollbaresWidget w) where
-    erhalteCheckButton :: ScrollbaresWidget w -> Gtk.CheckButton
+    erhalteCheckButton :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.CheckButton
     erhalteCheckButton = erhalteCheckButton . swWidget
 
 instance (MitRadioButton w) => MitRadioButton (ScrollbaresWidget w) where
-    erhalteRadioButton :: ScrollbaresWidget w -> Gtk.RadioButton
+    erhalteRadioButton :: (MonadIO m) => ScrollbaresWidget w -> m Gtk.RadioButton
     erhalteRadioButton = erhalteRadioButton . swWidget
 
 -- | Erstelle neues 'ScrollbaresWidget'
@@ -106,12 +107,12 @@ scrollbaresWidgetNew :: (MonadIO m, MitWidget w) => m w -> m (ScrollbaresWidget 
 scrollbaresWidgetNew konstruktor = do
     swWidget <- widgetShowNew konstruktor
     liftIO $ do
-        swScrolledWindow <- Gtk.scrolledWindowNew Nothing Nothing
+        swScrolledWindow <- Gtk.scrolledWindowNew Gtk.noAdjustment Gtk.noAdjustment
         Gtk.set
             swScrolledWindow
-            [ Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyAutomatic
-            , Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyAlways]
-        Gtk.scrolledWindowAddWithViewport swScrolledWindow $ erhalteWidget swWidget
+            [ Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyTypeAutomatic
+            , Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyTypeAlways]
+        Gtk.containerAdd swScrolledWindow =<< erhalteWidget swWidget
         pure ScrollbaresWidget { swScrolledWindow, swWidget }
 
 -- | Erstelle neues 'ScrollbaresWidget'und füge sie zu 'MitContainer' hinzu
@@ -135,7 +136,7 @@ scrollbaresWidgetNotebookAppendPageNew
     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
     -> (Sprache -> Text)
     -> m w
-    -> m (ScrollbaresWidget w, Int)
+    -> m (ScrollbaresWidget w, Int32)
 scrollbaresWidgetNotebookAppendPageNew notebook maybeTVar name konstruktor =
     notebookAppendPageNew notebook maybeTVar name $ scrollbaresWidgetNew konstruktor
 #endif
