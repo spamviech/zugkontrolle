@@ -20,7 +20,6 @@ module Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit
 
 import Data.Foldable (Foldable(toList))
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word8)
@@ -120,7 +119,7 @@ instance MitAnfrage (GeschwindigkeitsAnschlüsse g) where
             anfrageAnschlussVerwenden :: AnfrageAnschluss 'InterruptPinEgal
                                       -> AnfrageGeschwindigkeitsAnschlüsse 'KonstanteSpannung
             anfrageAnschlussVerwenden
-                fahrstromAnfrageAnschluss = anfrage { fahrstromAnfrageAnschluss }
+                anfrageAnschluss = anfrage { fahrstromAnfrageAnschluss = anfrageAnschluss }
 
             anschlussVerwenden
                 :: AnschlussEither
@@ -195,7 +194,7 @@ instance MitAnfrage (FahrtrichtungsAnschluss g z) where
             anfrageAnschlussVerwenden :: AnfrageAnschluss 'InterruptPinEgal
                                       -> AnfrageFahrtrichtungsAnschluss 'KonstanteSpannung 'Märklin
             anfrageAnschlussVerwenden
-                umdrehenAnfrageAnschluss = anfrage { umdrehenAnfrageAnschluss }
+                anfrageAnschluss = anfrage { umdrehenAnfrageAnschluss = anfrageAnschluss }
 
             anschlussVerwenden
                 :: AnschlussEither
@@ -209,7 +208,7 @@ instance MitAnfrage (FahrtrichtungsAnschluss g z) where
             anfrageAnschlussVerwenden
                 :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageFahrtrichtungsAnschluss g 'Lego
             anfrageAnschlussVerwenden
-                fahrtrichtungsAnfrageAnschluss = anfrage { fahrtrichtungsAnfrageAnschluss }
+                anfrageAnschluss = anfrage { fahrtrichtungsAnfrageAnschluss = anfrageAnschluss }
 
             anschlussVerwenden
                 :: AnschlussEither
