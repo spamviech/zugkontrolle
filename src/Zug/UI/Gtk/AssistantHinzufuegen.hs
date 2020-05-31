@@ -82,9 +82,9 @@ data HinzufügenErgebnis
 -- Es wird erwartet, dass diese Funktion in einem eigenen Thread ausgeführt wird.
 assistantHinzufügenAuswerten :: (MonadIO m) => AssistantHinzufügen -> m HinzufügenErgebnis
 assistantHinzufügenAuswerten AssistantHinzufügen {window, tmVarErgebnis} = liftIO $ do
-    Gtk.postGUIAsync $ mitWidgetShow window
+    Gtk.postGUIASync $ mitWidgetShow window
     ergebnis <- atomically $ takeTMVar tmVarErgebnis
-    Gtk.postGUIAsync $ mitWidgetHide window
+    Gtk.postGUIASync $ mitWidgetHide window
     pure ergebnis
 
 -- | Erhalte das Ergebnis eines 'AssistantHinzufügen'.

@@ -21,6 +21,7 @@ import Control.Monad (void, when, forM_)
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
+import qualified Data.GI.Gtk.Threading as Gtk
 #else
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
@@ -66,7 +67,7 @@ import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
 #endif
 
 #ifndef ZUGKONTROLLEGUI
--- | GTK-main loop nicht verfügbar. Weiche auf Cmd-UI aus
+-- | Gtk-main loop nicht verfügbar. Weiche auf Cmd-UI aus.
 main :: IO ()
 main = do
     putWarningLn Language.uiNichtUnterstützt
@@ -82,11 +83,12 @@ putWarningLn warning = do
     setSGR [Reset]
 
 #else
--- | main loop
+-- | Gtk-main loop.
 main :: IO ()
 main = runInBoundThread $ do
     -- Initialisiere GTK+ engine
     Gtk.initGUI
+    Gtk.setCurrentThreadAsGUIThread
     -- Erstelle GUI
     setupGUI Nothing
     -- GTK+ main loop

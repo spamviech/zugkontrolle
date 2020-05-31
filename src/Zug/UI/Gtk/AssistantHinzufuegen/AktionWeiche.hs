@@ -59,14 +59,14 @@ aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen akti
         $ do
             richtung <- aktuelleAuswahl auswahlRichtung
             forkIO $ do
-                Gtk.postGUIAsync $ do
+                Gtk.postGUIASync $ do
                     Gtk.set
                         windowObjektAuswahl
                         [Gtk.windowTitle := leseSprache (Language.stellen <:> richtung) spracheGui]
                     snd $ head $ NonEmpty.filter ((== richtung) . fst) showRichtungen
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-                Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+                Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OWeiche we)) -> aktionHinzufügen $ AWeiche $ Stellen we richtung
                     _sonst -> pure ()

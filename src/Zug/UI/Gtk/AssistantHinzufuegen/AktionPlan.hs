@@ -51,14 +51,14 @@ aktionPlanAuswahlPackNew box windowObjektAuswahl maybeTVar showPL aktionHinzufü
         $ void
         $ forkIO
         $ do
-            Gtk.postGUIAsync $ do
+            Gtk.postGUIASync $ do
                 Gtk.set
                     windowObjektAuswahl
                     [Gtk.windowTitle := leseSprache Language.ausführen spracheGui]
                 showPL
                 mitWidgetShow windowObjektAuswahl
             maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-            Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+            Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
             flip runReaderT spracheGui $ case maybeObjekt of
                 (Just (OPlan pl)) -> aktionHinzufügen $ AktionAusführen pl
                 _sonst -> pure ()

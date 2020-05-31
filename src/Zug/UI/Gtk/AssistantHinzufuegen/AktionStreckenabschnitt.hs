@@ -60,14 +60,14 @@ aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST a
         $ do
             strom <- aktuelleAuswahl auswahlStrom
             forkIO $ do
-                Gtk.postGUIAsync $ do
+                Gtk.postGUIASync $ do
                     Gtk.set
                         windowObjektAuswahl
                         [Gtk.windowTitle := leseSprache (Language.strom <:> strom) spracheGui]
                     showST
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-                Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+                Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OStreckenabschnitt st))
                         -> aktionHinzufügen $ AStreckenabschnitt $ Strom st strom

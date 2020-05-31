@@ -53,14 +53,14 @@ aktionKontaktAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinzu
         $ void
         $ forkIO
         $ do
-            Gtk.postGUIAsync $ do
+            Gtk.postGUIASync $ do
                 Gtk.set
                     windowObjektAuswahl
                     [Gtk.windowTitle := leseSprache Language.wartenAuf spracheGui]
                 showKU
                 mitWidgetShow windowObjektAuswahl
             maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-            Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+            Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
             flip runReaderT spracheGui $ case maybeObjekt of
                 (Just (OKontakt ko)) -> aktionHinzufügen $ AKontakt $ WartenAuf ko
                 (Just (OWegstrecke (ZugtypMärklin ws)))

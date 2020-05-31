@@ -53,14 +53,14 @@ aktionWegstreckeAuswahlPackNew box windowObjektAuswahl maybeTVar showWS aktionHi
         $ void
         $ forkIO
         $ do
-            Gtk.postGUIAsync $ do
+            Gtk.postGUIASync $ do
                 Gtk.set
                     windowObjektAuswahl
                     [Gtk.windowTitle := leseSprache Language.einstellen spracheGui]
                 showWS
                 mitWidgetShow windowObjektAuswahl
             maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-            Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+            Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
             flip runReaderT spracheGui $ case maybeObjekt of
                 (Just (OWegstrecke (ZugtypMärklin ws)))
                     -> aktionHinzufügen $ AWegstreckeMärklin $ Einstellen ws

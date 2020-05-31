@@ -19,11 +19,12 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (atomically, TVar, takeTMVar)
+import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import qualified Data.GI.Gtk.Threading as Gtk
 import qualified Data.Text as Text
 import Data.Word (Word8)
 import GI.Gtk (AttrOp((:=)))
@@ -31,7 +32,7 @@ import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Fahrtrichtung(Vorwärts))
-import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
+import Zug.Language (MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OBahngeschwindigkeit, OWegstrecke))
 import Zug.Plan
@@ -45,7 +46,7 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, boundedEnumAuswahlRadioButtonNew, aktu
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
                                  , paddingDefault, positionDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget), mitWidgetShow, mitWidgetHide, MitBox())
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew)
 
@@ -58,7 +59,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
     -> Maybe TVarSprachewechselAktionen
     -> (Maybe GeschwindigkeitVariante -> IO ())
     -> (forall rr mm. (SpracheGuiReader rr mm, MonadIO mm) => Aktion -> mm ())
-    -> m Gtk.HBox
+    -> m Gtk.Box
 aktionBahngeschwindigkeitAuswahlPackNew
     box
     windowObjektAuswahl
@@ -68,22 +69,23 @@ aktionBahngeschwindigkeitAuswahlPackNew
     aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxBahngeschwindigkeit <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+    hBoxBahngeschwindigkeit
+        <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.geschwindigkeit
         $ void
         $ do
-            wert <- floor <$> Gtk.get scaleBahngeschwindigkeit Gtk.rangeValue
+            adjustment <- Gtk.get scaleBahngeschwindigkeit Gtk.rangeAdjustment
+            wert <- floor <$> Gtk.get adjustment Gtk.adjustmentValue
             forkIO $ do
-                Gtk.postGUIAsync $ do
+                Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.set
                         windowObjektAuswahl
-                        [ Gtk.windowTitle
-                              := leseSprache (Language.geschwindigkeit <:> wert) spracheGui]
+                        [Gtk.windowTitle := (Language.geschwindigkeit <:> wert) sprache]
                     showBG $ Just Pwm
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-                Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+                Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OBahngeschwindigkeit (ZugtypMärklin (GeschwindigkeitPwm bg))))
                         -> aktionHinzufügen
@@ -106,22 +108,21 @@ aktionBahngeschwindigkeitAuswahlPackNew
                     _sonst -> pure ()
     scaleBahngeschwindigkeit <- liftIO
         $ boxPackWidgetNew hBoxBahngeschwindigkeit PackGrow paddingDefault positionDefault
-        $ Gtk.hScaleNewWithRange 0 100 1
+        $ Gtk.scaleNewWithRange Gtk.OrientationHorizontal 0 100 1
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.fahrstrom
         $ void
         $ do
             fahrstromAnschluss <- floor <$> Gtk.get spinButtonFahrstrom Gtk.spinButtonValue
             forkIO $ do
-                Gtk.postGUIAsync $ do
+                Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.set
                         windowObjektAuswahl
-                        [ Gtk.windowTitle
-                              := leseSprache (Language.fahrstrom <:> fahrstromAnschluss) spracheGui]
+                        [Gtk.windowTitle := (Language.fahrstrom <:> fahrstromAnschluss) sprache]
                     showBG $ Just KonstanteSpannung
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-                Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+                Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just
                          (OBahngeschwindigkeit
@@ -148,14 +149,12 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
     buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIO $ do
-        Gtk.postGUIAsync $ do
-            Gtk.set
-                windowObjektAuswahl
-                [Gtk.windowTitle := leseSprache Language.umdrehen spracheGui]
+        Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
+            Gtk.set windowObjektAuswahl [Gtk.windowTitle := Language.umdrehen sprache]
             showBG Nothing
             mitWidgetShow windowObjektAuswahl
         maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-        Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+        Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
         flip runReaderT spracheGui $ case maybeObjekt of
             (Just (OBahngeschwindigkeit (ZugtypMärklin (GeschwindigkeitPwm bg))))
                 -> aktionHinzufügen $ ABahngeschwindigkeitMärklinPwm $ Umdrehen bg
@@ -167,24 +166,22 @@ aktionBahngeschwindigkeitAuswahlPackNew
                 $ GeschwindigkeitPwm
                 $ Umdrehen (GeschwindigkeitPhantom ws)
             _sonst -> pure ()
-    hBoxFahrtrichtung <- liftIO $ Gtk.hBoxNew False 0
+    hBoxFahrtrichtung <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxFahrtrichtung
         $ buttonNewWithEventLabel maybeTVar Language.fahrtrichtungEinstellen
         $ void
         $ do
             fahrtrichtung <- aktuelleAuswahl auswahlFahrtrichtung
             forkIO $ do
-                Gtk.postGUIAsync $ do
+                Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.set
                         windowObjektAuswahl
                         [ Gtk.windowTitle
-                              := leseSprache
-                                  (Language.fahrtrichtungEinstellen <:> fahrtrichtung)
-                                  spracheGui]
+                              := (Language.fahrtrichtungEinstellen <:> fahrtrichtung) sprache]
                     showBG Nothing
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
-                Gtk.postGUIAsync $ mitWidgetHide windowObjektAuswahl
+                Gtk.postGUIASync $ mitWidgetHide windowObjektAuswahl
                 flip runReaderT spracheGui $ case maybeObjekt of
                     (Just (OBahngeschwindigkeit (ZugtypLego (GeschwindigkeitPwm bg))))
                         -> aktionHinzufügen
@@ -203,10 +200,10 @@ aktionBahngeschwindigkeitAuswahlPackNew
     auswahlFahrtrichtung <- boxPackWidgetNewDefault hBoxFahrtrichtung
         $ boundedEnumAuswahlRadioButtonNew Vorwärts maybeTVar
         $ const Text.empty
+    widgetMärklin <- erhalteWidget buttonUmdrehen
+    widgetLego <- erhalteWidget hBoxFahrtrichtung
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
-        $ zugtypSpezifischNew
-            [(Märklin, erhalteWidget buttonUmdrehen), (Lego, erhalteWidget hBoxFahrtrichtung)]
-            auswahlZugtyp
+        $ zugtypSpezifischNew [(Märklin, widgetMärklin), (Lego, widgetLego)] auswahlZugtyp
     pure hBoxBahngeschwindigkeit
 #endif
 --
