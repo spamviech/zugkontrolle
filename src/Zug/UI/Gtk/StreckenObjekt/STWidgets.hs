@@ -61,7 +61,8 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , positionDefault, containerAddWidgetNew, namePackNew, toggleButtonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGui, verwendeSpracheGui, MitSpracheGui())
+import Zug.UI.Gtk.SpracheGui
+       (SpracheGui, verwendeSpracheGui, MitSpracheGui(), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets

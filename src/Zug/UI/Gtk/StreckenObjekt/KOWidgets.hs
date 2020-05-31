@@ -53,8 +53,8 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefaul
                                  , Packing(PackGrow), paddingDefault, positionDefault, namePackNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui
-       (SpracheGui, SpracheGuiReader(erhalteSpracheGui), MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGui, SpracheGuiReader(erhalteSpracheGui), MitSpracheGui()
+                            , verwendeSpracheGui, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets

@@ -63,7 +63,8 @@ import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefaul
                                  , labelSpracheNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove, MitBox(..))
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui
+       (SpracheGui, MitSpracheGui(), verwendeSpracheGui, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets
        (BGWidgets, BGWidgetsKlasse(..), hScaleGeschwindigkeitPackNew, auswahlFahrstromPackNew
       , buttonUmdrehenPackNew, auswahlFahrtrichtungEinstellenPackNew)
