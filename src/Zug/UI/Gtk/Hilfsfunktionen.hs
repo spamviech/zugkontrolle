@@ -60,7 +60,6 @@ import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Text (Text)
 import qualified Data.Text as Text
-import GI.Gtk (Packing(..), ResponseId)
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
@@ -88,25 +87,26 @@ containerAddWidgetNew container konstruktor = do
     pure widget
 
 -- | 'Widget' in eine 'Box' packen
-boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Packing -> Padding -> Position -> m ()
+boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Gtk.Align -> Padding -> Position -> m ()
 boxPack box widget packing padding position =
     liftIO $ boxPackPosition position box widget packing $ fromPadding padding
     where
-        boxPackPosition :: (MitBox b, MitWidget w) => Position -> b -> w -> Packing -> Int -> IO ()
+        boxPackPosition
+            :: (MitBox b, MitWidget w) => Position -> b -> w -> Gtk.Align -> Int -> IO ()
         boxPackPosition Start = mitBoxPackStart
         boxPackPosition End = mitBoxPackEnd
 
 -- | Neu erstelltes Widget in eine Box packen
 boxPackWidgetNew
-    :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
+    :: (MonadIO m, MitBox b, MitWidget w) => b -> Gtk.Align -> Padding -> Position -> m w -> m w
 boxPackWidgetNew box packing padding start konstruktor = do
     widget <- widgetShowNew konstruktor
     boxPack box widget packing padding start
     pure widget
 
 -- | Normale Packing-Einstellung
-packingDefault :: Packing
-packingDefault = PackNatural
+alignDefault :: Gtk.Align
+alignDefault = AlignStart
 
 -- | Abstand zwischen 'Widget's
 newtype Padding = Padding { fromPadding :: Int }
@@ -164,7 +164,7 @@ widgetShowIf True = mitWidgetShow
 widgetShowIf False = mitWidgetHide
 
 -- | 'MitDialog' anzeigen, auswerten und wieder verstecken
-dialogEval :: (MonadIO m, MitDialog d) => d -> m ResponseId
+dialogEval :: (MonadIO m, MitDialog d) => d -> m Gtk.ResponseType
 dialogEval dialog = liftIO $ do
     mitWidgetShow dialog
     antwort <- Gtk.dialogRun $ erhalteDialog dialog

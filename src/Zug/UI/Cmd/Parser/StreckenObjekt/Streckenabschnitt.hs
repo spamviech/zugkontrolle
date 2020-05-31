@@ -78,10 +78,9 @@ instance MitAnfrage Streckenabschnitt where
             [ (Lexer.HIGH, AStreckenabschnittNameFließend name HIGH AnfrageAnschluss)
             , (Lexer.LOW, AStreckenabschnittNameFließend name LOW AnfrageAnschluss)]
     anfrageAktualisieren
-        anfrage@(AStreckenabschnittNameFließend stName stFließend stromAnschluss)
+        anfrage@(AStreckenabschnittNameFließend stName stFließend anschluss)
         token =
-        (anschlussVerwenden, anfrageAnschlussVerwenden)
-        $<< anfrageAktualisieren stromAnschluss token
+        (anschlussVerwenden, anfrageAnschlussVerwenden) $<< anfrageAktualisieren anschluss token
         where
             anfrageAnschlussVerwenden
                 :: AnfrageAnschluss 'InterruptPinEgal -> AnfrageStreckenabschnitt

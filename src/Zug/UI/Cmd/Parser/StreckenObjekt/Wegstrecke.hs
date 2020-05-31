@@ -5,6 +5,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -117,7 +118,8 @@ instance MitAnfrage (Wegstrecke 'Lego) where
 
 -- | Eingabe einer Wegstrecke
 anfrageWegstreckeAktualisieren
-    :: (AnfrageZugtypKlasse z, ZugtypKlasse (FixerZugtyp z))
+    :: forall z.
+    (AnfrageZugtypKlasse z, ZugtypKlasse (FixerZugtyp z))
     => AnfrageWegstrecke z
     -> EingabeToken
     -> AnfrageFortsetzung (AnfrageWegstrecke z) (Wegstrecke (FixerZugtyp z))
@@ -139,20 +141,20 @@ anfrageWegstreckeAktualisieren (AWegstreckeName wsName) EingabeToken {eingabe, g
                 , wsKontakte = Set.empty
                 }
                 anzahl
-anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token =
-    case anfrageWegstreckenElement token of
-        (AWSEUnbekannt eingabe) -> AFFehler eingabe
-        AWSEBahngeschwindigkeit
-         -> AFZwischenwert $ AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
-        AWSEStreckenabschnitt
-         -> AFZwischenwert $ AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
-        AWSEWeiche
-         -> AFZwischenwert $ AWSStatusAnfrage SAOZWeiche $ Left $ anfrageWeicheAnhängen anfrage
-        AWSEKupplung -> AFZwischenwert $ AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
-        AWSEKontakt -> AFZwischenwert $ AWSStatusAnfrage SAOZKontakt $ eitherObjektAnhängen acc
+anfrageWegstreckeAktualisieren
+    anfrage@(AWegstreckeNameAnzahl acc anzahl)
+    token@EingabeToken {eingabe} = case anfrageWegstreckenElement of
+    (AWSEUnbekannt eingabeFehler) -> AFFehler eingabeFehler
+    AWSEBahngeschwindigkeit
+     -> AFZwischenwert $ AWSStatusAnfrage SAOZBahngeschwindigkeit $ eitherObjektAnhängen acc
+    AWSEStreckenabschnitt
+     -> AFZwischenwert $ AWSStatusAnfrage SAOZStreckenabschnitt $ eitherObjektAnhängen acc
+    AWSEWeiche -> AFZwischenwert $ AWSStatusAnfrage SAOZWeiche $ Left anfrageWeicheAnhängen
+    AWSEKupplung -> AFZwischenwert $ AWSStatusAnfrage SAOZKupplung $ eitherObjektAnhängen acc
+    AWSEKontakt -> AFZwischenwert $ AWSStatusAnfrage SAOZKontakt $ eitherObjektAnhängen acc
     where
-        anfrageWegstreckenElement :: EingabeToken -> AnfrageWegstreckenElement
-        anfrageWegstreckenElement token@EingabeToken {eingabe} =
+        anfrageWegstreckenElement :: AnfrageWegstreckenElement
+        anfrageWegstreckenElement =
             wähleBefehl
                 token
                 [ (Lexer.Weiche, AWSEWeiche)
@@ -169,7 +171,7 @@ anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token 
             | anzahl > 1 = Left $ anfrageObjektAnhängen wegstrecke
             | otherwise = Right $ objektAnhängen wegstrecke
 
-        objektAnhängen :: Wegstrecke z -> ObjektZugtyp z -> Wegstrecke z
+        objektAnhängen :: Wegstrecke az -> ObjektZugtyp az -> Wegstrecke az
         objektAnhängen
             wegstrecke@Wegstrecke {wsBahngeschwindigkeiten}
             (OZBahngeschwindigkeit bahngeschwindigkeit) =
@@ -195,14 +197,13 @@ anfrageWegstreckeAktualisieren anfrage@(AWegstreckeNameAnzahl acc anzahl) token 
         anfrageObjektAnhängen wegstrecke objekt =
             AWegstreckeNameAnzahl (objektAnhängen wegstrecke objekt) $ pred anzahl
 
-        anfrageWeicheAnhängen
-            :: AnfrageWegstrecke z -> ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
-        anfrageWeicheAnhängen (AWegstreckeNameAnzahl wegstrecke anzahl) (OZWeiche weiche) =
-            AWegstreckeNameAnzahlWeicheRichtung wegstrecke anzahl weiche
-        anfrageWeicheAnhängen anfrageWegstrecke objekt =
+        anfrageWeicheAnhängen :: ObjektZugtyp (FixerZugtyp z) -> AnfrageWegstrecke z
+        anfrageWeicheAnhängen (OZWeiche weiche) =
+            AWegstreckeNameAnzahlWeicheRichtung acc anzahl weiche
+        anfrageWeicheAnhängen objekt =
             error
             $ "Unbekanntes Objekt zum anhängen einer Weiche an AnfrageWegstrecke ("
-            ++ show anfrageWegstrecke
+            ++ show anfrage
             ++ ") erhalten: "
             ++ show objekt
 anfrageWegstreckeAktualisieren

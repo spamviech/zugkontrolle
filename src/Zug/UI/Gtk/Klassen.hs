@@ -10,8 +10,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 #endif
 
+-- {-# OPTIONS_GHC -ddump-splices #-}
 {-|
-Description: Erweiterbare Typklassen angelehnt an "GI.Gtk"-Typklassen
+Description: Erweiterbare Typklassen angelehnt an "GI.Gtk"-Typklassen.
 
 Typklassen aus "GI.Gtk" lassen eine Instanziierung eigener Typen nicht ohne Probleme zu.
 Diese Modul stellt via Template Haskell erstellte alternative Mit-Typklassen um dieses Problem zu umgehen.
@@ -22,9 +23,10 @@ Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden d
 module Zug.UI.Gtk.Klassen where
 
 #ifdef ZUGKONTROLLEGUI
-import qualified Control.Lens as Lens
 import Control.Monad.Trans (MonadIO(..))
+import Data.Int (Int32)
 import Data.Text (Text)
+import Data.Word (Word32)
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
@@ -34,58 +36,69 @@ import Zug.UI.Gtk.Klassen.TemplateHaskell (erzeugeKlasse)
 erzeugeKlasse [] "Widget"
 
 instance (MitWidget (a 'Märklin), MitWidget (a 'Lego)) => MitWidget (ZugtypEither a) where
-    erhalteWidget :: ZugtypEither a -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => ZugtypEither a -> m Gtk.Widget
     erhalteWidget (ZugtypMärklin a) = erhalteWidget a
     erhalteWidget (ZugtypLego a) = erhalteWidget a
 
 -- | Zeige ein 'MitWidget'
 mitWidgetShow :: (MonadIO m, MitWidget w) => w -> m ()
-mitWidgetShow = liftIO . mitWidget Gtk.widgetShow
+mitWidgetShow w = liftIO . Gtk.widgetShow =<< erhalteWidget w
 
 -- | Verstecke ein 'MitWidget'
 mitWidgetHide :: (MonadIO m, MitWidget w) => w -> m ()
-mitWidgetHide = liftIO . mitWidget Gtk.widgetHide
+mitWidgetHide w = liftIO . Gtk.widgetHide =<< erhalteWidget w
 
 -- ** Label
-erzeugeKlasse [''MitWidget] "Label"
+erzeugeKlasse ["Widget"] "Label"
 
 -- ** Entry
-erzeugeKlasse [''MitWidget] "Entry"
+erzeugeKlasse ["Widget"] "Entry"
 
 -- ** Range
-erzeugeKlasse [''MitWidget] "Range"
+erzeugeKlasse ["Widget"] "Range"
 
 -- * Container
-erzeugeKlasse [''MitWidget] "Container"
+erzeugeKlasse ["Widget"] "Container"
 
 -- | Füge ein 'MitWidget' zu einem 'MitContainer' hinzu
 mitContainerAdd :: (MonadIO m, MitContainer c, MitWidget w) => c -> w -> m ()
-mitContainerAdd container widget =
-    liftIO $ Gtk.containerAdd (erhalteContainer container) (erhalteWidget widget)
+mitContainerAdd mitContainer mitWidget = liftIO $ do
+    container <- erhalteContainer mitContainer
+    widget <- erhalteWidget mitWidget
+    Gtk.containerAdd container widget
 
 -- | Entferne ein 'MitWidget' aus einem 'MitContainer'
 mitContainerRemove :: (MonadIO m, MitContainer c, MitWidget w) => c -> w -> m ()
-mitContainerRemove container widget =
-    liftIO $ Gtk.containerRemove (erhalteContainer container) (erhalteWidget widget)
+mitContainerRemove mitContainer mitWidget = liftIO $ do
+    container <- erhalteContainer mitContainer
+    widget <- erhalteWidget mitWidget
+    Gtk.containerRemove container widget
 
-erzeugeKlasse [''MitContainer] "Box"
+erzeugeKlasse ["Widget", "Container"] "Box"
 
 -- | Füge ein 'MitWidget' zum Anfang einer 'MitBox' hinzu
-mitBoxPackStart :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Gtk.Packing -> Int -> m ()
-mitBoxPackStart box widget packing padding =
-    liftIO $ Gtk.boxPackStart (erhalteBox box) (erhalteWidget widget) packing padding
+mitBoxPackStart :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Bool -> Bool -> Word32 -> m ()
+mitBoxPackStart mitBox mitWidget fill expand padding = liftIO $ do
+    box <- erhalteBox mitBox
+    widget <- erhalteWidget mitWidget
+    Gtk.boxPackStart box widget fill expand padding
 
 -- | Füge ein 'MitWidget' zum Ende einer 'MitBox' hinzu
-mitBoxPackEnd :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Gtk.Packing -> Int -> m ()
-mitBoxPackEnd box widget packing padding =
-    liftIO $ Gtk.boxPackEnd (erhalteBox box) (erhalteWidget widget) packing padding
+mitBoxPackEnd :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Bool -> Bool -> Word32 -> m ()
+mitBoxPackEnd mitBox mitWidget fill expand padding = liftIO $ do
+    box <- erhalteBox mitBox
+    widget <- erhalteWidget mitWidget
+    Gtk.boxPackEnd box widget fill expand padding
 
-erzeugeKlasse [''MitContainer] "Grid"
+erzeugeKlasse ["Widget", "Container"] "Grid"
 
 -- | Füge ein 'MitWidget' zu einem 'MitGrid' hinzu
-mitGridAttach :: (MonadIO m, MitGrid g, MitWidget w) => g -> w -> Int -> Int -> Int -> Int -> m ()
-mitGridAttach grid widget left top width height =
-    liftIO $ Gtk.gridAttach (erhalteGrid grid) (erhalteWidget widget) left top width height
+mitGridAttach
+    :: (MonadIO m, MitGrid g, MitWidget w) => g -> w -> Int32 -> Int32 -> Int32 -> Int32 -> m ()
+mitGridAttach mitGrid mitWidget left top width height = liftIO $ do
+    grid <- erhalteGrid mitGrid
+    widget <- erhalteWidget mitWidget
+    Gtk.gridAttach grid widget left top width height
 
 -- | Füge ein 'MitWidget' zu einem 'MitGrid' direkt neben einem 'MitWidget' hinzu
 mitGridAttachNextTo
@@ -94,67 +107,79 @@ mitGridAttachNextTo
     -> w
     -> Maybe sibling
     -> Gtk.PositionType
-    -> Int
-    -> Int
+    -> Int32
+    -> Int32
     -> m ()
-mitGridAttachNextTo grid widget sibling position width height =
-    liftIO
-    $ Gtk.gridAttachNextTo
-        (erhalteGrid grid)
-        (erhalteWidget widget)
-        (sibling >>= pure . erhalteWidget)
-        position
-        width
-        height
+mitGridAttachNextTo mitGrid mitWidget maybeSibling position width height = liftIO $ do
+    grid <- erhalteGrid mitGrid
+    widget <- erhalteWidget mitWidget
+    maybeSiblingWidget <- case maybeSibling of
+        (Just sibling) -> Just <$> erhalteWidget sibling
+        Nothing -> pure Nothing
+    Gtk.gridAttachNextTo grid widget maybeSiblingWidget position width height
 
-erzeugeKlasse [''MitContainer] "Fixed"
+erzeugeKlasse ["Widget", "Container"] "Fixed"
 
 -- | Füge ein 'MitWidget' an den spezifizierten Koordinaten zu einem 'MitFixed' hinzu
-mitFixedPut :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int -> Int -> m ()
-mitFixedPut fixed widget x y =
-    liftIO $ Gtk.fixedPut (erhalteFixed fixed) (erhalteWidget widget) (x, y)
+mitFixedPut :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int32 -> Int32 -> m ()
+mitFixedPut mitFixed mitWidget x y = liftIO $ do
+    fixed <- erhalteFixed mitFixed
+    widget <- erhalteWidget mitWidget
+    Gtk.fixedPut fixed widget x y
 
 -- | Bewege ein 'MitWidget' zu den spezifizierten Koordinaten ein einem 'MitFixed'
-mitFixedMove :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int -> Int -> m ()
-mitFixedMove fixed widget x y =
-    liftIO $ Gtk.fixedMove (erhalteFixed fixed) (erhalteWidget widget) (x, y)
+mitFixedMove :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int32 -> Int32 -> m ()
+mitFixedMove mitFixed mitWidget x y = liftIO $ do
+    fixed <- erhalteFixed mitFixed
+    widget <- erhalteWidget mitWidget
+    Gtk.fixedMove fixed widget x y
 
-erzeugeKlasse [''MitContainer] "Notebook"
+erzeugeKlasse ["Widget", "Container"] "Notebook"
 
 -- | Füge eine neue Seite am Ende eines 'MitNotebook' hinzu
-mitNotebookAppendPage :: (MonadIO m, MitNotebook n, MitWidget w) => n -> w -> Text -> m Int
-mitNotebookAppendPage notebook widget =
-    liftIO . Gtk.notebookAppendPage (erhalteNotebook notebook) (erhalteWidget widget)
+mitNotebookAppendPage :: (MonadIO m, MitNotebook n, MitWidget w) => n -> w -> Text -> m Int32
+mitNotebookAppendPage mitNotebook mitWidget name = liftIO $ do
+    notebook <- erhalteNotebook mitNotebook
+    widget <- erhalteWidget mitWidget
+    label <- Gtk.labelNew $ Just name
+    Gtk.notebookAppendPage notebook widget $ Just label
 
 -- | Füge eine neue Seite am Anfang eines 'MitNotebook' hinzu
-mitNotebookPrependPage :: (MonadIO m, MitNotebook n, MitWidget w) => n -> w -> Text -> m Int
-mitNotebookPrependPage notebook widget =
-    liftIO . Gtk.notebookPrependPage (erhalteNotebook notebook) (erhalteWidget widget)
+mitNotebookPrependPage :: (MonadIO m, MitNotebook n, MitWidget w) => n -> w -> Text -> m Int32
+mitNotebookPrependPage mitNotebook mitWidget name = liftIO $ do
+    notebook <- erhalteNotebook mitNotebook
+    widget <- erhalteWidget mitWidget
+    label <- Gtk.labelNew $ Just name
+    Gtk.notebookPrependPage notebook widget $ Just label
 
 -- | Entferne eine Seite aus einem 'MitNotebook' hinzu
-mitNotebookRemovePage :: (MonadIO m, MitNotebook n) => n -> Int -> m ()
-mitNotebookRemovePage notebook = liftIO . mitNotebook Gtk.notebookRemovePage notebook
+mitNotebookRemovePage :: (MonadIO m, MitNotebook n) => n -> Int32 -> m ()
+mitNotebookRemovePage mitNotebook page = liftIO $ do
+    notebook <- erhalteNotebook mitNotebook
+    Gtk.notebookRemovePage notebook page
 
 -- | Setzte die aktuell angezeigte Seite eines 'MitNotebook'
-mitNotebookSetCurrentPage :: (MonadIO m, MitNotebook n) => n -> Int -> m ()
-mitNotebookSetCurrentPage notebook = liftIO . mitNotebook Gtk.notebookSetCurrentPage notebook
+mitNotebookSetCurrentPage :: (MonadIO m, MitNotebook n) => n -> Int32 -> m ()
+mitNotebookSetCurrentPage mitNotebook page = liftIO $ do
+    notebook <- erhalteNotebook mitNotebook
+    Gtk.notebookSetCurrentPage notebook page
 
-erzeugeKlasse [''MitContainer] "Paned"
+erzeugeKlasse ["Widget", "Container"] "Paned"
 
-erzeugeKlasse [''MitContainer] "ComboBox"
+erzeugeKlasse ["Widget", "Container"] "ComboBox"
 
 -- * Window
-erzeugeKlasse [''MitContainer] "Window"
+erzeugeKlasse ["Widget", "Container"] "Window"
 
-erzeugeKlasse [''MitWindow] "Dialog"
+erzeugeKlasse ["Widget", "Container", "Window"] "Dialog"
 
 -- * Button
-erzeugeKlasse [''MitContainer] "Button"
+erzeugeKlasse ["Widget", "Container"] "Button"
 
-erzeugeKlasse [''MitButton] "ToggleButton"
+erzeugeKlasse ["Widget", "Container", "Button"] "ToggleButton"
 
-erzeugeKlasse [''MitToggleButton] "CheckButton"
+erzeugeKlasse ["Widget", "Container", "Button", "ToggleButton"] "CheckButton"
 
-erzeugeKlasse [''MitCheckButton] "RadioButton"
+erzeugeKlasse ["Widget", "Container", "Button", "ToggleButton", "CheckButton"] "RadioButton"
 #endif
 --
