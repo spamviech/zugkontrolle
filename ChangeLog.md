@@ -148,7 +148,7 @@
     aller enthaltenen Streckenabschnitte.
 - Tests entfernt. Wurden nicht gepflegt, somit ist deren Nicht-Existenz die ehrlichere Lösung.
 
-## Unreleased changes
+1.2.0.0
 
 - Neues StreckenObjekt: Kontakt
     Ein Kontakt repräsentiert ein Einganssignal, typischerweise eine Kontakt-Schiene.
@@ -163,3 +163,5 @@
 - Gtk-UI: AssistantHinzufügen wird nur erstellt, wenn er wirklich benötigt wird.
     Dadurch sollte die Startzeit verkürzt werden.
 - Gtk-UI: Pläne synchronisieren nun ebenfalls andere Widgets.
+
+## Unreleased changes
