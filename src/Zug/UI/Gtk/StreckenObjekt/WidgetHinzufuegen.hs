@@ -48,7 +48,6 @@ module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Kind (Type)
 import Data.Text (Text)
@@ -64,7 +63,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled
 import Zug.UI.Gtk.Hilfsfunktionen (containerRemoveJust, boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(), MitBox())
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), TVarSprachewechselAktionen)
 
 -- | Auswahlmöglichkeiten zu 'WidgetHinzufügen'
 data HinzufügenZiel
@@ -77,7 +76,7 @@ newtype WidgetHinzufügen (e :: HinzufügenZiel) (w :: Type) (a :: Type) =
     deriving (Eq)
 
 instance (MitWidget w) => MitWidget (WidgetHinzufügen e w a) where
-    erhalteWidget :: WidgetHinzufügen e w a -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => WidgetHinzufügen e w a -> m Gtk.Widget
     erhalteWidget = erhalteWidget . widgetHinzufügen
 
 instance (MitRegistrierterCheckButton w)
@@ -161,12 +160,12 @@ type CheckButtonWegstreckeHinzufügen e a =
 
 -- | Box zur Auswahl der 'Wegstrecke'n-Elemente
 type BoxWegstreckeHinzufügen a =
-    WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.VBox) a
+    WidgetHinzufügen 'HinzufügenWegstrecke (ScrollbaresWidget Gtk.Box) a
 
 -- | Erstelle eine neue 'BoxWegstreckeHinzufügen'.
 boxWegstreckeHinzufügenNew :: (MonadIO m) => m (BoxWegstreckeHinzufügen a)
 boxWegstreckeHinzufügenNew =
-    liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.vBoxNew False 0
+    liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.boxNew Gtk.OrientationVertical 0
 
 deriving instance (Eq e) => Eq (WegstreckeCheckButton e)
 
@@ -180,10 +179,10 @@ data WegstreckeCheckButton e where
                                      } -> WegstreckeCheckButton Richtung
 
 instance MitWidget (WegstreckeCheckButton e) where
-    erhalteWidget :: WegstreckeCheckButton e -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => WegstreckeCheckButton e -> m Gtk.Widget
     erhalteWidget WegstreckeCheckButton {wcbvRegistrierterCheckButton} =
         erhalteWidget wcbvRegistrierterCheckButton
-    erhalteWidget WegstreckeCheckButtonRichtung {wcbrWidget} = wcbrWidget
+    erhalteWidget WegstreckeCheckButtonRichtung {wcbrWidget} = pure wcbrWidget
 
 instance MitRegistrierterCheckButton (WegstreckeCheckButton e) where
     erhalteRegistrierterCheckButton :: WegstreckeCheckButton e -> RegistrierterCheckButton
@@ -201,7 +200,7 @@ instance MitAuswahlWidget (WegstreckeCheckButton Richtung) Richtung where
 type ButtonPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan Gtk.Button a
 
 -- | Box zum hinzufügen eines Plans
-type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.VBox) a
+type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidget Gtk.Box) a
 
 -- | Erstelle eine neue 'BoxPlanHinzufügen'.
 --
@@ -210,10 +209,10 @@ type BoxPlanHinzufügen a = WidgetHinzufügen 'HinzufügenPlan (ScrollbaresWidge
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 boxPlanHinzufügenNew :: forall a r m.
                       (Kategorie a, SpracheGuiReader r m, MonadIO m)
-                      => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                      => Maybe TVarSprachewechselAktionen
                       -> m (BoxPlanHinzufügen a)
 boxPlanHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
-    box <- liftIO $ Gtk.vBoxNew False 0
+    box <- liftIO $ Gtk.boxNew Gtk.OrientationVertical 0
     boxPackWidgetNewDefault box
         $ labelSpracheNew maybeTVar
         $ kategorieText (kategorie :: KategorieText a)

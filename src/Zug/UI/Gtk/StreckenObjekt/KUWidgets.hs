@@ -82,7 +82,7 @@ data KUWidgets =
     , kuFunctionBox :: Gtk.HBox
     , kuHinzWS :: CheckButtonWegstreckeHinzufügen Void KUWidgets
     , kuHinzPL :: ButtonPlanHinzufügen KUWidgets
-    , kuTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , kuTVarSprache :: TVarSprachewechselAktionen
     , kuTVarEvent :: TVar EventAusführen
     , kuButtonKuppeln :: Gtk.Button
     }
@@ -132,7 +132,7 @@ instance WidgetsTyp KUWidgets where
     boxButtonEntfernen :: KUWidgets -> Gtk.Box
     boxButtonEntfernen = erhalteBox . kuFunctionBox
 
-    tvarSprache :: KUWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: KUWidgets -> TVarSprachewechselAktionen
     tvarSprache = kuTVarSprache
 
     tvarEvent :: KUWidgets -> TVar EventAusführen
@@ -259,7 +259,7 @@ buttonKuppelnPackNew
     )
     => b
     -> k
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> TVar EventAusführen
     -> StatusVar o
     -> m Gtk.Button

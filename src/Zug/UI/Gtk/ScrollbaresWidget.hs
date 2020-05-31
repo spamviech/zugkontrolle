@@ -20,7 +20,6 @@ module Zug.UI.Gtk.ScrollbaresWidget
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Int (Int32)
 import Data.Text (Text)
@@ -35,7 +34,7 @@ import Zug.UI.Gtk.Klassen
        (MitWidget(..), MitContainer(..), MitBox(..), MitGrid(..), MitFixed(..), MitLabel(..)
       , MitNotebook(..), MitPaned(..), MitComboBox(..), MitWindow(..), MitDialog(..), MitButton(..)
       , MitToggleButton(..), MitCheckButton(..), MitRadioButton(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), TVarSprachewechselAktionen)
 
 -- | 'Gtk.ScrolledWindow' mit automatisch erstelltem Viewport.
 data ScrollbaresWidget w =
@@ -133,7 +132,7 @@ scrollbaresWidgetPackNew box konstruktor =
 scrollbaresWidgetNotebookAppendPageNew
     :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w)
     => n
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> m w
     -> m (ScrollbaresWidget w, Int32)

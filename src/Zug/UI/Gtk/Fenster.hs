@@ -76,7 +76,7 @@ buttonSpeichernPack
     (MitBox b, ObjektGuiReader m, MonadIO m)
     => Gtk.Window
     -> b
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> Position
     -> m Gtk.Button
 buttonSpeichernPack windowMain box maybeTVar position = do
@@ -94,7 +94,7 @@ buttonSpeichernPack windowMain box maybeTVar position = do
 
 dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    => Gtk.Window
-                   -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   -> Maybe TVarSprachewechselAktionen
                    -> m Gtk.FileChooserDialog
 dialogSpeichernNew window maybeTVar = do
     (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
@@ -120,7 +120,7 @@ dialogSpeichernNew window maybeTVar = do
 buttonLadenPack :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadIO m)
                 => p
                 -> b
-                -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                -> Maybe TVarSprachewechselAktionen
                 -> Position
                 -> m Gtk.Button
 buttonLadenPack parent box maybeTVar position = do
@@ -339,7 +339,7 @@ alsPlanGui statusGui Plan {plName, plAktionen} = mdo
 
 dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                => p
-               -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+               -> Maybe TVarSprachewechselAktionen
                -> m Gtk.FileChooserDialog
 dialogLadenNew parent maybeTVar = do
     (dialog, buttonLaden, buttonAbbrechen) <- liftIO $ do
@@ -359,7 +359,7 @@ dialogLadenNew parent maybeTVar = do
 
 dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                      => p
-                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                     -> Maybe TVarSprachewechselAktionen
                      -> m Gtk.MessageDialog
 dialogLadenFehlerNew parent maybeTVar = do
     dialog <- liftIO
@@ -382,7 +382,7 @@ buttonHinzufügenPack
     :: (MitWindow p, MitBox b, ObjektGuiReader m, MonadFix m, MonadIO m)
     => p
     -> b
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> m ( Gtk.Button
          , Objekt
                -> IO ()

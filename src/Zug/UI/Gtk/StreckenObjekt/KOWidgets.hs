@@ -79,7 +79,7 @@ data KOWidgets =
     , koFunctionBox :: Gtk.HBox
     , koHinzWS :: CheckButtonWegstreckeHinzufügen Void KOWidgets
     , koHinzPL :: ButtonPlanHinzufügen KOWidgets
-    , koTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , koTVarSprache :: TVarSprachewechselAktionen
     , koTVarEvent :: TVar EventAusführen
     }
     deriving (Eq)
@@ -132,7 +132,7 @@ instance WidgetsTyp KOWidgets where
     boxButtonEntfernen :: KOWidgets -> Gtk.Box
     boxButtonEntfernen = erhalteBox . koFunctionBox
 
-    tvarSprache :: KOWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: KOWidgets -> TVarSprachewechselAktionen
     tvarSprache = koTVarSprache
 
     tvarEvent :: KOWidgets -> TVar EventAusführen

@@ -34,7 +34,6 @@ module Zug.UI.Gtk.Anschluss
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Int (Int32)
 import Data.Maybe (fromJust)
@@ -52,7 +51,7 @@ import Zug.UI.Gtk.Auswahl (AuswahlWidget, aktuelleAuswahl, setzeAuswahl
                          , boundedEnumAuswahlRadioButtonNew, boundedEnumAuswahlComboBoxNew)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, notebookAppendPageNew, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), TVarSprachewechselAktionen)
 
 -- | Anzeige eines 'Pin's.
 newtype PinWidget = PinWidget Gtk.Label
@@ -71,7 +70,7 @@ instance MitLabel PinWidget where
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 pinNew :: (SpracheGuiReader r m, MonadIO m)
-       => Maybe (TVar (Maybe [Sprache -> IO ()]))
+       => Maybe TVarSprachewechselAktionen
        -> (Sprache -> Text)
        -> Pin
        -> m PinWidget
@@ -95,7 +94,7 @@ instance MitLabel AnschlussWidget where
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 anschlussNew :: (SpracheGuiReader r m, MonadIO m)
-             => Maybe (TVar (Maybe [Sprache -> IO ()]))
+             => Maybe TVarSprachewechselAktionen
              -> (Sprache -> Text)
              -> AnschlussEither
              -> m AnschlussWidget
@@ -116,7 +115,7 @@ instance MitWidget PinAuswahlWidget where
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 pinAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
-              => Maybe (TVar (Maybe [Sprache -> IO ()]))
+              => Maybe TVarSprachewechselAktionen
               -> (Sprache -> Text)
               -> m PinAuswahlWidget
 pinAuswahlNew maybeTVar name = do
@@ -173,7 +172,7 @@ instance MitWidget (AnschlussAuswahlWidget i) where
 -- 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 anschlussAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
-                    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                    => Maybe TVarSprachewechselAktionen
                     -> (Sprache -> Text)
                     -> m (AnschlussAuswahlWidget 'InterruptPinEgal)
 anschlussAuswahlNew maybeTVar name = do
@@ -231,7 +230,7 @@ anschlussAuswahlNew maybeTVar name = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 anschlussAuswahlInterruptPinNew
     :: (SpracheGuiReader r m, MonadIO m, MonadFail m)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    => Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> m (AnschlussAuswahlWidget 'InterruptPinBenötigt)
 anschlussAuswahlInterruptPinNew maybeTVar name = do

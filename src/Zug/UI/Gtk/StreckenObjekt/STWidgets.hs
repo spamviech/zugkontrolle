@@ -88,7 +88,7 @@ data STWidgets =
     , stFunctionBox :: Gtk.HBox
     , stHinzWS :: CheckButtonWegstreckeHinzufügen Void STWidgets
     , stHinzPL :: ButtonPlanHinzufügen STWidgets
-    , stTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , stTVarSprache :: TVarSprachewechselAktionen
     , stTVarEvent :: TVar EventAusführen
     , stToggleButtonStrom :: Gtk.ToggleButton
     }
@@ -138,7 +138,7 @@ instance WidgetsTyp STWidgets where
     boxButtonEntfernen :: STWidgets -> Gtk.Box
     boxButtonEntfernen = erhalteBox . stFunctionBox
 
-    tvarSprache :: STWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: STWidgets -> TVarSprachewechselAktionen
     tvarSprache = stTVarSprache
 
     tvarEvent :: STWidgets -> TVar EventAusführen
@@ -292,7 +292,7 @@ toggleButtonStromPackNew
     )
     => b
     -> s
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> TVar EventAusführen
     -> StatusVar o
     -> m Gtk.ToggleButton

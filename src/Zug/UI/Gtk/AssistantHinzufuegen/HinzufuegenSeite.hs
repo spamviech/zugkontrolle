@@ -116,7 +116,7 @@ import Zug.Warteschlange (Warteschlange, Anzeige(..), leer, anhängen, zeigeLetz
 data HinzufügenSeite
     = HinzufügenSeiteBahngeschwindigkeit
           { vBox :: Gtk.VBox
-          , maybeTVarSprache :: Maybe (TVar (Maybe [Sprache -> IO ()]))
+          , maybeTVarSprache :: Maybe TVarSprachewechselAktionen
           , nameAuswahl :: NameAuswahlWidget
           , notebookGeschwindigkeit :: Gtk.Notebook
           , indexSeiten :: Map Int GeschwindigkeitVariante
@@ -169,10 +169,9 @@ data HinzufügenSeite
           , nameAuswahl :: NameAuswahlWidget
           , buttonHinzufügenPlan :: Gtk.Button
           , expanderAktionen :: Gtk.Expander
-          , tvarExpander :: TVar (Maybe [Sprache -> IO ()])
+          , tvarExpander :: TVarSprachewechselAktionen
           , vBoxAktionen :: ScrollbaresWidget Gtk.VBox
-          , tvarAktionen
-                :: TVar (Warteschlange (Aktion, Gtk.Label, TVar (Maybe [Sprache -> IO ()])))
+          , tvarAktionen :: TVar (Warteschlange (Aktion, Gtk.Label, TVarSprachewechselAktionen))
           , checkButtonDauerschleife :: Gtk.CheckButton
           }
     deriving (Eq)
@@ -655,7 +654,7 @@ setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure Fal
 hinzufügenBahngeschwindigkeitNew
     :: (SpracheGuiReader r m, MonadFix m, MonadIO m)
     => AuswahlWidget Zugtyp
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> m HinzufügenSeite
 hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = mdo
     reader <- ask
@@ -740,9 +739,8 @@ hinzufügenBahngeschwindigkeitNew auswahlZugtyp maybeTVarSprache = mdo
         }
 
 -- | Erzeuge eine Seite zum hinzufügen eines 'Streckenabschnitt'.
-hinzufügenStreckenabschnittNew :: (SpracheGuiReader r m, MonadIO m)
-                                => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                                -> m HinzufügenSeite
+hinzufügenStreckenabschnittNew
+    :: (SpracheGuiReader r m, MonadIO m) => Maybe TVarSprachewechselAktionen -> m HinzufügenSeite
 hinzufügenStreckenabschnittNew maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
@@ -752,7 +750,7 @@ hinzufügenStreckenabschnittNew maybeTVar = do
 -- | Erzeuge eine Seite zum hinzufügen einer 'Weiche'.
 hinzufügenWeicheNew :: (SpracheGuiReader r m, MonadIO m)
                      => AuswahlWidget Zugtyp
-                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                     -> Maybe TVarSprachewechselAktionen
                      -> m HinzufügenSeite
 hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
@@ -826,9 +824,8 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
         }
 
 -- | Erzeuge eine Seite zum hinzufügen einer 'Kupplung'.
-hinzufügenKupplungNew :: (SpracheGuiReader r m, MonadIO m)
-                       => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                       -> m HinzufügenSeite
+hinzufügenKupplungNew
+    :: (SpracheGuiReader r m, MonadIO m) => Maybe TVarSprachewechselAktionen -> m HinzufügenSeite
 hinzufügenKupplungNew maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
@@ -837,9 +834,8 @@ hinzufügenKupplungNew maybeTVar = do
     pure HinzufügenSeiteKupplung { vBox, nameAuswahl, kupplungsAuswahl }
 
 -- | Erzeuge eine Seite zum hinzufügen eines 'Kontakt's.
-hinzufügenKontaktNew :: (SpracheGuiReader r m, MonadIO m)
-                      => Maybe (TVar (Maybe [Sprache -> IO ()]))
-                      -> m HinzufügenSeite
+hinzufügenKontaktNew
+    :: (SpracheGuiReader r m, MonadIO m) => Maybe TVarSprachewechselAktionen -> m HinzufügenSeite
 hinzufügenKontaktNew maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
     nameAuswahl <- nameAuswahlPackNew vBox maybeTVar
@@ -850,7 +846,7 @@ hinzufügenKontaktNew maybeTVar = do
 -- | Erzeuge eine Seite zum hinzufügen einer 'Wegstrecke'.
 hinzufügenWegstreckeNew :: (SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadIO m)
                          => AuswahlWidget Zugtyp
-                         -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                         -> Maybe TVarSprachewechselAktionen
                          -> m HinzufügenSeite
 hinzufügenWegstreckeNew auswahlZugtyp maybeTVar = do
     vBox <- liftIO $ Gtk.vBoxNew False 0
@@ -895,7 +891,7 @@ hinzufügenPlanNew
     :: (MitWindow p, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadFix m, MonadIO m)
     => p
     -> AuswahlWidget Zugtyp
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> m HinzufügenSeite
 hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
     vBox <- liftIO $ Gtk.vBoxNew False 0

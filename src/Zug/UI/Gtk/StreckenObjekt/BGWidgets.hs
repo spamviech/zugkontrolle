@@ -41,10 +41,8 @@ import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
-import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Void (Void)
 import Data.Word (Word8)
@@ -79,7 +77,8 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , paddingDefault, positionDefault, namePackNew, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (SpracheGui(), MitSpracheGui(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui
+       (SpracheGui(), MitSpracheGui(), verwendeSpracheGui, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (WegstreckenElement(..), entferneHinzufügenWegstreckeWidgets
       , hinzufügenWidgetWegstreckePackNew, PlanElement(..), entferneHinzufügenPlanWidgets
@@ -98,7 +97,7 @@ import Zug.UI.StatusVar
 
 -- | Widgets zur Steuerung der Geschwindigkeit.
 data GeschwindigkeitsWidgets (g :: GeschwindigkeitVariante) where
-    ScaleGeschwindigkeit :: { wScaleGeschwindigkeit :: Gtk.HScale } -> GeschwindigkeitsWidgets 'Pwm
+    ScaleGeschwindigkeit :: { wScaleGeschwindigkeit :: Gtk.Scale } -> GeschwindigkeitsWidgets 'Pwm
     AuswahlFahrstrom :: { wAuswahlFahrstrom :: AuswahlWidget Word8 }
         -> GeschwindigkeitsWidgets 'KonstanteSpannung
 
@@ -124,13 +123,13 @@ instance Kategorie (GeschwindigkeitEither BGWidgets z) where
 data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
     BGWidgets
     { bg :: Bahngeschwindigkeit g z
-    , bgWidget :: Gtk.VBox
-    , bgFunctionBox :: Gtk.HBox
+    , bgWidget :: Gtk.Box
+    , bgFunctionBox :: Gtk.Box
     , bgHinzWS :: CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
     , bgHinzPL :: ( ButtonPlanHinzufügen (BGWidgets g z)
                   , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
                   )
-    , bgTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , bgTVarSprache :: TVarSprachewechselAktionen
     , bgTVarEvent :: TVar EventAusführen
     , bgGeschwindigkeitsWidgets :: GeschwindigkeitsWidgets g
     , bgFahrtrichtungsWidgets :: FahrtrichtungsWidgets z
@@ -138,7 +137,7 @@ data BGWidgets (g :: GeschwindigkeitVariante) (z :: Zugtyp) =
     deriving (Eq)
 
 instance MitWidget (BGWidgets g z) where
-    erhalteWidget :: BGWidgets g z -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => BGWidgets g z -> m Gtk.Widget
     erhalteWidget = erhalteWidget . bgWidget
 
 data BGWidgetsBoxen =
@@ -196,9 +195,9 @@ instance ( WegstreckenElement (BGWidgets g z)
         liftIO $ atomically $ writeTVar (tvarSprache bgWidgets) Nothing
 
     boxButtonEntfernen :: BGWidgets g z -> Gtk.Box
-    boxButtonEntfernen = erhalteBox . bgFunctionBox
+    boxButtonEntfernen = bgFunctionBox
 
-    tvarSprache :: BGWidgets g z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: BGWidgets g z -> TVarSprachewechselAktionen
     tvarSprache = bgTVarSprache
 
     tvarEvent :: BGWidgets g z -> TVar EventAusführen
@@ -233,7 +232,7 @@ instance (GeschwindigkeitKlasse g) => WegstreckenElement (BGWidgets g 'Lego) whe
         . bgWidgetsBoxen
 
 instance MitWidget (GeschwindigkeitEither BGWidgets z) where
-    erhalteWidget :: GeschwindigkeitEither BGWidgets z -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => GeschwindigkeitEither BGWidgets z -> m Gtk.Widget
     erhalteWidget = ausGeschwindigkeitEither erhalteWidget
 
 instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
@@ -304,7 +303,7 @@ instance ( WegstreckenElement (BGWidgets 'Pwm z)
     boxButtonEntfernen (GeschwindigkeitPwm bgWidgets) = boxButtonEntfernen bgWidgets
     boxButtonEntfernen (GeschwindigkeitKonstanteSpannung bgWidgets) = boxButtonEntfernen bgWidgets
 
-    tvarSprache :: GeschwindigkeitEither BGWidgets z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: GeschwindigkeitEither BGWidgets z -> TVarSprachewechselAktionen
     tvarSprache (GeschwindigkeitPwm bgWidgets) = tvarSprache bgWidgets
     tvarSprache (GeschwindigkeitKonstanteSpannung bgWidgets) = tvarSprache bgWidgets
 
@@ -353,8 +352,7 @@ instance WidgetsTyp (ZugtypEither (GeschwindigkeitEither BGWidgets)) where
     boxButtonEntfernen (ZugtypLego (GeschwindigkeitKonstanteSpannung bgWidgets)) =
         boxButtonEntfernen bgWidgets
 
-    tvarSprache :: ZugtypEither (GeschwindigkeitEither BGWidgets)
-                -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: ZugtypEither (GeschwindigkeitEither BGWidgets) -> TVarSprachewechselAktionen
     tvarSprache (ZugtypMärklin (GeschwindigkeitPwm bgWidgets)) = tvarSprache bgWidgets
     tvarSprache (ZugtypMärklin (GeschwindigkeitKonstanteSpannung bgWidgets)) =
         tvarSprache bgWidgets
@@ -528,7 +526,9 @@ instance BahngeschwindigkeitKlasse BGWidgets where
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Word8 -> m ()
     geschwindigkeit
         BGWidgets {bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}
-        wert = liftIO $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+        wert = liftIO $ do
+        adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
+        Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
 
     fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Word8 -> m ()
     fahrstrom BGWidgets {bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}} =
@@ -536,7 +536,7 @@ instance BahngeschwindigkeitKlasse BGWidgets where
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Märklin -> m ()
     umdrehen BGWidgets {bgFahrtrichtungsWidgets = ButtonUmdrehen {wButtonUmdrehen}} =
-        liftIO $ Gtk.buttonPressed wButtonUmdrehen
+        liftIO $ Gtk.buttonClicked wButtonUmdrehen
 
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Lego -> Fahrtrichtung -> m ()
@@ -588,18 +588,20 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         pure (bgTVarSprache, bgTVarEvent)
     let justTVarSprache = Just bgTVarSprache
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.vBoxNew False 0
+    vBox <- liftIO
+        $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox bahngeschwindigkeit
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
         expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
+            $ Gtk.expanderNew Nothing
         vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
             $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
-    bgFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    bgFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     bgGeschwindigkeitsWidgets <- geschwindigkeitsWidgetsPackNew
         bgFunctionBox
         bahngeschwindigkeit
@@ -614,7 +616,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         bgTVarEvent
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     (bgHinzWS, hinzufügenWidgetPlanSpezifisch, hinzufügenWidgetPlanAllgemein)
-        <- hinzufügenWidgetsPackNew bahngeschwindigkeit bgTVarSprache
+        <- hinzufügenWidgetsPackNew bgTVarSprache
     let bgWidgets =
             BGWidgets
             { bg = bahngeschwindigkeit
@@ -643,13 +645,12 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     pure bgWidgets
     where
         hinzufügenWidgetsPackNew
-            :: Bahngeschwindigkeit g z
-            -> TVar (Maybe [Sprache -> IO ()])
+            :: TVarSprachewechselAktionen
             -> MStatusAllgemeinT m o ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
                                      , ButtonPlanHinzufügen (BGWidgets g z)
                                      , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
                                      )
-        hinzufügenWidgetsPackNew bahngeschwindigkeit tvarSprache = do
+        hinzufügenWidgetsPackNew tvarSprache = do
             objektReader <- ask
             fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
                 :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
@@ -673,10 +674,10 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                 )
 
         geschwindigkeitsWidgetsPackNew
-            :: Gtk.HBox
+            :: Gtk.Box
             -> Bahngeschwindigkeit g z
-            -> ScrollbaresWidget Gtk.VBox
-            -> TVar (Maybe [Sprache -> IO ()])
+            -> ScrollbaresWidget Gtk.Box
+            -> TVarSprachewechselAktionen
             -> TVar EventAusführen
             -> MStatusAllgemeinT m o (GeschwindigkeitsWidgets g)
         geschwindigkeitsWidgetsPackNew
@@ -717,10 +718,10 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                     statusVar
 
         fahrtrichtungsWidgetsPackNew
-            :: Gtk.HBox
+            :: Gtk.Box
             -> Bahngeschwindigkeit g z
-            -> ScrollbaresWidget Gtk.VBox
-            -> TVar (Maybe [Sprache -> IO ()])
+            -> ScrollbaresWidget Gtk.Box
+            -> TVarSprachewechselAktionen
             -> TVar EventAusführen
             -> MStatusAllgemeinT m o (FahrtrichtungsWidgets z)
         fahrtrichtungsWidgetsPackNew
@@ -774,8 +775,8 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
                     statusVar
 
         erstelleFahrstromAnschlussWidget
-            :: ScrollbaresWidget Gtk.VBox
-            -> TVar (Maybe [Sprache -> IO ()])
+            :: ScrollbaresWidget Gtk.Box
+            -> TVarSprachewechselAktionen
             -> Natural
             -> AnschlussEither
             -> MStatusAllgemeinT m o Natural
@@ -817,15 +818,20 @@ hScaleGeschwindigkeitPackNew
     -> bg 'Pwm z
     -> TVar EventAusführen
     -> StatusVar o
-    -> m Gtk.HScale
+    -> m Gtk.Scale
 hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusVar = do
     objektReader <- ask
     liftIO $ do
         scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault
-            $ Gtk.hScaleNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
+            $ Gtk.scaleNewWithRange
+                Gtk.OrientationHorizontal
+                0
+                (fromIntegral (maxBound :: Word8))
+                1
         Gtk.widgetSetSizeRequest scale 100 (-1)
-        Gtk.on scale Gtk.valueChanged $ eventAusführen tvarEventAusführen $ do
-            wert <- floor <$> Gtk.get scale Gtk.rangeValue
+        Gtk.onRangeValueChanged scale $ eventAusführen tvarEventAusführen $ do
+            adjustment <- Gtk.get scale Gtk.rangeAdjustment
+            wert <- floor <$> Gtk.get adjustment Gtk.adjustmentValue
             flip runReaderT objektReader $ flip auswertenStatusVarMStatusT statusVar $ do
                 ausführenAktion $ Geschwindigkeit bahngeschwindigkeit wert
                 -- Widgets synchronisieren
@@ -847,8 +853,9 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
             wert
             | elem (ZugtypMärklin $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgTVarEvent
-                $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+                ohneEvent bgTVarEvent $ do
+                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitPwm
@@ -859,8 +866,9 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
             wert
             | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgTVarEvent
-                $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+                ohneEvent bgTVarEvent $ do
+                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
         bgWidgetsSynchronisieren _bgWidgets _wert = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Word8 -> IO ()
@@ -870,16 +878,18 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
             wert
             | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent (tvarEvent ws)
-                $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+                ohneEvent (tvarEvent ws) $ do
+                    adjustment <- Gtk.get scaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
         wsWidgetsSynchronisieren
             (ZugtypLego
                  ws@(scaleGeschwindigkeit . GeschwindigkeitPhantom -> Just scaleGeschwindigkeit))
             wert
             | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent (tvarEvent ws)
-                $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := fromIntegral wert]
+                ohneEvent (tvarEvent ws) $ do
+                    adjustment <- Gtk.get scaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
 
 -- | Füge 'AuswahlWidget' zum einstellen des Fahrstroms zur Box hinzu
@@ -905,7 +915,7 @@ auswahlFahrstromPackNew
     => b
     -> bg 'KonstanteSpannung z
     -> Word8
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> TVar EventAusführen
     -> StatusVar o
     -> m (AuswahlWidget Word8)
@@ -1016,7 +1026,7 @@ buttonUmdrehenPackNew
     )
     => b
     -> bg g 'Märklin
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> TVar EventAusführen
     -> StatusVar o
     -> m Gtk.Button
@@ -1047,7 +1057,9 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
                       , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}))
             | elem (ZugtypMärklin $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgTVarEvent $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                ohneEvent bgTVarEvent $ do
+                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := 0]
         bgWidgetsSynchronisieren
             (ZugtypMärklin
                  (GeschwindigkeitKonstanteSpannung
@@ -1066,7 +1078,9 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
                       , bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}))
             | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
-                ohneEvent bgTVarEvent $ Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                ohneEvent bgTVarEvent $ do
+                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := 0]
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitKonstanteSpannung
@@ -1113,8 +1127,9 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
                     $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit
             case scaleGeschwindigkeit (GeschwindigkeitPhantom ws) of
                 (Just scaleGeschwindigkeit)
-                    | istBahngeschwindigkeitTeilmenge -> ohneEvent wsTVarEvent
-                        $ Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := 0]
+                    | istBahngeschwindigkeitTeilmenge -> ohneEvent wsTVarEvent $ do
+                        adjustment <- Gtk.get scaleGeschwindigkeit Gtk.rangeAdjustment
+                        Gtk.set adjustment [Gtk.adjustmentValue := 0]
                 _otherwise -> pure ()
             case auswahlFahrstrom (GeschwindigkeitPhantom ws) of
                 (Just auswahlFahrstrom)
@@ -1144,7 +1159,7 @@ auswahlFahrtrichtungEinstellenPackNew
     )
     => b
     -> bg g 'Lego
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> TVar EventAusführen
     -> StatusVar o
     -> m (AuswahlWidget Fahrtrichtung)
@@ -1186,7 +1201,8 @@ auswahlFahrtrichtungEinstellenPackNew
             | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgTVarEvent $ do
-                    Gtk.set wScaleGeschwindigkeit [Gtk.rangeValue := 0]
+                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
+                    Gtk.set adjustment [Gtk.adjustmentValue := 0]
                     setzeAuswahl wAuswahlFahrtrichtung fahrtrichtung
         bgWidgetsSynchronisieren
             (ZugtypLego
@@ -1210,8 +1226,9 @@ auswahlFahrtrichtungEinstellenPackNew
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws) $ do
                     case scaleGeschwindigkeit (GeschwindigkeitPhantom ws) of
-                        (Just scaleGeschwindigkeit)
-                            -> Gtk.set scaleGeschwindigkeit [Gtk.rangeValue := 0]
+                        (Just scaleGeschwindigkeit) -> do
+                            adjustment <- Gtk.get scaleGeschwindigkeit Gtk.rangeAdjustment
+                            Gtk.set adjustment [Gtk.adjustmentValue := 0]
                         Nothing -> pure ()
                     case auswahlFahrstrom (GeschwindigkeitPhantom ws) of
                         (Just auswahlFahrstrom) -> setzeAuswahl auswahlFahrstrom 0

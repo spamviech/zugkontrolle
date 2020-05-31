@@ -55,7 +55,6 @@ module Zug.UI.Gtk.Hilfsfunktionen
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Int (Int32)
 import Data.Text (Text)
@@ -71,7 +70,7 @@ import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), MitContainer(..)
       , mitContainerAdd, mitContainerRemove, MitButton(..), MitToggleButton(..), MitDialog(..)
       , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui, TVarSprachewechselAktionen)
 
 -- | 'Widget' erstellen und anzeigen
 widgetShowNew :: (MonadIO m, MitWidget w) => m w -> m w
@@ -163,7 +162,7 @@ boxPackDefault box widget = boxPack box widget packingDefault paddingDefault pos
 notebookAppendPageNew
     :: (SpracheGuiReader r m, MonadIO m, MitNotebook n, MitWidget w)
     => n
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> m w
     -> m (w, Int32)
@@ -223,7 +222,7 @@ buttonNewWithEvent konstruktor event = do
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 buttonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m)
-                        => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                        => Maybe TVarSprachewechselAktionen
                         -> (Sprache -> Text)
                         -> IO ()
                         -> m Gtk.Button
@@ -249,7 +248,7 @@ toggleButtonNewWithEvent konstruktor event = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 toggleButtonNewWithEventLabel
     :: (SpracheGuiReader r m, MonadIO m)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    => Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> (Bool -> IO ())
     -> m Gtk.ToggleButton
@@ -265,7 +264,7 @@ toggleButtonNewWithEventLabel maybeTVar label event = do
 -- Wird eine 'TVar' übergeben kann das Anpassen des Labels aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 labelSpracheNew :: (SpracheGuiReader r m, MonadIO m)
-                => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                => Maybe TVarSprachewechselAktionen
                 -> (Sprache -> Text)
                 -> m Gtk.Label
 labelSpracheNew maybeTVar text = do
@@ -308,7 +307,7 @@ instance MitEntry NameAuswahlWidget where
 -- | Name abfragen.
 nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b)
                    => b
-                   -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   -> Maybe TVarSprachewechselAktionen
                    -> m NameAuswahlWidget
 nameAuswahlPackNew box maybeTVar = do
     hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0

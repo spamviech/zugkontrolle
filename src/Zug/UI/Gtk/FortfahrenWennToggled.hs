@@ -39,7 +39,6 @@ module Zug.UI.Gtk.FortfahrenWennToggled
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import qualified Control.Lens as Lens
 import Control.Monad (foldM_, forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
@@ -51,7 +50,7 @@ import qualified GI.Gtk as Gtk
 import Zug.Language (Sprache())
 import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitContainer(..), MitButton(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
@@ -84,7 +83,7 @@ instance MitButton FortfahrenWennToggled where
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fortfahrenWennToggledNew
     :: (SpracheGuiReader r m, MonadIO m)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    => Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> NonEmpty (Sprache -> Text)
     -> m FortfahrenWennToggled
@@ -166,7 +165,7 @@ instance MitButton (FortfahrenWennToggledVar a v c) where
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fortfahrenWennToggledVarNew
     :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    => Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> Lens.Fold a c
     -> (v -> IO a)
@@ -206,7 +205,7 @@ newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 registrierterCheckButtonNew
     :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
-    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+    => Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> FortfahrenWennToggledVar a v c
     -> m RegistrierterCheckButton

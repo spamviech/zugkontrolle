@@ -46,7 +46,7 @@ aktionStreckenabschnittAuswahlPackNew
     :: (MitBox b, SpracheGuiReader r m, DynamischeWidgetsReader r m, MonadFix m, MonadIO m)
     => b
     -> Gtk.Window
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> IO ()
     -> (forall rr mm. (SpracheGuiReader rr mm, MonadIO mm) => Aktion -> mm ())
     -> m Gtk.HBox

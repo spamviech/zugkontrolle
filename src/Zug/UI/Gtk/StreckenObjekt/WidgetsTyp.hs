@@ -33,14 +33,13 @@ import Data.GI.Gtk.Threading as Gtk
 import Data.Kind (Type, Constraint)
 import qualified GI.Gtk as Gtk
 
-import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektElement(..))
 import Zug.UI.Base (ObjektReader, ReaderFamilie, IOStatusAllgemein)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNew, buttonNewWithEventLabel, Packing(PackNatural)
                                  , paddingDefault, Position(End))
 import Zug.UI.Gtk.Klassen (MitWidget())
-import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), SpracheGuiReader())
+import Zug.UI.Gtk.SpracheGui (MitSpracheGui(), SpracheGuiReader(), TVarSprachewechselAktionen)
 import Zug.UI.StatusVar
        (MitStatusVar(), StatusVarReader(erhalteStatusVar), auswertenStatusVarIOStatus)
 
@@ -65,7 +64,7 @@ class (MitWidget s, ObjektElement s) => WidgetsTyp s where
 
     -- | Erhalte die 'TVar', die steuert welche Widgets bei 'Zug.UI.Gtk.SpracheGui.sprachwechsel'
     -- angepasst werden.
-    tvarSprache :: s -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: s -> TVarSprachewechselAktionen
 
     -- | Erhalte die 'TVar', die steuert ob Events ausgeführt werden.
     tvarEvent :: s -> TVar EventAusführen

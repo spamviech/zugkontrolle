@@ -17,6 +17,7 @@ module Zug.UI.Gtk.SpracheGui
   , sprachwechsel
   , verwendeSpracheGui
   , verwendeSpracheGuiFn
+  , TVarSprachewechselAktionen
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar, writeTVar)
@@ -55,7 +56,7 @@ spracheGuiNeu :: (MonadIO m) => Sprache -> m SpracheGui
 spracheGuiNeu sprache = liftIO $ SpracheGui <$> newTVarIO sprache <*> newTVarIO []
 
 -- | Abkürzung für eine 'Sprache'-abhängige Aktion, oder eine 'TVar' mit 'Maybe' einer Liste davon.
-type AktionOderTVar = Either (Sprache -> IO ()) (TVar (Maybe [Sprache -> IO ()]))
+type AktionOderTVar = Either (Sprache -> IO ()) TVarSprachewechselAktionen
 
 -- | Wechsel die 'Sprache' eines 'SpracheGui' und führe alle zugehörigen 'IO'-Aktionen aus.
 sprachwechsel :: (MonadIO m) => SpracheGui -> Sprache -> m ()
@@ -86,7 +87,7 @@ sprachwechsel SpracheGui {tvarSprache, sprachwechselAktionen} sprache = liftIO $
 -- 'Nothing' hat wird die Aktion gelöscht.
 -- Ansonsten werden alle Aktionen darin ausgeführt.
 verwendeSpracheGui :: (SpracheGuiReader r m, MonadIO m)
-                   => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   => Maybe TVarSprachewechselAktionen
                    -> (Sprache -> IO ())
                    -> m ()
 verwendeSpracheGui maybeTVar neueAktion = do
@@ -94,11 +95,8 @@ verwendeSpracheGui maybeTVar neueAktion = do
     verwendeSpracheGuiFn readerSpracheGui maybeTVar neueAktion
 
 -- | Wie 'verwendeSpracheGui' mit explizit übergebenem 'SpracheGui'.
-verwendeSpracheGuiFn :: (MonadIO m)
-                     => SpracheGui
-                     -> Maybe (TVar (Maybe [Sprache -> IO ()]))
-                     -> (Sprache -> IO ())
-                     -> m ()
+verwendeSpracheGuiFn
+    :: (MonadIO m) => SpracheGui -> Maybe TVarSprachewechselAktionen -> (Sprache -> IO ()) -> m ()
 verwendeSpracheGuiFn SpracheGui {tvarSprache, sprachwechselAktionen} maybeTVar neueAktion =
     liftIO $ do
         sprache <- readTVarIO tvarSprache
@@ -112,3 +110,8 @@ verwendeSpracheGuiFn SpracheGui {tvarSprache, sprachwechselAktionen} maybeTVar n
                 atomically $ modifyTVar tvar $ fmap (neueAktion :)
             -- füge neueAktion als permanente Aktion zu sprachwechselAktionen hinzu
             Nothing -> atomically $ modifyTVar sprachwechselAktionen (Left neueAktion :)
+
+-- | Eine 'TVar' mit Aktionen, die bei einem 'sprachwechsel' ausgeführt werden.
+-- Wird der Inhalt der 'TVar' auf 'Nothing' gesetzt wird sie beim nächsten 'sprachwechsel'
+-- aus der Aktionsliste der 'SpracheGui' gelöscht.
+type TVarSprachewechselAktionen = TVar (Maybe [Sprache -> IO ()])

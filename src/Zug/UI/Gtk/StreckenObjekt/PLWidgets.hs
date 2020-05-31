@@ -96,7 +96,7 @@ data PLWidgets =
     , plWidget :: Gtk.Frame
     , plFunktionBox :: Gtk.Box
     , plHinzPL :: ButtonPlanHinzufügen PLWidgets
-    , plTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , plTVarSprache :: TVarSprachewechselAktionen
     , plTVarEvent :: TVar EventAusführen
     }
 
@@ -147,7 +147,7 @@ instance WidgetsTyp PLWidgets where
     boxButtonEntfernen :: PLWidgets -> Gtk.Box
     boxButtonEntfernen = plFunktionBox
 
-    tvarSprache :: PLWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: PLWidgets -> TVarSprachewechselAktionen
     tvarSprache = plTVarSprache
 
     tvarEvent :: PLWidgets -> TVar EventAusführen

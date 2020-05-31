@@ -92,7 +92,7 @@ data WSWidgets (z :: Zugtyp) =
     , wsWidget :: Gtk.Frame
     , wsFunktionBox :: Gtk.Box
     , wsHinzPL :: WegstreckePlanHinzufügenWidget z
-    , wsTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , wsTVarSprache :: TVarSprachewechselAktionen
     , wsTVarEvent :: TVar EventAusführen
     , wsScaleGeschwindigkeit :: Maybe Gtk.HScale
     , wsAuswahlFahrstrom :: Maybe (AuswahlWidget Word8)
@@ -182,7 +182,7 @@ instance (PlanElement (WSWidgets z), ZugtypKlasse z) => WidgetsTyp (WSWidgets z)
     boxButtonEntfernen :: WSWidgets z -> Gtk.Box
     boxButtonEntfernen = wsFunktionBox
 
-    tvarSprache :: WSWidgets z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: WSWidgets z -> TVarSprachewechselAktionen
     tvarSprache = wsTVarSprache
 
     tvarEvent :: WSWidgets z -> TVar EventAusführen
@@ -210,7 +210,7 @@ instance WidgetsTyp (ZugtypEither WSWidgets) where
     boxButtonEntfernen (ZugtypMärklin wsWidgets) = boxButtonEntfernen wsWidgets
     boxButtonEntfernen (ZugtypLego wsWidgets) = boxButtonEntfernen wsWidgets
 
-    tvarSprache :: ZugtypEither WSWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: ZugtypEither WSWidgets -> TVarSprachewechselAktionen
     tvarSprache (ZugtypMärklin wsWidgets) = tvarSprache wsWidgets
     tvarSprache (ZugtypLego wsWidgets) = tvarSprache wsWidgets
 
@@ -239,7 +239,7 @@ instance (PlanElement (WSWidgets z), ZugtypKlasse z)
     boxButtonEntfernen :: GeschwindigkeitPhantom WSWidgets g z -> Gtk.Box
     boxButtonEntfernen (GeschwindigkeitPhantom wsWidgets) = boxButtonEntfernen wsWidgets
 
-    tvarSprache :: GeschwindigkeitPhantom WSWidgets g z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: GeschwindigkeitPhantom WSWidgets g z -> TVarSprachewechselAktionen
     tvarSprache (GeschwindigkeitPhantom wsWidgets) = tvarSprache wsWidgets
 
     tvarEvent :: GeschwindigkeitPhantom WSWidgets g z -> TVar EventAusführen

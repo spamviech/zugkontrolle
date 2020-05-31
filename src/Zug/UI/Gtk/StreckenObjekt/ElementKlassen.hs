@@ -34,7 +34,7 @@ module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Applicative (ZipList(..))
-import Control.Concurrent.STM (atomically, TVar, TMVar, putTMVar)
+import Control.Concurrent.STM (atomically, TMVar, putTMVar)
 import Control.Lens ((^.), (^..))
 import qualified Control.Lens as Lens
 import Control.Monad.Reader.Class (MonadReader(ask), asks)
@@ -46,7 +46,6 @@ import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(erhalteName))
 import Zug.Enums (Richtung(), ZugtypEither(), GeschwindigkeitEither)
-import Zug.Language (Sprache())
 import Zug.Objekt (Objekt, ObjektElement(zuObjekt, ObjektTyp, zuObjektTyp), ObjektKlasse(..))
 import Zug.UI.Base
        (StatusAllgemein(), bahngeschwindigkeiten, streckenabschnitte, weichen, kupplungen, kontakte)
@@ -55,7 +54,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled
        (FortfahrenWennToggledVar, RegistrierterCheckButton, registrierterCheckButtonNew)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (WidgetHinzufügen, HinzufügenZiel(..), BoxWegstreckeHinzufügen
       , CheckButtonWegstreckeHinzufügen, WegstreckeCheckButton(..), BoxPlanHinzufügen
@@ -105,10 +104,10 @@ hinzufügenWidgetWegstreckePackNew
     , MonadIO m
     )
     => ObjektTyp s
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
     -> m (CheckButtonWegstreckeHinzufügen Void s)
-hinzufügenWidgetWegstreckePackNew objekt tvar fortfahrenWennToggledWegstrecke = do
+hinzufügenWidgetWegstreckePackNew objekt tvar fortfahrenWennToggled = do
     reader <- ask
     let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
     widgetHinzufügenBoxPackNew box
@@ -116,7 +115,7 @@ hinzufügenWidgetWegstreckePackNew objekt tvar fortfahrenWennToggledWegstrecke =
         <$> registrierterCheckButtonNew
             (Just tvar)
             (const $ erhalteName objekt)
-            fortfahrenWennToggledWegstrecke
+            fortfahrenWennToggled
 
 -- | Erzeuge einen 'RegistrierterCheckButton'.
 -- Dieser enthält ein 'Label' für den Namen und einem 'AuswahlWidget' für die übergebenen 'Richtung'en.
@@ -133,30 +132,30 @@ hinzufügenWidgetWegstreckeRichtungPackNew
     )
     => ObjektTyp s
     -> NonEmpty Richtung
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
     -> m (CheckButtonWegstreckeHinzufügen Richtung s)
-hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWennToggledWegstrecke =
-    do
-        reader <- ask
-        let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
-        let justTVar = Just tvar
-        widgetHinzufügenBoxPackNew box $ do
-            hBox <- liftIO $ Gtk.hBoxNew False 0
-            wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox
-                $ registrierterCheckButtonNew
-                    justTVar
-                    (const $ erhalteName objekt)
-                    fortfahrenWennToggledWegstrecke
-            wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox
-                $ auswahlRadioButtonNew richtungen justTVar
-                $ const Text.empty
-            pure
-                WegstreckeCheckButtonRichtung
-                { wcbrWidget = erhalteWidget hBox
-                , wcbrRegistrierterCheckButton
-                , wcbrRichtungsAuswahl
-                }
+hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWennToggled = do
+    reader <- ask
+    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
+    let justTVar = Just tvar
+    widgetHinzufügenBoxPackNew box $ do
+        hBox <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
+        wcbrWidget <- erhalteWidget hBox
+        wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox
+            $ registrierterCheckButtonNew
+                justTVar
+                (const $ erhalteName objekt)
+                fortfahrenWennToggled
+        wcbrRichtungsAuswahl <- boxPackWidgetNewDefault hBox
+            $ auswahlRadioButtonNew richtungen justTVar
+            $ const Text.empty
+        pure
+            WegstreckeCheckButtonRichtung
+            { wcbrWidget
+            , wcbrRegistrierterCheckButton
+            , wcbrRichtungsAuswahl
+            }
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets
@@ -239,14 +238,14 @@ hinzufügenWidgetPlanPackNew
        )
     => BoxPlanHinzufügen o
     -> ObjektTyp o
-    -> TVar (Maybe [Sprache -> IO ()])
+    -> TVarSprachewechselAktionen
     -> m (ButtonPlanHinzufügen o)
 hinzufügenWidgetPlanPackNew box objekt tvar = do
-    tmvarPlanObjekt <- erhalteTMVarPlanObjekt
+    readerTMVarPlanObjekt <- erhalteTMVarPlanObjekt
     widgetHinzufügenBoxPackNew box
         $ buttonNewWithEventLabel (Just tvar) (const $ erhalteName objekt)
         $ atomically
-        $ putTMVar tmvarPlanObjekt
+        $ putTMVar readerTMVarPlanObjekt
         $ Just
         $ zuObjekt objekt
 
@@ -254,10 +253,10 @@ hinzufügenWidgetPlanPackNew box objekt tvar = do
 entferneHinzufügenPlanWidgets
     :: forall s r m. (PlanElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenPlanWidgets planElement = do
-    boxenPlan <- Lens.toListOf (boxenPlan $ zuObjektTyp planElement) <$> ask
+    boxenPlanHinzufügen <- Lens.toListOf (boxenPlan $ zuObjektTyp planElement) <$> ask
         :: m [BoxPlanHinzufügen s]
     sequence_
-        $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlan
+        $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlanHinzufügen
         <*> ZipList (planElement ^.. foldPlan)
 #endif
 --

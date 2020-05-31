@@ -34,7 +34,6 @@ module Zug.UI.Gtk.Auswahl
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad (when, void, forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.GI.Gtk as Gtk
@@ -49,7 +48,7 @@ import GI.Gtk (AttrOp(..))
 import Zug.Language (Sprache(..), Anzeige(..))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
 
 -- | Auswahl-Widget für ein 'Bounded' 'Enum'
 data AuswahlWidget e
@@ -76,7 +75,7 @@ nameWrapSize = 16
 auswahlRadioButtonNamedNew
     :: (SpracheGuiReader r m, MonadIO m, Eq e)
     => NonEmpty e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> (e -> Sprache -> Text)
     -> m (AuswahlWidget e)
@@ -108,7 +107,7 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 auswahlRadioButtonNew :: (SpracheGuiReader r m, MonadIO m, Eq e, Anzeige e)
                       => NonEmpty e
-                      -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                      -> Maybe TVarSprachewechselAktionen
                       -> (Sprache -> Text)
                       -> m (AuswahlWidget e)
 auswahlRadioButtonNew elemente maybeTVar name =
@@ -122,7 +121,7 @@ auswahlRadioButtonNew elemente maybeTVar name =
 boundedEnumAuswahlRadioButtonNew
     :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e)
     => e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> m (AuswahlWidget e)
 boundedEnumAuswahlRadioButtonNew
@@ -135,7 +134,7 @@ boundedEnumAuswahlRadioButtonNew
 auswahlComboBoxNamedNew
     :: (SpracheGuiReader r m, MonadIO m, Eq e)
     => NonEmpty e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> (e -> Sprache -> Text)
     -> m (AuswahlWidget e)
@@ -165,7 +164,7 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 auswahlComboBoxNew :: (SpracheGuiReader r m, MonadIO m, Eq e, Anzeige e)
                    => NonEmpty e
-                   -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                   -> Maybe TVarSprachewechselAktionen
                    -> (Sprache -> Text)
                    -> m (AuswahlWidget e)
 auswahlComboBoxNew elemente maybeTVar name =
@@ -179,7 +178,7 @@ auswahlComboBoxNew elemente maybeTVar name =
 boundedEnumAuswahlComboBoxNew
     :: (SpracheGuiReader r m, MonadIO m, Bounded e, Enum e, Eq e, Anzeige e)
     => e
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
     -> m (AuswahlWidget e)
 boundedEnumAuswahlComboBoxNew

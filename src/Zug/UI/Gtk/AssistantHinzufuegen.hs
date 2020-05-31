@@ -118,7 +118,7 @@ assistantHinzufügenNew
     , MonadIO m
     )
     => p
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> m AssistantHinzufügen
 assistantHinzufügenNew parent maybeTVar = mdo
     (tmVarErgebnis, window, vBox, notebook) <- liftIO $ do

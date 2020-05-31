@@ -86,7 +86,7 @@ data WEWidgets (z :: Zugtyp) =
     , weFunctionBox :: Gtk.HBox
     , weHinzWS :: CheckButtonWegstreckeHinzufügen Richtung (WEWidgets z)
     , weHinzPL :: WeichePlanHinzufügenWidgets z
-    , weTVarSprache :: TVar (Maybe [Sprache -> IO ()])
+    , weTVarSprache :: TVarSprachewechselAktionen
     , weTVarEvent :: TVar EventAusführen
     , weRichtungsButtons :: NonEmpty (Richtung, Gtk.Button)
     }
@@ -155,7 +155,7 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z), ZugtypKla
     boxButtonEntfernen :: WEWidgets z -> Gtk.Box
     boxButtonEntfernen = erhalteBox . weFunctionBox
 
-    tvarSprache :: WEWidgets z -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: WEWidgets z -> TVarSprachewechselAktionen
     tvarSprache = weTVarSprache
 
     tvarEvent :: WEWidgets z -> TVar EventAusführen
@@ -183,7 +183,7 @@ instance WidgetsTyp (ZugtypEither WEWidgets) where
     boxButtonEntfernen (ZugtypMärklin weWidgets) = boxButtonEntfernen weWidgets
     boxButtonEntfernen (ZugtypLego weWidgets) = boxButtonEntfernen weWidgets
 
-    tvarSprache :: ZugtypEither WEWidgets -> TVar (Maybe [Sprache -> IO ()])
+    tvarSprache :: ZugtypEither WEWidgets -> TVarSprachewechselAktionen
     tvarSprache (ZugtypMärklin weWidgets) = tvarSprache weWidgets
     tvarSprache (ZugtypLego weWidgets) = tvarSprache weWidgets
 
@@ -420,7 +420,7 @@ weichePackNew weiche = do
             :: Weiche z
             -> Gtk.HBox
             -> ScrollbaresWidget Gtk.VBox
-            -> TVar (Maybe [Sprache -> IO ()])
+            -> TVarSprachewechselAktionen
             -> TVar EventAusführen
             -> MStatusAllgemeinT m o (NonEmpty (Richtung, Gtk.Button))
         richtungsButtonsPackNew

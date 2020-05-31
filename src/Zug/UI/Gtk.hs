@@ -72,7 +72,7 @@ main = do
     putWarningLn Language.uiNichtUnterstützt
     Cmd.main
 
-setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
+setupGUI :: Maybe TVarSprachewechselAktionen -> IO ()
 setupGUI _maybeTVar = putWarningLn Language.uiNichtUnterstützt
 
 putWarningLn :: (Sprache -> Text) -> IO ()
@@ -98,7 +98,7 @@ main = runInBoundThread $ do
 --
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
-setupGUI :: Maybe (TVar (Maybe [Sprache -> IO ()])) -> IO ()
+setupGUI :: Maybe TVarSprachewechselAktionen -> IO ()
 setupGUI maybeTVar = void $ mdo
     Options {load = dateipfad, gtkSeiten, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache

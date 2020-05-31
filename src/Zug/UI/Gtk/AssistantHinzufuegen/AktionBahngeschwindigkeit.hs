@@ -55,7 +55,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
     => b
     -> Gtk.Window
     -> AuswahlWidget Zugtyp
-    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+    -> Maybe TVarSprachewechselAktionen
     -> (Maybe GeschwindigkeitVariante -> IO ())
     -> (forall rr mm. (SpracheGuiReader rr mm, MonadIO mm) => Aktion -> mm ())
     -> m Gtk.HBox

@@ -24,19 +24,18 @@ module Zug.UI.Gtk.Fliessend
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM.TVar (TVar)
 import Control.Monad.Trans (MonadIO(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenAtom(..), Value(..))
-import Zug.Language (Sprache(), (<:>))
+import Zug.Language ((<:>))
 import qualified Zug.Language as Language
 import Zug.UI.Gtk.Auswahl
        (AuswahlWidget, boundedEnumAuswahlComboBoxNew, aktuelleAuswahl, setzeAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen
        (boxPackWidgetNew, boxPackWidgetNewDefault, packingDefault, positionDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..), MitLabel(..), MitBox(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader())
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), TVarSprachewechselAktionen)
 
 -- | Widget zur Anzeige des Fließend-Value
 newtype FließendWidget = FließendWidget Gtk.Label
@@ -49,7 +48,7 @@ newtype FließendWidget = FließendWidget Gtk.Label
 fließendPackNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s, MitBox b)
                  => b
                  -> s
-                 -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                 -> Maybe TVarSprachewechselAktionen
                  -> m FließendWidget
 fließendPackNew box s maybeTVar =
     boxPackWidgetNew box packingDefault 3 positionDefault $ fließendNew s maybeTVar
@@ -60,7 +59,7 @@ fließendPackNew box s maybeTVar =
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fließendNew :: (SpracheGuiReader r m, MonadIO m, StreckenAtom s)
              => s
-             -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+             -> Maybe TVarSprachewechselAktionen
              -> m FließendWidget
 fließendNew s maybeTVar =
     fmap FließendWidget $ labelSpracheNew maybeTVar $ Language.fließendValue <:> fließend s
@@ -76,7 +75,7 @@ newtype FließendAuswahlWidget =
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fließendAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b)
                         => b
-                        -> Maybe (TVar (Maybe [Sprache -> IO ()]))
+                        -> Maybe TVarSprachewechselAktionen
                         -> m FließendAuswahlWidget
 fließendAuswahlPackNew box = boxPackWidgetNewDefault box . fließendAuswahlNew
 
@@ -85,7 +84,7 @@ fließendAuswahlPackNew box = boxPackWidgetNewDefault box . fließendAuswahlNew
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 fließendAuswahlNew :: (SpracheGuiReader r m, MonadIO m)
-                    => Maybe (TVar (Maybe [Sprache -> IO ()]))
+                    => Maybe TVarSprachewechselAktionen
                     -> m FließendAuswahlWidget
 fließendAuswahlNew maybeTVar =
     FließendAuswahlWidget <$> boundedEnumAuswahlComboBoxNew LOW maybeTVar Language.fließend
