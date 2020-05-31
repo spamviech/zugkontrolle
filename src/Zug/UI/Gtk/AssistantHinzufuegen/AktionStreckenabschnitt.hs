@@ -18,17 +18,18 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (atomically, TVar, takeTMVar)
+import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import qualified Data.GI.Gtk.Threading as Gtk
 import qualified Data.Text as Text
 import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..), Strom(Fließend))
-import Zug.Language (Sprache(), MitSprache(leseSprache), (<:>))
+import Zug.Language (MitSprache(leseSprache), (<:>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OStreckenabschnitt, OWegstrecke))
 import Zug.Plan
@@ -38,7 +39,7 @@ import Zug.Plan
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlRadioButtonNew, aktuelleAuswahl)
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Streckenabschnitt'-'Aktion'.
@@ -49,21 +50,22 @@ aktionStreckenabschnittAuswahlPackNew
     -> Maybe TVarSprachewechselAktionen
     -> IO ()
     -> (forall rr mm. (SpracheGuiReader rr mm, MonadIO mm) => Aktion -> mm ())
-    -> m Gtk.HBox
+    -> m Gtk.Box
 aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxStreckenabschnitt <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+    hBoxStreckenabschnitt
+        <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxStreckenabschnitt
         $ buttonNewWithEventLabel maybeTVar Language.strom
         $ void
         $ do
             strom <- aktuelleAuswahl auswahlStrom
             forkIO $ do
-                Gtk.postGUIASync $ do
+                Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.set
                         windowObjektAuswahl
-                        [Gtk.windowTitle := leseSprache (Language.strom <:> strom) spracheGui]
+                        [Gtk.windowTitle := (Language.strom <:> strom) sprache]
                     showST
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt

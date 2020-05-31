@@ -17,22 +17,23 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionKontakt
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (atomically, TVar, takeTMVar)
+import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import qualified Data.GI.Gtk.Threading as Gtk
 import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..))
-import Zug.Language (Sprache(), MitSprache(leseSprache))
+import Zug.Language (MitSprache(leseSprache))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKontakt, OWegstrecke))
 import Zug.Plan (AktionAllgemein(AKontakt, AWegstreckeMärklin, AWegstreckeLego), Aktion
                , AktionKontakt(..), AktionWegstrecke(AWSKontakt))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLabel)
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..))
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Kupplung's-'Aktion'.
@@ -43,20 +44,18 @@ aktionKontaktAuswahlPackNew
     -> Maybe TVarSprachewechselAktionen
     -> IO ()
     -> (forall rr mm. (SpracheGuiReader rr mm, MonadIO mm) => Aktion -> mm ())
-    -> m Gtk.HBox
+    -> m Gtk.Box
 aktionKontaktAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxKontakt <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+    hBoxKontakt <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxKontakt
         $ buttonNewWithEventLabel maybeTVar Language.wartenAuf
         $ void
         $ forkIO
         $ do
-            Gtk.postGUIASync $ do
-                Gtk.set
-                    windowObjektAuswahl
-                    [Gtk.windowTitle := leseSprache Language.wartenAuf spracheGui]
+            Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
+                Gtk.set windowObjektAuswahl [Gtk.windowTitle := Language.wartenAuf sprache]
                 showKU
                 mitWidgetShow windowObjektAuswahl
             maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
