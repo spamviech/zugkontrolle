@@ -36,7 +36,6 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import qualified Data.Text as Text
 import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
@@ -44,7 +43,7 @@ import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheCo
                     , AnschlussEither(), I2CReader(), PwmReader())
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), ZugtypKlasse(zuZugtypEither), mapZugtypEither
                 , ausZugtypEither, Richtung(..))
-import Zug.Language (Sprache(), Anzeige(anzeige))
+import Zug.Language (Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt, ObjektAllgemein(OWeiche), ObjektKlasse(..), ObjektElement(..))
 import Zug.Plan (AktionWeiche(..))
@@ -57,7 +56,7 @@ import Zug.UI.Gtk.FortfahrenWennToggled (FortfahrenWennToggledVar)
 import Zug.UI.Gtk.Hilfsfunktionen
        (containerAddWidgetNew, boxPackWidgetNewDefault, boxPackWidgetNew, Packing(PackGrow)
       , paddingDefault, positionDefault, buttonNewWithEventLabel, namePackNew)
-import Zug.UI.Gtk.Klassen (MitWidget(..), MitBox(..), mitContainerRemove)
+import Zug.UI.Gtk.Klassen (MitWidget(..), mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (ScrollbaresWidget, scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (SpracheGui, MitSpracheGui(), verwendeSpracheGui, TVarSprachewechselAktionen)
@@ -83,8 +82,8 @@ instance Kategorie (WEWidgets z) where
 data WEWidgets (z :: Zugtyp) =
     WEWidgets
     { we :: Weiche z
-    , weWidget :: Gtk.VBox
-    , weFunctionBox :: Gtk.HBox
+    , weWidget :: Gtk.Box
+    , weFunctionBox :: Gtk.Box
     , weHinzWS :: CheckButtonWegstreckeHinzufügen Richtung (WEWidgets z)
     , weHinzPL :: WeichePlanHinzufügenWidgets z
     , weTVarSprache :: TVarSprachewechselAktionen
@@ -132,7 +131,7 @@ class (MonadReader r m, MitWEWidgetsBoxen r) => WEWidgetsBoxenReader r m | m -> 
 instance (MonadReader r m, MitWEWidgetsBoxen r) => WEWidgetsBoxenReader r m
 
 instance MitWidget (WEWidgets z) where
-    erhalteWidget :: WEWidgets z -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => WEWidgets z -> m Gtk.Widget
     erhalteWidget = erhalteWidget . weWidget
 
 instance (ZugtypKlasse z) => ObjektElement (WEWidgets z) where
@@ -154,7 +153,7 @@ instance (WegstreckenElement (WEWidgets z), PlanElement (WEWidgets z), ZugtypKla
         liftIO $ atomically $ writeTVar weTVarSprache Nothing
 
     boxButtonEntfernen :: WEWidgets z -> Gtk.Box
-    boxButtonEntfernen = erhalteBox . weFunctionBox
+    boxButtonEntfernen = weFunctionBox
 
     tvarSprache :: WEWidgets z -> TVarSprachewechselAktionen
     tvarSprache = weTVarSprache
@@ -317,7 +316,7 @@ instance (ZugtypKlasse z) => WeicheKlasse (WEWidgets z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
     stellen WEWidgets {weRichtungsButtons} richtung =
         case lookup richtung $ NonEmpty.toList weRichtungsButtons of
-            (Just button) -> liftIO $ Gtk.buttonPressed button
+            (Just button) -> liftIO $ Gtk.buttonClicked button
             Nothing -> pure ()
 
     erhalteRichtungen :: WEWidgets z -> NonEmpty Richtung
@@ -349,7 +348,7 @@ weichePackNew
     => Weiche z
     -> MStatusAllgemeinT m o (WEWidgets z)
 weichePackNew weiche = do
-    weWidgetsBoxen@WEWidgetsBoxen {vBoxWeichen} <- erhalteWEWidgetsBoxen
+    widgetsBoxen@WEWidgetsBoxen {vBoxWeichen} <- erhalteWEWidgetsBoxen
     (weTVarSprache, weTVarEvent) <- liftIO $ do
         weTVarSprache <- newTVarIO $ Just []
         weTVarEvent <- newTVarIO EventAusführen
@@ -363,7 +362,7 @@ weichePackNew weiche = do
         (erhalteRichtungen weiche)
         weTVarSprache
         fortfahrenWennToggledWegstrecke
-    let [boxGerade, boxKurve, boxLinks, boxRechts] = weWidgetsBoxen ^.. boxenPlan weiche
+    let [boxGerade, boxKurve, boxLinks, boxRechts] = widgetsBoxen ^.. boxenPlan weiche
     hinzufügenPlanWidgetGerade <- if hatRichtung weiche Gerade
         then Just <$> hinzufügenWidgetPlanPackNew boxGerade weiche weTVarSprache
         else pure Nothing
@@ -384,16 +383,16 @@ weichePackNew weiche = do
             , rechts = hinzufügenPlanWidgetRechts
             }
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.vBoxNew False 0
+    vBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox weiche
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
         expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
+            $ Gtk.expanderNew Nothing
         vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
             $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
-    weFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    weFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     weRichtungsButtons
@@ -419,8 +418,8 @@ weichePackNew weiche = do
     where
         richtungsButtonsPackNew
             :: Weiche z
-            -> Gtk.HBox
-            -> ScrollbaresWidget Gtk.VBox
+            -> Gtk.Box
+            -> ScrollbaresWidget Gtk.Box
             -> TVarSprachewechselAktionen
             -> TVar EventAusführen
             -> MStatusAllgemeinT m o (NonEmpty (Richtung, Gtk.Button))

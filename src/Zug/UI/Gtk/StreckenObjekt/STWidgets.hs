@@ -36,7 +36,6 @@ import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import qualified Data.Text as Text
 import Data.Void (Void)
 import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
@@ -45,7 +44,6 @@ import Zug.Anbindung
        (Streckenabschnitt(..), StreckenabschnittKlasse(..), StreckenabschnittContainer(..)
       , StreckenObjekt(..), AnschlussEither(), I2CReader())
 import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..))
-import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt), ObjektElement(..))
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
@@ -85,8 +83,8 @@ instance Kategorie STWidgets where
 data STWidgets =
     STWidgets
     { st :: Streckenabschnitt
-    , stWidget :: Gtk.VBox
-    , stFunctionBox :: Gtk.HBox
+    , stWidget :: Gtk.Box
+    , stFunctionBox :: Gtk.Box
     , stHinzWS :: CheckButtonWegstreckeHinzufügen Void STWidgets
     , stHinzPL :: ButtonPlanHinzufügen STWidgets
     , stTVarSprache :: TVarSprachewechselAktionen
@@ -116,7 +114,7 @@ class (MonadReader r m, MitSTWidgetsBoxen r) => STWidgetsBoxenReader r m | m -> 
 instance (MonadReader r m, MitSTWidgetsBoxen r) => STWidgetsBoxenReader r m
 
 instance MitWidget STWidgets where
-    erhalteWidget :: STWidgets -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => STWidgets -> m Gtk.Widget
     erhalteWidget = erhalteWidget . stWidget
 
 instance ObjektElement STWidgets where
@@ -137,7 +135,7 @@ instance WidgetsTyp STWidgets where
         liftIO $ atomically $ writeTVar stTVarSprache Nothing
 
     boxButtonEntfernen :: STWidgets -> Gtk.Box
-    boxButtonEntfernen = erhalteBox . stFunctionBox
+    boxButtonEntfernen = stFunctionBox
 
     tvarSprache :: STWidgets -> TVarSprachewechselAktionen
     tvarSprache = stTVarSprache
@@ -226,20 +224,22 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
         streckenabschnitt
         stTVarSprache
     -- Widget erstellen
-    vBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ liftIO $ Gtk.vBoxNew False 0
+    vBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte
+        $ liftIO
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox streckenabschnitt
     (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
         expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Text.empty
+            $ Gtk.expanderNew Nothing
         vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
             $ scrollbaresWidgetNew
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     verwendeSpracheGui justTVarSprache $ \sprache
         -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.strom stromAnschluss
-    stFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.hBoxNew False 0
+    stFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     stToggleButtonStrom <- toggleButtonStromPackNew
         stFunctionBox
         streckenabschnitt
@@ -325,19 +325,17 @@ toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusfü
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Strom -> IO ()
         wsWidgetsSynchronisieren
-            (ZugtypMärklin ws@(toggleButtonStrom -> Just toggleButtonStrom))
+            (ZugtypMärklin ws@(toggleButtonStrom -> Just toggleButton))
             fließend
             | Set.isSubsetOf (enthalteneStreckenabschnitte ws)
                 $ enthalteneStreckenabschnitte streckenabschnitt =
                 ohneEvent (tvarEvent ws)
-                $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (fließend == Fließend)]
-        wsWidgetsSynchronisieren
-            (ZugtypLego ws@(toggleButtonStrom -> Just toggleButtonStrom))
-            fließend
+                $ Gtk.set toggleButton [Gtk.toggleButtonActive := (fließend == Fließend)]
+        wsWidgetsSynchronisieren (ZugtypLego ws@(toggleButtonStrom -> Just toggleButton)) fließend
             | Set.isSubsetOf (enthalteneStreckenabschnitte ws)
                 $ enthalteneStreckenabschnitte streckenabschnitt =
                 ohneEvent (tvarEvent ws)
-                $ Gtk.set toggleButtonStrom [Gtk.toggleButtonActive := (fließend == Fließend)]
+                $ Gtk.set toggleButton [Gtk.toggleButtonActive := (fließend == Fließend)]
         wsWidgetsSynchronisieren _wsWidget _fließend = pure ()
 #endif
 --
