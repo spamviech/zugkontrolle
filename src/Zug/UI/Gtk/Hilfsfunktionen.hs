@@ -167,13 +167,14 @@ notebookAppendPageNew
     -> (Sprache -> Text)
     -> m w
     -> m (w, Int32)
-notebookAppendPageNew notebook maybeTVar name konstruktor = do
-    widget <- widgetShowNew konstruktor
-    page <- mitNotebookAppendPage notebook widget $ name Deutsch
-    verwendeSpracheGui maybeTVar $ \sprache
-        -> Gtk.notebookSetMenuLabelText (erhalteNotebook notebook) (erhalteWidget widget)
-        $ name sprache
-    pure (widget, page)
+notebookAppendPageNew mitNotebook maybeTVar name konstruktor = do
+    mitWidget <- widgetShowNew konstruktor
+    widget <- erhalteWidget mitWidget
+    page <- mitNotebookAppendPage mitNotebook widget $ name Deutsch
+    notebook <- erhalteNotebook mitNotebook
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.notebookSetMenuLabelText notebook widget $ name sprache
+    pure (mitWidget, page)
 
 -- | Entferne ein vielleicht vorhandenes 'MitWidget' aus einem 'MitContainer'
 containerRemoveJust :: (MonadIO m, MitContainer c, MitWidget w) => c -> Maybe w -> m ()
@@ -187,15 +188,16 @@ widgetShowIf False = mitWidgetHide
 
 -- | 'MitDialog' anzeigen, auswerten und wieder verstecken
 dialogEval :: (MonadIO m, MitDialog d) => d -> m Int32
-dialogEval dialog = liftIO $ do
-    mitWidgetShow dialog
-    antwort <- Gtk.dialogRun $ erhalteDialog dialog
-    mitWidgetHide dialog
+dialogEval mitDialog = liftIO $ do
+    dialog <- erhalteDialog mitDialog
+    Gtk.widgetShow dialog
+    antwort <- Gtk.dialogRun dialog
+    Gtk.widgetHide dialog
     pure antwort
 
 -- | dialogGetUpper fehlt in gtk3, daher hier ersetzt
 dialogGetUpper :: (MitDialog d) => d -> IO Gtk.Box
-dialogGetUpper dialog = Gtk.dialogGetContentArea $ erhalteDialog dialog
+dialogGetUpper mitDialog = Gtk.dialogGetContentArea =<< erhalteDialog mitDialog
 
 -- * Knöpfe mit einer Funktion
 -- | Knopf mit Funktion erstellen
@@ -204,7 +206,7 @@ buttonNewWithEvent konstruktor event = do
     mitButton <- konstruktor
     liftIO $ do
         button <- erhalteButton mitButton
-        Gtk.on button Gtk.buttonClicked event
+        Gtk.onButtonClicked button event
         pure mitButton
 
 -- -- | Knopf mit Mnemonic-Label und Funktion erstellen
@@ -237,7 +239,7 @@ toggleButtonNewWithEvent konstruktor event = do
     mitToggleButton <- konstruktor
     toggleButton <- erhalteToggleButton mitToggleButton
     liftIO
-        $ Gtk.on toggleButton Gtk.toggleButtonToggled
+        $ Gtk.onToggleButtonToggled toggleButton
         $ Gtk.get toggleButton Gtk.toggleButtonActive >>= event
     pure mitToggleButton
 
@@ -309,7 +311,7 @@ nameAuswahlPackNew :: (SpracheGuiReader r m, MonadIO m, MitBox b)
                    -> Maybe (TVar (Maybe [Sprache -> IO ()]))
                    -> m NameAuswahlWidget
 nameAuswahlPackNew box maybeTVar = do
-    hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.hBoxNew False 0
+    hBox <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar $ Language.name <:> Text.empty
     entry <- liftIO $ boxPackWidgetNew hBox PackGrow paddingDefault positionDefault Gtk.entryNew
     verwendeSpracheGui maybeTVar
@@ -318,7 +320,9 @@ nameAuswahlPackNew box maybeTVar = do
 
 -- | Erhalte den aktuell gewählten Namen.
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
-aktuellerName = liftIO . Gtk.entryGetText . erhalteEntry
+aktuellerName nameAuswahlWidget = liftIO $ do
+    entry <- erhalteEntry nameAuswahlWidget
+    Gtk.get entry Gtk.entryText
 
 -- | Setze den aktuellen Namen.
 setzeName :: (MonadIO m) => NameAuswahlWidget -> Text -> m ()

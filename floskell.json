@@ -23,6 +23,7 @@
         "TemplateHaskell",
         "FunctionalDependencies",
         "RecursiveDo",
+        "OverloadedLabels",
         "CPP"
     ],
     "style": "johan-tibell",
