@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c71fe68f4e6d7a09ae76abea3f805fd5f579a4982782bcdda94d08570b29b682
+-- hash: 21d34d457b6d150ec9e0cc44f94533227862420a3433a55fb6613e0d1d615cfa
 
 name:           Zugkontrolle
 version:        1.3.0.0
@@ -112,7 +112,7 @@ library
       Paths_Zugkontrolle
   hs-source-dirs:
       src
-  ghc-options: -Wall
+  ghc-options: -Wall -Wno-unused-do-bind
   build-depends:
       aeson >=1.2 && <2
     , ansi-terminal >=0.8 && <1

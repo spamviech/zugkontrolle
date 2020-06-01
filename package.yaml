@@ -67,6 +67,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  ghc-options:
+    - -Wno-unused-do-bind
 
 executables:
   Zugkontrolle:
