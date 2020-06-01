@@ -17,8 +17,9 @@
 {-|
 Description : Pläne sind nacheinander auszuführende Aktionen, welche mit StreckenObjekten möglich sind.
 
-Jede Art von 'StreckenObjekt' ('Bahngeschwindigkeit', 'Streckenabschnitt', 'Weiche', 'Wegstrecke') unterstützt unterschiedliche Aktionen.
-Ein 'Plan' ist eine Zusammenfassung mehrerer dieser Aktionen und Wartezeiten, welche nacheinander ausgeführt werden können.
+Jede Art von 'StreckenObjekt' ('Bahngeschwindigkeit', 'Streckenabschnitt', 'Weiche', 'Wegstrecke')
+unterstützt unterschiedliche Aktionen. Ein 'PlanAllgemein' ist eine Zusammenfassung mehrerer dieser
+Aktionen und Wartezeiten, welche nacheinander ausgeführt werden können.
 -}
 module Zug.Plan
   ( -- * Allgemeine Datentypen
@@ -73,7 +74,7 @@ import {-# SOURCE #-} Zug.Objekt (Objekt, ObjektAllgemein(OPlan)
 import Zug.Plan.TemplateHaskell
        (aktionBahngeschwindigkeitCxtType, aktionAllgemeinCxtType, planAllgemeinCxtType)
 
--- | 'Aktion'en einer 'Bahngeschwindigkeit'.
+-- | Bekannte 'AktionAllgemein' einer 'Bahngeschwindigkeit'.
 data AktionBahngeschwindigkeit bg (g :: GeschwindigkeitVariante) (z :: Zugtyp) where
     Geschwindigkeit :: bg 'Pwm z -> Word8 -> AktionBahngeschwindigkeit bg 'Pwm z
     Fahrstrom
@@ -112,7 +113,7 @@ instance ( Show (bg g z)
     erhalteName :: AktionBahngeschwindigkeit bg g z -> Text
     erhalteName = showText
 
--- | 'Aktion'en eines 'Streckenabschnitt's.
+-- | Bekannte 'AktionAllgemein' eines 'Streckenabschnitt's.
 data AktionStreckenabschnitt st = Strom st Strom
     deriving (Eq, Ord, Show)
 
@@ -128,7 +129,7 @@ instance (StreckenObjekt st, Show st) => StreckenObjekt (AktionStreckenabschnitt
     erhalteName :: AktionStreckenabschnitt st -> Text
     erhalteName = showText
 
--- | 'Aktion'en einer 'Weiche'.
+-- | Bekannte 'AktionAllgemein' einer 'Weiche'.
 data AktionWeiche we = Stellen we Richtung
     deriving (Eq, Ord, Show)
 
@@ -143,7 +144,7 @@ instance (StreckenObjekt we, Show we) => StreckenObjekt (AktionWeiche we) where
     erhalteName :: AktionWeiche we -> Text
     erhalteName = showText
 
--- | Aktionen einer 'Kupplung'.
+-- | Bekannte 'AktionAllgemein' einer 'Kupplung'.
 newtype AktionKupplung ku = Kuppeln ku
     deriving (Eq, Ord, Show)
 
@@ -158,7 +159,7 @@ instance (StreckenObjekt ku, Show ku) => StreckenObjekt (AktionKupplung ku) wher
     erhalteName :: AktionKupplung ku -> Text
     erhalteName = showText
 
--- | Aktionen eines 'Kontakt's.
+-- | Bekannte 'AktionAllgemein' eines 'Kontakt's.
 newtype AktionKontakt ko = WartenAuf ko
     deriving (Eq, Ord, Show)
 
@@ -173,7 +174,7 @@ instance (StreckenObjekt ko, Show ko) => StreckenObjekt (AktionKontakt ko) where
     erhalteName :: AktionKontakt ko -> Text
     erhalteName = showText
 
--- | Bekannte 'Aktion'en einer 'Wegstrecke'.
+-- | Bekannte 'AktionAllgemein' einer 'Wegstrecke'.
 data AktionWegstrecke ws (z :: Zugtyp)
     = Einstellen (ws z)
     | AWSBahngeschwindigkeit (GeschwindigkeitEither (AktionBahngeschwindigkeit (GeschwindigkeitPhantom ws)) z)
@@ -409,11 +410,11 @@ type Plan = PlanAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung 
 newtype Ausführend = Ausführend Plan
     deriving (Eq, Show, StreckenObjekt)
 
--- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen
+-- | Klasse für Typen mit den aktuell 'Ausführend'en Plänen.
 class MitAusführend r where
     mengeAusführend :: r -> TVar (Set Ausführend)
 
--- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Set' benötigen
+-- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Set' benötigen.
 class (I2CReader r m, PwmReader r m, InterruptReader r m, MitAusführend r)
     => AusführendReader r m | m -> r where
     -- | Erhalte die aktuelle 'Ausführend'-Menge aus der Umgebung.

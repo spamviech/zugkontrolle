@@ -1,5 +1,8 @@
 {-# LANGUAGE TemplateHaskellQuotes #-}
 
+{-|
+Description: Template-Haskell-Werte für Verwendung in 'Zug.Derive.Ord.deriveOrd'.
+-}
 module Zug.Plan.TemplateHaskell
   ( aktionBahngeschwindigkeitCxtType
   , aktionAllgemeinCxtType
@@ -37,6 +40,7 @@ zName = TH.mkName "z"
 ordInstance :: TH.Type -> TH.Pred
 ordInstance = TH.AppT $ TH.ConT ''Ord
 
+-- | Kontext und Typ für Ord-Instanz von 'Zug.Plan.AktionBahngeschwindigkeit'.
 aktionBahngeschwindigkeitCxtType :: (TH.Cxt, TH.Type)
 aktionBahngeschwindigkeitCxtType = (cxt, ty)
     where
@@ -107,8 +111,10 @@ aktionType name =
          $ TH.VarT koName)
     $ TH.VarT wsName
 
+-- | Kontext und Typ für Ord-Instanz von 'Zug.Plan.AktionAllgemein'.
 aktionAllgemeinCxtType :: (TH.Cxt, TH.Type)
 aktionAllgemeinCxtType = (aktionCxt, aktionType "AktionAllgemein")
 
+-- | Kontext und Typ für Ord-Instanz von 'Zug.Plan.PlanAllgemein'.
 planAllgemeinCxtType :: (TH.Cxt, TH.Type)
 planAllgemeinCxtType = (aktionCxt, aktionType "PlanAllgemein")
