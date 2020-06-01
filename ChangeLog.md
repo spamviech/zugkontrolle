@@ -165,3 +165,6 @@
 - Gtk-UI: Pläne synchronisieren nun ebenfalls andere Widgets.
 
 ## Unreleased changes
+
+- bumped ghc version to 8.10.1
+- switched Gtk-binding to gi-gtk

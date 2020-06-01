@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE TypeApplications #-}
 #endif
 
 {-|
@@ -36,7 +37,6 @@ module Zug.UI.Gtk.Auswahl
 #ifdef ZUGKONTROLLEGUI
 import Control.Monad (when, void, forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
-import qualified Data.GI.Gtk as Gtk
 import Data.Int (Int32)
 import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -44,6 +44,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import GI.Gtk (AttrOp(..))
+import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache(..), Anzeige(..))
 import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, labelSpracheNew)
@@ -56,7 +57,7 @@ data AuswahlWidget e
     | AuswahlComboBox
           { widget :: Gtk.Widget
           , comboBox :: Gtk.ComboBox
-          , enumIndizes :: NonEmpty (e, Int32)
+          , enumIters :: NonEmpty (e, Gtk.TreeIter)
           }
     deriving (Eq)
 
@@ -139,24 +140,25 @@ auswahlComboBoxNamedNew
     -> (e -> Sprache -> Text)
     -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
-    hBox <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBox <- Gtk.boxNew Gtk.OrientationHorizontal 0
     widget <- erhalteWidget hBox
     nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar name
-    (comboBox, enumIndizes, seqStore) <- liftIO $ do
-        Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
-        comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewText
-        enumIndizes <- forM elemente $ \e -> do
-            index <- Gtk.comboBoxAppendText comboBox $ anzeigeFunktion e Deutsch
-            when (e == h) $ liftIO $ Gtk.comboBoxSetActive comboBox index
-            pure (e, index)
-        Gtk.comboBoxSetModelText comboBox
-        seqStore <- Gtk.comboBoxGetModelText comboBox
-        pure (comboBox, enumIndizes, seqStore)
-    -- Erstelle ComboBox-Einträge
-    verwendeSpracheGui maybeTVar $ \sprache -> void $ do
-        forM enumIndizes $ \(e, index) -> do
-            Gtk.seqStoreSetValue seqStore index $ anzeigeFunktion e sprache
-    pure AuswahlComboBox { widget, comboBox, enumIndizes }
+    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
+    gType <- liftIO $ Gtk.gobjectType @Gtk.Label
+    listStore <- Gtk.listStoreNew [gType]
+    comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewWithModel listStore
+    cellRenderer <- Gtk.cellRendererTextNew
+    Gtk.cellLayoutAddAttribute comboBox cellRenderer "" 0
+    enumIters <- forM elemente $ \e -> do
+        iter <- Gtk.listStoreAppend listStore
+        path <- Gtk.treeModelGetPath listStore iter
+        Gtk.treeModelRowChanged listStore path iter
+        label <- labelSpracheNew maybeTVar $ anzeigeFunktion e
+        gValue <- liftIO $ Gtk.toGValue label
+        Gtk.listStoreSetValue listStore iter 0 gValue
+        when (e == h) $ liftIO $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
+        pure (e, iter)
+    pure AuswahlComboBox { widget, comboBox, enumIters }
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
 --
@@ -190,9 +192,9 @@ boundedEnumAuswahlComboBoxNew
 setzeAuswahl :: (MonadIO m, Eq e) => AuswahlWidget e -> e -> m ()
 setzeAuswahl AuswahlRadioButton {enumButtons} wert = liftIO $ forM_ enumButtons $ \(e, radioButton)
     -> when (e == wert) $ Gtk.set radioButton [Gtk.toggleButtonActive := True]
-setzeAuswahl AuswahlComboBox {comboBox, enumIndizes} wert =
-    case lookup wert $ NonEmpty.toList enumIndizes of
-        (Just index) -> liftIO $ Gtk.set comboBox [Gtk.comboBoxActive := index]
+setzeAuswahl AuswahlComboBox {comboBox, enumIters} wert =
+    case lookup wert $ NonEmpty.toList enumIters of
+        (Just iter) -> liftIO $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
         Nothing -> pure ()
 
 -- | Erhalte den aktuell ausgewählten Wert.
@@ -208,14 +210,19 @@ aktuelleAuswahl
                 $ if toggled
                     then Just e
                     else Nothing
-aktuelleAuswahl AuswahlComboBox {comboBox, enumIndizes} = liftIO $ do
-    activeIndex <- Gtk.get comboBox Gtk.comboBoxActive
-    let foldEnum :: (Eq e) => (e, Int32) -> Maybe e -> Maybe e
+aktuelleAuswahl AuswahlComboBox {comboBox, enumIters} = liftIO $ do
+    (foundActiveIter, activeIter) <- Gtk.comboBoxGetActiveIter comboBox
+    let foldEnum :: (Eq e) => (e, Gtk.TreeIter) -> Maybe e -> Maybe e
         foldEnum _enumIndex justE@(Just _e) = justE
-        foldEnum (e, index) Nothing
-            | index == activeIndex = Just e
+        foldEnum (e, iter) Nothing
+            | foundActiveIter && iter == activeIter = Just e
             | otherwise = Nothing
-    pure $ fromJust $ foldr foldEnum Nothing enumIndizes
+    case foldr foldEnum Nothing enumIters of
+        (Just e) -> pure e
+        Nothing -> do
+            let h = NonEmpty.head enumIters
+            Gtk.comboBoxSetActiveIter comboBox $ Just $ snd h
+            pure $ fst h
 
 -- | Führe die übergebene Aktion bei Änderung der Auswahl aus (vgl. 'Gtk.on')
 beiAuswahl :: (Eq e, MonadIO m) => AuswahlWidget e -> (e -> IO ()) -> m ()

@@ -20,6 +20,11 @@ Weichen:
   Name: we
   Zugtyp: Märklin
   Fließend: LOW
+Kontakte:
+- Name: ko
+  KontaktAnschluss:
+    Pin: 26
+  Fließend: LOW
 Pläne: []
 Wegstrecken:
 - Streckenabschnitte:
@@ -44,5 +49,10 @@ Wegstrecken:
   Kupplungen:
   - Name: ku
     KupplungsAnschluss:
+      Pin: 26
+    Fließend: LOW
+  Kontakte:
+  - Name: ko
+    KontaktAnschluss:
       Pin: 26
     Fließend: LOW
