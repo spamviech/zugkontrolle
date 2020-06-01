@@ -405,7 +405,7 @@ instance ( Eq (bg 'Pwm 'Märklin)
 -- | 'PlanAllgemein', spezialisiert auf 'Zug.Objekt.Objekt'.
 type Plan = PlanAllgemein Bahngeschwindigkeit Streckenabschnitt Weiche Kupplung Kontakt Wegstrecke
 
--- | newtype für ausführende Pläne ('Plan')
+-- | newtype für ausführende Pläne.
 newtype Ausführend = Ausführend Plan
     deriving (Eq, Show, StreckenObjekt)
 
@@ -416,7 +416,7 @@ class MitAusführend r where
 -- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Set' benötigen
 class (I2CReader r m, PwmReader r m, InterruptReader r m, MitAusführend r)
     => AusführendReader r m | m -> r where
-    -- | Erhalte die aktuelle 'Ausführend'-'Menge' aus der Umgebung.
+    -- | Erhalte die aktuelle 'Ausführend'-Menge aus der Umgebung.
     erhalteMengeAusführend :: m (TVar (Set Ausführend))
     erhalteMengeAusführend = asks mengeAusführend
 
