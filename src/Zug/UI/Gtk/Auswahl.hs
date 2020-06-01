@@ -47,7 +47,7 @@ import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache(..), Anzeige(..))
-import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, labelSpracheNew)
+import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
 
@@ -140,20 +140,18 @@ auswahlComboBoxNamedNew
     -> (e -> Sprache -> Text)
     -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
-    hBox <- Gtk.boxNew Gtk.OrientationHorizontal 0
-    widget <- erhalteWidget hBox
-    nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar name
-    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     gType <- liftIO $ Gtk.gobjectType @Gtk.Label
     listStore <- Gtk.listStoreNew [gType]
-    comboBox <- boxPackWidgetNewDefault hBox $ Gtk.comboBoxNewWithModel listStore
-    cellRenderer <- Gtk.cellRendererTextNew
-    Gtk.cellLayoutAddAttribute comboBox cellRenderer "" 0
+    comboBox <- Gtk.comboBoxNewWithModel listStore
+    widget <- erhalteWidget comboBox
+    nameLabel <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar name
+    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     enumIters <- forM elemente $ \e -> do
         iter <- Gtk.listStoreAppend listStore
         path <- Gtk.treeModelGetPath listStore iter
         Gtk.treeModelRowChanged listStore path iter
-        label <- labelSpracheNew maybeTVar $ anzeigeFunktion e
+        label <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar $ anzeigeFunktion e
+        -- TODO labels don't show up!!!!!
         gValue <- liftIO $ Gtk.toGValue label
         Gtk.listStoreSetValue listStore iter 0 gValue
         when (e == h) $ liftIO $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
