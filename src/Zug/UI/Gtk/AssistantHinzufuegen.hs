@@ -23,11 +23,13 @@ module Zug.UI.Gtk.AssistantHinzufuegen
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent.STM (atomically, TVar, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
+import Control.Concurrent.STM (atomically, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
 import Control.Monad (forM_, foldM, when)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
+import qualified Data.GI.Gtk.Threading as Gtk
+import Data.Int (Int32)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (catMaybes)
@@ -35,7 +37,6 @@ import qualified GI.Gtk as Gtk
 import GI.Gtk (AttrOp((:=)))
 
 import Zug.Enums (Zugtyp(), unterstützteZugtypen)
-import Zug.Language (Sprache())
 import qualified Zug.Language as Language
 import Zug.Objekt (Objekt)
 import Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
@@ -51,7 +52,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , positionDefault, Packing(PackGrow), packingDefault, paddingDefault)
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitWindow(..), MitButton(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui)
+import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (StatusVarGui, StatusVarGuiReader, DynamischeWidgetsReader)
 import Zug.UI.StatusVar (StatusVarReader(..))
 
@@ -62,13 +63,13 @@ data AssistantHinzufügen =
     , notebook :: Gtk.Notebook
     , fließendAuswahl :: FließendAuswahlWidget
     , zugtypAuswahl :: AuswahlWidget Zugtyp
-    , indexSeiten :: Map Int HinzufügenSeite
+    , indexSeiten :: Map Int32 HinzufügenSeite
     , tmVarErgebnis :: TMVar HinzufügenErgebnis
     }
     deriving (Eq)
 
 instance MitWidget AssistantHinzufügen where
-    erhalteWidget :: AssistantHinzufügen -> Gtk.Widget
+    erhalteWidget :: (MonadIO m) => AssistantHinzufügen -> m Gtk.Widget
     erhalteWidget = Gtk.toWidget . window
 
 -- | Hat der 'AssistantHinzufügen' ein Ergebnis geliefert?
@@ -116,21 +117,24 @@ assistantHinzufügenNew
     , DynamischeWidgetsReader r m
     , MonadFix m
     , MonadIO m
+    , MonadFail m
     )
     => p
     -> Maybe TVarSprachewechselAktionen
     -> m AssistantHinzufügen
 assistantHinzufügenNew parent maybeTVar = mdo
     (tmVarErgebnis, window, vBox, notebook) <- liftIO $ do
-        tmVarErgebnis <- atomically newEmptyTMVar
-        window <- Gtk.windowNew
-        Gtk.set window [Gtk.windowTransientFor := erhalteWindow parent, Gtk.windowModal := True]
-        Gtk.on window Gtk.deleteEvent $ liftIO $ do
-            atomically (putTMVar tmVarErgebnis HinzufügenBeenden)
+        tmVarErgebnisIO <- atomically newEmptyTMVar
+        windowIO <- Gtk.windowNew Gtk.WindowTypeToplevel
+        parentWindow <- erhalteWindow parent
+        Gtk.set windowIO [Gtk.windowTransientFor := parentWindow, Gtk.windowModal := True]
+        Gtk.onWidgetDeleteEvent windowIO $ \_event -> liftIO $ do
+            atomically (putTMVar tmVarErgebnisIO HinzufügenBeenden)
             pure True
-        vBox <- containerAddWidgetNew window $ Gtk.vBoxNew False 0
-        notebook <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-        pure (tmVarErgebnis, window, vBox, notebook)
+        vBoxIO <- containerAddWidgetNew windowIO $ Gtk.boxNew Gtk.OrientationVertical 0
+        notebookIO
+            <- boxPackWidgetNew vBoxIO PackGrow paddingDefault positionDefault Gtk.notebookNew
+        pure (tmVarErgebnisIO, windowIO, vBoxIO, notebookIO)
     -- Wird in diesem Thread benötigt, bevor es erzeugt gepackt wird
     -- Führt zu Deadlock (thread blocked indefinitely in an MVar operation), wenn mdo verwendet wird
     zugtypAuswahl
@@ -156,25 +160,28 @@ assistantHinzufügenNew parent maybeTVar = mdo
             , indexSeiten
             , tmVarErgebnis
             }
-    functionBox
-        <- liftIO $ boxPackWidgetNew vBox packingDefault paddingDefault End $ Gtk.hBoxNew False 0
+    functionBox <- liftIO
+        $ boxPackWidgetNew vBox packingDefault paddingDefault End
+        $ Gtk.boxNew Gtk.OrientationHorizontal 0
     statusVar <- erhalteStatusVar :: m StatusVarGui
     buttonHinzufügen <- liftIO $ do
-        buttonHinzufügen <- widgetShowNew Gtk.buttonNew
+        buttonHinzufügenIO <- widgetShowNew Gtk.buttonNew
         let alleButtonHinzufügen =
-                ButtonHinzufügen buttonHinzufügen
+                ButtonHinzufügen buttonHinzufügenIO
                 : catMaybes (spezifischerButtonHinzufügen <$> Map.elems indexSeiten)
-        forM_ alleButtonHinzufügen $ \button -> do
+        forM_ alleButtonHinzufügen $ \mitButton -> do
+            button <- erhalteButton mitButton
             boxPackDefault functionBox button
-            Gtk.on (erhalteButton button) Gtk.buttonActivated
+            Gtk.onButtonClicked button
                 $ flip runReaderT statusVar
                 $ hinzufügenErgebnis assistantHinzufügen
-        Gtk.on notebook Gtk.switchPage $ \pageIndex -> do
+        Gtk.onNotebookSwitchPage notebook $ \_widget pageIndex -> do
             mapM_ mitWidgetHide alleButtonHinzufügen
-            case Map.lookup pageIndex indexSeiten >>= spezifischerButtonHinzufügen of
-                (Just button) -> mitWidgetShow button
-                _otherwise -> mitWidgetShow buttonHinzufügen
-        pure buttonHinzufügen
+            case Map.lookup (fromIntegral pageIndex) indexSeiten
+                >>= spezifischerButtonHinzufügen of
+                    (Just button) -> mitWidgetShow button
+                    _otherwise -> mitWidgetShow buttonHinzufügenIO
+        pure buttonHinzufügenIO
     fließendAuswahl <- boxPackWidgetNewDefault functionBox $ fließendAuswahlNew maybeTVar
     boxPackDefault functionBox zugtypAuswahl
     boxPackWidgetNew functionBox packingDefault paddingDefault End
