@@ -142,7 +142,7 @@ instance MitWidget (BGWidgets g z) where
 
 data BGWidgetsBoxen =
     BGWidgetsBoxen
-    { vBoxBahngeschwindigkeiten :: ScrollbaresWidget Gtk.VBox
+    { vBoxBahngeschwindigkeiten :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
           :: BoxWegstreckeHinzufügen (GeschwindigkeitEither BGWidgets 'Märklin)
     , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego

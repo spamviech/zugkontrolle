@@ -93,7 +93,7 @@ instance MitWidget KUWidgets where
 
 data KUWidgetsBoxen =
     KUWidgetsBoxen
-    { vBoxKupplungen :: ScrollbaresWidget Gtk.VBox
+    { vBoxKupplungen :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenWegstreckeKupplungen :: BoxWegstreckeHinzufügen KUWidgets
     , vBoxHinzufügenPlanKupplungen :: BoxPlanHinzufügen KUWidgets
     }

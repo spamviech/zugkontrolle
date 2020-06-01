@@ -95,7 +95,7 @@ data STWidgets =
 
 data STWidgetsBoxen =
     STWidgetsBoxen
-    { vBoxStreckenabschnitte :: ScrollbaresWidget Gtk.VBox
+    { vBoxStreckenabschnitte :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenWegstreckeStreckenabschnitte :: BoxWegstreckeHinzufügen STWidgets
     , vBoxHinzufügenPlanStreckenabschnitte :: BoxPlanHinzufügen STWidgets
     }

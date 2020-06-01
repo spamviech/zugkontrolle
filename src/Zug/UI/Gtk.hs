@@ -12,7 +12,7 @@ module Zug.UI.Gtk (main, setupGUI) where
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (runInBoundThread)
-import Control.Concurrent.STM (atomically, newEmptyTMVarIO, TVar)
+import Control.Concurrent.STM (atomically, newEmptyTMVarIO)
 #else
 import Control.Concurrent.STM.TVar (TVar)
 #endif
@@ -27,6 +27,7 @@ import Data.Text (Text)
 import qualified Data.Text.IO as Text
 #endif
 #ifdef ZUGKONTROLLEGUI
+import qualified GI.Gdk as Gdk
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 #else
@@ -36,7 +37,7 @@ import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..
 #ifndef ZUGKONTROLLEGUI
 import Zug.Language (Sprache(..))
 #else
-import Zug.Language (Sprache(), MitSprache(leseSprache), (<~>), (<|>))
+import Zug.Language (MitSprache(leseSprache), (<~>), (<|>))
 #endif
 import qualified Zug.Language as Language
 #ifdef ZUGKONTROLLEGUI
@@ -52,12 +53,13 @@ import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, bu
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
-      , boxPackWidgetNew, boxPackWidgetNewDefault, Packing(..), packingDefault, paddingDefault
-      , Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
+      , boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, Packing(..), packingDefault
+      , paddingDefault, Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
       , toggleButtonNewWithEvent)
-import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
+import Zug.UI.Gtk.Klassen (mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
-import Zug.UI.Gtk.SpracheGui (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel)
+import Zug.UI.Gtk.SpracheGui
+       (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt
        (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew, MStatusGuiT
       , IOStatusGui, foldWegstreckeHinzufügen, BGWidgetsBoxen(..), STWidgetsBoxen(..)
@@ -87,12 +89,12 @@ putWarningLn warning = do
 main :: IO ()
 main = runInBoundThread $ do
     -- Initialisiere GTK+ engine
-    Gtk.initGUI
+    Gtk.init Nothing
     Gtk.setCurrentThreadAsGUIThread
     -- Erstelle GUI
     setupGUI Nothing
     -- GTK+ main loop
-    Gtk.mainGUI
+    Gtk.main
 
 -- | Erstelle GUI inkl. sämtlicher Events.
 --
@@ -105,28 +107,28 @@ setupGUI maybeTVar = void $ mdo
     Options {load = dateipfad, gtkSeiten, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Dummy-Fenster, damit etwas angezeigt wird
-    windowDummy <- Gtk.windowNew
-    Gtk.set
+    windowDummy <- Gtk.windowNew Gtk.WindowTypeToplevel
+    flip leseSprache spracheGui $ \sp -> Gtk.set
         windowDummy
-        [ Gtk.windowTitle := leseSprache (Language.zugkontrolle <~> Language.version) spracheGui
+        [ Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sp
         , Gtk.windowDeletable := False
         , Gtk.windowDefaultWidth := 400]
     Gtk.widgetShow windowDummy
     -- Hauptfenster
-    dynWindowMain <- Gtk.windowNew
+    dynWindowMain <- Gtk.windowNew Gtk.WindowTypeToplevel
     -- native Auflösung des Raspi 7'' TouchScreen ist 800x480
     -- leicht kleinere Werte um Menüleisten zu berücksichtigen
     Gtk.set dynWindowMain [Gtk.windowDefaultWidth := 720, Gtk.windowDefaultHeight := 450]
     Gtk.windowMaximize dynWindowMain
     -- Titel
-    verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache -> Gtk.set
+    verwendeSpracheGuiFn spracheGui maybeTVar $ \sp -> Gtk.set
         dynWindowMain
-        [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sprache]
+        [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sp]
     -- Drücken des X-Knopfes beendet das gesamte Program
-    Gtk.on dynWindowMain Gtk.deleteEvent $ liftIO $ do
+    Gtk.onWidgetDeleteEvent dynWindowMain $ \_event -> liftIO $ do
         Gtk.mainQuit
         pure False
-    vBox <- containerAddWidgetNew dynWindowMain $ Gtk.vBoxNew False 0
+    vBox <- containerAddWidgetNew dynWindowMain $ Gtk.boxNew Gtk.OrientationVertical 0
     tvarMaps <- tvarMapsNeu
     statusVar <- statusVarNew $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
@@ -140,33 +142,33 @@ setupGUI maybeTVar = void $ mdo
             maybeTVar
             Language.bahngeschwindigkeiten
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         (vBoxStreckenabschnitteEinzel, _page) <- notebookAppendPageNew
             notebookElementeEinzelseiten
             maybeTVar
             Language.streckenabschnitte
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         (vBoxWeichenEinzel, _page)
             <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.weichen
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         (vBoxKupplungenEinzel, _page)
             <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.kupplungen
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         (vBoxKontakteEinzel, _page)
             <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.kontakte
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         (vBoxWegstreckenEinzel, _page)
             <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.wegstrecken
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         (vBoxPläneEinzel, _page)
             <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.pläne
             $ liftIO
-            $ Gtk.vBoxNew False 0
+            $ Gtk.boxNew Gtk.OrientationVertical 0
         pure
             ( vBoxBahngeschwindigkeitenEinzel
             , vBoxStreckenabschnitteEinzel
@@ -184,113 +186,123 @@ setupGUI maybeTVar = void $ mdo
             notebookElementePaned
             maybeTVar
             (Language.bahngeschwindigkeiten <|> Language.streckenabschnitte <|> Language.weichen)
-        $ liftIO Gtk.hPanedNew
-    vPanedBahngeschwindigkeitStreckenabschnitt <- widgetShowNew Gtk.vPanedNew
+        $ liftIO
+        $ Gtk.panedNew Gtk.OrientationHorizontal
+    vPanedBahngeschwindigkeitStreckenabschnitt
+        <- widgetShowNew $ Gtk.panedNew Gtk.OrientationVertical
     Gtk.panedAdd1
         panedBahngeschwindigkeitStreckenabschnittWeiche
         vPanedBahngeschwindigkeitStreckenabschnitt
-    frameBahngeschwindigkeiten <- widgetShowNew Gtk.frameNew
-    Gtk.set frameBahngeschwindigkeiten [Gtk.frameShadowType := Gtk.ShadowIn]
+    frameBahngeschwindigkeiten <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set frameBahngeschwindigkeiten [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd1 vPanedBahngeschwindigkeitStreckenabschnitt frameBahngeschwindigkeiten
     vBoxPanedBahngeschwindigkeiten
-        <- containerAddWidgetNew frameBahngeschwindigkeiten $ Gtk.vBoxNew False 0
+        <- containerAddWidgetNew frameBahngeschwindigkeiten $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedBahngeschwindigkeiten
         $ labelSpracheNew maybeTVar Language.bahngeschwindigkeiten
     vBoxBahngeschwindigkeiten
         <- boxPackWidgetNew vBoxPanedBahngeschwindigkeiten PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
-    frameStreckenabschnitte <- widgetShowNew Gtk.frameNew
-    Gtk.set frameStreckenabschnitte [Gtk.frameShadowType := Gtk.ShadowIn]
+        $ Gtk.boxNew Gtk.OrientationVertical 0
+    frameStreckenabschnitte <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set frameStreckenabschnitte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd2 vPanedBahngeschwindigkeitStreckenabschnitt frameStreckenabschnitte
     vBoxPanedStreckenabschnitte
-        <- containerAddWidgetNew frameStreckenabschnitte $ Gtk.vBoxNew False 0
+        <- containerAddWidgetNew frameStreckenabschnitte $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedStreckenabschnitte
         $ labelSpracheNew maybeTVar Language.streckenabschnitte
     vBoxStreckenabschnitte
         <- boxPackWidgetNew vBoxPanedStreckenabschnitte PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
-    frameWeichen <- widgetShowNew Gtk.frameNew
-    Gtk.set frameWeichen [Gtk.frameShadowType := Gtk.ShadowIn]
+        $ Gtk.boxNew Gtk.OrientationVertical 0
+    frameWeichen <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set frameWeichen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd2 panedBahngeschwindigkeitStreckenabschnittWeiche frameWeichen
-    vBoxPanedWeichen <- containerAddWidgetNew frameWeichen $ Gtk.vBoxNew False 0
+    vBoxPanedWeichen <- containerAddWidgetNew frameWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedWeichen
         $ labelSpracheNew maybeTVar Language.weichen
     vBoxWeichen <- boxPackWidgetNew vBoxPanedWeichen PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     (panedKupplungKontakt, _pageKuKo) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
             notebookElementePaned
             maybeTVar
             (Language.kupplungen <|> Language.kontakte)
-        $ liftIO Gtk.hPanedNew
-    frameKupplungen <- widgetShowNew Gtk.frameNew
-    Gtk.set frameKupplungen [Gtk.frameShadowType := Gtk.ShadowIn]
+        $ liftIO
+        $ Gtk.panedNew Gtk.OrientationHorizontal
+    frameKupplungen <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set frameKupplungen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd1 panedKupplungKontakt frameKupplungen
-    vBoxPanedKupplungen <- containerAddWidgetNew frameKupplungen $ Gtk.vBoxNew False 0
+    vBoxPanedKupplungen
+        <- containerAddWidgetNew frameKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedKupplungen
         $ labelSpracheNew maybeTVar Language.kupplungen
     vBoxKupplungen <- boxPackWidgetNew vBoxPanedKupplungen PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
-    frameKontakte <- widgetShowNew Gtk.frameNew
-    Gtk.set frameKontakte [Gtk.frameShadowType := Gtk.ShadowIn]
+        $ Gtk.boxNew Gtk.OrientationVertical 0
+    frameKontakte <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set frameKontakte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd2 panedKupplungKontakt frameKontakte
-    vBoxPanedKontakte <- containerAddWidgetNew frameKontakte $ Gtk.vBoxNew False 0
+    vBoxPanedKontakte <- containerAddWidgetNew frameKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedKontakte
         $ labelSpracheNew maybeTVar Language.kontakte
     vBoxKontakte <- boxPackWidgetNew vBoxPanedKontakte PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     (panedWegstreckePlan, _pageWsPl) <- flip runReaderT spracheGui
         $ notebookAppendPageNew
             notebookElementePaned
             maybeTVar
             (Language.wegstrecken <|> Language.pläne)
-        $ liftIO Gtk.hPanedNew
-    frameWegstrecken <- widgetShowNew Gtk.frameNew
-    Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowIn]
+        $ liftIO
+        $ Gtk.panedNew Gtk.OrientationHorizontal
+    frameWegstrecken <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd1 panedWegstreckePlan frameWegstrecken
-    vBoxPanedWegstrecken <- containerAddWidgetNew frameWegstrecken $ Gtk.vBoxNew False 0
+    vBoxPanedWegstrecken
+        <- containerAddWidgetNew frameWegstrecken $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedWegstrecken
         $ labelSpracheNew maybeTVar Language.wegstrecken
     vBoxWegstrecken
         <- boxPackWidgetNew vBoxPanedWegstrecken PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
-    framePläne <- widgetShowNew Gtk.frameNew
-    Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowIn]
+        $ Gtk.boxNew Gtk.OrientationVertical 0
+    framePläne <- widgetShowNew $ Gtk.frameNew Nothing
+    Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowTypeIn]
     Gtk.panedAdd2 panedWegstreckePlan framePläne
-    vBoxPanedPläne <- containerAddWidgetNew framePläne $ Gtk.vBoxNew False 0
+    vBoxPanedPläne <- containerAddWidgetNew framePläne $ Gtk.boxNew Gtk.OrientationVertical 0
     flip runReaderT spracheGui
         $ boxPackWidgetNewDefault vBoxPanedPläne
         $ labelSpracheNew maybeTVar Language.pläne
     vBoxPläne <- boxPackWidgetNew vBoxPanedPläne PackGrow paddingDefault positionDefault
         $ scrollbaresWidgetNew
-        $ Gtk.vBoxNew False 0
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     -- Paned mittig setzten
-    Gtk.screenGetDefault >>= \case
-        (Just screen) -> do
-            screenWidth <- Gtk.screenGetWidth screen
-            forM_
-                [ panedBahngeschwindigkeitStreckenabschnittWeiche
-                , panedKupplungKontakt
-                , panedWegstreckePlan]
-                $ \paned -> Gtk.set paned [Gtk.panedPosition := div screenWidth 2]
-            screenHeight <- Gtk.screenGetHeight screen
-            -- geschätzter Wert
-            let decoratorHeight = 50
-            Gtk.set
-                vPanedBahngeschwindigkeitStreckenabschnitt
-                [Gtk.panedPosition := div (screenHeight - decoratorHeight) 3]
+    Gdk.displayGetDefault >>= \case
+        (Just display) -> Gtk.getWidgetWindow dynWindowMain >>= \case
+            (Just gdkWindow) -> do
+                monitor <- Gdk.displayGetMonitorAtWindow display gdkWindow
+                geometry <- Gdk.monitorGetGeometry monitor
+                screenWidth <- Gdk.getRectangleWidth geometry
+                forM_
+                    [ panedBahngeschwindigkeitStreckenabschnittWeiche
+                    , panedKupplungKontakt
+                    , panedWegstreckePlan]
+                    $ \paned -> Gdk.set paned [Gtk.panedPosition := div screenWidth 2]
+                screenHeight <- Gdk.getRectangleHeight geometry
+                -- geschätzter Wert
+                let decoratorHeight = 50
+                Gtk.set
+                    vPanedBahngeschwindigkeitStreckenabschnitt
+                    [Gtk.panedPosition := div (screenHeight - decoratorHeight) 3]
+            Nothing -> pure ()
         Nothing -> pure ()
     -- DynamischeWidgets
     vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
@@ -440,24 +452,25 @@ setupGUI maybeTVar = void $ mdo
             }
     let objektReader = (tvarMaps, dynamischeWidgets, statusVar)
     -- Knopf-Leiste mit globalen Funktionen
-    functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End $ Gtk.hBoxNew False 0
+    functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End
+        $ Gtk.boxNew Gtk.OrientationHorizontal 0
     aktionBearbeiten <- flip runReaderT objektReader $ do
         -- Linke Seite
-        (_buttonHinzufügen, aktionBearbeiten)
+        (_buttonHinzufügen, aktionBearbeitenReader)
             <- buttonHinzufügenPack dynWindowMain functionBox maybeTVar
         spracheAuswahl <- boxPackWidgetNewDefault functionBox
             $ boundedEnumAuswahlComboBoxNew Language.Deutsch maybeTVar Language.sprache
-        beiAuswahl spracheAuswahl $ \sprache -> void $ do
-            spracheGuiNeu <- sprachwechsel spracheGui sprache
+        beiAuswahl spracheAuswahl $ \sp -> void $ do
+            sprachwechsel spracheGui sp
             flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (SprachWechsel spracheGuiNeu) statusVar
+                $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
         -- Rechte seite
         boxPackWidgetNew functionBox packingDefault paddingDefault End
             $ buttonNewWithEventLabel maybeTVar Language.beenden
             $ Gtk.mainQuit
         buttonLadenPack dynWindowMain functionBox maybeTVar End
         buttonSpeichernPack dynWindowMain functionBox maybeTVar End
-        pure aktionBearbeiten
+        pure aktionBearbeitenReader
     checkButtonNotebook <- boxPackWidgetNewDefault functionBox
         $ toggleButtonNewWithEvent Gtk.checkButtonNew
         $ \toggled -> do
@@ -465,27 +478,42 @@ setupGUI maybeTVar = void $ mdo
             widgetShowIf (not toggled) notebookElementePaned
             case toggled of
                 True -> do
-                    Gtk.widgetReparent (erhalteWidget vBoxBahngeschwindigkeiten) vBoxBG
-                    Gtk.widgetReparent (erhalteWidget vBoxStreckenabschnitte) vBoxST
-                    Gtk.widgetReparent (erhalteWidget vBoxWeichen) vBoxWE
-                    Gtk.widgetReparent (erhalteWidget vBoxKupplungen) vBoxKU
-                    Gtk.widgetReparent (erhalteWidget vBoxKontakte) vBoxKO
-                    Gtk.widgetReparent (erhalteWidget vBoxWegstrecken) vBoxWS
-                    Gtk.widgetReparent (erhalteWidget vBoxPläne) vBoxPL
+                    mitContainerRemove vBoxPanedBahngeschwindigkeiten vBoxBahngeschwindigkeiten
+                    boxPack
+                        vBoxBG
+                        vBoxBahngeschwindigkeiten
+                        PackGrow
+                        paddingDefault
+                        positionDefault
+                    mitContainerRemove vBoxPanedStreckenabschnitte vBoxStreckenabschnitte
+                    boxPack vBoxST vBoxStreckenabschnitte PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxPanedWeichen vBoxWeichen
+                    boxPack vBoxWE vBoxWeichen PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxPanedKupplungen vBoxKupplungen
+                    boxPack vBoxKU vBoxKupplungen PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxPanedKontakte vBoxKontakte
+                    boxPack vBoxKO vBoxKontakte PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxPanedWegstrecken vBoxWegstrecken
+                    boxPack vBoxWS vBoxWegstrecken PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxPanedPläne vBoxPläne
+                    boxPack vBoxPL vBoxPläne PackGrow paddingDefault positionDefault
                 False -> do
-                    Gtk.widgetReparent
-                        (erhalteWidget vBoxBahngeschwindigkeiten)
-                        vBoxPanedBahngeschwindigkeiten
-                    Gtk.widgetReparent
-                        (erhalteWidget vBoxStreckenabschnitte)
-                        vBoxPanedStreckenabschnitte
-                    Gtk.widgetReparent (erhalteWidget vBoxWeichen) vBoxPanedWeichen
-                    Gtk.widgetReparent (erhalteWidget vBoxKupplungen) vBoxPanedKupplungen
-                    Gtk.widgetReparent (erhalteWidget vBoxKontakte) vBoxPanedKontakte
-                    Gtk.widgetReparent (erhalteWidget vBoxWegstrecken) vBoxPanedWegstrecken
-                    Gtk.widgetReparent (erhalteWidget vBoxPläne) vBoxPanedPläne
-    verwendeSpracheGuiFn spracheGui maybeTVar $ \sprache
-        -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sprache]
+                    mitContainerRemove vBoxBG vBoxBahngeschwindigkeiten
+                    boxPack vBoxPanedBahngeschwindigkeiten vBoxBahngeschwindigkeiten PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxST vBoxStreckenabschnitte
+                    boxPack vBoxPanedStreckenabschnitte vBoxStreckenabschnitte PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxWE vBoxWeichen
+                    boxPack vBoxPanedWeichen vBoxWeichen PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxKU vBoxKupplungen
+                    boxPack vBoxPanedKupplungen vBoxKupplungen PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxKO vBoxKontakte
+                    boxPack vBoxPanedKontakte vBoxKontakte PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxWS vBoxWegstrecken
+                    boxPack vBoxPanedWegstrecken vBoxWegstrecken PackGrow paddingDefault positionDefault
+                    mitContainerRemove vBoxPL vBoxPläne
+                    boxPack vBoxPanedPläne vBoxPläne PackGrow paddingDefault positionDefault
+    verwendeSpracheGuiFn spracheGui maybeTVar $ \sp
+        -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sp]
     -- Lade Datei angegeben in Kommandozeilenargument
     let ladeAktion :: Status -> IOStatusGui ()
         ladeAktion statusNeu = do

@@ -104,7 +104,7 @@ data WeichePlanHinzufügenWidgets z =
 
 data WEWidgetsBoxen =
     WEWidgetsBoxen
-    { vBoxWeichen :: ScrollbaresWidget Gtk.VBox
+    { vBoxWeichen :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenWegstreckeWeichenMärklin :: BoxWegstreckeHinzufügen (WEWidgets 'Märklin)
     , vBoxHinzufügenWegstreckeWeichenLego :: BoxWegstreckeHinzufügen (WEWidgets 'Lego)
     , vBoxHinzufügenPlanWeichenGeradeMärklin :: BoxPlanHinzufügen (WEWidgets 'Märklin)

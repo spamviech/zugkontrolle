@@ -111,7 +111,7 @@ instance MitWidget PLWidgets where
 
 data PLWidgetsBoxen =
     PLWidgetsBoxen
-    { vBoxPläne :: ScrollbaresWidget Gtk.VBox
+    { vBoxPläne :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenPlanPläne :: BoxPlanHinzufügen PLWidgets
     }
 

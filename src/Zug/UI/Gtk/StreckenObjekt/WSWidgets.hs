@@ -127,7 +127,7 @@ instance MitWidget (GeschwindigkeitPhantom WSWidgets g z) where
 
 data WSWidgetsBoxen =
     WSWidgetsBoxen
-    { vBoxWegstrecken :: ScrollbaresWidget Gtk.VBox
+    { vBoxWegstrecken :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
           :: BoxPlanHinzufügen (WSWidgets 'Märklin)
     , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm

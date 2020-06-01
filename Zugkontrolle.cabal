@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f88e7bfa0a6b25bb9cebcb7525799859d77c4db56603240f1844cd4d298cc812
+-- hash: c71fe68f4e6d7a09ae76abea3f805fd5f579a4982782bcdda94d08570b29b682
 
 name:           Zugkontrolle
 version:        1.3.0.0
@@ -132,7 +132,8 @@ library
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gi-gtk >=3.0.33 && <3.1
+        gi-gdk >=3.0.22 && <3.1
+      , gi-gtk >=3.0.33 && <3.1
       , gi-gtk-declarative >=0.6 && <0.7
       , gi-gtk-declarative-app-simple >=0.6.3 && <0.7
       , gi-gtk-hs >=0.3.8.1 && <0.4
@@ -172,7 +173,8 @@ executable Zugkontrolle
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gi-gtk >=3.0.33 && <3.1
+        gi-gdk >=3.0.22 && <3.1
+      , gi-gtk >=3.0.33 && <3.1
       , gi-gtk-declarative >=0.6 && <0.7
       , gi-gtk-declarative-app-simple >=0.6.3 && <0.7
       , gi-gtk-hs >=0.3.8.1 && <0.4

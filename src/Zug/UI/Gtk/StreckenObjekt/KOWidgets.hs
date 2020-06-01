@@ -95,7 +95,7 @@ instance MitWidget KOWidgets where
 
 data KOWidgetsBoxen =
     KOWidgetsBoxen
-    { vBoxKontakte :: ScrollbaresWidget Gtk.VBox
+    { vBoxKontakte :: ScrollbaresWidget Gtk.Box
     , vBoxHinzufügenWegstreckeKontakte :: BoxWegstreckeHinzufügen KOWidgets
     , vBoxHinzufügenPlanKontakte :: BoxPlanHinzufügen KOWidgets
     }
