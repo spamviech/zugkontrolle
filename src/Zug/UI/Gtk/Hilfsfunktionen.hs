@@ -116,9 +116,9 @@ data Packing
     | PackRepel
 
 expands :: Packing -> Bool
-expands PackNatural = True
-expands PackGrow = False
-expands PackRepel = False
+expands PackNatural = False
+expands PackGrow = True
+expands PackRepel = True
 
 fills :: Packing -> Bool
 fills PackNatural = False
