@@ -47,10 +47,11 @@ import Data.Text (Text)
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
-import Zug.Language (Sprache(..), Anzeige(..))
+import Zug.Language (Sprache(..), MitSprache(leseSprache), Anzeige(..), (<:>))
 import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
-import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
+import Zug.UI.Gtk.SpracheGui
+       (SpracheGuiReader(erhalteSpracheGui), verwendeSpracheGui, TVarSprachewechselAktionen)
 
 -- | Auswahl-Widget für ein 'Bounded' 'Enum'
 data AuswahlWidget e
@@ -156,7 +157,7 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     Gtk.cellLayoutAddAttribute comboBox cellRenderer "text" 0
     -- zeige Titel-Label
     widget <- erhalteWidget comboBox
-    nameLabel <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar name
+    nameLabel <- containerAddWidgetNew comboBox $ Gtk.labelNew Nothing
     Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     -- füge Element zu listStore hinzu
     let foldFn :: [(e, Int32, Gtk.TreeIter)] -> e -> m [(e, Int32, Gtk.TreeIter)]
@@ -169,10 +170,17 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
             pure $ (e, index, iter) : acc
     enumIndicesIters <- NonEmpty.fromList . reverse <$> foldM foldFn [] elemente
     -- ändere Texte bei Sprachwechsel
-    verwendeSpracheGui maybeTVar $ \sprache -> forM_ enumIndicesIters $ \(e, _index, iter) -> do
-        gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e sprache
-        Gtk.listStoreSetValue listStore iter 0 gValue
-    pure AuswahlComboBox { widget, comboBox, enumIndicesIters }
+    let auswahlComboBox = AuswahlComboBox { widget, comboBox, enumIndicesIters }
+    verwendeSpracheGui maybeTVar $ \sprache -> do
+        aktuellerWert <- aktuelleAuswahl auswahlComboBox
+        Gtk.set nameLabel [Gtk.labelLabel := (name <:> anzeigeFunktion aktuellerWert) sprache]
+        forM_ enumIndicesIters $ \(e, _index, iter) -> do
+            gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e sprache
+            Gtk.listStoreSetValue listStore iter 0 gValue
+    spracheGui <- erhalteSpracheGui
+    beiAuswahl auswahlComboBox $ \aktuellerWert -> flip leseSprache spracheGui $ \sprache
+        -> Gtk.set nameLabel [Gtk.labelLabel := (name <:> anzeigeFunktion aktuellerWert) sprache]
+    pure auswahlComboBox
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
 --
