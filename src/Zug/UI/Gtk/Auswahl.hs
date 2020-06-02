@@ -6,7 +6,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 #endif
 
 {-|
@@ -58,7 +58,7 @@ data AuswahlWidget e
     | AuswahlComboBox
           { widget :: Gtk.Widget
           , comboBox :: Gtk.ComboBox
-          , enumIters :: NonEmpty (e, Gtk.TreeIter)
+          , enumIndicesIters :: NonEmpty (e, Int32, Gtk.TreeIter)
           }
     deriving (Eq)
 
@@ -82,10 +82,10 @@ auswahlRadioButtonNamedNew
     -> (e -> Sprache -> Text)
     -> m (AuswahlWidget e)
 auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
-    hBox <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBox <- Gtk.boxNew Gtk.OrientationHorizontal 0
     widget <- erhalteWidget hBox
     nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar name
-    enumButtons <- liftIO $ do
+    enumButtons <- do
         Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
         vBox <- boxPackWidgetNewDefault hBox $ Gtk.boxNew Gtk.OrientationVertical 0
         -- Erstelle RadioButtons
@@ -134,7 +134,8 @@ boundedEnumAuswahlRadioButtonNew
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 auswahlComboBoxNamedNew
-    :: (SpracheGuiReader r m, MonadIO m, Eq e)
+    :: forall r m e.
+    (SpracheGuiReader r m, MonadIO m, Eq e)
     => NonEmpty e
     -> Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
@@ -158,17 +159,20 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     nameLabel <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar name
     Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     -- füge Element zu listStore hinzu
-    enumIters <- forM elemente $ \e -> do
-        iter <- Gtk.listStoreAppend listStore
-        path <- Gtk.treeModelGetPath listStore iter
-        Gtk.treeModelRowChanged listStore path iter
-        when (e == h) $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
-        pure (e, iter)
+    let foldFn :: [(e, Int32, Gtk.TreeIter)] -> e -> m [(e, Int32, Gtk.TreeIter)]
+        foldFn acc e = do
+            iter <- Gtk.listStoreAppend listStore
+            path <- Gtk.treeModelGetPath listStore iter
+            Gtk.treeModelRowChanged listStore path iter
+            let index = fromIntegral $ length acc
+            when (e == h) $ Gtk.comboBoxSetActive comboBox index
+            pure $ (e, index, iter) : acc
+    enumIndicesIters <- NonEmpty.fromList . reverse <$> foldM foldFn [] elemente
     -- ändere Texte bei Sprachwechsel
-    verwendeSpracheGui maybeTVar $ \sprache -> forM_ enumIters $ \(e, iter) -> do
+    verwendeSpracheGui maybeTVar $ \sprache -> forM_ enumIndicesIters $ \(e, _index, iter) -> do
         gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e sprache
         Gtk.listStoreSetValue listStore iter 0 gValue
-    pure AuswahlComboBox { widget, comboBox, enumIters }
+    pure AuswahlComboBox { widget, comboBox, enumIndicesIters }
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
 --
@@ -199,49 +203,52 @@ boundedEnumAuswahlComboBoxNew
 -- | Setzte den aktuellen Wert eines 'AuswahlWidget'.
 --
 -- Wenn der Wert nicht im 'AuswahlWidget' enthalten ist wird der aktuelle Wert nicht verändert.
-setzeAuswahl :: (MonadIO m, Eq e) => AuswahlWidget e -> e -> m ()
-setzeAuswahl AuswahlRadioButton {enumButtons} wert = liftIO $ forM_ enumButtons $ \(e, radioButton)
+setzeAuswahl :: forall m e. (MonadIO m, Eq e) => AuswahlWidget e -> e -> m ()
+setzeAuswahl AuswahlRadioButton {enumButtons} wert = forM_ enumButtons $ \(e, radioButton)
     -> when (e == wert) $ Gtk.set radioButton [Gtk.toggleButtonActive := True]
-setzeAuswahl AuswahlComboBox {comboBox, enumIters} wert =
-    case lookup wert $ NonEmpty.toList enumIters of
-        (Just iter) -> liftIO $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
-        Nothing -> pure ()
+setzeAuswahl AuswahlComboBox {comboBox, enumIndicesIters} wert =
+    setzeWert $ NonEmpty.toList enumIndicesIters
+    where
+        setzeWert :: [(e, Int32, Gtk.TreeIter)] -> m ()
+        setzeWert [] = pure ()
+        setzeWert ((e, index, _iter):t)
+            | e == wert = Gtk.comboBoxSetActive comboBox index
+            | otherwise = setzeWert t
 
 -- | Erhalte den aktuell ausgewählten Wert.
 aktuelleAuswahl :: (MonadIO m, Eq e) => AuswahlWidget e -> m e
-aktuelleAuswahl
-    AuswahlRadioButton {enumButtons} = liftIO $ fromJust <$> foldM foldEnum Nothing enumButtons
+aktuelleAuswahl AuswahlRadioButton {enumButtons} = fromJust <$> foldM foldEnum Nothing enumButtons
     where
-        foldEnum :: Maybe e -> (e, Gtk.RadioButton) -> IO (Maybe e)
+        foldEnum :: (MonadIO m) => Maybe e -> (e, Gtk.RadioButton) -> m (Maybe e)
         foldEnum justE@(Just _e) _enumButton = pure justE
-        foldEnum Nothing (e, radioButton) = liftIO $ do
+        foldEnum Nothing (e, radioButton) = do
             toggled <- Gtk.get radioButton Gtk.toggleButtonActive
             pure
                 $ if toggled
                     then Just e
                     else Nothing
-aktuelleAuswahl AuswahlComboBox {comboBox, enumIters} = liftIO $ do
-    (foundActiveIter, activeIter) <- Gtk.comboBoxGetActiveIter comboBox
-    let foldEnum :: (Eq e) => (e, Gtk.TreeIter) -> Maybe e -> Maybe e
+aktuelleAuswahl AuswahlComboBox {comboBox, enumIndicesIters} = do
+    activeIndex <- Gtk.comboBoxGetActive comboBox
+    let foldEnum :: (Eq e) => (e, Int32, Gtk.TreeIter) -> Maybe e -> Maybe e
         foldEnum _enumIndex justE@(Just _e) = justE
-        foldEnum (e, iter) Nothing
-            | foundActiveIter && iter == activeIter = Just e
+        foldEnum (e, index, _iter) Nothing
+            | index == activeIndex = Just e
             | otherwise = Nothing
-    case foldr foldEnum Nothing enumIters of
+    case foldr foldEnum Nothing enumIndicesIters of
         (Just e) -> pure e
         Nothing -> do
-            let h = NonEmpty.head enumIters
-            Gtk.comboBoxSetActiveIter comboBox $ Just $ snd h
-            pure $ fst h
+            let (e, index, _iter) = NonEmpty.head enumIndicesIters
+            Gtk.comboBoxSetActive comboBox index
+            pure e
 
 -- | Führe die übergebene Aktion bei Änderung der Auswahl aus (vgl. 'Gtk.on')
 beiAuswahl :: (Eq e, MonadIO m) => AuswahlWidget e -> (e -> IO ()) -> m ()
 beiAuswahl auswahlWidget@AuswahlRadioButton {enumButtons} aktion =
-    liftIO $ forM_ enumButtons $ \(e, radioButton) -> Gtk.onToggleButtonToggled radioButton $ do
+    forM_ enumButtons $ \(e, radioButton) -> Gtk.onToggleButtonToggled radioButton $ do
         auswahl <- aktuelleAuswahl auswahlWidget
         when (e == auswahl) $ aktion e
 beiAuswahl auswahlWidget@AuswahlComboBox {comboBox} aktion =
-    void $ liftIO $ Gtk.onComboBoxChanged comboBox $ aktuelleAuswahl auswahlWidget >>= aktion
+    void $ Gtk.onComboBoxChanged comboBox $ aktuelleAuswahl auswahlWidget >>= aktion
 
 -- | Klasse für Typen mit 'AuswahlWidget'
 class (MitWidget a) => MitAuswahlWidget a e where
