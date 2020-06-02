@@ -110,6 +110,7 @@
         "gnueabihf",
         "gobject",
         "gspawn",
+        "gtype",
         "hlint",
         "hspec",
         "ifdef",

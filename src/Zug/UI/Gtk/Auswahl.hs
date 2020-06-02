@@ -41,13 +41,14 @@ import Data.Int (Int32)
 import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.GI.Base.GType as GI
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache(..), Anzeige(..))
-import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, labelSpracheNew)
+import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
 
@@ -141,19 +142,30 @@ auswahlComboBoxNamedNew
     -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     gType <- liftIO $ Gtk.gobjectType @Gtk.Label
-    listStore <- Gtk.listStoreNew [gType]
+    -- listStore <- Gtk.listStoreNew [gType]
+    listStore <- Gtk.listStoreNew [GI.gtypeString]
     comboBox <- Gtk.comboBoxNewWithModel listStore
+    Gtk.cellLayoutClear comboBox
+    cellRenderer <- Gtk.cellRendererTextNew
+    Gtk.cellLayoutPackStart comboBox cellRenderer True
+    Gtk.cellLayoutSetCellDataFunc comboBox cellRenderer $ Just $ \_layout renderer model iter -> do
+        gValue <- Gtk.treeModelGetValue model iter 0
+        (Just currentText) <- Gtk.fromGValue gValue
+        rendererText <- Gtk.unsafeCastTo Gtk.CellRendererText renderer
+        Gtk.setCellRendererTextText rendererText currentText
+    Gtk.cellLayoutAddAttribute comboBox cellRenderer "text" 0
     widget <- erhalteWidget comboBox
     nameLabel <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar name
     Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
     enumIters <- forM elemente $ \e -> do
         iter <- Gtk.listStoreAppend listStore
         path <- Gtk.treeModelGetPath listStore iter
-        Gtk.treeModelRowChanged listStore path iter
-        label <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar $ anzeigeFunktion e
+        label <- widgetShowNew $ labelSpracheNew maybeTVar $ anzeigeFunktion e
         -- TODO labels don't show up!!!!!
-        gValue <- liftIO $ Gtk.toGValue label
+        -- gValue <- liftIO $ Gtk.toGValue label
+        gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e Deutsch
         Gtk.listStoreSetValue listStore iter 0 gValue
+        Gtk.treeModelRowChanged listStore path iter
         when (e == h) $ liftIO $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
         pure (e, iter)
     pure AuswahlComboBox { widget, comboBox, enumIters }
