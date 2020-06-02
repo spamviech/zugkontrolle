@@ -1,5 +1,8 @@
+Pläne werden nicht aus ausführen-Box (Plan hinzufügen) beim entfernen gelöscht
+
 gi-gtk/gi-gtk-declarative verwenden?
     gi-gtk scheint neuer und besser gewartet zu sein.
+        Übersetzung fertig
     Wirft auf Raspberry Pi bisher Fehlermeldungen.
         Warten bis eine neue GHC-Version auf Raspi funktioniert?
             8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/

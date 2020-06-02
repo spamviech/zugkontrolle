@@ -418,6 +418,65 @@ Pläne:
 - Dauerschleife: true
   Name: IO - Wechsel
   Aktionen:
+  - Plan:
+      Dauerschleife: false
+      Name: I - Runde
+      Aktionen:
+      - Streckenabschnitt:
+          Name: I.St
+          Fließend: LOW
+          StromAnschluss:
+            Pin: 6
+        Aktion: Strom
+        Fließend: Fließend
+      - Wert:
+          ns: 5000000000
+        Aktion: Warten
+      - Kontakt:
+          KontaktAnschluss:
+            Pin: 14
+          Name: I - Innenkreis
+          Fließend: LOW
+        Aktion: Warten
+      - Streckenabschnitt:
+          Name: I.St
+          Fließend: LOW
+          StromAnschluss:
+            Pin: 6
+        Aktion: Strom
+        Fließend: Gesperrt
+    Aktion: Ausführen
+  - Plan:
+      Dauerschleife: false
+      Name: O - Runde
+      Aktionen:
+      - Streckenabschnitt:
+          Name: O.St
+          Fließend: LOW
+          StromAnschluss:
+            Pin: 5
+        Aktion: Strom
+        Fließend: Fließend
+      - Wert:
+          ns: 5000000000
+        Aktion: Warten
+      - Kontakt:
+          KontaktAnschluss:
+            Pin: 15
+          Name: O - Außenkreis
+          Fließend: LOW
+        Aktion: Warten
+      - Streckenabschnitt:
+          Name: O.St
+          Fließend: LOW
+          StromAnschluss:
+            Pin: 5
+        Aktion: Strom
+        Fließend: Gesperrt
+    Aktion: Ausführen
+- Dauerschleife: false
+  Name: O - Runde
+  Aktionen:
   - Streckenabschnitt:
       Name: O.St
       Fließend: LOW
@@ -425,22 +484,15 @@ Pläne:
         Pin: 5
     Aktion: Strom
     Fließend: Fließend
-  - Streckenabschnitt:
-      Name: I.St
-      Fließend: LOW
-      StromAnschluss:
-        Pin: 6
-    Aktion: Strom
-    Fließend: Gesperrt
+  - Wert:
+      ns: 5000000000
+    Aktion: Warten
   - Kontakt:
       KontaktAnschluss:
         Pin: 15
       Name: O - Außenkreis
       Fließend: LOW
     Aktion: Warten
-  - Wert:
-      s: 5
-    Aktion: Warten
   - Streckenabschnitt:
       Name: O.St
       Fließend: LOW
@@ -448,6 +500,9 @@ Pläne:
         Pin: 5
     Aktion: Strom
     Fließend: Gesperrt
+- Dauerschleife: false
+  Name: I - Runde
+  Aktionen:
   - Streckenabschnitt:
       Name: I.St
       Fließend: LOW
@@ -455,15 +510,22 @@ Pläne:
         Pin: 6
     Aktion: Strom
     Fließend: Fließend
+  - Wert:
+      ns: 5000000000
+    Aktion: Warten
   - Kontakt:
       KontaktAnschluss:
         Pin: 14
       Name: I - Innenkreis
       Fließend: LOW
     Aktion: Warten
-  - Wert:
-      s: 5
-    Aktion: Warten
+  - Streckenabschnitt:
+      Name: I.St
+      Fließend: LOW
+      StromAnschluss:
+        Pin: 6
+    Aktion: Strom
+    Fließend: Gesperrt
 Wegstrecken:
 - Streckenabschnitte:
   - Name: I.St
