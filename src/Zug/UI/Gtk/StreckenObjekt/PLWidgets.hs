@@ -64,7 +64,7 @@ import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(), SpracheGuiReader(erha
                             , verwendeSpracheGui, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets (BGWidgets)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-       (PlanElement(..), hinzufügenWidgetPlanPackNew, MitTMVarPlanObjekt())
+       (PlanElement(..), hinzufügenWidgetPlanPackNew, MitTMVarPlanObjekt(), entferneHinzufügenPlanWidgets)
 import Zug.UI.Gtk.StreckenObjekt.KOWidgets (KOWidgets)
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets)
 import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets)
@@ -141,6 +141,7 @@ instance WidgetsTyp PLWidgets where
     entferneWidgets plWidgets@PLWidgets {plTVarSprache} = do
         PLWidgetsBoxen {vBoxPläne} <- erhaltePLWidgetsBoxen
         mitContainerRemove vBoxPläne plWidgets
+        entferneHinzufügenPlanWidgets plWidgets
         liftIO $ atomically $ writeTVar plTVarSprache Nothing
 
     boxButtonEntfernen :: PLWidgets -> Gtk.Box
