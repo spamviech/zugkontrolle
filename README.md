@@ -162,12 +162,31 @@ beim linken auftreten. Um das Problem zu lösen muss das Paket `libtinfo-dev` in
 sudo apt-get install libtinfo-dev
 ```
 
+#### llvm-9
+ghc 8.10.1 verwendet llvm Version 9. Eine Installation ist über apt-get möglich.
+```sh
+sudo apt-get install llvm-9
+```
+
+#### ghc 8.10.1
+```sh
+wget http://downloads.haskell.org/~ghc/8.10.1/ghc-8.10.1-armv7-deb9-linux.tar.xz
+tar -xf ghc-8.10.1-armv7-deb9-linux.tar.gz
+cd ghc-8.10.1
+./configure CONF_CC_OPTS_STAGE2="-marm -march=armv7-a" CFLAGS="-marm -march=armv7-a"
+sudo make install
+```
+Die von stack produzierte Binary funktioniert nicht, weshalb eine globale ghc-Version installiert werden muss.
+(Probleme mit autoconf, siehe configure-Optionen)
+
 #### Relevanter Blog-Post
 
 Viele der Informationen wurden aktualisiert anhand
 [dieses Blog-Posts](https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/).
 Sollten sie nicht mehr aktuell sein ist es ratsam, nach aktuelleren Anleitungen für dann aktuelle
 RaspberryPi-Versionen zu suchen.
+
+[Neuerer Bog-Post](https://www.haskell.org/ghc/blog/20200515-ghc-on-arm.html)
 
 ### Installation von WiringPi
 
