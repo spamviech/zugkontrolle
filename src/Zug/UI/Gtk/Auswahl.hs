@@ -37,18 +37,18 @@ module Zug.UI.Gtk.Auswahl
 #ifdef ZUGKONTROLLEGUI
 import Control.Monad (when, void, forM, forM_, foldM)
 import Control.Monad.Trans (MonadIO(..))
+import qualified Data.GI.Base.GType as GI
 import Data.Int (Int32)
 import Data.List (delete)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
-import qualified Data.GI.Base.GType as GI
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache(..), Anzeige(..))
-import Zug.UI.Gtk.Hilfsfunktionen (widgetShowNew, containerAddWidgetNew, boxPackWidgetNewDefault, labelSpracheNew)
+import Zug.UI.Gtk.Hilfsfunktionen (containerAddWidgetNew, boxPackWidgetNewDefault, labelSpracheNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprachewechselAktionen)
 
@@ -141,10 +141,9 @@ auswahlComboBoxNamedNew
     -> (e -> Sprache -> Text)
     -> m (AuswahlWidget e)
 auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
-    gType <- liftIO $ Gtk.gobjectType @Gtk.Label
-    -- listStore <- Gtk.listStoreNew [gType]
     listStore <- Gtk.listStoreNew [GI.gtypeString]
     comboBox <- Gtk.comboBoxNewWithModel listStore
+    -- erste Spalte wird als text dargestellt
     Gtk.cellLayoutClear comboBox
     cellRenderer <- Gtk.cellRendererTextNew
     Gtk.cellLayoutPackStart comboBox cellRenderer True
@@ -154,20 +153,21 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
         rendererText <- Gtk.unsafeCastTo Gtk.CellRendererText renderer
         Gtk.setCellRendererTextText rendererText currentText
     Gtk.cellLayoutAddAttribute comboBox cellRenderer "text" 0
+    -- zeige Titel-Label
     widget <- erhalteWidget comboBox
     nameLabel <- containerAddWidgetNew comboBox $ labelSpracheNew maybeTVar name
     Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
+    -- füge Element zu listStore hinzu
     enumIters <- forM elemente $ \e -> do
         iter <- Gtk.listStoreAppend listStore
         path <- Gtk.treeModelGetPath listStore iter
-        label <- widgetShowNew $ labelSpracheNew maybeTVar $ anzeigeFunktion e
-        -- TODO labels don't show up!!!!!
-        -- gValue <- liftIO $ Gtk.toGValue label
-        gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e Deutsch
-        Gtk.listStoreSetValue listStore iter 0 gValue
         Gtk.treeModelRowChanged listStore path iter
-        when (e == h) $ liftIO $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
+        when (e == h) $ Gtk.comboBoxSetActiveIter comboBox $ Just iter
         pure (e, iter)
+    -- ändere Texte bei Sprachwechsel
+    verwendeSpracheGui maybeTVar $ \sprache -> forM_ enumIters $ \(e, iter) -> do
+        gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e sprache
+        Gtk.listStoreSetValue listStore iter 0 gValue
     pure AuswahlComboBox { widget, comboBox, enumIters }
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
