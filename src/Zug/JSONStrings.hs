@@ -29,7 +29,7 @@ instance Aeson.ToJSON Value where
 findeÜbereinstimmendenWert :: (Aeson.ToJSON a) => [a] -> Aeson.Value -> Aeson.Parser a
 findeÜbereinstimmendenWert [] _v = empty
 findeÜbereinstimmendenWert (a:as) v
-    | v == Aeson.toJSON h = pure a
+    | v == Aeson.toJSON a = pure a
     | otherwise = findeÜbereinstimmendenWert as v
 
 -- | Gerade

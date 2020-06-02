@@ -332,8 +332,8 @@ instance Aeson.FromJSON (Bahngeschwindigkeit 'Pwm 'Märklin) where
     parseJSON (Aeson.Object v) = do
         Märklin <- v .: JS.zugtyp
         bgName <- v .: JS.name
-        bgFließend <- parseFließend v
-        geschwindigkeitsPin <- Gpio <$> v .: JS.geschwindigkeitsPin
+        bgFließend <-  parseFließend v
+        geschwindigkeitsPin <-  Gpio <$> v .: JS.geschwindigkeitsPin
         pure
             Bahngeschwindigkeit
             { bgName
@@ -346,11 +346,11 @@ instance Aeson.FromJSON (Bahngeschwindigkeit 'Pwm 'Märklin) where
 instance Aeson.FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
     parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin)
     parseJSON (Aeson.Object v) = do
-        Märklin <- v .: JS.zugtyp
-        bgName <- v .: JS.name
-        bgFließend <- parseFließend v
-        fahrstromAnschlüsse <- v .: JS.fahrstromAnschlüsse
-        umdrehenAnschluss <- v .: JS.umdrehenAnschluss
+        Märklin <-  v .: JS.zugtyp
+        bgName <-  v .: JS.name
+        bgFließend <-  parseFließend v
+        fahrstromAnschlüsse <-  v .: JS.fahrstromAnschlüsse
+        umdrehenAnschluss <-  v .: JS.umdrehenAnschluss
         pure
             Bahngeschwindigkeit
             { bgName
@@ -363,12 +363,11 @@ instance Aeson.FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Märklin) where
 instance Aeson.FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
     parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'Pwm 'Lego)
     parseJSON (Aeson.Object v) = do
-        Lego <- v .: JS.zugtyp
-        bgName <- v .: JS.name
-        bgFließend <- parseFließend v
+        Lego <-  v .: JS.zugtyp
+        bgName <-  v .: JS.name
+        bgFließend <-  parseFließend v
         geschwindigkeitsPin <- Gpio <$> v .: JS.geschwindigkeitsPin
-        fahrtrichtungsAnschluss
-            <- parseAnschlussEither v JS.fahrtrichtungsAnschluss JS.fahrtrichtungsPin
+        fahrtrichtungsAnschluss <- parseAnschlussEither v JS.fahrtrichtungsAnschluss JS.fahrtrichtungsPin
         pure
             Bahngeschwindigkeit
             { bgName
@@ -381,12 +380,11 @@ instance Aeson.FromJSON (Bahngeschwindigkeit 'Pwm 'Lego) where
 instance Aeson.FromJSON (Bahngeschwindigkeit 'KonstanteSpannung 'Lego) where
     parseJSON :: Aeson.Value -> Aeson.Parser (Bahngeschwindigkeit 'KonstanteSpannung 'Lego)
     parseJSON (Aeson.Object v) = do
-        Lego <- v .: JS.zugtyp
-        bgName <- v .: JS.name
-        bgFließend <- parseFließend v
+        Lego <-  v .: JS.zugtyp
+        bgName <-  v .: JS.name
+        bgFließend <-  parseFließend v
         fahrstromAnschlüsse <- v .: JS.fahrstromAnschlüsse
-        fahrtrichtungsAnschluss
-            <- parseAnschlussEither v JS.fahrtrichtungsAnschluss JS.fahrtrichtungsPin
+        fahrtrichtungsAnschluss <-  parseAnschlussEither v JS.fahrtrichtungsAnschluss JS.fahrtrichtungsPin
         pure
             Bahngeschwindigkeit
             { bgName

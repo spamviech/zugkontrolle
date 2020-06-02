@@ -305,7 +305,7 @@ instance ToJSON Richtung where
 
 instance FromJSON Zugtyp where
     parseJSON :: Value -> Parser Zugtyp
-    parseJSON = JS.findeÜbereinstimmendenWert [minBound .. maxBound]
+    parseJSON v = JS.findeÜbereinstimmendenWert [minBound .. maxBound] v
 
 instance ToJSON Zugtyp where
     toJSON :: Zugtyp -> Value

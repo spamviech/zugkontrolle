@@ -499,21 +499,41 @@ setupGUI maybeTVar = void $ mdo
                     boxPack vBoxPL vBoxPläne PackGrow paddingDefault positionDefault
                 False -> do
                     mitContainerRemove vBoxBG vBoxBahngeschwindigkeiten
-                    boxPack vBoxPanedBahngeschwindigkeiten vBoxBahngeschwindigkeiten PackGrow paddingDefault positionDefault
+                    boxPack
+                        vBoxPanedBahngeschwindigkeiten
+                        vBoxBahngeschwindigkeiten
+                        PackGrow
+                        paddingDefault
+                        positionDefault
                     mitContainerRemove vBoxST vBoxStreckenabschnitte
-                    boxPack vBoxPanedStreckenabschnitte vBoxStreckenabschnitte PackGrow paddingDefault positionDefault
+                    boxPack
+                        vBoxPanedStreckenabschnitte
+                        vBoxStreckenabschnitte
+                        PackGrow
+                        paddingDefault
+                        positionDefault
                     mitContainerRemove vBoxWE vBoxWeichen
                     boxPack vBoxPanedWeichen vBoxWeichen PackGrow paddingDefault positionDefault
                     mitContainerRemove vBoxKU vBoxKupplungen
-                    boxPack vBoxPanedKupplungen vBoxKupplungen PackGrow paddingDefault positionDefault
+                    boxPack
+                        vBoxPanedKupplungen
+                        vBoxKupplungen
+                        PackGrow
+                        paddingDefault
+                        positionDefault
                     mitContainerRemove vBoxKO vBoxKontakte
                     boxPack vBoxPanedKontakte vBoxKontakte PackGrow paddingDefault positionDefault
                     mitContainerRemove vBoxWS vBoxWegstrecken
-                    boxPack vBoxPanedWegstrecken vBoxWegstrecken PackGrow paddingDefault positionDefault
+                    boxPack
+                        vBoxPanedWegstrecken
+                        vBoxWegstrecken
+                        PackGrow
+                        paddingDefault
+                        positionDefault
                     mitContainerRemove vBoxPL vBoxPläne
                     boxPack vBoxPanedPläne vBoxPläne PackGrow paddingDefault positionDefault
-    verwendeSpracheGuiFn spracheGui maybeTVar $ \sp
-        -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sp]
+    verwendeSpracheGuiFn spracheGui maybeTVar
+        $ \sp -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sp]
     -- Lade Datei angegeben in Kommandozeilenargument
     let ladeAktion :: Status -> IOStatusGui ()
         ladeAktion statusNeu = do
