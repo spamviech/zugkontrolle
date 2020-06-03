@@ -83,6 +83,17 @@ und  kopieren in einer yaml-Datei und anschließendes Ausführen mit Cmd-UI auf 
 
 Alternativ wird für jede Release-Version eine vorkompilierte binary im Unterordner `bin` angeboten.
 
+### Installation via cabal (ab Zugkontrolle 1.3)
+ghc-8.10.1 auf arm-Architekturen funktioniert nicht problemlos, so dass eine Installation via stack momentan (2.6.2020) nicht möglich ist.
+Für eine Installation kann stattdessen cabal-install (über apt-get erhältlich; Version 2.2 at time of writing) verwendet werden.
+
+Nach Installation aller benötigten Programme und Developer Bibliotheken (siehe unten) ist mein workflow:
+* Eingabe von `cabal configure`
+* `cabal install <Paketname>` für alle fehlenden Pakete
+* wiederholen, bis keine Fehler mehr auftreten
+* `cabal build`
+* binary finden (weiß noch nicht wie)
+
 ### Installation von stack
 
 Zur Installation von stack wird empfohlen die Anleitung auf der
@@ -94,6 +105,9 @@ Leider bricht die neueste stack-Version beim kompilieren mit einer Fehlermeldung
 haddock-binary ab. Als Abhilfe wird
 [Version 1.9.3 in Zugkontrolle-Ressourcen](https://github.com/spamviech/ZugkontrolleRessourcen)
 bereitgestellt.
+
+Nach Version 2.1.3 werden keine arm-binaries mehr angeboten, weshalb auch davon eine in o.g. repository bereitgestellt wird.
+Ab Zugkontrolle 1.3 wird diese stack-Version benötigt, da 1.9.3 den benötigten Resolver nicht findet.
 
 ### Swap-Datei erstellen
 
@@ -216,12 +230,18 @@ Als Workaround werden alte Versionen der __MSYS2__-Pakete in
 Diese werden über folgenden Befehl installiert: `pacman -U <Dateiname>`  
 Zum Glück ist nach erstmaligem Kompilieren ein updaten auf die neueste Version wieder möglich.
 
-#### haskell-gi requirements
+#### haskell-gi Voraussetzugen
 haskell-gi requires certain development libraries to be present.
 ```sh
 sudo apt-get install libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
 ```
+
 [Source](https://github.com/haskell-gi/haskell-gi/blob/master/README.md#installation)
+
+#### Weitere Abhängigkeiten
+```sh
+sudo apt-get install happy
+```
 
 ## Ausführen des Programms
 
