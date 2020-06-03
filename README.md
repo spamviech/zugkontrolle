@@ -216,6 +216,13 @@ Als Workaround werden alte Versionen der __MSYS2__-Pakete in
 Diese werden über folgenden Befehl installiert: `pacman -U <Dateiname>`  
 Zum Glück ist nach erstmaligem Kompilieren ein updaten auf die neueste Version wieder möglich.
 
+#### haskell-gi requirements
+haskell-gi requires certain development libraries to be present.
+```sh
+sudo apt-get install libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
+```
+[Source](https://github.com/haskell-gi/haskell-gi/blob/master/README.md#installation)
+
 ## Ausführen des Programms
 
 Zum Ausführen kann wieder stack verwendet werden.  
