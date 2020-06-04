@@ -149,12 +149,8 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     Gtk.cellLayoutClear comboBox
     cellRenderer <- Gtk.cellRendererTextNew
     Gtk.cellLayoutPackStart comboBox cellRenderer True
-    Gtk.cellLayoutSetCellDataFunc comboBox cellRenderer $ Just $ \_layout renderer model iter -> do
-        gValue <- Gtk.treeModelGetValue model iter 0
-        (Just currentText) <- Gtk.fromGValue gValue
-        rendererText <- Gtk.unsafeCastTo Gtk.CellRendererText renderer
-        Gtk.setCellRendererTextText rendererText currentText
     Gtk.cellLayoutAddAttribute comboBox cellRenderer "text" 0
+    -- TODO Attribute type "widget" ausprobieren?
     -- zeige Titel-Label
     widget <- erhalteWidget comboBox
     nameLabel <- containerAddWidgetNew comboBox $ Gtk.labelNew Nothing
