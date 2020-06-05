@@ -6,6 +6,10 @@ gi-gtk/gi-gtk-declarative verwenden?
             8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/
             funktioniert auf Windows nicht (TemplateHaskell)!
     ghc 8.10.1 scheint wieder zu funktionieren
+        Probleme mit stack
+            aktuell wird cabal-install versucht
+    gi-gtk-Funktionen sind meistens MonadIO
+        die meisten liftIO-Blöcke sind nicht mehr notwendig
 
 Mit..-Klassen durch typ-Synonyme von it-has ersetzen?
     http://hackage.haskell.org/package/it-has

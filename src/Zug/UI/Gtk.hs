@@ -2,7 +2,7 @@
 #ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE OverloadedStrings #-}
 #endif
 
 {-|
@@ -11,13 +11,13 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 module Zug.UI.Gtk (main, setupGUI) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (runInBoundThread)
-import Control.Concurrent.STM (atomically, newEmptyTMVarIO)
+import Control.Concurrent (runInBoundThread, forkIO, ThreadId)
+import Control.Concurrent.STM (atomically, newEmptyTMVarIO, putTMVar, readTMVar)
 #else
 import Control.Concurrent.STM.TVar (TVar)
 #endif
 #ifdef ZUGKONTROLLEGUI
-import Control.Monad (void, when, forM_)
+import Control.Monad (void, when, forM_, foldM)
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -33,11 +33,15 @@ import qualified GI.Gtk as Gtk
 #else
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 #endif
+#ifdef ZUGKONTROLLEGUI
+import System.IO.Unsafe (unsafeInterleaveIO)
+#endif
 
-#ifndef ZUGKONTROLLEGUI
-import Zug.Language (Sprache(..))
-#else
+#ifdef ZUGKONTROLLEGUI
+import Zug.Anbindung (warte, Wartezeit(MilliSekunden))
 import Zug.Language (MitSprache(leseSprache), (<~>), (<|>))
+#else
+import Zug.Language (Sprache(..))
 #endif
 import qualified Zug.Language as Language
 #ifdef ZUGKONTROLLEGUI
@@ -103,7 +107,7 @@ main = runInBoundThread $ do
 -- Wird eine 'TVar' übergeben kann das Anpassen der Label aus 'Zug.UI.Gtk.SpracheGui.sprachwechsel' gelöscht werden.
 -- Dazu muss deren Inhalt auf 'Nothing' gesetzt werden.
 setupGUI :: Maybe TVarSprachewechselAktionen -> IO ()
-setupGUI maybeTVar = void $ mdo
+setupGUI maybeTVar = void $ do
     Options {load = dateipfad, gtkSeiten, sprache} <- getOptions
     spracheGui <- spracheGuiNeu sprache
     -- Dummy-Fenster, damit etwas angezeigt wird
@@ -112,7 +116,14 @@ setupGUI maybeTVar = void $ mdo
         windowDummy
         [ Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sp
         , Gtk.windowDeletable := False
-        , Gtk.windowDefaultWidth := 400]
+        , Gtk.windowDefaultWidth := 400
+        , Gtk.windowDefaultHeight := 200]
+    progressBarDummy <- containerAddWidgetNew windowDummy Gtk.progressBarNew
+    Gtk.set
+        progressBarDummy
+        [ Gtk.progressBarFraction := 0
+        , Gtk.progressBarShowText := True
+        , Gtk.progressBarText := "Loading"]
     Gtk.widgetShow windowDummy
     -- Hauptfenster
     dynWindowMain <- Gtk.windowNew Gtk.WindowTypeToplevel
@@ -133,424 +144,603 @@ setupGUI maybeTVar = void $ mdo
     statusVar <- statusVarNew $ statusLeer spracheGui
     -- Notebook mit aktuellen Elementen
     -- Einzelseite-Variante
-    notebookElementeEinzelseiten
-        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-    Gtk.widgetHide notebookElementeEinzelseiten
-    (vBoxBG, vBoxST, vBoxWE, vBoxKU, vBoxKO, vBoxWS, vBoxPL) <- flip runReaderT spracheGui $ do
-        (vBoxBahngeschwindigkeitenEinzel, _page) <- notebookAppendPageNew
-            notebookElementeEinzelseiten
-            maybeTVar
-            Language.bahngeschwindigkeiten
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        (vBoxStreckenabschnitteEinzel, _page) <- notebookAppendPageNew
-            notebookElementeEinzelseiten
-            maybeTVar
-            Language.streckenabschnitte
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        (vBoxWeichenEinzel, _page)
-            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.weichen
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        (vBoxKupplungenEinzel, _page)
-            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.kupplungen
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        (vBoxKontakteEinzel, _page)
-            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.kontakte
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        (vBoxWegstreckenEinzel, _page)
-            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.wegstrecken
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        (vBoxPläneEinzel, _page)
-            <- notebookAppendPageNew notebookElementeEinzelseiten maybeTVar Language.pläne
-            $ liftIO
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        pure
-            ( vBoxBahngeschwindigkeitenEinzel
-            , vBoxStreckenabschnitteEinzel
-            , vBoxWeichenEinzel
-            , vBoxKupplungenEinzel
-            , vBoxKontakteEinzel
-            , vBoxWegstreckenEinzel
-            , vBoxPläneEinzel
-            )
+    tmvarNotebookElementeEinzel <- newEmptyTMVarIO
+    tmvarVBoxBahngeschwindigkeitenEinzel <- newEmptyTMVarIO
+    tmvarVBoxStreckenabschnitteEinzel <- newEmptyTMVarIO
+    tmvarVBoxWeichenEinzel <- newEmptyTMVarIO
+    tmvarVBoxKupplungenEinzel <- newEmptyTMVarIO
+    tmvarVBoxKontakteEinzel <- newEmptyTMVarIO
+    tmvarVBoxWegstreckenEinzel <- newEmptyTMVarIO
+    tmvarVBoxPläneEinzel <- newEmptyTMVarIO
+    let aktionNotebookElementeEinzel = do
+            notebookElementeEinzel
+                <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
+            atomically $ putTMVar tmvarNotebookElementeEinzel notebookElementeEinzel
+            Gtk.widgetHide notebookElementeEinzel
+            flip runReaderT spracheGui $ do
+                (vBoxBahngeschwindigkeitenEinzel, _page) <- notebookAppendPageNew
+                    notebookElementeEinzel
+                    maybeTVar
+                    Language.bahngeschwindigkeiten
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO
+                    $ atomically
+                    $ putTMVar tmvarVBoxBahngeschwindigkeitenEinzel vBoxBahngeschwindigkeitenEinzel
+                (vBoxStreckenabschnitteEinzel, _page) <- notebookAppendPageNew
+                    notebookElementeEinzel
+                    maybeTVar
+                    Language.streckenabschnitte
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO
+                    $ atomically
+                    $ putTMVar tmvarVBoxStreckenabschnitteEinzel vBoxStreckenabschnitteEinzel
+                (vBoxWeichenEinzel, _page)
+                    <- notebookAppendPageNew notebookElementeEinzel maybeTVar Language.weichen
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO $ atomically $ putTMVar tmvarVBoxWeichenEinzel vBoxWeichenEinzel
+                (vBoxKupplungenEinzel, _page)
+                    <- notebookAppendPageNew notebookElementeEinzel maybeTVar Language.kupplungen
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO $ atomically $ putTMVar tmvarVBoxKupplungenEinzel vBoxKupplungenEinzel
+                (vBoxKontakteEinzel, _page)
+                    <- notebookAppendPageNew notebookElementeEinzel maybeTVar Language.kontakte
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO $ atomically $ putTMVar tmvarVBoxKontakteEinzel vBoxKontakteEinzel
+                (vBoxWegstreckenEinzel, _page)
+                    <- notebookAppendPageNew notebookElementeEinzel maybeTVar Language.wegstrecken
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO $ atomically $ putTMVar tmvarVBoxWegstreckenEinzel vBoxWegstreckenEinzel
+                (vBoxPläneEinzel, _page)
+                    <- notebookAppendPageNew notebookElementeEinzel maybeTVar Language.pläne
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO $ atomically $ putTMVar tmvarVBoxPläneEinzel vBoxPläneEinzel
     -- Paned-Variante
-    notebookElementePaned
-        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
-    (panedBahngeschwindigkeitStreckenabschnittWeiche, _pageBgStWe) <- flip runReaderT spracheGui
-        $ notebookAppendPageNew
+    tmvarNotebookElementePaned <- newEmptyTMVarIO
+    tmvarVBoxBahngeschwindigkeitenPaned <- newEmptyTMVarIO
+    tmvarVBoxStreckenabschnittePaned <- newEmptyTMVarIO
+    tmvarVBoxWeichenPaned <- newEmptyTMVarIO
+    tmvarVBoxKupplungenPaned <- newEmptyTMVarIO
+    tmvarVBoxKontaktePaned <- newEmptyTMVarIO
+    tmvarVBoxWegstreckenPaned <- newEmptyTMVarIO
+    tmvarVBoxPlänePaned <- newEmptyTMVarIO
+    tmvarVBoxBahngeschwindigkeiten <- newEmptyTMVarIO
+    tmvarVBoxStreckenabschnitte <- newEmptyTMVarIO
+    tmvarVBoxWeichen <- newEmptyTMVarIO
+    tmvarVBoxKupplungen <- newEmptyTMVarIO
+    tmvarVBoxKontakte <- newEmptyTMVarIO
+    tmvarVBoxWegstrecken <- newEmptyTMVarIO
+    tmvarVBoxPläne <- newEmptyTMVarIO
+    let aktionNotebookElementePaned = do
             notebookElementePaned
-            maybeTVar
-            (Language.bahngeschwindigkeiten <|> Language.streckenabschnitte <|> Language.weichen)
-        $ liftIO
-        $ Gtk.panedNew Gtk.OrientationHorizontal
-    vPanedBahngeschwindigkeitStreckenabschnitt
-        <- widgetShowNew $ Gtk.panedNew Gtk.OrientationVertical
-    Gtk.panedAdd1
-        panedBahngeschwindigkeitStreckenabschnittWeiche
-        vPanedBahngeschwindigkeitStreckenabschnitt
-    frameBahngeschwindigkeiten <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set frameBahngeschwindigkeiten [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd1 vPanedBahngeschwindigkeitStreckenabschnitt frameBahngeschwindigkeiten
-    vBoxPanedBahngeschwindigkeiten
-        <- containerAddWidgetNew frameBahngeschwindigkeiten $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedBahngeschwindigkeiten
-        $ labelSpracheNew maybeTVar Language.bahngeschwindigkeiten
-    vBoxBahngeschwindigkeiten
-        <- boxPackWidgetNew vBoxPanedBahngeschwindigkeiten PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    frameStreckenabschnitte <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set frameStreckenabschnitte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd2 vPanedBahngeschwindigkeitStreckenabschnitt frameStreckenabschnitte
-    vBoxPanedStreckenabschnitte
-        <- containerAddWidgetNew frameStreckenabschnitte $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedStreckenabschnitte
-        $ labelSpracheNew maybeTVar Language.streckenabschnitte
-    vBoxStreckenabschnitte
-        <- boxPackWidgetNew vBoxPanedStreckenabschnitte PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    frameWeichen <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set frameWeichen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd2 panedBahngeschwindigkeitStreckenabschnittWeiche frameWeichen
-    vBoxPanedWeichen <- containerAddWidgetNew frameWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedWeichen
-        $ labelSpracheNew maybeTVar Language.weichen
-    vBoxWeichen <- boxPackWidgetNew vBoxPanedWeichen PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    (panedKupplungKontakt, _pageKuKo) <- flip runReaderT spracheGui
-        $ notebookAppendPageNew
-            notebookElementePaned
-            maybeTVar
-            (Language.kupplungen <|> Language.kontakte)
-        $ liftIO
-        $ Gtk.panedNew Gtk.OrientationHorizontal
-    frameKupplungen <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set frameKupplungen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd1 panedKupplungKontakt frameKupplungen
-    vBoxPanedKupplungen
-        <- containerAddWidgetNew frameKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedKupplungen
-        $ labelSpracheNew maybeTVar Language.kupplungen
-    vBoxKupplungen <- boxPackWidgetNew vBoxPanedKupplungen PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    frameKontakte <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set frameKontakte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd2 panedKupplungKontakt frameKontakte
-    vBoxPanedKontakte <- containerAddWidgetNew frameKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedKontakte
-        $ labelSpracheNew maybeTVar Language.kontakte
-    vBoxKontakte <- boxPackWidgetNew vBoxPanedKontakte PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    (panedWegstreckePlan, _pageWsPl) <- flip runReaderT spracheGui
-        $ notebookAppendPageNew
-            notebookElementePaned
-            maybeTVar
-            (Language.wegstrecken <|> Language.pläne)
-        $ liftIO
-        $ Gtk.panedNew Gtk.OrientationHorizontal
-    frameWegstrecken <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd1 panedWegstreckePlan frameWegstrecken
-    vBoxPanedWegstrecken
-        <- containerAddWidgetNew frameWegstrecken $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedWegstrecken
-        $ labelSpracheNew maybeTVar Language.wegstrecken
-    vBoxWegstrecken
-        <- boxPackWidgetNew vBoxPanedWegstrecken PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    framePläne <- widgetShowNew $ Gtk.frameNew Nothing
-    Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowTypeIn]
-    Gtk.panedAdd2 panedWegstreckePlan framePläne
-    vBoxPanedPläne <- containerAddWidgetNew framePläne $ Gtk.boxNew Gtk.OrientationVertical 0
-    flip runReaderT spracheGui
-        $ boxPackWidgetNewDefault vBoxPanedPläne
-        $ labelSpracheNew maybeTVar Language.pläne
-    vBoxPläne <- boxPackWidgetNew vBoxPanedPläne PackGrow paddingDefault positionDefault
-        $ scrollbaresWidgetNew
-        $ Gtk.boxNew Gtk.OrientationVertical 0
-    -- Paned mittig setzten
-    Gdk.displayGetDefault >>= \case
-        (Just display) -> Gtk.getWidgetWindow dynWindowMain >>= \case
-            (Just gdkWindow) -> do
-                monitor <- Gdk.displayGetMonitorAtWindow display gdkWindow
-                geometry <- Gdk.monitorGetGeometry monitor
-                screenWidth <- Gdk.getRectangleWidth geometry
-                forM_
-                    [ panedBahngeschwindigkeitStreckenabschnittWeiche
-                    , panedKupplungKontakt
-                    , panedWegstreckePlan]
-                    $ \paned -> Gdk.set paned [Gtk.panedPosition := div screenWidth 2]
-                screenHeight <- Gdk.getRectangleHeight geometry
-                -- geschätzter Wert
-                let decoratorHeight = 50
-                Gtk.set
-                    vPanedBahngeschwindigkeitStreckenabschnitt
-                    [Gtk.panedPosition := div (screenHeight - decoratorHeight) 3]
-            Nothing -> pure ()
-        Nothing -> pure ()
+                <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
+            (panedBahngeschwindigkeitStreckenabschnittWeiche, _pageBgStWe)
+                <- flip runReaderT spracheGui
+                $ notebookAppendPageNew
+                    notebookElementePaned
+                    maybeTVar
+                    (Language.bahngeschwindigkeiten
+                     <|> Language.streckenabschnitte
+                     <|> Language.weichen)
+                $ Gtk.panedNew Gtk.OrientationHorizontal
+            atomically $ putTMVar tmvarNotebookElementePaned notebookElementePaned
+            vPanedBahngeschwindigkeitStreckenabschnitt
+                <- widgetShowNew $ Gtk.panedNew Gtk.OrientationVertical
+            Gtk.panedAdd1
+                panedBahngeschwindigkeitStreckenabschnittWeiche
+                vPanedBahngeschwindigkeitStreckenabschnitt
+            frameBahngeschwindigkeiten <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set frameBahngeschwindigkeiten [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd1 vPanedBahngeschwindigkeitStreckenabschnitt frameBahngeschwindigkeiten
+            vBoxBahngeschwindigkeitenPaned <- containerAddWidgetNew frameBahngeschwindigkeiten
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically
+                $ putTMVar tmvarVBoxBahngeschwindigkeitenPaned vBoxBahngeschwindigkeitenPaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxBahngeschwindigkeitenPaned
+                $ labelSpracheNew maybeTVar Language.bahngeschwindigkeiten
+            vBoxBahngeschwindigkeiten <- boxPackWidgetNew
+                vBoxBahngeschwindigkeitenPaned
+                PackGrow
+                paddingDefault
+                positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxBahngeschwindigkeiten vBoxBahngeschwindigkeiten
+            frameStreckenabschnitte <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set frameStreckenabschnitte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd2 vPanedBahngeschwindigkeitStreckenabschnitt frameStreckenabschnitte
+            vBoxStreckenabschnittePaned <- containerAddWidgetNew frameStreckenabschnitte
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxStreckenabschnittePaned vBoxStreckenabschnittePaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxStreckenabschnittePaned
+                $ labelSpracheNew maybeTVar Language.streckenabschnitte
+            vBoxStreckenabschnitte <- boxPackWidgetNew
+                vBoxStreckenabschnittePaned
+                PackGrow
+                paddingDefault
+                positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxStreckenabschnitte vBoxStreckenabschnitte
+            frameWeichen <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set frameWeichen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd2 panedBahngeschwindigkeitStreckenabschnittWeiche frameWeichen
+            vBoxWeichenPaned
+                <- containerAddWidgetNew frameWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxWeichenPaned vBoxWeichenPaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxWeichenPaned
+                $ labelSpracheNew maybeTVar Language.weichen
+            vBoxWeichen
+                <- boxPackWidgetNew vBoxWeichenPaned PackGrow paddingDefault positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxWeichen vBoxWeichen
+            (panedKupplungKontakt, _pageKuKo) <- flip runReaderT spracheGui
+                $ notebookAppendPageNew
+                    notebookElementePaned
+                    maybeTVar
+                    (Language.kupplungen <|> Language.kontakte)
+                $ Gtk.panedNew Gtk.OrientationHorizontal
+            frameKupplungen <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set frameKupplungen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd1 panedKupplungKontakt frameKupplungen
+            vBoxKupplungenPaned
+                <- containerAddWidgetNew frameKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxKupplungenPaned vBoxKupplungenPaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxKupplungenPaned
+                $ labelSpracheNew maybeTVar Language.kupplungen
+            vBoxKupplungen
+                <- boxPackWidgetNew vBoxKupplungenPaned PackGrow paddingDefault positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxKupplungen vBoxKupplungen
+            frameKontakte <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set frameKontakte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd2 panedKupplungKontakt frameKontakte
+            vBoxKontaktePaned
+                <- containerAddWidgetNew frameKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxKontaktePaned vBoxKontaktePaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxKontaktePaned
+                $ labelSpracheNew maybeTVar Language.kontakte
+            vBoxKontakte
+                <- boxPackWidgetNew vBoxKontaktePaned PackGrow paddingDefault positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxKontakte vBoxKontakte
+            (panedWegstreckePlan, _pageWsPl) <- flip runReaderT spracheGui
+                $ notebookAppendPageNew
+                    notebookElementePaned
+                    maybeTVar
+                    (Language.wegstrecken <|> Language.pläne)
+                $ Gtk.panedNew Gtk.OrientationHorizontal
+            frameWegstrecken <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd1 panedWegstreckePlan frameWegstrecken
+            vBoxWegstreckenPaned
+                <- containerAddWidgetNew frameWegstrecken $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxWegstreckenPaned vBoxWegstreckenPaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxWegstreckenPaned
+                $ labelSpracheNew maybeTVar Language.wegstrecken
+            vBoxWegstrecken
+                <- boxPackWidgetNew vBoxWegstreckenPaned PackGrow paddingDefault positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxWegstrecken vBoxWegstrecken
+            framePläne <- widgetShowNew $ Gtk.frameNew Nothing
+            Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.panedAdd2 panedWegstreckePlan framePläne
+            vBoxPlänePaned
+                <- containerAddWidgetNew framePläne $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxPlänePaned vBoxPlänePaned
+            flip runReaderT spracheGui
+                $ boxPackWidgetNewDefault vBoxPlänePaned
+                $ labelSpracheNew maybeTVar Language.pläne
+            vBoxPläne <- boxPackWidgetNew vBoxPlänePaned PackGrow paddingDefault positionDefault
+                $ scrollbaresWidgetNew
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            atomically $ putTMVar tmvarVBoxPläne vBoxPläne
+            -- Paned mittig setzten
+            Gdk.displayGetDefault >>= \case
+                (Just display) -> Gtk.getWidgetWindow dynWindowMain >>= \case
+                    (Just gdkWindow) -> do
+                        monitor <- Gdk.displayGetMonitorAtWindow display gdkWindow
+                        geometry <- Gdk.monitorGetGeometry monitor
+                        screenWidth <- Gdk.getRectangleWidth geometry
+                        forM_
+                            [ panedBahngeschwindigkeitStreckenabschnittWeiche
+                            , panedKupplungKontakt
+                            , panedWegstreckePlan]
+                            $ \paned -> Gdk.set paned [Gtk.panedPosition := div screenWidth 2]
+                        screenHeight <- Gdk.getRectangleHeight geometry
+                        -- geschätzter Wert
+                        let decoratorHeight = 50
+                        Gtk.set
+                            vPanedBahngeschwindigkeitStreckenabschnitt
+                            [Gtk.panedPosition := div (screenHeight - decoratorHeight) 3]
+                    Nothing -> pure ()
+                Nothing -> pure ()
     -- DynamischeWidgets
-    vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanBahngeschwindigkeitenLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenWegstreckeStreckenabschnitte
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenPlanStreckenabschnitte
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenWegstreckeWeichenMärklin
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenWegstreckeWeichenLego
-        <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenPlanWeichenGeradeMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenGeradeLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenKurveMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenKurveLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenLinksMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenLinksLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenRechtsMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWeichenRechtsLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenWegstreckeKupplungen <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenPlanKupplungen <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenWegstreckeKontakte <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
-    vBoxHinzufügenPlanKontakte <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenKupplungMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenKupplungLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenKontaktMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenKontaktLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenMärklin
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanWegstreckenLego
-        <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    vBoxHinzufügenPlanPläne <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
-    dynFortfahrenWennToggledWegstrecke <- flip runReaderT spracheGui
-        $ fortfahrenWennToggledVarNew
-            maybeTVar
-            Language.hinzufügen
-            foldWegstreckeHinzufügen
-            (atomically . readStatusVar)
-            statusVar
-    dynTMVarPlanObjekt <- newEmptyTMVarIO
-    let dynamischeWidgets =
-            DynamischeWidgets
-            { dynBGWidgetsBoxen = BGWidgetsBoxen
-                  { vBoxBahngeschwindigkeiten
-                  , vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-                  , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-                  , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
-                  , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
-                  , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
-                  , vBoxHinzufügenPlanBahngeschwindigkeitenLego
-                  , vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
-                  , vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
-                  }
-            , dynSTWidgetsBoxen = STWidgetsBoxen
-                  { vBoxStreckenabschnitte
-                  , vBoxHinzufügenWegstreckeStreckenabschnitte
-                  , vBoxHinzufügenPlanStreckenabschnitte
-                  }
-            , dynWEWidgetsBoxen = WEWidgetsBoxen
-                  { vBoxWeichen
-                  , vBoxHinzufügenWegstreckeWeichenMärklin
-                  , vBoxHinzufügenWegstreckeWeichenLego
-                  , vBoxHinzufügenPlanWeichenGeradeMärklin
-                  , vBoxHinzufügenPlanWeichenGeradeLego
-                  , vBoxHinzufügenPlanWeichenKurveMärklin
-                  , vBoxHinzufügenPlanWeichenKurveLego
-                  , vBoxHinzufügenPlanWeichenLinksMärklin
-                  , vBoxHinzufügenPlanWeichenLinksLego
-                  , vBoxHinzufügenPlanWeichenRechtsMärklin
-                  , vBoxHinzufügenPlanWeichenRechtsLego
-                  }
-            , dynKUWidgetsBoxen = KUWidgetsBoxen
-                  { vBoxKupplungen
-                  , vBoxHinzufügenWegstreckeKupplungen
-                  , vBoxHinzufügenPlanKupplungen
-                  }
-            , dynKOWidgetsBoxen = KOWidgetsBoxen
-                  { vBoxKontakte
-                  , vBoxHinzufügenWegstreckeKontakte
-                  , vBoxHinzufügenPlanKontakte
-                  }
-            , dynWSWidgetsBoxen = WSWidgetsBoxen
-                  { vBoxWegstrecken
-                  , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
-                  , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
-                  , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
-                  , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
-                  , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
-                  , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
-                  , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
-                  , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
-                  , vBoxHinzufügenPlanWegstreckenKupplungMärklin
-                  , vBoxHinzufügenPlanWegstreckenKupplungLego
-                  , vBoxHinzufügenPlanWegstreckenKontaktMärklin
-                  , vBoxHinzufügenPlanWegstreckenKontaktLego
-                  , vBoxHinzufügenPlanWegstreckenMärklin
-                  , vBoxHinzufügenPlanWegstreckenLego
-                  }
-            , dynPLWidgetsBoxen = PLWidgetsBoxen { vBoxPläne, vBoxHinzufügenPlanPläne }
-            , dynWindowMain
-            , dynFortfahrenWennToggledWegstrecke
-            , dynTMVarPlanObjekt
-            , dynAktionBearbeiten = aktionBearbeiten
-            }
-    let objektReader = (tvarMaps, dynamischeWidgets, statusVar)
+    tmvarObjektReader <- newEmptyTMVarIO
+    tmvarAktionBearbeiten <- newEmptyTMVarIO
+    let aktionObjektReader = do
+            vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenWegstreckeStreckenabschnitte
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenPlanStreckenabschnitte
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenWegstreckeWeichenMärklin
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenWegstreckeWeichenLego
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenPlanWeichenGeradeMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenGeradeLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenKurveMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenKurveLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenLinksMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenLinksLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenRechtsMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWeichenRechtsLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenWegstreckeKupplungen
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenPlanKupplungen
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenWegstreckeKontakte
+                <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+            vBoxHinzufügenPlanKontakte
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenKupplungLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenKontaktMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenKontaktLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenMärklin
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanWegstreckenLego
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            vBoxHinzufügenPlanPläne
+                <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
+            dynFortfahrenWennToggledWegstrecke <- flip runReaderT spracheGui
+                $ fortfahrenWennToggledVarNew
+                    maybeTVar
+                    Language.hinzufügen
+                    foldWegstreckeHinzufügen
+                    (atomically . readStatusVar)
+                    statusVar
+            dynTMVarPlanObjekt <- newEmptyTMVarIO
+            vBoxBahngeschwindigkeiten <- atomically $ readTMVar tmvarVBoxBahngeschwindigkeiten
+            vBoxStreckenabschnitte <- atomically $ readTMVar tmvarVBoxStreckenabschnitte
+            vBoxWeichen <- atomically $ readTMVar tmvarVBoxWeichen
+            vBoxKupplungen <- atomically $ readTMVar tmvarVBoxKupplungen
+            vBoxKontakte <- atomically $ readTMVar tmvarVBoxKontakte
+            vBoxWegstrecken <- atomically $ readTMVar tmvarVBoxWegstrecken
+            vBoxPläne <- atomically $ readTMVar tmvarVBoxPläne
+            -- unsafeInterleaveIO necessary, since the TMVar is only filled later
+            aktionBearbeiten <- unsafeInterleaveIO $ atomically $ readTMVar tmvarAktionBearbeiten
+            let dynamischeWidgets =
+                    DynamischeWidgets
+                    { dynBGWidgetsBoxen = BGWidgetsBoxen
+                          { vBoxBahngeschwindigkeiten
+                          , vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
+                          , vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
+                          , vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
+                          , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
+                          , vBoxHinzufügenPlanBahngeschwindigkeitenMärklinKonstanteSpannung
+                          , vBoxHinzufügenPlanBahngeschwindigkeitenLego
+                          , vBoxHinzufügenPlanBahngeschwindigkeitenLegoPwm
+                          , vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
+                          }
+                    , dynSTWidgetsBoxen = STWidgetsBoxen
+                          { vBoxStreckenabschnitte
+                          , vBoxHinzufügenWegstreckeStreckenabschnitte
+                          , vBoxHinzufügenPlanStreckenabschnitte
+                          }
+                    , dynWEWidgetsBoxen = WEWidgetsBoxen
+                          { vBoxWeichen
+                          , vBoxHinzufügenWegstreckeWeichenMärklin
+                          , vBoxHinzufügenWegstreckeWeichenLego
+                          , vBoxHinzufügenPlanWeichenGeradeMärklin
+                          , vBoxHinzufügenPlanWeichenGeradeLego
+                          , vBoxHinzufügenPlanWeichenKurveMärklin
+                          , vBoxHinzufügenPlanWeichenKurveLego
+                          , vBoxHinzufügenPlanWeichenLinksMärklin
+                          , vBoxHinzufügenPlanWeichenLinksLego
+                          , vBoxHinzufügenPlanWeichenRechtsMärklin
+                          , vBoxHinzufügenPlanWeichenRechtsLego
+                          }
+                    , dynKUWidgetsBoxen = KUWidgetsBoxen
+                          { vBoxKupplungen
+                          , vBoxHinzufügenWegstreckeKupplungen
+                          , vBoxHinzufügenPlanKupplungen
+                          }
+                    , dynKOWidgetsBoxen = KOWidgetsBoxen
+                          { vBoxKontakte
+                          , vBoxHinzufügenWegstreckeKontakte
+                          , vBoxHinzufügenPlanKontakte
+                          }
+                    , dynWSWidgetsBoxen = WSWidgetsBoxen
+                          { vBoxWegstrecken
+                          , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
+                          , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
+                          , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
+                          , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
+                          , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
+                          , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
+                          , vBoxHinzufügenPlanWegstreckenStreckenabschnittMärklin
+                          , vBoxHinzufügenPlanWegstreckenStreckenabschnittLego
+                          , vBoxHinzufügenPlanWegstreckenKupplungMärklin
+                          , vBoxHinzufügenPlanWegstreckenKupplungLego
+                          , vBoxHinzufügenPlanWegstreckenKontaktMärklin
+                          , vBoxHinzufügenPlanWegstreckenKontaktLego
+                          , vBoxHinzufügenPlanWegstreckenMärklin
+                          , vBoxHinzufügenPlanWegstreckenLego
+                          }
+                    , dynPLWidgetsBoxen = PLWidgetsBoxen { vBoxPläne, vBoxHinzufügenPlanPläne }
+                    , dynWindowMain
+                    , dynFortfahrenWennToggledWegstrecke
+                    , dynTMVarPlanObjekt
+                    , dynAktionBearbeiten = aktionBearbeiten
+                    }
+            let objektReader = (tvarMaps, dynamischeWidgets, statusVar)
+            atomically $ putTMVar tmvarObjektReader objektReader
     -- Knopf-Leiste mit globalen Funktionen
-    functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End
-        $ Gtk.boxNew Gtk.OrientationHorizontal 0
-    aktionBearbeiten <- flip runReaderT objektReader $ do
-        -- Linke Seite
-        (_buttonHinzufügen, aktionBearbeitenReader)
-            <- buttonHinzufügenPack dynWindowMain functionBox maybeTVar
-        spracheAuswahl <- boxPackWidgetNewDefault functionBox
-            $ boundedEnumAuswahlComboBoxNew Language.Deutsch maybeTVar Language.sprache
-        beiAuswahl spracheAuswahl $ \sp -> void $ do
-            sprachwechsel spracheGui sp
-            flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
-        -- Rechte seite
-        boxPackWidgetNew functionBox packingDefault paddingDefault End
-            $ buttonNewWithEventLabel maybeTVar Language.beenden
-            $ Gtk.mainQuit
-        buttonLadenPack dynWindowMain functionBox maybeTVar End
-        buttonSpeichernPack dynWindowMain functionBox maybeTVar End
-        pure aktionBearbeitenReader
-    checkButtonNotebook <- boxPackWidgetNewDefault functionBox
-        $ toggleButtonNewWithEvent Gtk.checkButtonNew
-        $ \toggled -> do
-            widgetShowIf toggled notebookElementeEinzelseiten
-            widgetShowIf (not toggled) notebookElementePaned
-            case toggled of
-                True -> do
-                    mitContainerRemove vBoxPanedBahngeschwindigkeiten vBoxBahngeschwindigkeiten
-                    boxPack
-                        vBoxBG
-                        vBoxBahngeschwindigkeiten
-                        PackGrow
-                        paddingDefault
-                        positionDefault
-                    mitContainerRemove vBoxPanedStreckenabschnitte vBoxStreckenabschnitte
-                    boxPack vBoxST vBoxStreckenabschnitte PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxPanedWeichen vBoxWeichen
-                    boxPack vBoxWE vBoxWeichen PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxPanedKupplungen vBoxKupplungen
-                    boxPack vBoxKU vBoxKupplungen PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxPanedKontakte vBoxKontakte
-                    boxPack vBoxKO vBoxKontakte PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxPanedWegstrecken vBoxWegstrecken
-                    boxPack vBoxWS vBoxWegstrecken PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxPanedPläne vBoxPläne
-                    boxPack vBoxPL vBoxPläne PackGrow paddingDefault positionDefault
-                False -> do
-                    mitContainerRemove vBoxBG vBoxBahngeschwindigkeiten
-                    boxPack
-                        vBoxPanedBahngeschwindigkeiten
-                        vBoxBahngeschwindigkeiten
-                        PackGrow
-                        paddingDefault
-                        positionDefault
-                    mitContainerRemove vBoxST vBoxStreckenabschnitte
-                    boxPack
-                        vBoxPanedStreckenabschnitte
-                        vBoxStreckenabschnitte
-                        PackGrow
-                        paddingDefault
-                        positionDefault
-                    mitContainerRemove vBoxWE vBoxWeichen
-                    boxPack vBoxPanedWeichen vBoxWeichen PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxKU vBoxKupplungen
-                    boxPack
-                        vBoxPanedKupplungen
-                        vBoxKupplungen
-                        PackGrow
-                        paddingDefault
-                        positionDefault
-                    mitContainerRemove vBoxKO vBoxKontakte
-                    boxPack vBoxPanedKontakte vBoxKontakte PackGrow paddingDefault positionDefault
-                    mitContainerRemove vBoxWS vBoxWegstrecken
-                    boxPack
-                        vBoxPanedWegstrecken
-                        vBoxWegstrecken
-                        PackGrow
-                        paddingDefault
-                        positionDefault
-                    mitContainerRemove vBoxPL vBoxPläne
-                    boxPack vBoxPanedPläne vBoxPläne PackGrow paddingDefault positionDefault
-    verwendeSpracheGuiFn spracheGui maybeTVar
-        $ \sp -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sp]
+    tmvarCheckButtonNotebook <- newEmptyTMVarIO
+    let aktionFunctionBox = do
+            objektReader <- atomically $ readTMVar tmvarObjektReader
+            notebookElementeEinzel <- atomically $ readTMVar tmvarNotebookElementeEinzel
+            vBoxBahngeschwindigkeitenEinzel
+                <- atomically $ readTMVar tmvarVBoxBahngeschwindigkeitenEinzel
+            vBoxStreckenabschnitteEinzel
+                <- atomically $ readTMVar tmvarVBoxStreckenabschnitteEinzel
+            vBoxWeichenEinzel <- atomically $ readTMVar tmvarVBoxWeichenEinzel
+            vBoxKupplungenEinzel <- atomically $ readTMVar tmvarVBoxKupplungenEinzel
+            vBoxKontakteEinzel <- atomically $ readTMVar tmvarVBoxKontakteEinzel
+            vBoxWegstreckenEinzel <- atomically $ readTMVar tmvarVBoxWegstreckenEinzel
+            vBoxPläneEinzel <- atomically $ readTMVar tmvarVBoxPläneEinzel
+            notebookElementePaned <- atomically $ readTMVar tmvarNotebookElementePaned
+            vBoxBahngeschwindigkeitenPaned
+                <- atomically $ readTMVar tmvarVBoxBahngeschwindigkeitenPaned
+            vBoxStreckenabschnittePaned <- atomically $ readTMVar tmvarVBoxStreckenabschnittePaned
+            vBoxWeichenPaned <- atomically $ readTMVar tmvarVBoxWeichenPaned
+            vBoxKupplungenPaned <- atomically $ readTMVar tmvarVBoxKupplungenPaned
+            vBoxKontaktePaned <- atomically $ readTMVar tmvarVBoxKontaktePaned
+            vBoxWegstreckenPaned <- atomically $ readTMVar tmvarVBoxWegstreckenPaned
+            vBoxPlänePaned <- atomically $ readTMVar tmvarVBoxPlänePaned
+            vBoxBahngeschwindigkeiten <- atomically $ readTMVar tmvarVBoxBahngeschwindigkeiten
+            vBoxStreckenabschnitte <- atomically $ readTMVar tmvarVBoxStreckenabschnitte
+            vBoxWeichen <- atomically $ readTMVar tmvarVBoxWeichen
+            vBoxKupplungen <- atomically $ readTMVar tmvarVBoxKupplungen
+            vBoxKontakte <- atomically $ readTMVar tmvarVBoxKontakte
+            vBoxWegstrecken <- atomically $ readTMVar tmvarVBoxWegstrecken
+            vBoxPläne <- atomically $ readTMVar tmvarVBoxPlänePaned
+            functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End
+                $ Gtk.boxNew Gtk.OrientationHorizontal 0
+            aktionBearbeiten <- flip runReaderT objektReader $ do
+                -- Linke Seite
+                (_buttonHinzufügen, aktionBearbeitenReader)
+                    <- buttonHinzufügenPack dynWindowMain functionBox maybeTVar
+                spracheAuswahl <- boxPackWidgetNewDefault functionBox
+                    $ boundedEnumAuswahlComboBoxNew Language.Deutsch maybeTVar Language.sprache
+                beiAuswahl spracheAuswahl $ \sp -> void $ do
+                    sprachwechsel spracheGui sp
+                    flip runReaderT objektReader
+                        $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
+                -- Rechte seite
+                boxPackWidgetNew functionBox packingDefault paddingDefault End
+                    $ buttonNewWithEventLabel maybeTVar Language.beenden
+                    $ Gtk.mainQuit
+                buttonLadenPack dynWindowMain functionBox maybeTVar End
+                buttonSpeichernPack dynWindowMain functionBox maybeTVar End
+                pure aktionBearbeitenReader
+            atomically $ putTMVar tmvarAktionBearbeiten aktionBearbeiten
+            checkButtonNotebook <- boxPackWidgetNewDefault functionBox
+                $ toggleButtonNewWithEvent Gtk.checkButtonNew
+                $ \toggled -> do
+                    widgetShowIf toggled notebookElementeEinzel
+                    widgetShowIf (not toggled) notebookElementePaned
+                    case toggled of
+                        True -> do
+                            mitContainerRemove
+                                vBoxBahngeschwindigkeitenPaned
+                                vBoxBahngeschwindigkeiten
+                            boxPack
+                                vBoxBahngeschwindigkeitenEinzel
+                                vBoxBahngeschwindigkeiten
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxStreckenabschnittePaned vBoxStreckenabschnitte
+                            boxPack
+                                vBoxStreckenabschnitteEinzel
+                                vBoxStreckenabschnitte
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxWeichenPaned vBoxWeichen
+                            boxPack
+                                vBoxWeichenEinzel
+                                vBoxWeichen
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxKupplungenPaned vBoxKupplungen
+                            boxPack
+                                vBoxKupplungenEinzel
+                                vBoxKupplungen
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxKontaktePaned vBoxKontakte
+                            boxPack
+                                vBoxKontakteEinzel
+                                vBoxKontakte
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxWegstreckenPaned vBoxWegstrecken
+                            boxPack
+                                vBoxWegstreckenEinzel
+                                vBoxWegstrecken
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxPlänePaned vBoxPläne
+                            boxPack
+                                vBoxPläneEinzel
+                                vBoxPläne
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                        False -> do
+                            mitContainerRemove
+                                vBoxBahngeschwindigkeitenEinzel
+                                vBoxBahngeschwindigkeiten
+                            boxPack
+                                vBoxBahngeschwindigkeitenPaned
+                                vBoxBahngeschwindigkeiten
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxStreckenabschnitteEinzel vBoxStreckenabschnitte
+                            boxPack
+                                vBoxStreckenabschnittePaned
+                                vBoxStreckenabschnitte
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxWeichenEinzel vBoxWeichen
+                            boxPack
+                                vBoxWeichenPaned
+                                vBoxWeichen
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxKupplungenEinzel vBoxKupplungen
+                            boxPack
+                                vBoxKupplungenPaned
+                                vBoxKupplungen
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxKontakteEinzel vBoxKontakte
+                            boxPack
+                                vBoxKontaktePaned
+                                vBoxKontakte
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxWegstreckenEinzel vBoxWegstrecken
+                            boxPack
+                                vBoxWegstreckenPaned
+                                vBoxWegstrecken
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            mitContainerRemove vBoxPläneEinzel vBoxPläne
+                            boxPack
+                                vBoxPlänePaned
+                                vBoxPläne
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+            atomically $ putTMVar tmvarCheckButtonNotebook checkButtonNotebook
+            verwendeSpracheGuiFn spracheGui maybeTVar
+                $ \sp -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sp]
     -- Lade Datei angegeben in Kommandozeilenargument
-    let ladeAktion :: Status -> IOStatusGui ()
-        ladeAktion statusNeu = do
-            state0 <- RWS.get
-            state1 <- liftIO
-                $ flip runReaderT objektReader
-                $ fst <$> RWS.execRWST (ladeWidgets statusNeu) objektReader state0
-            RWS.put state1
-        fehlerBehandlung :: MStatusGuiT IO ()
-        fehlerBehandlung = RWS.put $ statusLeer spracheGui
-    flip runReaderT objektReader
-        $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
-    -- Zeige Einzelseiten an (falls gewünscht)
-    when (gtkSeiten == Einzelseiten) $ Gtk.set checkButtonNotebook [Gtk.toggleButtonActive := True]
-    -- Fenster wird erst hier angezeigt, weil sonst windowDefaultWidth/Height keinen Effekt zeigen
-    Gtk.widgetShow dynWindowMain
-    -- Dummy-Fenster löschen
-    Gtk.widgetDestroy windowDummy
+    let aktionLaden = void $ do
+            objektReader <- atomically $ readTMVar tmvarObjektReader
+            let ladeAktion :: Status -> IOStatusGui ()
+                ladeAktion statusNeu = do
+                    state0 <- RWS.get
+                    state1 <- liftIO
+                        $ flip runReaderT objektReader
+                        $ fst <$> RWS.execRWST (ladeWidgets statusNeu) objektReader state0
+                    RWS.put state1
+                fehlerBehandlung :: MStatusGuiT IO ()
+                fehlerBehandlung = RWS.put $ statusLeer spracheGui
+            flip runReaderT objektReader
+                $ ausführenStatusVarBefehl (Laden dateipfad ladeAktion fehlerBehandlung) statusVar
+        -- Zeige Einzelseiten an (falls gewünscht)
+        aktionSeitenvariante = do
+            checkButtonNotebook <- atomically $ readTMVar tmvarCheckButtonNotebook
+            when (gtkSeiten == Einzelseiten)
+                $ Gtk.set checkButtonNotebook [Gtk.toggleButtonActive := True]
+        aktionFinalisieren = do
+            -- Fenster wird erst hier angezeigt, weil sonst windowDefaultWidth/Height keinen Effekt zeigen
+            Gtk.widgetShow dynWindowMain
+            -- Dummy-Fenster löschen
+            Gtk.widgetDestroy windowDummy
+    gtkWithProgress
+        progressBarDummy
+        [ aktionNotebookElementeEinzel
+        , aktionNotebookElementePaned
+        , aktionObjektReader
+        , aktionFunctionBox
+        , aktionLaden
+        , aktionSeitenvariante
+        , aktionFinalisieren]
+
+-- | Execute several Gtk-Actions, showing progress after every one.
+gtkWithProgress :: Gtk.ProgressBar -> [IO ()] -> IO ThreadId
+gtkWithProgress progressBar actions = forkIO $ void $ foldM foldFn 0 actions
+    where
+        step :: Double
+        step = 1 / (fromIntegral $ length actions)
+
+        foldFn :: Double -> IO () -> IO Double
+        foldFn fraction action = do
+            let newFraction = fraction + step
+            Gtk.postGUIASync $ do
+                action
+                Gtk.set progressBar [Gtk.progressBarFraction := newFraction]
+            -- give gtk some time to actually display the changed progress bar
+            warte $ MilliSekunden 300
+            pure newFraction
 #endif
 --
