@@ -34,7 +34,6 @@ when:
       - gi-gtk-declarative >= 0.6 && < 0.7
       - gi-gtk-declarative-app-simple >= 0.6.3 && < 0.7
       - gi-gdk >= 3.0.22 && < 3.1
-      - lens >= 4.19 && < 5
     cpp-options:
       - -DZUGKONTROLLEGUI
   - condition: os(linux)

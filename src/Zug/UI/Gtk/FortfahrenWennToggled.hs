@@ -24,7 +24,7 @@ module Zug.UI.Gtk.FortfahrenWennToggled
     -- * Variable Anzahl an 'CheckButton's
   , FortfahrenWennToggledVar()
   , varCheckButtons
-  , foldCheckButtons
+  , getCheckButtons
   , fortfahrenWennToggledVarNew
   , aktiviereWennToggledVar
     -- * Assoziierter 'CheckButton' zu einem 'FortfahrenWennToggled'/'FortfahrenWennToggledTMvar'
@@ -32,14 +32,12 @@ module Zug.UI.Gtk.FortfahrenWennToggled
   , MitRegistrierterCheckButton(..)
   , registrierterCheckButtonNew
   , mitRegistrierterCheckButton
-  , registrierterCheckButton
   , registrierterCheckButtonToggled
   , registrierterCheckButtonSetToggled
 #endif
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import qualified Control.Lens as Lens
 import Control.Monad (foldM_, forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty(..))
@@ -126,17 +124,17 @@ data FortfahrenWennToggledVar a v c =
     FortfahrenWennToggledVar
     { fortfahrenVar :: Gtk.Button
     , varCheckButtonsRec :: v
-    , readVar :: v -> IO a
-    , foldCheckButtonsRec :: Lens.Fold a c
+    , readVar :: forall m. (MonadIO m) => v -> m a
+    , getCheckButtonsRec :: a -> [c]
     }
 
--- | Die Variable, in der die 'RegistrierterCheckButton' einer 'FortfahrenWennToggledVar' gespeichert werden.
+-- | Die Variable, in der die 'MitRegistrierterCheckButton' einer 'FortfahrenWennToggledVar' gespeichert werden.
 varCheckButtons :: FortfahrenWennToggledVar a v c -> v
 varCheckButtons = varCheckButtonsRec
 
--- | Ein 'Lens.Fold' vom in der Variable gelesenen Wert auf 'MitRegistrierterCheckButton'.
-foldCheckButtons :: FortfahrenWennToggledVar a v c -> Lens.Fold a c
-foldCheckButtons = foldCheckButtonsRec
+-- | Erhalte eine List der 'MitRegistrierterCheckButton' von dem in der Variable gelesenen Wert.
+getCheckButtons :: FortfahrenWennToggledVar a v c -> a -> [c]
+getCheckButtons = getCheckButtonsRec
 
 instance (Eq v) => Eq (FortfahrenWennToggledVar a v c) where
     (==) :: FortfahrenWennToggledVar a v c -> FortfahrenWennToggledVar a v c -> Bool
@@ -167,11 +165,11 @@ fortfahrenWennToggledVarNew
     :: (MonadIO m, SpracheGuiReader r m, MitRegistrierterCheckButton c)
     => Maybe TVarSprachewechselAktionen
     -> (Sprache -> Text)
-    -> Lens.Fold a c
-    -> (v -> IO a)
+    -> (a -> [c])
+    -> (forall mm. (MonadIO mm) => v -> mm a)
     -> v
     -> m (FortfahrenWennToggledVar a v c)
-fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheckButtonsRec = do
+fortfahrenWennToggledVarNew maybeTVar label getCheckButtonsRec readVar varCheckButtonsRec = do
     fortfahrenVar <- liftIO $ do
         fortfahrenVar <- Gtk.buttonNew
         Gtk.set fortfahrenVar [Gtk.widgetSensitive := False]
@@ -179,21 +177,15 @@ fortfahrenWennToggledVarNew maybeTVar label foldCheckButtonsRec readVar varCheck
     verwendeSpracheGui maybeTVar
         $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
     pure
-        FortfahrenWennToggledVar
-        { fortfahrenVar
-        , readVar
-        , varCheckButtonsRec
-        , foldCheckButtonsRec
-        }
+        FortfahrenWennToggledVar { fortfahrenVar, readVar, varCheckButtonsRec, getCheckButtonsRec }
 
 -- | Funktion zum manuellen überprüfen
 aktiviereWennToggledVar
     :: (MonadIO m, MitRegistrierterCheckButton c) => FortfahrenWennToggledVar a v c -> m ()
 aktiviereWennToggledVar
-    FortfahrenWennToggledVar {fortfahrenVar, varCheckButtonsRec, readVar, foldCheckButtonsRec} =
-    liftIO $ do
-        alleCheckButtons <- readVar varCheckButtonsRec
-        aktiviereWennToggledAux fortfahrenVar $ Lens.toListOf foldCheckButtonsRec alleCheckButtons
+    FortfahrenWennToggledVar {fortfahrenVar, varCheckButtonsRec, readVar, getCheckButtonsRec} = do
+    alleCheckButtons <- readVar varCheckButtonsRec
+    aktiviereWennToggledAux fortfahrenVar $ getCheckButtonsRec alleCheckButtons
 
 -- | 'CheckButton', welcher mit einem 'FortfahrenWennToggled' assoziiert ist.
 newtype RegistrierterCheckButton = RegistrierterCheckButton Gtk.CheckButton
@@ -239,11 +231,6 @@ class (MitWidget c) => MitRegistrierterCheckButton c where
 mitRegistrierterCheckButton
     :: (MitRegistrierterCheckButton c) => (RegistrierterCheckButton -> b) -> c -> b
 mitRegistrierterCheckButton funktion = funktion . erhalteRegistrierterCheckButton
-
--- | 'Lens.Getter' analog zu 'erhalteRegistrierterCheckButton'
-registrierterCheckButton
-    :: (MitRegistrierterCheckButton c) => Lens.Getter c RegistrierterCheckButton
-registrierterCheckButton = Lens.to erhalteRegistrierterCheckButton
 
 instance MitRegistrierterCheckButton RegistrierterCheckButton where
     erhalteRegistrierterCheckButton :: RegistrierterCheckButton -> RegistrierterCheckButton
