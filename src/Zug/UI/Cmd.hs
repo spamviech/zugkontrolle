@@ -25,7 +25,7 @@ import Zug.Language (Anzeige(..), Sprache(), ($#), (<~>), (<\>), (<=>), (<!>), (
                    , fehlerhafteEingabe, toBefehlsString)
 import Zug.Objekt (Objekt)
 import Zug.Options (Options(..), getOptions)
-import Zug.UI.Base (StatusAllgemein(..), getSprache, IOStatus, auswertenLeererIOStatus, tvarMapsNeu
+import Zug.UI.Base (getSprache, IOStatus, auswertenLeererIOStatus, tvarMapsNeu
                   , AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
 import Zug.UI.Cmd.Lexer (EingabeTokenAllgemein(..), lexer)
@@ -51,17 +51,16 @@ main = do
 mainStatus :: IOStatus ()
 mainStatus = do
     status <- get
-    let sprache :: Sprache
-        sprache = _sprache status
-        putStrLnSprache :: (Sprache -> Text) -> IO ()
-        putStrLnSprache s = Text.putStrLn $ s sprache
+    sp <- getSprache
+    let putStrLnSprache :: (Sprache -> Text) -> IO ()
+        putStrLnSprache s = Text.putStrLn $ s sp
     liftIO $ do
         setSGR [SetColor Foreground Dull Green]
         putStrLnSprache $ Text.empty <\> Language.zugkontrolle
         setSGR [Reset]
         putStrLnSprache $ Text.empty <~> Language.version
         setSGR [SetColor Foreground Dull Cyan]
-        Text.putStrLn $ Text.map (const '-') $ Language.zugkontrolle <~> Language.version $ sprache
+        Text.putStrLn $ Text.map (const '-') $ Language.zugkontrolle <~> Language.version $ sp
         setSGR [Reset]
         putStrLnSprache $ anzeige status
         setSGR [SetColor Foreground Dull Blue]
