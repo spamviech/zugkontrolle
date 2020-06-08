@@ -77,7 +77,7 @@ module Zug.UI.Gtk.StreckenObjekt
   , boxWegstreckeHinzufügenNew
   , WegstreckeCheckButton()
   , WegstreckeCheckButtonVoid
-  , foldWegstreckeHinzufügen
+  , checkButtonsWegstreckeHinzufügen
     -- ** Plan
   , PlanElement(..)
   , BoxPlanHinzufügen
@@ -91,7 +91,6 @@ module Zug.UI.Gtk.StreckenObjekt
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TMVar)
-import Control.Lens ((^.))
 import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified GI.Gtk as Gtk
@@ -106,7 +105,7 @@ import Zug.UI.Gtk.StreckenObjekt.BGWidgets
        (BGWidgets, bahngeschwindigkeitPackNew, BGWidgetsBoxen(..), MitBGWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
        (MitFortfahrenWennToggledWegstrecke(..), MitTMVarPlanObjekt(..), WegstreckenElement(..)
-      , WegstreckeCheckButtonVoid, foldWegstreckeHinzufügen, PlanElement(..))
+      , WegstreckeCheckButtonVoid, checkButtonsWegstreckeHinzufügen, PlanElement(..))
 import Zug.UI.Gtk.StreckenObjekt.KOWidgets
        (KOWidgets, kontaktPackNew, KOWidgetsBoxen(..), MitKOWidgetsBoxen(..))
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets
@@ -297,8 +296,10 @@ instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitPLWidgetsBoxen r whe
 
 -- | Lese die 'SpracheGui' aus einer 'StatusVarGui'.
 readSpracheGui :: (MonadIO m) => StatusVarGui -> m SpracheGui
-readSpracheGui var = liftIO $ atomically (tryReadStatusVar var) >>= pure . \case
-    (Left status) -> status ^. sprache
-    (Right sp) -> sp
+readSpracheGui = liftIO . fmap erhalteSprache . atomically . tryReadStatusVar
+    where
+        erhalteSprache :: Either StatusGui SpracheGui -> SpracheGui
+        erhalteSprache (Left status) = sprache status
+        erhalteSprache (Right sp) = sp
 #endif
 --

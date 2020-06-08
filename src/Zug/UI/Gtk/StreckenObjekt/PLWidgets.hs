@@ -154,12 +154,11 @@ instance WidgetsTyp PLWidgets where
     tvarEvent = plTVarEvent
 
 instance PlanElement PLWidgets where
-    foldPlan :: Lens.Fold PLWidgets (Maybe (ButtonPlanHinzufügen PLWidgets))
-    foldPlan = Lens.to $ Just . plHinzPL
+    buttonsPlan :: PLWidgets -> [Maybe (ButtonPlanHinzufügen PLWidgets)]
+    buttonsPlan = (: []) . Just . plHinzPL
 
-    boxenPlan
-        :: (ReaderConstraint PLWidgets r) => Plan -> Lens.Fold r (BoxPlanHinzufügen PLWidgets)
-    boxenPlan _kuWidgets = Lens.to $ vBoxHinzufügenPlanPläne . plWidgetsBoxen
+    boxenPlan :: (ReaderConstraint PLWidgets r) => Plan -> r -> [BoxPlanHinzufügen PLWidgets]
+    boxenPlan _kuWidgets = (: []) . vBoxHinzufügenPlanPläne . plWidgetsBoxen
 
 instance StreckenObjekt PLWidgets where
     anschlüsse :: PLWidgets -> Set AnschlussEither

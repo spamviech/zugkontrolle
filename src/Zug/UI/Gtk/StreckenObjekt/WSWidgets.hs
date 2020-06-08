@@ -243,12 +243,16 @@ instance (PlanElement (WSWidgets z), ZugtypKlasse z)
     tvarEvent :: GeschwindigkeitPhantom WSWidgets g z -> TVar EventAusführen
     tvarEvent (GeschwindigkeitPhantom wsWidgets) = tvarEvent wsWidgets
 
+-- little helper function originally defined in the lens package
+-- redefined here, so I don't have to rename everything
+(??) :: [a -> b] -> a -> [b]
+(??) [] _a = []
+(??) (h:t) a = h a : (??) t a
+
 instance PlanElement (WSWidgets 'Märklin) where
-    foldPlan
-        :: Lens.Fold (WSWidgets 'Märklin) (Maybe (ButtonPlanHinzufügen (WSWidgets 'Märklin)))
-    foldPlan =
-        Lens.folding
-        $ (??)
+    buttonsPlan :: WSWidgets 'Märklin -> [Maybe (ButtonPlanHinzufügen (WSWidgets 'Märklin))]
+    buttonsPlan =
+        (??)
             [ bahngeschwindigkeitPwm
             , bahngeschwindigkeitKonstanteSpannung
             , bahngeschwindigkeit
@@ -260,10 +264,10 @@ instance PlanElement (WSWidgets 'Märklin) where
 
     boxenPlan :: (ReaderConstraint (WSWidgets 'Märklin) r)
               => Wegstrecke 'Märklin
-              -> Lens.Fold r (BoxPlanHinzufügen (WSWidgets 'Märklin))
+              -> r
+              -> [BoxPlanHinzufügen (WSWidgets 'Märklin)]
     boxenPlan _wsWidgets =
-        Lens.folding
-        $ (??)
+        (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
@@ -274,10 +278,9 @@ instance PlanElement (WSWidgets 'Märklin) where
         . wsWidgetsBoxen
 
 instance PlanElement (WSWidgets 'Lego) where
-    foldPlan :: Lens.Fold (WSWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WSWidgets 'Lego)))
-    foldPlan =
-        Lens.folding
-        $ (??)
+    buttonsPlan :: WSWidgets 'Lego -> [Maybe (ButtonPlanHinzufügen (WSWidgets 'Lego))]
+    buttonsPlan =
+        (??)
             [ bahngeschwindigkeitPwm
             , bahngeschwindigkeitKonstanteSpannung
             , bahngeschwindigkeit
@@ -289,10 +292,10 @@ instance PlanElement (WSWidgets 'Lego) where
 
     boxenPlan :: (ReaderConstraint (WSWidgets 'Lego) r)
               => Wegstrecke 'Lego
-              -> Lens.Fold r (BoxPlanHinzufügen (WSWidgets 'Lego))
+              -> r
+              -> [BoxPlanHinzufügen (WSWidgets 'Lego)]
     boxenPlan _wsWidgets =
-        Lens.folding
-        $ (??)
+        (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLego
@@ -303,10 +306,10 @@ instance PlanElement (WSWidgets 'Lego) where
         . wsWidgetsBoxen
 
 instance PlanElement (ZugtypEither WSWidgets) where
-    foldPlan :: Lens.Fold (ZugtypEither WSWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WSWidgets)))
-    foldPlan =
-        Lens.folding
-        $ ausZugtypEither
+    buttonsPlan :: ZugtypEither WSWidgets
+                -> [Maybe (ButtonPlanHinzufügen (ZugtypEither WSWidgets))]
+    buttonsPlan =
+        ausZugtypEither
         $ map (fmap widgetHinzufügenZugtypEither)
         . (??)
             [ bahngeschwindigkeitPwm
@@ -320,10 +323,10 @@ instance PlanElement (ZugtypEither WSWidgets) where
 
     boxenPlan :: (ReaderConstraint (ZugtypEither WSWidgets) r)
               => ZugtypEither Wegstrecke
-              -> Lens.Fold r (BoxPlanHinzufügen (ZugtypEither WSWidgets))
+              -> r
+              -> [BoxPlanHinzufügen (ZugtypEither WSWidgets)]
     boxenPlan (ZugtypMärklin _wegstrecke) =
-        Lens.folding
-        $ map widgetHinzufügenZugtypEither
+        map widgetHinzufügenZugtypEither
         . (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklinKonstanteSpannung
@@ -334,8 +337,7 @@ instance PlanElement (ZugtypEither WSWidgets) where
             , vBoxHinzufügenPlanWegstreckenMärklin]
         . wsWidgetsBoxen
     boxenPlan (ZugtypLego _wegstrecke) =
-        Lens.folding
-        $ map widgetHinzufügenZugtypEither
+        map widgetHinzufügenZugtypEither
         . (??)
             [ vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoPwm
             , vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitLegoKonstanteSpannung
@@ -493,7 +495,7 @@ wegstreckePackNew
                 , boxStreckenabschnitt
                 , boxKupplung
                 , boxKontakte
-                , boxWegstrecke] = widgetsBoxen ^.. boxenPlan wegstrecke
+                , boxWegstrecke] = boxenPlan wegstrecke widgetsBoxen
         hinzufügenPlanWidgetBGPwm
             <- if any (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm) wsBahngeschwindigkeiten
                 then Just <$> hinzufügenWidgetPlanPackNew boxBGPwm wegstrecke wsTVarSprache
