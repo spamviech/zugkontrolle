@@ -28,7 +28,6 @@ module Zug.UI.Gtk.StreckenObjekt.STWidgets
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
-import qualified Control.Lens as Lens
 import Control.Monad (forM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -144,23 +143,24 @@ instance WidgetsTyp STWidgets where
     tvarEvent = stTVarEvent
 
 instance WegstreckenElement STWidgets where
-    getterWegstrecke :: Lens.Getter STWidgets (CheckButtonWegstreckeHinzufügen Void STWidgets)
-    getterWegstrecke = Lens.to stHinzWS
+    checkButtonWegstrecke :: STWidgets -> CheckButtonWegstreckeHinzufügen Void STWidgets
+    checkButtonWegstrecke = stHinzWS
 
     boxWegstrecke :: (ReaderConstraint STWidgets r)
                   => Streckenabschnitt
-                  -> Lens.Getter r (BoxWegstreckeHinzufügen STWidgets)
-    boxWegstrecke
-        _stWidgets = Lens.to $ vBoxHinzufügenWegstreckeStreckenabschnitte . stWidgetsBoxen
+                  -> r
+                  -> BoxWegstreckeHinzufügen STWidgets
+    boxWegstrecke _streckenabschnitt = vBoxHinzufügenWegstreckeStreckenabschnitte . stWidgetsBoxen
 
 instance PlanElement STWidgets where
-    foldPlan :: Lens.Fold STWidgets (Maybe (ButtonPlanHinzufügen STWidgets))
-    foldPlan = Lens.folding $ (: []) . Just . stHinzPL
+    buttonsPlan :: STWidgets -> [Maybe (ButtonPlanHinzufügen STWidgets)]
+    buttonsPlan = (: []) . Just . stHinzPL
 
     boxenPlan :: (ReaderConstraint STWidgets r)
               => Streckenabschnitt
-              -> Lens.Fold r (BoxPlanHinzufügen STWidgets)
-    boxenPlan _stWidgets = Lens.to $ vBoxHinzufügenPlanStreckenabschnitte . stWidgetsBoxen
+              -> r
+              -> [BoxPlanHinzufügen STWidgets]
+    boxenPlan _streckenabschnitt = (: []) . vBoxHinzufügenPlanStreckenabschnitte . stWidgetsBoxen
 
 instance StreckenObjekt STWidgets where
     anschlüsse :: STWidgets -> Set AnschlussEither

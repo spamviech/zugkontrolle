@@ -25,8 +25,6 @@ module Zug.UI.Gtk.StreckenObjekt.WEWidgets
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
-import Control.Lens ((??), (^..))
-import qualified Control.Lens as Lens
 import Control.Monad (forM)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -194,58 +192,62 @@ instance WidgetsTyp (ZugtypEither WEWidgets) where
 instance WegstreckenElement (WEWidgets 'Märklin) where
     type CheckButtonAuswahl (WEWidgets 'Märklin) = Richtung
 
-    getterWegstrecke
-        :: Lens.Getter (WEWidgets 'Märklin) (CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Märklin))
-    getterWegstrecke = Lens.to weHinzWS
+    checkButtonWegstrecke
+        :: WEWidgets 'Märklin -> CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Märklin)
+    checkButtonWegstrecke = weHinzWS
 
     boxWegstrecke :: (ReaderConstraint (WEWidgets 'Märklin) r)
                   => Weiche 'Märklin
-                  -> Lens.Getter r (BoxWegstreckeHinzufügen (WEWidgets 'Märklin))
-    boxWegstrecke _weWidgets = Lens.to $ vBoxHinzufügenWegstreckeWeichenMärklin . weWidgetsBoxen
+                  -> r
+                  -> BoxWegstreckeHinzufügen (WEWidgets 'Märklin)
+    boxWegstrecke _weiche = vBoxHinzufügenWegstreckeWeichenMärklin . weWidgetsBoxen
 
 instance WegstreckenElement (WEWidgets 'Lego) where
     type CheckButtonAuswahl (WEWidgets 'Lego) = Richtung
 
-    getterWegstrecke
-        :: Lens.Getter (WEWidgets 'Lego) (CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Lego))
-    getterWegstrecke = Lens.to weHinzWS
+    checkButtonWegstrecke
+        :: WEWidgets 'Lego -> CheckButtonWegstreckeHinzufügen Richtung (WEWidgets 'Lego)
+    checkButtonWegstrecke = weHinzWS
 
     boxWegstrecke :: (ReaderConstraint (WEWidgets 'Lego) r)
                   => Weiche 'Lego
-                  -> Lens.Getter r (BoxWegstreckeHinzufügen (WEWidgets 'Lego))
-    boxWegstrecke _weWidgets = Lens.to $ vBoxHinzufügenWegstreckeWeichenLego . weWidgetsBoxen
+                  -> r
+                  -> BoxWegstreckeHinzufügen (WEWidgets 'Lego)
+    boxWegstrecke _weiche = vBoxHinzufügenWegstreckeWeichenLego . weWidgetsBoxen
 
 instance WegstreckenElement (ZugtypEither WEWidgets) where
     type CheckButtonAuswahl (ZugtypEither WEWidgets) = Richtung
 
-    getterWegstrecke
-        :: Lens.Getter (ZugtypEither WEWidgets) (CheckButtonWegstreckeHinzufügen Richtung (ZugtypEither WEWidgets))
-    getterWegstrecke = Lens.to $ ausZugtypEither $ widgetHinzufügenZugtypEither . weHinzWS
+    checkButtonWegstrecke :: ZugtypEither WEWidgets
+                          -> CheckButtonWegstreckeHinzufügen Richtung (ZugtypEither WEWidgets)
+    checkButtonWegstrecke = ausZugtypEither $ widgetHinzufügenZugtypEither . weHinzWS
 
     boxWegstrecke :: (ReaderConstraint (ZugtypEither WEWidgets) r)
                   => ZugtypEither Weiche
-                  -> Lens.Getter r (BoxWegstreckeHinzufügen (ZugtypEither WEWidgets))
+                  -> r
+                  -> BoxWegstreckeHinzufügen (ZugtypEither WEWidgets)
     boxWegstrecke (ZugtypMärklin _weWidgets) =
-        Lens.to
-        $ widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenMärklin . weWidgetsBoxen
+        widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenMärklin . weWidgetsBoxen
     boxWegstrecke (ZugtypLego _weWidgets) =
-        Lens.to
-        $ widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenLego . weWidgetsBoxen
+        widgetHinzufügenZugtypEither . vBoxHinzufügenWegstreckeWeichenLego . weWidgetsBoxen
+
+-- little helper function originally defined in the lens package
+-- redefined here, so I don't have to rename everything
+(??) :: [a -> b] -> a -> [b]
+(??) [] _a = []
+(??) (h:t) a = h a : (??) t a
 
 instance PlanElement (WEWidgets 'Märklin) where
-    foldPlan
-        :: Lens.Fold (WEWidgets 'Märklin) (Maybe (ButtonPlanHinzufügen (WEWidgets 'Märklin)))
-    foldPlan =
-        Lens.folding
-        $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
-        -> [gerade, kurve, links, rechts]
+    buttonsPlan :: WEWidgets 'Märklin -> [Maybe (ButtonPlanHinzufügen (WEWidgets 'Märklin))]
+    buttonsPlan WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}} =
+        [gerade, kurve, links, rechts]
 
     boxenPlan :: (ReaderConstraint (WEWidgets 'Märklin) r)
               => Weiche 'Märklin
-              -> Lens.Fold r (BoxPlanHinzufügen (WEWidgets 'Märklin))
-    boxenPlan _weWidgets =
-        Lens.folding
-        $ (??)
+              -> r
+              -> [BoxPlanHinzufügen (WEWidgets 'Märklin)]
+    boxenPlan _weiche =
+        (??)
             [ vBoxHinzufügenPlanWeichenGeradeMärklin
             , vBoxHinzufügenPlanWeichenKurveMärklin
             , vBoxHinzufügenPlanWeichenLinksMärklin
@@ -253,18 +255,16 @@ instance PlanElement (WEWidgets 'Märklin) where
         . weWidgetsBoxen
 
 instance PlanElement (WEWidgets 'Lego) where
-    foldPlan :: Lens.Fold (WEWidgets 'Lego) (Maybe (ButtonPlanHinzufügen (WEWidgets 'Lego)))
-    foldPlan =
-        Lens.folding
-        $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
-        -> [gerade, kurve, links, rechts]
+    buttonsPlan :: WEWidgets 'Lego -> [Maybe (ButtonPlanHinzufügen (WEWidgets 'Lego))]
+    buttonsPlan WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}} =
+        [gerade, kurve, links, rechts]
 
     boxenPlan :: (ReaderConstraint (WEWidgets 'Lego) r)
               => Weiche 'Lego
-              -> Lens.Fold r (BoxPlanHinzufügen (WEWidgets 'Lego))
-    boxenPlan _weWidgets =
-        Lens.folding
-        $ (??)
+              -> r
+              -> [BoxPlanHinzufügen (WEWidgets 'Lego)]
+    boxenPlan _weiche =
+        (??)
             [ vBoxHinzufügenPlanWeichenGeradeLego
             , vBoxHinzufügenPlanWeichenKurveLego
             , vBoxHinzufügenPlanWeichenLinksLego
@@ -272,19 +272,19 @@ instance PlanElement (WEWidgets 'Lego) where
         . weWidgetsBoxen
 
 instance PlanElement (ZugtypEither WEWidgets) where
-    foldPlan :: Lens.Fold (ZugtypEither WEWidgets) (Maybe (ButtonPlanHinzufügen (ZugtypEither WEWidgets)))
-    foldPlan =
-        Lens.folding
-        $ ausZugtypEither
+    buttonsPlan :: ZugtypEither WEWidgets
+                -> [Maybe (ButtonPlanHinzufügen (ZugtypEither WEWidgets))]
+    buttonsPlan =
+        ausZugtypEither
         $ \WEWidgets {weHinzPL = WeichePlanHinzufügenWidgets {gerade, kurve, links, rechts}}
         -> fmap widgetHinzufügenZugtypEither <$> [gerade, kurve, links, rechts]
 
     boxenPlan :: (ReaderConstraint (ZugtypEither WEWidgets) r)
               => ZugtypEither Weiche
-              -> Lens.Fold r (BoxPlanHinzufügen (ZugtypEither WEWidgets))
+              -> r
+              -> [BoxPlanHinzufügen (ZugtypEither WEWidgets)]
     boxenPlan (ZugtypMärklin _weiche) =
-        Lens.folding
-        $ fmap widgetHinzufügenZugtypEither
+        fmap widgetHinzufügenZugtypEither
         . (??)
             [ vBoxHinzufügenPlanWeichenGeradeMärklin
             , vBoxHinzufügenPlanWeichenKurveMärklin
@@ -292,8 +292,7 @@ instance PlanElement (ZugtypEither WEWidgets) where
             , vBoxHinzufügenPlanWeichenRechtsMärklin]
         . weWidgetsBoxen
     boxenPlan (ZugtypLego _weiche) =
-        Lens.folding
-        $ fmap widgetHinzufügenZugtypEither
+        fmap widgetHinzufügenZugtypEither
         . (??)
             [ vBoxHinzufügenPlanWeichenGeradeLego
             , vBoxHinzufügenPlanWeichenKurveLego
@@ -362,7 +361,7 @@ weichePackNew weiche = do
         (erhalteRichtungen weiche)
         weTVarSprache
         fortfahrenWennToggledWegstrecke
-    let [boxGerade, boxKurve, boxLinks, boxRechts] = widgetsBoxen ^.. boxenPlan weiche
+    let [boxGerade, boxKurve, boxLinks, boxRechts] = boxenPlan weiche widgetsBoxen
     hinzufügenPlanWidgetGerade <- if hatRichtung weiche Gerade
         then Just <$> hinzufügenWidgetPlanPackNew boxGerade weiche weTVarSprache
         else pure Nothing

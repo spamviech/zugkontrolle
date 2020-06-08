@@ -35,7 +35,6 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
-import qualified Control.Lens as Lens
 import Control.Monad (void, forM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -64,7 +63,8 @@ import Zug.UI.Gtk.SpracheGui (SpracheGui, MitSpracheGui(), SpracheGuiReader(erha
                             , verwendeSpracheGui, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt.BGWidgets (BGWidgets)
 import Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-       (PlanElement(..), hinzufügenWidgetPlanPackNew, MitTMVarPlanObjekt(), entferneHinzufügenPlanWidgets)
+       (PlanElement(..), hinzufügenWidgetPlanPackNew, MitTMVarPlanObjekt()
+      , entferneHinzufügenPlanWidgets)
 import Zug.UI.Gtk.StreckenObjekt.KOWidgets (KOWidgets)
 import Zug.UI.Gtk.StreckenObjekt.KUWidgets (KUWidgets)
 import Zug.UI.Gtk.StreckenObjekt.STWidgets (STWidgets)

@@ -33,8 +33,6 @@ module Zug.UI.Gtk.StreckenObjekt.BGWidgets
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
-import Control.Lens ((^.))
-import qualified Control.Lens as Lens
 import Control.Monad (forM_, foldM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))

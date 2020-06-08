@@ -25,8 +25,6 @@ module Zug.UI.Gtk.StreckenObjekt.WSWidgets
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
-import qualified Control.Lens as Lens
-import Control.Lens ((??), (^..))
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson

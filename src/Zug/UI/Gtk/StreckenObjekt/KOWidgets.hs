@@ -26,7 +26,6 @@ module Zug.UI.Gtk.StreckenObjekt.KOWidgets
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
-import qualified Control.Lens as Lens
 import Control.Monad (forever)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -140,21 +139,19 @@ instance WidgetsTyp KOWidgets where
     tvarEvent = koTVarEvent
 
 instance WegstreckenElement KOWidgets where
-    getterWegstrecke :: Lens.Getter KOWidgets (CheckButtonWegstreckeHinzufügen Void KOWidgets)
-    getterWegstrecke = Lens.to koHinzWS
+    checkButtonWegstrecke :: KOWidgets -> CheckButtonWegstreckeHinzufügen Void KOWidgets
+    checkButtonWegstrecke = koHinzWS
 
-    boxWegstrecke :: (ReaderConstraint KOWidgets r)
-                  => Kontakt
-                  -> Lens.Getter r (BoxWegstreckeHinzufügen KOWidgets)
-    boxWegstrecke _KOWidgets = Lens.to $ vBoxHinzufügenWegstreckeKontakte . koWidgetsBoxen
+    boxWegstrecke
+        :: (ReaderConstraint KOWidgets r) => Kontakt -> r -> BoxWegstreckeHinzufügen KOWidgets
+    boxWegstrecke _kontakt = vBoxHinzufügenWegstreckeKontakte . koWidgetsBoxen
 
 instance PlanElement KOWidgets where
-    foldPlan :: Lens.Fold KOWidgets (Maybe (ButtonPlanHinzufügen KOWidgets))
-    foldPlan = Lens.to $ Just . koHinzPL
+    buttonsPlan :: KOWidgets -> [Maybe (ButtonPlanHinzufügen KOWidgets)]
+    buttonsPlan = (: []) . Just . koHinzPL
 
-    boxenPlan
-        :: (ReaderConstraint KOWidgets r) => Kontakt -> Lens.Fold r (BoxPlanHinzufügen KOWidgets)
-    boxenPlan _KOWidgets = Lens.to $ vBoxHinzufügenPlanKontakte . koWidgetsBoxen
+    boxenPlan :: (ReaderConstraint KOWidgets r) => Kontakt -> r -> [BoxPlanHinzufügen KOWidgets]
+    boxenPlan _KOWidgets = (: []) . vBoxHinzufügenPlanKontakte . koWidgetsBoxen
 
 instance StreckenObjekt KOWidgets where
     anschlüsse :: KOWidgets -> Set AnschlussEither
