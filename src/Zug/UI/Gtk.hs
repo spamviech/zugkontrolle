@@ -66,7 +66,7 @@ import Zug.UI.Gtk.SpracheGui
        (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel, TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt
        (DynamischeWidgets(..), boxWegstreckeHinzufügenNew, boxPlanHinzufügenNew, MStatusGuiT
-      , IOStatusGui, foldWegstreckeHinzufügen, BGWidgetsBoxen(..), STWidgetsBoxen(..)
+      , IOStatusGui, checkButtonsWegstreckeHinzufügen, BGWidgetsBoxen(..), STWidgetsBoxen(..)
       , WEWidgetsBoxen(..), KUWidgetsBoxen(..), KOWidgetsBoxen(..), WSWidgetsBoxen(..)
       , PLWidgetsBoxen(..))
 import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
@@ -450,8 +450,8 @@ setupGUI maybeTVar = void $ do
                 $ fortfahrenWennToggledVarNew
                     maybeTVar
                     Language.hinzufügen
-                    foldWegstreckeHinzufügen
-                    (atomically . readStatusVar)
+                    checkButtonsWegstreckeHinzufügen
+                    (liftIO . atomically . readStatusVar)
                     statusVar
             dynTMVarPlanObjekt <- newEmptyTMVarIO
             vBoxBahngeschwindigkeiten <- atomically $ readTMVar tmvarVBoxBahngeschwindigkeiten

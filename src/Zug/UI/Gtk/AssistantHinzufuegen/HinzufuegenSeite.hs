@@ -37,8 +37,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM
        (TVar, atomically, readTVarIO, newTVarIO, writeTVar, modifyTVar, swapTVar, putTMVar)
-import Control.Lens ((^.), Field1(_1), Field2(_2))
-import qualified Control.Lens as Lens
 import Control.Monad (void, forM, forM_, foldM, when)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT, MonadReader(ask))
@@ -382,16 +380,14 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
         gewählteWegstrecke = do
             wsBahngeschwindigkeiten <- foldM anhängenWennToggled Set.empty
                 $ catMaybes
-                $ map vonZugtypEither
-                $ aktuellerStatus ^. bahngeschwindigkeiten
+                $ map vonZugtypEither $bahngeschwindigkeiten aktuellerStatus
             wsStreckenabschnitte
-                <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. streckenabschnitte
+                <- foldM anhängenWennToggled Set.empty $streckenabschnitte aktuellerStatus
             wsWeichenRichtungen <- foldM weichenRichtungAnhängenWennToggled Set.empty
                 $ catMaybes
-                $ map vonZugtypEither
-                $ aktuellerStatus ^. weichen
-            wsKupplungen <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kupplungen
-            wsKontakte <- foldM anhängenWennToggled Set.empty $ aktuellerStatus ^. kontakte
+                $ map vonZugtypEither $weichen aktuellerStatus
+            wsKupplungen <- foldM anhängenWennToggled Set.empty $kupplungen aktuellerStatus
+            wsKontakte <- foldM anhängenWennToggled Set.empty $kontakte aktuellerStatus
             pure
                 Wegstrecke
                 { wsName
@@ -405,7 +401,7 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
                              => Set (ObjektTyp a)
                              -> a
                              -> m (Set (ObjektTyp a))
-        anhängenWennToggled acc a = widgetHinzufügenToggled (a ^. getterWegstrecke) >>= \case
+        anhängenWennToggled acc a = widgetHinzufügenToggled (checkButtonWegstrecke a) >>= \case
             True -> pure $ Set.insert (zuObjektTyp a) acc
             False -> pure acc
         weichenRichtungAnhängenWennToggled
@@ -417,7 +413,7 @@ seiteErgebnis _fließendAuswahl zugtypAuswahl HinzufügenSeiteWegstrecke {nameAu
             -> WEWidgets z
             -> m (Set (Weiche z, Richtung))
         weichenRichtungAnhängenWennToggled acc weiche = do
-            let widgetHinzufügen = weiche ^. getterWegstrecke
+            let widgetHinzufügen = checkButtonWegstrecke weiche
             toggled <- widgetHinzufügenToggled widgetHinzufügen
             if toggled
                 then do
@@ -442,13 +438,20 @@ seiteErgebnis
                         , plAktionen = NonEmpty.fromList
                               $ toList
                               $ anhängen (AktionAusführen plan)
-                              $ Lens.view _1 <$> aktionenWarteschlange
+                              $ fstOf3 <$> aktionenWarteschlange
                         }
                 in plan
         False -> Plan
             { plName
-            , plAktionen = NonEmpty.fromList $ toList $ Lens.view _1 <$> aktionenWarteschlange
+            , plAktionen = NonEmpty.fromList $ toList $ fstOf3 <$> aktionenWarteschlange
             }
+
+-- small little helper functions
+fstOf3 :: (a, b, c) -> a
+fstOf3 (a, _b, _c) = a
+
+sndOf3 :: (a, b, c) -> b
+sndOf3 (_a, b, _c) = b
 
 -- | Setze den aktuellen Wert einer 'HinzufügenSeite'.
 --
@@ -594,12 +597,12 @@ setzeSeite
     setzeAuswahl zugtypAuswahl $ zugtyp ws
     statusVar <- erhalteStatusVar :: m StatusVarGui
     aktuellerStatus <- liftIO $ atomically $ readStatusVar statusVar
-    forM_ (aktuellerStatus ^. bahngeschwindigkeiten) $ \bgWidgets -> widgetHinzufügenSetToggled
-        (bgWidgets ^. getterWegstrecke)
+    forM_ (bahngeschwindigkeiten aktuellerStatus) $ \bgWidgets -> widgetHinzufügenSetToggled
+        (checkButtonWegstrecke bgWidgets)
         $ elem (zuObjektTyp bgWidgets)
         $ enthalteneBahngeschwindigkeiten ws
-    forM_ (aktuellerStatus ^. streckenabschnitte) $ \stWidgets -> widgetHinzufügenSetToggled
-        (stWidgets ^. getterWegstrecke)
+    forM_ (streckenabschnitte aktuellerStatus) $ \stWidgets -> widgetHinzufügenSetToggled
+        (checkButtonWegstrecke stWidgets)
         $ elem (zuObjektTyp stWidgets)
         $ enthalteneStreckenabschnitte ws
     let getWeichenRichtungen :: ZugtypEither Wegstrecke -> Map (ZugtypEither Weiche) Richtung
@@ -613,19 +616,19 @@ setzeSeite
                 (\acc (weiche, richtung) -> Map.insert (ZugtypLego weiche) richtung acc)
                 Map.empty
             $ wsWeichenRichtungen wsLego
-    forM_ (aktuellerStatus ^. weichen)
+    forM_ (weichen aktuellerStatus)
         $ \weWidgets -> case Map.lookup (zuObjektTyp weWidgets) $ getWeichenRichtungen ws of
             (Just richtung) -> do
-                let widgetHinzufügen = weWidgets ^. getterWegstrecke
+                let widgetHinzufügen = checkButtonWegstrecke weWidgets
                 widgetHinzufügenSetToggled widgetHinzufügen True
                 widgetHinzufügenSetzeAuswahl widgetHinzufügen richtung
-            Nothing -> widgetHinzufügenSetToggled (weWidgets ^. getterWegstrecke) False
-    forM_ (aktuellerStatus ^. kupplungen) $ \kuWidgets -> widgetHinzufügenSetToggled
-        (kuWidgets ^. getterWegstrecke)
+            Nothing -> widgetHinzufügenSetToggled (checkButtonWegstrecke weWidgets) False
+    forM_ (kupplungen aktuellerStatus) $ \kuWidgets -> widgetHinzufügenSetToggled
+        (checkButtonWegstrecke kuWidgets)
         $ elem (zuObjektTyp kuWidgets)
         $ enthalteneKupplungen ws
-    forM_ (aktuellerStatus ^. kontakte) $ \koWidgets -> widgetHinzufügenSetToggled
-        (koWidgets ^. getterWegstrecke)
+    forM_ (kontakte aktuellerStatus) $ \koWidgets -> widgetHinzufügenSetToggled
+        (checkButtonWegstrecke koWidgets)
         $ elem (zuObjektTyp koWidgets)
         $ enthalteneKontakte ws
     pure True
@@ -641,7 +644,7 @@ setzeSeite
         aktionen :: [Aktion]
         aktionen = NonEmpty.takeWhile (not . führtSelbstAus) plAktionen
     liftIO $ do
-        alteAktionsWidgets <- fmap (fmap $ Lens.view _2) $ atomically $ swapTVar tvarAktionen leer
+        alteAktionsWidgets <- fmap (fmap sndOf3) $ atomically $ swapTVar tvarAktionen leer
         mapM_ Gtk.widgetDestroy alteAktionsWidgets
         Gtk.set
             checkButtonDauerschleife
@@ -770,7 +773,7 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
                -> (Richtung, RegistrierterCheckButton)
                -> m [(Richtung, RegistrierterCheckButton, AnschlussAuswahlWidget 'InterruptPinEgal)]
         foldFn acc (richtung, registrierterCheckButton) = do
-            maybeTop <- case Lens.view _2 <$> listToMaybe acc of
+            maybeTop <- case sndOf3 <$> listToMaybe acc of
                 (Just top) -> Just <$> erhalteWidget top
                 Nothing -> pure Nothing
             registrierterCheckButtonWidget <- erhalteWidget registrierterCheckButton

@@ -27,8 +27,6 @@ module Zug.UI.Gtk.Fenster
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, newTMVar, takeTMVar, putTMVar)
-import Control.Lens ((^.))
-import qualified Control.Lens as Lens
 import Control.Monad (void, when)
 import Control.Monad.Fix (MonadFix())
 import qualified Control.Monad.RWS.Strict as RWS
@@ -170,14 +168,14 @@ ladeWidgets status = do
         löscheWidgets :: (DynamischeWidgetsReader r m, MonadIO m) => MStatusGuiT m ()
         löscheWidgets = do
             aktuellerStatus <- RWS.get
-            mapM_ entferneWidgets $ aktuellerStatus ^. bahngeschwindigkeiten
-            mapM_ entferneWidgets $ aktuellerStatus ^. streckenabschnitte
-            mapM_ entferneWidgets $ aktuellerStatus ^. weichen
-            mapM_ entferneWidgets $ aktuellerStatus ^. kupplungen
-            mapM_ entferneWidgets $ aktuellerStatus ^. kontakte
-            mapM_ entferneWidgets $ aktuellerStatus ^. wegstrecken
-            mapM_ entferneWidgets $ aktuellerStatus ^. pläne
-            RWS.put $ statusLeer $ aktuellerStatus ^. sprache
+            mapM_ entferneWidgets $ bahngeschwindigkeiten aktuellerStatus
+            mapM_ entferneWidgets $ streckenabschnitte aktuellerStatus
+            mapM_ entferneWidgets $ weichen aktuellerStatus
+            mapM_ entferneWidgets $ kupplungen aktuellerStatus
+            mapM_ entferneWidgets $ kontakte aktuellerStatus
+            mapM_ entferneWidgets $ wegstrecken aktuellerStatus
+            mapM_ entferneWidgets $ pläne aktuellerStatus
+            RWS.put $ statusLeer $ sprache aktuellerStatus
 
         erstelleWidgets :: (ObjektGuiReader m, MonadIO m) => MStatusGuiT m ()
         erstelleWidgets = do
@@ -193,24 +191,25 @@ ladeWidgets status = do
                     ZugtypLego . GeschwindigkeitPwm <$> bahngeschwindigkeitPackNew bg
                 packBG (ZugtypLego (GeschwindigkeitKonstanteSpannung bg)) =
                     ZugtypLego . GeschwindigkeitKonstanteSpannung <$> bahngeschwindigkeitPackNew bg
-            mapM_ packBG $ reverse $ status ^. bahngeschwindigkeiten
-            mapM_ streckenabschnittPackNew $ reverse $ status ^. streckenabschnitte
+            mapM_ packBG $ reverse $bahngeschwindigkeiten status
+            mapM_ streckenabschnittPackNew $ reverse $streckenabschnitte status
             let packWE :: (ObjektGuiReader m, MonadIO m)
                        => ZugtypEither Weiche
                        -> MStatusGuiT m (ZugtypEither WEWidgets)
                 packWE (ZugtypMärklin we) = ZugtypMärklin <$> weichePackNew we
                 packWE (ZugtypLego we) = ZugtypLego <$> weichePackNew we
-            mapM_ packWE $ reverse $ status ^. weichen
-            mapM_ kupplungPackNew $ reverse $ status ^. kupplungen
-            mapM_ kontaktPackNew $ reverse $ status ^. kontakte
+            mapM_ packWE $ reverse $weichen status
+            mapM_ kupplungPackNew $ reverse $kupplungen status
+            mapM_ kontaktPackNew $ reverse $kontakte status
             let packWS :: (ObjektGuiReader m, MonadIO m)
                        => ZugtypEither Wegstrecke
                        -> MStatusGuiT m (ZugtypEither WSWidgets)
                 packWS (ZugtypMärklin ws) = ZugtypMärklin <$> wegstreckePackNew ws
                 packWS (ZugtypLego ws) = ZugtypLego <$> wegstreckePackNew ws
-            mapM_ packWS $ reverse $ status ^. wegstrecken
+            mapM_ packWS $ reverse $wegstrecken status
             statusGui <- RWS.get
-            mapM_ planPackNew $ reverse $ catMaybes $ alsPlanGui statusGui <$> status ^. pläne
+            -- TODO Pläne mit Ausführen scheitern hier!!!
+            mapM_ planPackNew $ reverse $ catMaybes $ alsPlanGui statusGui <$> pläne status
 
 alsPlanGui :: StatusGui -> Plan -> Maybe PlanGui
 alsPlanGui statusGui Plan {plName, plAktionen} = mdo
@@ -218,12 +217,9 @@ alsPlanGui statusGui Plan {plName, plAktionen} = mdo
     guiAktionen <- mapM (konvertiereAktion result) plAktionen
     pure result
     where
-        lookupWidgetsTyp :: (Eq (ObjektTyp a), ObjektElement a)
-                         => Lens.Getter StatusGui [a]
-                         -> ObjektTyp a
-                         -> Maybe a
-        lookupWidgetsTyp getter objektTyp =
-            find ((==) objektTyp . zuObjektTyp) $ statusGui ^. getter
+        lookupWidgetsTyp
+            :: (Eq (ObjektTyp a), ObjektElement a) => (StatusGui -> [a]) -> ObjektTyp a -> Maybe a
+        lookupWidgetsTyp getter objektTyp = find ((==) objektTyp . zuObjektTyp) $getter statusGui
 
         konvertiereAktion :: PlanGui -> Aktion -> Maybe AktionGui
         konvertiereAktion _result (Warten wartezeit) = Just $ Warten wartezeit
