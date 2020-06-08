@@ -22,7 +22,7 @@ module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
   , hinzufügenWidgetWegstreckePackNew
   , hinzufügenWidgetWegstreckeRichtungPackNew
   , entferneHinzufügenWegstreckeWidgets
-  , foldWegstreckeHinzufügen
+  , checkButtonsWegstreckeHinzufügen
       -- * Plan-Element
   , PlanElement(..)
   , MitTMVarPlanObjekt(..)
@@ -35,9 +35,7 @@ module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
 #ifdef ZUGKONTROLLEGUI
 import Control.Applicative (ZipList(..))
 import Control.Concurrent.STM (atomically, TMVar, putTMVar)
-import Control.Lens ((^.), (^..))
-import qualified Control.Lens as Lens
-import Control.Monad.Reader.Class (MonadReader(ask), asks)
+import Control.Monad.Reader.Class (MonadReader(ask, reader))
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.Text as Text
@@ -70,12 +68,12 @@ class (WidgetsTyp s) => WegstreckenElement s where
 
     type CheckButtonAuswahl s = Void
 
-    -- | Getter auf 'RegistrierterCheckButton', ob 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll
-    getterWegstrecke :: Lens.Getter s (CheckButtonWegstreckeHinzufügen (CheckButtonAuswahl s) s)
+    -- | 'RegistrierterCheckButton' im 'Zug.UI.Gtk.AssistantHinzufuegen.AssistantHinzufügen'.
+    -- Bestimmt ob ein 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll.
+    checkButtonWegstrecke :: s -> CheckButtonWegstreckeHinzufügen (CheckButtonAuswahl s) s
 
     -- | Assoziierte 'BoxWegstreckeHinzufügen', in der 'MitRegistrierterCheckButton' gepackt ist.
-    boxWegstrecke
-        :: (ReaderConstraint s r) => ObjektTyp s -> Lens.Getter r (BoxWegstreckeHinzufügen s)
+    boxWegstrecke :: (ReaderConstraint s r) => ObjektTyp s -> r -> BoxWegstreckeHinzufügen s
 
 class MitFortfahrenWennToggledWegstrecke r o where
     fortfahrenWennToggledWegstrecke
@@ -86,7 +84,7 @@ class (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
     => FortfahrenWennToggledWegstreckeReader r o m | m -> r where
     erhalteFortfahrenWennToggledWegstrecke
         :: m (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
-    erhalteFortfahrenWennToggledWegstrecke = asks fortfahrenWennToggledWegstrecke
+    erhalteFortfahrenWennToggledWegstrecke = reader fortfahrenWennToggledWegstrecke
 
 instance (MonadReader r m, MitFortfahrenWennToggledWegstrecke r o)
     => FortfahrenWennToggledWegstreckeReader r o m
@@ -108,8 +106,7 @@ hinzufügenWidgetWegstreckePackNew
     -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
     -> m (CheckButtonWegstreckeHinzufügen Void s)
 hinzufügenWidgetWegstreckePackNew objekt tvar fortfahrenWennToggled = do
-    reader <- ask
-    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
+    box <- boxWegstrecke objekt <$> ask :: m (BoxWegstreckeHinzufügen s)
     widgetHinzufügenBoxPackNew box
         $ WegstreckeCheckButton
         <$> registrierterCheckButtonNew
@@ -136,8 +133,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew
     -> FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid
     -> m (CheckButtonWegstreckeHinzufügen Richtung s)
 hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWennToggled = do
-    reader <- ask
-    let box = reader ^. boxWegstrecke objekt :: BoxWegstreckeHinzufügen s
+    box <- boxWegstrecke objekt <$> ask :: m (BoxWegstreckeHinzufügen s)
     let justTVar = Just tvar
     widgetHinzufügenBoxPackNew box $ do
         hBox <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
@@ -161,67 +157,55 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWenn
 entferneHinzufügenWegstreckeWidgets
     :: forall s r m. (WegstreckenElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenWegstreckeWidgets wegsteckenElement = do
-    box <- Lens.view (boxWegstrecke $ zuObjektTyp wegsteckenElement) <$> ask
-        :: m (BoxWegstreckeHinzufügen s)
-    widgetHinzufügenContainerRemoveJust box $ Just $ wegsteckenElement ^. getterWegstrecke
+    box <- boxWegstrecke (zuObjektTyp wegsteckenElement) <$> ask :: m (BoxWegstreckeHinzufügen s)
+    widgetHinzufügenContainerRemoveJust box $ Just $ checkButtonWegstrecke wegsteckenElement
 
 -- | Typ-unspezifischer 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke
 type WegstreckeCheckButtonVoid =
     WidgetHinzufügen 'HinzufügenWegstrecke RegistrierterCheckButton Void
 
--- | Alle 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke im aktuellen 'StatusGui'
-foldWegstreckeHinzufügen
+-- | Alle 'RegistrierterCheckButton' zum hinzufügen einer Wegstrecke im aktuellen 'StatusGui'.
+checkButtonsWegstreckeHinzufügen
     :: ( WegstreckenElement (ZugtypEither (GeschwindigkeitEither (BG o)))
        , WegstreckenElement (ST o)
        , WegstreckenElement (ZugtypEither (WE o))
        , WegstreckenElement (KU o)
        , WegstreckenElement (KO o)
        )
-    => Lens.Fold (StatusAllgemein o) WegstreckeCheckButtonVoid
-foldWegstreckeHinzufügen = Lens.folding registrierteCheckButtons
-    where
-        registrierteCheckButtons
-            :: ( WegstreckenElement (ZugtypEither (GeschwindigkeitEither (BG o)))
-               , WegstreckenElement (ST o)
-               , WegstreckenElement (ZugtypEither (WE o))
-               , WegstreckenElement (KU o)
-               , WegstreckenElement (KO o)
-               )
-            => StatusAllgemein o
-            -> [WegstreckeCheckButtonVoid]
-        registrierteCheckButtons status =
-            map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. bahngeschwindigkeiten)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. streckenabschnitte)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. weichen)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. kupplungen)
-            ++ map
-                (widgetHinzufügenRegistrierterCheckButtonVoid . Lens.view getterWegstrecke)
-                (status ^. kontakte)
+    => StatusAllgemein o
+    -> [WegstreckeCheckButtonVoid]
+checkButtonsWegstreckeHinzufügen status =
+    map
+        (widgetHinzufügenRegistrierterCheckButtonVoid . checkButtonWegstrecke)
+        (bahngeschwindigkeiten status)
+    ++ map
+        (widgetHinzufügenRegistrierterCheckButtonVoid . checkButtonWegstrecke)
+        (streckenabschnitte status)
+    ++ map (widgetHinzufügenRegistrierterCheckButtonVoid . checkButtonWegstrecke) (weichen status)
+    ++ map
+        (widgetHinzufügenRegistrierterCheckButtonVoid . checkButtonWegstrecke)
+        (kupplungen status)
+    ++ map
+        (widgetHinzufügenRegistrierterCheckButtonVoid . checkButtonWegstrecke)
+        (kontakte status)
 
 -- | Klasse für Gui-Darstellungen von Typen, die zur Erstellung eines 'Plan's verwendet werden.
 class (WidgetsTyp s) => PlanElement s where
-    -- | Faltung auf 'Gtk.Button's (falls vorhanden), welches 'StreckenObjekt' für eine 'Aktion' verwendet werden soll
-    foldPlan :: Lens.Fold s (Maybe (ButtonPlanHinzufügen s))
+    -- | 'Gtk.Button's (falls vorhanden) im 'Zug.UI.Gtk.AssistantHinzufuegen.AssistantHinzufügen'.
+    -- Bestimmt welches 'StreckenObjekt' für eine 'Aktion' verwendet werden soll.
+    buttonsPlan :: s -> [Maybe (ButtonPlanHinzufügen s)]
 
     -- | Aller assoziierten 'BoxPlanHinzufügen', in denen jeweiliger 'ButtonPlanHinzufügen' gepackt ist.
-    -- Die Reihenfolge muss zum Ergebnis von 'foldPlan' passen.
+    -- Die Reihenfolge muss zum Ergebnis von 'buttonsPlan' passen.
     -- Wird für 'entferneHinzufügenPlanWidgets' benötigt.
-    boxenPlan :: (ReaderConstraint s r) => ObjektTyp s -> Lens.Fold r (BoxPlanHinzufügen s)
+    boxenPlan :: (ReaderConstraint s r) => ObjektTyp s -> r -> [BoxPlanHinzufügen s]
 
 class MitTMVarPlanObjekt r where
     tmvarPlanObjekt :: r -> TMVar (Maybe Objekt)
 
 class (MonadReader r m, MitTMVarPlanObjekt r) => TMVarPlanObjektReader r m | m -> r where
     erhalteTMVarPlanObjekt :: m (TMVar (Maybe Objekt))
-    erhalteTMVarPlanObjekt = asks tmvarPlanObjekt
+    erhalteTMVarPlanObjekt = reader tmvarPlanObjekt
 
 instance (MonadReader r m, MitTMVarPlanObjekt r) => TMVarPlanObjektReader r m
 
@@ -253,10 +237,9 @@ hinzufügenWidgetPlanPackNew box objekt tvar = do
 entferneHinzufügenPlanWidgets
     :: forall s r m. (PlanElement s, WidgetsTypReader r s m, MonadIO m) => s -> m ()
 entferneHinzufügenPlanWidgets planElement = do
-    boxenPlanHinzufügen <- Lens.toListOf (boxenPlan $ zuObjektTyp planElement) <$> ask
-        :: m [BoxPlanHinzufügen s]
+    boxenPlanHinzufügen <- boxenPlan (zuObjektTyp planElement) <$> ask :: m [BoxPlanHinzufügen s]
     sequence_
         $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlanHinzufügen
-        <*> ZipList (planElement ^.. foldPlan)
+        <*> ZipList (buttonsPlan planElement)
 #endif
 --

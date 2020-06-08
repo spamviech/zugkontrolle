@@ -26,10 +26,10 @@ speichern = flip encodeFile
 -- Dateifehler und nicht-existente Dateien geben 'Nothing' zurück.
 -- Ansonsten wird ein aus einem 'Status' konstruierter Typ zurückgegeben.
 laden :: FilePath -> (Status -> IO s) -> Sprache -> IO (Maybe s)
-laden path fromStatus sprache = do
+laden path fromStatus sp = do
     fileExists <- doesFileExist path
     if fileExists
         then decodeFileEither path >>= \case
             (Left _error) -> pure Nothing
-            (Right f) -> fmap Just $ fromStatus $ f sprache
+            (Right f) -> fmap Just $ fromStatus $ f sp
         else pure Nothing

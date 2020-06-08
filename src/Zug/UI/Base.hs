@@ -30,15 +30,6 @@ module Zug.UI.Base
   , ObjektReader
   , auswertenLeererIOStatus
   , liftIOStatus
-    -- ** Linsen
-  , bahngeschwindigkeiten
-  , streckenabschnitte
-  , weichen
-  , kupplungen
-  , kontakte
-  , wegstrecken
-  , pläne
-  , sprache
     -- * Zustands-Monade
   , IOStatus
   , MStatus
@@ -112,14 +103,14 @@ import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..
 -- | Aktueller Status
 data StatusAllgemein o =
     Status
-    { _bahngeschwindigkeiten :: [ZugtypEither (GeschwindigkeitEither (BG o))]
-    , _streckenabschnitte :: [ST o]
-    , _weichen :: [ZugtypEither (WE o)]
-    , _kupplungen :: [KU o]
-    , _kontakte :: [KO o]
-    , _wegstrecken :: [ZugtypEither (WS o)]
-    , _pläne :: [PL o]
-    , _sprache :: SP o
+    { bahngeschwindigkeiten :: [ZugtypEither (GeschwindigkeitEither (BG o))]
+    , streckenabschnitte :: [ST o]
+    , weichen :: [ZugtypEither (WE o)]
+    , kupplungen :: [KU o]
+    , kontakte :: [KO o]
+    , wegstrecken :: [ZugtypEither (WS o)]
+    , pläne :: [PL o]
+    , sprache :: SP o
     }
 
 -- | Spezialisierung von 'StatusAllgemein' auf minimal benötigte Typen
@@ -145,58 +136,6 @@ deriving instance ( Show (ZugtypEither (GeschwindigkeitEither (BG o)))
                   , Show (SP o)
                   ) => Show (StatusAllgemein o)
 
--- | Create a Lens' from a Getter and a Setter.
--- Simple Copy&Paste from the lens-definition (remove need for CPP).
--- lens :: forall f. Functor f => (s -> a) -> (s -> a -> s) -> (a -> f a) -> s -> f s
-lens :: (s -> a) -> (s -> a -> s) -> (forall f. Functor f => (a -> f a) -> s -> f s)
-lens sa sas afa s = sas s <$> afa (sa s)
-
-{-# INLINE lens #-}
-
--- | Lens': 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
-bahngeschwindigkeiten :: Functor f
-                      => ([ZugtypEither (GeschwindigkeitEither (BG o))]
-                          -> f [ZugtypEither (GeschwindigkeitEither (BG o))])
-                      -> (StatusAllgemein o)
-                      -> f (StatusAllgemein o)
-bahngeschwindigkeiten =
-    lens _bahngeschwindigkeiten $ \status bgs -> status { _bahngeschwindigkeiten = bgs }
-
--- | Lens': 'Streckenabschitt'e im aktuellen 'StatusAllgemein'.
-streckenabschnitte
-    :: Functor f => ([ST o] -> f [ST o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
-streckenabschnitte = lens _streckenabschnitte $ \status sts -> status { _streckenabschnitte = sts }
-
--- | Lens': 'Weiche'n im aktuellen 'StatusAllgemein'.
-weichen :: Functor f
-        => ([ZugtypEither (WE o)] -> f [ZugtypEither (WE o)])
-        -> (StatusAllgemein o)
-        -> f (StatusAllgemein o)
-weichen = lens _weichen $ \status wes -> status { _weichen = wes }
-
--- | Lens': 'Kupplung'en im aktuellen 'StatusAllgemein'.
-kupplungen :: Functor f => ([KU o] -> f [KU o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
-kupplungen = lens _kupplungen $ \status kus -> status { _kupplungen = kus }
-
--- | Lens': 'Kontakt'en im aktuellen 'StatusAllgemein'.
-kontakte :: Functor f => ([KO o] -> f [KO o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
-kontakte = lens _kontakte $ \status kus -> status { _kontakte = kus }
-
--- | Lens': 'Wegstrecke'n im aktuellen 'StatusAllgemein'.
-wegstrecken :: Functor f
-            => ([ZugtypEither (WS o)] -> f [ZugtypEither (WS o)])
-            -> (StatusAllgemein o)
-            -> f (StatusAllgemein o)
-wegstrecken = lens _wegstrecken $ \status wss -> status { _wegstrecken = wss }
-
--- | Lens': Pläne ('PlanAllgemein') im aktuellen 'StatusAllgemein'.
-pläne :: Functor f => ([PL o] -> f [PL o]) -> (StatusAllgemein o) -> f (StatusAllgemein o)
-pläne = lens _pläne $ \status pls -> status { _pläne = pls }
-
--- | Lens': 'Sprache' im aktuellen 'StatusAllgemein'.
-sprache :: Functor f => (SP o -> f (SP o)) -> (StatusAllgemein o) -> f (StatusAllgemein o)
-sprache = lens _sprache $ \status sp -> status { _sprache = sp }
-
 instance ( Anzeige (ZugtypEither (GeschwindigkeitEither (BG o)))
          , Anzeige (ST o)
          , Anzeige (ZugtypEither (WE o))
@@ -207,16 +146,16 @@ instance ( Anzeige (ZugtypEither (GeschwindigkeitEither (BG o)))
     anzeige :: StatusAllgemein o -> Sprache -> Text
     anzeige status =
         Language.bahngeschwindigkeiten
-        <=> zeigeUnterliste (_bahngeschwindigkeiten status)
+        <=> zeigeUnterliste (bahngeschwindigkeiten status)
         <\> Language.streckenabschnitte
-        <=> zeigeUnterliste (_streckenabschnitte status)
+        <=> zeigeUnterliste (streckenabschnitte status)
         <\> Language.weichen
-        <=> zeigeUnterliste (_weichen status)
+        <=> zeigeUnterliste (weichen status)
         <\> Language.kupplungen
-        <=> zeigeUnterliste (_kupplungen status)
+        <=> zeigeUnterliste (kupplungen status)
         <\> Language.wegstrecken
-        <=> zeigeUnterliste (_wegstrecken status)
-        <\> Language.pläne <=> zeigeUnterliste (_pläne status)
+        <=> zeigeUnterliste (wegstrecken status)
+        <\> Language.pläne <=> zeigeUnterliste (pläne status)
         where
             zeigeUnterliste :: (Anzeige a) => [a] -> Sprache -> Text
 
@@ -238,16 +177,16 @@ instance ( Anzeige (ZugtypEither (GeschwindigkeitEither (BG o)))
 
 -- | Erzeuge einen neuen, leeren 'StatusAllgemein' unter Verwendung existierender 'TVar's.
 statusLeer :: SP o -> StatusAllgemein o
-statusLeer _sprache =
+statusLeer sprache =
     Status
-    { _bahngeschwindigkeiten = []
-    , _streckenabschnitte = []
-    , _weichen = []
-    , _kupplungen = []
-    , _kontakte = []
-    , _wegstrecken = []
-    , _pläne = []
-    , _sprache
+    { bahngeschwindigkeiten = []
+    , streckenabschnitte = []
+    , weichen = []
+    , kupplungen = []
+    , kontakte = []
+    , wegstrecken = []
+    , pläne = []
+    , sprache
     }
 
 -- | Sammlung aller benötigten 'TVar's
@@ -347,69 +286,69 @@ instance (MitTVarMaps r) => MitInterruptMap r where
 -- | Erhalte 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
 getBahngeschwindigkeiten
     :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (GeschwindigkeitEither (BG o))]
-getBahngeschwindigkeiten = gets _bahngeschwindigkeiten
+getBahngeschwindigkeiten = gets bahngeschwindigkeiten
 
 -- | Erhalte 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'.
 getStreckenabschnitte :: (Monad m) => MStatusAllgemeinT m o [ST o]
-getStreckenabschnitte = gets _streckenabschnitte
+getStreckenabschnitte = gets streckenabschnitte
 
 -- | Erhalte 'Weiche'n im aktuellen 'StatusAllgemein'.
 getWeichen :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (WE o)]
-getWeichen = gets _weichen
+getWeichen = gets weichen
 
 -- | Erhalte 'Kupplung'en im aktuellen 'StatusAllgemein'.
 getKupplungen :: (Monad m) => MStatusAllgemeinT m o [KU o]
-getKupplungen = gets _kupplungen
+getKupplungen = gets kupplungen
 
 -- | Erhalte 'Kontakt'e im aktuellen 'StatusAllgemein'.
 getKontakte :: (Monad m) => MStatusAllgemeinT m o [KO o]
-getKontakte = gets _kontakte
+getKontakte = gets kontakte
 
 -- | Erhalte 'Wegstrecke'n im aktuellen 'StatusAllgemein'
 getWegstrecken :: (Monad m) => MStatusAllgemeinT m o [ZugtypEither (WS o)]
-getWegstrecken = gets _wegstrecken
+getWegstrecken = gets wegstrecken
 
 -- | Erhalte Pläne ('Plan') im aktuellen 'StatusAllgemein'.
 getPläne :: (Monad m) => MStatusAllgemeinT m o [PL o]
-getPläne = gets _pläne
+getPläne = gets pläne
 
 -- | Erhalte 'Sprache' im aktuellen 'StatusAllgemein'.
 getSprache :: (Monad m) => MStatusAllgemeinT m o (SP o)
-getSprache = gets _sprache
+getSprache = gets sprache
 
 -- * Ändere aktuellen Status
 -- | Setze 'Bahngeschwindigkeit'en im aktuellen 'StatusAllgemein'.
 putBahngeschwindigkeiten
     :: (Monad m) => [ZugtypEither (GeschwindigkeitEither (BG o))] -> MStatusAllgemeinT m o ()
-putBahngeschwindigkeiten bgs = modify $ \status -> status { _bahngeschwindigkeiten = bgs }
+putBahngeschwindigkeiten bgs = modify $ \status -> status { bahngeschwindigkeiten = bgs }
 
 -- | Setze 'Streckenabschnitt'e im aktuellen 'StatusAllgemein'.
 putStreckenabschnitte :: (Monad m) => [ST o] -> MStatusAllgemeinT m o ()
-putStreckenabschnitte sts = modify $ \status -> status { _streckenabschnitte = sts }
+putStreckenabschnitte sts = modify $ \status -> status { streckenabschnitte = sts }
 
 -- | Setze 'Weiche'en im aktuellen 'StatusAllgemein'.
 putWeichen :: (Monad m) => [ZugtypEither (WE o)] -> MStatusAllgemeinT m o ()
-putWeichen wes = modify $ \status -> status { _weichen = wes }
+putWeichen wes = modify $ \status -> status { weichen = wes }
 
 -- | Setze 'Kupplung'en im aktuellen 'StatusAllgemein'.
 putKupplungen :: (Monad m) => [KU o] -> MStatusAllgemeinT m o ()
-putKupplungen kus = modify $ \status -> status { _kupplungen = kus }
+putKupplungen kus = modify $ \status -> status { kupplungen = kus }
 
 -- | Setze 'Kontakt'e im aktuellen 'StatusAllgemein'.
 putKontakte :: (Monad m) => [KO o] -> MStatusAllgemeinT m o ()
-putKontakte kos = modify $ \status -> status { _kontakte = kos }
+putKontakte kos = modify $ \status -> status { kontakte = kos }
 
 -- | Setze 'Wegstrecke'n im akutellen 'StatusAllgemein'.
 putWegstrecken :: (Monad m) => [ZugtypEither (WS o)] -> MStatusAllgemeinT m o ()
-putWegstrecken wss = modify $ \status -> status { _wegstrecken = wss }
+putWegstrecken wss = modify $ \status -> status { wegstrecken = wss }
 
 -- | Setze Pläne ('Plan') im aktuellen 'StatusAllgemein'.
 putPläne :: (Monad m) => [PL o] -> MStatusAllgemeinT m o ()
-putPläne pls = modify $ \status -> status { _pläne = pls }
+putPläne pls = modify $ \status -> status { pläne = pls }
 
 -- | Setze 'Sprache' im aktuellen 'StatusAllgemein'.
 putSprache :: (Monad m) => SP o -> MStatusAllgemeinT m o ()
-putSprache sp = modify $ \status -> status { _sprache = sp }
+putSprache sp = modify $ \status -> status { sprache = sp }
 
 -- * Elemente hinzufügen
 -- | Füge eine 'Bahngeschwindigkeit' zum aktuellen 'StatusAllgemein' hinzu.
@@ -542,11 +481,11 @@ instance forall o. (ObjektKlasse o, Aeson.ToJSON o) => Aeson.ToJSON (StatusAllge
     toJSON status =
         Aeson.object
             [ JS.bahngeschwindigkeiten
-                  .= (map (ausObjekt . OBahngeschwindigkeit) $ _bahngeschwindigkeiten status :: [o])
+                  .= (map (ausObjekt . OBahngeschwindigkeit) $ bahngeschwindigkeiten status :: [o])
             , JS.streckenabschnitte
-                  .= (map (ausObjekt . OStreckenabschnitt) $ _streckenabschnitte status :: [o])
-            , JS.weichen .= (map (ausObjekt . OWeiche) $ _weichen status :: [o])
-            , JS.kupplungen .= (map (ausObjekt . OKupplung) $ _kupplungen status :: [o])
-            , JS.kontakte .= (map (ausObjekt . OKontakt) $ _kontakte status :: [o])
-            , JS.wegstrecken .= (map (ausObjekt . OWegstrecke) $ _wegstrecken status :: [o])
-            , JS.pläne .= (map (ausObjekt . OPlan) $ _pläne status :: [o])]
+                  .= (map (ausObjekt . OStreckenabschnitt) $ streckenabschnitte status :: [o])
+            , JS.weichen .= (map (ausObjekt . OWeiche) $ weichen status :: [o])
+            , JS.kupplungen .= (map (ausObjekt . OKupplung) $ kupplungen status :: [o])
+            , JS.kontakte .= (map (ausObjekt . OKontakt) $ kontakte status :: [o])
+            , JS.wegstrecken .= (map (ausObjekt . OWegstrecke) $ wegstrecken status :: [o])
+            , JS.pläne .= (map (ausObjekt . OPlan) $ pläne status :: [o])]

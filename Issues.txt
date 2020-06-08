@@ -11,6 +11,9 @@ gi-gtk/gi-gtk-declarative verwenden?
     gi-gtk-Funktionen sind meistens MonadIO
         die meisten liftIO-Blöcke sind nicht mehr notwendig
 
+Laden von Plänen mit AusführenPlan (andere Pläne) schlägt fehl (Gtk-UI)
+    vermutlich schlägt Umwandlung in PlanGui fehl, weil andere Pläne nicht gefunden werden.
+
 Mit..-Klassen durch typ-Synonyme von it-has ersetzen?
     http://hackage.haskell.org/package/it-has
 

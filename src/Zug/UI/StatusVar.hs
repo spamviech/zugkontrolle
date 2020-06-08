@@ -64,7 +64,7 @@ statusVarNew = fmap StatusVar . newTVarIO . Left
 takeStatusVar :: StatusVar o -> STM (StatusAllgemein o)
 takeStatusVar StatusVar {tvar} = readTVar tvar >>= \case
     (Left status) -> do
-        writeTVar tvar $ Right $ _sprache status
+        writeTVar tvar $ Right $ sprache status
         pure status
     (Right _sprache) -> retry
 
