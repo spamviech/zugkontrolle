@@ -18,6 +18,7 @@ import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types ((.:), (.=))
 import qualified Data.Aeson.Types as Aeson
+import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
@@ -69,7 +70,7 @@ instance Anzeige (Weiche z) where
         <-> Language.weiche
         <:> Language.name
         <=> wemName
-        <^> foldl
+        <^> foldl'
             (\acc (anschluss, richtung) -> acc <^> richtung <=> anschluss)
             (const "")
             wemRichtungsAnschlüsse

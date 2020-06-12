@@ -30,6 +30,7 @@ import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types ((.=), (.:))
 import qualified Data.Aeson.Types as Aeson
+import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
@@ -237,7 +238,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                 $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
         where
             (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
-                foldl splitAnschlüsse ([], [], []) fahrstromAnschlüsse
+                foldl' splitAnschlüsse ([], [], []) fahrstromAnschlüsse
 
             splitAnschlüsse
                 :: ( [(Pin, Value)]

@@ -607,12 +607,12 @@ setzeSeite
         $ enthalteneStreckenabschnitte ws
     let getWeichenRichtungen :: ZugtypEither Wegstrecke -> Map (ZugtypEither Weiche) Richtung
         getWeichenRichtungen (ZugtypMärklin wsMärklin) =
-            foldl
+            foldl'
                 (\acc (weiche, richtung) -> Map.insert (ZugtypMärklin weiche) richtung acc)
                 Map.empty
             $ wsWeichenRichtungen wsMärklin
         getWeichenRichtungen (ZugtypLego wsLego) =
-            foldl
+            foldl'
                 (\acc (weiche, richtung) -> Map.insert (ZugtypLego weiche) richtung acc)
                 Map.empty
             $ wsWeichenRichtungen wsLego

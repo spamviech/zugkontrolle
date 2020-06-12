@@ -29,6 +29,7 @@ import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Either.Combinators (leftToMaybe, rightToMaybe)
+import Data.List (foldl')
 import Data.Maybe (fromJust)
 import Data.Set (Set)
 import Data.Text (Text)
@@ -552,7 +553,7 @@ wegstreckePackNew
                 boxPackWidgetNewDefault vBoxExpander
                     $ labelSpracheNew justTVarSprache
                     $ Language.bahngeschwindigkeiten
-                    <:> fromJust (foldl appendName Nothing wsBahngeschwindigkeiten)
+                    <:> fromJust (foldl' appendName Nothing wsBahngeschwindigkeiten)
                 maybeScale <- if any
                     (ausGeschwindigkeitEither $ (== Pwm) . verwendetPwm)
                     wsBahngeschwindigkeiten
@@ -610,7 +611,7 @@ wegstreckePackNew
                 boxPackWidgetNewDefault vBoxExpander
                     $ labelSpracheNew justTVarSprache
                     $ Language.streckenabschnitte
-                    <:> fromJust (foldl appendName Nothing wsStreckenabschnitte)
+                    <:> fromJust (foldl' appendName Nothing wsStreckenabschnitte)
                 Just
                     <$> toggleButtonStromPackNew
                         wsFunctionBox
@@ -625,7 +626,7 @@ wegstreckePackNew
                     $ labelSpracheNew justTVarSprache
                     $ Language.weichen
                     <:> fromJust
-                        (foldl
+                        (foldl'
                              (\acc (weiche, richtung) -> Just
                               $ fromJust (appendName acc weiche) <°> richtung)
                              Nothing
@@ -641,7 +642,7 @@ wegstreckePackNew
             else do
                 boxPackWidgetNewDefault vBoxExpander
                     $ labelSpracheNew justTVarSprache
-                    $ Language.kupplungen <:> fromJust (foldl appendName Nothing wsKupplungen)
+                    $ Language.kupplungen <:> fromJust (foldl' appendName Nothing wsKupplungen)
                 Just
                     <$> buttonKuppelnPackNew
                         wsFunctionBox

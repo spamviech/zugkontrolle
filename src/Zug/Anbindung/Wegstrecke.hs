@@ -22,6 +22,7 @@ import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
+import Data.List (foldl')
 import Data.Word (Word8)
 
 import Zug.Anbindung.Anschluss
@@ -123,7 +124,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 pcf8574MultiPortWrite pcf8574 ports HIGH
         where
             (geschwindigkeitenPwm, geschwindigkeitenKonstanteSpannung) =
-                foldl splitGeschwindigkeiten ([], []) wsBahngeschwindigkeiten
+                foldl' splitGeschwindigkeiten ([], []) wsBahngeschwindigkeiten
 
             splitGeschwindigkeiten
                 :: ( [Bahngeschwindigkeit 'Pwm 'Märklin]
@@ -137,7 +138,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
             splitGeschwindigkeiten (p, k) (GeschwindigkeitKonstanteSpannung bg) = (p, bg : k)
 
             (umdrehenPins, umdrehenPcf8574PortsHigh, umdrehenPcf8574PortsLow) =
-                foldl splitAnschlüsse ([], [], []) geschwindigkeitenKonstanteSpannung
+                foldl' splitAnschlüsse ([], [], []) geschwindigkeitenKonstanteSpannung
 
             splitAnschlüsse
                 :: ( [( Pin
@@ -205,7 +206,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 $ \(pcf8574, ports) -> pcf8574MultiPortWrite pcf8574 ports LOW
         where
             (fahrstromPins, fahrstromPcf8574PortsHigh, fahrstromPcf8574PortsLow) =
-                foldl splitBahngeschwindigkeiten ([], [], [])
+                foldl' splitBahngeschwindigkeiten ([], [], [])
                 $ catKonstanteSpannung wsBahngeschwindigkeiten
 
             splitBahngeschwindigkeiten
@@ -222,7 +223,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 acc
                 bg@Bahngeschwindigkeit
                 {bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}} =
-                foldl (splitAnschlüsse bg) acc fahrstromAnschlüsse
+                foldl' (splitAnschlüsse bg) acc fahrstromAnschlüsse
 
             splitAnschlüsse
                 :: Bahngeschwindigkeit 'KonstanteSpannung z
@@ -293,7 +294,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                     Rückwärts -> HIGH
         where
             (fahrtrichtungsPins, fahrtrichtungPcf8574PortsHigh, fahrtrichtungPcf8574PortsLow) =
-                foldl splitAnschlüsse ([], [], []) wsBahngeschwindigkeiten
+                foldl' splitAnschlüsse ([], [], []) wsBahngeschwindigkeiten
 
             splitAnschlüsse
                 :: ( [( Pin
@@ -405,7 +406,7 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
                     Gesperrt -> HIGH
         where
             (stromPins, stromPcf8574PortsHigh, stromPcf8574PortsLow) =
-                foldl splitAnschlüsse ([], [], []) wsStreckenabschnitte
+                foldl' splitAnschlüsse ([], [], []) wsStreckenabschnitte
 
             splitAnschlüsse
                 :: ( [( Pin
@@ -472,7 +473,7 @@ instance KupplungKlasse (Wegstrecke z) where
                 pcf8574MultiPortWrite pcf8574 ports HIGH
         where
             (kupplungsPins, kupplungsPcf8574PortsHigh, kupplungsPcf8574PortsLow) =
-                foldl splitAnschlüsse ([], [], []) wsKupplungen
+                foldl' splitAnschlüsse ([], [], []) wsKupplungen
 
             splitAnschlüsse
                 :: ( [( Pin
@@ -559,7 +560,7 @@ instance WegstreckeKlasse (Wegstrecke 'Märklin) where
                 pcf8574MultiPortWrite pcf8574 ports HIGH
         where
             (richtungsPins, richtungsPcf8574PortsHigh, richtungsPcf8574PortsLow) =
-                foldl splitAnschlüsse ([], [], []) wsWeichenRichtungen
+                foldl' splitAnschlüsse ([], [], []) wsWeichenRichtungen
 
             splitAnschlüsse
                 :: ( [( Pin

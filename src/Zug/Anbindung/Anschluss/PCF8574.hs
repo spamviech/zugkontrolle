@@ -46,6 +46,7 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson.Types ((.:), (.=))
 import qualified Data.Aeson.Types as Aeson
 import Data.Bits (bit, (.|.), (.&.), testBit, complement)
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
@@ -248,7 +249,7 @@ pcf8574MultiPortWrite :: (I2CReader r m, MonadIO m) => PCF8574 i -> [Word8] -> V
 pcf8574MultiPortWrite pcf8574 ports value = i2cWriteAdjust (toI2CAddress pcf8574) bitValueFunktion
     where
         bitValueFunktion :: BitValue -> BitValue
-        bitValueFunktion oldBitValue = foldl (portFunktion value) oldBitValue ports
+        bitValueFunktion oldBitValue = foldl' (portFunktion value) oldBitValue ports
 
         portFunktion :: Value -> BitValue -> Word8 -> BitValue
         portFunktion HIGH bitValue port = bitValue .|. toBitValue port
@@ -256,8 +257,8 @@ pcf8574MultiPortWrite pcf8574 ports value = i2cWriteAdjust (toI2CAddress pcf8574
 
 -- | Sortiere eine Liste von 'PCF8574Port's nach ihren 'PCF8574'.
 pcf8574Gruppieren :: [PCF8574Port i] -> Map (PCF8574 i) [Word8]
-pcf8574Gruppieren = foldl (\portsMap PCF8574Port {pcf8574, port}
-                           -> Map.insertWith (++) pcf8574 [port] portsMap) Map.empty
+pcf8574Gruppieren = foldl' (\portsMap PCF8574Port {pcf8574, port}
+                            -> Map.insertWith (++) pcf8574 [port] portsMap) Map.empty
 
 -- | Wert eines einzelnen Ports eines /PCF8574/ auslesen.
 pcf8574PortRead :: (I2CReader r m, MonadIO m) => (PCF8574Port i) -> m Value

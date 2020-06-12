@@ -8,6 +8,7 @@ module Zug.Derive.Ord (deriveOrd) where
 
 import Control.Monad (forM)
 import Data.Either (partitionEithers)
+import Data.List (foldl')
 import qualified Language.Haskell.TH as TH
 
 -- | Automatische deriving von 'Ord' schlägt bei GADTs mit mehreren (Phantom)-Typen schlägt fehl.
@@ -46,7 +47,7 @@ deriveOrd eitherNameOrCxtType =
 
         makeType :: Either TH.Name (TH.Cxt, TH.Type) -> [TH.TyVarBndr] -> TH.Type
         makeType (Left name) tyVarBndrs =
-            let ty = foldl applyBndr (TH.ConT name) tyVarBndrs
+            let ty = foldl' applyBndr (TH.ConT name) tyVarBndrs
             in TH.ForallT tyVarBndrs [] $ TH.AppT (TH.ConT ''Ord) ty
         makeType (Right (_cxt, ty)) _tyVarBndrs = TH.AppT (TH.ConT ''Ord) ty
 
@@ -120,4 +121,3 @@ deriveOrd eitherNameOrCxtType =
                     typesCompatible (Just f0) (Just f1) && typesCompatible (Just a0) (Just a1)
                 typesCompatible (Just gadtType0) (Just gadtType1) = gadtType0 == gadtType1
                 typesCompatible _ty0 _ty1 = True
-
