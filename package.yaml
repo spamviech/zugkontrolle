@@ -63,11 +63,11 @@ dependencies:
 
 ghc-options:
   - -Wall
+  - -Wno-unused-do-bind
+  - -O2
 
 library:
   source-dirs: src
-  ghc-options:
-    - -Wno-unused-do-bind
 
 executables:
   Zugkontrolle:
