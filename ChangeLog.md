@@ -164,4 +164,9 @@
     Dadurch sollte die Startzeit verkürzt werden.
 - Gtk-UI: Pläne synchronisieren nun ebenfalls andere Widgets.
 
+1.2.0.1
+
+- Wartezeit zwischen i2c-Befehlen hinzugefügt.
+    PCF8574 sollten nicht mehr z.B. bei "einstellen" einer Wegstrecke den falschen Wert erhalten.
+
 ## Unreleased changes
