@@ -27,7 +27,7 @@ packages:
     hackage: gi-gtk-declarative-app-simple-0.6.3@sha256:2b201371acd292ef8d980be02809787293f7c30e505c84910b57e307af999cc9,1818
 snapshots:
 - completed:
-    size: 531237
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/0.yaml
-    sha256: 210e15b7043e2783115afe16b0d54914b1611cdaa73f3ca3ca7f8e0847ff54e5
-  original: lts-16.0
+    size: 509613
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2020/7/12.yaml
+    sha256: 580477c7f2a05ece24f18c728917edb594f99295247a3a2c913f8e8f995fd3a3
+  original: nightly-2020-07-12
