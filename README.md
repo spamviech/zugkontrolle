@@ -214,10 +214,16 @@ Dazu ist am besten die Anleitung auf [der Gtk-Website](https://www.gtk.org/downl
 
 * Linux/Raspbian:
     Falls nicht schon installiert, ist eine Installation über den verwendeten paket manager vermutlich das einfachste.
-    Bei Verwendung von apt-get ist der Befehl: `sudo apt-get install libgtk-3-dev`
+    Bei Verwendung von apt ist der Befehl: `sudo apt install libgtk-3-dev`
+
+    gobject-introspection: `sudo apt install gobject-introspection`
+
 * Windows:
     Die Installation erfolgt über __MSYS2__.  
     Der Installationsbefehl lautet `pacman -S mingw-w64-x86_64-gtk3`.
+    
+    gobject-introspection:`pacman -S mingw64/mingw-w64-x86_64-gobject-introspection`
+
 
     Wenn man keine selbst gepflegte MSYS2-Installation wünscht kann man die von stack mitgebrachte verwenden.
     Die Installation von gtk3 erfolgt dann über `stack exec -- pacman -S mingw-w64-x86_64-gtk3`
