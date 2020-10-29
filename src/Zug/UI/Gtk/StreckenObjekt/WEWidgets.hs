@@ -34,7 +34,6 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Weiche(..), WeicheKlasse(..), WeicheContainer(..)
@@ -392,8 +391,8 @@ weichePackNew weiche = do
             $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
     weFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
-    verwendeSpracheGui justTVarSprache $ \sprache
-        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    verwendeSpracheGui justTVarSprache
+        $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
     weRichtungsButtons
         <- richtungsButtonsPackNew weiche weFunctionBox vBoxAnschlüsse weTVarSprache weTVarEvent
     let weWidgets =

@@ -44,7 +44,6 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache(..), MitSprache(leseSprache), Anzeige(..), (<:>))
@@ -87,7 +86,8 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
     widget <- erhalteWidget hBox
     nameLabel <- boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar name
     enumButtons <- do
-        Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
+        Gtk.setLabelMaxWidthChars nameLabel nameWrapSize
+        Gtk.setLabelWrap nameLabel True
         vBox <- boxPackWidgetNewDefault hBox $ Gtk.boxNew Gtk.OrientationVertical 0
         -- Erstelle RadioButtons
         hRadioButton <- boxPackWidgetNewDefault vBox
@@ -100,8 +100,8 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
         Gtk.toggleButtonSetActive hRadioButton True
         pure $ (h, hRadioButton) :| tEnumButtons
     verwendeSpracheGui maybeTVar $ \sprache -> do
-        forM_ enumButtons $ \(e, radioButton)
-            -> Gtk.set radioButton [Gtk.buttonLabel := anzeigeFunktion e sprache]
+        forM_ enumButtons
+            $ \(e, radioButton) -> Gtk.setButtonLabel radioButton $ anzeigeFunktion e sprache
     pure $ AuswahlRadioButton { widget, enumButtons }
 
 -- | Konstruiere ein 'AuswahlWidget' mit 'Gtk.RadioButton's unter Verwendung der 'Anzeige'-Instanz.
@@ -154,7 +154,8 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     -- zeige Titel-Label
     widget <- erhalteWidget comboBox
     nameLabel <- containerAddWidgetNew comboBox $ Gtk.labelNew Nothing
-    Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
+    Gtk.setLabelMaxWidthChars nameLabel nameWrapSize
+    Gtk.setLabelWrap nameLabel True
     -- füge Element zu listStore hinzu
     let foldFn :: [(e, Int32, Gtk.TreeIter)] -> e -> m [(e, Int32, Gtk.TreeIter)]
         foldFn acc e = do
@@ -169,13 +170,13 @@ auswahlComboBoxNamedNew elemente@(h :| _t) maybeTVar name anzeigeFunktion = do
     let auswahlComboBox = AuswahlComboBox { widget, comboBox, enumIndicesIters }
     verwendeSpracheGui maybeTVar $ \sprache -> do
         aktuellerWert <- aktuelleAuswahl auswahlComboBox
-        Gtk.set nameLabel [Gtk.labelLabel := (name <:> anzeigeFunktion aktuellerWert) sprache]
+        Gtk.setLabelLabel nameLabel $ name <:> anzeigeFunktion aktuellerWert $ sprache
         forM_ enumIndicesIters $ \(e, _index, iter) -> do
             gValue <- liftIO $ Gtk.toGValue $ Just $ anzeigeFunktion e sprache
             Gtk.listStoreSetValue listStore iter 0 gValue
     spracheGui <- erhalteSpracheGui
     beiAuswahl auswahlComboBox $ \aktuellerWert -> flip leseSprache spracheGui $ \sprache
-        -> Gtk.set nameLabel [Gtk.labelLabel := (name <:> anzeigeFunktion aktuellerWert) sprache]
+        -> Gtk.setLabelLabel nameLabel $ name <:> anzeigeFunktion aktuellerWert $ sprache
     pure auswahlComboBox
 
 -- | Konstruiere ein 'AuswahlWidget' mit einer 'Gtk.ComboBox' unter Verwendung der 'Anzeige'-Instanz.
@@ -209,7 +210,7 @@ boundedEnumAuswahlComboBoxNew
 -- Wenn der Wert nicht im 'AuswahlWidget' enthalten ist wird der aktuelle Wert nicht verändert.
 setzeAuswahl :: forall m e. (MonadIO m, Eq e) => AuswahlWidget e -> e -> m ()
 setzeAuswahl AuswahlRadioButton {enumButtons} wert = forM_ enumButtons $ \(e, radioButton)
-    -> when (e == wert) $ Gtk.set radioButton [Gtk.toggleButtonActive := True]
+    -> when (e == wert) $ Gtk.setToggleButtonActive radioButton True
 setzeAuswahl AuswahlComboBox {comboBox, enumIndicesIters} wert =
     setzeWert $ NonEmpty.toList enumIndicesIters
     where
@@ -226,7 +227,7 @@ aktuelleAuswahl AuswahlRadioButton {enumButtons} = fromJust <$> foldM foldEnum N
         foldEnum :: (MonadIO m) => Maybe e -> (e, Gtk.RadioButton) -> m (Maybe e)
         foldEnum justE@(Just _e) _enumButton = pure justE
         foldEnum Nothing (e, radioButton) = do
-            toggled <- Gtk.get radioButton Gtk.toggleButtonActive
+            toggled <- Gtk.getToggleButtonActive radioButton
             pure
                 $ if toggled
                     then Just e

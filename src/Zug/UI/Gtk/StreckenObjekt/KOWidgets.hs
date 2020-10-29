@@ -35,7 +35,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text as Text
 import Data.Void (Void)
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..), Kontakt(..), KontaktKlasse(..), KontaktContainer(..)
@@ -209,8 +208,8 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
             $ scrollbaresWidgetNew
             $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
-    verwendeSpracheGui justTVarSprache $ \sprache
-        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    verwendeSpracheGui justTVarSprache
+        $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
     koFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     let koWidgets =
             KOWidgets
@@ -232,7 +231,7 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     let aktualisiereLabelSignal :: Sprache -> IO ()
         aktualisiereLabelSignal sprache = do
             text <- readTVarIO tvarSignal
-            Gtk.set labelSignal [Gtk.labelLabel := text sprache]
+            Gtk.setLabelLabel labelSignal $ text sprache
     verwendeSpracheGui justTVarSprache aktualisiereLabelSignal
     liftIO $ forkIO $ forever $ flip runReaderT objektReader $ do
         warteAufSignal kontakt

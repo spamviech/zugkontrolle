@@ -41,7 +41,7 @@ import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import Data.Text (Text)
-import GI.Gtk (AttrOp((:=)))
+import qualified Data.Text as Text
 import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
@@ -231,11 +231,11 @@ planPackNew plan@Plan {plAktionen} = do
             <- boxPackWidgetNew plFunctionBox PackNatural paddingDefault positionDefault
             $ Gtk.buttonNew
         Gtk.widgetHide buttonAbbrechen
-        dialogGesperrt <- Gtk.new
-            Gtk.MessageDialog
-            [ Gtk.windowTransientFor := parent
-            , Gtk.messageDialogMessageType := Gtk.MessageTypeError
-            , Gtk.messageDialogButtons := Gtk.ButtonsTypeOk]
+        dialogGesperrt <- Gtk.new Gtk.MessageDialog []
+        Gtk.setWindowTransientFor dialogGesperrt parent
+        Gtk.setMessageDialogMessageType dialogGesperrt Gtk.MessageTypeError
+        dialogGesperrtButton
+            <- Gtk.dialogAddButton dialogGesperrt Text.empty 0 >>= Gtk.unsafeCastTo Gtk.Button
         progressBar <- boxPackWidgetNew
             plFunctionBox
             PackGrow
@@ -246,19 +246,16 @@ planPackNew plan@Plan {plAktionen} = do
             $ flip runReaderT objektReader
             $ auswertenStatusVarIOStatus (ausführenMöglich $ zuObjektTyp plan) statusVar >>= \case
                 AusführenMöglich -> void $ do
-                    liftIO $ do
-                        Gtk.widgetHide buttonAusführen
-                        Gtk.widgetShow buttonAbbrechen
+                    Gtk.widgetHide buttonAusführen
+                    Gtk.widgetShow buttonAbbrechen
                     ausführenStatusVarBefehl
                         (Ausführen plan (const . anzeigeAktion) abschlussAktion)
                         statusVar
                     where
                         anzeigeAktion :: Natural -> IO ()
                         anzeigeAktion wert =
-                            Gtk.set
-                                progressBar
-                                [ Gtk.progressBarFraction := (fromIntegral wert)
-                                      / (fromIntegral $ length plAktionen)]
+                            Gtk.setProgressBarFraction progressBar
+                            $ (fromIntegral wert) / (fromIntegral $ length plAktionen)
 
                         abschlussAktion :: IO ()
                         abschlussAktion = do
@@ -266,10 +263,10 @@ planPackNew plan@Plan {plAktionen} = do
                             Gtk.widgetHide buttonAbbrechen
                 WirdAusgeführt -> error "Ausführen in GTK-UI erneut gestartet."
                 (AnschlüsseBelegt belegteAnschlüsse) -> void $ do
-                    liftIO $ flip leseSprache spracheGui $ \sprache -> Gtk.set
-                        dialogGesperrt
-                        [ Gtk.messageDialogText
-                              := (Language.ausführenGesperrt $# belegteAnschlüsse) sprache]
+                    flip leseSprache spracheGui $ \sprache -> do
+                        Gtk.setMessageDialogText dialogGesperrt
+                            $ (Language.ausführenGesperrt $# belegteAnschlüsse) sprache
+                        Gtk.setButtonLabel dialogGesperrtButton $ Language.ok sprache
                     dialogEval dialogGesperrt
         Gtk.onButtonClicked buttonAbbrechen $ do
             flip runReaderT objektReader
@@ -304,10 +301,10 @@ planPackNew plan@Plan {plAktionen} = do
     buttonBearbeitenPackNew plWidgets
     let justTVarSprache = Just plTVarSprache
     verwendeSpracheGui justTVarSprache $ \sprache -> do
-        Gtk.set expander [Gtk.expanderLabel := (Language.aktionen <:> length plAktionen $ sprache)]
-        Gtk.set buttonAusführen [Gtk.buttonLabel := Language.ausführen sprache]
-        Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.ausführenAbbrechen sprache]
-        Gtk.set dialogGesperrt [Gtk.windowTitle := Language.aktionGesperrt sprache]
+        Gtk.setExpanderLabel expander $ Language.aktionen <:> length plAktionen $ sprache
+        Gtk.setButtonLabel buttonAusführen $ Language.ausführen sprache
+        Gtk.setButtonLabel buttonAbbrechen $ Language.ausführenAbbrechen sprache
+        Gtk.setWindowTitle dialogGesperrt $ Language.aktionGesperrt sprache
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OPlan plWidgets
     pure plWidgets

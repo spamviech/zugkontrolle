@@ -27,7 +27,6 @@ import Control.Monad.Trans (MonadIO(..))
 import qualified Data.GI.Gtk.Threading as Gtk
 import qualified Data.Text as Text
 import Data.Word (Word8)
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..), Zugtyp(..), GeschwindigkeitVariante(..)
@@ -75,13 +74,13 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ buttonNewWithEventLabel maybeTVar Language.geschwindigkeit
         $ void
         $ do
-            adjustment <- Gtk.get scaleBahngeschwindigkeit Gtk.rangeAdjustment
-            wert <- floor <$> Gtk.get adjustment Gtk.adjustmentValue
+            adjustment <- Gtk.getRangeAdjustment scaleBahngeschwindigkeit
+            wert <- floor <$> Gtk.getAdjustmentValue adjustment
             forkIO $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-                    Gtk.set
-                        windowObjektAuswahl
-                        [Gtk.windowTitle := (Language.geschwindigkeit <:> wert) sprache]
+                    Gtk.setWindowTitle windowObjektAuswahl
+                        $ Language.geschwindigkeit <:> wert
+                        $ sprache
                     showBG $ Just Pwm
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
@@ -113,12 +112,12 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ buttonNewWithEventLabel maybeTVar Language.fahrstrom
         $ void
         $ do
-            fahrstromAnschluss <- floor <$> Gtk.get spinButtonFahrstrom Gtk.spinButtonValue
+            fahrstromAnschluss <- floor <$> Gtk.getSpinButtonValue spinButtonFahrstrom
             forkIO $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-                    Gtk.set
-                        windowObjektAuswahl
-                        [Gtk.windowTitle := (Language.fahrstrom <:> fahrstromAnschluss) sprache]
+                    Gtk.setWindowTitle windowObjektAuswahl
+                        $ Language.fahrstrom <:> fahrstromAnschluss
+                        $ sprache
                     showBG $ Just KonstanteSpannung
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
@@ -150,7 +149,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
     buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIO $ do
         Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-            Gtk.set windowObjektAuswahl [Gtk.windowTitle := Language.umdrehen sprache]
+            Gtk.setWindowTitle windowObjektAuswahl $ Language.umdrehen sprache
             showBG Nothing
             mitWidgetShow windowObjektAuswahl
         maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt
@@ -174,10 +173,9 @@ aktionBahngeschwindigkeitAuswahlPackNew
             fahrtrichtung <- aktuelleAuswahl auswahlFahrtrichtung
             forkIO $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-                    Gtk.set
-                        windowObjektAuswahl
-                        [ Gtk.windowTitle
-                              := (Language.fahrtrichtungEinstellen <:> fahrtrichtung) sprache]
+                    Gtk.setWindowTitle windowObjektAuswahl
+                        $ Language.fahrtrichtungEinstellen <:> fahrtrichtung
+                        $ sprache
                     showBG Nothing
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt

@@ -22,7 +22,6 @@ import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.GI.Gtk.Threading as Gtk
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..))
@@ -55,7 +54,7 @@ aktionKupplungAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinz
         $ forkIO
         $ do
             Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-                Gtk.set windowObjektAuswahl [Gtk.windowTitle := Language.kuppeln sprache]
+                Gtk.setWindowTitle windowObjektAuswahl $ Language.kuppeln sprache
                 showKU
                 mitWidgetShow windowObjektAuswahl
             maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt

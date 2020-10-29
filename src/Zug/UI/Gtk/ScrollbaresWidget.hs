@@ -23,7 +23,6 @@ module Zug.UI.Gtk.ScrollbaresWidget
 import Control.Monad.Trans (MonadIO(..))
 import Data.Int (Int32)
 import Data.Text (Text)
-import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache())
@@ -107,10 +106,8 @@ scrollbaresWidgetNew konstruktor = do
     swWidget <- widgetShowNew konstruktor
     liftIO $ do
         swScrolledWindow <- Gtk.scrolledWindowNew noAdjustment noAdjustment
-        Gtk.set
-            swScrolledWindow
-            [ Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyTypeAutomatic
-            , Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyTypeAlways]
+        Gtk.setScrolledWindowHscrollbarPolicy swScrolledWindow Gtk.PolicyTypeAutomatic
+        Gtk.setScrolledWindowVscrollbarPolicy swScrolledWindow Gtk.PolicyTypeAlways
         Gtk.containerAdd swScrolledWindow =<< erhalteWidget swWidget
         pure ScrollbaresWidget { swScrolledWindow, swWidget }
     where

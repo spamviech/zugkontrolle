@@ -42,7 +42,6 @@ import Control.Monad (foldM_, forM_, forM)
 import Control.Monad.Trans (MonadIO(..))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
-import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Language (Sprache())
@@ -86,13 +85,11 @@ fortfahrenWennToggledNew
     -> NonEmpty (Sprache -> Text)
     -> m FortfahrenWennToggled
 fortfahrenWennToggledNew maybeTVar label checkButtonNames = do
-    fortfahren <- liftIO Gtk.buttonNew
-    verwendeSpracheGui maybeTVar
-        $ \sprache -> Gtk.set fortfahren [Gtk.buttonLabel := label sprache]
+    fortfahren <- Gtk.buttonNew
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setButtonLabel fortfahren $ label sprache
     checkButtonsRec <- forM checkButtonNames $ \name -> do
-        checkButton <- liftIO $ widgetShowNew Gtk.checkButtonNew
-        verwendeSpracheGui maybeTVar
-            $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := name sprache]
+        checkButton <- widgetShowNew Gtk.checkButtonNew
+        verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setButtonLabel checkButton $ name sprache
         pure $ RegistrierterCheckButton checkButton
     let fortfahrenWennToggled = FortfahrenWennToggled { fortfahren, checkButtonsRec }
     liftIO $ forM_ checkButtonsRec $ \(RegistrierterCheckButton checkButton)
@@ -114,7 +111,7 @@ aktiviereWennToggledAux button foldable =
         aktiviereWennToggledCheckButton True _c = pure True
         aktiviereWennToggledCheckButton False c = do
             toggled <- registrierterCheckButtonToggled $ erhalteRegistrierterCheckButton c
-            Gtk.set button [Gtk.widgetSensitive := toggled]
+            Gtk.setWidgetSensitive button toggled
             pure toggled
 
 -- | Fortfahren nur möglich, wenn mindestens ein 'CheckButton' aktiviert ist.
@@ -172,10 +169,9 @@ fortfahrenWennToggledVarNew
 fortfahrenWennToggledVarNew maybeTVar label getCheckButtonsRec readVar varCheckButtonsRec = do
     fortfahrenVar <- liftIO $ do
         fortfahrenVar <- Gtk.buttonNew
-        Gtk.set fortfahrenVar [Gtk.widgetSensitive := False]
+        Gtk.setWidgetSensitive fortfahrenVar False
         pure fortfahrenVar
-    verwendeSpracheGui maybeTVar
-        $ \sprache -> Gtk.set fortfahrenVar [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setButtonLabel fortfahrenVar $ label sprache
     pure
         FortfahrenWennToggledVar { fortfahrenVar, readVar, varCheckButtonsRec, getCheckButtonsRec }
 
@@ -206,22 +202,21 @@ registrierterCheckButtonNew maybeTVar label fortfahrenWennToggled = do
         checkButton <- widgetShowNew $ Gtk.checkButtonNew
         Gtk.onToggleButtonToggled checkButton $ aktiviereWennToggledVar fortfahrenWennToggled
         pure checkButton
-    verwendeSpracheGui maybeTVar
-        $ \sprache -> Gtk.set checkButton [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setButtonLabel checkButton $ label sprache
     pure $ RegistrierterCheckButton checkButton
 
 -- | Überprüfe ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist.
 registrierterCheckButtonToggled :: (MitRegistrierterCheckButton r, MonadIO m) => r -> m Bool
 registrierterCheckButtonToggled
     (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton)) =
-    liftIO $ Gtk.get checkButton Gtk.toggleButtonActive
+    Gtk.getToggleButtonActive checkButton
 
 -- | Bestimme ob ein 'RegistrierterCheckButtonAuswahl' aktuell gedrückt ist.
 registrierterCheckButtonSetToggled
     :: (MitRegistrierterCheckButton r, MonadIO m) => r -> Bool -> m ()
 registrierterCheckButtonSetToggled
-    (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton))
-    toggled = liftIO $ Gtk.set checkButton [Gtk.toggleButtonActive := toggled]
+    (erhalteRegistrierterCheckButton -> (RegistrierterCheckButton checkButton)) =
+    Gtk.setToggleButtonActive checkButton
 
 -- | Klasse für Typen mit 'RegistrierterCheckButton'
 class (MitWidget c) => MitRegistrierterCheckButton c where

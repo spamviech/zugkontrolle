@@ -60,7 +60,6 @@ import Data.Int (Int32)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word32)
-import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenObjekt(..))
@@ -228,7 +227,7 @@ buttonNewWithEventLabel :: (SpracheGuiReader r m, MonadIO m)
                         -> m Gtk.Button
 buttonNewWithEventLabel maybeTVar label event = do
     button <- liftIO $ buttonNewWithEvent Gtk.buttonNew event
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set button [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setButtonLabel button $ label sprache
     pure button
 
 -- * ToggleButton
@@ -237,9 +236,7 @@ toggleButtonNewWithEvent :: (MonadIO m, MitToggleButton b) => m b -> (Bool -> IO
 toggleButtonNewWithEvent konstruktor event = do
     mitToggleButton <- konstruktor
     toggleButton <- erhalteToggleButton mitToggleButton
-    liftIO
-        $ Gtk.onToggleButtonToggled toggleButton
-        $ Gtk.get toggleButton Gtk.toggleButtonActive >>= event
+    Gtk.onToggleButtonToggled toggleButton $ Gtk.getToggleButtonActive toggleButton >>= event
     pure mitToggleButton
 
 -- | ToggleButton mit Label und Funktion erstellen.
@@ -254,8 +251,7 @@ toggleButtonNewWithEventLabel
     -> m Gtk.ToggleButton
 toggleButtonNewWithEventLabel maybeTVar label event = do
     toggleButton <- liftIO $ toggleButtonNewWithEvent Gtk.toggleButtonNew event
-    verwendeSpracheGui maybeTVar
-        $ \sprache -> Gtk.set toggleButton [Gtk.buttonLabel := label sprache]
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setButtonLabel toggleButton $ label sprache
     pure toggleButton
 
 -- * Label
@@ -268,8 +264,8 @@ labelSpracheNew :: (SpracheGuiReader r m, MonadIO m)
                 -> (Sprache -> Text)
                 -> m Gtk.Label
 labelSpracheNew maybeTVar text = do
-    label <- liftIO $ Gtk.labelNew (Nothing :: Maybe Text)
-    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.set label [Gtk.labelLabel := text sprache]
+    label <- Gtk.labelNew (Nothing :: Maybe Text)
+    verwendeSpracheGui maybeTVar $ \sprache -> Gtk.setLabelLabel label $ text sprache
     pure label
 
 -- * Namen
@@ -289,7 +285,7 @@ instance MitLabel NameWidget where
 namePackNew :: (MonadIO m, MitBox b, StreckenObjekt s) => b -> s -> m NameWidget
 namePackNew box objekt = liftIO $ do
     label <- boxPackWidgetNewDefault box $ Gtk.labelNew $ Just $ erhalteName objekt
-    Gtk.set label [Gtk.widgetMarginRight := 5]
+    Gtk.setWidgetMarginRight label 5
     pure $ NameWidget label
 
 -- | Widget zur Eingabe eines Namen.
@@ -314,19 +310,19 @@ nameAuswahlPackNew box maybeTVar = do
     boxPackWidgetNewDefault hBox $ labelSpracheNew maybeTVar $ Language.name <:> Text.empty
     entry <- liftIO $ boxPackWidgetNew hBox PackGrow paddingDefault positionDefault Gtk.entryNew
     verwendeSpracheGui maybeTVar
-        $ \sprache -> Gtk.set entry [Gtk.entryPlaceholderText := Language.name sprache]
+        $ \sprache -> Gtk.setEntryPlaceholderText entry $ Language.name sprache
     pure $ NameAuswahlWidget entry
 
 -- | Erhalte den aktuell gewählten Namen.
 aktuellerName :: (MonadIO m) => NameAuswahlWidget -> m Text
 aktuellerName nameAuswahlWidget = liftIO $ do
     entry <- erhalteEntry nameAuswahlWidget
-    Gtk.get entry Gtk.entryText
+    Gtk.getEntryText entry
 
 -- | Setze den aktuellen Namen.
 setzeName :: (MonadIO m) => NameAuswahlWidget -> Text -> m ()
 setzeName nameAuswahlWidget name = do
     entry <- erhalteEntry nameAuswahlWidget
-    liftIO $ Gtk.set entry [Gtk.entryText := name]
+    Gtk.setEntryText entry name
 #endif
 --

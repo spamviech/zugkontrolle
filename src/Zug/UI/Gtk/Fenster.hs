@@ -35,7 +35,6 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.List (find)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as Text
-import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (Bahngeschwindigkeit(..), Weiche(..), Wegstrecke(..))
@@ -95,10 +94,10 @@ dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    -> m Gtk.FileChooserDialog
 dialogSpeichernNew window maybeTVar = do
     (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
-        fileChooserDialog <- Gtk.new
-            Gtk.FileChooserDialog
-            [Gtk.windowTransientFor := window, Gtk.fileChooserAction := Gtk.FileChooserActionSave]
-        Gtk.set fileChooserDialog [Gtk.fileChooserDoOverwriteConfirmation := True]
+        fileChooserDialog <- Gtk.new Gtk.FileChooserDialog []
+        Gtk.setWindowTransientFor fileChooserDialog window
+        Gtk.setFileChooserAction fileChooserDialog Gtk.FileChooserActionSave
+        Gtk.setFileChooserDoOverwriteConfirmation fileChooserDialog True
         buttonSpeichern <- Gtk.unsafeCastTo Gtk.Button
             =<< (Gtk.dialogAddButton fileChooserDialog Text.empty
                  $ fromIntegral
@@ -108,10 +107,10 @@ dialogSpeichernNew window maybeTVar = do
                  $ fromIntegral
                  $ fromEnum Gtk.ResponseTypeCancel)
         pure (fileChooserDialog, buttonSpeichern, buttonAbbrechen)
-    verwendeSpracheGui maybeTVar $ \sp -> do
-        Gtk.set fileChooserDialog [Gtk.windowTitle := Language.speichern sp]
-        Gtk.set buttonSpeichern [Gtk.buttonLabel := Language.speichern sp]
-        Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.abbrechen sp]
+    verwendeSpracheGui maybeTVar $ \sprache -> do
+        Gtk.setWindowTitle fileChooserDialog $ Language.speichern sprache
+        Gtk.setButtonLabel buttonSpeichern $ Language.speichern sprache
+        Gtk.setButtonLabel buttonAbbrechen $ Language.abbrechen sprache
     pure fileChooserDialog
 
 -- | Laden eines neuen 'StatusGui' aus einer Datei.
@@ -137,9 +136,9 @@ buttonLadenPack parent box maybeTVar position = do
                 Gtk.fileChooserGetFilename dialogLaden >>= \case
                     Nothing -> void $ do
                         spracheGui <- readSpracheGui statusVar
-                        flip leseSprache spracheGui $ \sp -> Gtk.set
+                        flip leseSprache spracheGui $ \sprache -> Gtk.setWindowTitle
                             dialogLadenFehler
-                            [Gtk.windowTitle := Language.nichtGefundeneDatei sp]
+                            $ Language.nichtGefundeneDatei sprache
                         dialogEval dialogLadenFehler
                     (Just dateipfad) -> void $ do
                         let ladeAktion :: Status -> IOStatusGui ()
@@ -151,8 +150,8 @@ buttonLadenPack parent box maybeTVar position = do
                                     <$> RWS.execRWST (ladeWidgets statusNeu) objektReader state0
                                 RWS.put state1
                             fehlerBehandlung :: IOStatusGui ()
-                            fehlerBehandlung = liftIO $ void $ do
-                                Gtk.set dialogLadenFehler [Gtk.windowTitle := Text.pack dateipfad]
+                            fehlerBehandlung = void $ do
+                                Gtk.setWindowTitle dialogLadenFehler $ Text.pack dateipfad
                                 dialogEval dialogLadenFehler
                         flip runReaderT objektReader
                             $ ausführenStatusVarBefehl
@@ -208,7 +207,7 @@ ladeWidgets status = do
                 packWS (ZugtypLego ws) = ZugtypLego <$> wegstreckePackNew ws
             mapM_ packWS $ reverse $wegstrecken status
             statusGui <- RWS.get
-            -- TODO Pläne mit Ausführen scheitern hier!!!
+            -- TODO Pläne mit Dauerschleife scheitern hier!!!
             mapM_ planPackNew $ reverse $ catMaybes $ alsPlanGui statusGui <$> pläne status
 
 alsPlanGui :: StatusGui -> Plan -> Maybe PlanGui
@@ -342,10 +341,9 @@ dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
 dialogLadenNew parent maybeTVar = do
     (dialog, buttonLaden, buttonAbbrechen) <- liftIO $ do
         parentWindow <- erhalteWindow parent
-        dialog <- Gtk.new
-            Gtk.FileChooserDialog
-            [ Gtk.windowTransientFor := parentWindow
-            , Gtk.fileChooserAction := Gtk.FileChooserActionOpen]
+        dialog <- Gtk.new Gtk.FileChooserDialog []
+        Gtk.setWindowTransientFor dialog parentWindow
+        Gtk.setFileChooserAction dialog Gtk.FileChooserActionOpen
         buttonLaden <- Gtk.unsafeCastTo Gtk.Button
             =<< (Gtk.dialogAddButton dialog Text.empty $ fromIntegral $ fromEnum Gtk.ResponseTypeOk)
         buttonAbbrechen <- Gtk.unsafeCastTo Gtk.Button
@@ -353,10 +351,10 @@ dialogLadenNew parent maybeTVar = do
                  $ fromIntegral
                  $ fromEnum Gtk.ResponseTypeCancel)
         pure (dialog, buttonLaden, buttonAbbrechen)
-    verwendeSpracheGui maybeTVar $ \sp -> do
-        Gtk.set dialog [Gtk.windowTitle := Language.laden sp]
-        Gtk.set buttonLaden [Gtk.buttonLabel := Language.laden sp]
-        Gtk.set buttonAbbrechen [Gtk.buttonLabel := Language.abbrechen sp]
+    verwendeSpracheGui maybeTVar $ \sprache -> do
+        Gtk.setWindowTitle dialog $ Language.laden sprache
+        Gtk.setButtonLabel buttonLaden $ Language.laden sprache
+        Gtk.setButtonLabel buttonAbbrechen $ Language.abbrechen sprache
     pure dialog
 
 dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
@@ -365,14 +363,13 @@ dialogLadenFehlerNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                      -> m Gtk.MessageDialog
 dialogLadenFehlerNew parent maybeTVar = do
     parentWindow <- erhalteWindow parent
-    dialog <- liftIO
-        $ Gtk.new
-            Gtk.MessageDialog
-            [ Gtk.windowTransientFor := parentWindow
-            , Gtk.messageDialogMessageType := Gtk.MessageTypeError
-            , Gtk.messageDialogButtons := Gtk.ButtonsTypeOk]
-    verwendeSpracheGui maybeTVar $ \sp
-        -> Gtk.set dialog [Gtk.windowTitle := (Language.nichtGefundeneDatei <!> Text.empty) sp]
+    dialog <- Gtk.new Gtk.MessageDialog []
+    Gtk.setWindowTransientFor dialog parentWindow
+    Gtk.setMessageDialogMessageType dialog Gtk.MessageTypeError
+    buttonOk <- liftIO $ Gtk.unsafeCastTo Gtk.Button =<< Gtk.dialogAddButton dialog Text.empty 0
+    verwendeSpracheGui maybeTVar $ \sprache -> do
+        Gtk.setWindowTitle dialog $ Language.nichtGefundeneDatei <!> Text.empty $ sprache
+        Gtk.setButtonLabel buttonOk $ Language.ok sprache
     pure dialog
 
 -- | Hinzufügen eines 'StreckenObjekt'.

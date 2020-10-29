@@ -55,7 +55,6 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import Data.Word (Word8)
 import qualified GI.Gtk as Gtk
-import GI.Gtk (AttrOp((:=)))
 
 import Zug.Anbindung
        (Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..)
@@ -236,7 +235,7 @@ seiteErgebnis
     bgFließend <- aktuellerFließendValue fließendAuswahl
     aktuelleAuswahl zugtypAuswahl >>= \case
         Märklin -> do
-            (`Map.lookup` indexSeiten) <$> Gtk.get notebookGeschwindigkeit Gtk.notebookPage >>= \case
+            (`Map.lookup` indexSeiten) <$> Gtk.getNotebookPage notebookGeschwindigkeit >>= \case
                 (Just Pwm) -> do
                     geschwindigkeitsPin <- aktuellerPin geschwindigkeitAuswahl
                     pure
@@ -268,7 +267,7 @@ seiteErgebnis
                 Nothing -> error
                     "Unbekannte GeschwindigkeitVariante beim Hinzufügen einer Bahngeschwindigkeit!"
         Lego -> do
-            (`Map.lookup` indexSeiten) <$> Gtk.get notebookGeschwindigkeit Gtk.notebookPage >>= \case
+            (`Map.lookup` indexSeiten) <$> Gtk.getNotebookPage notebookGeschwindigkeit >>= \case
                 (Just Pwm) -> do
                     geschwindigkeitsPin <- aktuellerPin geschwindigkeitAuswahl
                     fahrtrichtungsAnschluss <- aktuellerAnschluss pwmFahrtrichtungsAuswahl
@@ -431,20 +430,23 @@ seiteErgebnis
     HinzufügenSeitePlan {nameAuswahl, tvarAktionen, checkButtonDauerschleife} = liftIO $ do
     plName <- aktuellerName nameAuswahl
     aktionenWarteschlange <- readTVarIO tvarAktionen
-    Gtk.get checkButtonDauerschleife Gtk.toggleButtonActive >>= pure . OPlan . \case
-        True -> let plan =
-                        Plan
-                        { plName
-                        , plAktionen = NonEmpty.fromList
-                              $ toList
-                              $ anhängen (AktionAusführen plan)
-                              $ fstOf3 <$> aktionenWarteschlange
-                        }
-                in plan
-        False -> Plan
-            { plName
-            , plAktionen = NonEmpty.fromList $ toList $ fstOf3 <$> aktionenWarteschlange
-            }
+    toggled <- Gtk.getToggleButtonActive checkButtonDauerschleife
+    pure
+        $ OPlan
+        $ if toggled
+            then let plan =
+                         Plan
+                         { plName
+                         , plAktionen = NonEmpty.fromList
+                               $ toList
+                               $ anhängen (AktionAusführen plan)
+                               $ fstOf3 <$> aktionenWarteschlange
+                         }
+                 in plan
+            else Plan
+                { plName
+                , plAktionen = NonEmpty.fromList $ toList $ fstOf3 <$> aktionenWarteschlange
+                }
 
 -- small little helper functions
 fstOf3 :: (a, b, c) -> a
@@ -484,7 +486,7 @@ setzeSeite
     setzeAuswahl zugtypAuswahl $ zugtyp bg
     liftIO $ forM (Map.toList indexSeiten) $ \(index, variante) -> when
         (variante == ausZugtypEither geschwindigkeitVariante bg)
-        $ Gtk.set notebookGeschwindigkeit [Gtk.notebookPage := index]
+        $ Gtk.setNotebookPage notebookGeschwindigkeit index
     let erstelleFahrstromAnschluss
             :: AnschlussEither -> Int -> m (AnschlussAuswahlWidget 'InterruptPinEgal)
         erstelleFahrstromAnschluss anschluss n = do
@@ -646,9 +648,7 @@ setzeSeite
     liftIO $ do
         alteAktionsWidgets <- fmap (fmap sndOf3) $ atomically $ swapTVar tvarAktionen leer
         mapM_ Gtk.widgetDestroy alteAktionsWidgets
-        Gtk.set
-            checkButtonDauerschleife
-            [Gtk.toggleButtonActive := (length aktionen /= length plAktionen)]
+        Gtk.setToggleButtonActive checkButtonDauerschleife $ length aktionen /= length plAktionen
     forM_ aktionen $ aktionHinzufügen seite
     pure True
 setzeSeite _fließendAuswahl _zugtypAuswahl _hinzufügenSeite _objekt = pure False
@@ -803,8 +803,8 @@ hinzufügenWeicheNew auswahlZugtyp maybeTVar = do
     legoButtonHinzufügen <- liftIO Gtk.buttonNew
     legoVBox <- liftIO $ Gtk.boxNew Gtk.OrientationVertical 0
     legoWidget <- erhalteWidget legoVBox
-    verwendeSpracheGui maybeTVar $ \sprache
-        -> Gtk.set legoButtonHinzufügen [Gtk.buttonLabel := Language.hinzufügen sprache]
+    verwendeSpracheGui maybeTVar
+        $ \sprache -> Gtk.setButtonLabel legoButtonHinzufügen $ Language.hinzufügen sprache
     legoRichtungsAuswahl
         <- boxPackWidgetNewDefault legoVBox $ pinAuswahlNew maybeTVar Language.richtungen
     legoRichtungenAuswahl <- boxPackWidgetNewDefault legoVBox
@@ -958,7 +958,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         $ boxPackWidgetNewDefault vBoxAktionenWidgets
         $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxWartezeit $ buttonNewWithEventLabel maybeTVar Language.warten $ do
-        wert <- floor <$> Gtk.get spinButtonWartezeit Gtk.spinButtonValue
+        wert <- floor <$> Gtk.getSpinButtonValue spinButtonWartezeit
         einheit <- aktuelleAuswahl comboBoxWartezeit
         void $ flip runReaderT spracheGui $ do
             aktionHinzufügen seite $ Warten $ wert & case einheit of
@@ -988,12 +988,10 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
         , showPL
         ) <- liftIO $ do
         windowObjektAuswahlIO <- Gtk.windowNew Gtk.WindowTypeToplevel
-        Gtk.set
-            windowObjektAuswahlIO
-            [ Gtk.windowTransientFor := parentWindow
-            , Gtk.windowModal := True
-            , Gtk.windowDefaultHeight := 400
-            , Gtk.windowDefaultWidth := 300]
+        Gtk.setWindowTransientFor windowObjektAuswahlIO parentWindow
+        Gtk.setWindowModal windowObjektAuswahlIO True
+        Gtk.setWindowDefaultHeight windowObjektAuswahlIO 400
+        Gtk.setWindowDefaultWidth windowObjektAuswahlIO 300
         Gtk.onWidgetDeleteEvent windowObjektAuswahlIO $ \_event -> do
             atomically $ putTMVar dynTMVarPlanObjekt Nothing
             pure True
@@ -1221,7 +1219,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             tvarExpanderIO <- newTVarIO $ Just []
             buttonHinzufügenPlanIO <- Gtk.buttonNew
-            Gtk.set buttonHinzufügenPlanIO [Gtk.widgetSensitive := False]
+            Gtk.setWidgetSensitive buttonHinzufügenPlanIO False
             resetBoxIO <- boxPackWidgetNewDefault vBoxAktionenWidgets
                 $ Gtk.boxNew Gtk.OrientationHorizontal 0
             pure
@@ -1243,7 +1241,7 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
                     Gtk.widgetDestroy widget
                     atomically $ writeTVar tvarSprachwechselAktionen Nothing
                     pure t
-            Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := not (null neueAktionen)]
+            Gtk.setWidgetSensitive buttonHinzufügenPlan $ not $ null neueAktionen
             atomically $ writeTVar tvarAktionen neueAktionen
             flip runReaderT spracheGui $ aktualisiereExpanderText seite neueAktionen
     boxPackWidgetNew resetBox PackGrow paddingDefault positionDefault
@@ -1254,14 +1252,14 @@ hinzufügenPlanNew parent auswahlZugtyp maybeTVar = mdo
                 mitContainerRemove vBoxAktionen widget
                 Gtk.widgetDestroy widget
                 atomically $ writeTVar tvarSprachwechselAktionen Nothing
-            Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := False]
+            Gtk.setWidgetSensitive buttonHinzufügenPlan False
             atomically $ writeTVar tvarAktionen leer
             flip runReaderT spracheGui $ aktualisiereExpanderText seite leer
     checkButtonDauerschleife
         <- liftIO $ boxPackWidgetNewDefault vBoxAktionenWidgets Gtk.checkButtonNew
     verwendeSpracheGui maybeTVar $ \sprache -> do
-        Gtk.set checkButtonDauerschleife [Gtk.buttonLabel := Language.dauerschleife sprache]
-        Gtk.set buttonHinzufügenPlan [Gtk.buttonLabel := Language.hinzufügen sprache]
+        Gtk.setButtonLabel checkButtonDauerschleife $ Language.dauerschleife sprache
+        Gtk.setButtonLabel buttonHinzufügenPlan $ Language.hinzufügen sprache
     let seite =
             HinzufügenSeitePlan
             { vBox
@@ -1279,9 +1277,8 @@ aktualisiereExpanderText
     :: (SpracheGuiReader r m, MonadIO m) => HinzufügenSeite -> Warteschlange a -> m ()
 aktualisiereExpanderText HinzufügenSeitePlan {tvarExpander, expanderAktionen} aktionen = do
     liftIO $ atomically $ writeTVar tvarExpander $ Just []
-    verwendeSpracheGui (Just tvarExpander) $ \sprache -> Gtk.set
-        expanderAktionen
-        [Gtk.expanderLabel := (Language.aktionen <:> length aktionen) sprache]
+    verwendeSpracheGui (Just tvarExpander) $ \sprache
+        -> Gtk.setExpanderLabel expanderAktionen $ Language.aktionen <:> length aktionen $ sprache
 aktualisiereExpanderText _hinzufügenSeite _aktionen =
     error "aktualisiereExpanderText mit falscher Seite aufgerufen!"
 
@@ -1299,7 +1296,7 @@ aktionHinzufügen
     let neueAktionen = anhängen (aktion, label, tvarSprachwechselAktionen) aktuelleAktionen
     liftIO $ do
         atomically $ writeTVar tvarAktionen neueAktionen
-        Gtk.set buttonHinzufügenPlan [Gtk.widgetSensitive := True]
+        Gtk.setWidgetSensitive buttonHinzufügenPlan True
     aktualisiereExpanderText seite neueAktionen
 aktionHinzufügen _hinzufügenSeite _aktion =
     error "aktionHinzufügen mit falscher Seite aufgerufen!"

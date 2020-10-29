@@ -28,7 +28,6 @@ import qualified Data.Text.IO as Text
 #endif
 #ifdef ZUGKONTROLLEGUI
 import qualified GI.Gdk as Gdk
-import GI.Gtk (AttrOp(..))
 import qualified GI.Gtk as Gtk
 #else
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
@@ -112,29 +111,26 @@ setupGUI maybeTVar = void $ do
     spracheGui <- spracheGuiNeu sprache
     -- Dummy-Fenster, damit etwas angezeigt wird
     windowDummy <- Gtk.windowNew Gtk.WindowTypeToplevel
-    flip leseSprache spracheGui $ \sp -> Gtk.set
-        windowDummy
-        [ Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sp
-        , Gtk.windowDeletable := False
-        , Gtk.windowDefaultWidth := 400
-        , Gtk.windowDefaultHeight := 200]
+    flip leseSprache spracheGui $ \sp -> do
+        Gtk.setWindowTitle windowDummy $ Language.zugkontrolle <~> Language.version $ sp
+        Gtk.setWindowDeletable windowDummy False
+        Gtk.setWindowDefaultWidth windowDummy 400
+        Gtk.setWindowDefaultHeight windowDummy 200
     progressBarDummy <- containerAddWidgetNew windowDummy Gtk.progressBarNew
-    Gtk.set
-        progressBarDummy
-        [ Gtk.progressBarFraction := 0
-        , Gtk.progressBarShowText := True
-        , Gtk.progressBarText := "Loading"]
+    Gtk.setProgressBarFraction progressBarDummy 0
+    Gtk.setProgressBarShowText progressBarDummy True
+    Gtk.setProgressBarText progressBarDummy "Loading"
     Gtk.widgetShow windowDummy
     -- Hauptfenster
     dynWindowMain <- Gtk.windowNew Gtk.WindowTypeToplevel
     -- native Auflösung des Raspi 7'' TouchScreen ist 800x480
     -- leicht kleinere Werte um Menüleisten zu berücksichtigen
-    Gtk.set dynWindowMain [Gtk.windowDefaultWidth := 720, Gtk.windowDefaultHeight := 450]
+    Gtk.setWindowDefaultWidth dynWindowMain 720
+    Gtk.setWindowDefaultHeight dynWindowMain 450
     Gtk.windowMaximize dynWindowMain
     -- Titel
-    verwendeSpracheGuiFn spracheGui maybeTVar $ \sp -> Gtk.set
-        dynWindowMain
-        [Gtk.windowTitle := (Language.zugkontrolle <~> Language.version) sp]
+    verwendeSpracheGuiFn spracheGui maybeTVar
+        $ \sp -> Gtk.setWindowTitle dynWindowMain $ Language.zugkontrolle <~> Language.version $ sp
     -- Drücken des X-Knopfes beendet das gesamte Program
     Gtk.onWidgetDeleteEvent dynWindowMain $ \_event -> liftIO $ do
         Gtk.mainQuit
@@ -229,7 +225,7 @@ setupGUI maybeTVar = void $ do
                 panedBahngeschwindigkeitStreckenabschnittWeiche
                 vPanedBahngeschwindigkeitStreckenabschnitt
             frameBahngeschwindigkeiten <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set frameBahngeschwindigkeiten [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType frameBahngeschwindigkeiten Gtk.ShadowTypeIn
             Gtk.panedAdd1 vPanedBahngeschwindigkeitStreckenabschnitt frameBahngeschwindigkeiten
             vBoxBahngeschwindigkeitenPaned <- containerAddWidgetNew frameBahngeschwindigkeiten
                 $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -247,7 +243,7 @@ setupGUI maybeTVar = void $ do
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             atomically $ putTMVar tmvarVBoxBahngeschwindigkeiten vBoxBahngeschwindigkeiten
             frameStreckenabschnitte <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set frameStreckenabschnitte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType frameStreckenabschnitte Gtk.ShadowTypeIn
             Gtk.panedAdd2 vPanedBahngeschwindigkeitStreckenabschnitt frameStreckenabschnitte
             vBoxStreckenabschnittePaned <- containerAddWidgetNew frameStreckenabschnitte
                 $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -264,7 +260,7 @@ setupGUI maybeTVar = void $ do
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             atomically $ putTMVar tmvarVBoxStreckenabschnitte vBoxStreckenabschnitte
             frameWeichen <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set frameWeichen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType frameWeichen Gtk.ShadowTypeIn
             Gtk.panedAdd2 panedBahngeschwindigkeitStreckenabschnittWeiche frameWeichen
             vBoxWeichenPaned
                 <- containerAddWidgetNew frameWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -284,7 +280,7 @@ setupGUI maybeTVar = void $ do
                     (Language.kupplungen <|> Language.kontakte)
                 $ Gtk.panedNew Gtk.OrientationHorizontal
             frameKupplungen <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set frameKupplungen [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType frameKupplungen Gtk.ShadowTypeIn
             Gtk.panedAdd1 panedKupplungKontakt frameKupplungen
             vBoxKupplungenPaned
                 <- containerAddWidgetNew frameKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -298,7 +294,7 @@ setupGUI maybeTVar = void $ do
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             atomically $ putTMVar tmvarVBoxKupplungen vBoxKupplungen
             frameKontakte <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set frameKontakte [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType frameKontakte Gtk.ShadowTypeIn
             Gtk.panedAdd2 panedKupplungKontakt frameKontakte
             vBoxKontaktePaned
                 <- containerAddWidgetNew frameKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -318,7 +314,7 @@ setupGUI maybeTVar = void $ do
                     (Language.wegstrecken <|> Language.pläne)
                 $ Gtk.panedNew Gtk.OrientationHorizontal
             frameWegstrecken <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set frameWegstrecken [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType frameWegstrecken Gtk.ShadowTypeIn
             Gtk.panedAdd1 panedWegstreckePlan frameWegstrecken
             vBoxWegstreckenPaned
                 <- containerAddWidgetNew frameWegstrecken $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -332,7 +328,7 @@ setupGUI maybeTVar = void $ do
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             atomically $ putTMVar tmvarVBoxWegstrecken vBoxWegstrecken
             framePläne <- widgetShowNew $ Gtk.frameNew Nothing
-            Gtk.set framePläne [Gtk.frameShadowType := Gtk.ShadowTypeIn]
+            Gtk.setFrameShadowType framePläne Gtk.ShadowTypeIn
             Gtk.panedAdd2 panedWegstreckePlan framePläne
             vBoxPlänePaned
                 <- containerAddWidgetNew framePläne $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -355,13 +351,12 @@ setupGUI maybeTVar = void $ do
                             [ panedBahngeschwindigkeitStreckenabschnittWeiche
                             , panedKupplungKontakt
                             , panedWegstreckePlan]
-                            $ \paned -> Gdk.set paned [Gtk.panedPosition := div screenWidth 2]
+                            $ \paned -> Gtk.setPanedPosition paned $ div screenWidth 2
                         screenHeight <- Gdk.getRectangleHeight geometry
                         -- geschätzter Wert
                         let decoratorHeight = 50
-                        Gtk.set
-                            vPanedBahngeschwindigkeitStreckenabschnitt
-                            [Gtk.panedPosition := div (screenHeight - decoratorHeight) 3]
+                        Gtk.setPanedPosition vPanedBahngeschwindigkeitStreckenabschnitt
+                            $ div (screenHeight - decoratorHeight) 3
                     Nothing -> pure ()
                 Nothing -> pure ()
     -- DynamischeWidgets
@@ -691,7 +686,7 @@ setupGUI maybeTVar = void $ do
                                 positionDefault
             atomically $ putTMVar tmvarCheckButtonNotebook checkButtonNotebook
             verwendeSpracheGuiFn spracheGui maybeTVar
-                $ \sp -> Gtk.set checkButtonNotebook [Gtk.buttonLabel := Language.einzelseiten sp]
+                $ \sp -> Gtk.setButtonLabel checkButtonNotebook $ Language.einzelseiten sp
     -- Lade Datei angegeben in Kommandozeilenargument
     let aktionLaden = void $ do
             objektReader <- atomically $ readTMVar tmvarObjektReader
@@ -709,8 +704,7 @@ setupGUI maybeTVar = void $ do
         -- Zeige Einzelseiten an (falls gewünscht)
         aktionSeitenvariante = do
             checkButtonNotebook <- atomically $ readTMVar tmvarCheckButtonNotebook
-            when (gtkSeiten == Einzelseiten)
-                $ Gtk.set checkButtonNotebook [Gtk.toggleButtonActive := True]
+            when (gtkSeiten == Einzelseiten) $ Gtk.setToggleButtonActive checkButtonNotebook True
         aktionFinalisieren = do
             -- Fenster wird erst hier angezeigt, weil sonst windowDefaultWidth/Height keinen Effekt zeigen
             Gtk.widgetShow dynWindowMain
@@ -738,7 +732,7 @@ gtkWithProgress progressBar actions = forkIO $ void $ foldM foldFn 0 actions
             let newFraction = fraction + step
             Gtk.postGUIASync $ do
                 action
-                Gtk.set progressBar [Gtk.progressBarFraction := newFraction]
+                Gtk.setProgressBarFraction progressBar newFraction
             -- give gtk some time to actually display the changed progress bar
             warte $ MilliSekunden 300
             pure newFraction

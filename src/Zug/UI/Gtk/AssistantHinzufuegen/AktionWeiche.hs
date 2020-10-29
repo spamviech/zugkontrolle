@@ -27,7 +27,6 @@ import qualified Data.GI.Gtk.Threading as Gtk
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Text as Text
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Richtung())
@@ -61,9 +60,9 @@ aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen akti
             richtung <- aktuelleAuswahl auswahlRichtung
             forkIO $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-                    Gtk.set
-                        windowObjektAuswahl
-                        [Gtk.windowTitle := (Language.stellen <:> richtung) sprache]
+                    Gtk.setWindowTitle windowObjektAuswahl
+                        $ Language.stellen <:> richtung
+                        $ sprache
                     snd $ head $ NonEmpty.filter ((== richtung) . fst) showRichtungen
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt

@@ -43,7 +43,6 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import Data.Void (Void)
 import Data.Word (Word8)
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
@@ -507,8 +506,8 @@ instance BahngeschwindigkeitKlasse BGWidgets where
     geschwindigkeit
         BGWidgets {bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}
         wert = liftIO $ do
-        adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
-        Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
+        adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
+        Gtk.setAdjustmentValue adjustment $ fromIntegral wert
 
     fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Word8 -> m ()
     fahrstrom BGWidgets {bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}} =
@@ -579,8 +578,8 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
             $ scrollbaresWidgetNew
             $ Gtk.boxNew Gtk.OrientationVertical 0
         pure (expanderAnschlüsse, vBoxAnschlüsse)
-    verwendeSpracheGui justTVarSprache $ \sprache
-        -> Gtk.set expanderAnschlüsse [Gtk.expanderLabel := Language.anschlüsse sprache]
+    verwendeSpracheGui justTVarSprache
+        $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
     bgFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     bgGeschwindigkeitsWidgets <- geschwindigkeitsWidgetsPackNew
         bgFunctionBox
@@ -808,8 +807,8 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
                 1
         Gtk.widgetSetSizeRequest scale 100 (-1)
         Gtk.onRangeValueChanged scale $ eventAusführen tvarEventAusführen $ do
-            adjustment <- Gtk.get scale Gtk.rangeAdjustment
-            wert <- floor <$> Gtk.get adjustment Gtk.adjustmentValue
+            adjustment <- Gtk.getRangeAdjustment scale
+            wert <- floor <$> Gtk.getAdjustmentValue adjustment
             flip runReaderT objektReader $ flip auswertenStatusVarMStatusT statusVar $ do
                 ausführenAktion $ Geschwindigkeit bahngeschwindigkeit wert
                 -- Widgets synchronisieren
@@ -832,8 +831,8 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
             | elem (ZugtypMärklin $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgTVarEvent $ do
-                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
+                    adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
+                    Gtk.setAdjustmentValue adjustment $ fromIntegral wert
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitPwm
@@ -845,8 +844,8 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
             | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgTVarEvent $ do
-                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
+                    adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
+                    Gtk.setAdjustmentValue adjustment $ fromIntegral wert
         bgWidgetsSynchronisieren _bgWidgets _wert = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> Word8 -> IO ()
@@ -856,16 +855,16 @@ hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusV
             | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws) $ do
-                    adjustment <- Gtk.get scale Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
+                    adjustment <- Gtk.getRangeAdjustment scale
+                    Gtk.setAdjustmentValue adjustment $ fromIntegral wert
         wsWidgetsSynchronisieren
             (ZugtypLego ws@(scaleGeschwindigkeit . GeschwindigkeitPhantom -> Just scale))
             wert
             | Set.isSubsetOf (enthalteneBahngeschwindigkeiten ws)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent (tvarEvent ws) $ do
-                    adjustment <- Gtk.get scale Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
+                    adjustment <- Gtk.getRangeAdjustment scale
+                    Gtk.setAdjustmentValue adjustment $ fromIntegral wert
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
 
 -- | Füge 'AuswahlWidget' zum einstellen des Fahrstroms zur Box hinzu
@@ -1034,8 +1033,8 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
             | elem (ZugtypMärklin $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgTVarEvent $ do
-                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := 0]
+                    adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
+                    Gtk.setAdjustmentValue adjustment 0
         bgWidgetsSynchronisieren
             (ZugtypMärklin
                  (GeschwindigkeitKonstanteSpannung
@@ -1055,8 +1054,8 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
             | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgTVarEvent $ do
-                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := 0]
+                    adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
+                    Gtk.setAdjustmentValue adjustment 0
         bgWidgetsSynchronisieren
             (ZugtypLego
                  (GeschwindigkeitKonstanteSpannung
@@ -1072,7 +1071,7 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
         stWidgetsSynchronisieren st@(toggleButtonStrom -> Just toggleButton)
             | Set.isSubsetOf (enthalteneStreckenabschnitte st)
                 $ enthalteneStreckenabschnitte bahngeschwindigkeit =
-                ohneEvent (tvarEvent st) $ Gtk.set toggleButton [Gtk.toggleButtonActive := True]
+                ohneEvent (tvarEvent st) $ Gtk.setToggleButtonActive toggleButton True
         stWidgetsSynchronisieren _stWidgets = pure ()
 
         wsWidgetsSynchronisieren :: ZugtypEither (WS o) -> IO ()
@@ -1094,8 +1093,8 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
             case toggleButtonStrom ws of
                 (Just toggleButton)
                     | Set.isSubsetOf wsStreckenabschnitte
-                        $ enthalteneStreckenabschnitte bahngeschwindigkeit -> ohneEvent wsTVarEvent
-                        $ Gtk.set toggleButton [Gtk.toggleButtonActive := True]
+                        $ enthalteneStreckenabschnitte bahngeschwindigkeit
+                        -> ohneEvent wsTVarEvent $ Gtk.setToggleButtonActive toggleButton True
                 _otherwise -> pure ()
             let istBahngeschwindigkeitTeilmenge =
                     Set.isSubsetOf wsBahngeschwindigkeiten
@@ -1103,8 +1102,8 @@ buttonUmdrehenPackNew box bahngeschwindigkeit tvarSprachwechsel tvarEventAusfüh
             case scaleGeschwindigkeit (GeschwindigkeitPhantom ws) of
                 (Just scale)
                     | istBahngeschwindigkeitTeilmenge -> ohneEvent wsTVarEvent $ do
-                        adjustment <- Gtk.get scale Gtk.rangeAdjustment
-                        Gtk.set adjustment [Gtk.adjustmentValue := 0]
+                        adjustment <- Gtk.getRangeAdjustment scale
+                        Gtk.setAdjustmentValue adjustment 0
                 _otherwise -> pure ()
             case auswahlFahrstrom (GeschwindigkeitPhantom ws) of
                 (Just auswahl)
@@ -1176,8 +1175,8 @@ auswahlFahrtrichtungEinstellenPackNew
             | elem (ZugtypLego $ GeschwindigkeitPwm bg)
                 $ enthalteneBahngeschwindigkeiten bahngeschwindigkeit =
                 ohneEvent bgTVarEvent $ do
-                    adjustment <- Gtk.get wScaleGeschwindigkeit Gtk.rangeAdjustment
-                    Gtk.set adjustment [Gtk.adjustmentValue := 0]
+                    adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
+                    Gtk.setAdjustmentValue adjustment 0
                     setzeAuswahl wAuswahlFahrtrichtung fahrtrichtung
         bgWidgetsSynchronisieren
             (ZugtypLego
@@ -1202,8 +1201,8 @@ auswahlFahrtrichtungEinstellenPackNew
                 ohneEvent (tvarEvent ws) $ do
                     case scaleGeschwindigkeit (GeschwindigkeitPhantom ws) of
                         (Just scale) -> do
-                            adjustment <- Gtk.get scale Gtk.rangeAdjustment
-                            Gtk.set adjustment [Gtk.adjustmentValue := 0]
+                            adjustment <- Gtk.getRangeAdjustment scale
+                            Gtk.setAdjustmentValue adjustment 0
                         Nothing -> pure ()
                     case auswahlFahrstrom (GeschwindigkeitPhantom ws) of
                         (Just auswahl) -> setzeAuswahl auswahl 0

@@ -34,7 +34,6 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (catMaybes)
 import qualified GI.Gtk as Gtk
-import GI.Gtk (AttrOp((:=)))
 
 import Zug.Enums (Zugtyp(), unterstützteZugtypen)
 import qualified Zug.Language as Language
@@ -93,7 +92,7 @@ hinzufügenErgebnis :: (StatusVarGuiReader r m, MonadIO m) => AssistantHinzufüg
 hinzufügenErgebnis
     AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis} =
     do
-        aktuelleSeite <- liftIO $ Gtk.get notebook Gtk.notebookPage
+        aktuelleSeite <- liftIO $ Gtk.getNotebookPage notebook
         ergebnis <- seiteErgebnis fließendAuswahl zugtypAuswahl $ indexSeiten Map.! aktuelleSeite
         liftIO $ atomically $ putTMVar tmVarErgebnis $ HinzufügenErfolgreich ergebnis
 
@@ -106,7 +105,7 @@ setzeAssistantHinzufügen
     AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten}
     objekt = forM_ (Map.toList indexSeiten) $ \(index, seite) -> do
     richtigeSeite <- setzeSeite fließendAuswahl zugtypAuswahl seite objekt
-    liftIO $ when richtigeSeite $ Gtk.set notebook [Gtk.notebookPage := index]
+    liftIO $ when richtigeSeite $ Gtk.setNotebookPage notebook index
 
 -- | Erstelle einen neuen 'AssistantHinzufügen'.
 assistantHinzufügenNew
@@ -127,7 +126,8 @@ assistantHinzufügenNew parent maybeTVar = mdo
         tmVarErgebnisIO <- atomically newEmptyTMVar
         windowIO <- Gtk.windowNew Gtk.WindowTypeToplevel
         parentWindow <- erhalteWindow parent
-        Gtk.set windowIO [Gtk.windowTransientFor := parentWindow, Gtk.windowModal := True]
+        Gtk.setWindowTransientFor windowIO parentWindow
+        Gtk.setWindowModal windowIO True
         Gtk.onWidgetDeleteEvent windowIO $ \_event -> liftIO $ do
             atomically (putTMVar tmVarErgebnisIO HinzufügenBeenden)
             pure True
@@ -189,8 +189,8 @@ assistantHinzufügenNew parent maybeTVar = mdo
         $ atomically
         $ putTMVar tmVarErgebnis HinzufügenAbbrechen
     verwendeSpracheGui maybeTVar $ \sprache -> do
-        Gtk.set window [Gtk.windowTitle := Language.hinzufügen sprache]
-        Gtk.set buttonHinzufügen [Gtk.buttonLabel := Language.hinzufügen sprache]
+        Gtk.setWindowTitle window $ Language.hinzufügen sprache
+        Gtk.setButtonLabel buttonHinzufügen $ Language.hinzufügen sprache
     pure assistantHinzufügen
 #endif
 --

@@ -1,17 +1,16 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-{-|
-Description : Sammlung aller verwendeten Strings.
-
-In diesem Modul werden alle verwendeten Strings sprachabhängig definiert.
-Zusätzlich wird die 'Anzeige'-Klasse und einige Hilfsfunktionen und Operatoren definiert.
-
-Die Dokumentation entspricht im allgemeinen nur der englischen Version.
-Die deutsche Version ist im durch den Namen gegeben.
--}
+-- |
+-- Description : Sammlung aller verwendeten Strings.
+--
+-- In diesem Modul werden alle verwendeten Strings sprachabhängig definiert.
+-- Zusätzlich wird die 'Anzeige'-Klasse und einige Hilfsfunktionen und Operatoren definiert.
+--
+-- Die Dokumentation entspricht im allgemeinen nur der englischen Version.
+-- Die deutsche Version ist im durch den Namen gegeben.
 module Zug.Language
   ( -- * Titel / Title
     zugkontrolle
@@ -25,6 +24,7 @@ module Zug.Language
   , zurücksetzen
   , weiter
   , zurück
+  , ok
   , hinzufügen
   , entfernen
   , bearbeiten
@@ -252,6 +252,11 @@ zurück :: Sprache -> Text
 zurück Deutsch = "Zurück"
 zurück Englisch = "Back"
 
+-- | Ok
+ok :: Sprache -> Text
+ok Deutsch = "Ok"
+ok Englisch = "Ok"
+
 -- | Add
 hinzufügen :: Sprache -> Text
 hinzufügen Deutsch = "Hinzufügen"
@@ -348,7 +353,7 @@ wirdAusgeführt :: Sprache -> Text -> Text
 wirdAusgeführt Deutsch s = s <~> ("wird ausgeführt" :: Text) $ Deutsch
 wirdAusgeführt Englisch s = s <~> ("in execution" :: Text) $ Englisch
 
--- | Abort!  
+-- | Abort!
 -- Exclamation point is important to distinguish from 'abbrechen'; required for Cmd-UI
 ausführenAbbrechen :: Sprache -> Text
 ausführenAbbrechen Deutsch = "Abbrechen!"

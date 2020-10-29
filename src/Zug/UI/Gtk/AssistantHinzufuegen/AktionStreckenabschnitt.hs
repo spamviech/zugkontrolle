@@ -25,7 +25,6 @@ import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import qualified Data.GI.Gtk.Threading as Gtk
 import qualified Data.Text as Text
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (ZugtypEither(..), Strom(Fließend))
@@ -63,9 +62,7 @@ aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST a
             strom <- aktuelleAuswahl auswahlStrom
             forkIO $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
-                    Gtk.set
-                        windowObjektAuswahl
-                        [Gtk.windowTitle := (Language.strom <:> strom) sprache]
+                    Gtk.setWindowTitle windowObjektAuswahl $ Language.strom <:> strom $ sprache
                     showST
                     mitWidgetShow windowObjektAuswahl
                 maybeObjekt <- atomically $ takeTMVar dynTMVarPlanObjekt

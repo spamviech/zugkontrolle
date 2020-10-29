@@ -34,7 +34,6 @@ import Data.Maybe (fromJust)
 import Data.Set (Set)
 import Data.Text (Text)
 import Data.Word (Word8)
-import GI.Gtk (AttrOp((:=)))
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung
@@ -367,8 +366,8 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom WSWidgets) where
                     -> m ()
     geschwindigkeit (GeschwindigkeitPhantom WSWidgets {wsScaleGeschwindigkeit = Just scale}) wert =
         liftIO $ do
-            adjustment <- Gtk.get scale Gtk.rangeAdjustment
-            Gtk.set adjustment [Gtk.adjustmentValue := fromIntegral wert]
+            adjustment <- Gtk.getRangeAdjustment scale
+            Gtk.setAdjustmentValue adjustment $ fromIntegral wert
     geschwindigkeit _wsWidgets _wert = pure ()
 
     fahrstrom :: (I2CReader r m, MonadIO m)
@@ -410,7 +409,7 @@ instance BGWidgetsKlasse (GeschwindigkeitPhantom WSWidgets) where
 instance StreckenabschnittKlasse (WSWidgets z) where
     strom :: (I2CReader r m, MonadIO m) => WSWidgets z -> Strom -> m ()
     strom WSWidgets {wsToggleButtonStrom = Just toggleButton} wert =
-        liftIO $ Gtk.set toggleButton [Gtk.toggleButtonActive := (wert == Fließend)]
+        Gtk.setToggleButtonActive toggleButton (wert == Fließend)
     strom _wsWidgets _wert = pure ()
 
 instance (PlanElement (WSWidgets z), ZugtypKlasse z) => STWidgetsKlasse (WSWidgets z) where
@@ -419,8 +418,7 @@ instance (PlanElement (WSWidgets z), ZugtypKlasse z) => STWidgetsKlasse (WSWidge
 
 instance KupplungKlasse (WSWidgets z) where
     kuppeln :: (I2CReader r m, MonadIO m) => WSWidgets z -> m ()
-    kuppeln
-        WSWidgets {wsButtonKuppeln = Just buttonKuppeln} = liftIO $ Gtk.buttonClicked buttonKuppeln
+    kuppeln WSWidgets {wsButtonKuppeln = Just buttonKuppeln} = Gtk.buttonClicked buttonKuppeln
     kuppeln _wsWidgets = pure ()
 
 instance KontaktKlasse (WSWidgets z) where
@@ -544,8 +542,8 @@ wegstreckePackNew
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             wsFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
             pure (frame, expander, vBoxExpander, wsFunctionBox)
-        verwendeSpracheGui justTVarSprache $ \sprache
-            -> Gtk.set expander [Gtk.expanderLabel := Language.wegstreckenElemente sprache]
+        verwendeSpracheGui justTVarSprache
+            $ \sprache -> Gtk.setExpanderLabel expander $ Language.wegstreckenElemente sprache
         (wsScaleGeschwindigkeit, wsAuswahlFahrstrom, wsButtonUmdrehen, wsAuswahlFahrtrichtung) <- if null
             wsBahngeschwindigkeiten
             then pure (Nothing, Nothing, Nothing, Nothing)
