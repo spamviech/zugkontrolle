@@ -47,6 +47,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - wiringPi-1.0.1.1@sha256:2f7ca3fc61dd5b29965447155ccb64db3588f518008cd8b5980ab90f580bf556
+- haskell-gi-overloading-0.0@sha256:e1ba6583d908525af55f45ede17224a0fe5e7c8980bb5962ac39ee8b429e5bae,631
 - gi-gtk-declarative-0.6.3@sha256:8db2e8a9fa20673406e4500e5040d4384eb76e362d45ffe69116575ae03ff1e3,4411
 - gi-gtk-declarative-app-simple-0.6.3@sha256:2b201371acd292ef8d980be02809787293f7c30e505c84910b57e307af999cc9,1818
 

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 698adceacc6863791e3d02fb36471ad9afcfd084e19bcc4651ebf4d55626030a
+-- hash: ec00ca0a4487d9bd50eeb6c09e933c8c606bbd0e5b259e88c1167ba907049862
 
 name:           Zugkontrolle
 version:        1.3.0.0
@@ -137,6 +137,7 @@ library
       , gi-gtk >=3.0.36 && <3.1
       , gi-gtk-hs >=0.3.8.1 && <0.4
       , haskell-gi-base >=0.24.0 && <0.25
+      , haskell-gi-overloading ==0.0
   if os(linux)
     build-depends:
         unix
@@ -175,6 +176,7 @@ executable Zugkontrolle
       , gi-gtk >=3.0.36 && <3.1
       , gi-gtk-hs >=0.3.8.1 && <0.4
       , haskell-gi-base >=0.24.0 && <0.25
+      , haskell-gi-overloading ==0.0
   if os(linux)
     build-depends:
         unix

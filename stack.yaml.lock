@@ -12,6 +12,13 @@ packages:
   original:
     hackage: wiringPi-1.0.1.1@sha256:2f7ca3fc61dd5b29965447155ccb64db3588f518008cd8b5980ab90f580bf556
 - completed:
+    hackage: haskell-gi-overloading-0.0@sha256:e1ba6583d908525af55f45ede17224a0fe5e7c8980bb5962ac39ee8b429e5bae,631
+    pantry-tree:
+      size: 264
+      sha256: b76f20f1b0acbce7bce3e36d0d5feb28cc63dd90ced15c1e6176d8c583535543
+  original:
+    hackage: haskell-gi-overloading-0.0@sha256:e1ba6583d908525af55f45ede17224a0fe5e7c8980bb5962ac39ee8b429e5bae,631
+- completed:
     hackage: gi-gtk-declarative-0.6.3@sha256:8db2e8a9fa20673406e4500e5040d4384eb76e362d45ffe69116575ae03ff1e3,4411
     pantry-tree:
       size: 2393
