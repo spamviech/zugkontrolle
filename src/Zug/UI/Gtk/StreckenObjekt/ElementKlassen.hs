@@ -66,7 +66,7 @@ class (WidgetsTyp s) => WegstreckenElement s where
     -- | Auswahl-Typ beim erstellen einer Wegstrecke
     type CheckButtonAuswahl s
 
-    type CheckButtonAuswahl s = Void
+    type CheckButtonAuswahl _s = Void
 
     -- | 'RegistrierterCheckButton' im 'Zug.UI.Gtk.AssistantHinzufuegen.AssistantHinzufügen'.
     -- Bestimmt ob ein 'StreckenObjekt' zu einer 'Wegstrecke' hinzugefügt werden soll.
@@ -148,10 +148,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWenn
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-            { wcbrWidget
-            , wcbrRegistrierterCheckButton
-            , wcbrRichtungsAuswahl
-            }
+            { wcbrWidget, wcbrRegistrierterCheckButton, wcbrRichtungsAuswahl }
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets
