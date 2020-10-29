@@ -90,8 +90,8 @@ auswahlRadioButtonNamedNew (h :| t) maybeTVar name anzeigeFunktion = do
         Gtk.set nameLabel [Gtk.labelMaxWidthChars := nameWrapSize, Gtk.labelWrap := True]
         vBox <- boxPackWidgetNewDefault hBox $ Gtk.boxNew Gtk.OrientationVertical 0
         -- Erstelle RadioButtons
-        hRadioButton
-            <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewFromWidget Gtk.noRadioButton
+        hRadioButton <- boxPackWidgetNewDefault vBox
+            $ Gtk.radioButtonNewFromWidget (Nothing :: Maybe Gtk.RadioButton)
         tEnumButtons <- forM t $ \e -> do
             radioButton
                 <- boxPackWidgetNewDefault vBox $ Gtk.radioButtonNewFromWidget $ Just hRadioButton

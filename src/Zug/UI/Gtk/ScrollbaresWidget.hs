@@ -106,13 +106,16 @@ scrollbaresWidgetNew :: (MonadIO m, MitWidget w) => m w -> m (ScrollbaresWidget 
 scrollbaresWidgetNew konstruktor = do
     swWidget <- widgetShowNew konstruktor
     liftIO $ do
-        swScrolledWindow <- Gtk.scrolledWindowNew Gtk.noAdjustment Gtk.noAdjustment
+        swScrolledWindow <- Gtk.scrolledWindowNew noAdjustment noAdjustment
         Gtk.set
             swScrolledWindow
             [ Gtk.scrolledWindowHscrollbarPolicy := Gtk.PolicyTypeAutomatic
             , Gtk.scrolledWindowVscrollbarPolicy := Gtk.PolicyTypeAlways]
         Gtk.containerAdd swScrolledWindow =<< erhalteWidget swWidget
         pure ScrollbaresWidget { swScrolledWindow, swWidget }
+    where
+        noAdjustment :: Maybe Gtk.Adjustment
+        noAdjustment = Nothing
 
 -- | Erstelle neues 'ScrollbaresWidget'und füge sie zu 'MitContainer' hinzu
 scrollbaresWidgetAddNew

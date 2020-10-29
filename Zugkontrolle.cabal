@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0246172affc54e1fdc2b1d3ddc2fb4a3407dc7038459f8a2325a946ebe617524
+-- hash: 698adceacc6863791e3d02fb36471ad9afcfd084e19bcc4651ebf4d55626030a
 
 name:           Zugkontrolle
 version:        1.3.0.0
@@ -107,6 +107,7 @@ library
       Zug.UI.Gtk.ZugtypSpezifisch
       Zug.UI.Save
       Zug.UI.StatusVar
+      Zug.Util
       Zug.Warteschlange
   other-modules:
       Paths_Zugkontrolle
@@ -133,11 +134,9 @@ library
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
         gi-gdk >=3.0.22 && <3.1
-      , gi-gtk >=3.0.33 && <3.1
-      , gi-gtk-declarative >=0.6 && <0.7
-      , gi-gtk-declarative-app-simple >=0.6.3 && <0.7
+      , gi-gtk >=3.0.36 && <3.1
       , gi-gtk-hs >=0.3.8.1 && <0.4
-      , haskell-gi-base >=0.23.0 && <0.24
+      , haskell-gi-base >=0.24.0 && <0.25
   if os(linux)
     build-depends:
         unix
@@ -173,11 +172,9 @@ executable Zugkontrolle
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
         gi-gdk >=3.0.22 && <3.1
-      , gi-gtk >=3.0.33 && <3.1
-      , gi-gtk-declarative >=0.6 && <0.7
-      , gi-gtk-declarative-app-simple >=0.6.3 && <0.7
+      , gi-gtk >=3.0.36 && <3.1
       , gi-gtk-hs >=0.3.8.1 && <0.4
-      , haskell-gi-base >=0.23.0 && <0.24
+      , haskell-gi-base >=0.24.0 && <0.25
   if os(linux)
     build-depends:
         unix

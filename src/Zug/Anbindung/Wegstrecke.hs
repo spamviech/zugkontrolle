@@ -17,12 +17,12 @@ import Control.Monad (forM_)
 import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types ((.:), (.=))
 import qualified Data.Aeson.Types as Aeson
+import Data.List (foldl')
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
-import Data.List (foldl')
 import Data.Word (Word8)
 
 import Zug.Anbindung.Anschluss
@@ -89,7 +89,7 @@ instance StreckenObjekt (Wegstrecke z) where
 
     erhalteName :: Wegstrecke z -> Text
     erhalteName Wegstrecke {wsName} = wsName
-    
+
 i2cZeit :: Wartezeit
 i2cZeit = MilliSekunden 250
 
