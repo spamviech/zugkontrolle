@@ -1,10 +1,18 @@
 -- | Useful utility functions
-module Zug.Util (writeFileUtf8, readFileUtf8) where
+module Zug.Util (isRaspi, writeFileUtf8, readFileUtf8) where
 
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
+import Debug.Trace (trace)
 import System.IO (withFile, IOMode(WriteMode, ReadMode), hSetEncoding, utf8, hSetNewlineMode
                 , noNewlineTranslation)
+import System.Info (os, arch)
+
+-- | Decide based on 'os' and 'arch' value wether compilation happens on the rhaspberry pi.
+--
+-- Every comination not linux os with arm architecture is concidered non-raspi.
+isRaspi :: Bool
+isRaspi = trace (show os ++ ", " ++ show arch) $ (os == "linux") && (arch == "arm")
 
 {------------------------------------------------------------------------
 Inspired by this blog post: https://www.snoyman.com/blog/2020/10/haskell-bad-parts-1
