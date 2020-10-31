@@ -30,7 +30,7 @@ module Zug.Anbindung.Anschluss.I2C
   , FileHandle()
   ) where
 
-import Control.Concurrent (forkIO, ThreadId)
+import Control.Concurrent (ThreadId)
 import Control.Concurrent.STM (atomically, retry, TVar, readTVar, writeTVar, modifyTVar)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
@@ -40,6 +40,8 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Word (Word8)
 import Foreign.C.Types (CInt(..))
+
+import Zug.Util (forkIOSilent)
 
 -- | Status eines I2C-Kanals (verhindern von Race-Conditions).
 data I2CChannelStatus
@@ -66,7 +68,7 @@ class (MonadReader r m, MitI2CMap r) => I2CReader r m | m -> r where
 
     -- | 'forkIO' in die 'I2CReader'-Monade geliftet; Die aktuellen Umgebung soll übergeben werden.
     forkI2CReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
-    forkI2CReader action = liftIO . forkIO . void . runReaderT action =<< ask
+    forkI2CReader action = liftIO . forkIOSilent . void . runReaderT action =<< ask
 
 instance (MonadReader r m, MitI2CMap r) => I2CReader r m
 

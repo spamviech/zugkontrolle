@@ -24,7 +24,6 @@ module Zug.UI.Gtk.StreckenObjekt.KOWidgets
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (forever)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -66,6 +65,7 @@ import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
        (WidgetsTyp(..), WidgetsTypReader, EventAusführen(EventAusführen), buttonEntfernenPackNew
       , buttonBearbeitenPackNew, MitAktionBearbeiten())
 import Zug.UI.StatusVar (StatusVar, MitStatusVar())
+import Zug.Util (forkIOSilent)
 
 instance Kategorie KOWidgets where
     kategorie :: KategorieText KOWidgets
@@ -193,7 +193,10 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     let justTVarSprache = Just koTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget
         <- hinzufügenWidgetWegstreckePackNew kontakt koTVarSprache fortfahrenWennToggledWegstrecke
     hinzufügenPlanWidget
@@ -233,7 +236,7 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
             text <- readTVarIO tvarSignal
             Gtk.setLabelLabel labelSignal $ text sprache
     verwendeSpracheGui justTVarSprache aktualisiereLabelSignal
-    liftIO $ forkIO $ forever $ flip runReaderT objektReader $ do
+    liftIO $ forkIOSilent $ forever $ flip runReaderT objektReader $ do
         warteAufSignal kontakt
         spracheGuiAn <- erhalteSpracheGui
         liftIO $ do

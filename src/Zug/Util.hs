@@ -1,16 +1,22 @@
--- | Useful utility functions
-module Zug.Util (isRaspi, writeFileUtf8, readFileUtf8) where
+{-# LANGUAGE CPP #-}
 
+-- | Useful utility functions
+module Zug.Util (isRaspi, writeFileUtf8, readFileUtf8, forkIOSilent) where
+
+import Control.Concurrent (forkIO, ThreadId)
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Debug.Trace (trace)
 import System.IO (withFile, IOMode(WriteMode, ReadMode), hSetEncoding, utf8, hSetNewlineMode
                 , noNewlineTranslation)
+#ifdef ZUGKONTROLLESILENCE
+import System.IO.Silently (silence)
+#endif
 import System.Info (os, arch)
 
--- | Decide based on 'os' and 'arch' value wether compilation happens on the rhaspberry pi.
+-- | Decide based on 'os' and 'arch' value wether compilation happens on the raspberry pi.
 --
--- Every comination not linux os with arm architecture is concidered non-raspi.
+-- Every combination not linux os with arm architecture is considered non-raspi.
 isRaspi :: Bool
 isRaspi = trace (show os ++ ", " ++ show arch) $ (os == "linux") && (arch == "arm")
 
@@ -36,3 +42,11 @@ readFileUtf8 fp = withFile fp ReadMode $ \h -> do
     hSetEncoding h utf8
     hSetNewlineMode h noNewlineTranslation
     Text.hGetContents h
+
+-- | 'forkIO', adjusted for /onlygui/ flag.
+forkIOSilent :: IO () -> IO ThreadId
+forkIOSilent =
+    forkIO
+#ifdef ZUGKONTROLLESILENCE
+    . silence
+#endif

@@ -23,7 +23,7 @@ module Zug.Anbindung.SoftwarePWM
   , PwmValue
   ) where
 
-import Control.Concurrent (forkIO, ThreadId)
+import Control.Concurrent (ThreadId)
 import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
 import Control.Monad (void, when)
 import Control.Monad.Reader (ReaderT, asks, MonadReader(ask), runReaderT)
@@ -35,6 +35,7 @@ import Numeric.Natural (Natural)
 import System.Hardware.WiringPi (PwmValue, Value(..), Pin(), digitalWrite, Mode(OUTPUT), pinMode)
 
 import Zug.Anbindung.Wartezeit (warte, Wartezeit(..), differenz, multiplizieren, dividieren)
+import Zug.Util (forkIOSilent)
 
 -- | Welche Pins haben aktuell Software-PWM
 type PwmMap = Map Pin (PwmValue, Natural)
@@ -57,7 +58,7 @@ class (MonadReader r m, MitPwmMap r) => PwmReader r m | m -> r where
     forkPwmReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
     forkPwmReader action = do
         reader <- ask
-        liftIO $ forkIO $ void $ runReaderT action reader
+        liftIO $ forkIOSilent $ void $ runReaderT action reader
 
 instance (MonadReader r m, MitPwmMap r) => PwmReader r m
 

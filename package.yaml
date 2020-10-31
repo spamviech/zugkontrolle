@@ -21,22 +21,34 @@ description:          Please see the README on GitHub at <https://github.com/spa
 
 flags:
   gui:
-    description: "Erstelle ein graphisches User Interface mit GTK+"
+    description: "Erstelle ein graphisches User Interface mit GTK+."
     default: true
+    manual: true
+  onlygui:
+    description: "Verwende nur das GTK+ User Interface. Diese Flag hat keinen Effekt wen gui false ist."
+    default: false
     manual: true
 
 when:
   - condition: flag(gui)
     dependencies:
+      - gi-cairo-render >= 0.1 && < 0.2
+      - gi-cairo-connector >= 0.1 && < 0.2
       - gi-gtk >= 3.0.36 && < 3.1
       - haskell-gi-base >= 0.24.0 && < 0.25
       - haskell-gi-overloading == 0.0
       - gi-gtk-hs >= 0.3.8.1 && < 0.4
       - gi-gdk >= 3.0.22 && < 3.1
-      #- gi-gtk-declarative >= 0.6 && < 0.7
-      #- gi-gtk-declarative-app-simple >= 0.6.3 && < 0.7
     cpp-options:
       - -DZUGKONTROLLEGUI
+    when:
+    - condition: flag(onlygui)
+      dependencies:
+        - silently >= 1.2 && < 1.3
+      ghc-options:
+        - -optl-mwindows
+      cpp-options:
+        - -DZUGKONTROLLESILENCE
   - condition: os(linux)
     dependencies:
       - unix
@@ -64,6 +76,7 @@ dependencies:
 
 ghc-options:
   - -Wall
+  - -Widentities
   - -Wno-unused-do-bind
   - -O2
 

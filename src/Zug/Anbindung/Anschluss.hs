@@ -51,7 +51,7 @@ module Zug.Anbindung.Anschluss
   ) where
 
 import Control.Applicative (Alternative(..))
-import Control.Concurrent (forkIO, ThreadId())
+import Control.Concurrent (ThreadId())
 import Control.Concurrent.STM
        (atomically, retry, newTVarIO, readTVar, writeTVar, TMVar, takeTMVar, putTMVar)
 import Control.Monad (void, forM, unless
@@ -85,6 +85,7 @@ import Zug.Anbindung.Anschluss.PCF8574
       , PCF8574Klasse(..))
 import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText)
+import Zug.Util (forkIOSilent)
 
 -- | Wird ein Interrupt-Pin für den Anschluss benötigt?
 data InterruptPinBenötigt
@@ -320,7 +321,7 @@ class (MonadReader r m, MitInterruptMap r) => InterruptReader r m | m -> r where
 
     -- | 'forkIO' in die 'InterruptReader'-Monade geliftet; Die aktuellen Umgebung soll übergeben werden.
     forkInterruptReader :: (MonadIO m) => ReaderT r IO () -> m ThreadId
-    forkInterruptReader action = liftIO . forkIO . void . runReaderT action =<< ask
+    forkInterruptReader action = liftIO . forkIOSilent . void . runReaderT action =<< ask
 
 instance (MonadReader r m, MitInterruptMap r) => InterruptReader r m
 
@@ -441,8 +442,9 @@ beiÄnderung anschluss intEdge aktion = do
                          -> [(BitValue, BitValue)
                             -> IO EventBehalten]
                          -> ((BitValue, BitValue) -> IO EventBehalten)
-                         -> IO [(BitValue, BitValue)
-                               -> IO EventBehalten]
+                         -> IO
+                             [(BitValue, BitValue)
+                             -> IO EventBehalten]
         aktionAusführen bitValues acc aktion = eventAnhängen <$> aktion bitValues
             where
                 eventAnhängen :: EventBehalten -> [(BitValue, BitValue) -> IO EventBehalten]

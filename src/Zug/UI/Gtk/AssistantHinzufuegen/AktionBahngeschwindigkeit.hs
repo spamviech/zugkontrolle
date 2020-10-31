@@ -18,7 +18,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
@@ -48,6 +47,7 @@ import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget), mitWidgetShow, mitWidgetHid
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
 import Zug.UI.Gtk.ZugtypSpezifisch (zugtypSpezifischNew)
+import Zug.Util (forkIOSilent)
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Bahngeschwindigkeit's-'Aktion'.
 aktionBahngeschwindigkeitAuswahlPackNew
@@ -76,7 +76,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ do
             adjustment <- Gtk.getRangeAdjustment scaleBahngeschwindigkeit
             wert <- floor <$> Gtk.getAdjustmentValue adjustment
-            forkIO $ do
+            forkIOSilent $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.setWindowTitle windowObjektAuswahl
                         $ Language.geschwindigkeit <:> wert
@@ -113,7 +113,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ void
         $ do
             fahrstromAnschluss <- floor <$> Gtk.getSpinButtonValue spinButtonFahrstrom
-            forkIO $ do
+            forkIOSilent $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.setWindowTitle windowObjektAuswahl
                         $ Language.fahrstrom <:> fahrstromAnschluss
@@ -147,7 +147,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
     spinButtonFahrstrom <- liftIO
         $ boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
-    buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIO $ do
+    buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIOSilent $ do
         Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
             Gtk.setWindowTitle windowObjektAuswahl $ Language.umdrehen sprache
             showBG Nothing
@@ -171,7 +171,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
         $ void
         $ do
             fahrtrichtung <- aktuelleAuswahl auswahlFahrtrichtung
-            forkIO $ do
+            forkIOSilent $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.setWindowTitle windowObjektAuswahl
                         $ Language.fahrtrichtungEinstellen <:> fahrtrichtung

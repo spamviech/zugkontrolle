@@ -17,7 +17,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
@@ -40,6 +39,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLa
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
+import Zug.Util (forkIOSilent)
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Streckenabschnitt'-'Aktion'.
 aktionStreckenabschnittAuswahlPackNew
@@ -60,7 +60,7 @@ aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST a
         $ void
         $ do
             strom <- aktuelleAuswahl auswahlStrom
-            forkIO $ do
+            forkIOSilent $ do
                 Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                     Gtk.setWindowTitle windowObjektAuswahl $ Language.strom <:> strom $ sprache
                     showST

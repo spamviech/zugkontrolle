@@ -16,7 +16,6 @@ module Zug.UI.Gtk.AssistantHinzufuegen.AktionKupplung
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
@@ -34,6 +33,7 @@ import Zug.UI.Gtk.Hilfsfunktionen (boxPackWidgetNewDefault, buttonNewWithEventLa
 import Zug.UI.Gtk.Klassen (mitWidgetShow, mitWidgetHide, MitBox())
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(..), TVarSprachewechselAktionen)
 import Zug.UI.Gtk.StreckenObjekt (DynamischeWidgets(..), DynamischeWidgetsReader(..))
+import Zug.Util (forkIOSilent)
 
 -- | Erzeuge die Widgets zur Auswahl einer 'Kupplung's-'Aktion'.
 aktionKupplungAuswahlPackNew
@@ -51,7 +51,7 @@ aktionKupplungAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinz
     boxPackWidgetNewDefault hBoxKupplung
         $ buttonNewWithEventLabel maybeTVar Language.kuppeln
         $ void
-        $ forkIO
+        $ forkIOSilent
         $ do
             Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
                 Gtk.setWindowTitle windowObjektAuswahl $ Language.kuppeln sprache

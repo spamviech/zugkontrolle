@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -6,8 +7,14 @@
 {-|
 Description : Starte Main-Loop für Kommandozeilen-basiertes UI.
 -}
-module Zug.UI.Cmd (main, mainStatus) where
+module Zug.UI.Cmd (
+    main,
+#ifndef ZUGKONTROLLESILENCE
+    mainStatus
+#endif
+    ) where
 
+#ifndef ZUGKONTROLLESILENCE
 import Control.Monad (unless, void)
 import Control.Monad.RWS.Strict (evalRWST)
 import Control.Monad.State.Class (MonadState(..))
@@ -34,18 +41,27 @@ import Zug.UI.Cmd.Parser
       , statusAnfrageObjekt, StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp
       , ObjektZugtyp(..), BefehlSofort(..), AnfrageNeu(..), parser, unbekanntShowText, zeigeAnfrage
       , zeigeAnfrageOptionen, zeigeAnfrageFehlgeschlagen)
+#else
+import qualified Zug.UI.Gtk as Gtk
+#endif
+#ifndef ZUGKONTROLLESILENCE
 import qualified Zug.UI.Save as Save
+#endif
 
 -- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
 main :: IO ()
-main = do
-    -- Lade Datei angegeben in Kommandozeilenargument
-    Options {load = path, sprache} <- getOptions
-    Save.laden path pure sprache >>= \case
-        Nothing -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
-        (Just anfangsZustand) -> do
-            tvarMaps <- tvarMapsNeu
-            void $ evalRWST mainStatus tvarMaps anfangsZustand
+main =
+#ifdef ZUGKONTROLLESILENCE
+    Gtk.main
+#else
+    do
+        -- Lade Datei angegeben in Kommandozeilenargument
+        Options {load = path, sprache} <- getOptions
+        Save.laden path pure sprache >>= \case
+            Nothing -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
+            (Just anfangsZustand) -> do
+                tvarMaps <- tvarMapsNeu
+                void $ evalRWST mainStatus tvarMaps anfangsZustand
 
 -- | main loop
 mainStatus :: IOStatus ()
@@ -181,3 +197,4 @@ promptS s = getSprache >>= liftIO . prompt . s
 
 fehlerhafteEingabeS :: (Sprache -> Text) -> IOStatus ()
 fehlerhafteEingabeS s = getSprache >>= liftIO . (fehlerhafteEingabe $# s)
+#endif

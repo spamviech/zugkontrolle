@@ -11,7 +11,7 @@ Description : Erstelle GUI und starte den GTK-Main-Loop.
 module Zug.UI.Gtk (main, setupGUI) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (runInBoundThread, forkIO, ThreadId)
+import Control.Concurrent (runInBoundThread, ThreadId)
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, putTMVar, readTMVar)
 #else
 import Control.Concurrent.STM.TVar (TVar)
@@ -27,10 +27,14 @@ import Data.Text (Text)
 import qualified Data.Text.IO as Text
 #endif
 #ifdef ZUGKONTROLLEGUI
+import qualified GI.Cairo.Render.Connector as Cairo
 import qualified GI.Gdk as Gdk
 import qualified GI.Gtk as Gtk
 #else
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
+#endif
+#ifdef ZUGKONTROLLESILENCE
+import System.IO.Silently (silence)
 #endif
 #ifdef ZUGKONTROLLEGUI
 import System.IO.Unsafe (unsafeInterleaveIO)
@@ -60,6 +64,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , paddingDefault, Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
       , toggleButtonNewWithEvent)
 import Zug.UI.Gtk.Klassen (mitContainerRemove)
+import Zug.UI.Gtk.Schienen (zeichneGerade)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel, TVarSprachewechselAktionen)
@@ -69,6 +74,7 @@ import Zug.UI.Gtk.StreckenObjekt
       , WEWidgetsBoxen(..), KUWidgetsBoxen(..), KOWidgetsBoxen(..), WSWidgetsBoxen(..)
       , PLWidgetsBoxen(..))
 import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
+import Zug.Util (forkIOSilent)
 #endif
 
 #ifndef ZUGKONTROLLEGUI
@@ -90,14 +96,21 @@ putWarningLn warning = do
 #else
 -- | Gtk-main loop.
 main :: IO ()
-main = runInBoundThread $ do
-    -- Initialisiere GTK+ engine
-    Gtk.init Nothing
-    Gtk.setCurrentThreadAsGUIThread
-    -- Erstelle GUI
-    setupGUI Nothing
-    -- GTK+ main loop
-    Gtk.main
+main =
+    runInBoundThread
+    $
+#ifdef ZUGKONTROLLESILENCE
+    silence
+    $
+#endif
+    do
+        -- Initialisiere GTK+ engine
+        Gtk.init Nothing
+        Gtk.setCurrentThreadAsGUIThread
+        -- Erstelle GUI
+        setupGUI Nothing
+        -- GTK+ main loop
+        Gtk.main
 
 -- | Erstelle GUI inkl. sämtlicher Events.
 --
@@ -566,6 +579,15 @@ setupGUI maybeTVar = void $ do
                     sprachwechsel spracheGui sp
                     flip runReaderT objektReader
                         $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
+                -- Mitte (Test-Widget Cairo)
+                canvas <- boxPackWidgetNew
+                    functionBox
+                    PackGrow--PackRepel
+                    paddingDefault
+                    Start
+                    Gtk.drawingAreaNew
+                Gtk.widgetSetSizeRequest canvas 10 10
+                Gtk.onWidgetDraw canvas $ Cairo.renderWithContext $ zeichneGerade canvas
                 -- Rechte seite
                 boxPackWidgetNew functionBox packingDefault paddingDefault End
                     $ buttonNewWithEventLabel maybeTVar Language.beenden
@@ -722,7 +744,7 @@ setupGUI maybeTVar = void $ do
 
 -- | Execute several Gtk-Actions, showing progress after every one.
 gtkWithProgress :: Gtk.ProgressBar -> [IO ()] -> IO ThreadId
-gtkWithProgress progressBar actions = forkIO $ void $ foldM foldFn 0 actions
+gtkWithProgress progressBar actions = forkIOSilent $ void $ foldM foldFn 0 actions
     where
         step :: Double
         step = 1 / (fromIntegral $ length actions)

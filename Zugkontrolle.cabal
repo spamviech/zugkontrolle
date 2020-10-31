@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ec00ca0a4487d9bd50eeb6c09e933c8c606bbd0e5b259e88c1167ba907049862
+-- hash: 4f2beb41e1115d17b7dbcd3d892df2a552d66994ab401315a8a5929c4f423cc0
 
 name:           Zugkontrolle
 version:        1.3.0.0
@@ -28,9 +28,14 @@ source-repository head
   location: https://github.com/spamviech/Zugkontrolle
 
 flag gui
-  description: Erstelle ein graphisches User Interface mit GTK+
+  description: Erstelle ein graphisches User Interface mit GTK+.
   manual: True
   default: True
+
+flag onlygui
+  description: Verwende nur das GTK+ User Interface. Diese Flag hat keinen Effekt wen gui false ist.
+  manual: True
+  default: False
 
 library
   exposed-modules:
@@ -91,6 +96,7 @@ library
       Zug.UI.Gtk.Hilfsfunktionen
       Zug.UI.Gtk.Klassen
       Zug.UI.Gtk.Klassen.TemplateHaskell
+      Zug.UI.Gtk.Schienen
       Zug.UI.Gtk.ScrollbaresWidget
       Zug.UI.Gtk.SpracheGui
       Zug.UI.Gtk.StreckenObjekt
@@ -113,7 +119,7 @@ library
       Paths_Zugkontrolle
   hs-source-dirs:
       src
-  ghc-options: -Wall -Wno-unused-do-bind -O2
+  ghc-options: -Wall -Widentities -Wno-unused-do-bind -O2
   build-depends:
       aeson >=1.2 && <2
     , ansi-terminal >=0.8 && <1
@@ -133,11 +139,18 @@ library
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gi-gdk >=3.0.22 && <3.1
+        gi-cairo-connector >=0.1 && <0.2
+      , gi-cairo-render >=0.1 && <0.2
+      , gi-gdk >=3.0.22 && <3.1
       , gi-gtk >=3.0.36 && <3.1
       , gi-gtk-hs >=0.3.8.1 && <0.4
       , haskell-gi-base >=0.24.0 && <0.25
       , haskell-gi-overloading ==0.0
+    if flag(onlygui)
+      ghc-options: -optl-mwindows
+      cpp-options: -DZUGKONTROLLESILENCE
+      build-depends:
+          silently >=1.2 && <1.3
   if os(linux)
     build-depends:
         unix
@@ -151,7 +164,7 @@ executable Zugkontrolle
       Paths_Zugkontrolle
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wno-unused-do-bind -O2 -threaded
+  ghc-options: -Wall -Widentities -Wno-unused-do-bind -O2 -threaded
   build-depends:
       Zugkontrolle
     , aeson >=1.2 && <2
@@ -172,11 +185,18 @@ executable Zugkontrolle
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gi-gdk >=3.0.22 && <3.1
+        gi-cairo-connector >=0.1 && <0.2
+      , gi-cairo-render >=0.1 && <0.2
+      , gi-gdk >=3.0.22 && <3.1
       , gi-gtk >=3.0.36 && <3.1
       , gi-gtk-hs >=0.3.8.1 && <0.4
       , haskell-gi-base >=0.24.0 && <0.25
       , haskell-gi-overloading ==0.0
+    if flag(onlygui)
+      ghc-options: -optl-mwindows
+      cpp-options: -DZUGKONTROLLESILENCE
+      build-depends:
+          silently >=1.2 && <1.3
   if os(linux)
     build-depends:
         unix

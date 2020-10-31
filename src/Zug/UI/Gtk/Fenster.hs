@@ -25,7 +25,6 @@ module Zug.UI.Gtk.Fenster
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (atomically, newTMVar, takeTMVar, putTMVar)
 import Control.Monad (void, when)
 import Control.Monad.Fix (MonadFix())
@@ -62,6 +61,7 @@ import Zug.UI.Gtk.StreckenObjekt
       , streckenabschnittPackNew, weichePackNew, WEWidgets, kupplungPackNew, kontaktPackNew
       , wegstreckePackNew, WSWidgets, planPackNew, PlanGui, planGui, AktionGui)
 import Zug.UI.StatusVar (auswertenStatusVarMStatusT, ausführenStatusVarBefehl, StatusVarReader(..))
+import Zug.Util (forkIOSilent)
 
 -- | Speichern des aktuellen 'StatusGui'.
 --
@@ -451,11 +451,11 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
     button <- boxPackWidgetNewDefault box
         $ buttonNewWithEventLabel maybeTVar Language.hinzufügen
         $ void
-        $ forkIO
+        $ forkIOSilent
         $ flip runReaderT objektReader
         $ assistantAuswerten
     pure (button, \objekt -> void $ do
         flip runReaderT objektReader $ assistantBearbeiten objekt
-        forkIO $ runReaderT assistantAuswerten objektReader)
+        forkIOSilent $ runReaderT assistantAuswerten objektReader)
 #endif
 --
