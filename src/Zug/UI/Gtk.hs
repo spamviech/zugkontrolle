@@ -3,6 +3,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
 #endif
 
 {-|
@@ -41,6 +42,7 @@ import System.IO.Unsafe (unsafeInterleaveIO)
 
 #ifdef ZUGKONTROLLEGUI
 import Zug.Anbindung (warte, Wartezeit(MilliSekunden))
+import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache(leseSprache), (<~>), (<|>))
 #else
 import Zug.Language (Sprache(..))
@@ -57,13 +59,13 @@ import qualified Zug.UI.Cmd as Cmd
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
+import Zug.UI.Gtk.Gleise (Gleis, geradeNew)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
       , boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, Packing(..), packingDefault
       , paddingDefault, Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
       , toggleButtonNewWithEvent)
 import Zug.UI.Gtk.Klassen (mitContainerRemove)
-import Zug.UI.Gtk.Schienen (geradeNew)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel, TVarSprachewechselAktionen)
@@ -579,7 +581,8 @@ setupGUI maybeTVar = void $ do
                     flip runReaderT objektReader
                         $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
                 -- Mitte (Test-Widget Cairo)
-                boxPackWidgetNew functionBox PackRepel paddingDefault Start geradeNew
+                boxPackWidgetNew functionBox packingDefault paddingDefault End geradeNew
+                    :: (MonadIO m) => m (Gleis 'Märklin)
                 -- Rechte seite
                 boxPackWidgetNew functionBox packingDefault paddingDefault End
                     $ buttonNewWithEventLabel maybeTVar Language.beenden
@@ -593,8 +596,8 @@ setupGUI maybeTVar = void $ do
                 $ \toggled -> do
                     widgetShowIf toggled notebookElementeEinzel
                     widgetShowIf (not toggled) notebookElementePaned
-                    case toggled of
-                        True -> do
+                    if toggled
+                        then do
                             mitContainerRemove
                                 vBoxBahngeschwindigkeitenPaned
                                 vBoxBahngeschwindigkeiten
@@ -646,7 +649,7 @@ setupGUI maybeTVar = void $ do
                                 PackGrow
                                 paddingDefault
                                 positionDefault
-                        False -> do
+                        else do
                             mitContainerRemove
                                 vBoxBahngeschwindigkeitenEinzel
                                 vBoxBahngeschwindigkeiten
