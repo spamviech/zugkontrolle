@@ -27,7 +27,6 @@ import Data.Text (Text)
 import qualified Data.Text.IO as Text
 #endif
 #ifdef ZUGKONTROLLEGUI
-import qualified GI.Cairo.Render.Connector as Cairo
 import qualified GI.Gdk as Gdk
 import qualified GI.Gtk as Gtk
 #else
@@ -64,7 +63,7 @@ import Zug.UI.Gtk.Hilfsfunktionen
       , paddingDefault, Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
       , toggleButtonNewWithEvent)
 import Zug.UI.Gtk.Klassen (mitContainerRemove)
-import Zug.UI.Gtk.Schienen (zeichneGerade)
+import Zug.UI.Gtk.Schienen (geradeNew)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel, TVarSprachewechselAktionen)
@@ -580,14 +579,7 @@ setupGUI maybeTVar = void $ do
                     flip runReaderT objektReader
                         $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
                 -- Mitte (Test-Widget Cairo)
-                canvas <- boxPackWidgetNew
-                    functionBox
-                    PackGrow--PackRepel
-                    paddingDefault
-                    Start
-                    Gtk.drawingAreaNew
-                Gtk.widgetSetSizeRequest canvas 10 10
-                Gtk.onWidgetDraw canvas $ Cairo.renderWithContext $ zeichneGerade canvas
+                boxPackWidgetNew functionBox PackRepel paddingDefault Start geradeNew
                 -- Rechte seite
                 boxPackWidgetNew functionBox packingDefault paddingDefault End
                     $ buttonNewWithEventLabel maybeTVar Language.beenden
