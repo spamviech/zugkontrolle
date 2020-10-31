@@ -580,15 +580,15 @@ setupGUI maybeTVar = void $ do
                     sprachwechsel spracheGui sp
                     flip runReaderT objektReader
                         $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
-                -- Mitte (Test-Widget Cairo)
-                boxPackWidgetNew functionBox packingDefault paddingDefault End geradeNew
-                    :: (MonadIO m) => m (Gleis 'Märklin)
                 -- Rechte seite
                 boxPackWidgetNew functionBox packingDefault paddingDefault End
                     $ buttonNewWithEventLabel maybeTVar Language.beenden
                     $ Gtk.mainQuit
                 buttonLadenPack dynWindowMain functionBox maybeTVar End
                 buttonSpeichernPack dynWindowMain functionBox maybeTVar End
+                -- Mitte (Test-Widget Cairo)
+                boxPackWidgetNew functionBox packingDefault paddingDefault End geradeNew
+                    :: (MonadIO m) => m (Gleis 'Märklin)
                 pure aktionBearbeitenReader
             atomically $ putTMVar tmvarAktionBearbeiten aktionBearbeiten
             checkButtonNotebook <- boxPackWidgetNewDefault functionBox
