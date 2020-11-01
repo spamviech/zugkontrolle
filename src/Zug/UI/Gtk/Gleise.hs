@@ -19,7 +19,10 @@ module Zug.UI.Gtk.Gleise
   , gleisSetHeight
     -- * Konstruktoren
   , geradeNew
+    -- ** Märklin H0 (M-Gleise)
   , märklin5106New
+    -- ** Lego (9V Gleise)
+  , legoGeradeNew
 #endif
   ) where
 
@@ -33,21 +36,6 @@ import qualified GI.Gtk as Gtk
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 
-{-
-H0 Spurweite: 16.5mm
-Gerade (5106): L180mm
-Kurve (5120): 45°, R286mm
-Kurve (5100): 30°, R360mm
-Kurve (5200): 30°, R437.4mm
-Kurve (5206): 24.28°, R427.4mm
-Weiche (5202 L/R): L180mm, 24,28°, 427.4mm
-Weiche (5140 L/R): 30°, Rin360mm, Rout77.4mm
-Kreuzung (5128): L193mm, 30°
-Kreuzung (5207): L180mm, 24,28°, R427.4mm
--}
-{-
-Lego Spurweite: 38mm
--}
 -- | 'Gtk.Widget' von einem Gleis.
 -- Die Größe wird nur über 'gleisScale', 'gleisSetWidth' und 'gleisSetHeight' verändert.
 data Gleis (z :: Zugtyp) =
@@ -132,9 +120,7 @@ geradeHeight gleis = spurweite gleis + 2 * abstand gleis
 geradeNew :: (MonadIO m, Spurweite z) => (forall n. Num n => n) -> m (Gleis z)
 geradeNew länge = gleisNew (const länge) (ceiling . geradeHeight) $ zeichneGerade länge
 
-märklin5106New :: (MonadIO m) => m (Gleis 'Märklin)
-märklin5106New = geradeNew 180
-
+-- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
 zeichneGerade :: (Spurweite z) => Double -> Gleis z -> Cairo.Render ()
 zeichneGerade länge gleis = do
     -- Beschränkungen
@@ -153,4 +139,25 @@ zeichneGerade länge gleis = do
 
         gleisUnten :: Double
         gleisUnten = geradeHeight gleis - abstand gleis
+
+{-
+H0 Spurweite: 16.5mm
+Gerade (5106): L180mm
+Kurve (5120): 45°, R286mm
+Kurve (5100): 30°, R360mm
+Kurve (5200): 30°, R437.4mm
+Kurve (5206): 24.28°, R427.4mm
+Weiche (5202 L/R): L180mm, 24,28°, 427.4mm
+Weiche (5140 L/R): 30°, Rin360mm, Rout77.4mm
+Kreuzung (5128): L193mm, 30°
+Kreuzung (5207): L180mm, 24,28°, R427.4mm
+-}
+märklin5106New :: (MonadIO m) => m (Gleis 'Märklin)
+märklin5106New = geradeNew 180
+
+{-
+Lego Spurweite: 38mm
+-}
+legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
+legoGeradeNew = geradeNew $ error "Geraden-Länge"
 #endif
