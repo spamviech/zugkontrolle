@@ -155,21 +155,21 @@ instance Spurweite 'Lego where
 abstand :: (Spurweite z) => Gleis z -> Double
 abstand gleis = spurweite gleis / 3
 
-geradeHeight :: (Spurweite z) => Gleis z -> Double
-geradeHeight gleis = spurweite gleis + 2 * abstand gleis
+beschränkung :: (Spurweite z) => Gleis z -> Double
+beschränkung gleis = spurweite gleis + 2 * abstand gleis
 
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => (forall n. Num n => n) -> m (Gleis z)
-geradeNew länge = gleisNew (const länge) (ceiling . geradeHeight) $ zeichneGerade länge
+geradeNew länge = gleisNew (const länge) (ceiling . beschränkung) $ zeichneGerade länge
 
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
 zeichneGerade :: (Spurweite z) => Double -> Gleis z -> Cairo.Render ()
 zeichneGerade länge gleis = do
     -- Beschränkungen
     Cairo.moveTo 0 0
-    Cairo.lineTo 0 $ geradeHeight gleis
+    Cairo.lineTo 0 $ beschränkung gleis
     Cairo.moveTo länge 0
-    Cairo.lineTo länge $ geradeHeight gleis
+    Cairo.lineTo länge $ beschränkung gleis
     -- Gleis
     Cairo.moveTo 0 gleisOben
     Cairo.lineTo länge gleisOben
@@ -180,7 +180,7 @@ zeichneGerade länge gleis = do
         gleisOben = abstand gleis
 
         gleisUnten :: Double
-        gleisUnten = geradeHeight gleis - abstand gleis
+        gleisUnten = beschränkung gleis - abstand gleis
 
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => (forall n. Num n => n) -> (forall n. Num n => n) -> m (Gleis z)
@@ -191,10 +191,15 @@ kurveNew radius winkel = gleisNew width height $ zeichneKurve radius winkelBogen
         radiusBegrenzung :: Gleis z -> Double
         radiusBegrenzung gleis = radius + 0.5 * spurweite gleis + abstand gleis
         -- TODO Winkel >90°
+
         width :: Gleis z -> Int32
-        width gleis = ceiling $ radiusBegrenzung gleis * cos winkelBogenmaß
+        width gleis = ceiling $ radiusBegrenzung gleis * sin winkelBogenmaß
+
         height :: Gleis z -> Int32
-        height gleis = ceiling $ radiusBegrenzung gleis * (1 - sin winkelBogenmaß)
+        height gleis = ceiling $
+            radiusBegrenzung gleis * (1 - cos winkelBogenmaß) +
+            beschränkung gleis * cos winkelBogenmaß
+        
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
@@ -203,13 +208,27 @@ zeichneKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Cairo.Render ()
 zeichneKurve radius winkel gleis = do
     -- Beschränkungen
     Cairo.moveTo 0 0
-    Cairo.lineTo 0 $ geradeHeight gleis
-    -- TODO zweite Beschränkung
+    Cairo.lineTo 0 $ beschränkung gleis
+    Cairo.moveTo begrenzungX0 begrenzungY0
+    Cairo.lineTo begrenzungX1 begrenzungY1
+    Cairo.stroke
     -- Gleis
     Cairo.arc 0 bogenZentrumY radiusAußen anfangsWinkel (anfangsWinkel + winkel)
     Cairo.stroke
     Cairo.arc 0 bogenZentrumY radiusInnen anfangsWinkel (anfangsWinkel + winkel)
     where
+        begrenzungX0 :: Double
+        begrenzungX0 = radiusBegrenzung * sin winkel
+
+        begrenzungY0 :: Double
+        begrenzungY0 = radiusBegrenzung * (1 - cos winkel)
+
+        begrenzungX1 :: Double
+        begrenzungX1 = begrenzungX0 - beschränkung gleis * sin winkel
+
+        begrenzungY1 :: Double
+        begrenzungY1 = begrenzungY0 + beschränkung gleis * cos winkel
+
         bogenZentrumY :: Double
         bogenZentrumY = abstand gleis + radiusAußen
 
@@ -221,6 +240,9 @@ zeichneKurve radius winkel gleis = do
 
         radiusAußen :: Double
         radiusAußen = radius + 0.5 * spurweite gleis
+
+        radiusBegrenzung :: Double
+        radiusBegrenzung = radiusAußen + abstand gleis
 
 {-
 H0 Spurweite: 16.5mm
