@@ -566,7 +566,7 @@ setupGUI maybeTVar = void $ do
             vBoxKupplungen <- atomically $ readTMVar tmvarVBoxKupplungen
             vBoxKontakte <- atomically $ readTMVar tmvarVBoxKontakte
             vBoxWegstrecken <- atomically $ readTMVar tmvarVBoxWegstrecken
-            vBoxPläne <- atomically $ readTMVar tmvarVBoxPlänePaned
+            vBoxPläne <- atomically $ readTMVar tmvarVBoxPläne
             functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End
                 $ Gtk.boxNew Gtk.OrientationHorizontal 0
             aktionBearbeiten <- flip runReaderT objektReader $ do
