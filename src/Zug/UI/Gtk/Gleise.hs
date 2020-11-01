@@ -103,18 +103,6 @@ gleisNew widthFn heightFn draw = do
                 min
                     (fromIntegral newWidth / fromIntegral width)
                     (fromIntegral newHeight / fromIntegral height)
-        liftIO
-            $ putStrLn
-            $ "draw: "
-            ++ show newWidth
-            ++ "/"
-            ++ show width
-            ++ ", "
-            ++ show newHeight
-            ++ "/"
-            ++ show height
-            ++ " -> "
-            ++ show scale
         Cairo.save
         Cairo.scale scale scale
         Cairo.setLineWidth 1
@@ -123,10 +111,6 @@ gleisNew widthFn heightFn draw = do
         Cairo.stroke
         Cairo.restore
         pure True
-    Gtk.onWidgetSizeAllocate drawingArea $ \rectangle -> do
-        newWidth <- Gdk.getRectangleWidth rectangle
-        newHeight <- Gdk.getRectangleHeight rectangle
-        putStrLn $ (show newWidth) ++ ", " ++ (show newHeight)
     pure gleis
 
 class Spurweite z where

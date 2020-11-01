@@ -586,7 +586,7 @@ setupGUI maybeTVar = void $ do
                 buttonLadenPack dynWindowMain functionBox maybeTVar End
                 buttonSpeichernPack dynWindowMain functionBox maybeTVar End
                 -- TODO Mitte (Test-Widget Cairo)
-                gleisNormal
+                _gleisNormal
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
                 gleisBig
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
