@@ -42,7 +42,6 @@ import System.IO.Unsafe (unsafeInterleaveIO)
 
 #ifdef ZUGKONTROLLEGUI
 import Zug.Anbindung (warte, Wartezeit(MilliSekunden))
-import Zug.Enums (Zugtyp(..))
 import Zug.Language (MitSprache(leseSprache), (<~>), (<|>))
 #else
 import Zug.Language (Sprache(..))
@@ -59,7 +58,7 @@ import qualified Zug.UI.Cmd as Cmd
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
-import Zug.UI.Gtk.Gleise (Gleis, geradeNew)
+import Zug.UI.Gtk.Gleise (gleisScale, märklin5106New)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
       , boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, Packing(..), packingDefault
@@ -586,9 +585,12 @@ setupGUI maybeTVar = void $ do
                     $ Gtk.mainQuit
                 buttonLadenPack dynWindowMain functionBox maybeTVar End
                 buttonSpeichernPack dynWindowMain functionBox maybeTVar End
-                -- Mitte (Test-Widget Cairo)
-                boxPackWidgetNew functionBox packingDefault paddingDefault End geradeNew
-                    :: (MonadIO m) => m (Gleis 'Märklin)
+                -- TODO Mitte (Test-Widget Cairo)
+                gleisNormal
+                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
+                gleisBig
+                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
+                gleisScale gleisBig 1.5
                 pure aktionBearbeitenReader
             atomically $ putTMVar tmvarAktionBearbeiten aktionBearbeiten
             checkButtonNotebook <- boxPackWidgetNewDefault functionBox

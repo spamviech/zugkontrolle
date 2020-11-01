@@ -45,6 +45,7 @@
         "Overlappable",
         "PLIO",
         "PWMTYP",
+        "Paintable",
         "Parens",
         "Posix",
         "Prec",
