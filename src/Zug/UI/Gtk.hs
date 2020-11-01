@@ -589,11 +589,9 @@ setupGUI maybeTVar = void $ do
                 gleisKlein
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
                 gleisScale gleisKlein 0.5
+                gleisRotate gleisKlein $ 0.05 * pi
                 _gleisNormal
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
-                gleisGedreht
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
-                gleisRotate gleisGedreht $ 0.2 -- 0.5 * pi
                 gleisGroß
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
                 gleisScale gleisGroß 1.5

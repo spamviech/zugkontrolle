@@ -116,29 +116,17 @@ gleisNew widthFn heightFn draw = do
         --         min
         --             (fromIntegral newWidth / fromIntegral width)
         --             (fromIntegral newHeight / fromIntegral height)
-        liftIO
-            $ putStrLn
-            $ show newWidth ++ ", " ++ show newHeight ++ " | " ++ show scale ++ ", " ++ show angle
+        -- liftIO
+        --     $ putStrLn
+        --     $ show newWidth ++ ", " ++ show newHeight ++ " | " ++ show scale ++ ", " ++ show angle
         -- end debugging
         Cairo.save
         let halfWidth = (0.5 * fromIntegral newWidth)
             halfHeight = (0.5 * fromIntegral newHeight)
         Cairo.translate halfWidth halfHeight
-        -- debugging
-        Cairo.save
-        Cairo.setSourceRGB 255 0 0
-        Cairo.moveTo 0 0
-        Cairo.lineTo 5 0
-        Cairo.stroke
-        Cairo.setSourceRGB 0 255 0
-        Cairo.moveTo 0 0
-        Cairo.lineTo 0 5
-        Cairo.stroke
-        Cairo.restore
-        -- end debugging
         Cairo.rotate angle
-        Cairo.translate (-halfWidth) (-halfHeight)
         Cairo.scale scale scale
+        Cairo.translate (-0.5 * fromIntegral width) (-0.5 * fromIntegral height)
         Cairo.setLineWidth 1
         Cairo.newPath
         draw gleis
@@ -170,11 +158,6 @@ geradeNew länge = gleisNew (const länge) (ceiling . geradeHeight) $ zeichneGer
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
 zeichneGerade :: (Spurweite z) => Double -> Gleis z -> Cairo.Render ()
 zeichneGerade länge gleis = do
-    p0 <- Cairo.userToDevice 0 0
-    p1 <- Cairo.userToDevice länge $ geradeHeight gleis
-    liftIO $ do
-        putStrLn $ "\t" ++ show p0
-        putStrLn $ "\t" ++ show p1
     -- Beschränkungen
     Cairo.moveTo 0 0
     Cairo.lineTo 0 $ geradeHeight gleis
