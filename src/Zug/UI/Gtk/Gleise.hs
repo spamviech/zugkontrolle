@@ -28,7 +28,6 @@ import Control.Monad.Trans (MonadIO(..))
 import Data.Int (Int32)
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
-import qualified GI.Gdk as Gdk
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..))
