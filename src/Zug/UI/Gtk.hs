@@ -587,13 +587,13 @@ setupGUI maybeTVar = void $ do
                 buttonSpeichernPack dynWindowMain functionBox maybeTVar End
                 -- TODO Mitte (Test-Widget Cairo)
                 gleisKlein
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
+                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5100New
                 gleisScale gleisKlein 0.5
                 gleisRotate gleisKlein $ 0.05 * pi
                 _gleisNormal
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5100New
                 gleisGroß
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
+                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5100New
                 gleisScale gleisGroß 1.5
                 pure aktionBearbeitenReader
             atomically $ putTMVar tmvarAktionBearbeiten aktionBearbeiten
