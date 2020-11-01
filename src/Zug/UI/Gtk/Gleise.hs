@@ -6,6 +6,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 #endif
 
 module Zug.UI.Gtk.Gleise
@@ -182,14 +183,20 @@ zeichneGerade länge gleis = do
         gleisUnten = geradeHeight gleis - abstand gleis
 
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
-kurveNew :: (MonadIO m, Spurweite z) => (forall n. Num n => n) -> (forall n. Num n => n) -> m (Gleis z)
-kurveNew radius winkel = gleisNew (const width) (const height) $ zeichneKurve radius $ pi * winkel / 180 
+kurveNew :: forall m z. (MonadIO m, Spurweite z) => (forall n. Num n => n) -> (forall n. Num n => n) -> m (Gleis z)
+kurveNew radius winkel = gleisNew width height $ zeichneKurve radius winkelBogenmaß
     where
-        -- TODO für äußeren Kurvenradius
-        width :: Int32
-        width = 200 -- _
-        height :: Int32
-        height = 180 -- _
+        -- Märklin verwendet mittleren Kurvenradius
+        -- http://www.modellbau-wiki.de/wiki/Gleisradius
+        radiusBegrenzung :: Gleis z -> Double
+        radiusBegrenzung gleis = radius + 0.5 * spurweite gleis + abstand gleis
+        -- TODO Winkel >90°
+        width :: Gleis z -> Int32
+        width gleis = ceiling $ radiusBegrenzung gleis * cos winkelBogenmaß
+        height :: Gleis z -> Int32
+        height gleis = ceiling $ radiusBegrenzung gleis * (1 - sin winkelBogenmaß)
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
 zeichneKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Cairo.Render ()
@@ -210,11 +217,10 @@ zeichneKurve radius winkel gleis = do
         anfangsWinkel = 3 * pi / 2
 
         radiusInnen :: Double
-        radiusInnen = radius
+        radiusInnen = radius - 0.5 * spurweite gleis
 
         radiusAußen :: Double
-        radiusAußen = radius + spurweite gleis
--- TODO ist es mittlerer, innerer, äußerer Kurvenradius?
+        radiusAußen = radius + 0.5 * spurweite gleis
 
 {-
 H0 Spurweite: 16.5mm
