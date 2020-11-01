@@ -3,16 +3,17 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BlockArguments #-}
 
 {-|
 Description : Starte Main-Loop für Kommandozeilen-basiertes UI.
 -}
-module Zug.UI.Cmd (
-    main,
+module Zug.UI.Cmd
+  ( main
 #ifndef ZUGKONTROLLESILENCE
-    mainStatus
+  , mainStatus
 #endif
-    ) where
+  ) where
 
 #ifndef ZUGKONTROLLESILENCE
 import Control.Monad (unless, void)
@@ -54,14 +55,14 @@ main =
 #ifdef ZUGKONTROLLESILENCE
     Gtk.main
 #else
-    do
-        -- Lade Datei angegeben in Kommandozeilenargument
-        Options {load = path, sprache} <- getOptions
-        Save.laden path pure sprache >>= \case
-            Nothing -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
-            (Just anfangsZustand) -> do
-                tvarMaps <- tvarMapsNeu
-                void $ evalRWST mainStatus tvarMaps anfangsZustand
+        do
+            -- Lade Datei angegeben in Kommandozeilenargument
+            Options {load = path, sprache} <- getOptions
+            Save.laden path pure sprache >>= \case
+                Nothing -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
+                (Just anfangsZustand) -> do
+                    tvarMaps <- tvarMapsNeu
+                    void $ evalRWST mainStatus tvarMaps anfangsZustand
 
 -- | main loop
 mainStatus :: IOStatus ()
@@ -198,3 +199,4 @@ promptS s = getSprache >>= liftIO . prompt . s
 fehlerhafteEingabeS :: (Sprache -> Text) -> IOStatus ()
 fehlerhafteEingabeS s = getSprache >>= liftIO . (fehlerhafteEingabe $# s)
 #endif
+

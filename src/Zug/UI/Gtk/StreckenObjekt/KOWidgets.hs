@@ -193,10 +193,7 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     let justTVarSprache = Just koTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT
-            m
-            o
-            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget
         <- hinzufügenWidgetWegstreckePackNew kontakt koTVarSprache fortfahrenWennToggledWegstrecke
     hinzufügenPlanWidget
