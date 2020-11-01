@@ -24,9 +24,9 @@ module Zug.UI.Gtk.Gleise
   , kurveNew
     -- ** Märklin H0 (M-Gleise)
     -- *** Gerade
-  , märklin5106New
+  , märklinGerade5106New
     -- *** Kurve
-  , märklin5100New
+  , märklinKurve5100New
     -- *** Weiche
     -- ** Lego (9V Gleise)
   , legoGeradeNew
@@ -262,11 +262,11 @@ Weiche (5140 L/R): 30°, Rin360mm, Rout77.4mm
 Kreuzung (5128): L193mm, 30°
 Kreuzung (5207): L180mm, 24,28°, R427.4mm
 -}
-märklin5106New :: (MonadIO m) => m (Gleis 'Märklin)
-märklin5106New = geradeNew 180
+märklinGerade5106New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5106New = geradeNew 180
 
-märklin5100New :: (MonadIO m) => m (Gleis 'Märklin)
-märklin5100New = kurveNew 360 30
+märklinKurve5100New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5100New = kurveNew 360 30
 
 {-
 Lego Spurweite: 38mm
