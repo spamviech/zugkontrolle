@@ -58,7 +58,7 @@ import qualified Zug.UI.Cmd as Cmd
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
-import Zug.UI.Gtk.Gleise (gleisScale, märklin5106New)
+import Zug.UI.Gtk.Gleise (gleisRotate, gleisScale, märklin5106New)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
       , boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, Packing(..), packingDefault
@@ -591,6 +591,9 @@ setupGUI maybeTVar = void $ do
                 gleisScale gleisKlein 0.5
                 _gleisNormal
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
+                gleisGedreht
+                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
+                gleisRotate gleisGedreht $ 0.2 -- 0.5 * pi
                 gleisGroß
                     <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklin5106New
                 gleisScale gleisGroß 1.5

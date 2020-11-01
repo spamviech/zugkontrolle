@@ -17,6 +17,7 @@ module Zug.UI.Gtk.Gleise
   , gleisScale
   , gleisSetWidth
   , gleisSetHeight
+  , gleisRotate
     -- * Konstruktoren
   , geradeNew
     -- ** Märklin H0 (M-Gleise)
@@ -27,7 +28,8 @@ module Zug.UI.Gtk.Gleise
   ) where
 
 #ifdef ZUGKONTROLLEGUI
-import Control.Monad.Trans (MonadIO(..))
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Int (Int32)
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
@@ -39,18 +41,32 @@ import Zug.UI.Gtk.Klassen (MitWidget(..))
 -- | 'Gtk.Widget' von einem Gleis.
 -- Die Größe wird nur über 'gleisScale', 'gleisSetWidth' und 'gleisSetHeight' verändert.
 data Gleis (z :: Zugtyp) =
-    Gleis { drawingArea :: Gtk.DrawingArea, width :: Int32, height :: Int32 }
+    Gleis
+    { drawingArea :: Gtk.DrawingArea
+    , width :: Int32
+    , height :: Int32
+    , tvarScale :: TVar Double
+    , tvarAngle :: TVar Double
+    }
 
 instance MitWidget (Gleis z) where
     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
     erhalteWidget = Gtk.toWidget . drawingArea
 
+gleisAdjustSizeRequest :: (MonadIO m) => Gleis z -> m ()
+gleisAdjustSizeRequest Gleis {drawingArea, width, height, tvarScale, tvarAngle} = do
+    (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
+    let newWidth = scale * (fromIntegral width)
+        newHeight = scale * (fromIntegral height)
+        adjustedWidth = ceiling $ abs (newWidth * cos angle) + abs (newHeight * sin angle)
+        adjustedHeight = ceiling $ abs (newHeight * cos angle) + abs (newWidth * sin angle)
+    Gtk.widgetSetSizeRequest drawingArea adjustedWidth adjustedHeight
+
 -- | Skaliere das 'Gleis' mit dem angegebenen Faktor.
 gleisScale :: (MonadIO m) => Gleis z -> Double -> m ()
-gleisScale Gleis {drawingArea, width, height} scale = do
-    let newWidth = ceiling $ scale * (fromIntegral width)
-        newHeight = ceiling $ scale * (fromIntegral height)
-    Gtk.widgetSetSizeRequest drawingArea newWidth newHeight
+gleisScale gleis@Gleis {tvarScale} scale = do
+    liftIO $ atomically $ writeTVar tvarScale scale
+    gleisAdjustSizeRequest gleis
 
 -- | Ändere die Breite des 'Gleis'es zum angegebenen Wert.
 -- Die Höhe wird bei konstantem Längenverhältnis angepasst.
@@ -64,6 +80,13 @@ gleisSetHeight :: (MonadIO m) => Gleis z -> Int32 -> m ()
 gleisSetHeight gleis@Gleis {height} newHeight =
     gleisScale gleis $ fromIntegral newHeight / fromIntegral height
 
+-- | Rotation um den angegebenen /winkel/ im Gradmaß.
+-- Die Rotation ist im Uhrzeigersinn (siehe 'Cairo.rotate').
+gleisRotate :: (MonadIO m) => Gleis z -> Double -> m ()
+gleisRotate gleis@Gleis {tvarAngle} angle = do
+    liftIO $ atomically $ writeTVar tvarAngle angle
+    gleisAdjustSizeRequest gleis
+
 -- | Create a new 'Gtk.DrawingArea' with a fixed size set up with the specified 'Cairo.Render' /draw/ path.
 --
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
@@ -75,7 +98,8 @@ gleisNew :: (MonadIO m)
          -> m (Gleis z)
 gleisNew widthFn heightFn draw = do
     drawingArea <- Gtk.drawingAreaNew
-    let gleis = Gleis { drawingArea, width, height }
+    (tvarScale, tvarAngle) <- liftIO $ (,) <$> newTVarIO 1 <*> newTVarIO 0
+    let gleis = Gleis { drawingArea, width, height, tvarScale, tvarAngle }
         width = widthFn gleis
         height = heightFn gleis
     Gtk.widgetSetHexpand drawingArea False
@@ -84,13 +108,36 @@ gleisNew widthFn heightFn draw = do
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
     gleisScale gleis 1
     Gtk.onWidgetDraw drawingArea $ Cairo.renderWithContext $ do
+        (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
+        -- debugging
         newWidth <- Gtk.widgetGetAllocatedWidth drawingArea
         newHeight <- Gtk.widgetGetAllocatedHeight drawingArea
-        let scale =
-                min
-                    (fromIntegral newWidth / fromIntegral width)
-                    (fromIntegral newHeight / fromIntegral height)
+        -- let scale =
+        --         min
+        --             (fromIntegral newWidth / fromIntegral width)
+        --             (fromIntegral newHeight / fromIntegral height)
+        liftIO
+            $ putStrLn
+            $ show newWidth ++ ", " ++ show newHeight ++ " | " ++ show scale ++ ", " ++ show angle
+        -- end debugging
         Cairo.save
+        let halfWidth = (0.5 * fromIntegral newWidth)
+            halfHeight = (0.5 * fromIntegral newHeight)
+        Cairo.translate halfWidth halfHeight
+        -- debugging
+        Cairo.save
+        Cairo.setSourceRGB 255 0 0
+        Cairo.moveTo 0 0
+        Cairo.lineTo 5 0
+        Cairo.stroke
+        Cairo.setSourceRGB 0 255 0
+        Cairo.moveTo 0 0
+        Cairo.lineTo 0 5
+        Cairo.stroke
+        Cairo.restore
+        -- end debugging
+        Cairo.rotate angle
+        Cairo.translate (-halfWidth) (-halfHeight)
         Cairo.scale scale scale
         Cairo.setLineWidth 1
         Cairo.newPath
@@ -123,6 +170,11 @@ geradeNew länge = gleisNew (const länge) (ceiling . geradeHeight) $ zeichneGer
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
 zeichneGerade :: (Spurweite z) => Double -> Gleis z -> Cairo.Render ()
 zeichneGerade länge gleis = do
+    p0 <- Cairo.userToDevice 0 0
+    p1 <- Cairo.userToDevice länge $ geradeHeight gleis
+    liftIO $ do
+        putStrLn $ "\t" ++ show p0
+        putStrLn $ "\t" ++ show p1
     -- Beschränkungen
     Cairo.moveTo 0 0
     Cairo.lineTo 0 $ geradeHeight gleis
