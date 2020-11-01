@@ -20,8 +20,13 @@ module Zug.UI.Gtk.Gleise
   , gleisRotate
     -- * Konstruktoren
   , geradeNew
+  , kurveNew
     -- ** Märklin H0 (M-Gleise)
+    -- *** Gerade
   , märklin5106New
+    -- *** Kurve
+  , märklin5100New
+    -- *** Weiche
     -- ** Lego (9V Gleise)
   , legoGeradeNew
 #endif
@@ -152,6 +157,7 @@ abstand gleis = spurweite gleis / 3
 geradeHeight :: (Spurweite z) => Gleis z -> Double
 geradeHeight gleis = spurweite gleis + 2 * abstand gleis
 
+-- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => (forall n. Num n => n) -> m (Gleis z)
 geradeNew länge = gleisNew (const länge) (ceiling . geradeHeight) $ zeichneGerade länge
 
@@ -175,6 +181,41 @@ zeichneGerade länge gleis = do
         gleisUnten :: Double
         gleisUnten = geradeHeight gleis - abstand gleis
 
+-- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
+kurveNew :: (MonadIO m, Spurweite z) => (forall n. Num n => n) -> (forall n. Num n => n) -> m (Gleis z)
+kurveNew radius winkel = gleisNew (const width) (const height) $ zeichneKurve radius $ pi * winkel / 180 
+    where
+        -- TODO für äußeren Kurvenradius
+        width :: Int32
+        width = 200 -- _
+        height :: Int32
+        height = 180 -- _
+
+-- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
+zeichneKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Cairo.Render ()
+zeichneKurve radius winkel gleis = do
+    -- Beschränkungen
+    Cairo.moveTo 0 0
+    Cairo.lineTo 0 $ geradeHeight gleis
+    -- TODO zweite Beschränkung
+    -- Gleis
+    Cairo.arc 0 bogenZentrumY radiusAußen anfangsWinkel (anfangsWinkel + winkel)
+    Cairo.stroke
+    Cairo.arc 0 bogenZentrumY radiusInnen anfangsWinkel (anfangsWinkel + winkel)
+    where
+        bogenZentrumY :: Double
+        bogenZentrumY = abstand gleis + radiusAußen
+
+        anfangsWinkel :: Double
+        anfangsWinkel = 3 * pi / 2
+
+        radiusInnen :: Double
+        radiusInnen = radius
+
+        radiusAußen :: Double
+        radiusAußen = radius + spurweite gleis
+-- TODO ist es mittlerer, innerer, äußerer Kurvenradius?
+
 {-
 H0 Spurweite: 16.5mm
 Gerade (5106): L180mm
@@ -189,6 +230,9 @@ Kreuzung (5207): L180mm, 24,28°, R427.4mm
 -}
 märklin5106New :: (MonadIO m) => m (Gleis 'Märklin)
 märklin5106New = geradeNew 180
+
+märklin5100New :: (MonadIO m) => m (Gleis 'Märklin)
+märklin5100New = kurveNew 360 30
 
 {-
 Lego Spurweite: 38mm
