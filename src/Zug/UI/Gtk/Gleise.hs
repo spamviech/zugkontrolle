@@ -279,8 +279,7 @@ weicheLinksNew länge radius winkel =
     gleisNew (widthWeiche länge radius winkelBogenmaß) (heightWeiche radius winkelBogenmaß)
     $ \gleis -> do
         Cairo.translate (halfWidth gleis) (halfHeight gleis)
-        Matrix a1 a2 b1 b2 c1 c2 <- Cairo.getMatrix
-        Cairo.setMatrix $ Matrix a1 (-a2) b1 (-b2) c1 c2
+        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
         Cairo.translate (-halfWidth gleis) (-halfHeight gleis)
         zeichneGerade länge gleis
         Cairo.stroke
