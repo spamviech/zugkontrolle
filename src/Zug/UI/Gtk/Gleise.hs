@@ -27,7 +27,12 @@ module Zug.UI.Gtk.Gleise
   , märklinGerade5106New
     -- *** Kurve
   , märklinKurve5100New
+  , märklinKurve5120New
+  , märklinKurve5200New
+  , märklinKurve5206New
     -- *** Weiche
+  , märklinWeicheRechts5137New
+  , märklinWeicheLinks5137New
   , märklinWeicheRechts5202New
   , märklinWeicheLinks5202New
     -- ** Lego (9V Gleise)
@@ -300,26 +305,51 @@ Gerade (5106): L180mm
 Kurve (5120): 45°, R286mm
 Kurve (5100): 30°, R360mm
 Kurve (5200): 30°, R437.4mm
-Kurve (5206): 24.28°, R427.4mm
-Weiche (5202 L/R): L180mm, 24,28°, 427.4mm
+Kurve (5206): 24.28°, R437.4mm
+Weiche (5137 L/R): L180mm, 22.5°, R437.4mm
+Weiche (5202 L/R): L180mm, 24.28°, R437.4mm
 Weiche (5140 L/R): 30°, Rin360mm, Rout77.4mm
 Kreuzung (5128): L193mm, 30°
-Kreuzung (5207): L180mm, 24,28°, R427.4mm
+Kreuzung (5207): L180mm, 24.28°, R437.4mm
 -}
+märklinRIndustrie :: Double
+märklinRIndustrie = 286
+
+märklinR1 :: Double
+märklinR1 = 360
+
+märklinR2 :: Double
+märklinR2 = 437.4
+
 märklinGerade5106New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinGerade5106New = geradeNew 180
 
 märklinKurve5100New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5100New = kurveNew 360 30
+märklinKurve5100New = kurveNew märklinR1 30
+
+märklinKurve5120New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5120New = kurveNew märklinRIndustrie 45
+
+märklinKurve5200New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5200New = kurveNew märklinR2 30
+
+märklinKurve5206New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5206New = kurveNew märklinR2 24.28
+
+märklinWeicheRechts5137New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinWeicheRechts5137New = weicheRechtsNew 180 märklinR2 22.5
+
+märklinWeicheLinks5137New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinWeicheLinks5137New = weicheLinksNew 180 märklinR2 22.5
 
 märklinWeicheRechts5202New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheRechts5202New = weicheRechtsNew 180 427.4 24.28
+märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
 
 märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheLinks5202New = weicheLinksNew 180 427.4 24.28
+märklinWeicheLinks5202New = weicheLinksNew 180 märklinR2 24.28
 
 testGleisNew :: (MonadIO m) => m (Gleis 'Märklin)
-testGleisNew = märklinWeicheLinks5202New
+testGleisNew = märklinWeicheLinks5137New
 
 {-
 Lego Spurweite: 38mm
