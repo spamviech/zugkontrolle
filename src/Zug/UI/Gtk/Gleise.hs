@@ -314,7 +314,7 @@ Kurve (5206): 24.28°, R437.4mm
 Weiche (5117 L/R): L180mm, 30°, R437.4mm
 Weiche (5137 L/R): L180mm, 22.5°, R437.4mm
 Weiche (5202 L/R): L180mm, 24.28°, R437.4mm
-Weiche (5140 L/R): 30°, Rin360mm, Rout77.4mm
+Weiche (5140 L/R): 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 Kreuzung (5128): L193mm, 30°
 Kreuzung (5207): L180mm, 24.28°, R437.4mm
 -}
@@ -342,17 +342,18 @@ märklinKurve5200New = kurveNew märklinR2 30
 märklinKurve5206New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5206New = kurveNew märklinR2 24.28
 
+-- TODO Kurvenradien bei Weichen?
 märklinWeicheRechts5117New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheRechts5117New = weicheRechtsNew 180 märklinR2 30
+märklinWeicheRechts5117New = weicheRechtsNew 180 märklinR1 30
 
 märklinWeicheLinks5117New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheLinks5117New = weicheLinksNew 180 märklinR2 30
+märklinWeicheLinks5117New = weicheLinksNew 180 märklinR1 30
 
 märklinWeicheRechts5137New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheRechts5137New = weicheRechtsNew 180 märklinR2 22.5
+märklinWeicheRechts5137New = weicheRechtsNew 180 märklinR1 22.5
 
 märklinWeicheLinks5137New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheLinks5137New = weicheLinksNew 180 märklinR2 22.5
+märklinWeicheLinks5137New = weicheLinksNew 180 märklinR1 22.5
 
 märklinWeicheRechts5202New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
