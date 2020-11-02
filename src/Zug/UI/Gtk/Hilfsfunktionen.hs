@@ -33,6 +33,8 @@ module Zug.UI.Gtk.Hilfsfunktionen
   , positionDefault
     -- * Notebook
   , notebookAppendPageNew
+  -- * Fixed
+  , fixedPutWidgetNew
     -- * Dialog
   , dialogGetUpper
   , dialogEval
@@ -68,7 +70,7 @@ import qualified Zug.Language as Language
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), MitContainer(..)
       , mitContainerAdd, mitContainerRemove, MitButton(..), MitToggleButton(..), MitDialog(..)
-      , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage)
+      , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage, MitFixed(), mitFixedPut)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui, TVarSprachewechselAktionen)
 
 -- | 'Widget' erstellen und anzeigen
@@ -85,7 +87,7 @@ containerAddWidgetNew container konstruktor = do
     mitContainerAdd container widget
     pure widget
 
--- | 'Widget' in eine 'Box' packen
+-- | 'MitWidget' in eine 'MitBox' packen.
 boxPack :: (MonadIO m, MitBox b, MitWidget w) => b -> w -> Packing -> Padding -> Position -> m ()
 boxPack box widget packing padding position =
     liftIO
@@ -97,7 +99,7 @@ boxPack box widget packing padding position =
         boxPackPosition Start = mitBoxPackStart
         boxPackPosition End = mitBoxPackEnd
 
--- | Neu erstelltes Widget in eine Box packen
+-- | Neu erstelltes 'MitWidget' in eine 'MitBox' packen.
 boxPackWidgetNew
     :: (MonadIO m, MitBox b, MitWidget w) => b -> Packing -> Padding -> Position -> m w -> m w
 boxPackWidgetNew box packing padding start konstruktor = do
@@ -146,7 +148,7 @@ data Position
 positionDefault :: Position
 positionDefault = Start
 
--- | Neu erstelltes Widget mit Standard Packing, Padding und Positionierung in eine Box packen
+-- | Neu erstelltes 'MitWidget' mit Standard 'Packing', 'Padding' und 'Position'ierung in eine 'MitBox' packen
 boxPackWidgetNewDefault :: (MonadIO m, MitBox b, MitWidget w) => b -> m w -> m w
 boxPackWidgetNewDefault box = boxPackWidgetNew box packingDefault paddingDefault positionDefault
 
@@ -173,6 +175,13 @@ notebookAppendPageNew mitNotebook maybeTVar name konstruktor = do
     verwendeSpracheGui maybeTVar
         $ \sprache -> Gtk.notebookSetMenuLabelText notebook widget $ name sprache
     pure (mitWidget, page)
+
+-- | Neu erstelltes 'MitWidget' zu einem 'MitFixed' hinzufügen.
+fixedPutWidgetNew :: (MonadIO m, MitFixed f, MitWidget w) => f -> Int32 -> Int32 -> m w -> m w
+fixedPutWidgetNew fixed x y konstruktor= do
+    widget <- widgetShowNew konstruktor
+    mitFixedPut fixed widget x y
+    pure widget
 
 -- | Entferne ein vielleicht vorhandenes 'MitWidget' aus einem 'MitContainer'
 containerRemoveJust :: (MonadIO m, MitContainer c, MitWidget w) => c -> Maybe w -> m ()

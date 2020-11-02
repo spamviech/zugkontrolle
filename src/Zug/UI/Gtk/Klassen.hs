@@ -120,14 +120,14 @@ mitGridAttachNextTo mitGrid mitWidget maybeSibling position width height = liftI
 
 erzeugeKlasse ["Widget", "Container"] "Fixed"
 
--- | Füge ein 'MitWidget' an den spezifizierten Koordinaten zu einem 'MitFixed' hinzu
+-- | Füge ein 'MitWidget' an den spezifizierten Koordinaten zu einem 'MitFixed' hinzu.
 mitFixedPut :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int32 -> Int32 -> m ()
 mitFixedPut mitFixed mitWidget x y = liftIO $ do
     fixed <- erhalteFixed mitFixed
     widget <- erhalteWidget mitWidget
     Gtk.fixedPut fixed widget x y
 
--- | Bewege ein 'MitWidget' zu den spezifizierten Koordinaten ein einem 'MitFixed'
+-- | Bewege ein 'MitWidget' zu den spezifizierten Koordinaten ein einem 'MitFixed'.
 mitFixedMove :: (MonadIO m, MitFixed f, MitWidget w) => f -> w -> Int32 -> Int32 -> m ()
 mitFixedMove mitFixed mitWidget x y = liftIO $ do
     fixed <- erhalteFixed mitFixed

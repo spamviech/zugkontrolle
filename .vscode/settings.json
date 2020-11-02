@@ -123,6 +123,7 @@
         "harfbuzz",
         "hlint",
         "hspec",
+        "ierung",
         "ifdef",
         "ifndef",
         "infixr",

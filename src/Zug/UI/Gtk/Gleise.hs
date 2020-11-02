@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 #ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE KindSignatures #-}
@@ -21,7 +22,7 @@ module Zug.UI.Gtk.Gleise
     -- * Konstruktoren
   , geradeNew
   , kurveNew
-  , testGleisNew
+  , gleisAnzeigeNew
     -- ** Märklin H0 (M-Gleise)
     -- *** Gerade
   , märklinGerade5106New
@@ -42,6 +43,7 @@ module Zug.UI.Gtk.Gleise
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
+import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Int (Int32)
 import qualified GI.Cairo.Render as Cairo
@@ -50,6 +52,7 @@ import GI.Cairo.Render.Matrix (Matrix(Matrix))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..))
+import Zug.UI.Gtk.Hilfsfunktionen (fixedPutWidgetNew)
 import Zug.UI.Gtk.Klassen (MitWidget(..))
 
 -- | 'Gtk.Widget' von einem Gleis.
@@ -348,8 +351,34 @@ märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
 märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheLinks5202New = weicheLinksNew 180 märklinR2 24.28
 
-testGleisNew :: (MonadIO m) => m (Gleis 'Märklin)
-testGleisNew = märklinWeicheLinks5137New
+gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
+gleisAnzeigeNew = do
+    fixed <- Gtk.fixedNew
+    (width, height) <- foldM
+        (putWithHeight fixed)
+        (0, padding)
+        [ märklinGerade5106New
+        , märklinKurve5100New
+        , märklinKurve5120New
+        , märklinKurve5200New
+        , märklinKurve5206New
+        , märklinWeicheRechts5137New
+        , märklinWeicheLinks5137New
+        , märklinWeicheRechts5202New
+        , märklinWeicheLinks5202New]
+    Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)
+    pure fixed
+    where
+        padding :: Int32
+        padding = 5
+        putWithHeight :: (MonadIO m)
+                      => Gtk.Fixed
+                      -> (Int32, Int32)
+                      -> m (Gleis 'Märklin)
+                      -> m (Int32, Int32)
+        putWithHeight fixed (maxWidth, y) konstruktor = do
+            Gleis {width, height} <- fixedPutWidgetNew fixed padding y konstruktor
+            pure (max width maxWidth, y + height + padding)
 
 {-
 Lego Spurweite: 38mm
@@ -357,3 +386,4 @@ Lego Spurweite: 38mm
 legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
 legoGeradeNew = geradeNew $ error "Geraden-Länge"
 #endif
+

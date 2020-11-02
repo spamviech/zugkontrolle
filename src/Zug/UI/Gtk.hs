@@ -58,13 +58,13 @@ import qualified Zug.UI.Cmd as Cmd
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
-import Zug.UI.Gtk.Gleise (gleisRotate, gleisScale, testGleisNew)
+import Zug.UI.Gtk.Gleise (gleisAnzeigeNew)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
       , boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, Packing(..), packingDefault
       , paddingDefault, Position(..), positionDefault, notebookAppendPageNew, labelSpracheNew
       , toggleButtonNewWithEvent)
-import Zug.UI.Gtk.Klassen (mitContainerRemove)
+import Zug.UI.Gtk.Klassen (mitNotebookSetCurrentPage, mitContainerRemove)
 import Zug.UI.Gtk.ScrollbaresWidget (scrollbaresWidgetNew)
 import Zug.UI.Gtk.SpracheGui
        (spracheGuiNeu, verwendeSpracheGuiFn, sprachwechsel, TVarSprachewechselAktionen)
@@ -161,6 +161,7 @@ setupGUI maybeTVar = void $ do
     tmvarVBoxKontakteEinzel <- newEmptyTMVarIO
     tmvarVBoxWegstreckenEinzel <- newEmptyTMVarIO
     tmvarVBoxPläneEinzel <- newEmptyTMVarIO
+    tmvarVBoxGleiseEinzel <- newEmptyTMVarIO
     let aktionNotebookElementeEinzel = do
             notebookElementeEinzel
                 <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
@@ -203,6 +204,12 @@ setupGUI maybeTVar = void $ do
                     <- notebookAppendPageNew notebookElementeEinzel maybeTVar Language.pläne
                     $ Gtk.boxNew Gtk.OrientationVertical 0
                 liftIO $ atomically $ putTMVar tmvarVBoxPläneEinzel vBoxPläneEinzel
+                -- TODO Gleise
+                (vBoxGleiseEinzel, pageGleise)
+                    <- notebookAppendPageNew notebookElementeEinzel maybeTVar (const "Gleise")
+                    $ Gtk.boxNew Gtk.OrientationVertical 0
+                liftIO $ atomically $ putTMVar tmvarVBoxGleiseEinzel vBoxGleiseEinzel
+                mitNotebookSetCurrentPage notebookElementeEinzel pageGleise
     -- Paned-Variante
     tmvarNotebookElementePaned <- newEmptyTMVarIO
     tmvarVBoxBahngeschwindigkeitenPaned <- newEmptyTMVarIO
@@ -212,6 +219,7 @@ setupGUI maybeTVar = void $ do
     tmvarVBoxKontaktePaned <- newEmptyTMVarIO
     tmvarVBoxWegstreckenPaned <- newEmptyTMVarIO
     tmvarVBoxPlänePaned <- newEmptyTMVarIO
+    tmvarVBoxGleisePaned <- newEmptyTMVarIO
     tmvarVBoxBahngeschwindigkeiten <- newEmptyTMVarIO
     tmvarVBoxStreckenabschnitte <- newEmptyTMVarIO
     tmvarVBoxWeichen <- newEmptyTMVarIO
@@ -219,6 +227,7 @@ setupGUI maybeTVar = void $ do
     tmvarVBoxKontakte <- newEmptyTMVarIO
     tmvarVBoxWegstrecken <- newEmptyTMVarIO
     tmvarVBoxPläne <- newEmptyTMVarIO
+    tmvarGleisAnzeige <- newEmptyTMVarIO
     let aktionNotebookElementePaned = do
             notebookElementePaned
                 <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
@@ -353,6 +362,17 @@ setupGUI maybeTVar = void $ do
                 $ scrollbaresWidgetNew
                 $ Gtk.boxNew Gtk.OrientationVertical 0
             atomically $ putTMVar tmvarVBoxPläne vBoxPläne
+            -- TODO Gleise
+            (vBoxGleisePaned, pageGleise) <- flip runReaderT spracheGui
+                $ notebookAppendPageNew notebookElementePaned maybeTVar (const "Gleise")
+                $ Gtk.boxNew Gtk.OrientationVertical 0
+            liftIO $ atomically $ putTMVar tmvarVBoxGleisePaned vBoxGleisePaned
+            mitNotebookSetCurrentPage notebookElementePaned pageGleise
+            gleisAnzeige
+                <- boxPackWidgetNew vBoxGleisePaned PackGrow paddingDefault positionDefault
+                $ scrollbaresWidgetNew
+                $ gleisAnzeigeNew
+            atomically $ putTMVar tmvarGleisAnzeige gleisAnzeige
             -- Paned mittig setzten
             Gdk.displayGetDefault >>= \case
                 (Just display) -> Gtk.getWidgetWindow dynWindowMain >>= \case
@@ -567,6 +587,10 @@ setupGUI maybeTVar = void $ do
             vBoxKontakte <- atomically $ readTMVar tmvarVBoxKontakte
             vBoxWegstrecken <- atomically $ readTMVar tmvarVBoxWegstrecken
             vBoxPläne <- atomically $ readTMVar tmvarVBoxPläne
+            -- TODO Gleise
+            vBoxGleiseEinzel <- atomically $ readTMVar tmvarVBoxGleiseEinzel
+            vBoxGleisePaned <- atomically $ readTMVar tmvarVBoxGleisePaned
+            gleisAnzeige <- atomically $ readTMVar tmvarGleisAnzeige
             functionBox <- boxPackWidgetNew vBox PackNatural paddingDefault End
                 $ Gtk.boxNew Gtk.OrientationHorizontal 0
             aktionBearbeiten <- flip runReaderT objektReader $ do
@@ -585,14 +609,6 @@ setupGUI maybeTVar = void $ do
                     $ Gtk.mainQuit
                 buttonLadenPack dynWindowMain functionBox maybeTVar End
                 buttonSpeichernPack dynWindowMain functionBox maybeTVar End
-                -- TODO Mitte (Test-Widget Cairo)
-                gleisKlein <- boxPackWidgetNew functionBox PackGrow paddingDefault End testGleisNew
-                gleisScale gleisKlein 0.5
-                gleisRotate gleisKlein $ 0.75 * pi
-                _gleisNormal
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End testGleisNew
-                gleisGroß <- boxPackWidgetNew functionBox PackGrow paddingDefault End testGleisNew
-                gleisScale gleisGroß 1.5
                 pure aktionBearbeitenReader
             atomically $ putTMVar tmvarAktionBearbeiten aktionBearbeiten
             checkButtonNotebook <- boxPackWidgetNewDefault functionBox
@@ -653,6 +669,14 @@ setupGUI maybeTVar = void $ do
                                 PackGrow
                                 paddingDefault
                                 positionDefault
+                            -- TODO Gleise
+                            mitContainerRemove vBoxGleisePaned gleisAnzeige
+                            boxPack
+                                vBoxGleiseEinzel
+                                gleisAnzeige
+                                PackGrow
+                                paddingDefault
+                                positionDefault
                         else do
                             mitContainerRemove
                                 vBoxBahngeschwindigkeitenEinzel
@@ -702,6 +726,14 @@ setupGUI maybeTVar = void $ do
                             boxPack
                                 vBoxPlänePaned
                                 vBoxPläne
+                                PackGrow
+                                paddingDefault
+                                positionDefault
+                            -- TODO Gleise
+                            mitContainerRemove vBoxGleiseEinzel gleisAnzeige
+                            boxPack
+                                vBoxGleisePaned
+                                gleisAnzeige
                                 PackGrow
                                 paddingDefault
                                 positionDefault
