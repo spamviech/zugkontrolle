@@ -28,6 +28,8 @@ module Zug.UI.Gtk.Gleise
     -- *** Kurve
   , märklinKurve5100New
     -- *** Weiche
+  , märklinWeicheRechts5202New
+  , märklinWeicheLinks5202New
     -- ** Lego (9V Gleise)
   , legoGeradeNew
 #endif
@@ -39,6 +41,7 @@ import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Int (Int32)
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
+import GI.Cairo.Render.Matrix (Matrix(Matrix))
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..))
@@ -158,6 +161,21 @@ abstand gleis = spurweite gleis / 3
 beschränkung :: (Spurweite z) => Gleis z -> Double
 beschränkung gleis = spurweite gleis + 2 * abstand gleis
 
+-- Märklin verwendet mittleren Kurvenradius
+-- http://www.modellbau-wiki.de/wiki/Gleisradius
+radiusBegrenzung :: (Spurweite z) => Double -> Gleis z -> Double
+radiusBegrenzung radius gleis = radius + 0.5 * spurweite gleis + abstand gleis
+
+widthKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
+widthKurve radius winkelBogenmaß gleis =
+    ceiling $ radiusBegrenzung radius gleis * sin winkelBogenmaß
+
+heightKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
+heightKurve radius winkelBogenmaß gleis =
+    ceiling
+    $ radiusBegrenzung radius gleis * (1 - cos winkelBogenmaß)
+    + beschränkung gleis * cos winkelBogenmaß
+
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
 geradeNew länge =
@@ -185,23 +203,10 @@ zeichneGerade länge gleis = do
 
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
-kurveNew radius winkel = gleisNew width height $ zeichneKurve radius winkelBogenmaß
+kurveNew radius winkel =
+    gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß)
+    $ zeichneKurve radius winkelBogenmaß
     where
-        -- Märklin verwendet mittleren Kurvenradius
-        -- http://www.modellbau-wiki.de/wiki/Gleisradius
-        radiusBegrenzung :: Gleis z -> Double
-        radiusBegrenzung gleis = radius + 0.5 * spurweite gleis + abstand gleis
-
-        -- TODO Winkel >90°
-        width :: Gleis z -> Int32
-        width gleis = ceiling $ radiusBegrenzung gleis * sin winkelBogenmaß
-
-        height :: Gleis z -> Int32
-        height gleis =
-            ceiling
-            $ radiusBegrenzung gleis * (1 - cos winkelBogenmaß)
-            + beschränkung gleis * cos winkelBogenmaß
-
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
@@ -220,10 +225,10 @@ zeichneKurve radius winkel gleis = do
     Cairo.arc 0 bogenZentrumY radiusInnen anfangsWinkel (anfangsWinkel + winkel)
     where
         begrenzungX0 :: Double
-        begrenzungX0 = radiusBegrenzung * sin winkel
+        begrenzungX0 = radiusBegrenzungAußen * sin winkel
 
         begrenzungY0 :: Double
-        begrenzungY0 = radiusBegrenzung * (1 - cos winkel)
+        begrenzungY0 = radiusBegrenzungAußen * (1 - cos winkel)
 
         begrenzungX1 :: Double
         begrenzungX1 = begrenzungX0 - beschränkung gleis * sin winkel
@@ -243,30 +248,36 @@ zeichneKurve radius winkel gleis = do
         radiusAußen :: Double
         radiusAußen = radius + 0.5 * spurweite gleis
 
-        radiusBegrenzung :: Double
-        radiusBegrenzung = radiusAußen + abstand gleis
+        radiusBegrenzungAußen :: Double
+        radiusBegrenzungAußen = radiusAußen + abstand gleis
 
 weicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
-weicheRechtsNew länge radius winkel = gleisNew width height $ \gleis -> do
-    zeichneGerade länge gleis
-    Cairo.stroke
-    zeichneKurve radius winkelBogenmaß gleis
+weicheRechtsNew länge radius winkel =
+    gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß) $ \gleis -> do
+        zeichneGerade länge gleis
+        Cairo.stroke
+        zeichneKurve radius winkelBogenmaß gleis
     where
-        -- Märklin verwendet mittleren Kurvenradius
-        -- http://www.modellbau-wiki.de/wiki/Gleisradius
-        radiusBegrenzung :: Gleis z -> Double
-        radiusBegrenzung gleis = radius + 0.5 * spurweite gleis + abstand gleis
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi * winkel / 180
 
-        -- TODO Winkel >90°
-        width :: Gleis z -> Int32
-        width gleis = ceiling $ radiusBegrenzung gleis * sin winkelBogenmaß
+weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
+weicheLinksNew länge radius winkel =
+    gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß) $ \gleis -> do
+        Cairo.translate (halfWidth gleis) (halfHeight gleis)
+        Matrix a1 a2 b1 b2 c1 c2 <- Cairo.getMatrix
+        Cairo.setMatrix $ Matrix a1 (-a2) b1 (-b2) c1 c2
+        Cairo.translate (-halfWidth gleis) (-halfHeight gleis)
+        zeichneGerade länge gleis
+        Cairo.stroke
+        zeichneKurve radius winkelBogenmaß gleis
+    where
+        halfWidth :: Gleis z -> Double
+        halfWidth gleis = 0.5 * fromIntegral (widthKurve radius winkelBogenmaß gleis)
 
-        height :: Gleis z -> Int32
-        height gleis =
-            ceiling
-            $ radiusBegrenzung gleis * (1 - cos winkelBogenmaß)
-            + beschränkung gleis * cos winkelBogenmaß
+        halfHeight :: Gleis z -> Double
+        halfHeight gleis = 0.5 * fromIntegral (heightKurve radius winkelBogenmaß gleis)
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
@@ -292,8 +303,11 @@ märklinKurve5100New = kurveNew 360 30
 märklinWeicheRechts5202New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheRechts5202New = weicheRechtsNew 180 427.4 24.28
 
+märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinWeicheLinks5202New = weicheLinksNew 180 427.4 24.28
+
 testGleisNew :: (MonadIO m) => m (Gleis 'Märklin)
-testGleisNew = märklinWeicheRechts5202New
+testGleisNew = märklinWeicheLinks5202New
 
 {-
 Lego Spurweite: 38mm
