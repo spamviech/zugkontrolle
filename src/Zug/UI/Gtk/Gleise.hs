@@ -167,14 +167,25 @@ radiusBegrenzung :: (Spurweite z) => Double -> Gleis z -> Double
 radiusBegrenzung radius gleis = radius + 0.5 * spurweite gleis + abstand gleis
 
 widthKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
-widthKurve radius winkelBogenmaß gleis =
-    ceiling $ radiusBegrenzung radius gleis * sin winkelBogenmaß
+widthKurve radius winkelBogenmaß gleis
+    | winkelBogenmaß < 0.5 * pi = ceiling $ radiusBegrenzung radius gleis * sin winkelBogenmaß
+    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
 
 heightKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
-heightKurve radius winkelBogenmaß gleis =
-    ceiling
-    $ radiusBegrenzung radius gleis * (1 - cos winkelBogenmaß)
-    + beschränkung gleis * cos winkelBogenmaß
+heightKurve radius winkelBogenmaß gleis
+    | winkelBogenmaß < 0.5 * pi =
+        ceiling
+        $ radiusBegrenzung radius gleis * (1 - cos winkelBogenmaß)
+        + beschränkung gleis * cos winkelBogenmaß
+    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
+
+widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Int32
+widthWeiche länge radius winkelBogenmaß gleis =
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß gleis
+
+heightWeiche :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
+heightWeiche radius winkelBogenmaß gleis =
+    max (ceiling $ beschränkung gleis) $ heightKurve radius winkelBogenmaß gleis
 
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
@@ -254,7 +265,8 @@ zeichneKurve radius winkel gleis = do
 weicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheRechtsNew länge radius winkel =
-    gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß) $ \gleis -> do
+    gleisNew (widthWeiche länge radius winkelBogenmaß) (heightWeiche radius winkelBogenmaß)
+    $ \gleis -> do
         zeichneGerade länge gleis
         Cairo.stroke
         zeichneKurve radius winkelBogenmaß gleis
@@ -264,7 +276,8 @@ weicheRechtsNew länge radius winkel =
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
-    gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß) $ \gleis -> do
+    gleisNew (widthWeiche länge radius winkelBogenmaß) (heightWeiche radius winkelBogenmaß)
+    $ \gleis -> do
         Cairo.translate (halfWidth gleis) (halfHeight gleis)
         Matrix a1 a2 b1 b2 c1 c2 <- Cairo.getMatrix
         Cairo.setMatrix $ Matrix a1 (-a2) b1 (-b2) c1 c2
