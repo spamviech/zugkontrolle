@@ -32,6 +32,8 @@ module Zug.UI.Gtk.Gleise
   , märklinKurve5200New
   , märklinKurve5206New
     -- *** Weiche
+  , märklinWeicheRechts5117New
+  , märklinWeicheLinks5117New
   , märklinWeicheRechts5137New
   , märklinWeicheLinks5137New
   , märklinWeicheRechts5202New
@@ -309,6 +311,7 @@ Kurve (5120): 45°, R286mm
 Kurve (5100): 30°, R360mm
 Kurve (5200): 30°, R437.4mm
 Kurve (5206): 24.28°, R437.4mm
+Weiche (5117 L/R): L180mm, 30°, R437.4mm
 Weiche (5137 L/R): L180mm, 22.5°, R437.4mm
 Weiche (5202 L/R): L180mm, 24.28°, R437.4mm
 Weiche (5140 L/R): 30°, Rin360mm, Rout77.4mm
@@ -339,6 +342,12 @@ märklinKurve5200New = kurveNew märklinR2 30
 märklinKurve5206New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5206New = kurveNew märklinR2 24.28
 
+märklinWeicheRechts5117New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinWeicheRechts5117New = weicheRechtsNew 180 märklinR2 30
+
+märklinWeicheLinks5117New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinWeicheLinks5117New = weicheLinksNew 180 märklinR2 30
+
 märklinWeicheRechts5137New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheRechts5137New = weicheRechtsNew 180 märklinR2 22.5
 
@@ -362,6 +371,8 @@ gleisAnzeigeNew = do
         , märklinKurve5120New
         , märklinKurve5200New
         , märklinKurve5206New
+        , märklinWeicheRechts5117New
+        , märklinWeicheLinks5117New
         , märklinWeicheRechts5137New
         , märklinWeicheLinks5137New
         , märklinWeicheRechts5202New
@@ -371,6 +382,7 @@ gleisAnzeigeNew = do
     where
         padding :: Int32
         padding = 5
+
         putWithHeight :: (MonadIO m)
                       => Gtk.Fixed
                       -> (Int32, Int32)
@@ -386,4 +398,6 @@ Lego Spurweite: 38mm
 legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
 legoGeradeNew = geradeNew $ error "Geraden-Länge"
 #endif
+
+
 
