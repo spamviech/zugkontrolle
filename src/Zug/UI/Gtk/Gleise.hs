@@ -48,6 +48,7 @@ import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVa
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Int (Int32)
+import Data.Text (Text)
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
@@ -367,17 +368,17 @@ gleisAnzeigeNew = do
     (width, height) <- foldM
         (putWithHeight fixed)
         (0, padding)
-        [ märklinGerade5106New
-        , märklinKurve5100New
-        , märklinKurve5120New
-        , märklinKurve5200New
-        , märklinKurve5206New
-        , märklinWeicheRechts5117New
-        , märklinWeicheLinks5117New
-        , märklinWeicheRechts5137New
-        , märklinWeicheLinks5137New
-        , märklinWeicheRechts5202New
-        , märklinWeicheLinks5202New]
+        [ ("5106:  ", märklinGerade5106New)
+        , ("5100: ", märklinKurve5100New)
+        , ("5120: ", märklinKurve5120New)
+        , ("5200: ", märklinKurve5200New)
+        , ("5206: ", märklinKurve5206New)
+        , ("5117R:", märklinWeicheRechts5117New)
+        , ("5117L:", märklinWeicheLinks5117New)
+        , ("5137R:", märklinWeicheRechts5137New)
+        , ("5137L:", märklinWeicheLinks5137New)
+        , ("5202R:", märklinWeicheRechts5202New)
+        , ("5202L:", märklinWeicheLinks5202New)]
     Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)
     pure fixed
     where
@@ -387,11 +388,14 @@ gleisAnzeigeNew = do
         putWithHeight :: (MonadIO m)
                       => Gtk.Fixed
                       -> (Int32, Int32)
-                      -> m (Gleis 'Märklin)
+                      -> (Text, m (Gleis 'Märklin))
                       -> m (Int32, Int32)
-        putWithHeight fixed (maxWidth, y) konstruktor = do
-            Gleis {width, height} <- fixedPutWidgetNew fixed padding y konstruktor
-            pure (max width maxWidth, y + height + padding)
+        putWithHeight fixed (maxWidth, y) (text, konstruktor) = do
+            label <- fixedPutWidgetNew fixed padding y $ Gtk.labelNew $ Just text
+            (_widthMin, widthLabel) <- Gtk.widgetGetPreferredWidth label
+            let x = 2 * padding + widthLabel
+            Gleis {width, height} <- fixedPutWidgetNew fixed x y konstruktor
+            pure (max (x + width) maxWidth, y + height + padding)
 
 {-
 Lego Spurweite: 38mm
