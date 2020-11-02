@@ -58,7 +58,7 @@ import qualified Zug.UI.Cmd as Cmd
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
-import Zug.UI.Gtk.Gleise (gleisRotate, gleisScale, märklinGerade5106New, märklinKurve5100New)
+import Zug.UI.Gtk.Gleise (gleisRotate, gleisScale, testGleisNew)
 import Zug.UI.Gtk.Hilfsfunktionen
        (widgetShowNew, widgetShowIf, buttonNewWithEventLabel, containerAddWidgetNew
       , boxPackWidgetNew, boxPackWidgetNewDefault, boxPack, Packing(..), packingDefault
@@ -586,14 +586,12 @@ setupGUI maybeTVar = void $ do
                 buttonLadenPack dynWindowMain functionBox maybeTVar End
                 buttonSpeichernPack dynWindowMain functionBox maybeTVar End
                 -- TODO Mitte (Test-Widget Cairo)
-                gleisKlein
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklinKurve5100New
+                gleisKlein <- boxPackWidgetNew functionBox PackGrow paddingDefault End testGleisNew
                 gleisScale gleisKlein 0.5
                 gleisRotate gleisKlein $ 0.75 * pi
                 _gleisNormal
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklinKurve5100New
-                gleisGroß
-                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End märklinGerade5106New
+                    <- boxPackWidgetNew functionBox PackGrow paddingDefault End testGleisNew
+                gleisGroß <- boxPackWidgetNew functionBox PackGrow paddingDefault End testGleisNew
                 gleisScale gleisGroß 1.5
                 pure aktionBearbeitenReader
             atomically $ putTMVar tmvarAktionBearbeiten aktionBearbeiten
