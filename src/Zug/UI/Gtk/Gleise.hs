@@ -385,6 +385,11 @@ Gerade
     5110: L22.5mm
     5210: L16mm
     5208: L8mm
+-}
+märklinGerade5106New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5106New = geradeNew 180
+
+{-
 Kurve
     5120: 45°, R286mm
     5100: 30°, R360mm
@@ -394,15 +399,6 @@ Kurve
     5206: 24.28°, R437.4mm
     5201: 15°, R437.4mm
     5205: 5.72°, R437.4mm
-Weiche
-    5117 L/R: L180mm, 30°, R437.4mm
-    5137 L/R: L180mm, 22.5°, R437.4mm
-    5202 L/R: L180mm, 24.28°, R437.4mm
-Kurven-Weiche
-    5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
-Kreuzung
-    5128: L193mm, 30°
-    5207: L180mm, 24.28°, R437.4mm
 -}
 märklinRIndustrie :: Double
 märklinRIndustrie = 286
@@ -412,9 +408,6 @@ märklinR1 = 360
 
 märklinR2 :: Double
 märklinR2 = 437.4
-
-märklinGerade5106New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5106New = geradeNew 180
 
 märklinKurve5100New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5100New = kurveNew märklinR1 30
@@ -428,6 +421,12 @@ märklinKurve5200New = kurveNew märklinR2 30
 märklinKurve5206New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5206New = kurveNew märklinR2 24.28
 
+{-
+Weiche
+    5117 L/R: L180mm, 30°, R437.4mm
+    5137 L/R: L180mm, 22.5°, R437.4mm
+    5202 L/R: L180mm, 24.28°, R437.4mm
+-}
 -- TODO Kurvenradien bei Weichen?
 märklinWeicheRechts5117New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheRechts5117New = weicheRechtsNew 180 märklinR1 30
@@ -447,12 +446,28 @@ märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
 märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheLinks5202New = weicheLinksNew 180 märklinR2 24.28
 
+{-
+Kurven-Weiche
+    5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
+-}
 märklinKurvenWeicheRechts5140New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurvenWeicheRechts5140New = kurvenWeicheRechtsNew 77.4 märklinR1 30
 
 märklinKurvenWeicheLinks5140New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurvenWeicheLinks5140New = kurvenWeicheLinksNew 77.4 märklinR1 30
 
+{-
+Kreuzung
+    5128: L193mm, 30°
+    5207: L180mm, 24.28°, R437.4mm
+-}
+märklinKreuzung5128New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKreuzung5128New = _toDo
+
+märklinKreuzung5207New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKreuzung5207New = _toDo
+
+-- Beispiel-Anzeige
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
 gleisAnzeigeNew = do
     fixed <- Gtk.fixedNew
