@@ -35,10 +35,14 @@ module Zug.UI.Gtk.Gleise
   , märklinGerade5210New
   , märklinGerade5208New
     -- *** Kurve
-  , märklinKurve5100New
   , märklinKurve5120New
+  , märklinKurve5100New
+  , märklinKurve5101New
+  , märklinKurve5102New
   , märklinKurve5200New
   , märklinKurve5206New
+  , märklinKurve5201New
+  , märklinKurve5205New
     -- *** Weiche
   , märklinWeicheRechts5117New
   , märklinWeicheLinks5117New
@@ -461,11 +465,17 @@ märklinR1 = 360
 märklinR2 :: Double
 märklinR2 = 437.4
 
+märklinKurve5120New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5120New = kurveNew märklinRIndustrie 45
+
 märklinKurve5100New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5100New = kurveNew märklinR1 30
 
-märklinKurve5120New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5120New = kurveNew märklinRIndustrie 45
+märklinKurve5101New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5101New = kurveNew märklinR1 15
+
+märklinKurve5102New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5102New = kurveNew märklinR1 7.5
 
 märklinKurve5200New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5200New = kurveNew märklinR2 30
@@ -473,11 +483,18 @@ märklinKurve5200New = kurveNew märklinR2 30
 märklinKurve5206New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurve5206New = kurveNew märklinR2 24.28
 
+märklinKurve5201New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5201New = kurveNew märklinR2 15
+
+märklinKurve5205New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurve5205New = kurveNew märklinR2 5.72
+
 {-
 Weiche
     5117 L/R: L180mm, 30°, R437.4mm
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
+    5214 (3-Weg): L180mm, 24,28°, R437.4mm
 -}
 -- TODO Kurvenradien bei Weichen?
 märklinWeicheRechts5117New :: (MonadIO m) => m (Gleis 'Märklin)
@@ -497,6 +514,9 @@ märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
 
 märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheLinks5202New = weicheLinksNew 180 märklinR2 24.28
+
+märklinDreiwegWeiche5214New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinDreiwegWeiche5214New = error "Dreiwege-Weiche 5214" --TODO
 
 {-
 Kurven-Weiche
@@ -519,6 +539,12 @@ märklinKreuzung5128New = error "Kreuzung 5128" --TODO
 märklinKreuzung5207New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKreuzung5207New = error "Kreuzung 5207" --TODO
 
+{-
+Prellbock:
+    7190: 70mm
+Kupplungsgleis:
+    5112 U: 90mm
+-}
 -- Beispiel-Anzeige
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
 gleisAnzeigeNew = do
@@ -527,17 +553,21 @@ gleisAnzeigeNew = do
         (putWithHeight fixed)
         (0, padding)
         [ ("5106:  ", märklinGerade5106New)
-        , ("5107", märklinGerade5107New)
-        , ("5129", märklinGerade5129New)
-        , ("5108", märklinGerade5108New)
-        , ("5109", märklinGerade5109New)
-        , ("5110", märklinGerade5110New)
-        , ("5210", märklinGerade5210New)
-        , ("5208", märklinGerade5208New)
-        , ("5100: ", märklinKurve5100New)
+        , ("5107: ", märklinGerade5107New)
+        , ("5129: ", märklinGerade5129New)
+        , ("5108: ", märklinGerade5108New)
+        , ("5109: ", märklinGerade5109New)
+        , ("5110: ", märklinGerade5110New)
+        , ("5210: ", märklinGerade5210New)
+        , ("5208: ", märklinGerade5208New)
         , ("5120: ", märklinKurve5120New)
+        , ("5100: ", märklinKurve5100New)
+        , ("5101 :", märklinKurve5101New)
+        , ("5102 :", märklinKurve5102New)
         , ("5200: ", märklinKurve5200New)
         , ("5206: ", märklinKurve5206New)
+        , ("5201: ", märklinKurve5201New)
+        , ("5205: ", märklinKurve5205New)
         , ("5117R:", märklinWeicheRechts5117New)
         , ("5117L:", märklinWeicheLinks5117New)
         , ("5137R:", märklinWeicheRechts5137New)
