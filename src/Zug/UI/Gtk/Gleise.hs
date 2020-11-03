@@ -376,17 +376,29 @@ kurvenWeicheLinksNew länge radius winkel =
 
 {-
 H0 Spurweite: 16.5mm
-Gerade (5106): L180mm
-Kurve (5120): 45°, R286mm
-Kurve (5100): 30°, R360mm
-Kurve (5200): 30°, R437.4mm
-Kurve (5206): 24.28°, R437.4mm
-Weiche (5117 L/R): L180mm, 30°, R437.4mm
-Weiche (5137 L/R): L180mm, 22.5°, R437.4mm
-Weiche (5202 L/R): L180mm, 24.28°, R437.4mm
-Kurven-Weiche (5140 L/R): 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
-Kreuzung (5128): L193mm, 30°
-Kreuzung (5207): L180mm, 24.28°, R437.4mm
+Gerade
+    5106: L180mm
+    5107: L90mm
+    5129: L70mm
+    5108: L45mm
+    5109: L33.5mm
+    5110: L22.5mm
+    5210: L16mm
+    5208: L8mm
+Kurve
+    5120: 45°, R286mm
+    5100: 30°, R360mm
+    5200: 30°, R437.4mm
+    5206: 24.28°, R437.4mm
+Weiche
+    5117 L/R: L180mm, 30°, R437.4mm
+    5137 L/R: L180mm, 22.5°, R437.4mm
+    5202 L/R: L180mm, 24.28°, R437.4mm
+Kurven-Weiche
+    5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
+Kreuzung
+    5128: L193mm, 30°
+    5207: L180mm, 24.28°, R437.4mm
 -}
 märklinRIndustrie :: Double
 märklinRIndustrie = 286
