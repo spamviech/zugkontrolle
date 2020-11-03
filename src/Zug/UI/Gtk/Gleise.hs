@@ -45,7 +45,7 @@ module Zug.UI.Gtk.Gleise
 
 #ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
-import Control.Monad (foldM)
+import Control.Monad (foldM, when)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Int (Int32)
 import Data.Text (Text)
@@ -227,17 +227,18 @@ zeichneGerade länge gleis = do
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
 kurveNew radius winkel =
     gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß)
-    $ zeichneKurve radius winkelBogenmaß
+    $ zeichneKurve radius winkelBogenmaß True
     where
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
-zeichneKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Cairo.Render ()
-zeichneKurve radius winkel gleis = do
+zeichneKurve :: (Spurweite z) => Double -> Double -> Bool -> Gleis z -> Cairo.Render ()
+zeichneKurve radius winkel anfangsBeschränkung gleis = do
     -- Beschränkungen
-    Cairo.moveTo 0 0
-    Cairo.lineTo 0 $ beschränkung gleis
+    when anfangsBeschränkung $ do
+        Cairo.moveTo 0 0
+        Cairo.lineTo 0 $ beschränkung gleis
     Cairo.moveTo begrenzungX0 begrenzungY0
     Cairo.lineTo begrenzungX1 begrenzungY1
     Cairo.stroke
@@ -277,13 +278,17 @@ weicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheRechtsNew länge radius winkel =
     gleisNew (widthWeiche länge radius winkelBogenmaß) (heightWeiche radius winkelBogenmaß)
-    $ \gleis -> do
-        zeichneGerade länge gleis
-        Cairo.stroke
-        zeichneKurve radius winkelBogenmaß gleis
+    $ zeichneWeicheRechts länge radius winkelBogenmaß
     where
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
+
+-- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
+zeichneWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Cairo.Render ()
+zeichneWeicheRechts länge radius winkel gleis = do
+    zeichneGerade länge gleis
+    Cairo.stroke
+    zeichneKurve radius winkel False gleis
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
@@ -292,9 +297,7 @@ weicheLinksNew länge radius winkel =
         Cairo.translate (halfWidth gleis) (halfHeight gleis)
         Cairo.transform $ Matrix 1 0 0 (-1) 0 0
         Cairo.translate (-halfWidth gleis) (-halfHeight gleis)
-        zeichneGerade länge gleis
-        Cairo.stroke
-        zeichneKurve radius winkelBogenmaß gleis
+        zeichneWeicheRechts länge radius winkelBogenmaß gleis
     where
         halfWidth :: Gleis z -> Double
         halfWidth gleis = 0.5 * fromIntegral (widthKurve radius winkelBogenmaß gleis)
@@ -403,6 +406,3 @@ Lego Spurweite: 38mm
 legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
 legoGeradeNew = geradeNew $ error "Geraden-Länge"
 #endif
-
-
-
