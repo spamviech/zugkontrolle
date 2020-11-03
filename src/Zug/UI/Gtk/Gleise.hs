@@ -38,6 +38,8 @@ module Zug.UI.Gtk.Gleise
   , märklinWeicheLinks5137New
   , märklinWeicheRechts5202New
   , märklinWeicheLinks5202New
+  , märklinKurvenWeicheRechts5140New
+  , märklinKurvenWeicheLinks5140New
     -- ** Lego (9V Gleise)
   , legoGeradeNew
 #endif
@@ -300,10 +302,74 @@ weicheLinksNew länge radius winkel =
         zeichneWeicheRechts länge radius winkelBogenmaß gleis
     where
         halfWidth :: Gleis z -> Double
-        halfWidth gleis = 0.5 * fromIntegral (widthKurve radius winkelBogenmaß gleis)
+        halfWidth gleis = 0.5 * fromIntegral (widthWeiche länge radius winkelBogenmaß gleis)
 
         halfHeight :: Gleis z -> Double
-        halfHeight gleis = 0.5 * fromIntegral (heightKurve radius winkelBogenmaß gleis)
+        halfHeight gleis = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß gleis)
+
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi * winkel / 180
+
+widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Int32
+widthKurvenWeiche länge radius winkelBogenmaß gleis =
+    ceiling länge + widthKurve radius winkelBogenmaß gleis
+
+heightKurvenWeiche :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
+heightKurvenWeiche radius winkelBogenmaß gleis =
+    max (ceiling $ beschränkung gleis) $ heightKurve radius winkelBogenmaß gleis
+
+kurvenWeicheRechtsNew
+    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
+kurvenWeicheRechtsNew länge radius winkel =
+    gleisNew
+        (widthKurvenWeiche länge radius winkelBogenmaß)
+        (heightKurvenWeiche radius winkelBogenmaß)
+    $ zeichneKurvenWeicheRechts länge radius winkelBogenmaß
+    where
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi * winkel / 180
+
+-- | Pfad zum Zeichnen einer Kurven-Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
+--
+-- Beide Kurven haben den gleichen Radius und Winkel, die äußere Kurve beginnt erst nach /länge/.
+zeichneKurvenWeicheRechts
+    :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Cairo.Render ()
+zeichneKurvenWeicheRechts länge radius winkel gleis = do
+    zeichneKurve radius winkel True gleis
+    Cairo.stroke
+    -- Gleis
+    Cairo.moveTo 0 gleisOben
+    Cairo.lineTo länge gleisOben
+    Cairo.moveTo 0 gleisUnten
+    Cairo.lineTo länge gleisUnten
+    Cairo.stroke
+    Cairo.translate länge 0
+    zeichneKurve radius winkel False gleis
+    where
+        gleisOben :: Double
+        gleisOben = abstand gleis
+
+        gleisUnten :: Double
+        gleisUnten = beschränkung gleis - abstand gleis
+
+kurvenWeicheLinksNew
+    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
+kurvenWeicheLinksNew länge radius winkel =
+    gleisNew
+        (widthKurvenWeiche länge radius winkelBogenmaß)
+        (heightKurvenWeiche radius winkelBogenmaß)
+    $ \gleis -> do
+        Cairo.translate (halfWidth gleis) (halfHeight gleis)
+        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+        Cairo.translate (-halfWidth gleis) (-halfHeight gleis)
+        zeichneKurvenWeicheRechts länge radius winkelBogenmaß gleis
+    where
+        halfWidth :: Gleis z -> Double
+        halfWidth gleis =
+            0.5 * fromIntegral (widthKurvenWeiche länge radius winkelBogenmaß gleis)
+
+        halfHeight :: Gleis z -> Double
+        halfHeight gleis = 0.5 * fromIntegral (heightKurvenWeiche radius winkelBogenmaß gleis)
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
@@ -318,7 +384,7 @@ Kurve (5206): 24.28°, R437.4mm
 Weiche (5117 L/R): L180mm, 30°, R437.4mm
 Weiche (5137 L/R): L180mm, 22.5°, R437.4mm
 Weiche (5202 L/R): L180mm, 24.28°, R437.4mm
-Weiche (5140 L/R): 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
+Kurven-Weiche (5140 L/R): 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 Kreuzung (5128): L193mm, 30°
 Kreuzung (5207): L180mm, 24.28°, R437.4mm
 -}
@@ -365,6 +431,12 @@ märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
 märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinWeicheLinks5202New = weicheLinksNew 180 märklinR2 24.28
 
+märklinKurvenWeicheRechts5140New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurvenWeicheRechts5140New = kurvenWeicheRechtsNew 77.4 märklinR1 30
+
+märklinKurvenWeicheLinks5140New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinKurvenWeicheLinks5140New = kurvenWeicheLinksNew 77.4 märklinR1 30
+
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
 gleisAnzeigeNew = do
     fixed <- Gtk.fixedNew
@@ -381,7 +453,9 @@ gleisAnzeigeNew = do
         , ("5137R:", märklinWeicheRechts5137New)
         , ("5137L:", märklinWeicheLinks5137New)
         , ("5202R:", märklinWeicheRechts5202New)
-        , ("5202L:", märklinWeicheLinks5202New)]
+        , ("5202L:", märklinWeicheLinks5202New)
+        , ("5140R:", märklinKurvenWeicheRechts5140New)
+        , ("5140L:", märklinKurvenWeicheLinks5140New)]
     Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)
     pure fixed
     where
