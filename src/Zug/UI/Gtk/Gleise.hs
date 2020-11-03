@@ -7,6 +7,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
 #endif
 
 module Zug.UI.Gtk.Gleise
@@ -26,6 +27,13 @@ module Zug.UI.Gtk.Gleise
     -- ** Märklin H0 (M-Gleise)
     -- *** Gerade
   , märklinGerade5106New
+  , märklinGerade5107New
+  , märklinGerade5129New
+  , märklinGerade5108New
+  , märklinGerade5109New
+  , märklinGerade5110New
+  , märklinGerade5210New
+  , märklinGerade5208New
     -- *** Kurve
   , märklinKurve5100New
   , märklinKurve5120New
@@ -374,6 +382,29 @@ kurvenWeicheLinksNew länge radius winkel =
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
+-- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
+--
+-- Alle Längenangaben sind in mm (= Pixel mit scale 1).
+-- Winkel sind im Bogenmaß (z.B. 90° ist rechter Winkel).
+data GleisDefinition (z :: Zugtyp)
+    = Gerade { länge :: Double }
+    | Kurve { radius :: Double, winkel :: Double }
+    | Weiche { länge :: Double, radius :: Double, winkel :: Double, richtung :: WeichenRichtung }
+    | Kreuzung { länge :: Double, radius :: Double, winkel :: Double }
+
+data WeichenArt
+    = GeradeWeiche
+    | GebogeneWeiche
+
+data WeichenRichtungAllgemein (a :: WeichenArt) where
+    Links :: WeichenRichtungAllgemein a
+    Rechts :: WeichenRichtungAllgemein a
+    Dreiwege :: WeichenRichtungAllgemein 'GeradeWeiche
+
+data WeichenRichtung
+    = Normal { geradeRichtung :: WeichenRichtungAllgemein 'GeradeWeiche }
+    | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'GebogeneWeiche }
+
 {-
 H0 Spurweite: 16.5mm
 Gerade
@@ -388,6 +419,27 @@ Gerade
 -}
 märklinGerade5106New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinGerade5106New = geradeNew 180
+
+märklinGerade5107New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5107New = geradeNew 90
+
+märklinGerade5129New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5129New = geradeNew 70
+
+märklinGerade5108New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5108New = geradeNew 45
+
+märklinGerade5109New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5109New = geradeNew 33.5
+
+märklinGerade5110New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5110New = geradeNew 22.5
+
+märklinGerade5210New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5210New = geradeNew 16
+
+märklinGerade5208New :: (MonadIO m) => m (Gleis 'Märklin)
+märklinGerade5208New = geradeNew 8
 
 {-
 Kurve
@@ -462,10 +514,10 @@ Kreuzung
     5207: L180mm, 24.28°, R437.4mm
 -}
 märklinKreuzung5128New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKreuzung5128New = _toDo
+märklinKreuzung5128New = error "Kreuzung 5128" --TODO
 
 märklinKreuzung5207New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKreuzung5207New = _toDo
+märklinKreuzung5207New = error "Kreuzung 5207" --TODO
 
 -- Beispiel-Anzeige
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
@@ -475,6 +527,13 @@ gleisAnzeigeNew = do
         (putWithHeight fixed)
         (0, padding)
         [ ("5106:  ", märklinGerade5106New)
+        , ("5107", märklinGerade5107New)
+        , ("5129", märklinGerade5129New)
+        , ("5108", märklinGerade5108New)
+        , ("5109", märklinGerade5109New)
+        , ("5110", märklinGerade5110New)
+        , ("5210", märklinGerade5210New)
+        , ("5208", märklinGerade5208New)
         , ("5100: ", märklinKurve5100New)
         , ("5120: ", märklinKurve5120New)
         , ("5200: ", märklinKurve5200New)
