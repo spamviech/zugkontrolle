@@ -149,6 +149,7 @@
         "optparse",
         "pacman",
         "pango",
+        "pbranches",
         "pfail",
         "pprint",
         "raspian",
