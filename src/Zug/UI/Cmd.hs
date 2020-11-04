@@ -200,3 +200,4 @@ fehlerhafteEingabeS :: (Sprache -> Text) -> IOStatus ()
 fehlerhafteEingabeS s = getSprache >>= liftIO . (fehlerhafteEingabe $# s)
 #endif
 
+

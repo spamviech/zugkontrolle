@@ -33,7 +33,7 @@ module Zug.UI.Gtk.Hilfsfunktionen
   , positionDefault
     -- * Notebook
   , notebookAppendPageNew
-  -- * Fixed
+    -- * Fixed
   , fixedPutWidgetNew
     -- * Dialog
   , dialogGetUpper
@@ -70,7 +70,8 @@ import qualified Zug.Language as Language
 import Zug.UI.Gtk.Klassen
        (MitWidget(..), mitWidgetShow, mitWidgetHide, MitLabel(..), MitEntry(..), MitContainer(..)
       , mitContainerAdd, mitContainerRemove, MitButton(..), MitToggleButton(..), MitDialog(..)
-      , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage, MitFixed(), mitFixedPut)
+      , MitBox(..), mitBoxPackStart, mitBoxPackEnd, MitNotebook(..), mitNotebookAppendPage
+      , MitFixed(), mitFixedPut)
 import Zug.UI.Gtk.SpracheGui (SpracheGuiReader, verwendeSpracheGui, TVarSprachewechselAktionen)
 
 -- | 'Widget' erstellen und anzeigen
@@ -178,7 +179,7 @@ notebookAppendPageNew mitNotebook maybeTVar name konstruktor = do
 
 -- | Neu erstelltes 'MitWidget' zu einem 'MitFixed' hinzufügen.
 fixedPutWidgetNew :: (MonadIO m, MitFixed f, MitWidget w) => f -> Int32 -> Int32 -> m w -> m w
-fixedPutWidgetNew fixed x y konstruktor= do
+fixedPutWidgetNew fixed x y konstruktor = do
     widget <- widgetShowNew konstruktor
     mitFixedPut fixed widget x y
     pure widget
