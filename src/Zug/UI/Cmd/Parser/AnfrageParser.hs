@@ -21,6 +21,8 @@ import Zug.Language ((<~>), Sprache (Deutsch))
 import Zug.Objekt (Objekt)
 import Zug.Plan (Plan)
 import Zug.UI.Cmd.Lexer (EingabeToken)
+import Zug.Warteschlange (Warteschlange ())
+import qualified Zug.Warteschlange as Warteschlange
 
 {-
 -- | Ability to convert from one type 'into' another (injective).
@@ -76,7 +78,11 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
 -- | Ergebnis-Typ eines 'AnfrageParser'.
 data AnfrageFortsetzung a e
   = AFErgebnis {ergebnis :: e, fortsetzung :: Maybe a, eingabeRest :: [Text]}
-  | AFZwischenwert {zwischenwert :: a}
+  | AFZwischenwert
+      { zwischenwert :: a,
+        verarbeiteteEingabe :: [Text],
+        alternativeParser :: Warteschlange (AnfrageParser a e)
+      }
   | AFFehler {alterZwischenwert :: Maybe a, unbekannteEingabe :: Text}
   | AFStatusAnfrage
       { anfrageObjekt :: StatusAnfrageObjekt,
@@ -95,7 +101,12 @@ instance Functor (AnfrageFortsetzung a) where
   fmap :: (e -> f) -> AnfrageFortsetzung a e -> AnfrageFortsetzung a f
   fmap funktion AFErgebnis {ergebnis, fortsetzung, eingabeRest} =
     AFErgebnis {ergebnis = funktion ergebnis, fortsetzung, eingabeRest}
-  fmap _funktion AFZwischenwert {zwischenwert} = AFZwischenwert {zwischenwert}
+  fmap funktion AFZwischenwert {zwischenwert, verarbeiteteEingabe, alternativeParser} =
+    AFZwischenwert
+      { zwischenwert,
+        verarbeiteteEingabe,
+        alternativeParser = fmap (fmap funktion) alternativeParser
+      }
   fmap _funktion AFFehler {alterZwischenwert, unbekannteEingabe} =
     AFFehler {alterZwischenwert, unbekannteEingabe}
   fmap funktion AFStatusAnfrage {anfrageObjekt, konstruktor} =
@@ -144,12 +155,13 @@ instance Alternative (AnfrageParser a) where
   -- verknüpft zwei Parser zu einem Parser, linker Parser wird bevorzugt
   -- bei unvollständiger Eingabe (AFZwischenwert) wird bereits eine Entscheidung getroffen,
   -- die Parser sollten sich also so schnell wie möglich unterscheiden!
-  (AnfrageParser p1) <|> (AnfrageParser p2) = AnfrageParser $ \ma eingabe -> case p1 ma eingabe of
+  (AnfrageParser p1) <|> alt@(AnfrageParser p2) = AnfrageParser $ \ma eingabe -> case p1 ma eingabe of
     afErgebnis@AFErgebnis {} -> afErgebnis
     -- TODO mehrere Zwischenwerte (NonEmpty a) erlauben?
-    AFZwischenwert {zwischenwert} -> AFZwischenwert {zwischenwert}
+    AFZwischenwert {zwischenwert, alternativeParser} ->
+      AFZwischenwert {zwischenwert, alternativeParser = Warteschlange.anhängen alt alternativeParser}
     AFFehler {unbekannteEingabe, alterZwischenwert} -> AFFehler {unbekannteEingabe, alterZwischenwert}
-    AFStatusAnfrage {anfrageObjekt, konstruktor} -> _statusAnfrage
+    AFStatusAnfrage {anfrageObjekt, konstruktor} -> p2 ma eingabe
     AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} -> _statusAnfrageMärklin
     AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} -> _statusAnfrageLego
 
