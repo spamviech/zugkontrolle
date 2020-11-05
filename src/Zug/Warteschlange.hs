@@ -10,6 +10,7 @@ module Zug.Warteschlange
   , leer
   , einzelElement
   , vonListe
+  , zuListe
   , anhängen
   , zeigeErstes
   , zeigeLetztes
@@ -26,15 +27,7 @@ import qualified Zug.Language as Language
 
 -- | Single-Ended Queue. Ein auslesen ist von beiden Seiten der Warteschlange möglich.
 newtype Warteschlange a = Warteschlange { seq :: Seq a }
-    deriving (Eq, Semigroup, Monoid)
-
-instance Foldable Warteschlange where
-    foldMap :: Monoid m => (a -> m) -> Warteschlange a -> m
-    foldMap f = foldMap f . seq
-
-instance Functor Warteschlange where
-    fmap :: (a -> b) -> Warteschlange a -> Warteschlange b
-    fmap f = Warteschlange . fmap f . seq
+    deriving (Eq, Semigroup, Monoid, Foldable, Functor)
 
 instance (Show a) => Show (Warteschlange a) where
     show :: Warteschlange a -> String
@@ -61,6 +54,11 @@ einzelElement = Warteschlange . Seq.singleton
 -- Der Kopf der Liste ist das erste Element in der Warteschlange.
 vonListe :: [a] -> Warteschlange a
 vonListe = Warteschlange . Seq.fromList
+
+-- | Konvertiere eine 'Warteschlange' in eine Liste.
+-- Der Kopf der Liste ist das erste Element in der Warteschlange.
+zuListe :: Warteschlange a -> [a]
+zuListe = toList . seq
 
 -- | Hänge ein Element an eine 'Warteschlange' an. Effizienz ist O(1).
 anhängen :: a -> Warteschlange a -> Warteschlange a
