@@ -1,17 +1,19 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
+{-
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+-}
 
 module Zug.UI.Cmd.Parser.AnfrageParser where
 
 import Control.Applicative (Alternative (..))
 import Control.Monad (MonadPlus (..), ap)
-import Data.Kind (Type)
 import Data.List (foldl')
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -25,6 +27,8 @@ import Zug.Warteschlange (Warteschlange ())
 import qualified Zug.Warteschlange as Warteschlange
 
 {-
+import Data.Kind (Type)
+
 -- | Ability to convert from one type 'into' another (injective).
 --
 -- The default implementation uses 'id' for the case that a ~ b.
@@ -40,9 +44,10 @@ instance (Into a b) => Into (Maybe a) (Maybe b) where
 
 -- | Typfamilie für den assoziierten 'Anfrage'typ
 type family AnfrageTyp e :: Type
--}
 
+-}
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
+
 data StatusAnfrageObjekt
   = SAOBahngeschwindigkeit EingabeToken
   | SAOStreckenabschnitt EingabeToken
@@ -80,10 +85,15 @@ data AnfrageFortsetzung a e
   = AFErgebnis {ergebnis :: e, fortsetzung :: Maybe a, eingabeRest :: [Text]}
   | AFZwischenwert
       { zwischenwert :: a,
-        verarbeiteteEingabe :: [Text],
+        verarbeiteteEingabe :: Warteschlange Text,
         alternativeParser :: Warteschlange (AnfrageParser a e)
       }
-  | AFFehler {alterZwischenwert :: Maybe a, unbekannteEingabe :: Text}
+  | AFFehler
+      { alterZwischenwert :: Maybe a,
+        unbekannteEingabe :: Text,
+        verarbeiteteEingabe :: Warteschlange Text,
+        alternativeParser :: Warteschlange (AnfrageParser a e)
+      }
   | AFStatusAnfrage
       { anfrageObjekt :: StatusAnfrageObjekt,
         konstruktor :: Objekt -> AnfrageParser a e
@@ -107,8 +117,15 @@ instance Functor (AnfrageFortsetzung a) where
         verarbeiteteEingabe,
         alternativeParser = fmap (fmap funktion) alternativeParser
       }
-  fmap _funktion AFFehler {alterZwischenwert, unbekannteEingabe} =
-    AFFehler {alterZwischenwert, unbekannteEingabe}
+  fmap
+    funktion
+    AFFehler {alterZwischenwert, unbekannteEingabe, verarbeiteteEingabe, alternativeParser} =
+      AFFehler
+        { alterZwischenwert,
+          unbekannteEingabe,
+          verarbeiteteEingabe,
+          alternativeParser = fmap (fmap funktion) alternativeParser
+        }
   fmap funktion AFStatusAnfrage {anfrageObjekt, konstruktor} =
     AFStatusAnfrage {anfrageObjekt, konstruktor = fmap funktion . konstruktor}
   fmap funktion AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} =
@@ -138,7 +155,6 @@ instance Applicative (AnfrageParser a) where
   (<*>) :: AnfrageParser a (e -> f) -> AnfrageParser a e -> AnfrageParser a f
   (<*>) = ap
 
---[(r1 r2, rem2) | (r1, rem1) <- p1 eingabe0, (r2, rem2) <- p2 rem1]
 -- Ebenfalls in Modul Control.Applicative definiert:
 -- Typklasse Alternative ist eine Unterklasse für Applikative Funktoren
 -- mit Monoid-Struktur, d.h.: es gibt eine binäre Verknüpfung mit neutralem Element!
@@ -148,54 +164,96 @@ instance Alternative (AnfrageParser a) where
   empty = AnfrageParser $ \alterZwischenwert eingabe ->
     AFFehler
       { alterZwischenwert,
-        unbekannteEingabe = foldl' (<~>) (const Text.empty) eingabe $ Deutsch
+        unbekannteEingabe = foldl' (<~>) (const Text.empty) eingabe $ Deutsch,
+        verarbeiteteEingabe = Warteschlange.leer,
+        alternativeParser = Warteschlange.leer
       }
 
   (<|>) :: forall e. AnfrageParser a e -> AnfrageParser a e -> AnfrageParser a e
   -- verknüpft zwei Parser zu einem Parser, linker Parser wird bevorzugt
   -- bei unvollständiger Eingabe (AFZwischenwert) wird bereits eine Entscheidung getroffen,
   -- die Parser sollten sich also so schnell wie möglich unterscheiden!
-  (AnfrageParser p1) <|> alt@(AnfrageParser p2) = AnfrageParser $ \ma eingabe -> case p1 ma eingabe of
-    afErgebnis@AFErgebnis {} -> afErgebnis
-    -- TODO mehrere Zwischenwerte (NonEmpty a) erlauben?
-    AFZwischenwert {zwischenwert, alternativeParser} ->
-      AFZwischenwert {zwischenwert, alternativeParser = Warteschlange.anhängen alt alternativeParser}
-    AFFehler {unbekannteEingabe, alterZwischenwert} -> AFFehler {unbekannteEingabe, alterZwischenwert}
-    AFStatusAnfrage {anfrageObjekt, konstruktor} -> p2 ma eingabe
-    AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} -> _statusAnfrageMärklin
-    AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} -> _statusAnfrageLego
+  (AnfrageParser p1) <|> alternativerParser = AnfrageParser $ \ma eingabe ->
+    alternativenAuswerten eingabe (Warteschlange.einzelElement alternativerParser) $
+      p1 ma eingabe
 
--- where
---   pbranches s
---     | null r1 = r2
---     | null r2 = r1
---     | otherwise = r1 ++ r2
---     where
---       r1 = p1 s
---       r2 = p2 s
+alternativenAuswerten ::
+  forall a e.
+  [Text] ->
+  Warteschlange (AnfrageParser a e) ->
+  AnfrageFortsetzung a e ->
+  AnfrageFortsetzung a e
+alternativenAuswerten eingabe alternativen anfrageFortsetzung =
+  alternativenAuswertenAux anfrageFortsetzung
+  where
+    alternativenAuswertenAux :: AnfrageFortsetzung a e -> AnfrageFortsetzung a e
+    alternativenAuswertenAux afErgebnis@AFErgebnis {} = afErgebnis
+    alternativenAuswertenAux AFZwischenwert {zwischenwert, verarbeiteteEingabe, alternativeParser} =
+      AFZwischenwert
+        { zwischenwert,
+          verarbeiteteEingabe = verarbeiteteEingabe <> Warteschlange.vonListe eingabe,
+          alternativeParser = alternativeParser <> alternativen
+        }
+    alternativenAuswertenAux AFFehler {unbekannteEingabe, alterZwischenwert, verarbeiteteEingabe, alternativeParser} =
+      case Warteschlange.zeigeErstes $ alternativeParser <> alternativen of
+        (Warteschlange.Gefüllt pHead rest) ->
+          alternativenAuswerten eingabe rest $ runParser pHead Nothing volleEingabe
+          where
+            volleEingabe :: [Text]
+            volleEingabe =
+              Warteschlange.zuListe $
+                verarbeiteteEingabe <> Warteschlange.vonListe eingabe
+        Warteschlange.Leer ->
+          AFFehler
+            { unbekannteEingabe,
+              alterZwischenwert,
+              verarbeiteteEingabe,
+              alternativeParser = Warteschlange.leer
+            }
+    alternativenAuswertenAux AFStatusAnfrage {anfrageObjekt, konstruktor} =
+      AFStatusAnfrage {anfrageObjekt, konstruktor}
+    alternativenAuswertenAux AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} =
+      AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin}
+    alternativenAuswertenAux AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} =
+      AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego}
 
 instance Monad (AnfrageParser a) where
   (>>=) :: AnfrageParser a e -> (e -> AnfrageParser a f) -> AnfrageParser a f
-  (AnfrageParser p1) >>= f = AnfrageParser $ \ma eingabe -> case p1 ma eingabe of
-    AFErgebnis {ergebnis, fortsetzung, eingabeRest} ->
-      let AnfrageParser p2 = f ergebnis
-       in p2 fortsetzung eingabeRest
-    AFZwischenwert {zwischenwert} -> AFZwischenwert {zwischenwert}
-    AFFehler {unbekannteEingabe, alterZwischenwert} -> AFFehler {unbekannteEingabe, alterZwischenwert}
-    AFStatusAnfrage {anfrageObjekt, konstruktor} ->
-      AFStatusAnfrage
-        { anfrageObjekt,
-          konstruktor = \objekt -> konstruktor objekt >>= f
-        }
-    AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} ->
-      AFStatusAnfrageMärklin
-        { anfrageObjektMärklin,
-          konstruktorMärklin = \objekt -> konstruktorMärklin objekt >>= f
-        }
-    AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} ->
-      AFStatusAnfrageLego
-        { anfrageObjektLego,
-          konstruktorLego = \objekt -> konstruktorLego objekt >>= f
-        }
+  (AnfrageParser p1) >>= f = AnfrageParser $ \ma eingabe ->
+    case alternativenAuswerten eingabe Warteschlange.leer $ p1 ma eingabe of
+      AFErgebnis {ergebnis, fortsetzung, eingabeRest} ->
+        let AnfrageParser p2 = f ergebnis
+         in p2 fortsetzung eingabeRest
+      AFZwischenwert {zwischenwert, verarbeiteteEingabe, alternativeParser} ->
+        AFZwischenwert
+          { zwischenwert,
+            verarbeiteteEingabe,
+            alternativeParser = fmap (>>= f) alternativeParser
+          }
+      AFFehler {unbekannteEingabe, alterZwischenwert, verarbeiteteEingabe} ->
+        AFFehler
+          { unbekannteEingabe,
+            alterZwischenwert,
+            verarbeiteteEingabe,
+            alternativeParser = Warteschlange.leer
+          }
+      AFStatusAnfrage {anfrageObjekt, konstruktor} ->
+        AFStatusAnfrage
+          { anfrageObjekt,
+            konstruktor = \objekt ->
+              konstruktor objekt >>= f
+          }
+      AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} ->
+        AFStatusAnfrageMärklin
+          { anfrageObjektMärklin,
+            konstruktorMärklin = \objekt ->
+              konstruktorMärklin objekt >>= f
+          }
+      AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} ->
+        AFStatusAnfrageLego
+          { anfrageObjektLego,
+            konstruktorLego = \objekt ->
+              konstruktorLego objekt >>= f
+          }
 
 instance MonadPlus (AnfrageParser a)
