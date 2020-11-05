@@ -1,10 +1,10 @@
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-{-|
-Description :
-Single-Ended Queue mit O(1) 'anhängen' und amortisierter O(1) 'zeigeErstes'-Funktion.
--}
+-- |
+-- Description :
+-- Single-Ended Queue mit O(1) 'anhängen' und amortisierter O(1) 'zeigeErstes'-Funktion.
 module Zug.Warteschlange
   ( Warteschlange()
   , leer
@@ -26,6 +26,7 @@ import qualified Zug.Language as Language
 
 -- | Single-Ended Queue. Ein auslesen ist von beiden Seiten der Warteschlange möglich.
 newtype Warteschlange a = Warteschlange { seq :: Seq a }
+    deriving (Eq, Semigroup, Monoid)
 
 instance Foldable Warteschlange where
     foldMap :: Monoid m => (a -> m) -> Warteschlange a -> m
@@ -42,10 +43,6 @@ instance (Show a) => Show (Warteschlange a) where
 instance (Language.Anzeige a) => Language.Anzeige (Warteschlange a) where
     anzeige :: Warteschlange a -> Language.Sprache -> Text
     anzeige = Language.anzeige . toList
-
-instance (Eq a) => Eq (Warteschlange a) where
-    (==) :: Warteschlange a -> Warteschlange a -> Bool
-    a == b = seq a == seq b
 
 -- | Ergebnis-Typ von 'zeigeErstes' und 'zeigeLetztes'.
 data Anzeige a
