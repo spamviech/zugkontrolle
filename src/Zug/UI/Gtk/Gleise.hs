@@ -601,3 +601,4 @@ legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
 legoGeradeNew = geradeNew $ error "Geraden-Länge"
 #endif
 
+
