@@ -1,3 +1,10 @@
 cradle:
   cabal:
-    component: "lib:Zugkontrolle"
+    - path: "./Zugkontrolle-Base/src"
+      component: "lib:Zugkontrolle-Base"
+    - path: "./Zugkontrolle-Cmd/src"
+      component: "lib:Zugkontrolle-Cmd"
+    - path: "./Zugkontrolle-Gtk/src"
+      component: "lib:Zugkontrolle-Gtk"
+    - path: "./app/"
+      component: "Zugkontrolle:exe:Zugkontrolle"

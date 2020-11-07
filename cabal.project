@@ -1,0 +1,5 @@
+packages:
+    Zugkontrolle-Base/
+    Zugkontrolle-Cmd/
+    Zugkontrolle-Gtk/
+    ./

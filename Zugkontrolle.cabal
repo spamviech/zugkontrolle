@@ -3,16 +3,13 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: f80f1cd1fa39758297c37b85a084bd93390fe138fdf7f81ec57800a9594ad74f
 
 name:           Zugkontrolle
-version:        1.3.0.0
-synopsis:       Steuerung einer Modelleisenbahn über einen Raspberry Pi
+version:        2.0.0.0
+synopsis:       Steuerung einer Modelleisenbahn über einen Raspberry Pi.
 description:    Please see the README on GitHub at <https://github.com/spamviech/Zugkontrolle#readme>
 category:       Raspberry Pi
-homepage:       https://github.com/spamviech/Zugkontrolle#readme
-bug-reports:    https://github.com/spamviech/Zugkontrolle/issues
+homepage:       https://github.com/spamviech/Zugkontrolle-Cmd#readme
 author:         Wolfgang Witt
 maintainer:     wolfi.witt@gmx.de
 copyright:      2020 Wolfgang Witt
@@ -22,10 +19,6 @@ build-type:     Simple
 extra-source-files:
     README.md
     ChangeLog.md
-
-source-repository head
-  type: git
-  location: https://github.com/spamviech/Zugkontrolle
 
 flag gui
   description: Erstelle ein graphisches User Interface mit GTK+.
@@ -37,172 +30,36 @@ flag onlygui
   manual: True
   default: False
 
-library
-  exposed-modules:
-      Zug.Anbindung
-      Zug.Anbindung.Anschluss
-      Zug.Anbindung.Anschluss.I2C
-      Zug.Anbindung.Anschluss.PCF8574
-      Zug.Anbindung.Bahngeschwindigkeit
-      Zug.Anbindung.Container
-      Zug.Anbindung.Klassen
-      Zug.Anbindung.Kontakt
-      Zug.Anbindung.Kupplung
-      Zug.Anbindung.Pwm
-      Zug.Anbindung.SoftwarePWM
-      Zug.Anbindung.Streckenabschnitt
-      Zug.Anbindung.Wartezeit
-      Zug.Anbindung.Wegstrecke
-      Zug.Anbindung.Weiche
-      Zug.Derive.Ord
-      Zug.Enums
-      Zug.JSONStrings
-      Zug.Language
-      Zug.Objekt
-      Zug.Options
-      Zug.Plan
-      Zug.Plan.TemplateHaskell
-      Zug.UI
-      Zug.UI.Base
-      Zug.UI.Befehl
-      Zug.UI.Cmd
-      Zug.UI.Cmd.Lexer
-      Zug.UI.Cmd.Parser
-      Zug.UI.Cmd.Parser.Anfrage
-      Zug.UI.Cmd.Parser.AnfrageParser
-      Zug.UI.Cmd.Parser.Anschluss
-      Zug.UI.Cmd.Parser.Plan
-      Zug.UI.Cmd.Parser.StreckenObjekt
-      Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit
-      Zug.UI.Cmd.Parser.StreckenObjekt.Kontakt
-      Zug.UI.Cmd.Parser.StreckenObjekt.Kupplung
-      Zug.UI.Cmd.Parser.StreckenObjekt.Streckenabschnitt
-      Zug.UI.Cmd.Parser.StreckenObjekt.Wegstrecke
-      Zug.UI.Cmd.Parser.StreckenObjekt.Weiche
-      Zug.UI.Gtk
-      Zug.UI.Gtk.Anschluss
-      Zug.UI.Gtk.AssistantHinzufuegen
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionKontakt
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionKupplung
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionPlan
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionWegstrecke
-      Zug.UI.Gtk.AssistantHinzufuegen.AktionWeiche
-      Zug.UI.Gtk.AssistantHinzufuegen.HinzufuegenSeite
-      Zug.UI.Gtk.Auswahl
-      Zug.UI.Gtk.Fenster
-      Zug.UI.Gtk.Fliessend
-      Zug.UI.Gtk.FortfahrenWennToggled
-      Zug.UI.Gtk.Gleise
-      Zug.UI.Gtk.Hilfsfunktionen
-      Zug.UI.Gtk.Klassen
-      Zug.UI.Gtk.Klassen.TemplateHaskell
-      Zug.UI.Gtk.ScrollbaresWidget
-      Zug.UI.Gtk.SpracheGui
-      Zug.UI.Gtk.StreckenObjekt
-      Zug.UI.Gtk.StreckenObjekt.BGWidgets
-      Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-      Zug.UI.Gtk.StreckenObjekt.KOWidgets
-      Zug.UI.Gtk.StreckenObjekt.KUWidgets
-      Zug.UI.Gtk.StreckenObjekt.PLWidgets
-      Zug.UI.Gtk.StreckenObjekt.STWidgets
-      Zug.UI.Gtk.StreckenObjekt.WEWidgets
-      Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
-      Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-      Zug.UI.Gtk.StreckenObjekt.WSWidgets
-      Zug.UI.Gtk.ZugtypSpezifisch
-      Zug.UI.Save
-      Zug.UI.StatusVar
-      Zug.Util
-      Zug.Warteschlange
-  other-modules:
-      Paths_Zugkontrolle
-  hs-source-dirs:
-      src
-  ghc-options: -Wall -Widentities -Wno-unused-do-bind -O2
-  build-depends:
-      aeson >=1.2 && <2
-    , ansi-terminal >=0.8 && <1
-    , base >=4.7 && <5
-    , bytestring >=0.10 && <1
-    , concurrency >=1.4 && <2
-    , containers >=0.5 && <1
-    , directory >=1.3 && <2
-    , either >=5.0 && <6
-    , mtl >=2.2 && <3
-    , optparse-applicative >=0.14 && <1
-    , stm >=2.4 && <3
-    , template-haskell >=2.12 && <3
-    , text >=1.2 && <2
-    , wiringPi >=1.0 && <2
-    , yaml >=0.8 && <1
-  if flag(gui)
-    cpp-options: -DZUGKONTROLLEGUI
-    build-depends:
-        gi-cairo-connector >=0.1 && <0.2
-      , gi-cairo-render >=0.1 && <0.2
-      , gi-gdk >=3.0.22 && <3.1
-      , gi-gtk >=3.0.36 && <3.1
-      , gi-gtk-hs >=0.3.8.1 && <0.4
-      , haskell-gi-base >=0.24.0 && <0.25
-      , haskell-gi-overloading ==0.0
-    if flag(onlygui)
-      ghc-options: -optl-mwindows
-      cpp-options: -DZUGKONTROLLESILENCE
-      build-depends:
-          silently >=1.2 && <1.3
-  if os(linux)
-    build-depends:
-        unix
-    if arch(arm)
-      cpp-options: -DZUGKONTROLLERASPI=1
-  default-language: Haskell2010
-
 executable Zugkontrolle
   main-is: Main.hs
   other-modules:
+      Zug.UI
       Paths_Zugkontrolle
   hs-source-dirs:
       app
-  ghc-options: -Wall -Widentities -Wno-unused-do-bind -O2 -threaded
+  ghc-options: -threaded
   build-depends:
-      Zugkontrolle
-    , aeson >=1.2 && <2
+      Zugkontrolle-Base
     , ansi-terminal >=0.8 && <1
     , base >=4.7 && <5
-    , bytestring >=0.10 && <1
-    , concurrency >=1.4 && <2
-    , containers >=0.5 && <1
     , directory >=1.3 && <2
-    , either >=5.0 && <6
     , mtl >=2.2 && <3
-    , optparse-applicative >=0.14 && <1
-    , stm >=2.4 && <3
-    , template-haskell >=2.12 && <3
     , text >=1.2 && <2
-    , wiringPi >=1.0 && <2
-    , yaml >=0.8 && <1
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
     build-depends:
-        gi-cairo-connector >=0.1 && <0.2
-      , gi-cairo-render >=0.1 && <0.2
-      , gi-gdk >=3.0.22 && <3.1
-      , gi-gtk >=3.0.36 && <3.1
-      , gi-gtk-hs >=0.3.8.1 && <0.4
-      , haskell-gi-base >=0.24.0 && <0.25
-      , haskell-gi-overloading ==0.0
+        Zugkontrolle-Gtk
     if flag(onlygui)
       ghc-options: -optl-mwindows
       cpp-options: -DZUGKONTROLLESILENCE
       build-depends:
           silently >=1.2 && <1.3
-  if os(linux)
+    else
+      build-depends:
+          Zugkontrolle-Cmd
+  else
     build-depends:
-        unix
-    if arch(arm)
-      cpp-options: -DZUGKONTROLLERASPI=1
+        Zugkontrolle-Cmd
   if os(linux)
     if arch(arm)
       extra-libraries:

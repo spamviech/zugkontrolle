@@ -1,0 +1,75 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: d1e83e73f391af9c4d0d5579dbbe3895922b0cb2f30fed7daf0eec663a9cc90f
+
+name:           Zugkontrolle-Base
+version:        0.1.0.0
+category:       Web
+homepage:       https://github.com/spamviech/Zugkontrolle-Base#readme
+author:         spamviech
+maintainer:     spamviech@web.de
+copyright:      2020 spamviech
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+library
+  exposed-modules:
+      Zug.Anbindung
+      Zug.Anbindung.Anschluss
+      Zug.Anbindung.Anschluss.I2C
+      Zug.Anbindung.Anschluss.PCF8574
+      Zug.Anbindung.Bahngeschwindigkeit
+      Zug.Anbindung.Container
+      Zug.Anbindung.Klassen
+      Zug.Anbindung.Kontakt
+      Zug.Anbindung.Kupplung
+      Zug.Anbindung.Pwm
+      Zug.Anbindung.SoftwarePWM
+      Zug.Anbindung.Streckenabschnitt
+      Zug.Anbindung.Wartezeit
+      Zug.Anbindung.Wegstrecke
+      Zug.Anbindung.Weiche
+      Zug.Derive.Ord
+      Zug.Enums
+      Zug.JSONStrings
+      Zug.Language
+      Zug.Objekt
+      Zug.Options
+      Zug.Plan
+      Zug.Plan.TemplateHaskell
+      Zug.UI.Base
+      Zug.UI.Befehl
+      Zug.UI.Save
+      Zug.UI.StatusVar
+      Zug.Util
+      Zug.Warteschlange
+  other-modules:
+      Paths_Zugkontrolle_Base
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Widentities -Wno-unused-do-bind
+  build-depends:
+      aeson >=1.2 && <2
+    , base >=4.7 && <5
+    , containers >=0.5 && <1
+    , directory >=1.3 && <2
+    , mtl >=2.2 && <3
+    , optparse-applicative >=0.14 && <1
+    , stm >=2.4 && <3
+    , template-haskell >=2.12 && <3
+    , text >=1.2 && <2
+    , wiringPi >=1.0 && <2
+    , yaml >=0.8 && <1
+  if os(linux)
+    build-depends:
+        unix
+    if arch(arm)
+      cpp-options: -DZUGKONTROLLERASPI
+  default-language: Haskell2010
