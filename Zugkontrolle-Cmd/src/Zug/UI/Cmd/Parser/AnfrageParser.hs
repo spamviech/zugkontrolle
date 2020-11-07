@@ -13,16 +13,12 @@ module Zug.UI.Cmd.Parser.AnfrageParser where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..), ap)
-import Data.List (foldl')
-import Data.Text (Text)
-import qualified Data.Text as Text
 
 import Zug.Anbindung (Bahngeschwindigkeit, Kontakt, Kupplung, Streckenabschnitt, Wegstrecke, Weiche)
 import Zug.Enums (GeschwindigkeitEither, Zugtyp(..))
-import Zug.Language ((<~>), Sprache(Deutsch))
 import Zug.Objekt (Objekt)
 import Zug.Plan (Plan)
-import Zug.UI.Cmd.Lexer (EingabeToken)
+import Zug.UI.Cmd.Lexer (EingabeToken(), leeresToken)
 import Zug.Warteschlange (Warteschlange())
 import qualified Zug.Warteschlange as Warteschlange
 
@@ -44,7 +40,6 @@ instance (Into a b) => Into (Maybe a) (Maybe b) where
 
 -- | Typfamilie für den assoziierten 'Anfrage'typ
 type family AnfrageTyp e :: Type
-
 -}
 -- | Ein Objekt aus dem aktuellen Status wird benötigt
 data StatusAnfrageObjekt
@@ -81,16 +76,16 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
 
 -- | Ergebnis-Typ eines 'AnfrageParser'.
 data AnfrageFortsetzung a e
-    = AFErgebnis { ergebnis :: e, fortsetzung :: Maybe a, eingabeRest :: [Text] }
+    = AFErgebnis { ergebnis :: e, fortsetzung :: Maybe a, eingabeRest :: [EingabeToken] }
     | AFZwischenwert
           { zwischenwert :: a
-          , verarbeiteteEingabe :: Warteschlange Text
+          , verarbeiteteEingabe :: Warteschlange EingabeToken
           , alternativeParser :: Warteschlange (AnfrageParser a e)
           }
     | AFFehler
           { alterZwischenwert :: Maybe a
-          , unbekannteEingabe :: Text
-          , verarbeiteteEingabe :: Warteschlange Text
+          , unbekannteEingabe :: EingabeToken
+          , verarbeiteteEingabe :: Warteschlange EingabeToken
           , alternativeParser :: Warteschlange (AnfrageParser a e)
           }
     | AFStatusAnfrage
@@ -140,7 +135,7 @@ instance Functor (AnfrageFortsetzung a) where
 
 -- vgl. FFP Ub6b, ApplikativerParser.
 newtype AnfrageParser a e =
-    AnfrageParser { runParser :: Maybe a -> [Text] -> AnfrageFortsetzung a e }
+    AnfrageParser { runParser :: Maybe a -> [EingabeToken] -> AnfrageFortsetzung a e }
 
 instance Functor (AnfrageParser a) where
     fmap :: (e -> f) -> AnfrageParser a e -> AnfrageParser a f
@@ -165,7 +160,9 @@ instance Alternative (AnfrageParser a) where
     -- neutrales Element, ein Parser der immer fehlschlägt
     empty = AnfrageParser $ \alterZwischenwert eingabe -> AFFehler
         { alterZwischenwert
-        , unbekannteEingabe = foldl' (<~>) (const Text.empty) eingabe $ Deutsch
+        , unbekannteEingabe = case eingabe of
+              (h:_t) -> h
+              [] -> leeresToken
         , verarbeiteteEingabe = Warteschlange.leer
         , alternativeParser = Warteschlange.leer
         }
@@ -180,7 +177,7 @@ instance Alternative (AnfrageParser a) where
         $ p1 ma eingabe
 
 alternativenAuswerten :: forall a e.
-                      [Text]
+                      [EingabeToken]
                       -> Warteschlange (AnfrageParser a e)
                       -> AnfrageFortsetzung a e
                       -> AnfrageFortsetzung a e
@@ -202,7 +199,7 @@ alternativenAuswerten eingabe alternativen anfrageFortsetzung =
                 (Warteschlange.Gefüllt pHead rest)
                     -> alternativenAuswerten eingabe rest $ runParser pHead Nothing volleEingabe
                     where
-                        volleEingabe :: [Text]
+                        volleEingabe :: [EingabeToken]
                         volleEingabe =
                             Warteschlange.zuListe
                             $ verarbeiteteEingabe <> Warteschlange.vonListe eingabe
