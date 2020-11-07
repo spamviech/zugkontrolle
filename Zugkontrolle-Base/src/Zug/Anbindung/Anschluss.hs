@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -54,11 +53,7 @@ import Control.Applicative (Alternative(..))
 import Control.Concurrent (ThreadId())
 import Control.Concurrent.STM
        (atomically, retry, newTVarIO, readTVar, writeTVar, TMVar, takeTMVar, putTMVar)
-import Control.Monad (void, forM, unless
-#ifdef ZUGKONTROLLERASPI
-                    , foldM
-#endif
-                     )
+import Control.Monad (void, forM, unless, foldM)
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
 import Control.Monad.Trans (MonadIO(..))
 import Data.Aeson.Types ((.:), (.=))
@@ -70,12 +65,8 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import System.Hardware.WiringPi
-       (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead, pinToBcmGpio, pinMode, IntEdge(..)
-#ifdef ZUGKONTROLLERASPI
-      , wiringPiISR
-#endif
-       )
+import System.Hardware.WiringPi (Pin(..), Value(..), Mode(..), digitalWrite, digitalRead
+                               , pinToBcmGpio, pinMode, IntEdge(..), wiringPiISR)
 import Text.Read (Read(..), ReadPrec)
 
 import Zug.Anbindung.Anschluss.PCF8574
@@ -85,7 +76,7 @@ import Zug.Anbindung.Anschluss.PCF8574
       , PCF8574Klasse(..))
 import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText)
-import Zug.Util (forkIOSilent)
+import Zug.Util (forkIOSilent, isRaspi)
 
 -- | Wird ein Interrupt-Pin für den Anschluss benötigt?
 data InterruptPinBenötigt
@@ -336,9 +327,7 @@ beiÄnderung :: (InterruptReader r m, I2CReader r m, MonadIO m)
              -> IO EventBehalten
              -> m ()
 beiÄnderung anschluss intEdge aktion = do
-#ifdef ZUGKONTROLLERASPI
     readerWert <- ask
-#endif
     tmvarInterruptMap <- erhalteInterruptMap
     aktuelleInterruptMap <- liftIO $ atomically $ takeTMVar tmvarInterruptMap
     case Map.lookup interruptPin aktuelleInterruptMap of
@@ -353,17 +342,16 @@ beiÄnderung anschluss intEdge aktion = do
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
                 pinMode interruptPin INPUT
-#ifdef ZUGKONTROLLERASPI
-                wiringPiISR interruptPin (verwendeteIntEdge anschluss)
-                    $ runReaderT aktionenAusführen readerWert
-#else
-                -- wiringPiISR führt auf Windows zu einem Auswerten von 'undefined'
-                putStrLn
-                    $ "wiringPiISR "
-                    ++ show interruptPin
-                    ++ " "
-                    ++ show (verwendeteIntEdge anschluss)
-#endif
+                if isRaspi
+                    then wiringPiISR interruptPin (verwendeteIntEdge anschluss)
+                        $ runReaderT aktionenAusführen readerWert
+                    else 
+                        -- wiringPiISR führt auf Windows zu einem Auswerten von 'undefined'
+                        putStrLn
+                        $ "wiringPiISR "
+                        ++ show interruptPin
+                        ++ " "
+                        ++ show (verwendeteIntEdge anschluss)
                 atomically
                     $ putTMVar tmvarInterruptMap
                     $ Map.insert
@@ -423,33 +411,32 @@ beiÄnderung anschluss intEdge aktion = do
         anschlussReadBitValue
             AnschlussPCF8574Port {pcf8574Port = PCF8574Port {pcf8574}} = pcf8574Read pcf8574
 
-#ifdef ZUGKONTROLLERASPI
         aktionenAusführen :: (InterruptReader r m, I2CReader r m, MonadIO m) => m ()
         aktionenAusführen = do
             tmvarInterruptMap <- erhalteInterruptMap
             wert <- anschlussReadBitValue anschluss
             liftIO $ do
-                interruptMap <- atomically $ takeTMVar tmvarInterruptMap
-                eintragAnpassen <- case Map.lookup interruptPin interruptMap of
+                iMap <- atomically $ takeTMVar tmvarInterruptMap
+                eintragAnpassen <- case Map.lookup interruptPin iMap of
                     (Just (aktionen, alterWert)) -> do
                         verbliebeneAktionen
                             <- foldM (aktionAusführen (wert, alterWert)) [] aktionen
                         pure $ Map.insert interruptPin (verbliebeneAktionen, wert)
                     Nothing -> pure id
-                atomically $ putTMVar tmvarInterruptMap $ eintragAnpassen interruptMap
+                atomically $ putTMVar tmvarInterruptMap $ eintragAnpassen iMap
 
         aktionAusführen :: (BitValue, BitValue)
                          -> [(BitValue, BitValue)
                             -> IO EventBehalten]
                          -> ((BitValue, BitValue) -> IO EventBehalten)
-                         -> IO [(BitValue, BitValue)
-                               -> IO EventBehalten]
-        aktionAusführen bitValues acc aktion = eventAnhängen <$> aktion bitValues
+                         -> IO
+                             [(BitValue, BitValue)
+                             -> IO EventBehalten]
+        aktionAusführen bitValues acc akt = eventAnhängen <$> akt bitValues
             where
                 eventAnhängen :: EventBehalten -> [(BitValue, BitValue) -> IO EventBehalten]
-                eventAnhängen EventBehalten = aktion : acc
+                eventAnhängen EventBehalten = akt : acc
                 eventAnhängen EventLöschen = acc
-#endif
 
 -- | Wurde ein Signal bei einem 'Kontakt' registriert.
 data SignalErhalten
