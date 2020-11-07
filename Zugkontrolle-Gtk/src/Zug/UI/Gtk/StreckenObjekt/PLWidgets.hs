@@ -292,7 +292,13 @@ planPackNew plan@Plan {plAktionen} = do
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne (zuObjektTyp plan) plTVarSprache
     let plWidgets =
             PLWidgets
-            { pl = plan, plWidget = frame, plFunctionBox, plHinzPL, plTVarSprache, plTVarEvent }
+            { pl = plan
+            , plWidget = frame
+            , plFunctionBox
+            , plHinzPL
+            , plTVarSprache
+            , plTVarEvent
+            }
     buttonEntfernenPackNew plWidgets $ (entfernenPlan plWidgets :: IOStatusAllgemein ObjektGui ())
     buttonBearbeitenPackNew plWidgets
     let justTVarSprache = Just plTVarSprache

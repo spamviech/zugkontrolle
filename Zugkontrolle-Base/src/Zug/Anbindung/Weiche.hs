@@ -93,7 +93,8 @@ instance StreckenAtom (Weiche z) where
 -- | Sammel-Klasse für 'Weiche'n-artige Typen
 class (StreckenObjekt w) => WeicheKlasse w where
     -- | Weiche einstellen
-    stellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => w -> Richtung -> m ()
+    stellen
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => w -> Richtung -> m ()
 
     -- | Überprüfe, ob Weiche eine Richtung unterstützt
     hatRichtung :: w -> Richtung -> Bool
@@ -105,7 +106,10 @@ class (StreckenObjekt w) => WeicheKlasse w where
 
 instance (WeicheKlasse (we 'Märklin), WeicheKlasse (we 'Lego))
     => WeicheKlasse (ZugtypEither we) where
-    stellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => ZugtypEither we -> Richtung -> m ()
+    stellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
+            => ZugtypEither we
+            -> Richtung
+            -> m ()
     stellen (ZugtypMärklin a) = stellen a
     stellen (ZugtypLego a) = stellen a
 
@@ -118,7 +122,10 @@ weicheZeit :: Wartezeit
 weicheZeit = MilliSekunden 250
 
 instance (ZugtypKlasse z) => WeicheKlasse (Weiche z) where
-    stellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Weiche z -> Richtung -> m ()
+    stellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
+            => Weiche z
+            -> Richtung
+            -> m ()
     stellen we@WeicheLego {welRichtungsPin, welRichtungen} richtung
         | richtung == fst welRichtungen =
             flip

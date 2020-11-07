@@ -238,10 +238,9 @@ instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
         -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
     checkButtonWegstrecke = checkButtonWegstreckeVoid
         where
-            checkButtonWegstreckeVoid :: GeschwindigkeitEither BGWidgets 'Märklin
-                                      -> CheckButtonWegstreckeHinzufügen
-                                          Void
-                                          (GeschwindigkeitEither BGWidgets 'Märklin)
+            checkButtonWegstreckeVoid
+                :: GeschwindigkeitEither BGWidgets 'Märklin
+                -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
             checkButtonWegstreckeVoid (GeschwindigkeitPwm bgWidgets) =
                 widgetHinzufügenGeschwindigkeitEither $checkButtonWegstrecke bgWidgets
             checkButtonWegstreckeVoid (GeschwindigkeitKonstanteSpannung bgWidgets) =
@@ -370,10 +369,9 @@ instance WegstreckenElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) whe
         -> CheckButtonWegstreckeHinzufügen Void (ZugtypEither (GeschwindigkeitEither BGWidgets))
     checkButtonWegstrecke = erhalteCheckbuttonWegstrecke
         where
-            erhalteCheckbuttonWegstrecke :: ZugtypEither (GeschwindigkeitEither BGWidgets)
-                                         -> CheckButtonWegstreckeHinzufügen
-                                             Void
-                                             (ZugtypEither (GeschwindigkeitEither BGWidgets))
+            erhalteCheckbuttonWegstrecke
+                :: ZugtypEither (GeschwindigkeitEither BGWidgets)
+                -> CheckButtonWegstreckeHinzufügen Void (ZugtypEither (GeschwindigkeitEither BGWidgets))
             erhalteCheckbuttonWegstrecke (ZugtypMärklin bg) =
                 widgetHinzufügenZugtypEither $ checkButtonWegstrecke bg
             erhalteCheckbuttonWegstrecke (ZugtypLego bg) =
@@ -615,7 +613,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     buttonEntfernenPackNew
         bgWidgets
         (entfernenBahngeschwindigkeit $ zuZugtypEither $ zuGeschwindigkeitEither bgWidgets
-             :: IOStatusAllgemein o ())
+         :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew bgWidgets
     -- Widgets merken
     ausführenBefehl
@@ -628,23 +626,14 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     where
         hinzufügenWidgetsPackNew
             :: TVarSprachewechselAktionen
-            -> MStatusAllgemeinT
-                m
-                o
-                ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
-                , ButtonPlanHinzufügen (BGWidgets g z)
-                , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
-                )
+            -> MStatusAllgemeinT m o ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
+                                     , ButtonPlanHinzufügen (BGWidgets g z)
+                                     , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
+                                     )
         hinzufügenWidgetsPackNew tvarSprachwechselAktionen = do
             objektReader <- ask
             fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-                :: MStatusAllgemeinT
-                    m
-                    o
-                    (FortfahrenWennToggledVar
-                         (StatusAllgemein o)
-                         (StatusVar o)
-                         WegstreckeCheckButtonVoid)
+                :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
             hinzufügenWidgetWegstrecke <- hinzufügenWidgetWegstreckePackNew
                 bahngeschwindigkeit
                 tvarSprachwechselAktionen

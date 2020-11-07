@@ -65,15 +65,15 @@ data BefehlAllgemein o
     | Entfernen o
     | Speichern FilePath
     | Laden
-      { ladenPfad :: FilePath
-      , erfolgsAktion :: Status -> IOStatusAllgemein o ()
-      , fehlerbehandlung :: IOStatusAllgemein o ()
-      }
+          { ladenPfad :: FilePath
+          , erfolgsAktion :: Status -> IOStatusAllgemein o ()
+          , fehlerbehandlung :: IOStatusAllgemein o ()
+          }
     | Ausführen
-      { auszuführenderPlan :: PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
-      , fortschrittsanzeige :: Natural -> Sprache -> IO ()
-      , abschlussAnzeige :: IO ()
-      }
+          { auszuführenderPlan :: PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
+          , fortschrittsanzeige :: Natural -> Sprache -> IO ()
+          , abschlussAnzeige :: IO ()
+          }
     | AusführenAbbrechen Plan
     | AktionBefehl Aktion
 
@@ -104,7 +104,7 @@ class ( ObjektKlasse o
       , BahngeschwindigkeitKlasse (BG o)
       , ObjektElement (BG o 'KonstanteSpannung 'Märklin)
       , ObjektTyp (BG o 'KonstanteSpannung 'Märklin)
-        ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+            ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
       , Eq (BG o 'KonstanteSpannung 'Märklin)
       , ObjektElement (BG o 'Pwm 'Lego)
       , ObjektTyp (BG o 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
@@ -157,7 +157,7 @@ instance ( ObjektKlasse o
          , BahngeschwindigkeitKlasse (BG o)
          , ObjektElement (BG o 'KonstanteSpannung 'Märklin)
          , ObjektTyp (BG o 'KonstanteSpannung 'Märklin)
-           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , Eq (BG o 'KonstanteSpannung 'Märklin)
          , ObjektElement (BG o 'Pwm 'Lego)
          , ObjektTyp (BG o 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego

@@ -178,9 +178,7 @@ instance (StreckenObjekt ko, Show ko) => StreckenObjekt (AktionKontakt ko) where
 -- | Bekannte 'AktionAllgemein' einer 'Wegstrecke'.
 data AktionWegstrecke ws (z :: Zugtyp)
     = Einstellen (ws z)
-    | AWSBahngeschwindigkeit (GeschwindigkeitEither
-                                  (AktionBahngeschwindigkeit (GeschwindigkeitPhantom ws))
-                                  z)
+    | AWSBahngeschwindigkeit (GeschwindigkeitEither (AktionBahngeschwindigkeit (GeschwindigkeitPhantom ws)) z)
     | AWSStreckenabschnitt (AktionStreckenabschnitt (ws z))
     | AWSKupplung (AktionKupplung (ws z))
     | AWSKontakt (AktionKontakt (ws z))
@@ -233,15 +231,9 @@ instance ( StreckenObjekt (ws 'Märklin)
 data AktionAllgemein bg st we ku ko ws
     = Warten Wartezeit
     | ABahngeschwindigkeitMärklinPwm (AktionBahngeschwindigkeit bg 'Pwm 'Märklin)
-    | ABahngeschwindigkeitMärklinKonstanteSpannung (AktionBahngeschwindigkeit
-                                                         bg
-                                                         'KonstanteSpannung
-                                                         'Märklin)
+    | ABahngeschwindigkeitMärklinKonstanteSpannung (AktionBahngeschwindigkeit bg 'KonstanteSpannung 'Märklin)
     | ABahngeschwindigkeitLegoPwm (AktionBahngeschwindigkeit bg 'Pwm 'Lego)
-    | ABahngeschwindigkeitLegoKonstanteSpannung (AktionBahngeschwindigkeit
-                                                     bg
-                                                     'KonstanteSpannung
-                                                     'Lego)
+    | ABahngeschwindigkeitLegoKonstanteSpannung (AktionBahngeschwindigkeit bg 'KonstanteSpannung 'Lego)
     | AStreckenabschnitt (AktionStreckenabschnitt st)
     | AWeiche (AktionWeiche (ZugtypEither we))
     | AKupplung (AktionKupplung ku)
@@ -502,7 +494,7 @@ instance ( BahngeschwindigkeitKlasse bg
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -558,12 +550,12 @@ instance ( BahngeschwindigkeitKlasse bg
                    , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
                    , ObjektElement (bg 'KonstanteSpannung 'Märklin)
                    , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
                    , ObjektElement (bg 'Pwm 'Lego)
                    , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
                    , ObjektElement (bg 'KonstanteSpannung 'Lego)
                    , ObjektTyp (bg 'KonstanteSpannung 'Lego)
-                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
                    , ObjektElement st
                    , ObjektTyp st ~ Streckenabschnitt
                    , ObjektElement (we 'Märklin)
@@ -601,7 +593,7 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -632,12 +624,12 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
                    , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
                    , ObjektElement (bg 'KonstanteSpannung 'Märklin)
                    , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
                    , ObjektElement (bg 'Pwm 'Lego)
                    , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
                    , ObjektElement (bg 'KonstanteSpannung 'Lego)
                    , ObjektTyp (bg 'KonstanteSpannung 'Lego)
-                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
                    , ObjektElement st
                    , ObjektTyp st ~ Streckenabschnitt
                    , ObjektElement (we 'Märklin)
@@ -811,7 +803,7 @@ instance ( BahngeschwindigkeitKlasse bg
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -960,7 +952,7 @@ aktionToJSON
        , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
        , ObjektElement (bg 'KonstanteSpannung 'Märklin)
        , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+             ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
        , ObjektElement (bg 'Pwm 'Lego)
        , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
        , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -1121,7 +1113,7 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)

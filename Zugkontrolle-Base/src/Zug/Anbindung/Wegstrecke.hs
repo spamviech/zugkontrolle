@@ -544,12 +544,15 @@ class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => Wegstre
 
 instance (WegstreckeKlasse (w 'Märklin), WegstreckeKlasse (w 'Lego))
     => WegstreckeKlasse (ZugtypEither w) where
-    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => ZugtypEither w -> m ()
+    einstellen
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => ZugtypEither w -> m ()
     einstellen (ZugtypMärklin a) = einstellen a
     einstellen (ZugtypLego a) = einstellen a
 
 instance WegstreckeKlasse (Wegstrecke 'Märklin) where
-    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Wegstrecke 'Märklin -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
+               => Wegstrecke 'Märklin
+               -> m ()
     einstellen ws@Wegstrecke {wsWeichenRichtungen} =
         flip befehlAusführen ("Einstellen (" <> showText ws <> ")") $ do
             forM_ richtungsPins $ \(pin, valueFunktion) -> forkI2CReader $ do
@@ -611,7 +614,8 @@ instance WegstreckeKlasse (Wegstrecke 'Märklin) where
             richtungsPortMapLow = pcf8574Gruppieren richtungsPcf8574PortsLow
 
 instance WegstreckeKlasse (Wegstrecke 'Lego) where
-    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Wegstrecke 'Lego -> m ()
+    einstellen
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Wegstrecke 'Lego -> m ()
     einstellen Wegstrecke {wsWeichenRichtungen} =
         mapM_ (forkI2CReader . uncurry stellen) wsWeichenRichtungen
 

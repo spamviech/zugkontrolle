@@ -166,18 +166,24 @@ class ( StreckenObjekt (b 'Pwm 'Märklin)
       , StreckenObjekt (b 'KonstanteSpannung 'Lego)
       ) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
-    geschwindigkeit
-        :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m) => b 'Pwm z -> Word8 -> m ()
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m)
+                    => b 'Pwm z
+                    -> Word8
+                    -> m ()
 
     -- | Fahrstrom ein-/ausschalten
-    fahrstrom :: (I2CReader r m, VersionReader r m, MonadIO m) => b 'KonstanteSpannung z -> Word8 -> m ()
+    fahrstrom
+        :: (I2CReader r m, VersionReader r m, MonadIO m) => b 'KonstanteSpannung z -> Word8 -> m ()
 
     -- | Gebe allen Zügen den Befehl zum Umdrehen
-    umdrehen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => b g 'Märklin -> m ()
+    umdrehen
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => b g 'Märklin -> m ()
 
     -- | Gebe allen Zügen den Befehl in einer bestimmen Richtung zu fahren
-    fahrtrichtungEinstellen
-        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => b g 'Lego -> Fahrtrichtung -> m ()
+    fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
+                            => b g 'Lego
+                            -> Fahrtrichtung
+                            -> m ()
 
 -- | Erhalte das Element an Position /i/, angefangen bei /1/.
 -- Ist die Position größer als die Länge der Liste wird das letzte Element zurückgegeben.
@@ -215,8 +221,10 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             (pwmSetzeWert bg geschwindigkeitsPin $ erhaltePwmWert bg wert)
             ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText wert)
 
-    fahrstrom
-        :: (I2CReader r m, VersionReader r m, MonadIO m) => Bahngeschwindigkeit 'KonstanteSpannung z -> Word8 -> m ()
+    fahrstrom :: (I2CReader r m, VersionReader r m, MonadIO m)
+              => Bahngeschwindigkeit 'KonstanteSpannung z
+              -> Word8
+              -> m ()
     fahrstrom
         bg@Bahngeschwindigkeit
         { bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}
@@ -274,8 +282,9 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                     fließend bg
                 | otherwise = gesperrt bg
 
-    umdrehen
-        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Bahngeschwindigkeit g 'Märklin -> m ()
+    umdrehen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
+             => Bahngeschwindigkeit g 'Märklin
+             -> m ()
     umdrehen
         bg@Bahngeschwindigkeit
         {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {geschwindigkeitsPin}} =
@@ -317,8 +326,9 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                     bg
 
 -- | Setze die aktuelle Geschwindigkeit auf 0.
-stehenbleiben
-    :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m) => Bahngeschwindigkeit g z -> m ()
+stehenbleiben :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m)
+              => Bahngeschwindigkeit g z
+              -> m ()
 stehenbleiben bg@Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {}} = do
     geschwindigkeit bg 0
     warte umdrehenZeit

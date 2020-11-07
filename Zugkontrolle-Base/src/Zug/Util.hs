@@ -29,11 +29,14 @@ isRaspi :: Bool
 isRaspi = trace (show os ++ ", " ++ show arch) $ (os == "linux") && (arch == "arm")
 
 isNonRaspiOrRoot :: (MonadIO m) => m Bool
-isNonRaspiOrRoot = 
+isNonRaspiOrRoot =
 #ifdef ZUGKONTROLLERASPI
-    (== 0) <$> liftIO getRealUserID
+    (== 0)
+    <$> liftIO
+        getRealUserID
 #else
-    pure True
+        pure
+        True
 #endif
 
 {------------------------------------------------------------------------
@@ -66,3 +69,12 @@ forkIOSilent =
 #ifdef ZUGKONTROLLESILENCE
     . silence
 #endif
+
+
+
+
+
+
+
+
+

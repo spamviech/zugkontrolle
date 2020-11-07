@@ -42,8 +42,11 @@ clockMöglich = flip elem ([Wpi 7, Wpi 21, Wpi 22, Wpi 29] :: [Pin])
 
 -- * PWM-Funktion
 -- | 'pwmWrite' mit alternativer Software-basierter PWM-Funktion
-pwmSetzeWert
-    :: (StreckenAtom s, PwmReader r m, VersionReader r m, MonadIO m) => s -> Pin -> PwmValueUnmodifiziert -> m ()
+pwmSetzeWert :: (StreckenAtom s, PwmReader r m, VersionReader r m, MonadIO m)
+             => s
+             -> Pin
+             -> PwmValueUnmodifiziert
+             -> m ()
 pwmSetzeWert s pin pwmValue = do
     Options {pwm} <- getOptions
     if (pwm == HardwarePWM) && pwmMöglich pin

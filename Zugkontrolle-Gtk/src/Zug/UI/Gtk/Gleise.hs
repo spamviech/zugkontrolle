@@ -602,3 +602,4 @@ legoGeradeNew = geradeNew $ error "Geraden-Länge"
 #endif
 
 
+
