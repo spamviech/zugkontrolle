@@ -1,61 +1,31 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 {-|
 Description : Erstelle GUI und starte den GTK-Main-Loop.
 -}
 module Zug.UI.Gtk (main, setupGUI) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent (runInBoundThread, ThreadId)
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, putTMVar, readTMVar)
-#else
-import Control.Concurrent.STM.TVar (TVar)
-#endif
-#ifdef ZUGKONTROLLEGUI
 import Control.Monad (void, when, forM_, foldM)
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.GI.Gtk.Threading as Gtk
-#else
-import Data.Text (Text)
-import qualified Data.Text.IO as Text
-#endif
-#ifdef ZUGKONTROLLEGUI
 import qualified GI.Gdk as Gdk
 import qualified GI.Gtk as Gtk
-#else
-import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
-#endif
-#ifdef ZUGKONTROLLESILENCE
-import System.IO.Silently (silence)
-#endif
-#ifdef ZUGKONTROLLEGUI
 import System.IO.Unsafe (unsafeInterleaveIO)
-#endif
 
-#ifdef ZUGKONTROLLEGUI
 import Zug.Anbindung (warte, Wartezeit(MilliSekunden))
 import Zug.Language (MitSprache(leseSprache), (<~>), (<|>))
-#else
-import Zug.Language (Sprache(..))
-#endif
 import qualified Zug.Language as Language
-#ifdef ZUGKONTROLLEGUI
 import Zug.Options (Options(..), getOptions, GtkSeiten(Einzelseiten), VersionReader(erhalteVersion))
 import Zug.UI.Base (Status, statusLeer, tvarMapsNeu)
 import Zug.UI.Befehl (BefehlAllgemein(..))
-#endif
-#ifndef ZUGKONTROLLEGUI
-import qualified Zug.UI.Cmd as Cmd
-#else
 import Zug.UI.Gtk.Auswahl (boundedEnumAuswahlComboBoxNew, beiAuswahl)
 import Zug.UI.Gtk.Fenster (buttonSpeichernPack, buttonLadenPack, ladeWidgets, buttonHinzufügenPack)
 import Zug.UI.Gtk.FortfahrenWennToggled (fortfahrenWennToggledVarNew)
@@ -75,46 +45,20 @@ import Zug.UI.Gtk.StreckenObjekt
       , WEWidgetsBoxen(..), KUWidgetsBoxen(..), KOWidgetsBoxen(..), WSWidgetsBoxen(..)
       , PLWidgetsBoxen(..))
 import Zug.UI.StatusVar (statusVarNew, ausführenStatusVarBefehl, readStatusVar)
-import Zug.Util (forkIOSilent)
-#endif
+import Zug.Util (forkIOSilent, maybeSilent)
 
-#ifndef ZUGKONTROLLEGUI
--- | Gtk-main loop nicht verfügbar. Weiche auf Cmd-UI aus.
-main :: IO ()
-main = do
-    putWarningLn Language.uiNichtUnterstützt
-    Cmd.main
-
-setupGUI :: Maybe TVarSprachewechselAktionen -> IO ()
-setupGUI _maybeTVar = putWarningLn Language.uiNichtUnterstützt
-
-putWarningLn :: (Sprache -> Text) -> IO ()
-putWarningLn warning = do
-    setSGR [SetColor Foreground Vivid Red]
-    Text.putStrLn $ warning Deutsch
-    setSGR [Reset]
-
-#else
 -- | Gtk-main loop.
 main :: (VersionReader r m, MonadIO m) => m ()
 main = do
     v <- erhalteVersion
-    liftIO
-        $ runInBoundThread
-        $
-#ifdef ZUGKONTROLLESILENCE
-        silence
-        $
-#endif
-        do
-            -- Initialisiere GTK+ engine
-            liftIO $ do
-                Gtk.init Nothing
-                Gtk.setCurrentThreadAsGUIThread
-            -- Erstelle GUI
-            runReaderT (setupGUI Nothing) v
-            -- GTK+ main loop
-            liftIO $ Gtk.main
+    liftIO $ runInBoundThread $ maybeSilent $ do
+        -- Initialisiere GTK+ engine
+        Gtk.init Nothing
+        Gtk.setCurrentThreadAsGUIThread
+        -- Erstelle GUI
+        runReaderT (setupGUI Nothing) v
+        -- GTK+ main loop
+        Gtk.main
 
 -- | Erstelle GUI inkl. sämtlicher Events.
 --
@@ -151,7 +95,7 @@ setupGUI maybeTVar = do
         verwendeSpracheGuiFn spracheGui maybeTVar $ \sp
             -> Gtk.setWindowTitle dynWindowMain $ Language.zugkontrolle <~> Language.version v $ sp
         -- Drücken des X-Knopfes beendet das gesamte Program
-        Gtk.onWidgetDeleteEvent dynWindowMain $ \_event -> liftIO $ do
+        Gtk.onWidgetDeleteEvent dynWindowMain $ \_event -> do
             Gtk.mainQuit
             pure False
         vBox <- containerAddWidgetNew dynWindowMain $ Gtk.boxNew Gtk.OrientationVertical 0
@@ -823,5 +767,3 @@ gtkWithProgress progressBar actions = forkIOSilent $ void $ foldM foldFn 0 actio
             -- give gtk some time to actually display the changed progress bar
             warte $ MilliSekunden 300
             pure newFraction
-#endif
---

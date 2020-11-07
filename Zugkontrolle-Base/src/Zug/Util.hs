@@ -1,7 +1,14 @@
 {-# LANGUAGE CPP #-}
 
 -- | Useful utility functions
-module Zug.Util (isRaspi, isNonRaspiOrRoot, writeFileUtf8, readFileUtf8, forkIOSilent) where
+module Zug.Util
+  ( isRaspi
+  , isNonRaspiOrRoot
+  , writeFileUtf8
+  , readFileUtf8
+  , maybeSilent
+  , forkIOSilent
+  ) where
 
 import Control.Concurrent (forkIO, ThreadId)
 #ifdef ZUGKONTROLLERASPI
@@ -62,6 +69,15 @@ readFileUtf8 fp = withFile fp ReadMode $ \h -> do
     hSetNewlineMode h noNewlineTranslation
     Text.hGetContents h
 
+-- | 'System.IO.Silently.silence', adjusted for /onlygui/ flag.
+maybeSilent :: IO a -> IO a
+maybeSilent =
+#ifdef ZUGKONTROLLESILENCE
+    silence
+#else
+        id
+#endif
+
 -- | 'forkIO', adjusted for /onlygui/ flag.
 forkIOSilent :: IO () -> IO ThreadId
 forkIOSilent =
@@ -69,12 +85,3 @@ forkIOSilent =
 #ifdef ZUGKONTROLLESILENCE
     . silence
 #endif
-
-
-
-
-
-
-
-
-
