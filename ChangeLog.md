@@ -174,3 +174,4 @@
 - Verwendete ghc version auf 8.10.1 erhöht.
 - Gtk-binding zu gi-gtk geändert.
 - Entfernte Pläne werden nicht mehr beim erstellen neuer Pläne vorgeschlagen (ausführen).
+- Bibliothek auf Zugkontrolle-Base, -Cmd, -Gtk aufgeteilt.
