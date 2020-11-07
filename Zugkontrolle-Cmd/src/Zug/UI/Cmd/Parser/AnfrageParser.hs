@@ -9,7 +9,16 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 -}
-module Zug.UI.Cmd.Parser.AnfrageParser where
+module Zug.UI.Cmd.Parser.AnfrageParser
+  ( -- * AnfrageParser
+    AnfrageParser(..)
+    -- ** Ergebnis-Typ des Parse-Vorgangs
+  , AnfrageFortsetzung(..)
+  , StatusAnfrageObjekt(..)
+  , StatusAnfrageObjektZugtyp(..)
+    -- ** Hilfsfunktionen
+  , parseMitZwischenwert
+  ) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (MonadPlus(..), ap)
@@ -245,3 +254,34 @@ instance Monad (AnfrageParser a) where
                     -> konstruktorLego objekt >>= f }
 
 instance MonadPlus (AnfrageParser a)
+
+parseMitZwischenwert :: (b -> a) -> (a -> b) -> AnfrageParser a e -> AnfrageParser b e
+parseMitZwischenwert selektor f (AnfrageParser p) = AnfrageParser $ \mb eingabe -> case p
+    (selektor <$> mb)
+    eingabe of
+    AFErgebnis {ergebnis, fortsetzung, eingabeRest}
+        -> AFErgebnis { ergebnis, fortsetzung = f <$> fortsetzung, eingabeRest }
+    AFZwischenwert {zwischenwert, verarbeiteteEingabe, alternativeParser} -> AFZwischenwert
+        { zwischenwert = f zwischenwert
+        , verarbeiteteEingabe
+        , alternativeParser = parseMitZwischenwert selektor f <$> alternativeParser
+        }
+    AFFehler
+        {alterZwischenwert, unbekannteEingabe, verarbeiteteEingabe, alternativeParser} -> AFFehler
+        { alterZwischenwert = f <$> alterZwischenwert
+        , unbekannteEingabe
+        , verarbeiteteEingabe
+        , alternativeParser = parseMitZwischenwert selektor f <$> alternativeParser
+        }
+    AFStatusAnfrage {anfrageObjekt, konstruktor} -> AFStatusAnfrage
+        { anfrageObjekt
+        , konstruktor = parseMitZwischenwert selektor f . konstruktor
+        }
+    AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} -> AFStatusAnfrageMärklin
+        { anfrageObjektMärklin
+        , konstruktorMärklin = parseMitZwischenwert selektor f . konstruktorMärklin
+        }
+    AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} -> AFStatusAnfrageLego
+        { anfrageObjektLego
+        , konstruktorLego = parseMitZwischenwert selektor f . konstruktorLego
+        }
