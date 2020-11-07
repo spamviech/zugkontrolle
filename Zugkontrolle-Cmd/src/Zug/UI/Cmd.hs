@@ -19,7 +19,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 -- Farbige Konsolenausgabe
-import System.Console.ANSI
+import System.Console.ANSI (setSGR, Color(..), ColorIntensity(..), ConsoleLayer(..), SGR(..))
 import System.IO (hFlush, stdout)
 
 import Zug.Enums (ZugtypKlasse())
