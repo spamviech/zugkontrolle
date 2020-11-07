@@ -278,29 +278,45 @@ parseZahl = AnfrageParser $ \ma (h@EingabeToken {ganzzahl} :| eingabeRest) -> ca
         }
 
 -- | Parse unter angegebener Konvertierung des Zwischenwertes.
-parseMitZwischenwert :: (b -> a) -> (a -> b) -> AnfrageParser a e -> AnfrageParser b e
-parseMitZwischenwert selektor f (AnfrageParser p) = AnfrageParser $ \mb eingabe -> case p
-    (selektor <$> mb)
-    eingabe of
-    AFErgebnis {ergebnis, fortsetzung, eingabeRest}
-        -> AFErgebnis { ergebnis, fortsetzung = f <$> fortsetzung, eingabeRest }
+--
+-- Die /selektor/-Funktion beschreibt wie aus dem Argument die relevanten Informationen erhalten werden.
+-- Die /speichereZwischenwert/, bzw. -/Ergebnis/ Funktionen beschreiben wie Informationen bei
+-- unvollständiger Eingabe gespeichert werden.
+parseMitZwischenwert :: (b -> a) -> (a -> b) -> (e -> b) -> AnfrageParser a e -> AnfrageParser b e
+parseMitZwischenwert
+    selektor
+    speichereZwischenwert
+    speichereErgebnis
+    (AnfrageParser p) = AnfrageParser $ \mb eingabe -> case p (selektor <$> mb) eingabe of
+    AFErgebnis {ergebnis, eingabeRest}
+        -> AFErgebnis { ergebnis, fortsetzung = Just $ speichereErgebnis ergebnis, eingabeRest }
     AFZwischenwert {zwischenwert, verarbeiteteEingabe, alternativeParser} -> AFZwischenwert
-        { zwischenwert = f zwischenwert
+        { zwischenwert = speichereZwischenwert zwischenwert
         , verarbeiteteEingabe
-        , alternativeParser = parseMitZwischenwert selektor f <$> alternativeParser
+        , alternativeParser = parseMitZwischenwert selektor speichereZwischenwert speichereErgebnis
+              <$> alternativeParser
         }
     AFFehler
         {alterZwischenwert, unbekannteEingabe, verarbeiteteEingabe, alternativeParser} -> AFFehler
-        { alterZwischenwert = f <$> alterZwischenwert
+        { alterZwischenwert = speichereZwischenwert <$> alterZwischenwert
         , unbekannteEingabe
         , verarbeiteteEingabe
-        , alternativeParser = parseMitZwischenwert selektor f <$> alternativeParser
+        , alternativeParser = parseMitZwischenwert selektor speichereZwischenwert speichereErgebnis
+              <$> alternativeParser
         }
     AFStatusAnfrage {anfrageObjekt, konstruktor} -> AFStatusAnfrage
-        { anfrageObjekt, konstruktor = parseMitZwischenwert selektor f . konstruktor }
+        { anfrageObjekt
+        , konstruktor =
+              parseMitZwischenwert selektor speichereZwischenwert speichereErgebnis . konstruktor
+        }
     AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} -> AFStatusAnfrageMärklin
         { anfrageObjektMärklin
-        , konstruktorMärklin = parseMitZwischenwert selektor f . konstruktorMärklin
+        , konstruktorMärklin =
+              parseMitZwischenwert selektor speichereZwischenwert speichereErgebnis
+              . konstruktorMärklin
         }
     AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} -> AFStatusAnfrageLego
-        { anfrageObjektLego, konstruktorLego = parseMitZwischenwert selektor f . konstruktorLego }
+        { anfrageObjektLego
+        , konstruktorLego = parseMitZwischenwert selektor speichereZwischenwert speichereErgebnis
+              . konstruktorLego
+        }
