@@ -15,6 +15,10 @@ module Zug.UI.Gtk.Gleise
 #ifdef ZUGKONTROLLEGUI
     -- * Gleis Widgets
     Gleis()
+  , GleisDefinition(..)
+  , WeichenArt(..)
+  , WeichenRichtungAllgemein(..)
+  , WeichenRichtung(..)
     -- ** Anpassen der Größe
   , gleisScale
   , gleisSetWidth
