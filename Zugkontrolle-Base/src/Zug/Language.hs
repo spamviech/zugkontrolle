@@ -15,7 +15,6 @@ module Zug.Language
   ( -- * Titel / Title
     zugkontrolle
     -- ** Version
-  , versionValue
   , version
     -- * Haupt-Befehle / Main Orders
   , beenden
@@ -188,8 +187,6 @@ import qualified Data.Text.IO as Text
 import Data.Version (Version, showVersion)
 import Data.Word (Word8)
 import Numeric.Natural (Natural)
--- Auto-generiertes Cabal-Modul
-import qualified Paths_Zugkontrolle as Paths
 import System.Hardware.WiringPi (Pin, Value(..))
 
 -- * Titel / Title
@@ -197,14 +194,9 @@ import System.Hardware.WiringPi (Pin, Value(..))
 zugkontrolle :: Sprache -> Text
 zugkontrolle = const "Zugkontrolle"
 
--- ** Version
--- | Aktuelle Version
-versionValue :: Version
-versionValue = Paths.version
-
--- | 'Text'-Ausgabe von 'versionValue'
-version :: Text
-version = Text.pack $ showVersion versionValue
+-- | 'Text'-Ausgabe von 'Version'
+version :: Version -> Text
+version = Text.pack . showVersion
 
 -- * Haupt-Befehle / Main Orders
 -- | Quit

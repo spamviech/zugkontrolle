@@ -1,21 +1,16 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description : Starte Main-Loop für Kommandozeilen-basiertes UI.
 -}
-module Zug.UI.Cmd
-  ( main
-#ifndef ZUGKONTROLLESILENCE
-  , mainStatus
-#endif
-  ) where
+module Zug.UI.Cmd (main, mainStatus) where
 
-#ifndef ZUGKONTROLLESILENCE
 import Control.Monad (unless, void)
 import Control.Monad.RWS.Strict (evalRWST)
 import Control.Monad.State.Class (MonadState(..))
@@ -32,7 +27,7 @@ import qualified Zug.Language as Language
 import Zug.Language (Anzeige(..), Sprache(), ($#), (<~>), (<\>), (<=>), (<!>), (<:>)
                    , fehlerhafteEingabe, toBefehlsString)
 import Zug.Objekt (Objekt)
-import Zug.Options (Options(..), getOptions)
+import Zug.Options (Options(..), getOptions, VersionReader(erhalteVersion))
 import Zug.UI.Base (getSprache, IOStatus, auswertenLeererIOStatus, tvarMapsNeu
                   , AusführenMöglich(..), ausführenMöglich)
 import Zug.UI.Befehl (BefehlAllgemein(..), Befehl, BefehlListeAllgemein(..), ausführenBefehl)
@@ -42,42 +37,35 @@ import Zug.UI.Cmd.Parser
       , statusAnfrageObjekt, StatusAnfrageObjektZugtyp(..), statusAnfrageObjektZugtyp
       , ObjektZugtyp(..), BefehlSofort(..), AnfrageNeu(..), parser, unbekanntShowText, zeigeAnfrage
       , zeigeAnfrageOptionen, zeigeAnfrageFehlgeschlagen)
-#else
-import qualified Zug.UI.Gtk as Gtk
-#endif
-#ifndef ZUGKONTROLLESILENCE
 import qualified Zug.UI.Save as Save
-#endif
 
 -- | Lade per Kommandozeile übergebenen Anfangszustand und führe den main loop aus.
-main :: IO ()
-main =
-#ifdef ZUGKONTROLLESILENCE
-    Gtk.main
-#else
-        do
-            -- Lade Datei angegeben in Kommandozeilenargument
-            Options {load = path, sprache} <- getOptions
-            Save.laden path pure sprache >>= \case
-                Nothing -> auswertenLeererIOStatus mainStatus tvarMapsNeu sprache
-                (Just anfangsZustand) -> do
-                    tvarMaps <- tvarMapsNeu
-                    void $ evalRWST mainStatus tvarMaps anfangsZustand
+main :: (VersionReader r m, MonadIO m) => m ()
+main = do
+    -- Lade Datei angegeben in Kommandozeilenargument
+    Options {load = path, sprache} <- getOptions
+    v <- erhalteVersion
+    liftIO $ Save.laden path pure sprache >>= \case
+        Nothing -> auswertenLeererIOStatus mainStatus ((, v) <$> tvarMapsNeu) sprache
+        (Just anfangsZustand) -> do
+            tvarMaps <- tvarMapsNeu
+            void $ evalRWST mainStatus (tvarMaps, v) anfangsZustand
 
 -- | main loop
 mainStatus :: IOStatus ()
 mainStatus = do
     status <- get
     sp <- getSprache
+    v <- erhalteVersion
     let putStrLnSprache :: (Sprache -> Text) -> IO ()
         putStrLnSprache s = Text.putStrLn $ s sp
     liftIO $ do
         setSGR [SetColor Foreground Dull Green]
         putStrLnSprache $ Text.empty <\> Language.zugkontrolle
         setSGR [Reset]
-        putStrLnSprache $ Text.empty <~> Language.version
+        putStrLnSprache $ Text.empty <~> Language.version v
         setSGR [SetColor Foreground Dull Cyan]
-        Text.putStrLn $ Text.map (const '-') $ Language.zugkontrolle <~> Language.version $ sp
+        Text.putStrLn $ Text.map (const '-') $ Language.zugkontrolle <~> Language.version v $ sp
         setSGR [Reset]
         putStrLnSprache $ anzeige status
         setSGR [SetColor Foreground Dull Blue]
@@ -198,7 +186,3 @@ promptS s = getSprache >>= liftIO . prompt . s
 
 fehlerhafteEingabeS :: (Sprache -> Text) -> IOStatus ()
 fehlerhafteEingabeS s = getSprache >>= liftIO . (fehlerhafteEingabe $# s)
-#endif
-
-
-

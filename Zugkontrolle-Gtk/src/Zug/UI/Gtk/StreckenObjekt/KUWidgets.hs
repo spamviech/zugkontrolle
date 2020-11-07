@@ -39,6 +39,7 @@ import Zug.Anbindung (StreckenObjekt(..), Kupplung(..), KupplungKlasse(..), Kupp
                     , AnschlussEither(), I2CReader)
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OKupplung), ObjektKlasse(..), ObjektElement(..))
+import Zug.Options (MitVersion())
 import Zug.Plan (AktionKupplung(..))
 import Zug.UI.Base (StatusAllgemein(), ObjektReader(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenKupplung, ReaderFamilie, MitTVarMaps())
@@ -196,7 +197,10 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     let justTVarSprache = Just kuTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
         kupplung
         kuTVarSprache
@@ -249,6 +253,7 @@ buttonKuppelnPackNew
     , KupplungKlasse k
     , MitSpracheGui (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
+    , MitVersion (ReaderFamilie o)
     , ObjektReader o m
     , MonadIO m
     )

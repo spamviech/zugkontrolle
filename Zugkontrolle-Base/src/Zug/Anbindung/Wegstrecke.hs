@@ -33,7 +33,7 @@ import Zug.Anbindung.Anschluss
 import Zug.Anbindung.Bahngeschwindigkeit
        (Bahngeschwindigkeit(..), GeschwindigkeitsAnschlüsse(..), FahrtrichtungsAnschluss(..)
       , BahngeschwindigkeitKlasse(..), umdrehenZeit, positionOderLetztes, PwmZugtyp())
-import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
+import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen, VersionReader)
 import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
 import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..), kuppelnZeit)
 import Zug.Anbindung.Pwm (PwmReader())
@@ -97,7 +97,7 @@ i2cForM_ :: (Foldable t, MonadIO m) => t a -> (a -> m b) -> m ()
 i2cForM_ t action = forM_ t $ \a -> action a >> warte i2cZeit
 
 instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
-    geschwindigkeit :: (I2CReader r m, PwmReader r m, PwmZugtyp z, MonadIO m)
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m)
                     => GeschwindigkeitPhantom Wegstrecke 'Pwm z
                     -> Word8
                     -> m ()
@@ -106,7 +106,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
             (mapM_ (forkI2CReader . flip geschwindigkeit wert) $ catPwm wsBahngeschwindigkeiten)
             ("Geschwindigkeit (" <> showText ws <> ")->" <> showText wert)
 
-    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m)
+    umdrehen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
              => GeschwindigkeitPhantom Wegstrecke b 'Märklin
              -> m ()
     umdrehen (GeschwindigkeitPhantom ws@Wegstrecke {wsBahngeschwindigkeiten}) =
@@ -199,7 +199,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
 
             umdrehenPortMapLow = pcf8574Gruppieren umdrehenPcf8574PortsLow
 
-    fahrstrom :: (I2CReader r m, MonadIO m)
+    fahrstrom :: (I2CReader r m, VersionReader r m, MonadIO m)
               => GeschwindigkeitPhantom Wegstrecke 'KonstanteSpannung z
               -> Word8
               -> m ()
@@ -271,7 +271,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
                 | positionOderLetztes wert fahrstromAnschlüsse == Just anschluss = fließend bg
                 | otherwise = gesperrt bg
 
-    fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
+    fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
                             => GeschwindigkeitPhantom Wegstrecke b 'Lego
                             -> Fahrtrichtung
                             -> m ()
@@ -398,7 +398,7 @@ instance BahngeschwindigkeitKlasse (GeschwindigkeitPhantom Wegstrecke) where
             fahrtrichtungPortMapLow = pcf8574Gruppieren fahrtrichtungPcf8574PortsLow
 
 instance StreckenabschnittKlasse (Wegstrecke z) where
-    strom :: (I2CReader r m, MonadIO m) => Wegstrecke z -> Strom -> m ()
+    strom :: (I2CReader r m, VersionReader r m, MonadIO m) => Wegstrecke z -> Strom -> m ()
     strom ws@Wegstrecke {wsStreckenabschnitte} an =
         flip befehlAusführen ("Strom (" <> showText ws <> ")->" <> showText an) $ do
             forM_ stromPins $ \(pin, valueFunktion) -> anschlussWrite pin $ valueFunktion an
@@ -462,7 +462,7 @@ instance StreckenabschnittKlasse (Wegstrecke z) where
             stromPortMapLow = pcf8574Gruppieren stromPcf8574PortsLow
 
 instance KupplungKlasse (Wegstrecke z) where
-    kuppeln :: (I2CReader r m, MonadIO m) => Wegstrecke z -> m ()
+    kuppeln :: (I2CReader r m, VersionReader r m, MonadIO m) => Wegstrecke z -> m ()
     kuppeln ws@Wegstrecke {wsKupplungen} =
         flip befehlAusführen ("Kuppeln (" <> showText ws <> ")") $ do
             forM_ kupplungsPins $ \(pin, valueFunktion) -> forkI2CReader $ do
@@ -539,17 +539,17 @@ instance KontaktKlasse (Wegstrecke z) where
 
 -- | Sammel-Klasse für 'Wegstrecke'n-artige Typen
 class (StreckenObjekt w, StreckenabschnittKlasse w, KupplungKlasse w) => WegstreckeKlasse w where
-    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => w -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => w -> m ()
     {-# MINIMAL einstellen #-}
 
 instance (WegstreckeKlasse (w 'Märklin), WegstreckeKlasse (w 'Lego))
     => WegstreckeKlasse (ZugtypEither w) where
-    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => ZugtypEither w -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => ZugtypEither w -> m ()
     einstellen (ZugtypMärklin a) = einstellen a
     einstellen (ZugtypLego a) = einstellen a
 
 instance WegstreckeKlasse (Wegstrecke 'Märklin) where
-    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Märklin -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Wegstrecke 'Märklin -> m ()
     einstellen ws@Wegstrecke {wsWeichenRichtungen} =
         flip befehlAusführen ("Einstellen (" <> showText ws <> ")") $ do
             forM_ richtungsPins $ \(pin, valueFunktion) -> forkI2CReader $ do
@@ -611,7 +611,7 @@ instance WegstreckeKlasse (Wegstrecke 'Märklin) where
             richtungsPortMapLow = pcf8574Gruppieren richtungsPcf8574PortsLow
 
 instance WegstreckeKlasse (Wegstrecke 'Lego) where
-    einstellen :: (I2CReader r m, PwmReader r m, MonadIO m) => Wegstrecke 'Lego -> m ()
+    einstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Wegstrecke 'Lego -> m ()
     einstellen Wegstrecke {wsWeichenRichtungen} =
         mapM_ (forkI2CReader . uncurry stellen) wsWeichenRichtungen
 

@@ -93,9 +93,11 @@ module Zug.UI.Gtk.StreckenObjekt
 import Control.Concurrent.STM (atomically, TMVar)
 import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
+import Data.Version (Version())
 import qualified GI.Gtk as Gtk
 
 import Zug.Objekt (Objekt)
+import Zug.Options (MitVersion(..))
 import Zug.UI.Base (StatusAllgemein, MStatusAllgemeinT, MStatusAllgemein, IOStatusAllgemein
                   , ObjektReader(), ReaderFamilie, TVarMaps(), MitTVarMaps(..), sprache)
 import Zug.UI.Befehl (BefehlAllgemein())
@@ -122,7 +124,8 @@ import Zug.UI.Gtk.StreckenObjekt.WSWidgets
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (WidgetHinzufügen(), BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew
       , WegstreckeCheckButton(), BoxPlanHinzufügen, boxPlanHinzufügenNew, widgetHinzufügenToggled
-      , widgetHinzufügenSetToggled, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenSetzeAuswahl)
+      , widgetHinzufügenSetToggled, widgetHinzufügenAktuelleAuswahl
+      , widgetHinzufügenSetzeAuswahl)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..), MitAktionBearbeiten(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 
@@ -230,23 +233,29 @@ class (MonadReader r m, MitDynamischeWidgets r) => DynamischeWidgetsReader r m |
 
 instance (MonadReader r m, MitDynamischeWidgets r) => DynamischeWidgetsReader r m
 
-type instance ReaderFamilie ObjektGui = (TVarMaps, DynamischeWidgets, StatusVar ObjektGui)
+type ReaderGui = (TVarMaps, DynamischeWidgets, StatusVar ObjektGui, Version)
 
-instance MitTVarMaps (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    tvarMaps :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> TVarMaps
-    tvarMaps (maps, _dynamischeWidgets, _tmvarStatus) = maps
+type instance ReaderFamilie ObjektGui = ReaderGui
 
-instance MitDynamischeWidgets (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    dynamischeWidgets :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> DynamischeWidgets
-    dynamischeWidgets (_tvarMaps, dynWidgets, _tmvarStatus) = dynWidgets
+instance MitTVarMaps ReaderGui where
+    tvarMaps :: ReaderGui -> TVarMaps
+    tvarMaps (maps, _dynamischeWidgets, _tmvarStatus, _version) = maps
 
-instance MitStatusVar (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) ObjektGui where
-    statusVar :: (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> StatusVar ObjektGui
-    statusVar (_tvarMaps, _dynamischeWidgets, var) = var
+instance MitDynamischeWidgets ReaderGui where
+    dynamischeWidgets :: ReaderGui -> DynamischeWidgets
+    dynamischeWidgets (_tvarMaps, dynWidgets, _tmvarStatus, _version) = dynWidgets
 
-instance MitSpracheGui (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) where
-    spracheGui :: (MonadIO m) => (TVarMaps, DynamischeWidgets, StatusVar ObjektGui) -> m SpracheGui
-    spracheGui (_tvarMaps, _dynamischeWidgets, var) = readSpracheGui var
+instance MitStatusVar ReaderGui ObjektGui where
+    statusVar :: ReaderGui -> StatusVar ObjektGui
+    statusVar (_tvarMaps, _dynamischeWidgets, var, _version) = var
+
+instance MitSpracheGui ReaderGui where
+    spracheGui :: (MonadIO m) => ReaderGui -> m SpracheGui
+    spracheGui (_tvarMaps, _dynamischeWidgets, var, _version) = readSpracheGui var
+
+instance MitVersion ReaderGui where
+    version :: ReaderGui -> Version
+    version (_tvarMaps, _dynamischeWidgets, _var, v) = v
 
 instance {-# OVERLAPPABLE #-}(MitDynamischeWidgets r) => MitWindowMain r where
     windowMain :: r -> Gtk.Window

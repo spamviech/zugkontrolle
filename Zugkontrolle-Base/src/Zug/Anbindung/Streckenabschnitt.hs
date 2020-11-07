@@ -21,7 +21,7 @@ import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite)
                               , I2CReader(), parseAnschlussEither, parseFließend)
-import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
+import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen, VersionReader)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), Strom())
 import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), showText, (<:>), (<=>), (<^>), (<->))
@@ -52,16 +52,16 @@ instance StreckenAtom Streckenabschnitt where
 -- | Sammel-Klasse für 'Streckenabschnitt'-artige Typen.
 class (StreckenObjekt s) => StreckenabschnittKlasse s where
     -- | Strom ein-/ausschalten
-    strom :: (I2CReader r m, MonadIO m) => s -> Strom -> m ()
+    strom :: (I2CReader r m, VersionReader r m, MonadIO m) => s -> Strom -> m ()
 
 instance (StreckenabschnittKlasse (s 'Märklin), StreckenabschnittKlasse (s 'Lego))
     => StreckenabschnittKlasse (ZugtypEither s) where
-    strom :: (I2CReader r m, MonadIO m) => ZugtypEither s -> Strom -> m ()
+    strom :: (I2CReader r m, VersionReader r m, MonadIO m) => ZugtypEither s -> Strom -> m ()
     strom (ZugtypMärklin a) = strom a
     strom (ZugtypLego a) = strom a
 
 instance StreckenabschnittKlasse Streckenabschnitt where
-    strom :: (I2CReader r m, MonadIO m) => Streckenabschnitt -> Strom -> m ()
+    strom :: (I2CReader r m, VersionReader r m, MonadIO m) => Streckenabschnitt -> Strom -> m ()
     strom st@Streckenabschnitt {stromAnschluss} an =
         befehlAusführen
             (anschlussWrite stromAnschluss $ erhalteValue an st)

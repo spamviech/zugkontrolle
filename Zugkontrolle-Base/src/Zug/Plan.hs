@@ -59,9 +59,10 @@ import Numeric.Natural (Natural)
 
 import Zug.Anbindung
        (AnschlussEither(), StreckenObjekt(..), PwmReader(..), I2CReader(..), InterruptReader()
-      , Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), PwmZugtyp(), Streckenabschnitt()
-      , StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung(), KupplungKlasse(..)
-      , Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..), KontaktKlasse(..))
+      , VersionReader, Bahngeschwindigkeit(), BahngeschwindigkeitKlasse(..), PwmZugtyp()
+      , Streckenabschnitt(), StreckenabschnittKlasse(..), Weiche(), WeicheKlasse(..), Kupplung()
+      , KupplungKlasse(..), Wegstrecke(), WegstreckeKlasse(..), warte, Wartezeit(..), Kontakt(..)
+      , KontaktKlasse(..))
 import Zug.Derive.Ord (deriveOrd)
 import Zug.Enums
        (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..), GeschwindigkeitEither(..)
@@ -177,7 +178,9 @@ instance (StreckenObjekt ko, Show ko) => StreckenObjekt (AktionKontakt ko) where
 -- | Bekannte 'AktionAllgemein' einer 'Wegstrecke'.
 data AktionWegstrecke ws (z :: Zugtyp)
     = Einstellen (ws z)
-    | AWSBahngeschwindigkeit (GeschwindigkeitEither (AktionBahngeschwindigkeit (GeschwindigkeitPhantom ws)) z)
+    | AWSBahngeschwindigkeit (GeschwindigkeitEither
+                                  (AktionBahngeschwindigkeit (GeschwindigkeitPhantom ws))
+                                  z)
     | AWSStreckenabschnitt (AktionStreckenabschnitt (ws z))
     | AWSKupplung (AktionKupplung (ws z))
     | AWSKontakt (AktionKontakt (ws z))
@@ -230,9 +233,15 @@ instance ( StreckenObjekt (ws 'Märklin)
 data AktionAllgemein bg st we ku ko ws
     = Warten Wartezeit
     | ABahngeschwindigkeitMärklinPwm (AktionBahngeschwindigkeit bg 'Pwm 'Märklin)
-    | ABahngeschwindigkeitMärklinKonstanteSpannung (AktionBahngeschwindigkeit bg 'KonstanteSpannung 'Märklin)
+    | ABahngeschwindigkeitMärklinKonstanteSpannung (AktionBahngeschwindigkeit
+                                                         bg
+                                                         'KonstanteSpannung
+                                                         'Märklin)
     | ABahngeschwindigkeitLegoPwm (AktionBahngeschwindigkeit bg 'Pwm 'Lego)
-    | ABahngeschwindigkeitLegoKonstanteSpannung (AktionBahngeschwindigkeit bg 'KonstanteSpannung 'Lego)
+    | ABahngeschwindigkeitLegoKonstanteSpannung (AktionBahngeschwindigkeit
+                                                     bg
+                                                     'KonstanteSpannung
+                                                     'Lego)
     | AStreckenabschnitt (AktionStreckenabschnitt st)
     | AWeiche (AktionWeiche (ZugtypEither we))
     | AKupplung (AktionKupplung ku)
@@ -415,13 +424,13 @@ class MitAusführend r where
     mengeAusführend :: r -> TVar (Set Ausführend)
 
 -- | Abkürzung für Funktionen, die die aktuelle 'Ausführend'-'Set' benötigen.
-class (I2CReader r m, PwmReader r m, InterruptReader r m, MitAusführend r)
+class (I2CReader r m, PwmReader r m, InterruptReader r m, VersionReader r m, MitAusführend r)
     => AusführendReader r m | m -> r where
     -- | Erhalte die aktuelle 'Ausführend'-Menge aus der Umgebung.
     erhalteMengeAusführend :: m (TVar (Set Ausführend))
     erhalteMengeAusführend = asks mengeAusführend
 
-instance (I2CReader r m, PwmReader r m, InterruptReader r m, MitAusführend r)
+instance (I2CReader r m, PwmReader r m, InterruptReader r m, VersionReader r m, MitAusführend r)
     => AusführendReader r m
 
 -- | Mitglieder dieser Klasse sind ausführbar (können in IO-Aktionen übersetzt werden).  
@@ -493,7 +502,7 @@ instance ( BahngeschwindigkeitKlasse bg
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -543,17 +552,18 @@ instance ( BahngeschwindigkeitKlasse bg
                    , KontaktKlasse (ws 'Märklin)
                    , KontaktKlasse (ws 'Lego)
                    , AusführendReader r m
+                   , VersionReader r m
                    , MonadIO m
                    , ObjektElement (bg 'Pwm 'Märklin)
                    , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
                    , ObjektElement (bg 'KonstanteSpannung 'Märklin)
                    , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
                    , ObjektElement (bg 'Pwm 'Lego)
                    , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
                    , ObjektElement (bg 'KonstanteSpannung 'Lego)
                    , ObjektTyp (bg 'KonstanteSpannung 'Lego)
-                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
                    , ObjektElement st
                    , ObjektTyp st ~ Streckenabschnitt
                    , ObjektElement (we 'Märklin)
@@ -591,7 +601,7 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -622,12 +632,12 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
                    , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
                    , ObjektElement (bg 'KonstanteSpannung 'Märklin)
                    , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
                    , ObjektElement (bg 'Pwm 'Lego)
                    , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
                    , ObjektElement (bg 'KonstanteSpannung 'Lego)
                    , ObjektTyp (bg 'KonstanteSpannung 'Lego)
-                         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
+                     ~ Bahngeschwindigkeit 'KonstanteSpannung 'Lego
                    , ObjektElement st
                    , ObjektTyp st ~ Streckenabschnitt
                    , ObjektElement (we 'Märklin)
@@ -739,12 +749,13 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
 
 -- | Mitglieder dieser Klasse sind ausführbar.
 class AktionKlasse a where
-    ausführenAktion :: (AusführendReader r m, MonadIO m) => a -> m ()
+    ausführenAktion :: (AusführendReader r m, VersionReader r m, MonadIO m) => a -> m ()
 
 instance (BahngeschwindigkeitKlasse bg, PwmZugtyp z)
     => AktionKlasse (AktionBahngeschwindigkeit bg g z) where
-    ausführenAktion
-        :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionBahngeschwindigkeit bg g z -> m ()
+    ausführenAktion :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
+                     => AktionBahngeschwindigkeit bg g z
+                     -> m ()
     ausführenAktion (Geschwindigkeit bg wert) = geschwindigkeit bg wert
     ausführenAktion (Fahrstrom bg wert) = fahrstrom bg wert
     ausführenAktion (Umdrehen bg) = umdrehen bg
@@ -752,15 +763,17 @@ instance (BahngeschwindigkeitKlasse bg, PwmZugtyp z)
         fahrtrichtungEinstellen bg fahrtrichtung
 
 instance (StreckenabschnittKlasse st) => AktionKlasse (AktionStreckenabschnitt st) where
-    ausführenAktion :: (I2CReader r m, MonadIO m) => AktionStreckenabschnitt st -> m ()
+    ausführenAktion
+        :: (I2CReader r m, VersionReader r m, MonadIO m) => AktionStreckenabschnitt st -> m ()
     ausführenAktion (Strom st an) = strom st an
 
 instance (WeicheKlasse w) => AktionKlasse (AktionWeiche w) where
-    ausführenAktion :: (I2CReader r m, PwmReader r m, MonadIO m) => AktionWeiche w -> m ()
+    ausführenAktion
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => AktionWeiche w -> m ()
     ausführenAktion (Stellen we richtung) = stellen we richtung
 
 instance (KupplungKlasse ku) => AktionKlasse (AktionKupplung ku) where
-    ausführenAktion :: (I2CReader r m, MonadIO m) => AktionKupplung ku -> m ()
+    ausführenAktion :: (I2CReader r m, VersionReader r m, MonadIO m) => AktionKupplung ku -> m ()
     ausführenAktion (Kuppeln ku) = kuppeln ku
 
 instance (KontaktKlasse ko) => AktionKlasse (AktionKontakt ko) where
@@ -772,8 +785,9 @@ instance ( BahngeschwindigkeitKlasse (GeschwindigkeitPhantom ws)
          , WegstreckeKlasse (ws z)
          , PwmZugtyp z
          ) => AktionKlasse (AktionWegstrecke ws z) where
-    ausführenAktion
-        :: (AusführendReader r m, InterruptReader r m, MonadIO m) => AktionWegstrecke ws z -> m ()
+    ausführenAktion :: (AusführendReader r m, InterruptReader r m, VersionReader r m, MonadIO m)
+                     => AktionWegstrecke ws z
+                     -> m ()
     ausführenAktion (Einstellen ws) = einstellen ws
     ausführenAktion (AWSBahngeschwindigkeit (GeschwindigkeitPwm aktion)) = ausführenAktion aktion
     ausführenAktion (AWSBahngeschwindigkeit (GeschwindigkeitKonstanteSpannung aktion)) =
@@ -797,7 +811,7 @@ instance ( BahngeschwindigkeitKlasse bg
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -817,8 +831,9 @@ instance ( BahngeschwindigkeitKlasse bg
          , ObjektElement (ws 'Lego)
          , ObjektTyp (ws 'Lego) ~ Wegstrecke 'Lego
          ) => AktionKlasse (AktionAllgemein bg st we ku ko ws) where
-    ausführenAktion
-        :: (AusführendReader r m, MonadIO m) => AktionAllgemein bg st we ku ko ws -> m ()
+    ausführenAktion :: (AusführendReader r m, VersionReader r m, MonadIO m)
+                     => AktionAllgemein bg st we ku ko ws
+                     -> m ()
     ausführenAktion (Warten time) = warte time
     ausführenAktion (ABahngeschwindigkeitMärklinPwm aktion) = ausführenAktion aktion
     ausführenAktion (ABahngeschwindigkeitMärklinKonstanteSpannung aktion) =
@@ -945,7 +960,7 @@ aktionToJSON
        , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
        , ObjektElement (bg 'KonstanteSpannung 'Märklin)
        , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-             ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+         ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
        , ObjektElement (bg 'Pwm 'Lego)
        , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
        , ObjektElement (bg 'KonstanteSpannung 'Lego)
@@ -1106,7 +1121,7 @@ instance ( ObjektElement (bg 'Pwm 'Märklin)
          , ObjektTyp (bg 'Pwm 'Märklin) ~ Bahngeschwindigkeit 'Pwm 'Märklin
          , ObjektElement (bg 'KonstanteSpannung 'Märklin)
          , ObjektTyp (bg 'KonstanteSpannung 'Märklin)
-               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , ObjektElement (bg 'Pwm 'Lego)
          , ObjektTyp (bg 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
          , ObjektElement (bg 'KonstanteSpannung 'Lego)

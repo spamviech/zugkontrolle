@@ -46,6 +46,7 @@ import Numeric.Natural (Natural)
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..))
 import Zug.Language (MitSprache())
 import Zug.Objekt (ObjektKlasse(..))
+import Zug.Options (MitVersion())
 import Zug.Plan (PlanKlasse(..), AktionKlasse(..))
 import Zug.UI.Base (StatusAllgemein(..), IOStatusAllgemein, MStatusAllgemein, MStatusAllgemeinT
                   , ReaderFamilie, ObjektReader(), MitTVarMaps(), liftIOStatus)
@@ -130,7 +131,12 @@ auswertenStatusVarMStatus action var = do
 
 -- | Führe einen Plan mit einem in einer 'StatusVar' gespeichertem Zustand aus.
 ausführenStatusVarPlan
-    :: (ObjektReader o m, MonadIO m, PlanKlasse (PL o), MitTVarMaps (ReaderFamilie o))
+    :: ( ObjektReader o m
+       , MonadIO m
+       , PlanKlasse (PL o)
+       , MitTVarMaps (ReaderFamilie o)
+       , MitVersion (ReaderFamilie o)
+       )
     => PL o
     -> (Natural -> IO ())
     -> IO ()
@@ -141,7 +147,12 @@ ausführenStatusVarPlan plan showAktion endAktion =
 
 -- | Führe eine Aktion mit einem in einer 'StatusVar' gespeichertem Zustand aus.
 ausführenStatusVarAktion
-    :: (ObjektReader o m, MonadIO m, AktionKlasse a, MitTVarMaps (ReaderFamilie o))
+    :: ( ObjektReader o m
+       , MonadIO m
+       , AktionKlasse a
+       , MitTVarMaps (ReaderFamilie o)
+       , MitVersion (ReaderFamilie o)
+       )
     => a
     -> StatusVar o
     -> m ()

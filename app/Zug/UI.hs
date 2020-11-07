@@ -1,54 +1,45 @@
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description : Auswahl des verwendeten UI-Funktion anhand der Kommandozeilen-Parameter
 -}
 module Zug.UI (main) where
 
-#ifdef ZUGKONTROLLERASPI
+import Control.Monad.Reader (runReaderT)
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Text.IO as Text
+-- Auto-generiertes Cabal-Modul
+import qualified Paths_Zugkontrolle as Paths
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
-import System.Posix.User (getRealUserID)
-#endif
 
-#ifdef ZUGKONTROLLERASPI
 import qualified Zug.Language as Language
-#endif
-#ifdef ZUGKONTROLLERASPI
-import Zug.Options (getOptions, Options(..), UI(..), PWM(SoftwarePWM, HardwarePWM))
-#else
-import Zug.Options (getOptions, Options(..), UI(..))
-#endif
+import Zug.Options (getOptions, Options(..), UI(..), PWM(SoftwarePWM, HardwarePWM), VersionReader())
 import qualified Zug.UI.Cmd as Cmd
 import qualified Zug.UI.Gtk as Gtk
+import Zug.Util (isNonRaspiOrRoot)
 
 -- | Wähle das per Kommandozeilen-Parameter gewählte Nutzer-Interface und starte dessen main loop.
 --
 -- Falls es nicht verfügbar ist, starte stattdessen den Cmd-UI main loop.
 main :: IO ()
-main = ausführenWennRoot $ do
+main = flip runReaderT Paths.version $ ausführenWennRoot $ do
     Options {ui} <- getOptions
     case ui of
         Gtk -> Gtk.main
         Cmd -> Cmd.main
 
-ausführenWennRoot :: IO () -> IO ()
-
-#ifdef ZUGKONTROLLERASPI
+ausführenWennRoot :: (VersionReader r m, MonadIO m) => m () -> m ()
 ausführenWennRoot action = do
     (Options {pwm, sprache}) <- getOptions
     case pwm of
         SoftwarePWM -> action
         HardwarePWM -> do
-            uid <- getRealUserID
-            if (uid == 0)
+            root <- isNonRaspiOrRoot
+            if root
                 then action
-                else do
+                else liftIO $ do
                     setSGR [SetColor Foreground Vivid Red]
                     Text.putStrLn $ Language.nichtRoot sprache
                     setSGR [Reset]
-#else
-ausführenWennRoot action = action
-#endif
 --

@@ -27,6 +27,7 @@ module Zug.UI.Base
   , TVarMapsReader(..)
   , tvarMapsNeu
   , ReaderFamilie
+  , Reader
   , ObjektReader
   , auswertenLeererIOStatus
   , liftIOStatus
@@ -88,6 +89,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
+import Data.Version (Version())
 import Numeric.Natural (Natural)
 
 import Zug.Anbindung
@@ -98,6 +100,7 @@ import qualified Zug.JSONStrings as JS
 import Zug.Language (Anzeige(..), Sprache(), (<=>), (<\>), (<#>))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), Objekt, ObjektAllgemein(..))
+import Zug.Options (MitVersion(..))
 import Zug.Plan (Ausführend(..), Plan, MitAusführend(..), AusführendReader(..))
 
 -- | Aktueller Status
@@ -209,7 +212,18 @@ tvarMapsNeu =
 -- | Typ-Familie für Reader-Typ aus der 'RWST'-Monade
 type family ReaderFamilie o
 
-type instance ReaderFamilie Objekt = TVarMaps
+-- | Reader für 'Objekt'-UIs
+type Reader = (TVarMaps, Version)
+
+type instance ReaderFamilie Objekt = Reader
+
+instance MitTVarMaps Reader where
+    tvarMaps :: Reader -> TVarMaps
+    tvarMaps (maps, _version) = maps
+
+instance MitVersion Reader where
+    version :: Reader -> Version
+    version (_tvarMaps, v) = v
 
 -- | Abkürzung für Funktionen, die die zum Objekt gehörige 'ReaderFamilie' benötigen
 class (MonadReader (ReaderFamilie o) m) => ObjektReader o m
@@ -441,6 +455,7 @@ ausführenMöglich
        , MitPwmMap (ReaderFamilie o)
        , MitI2CMap (ReaderFamilie o)
        , MitInterruptMap (ReaderFamilie o)
+       , MitVersion (ReaderFamilie o)
        )
     => Plan
     -> IOStatusAllgemein o AusführenMöglich
@@ -481,9 +496,9 @@ instance forall o. (ObjektKlasse o, Aeson.ToJSON o) => Aeson.ToJSON (StatusAllge
     toJSON status =
         Aeson.object
             [ JS.bahngeschwindigkeiten
-                  .= (map (ausObjekt . OBahngeschwindigkeit) $ bahngeschwindigkeiten status :: [o])
+              .= (map (ausObjekt . OBahngeschwindigkeit) $ bahngeschwindigkeiten status :: [o])
             , JS.streckenabschnitte
-                  .= (map (ausObjekt . OStreckenabschnitt) $ streckenabschnitte status :: [o])
+              .= (map (ausObjekt . OStreckenabschnitt) $ streckenabschnitte status :: [o])
             , JS.weichen .= (map (ausObjekt . OWeiche) $ weichen status :: [o])
             , JS.kupplungen .= (map (ausObjekt . OKupplung) $ kupplungen status :: [o])
             , JS.kontakte .= (map (ausObjekt . OKontakt) $ kontakte status :: [o])

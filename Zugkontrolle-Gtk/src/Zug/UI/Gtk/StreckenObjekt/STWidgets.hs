@@ -44,6 +44,7 @@ import Zug.Anbindung
 import Zug.Enums (Strom(..), ZugtypEither(..), Zugtyp(..))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(OStreckenabschnitt), ObjektElement(..))
+import Zug.Options (MitVersion())
 import Zug.Plan (AktionKlasse(ausführenAktion), AktionStreckenabschnitt(..))
 import Zug.UI.Base
        (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein, entfernenStreckenabschnitt
@@ -213,7 +214,10 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     let justTVarSprache = Just stTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
         streckenabschnitt
         stTVarSprache
@@ -280,6 +284,7 @@ toggleButtonStromPackNew
     ( ObjektReader o m
     , MitSpracheGui (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
+    , MitVersion (ReaderFamilie o)
     , MonadIO m
     , MitBox b
     , StreckenabschnittKlasse s

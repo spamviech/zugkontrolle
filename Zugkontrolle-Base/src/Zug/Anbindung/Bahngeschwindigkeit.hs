@@ -45,7 +45,7 @@ import Zug.Anbindung.Anschluss
       , AnschlussKlasse(anschlussWrite, zuAnschluss), I2CReader(forkI2CReader)
       , MitInterruptPin(OhneInterruptPin), PCF8574Klasse(ohneInterruptPin), PCF8574Port(), Pin(Gpio)
       , Value(..), parseAnschlussEither, parseFließend, pcf8574Gruppieren, pcf8574MultiPortWrite)
-import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
+import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen, VersionReader)
 import Zug.Anbindung.Pwm (PwmReader(), PwmValueUnmodifiziert, erhaltePwmWertReduziert
                         , erhaltePwmWertVoll, pwmGrenze, pwmSetzeWert)
 import Zug.Anbindung.Wartezeit (Wartezeit(..), warte)
@@ -167,17 +167,17 @@ class ( StreckenObjekt (b 'Pwm 'Märklin)
       ) => BahngeschwindigkeitKlasse b where
     -- | Geschwindigkeit einstellen (akzeptiere Werte von 0 bis 100)
     geschwindigkeit
-        :: (I2CReader r m, PwmReader r m, PwmZugtyp z, MonadIO m) => b 'Pwm z -> Word8 -> m ()
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m) => b 'Pwm z -> Word8 -> m ()
 
     -- | Fahrstrom ein-/ausschalten
-    fahrstrom :: (I2CReader r m, MonadIO m) => b 'KonstanteSpannung z -> Word8 -> m ()
+    fahrstrom :: (I2CReader r m, VersionReader r m, MonadIO m) => b 'KonstanteSpannung z -> Word8 -> m ()
 
     -- | Gebe allen Zügen den Befehl zum Umdrehen
-    umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => b g 'Märklin -> m ()
+    umdrehen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => b g 'Märklin -> m ()
 
     -- | Gebe allen Zügen den Befehl in einer bestimmen Richtung zu fahren
     fahrtrichtungEinstellen
-        :: (I2CReader r m, PwmReader r m, MonadIO m) => b g 'Lego -> Fahrtrichtung -> m ()
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => b g 'Lego -> Fahrtrichtung -> m ()
 
 -- | Erhalte das Element an Position /i/, angefangen bei /1/.
 -- Ist die Position größer als die Länge der Liste wird das letzte Element zurückgegeben.
@@ -203,7 +203,7 @@ instance PwmZugtyp 'Lego where
     erhaltePwmWert _bg = erhaltePwmWertVoll
 
 instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
-    geschwindigkeit :: (I2CReader r m, PwmReader r m, PwmZugtyp z, MonadIO m)
+    geschwindigkeit :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m)
                     => Bahngeschwindigkeit 'Pwm z
                     -> Word8
                     -> m ()
@@ -216,7 +216,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             ("Geschwindigkeit (" <> showText geschwindigkeitsPin <> ")->" <> showText wert)
 
     fahrstrom
-        :: (I2CReader r m, MonadIO m) => Bahngeschwindigkeit 'KonstanteSpannung z -> Word8 -> m ()
+        :: (I2CReader r m, VersionReader r m, MonadIO m) => Bahngeschwindigkeit 'KonstanteSpannung z -> Word8 -> m ()
     fahrstrom
         bg@Bahngeschwindigkeit
         { bgGeschwindigkeitsAnschlüsse = FahrstromAnschlüsse {fahrstromAnschlüsse}
@@ -275,7 +275,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
                 | otherwise = gesperrt bg
 
     umdrehen
-        :: (I2CReader r m, PwmReader r m, MonadIO m) => Bahngeschwindigkeit g 'Märklin -> m ()
+        :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m) => Bahngeschwindigkeit g 'Märklin -> m ()
     umdrehen
         bg@Bahngeschwindigkeit
         {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {geschwindigkeitsPin}} =
@@ -292,7 +292,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
             warte umdrehenZeit
             anschlussWrite umdrehenAnschluss $ gesperrt bg
 
-    fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, MonadIO m)
+    fahrtrichtungEinstellen :: (I2CReader r m, PwmReader r m, VersionReader r m, MonadIO m)
                             => Bahngeschwindigkeit g 'Lego
                             -> Fahrtrichtung
                             -> m ()
@@ -318,7 +318,7 @@ instance BahngeschwindigkeitKlasse Bahngeschwindigkeit where
 
 -- | Setze die aktuelle Geschwindigkeit auf 0.
 stehenbleiben
-    :: (I2CReader r m, PwmReader r m, PwmZugtyp z, MonadIO m) => Bahngeschwindigkeit g z -> m ()
+    :: (I2CReader r m, PwmReader r m, VersionReader r m, PwmZugtyp z, MonadIO m) => Bahngeschwindigkeit g z -> m ()
 stehenbleiben bg@Bahngeschwindigkeit {bgGeschwindigkeitsAnschlüsse = GeschwindigkeitsPin {}} = do
     geschwindigkeit bg 0
     warte umdrehenZeit

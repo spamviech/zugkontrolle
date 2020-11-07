@@ -40,6 +40,7 @@ import Zug.Anbindung
 import Zug.Enums (Zugtyp(..), GeschwindigkeitVariante(..), GeschwindigkeitPhantom())
 import Zug.Language (Sprache(), MitSprache(..))
 import Zug.Objekt (ObjektKlasse(..), ObjektAllgemein(..), Objekt, ObjektElement(ObjektTyp))
+import Zug.Options (MitVersion())
 import Zug.Plan (PlanKlasse(..), Plan, PlanAllgemein(), AusführendReader(..), Ausführend(..)
                , AktionKlasse(..), Aktion())
 import Zug.UI.Base
@@ -64,15 +65,15 @@ data BefehlAllgemein o
     | Entfernen o
     | Speichern FilePath
     | Laden
-          { ladenPfad :: FilePath
-          , erfolgsAktion :: Status -> IOStatusAllgemein o ()
-          , fehlerbehandlung :: IOStatusAllgemein o ()
-          }
+      { ladenPfad :: FilePath
+      , erfolgsAktion :: Status -> IOStatusAllgemein o ()
+      , fehlerbehandlung :: IOStatusAllgemein o ()
+      }
     | Ausführen
-          { auszuführenderPlan :: PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
-          , fortschrittsanzeige :: Natural -> Sprache -> IO ()
-          , abschlussAnzeige :: IO ()
-          }
+      { auszuführenderPlan :: PlanAllgemein (BG o) (ST o) (WE o) (KU o) (KO o) (WS o)
+      , fortschrittsanzeige :: Natural -> Sprache -> IO ()
+      , abschlussAnzeige :: IO ()
+      }
     | AusführenAbbrechen Plan
     | AktionBefehl Aktion
 
@@ -103,7 +104,7 @@ class ( ObjektKlasse o
       , BahngeschwindigkeitKlasse (BG o)
       , ObjektElement (BG o 'KonstanteSpannung 'Märklin)
       , ObjektTyp (BG o 'KonstanteSpannung 'Märklin)
-            ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+        ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
       , Eq (BG o 'KonstanteSpannung 'Märklin)
       , ObjektElement (BG o 'Pwm 'Lego)
       , ObjektTyp (BG o 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
@@ -145,6 +146,7 @@ class ( ObjektKlasse o
       , Eq (PL o)
       , MitSprache (SP o)
       , MitTVarMaps (ReaderFamilie o)
+      , MitVersion (ReaderFamilie o)
       ) => BefehlConstraints o
 
 instance ( ObjektKlasse o
@@ -155,7 +157,7 @@ instance ( ObjektKlasse o
          , BahngeschwindigkeitKlasse (BG o)
          , ObjektElement (BG o 'KonstanteSpannung 'Märklin)
          , ObjektTyp (BG o 'KonstanteSpannung 'Märklin)
-               ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
+           ~ Bahngeschwindigkeit 'KonstanteSpannung 'Märklin
          , Eq (BG o 'KonstanteSpannung 'Märklin)
          , ObjektElement (BG o 'Pwm 'Lego)
          , ObjektTyp (BG o 'Pwm 'Lego) ~ Bahngeschwindigkeit 'Pwm 'Lego
@@ -197,6 +199,7 @@ instance ( ObjektKlasse o
          , Eq (PL o)
          , MitSprache (SP o)
          , MitTVarMaps (ReaderFamilie o)
+         , MitVersion (ReaderFamilie o)
          ) => BefehlConstraints o
 
 instance forall o. (BefehlConstraints o) => BefehlKlasse BefehlAllgemein o where

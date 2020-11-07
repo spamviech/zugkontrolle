@@ -58,6 +58,7 @@ import Zug.Language (Anzeige(anzeige))
 import qualified Zug.Language as Language
 import Zug.Objekt
        (Objekt, ObjektAllgemein(OBahngeschwindigkeit), ObjektElement(..), ObjektKlasse(..))
+import Zug.Options (MitVersion())
 import Zug.Plan (AktionKlasse(..), AktionBahngeschwindigkeit(..))
 import Zug.UI.Base (StatusAllgemein(), MStatusAllgemeinT, IOStatusAllgemein
                   , entfernenBahngeschwindigkeit, ReaderFamilie, getBahngeschwindigkeiten
@@ -237,9 +238,10 @@ instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
         -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
     checkButtonWegstrecke = checkButtonWegstreckeVoid
         where
-            checkButtonWegstreckeVoid
-                :: GeschwindigkeitEither BGWidgets 'Märklin
-                -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
+            checkButtonWegstreckeVoid :: GeschwindigkeitEither BGWidgets 'Märklin
+                                      -> CheckButtonWegstreckeHinzufügen
+                                          Void
+                                          (GeschwindigkeitEither BGWidgets 'Märklin)
             checkButtonWegstreckeVoid (GeschwindigkeitPwm bgWidgets) =
                 widgetHinzufügenGeschwindigkeitEither $checkButtonWegstrecke bgWidgets
             checkButtonWegstreckeVoid (GeschwindigkeitKonstanteSpannung bgWidgets) =
@@ -368,9 +370,10 @@ instance WegstreckenElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) whe
         -> CheckButtonWegstreckeHinzufügen Void (ZugtypEither (GeschwindigkeitEither BGWidgets))
     checkButtonWegstrecke = erhalteCheckbuttonWegstrecke
         where
-            erhalteCheckbuttonWegstrecke
-                :: ZugtypEither (GeschwindigkeitEither BGWidgets)
-                -> CheckButtonWegstreckeHinzufügen Void (ZugtypEither (GeschwindigkeitEither BGWidgets))
+            erhalteCheckbuttonWegstrecke :: ZugtypEither (GeschwindigkeitEither BGWidgets)
+                                         -> CheckButtonWegstreckeHinzufügen
+                                             Void
+                                             (ZugtypEither (GeschwindigkeitEither BGWidgets))
             erhalteCheckbuttonWegstrecke (ZugtypMärklin bg) =
                 widgetHinzufügenZugtypEither $ checkButtonWegstrecke bg
             erhalteCheckbuttonWegstrecke (ZugtypLego bg) =
@@ -612,7 +615,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     buttonEntfernenPackNew
         bgWidgets
         (entfernenBahngeschwindigkeit $ zuZugtypEither $ zuGeschwindigkeitEither bgWidgets
-         :: IOStatusAllgemein o ())
+             :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew bgWidgets
     -- Widgets merken
     ausführenBefehl
@@ -625,14 +628,23 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     where
         hinzufügenWidgetsPackNew
             :: TVarSprachewechselAktionen
-            -> MStatusAllgemeinT m o ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
-                                     , ButtonPlanHinzufügen (BGWidgets g z)
-                                     , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
-                                     )
+            -> MStatusAllgemeinT
+                m
+                o
+                ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
+                , ButtonPlanHinzufügen (BGWidgets g z)
+                , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
+                )
         hinzufügenWidgetsPackNew tvarSprachwechselAktionen = do
             objektReader <- ask
             fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-                :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+                :: MStatusAllgemeinT
+                    m
+                    o
+                    (FortfahrenWennToggledVar
+                         (StatusAllgemein o)
+                         (StatusVar o)
+                         WegstreckeCheckButtonVoid)
             hinzufügenWidgetWegstrecke <- hinzufügenWidgetWegstreckePackNew
                 bahngeschwindigkeit
                 tvarSprachwechselAktionen
@@ -786,6 +798,7 @@ hScaleGeschwindigkeitPackNew
     , STWidgetsKlasse (WS o 'Märklin)
     , STWidgetsKlasse (WS o 'Lego)
     , MitTVarMaps (ReaderFamilie o)
+    , MitVersion (ReaderFamilie o)
     , ObjektReader o m
     , MonadIO m
     , ZugtypKlasse z
@@ -882,6 +895,7 @@ auswahlFahrstromPackNew
     , BahngeschwindigkeitContainer (WS o 'Lego)
     , MitSpracheGui (ReaderFamilie o)
     , MitTVarMaps (ReaderFamilie o)
+    , MitVersion (ReaderFamilie o)
     , ObjektReader o m
     , MonadIO m
     , ZugtypKlasse z
@@ -994,6 +1008,7 @@ buttonUmdrehenPackNew
     , STWidgetsKlasse (WS o 'Lego)
     , StreckenabschnittContainer (WS o 'Lego)
     , MitTVarMaps (ReaderFamilie o)
+    , MitVersion (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
     , ObjektReader o m
     , MonadIO m
@@ -1119,6 +1134,7 @@ auswahlFahrtrichtungEinstellenPackNew
     :: forall b bg o g m.
     ( MitTVarMaps (ReaderFamilie o)
     , MitSpracheGui (ReaderFamilie o)
+    , MitVersion (ReaderFamilie o)
     , ObjektReader o m
     , MitBox b
     , BahngeschwindigkeitKlasse bg

@@ -9,6 +9,7 @@ module Zug.Anbindung.Pwm
   , pwmServo
   , Pin(..)
   , PwmReader(..)
+  , VersionReader()
   , PwmValueUnmodifiziert()
   , erhaltePwmWertVoll
   , erhaltePwmWertReduziert
@@ -26,7 +27,7 @@ import System.Hardware.WiringPi (pinMode, pwmSetRange, pwmWrite, Mode(PWM_OUTPUT
 import Zug.Anbindung.Anschluss (Pin(..), Value(..))
 import Zug.Anbindung.Klassen (StreckenAtom(fließend))
 import Zug.Anbindung.SoftwarePWM (PwmReader(..), PwmValue, pwmGrenze, pwmSoftwareSetzteWert)
-import Zug.Options (Options(..), getOptions, PWM(..))
+import Zug.Options (Options(..), getOptions, PWM(..), VersionReader())
 
 -- * Test-Funktionen, ob Anschluss bestimmte Funktionen unterstützen
 -- | Unterstützt der 'Pin'
@@ -42,7 +43,7 @@ clockMöglich = flip elem ([Wpi 7, Wpi 21, Wpi 22, Wpi 29] :: [Pin])
 -- * PWM-Funktion
 -- | 'pwmWrite' mit alternativer Software-basierter PWM-Funktion
 pwmSetzeWert
-    :: (StreckenAtom s, PwmReader r m, MonadIO m) => s -> Pin -> PwmValueUnmodifiziert -> m ()
+    :: (StreckenAtom s, PwmReader r m, VersionReader r m, MonadIO m) => s -> Pin -> PwmValueUnmodifiziert -> m ()
 pwmSetzeWert s pin pwmValue = do
     Options {pwm} <- getOptions
     if (pwm == HardwarePWM) && pwmMöglich pin

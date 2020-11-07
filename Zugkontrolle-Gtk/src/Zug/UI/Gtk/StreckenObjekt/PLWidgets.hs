@@ -49,6 +49,7 @@ import Zug.Anbindung (StreckenObjekt(..), AnschlussEither())
 import Zug.Language (MitSprache(leseSprache), Anzeige(anzeige), (<:>), ($#))
 import qualified Zug.Language as Language
 import Zug.Objekt (ObjektAllgemein(OPlan), ObjektKlasse(..), ObjektElement(..))
+import Zug.Options (MitVersion())
 import Zug.Plan (PlanAllgemein(..), Plan, PlanKlasse(..), AusführendReader(), AktionAllgemein())
 import Zug.UI.Base (MStatusAllgemeinT, IOStatusAllgemein, entfernenPlan, AusführenMöglich(..)
                   , ausführenMöglich, ReaderFamilie, MitTVarMaps())
@@ -190,6 +191,7 @@ instance (MonadReader r m, MitWindowMain r) => WindowMainReader r m
 planPackNew :: forall m.
             ( MitTVarMaps (ReaderFamilie ObjektGui)
             , MitStatusVar (ReaderFamilie ObjektGui) ObjektGui
+            , MitVersion (ReaderFamilie ObjektGui)
             , MitSpracheGui (ReaderFamilie ObjektGui)
             , MitPLWidgetsBoxen (ReaderFamilie ObjektGui)
             , MitWindowMain (ReaderFamilie ObjektGui)
@@ -290,13 +292,7 @@ planPackNew plan@Plan {plAktionen} = do
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne (zuObjektTyp plan) plTVarSprache
     let plWidgets =
             PLWidgets
-            { pl = plan
-            , plWidget = frame
-            , plFunctionBox
-            , plHinzPL
-            , plTVarSprache
-            , plTVarEvent
-            }
+            { pl = plan, plWidget = frame, plFunctionBox, plHinzPL, plTVarSprache, plTVarEvent }
     buttonEntfernenPackNew plWidgets $ (entfernenPlan plWidgets :: IOStatusAllgemein ObjektGui ())
     buttonBearbeitenPackNew plWidgets
     let justTVarSprache = Just plTVarSprache

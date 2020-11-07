@@ -38,6 +38,7 @@ module Zug.Anbindung
   , interruptMapEmpty
   , MitInterruptMap(..)
   , InterruptReader(..)
+  , VersionReader
     -- ** Hilfsfunktionen
   , pwmMöglich
   , clockMöglich
@@ -91,7 +92,7 @@ import Zug.Anbindung.Bahngeschwindigkeit
       , BahngeschwindigkeitKlasse(..), PwmZugtyp(), verwendetPwm)
 import Zug.Anbindung.Container (BahngeschwindigkeitContainer(..), StreckenabschnittContainer(..)
                               , WeicheContainer(..), KupplungContainer(..), KontaktContainer(..))
-import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..))
+import Zug.Anbindung.Klassen (StreckenObjekt(..), StreckenAtom(..), VersionReader)
 import Zug.Anbindung.Kontakt (Kontakt(..), KontaktKlasse(..))
 import Zug.Anbindung.Kupplung (Kupplung(..), KupplungKlasse(..))
 import Zug.Anbindung.Pwm (pwmSetzeWert, pwmServo, erhaltePwmWertVoll, erhaltePwmWertReduziert

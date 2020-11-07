@@ -21,7 +21,7 @@ import Data.Text (Text)
 
 import Zug.Anbindung.Anschluss (Value(), AnschlussEither(), AnschlussKlasse(anschlussWrite)
                               , I2CReader(), parseAnschlussEither, parseFließend)
-import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen)
+import Zug.Anbindung.Klassen (StreckenAtom(..), StreckenObjekt(..), befehlAusführen, VersionReader)
 import Zug.Anbindung.Wartezeit (Wartezeit(MilliSekunden), warte)
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 import qualified Zug.JSONStrings as JS
@@ -54,11 +54,11 @@ instance StreckenAtom Kupplung where
 -- | Sammel-Klasse für 'Kupplung'-artige Typen.
 class (StreckenObjekt k) => KupplungKlasse k where
     -- | Kupplung betätigen
-    kuppeln :: (I2CReader r m, MonadIO m) => k -> m ()
+    kuppeln :: (I2CReader r m, VersionReader r m, MonadIO m) => k -> m ()
 
 instance (KupplungKlasse (ku 'Märklin), KupplungKlasse (ku 'Lego))
     => KupplungKlasse (ZugtypEither ku) where
-    kuppeln :: (I2CReader r m, MonadIO m) => ZugtypEither ku -> m ()
+    kuppeln :: (I2CReader r m, VersionReader r m, MonadIO m) => ZugtypEither ku -> m ()
     kuppeln (ZugtypMärklin a) = kuppeln a
     kuppeln (ZugtypLego a) = kuppeln a
 
@@ -67,7 +67,7 @@ kuppelnZeit :: Wartezeit
 kuppelnZeit = MilliSekunden 300
 
 instance KupplungKlasse Kupplung where
-    kuppeln :: (I2CReader r m, MonadIO m) => Kupplung -> m ()
+    kuppeln :: (I2CReader r m, VersionReader r m, MonadIO m) => Kupplung -> m ()
     kuppeln ku@Kupplung {kupplungsAnschluss} =
         flip befehlAusführen ("Kuppeln (" <> showText kupplungsAnschluss <> ")") $ do
             anschlussWrite kupplungsAnschluss $ fließend ku

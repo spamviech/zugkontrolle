@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 {-|
 Description : Typ-Klassen.
@@ -12,6 +13,7 @@ module Zug.Anbindung.Klassen
   , StreckenAtom(..)
     -- * Hilfsfunktionen
   , befehlAusführen
+  , VersionReader()
   ) where
 
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -24,14 +26,14 @@ import qualified Data.Text.IO as Text
 import Zug.Anbindung.Anschluss (AnschlussEither(), Value(..))
 import Zug.Enums (Zugtyp(..), ZugtypEither(..), GeschwindigkeitVariante(..)
                 , GeschwindigkeitEither(..), GeschwindigkeitPhantom(..), Strom(..))
-import Zug.Options (Options(..), getOptions)
+import Zug.Options (Options(..), getOptions, VersionReader())
 
 -- TODO Signatur genauer an Anwendungsfall anpassen:
 -- befehlAusführen :: (Show a, Show b, MonadIO m) => (Text, a, Maybe b) -> m () -> m ()
 -- Text-Ausgabe :: text <> " (" <> showText a <> maybe ")" ((")->" <>) . showText) maybeB
 -- Vertauschen der Argument-Reihenfolge, weil Monaden-Aktionen oft ein do-Block sind
 -- | Ausführen einer IO-Aktion, bzw. Ausgabe eines Strings, abhängig vom Kommandozeilen-Argument
-befehlAusführen :: (MonadIO m) => m () -> Text -> m ()
+befehlAusführen :: (MonadIO m, VersionReader r m) => m () -> Text -> m ()
 befehlAusführen ioAction ersatzNachricht = do
     Options {printCmd} <- getOptions
     if printCmd

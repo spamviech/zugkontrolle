@@ -1,9 +1,18 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MonoLocalBinds #-}
+
 {-|
 Description : Kommandozeilen-Optionen.
 -}
 module Zug.Options
   ( Options(..)
   , getOptions
+  , VersionReader(..)
+  , MitVersion(..)
   , UI(..)
   , alleUI
   , PWM(..)
@@ -14,8 +23,10 @@ module Zug.Options
   , alleGtkSeiten
   ) where
 
+import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Text (unpack)
+import Data.Version (Version)
 import Options.Applicative
        (ParserInfo(), Parser(), execParser, info, helper, fullDesc, progDesc, header, infoOption
       , long, short, help, switch, option, auto, metavar, showDefault, value, strOption)
@@ -23,9 +34,25 @@ import Options.Applicative
 import Zug.Language (Sprache(..), alleSprachen)
 import qualified Zug.Language as Language
 
+class MitVersion r where
+    version :: r -> Version
+
+instance MitVersion Version where
+    version :: Version -> Version
+    version = id
+
+class (MitVersion r) => VersionReader r m | m -> r where
+    erhalteVersion :: m Version
+
+instance (MitVersion r, MonadReader r m) => VersionReader r m where
+    erhalteVersion :: m Version
+    erhalteVersion = asks version
+
 -- | Erhalte Kommandozeilen-Argumente.
-getOptions :: (MonadIO m) => m Options
-getOptions = liftIO $ execParser optionen
+getOptions :: (MonadIO m, VersionReader r m) => m Options
+getOptions = do
+    v <- erhalteVersion
+    liftIO $ execParser $ optionen v
 
 -- | Unterstützte Kommandozeilen-Argumente.
 data Options =
@@ -39,17 +66,17 @@ data Options =
     }
     deriving (Show)
 
-optionen :: ParserInfo Options
-optionen =
-    info (helper <*> versionOpt <*> kombinierteOptionen)
+optionen :: Version -> ParserInfo Options
+optionen v =
+    info (helper <*> versionOpt v <*> kombinierteOptionen)
     $ fullDesc
     <> progDesc
         "Kontrolliere einzelne StreckenObjekte, oder fasse sie zu Wegstrecken zusammen und kontrolliere sie gemeinsam. Erstelle Pläne zur automatischen Kontrolle."
     <> header "Zugkontrolle - RaspberryPi-Anbindung einer Modelleisenbahn."
 
-versionOpt :: Parser (a -> a)
-versionOpt =
-    infoOption ("Zugkontrolle Version: " ++ unpack Language.version)
+versionOpt :: Version -> Parser (a -> a)
+versionOpt v =
+    infoOption ("Zugkontrolle Version: " ++ unpack (Language.version v))
     $ long "version" <> short 'v' <> help "Zeige die aktuelle Version an."
 
 kombinierteOptionen :: Parser Options
