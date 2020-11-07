@@ -6,6 +6,10 @@ cabal.project.local
 /bin/Zugkontrolle
 /bin/Zugkontrolle.exe
 
+Zugkontrolle-Base/stack.yaml.lock
+Zugkontrolle-Cmd/stack.yaml.lock
+Zugkontrolle-Gtk/stack.yaml.lock
+
 /Schaltpläne/*.aux
 /Schaltpläne/*.log
 /Schaltpläne/*.synctex.gz
