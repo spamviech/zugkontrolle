@@ -3,7 +3,6 @@
 {-# LANGUAGE MonoLocalBinds #-}
 
 -- Fließend (mit 'ß' im Dateinamen) nicht möglich. Führt zu UTF-8 Fehlern. :(
--- Problem von CPP
 {-|
 Description: Anzeige und Auswahl des Fließend-Value
 -}
