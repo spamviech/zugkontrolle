@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
@@ -15,8 +16,18 @@ import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..
 
 import qualified Zug.Language as Language
 import Zug.Options (getOptions, Options(..), UI(..), PWM(SoftwarePWM, HardwarePWM), VersionReader())
+#ifdef ZUGKONTROLLESILENCE
+import qualified Zug.UI.Disabled.Cmd as Cmd
+#endif
+#ifndef ZUGKONTROLLEGUI
+import qualified Zug.UI.Disabled.Gtk as Gtk
+#endif
+#ifndef ZUGKONTROLLESILENCE
 import qualified Zug.UI.Cmd as Cmd
+#endif
+#ifdef ZUGKONTROLLEGUI
 import qualified Zug.UI.Gtk as Gtk
+#endif
 import Zug.Util (isNonRaspiOrRoot)
 
 -- | Wähle das per Kommandozeilen-Parameter gewählte Nutzer-Interface und starte dessen main loop.

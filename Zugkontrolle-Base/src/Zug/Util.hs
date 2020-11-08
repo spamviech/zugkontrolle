@@ -18,7 +18,6 @@ import Control.Monad.Trans (MonadIO())
 #endif
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
-import Debug.Trace (trace)
 import System.IO (withFile, IOMode(WriteMode, ReadMode), hSetEncoding, utf8, hSetNewlineMode
                 , noNewlineTranslation)
 #ifdef ZUGKONTROLLESILENCE
@@ -33,7 +32,7 @@ import System.Posix.User (getRealUserID)
 --
 -- Every combination not linux os with arm architecture is considered non-raspi.
 isRaspi :: Bool
-isRaspi = trace (show os ++ ", " ++ show arch) $ (os == "linux") && (arch == "arm")
+isRaspi = (os == "linux") && (arch == "arm")
 
 isNonRaspiOrRoot :: (MonadIO m) => m Bool
 isNonRaspiOrRoot =

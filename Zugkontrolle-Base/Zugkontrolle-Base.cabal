@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d1e83e73f391af9c4d0d5579dbbe3895922b0cb2f30fed7daf0eec663a9cc90f
+-- hash: 43af3ae052c18ff035ac38d8a71860e3a746a915912cdcf5941b9eb495b7218d
 
 name:           Zugkontrolle-Base
 version:        0.1.0.0
@@ -18,6 +18,11 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+
+flag cmd
+  description: Wenn diese Flag false ist wird das silently-package für bestimmte Util-Funktionen verwendet.
+  manual: True
+  default: True
 
 library
   exposed-modules:
@@ -72,4 +77,8 @@ library
         unix
     if arch(arm)
       cpp-options: -DZUGKONTROLLERASPI
+  if flag(cmd)
+    cpp-options: -DZUGKONTROLLESILENCE
+    build-depends:
+        silently >=1.2 && <1.3
   default-language: Haskell2010
