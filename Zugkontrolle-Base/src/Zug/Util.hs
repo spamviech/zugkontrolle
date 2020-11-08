@@ -1,14 +1,7 @@
 {-# LANGUAGE CPP #-}
 
 -- | Useful utility functions
-module Zug.Util
-  ( isRaspi
-  , isNonRaspiOrRoot
-  , writeFileUtf8
-  , readFileUtf8
-  , maybeSilent
-  , forkIOSilent
-  ) where
+module Zug.Util (isRaspi, isNonRaspiOrRoot, writeFileUtf8, readFileUtf8, maybeSilent, forkIOSilent) where
 
 import Control.Concurrent (forkIO, ThreadId)
 #ifdef ZUGKONTROLLERASPI
@@ -84,3 +77,4 @@ forkIOSilent =
 #ifdef ZUGKONTROLLESILENCE
     . silence
 #endif
+--

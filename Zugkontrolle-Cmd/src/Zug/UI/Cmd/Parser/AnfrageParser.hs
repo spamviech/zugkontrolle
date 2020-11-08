@@ -92,26 +92,28 @@ data StatusAnfrageObjektZugtyp (z :: Zugtyp)
 data AnfrageFortsetzung a e
     = AFErgebnis { ergebnis :: e, fortsetzung :: Maybe a, eingabeRest :: [EingabeToken] }
     | AFZwischenwert
-      { zwischenwert :: a
-      , verarbeiteteEingabe :: Warteschlange EingabeToken
-      , alternativeParser :: Warteschlange (AnfrageParser a e)
-      }
+          { zwischenwert :: a
+          , verarbeiteteEingabe :: Warteschlange EingabeToken
+          , alternativeParser :: Warteschlange (AnfrageParser a e)
+          }
     | AFFehler
-      { alterZwischenwert :: Maybe a
-      , unbekannteEingabe :: EingabeToken
-      , verarbeiteteEingabe :: Warteschlange EingabeToken
-      , alternativeParser :: Warteschlange (AnfrageParser a e)
-      }
+          { alterZwischenwert :: Maybe a
+          , unbekannteEingabe :: EingabeToken
+          , verarbeiteteEingabe :: Warteschlange EingabeToken
+          , alternativeParser :: Warteschlange (AnfrageParser a e)
+          }
     | AFStatusAnfrage
-      { anfrageObjekt :: StatusAnfrageObjekt, konstruktor :: Objekt -> AnfrageParser a e }
+          { anfrageObjekt :: StatusAnfrageObjekt
+          , konstruktor :: Objekt -> AnfrageParser a e
+          }
     | AFStatusAnfrageMärklin
-      { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin
-      , konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageParser a e
-      }
+          { anfrageObjektMärklin :: StatusAnfrageObjektZugtyp 'Märklin
+          , konstruktorMärklin :: ObjektZugtyp 'Märklin -> AnfrageParser a e
+          }
     | AFStatusAnfrageLego
-      { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego
-      , konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageParser a e
-      }
+          { anfrageObjektLego :: StatusAnfrageObjektZugtyp 'Lego
+          , konstruktorLego :: ObjektZugtyp 'Lego -> AnfrageParser a e
+          }
 
 instance Functor (AnfrageFortsetzung a) where
     fmap :: (e -> f) -> AnfrageFortsetzung a e -> AnfrageFortsetzung a f
@@ -136,10 +138,14 @@ instance Functor (AnfrageFortsetzung a) where
         AFStatusAnfrage { anfrageObjekt, konstruktor = fmap funktion . konstruktor }
     fmap funktion AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin} =
         AFStatusAnfrageMärklin
-        { anfrageObjektMärklin, konstruktorMärklin = fmap funktion . konstruktorMärklin }
+        { anfrageObjektMärklin
+        , konstruktorMärklin = fmap funktion . konstruktorMärklin
+        }
     fmap funktion AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} =
         AFStatusAnfrageLego
-        { anfrageObjektLego, konstruktorLego = fmap funktion . konstruktorLego }
+        { anfrageObjektLego
+        , konstruktorLego = fmap funktion . konstruktorLego
+        }
 
 -- vgl. FFP Ub6b, ApplikativerParser.
 newtype AnfrageParser a e =
@@ -256,13 +262,15 @@ instance (Zwischenwert a) => Monad (AnfrageParser a) where
                 , verarbeiteteEingabe
                 , alternativeParser = Warteschlange.leer
                 }
-            AFStatusAnfrage {anfrageObjekt, konstruktor} -> AFStatusAnfrage
-                { anfrageObjekt, konstruktor = \objekt -> konstruktor objekt >>= f }
+            AFStatusAnfrage {anfrageObjekt, konstruktor}
+                -> AFStatusAnfrage { anfrageObjekt, konstruktor = \objekt
+                    -> konstruktor objekt >>= f }
             AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin}
                 -> AFStatusAnfrageMärklin { anfrageObjektMärklin, konstruktorMärklin = \objekt
                     -> konstruktorMärklin objekt >>= f }
-            AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} -> AFStatusAnfrageLego
-                { anfrageObjektLego, konstruktorLego = \objekt -> konstruktorLego objekt >>= f }
+            AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego}
+                -> AFStatusAnfrageLego { anfrageObjektLego, konstruktorLego = \objekt
+                    -> konstruktorLego objekt >>= f }
 
 instance (Zwischenwert a) => MonadPlus (AnfrageParser a)
 
