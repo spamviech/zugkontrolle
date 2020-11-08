@@ -7,6 +7,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 
+{-
+ideas for rewrite with gtk4
+    start from scratch (UI), so legacy-based mistakes might vanish
+look at Gtk.renderLine (cairo-render/-connector should still work)
+Use `Gdk.threadsAddIdle GLib.PRIORITY_DEFAULT $ gtkAction` to call Gtk from a forked thread
+    (sync e.g. with TMVar for a blocking version)
+    https://github.com/haskell-gi/haskell-gi/wiki/Using-threads-in-Gdk-and-Gtk--programs
+Gtk.Application has to be used instead of Gtk.main
+    https://hackage.haskell.org/package/gi-gtk-4.0.2/docs/GI-Gtk-Objects-Application.html
+    startup/activate-signals are in gi-gio
+    https://hackage.haskell.org/package/gi-gio-2.0.27/docs/GI-Gio-Objects-Application.html#v:applicationSetResourceBasePath
+AspectFrame doesn't draw a frame around the child, so might be useful here
+Assistant should work again
+-}
 module Zug.UI.Gtk.Gleise
   ( -- * Gleis Widgets
     Gleis()
