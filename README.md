@@ -221,6 +221,7 @@ Dazu ist am besten die Anleitung auf [der Gtk-Website](https://www.gtk.org/downl
 * Windows:
     Die Installation erfolgt über __MSYS2__.  
     Der Installationsbefehl lautet `pacman -S mingw-w64-x86_64-gtk3`.
+        gtk4 (evtl. für spätere Versionen): `pacman -S mingw64/mingw-w64-x86_64-gtk4`
     
     gobject-introspection:`pacman -S mingw64/mingw-w64-x86_64-gobject-introspection`
 
