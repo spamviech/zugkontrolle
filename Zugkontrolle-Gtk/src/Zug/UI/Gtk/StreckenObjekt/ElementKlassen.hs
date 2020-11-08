@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -9,12 +7,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * Wegstrecken-Element
+  ( -- * Wegstrecken-Element
     WegstreckenElement(..)
   , WegstreckeCheckButtonVoid
   , MitFortfahrenWennToggledWegstrecke(..)
@@ -29,14 +24,12 @@ module Zug.UI.Gtk.StreckenObjekt.ElementKlassen
   , TMVarPlanObjektReader(..)
   , hinzufügenWidgetPlanPackNew
   , entferneHinzufügenPlanWidgets
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Applicative (ZipList(..))
 import Control.Concurrent.STM (atomically, TMVar, putTMVar)
 import Control.Monad.Reader.Class (MonadReader(ask, reader))
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.Trans (MonadIO())
 import Data.List.NonEmpty (NonEmpty())
 import qualified Data.Text as Text
 import Data.Void (Void)
@@ -136,7 +129,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWenn
     box <- boxWegstrecke objekt <$> ask :: m (BoxWegstreckeHinzufügen s)
     let justTVar = Just tvar
     widgetHinzufügenBoxPackNew box $ do
-        hBox <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
+        hBox <- Gtk.boxNew Gtk.OrientationHorizontal 0
         wcbrWidget <- erhalteWidget hBox
         wcbrRegistrierterCheckButton <- boxPackWidgetNewDefault hBox
             $ registrierterCheckButtonNew
@@ -148,10 +141,7 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWenn
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-            { wcbrWidget
-            , wcbrRegistrierterCheckButton
-            , wcbrRichtungsAuswahl
-            }
+            { wcbrWidget, wcbrRegistrierterCheckButton, wcbrRichtungsAuswahl }
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets
@@ -241,5 +231,3 @@ entferneHinzufügenPlanWidgets planElement = do
     sequence_
         $ widgetHinzufügenContainerRemoveJust <$> ZipList boxenPlanHinzufügen
         <*> ZipList (buttonsPlan planElement)
-#endif
---

@@ -15,7 +15,7 @@ import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO())
 import qualified Data.GI.Gtk.Threading as Gtk
 import qualified Data.Text as Text
 import Data.Word (Word8)

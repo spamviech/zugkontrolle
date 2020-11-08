@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -8,29 +6,24 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecursiveDo #-}
-#endif
 
 {-|
 Description : Abfragen mit neuem Fenster für das Gtk-UI.
 -}
 module Zug.UI.Gtk.Fenster
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * Knöpfe mit zugehörigem Dialog erstellen
+  ( -- * Knöpfe mit zugehörigem Dialog erstellen
     buttonSpeichernPack
   , buttonLadenPack
   , ladeWidgets
   , buttonHinzufügenPack
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, newTMVar, takeTMVar, putTMVar)
 import Control.Monad (void, when)
 import Control.Monad.Fix (MonadFix())
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (MonadReader(..), runReaderT)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.List (find)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as Text
@@ -93,11 +86,11 @@ dialogSpeichernNew :: (SpracheGuiReader r m, MonadIO m)
                    -> Maybe TVarSprachewechselAktionen
                    -> m Gtk.FileChooserDialog
 dialogSpeichernNew window maybeTVar = do
-    (fileChooserDialog, buttonSpeichern, buttonAbbrechen) <- liftIO $ do
-        fileChooserDialog <- Gtk.new Gtk.FileChooserDialog []
-        Gtk.setWindowTransientFor fileChooserDialog window
-        Gtk.setFileChooserAction fileChooserDialog Gtk.FileChooserActionSave
-        Gtk.setFileChooserDoOverwriteConfirmation fileChooserDialog True
+    fileChooserDialog <- Gtk.new Gtk.FileChooserDialog []
+    Gtk.setWindowTransientFor fileChooserDialog window
+    Gtk.setFileChooserAction fileChooserDialog Gtk.FileChooserActionSave
+    Gtk.setFileChooserDoOverwriteConfirmation fileChooserDialog True
+    (buttonSpeichern, buttonAbbrechen) <- liftIO $ do
         buttonSpeichern <- Gtk.unsafeCastTo Gtk.Button
             =<< (Gtk.dialogAddButton fileChooserDialog Text.empty
                  $ fromIntegral
@@ -106,7 +99,7 @@ dialogSpeichernNew window maybeTVar = do
             =<< (Gtk.dialogAddButton fileChooserDialog Text.empty
                  $ fromIntegral
                  $ fromEnum Gtk.ResponseTypeCancel)
-        pure (fileChooserDialog, buttonSpeichern, buttonAbbrechen)
+        pure (buttonSpeichern, buttonAbbrechen)
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.setWindowTitle fileChooserDialog $ Language.speichern sprache
         Gtk.setButtonLabel buttonSpeichern $ Language.speichern sprache
@@ -339,18 +332,18 @@ dialogLadenNew :: (MitWindow p, SpracheGuiReader r m, MonadIO m)
                -> Maybe TVarSprachewechselAktionen
                -> m Gtk.FileChooserDialog
 dialogLadenNew parent maybeTVar = do
-    (dialog, buttonLaden, buttonAbbrechen) <- liftIO $ do
-        parentWindow <- erhalteWindow parent
-        dialog <- Gtk.new Gtk.FileChooserDialog []
-        Gtk.setWindowTransientFor dialog parentWindow
-        Gtk.setFileChooserAction dialog Gtk.FileChooserActionOpen
+    parentWindow <- erhalteWindow parent
+    dialog <- Gtk.new Gtk.FileChooserDialog []
+    Gtk.setWindowTransientFor dialog parentWindow
+    Gtk.setFileChooserAction dialog Gtk.FileChooserActionOpen
+    (buttonLaden, buttonAbbrechen) <- liftIO $ do
         buttonLaden <- Gtk.unsafeCastTo Gtk.Button
             =<< (Gtk.dialogAddButton dialog Text.empty $ fromIntegral $ fromEnum Gtk.ResponseTypeOk)
         buttonAbbrechen <- Gtk.unsafeCastTo Gtk.Button
             =<< (Gtk.dialogAddButton dialog Text.empty
                  $ fromIntegral
                  $ fromEnum Gtk.ResponseTypeCancel)
-        pure (dialog, buttonLaden, buttonAbbrechen)
+        pure (buttonLaden, buttonAbbrechen)
     verwendeSpracheGui maybeTVar $ \sprache -> do
         Gtk.setWindowTitle dialog $ Language.laden sprache
         Gtk.setButtonLabel buttonLaden $ Language.laden sprache
@@ -381,10 +374,11 @@ buttonHinzufügenPack
     => p
     -> b
     -> Maybe TVarSprachewechselAktionen
-    -> m ( Gtk.Button
-         , Objekt
-               -> IO ()
-         )
+    -> m
+        ( Gtk.Button
+        , Objekt
+          -> IO ()
+        )
 buttonHinzufügenPack parentWindow box maybeTVar = do
     tmvarAssistantHinzufügen <- liftIO $ atomically $ newTMVar Nothing
     objektReader <- ask
@@ -457,5 +451,3 @@ buttonHinzufügenPack parentWindow box maybeTVar = do
     pure (button, \objekt -> void $ do
         flip runReaderT objektReader $ assistantBearbeiten objekt
         forkIOSilent $ runReaderT assistantAuswerten objektReader)
-#endif
---

@@ -1,26 +1,19 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 {-|
 Description: Scrollbare Widgets
 -}
 module Zug.UI.Gtk.ScrollbaresWidget
-  (
-#ifdef ZUGKONTROLLEGUI
-    ScrollbaresWidget()
+  ( ScrollbaresWidget()
   , scrollbaresWidgetNew
   , scrollbaresWidgetAddNew
   , scrollbaresWidgetPackNew
   , scrollbaresWidgetNotebookAppendPageNew
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO())
 import Data.Int (Int32)
 import Data.Text (Text)
 import qualified GI.Gtk as Gtk
@@ -104,12 +97,11 @@ instance (MitRadioButton w) => MitRadioButton (ScrollbaresWidget w) where
 scrollbaresWidgetNew :: (MonadIO m, MitWidget w) => m w -> m (ScrollbaresWidget w)
 scrollbaresWidgetNew konstruktor = do
     swWidget <- widgetShowNew konstruktor
-    liftIO $ do
-        swScrolledWindow <- Gtk.scrolledWindowNew noAdjustment noAdjustment
-        Gtk.setScrolledWindowHscrollbarPolicy swScrolledWindow Gtk.PolicyTypeAutomatic
-        Gtk.setScrolledWindowVscrollbarPolicy swScrolledWindow Gtk.PolicyTypeAlways
-        Gtk.containerAdd swScrolledWindow =<< erhalteWidget swWidget
-        pure ScrollbaresWidget { swScrolledWindow, swWidget }
+    swScrolledWindow <- Gtk.scrolledWindowNew noAdjustment noAdjustment
+    Gtk.setScrolledWindowHscrollbarPolicy swScrolledWindow Gtk.PolicyTypeAutomatic
+    Gtk.setScrolledWindowVscrollbarPolicy swScrolledWindow Gtk.PolicyTypeAlways
+    Gtk.containerAdd swScrolledWindow =<< erhalteWidget swWidget
+    pure ScrollbaresWidget { swScrolledWindow, swWidget }
     where
         noAdjustment :: Maybe Gtk.Adjustment
         noAdjustment = Nothing
@@ -138,5 +130,3 @@ scrollbaresWidgetNotebookAppendPageNew
     -> m (ScrollbaresWidget w, Int32)
 scrollbaresWidgetNotebookAppendPageNew notebook maybeTVar name konstruktor =
     notebookAppendPageNew notebook maybeTVar name $ scrollbaresWidgetNew konstruktor
-#endif
---

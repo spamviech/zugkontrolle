@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,15 +7,12 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
-#endif
 
 {-|
 Description: Widget zur Darstellung und Auswahl eines Anschluss
 -}
 module Zug.UI.Gtk.Anschluss
-  (
-#ifdef ZUGKONTROLLEGUI
-    PinWidget()
+  ( PinWidget()
   , pinNew
   , AnschlussWidget()
   , anschlussNew
@@ -30,11 +25,9 @@ module Zug.UI.Gtk.Anschluss
   , anschlussAuswahlNew
   , aktuellerAnschluss
   , setzeAnschluss
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO())
 import Data.Int (Int32)
 import Data.Maybe (fromJust)
 import Data.Text as Text
@@ -131,7 +124,7 @@ pinAuswahlNew maybeTVar name = do
 -- | Erhalte den aktuell gewählten 'Pin's.
 aktuellerPin :: (MonadIO m) => PinAuswahlWidget -> m Pin
 aktuellerPin PinAuswahlWidget {pawSpinButton} =
-    liftIO $ Gpio . fromIntegral <$> Gtk.spinButtonGetValueAsInt pawSpinButton
+    Gpio . fromIntegral <$> Gtk.spinButtonGetValueAsInt pawSpinButton
 
 -- | Setze den aktuellen Pin.
 setzePin :: (MonadIO m) => PinAuswahlWidget -> Pin -> m ()
@@ -187,7 +180,6 @@ anschlussAuswahlNew maybeTVar name = do
     -- PCF8574Port
     (aawPCF8574PortBox, aawPCF8574PortPage)
         <- notebookAppendPageNew aawNotebook maybeTVar Language.pcf8574Port
-        $ liftIO
         $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault aawPCF8574PortBox
         $ labelSpracheNew maybeTVar
@@ -241,9 +233,7 @@ anschlussAuswahlInterruptPinNew maybeTVar name = do
         <- boxPackWidgetNewDefault aawPCF8574PortBox $ pinAuswahlNew maybeTVar Language.interrupt
     pure
         AnschlussAuswahlWidgetInterruptPin
-        { aawAnschlussAuswahlWidget
-        , aawPCF8574PortInterruptPin = auswahlInterruptPin
-        }
+        { aawAnschlussAuswahlWidget, aawPCF8574PortInterruptPin = auswahlInterruptPin }
 
 type family AnschlussAuswahl (i :: InterruptPinBenötigt) where
     AnschlussAuswahl 'InterruptPinBenötigt = Anschluss 'MitInterruptPin
@@ -260,9 +250,9 @@ aktuellerAnschluss
     , aawPCF8574PortA0
     , aawPCF8574PortA1
     , aawPCF8574PortA2
-    , aawPCF8574Port} = liftIO $ Gtk.notebookGetCurrentPage aawNotebook >>= \case
+    , aawPCF8574Port} = Gtk.notebookGetCurrentPage aawNotebook >>= \case
     page
-        | page == aawPCF8574PortPage -> liftIO $ do
+        | page == aawPCF8574PortPage -> do
             variant <- aktuelleAuswahl aawPCF8574PortVariante
             a0 <- aktuelleAuswahl aawPCF8574PortA0
             a1 <- aktuelleAuswahl aawPCF8574PortA1
@@ -277,17 +267,17 @@ aktuellerAnschluss
 aktuellerAnschluss
     AnschlussAuswahlWidgetInterruptPin
     { aawAnschlussAuswahlWidget = AnschlussAuswahlWidget
-          { aawNotebook
-          , aawPin
-          , aawPCF8574PortPage
-          , aawPCF8574PortVariante
-          , aawPCF8574PortA0
-          , aawPCF8574PortA1
-          , aawPCF8574PortA2
-          , aawPCF8574Port}
-    , aawPCF8574PortInterruptPin} = liftIO $ Gtk.notebookGetCurrentPage aawNotebook >>= \case
+      { aawNotebook
+      , aawPin
+      , aawPCF8574PortPage
+      , aawPCF8574PortVariante
+      , aawPCF8574PortA0
+      , aawPCF8574PortA1
+      , aawPCF8574PortA2
+      , aawPCF8574Port}
+    , aawPCF8574PortInterruptPin} = Gtk.notebookGetCurrentPage aawNotebook >>= \case
     page
-        | page == aawPCF8574PortPage -> liftIO $ do
+        | page == aawPCF8574PortPage -> do
             iVariant <- aktuelleAuswahl aawPCF8574PortVariante
             iA0 <- aktuelleAuswahl aawPCF8574PortA0
             iA1 <- aktuelleAuswahl aawPCF8574PortA1
@@ -297,9 +287,7 @@ aktuellerAnschluss
             pure
                 $ AnschlussPCF8574Port
                 $ PCF8574Port
-                { pcf8574 = PCF8574InterruptPin { iVariant, iA0, iA1, iA2, interruptPin }
-                , port
-                }
+                { pcf8574 = PCF8574InterruptPin { iVariant, iA0, iA1, iA2, interruptPin }, port }
         -- Verwende als Standard die Pin-Eingabe
         | otherwise -> AnschlussPin <$> aktuellerPin aawPin
 
@@ -328,7 +316,7 @@ setzeAnschluss
     , aawPCF8574Port}
     (AnschlussOhne
          AnschlussPCF8574Port
-         {pcf8574Port = PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port}}) = liftIO $ do
+         {pcf8574Port = PCF8574Port {pcf8574 = PCF8574 {variant, a0, a1, a2}, port}}) = do
     Gtk.setNotebookPage aawNotebook aawPCF8574PortPage
     setzeAuswahl aawPCF8574PortVariante variant
     setzeAuswahl aawPCF8574PortA0 a0
@@ -338,24 +326,24 @@ setzeAnschluss
 setzeAnschluss
     AnschlussAuswahlWidgetInterruptPin
     {aawAnschlussAuswahlWidget = AnschlussAuswahlWidget {aawNotebook, aawPin, aawPinPage}}
-    AnschlussPin {pin} = liftIO $ do
+    AnschlussPin {pin} = do
     Gtk.setNotebookPage aawNotebook aawPinPage
     setzePin aawPin pin
 setzeAnschluss
     AnschlussAuswahlWidgetInterruptPin
     { aawAnschlussAuswahlWidget = AnschlussAuswahlWidget
-          { aawNotebook
-          , aawPCF8574PortPage
-          , aawPCF8574PortVariante
-          , aawPCF8574PortA0
-          , aawPCF8574PortA1
-          , aawPCF8574PortA2
-          , aawPCF8574Port}
+      { aawNotebook
+      , aawPCF8574PortPage
+      , aawPCF8574PortVariante
+      , aawPCF8574PortA0
+      , aawPCF8574PortA1
+      , aawPCF8574PortA2
+      , aawPCF8574Port}
     , aawPCF8574PortInterruptPin}
     AnschlussPCF8574Port
     { pcf8574Port =
-          PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port}} =
-    liftIO $ do
+      PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port}} =
+    do
         Gtk.setNotebookPage aawNotebook aawPCF8574PortPage
         setzeAuswahl aawPCF8574PortVariante iVariant
         setzeAuswahl aawPCF8574PortA0 iA0
@@ -363,5 +351,3 @@ setzeAnschluss
         setzeAuswahl aawPCF8574PortA2 iA2
         Gtk.setSpinButtonValue aawPCF8574Port $ fromIntegral port
         setzePin aawPCF8574PortInterruptPin interruptPin
-#endif
---

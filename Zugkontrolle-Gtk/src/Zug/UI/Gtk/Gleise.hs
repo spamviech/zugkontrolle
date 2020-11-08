@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
@@ -8,12 +6,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
-#endif
 
 module Zug.UI.Gtk.Gleise
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * Gleis Widgets
+  ( -- * Gleis Widgets
     Gleis()
   , GleisDefinition(..)
   , WeichenArt(..)
@@ -58,10 +53,8 @@ module Zug.UI.Gtk.Gleise
   , märklinKurvenWeicheLinks5140New
     -- ** Lego (9V Gleise)
   , legoGeradeNew
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (foldM, when)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -603,5 +596,3 @@ Lego Spurweite: 38mm
 -}
 legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
 legoGeradeNew = geradeNew $ error "Geraden-Länge"
-#endif
---

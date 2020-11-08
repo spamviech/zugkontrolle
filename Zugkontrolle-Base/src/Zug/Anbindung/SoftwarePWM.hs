@@ -27,7 +27,7 @@ import Control.Concurrent (ThreadId)
 import Control.Concurrent.STM (TVar, modifyTVar, readTVar, writeTVar, readTVarIO, atomically)
 import Control.Monad (void, when)
 import Control.Monad.Reader (ReaderT, asks, MonadReader(ask), runReaderT)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (isNothing)

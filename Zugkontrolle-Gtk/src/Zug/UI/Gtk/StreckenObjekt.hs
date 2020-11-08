@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -12,7 +10,6 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
-#endif
 
 {-|
 Description : Erstelle zusammengesetzte Widgets.
@@ -20,9 +17,7 @@ Description : Erstelle zusammengesetzte Widgets.
 Allgemeine Hilfsfunktionen zum erstellen neuer Widgets
 -}
 module Zug.UI.Gtk.StreckenObjekt
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * Spezifisches StreckenObjekt darstellen
+  ( -- * Spezifisches StreckenObjekt darstellen
     -- ** Bahngeschwindigkeit
     BGWidgets()
   , bahngeschwindigkeitPackNew
@@ -86,10 +81,8 @@ module Zug.UI.Gtk.StreckenObjekt
   , widgetHinzufügenSetToggled
   , widgetHinzufügenAktuelleAuswahl
   , widgetHinzufügenSetzeAuswahl
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TMVar)
 import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -124,7 +117,8 @@ import Zug.UI.Gtk.StreckenObjekt.WSWidgets
 import Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
        (WidgetHinzufügen(), BoxWegstreckeHinzufügen, boxWegstreckeHinzufügenNew
       , WegstreckeCheckButton(), BoxPlanHinzufügen, boxPlanHinzufügenNew, widgetHinzufügenToggled
-      , widgetHinzufügenSetToggled, widgetHinzufügenAktuelleAuswahl, widgetHinzufügenSetzeAuswahl)
+      , widgetHinzufügenSetToggled, widgetHinzufügenAktuelleAuswahl
+      , widgetHinzufügenSetzeAuswahl)
 import Zug.UI.Gtk.StreckenObjekt.WidgetsTyp (WidgetsTyp(..), MitAktionBearbeiten(..))
 import Zug.UI.StatusVar (StatusVar, MitStatusVar(..), StatusVarReader(), tryReadStatusVar)
 
@@ -309,5 +303,3 @@ readSpracheGui = liftIO . fmap erhalteSprache . atomically . tryReadStatusVar
         erhalteSprache :: Either StatusGui SpracheGui -> SpracheGui
         erhalteSprache (Left status) = sprache status
         erhalteSprache (Right sp) = sp
-#endif
---

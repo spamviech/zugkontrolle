@@ -1,18 +1,14 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 -- Fließend (mit 'ß' im Dateinamen) nicht möglich. Führt zu UTF-8 Fehlern. :(
+-- Problem von CPP
 {-|
 Description: Anzeige und Auswahl des Fließend-Value
 -}
 module Zug.UI.Gtk.Fliessend
-  (
-#ifdef ZUGKONTROLLEGUI
-    FließendWidget()
+  ( FließendWidget()
   , fließendNew
   , fließendPackNew
   , FließendAuswahlWidget()
@@ -20,11 +16,9 @@ module Zug.UI.Gtk.Fliessend
   , fließendAuswahlPackNew
   , aktuellerFließendValue
   , setzeFließendValue
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO())
 import qualified GI.Gtk as Gtk
 
 import Zug.Anbindung (StreckenAtom(..), Value(..))
@@ -96,5 +90,3 @@ aktuellerFließendValue = aktuelleAuswahl . erhalteAuswahlWidget
 -- | Setze den aktuellen Fließend-Value.
 setzeFließendValue :: (MonadIO m) => FließendAuswahlWidget -> Value -> m ()
 setzeFließendValue = setzeAuswahl . erhalteAuswahlWidget
-#endif
---

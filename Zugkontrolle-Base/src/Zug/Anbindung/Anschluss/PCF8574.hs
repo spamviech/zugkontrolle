@@ -42,7 +42,7 @@ module Zug.Anbindung.Anschluss.PCF8574
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (void)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types ((.:), (.=))
 import qualified Data.Aeson.Types as Aeson
 import Data.Bits (bit, (.|.), (.&.), testBit, complement)

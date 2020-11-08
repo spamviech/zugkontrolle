@@ -23,7 +23,7 @@ module Zug.UI.Gtk.SpracheGui
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, modifyTVar, writeTVar)
 import Control.Monad (when, foldM)
 import Control.Monad.Reader.Class (MonadReader(..))
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 
 import Zug.Language (Sprache(), MitSprache(..))
 
@@ -33,7 +33,9 @@ data SpracheGui =
 
 instance MitSprache SpracheGui where
     leseSprache :: (MonadIO m) => (Sprache -> m a) -> SpracheGui -> m a
-    leseSprache f SpracheGui {tvarSprache} = liftIO (readTVarIO tvarSprache) >>= f
+    leseSprache f SpracheGui {tvarSprache} = do
+        sprache <- liftIO $ readTVarIO tvarSprache
+        f sprache
 
 -- | Klasse für Typen mit Zugriff auf 'SpracheGui'.
 class MitSpracheGui r where

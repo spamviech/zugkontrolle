@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -10,21 +8,16 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.KUWidgets
-  (
-#ifdef ZUGKONTROLLEGUI
-    KUWidgets()
+  ( KUWidgets()
   , kupplungPackNew
   , buttonKuppelnPackNew
   , KUWidgetsBoxen(..)
   , MitKUWidgetsBoxen(..)
   , KUWidgetsBoxenReader(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -164,7 +157,7 @@ instance Aeson.ToJSON KUWidgets where
 
 instance KupplungKlasse KUWidgets where
     kuppeln :: (I2CReader r m, MonadIO m) => KUWidgets -> m ()
-    kuppeln = liftIO . Gtk.buttonClicked . kuButtonKuppeln
+    kuppeln = Gtk.buttonClicked . kuButtonKuppeln
 
 instance KupplungContainer KUWidgets where
     enthalteneKupplungen :: KUWidgets -> Set Kupplung
@@ -197,7 +190,10 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     let justTVarSprache = Just kuTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
         kupplung
         kuTVarSprache
@@ -205,20 +201,18 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKupplungen kupplung kuTVarSprache
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
+    vBox <- boxPackWidgetNewDefault vBoxKupplungen $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox kupplung
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Nothing
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    expanderAnschlüsse
+        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault $ Gtk.expanderNew Nothing
+    vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+        $ scrollbaresWidgetNew
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     verwendeSpracheGui justTVarSprache
         $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kupplung kupplungsAnschluss
-    kuFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    kuFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     kuButtonKuppeln
         <- buttonKuppelnPackNew kuFunctionBox kupplung kuTVarSprache kuTVarEvent statusVar
     let kuWidgets =
@@ -267,5 +261,3 @@ buttonKuppelnPackNew box kupplung tvarSprachwechsel tvarEventAusführen statusVa
         $ eventAusführen tvarEventAusführen
         $ flip runReaderT objektReader
         $ ausführenStatusVarAktion (Kuppeln kupplung) statusVar
-#endif
---

@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -11,22 +9,17 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.STWidgets
-  (
-#ifdef ZUGKONTROLLEGUI
-    STWidgets()
+  ( STWidgets()
   , streckenabschnittPackNew
   , STWidgetsKlasse(..)
   , toggleButtonStromPackNew
   , STWidgetsBoxen(..)
   , MitSTWidgetsBoxen(..)
   , STWidgetsBoxenReader(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Monad (forM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -214,7 +207,10 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     let justTVarSprache = Just stTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
         streckenabschnitt
         stTVarSprache
@@ -224,22 +220,18 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
         streckenabschnitt
         stTVarSprache
     -- Widget erstellen
-    vBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte
-        $ liftIO
-        $ Gtk.boxNew Gtk.OrientationVertical 0
+    vBox <- boxPackWidgetNewDefault vBoxStreckenabschnitte $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox streckenabschnitt
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Nothing
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    expanderAnschlüsse
+        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault $ Gtk.expanderNew Nothing
+    vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+        $ scrollbaresWidgetNew
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     verwendeSpracheGui justTVarSprache
         $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.strom stromAnschluss
-    stFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    stFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     stToggleButtonStrom <- toggleButtonStromPackNew
         stFunctionBox
         streckenabschnitt
@@ -338,5 +330,3 @@ toggleButtonStromPackNew box streckenabschnitt tvarSprachwechsel tvarEventAusfü
                 ohneEvent (tvarEvent ws)
                 $ Gtk.setToggleButtonActive toggleButton (fließend == Fließend)
         wsWidgetsSynchronisieren _wsWidget _fließend = pure ()
-#endif
---

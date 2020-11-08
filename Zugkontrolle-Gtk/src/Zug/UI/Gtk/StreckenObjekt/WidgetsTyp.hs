@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -7,12 +5,9 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
-  (
-#ifdef ZUGKONTROLLEGUI
-    WidgetsTyp(..)
+  ( WidgetsTyp(..)
   , WidgetsTypReader
   , EventAusführen(..)
   , eventAusführen
@@ -21,10 +16,8 @@ module Zug.UI.Gtk.StreckenObjekt.WidgetsTyp
   , buttonBearbeitenPackNew
   , MitAktionBearbeiten(..)
   , AktionBearbeitenReader(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, readTVarIO, writeTVar, swapTVar)
 import Control.Monad (when)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -153,5 +146,3 @@ buttonBearbeitenPackNew w = do
         $ aktion
         $ zuObjekt
         $ zuObjektTyp w
-#endif
---

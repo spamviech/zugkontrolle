@@ -55,7 +55,7 @@ import Control.Concurrent.STM
        (atomically, retry, newTVarIO, readTVar, writeTVar, TMVar, takeTMVar, putTMVar)
 import Control.Monad (void, forM, unless, foldM)
 import Control.Monad.Reader (MonadReader(..), asks, ReaderT, runReaderT)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Aeson.Types ((.:), (.=))
 import qualified Data.Aeson.Types as Aeson
 import Data.Bits (testBit)
@@ -429,8 +429,9 @@ beiÄnderung anschluss intEdge aktion = do
                          -> [(BitValue, BitValue)
                             -> IO EventBehalten]
                          -> ((BitValue, BitValue) -> IO EventBehalten)
-                         -> IO [(BitValue, BitValue)
-                               -> IO EventBehalten]
+                         -> IO
+                             [(BitValue, BitValue)
+                             -> IO EventBehalten]
         aktionAusführen bitValues acc akt = eventAnhängen <$> akt bitValues
             where
                 eventAnhängen :: EventBehalten -> [(BitValue, BitValue) -> IO EventBehalten]

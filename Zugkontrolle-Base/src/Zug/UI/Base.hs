@@ -80,7 +80,7 @@ import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO, TMVar, newTMVarIO)
 import Control.Monad.RWS.Strict (RWST, runRWST, evalRWST, RWS)
 import Control.Monad.Reader (MonadReader(..), asks)
 import Control.Monad.State.Class (MonadState(..), gets, modify)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Aeson.Types ((.=), (.:))
 import qualified Data.Aeson.Types as Aeson
 import Data.List (delete)
@@ -496,9 +496,9 @@ instance forall o. (ObjektKlasse o, Aeson.ToJSON o) => Aeson.ToJSON (StatusAllge
     toJSON status =
         Aeson.object
             [ JS.bahngeschwindigkeiten
-                  .= (map (ausObjekt . OBahngeschwindigkeit) $ bahngeschwindigkeiten status :: [o])
+              .= (map (ausObjekt . OBahngeschwindigkeit) $ bahngeschwindigkeiten status :: [o])
             , JS.streckenabschnitte
-                  .= (map (ausObjekt . OStreckenabschnitt) $ streckenabschnitte status :: [o])
+              .= (map (ausObjekt . OStreckenabschnitt) $ streckenabschnitte status :: [o])
             , JS.weichen .= (map (ausObjekt . OWeiche) $ weichen status :: [o])
             , JS.kupplungen .= (map (ausObjekt . OKupplung) $ kupplungen status :: [o])
             , JS.kontakte .= (map (ausObjekt . OKontakt) $ kontakte status :: [o])

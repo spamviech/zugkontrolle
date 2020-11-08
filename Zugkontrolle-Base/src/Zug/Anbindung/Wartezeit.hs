@@ -21,7 +21,7 @@ module Zug.Anbindung.Wartezeit
 import Control.Applicative (Alternative(..))
 import Control.Concurrent (threadDelay)
 import Control.Monad (when)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Aeson.Types ((.=), (.:))
 import qualified Data.Aeson.Types as Aeson
 import Data.Text (Text)

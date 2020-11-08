@@ -39,7 +39,7 @@ module Zug.UI.StatusVar
 import Control.Concurrent.STM (STM, atomically, TVar, readTVar, writeTVar, retry, newTVarIO)
 import Control.Monad.RWS.Strict (runRWS, runRWST)
 import Control.Monad.Reader.Class (MonadReader(..), asks)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Aeson (ToJSON())
 import Numeric.Natural (Natural)
 

@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -13,12 +11,9 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.BGWidgets
-  (
-#ifdef ZUGKONTROLLEGUI
-    BGWidgets()
+  ( BGWidgets()
   , bahngeschwindigkeitPackNew
   , BGWidgetsKlasse(..)
   , hScaleGeschwindigkeitPackNew
@@ -28,10 +23,8 @@ module Zug.UI.Gtk.StreckenObjekt.BGWidgets
   , BGWidgetsBoxen(..)
   , MitBGWidgetsBoxen(..)
   , BGWidgetsBoxenReader(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Monad (forM_, foldM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -238,9 +231,10 @@ instance WegstreckenElement (GeschwindigkeitEither BGWidgets 'Märklin) where
         -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
     checkButtonWegstrecke = checkButtonWegstreckeVoid
         where
-            checkButtonWegstreckeVoid
-                :: GeschwindigkeitEither BGWidgets 'Märklin
-                -> CheckButtonWegstreckeHinzufügen Void (GeschwindigkeitEither BGWidgets 'Märklin)
+            checkButtonWegstreckeVoid :: GeschwindigkeitEither BGWidgets 'Märklin
+                                      -> CheckButtonWegstreckeHinzufügen
+                                          Void
+                                          (GeschwindigkeitEither BGWidgets 'Märklin)
             checkButtonWegstreckeVoid (GeschwindigkeitPwm bgWidgets) =
                 widgetHinzufügenGeschwindigkeitEither $checkButtonWegstrecke bgWidgets
             checkButtonWegstreckeVoid (GeschwindigkeitKonstanteSpannung bgWidgets) =
@@ -369,9 +363,10 @@ instance WegstreckenElement (ZugtypEither (GeschwindigkeitEither BGWidgets)) whe
         -> CheckButtonWegstreckeHinzufügen Void (ZugtypEither (GeschwindigkeitEither BGWidgets))
     checkButtonWegstrecke = erhalteCheckbuttonWegstrecke
         where
-            erhalteCheckbuttonWegstrecke
-                :: ZugtypEither (GeschwindigkeitEither BGWidgets)
-                -> CheckButtonWegstreckeHinzufügen Void (ZugtypEither (GeschwindigkeitEither BGWidgets))
+            erhalteCheckbuttonWegstrecke :: ZugtypEither (GeschwindigkeitEither BGWidgets)
+                                         -> CheckButtonWegstreckeHinzufügen
+                                             Void
+                                             (ZugtypEither (GeschwindigkeitEither BGWidgets))
             erhalteCheckbuttonWegstrecke (ZugtypMärklin bg) =
                 widgetHinzufügenZugtypEither $ checkButtonWegstrecke bg
             erhalteCheckbuttonWegstrecke (ZugtypLego bg) =
@@ -506,23 +501,23 @@ instance BahngeschwindigkeitKlasse BGWidgets where
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets 'Pwm z -> Word8 -> m ()
     geschwindigkeit
         BGWidgets {bgGeschwindigkeitsWidgets = ScaleGeschwindigkeit {wScaleGeschwindigkeit}}
-        wert = liftIO $ do
+        wert = do
         adjustment <- Gtk.getRangeAdjustment wScaleGeschwindigkeit
         Gtk.setAdjustmentValue adjustment $ fromIntegral wert
 
     fahrstrom :: (I2CReader r m, MonadIO m) => BGWidgets 'KonstanteSpannung z -> Word8 -> m ()
     fahrstrom BGWidgets {bgGeschwindigkeitsWidgets = AuswahlFahrstrom {wAuswahlFahrstrom}} =
-        liftIO . setzeAuswahl wAuswahlFahrstrom
+        setzeAuswahl wAuswahlFahrstrom
 
     umdrehen :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Märklin -> m ()
     umdrehen BGWidgets {bgFahrtrichtungsWidgets = ButtonUmdrehen {wButtonUmdrehen}} =
-        liftIO $ Gtk.buttonClicked wButtonUmdrehen
+        Gtk.buttonClicked wButtonUmdrehen
 
     fahrtrichtungEinstellen
         :: (I2CReader r m, PwmReader r m, MonadIO m) => BGWidgets b 'Lego -> Fahrtrichtung -> m ()
     fahrtrichtungEinstellen
         BGWidgets {bgFahrtrichtungsWidgets = AuswahlFahrtrichtung {wAuswahlFahrtrichtung}} =
-        liftIO . setzeAuswahl wAuswahlFahrtrichtung
+        setzeAuswahl wAuswahlFahrtrichtung
 
 instance (ZugtypKlasse z, GeschwindigkeitKlasse g)
     => BahngeschwindigkeitContainer (BGWidgets g z) where
@@ -568,20 +563,17 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
         pure (bgTVarSprache, bgTVarEvent)
     let justTVarSprache = Just bgTVarSprache
     -- Widget erstellen
-    vBox <- liftIO
-        $ boxPackWidgetNewDefault vBoxBahngeschwindigkeiten
-        $ Gtk.boxNew Gtk.OrientationVertical 0
+    vBox
+        <- boxPackWidgetNewDefault vBoxBahngeschwindigkeiten $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox bahngeschwindigkeit
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Nothing
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    expanderAnschlüsse
+        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault $ Gtk.expanderNew Nothing
+    vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+        $ scrollbaresWidgetNew
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     verwendeSpracheGui justTVarSprache
         $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
-    bgFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    bgFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     bgGeschwindigkeitsWidgets <- geschwindigkeitsWidgetsPackNew
         bgFunctionBox
         bahngeschwindigkeit
@@ -613,7 +605,7 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     buttonEntfernenPackNew
         bgWidgets
         (entfernenBahngeschwindigkeit $ zuZugtypEither $ zuGeschwindigkeitEither bgWidgets
-         :: IOStatusAllgemein o ())
+             :: IOStatusAllgemein o ())
     buttonBearbeitenPackNew bgWidgets
     -- Widgets merken
     ausführenBefehl
@@ -626,14 +618,23 @@ bahngeschwindigkeitPackNew bahngeschwindigkeit = do
     where
         hinzufügenWidgetsPackNew
             :: TVarSprachewechselAktionen
-            -> MStatusAllgemeinT m o ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
-                                     , ButtonPlanHinzufügen (BGWidgets g z)
-                                     , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
-                                     )
+            -> MStatusAllgemeinT
+                m
+                o
+                ( CheckButtonWegstreckeHinzufügen Void (BGWidgets g z)
+                , ButtonPlanHinzufügen (BGWidgets g z)
+                , ButtonPlanHinzufügen (GeschwindigkeitEither BGWidgets z)
+                )
         hinzufügenWidgetsPackNew tvarSprachwechselAktionen = do
             objektReader <- ask
             fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-                :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+                :: MStatusAllgemeinT
+                    m
+                    o
+                    (FortfahrenWennToggledVar
+                         (StatusAllgemein o)
+                         (StatusVar o)
+                         WegstreckeCheckButtonVoid)
             hinzufügenWidgetWegstrecke <- hinzufügenWidgetWegstreckePackNew
                 bahngeschwindigkeit
                 tvarSprachwechselAktionen
@@ -800,25 +801,20 @@ hScaleGeschwindigkeitPackNew
     -> m Gtk.Scale
 hScaleGeschwindigkeitPackNew box bahngeschwindigkeit tvarEventAusführen statusVar = do
     objektReader <- ask
-    liftIO $ do
-        scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault
-            $ Gtk.scaleNewWithRange
-                Gtk.OrientationHorizontal
-                0
-                (fromIntegral (maxBound :: Word8))
-                1
-        Gtk.widgetSetSizeRequest scale 100 (-1)
-        Gtk.onRangeValueChanged scale $ eventAusführen tvarEventAusführen $ do
-            adjustment <- Gtk.getRangeAdjustment scale
-            wert <- floor <$> Gtk.getAdjustmentValue adjustment
-            flip runReaderT objektReader $ flip auswertenStatusVarMStatusT statusVar $ do
-                ausführenAktion $ Geschwindigkeit bahngeschwindigkeit wert
-                -- Widgets synchronisieren
-                bahngeschwindigkeiten <- getBahngeschwindigkeiten
-                liftIO $ forM_ bahngeschwindigkeiten $ flip bgWidgetsSynchronisieren wert
-                wegstrecken <- getWegstrecken
-                liftIO $ forM_ wegstrecken $ flip wsWidgetsSynchronisieren wert
-        pure scale
+    scale <- boxPackWidgetNew box PackGrow paddingDefault positionDefault
+        $ Gtk.scaleNewWithRange Gtk.OrientationHorizontal 0 (fromIntegral (maxBound :: Word8)) 1
+    Gtk.widgetSetSizeRequest scale 100 (-1)
+    Gtk.onRangeValueChanged scale $ eventAusführen tvarEventAusführen $ do
+        adjustment <- Gtk.getRangeAdjustment scale
+        wert <- floor <$> Gtk.getAdjustmentValue adjustment
+        flip runReaderT objektReader $ flip auswertenStatusVarMStatusT statusVar $ do
+            ausführenAktion $ Geschwindigkeit bahngeschwindigkeit wert
+            -- Widgets synchronisieren
+            bahngeschwindigkeiten <- getBahngeschwindigkeiten
+            liftIO $ forM_ bahngeschwindigkeiten $ flip bgWidgetsSynchronisieren wert
+            wegstrecken <- getWegstrecken
+            liftIO $ forM_ wegstrecken $ flip wsWidgetsSynchronisieren wert
+    pure scale
     where
         bgWidgetsSynchronisieren
             :: ZugtypEither (GeschwindigkeitEither BGWidgets) -> Word8 -> IO ()
@@ -1216,5 +1212,3 @@ auswahlFahrtrichtungEinstellenPackNew
                         (Just auswahl) -> setzeAuswahl auswahl fahrtrichtung
                         Nothing -> pure ()
         wsWidgetsSynchronisieren _wsWidget _wert = pure ()
-#endif
---

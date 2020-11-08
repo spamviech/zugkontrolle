@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -7,15 +5,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 {-|
 Description: Widget zur Auswahl eines Werts.
 -}
 module Zug.UI.Gtk.Auswahl
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * Datentyp
+  ( -- * Datentyp
     AuswahlWidget()
   , aktuelleAuswahl
   , setzeAuswahl
@@ -31,12 +26,10 @@ module Zug.UI.Gtk.Auswahl
   , boundedEnumAuswahlComboBoxNew
     -- * Klasse für Typen mit AuswahlWidget
   , MitAuswahlWidget(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Monad (when, void, forM, forM_, foldM)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.GI.Base.GType as GI
 import Data.Int (Int32)
 import Data.List (delete)
@@ -56,10 +49,10 @@ import Zug.UI.Gtk.SpracheGui
 data AuswahlWidget e
     = AuswahlRadioButton { widget :: Gtk.Widget, enumButtons :: NonEmpty (e, Gtk.RadioButton) }
     | AuswahlComboBox
-          { widget :: Gtk.Widget
-          , comboBox :: Gtk.ComboBox
-          , enumIndicesIters :: NonEmpty (e, Int32, Gtk.TreeIter)
-          }
+      { widget :: Gtk.Widget
+      , comboBox :: Gtk.ComboBox
+      , enumIndicesIters :: NonEmpty (e, Int32, Gtk.TreeIter)
+      }
     deriving (Eq)
 
 instance MitWidget (AuswahlWidget e) where
@@ -262,5 +255,3 @@ class (MitWidget a) => MitAuswahlWidget a e where
 instance MitAuswahlWidget (AuswahlWidget e) e where
     erhalteAuswahlWidget :: AuswahlWidget e -> AuswahlWidget e
     erhalteAuswahlWidget = id
-#endif
-    --

@@ -14,7 +14,7 @@ module Zug.UI.Cmd (main, mainStatus) where
 import Control.Monad (unless, void)
 import Control.Monad.RWS.Strict (evalRWST)
 import Control.Monad.State.Class (MonadState(..))
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text

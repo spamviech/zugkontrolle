@@ -34,7 +34,7 @@ import Control.Concurrent (ThreadId)
 import Control.Concurrent.STM (atomically, retry, TVar, readTVar, writeTVar, modifyTVar)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadReader(..), ReaderT, runReaderT, asks)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Bits (Bits, complement, zeroBits)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map

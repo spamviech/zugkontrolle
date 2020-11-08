@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -10,20 +8,15 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.WEWidgets
-  (
-#ifdef ZUGKONTROLLEGUI
-    WEWidgets()
+  ( WEWidgets()
   , weichePackNew
   , WEWidgetsBoxen(..)
   , MitWEWidgetsBoxen(..)
   , WEWidgetsBoxenReader(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Monad (forM)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -314,7 +307,7 @@ instance (ZugtypKlasse z) => WeicheKlasse (WEWidgets z) where
     stellen :: (I2CReader r m, PwmReader r m, MonadIO m) => WEWidgets z -> Richtung -> m ()
     stellen WEWidgets {weRichtungsButtons} richtung =
         case lookup richtung $ NonEmpty.toList weRichtungsButtons of
-            (Just button) -> liftIO $ Gtk.buttonClicked button
+            (Just button) -> Gtk.buttonClicked button
             Nothing -> pure ()
 
     erhalteRichtungen :: WEWidgets z -> NonEmpty Richtung
@@ -354,7 +347,10 @@ weichePackNew weiche = do
     let justTVarSprache = Just weTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeRichtungPackNew
         weiche
         (erhalteRichtungen weiche)
@@ -381,16 +377,14 @@ weichePackNew weiche = do
             , rechts = hinzufügenPlanWidgetRechts
             }
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
+    vBox <- boxPackWidgetNewDefault vBoxWeichen $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox weiche
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Nothing
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
-    weFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    expanderAnschlüsse
+        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault $ Gtk.expanderNew Nothing
+    vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+        $ scrollbaresWidgetNew
+        $ Gtk.boxNew Gtk.OrientationVertical 0
+    weFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     verwendeSpracheGui justTVarSprache
         $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
     weRichtungsButtons
@@ -462,5 +456,3 @@ weichePackNew weiche = do
                 $ flip runReaderT objektReader
                 $ ausführenStatusVarAktion (Stellen weiche richtung2) statusVar
             pure $ (richtung1, button1) :| [(richtung2, button2)]
-#endif
---

@@ -1,33 +1,26 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecursiveDo #-}
-#endif
 
 {-|
 Description : Erstellen eines Assistant zum Hinzufügen eines 'StreckenObjekt'es.
 -}
 module Zug.UI.Gtk.AssistantHinzufuegen
-  (
-#ifdef ZUGKONTROLLEGUI
-    assistantHinzufügenNew
+  ( assistantHinzufügenNew
   , AssistantHinzufügen()
   , assistantHinzufügenAuswerten
   , HinzufügenErgebnis(..)
   , setzeAssistantHinzufügen
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TMVar, newEmptyTMVar, putTMVar, takeTMVar)
 import Control.Monad (forM_, foldM, when)
 import Control.Monad.Fix (MonadFix())
 import Control.Monad.Reader (runReaderT)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.GI.Gtk.Threading as Gtk
 import Data.Int (Int32)
 import Data.Map.Strict (Map)
@@ -92,7 +85,7 @@ hinzufügenErgebnis :: (StatusVarGuiReader r m, MonadIO m) => AssistantHinzufüg
 hinzufügenErgebnis
     AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis} =
     do
-        aktuelleSeite <- liftIO $ Gtk.getNotebookPage notebook
+        aktuelleSeite <- Gtk.getNotebookPage notebook
         ergebnis <- seiteErgebnis fließendAuswahl zugtypAuswahl $ indexSeiten Map.! aktuelleSeite
         liftIO $ atomically $ putTMVar tmVarErgebnis $ HinzufügenErfolgreich ergebnis
 
@@ -105,7 +98,7 @@ setzeAssistantHinzufügen
     AssistantHinzufügen {notebook, fließendAuswahl, zugtypAuswahl, indexSeiten}
     objekt = forM_ (Map.toList indexSeiten) $ \(index, seite) -> do
     richtigeSeite <- setzeSeite fließendAuswahl zugtypAuswahl seite objekt
-    liftIO $ when richtigeSeite $ Gtk.setNotebookPage notebook index
+    when richtigeSeite $ Gtk.setNotebookPage notebook index
 
 -- | Erstelle einen neuen 'AssistantHinzufügen'.
 assistantHinzufügenNew
@@ -122,19 +115,16 @@ assistantHinzufügenNew
     -> Maybe TVarSprachewechselAktionen
     -> m AssistantHinzufügen
 assistantHinzufügenNew parent maybeTVar = mdo
-    (tmVarErgebnis, window, vBox, notebook) <- liftIO $ do
-        tmVarErgebnisIO <- atomically newEmptyTMVar
-        windowIO <- Gtk.windowNew Gtk.WindowTypeToplevel
-        parentWindow <- erhalteWindow parent
-        Gtk.setWindowTransientFor windowIO parentWindow
-        Gtk.setWindowModal windowIO True
-        Gtk.onWidgetDeleteEvent windowIO $ \_event -> liftIO $ do
-            atomically (putTMVar tmVarErgebnisIO HinzufügenBeenden)
-            pure True
-        vBoxIO <- containerAddWidgetNew windowIO $ Gtk.boxNew Gtk.OrientationVertical 0
-        notebookIO
-            <- boxPackWidgetNew vBoxIO PackGrow paddingDefault positionDefault Gtk.notebookNew
-        pure (tmVarErgebnisIO, windowIO, vBoxIO, notebookIO)
+    tmVarErgebnis <- liftIO $ atomically newEmptyTMVar
+    window <- Gtk.windowNew Gtk.WindowTypeToplevel
+    parentWindow <- erhalteWindow parent
+    Gtk.setWindowTransientFor window parentWindow
+    Gtk.setWindowModal window True
+    Gtk.onWidgetDeleteEvent window $ \_event -> liftIO $ do
+        atomically (putTMVar tmVarErgebnis HinzufügenBeenden)
+        pure True
+    vBox <- containerAddWidgetNew window $ Gtk.boxNew Gtk.OrientationVertical 0
+    notebook <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault Gtk.notebookNew
     -- Wird in diesem Thread benötigt, bevor es erzeugt gepackt wird
     -- Führt zu Deadlock (thread blocked indefinitely in an MVar operation), wenn mdo verwendet wird
     zugtypAuswahl
@@ -153,35 +143,25 @@ assistantHinzufügenNew parent maybeTVar = mdo
         , (hinzufügenPlanNew window zugtypAuswahl maybeTVar, Language.plan)]
     let assistantHinzufügen =
             AssistantHinzufügen
-            { window
-            , notebook
-            , fließendAuswahl
-            , zugtypAuswahl
-            , indexSeiten
-            , tmVarErgebnis
-            }
-    functionBox <- liftIO
-        $ boxPackWidgetNew vBox packingDefault paddingDefault End
+            { window, notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis }
+    functionBox <- boxPackWidgetNew vBox packingDefault paddingDefault End
         $ Gtk.boxNew Gtk.OrientationHorizontal 0
     statusVar <- erhalteStatusVar :: m StatusVarGui
-    buttonHinzufügen <- liftIO $ do
-        buttonHinzufügenIO <- widgetShowNew Gtk.buttonNew
-        let alleButtonHinzufügen =
-                ButtonHinzufügen buttonHinzufügenIO
-                : catMaybes (spezifischerButtonHinzufügen <$> Map.elems indexSeiten)
-        forM_ alleButtonHinzufügen $ \mitButton -> do
-            button <- erhalteButton mitButton
-            boxPackDefault functionBox button
-            Gtk.onButtonClicked button
-                $ flip runReaderT statusVar
-                $ hinzufügenErgebnis assistantHinzufügen
-        Gtk.onNotebookSwitchPage notebook $ \_widget pageIndex -> do
-            mapM_ mitWidgetHide alleButtonHinzufügen
-            case Map.lookup (fromIntegral pageIndex) indexSeiten
-                >>= spezifischerButtonHinzufügen of
-                    (Just button) -> mitWidgetShow button
-                    _otherwise -> mitWidgetShow buttonHinzufügenIO
-        pure buttonHinzufügenIO
+    buttonHinzufügen <- widgetShowNew Gtk.buttonNew
+    let alleButtonHinzufügen =
+            ButtonHinzufügen buttonHinzufügen
+            : catMaybes (spezifischerButtonHinzufügen <$> Map.elems indexSeiten)
+    forM_ alleButtonHinzufügen $ \mitButton -> do
+        button <- erhalteButton mitButton
+        boxPackDefault functionBox button
+        Gtk.onButtonClicked button
+            $ flip runReaderT statusVar
+            $ hinzufügenErgebnis assistantHinzufügen
+    Gtk.onNotebookSwitchPage notebook $ \_widget pageIndex -> do
+        mapM_ mitWidgetHide alleButtonHinzufügen
+        case Map.lookup (fromIntegral pageIndex) indexSeiten >>= spezifischerButtonHinzufügen of
+            (Just button) -> mitWidgetShow button
+            _otherwise -> mitWidgetShow buttonHinzufügen
     fließendAuswahl <- boxPackWidgetNewDefault functionBox $ fließendAuswahlNew maybeTVar
     boxPackDefault functionBox zugtypAuswahl
     boxPackWidgetNew functionBox packingDefault paddingDefault End
@@ -192,5 +172,3 @@ assistantHinzufügenNew parent maybeTVar = mdo
         Gtk.setWindowTitle window $ Language.hinzufügen sprache
         Gtk.setButtonLabel buttonHinzufügen $ Language.hinzufügen sprache
     pure assistantHinzufügen
-#endif
---

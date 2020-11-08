@@ -1,28 +1,21 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
-#endif
 
 {-|
 Description: Widget mit Zugtyp-spezifischer Darstellung.
 -}
 module Zug.UI.Gtk.ZugtypSpezifisch
-  (
-#ifdef ZUGKONTROLLEGUI
-    ZugtypSpezifisch()
+  ( ZugtypSpezifisch()
   , zugtypSpezifischNew
   , zugtypSpezifischButtonNew
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Monad (forM_, forM)
-import Control.Monad.Trans (MonadIO(..))
+import Control.Monad.Trans (MonadIO())
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified GI.Gtk as Gtk
 
@@ -58,7 +51,7 @@ zugtypSpezifischNew :: (MitWidget w, MonadIO m)
                     => NonEmpty (Zugtyp, w)
                     -> AuswahlWidget Zugtyp
                     -> m (ZugtypSpezifisch Gtk.Widget)
-zugtypSpezifischNew eingabeWidgets auswahlWidget = liftIO $ do
+zugtypSpezifischNew eingabeWidgets auswahlWidget = do
     vBox <- Gtk.boxNew Gtk.OrientationVertical 0
     aktuellerZugtyp <- aktuelleAuswahl auswahlWidget
     zugtypWidgets <- forM eingabeWidgets $ \(zugtyp, mitWidget) -> do
@@ -78,7 +71,7 @@ zugtypSpezifischButtonNew :: (MitButton w, MonadIO m)
                           => NonEmpty (Zugtyp, w)
                           -> AuswahlWidget Zugtyp
                           -> m (ZugtypSpezifisch Gtk.Button)
-zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
+zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = do
     buttonVBox <- Gtk.boxNew Gtk.OrientationHorizontal 0
     buttonDummy <- Gtk.buttonNew
     aktuellerZugtyp <- aktuelleAuswahl buttonAuswahlWidget
@@ -94,5 +87,3 @@ zugtypSpezifischButtonNew eingabeWidgets buttonAuswahlWidget = liftIO $ do
     beiAuswahl buttonAuswahlWidget $ \gewählterZugtyp -> forM_ buttonZugtypWidgets
         $ \(zugtyp, widget) -> widgetShowIf (gewählterZugtyp == zugtyp) widget
     pure ZugtypSpezifischButton { buttonVBox, buttonDummy }
-#endif
---

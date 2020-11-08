@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RankNTypes #-}
@@ -10,20 +8,15 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.KOWidgets
-  (
-#ifdef ZUGKONTROLLEGUI
-    KOWidgets()
+  ( KOWidgets()
   , kontaktPackNew
   , KOWidgetsBoxen(..)
   , MitKOWidgetsBoxen(..)
   , KOWidgetsBoxenReader(..)
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (forever)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -193,24 +186,25 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     let justTVarSprache = Just koTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT
+            m
+            o
+            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget
         <- hinzufügenWidgetWegstreckePackNew kontakt koTVarSprache fortfahrenWennToggledWegstrecke
     hinzufügenPlanWidget
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanKontakte kontakt koTVarSprache
     -- Widget erstellen
-    vBox <- liftIO $ boxPackWidgetNewDefault vBoxKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
+    vBox <- boxPackWidgetNewDefault vBoxKontakte $ Gtk.boxNew Gtk.OrientationVertical 0
     namePackNew vBox kontakt
-    (expanderAnschlüsse, vBoxAnschlüsse) <- liftIO $ do
-        expanderAnschlüsse <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault
-            $ Gtk.expanderNew Nothing
-        vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
-            $ scrollbaresWidgetNew
-            $ Gtk.boxNew Gtk.OrientationVertical 0
-        pure (expanderAnschlüsse, vBoxAnschlüsse)
+    expanderAnschlüsse
+        <- boxPackWidgetNew vBox PackGrow paddingDefault positionDefault $ Gtk.expanderNew Nothing
+    vBoxAnschlüsse <- containerAddWidgetNew expanderAnschlüsse
+        $ scrollbaresWidgetNew
+        $ Gtk.boxNew Gtk.OrientationVertical 0
     verwendeSpracheGui justTVarSprache
         $ \sprache -> Gtk.setExpanderLabel expanderAnschlüsse $ Language.anschlüsse sprache
-    koFunctionBox <- liftIO $ boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    koFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
     let koWidgets =
             KOWidgets
             { ko = kontakt
@@ -224,10 +218,8 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     boxPackWidgetNewDefault vBoxAnschlüsse
         $ anschlussNew justTVarSprache Language.kontakt
         $ AnschlussMit kontaktAnschluss
-    (labelSignal, tvarSignal) <- liftIO $ do
-        labelSignal <- boxPackWidgetNewDefault koFunctionBox $ Gtk.labelNew (Nothing :: Maybe Text)
-        tvarSignal <- newTVarIO Language.aus
-        pure (labelSignal, tvarSignal)
+    labelSignal <- boxPackWidgetNewDefault koFunctionBox $ Gtk.labelNew (Nothing :: Maybe Text)
+    tvarSignal <- liftIO $ newTVarIO Language.aus
     let aktualisiereLabelSignal :: Sprache -> IO ()
         aktualisiereLabelSignal sprache = do
             text <- readTVarIO tvarSignal
@@ -252,5 +244,3 @@ kontaktPackNew kontakt@Kontakt {koFließend, kontaktAnschluss} = do
     -- Widgets merken
     ausführenBefehl $ Hinzufügen $ ausObjekt $ OKontakt koWidgets
     pure koWidgets
-#endif
---

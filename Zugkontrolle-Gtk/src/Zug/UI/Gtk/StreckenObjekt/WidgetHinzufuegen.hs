@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -10,15 +8,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-#endif
 
 {-|
 Description: Spezielle Widgets, die für den AssistantHinzufügen benötigt werden.
 -}
 module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * Datentyp und Typ-Klassen
+  ( -- * Datentyp und Typ-Klassen
     WidgetHinzufügen()
   , Kategorie(..)
   , KategorieText(..)
@@ -44,11 +39,9 @@ module Zug.UI.Gtk.StreckenObjekt.WidgetHinzufuegen
   , widgetHinzufügenGeschwindigkeitVariante
   , widgetHinzufügenGeschwindigkeitEither
   , widgetHinzufügenZugtypEither
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.Trans (MonadIO())
 import Data.Kind (Type)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -165,7 +158,7 @@ type BoxWegstreckeHinzufügen a =
 -- | Erstelle eine neue 'BoxWegstreckeHinzufügen'.
 boxWegstreckeHinzufügenNew :: (MonadIO m) => m (BoxWegstreckeHinzufügen a)
 boxWegstreckeHinzufügenNew =
-    liftIO $ fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.boxNew Gtk.OrientationVertical 0
+    fmap WidgetHinzufügen $ scrollbaresWidgetNew $ Gtk.boxNew Gtk.OrientationVertical 0
 
 deriving instance (Eq e) => Eq (WegstreckeCheckButton e)
 
@@ -212,10 +205,8 @@ boxPlanHinzufügenNew :: forall a r m.
                       => Maybe TVarSprachewechselAktionen
                       -> m (BoxPlanHinzufügen a)
 boxPlanHinzufügenNew maybeTVar = fmap WidgetHinzufügen $ scrollbaresWidgetNew $ do
-    box <- liftIO $ Gtk.boxNew Gtk.OrientationVertical 0
+    box <- Gtk.boxNew Gtk.OrientationVertical 0
     boxPackWidgetNewDefault box
         $ labelSpracheNew maybeTVar
         $ kategorieText (kategorie :: KategorieText a)
     pure box
-#endif
---

@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
@@ -12,12 +10,9 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-#endif
 
 module Zug.UI.Gtk.StreckenObjekt.PLWidgets
-  (
-#ifdef ZUGKONTROLLEGUI
-    -- * PLWidgets
+  ( -- * PLWidgets
     PLWidgets()
   , PlanGui
   , AktionGui
@@ -30,10 +25,8 @@ module Zug.UI.Gtk.StreckenObjekt.PLWidgets
   , WindowMainReader(..)
     -- * ObjektGui (hier definiert um Orphan-Instances zu vermeiden)
   , ObjektGui
-#endif
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, writeTVar)
 import Control.Monad (void, forM_)
 import Control.Monad.Reader (MonadReader(ask), asks, runReaderT)
@@ -207,98 +200,71 @@ planPackNew plan@Plan {plAktionen} = do
     spracheGui <- erhalteSpracheGui
     parent <- erhalteWindowMain
     PLWidgetsBoxen {vBoxPläne, vBoxHinzufügenPlanPläne} <- erhaltePLWidgetsBoxen
-    ( plTVarSprache
-        , plTVarEvent
-        , frame
-        , plFunctionBox
-        , expander
-        , vBoxExpander
-        , buttonAusführen
-        , buttonAbbrechen
-        , dialogGesperrt
-        ) <- liftIO $ do
+    (plTVarSprache, plTVarEvent) <- liftIO $ do
         plTVarSprache <- newTVarIO $ Just []
         plTVarEvent <- newTVarIO EventAusführen
-        -- Widget erstellen
-        frame <- boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew Nothing
-        vBox <- containerAddWidgetNew frame $ Gtk.boxNew Gtk.OrientationVertical 0
-        namePackNew vBox $ zuObjektTyp plan
-        expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Nothing
-        vBoxExpander <- containerAddWidgetNew expander $ Gtk.boxNew Gtk.OrientationVertical 0
-        plFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
-        buttonAusführen
-            <- boxPackWidgetNew plFunctionBox PackNatural paddingDefault positionDefault
-            $ Gtk.buttonNew
-        buttonAbbrechen
-            <- boxPackWidgetNew plFunctionBox PackNatural paddingDefault positionDefault
-            $ Gtk.buttonNew
-        Gtk.widgetHide buttonAbbrechen
-        dialogGesperrt <- Gtk.new Gtk.MessageDialog []
-        Gtk.setWindowTransientFor dialogGesperrt parent
-        Gtk.setMessageDialogMessageType dialogGesperrt Gtk.MessageTypeError
-        dialogGesperrtButton
-            <- Gtk.dialogAddButton dialogGesperrt Text.empty 0 >>= Gtk.unsafeCastTo Gtk.Button
-        progressBar <- boxPackWidgetNew
-            plFunctionBox
-            PackGrow
-            paddingDefault
-            positionDefault
-            Gtk.progressBarNew
-        Gtk.onButtonClicked buttonAusführen
-            $ flip runReaderT objektReader
-            $ auswertenStatusVarIOStatus (ausführenMöglich $ zuObjektTyp plan) statusVar >>= \case
-                AusführenMöglich -> void $ do
-                    Gtk.widgetHide buttonAusführen
-                    Gtk.widgetShow buttonAbbrechen
-                    ausführenStatusVarBefehl
-                        (Ausführen plan (const . anzeigeAktion) abschlussAktion)
-                        statusVar
-                    where
-                        anzeigeAktion :: Natural -> IO ()
-                        anzeigeAktion wert =
-                            Gtk.setProgressBarFraction progressBar
-                            $ (fromIntegral wert) / (fromIntegral $ length plAktionen)
+        pure (plTVarSprache, plTVarEvent)
+    -- Widget erstellen
+    frame <- boxPackWidgetNewDefault vBoxPläne $ Gtk.frameNew Nothing
+    vBox <- containerAddWidgetNew frame $ Gtk.boxNew Gtk.OrientationVertical 0
+    namePackNew vBox $ zuObjektTyp plan
+    expander <- boxPackWidgetNewDefault vBox $ Gtk.expanderNew Nothing
+    vBoxExpander <- containerAddWidgetNew expander $ Gtk.boxNew Gtk.OrientationVertical 0
+    plFunctionBox <- boxPackWidgetNewDefault vBox $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    buttonAusführen <- boxPackWidgetNew plFunctionBox PackNatural paddingDefault positionDefault
+        $ Gtk.buttonNew
+    buttonAbbrechen <- boxPackWidgetNew plFunctionBox PackNatural paddingDefault positionDefault
+        $ Gtk.buttonNew
+    Gtk.widgetHide buttonAbbrechen
+    dialogGesperrt <- Gtk.new Gtk.MessageDialog []
+    Gtk.setWindowTransientFor dialogGesperrt parent
+    Gtk.setMessageDialogMessageType dialogGesperrt Gtk.MessageTypeError
+    dialogGesperrtButton
+        <- liftIO . Gtk.unsafeCastTo Gtk.Button =<< Gtk.dialogAddButton dialogGesperrt Text.empty 0
+    progressBar <- boxPackWidgetNew
+        plFunctionBox
+        PackGrow
+        paddingDefault
+        positionDefault
+        Gtk.progressBarNew
+    Gtk.onButtonClicked buttonAusführen
+        $ flip runReaderT objektReader
+        $ auswertenStatusVarIOStatus (ausführenMöglich $ zuObjektTyp plan) statusVar >>= \case
+            AusführenMöglich -> void $ do
+                Gtk.widgetHide buttonAusführen
+                Gtk.widgetShow buttonAbbrechen
+                ausführenStatusVarBefehl
+                    (Ausführen plan (const . anzeigeAktion) abschlussAktion)
+                    statusVar
+                where
+                    anzeigeAktion :: Natural -> IO ()
+                    anzeigeAktion wert =
+                        Gtk.setProgressBarFraction progressBar
+                        $ (fromIntegral wert) / (fromIntegral $ length plAktionen)
 
-                        abschlussAktion :: IO ()
-                        abschlussAktion = do
-                            Gtk.widgetShow buttonAusführen
-                            Gtk.widgetHide buttonAbbrechen
-                WirdAusgeführt -> error "Ausführen in GTK-UI erneut gestartet."
-                (AnschlüsseBelegt belegteAnschlüsse) -> void $ do
-                    flip leseSprache spracheGui $ \sprache -> do
-                        Gtk.setMessageDialogText dialogGesperrt
-                            $ (Language.ausführenGesperrt $# belegteAnschlüsse) sprache
-                        Gtk.setButtonLabel dialogGesperrtButton $ Language.ok sprache
-                    dialogEval dialogGesperrt
-        Gtk.onButtonClicked buttonAbbrechen $ do
-            flip runReaderT objektReader
-                $ ausführenStatusVarBefehl (AusführenAbbrechen $ zuObjektTyp plan) statusVar
-            Gtk.widgetShow buttonAusführen
-            Gtk.widgetHide buttonAbbrechen
-        pure
-            ( plTVarSprache
-            , plTVarEvent
-            , frame
-            , plFunctionBox
-            , expander
-            , vBoxExpander
-            , buttonAusführen
-            , buttonAbbrechen
-            , dialogGesperrt
-            )
+                    abschlussAktion :: IO ()
+                    abschlussAktion = do
+                        Gtk.widgetShow buttonAusführen
+                        Gtk.widgetHide buttonAbbrechen
+            WirdAusgeführt -> error "Ausführen in GTK-UI erneut gestartet."
+            (AnschlüsseBelegt belegteAnschlüsse) -> void $ do
+                flip leseSprache spracheGui $ \sprache -> do
+                    Gtk.setMessageDialogText dialogGesperrt
+                        $ (Language.ausführenGesperrt $# belegteAnschlüsse) sprache
+                    Gtk.setButtonLabel dialogGesperrtButton $ Language.ok sprache
+                dialogEval dialogGesperrt
+    Gtk.onButtonClicked buttonAbbrechen $ do
+        flip runReaderT objektReader
+            $ ausführenStatusVarBefehl (AusführenAbbrechen $ zuObjektTyp plan) statusVar
+        Gtk.widgetShow buttonAusführen
+        Gtk.widgetHide buttonAbbrechen
     forM_ plAktionen
         $ boxPackWidgetNewDefault vBoxExpander . labelSpracheNew (Just plTVarSprache) . anzeige
     plHinzPL
         <- hinzufügenWidgetPlanPackNew vBoxHinzufügenPlanPläne (zuObjektTyp plan) plTVarSprache
     let plWidgets =
             PLWidgets
-            { pl = plan
-            , plWidget = frame
-            , plFunctionBox
-            , plHinzPL
-            , plTVarSprache
-            , plTVarEvent
-            }
+            { pl = plan, plWidget = frame, plFunctionBox, plHinzPL, plTVarSprache, plTVarEvent }
     buttonEntfernenPackNew plWidgets $ (entfernenPlan plWidgets :: IOStatusAllgemein ObjektGui ())
     buttonBearbeitenPackNew plWidgets
     let justTVarSprache = Just plTVarSprache
@@ -336,5 +302,3 @@ instance ObjektKlasse ObjektGui where
 
 type ObjektGui =
     ObjektAllgemein BGWidgets STWidgets WEWidgets KUWidgets KOWidgets WSWidgets PLWidgets
-#endif
---
