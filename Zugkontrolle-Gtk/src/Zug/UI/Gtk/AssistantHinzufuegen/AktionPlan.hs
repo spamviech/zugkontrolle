@@ -1,21 +1,12 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Plan'-'Aktion'.
 -}
-module Zug.UI.Gtk.AssistantHinzufuegen.AktionPlan
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionPlanAuswahlPackNew
-#endif
-  ) where
+module Zug.UI.Gtk.AssistantHinzufuegen.AktionPlan (aktionPlanAuswahlPackNew) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
@@ -45,7 +36,7 @@ aktionPlanAuswahlPackNew
 aktionPlanAuswahlPackNew box windowObjektAuswahl maybeTVar showPL aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxPlan <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxPlan <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxPlan
         $ buttonNewWithEventLabel maybeTVar Language.ausführen
         $ void
@@ -61,5 +52,3 @@ aktionPlanAuswahlPackNew box windowObjektAuswahl maybeTVar showPL aktionHinzufü
                 (Just (OPlan pl)) -> aktionHinzufügen $ AktionAusführen pl
                 _sonst -> pure ()
     pure hBoxPlan
-#endif
---

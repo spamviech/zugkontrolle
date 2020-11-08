@@ -1,21 +1,12 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Kontakt'-'Aktion'.
 -}
-module Zug.UI.Gtk.AssistantHinzufuegen.AktionKontakt
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionKontaktAuswahlPackNew
-#endif
-  ) where
+module Zug.UI.Gtk.AssistantHinzufuegen.AktionKontakt (aktionKontaktAuswahlPackNew) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
@@ -47,7 +38,7 @@ aktionKontaktAuswahlPackNew
 aktionKontaktAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxKontakt <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxKontakt <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxKontakt
         $ buttonNewWithEventLabel maybeTVar Language.wartenAuf
         $ void
@@ -67,5 +58,3 @@ aktionKontaktAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinzu
                     -> aktionHinzufügen $ AWegstreckeLego $ AWSKontakt $ WartenAuf ws
                 _sonst -> pure ()
     pure hBoxKontakt
-#endif
---

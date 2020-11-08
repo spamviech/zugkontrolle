@@ -1,23 +1,16 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE RecursiveDo #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Bahngeschwindigkeit's-'Aktion'.
 -}
 module Zug.UI.Gtk.AssistantHinzufuegen.AktionBahngeschwindigkeit
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionBahngeschwindigkeitAuswahlPackNew
-#endif
+  ( aktionBahngeschwindigkeitAuswahlPackNew
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
@@ -68,8 +61,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
     aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxBahngeschwindigkeit
-        <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxBahngeschwindigkeit <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.geschwindigkeit
         $ void
@@ -105,8 +97,8 @@ aktionBahngeschwindigkeitAuswahlPackNew
                         $ GeschwindigkeitPwm
                         $ Geschwindigkeit (GeschwindigkeitPhantom ws) wert
                     _sonst -> pure ()
-    scaleBahngeschwindigkeit <- liftIO
-        $ boxPackWidgetNew hBoxBahngeschwindigkeit PackGrow paddingDefault positionDefault
+    scaleBahngeschwindigkeit
+        <- boxPackWidgetNew hBoxBahngeschwindigkeit PackGrow paddingDefault positionDefault
         $ Gtk.scaleNewWithRange Gtk.OrientationHorizontal 0 100 1
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ buttonNewWithEventLabel maybeTVar Language.fahrstrom
@@ -144,8 +136,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
                         $ GeschwindigkeitKonstanteSpannung
                         $ Fahrstrom (GeschwindigkeitPhantom ws) fahrstromAnschluss
                     _sonst -> pure ()
-    spinButtonFahrstrom <- liftIO
-        $ boxPackWidgetNewDefault hBoxBahngeschwindigkeit
+    spinButtonFahrstrom <- boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ Gtk.spinButtonNewWithRange 0 (fromIntegral (maxBound :: Word8)) 1
     buttonUmdrehen <- buttonNewWithEventLabel maybeTVar Language.umdrehen $ void $ forkIOSilent $ do
         Gtk.postGUIASync $ flip leseSprache spracheGui $ \sprache -> do
@@ -165,7 +156,7 @@ aktionBahngeschwindigkeitAuswahlPackNew
                 $ GeschwindigkeitPwm
                 $ Umdrehen (GeschwindigkeitPhantom ws)
             _sonst -> pure ()
-    hBoxFahrtrichtung <- liftIO $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxFahrtrichtung <- Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxFahrtrichtung
         $ buttonNewWithEventLabel maybeTVar Language.fahrtrichtungEinstellen
         $ void
@@ -203,5 +194,3 @@ aktionBahngeschwindigkeitAuswahlPackNew
     boxPackWidgetNewDefault hBoxBahngeschwindigkeit
         $ zugtypSpezifischNew [(Märklin, widgetMärklin), (Lego, widgetLego)] auswahlZugtyp
     pure hBoxBahngeschwindigkeit
-#endif
---

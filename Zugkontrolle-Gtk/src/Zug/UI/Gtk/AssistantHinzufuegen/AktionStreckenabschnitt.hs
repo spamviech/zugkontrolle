@@ -1,22 +1,15 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE RecursiveDo #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Streckenabschnitt's-'Aktion'.
 -}
 module Zug.UI.Gtk.AssistantHinzufuegen.AktionStreckenabschnitt
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionStreckenabschnittAuswahlPackNew
-#endif
+  ( aktionStreckenabschnittAuswahlPackNew
   ) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
@@ -53,8 +46,7 @@ aktionStreckenabschnittAuswahlPackNew
 aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxStreckenabschnitt
-        <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxStreckenabschnitt <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxStreckenabschnitt
         $ buttonNewWithEventLabel maybeTVar Language.strom
         $ void
@@ -83,5 +75,3 @@ aktionStreckenabschnittAuswahlPackNew box windowObjektAuswahl maybeTVar showST a
         $ boundedEnumAuswahlRadioButtonNew Fließend maybeTVar
         $ const Text.empty
     pure hBoxStreckenabschnitt
-#endif
---

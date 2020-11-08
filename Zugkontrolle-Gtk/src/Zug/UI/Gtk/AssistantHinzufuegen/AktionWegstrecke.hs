@@ -1,21 +1,12 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Wegstrecke'n-'Aktion'.
 -}
-module Zug.UI.Gtk.AssistantHinzufuegen.AktionWegstrecke
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionWegstreckeAuswahlPackNew
-#endif
-  ) where
+module Zug.UI.Gtk.AssistantHinzufuegen.AktionWegstrecke (aktionWegstreckeAuswahlPackNew) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
@@ -47,7 +38,7 @@ aktionWegstreckeAuswahlPackNew
 aktionWegstreckeAuswahlPackNew box windowObjektAuswahl maybeTVar showWS aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxWegstrecke <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxWegstrecke <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxWegstrecke
         $ buttonNewWithEventLabel maybeTVar Language.einstellen
         $ void
@@ -66,5 +57,3 @@ aktionWegstreckeAuswahlPackNew box windowObjektAuswahl maybeTVar showWS aktionHi
                     -> aktionHinzufügen $ AWegstreckeLego $ Einstellen ws
                 _sonst -> pure ()
     pure hBoxWegstrecke
-#endif
---

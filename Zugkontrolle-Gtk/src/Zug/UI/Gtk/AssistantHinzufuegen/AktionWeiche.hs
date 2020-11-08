@@ -1,22 +1,13 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE RecursiveDo #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Weiche'n-'Aktion'.
 -}
-module Zug.UI.Gtk.AssistantHinzufuegen.AktionWeiche
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionWeicheAuswahlPackNew
-#endif
-  ) where
+module Zug.UI.Gtk.AssistantHinzufuegen.AktionWeiche (aktionWeicheAuswahlPackNew) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Fix (MonadFix())
@@ -52,7 +43,7 @@ aktionWeicheAuswahlPackNew
 aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen aktionHinzufügen = mdo
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxWeiche <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxWeiche <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxWeiche
         $ buttonNewWithEventLabel maybeTVar Language.stellen
         $ void
@@ -74,5 +65,3 @@ aktionWeicheAuswahlPackNew box windowObjektAuswahl maybeTVar showRichtungen akti
         $ boundedEnumAuswahlRadioButtonNew (fst $ NonEmpty.head showRichtungen) maybeTVar
         $ const Text.empty
     pure hBoxWeiche
-#endif
---

@@ -1,21 +1,12 @@
-{-# LANGUAGE CPP #-}
-#ifdef ZUGKONTROLLEGUI
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MonoLocalBinds #-}
-#endif
 
 {-|
 Description: Seite zum Hinzufügen einer 'Kupplung's-'Aktion'.
 -}
-module Zug.UI.Gtk.AssistantHinzufuegen.AktionKupplung
-  (
-#ifdef ZUGKONTROLLEGUI
-    aktionKupplungAuswahlPackNew
-#endif
-  ) where
+module Zug.UI.Gtk.AssistantHinzufuegen.AktionKupplung (aktionKupplungAuswahlPackNew) where
 
-#ifdef ZUGKONTROLLEGUI
 import Control.Concurrent.STM (atomically, takeTMVar)
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
@@ -47,7 +38,7 @@ aktionKupplungAuswahlPackNew
 aktionKupplungAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinzufügen = do
     spracheGui <- erhalteSpracheGui
     DynamischeWidgets {dynTMVarPlanObjekt} <- erhalteDynamischeWidgets
-    hBoxKupplung <- liftIO $ boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
+    hBoxKupplung <- boxPackWidgetNewDefault box $ Gtk.boxNew Gtk.OrientationHorizontal 0
     boxPackWidgetNewDefault hBoxKupplung
         $ buttonNewWithEventLabel maybeTVar Language.kuppeln
         $ void
@@ -67,5 +58,3 @@ aktionKupplungAuswahlPackNew box windowObjektAuswahl maybeTVar showKU aktionHinz
                     -> aktionHinzufügen $ AWegstreckeLego $ AWSKupplung $ Kuppeln ws
                 _sonst -> pure ()
     pure hBoxKupplung
-#endif
---
