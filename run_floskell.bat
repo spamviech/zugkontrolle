@@ -17,11 +17,12 @@ EXIT /B 0
 
 :SRC
 Echo -------------------%~1 -------------------
-FOR /R %%f IN (%~1\src\Zug\*) DO CALL :RUN_FLOSKELL %%f || GOTO HANDLE_FAIL
-FOR /D %%d IN (%~1\src\Zug\*) DO FOR /R %%f in (%%d\*) DO CALL :RUN_FLOSKELL %%f || GOTO HANDLE_FAIL
-FOR /D %%c IN (%~1\src\Zug\*) DO FOR /D %%d IN (%%c\*) DO FOR /R %%f in (%%d\*) DO CALL :RUN_FLOSKELL %%f || GOTO HANDLE_FAIL
-FOR /D %%b IN (%~1\src\Zug\*) DO FOR /D %%c IN (%%b\*) DO FOR /D %%d IN (%%c\*) DO FOR /R %%f in (%%d\*) DO CALL :RUN_FLOSKELL %%f || GOTO HANDLE_FAIL
-FOR /D %%a IN (%~1\src\Zug\*) DO FOR /D %%b IN (%%a\*) DO FOR /D %%c IN (%%b\*) DO FOR /D %%d IN (%%c\*) DO FOR /R %%f in (%%d\*) DO CALL :RUN_FLOSKELL %%f || GOTO HANDLE_FAIL
+CALL :SEARCH_DIR %~1\src\Zug
+EXIT /B 0
+
+:SEARCH_DIR
+FOR /R %%f in (%~1\*) DO CALL :RUN_FLOSKELL %%f || GOTO HANDLE_FAIL
+FOR /D %%d in (%~1\*) DO CALL :SEARCH_DIR %%d
 EXIT /B 0
 
 :RUN_FLOSKELL
