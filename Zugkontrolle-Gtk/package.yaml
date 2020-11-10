@@ -29,9 +29,6 @@ dependencies:
   - template-haskell >= 2.12 && < 3
   - text >= 1.2 && < 2
 
-cpp-options:
-  - -DZUGKONTROLLEGUI
-
 ghc-options:
   - -Wall
   - -Widentities

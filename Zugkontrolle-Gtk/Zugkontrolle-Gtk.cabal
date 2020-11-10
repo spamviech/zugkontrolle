@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8f3b4c73f06fee4f5349988040b528ed54c620763de9e36eee400832dd428bf6
+-- hash: 390cf7260f53c063a7c22a54f2108174c08e42d9db3e4d27ab56bad6163d064d
 
 name:           Zugkontrolle-Gtk
 version:        0.1.0.0
@@ -60,7 +60,6 @@ library
   hs-source-dirs:
       src
   ghc-options: -Wall -Widentities -Wno-unused-do-bind
-  cpp-options: -DZUGKONTROLLEGUI
   build-depends:
       Zugkontrolle-Base
     , aeson >=1.2 && <2
