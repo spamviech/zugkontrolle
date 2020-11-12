@@ -11,7 +11,7 @@ module Zug.UI.Gtk (main, setupGUI) where
 
 import Control.Concurrent (runInBoundThread, ThreadId)
 import Control.Concurrent.STM (atomically, newEmptyTMVarIO, putTMVar, readTMVar)
-import Control.Monad (void, when, forM_, foldM)
+import Control.Monad (void, when, forM_, foldM_)
 import qualified Control.Monad.RWS.Strict as RWS
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
@@ -338,8 +338,7 @@ setupGUI maybeTVar = do
                 mitNotebookSetCurrentPage notebookElementePaned pageGleise
                 gleisAnzeige
                     <- boxPackWidgetNew vBoxGleisePaned PackGrow paddingDefault positionDefault
-                    $ scrollbaresWidgetNew
-                    $ gleisAnzeigeNew
+                    $ scrollbaresWidgetNew gleisAnzeigeNew
                 atomically $ putTMVar tmvarGleisAnzeige gleisAnzeige
                 -- Paned mittig setzten
                 Gdk.displayGetDefault >>= \case
@@ -365,9 +364,9 @@ setupGUI maybeTVar = do
         tmvarAktionBearbeiten <- newEmptyTMVarIO
         let aktionObjektReader = do
                 vBoxHinzufügenWegstreckeBahngeschwindigkeitenMärklin
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenWegstreckeBahngeschwindigkeitenLego
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenPlanBahngeschwindigkeitenMärklin
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenPlanBahngeschwindigkeitenMärklinPwm
@@ -381,13 +380,13 @@ setupGUI maybeTVar = do
                 vBoxHinzufügenPlanBahngeschwindigkeitenLegoKonstanteSpannung
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenWegstreckeStreckenabschnitte
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenPlanStreckenabschnitte
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenWegstreckeWeichenMärklin
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenWegstreckeWeichenLego
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenPlanWeichenGeradeMärklin
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenPlanWeichenGeradeLego
@@ -405,11 +404,11 @@ setupGUI maybeTVar = do
                 vBoxHinzufügenPlanWeichenRechtsLego
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenWegstreckeKupplungen
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenPlanKupplungen
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenWegstreckeKontakte
-                    <- flip runReaderT spracheGui $ boxWegstreckeHinzufügenNew
+                    <- runReaderT boxWegstreckeHinzufügenNew spracheGui
                 vBoxHinzufügenPlanKontakte
                     <- flip runReaderT spracheGui $ boxPlanHinzufügenNew maybeTVar
                 vBoxHinzufügenPlanWegstreckenBahngeschwindigkeitMärklin
@@ -576,8 +575,7 @@ setupGUI maybeTVar = do
                             $ ausführenStatusVarBefehl (SprachWechsel spracheGui) statusVar
                     -- Rechte seite
                     boxPackWidgetNew functionBox packingDefault paddingDefault End
-                        $ buttonNewWithEventLabel maybeTVar Language.beenden
-                        $ Gtk.mainQuit
+                        $ buttonNewWithEventLabel maybeTVar Language.beenden Gtk.mainQuit
                     buttonLadenPack dynWindowMain functionBox maybeTVar End
                     buttonSpeichernPack dynWindowMain functionBox maybeTVar End
                     pure aktionBearbeitenReader
@@ -753,10 +751,10 @@ setupGUI maybeTVar = do
 
 -- | Execute several Gtk-Actions, showing progress after every one.
 gtkWithProgress :: Gtk.ProgressBar -> [IO ()] -> IO ThreadId
-gtkWithProgress progressBar actions = forkIOSilent $ void $ foldM foldFn 0 actions
+gtkWithProgress progressBar actions = forkIOSilent $ foldM_ foldFn 0 actions
     where
         step :: Double
-        step = 1 / (fromIntegral $ length actions)
+        step = 1 / fromIntegral (length actions)
 
         foldFn :: Double -> IO () -> IO Double
         foldFn fraction action = do

@@ -22,7 +22,7 @@ module Zug.UI.Cmd.Parser.AnfrageParser
   ) where
 
 import Control.Applicative (Alternative(..))
-import Control.Monad (MonadPlus(..), ap)
+import Control.Monad (MonadPlus(..), ap, (>=>))
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromMaybe)
@@ -155,7 +155,7 @@ newtype AnfrageParser a e =
 
 instance Functor (AnfrageParser a) where
     fmap :: (e -> f) -> AnfrageParser a e -> AnfrageParser a f
-    fmap f (AnfrageParser p) = AnfrageParser $ \ma s -> fmap f $ p ma s
+    fmap f (AnfrageParser p) = AnfrageParser $ \ma s -> f <$> p ma s
 
 instance (Zwischenwert a) => Applicative (AnfrageParser a) where
     pure :: e -> AnfrageParser a e
@@ -195,8 +195,7 @@ alternativenAuswerten :: forall a e.
                       -> Warteschlange (AnfrageParser a e)
                       -> AnfrageFortsetzung a e
                       -> AnfrageFortsetzung a e
-alternativenAuswerten eingabe alternativen anfrageFortsetzung =
-    alternativenAuswertenAux anfrageFortsetzung
+alternativenAuswerten eingabe alternativen = alternativenAuswertenAux
     where
         alternativenAuswertenAux :: AnfrageFortsetzung a e -> AnfrageFortsetzung a e
         alternativenAuswertenAux afErgebnis@AFErgebnis {} = afErgebnis
@@ -263,14 +262,11 @@ instance (Zwischenwert a) => Monad (AnfrageParser a) where
                 , alternativeParser = Warteschlange.leer
                 }
             AFStatusAnfrage {anfrageObjekt, konstruktor}
-                -> AFStatusAnfrage { anfrageObjekt, konstruktor = \objekt
-                    -> konstruktor objekt >>= f }
+                -> AFStatusAnfrage { anfrageObjekt, konstruktor = konstruktor >=> f }
             AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin}
-                -> AFStatusAnfrageMärklin { anfrageObjektMärklin, konstruktorMärklin = \objekt
-                    -> konstruktorMärklin objekt >>= f }
+                -> AFStatusAnfrageMärklin { anfrageObjektMärklin, konstruktorMärklin = konstruktorMärklin >=> f }
             AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego}
-                -> AFStatusAnfrageLego { anfrageObjektLego, konstruktorLego = \objekt
-                    -> konstruktorLego objekt >>= f }
+                -> AFStatusAnfrageLego { anfrageObjektLego, konstruktorLego = konstruktorLego >=> f }
 
 instance (Zwischenwert a) => MonadPlus (AnfrageParser a)
 
