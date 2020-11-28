@@ -2,6 +2,7 @@
 dist-newstyle/
 dist/
 *~
+*.o
 cabal.project.local
 /bin/Zugkontrolle
 /bin/Zugkontrolle.exe
@@ -14,3 +15,4 @@ Zugkontrolle-Gtk/stack.yaml.lock
 /Schaltpläne/*.log
 /Schaltpläne/*.synctex.gz
 /stuff/
+

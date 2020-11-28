@@ -217,6 +217,10 @@ Dazu ist am besten die Anleitung auf [der Gtk-Website](https://www.gtk.org/downl
     Bei Verwendung von apt ist der Befehl: `sudo apt install libgtk-3-dev`
 
     gobject-introspection: `sudo apt install gobject-introspection`
+    
+    Things not preinstalled on Ubuntu:
+    pkg-config: `sudo apt install pgk-config`
+    girepository: `sudo apt install libgirepository1.0-dev`
 
 * Windows:
     Die Installation erfolgt über __MSYS2__.  
