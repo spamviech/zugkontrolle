@@ -53,15 +53,15 @@ executable Zugkontrolle
       build-depends:
           Zugkontrolle-Cmd
     else
-      ghc-options: -optl-mwindows
       cpp-options: -DZUGKONTROLLESILENCE
       build-depends:
           silently >=1.2 && <1.3
+      if os(windows)
+        ghc-options: -optl-mwindows
   else
     build-depends:
         Zugkontrolle-Cmd
-  if os(linux)
-    if arch(arm)
-      extra-libraries:
-          wiringPi
+  if os(linux) && arch(arm)
+    extra-libraries:
+        wiringPi
   default-language: Haskell2010

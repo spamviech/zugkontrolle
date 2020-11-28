@@ -20,55 +20,55 @@ extra-source-files:
 - ChangeLog.md
 
 flags:
-  gui:
-    description: "Erstelle ein graphisches User Interface mit GTK+."
-    default: true
-    manual: true
-  cmd:
-    description: "Starte das Programm mit einem Terminal-Fenster. Deaktivieren verhindert Verwendung des Komandozeilen-UI."
-    default: true
-    manual: true
+    gui:
+      description: "Erstelle ein graphisches User Interface mit GTK+."
+      default: true
+      manual: true
+    cmd:
+      description: "Starte das Programm mit einem Terminal-Fenster. Deaktivieren verhindert Verwendung des Komandozeilen-UI."
+      default: true
+      manual: true
  
 dependencies:
-  - base >= 4.7 && < 5
-  - Zugkontrolle-Base
-  - directory >= 1.3 && < 2
-  - text >= 1.2 && < 2
-  - ansi-terminal >= 0.8 && < 1
-  - mtl >= 2.2 && < 3
+- base >= 4.7 && < 5
+- Zugkontrolle-Base
+- directory >= 1.3 && < 2
+- text >= 1.2 && < 2
+- ansi-terminal >= 0.8 && < 1
+- mtl >= 2.2 && < 3
 
 when:
   - condition: flag(gui)
     then:
       dependencies:
-        - Zugkontrolle-Gtk
+      - Zugkontrolle-Gtk
       cpp-options:
-        - -DZUGKONTROLLEGUI
+      - -DZUGKONTROLLEGUI
       when:
         - condition: flag(cmd)
           then:
-            dependencies:
+              dependencies:
               - Zugkontrolle-Cmd
           else:
-            dependencies:
+              dependencies:
               - silently >= 1.2 && < 1.3
-            ghc-options:
-              - -optl-mwindows
-            cpp-options:
+              cpp-options:
               - -DZUGKONTROLLESILENCE
+              when:
+                - condition: os(windows)
+                  ghc-options:
+                  - -optl-mwindows
     else:
-      dependencies:
+        dependencies:
         - Zugkontrolle-Cmd
 
 executables:
-  Zugkontrolle:
-    source-dirs:      app
-    main:             Main.hs
-    ghc-options:
+    Zugkontrolle:
+      source-dirs:      app
+      main:             Main.hs
+      ghc-options:
       - -threaded
-    when:
-      - condition: os(linux)
-        when:
-          - condition: arch(arm)
-            extra-libraries:
-              - wiringPi
+      when:
+        - condition: os(linux) && arch(arm)
+          extra-libraries:
+          - wiringPi
