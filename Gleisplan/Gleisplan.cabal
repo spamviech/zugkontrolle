@@ -1,0 +1,60 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           Gleisplan
+version:        0.1.0.0
+category:       Web
+homepage:       https://github.com/spamviech/Zugkontrolle-Gtk#readme
+author:         spamviech
+maintainer:     spamviech@web.de
+copyright:      2020 spamviech
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+library
+  exposed-modules:
+      Zug.UI.Gtk.Gleise
+  other-modules:
+      Paths_Gleisplan
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Widentities -Wno-unused-do-bind
+  build-depends:
+      base >=4.7 && <5
+    , gi-cairo-connector >=0.1 && <0.2
+    , gi-cairo-render >=0.1 && <0.2
+    , gi-gdk >=4.0 && <4.1
+    , gi-gio >=2.0.27 && <2.1
+    , gi-gtk >=4.0.3 && <4.1
+    , haskell-gi-base >=0.24.5 && <0.25
+    , mtl >=2.2 && <2.3
+    , stm >=2.5 && <2.6
+    , text >=1.2 && <1.3
+  default-language: Haskell2010
+
+executable Gleisplan
+  main-is: Main.hs
+  other-modules:
+      Paths_Gleisplan
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Widentities -Wno-unused-do-bind -threaded
+  build-depends:
+      Gleisplan
+    , base >=4.7 && <5
+    , gi-cairo-connector >=0.1 && <0.2
+    , gi-cairo-render >=0.1 && <0.2
+    , gi-gdk >=4.0 && <4.1
+    , gi-gio >=2.0.27 && <2.1
+    , gi-gtk >=4.0.3 && <4.1
+    , haskell-gi-base >=0.24.5 && <0.25
+    , mtl >=2.2 && <2.3
+    , stm >=2.5 && <2.6
+    , text >=1.2 && <1.3
+  default-language: Haskell2010

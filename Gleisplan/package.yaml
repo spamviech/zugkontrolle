@@ -1,0 +1,40 @@
+name:                Gleisplan
+version:             0.1.0.0
+#synopsis:
+#description:
+homepage:            https://github.com/spamviech/Zugkontrolle-Gtk#readme
+license:             BSD3
+author:              spamviech
+maintainer:          spamviech@web.de
+copyright:           2020 spamviech
+category:            Web
+extra-source-files:
+- README.md
+
+dependencies:
+- base >= 4.7 && < 5
+- gi-cairo-render >= 0.1 && < 0.2
+- gi-cairo-connector >= 0.1 && < 0.2
+- gi-gdk >= 4.0 && < 4.1
+- gi-gio >= 2.0.27 && < 2.1
+- gi-gtk >= 4.0.3 && < 4.1
+- haskell-gi-base >= 0.24.5 && < 0.25
+- mtl >= 2.2 && < 2.3
+- stm >= 2.5 && < 2.6
+- text >= 1.2 && < 1.3
+
+ghc-options:
+- -Wall
+- -Widentities
+- -Wno-unused-do-bind
+
+library:
+  source-dirs: src
+
+executable:
+  source-dirs:      app
+  main:             Main.hs
+  dependencies:
+  - Gleisplan
+  ghc-options:
+  - -threaded
