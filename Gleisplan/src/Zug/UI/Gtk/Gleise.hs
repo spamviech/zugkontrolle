@@ -156,10 +156,13 @@ gleisNew widthFn heightFn draw = do
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
     gleisScale gleis 1
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
-        -> void $ flip Cairo.renderWithContext context $ do
+    --Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
+    --    -> void $ flip Cairo.renderWithContext context $ do
+    Gtk.onWidgetDraw drawingArea $ Cairo.renderWithContext $ do
             (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
             -- debugging
+            newWidth <- Gtk.widgetGetAllocatedWidth drawingArea
+            newHeight <- Gtk.widgetGetAllocatedHeight drawingArea
             -- let scale =
             --         min
             --             (fromIntegral newWidth / fromIntegral width)
@@ -604,6 +607,8 @@ gleisAnzeigeNew = do
         putWithHeight fixed (maxWidth, y) (text, konstruktor) = do
             label <- Gtk.labelNew $ Just text
             Gtk.fixedPut fixed label (fromIntegral padding) $ fromIntegral y
+            -- required for Gtk3, otherwise size-calculation doesn't work
+            Gtk.widgetShow label
             (_reqMin, reqMax) <- Gtk.widgetGetPreferredSize label
             widthLabel <- Gtk.getRequisitionWidth reqMax
             let x = 2 * padding + widthLabel

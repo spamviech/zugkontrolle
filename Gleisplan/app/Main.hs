@@ -9,7 +9,7 @@ import Zug.UI.Gtk.Gleise (gleisAnzeigeNew)
 
 main :: IO ()
 main = do
-    application <- Gtk.applicationNew Nothing []
+    (Just application) <- Gtk.applicationNew Nothing []
     Gio.onApplicationActivate application $ createWindow application
     Gio.applicationRun application Nothing
     pure ()
@@ -22,8 +22,12 @@ createWindow application = do
     --Gtk.windowSetDecorated appWindow False
     Gtk.applicationAddWindow application appWindow
     Gtk.windowSetDefaultSize appWindow 480 320
-    scrolledWindow <- Gtk.scrolledWindowNew
-    Gtk.windowSetChild appWindow $ Just scrolledWindow
+    --scrolledWindow <- Gtk.scrolledWindowNew
+    scrolledWindow <- Gtk.scrolledWindowNew (Nothing :: Maybe Gtk.Adjustment) (Nothing :: Maybe Gtk.Adjustment)
+    --Gtk.windowSetChild appWindow $ Just scrolledWindow
+    Gtk.containerAdd appWindow scrolledWindow
     gleisAnzeige <- gleisAnzeigeNew
-    Gtk.scrolledWindowSetChild scrolledWindow $ Just gleisAnzeige
-    Gtk.widgetShow appWindow
+    --Gtk.scrolledWindowSetChild scrolledWindow $ Just gleisAnzeige
+    Gtk.containerAdd scrolledWindow gleisAnzeige
+    --Gtk.widgetShow appWindow
+    Gtk.widgetShowAll appWindow
