@@ -156,9 +156,13 @@ gleisNew widthFn heightFn draw = do
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
     gleisScale gleis 1
-    --Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
-    --    -> void $ flip Cairo.renderWithContext context $ do
+    --{- gtk4
+    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
+       -> void $ flip Cairo.renderWithContext context $ do
+    --}
+    {- gtk3
     Gtk.onWidgetDraw drawingArea $ Cairo.renderWithContext $ do
+    --}
             (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
             -- debugging
             newWidth <- Gtk.widgetGetAllocatedWidth drawingArea
