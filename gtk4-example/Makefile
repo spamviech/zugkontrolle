@@ -16,4 +16,3 @@ example-0.o:
 
 clean:
 	rm -f example-0.o
-	rm -f example-0.exe
