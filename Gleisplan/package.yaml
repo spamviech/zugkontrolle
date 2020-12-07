@@ -16,10 +16,10 @@ dependencies:
 - haskell-gi-overloading == 0.0
 - gi-cairo-render >= 0.1 && < 0.2
 - gi-cairo-connector >= 0.1 && < 0.2
-- gi-gdk >= 3.0 && < 4
+- gi-gdk >= 4.0 && < 4.1
 - gi-gio >= 2.0.27 && < 2.1
-- gi-gtk >= 3.0.3 && < 4
-- haskell-gi-base >= 0.24.4 && < 0.25
+- gi-gtk >= 4.0.3 && < 4.2
+- haskell-gi-base >= 0.24.5 && < 0.25
 - mtl >= 2.2 && < 2.3
 - stm >= 2.5 && < 2.6
 - text >= 1.2 && < 1.3
