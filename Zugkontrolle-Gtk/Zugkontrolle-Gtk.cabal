@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 390cf7260f53c063a7c22a54f2108174c08e42d9db3e4d27ab56bad6163d064d
+-- hash: 8aacf19d9b74efda0479379257a53c5ee1610c00bb11ad2a2d53f52397a0f97d
 
 name:           Zugkontrolle-Gtk
 version:        0.1.0.0
@@ -70,7 +70,7 @@ library
     , gi-cairo-render >=0.1 && <0.2
     , gi-gdk >=3.0.22 && <3.1
     , gi-gtk >=3.0.36 && <3.1
-    , gi-gtk-hs >=0.3.8.1 && <0.4
+    , gi-gtk-hs >=0.3.9 && <0.4
     , haskell-gi-base >=0.24.0 && <0.25
     , haskell-gi-overloading ==0.0
     , mtl >=2.2 && <3
