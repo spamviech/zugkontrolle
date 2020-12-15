@@ -11,7 +11,7 @@
 ideas for rewrite with gtk4
     start from scratch (UI), so legacy-based mistakes might vanish
 look at Gtk.renderLine (cairo-render/-connector should still work)
-Use `Gdk.threadsAddIdle GLib.PRIORITY_DEFAULT $ gtkAction` to call Gtk from a forked thread
+Use `GLib.addIdle GLib.PRIORITY_DEFAULT $ gtkAction` to call Gtk from a forked thread
     (sync e.g. with TMVar for a blocking version)
     https://github.com/haskell-gi/haskell-gi/wiki/Using-threads-in-Gdk-and-Gtk--programs
 Gtk.Application has to be used instead of Gtk.main
@@ -158,15 +158,15 @@ gleisNew widthFn heightFn draw = do
     gleisScale gleis 1
     --{- gtk4
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
-       -> void $ flip Cairo.renderWithContext context $ do
-    --}
-    {- gtk3
+        -> void $ flip Cairo.renderWithContext context $ do
+            --}
+            {- gtk3
     Gtk.onWidgetDraw drawingArea $ Cairo.renderWithContext $ do
-    --}
+                newWidth <- Gtk.widgetGetAllocatedWidth drawingArea
+                newHeight <- Gtk.widgetGetAllocatedHeight drawingArea
+            --}
             (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
             -- debugging
-            newWidth <- Gtk.widgetGetAllocatedWidth drawingArea
-            newHeight <- Gtk.widgetGetAllocatedHeight drawingArea
             -- let scale =
             --         min
             --             (fromIntegral newWidth / fromIntegral width)
