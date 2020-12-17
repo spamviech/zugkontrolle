@@ -7,6 +7,8 @@
         "Vexpand",
         "Widentities",
         "doesn",
-        "tvar"
+        "hashable",
+        "tvar",
+        "uncurry"
     ]
 }

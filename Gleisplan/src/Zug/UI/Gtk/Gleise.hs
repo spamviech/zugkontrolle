@@ -6,6 +6,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 
 {-
 ideas for rewrite with gtk4
@@ -25,6 +27,7 @@ module Zug.UI.Gtk.Gleise
   ( -- * Gleis Widgets
     Gleis()
   , GleisDefinition(..)
+  , Anchor(..)
   , WeichenArt(..)
   , WeichenRichtungAllgemein(..)
   , WeichenRichtung(..)
@@ -71,7 +74,11 @@ module Zug.UI.Gtk.Gleise
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (foldM, when, void)
-import Control.Monad.Trans (MonadIO(liftIO))
+import Control.Monad.State (StateT(), modify')
+import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Data.HashMap.Strict (HashMap())
+import qualified Data.HashMap.Strict as HashMap
+import Data.Hashable (Hashable())
 import Data.Int (Int32)
 import Data.Text (Text)
 import qualified GI.Cairo.Render as Cairo
@@ -95,7 +102,20 @@ data Gleis (z :: Zugtyp) =
     , height :: Int32
     , tvarScale :: TVar Double
     , tvarAngle :: TVar Double
+      -- TODO might need angles?
+      -- provide better type for distinguishing doubles
+    , anchorPoints :: HashMap Anchor (Double, Double)
     }
+
+-- | Namen um ausgezeichnete Punkte eines 'Gleis'es anzusprechen.
+newtype Anchor = Anchor { anchor :: Text }
+    deriving (Show, Eq, Hashable)
+
+-- | Erstelle eine AnchorPoint an der aktuellen Stelle
+makeAnchorPoint :: Anchor -> StateT (HashMap Anchor (Double, Double)) Cairo.Render ()
+makeAnchorPoint anchor = do
+    point <- lift Cairo.getCurrentPoint
+    modify' $ HashMap.insert anchor point
 
 -- instance MitWidget (Gleis z) where
 --     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
@@ -146,10 +166,12 @@ gleisNew :: (MonadIO m)
 gleisNew widthFn heightFn draw = do
     drawingArea <- Gtk.drawingAreaNew
     (tvarScale, tvarAngle) <- liftIO $ (,) <$> newTVarIO 1 <*> newTVarIO 0
-    let gleis = Gleis { drawingArea, width, height, tvarScale, tvarAngle }
+    let gleis =
+            Gleis
+            { drawingArea, width, height, tvarScale, tvarAngle, anchorPoints = HashMap.empty }
         width = widthFn gleis
         height = heightFn gleis
-    -- Gtk.drawingAreaSetContentHeight drawingArea height
+    Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.widgetSetHexpand drawingArea False
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     -- Gtk.drawingAreaSetContentWidth drawingArea width
@@ -159,22 +181,7 @@ gleisNew widthFn heightFn draw = do
     --{- gtk4
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
-            --}
-            {- gtk3
-    Gtk.onWidgetDraw drawingArea $ Cairo.renderWithContext $ do
-                newWidth <- Gtk.widgetGetAllocatedWidth drawingArea
-                newHeight <- Gtk.widgetGetAllocatedHeight drawingArea
-            --}
             (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
-            -- debugging
-            -- let scale =
-            --         min
-            --             (fromIntegral newWidth / fromIntegral width)
-            --             (fromIntegral newHeight / fromIntegral height)
-            -- liftIO
-            --     $ putStrLn
-            --     $ show newWidth ++ ", " ++ show newHeight ++ " | " ++ show scale ++ ", " ++ show angle
-            -- end debugging
             Cairo.save
             let halfWidth = 0.5 * fromIntegral newWidth
                 halfHeight = 0.5 * fromIntegral newHeight
@@ -190,6 +197,7 @@ gleisNew widthFn heightFn draw = do
             pure True
     pure gleis
 
+-- TODO: change to simple function Zugtyp -> Double
 class Spurweite z where
     spurweite :: Gleis z -> Double
 
