@@ -80,6 +80,7 @@ import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
 import Data.Int (Int32)
+import Data.Proxy (Proxy(..))
 import Data.Text (Text)
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
@@ -97,7 +98,8 @@ data Zugtyp
 -- Die Größe wird nur über 'gleisScale', 'gleisSetWidth' und 'gleisSetHeight' verändert.
 data Gleis (z :: Zugtyp) =
     Gleis
-    { drawingArea :: Gtk.DrawingArea
+    { aspectFrame :: Gtk.AspectFrame
+    , drawingArea :: Gtk.DrawingArea
     , width :: Int32
     , height :: Int32
     , tvarScale :: TVar Double
@@ -159,87 +161,104 @@ gleisRotate gleis@Gleis {tvarAngle} angle = do
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
 -- After the action 'Cairo.stroke' is executed.
 gleisNew :: (MonadIO m)
-         => (Gleis z -> Int32)
-         -> (Gleis z -> Int32)
-         -> (Gleis z -> Cairo.Render ())
+         => (Proxy z -> Int32)
+         -> (Proxy z -> Int32)
+         -> (Proxy z -> Cairo.Render ())
          -> m (Gleis z)
 gleisNew widthFn heightFn draw = do
-    drawingArea <- Gtk.drawingAreaNew
     (tvarScale, tvarAngle) <- liftIO $ (,) <$> newTVarIO 1 <*> newTVarIO 0
-    let gleis =
-            Gleis
-            { drawingArea, width, height, tvarScale, tvarAngle, anchorPoints = HashMap.empty }
-        width = widthFn gleis
-        height = heightFn gleis
-    Gtk.drawingAreaSetContentHeight drawingArea height
+    let width = widthFn Proxy
+        height = heightFn Proxy
+    aspectFrame <- Gtk.aspectFrameNew 0 0 (fromIntegral width / fromIntegral height) False
+    drawingArea <- Gtk.drawingAreaNew
+    {-
+    Gtk.aspectFrameSetChild aspectFrame $ Just drawingArea
+    Gtk.widgetSetHexpand drawingArea True
+    Gtk.widgetSetVexpand drawingArea True
+    -}
+    --{-
+    --Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.widgetSetHexpand drawingArea False
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
-    -- Gtk.drawingAreaSetContentWidth drawingArea width
+    --Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
+    --}
+    let gleis =
+            Gleis
+            { aspectFrame
+            , drawingArea
+            , width
+            , height
+            , tvarScale
+            , tvarAngle
+            , anchorPoints = HashMap.empty
+            }
     gleisScale gleis 1
     --{- gtk4
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
             (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
             Cairo.save
+            {-
             let halfWidth = 0.5 * fromIntegral newWidth
                 halfHeight = 0.5 * fromIntegral newHeight
             Cairo.translate halfWidth halfHeight
             Cairo.rotate angle
             Cairo.scale scale scale
             Cairo.translate (-0.5 * fromIntegral width) (-0.5 * fromIntegral height)
+            -}
             Cairo.setLineWidth 1
             Cairo.newPath
-            draw gleis
+            draw Proxy
             Cairo.stroke
             Cairo.restore
             pure True
     pure gleis
 
 -- TODO: change to simple function Zugtyp -> Double
-class Spurweite z where
-    spurweite :: Gleis z -> Double
+class Spurweite (z :: Zugtyp) where
+    spurweite :: Proxy z -> Double
 
 instance Spurweite 'Märklin where
-    spurweite :: Gleis 'Märklin -> Double
+    spurweite :: Proxy 'Märklin -> Double
     spurweite = const 16.5
 
 instance Spurweite 'Lego where
-    spurweite :: Gleis 'Lego -> Double
+    spurweite :: Proxy 'Lego -> Double
     spurweite = const 38
 
-abstand :: (Spurweite z) => Gleis z -> Double
+abstand :: (Spurweite z) => Proxy z -> Double
 abstand gleis = spurweite gleis / 3
 
-beschränkung :: (Spurweite z) => Gleis z -> Double
+beschränkung :: (Spurweite z) => Proxy z -> Double
 beschränkung gleis = spurweite gleis + 2 * abstand gleis
 
 -- Märklin verwendet mittleren Kurvenradius
 -- http://www.modellbau-wiki.de/wiki/Gleisradius
-radiusBegrenzung :: (Spurweite z) => Double -> Gleis z -> Double
-radiusBegrenzung radius gleis = radius + 0.5 * spurweite gleis + abstand gleis
+radiusBegrenzung :: (Spurweite z) => Double -> Proxy z -> Double
+radiusBegrenzung radius proxy = radius + 0.5 * spurweite proxy + abstand proxy
 
-widthKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
-widthKurve radius winkelBogenmaß gleis
-    | winkelBogenmaß < 0.5 * pi = ceiling $ radiusBegrenzung radius gleis * sin winkelBogenmaß
+widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+widthKurve radius winkelBogenmaß proxy
+    | winkelBogenmaß < 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
     | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
 
-heightKurve :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
-heightKurve radius winkelBogenmaß gleis
+heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightKurve radius winkelBogenmaß proxy
     | winkelBogenmaß < 0.5 * pi =
         ceiling
-        $ radiusBegrenzung radius gleis * (1 - cos winkelBogenmaß)
-        + beschränkung gleis * cos winkelBogenmaß
+        $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
+        + beschränkung proxy * cos winkelBogenmaß
     | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
 
-widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Int32
-widthWeiche länge radius winkelBogenmaß gleis =
-    max (ceiling länge) $ widthKurve radius winkelBogenmaß gleis
+widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
+widthWeiche länge radius winkelBogenmaß proxy =
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
 
-heightWeiche :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
-heightWeiche radius winkelBogenmaß gleis =
-    max (ceiling $ beschränkung gleis) $ heightKurve radius winkelBogenmaß gleis
+heightWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightWeiche radius winkelBogenmaß proxy =
+    max (ceiling $ beschränkung proxy) $ heightKurve radius winkelBogenmaß proxy
 
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
@@ -247,13 +266,13 @@ geradeNew länge =
     gleisNew (const $ ceiling länge) (ceiling . beschränkung) $ zeichneGerade länge
 
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
-zeichneGerade :: (Spurweite z) => Double -> Gleis z -> Cairo.Render ()
-zeichneGerade länge gleis = do
+zeichneGerade :: (Spurweite z) => Double -> Proxy z -> Cairo.Render ()
+zeichneGerade länge proxy = do
     -- Beschränkungen
     Cairo.moveTo 0 0
-    Cairo.lineTo 0 $ beschränkung gleis
+    Cairo.lineTo 0 $ beschränkung proxy
     Cairo.moveTo länge 0
-    Cairo.lineTo länge $ beschränkung gleis
+    Cairo.lineTo länge $ beschränkung proxy
     -- Gleis
     Cairo.moveTo 0 gleisOben
     Cairo.lineTo länge gleisOben
@@ -261,10 +280,10 @@ zeichneGerade länge gleis = do
     Cairo.lineTo länge gleisUnten
     where
         gleisOben :: Double
-        gleisOben = abstand gleis
+        gleisOben = abstand proxy
 
         gleisUnten :: Double
-        gleisUnten = beschränkung gleis - abstand gleis
+        gleisUnten = beschränkung proxy - abstand proxy
 
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
@@ -276,12 +295,12 @@ kurveNew radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
-zeichneKurve :: (Spurweite z) => Double -> Double -> Bool -> Gleis z -> Cairo.Render ()
-zeichneKurve radius winkel anfangsBeschränkung gleis = do
+zeichneKurve :: (Spurweite z) => Double -> Double -> Bool -> Proxy z -> Cairo.Render ()
+zeichneKurve radius winkel anfangsBeschränkung proxy = do
     -- Beschränkungen
     when anfangsBeschränkung $ do
         Cairo.moveTo 0 0
-        Cairo.lineTo 0 $ beschränkung gleis
+        Cairo.lineTo 0 $ beschränkung proxy
     Cairo.moveTo begrenzungX0 begrenzungY0
     Cairo.lineTo begrenzungX1 begrenzungY1
     Cairo.stroke
@@ -297,25 +316,25 @@ zeichneKurve radius winkel anfangsBeschränkung gleis = do
         begrenzungY0 = radiusBegrenzungAußen * (1 - cos winkel)
 
         begrenzungX1 :: Double
-        begrenzungX1 = begrenzungX0 - beschränkung gleis * sin winkel
+        begrenzungX1 = begrenzungX0 - beschränkung proxy * sin winkel
 
         begrenzungY1 :: Double
-        begrenzungY1 = begrenzungY0 + beschränkung gleis * cos winkel
+        begrenzungY1 = begrenzungY0 + beschränkung proxy * cos winkel
 
         bogenZentrumY :: Double
-        bogenZentrumY = abstand gleis + radiusAußen
+        bogenZentrumY = abstand proxy + radiusAußen
 
         anfangsWinkel :: Double
         anfangsWinkel = 3 * pi / 2
 
         radiusInnen :: Double
-        radiusInnen = radius - 0.5 * spurweite gleis
+        radiusInnen = radius - 0.5 * spurweite proxy
 
         radiusAußen :: Double
-        radiusAußen = radius + 0.5 * spurweite gleis
+        radiusAußen = radius + 0.5 * spurweite proxy
 
         radiusBegrenzungAußen :: Double
-        radiusBegrenzungAußen = radiusAußen + abstand gleis
+        radiusBegrenzungAußen = radiusAußen + abstand proxy
 
 weicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
@@ -327,37 +346,37 @@ weicheRechtsNew länge radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
-zeichneWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Cairo.Render ()
-zeichneWeicheRechts länge radius winkel gleis = do
-    zeichneGerade länge gleis
+zeichneWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
+zeichneWeicheRechts länge radius winkel proxy = do
+    zeichneGerade länge proxy
     Cairo.stroke
-    zeichneKurve radius winkel False gleis
+    zeichneKurve radius winkel False proxy
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
     gleisNew (widthWeiche länge radius winkelBogenmaß) (heightWeiche radius winkelBogenmaß)
-    $ \gleis -> do
-        Cairo.translate (halfWidth gleis) (halfHeight gleis)
+    $ \proxy -> do
+        Cairo.translate (halfWidth proxy) (halfHeight proxy)
         Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth gleis) (-halfHeight gleis)
-        zeichneWeicheRechts länge radius winkelBogenmaß gleis
+        Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
+        zeichneWeicheRechts länge radius winkelBogenmaß proxy
     where
-        halfWidth :: Gleis z -> Double
-        halfWidth gleis = 0.5 * fromIntegral (widthWeiche länge radius winkelBogenmaß gleis)
+        halfWidth :: Proxy z -> Double
+        halfWidth proxy = 0.5 * fromIntegral (widthWeiche länge radius winkelBogenmaß proxy)
 
-        halfHeight :: Gleis z -> Double
-        halfHeight gleis = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß gleis)
+        halfHeight :: Proxy z -> Double
+        halfHeight proxy = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß proxy)
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
-widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Int32
-widthKurvenWeiche länge radius winkelBogenmaß gleis =
-    ceiling länge + widthKurve radius winkelBogenmaß gleis
+widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
+widthKurvenWeiche länge radius winkelBogenmaß proxy =
+    ceiling länge + widthKurve radius winkelBogenmaß proxy
 
-heightKurvenWeiche :: (Spurweite z) => Double -> Double -> Gleis z -> Int32
-heightKurvenWeiche radius winkelBogenmaß gleis =
-    max (ceiling $ beschränkung gleis) $ heightKurve radius winkelBogenmaß gleis
+heightKurvenWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightKurvenWeiche radius winkelBogenmaß proxy =
+    max (ceiling $ beschränkung proxy) $ heightKurve radius winkelBogenmaß proxy
 
 kurvenWeicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
@@ -374,9 +393,9 @@ kurvenWeicheRechtsNew länge radius winkel =
 --
 -- Beide Kurven haben den gleichen Radius und Winkel, die äußere Kurve beginnt erst nach /länge/.
 zeichneKurvenWeicheRechts
-    :: (Spurweite z) => Double -> Double -> Double -> Gleis z -> Cairo.Render ()
-zeichneKurvenWeicheRechts länge radius winkel gleis = do
-    zeichneKurve radius winkel True gleis
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
+zeichneKurvenWeicheRechts länge radius winkel proxy = do
+    zeichneKurve radius winkel True proxy
     Cairo.stroke
     -- Gleis
     Cairo.moveTo 0 gleisOben
@@ -385,13 +404,13 @@ zeichneKurvenWeicheRechts länge radius winkel gleis = do
     Cairo.lineTo länge gleisUnten
     Cairo.stroke
     Cairo.translate länge 0
-    zeichneKurve radius winkel False gleis
+    zeichneKurve radius winkel False proxy
     where
         gleisOben :: Double
-        gleisOben = abstand gleis
+        gleisOben = abstand proxy
 
         gleisUnten :: Double
-        gleisUnten = beschränkung gleis - abstand gleis
+        gleisUnten = beschränkung proxy - abstand proxy
 
 kurvenWeicheLinksNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
@@ -399,18 +418,18 @@ kurvenWeicheLinksNew länge radius winkel =
     gleisNew
         (widthKurvenWeiche länge radius winkelBogenmaß)
         (heightKurvenWeiche radius winkelBogenmaß)
-    $ \gleis -> do
-        Cairo.translate (halfWidth gleis) (halfHeight gleis)
+    $ \proxy -> do
+        Cairo.translate (halfWidth proxy) (halfHeight proxy)
         Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth gleis) (-halfHeight gleis)
-        zeichneKurvenWeicheRechts länge radius winkelBogenmaß gleis
+        Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
+        zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
     where
-        halfWidth :: Gleis z -> Double
-        halfWidth gleis =
-            0.5 * fromIntegral (widthKurvenWeiche länge radius winkelBogenmaß gleis)
+        halfWidth :: Proxy z -> Double
+        halfWidth proxy =
+            0.5 * fromIntegral (widthKurvenWeiche länge radius winkelBogenmaß proxy)
 
-        halfHeight :: Gleis z -> Double
-        halfHeight gleis = 0.5 * fromIntegral (heightKurvenWeiche radius winkelBogenmaß gleis)
+        halfHeight :: Proxy z -> Double
+        halfHeight proxy = 0.5 * fromIntegral (heightKurvenWeiche radius winkelBogenmaß proxy)
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
