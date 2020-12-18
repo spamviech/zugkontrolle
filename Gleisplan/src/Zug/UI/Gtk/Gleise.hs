@@ -107,7 +107,7 @@ data Gleis (z :: Zugtyp) =
     , height :: Int32
     , tvarScale :: TVar Double
     , tvarAngle :: TVar Double
-    , anchorPoints :: AnchorPointMap
+    , tvarAnchorPoints :: TVar AnchorPointMap
     }
 
 -- | Speichern aller AnchorPoints
@@ -117,30 +117,20 @@ type AnchorPointMap = HashMap AnchorName AnchorPoint
 newtype AnchorName = AnchorName { anchor :: Text }
     deriving (Show, Eq, Hashable)
 
--- | Position und ausgehender Winkel eines AnchorPoint.
---
--- Ausgehender Winkel bedeutet, dass ein Vektor (cos(anchorAngle), sin(anchorAngle)) eine sinnvolle Gleisfortführung anzeigt.
-data AnchorPoint = AnchorPoint { anchorX :: Double, anchorY :: Double, anchorAngle :: Double }
+-- | Position und ausgehender Vektor eines AnchorPoint.
+data AnchorPoint =
+    AnchorPoint { anchorX :: Double, anchorY :: Double, anchorVX :: Double, anchorVY :: Double }
 
--- | Erstelle eine AnchorPoint an der aktuellen Stelle mit Gleisfortführung in Richtung (/vx/, /vy/) given in user space.
+-- | Erstelle eine AnchorPoint an der aktuellen Stelle mit Gleisfortführung in Richtung (/vx/, /vy/),
+-- angegeben in user space.
 --
 -- The /AnchorPoint/ is stored in device space, i.e. after a call to 'Cairo.userToDevice'.
 -- This is necessary, so arbitrary transformations are still possible.
 makeAnchorPoint :: AnchorName -> Double -> Double -> StateT AnchorPointMap Cairo.Render ()
 makeAnchorPoint anchorName vx vy = do
     (anchorX, anchorY) <- lift $ Cairo.getCurrentPoint >>= uncurry Cairo.userToDevice
-    (deviceVX, deviceVY) <- lift $ Cairo.userToDeviceDistance vx vy
-    -- (1,0) ist ausgehender Einheitsvektor für Winkel 0
-    -- Skalarprodukt zweier Vektoren mit Zwischenwinkel alpha: a.b = |a|*|b|*cos(alpha)
-    let acosAngle =
-            acos $ (1 * deviceVX + 0 * deviceVY) / (deviceVX * deviceVX + deviceVY * deviceVY)
-        anchorAngle =
-            if
-                | deviceVX < 0 && deviceVX >= 0 -> acosAngle + 0.5 * pi
-                | deviceVX < 0 && deviceVY < 0 -> acosAngle + pi
-                | deviceVX >= 0 && deviceVY < 0 -> acosAngle + 1.5 * pi
-                | otherwise -> acosAngle
-    modify' $ HashMap.insert anchorName AnchorPoint { anchorX, anchorY, anchorAngle }
+    (anchorVX, anchorVY) <- lift $ Cairo.userToDeviceDistance vx vy
+    modify' $ HashMap.insert anchorName AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
 
 -- instance MitWidget (Gleis z) where
 --     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
@@ -187,10 +177,11 @@ gleisRotate gleis@Gleis {tvarAngle} angle = do
 gleisNew :: (MonadIO m)
          => (Proxy z -> Int32)
          -> (Proxy z -> Int32)
-         -> (Proxy z -> Cairo.Render ())
+         -> (Proxy z -> StateT AnchorPointMap Cairo.Render ())
          -> m (Gleis z)
 gleisNew widthFn heightFn draw = do
-    (tvarScale, tvarAngle) <- liftIO $ (,) <$> newTVarIO 1 <*> newTVarIO 0
+    (tvarScale, tvarAngle, tvarAnchorPoints)
+        <- liftIO $ (,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty
     let width = widthFn Proxy
         height = heightFn Proxy
     drawingArea <- Gtk.drawingAreaNew
@@ -198,9 +189,7 @@ gleisNew widthFn heightFn draw = do
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis =
-            Gleis
-            { drawingArea, width, height, tvarScale, tvarAngle, anchorPoints = HashMap.empty }
+    let gleis = Gleis { drawingArea, width, height, tvarScale, tvarAngle, tvarAnchorPoints }
     gleisScale gleis 1
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
@@ -214,13 +203,30 @@ gleisNew widthFn heightFn draw = do
             Cairo.translate (-0.5 * fromIntegral width) (-0.5 * fromIntegral height)
             Cairo.setLineWidth 1
             Cairo.newPath
-            draw Proxy
+            deviceAnchorPoints <- flip execStateT HashMap.empty $ draw Proxy
             Cairo.stroke
             Cairo.restore
+            -- container coordinates
+            Cairo.save
+            Cairo.setSourceRGB 0 0 1
+            Cairo.setLineWidth 1
+            userAnchorPoints <- flip HashMap.traverseWithKey deviceAnchorPoints
+                $ \_name AnchorPoint
+                {anchorX = deviceX, anchorY = deviceY, anchorVX = deviceVX, anchorVY = deviceVY}
+                -> do
+                    (anchorX, anchorY) <- Cairo.deviceToUser deviceX deviceY
+                    (anchorVX, anchorVY) <- Cairo.deviceToUserDistance deviceVX deviceVY
+                    -- FIXME debug output
+                    let len = anchorVX * anchorVX + anchorVY * anchorVY
+                    Cairo.moveTo anchorX anchorY
+                    Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
+                    Cairo.stroke
+                    pure AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
+            Cairo.restore
+            liftIO $ atomically $ writeTVar tvarAnchorPoints userAnchorPoints
             pure True
     pure gleis
 
--- TODO: change to simple function Zugtyp -> Double
 class Spurweite (z :: Zugtyp) where
     spurweite :: Proxy z -> Double
 
@@ -270,18 +276,25 @@ geradeNew länge =
     gleisNew (const $ ceiling länge) (ceiling . beschränkung) $ zeichneGerade länge
 
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
-zeichneGerade :: (Spurweite z) => Double -> Proxy z -> Cairo.Render ()
+zeichneGerade :: (Spurweite z) => Double -> Proxy z -> StateT AnchorPointMap Cairo.Render ()
 zeichneGerade länge proxy = do
-    -- Beschränkungen
-    Cairo.moveTo 0 0
-    Cairo.lineTo 0 $ beschränkung proxy
-    Cairo.moveTo länge 0
-    Cairo.lineTo länge $ beschränkung proxy
-    -- Gleis
-    Cairo.moveTo 0 gleisOben
-    Cairo.lineTo länge gleisOben
-    Cairo.moveTo 0 gleisUnten
-    Cairo.lineTo länge gleisUnten
+    lift $ do
+        -- Beschränkungen
+        Cairo.moveTo 0 0
+        Cairo.lineTo 0 $ 0.5 * beschränkung proxy
+    makeAnchorPoint (AnchorName "Gerade0") (-1) 0
+    lift $ do
+        Cairo.lineTo 0 $ beschränkung proxy
+        Cairo.moveTo länge 0
+        Cairo.lineTo länge $ 0.5 * beschränkung proxy
+    makeAnchorPoint (AnchorName "Gerade1") 1 0
+    lift $ Cairo.lineTo länge $ beschränkung proxy
+    lift $ do
+        -- Gleis
+        Cairo.moveTo 0 gleisOben
+        Cairo.lineTo länge gleisOben
+        Cairo.moveTo 0 gleisUnten
+        Cairo.lineTo länge gleisUnten
     where
         gleisOben :: Double
         gleisOben = abstand proxy
@@ -299,8 +312,13 @@ kurveNew radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
-zeichneKurve :: (Spurweite z) => Double -> Double -> Bool -> Proxy z -> Cairo.Render ()
-zeichneKurve radius winkel anfangsBeschränkung proxy = do
+zeichneKurve :: (Spurweite z)
+             => Double
+             -> Double
+             -> Bool
+             -> Proxy z
+             -> StateT AnchorPointMap Cairo.Render ()
+zeichneKurve radius winkel anfangsBeschränkung proxy = lift $ do
     -- Beschränkungen
     when anfangsBeschränkung $ do
         Cairo.moveTo 0 0
@@ -350,19 +368,25 @@ weicheRechtsNew länge radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
-zeichneWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
+zeichneWeicheRechts :: (Spurweite z)
+                    => Double
+                    -> Double
+                    -> Double
+                    -> Proxy z
+                    -> StateT AnchorPointMap Cairo.Render ()
 zeichneWeicheRechts länge radius winkel proxy = do
     zeichneGerade länge proxy
-    Cairo.stroke
+    lift Cairo.stroke
     zeichneKurve radius winkel False proxy
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
     gleisNew (widthWeiche länge radius winkelBogenmaß) (heightWeiche radius winkelBogenmaß)
     $ \proxy -> do
-        Cairo.translate (halfWidth proxy) (halfHeight proxy)
-        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
+        lift $ do
+            Cairo.translate (halfWidth proxy) (halfHeight proxy)
+            Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+            Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
         zeichneWeicheRechts länge radius winkelBogenmaß proxy
     where
         halfWidth :: Proxy z -> Double
@@ -397,17 +421,23 @@ kurvenWeicheRechtsNew länge radius winkel =
 --
 -- Beide Kurven haben den gleichen Radius und Winkel, die äußere Kurve beginnt erst nach /länge/.
 zeichneKurvenWeicheRechts
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
+    :: (Spurweite z)
+    => Double
+    -> Double
+    -> Double
+    -> Proxy z
+    -> StateT AnchorPointMap Cairo.Render ()
 zeichneKurvenWeicheRechts länge radius winkel proxy = do
     zeichneKurve radius winkel True proxy
-    Cairo.stroke
-    -- Gleis
-    Cairo.moveTo 0 gleisOben
-    Cairo.lineTo länge gleisOben
-    Cairo.moveTo 0 gleisUnten
-    Cairo.lineTo länge gleisUnten
-    Cairo.stroke
-    Cairo.translate länge 0
+    lift $ do
+        Cairo.stroke
+        -- Gleis
+        Cairo.moveTo 0 gleisOben
+        Cairo.lineTo länge gleisOben
+        Cairo.moveTo 0 gleisUnten
+        Cairo.lineTo länge gleisUnten
+        Cairo.stroke
+        Cairo.translate länge 0
     zeichneKurve radius winkel False proxy
     where
         gleisOben :: Double
@@ -423,9 +453,10 @@ kurvenWeicheLinksNew länge radius winkel =
         (widthKurvenWeiche länge radius winkelBogenmaß)
         (heightKurvenWeiche radius winkelBogenmaß)
     $ \proxy -> do
-        Cairo.translate (halfWidth proxy) (halfHeight proxy)
-        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
+        lift $ do
+            Cairo.translate (halfWidth proxy) (halfHeight proxy)
+            Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+            Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
         zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
     where
         halfWidth :: Proxy z -> Double
