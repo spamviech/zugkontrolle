@@ -8,6 +8,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE MultiWayIf #-}
 
 {-
 ideas for rewrite with gtk4
@@ -21,13 +22,16 @@ Gtk.Application has to be used instead of Gtk.main
     startup/activate-signals are in gi-gio
     https://hackage.haskell.org/package/gi-gio-2.0.27/docs/GI-Gio-Objects-Application.html#v:applicationSetResourceBasePath
 AspectFrame doesn't draw a frame around the child, so might be useful here
+    doesn't pass scaling information to DrawingArea
+    usefulness questionable anyway due to rotation requirement
 Assistant should work again
 -}
 module Zug.UI.Gtk.Gleise
   ( -- * Gleis Widgets
     Gleis()
   , GleisDefinition(..)
-  , Anchor(..)
+  , AnchorName(..)
+  , AnchorPoint(..)
   , WeichenArt(..)
   , WeichenRichtungAllgemein(..)
   , WeichenRichtung(..)
@@ -74,7 +78,7 @@ module Zug.UI.Gtk.Gleise
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
 import Control.Monad (foldM, when, void)
-import Control.Monad.State (StateT(), modify')
+import Control.Monad.State (StateT(), modify', execStateT)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
@@ -98,26 +102,45 @@ data Zugtyp
 -- Die Größe wird nur über 'gleisScale', 'gleisSetWidth' und 'gleisSetHeight' verändert.
 data Gleis (z :: Zugtyp) =
     Gleis
-    { aspectFrame :: Gtk.AspectFrame
-    , drawingArea :: Gtk.DrawingArea
+    { drawingArea :: Gtk.DrawingArea
     , width :: Int32
     , height :: Int32
     , tvarScale :: TVar Double
     , tvarAngle :: TVar Double
-      -- TODO might need angles?
-      -- provide better type for distinguishing doubles
-    , anchorPoints :: HashMap Anchor (Double, Double)
+    , anchorPoints :: AnchorPointMap
     }
 
+-- | Speichern aller AnchorPoints
+type AnchorPointMap = HashMap AnchorName AnchorPoint
+
 -- | Namen um ausgezeichnete Punkte eines 'Gleis'es anzusprechen.
-newtype Anchor = Anchor { anchor :: Text }
+newtype AnchorName = AnchorName { anchor :: Text }
     deriving (Show, Eq, Hashable)
 
--- | Erstelle eine AnchorPoint an der aktuellen Stelle
-makeAnchorPoint :: Anchor -> StateT (HashMap Anchor (Double, Double)) Cairo.Render ()
-makeAnchorPoint anchor = do
-    point <- lift Cairo.getCurrentPoint
-    modify' $ HashMap.insert anchor point
+-- | Position und ausgehender Winkel eines AnchorPoint.
+--
+-- Ausgehender Winkel bedeutet, dass ein Vektor (cos(anchorAngle), sin(anchorAngle)) eine sinnvolle Gleisfortführung anzeigt.
+data AnchorPoint = AnchorPoint { anchorX :: Double, anchorY :: Double, anchorAngle :: Double }
+
+-- | Erstelle eine AnchorPoint an der aktuellen Stelle mit Gleisfortführung in Richtung (/vx/, /vy/) given in user space.
+--
+-- The /AnchorPoint/ is stored in device space, i.e. after a call to 'Cairo.userToDevice'.
+-- This is necessary, so arbitrary transformations are still possible.
+makeAnchorPoint :: AnchorName -> Double -> Double -> StateT AnchorPointMap Cairo.Render ()
+makeAnchorPoint anchorName vx vy = do
+    (anchorX, anchorY) <- lift $ Cairo.getCurrentPoint >>= uncurry Cairo.userToDevice
+    (deviceVX, deviceVY) <- lift $ Cairo.userToDeviceDistance vx vy
+    -- (1,0) ist ausgehender Einheitsvektor für Winkel 0
+    -- Skalarprodukt zweier Vektoren mit Zwischenwinkel alpha: a.b = |a|*|b|*cos(alpha)
+    let acosAngle =
+            acos $ (1 * deviceVX + 0 * deviceVY) / (deviceVX * deviceVX + deviceVY * deviceVY)
+        anchorAngle =
+            if
+                | deviceVX < 0 && deviceVX >= 0 -> acosAngle + 0.5 * pi
+                | deviceVX < 0 && deviceVY < 0 -> acosAngle + pi
+                | deviceVX >= 0 && deviceVY < 0 -> acosAngle + 1.5 * pi
+                | otherwise -> acosAngle
+    modify' $ HashMap.insert anchorName AnchorPoint { anchorX, anchorY, anchorAngle }
 
 -- instance MitWidget (Gleis z) where
 --     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
@@ -129,7 +152,8 @@ gleisAdjustSizeRequest Gleis {drawingArea, width, height, tvarScale, tvarAngle} 
         newHeight = scale * fromIntegral height
         adjustedWidth = ceiling $ abs (newWidth * cos angle) + abs (newHeight * sin angle)
         adjustedHeight = ceiling $ abs (newHeight * cos angle) + abs (newWidth * sin angle)
-    Gtk.widgetSetSizeRequest drawingArea adjustedWidth adjustedHeight
+    Gtk.drawingAreaSetContentHeight drawingArea adjustedHeight
+    Gtk.drawingAreaSetContentWidth drawingArea adjustedWidth
 
 -- | Skaliere das 'Gleis' mit dem angegebenen Faktor.
 gleisScale :: (MonadIO m) => Gleis z -> Double -> m ()
@@ -169,45 +193,25 @@ gleisNew widthFn heightFn draw = do
     (tvarScale, tvarAngle) <- liftIO $ (,) <$> newTVarIO 1 <*> newTVarIO 0
     let width = widthFn Proxy
         height = heightFn Proxy
-    aspectFrame <- Gtk.aspectFrameNew 0 0 (fromIntegral width / fromIntegral height) False
     drawingArea <- Gtk.drawingAreaNew
-    {-
-    Gtk.aspectFrameSetChild aspectFrame $ Just drawingArea
-    Gtk.widgetSetHexpand drawingArea True
-    Gtk.widgetSetVexpand drawingArea True
-    -}
-    --{-
-    --Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.widgetSetHexpand drawingArea False
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
-    --Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    --}
     let gleis =
             Gleis
-            { aspectFrame
-            , drawingArea
-            , width
-            , height
-            , tvarScale
-            , tvarAngle
-            , anchorPoints = HashMap.empty
-            }
+            { drawingArea, width, height, tvarScale, tvarAngle, anchorPoints = HashMap.empty }
     gleisScale gleis 1
-    --{- gtk4
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
             (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
             Cairo.save
-            {-
             let halfWidth = 0.5 * fromIntegral newWidth
                 halfHeight = 0.5 * fromIntegral newHeight
             Cairo.translate halfWidth halfHeight
             Cairo.rotate angle
             Cairo.scale scale scale
             Cairo.translate (-0.5 * fromIntegral width) (-0.5 * fromIntegral height)
-            -}
             Cairo.setLineWidth 1
             Cairo.newPath
             draw Proxy
