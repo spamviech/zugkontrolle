@@ -1,13 +1,17 @@
 {
     "cSpell.words": [
+        "Bifunctor",
         "GADTs",
         "Halign",
         "Hexpand",
+        "RWST",
         "Valign",
         "Vexpand",
         "Widentities",
         "doesn",
+        "fmap",
         "hashable",
+        "succ",
         "tvar",
         "uncurry"
     ]
