@@ -137,7 +137,6 @@ makeAnchorPoint vx vy = do
     (anchorVX, anchorVY) <- lift $ Cairo.userToDeviceDistance vx vy
     anchorName <- fmap AnchorName
         $ (<>) <$> ask <*> (Text.pack . show <$> state (\n -> (n, succ n)))
-    liftIO $ putStrLn $ Text.unpack $ anchor anchorName
     tell $ HashMap.singleton anchorName AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
 
 -- instance MitWidget (Gleis z) where
