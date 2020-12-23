@@ -12,6 +12,7 @@
         "fmap",
         "hashable",
         "succ",
+        "tmvar",
         "tvar",
         "uncurry"
     ]

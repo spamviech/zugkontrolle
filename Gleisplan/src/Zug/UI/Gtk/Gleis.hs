@@ -26,7 +26,7 @@ AspectFrame doesn't draw a frame around the child, so might be useful here
     usefulness questionable anyway due to rotation requirement
 Assistant should work again
 -}
-module Zug.UI.Gtk.Gleise
+module Zug.UI.Gtk.Gleis
   ( -- * Gleis Widgets
     Gleis()
   , GleisDefinition(..)
@@ -81,6 +81,7 @@ import Control.Monad (foldM, when, void)
 import Control.Monad.RWS.Strict
        (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Data.Bool (bool)
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
@@ -111,6 +112,7 @@ data Gleis (z :: Zugtyp) =
     , tvarScale :: TVar Double
     , tvarAngle :: TVar Double
     , tvarAnchorPoints :: TVar AnchorPointMap
+    , tvarConnectedAnchors :: TVar [AnchorName]
     }
 
 -- | Speichern aller AnchorPoints
@@ -191,8 +193,8 @@ gleisNew :: (MonadIO m)
          -> (Proxy z -> AnchorPointT Cairo.Render ())
          -> m (Gleis z)
 gleisNew widthFn heightFn anchorBaseName draw = do
-    (tvarScale, tvarAngle, tvarAnchorPoints)
-        <- liftIO $ (,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty
+    (tvarScale, tvarAngle, tvarAnchorPoints, tvarConnectedAnchors) <- liftIO
+        $ (,,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty <*> newTVarIO []
     let width = widthFn Proxy
         height = heightFn Proxy
     drawingArea <- Gtk.drawingAreaNew
@@ -200,7 +202,16 @@ gleisNew widthFn heightFn anchorBaseName draw = do
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis = Gleis { drawingArea, width, height, tvarScale, tvarAngle, tvarAnchorPoints }
+    let gleis =
+            Gleis
+            { drawingArea
+            , width
+            , height
+            , tvarScale
+            , tvarAngle
+            , tvarAnchorPoints
+            , tvarConnectedAnchors
+            }
     gleisScale gleis 1
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
@@ -219,17 +230,19 @@ gleisNew widthFn heightFn anchorBaseName draw = do
             Cairo.restore
             -- container coordinates
             Cairo.save
-            Cairo.setSourceRGB 0 0 1
             Cairo.setLineWidth 1
             userAnchorPoints <- flip HashMap.traverseWithKey deviceAnchorPoints
-                $ \_name AnchorPoint
+                $ \anchorName AnchorPoint
                 {anchorX = deviceX, anchorY = deviceY, anchorVX = deviceVX, anchorVY = deviceVY}
                 -> do
                     (anchorX, anchorY) <- Cairo.deviceToUser deviceX deviceY
                     (anchorVX, anchorVY) <- Cairo.deviceToUserDistance deviceVX deviceVY
-                    -- FIXME debug output
+                    -- show anchors
                     let len = anchorVX * anchorVX + anchorVY * anchorVY
                     Cairo.moveTo anchorX anchorY
+                    (r, g, b) <- bool (0, 0, 1) (0, 1, 0) . elem anchorName
+                        <$> liftIO (readTVarIO tvarConnectedAnchors)
+                    Cairo.setSourceRGB r g b
                     Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
                     Cairo.stroke
                     pure AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
@@ -655,7 +668,7 @@ gleisAnzeigeNew = do
     (width, height) <- foldM
         (putWithHeight fixed)
         (0, padding)
-        [ ("5106:  ", märklinGerade5106New)
+        [ ("5106: ", märklinGerade5106New)
         , ("5107: ", märklinGerade5107New)
         , ("5129: ", märklinGerade5129New)
         , ("5108: ", märklinGerade5108New)

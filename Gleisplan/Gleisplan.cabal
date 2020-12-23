@@ -19,7 +19,7 @@ extra-source-files:
 
 library
   exposed-modules:
-      Zug.UI.Gtk.Gleise
+      Zug.UI.Gtk.Gleis
   other-modules:
       Paths_Gleisplan
   hs-source-dirs:
