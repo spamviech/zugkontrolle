@@ -116,6 +116,9 @@ data Gleis (z :: Zugtyp) =
 -- | Speichern aller AnchorPoints
 type AnchorPointMap = HashMap AnchorName AnchorPoint
 
+-- | Monad Transformer zum definieren der AnchorPoints
+type AnchorPointT m a = RWST Text AnchorPointMap Natural m a
+
 -- | Namen um ausgezeichnete Punkte eines 'Gleis'es anzusprechen.
 newtype AnchorName = AnchorName { anchor :: Text }
     deriving (Show, Eq, Hashable)
@@ -131,7 +134,7 @@ data AnchorPoint =
 -- This is necessary, so arbitrary transformations are still possible.
 --
 -- Der /anchorName/ wird aus einem konstanten Teil und einer Zahl zusammengesetzt.
-makeAnchorPoint :: Double -> Double -> RWST Text AnchorPointMap Natural Cairo.Render ()
+makeAnchorPoint :: Double -> Double -> AnchorPointT Cairo.Render ()
 makeAnchorPoint vx vy = do
     (anchorX, anchorY) <- lift $ Cairo.getCurrentPoint >>= uncurry Cairo.userToDevice
     (anchorVX, anchorVY) <- lift $ Cairo.userToDeviceDistance vx vy
@@ -185,7 +188,7 @@ gleisNew :: (MonadIO m)
          => (Proxy z -> Int32)
          -> (Proxy z -> Int32)
          -> Text
-         -> (Proxy z -> RWST Text AnchorPointMap Natural Cairo.Render ())
+         -> (Proxy z -> AnchorPointT Cairo.Render ())
          -> m (Gleis z)
 gleisNew widthFn heightFn anchorBaseName draw = do
     (tvarScale, tvarAngle, tvarAnchorPoints)
@@ -284,8 +287,7 @@ geradeNew länge =
     gleisNew (const $ ceiling länge) (ceiling . beschränkung) "Gerade" $ zeichneGerade länge
 
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
-zeichneGerade
-    :: (Spurweite z) => Double -> Proxy z -> RWST Text AnchorPointMap Natural Cairo.Render ()
+zeichneGerade :: (Spurweite z) => Double -> Proxy z -> AnchorPointT Cairo.Render ()
 zeichneGerade länge proxy = do
     lift $ do
         -- Beschränkungen
@@ -321,12 +323,8 @@ kurveNew radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
-zeichneKurve :: (Spurweite z)
-             => Double
-             -> Double
-             -> Bool
-             -> Proxy z
-             -> RWST Text AnchorPointMap Natural Cairo.Render ()
+zeichneKurve
+    :: (Spurweite z) => Double -> Double -> Bool -> Proxy z -> AnchorPointT Cairo.Render ()
 zeichneKurve radius winkel anfangsBeschränkung proxy = do
     -- Beschränkungen
     when anfangsBeschränkung $ do
@@ -394,12 +392,8 @@ weicheRechtsNew länge radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 -- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
-zeichneWeicheRechts :: (Spurweite z)
-                    => Double
-                    -> Double
-                    -> Double
-                    -> Proxy z
-                    -> RWST Text AnchorPointMap Natural Cairo.Render ()
+zeichneWeicheRechts
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointT Cairo.Render ()
 zeichneWeicheRechts länge radius winkel proxy = do
     zeichneGerade länge proxy
     lift Cairo.stroke
@@ -451,12 +445,7 @@ kurvenWeicheRechtsNew länge radius winkel =
 --
 -- Beide Kurven haben den gleichen Radius und Winkel, die äußere Kurve beginnt erst nach /länge/.
 zeichneKurvenWeicheRechts
-    :: (Spurweite z)
-    => Double
-    -> Double
-    -> Double
-    -> Proxy z
-    -> RWST Text AnchorPointMap Natural Cairo.Render ()
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointT Cairo.Render ()
 zeichneKurvenWeicheRechts länge radius winkel proxy = do
     zeichneKurve radius winkel True proxy
     lift $ do
