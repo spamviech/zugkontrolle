@@ -20,6 +20,9 @@ extra-source-files:
 library
   exposed-modules:
       Zug.UI.Gtk.Gleis
+      Zug.UI.Gtk.Gleisanzeige
+      Zug.UI.Gtk.Lego
+      Zug.UI.Gtk.Maerklin
   other-modules:
       Paths_Gleisplan
   hs-source-dirs:

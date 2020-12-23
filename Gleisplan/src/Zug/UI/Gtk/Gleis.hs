@@ -29,55 +29,28 @@ Assistant should work again
 module Zug.UI.Gtk.Gleis
   ( -- * Gleis Widgets
     Gleis()
+  , Zugtyp(..)
+  , MitWidget(..)
+    -- ** Definition
   , GleisDefinition(..)
-  , AnchorName(..)
-  , AnchorPoint(..)
   , WeichenArt(..)
   , WeichenRichtungAllgemein(..)
+  , alsDreiweg
   , WeichenRichtung(..)
+    -- ** Anker-Punkte
+  , AnchorName(..)
+  , AnchorPoint(..)
+    -- * Konstruktor
+  , gleisNew
     -- ** Anpassen der Größe
   , gleisScale
   , gleisSetWidth
   , gleisSetHeight
   , gleisRotate
-    -- * Konstruktoren
-  , geradeNew
-  , kurveNew
-  , gleisAnzeigeNew
-    -- ** Märklin H0 (M-Gleise)
-    -- *** Gerade
-  , märklinGerade5106New
-  , märklinGerade5107New
-  , märklinGerade5129New
-  , märklinGerade5108New
-  , märklinGerade5109New
-  , märklinGerade5110New
-  , märklinGerade5210New
-  , märklinGerade5208New
-    -- *** Kurve
-  , märklinKurve5120New
-  , märklinKurve5100New
-  , märklinKurve5101New
-  , märklinKurve5102New
-  , märklinKurve5200New
-  , märklinKurve5206New
-  , märklinKurve5201New
-  , märklinKurve5205New
-    -- *** Weiche
-  , märklinWeicheRechts5117New
-  , märklinWeicheLinks5117New
-  , märklinWeicheRechts5137New
-  , märklinWeicheLinks5137New
-  , märklinWeicheRechts5202New
-  , märklinWeicheLinks5202New
-  , märklinKurvenWeicheRechts5140New
-  , märklinKurvenWeicheLinks5140New
-    -- ** Lego (9V Gleise)
-  , legoGeradeNew
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
-import Control.Monad (foldM, when, void)
+import Control.Monad (when, void)
 import Control.Monad.RWS.Strict
        (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
@@ -98,6 +71,9 @@ import Numeric.Natural (Natural)
 -- import Zug.Enums (Zugtyp(..))
 -- import Zug.UI.Gtk.Hilfsfunktionen (fixedPutWidgetNew)
 -- import Zug.UI.Gtk.Klassen (MitWidget(..))
+class MitWidget w where
+    erhalteWidget :: (MonadIO m) => w -> m Gtk.Widget
+
 data Zugtyp
     = Märklin
     | Lego
@@ -114,6 +90,10 @@ data Gleis (z :: Zugtyp) =
     , tvarAnchorPoints :: TVar AnchorPointMap
     , tvarConnectedAnchors :: TVar [AnchorName]
     }
+
+instance MitWidget (Gleis z) where
+    erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
+    erhalteWidget = Gtk.toWidget . drawingArea
 
 -- | Speichern aller AnchorPoints
 type AnchorPointMap = HashMap AnchorName AnchorPoint
@@ -144,9 +124,6 @@ makeAnchorPoint vx vy = do
         $ (<>) <$> ask <*> (Text.pack . show <$> state (\n -> (n, succ n)))
     tell $ HashMap.singleton anchorName AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
 
--- instance MitWidget (Gleis z) where
---     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
---     erhalteWidget = Gtk.toWidget . drawingArea
 gleisAdjustSizeRequest :: (MonadIO m) => Gleis z -> m ()
 gleisAdjustSizeRequest Gleis {drawingArea, width, height, tvarScale, tvarAngle} = do
     (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
@@ -186,13 +163,13 @@ gleisRotate gleis@Gleis {tvarAngle} angle = do
 --
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
 -- After the action 'Cairo.stroke' is executed.
-gleisNew :: (MonadIO m)
-         => (Proxy z -> Int32)
-         -> (Proxy z -> Int32)
-         -> Text
-         -> (Proxy z -> AnchorPointT Cairo.Render ())
-         -> m (Gleis z)
-gleisNew widthFn heightFn anchorBaseName draw = do
+createGleisWidget :: (MonadIO m)
+                  => (Proxy z -> Int32)
+                  -> (Proxy z -> Int32)
+                  -> Text
+                  -> (Proxy z -> AnchorPointT Cairo.Render ())
+                  -> m (Gleis z)
+createGleisWidget widthFn heightFn anchorBaseName draw = do
     (tvarScale, tvarAngle, tvarAnchorPoints, tvarConnectedAnchors) <- liftIO
         $ (,,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty <*> newTVarIO []
     let width = widthFn Proxy
@@ -297,7 +274,8 @@ heightWeiche radius winkelBogenmaß proxy =
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
 geradeNew länge =
-    gleisNew (const $ ceiling länge) (ceiling . beschränkung) "Gerade" $ zeichneGerade länge
+    createGleisWidget (const $ ceiling länge) (ceiling . beschränkung) "Gerade"
+    $ zeichneGerade länge
 
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
 zeichneGerade :: (Spurweite z) => Double -> Proxy z -> AnchorPointT Cairo.Render ()
@@ -329,7 +307,10 @@ zeichneGerade länge proxy = do
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
 kurveNew radius winkel =
-    gleisNew (widthKurve radius winkelBogenmaß) (heightKurve radius winkelBogenmaß) "Kurve"
+    createGleisWidget
+        (widthKurve radius winkelBogenmaß)
+        (heightKurve radius winkelBogenmaß)
+        "Kurve"
     $ zeichneKurve radius winkelBogenmaß True
     where
         winkelBogenmaß :: Double
@@ -395,7 +376,7 @@ zeichneKurve radius winkel anfangsBeschränkung proxy = do
 weicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheRechtsNew länge radius winkel =
-    gleisNew
+    createGleisWidget
         (widthWeiche länge radius winkelBogenmaß)
         (heightWeiche radius winkelBogenmaß)
         "WeicheRechts"
@@ -414,7 +395,7 @@ zeichneWeicheRechts länge radius winkel proxy = do
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
-    gleisNew
+    createGleisWidget
         (widthWeiche länge radius winkelBogenmaß)
         (heightWeiche radius winkelBogenmaß)
         "WeicheLinks"
@@ -445,7 +426,7 @@ heightKurvenWeiche radius winkelBogenmaß proxy =
 kurvenWeicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 kurvenWeicheRechtsNew länge radius winkel =
-    gleisNew
+    createGleisWidget
         (widthKurvenWeiche länge radius winkelBogenmaß)
         (heightKurvenWeiche radius winkelBogenmaß)
         "KurvenWeicheRechts"
@@ -481,7 +462,7 @@ zeichneKurvenWeicheRechts länge radius winkel proxy = do
 kurvenWeicheLinksNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 kurvenWeicheLinksNew länge radius winkel =
-    gleisNew
+    createGleisWidget
         (widthKurvenWeiche länge radius winkelBogenmaß)
         (heightKurvenWeiche radius winkelBogenmaß)
         "KurvenWeicheLinks"
@@ -502,6 +483,23 @@ kurvenWeicheLinksNew länge radius winkel =
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
+-- | Erstelle ein neues 'Gleis'.
+gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
+gleisNew Gerade {länge} = geradeNew länge
+gleisNew Kurve {radius, winkel} = kurveNew radius winkel
+gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Links}} =
+    weicheLinksNew länge radius winkel
+gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}} =
+    weicheRechtsNew länge radius winkel
+gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}} =
+    error $ "Dreiwegeweiche: " ++ show länge ++ ", " ++ show radius ++ ", " ++ show winkel  --TODO
+gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}} =
+    kurvenWeicheLinksNew länge radius winkel
+gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}} =
+    kurvenWeicheRechtsNew länge radius winkel
+gleisNew Kreuzung {länge, radius, winkel} =
+    error $ "Kreuzung: " ++ show länge ++ ", " ++ show radius ++ ", " ++ show winkel --TODO
+
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
 --
 -- Alle Längenangaben sind in mm (= Pixel mit scale 1).
@@ -513,230 +511,19 @@ data GleisDefinition (z :: Zugtyp)
     | Kreuzung { länge :: Double, radius :: Double, winkel :: Double }
 
 data WeichenArt
-    = GeradeWeiche
-    | GebogeneWeiche
+    = WeicheZweiweg
+    | WeicheDreiweg
 
 data WeichenRichtungAllgemein (a :: WeichenArt) where
     Links :: WeichenRichtungAllgemein a
     Rechts :: WeichenRichtungAllgemein a
-    Dreiwege :: WeichenRichtungAllgemein 'GeradeWeiche
+    Dreiwege :: WeichenRichtungAllgemein 'WeicheDreiweg
+
+alsDreiweg :: WeichenRichtungAllgemein a -> WeichenRichtungAllgemein 'WeicheDreiweg
+alsDreiweg Links = Links
+alsDreiweg Rechts = Rechts
+alsDreiweg Dreiwege = Dreiwege
 
 data WeichenRichtung
-    = Normal { geradeRichtung :: WeichenRichtungAllgemein 'GeradeWeiche }
-    | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'GebogeneWeiche }
-
-{-
-H0 Spurweite: 16.5mm
-Gerade
-    5106: L180mm
-    5107: L90mm
-    5129: L70mm
-    5108: L45mm
-    5109: L33.5mm
-    5110: L22.5mm
-    5210: L16mm
-    5208: L8mm
--}
-märklinGerade5106New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5106New = geradeNew 180
-
-märklinGerade5107New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5107New = geradeNew 90
-
-märklinGerade5129New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5129New = geradeNew 70
-
-märklinGerade5108New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5108New = geradeNew 45
-
-märklinGerade5109New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5109New = geradeNew 33.5
-
-märklinGerade5110New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5110New = geradeNew 22.5
-
-märklinGerade5210New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5210New = geradeNew 16
-
-märklinGerade5208New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinGerade5208New = geradeNew 8
-
-{-
-Kurve
-    5120: 45°, R286mm
-    5100: 30°, R360mm
-    5101: 15°, R360mm
-    5102: 7.5°, R360mm
-    5200: 30°, R437.4mm
-    5206: 24.28°, R437.4mm
-    5201: 15°, R437.4mm
-    5205: 5.72°, R437.4mm
--}
-märklinRIndustrie :: Double
-märklinRIndustrie = 286
-
-märklinR1 :: Double
-märklinR1 = 360
-
-märklinR2 :: Double
-märklinR2 = 437.4
-
-märklinKurve5120New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5120New = kurveNew märklinRIndustrie 45
-
-märklinKurve5100New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5100New = kurveNew märklinR1 30
-
-märklinKurve5101New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5101New = kurveNew märklinR1 15
-
-märklinKurve5102New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5102New = kurveNew märklinR1 7.5
-
-märklinKurve5200New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5200New = kurveNew märklinR2 30
-
-märklinKurve5206New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5206New = kurveNew märklinR2 24.28
-
-märklinKurve5201New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5201New = kurveNew märklinR2 15
-
-märklinKurve5205New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurve5205New = kurveNew märklinR2 5.72
-
-{-
-Weiche
-    5117 L/R: L180mm, 30°, R437.4mm
-    5137 L/R: L180mm, 22.5°, R437.4mm
-    5202 L/R: L180mm, 24.28°, R437.4mm
-    5214 (3-Weg): L180mm, 24,28°, R437.4mm
--}
--- TODO Kurvenradien bei Weichen?
-märklinWeicheRechts5117New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheRechts5117New = weicheRechtsNew 180 märklinR1 30
-
-märklinWeicheLinks5117New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheLinks5117New = weicheLinksNew 180 märklinR1 30
-
-märklinWeicheRechts5137New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheRechts5137New = weicheRechtsNew 180 märklinR1 22.5
-
-märklinWeicheLinks5137New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheLinks5137New = weicheLinksNew 180 märklinR1 22.5
-
-märklinWeicheRechts5202New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheRechts5202New = weicheRechtsNew 180 märklinR2 24.28
-
-märklinWeicheLinks5202New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinWeicheLinks5202New = weicheLinksNew 180 märklinR2 24.28
-
-märklinDreiwegWeiche5214New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinDreiwegWeiche5214New = error "Dreiwege-Weiche 5214" --TODO
-
-{-
-Kurven-Weiche
-    5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
--}
-märklinKurvenWeicheRechts5140New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurvenWeicheRechts5140New = kurvenWeicheRechtsNew 77.4 märklinR1 30
-
-märklinKurvenWeicheLinks5140New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurvenWeicheLinks5140New = kurvenWeicheLinksNew 77.4 märklinR1 30
-
-{-
-Kreuzung
-    5128: L193mm, 30°
-    5207: L180mm, 24.28°, R437.4mm
--}
-märklinKreuzung5128New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKreuzung5128New = error "Kreuzung 5128" --TODO
-
-märklinKreuzung5207New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKreuzung5207New = error "Kreuzung 5207" --TODO
-
-{-
-Prellbock:
-    7190: 70mm
-Kupplungsgleis:
-    5112 U: 90mm
--}
--- Beispiel-Anzeige
-gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
-gleisAnzeigeNew = do
-    fixed <- Gtk.fixedNew
-    (width, height) <- foldM
-        (putWithHeight fixed)
-        (0, padding)
-        [ ("5106: ", märklinGerade5106New)
-        , ("5107: ", märklinGerade5107New)
-        , ("5129: ", märklinGerade5129New)
-        , ("5108: ", märklinGerade5108New)
-        , ("5109: ", märklinGerade5109New)
-        , ("5110: ", märklinGerade5110New)
-        , ("5210: ", märklinGerade5210New)
-        , ("5208: ", märklinGerade5208New)
-        , ("5120: ", märklinKurve5120New)
-        , ("5100: ", märklinKurve5100New)
-        , ("5101 :", märklinKurve5101New)
-        , ("5102 :", märklinKurve5102New)
-        , ("5200: ", märklinKurve5200New)
-        , ("5206: ", märklinKurve5206New)
-        , ("5201: ", märklinKurve5201New)
-        , ("5205: ", märklinKurve5205New)
-        , ("5117R:", märklinWeicheRechts5117New)
-        , ("5117L:", märklinWeicheLinks5117New)
-        , ("5137R:", märklinWeicheRechts5137New)
-        , ("5137L:", märklinWeicheLinks5137New)
-        , ("5202R:", märklinWeicheRechts5202New)
-        , ("5202L:", märklinWeicheLinks5202New)
-        , ("5140R:", märklinKurvenWeicheRechts5140New)
-        , ("5140L:", märklinKurvenWeicheLinks5140New)]
-    Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)
-    pure fixed
-    where
-        padding :: Int32
-        padding = 5
-
-        putWithHeight :: (MonadIO m)
-                      => Gtk.Fixed
-                      -> (Int32, Int32)
-                      -> (Text, m (Gleis 'Märklin))
-                      -> m (Int32, Int32)
-        putWithHeight fixed (maxWidth, y) (text, konstruktor) = do
-            label <- Gtk.labelNew $ Just text
-            Gtk.fixedPut fixed label (fromIntegral padding) $ fromIntegral y
-            -- required for Gtk3, otherwise size-calculation doesn't work
-            Gtk.widgetShow label
-            (_reqMin, reqMax) <- Gtk.widgetGetPreferredSize label
-            widthLabel <- Gtk.getRequisitionWidth reqMax
-            let x = 2 * padding + widthLabel
-            Gleis {width, height, drawingArea} <- konstruktor
-            Gtk.fixedPut fixed drawingArea (fromIntegral x) $ fromIntegral y
-            pure (max (x + width) maxWidth, y + height + padding)
-
--- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
-{-
- Der Maßstab liegt zwischen 1:35 - 1:49.
-Spurbreite
-    Innen: ca. 3,81 cm (38,1 mm)
-    Außen: ca. 4,20 cm (42,0 mm)
-Gerade (Straight)
-    Länge: ca. 17 Noppen / 13,6 cm
-    Breite: ca. 8 Noppen / 6,4 cm
-    Höhe: ca. 1 1/3 Noppen (1 Stein-Höhe) / 1,0 cm
-Kurve (Curve)
-    Länge Außen: ca. 17 1/2 Noppen (14 1/3 Legosteine hoch) / 13,7 cm
-    Länge Innen: ca. 15 1/6 Noppen (12 2/3 Legosteine hoch) / 12,1 cm
-    Breite: 8 Noppen / 6,4 cm
-Kreis-Aufbau mit PF-Kurven
-Ein Kreis benötigt 16 Lego-PF-Kurven.
-    Kreis-Durchmesser Außen: ca. 88 Noppen / 70 cm
-    Kreis-Durchmesser Innen: ca. 72 Noppen / 57 cm
-    Kreis-Radius (halber Kreis, Außen bis Kreismittelpunkt): ca. 44 Noppen / 35 cm 
--}
-{-
-Lego Spurweite: 38mm
--}
-legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
-legoGeradeNew = geradeNew 13.6
+    = Normal { geradeRichtung :: WeichenRichtungAllgemein 'WeicheDreiweg }
+    | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
