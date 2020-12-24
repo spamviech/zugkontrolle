@@ -3,7 +3,7 @@
 {-|
 Description: This modules defines all Märklin rails I have access to.
 -}
-module Zug.UI.Gtk.Maerklin
+module Zug.UI.Gtk.Gleis.Maerklin
   ( -- * Gerade
     -- ** Definitionen
     märklinGerade5106
@@ -86,7 +86,7 @@ module Zug.UI.Gtk.Maerklin
 
 import Control.Monad.Trans (MonadIO())
 
-import Zug.UI.Gtk.Gleis (Gleis, gleisNew, Zugtyp(Märklin), GleisDefinition(..), WeichenArt(..)
+import Zug.UI.Gtk.Gleis.Widget (Gleis, gleisNew, Zugtyp(Märklin), GleisDefinition(..), WeichenArt(..)
                        , WeichenRichtungAllgemein(..), alsDreiweg, WeichenRichtung(..), gleisScale
                        , gleisSetWidth, gleisSetHeight, gleisRotate)
 

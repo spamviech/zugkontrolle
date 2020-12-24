@@ -26,7 +26,7 @@ AspectFrame doesn't draw a frame around the child, so might be useful here
     usefulness questionable anyway due to rotation requirement
 Assistant should work again
 -}
-module Zug.UI.Gtk.Gleis
+module Zug.UI.Gtk.Gleis.Widget
   ( -- * Gleis Widgets
     Gleis()
   , Zugtyp(..)

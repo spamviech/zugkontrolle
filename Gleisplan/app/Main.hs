@@ -5,7 +5,7 @@ module Main (main) where
 import qualified GI.Gio as Gio
 import qualified GI.Gtk as Gtk
 
-import Zug.UI.Gtk.Gleisanzeige (gleisAnzeigeNew)
+import Zug.UI.Gtk.Gleis.Anzeige (gleisAnzeigeNew)
 
 main :: IO ()
 main = do

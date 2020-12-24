@@ -3,7 +3,7 @@
 {-|
 Description: This modules defines all Lego (9V) rails I have access to.
 -}
-module Zug.UI.Gtk.Lego
+module Zug.UI.Gtk.Gleis.Lego
   ( -- * Gerade
     legoGerade
   , legoGeradeNew
@@ -21,9 +21,9 @@ module Zug.UI.Gtk.Lego
 
 import Control.Monad.Trans (MonadIO())
 
-import Zug.UI.Gtk.Gleis (Gleis, gleisNew, Zugtyp(Lego), GleisDefinition(..), WeichenArt(..)
-                       , WeichenRichtungAllgemein(..), alsDreiweg, WeichenRichtung(..), gleisScale
-                       , gleisSetWidth, gleisSetHeight, gleisRotate)
+import Zug.UI.Gtk.Gleis.Widget (Gleis, gleisNew, Zugtyp(Lego), GleisDefinition(..), WeichenArt(..)
+                              , WeichenRichtungAllgemein(..), alsDreiweg, WeichenRichtung(..)
+                              , gleisScale, gleisSetWidth, gleisSetHeight, gleisRotate)
 
 -- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
 {-

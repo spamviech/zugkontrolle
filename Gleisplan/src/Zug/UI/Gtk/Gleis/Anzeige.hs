@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 
-module Zug.UI.Gtk.Gleisanzeige (gleisAnzeigeNew) where
+module Zug.UI.Gtk.Gleis.Anzeige (gleisAnzeigeNew) where
 
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO())
@@ -10,8 +10,7 @@ import Data.Int (Int32)
 import Data.Text (Text)
 import qualified GI.Gtk as Gtk
 
-import Zug.UI.Gtk.Gleis (MitWidget(erhalteWidget))
-import Zug.UI.Gtk.Maerklin
+import Zug.UI.Gtk.Gleis.Maerklin
        (märklinKurvenWeicheLinks5140New, märklinKurvenWeicheRechts5140New
       , märklinDreiwegWeiche5214New, märklinWeicheLinks5202New, märklinWeicheRechts5202New
       , märklinWeicheLinks5137New, märklinWeicheRechts5137New, märklinWeicheLinks5117New
@@ -20,6 +19,7 @@ import Zug.UI.Gtk.Maerklin
       , märklinKurve5100New, märklinKurve5120New, märklinGerade5208New, märklinGerade5210New
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
       , Gleis, Zugtyp(Märklin), märklinGerade5106New, märklinGerade5107New)
+import Zug.UI.Gtk.Gleis.Widget (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed

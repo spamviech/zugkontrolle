@@ -25,7 +25,7 @@ resolver: nightly-2020-10-29
 # Note that the compiler-check flag also applies to the version numbers.
 # This uses the same syntax as compiler resolvers like ghc-8.6.5.
 # This can be used to override the compiler for a Stackage snapshot, like this:
-compiler: ghc-8.10.1
+compiler: ghc-8.10.3
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
