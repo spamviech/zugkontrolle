@@ -291,9 +291,10 @@ märklinKreuzung5128New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKreuzung5128New = gleisNew märklinKreuzung5128
 
 --TODO Länge/Winkel passt nicht!
+-- https://www.stummiforum.de/viewtopic.php?t=29741#p309938
 märklinKreuzung5207 :: GleisDefinition 'Märklin
 märklinKreuzung5207 =
-    Kreuzung { länge = 180, radius = märklinR2, winkel = 24.28, kreuzungsArt = MitKurve }
+    Kreuzung { länge = 180, radius = märklinR2, winkel = 23.254, kreuzungsArt = MitKurve }
 
 märklinKreuzung5207New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKreuzung5207New = gleisNew märklinKreuzung5207

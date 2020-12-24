@@ -550,10 +550,6 @@ heightKreuzung radius winkelBogenmaß proxy =
     max (ceiling $ beschränkung proxy)
     $ 2 * heightKurve radius winkelBogenmaß proxy - ceiling (beschränkung proxy)
 
-data KreuzungsArt
-    = MitKurve
-    | OhneKurve
-
 kreuzungNew :: forall m z.
             (MonadIO m, Spurweite z)
             => Double
@@ -643,3 +639,7 @@ alsDreiweg Dreiwege = Dreiwege
 data WeichenRichtung
     = Normal { geradeRichtung :: WeichenRichtungAllgemein 'WeicheDreiweg }
     | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
+
+data KreuzungsArt
+    = MitKurve
+    | OhneKurve
