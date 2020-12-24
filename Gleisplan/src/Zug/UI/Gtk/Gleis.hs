@@ -303,29 +303,52 @@ kurveNew radius winkel =
         (widthKurve radius winkelBogenmaß)
         (heightKurve radius winkelBogenmaß)
         "Kurve"
-    $ zeichneKurve radius winkelBogenmaß True
+    $ zeichneKurve radius winkelBogenmaß AlleBeschränkungen
     where
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
+data KurvenBeschränkung
+    = KeineBeschränkungen
+    | AnfangsBeschränkung
+    | EndBeschränkung
+    | AlleBeschränkungen
+
+anfangsBeschränkung :: KurvenBeschränkung -> Bool
+anfangsBeschränkung KeineBeschränkungen = False
+anfangsBeschränkung AnfangsBeschränkung = True
+anfangsBeschränkung EndBeschränkung = False
+anfangsBeschränkung AlleBeschränkungen = True
+
+endBeschränkung :: KurvenBeschränkung -> Bool
+endBeschränkung KeineBeschränkungen = False
+endBeschränkung AnfangsBeschränkung = False
+endBeschränkung EndBeschränkung = True
+endBeschränkung AlleBeschränkungen = True
+
 -- | Pfad zum Zeichnen einer Kurve mit angegebenen Kurvenradius und Winkel im Bogenmaß.
-zeichneKurve
-    :: (Spurweite z) => Double -> Double -> Bool -> Proxy z -> AnchorPointT Cairo.Render ()
-zeichneKurve radius winkel anfangsBeschränkung proxy = do
+zeichneKurve :: (Spurweite z)
+             => Double
+             -> Double
+             -> KurvenBeschränkung
+             -> Proxy z
+             -> AnchorPointT Cairo.Render ()
+zeichneKurve radius winkel kurvenBeschränkung proxy = do
     -- Beschränkungen
-    when anfangsBeschränkung $ do
+    when (anfangsBeschränkung kurvenBeschränkung) $ do
         lift $ do
             Cairo.moveTo 0 0
             Cairo.lineTo 0 $ 0.5 * beschränkung proxy
         makeAnchorPoint (-1) 0
         lift $ Cairo.lineTo 0 $ beschränkung proxy
-    lift $ do
-        Cairo.moveTo begrenzungX0 begrenzungY0
-        Cairo.lineTo begrenzungX1 begrenzungY1
-    makeAnchorPoint (cos winkel) (sin winkel)
-    lift $ do
-        Cairo.lineTo begrenzungX2 begrenzungY2
-        Cairo.stroke
+    when (endBeschränkung kurvenBeschränkung) $ do
+        lift $ do
+            Cairo.moveTo begrenzungX0 begrenzungY0
+            Cairo.lineTo begrenzungX1 begrenzungY1
+        makeAnchorPoint (cos winkel) (sin winkel)
+        lift $ do
+            Cairo.lineTo begrenzungX2 begrenzungY2
+            Cairo.stroke
     lift $ do
         -- Gleis
         Cairo.arc 0 bogenZentrumY radiusAußen anfangsWinkel (anfangsWinkel + winkel)
@@ -391,7 +414,7 @@ zeichneWeicheRechts
 zeichneWeicheRechts länge radius winkel proxy = do
     zeichneGerade länge proxy
     lift Cairo.stroke
-    zeichneKurve radius winkel False proxy
+    zeichneKurve radius winkel EndBeschränkung proxy
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
@@ -441,7 +464,7 @@ dreiwegeweicheNew länge radius winkel =
             Cairo.transform $ Matrix 1 0 0 (-1) 0 0
             Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
             Cairo.translate 0 $ startHeight proxy
-        zeichneKurve radius winkelBogenmaß False proxy
+        zeichneKurve radius winkelBogenmaß EndBeschränkung proxy
     where
         startHeight :: Proxy z -> Double
         startHeight proxy =
@@ -483,7 +506,7 @@ kurvenWeicheRechtsNew länge radius winkel =
 zeichneKurvenWeicheRechts
     :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointT Cairo.Render ()
 zeichneKurvenWeicheRechts länge radius winkel proxy = do
-    zeichneKurve radius winkel True proxy
+    zeichneKurve radius winkel AlleBeschränkungen proxy
     lift $ do
         Cairo.stroke
         -- Gerade vor äußerer Kurve
@@ -493,7 +516,7 @@ zeichneKurvenWeicheRechts länge radius winkel proxy = do
         Cairo.lineTo länge gleisUnten
         Cairo.stroke
         Cairo.translate länge 0
-    zeichneKurve radius winkel False proxy
+    zeichneKurve radius winkel EndBeschränkung proxy
     where
         gleisOben :: Double
         gleisOben = abstand proxy
