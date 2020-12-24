@@ -13,13 +13,13 @@ import qualified GI.Gtk as Gtk
 import Zug.UI.Gtk.Gleis (MitWidget(erhalteWidget))
 import Zug.UI.Gtk.Maerklin
        (märklinKurvenWeicheLinks5140New, märklinKurvenWeicheRechts5140New
-      , märklinWeicheLinks5202New, märklinWeicheRechts5202New, märklinWeicheLinks5137New
-      , märklinWeicheRechts5137New, märklinWeicheLinks5117New, märklinWeicheRechts5117New
-      , märklinKurve5205New, märklinKurve5201New, märklinKurve5206New, märklinKurve5200New
-      , märklinKurve5102New, märklinKurve5101New, märklinKurve5100New, märklinKurve5120New
-      , märklinGerade5208New, märklinGerade5210New, märklinGerade5110New, märklinGerade5109New
-      , märklinGerade5108New, märklinGerade5129New, Gleis, Zugtyp(Märklin), märklinGerade5106New
-      , märklinGerade5107New)
+      , märklinDreiwegWeiche5214New, märklinWeicheLinks5202New, märklinWeicheRechts5202New
+      , märklinWeicheLinks5137New, märklinWeicheRechts5137New, märklinWeicheLinks5117New
+      , märklinWeicheRechts5117New, märklinKurve5205New, märklinKurve5201New
+      , märklinKurve5206New, märklinKurve5200New, märklinKurve5102New, märklinKurve5101New
+      , märklinKurve5100New, märklinKurve5120New, märklinGerade5208New, märklinGerade5210New
+      , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
+      , Gleis, Zugtyp(Märklin), märklinGerade5106New, märklinGerade5107New)
 
 -- Beispiel-Anzeige
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
@@ -50,6 +50,7 @@ gleisAnzeigeNew = do
         , ("5137L:", märklinWeicheLinks5137New)
         , ("5202R:", märklinWeicheRechts5202New)
         , ("5202L:", märklinWeicheLinks5202New)
+        , ("5214: ", märklinDreiwegWeiche5214New)
         , ("5140R:", märklinKurvenWeicheRechts5140New)
         , ("5140L:", märklinKurvenWeicheLinks5140New)]
     Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)

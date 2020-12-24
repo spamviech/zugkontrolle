@@ -245,32 +245,6 @@ abstand gleis = spurweite gleis / 3
 beschränkung :: (Spurweite z) => Proxy z -> Double
 beschränkung gleis = spurweite gleis + 2 * abstand gleis
 
--- Märklin verwendet mittleren Kurvenradius
--- http://www.modellbau-wiki.de/wiki/Gleisradius
-radiusBegrenzung :: (Spurweite z) => Double -> Proxy z -> Double
-radiusBegrenzung radius proxy = radius + 0.5 * spurweite proxy + abstand proxy
-
-widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-widthKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß < 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
-    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
-
-heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-heightKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß < 0.5 * pi =
-        ceiling
-        $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
-        + beschränkung proxy * cos winkelBogenmaß
-    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
-
-widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
-widthWeiche länge radius winkelBogenmaß proxy =
-    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
-
-heightWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-heightWeiche radius winkelBogenmaß proxy =
-    max (ceiling $ beschränkung proxy) $ heightKurve radius winkelBogenmaß proxy
-
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
 geradeNew länge =
@@ -303,6 +277,24 @@ zeichneGerade länge proxy = do
 
         gleisUnten :: Double
         gleisUnten = beschränkung proxy - abstand proxy
+
+-- Märklin verwendet mittleren Kurvenradius
+-- http://www.modellbau-wiki.de/wiki/Gleisradius
+radiusBegrenzung :: (Spurweite z) => Double -> Proxy z -> Double
+radiusBegrenzung radius proxy = radius + 0.5 * spurweite proxy + abstand proxy
+
+widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+widthKurve radius winkelBogenmaß proxy
+    | winkelBogenmaß < 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
+    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
+
+heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightKurve radius winkelBogenmaß proxy
+    | winkelBogenmaß < 0.5 * pi =
+        ceiling
+        $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
+        + beschränkung proxy * cos winkelBogenmaß
+    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
 
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
@@ -373,6 +365,14 @@ zeichneKurve radius winkel anfangsBeschränkung proxy = do
         radiusBegrenzungAußen :: Double
         radiusBegrenzungAußen = radiusAußen + abstand proxy
 
+widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
+widthWeiche länge radius winkelBogenmaß proxy =
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
+
+heightWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightWeiche radius winkelBogenmaß proxy =
+    max (ceiling $ beschränkung proxy) $ heightKurve radius winkelBogenmaß proxy
+
 weicheRechtsNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheRechtsNew länge radius winkel =
@@ -411,6 +411,48 @@ weicheLinksNew länge radius winkel =
 
         halfHeight :: Proxy z -> Double
         halfHeight proxy = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß proxy)
+
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi * winkel / 180
+
+widthDreiwegeweiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
+widthDreiwegeweiche länge radius winkelBogenmaß proxy =
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
+
+heightDreiwegeweiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightDreiwegeweiche radius winkelBogenmaß proxy =
+    max (ceiling $ beschränkung proxy)
+    $ 2 * heightKurve radius winkelBogenmaß proxy - ceiling (beschränkung proxy)
+
+dreiwegeweicheNew
+    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
+dreiwegeweicheNew länge radius winkel =
+    createGleisWidget
+        (widthDreiwegeweiche länge radius winkelBogenmaß)
+        (heightDreiwegeweiche radius winkelBogenmaß)
+        "Dreiwegeweiche"
+    $ \proxy -> do
+        lift $ Cairo.translate 0 $ startHeight proxy
+        zeichneWeicheRechts länge radius winkelBogenmaß proxy
+        lift $ do
+            Cairo.translate 0 $ -startHeight proxy
+            Cairo.stroke
+            Cairo.translate (halfWidth proxy) (halfHeight proxy)
+            Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+            Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
+            Cairo.translate 0 $ startHeight proxy
+        zeichneKurve radius winkelBogenmaß False proxy
+    where
+        startHeight :: Proxy z -> Double
+        startHeight proxy =
+            fromIntegral (heightKurve radius winkelBogenmaß proxy) - beschränkung proxy
+
+        halfWidth :: Proxy z -> Double
+        halfWidth proxy =
+            0.5 * fromIntegral (widthDreiwegeweiche länge radius winkelBogenmaß proxy)
+
+        halfHeight :: Proxy z -> Double
+        halfHeight proxy = 0.5 * fromIntegral (heightDreiwegeweiche radius winkelBogenmaß proxy)
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
@@ -492,7 +534,7 @@ gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Lin
 gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}} =
     weicheRechtsNew länge radius winkel
 gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}} =
-    error $ "Dreiwegeweiche: " ++ show länge ++ ", " ++ show radius ++ ", " ++ show winkel  --TODO
+    dreiwegeweicheNew länge radius winkel
 gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}} =
     kurvenWeicheLinksNew länge radius winkel
 gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}} =

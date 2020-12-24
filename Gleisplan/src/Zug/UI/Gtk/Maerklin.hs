@@ -47,7 +47,6 @@ module Zug.UI.Gtk.Maerklin
   , märklinWeiche5117
   , märklinWeiche5137
   , märklinWeiche5202
-  , märklinDreiwegWeiche5214
     -- ** Konstruktoren
   , märklinWeicheRechts5117New
   , märklinWeicheLinks5117New
@@ -55,6 +54,10 @@ module Zug.UI.Gtk.Maerklin
   , märklinWeicheLinks5137New
   , märklinWeicheRechts5202New
   , märklinWeicheLinks5202New
+    -- * Dreiwegeweiche
+    -- ** Definitionen
+  , märklinDreiwegWeiche5214
+    -- ** Konstruktoren
   , märklinDreiwegWeiche5214New
     -- * Kurven-Weiche
     -- ** Definitionen
