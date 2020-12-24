@@ -89,7 +89,8 @@ import Control.Monad.Trans (MonadIO())
 import Zug.Enums (Zugtyp(Märklin))
 import Zug.UI.Gtk.Gleis.Widget
        (Gleis, gleisNew, GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
-      , alsDreiweg, WeichenRichtung(..), gleisScale, gleisSetWidth, gleisSetHeight, gleisRotate)
+      , KreuzungsArt(MitKurve), alsDreiweg, WeichenRichtung(..), gleisScale, gleisSetWidth
+      , gleisSetHeight, gleisRotate)
 
 märklinRIndustrie :: Double
 märklinRIndustrie = 286
@@ -283,13 +284,16 @@ Kreuzung
     5207: L180mm, 24.28°, R437.4mm
 -}
 märklinKreuzung5128 :: GleisDefinition 'Märklin
-märklinKreuzung5128 = Kreuzung { länge = 193, radius = märklinR1, winkel = 30 }
+märklinKreuzung5128 =
+    Kreuzung { länge = 193, radius = märklinR1, winkel = 30, kreuzungsArt = MitKurve }
 
 märklinKreuzung5128New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKreuzung5128New = gleisNew märklinKreuzung5128
 
+--TODO Länge/Winkel passt nicht!
 märklinKreuzung5207 :: GleisDefinition 'Märklin
-märklinKreuzung5207 = Kreuzung { länge = 180, radius = märklinR2, winkel = 24.28 }
+märklinKreuzung5207 =
+    Kreuzung { länge = 180, radius = märklinR2, winkel = 24.28, kreuzungsArt = MitKurve }
 
 märklinKreuzung5207New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKreuzung5207New = gleisNew märklinKreuzung5207

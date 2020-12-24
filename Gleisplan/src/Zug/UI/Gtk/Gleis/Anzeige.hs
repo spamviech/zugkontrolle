@@ -18,7 +18,8 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinKurve5206New, märklinKurve5200New, märklinKurve5102New, märklinKurve5101New
       , märklinKurve5100New, märklinKurve5120New, märklinGerade5208New, märklinGerade5210New
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
-      , Gleis, Zugtyp(Märklin), märklinGerade5106New, märklinGerade5107New)
+      , Gleis, Zugtyp(Märklin), märklinGerade5106New, märklinGerade5107New
+      , märklinKreuzung5128New, märklinKreuzung5207New)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
@@ -52,7 +53,9 @@ gleisAnzeigeNew = do
         , ("5202L:", märklinWeicheLinks5202New)
         , ("5214: ", märklinDreiwegWeiche5214New)
         , ("5140R:", märklinKurvenWeicheRechts5140New)
-        , ("5140L:", märklinKurvenWeicheLinks5140New)]
+        , ("5140L:", märklinKurvenWeicheLinks5140New)
+        , ("5128: ", märklinKreuzung5128New)
+        , ("5207: ", märklinKreuzung5207New)]
     Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)
     pure fixed
     where
@@ -67,8 +70,6 @@ gleisAnzeigeNew = do
         putWithHeight fixed (maxWidth, y) (text, konstruktor) = do
             label <- Gtk.labelNew $ Just text
             Gtk.fixedPut fixed label (fromIntegral padding) $ fromIntegral y
-            -- required for Gtk3, otherwise size-calculation doesn't work
-            Gtk.widgetShow label
             (_reqMinLabel, reqMaxLabel) <- Gtk.widgetGetPreferredSize label
             widthLabel <- Gtk.getRequisitionWidth reqMaxLabel
             let x = 2 * padding + widthLabel

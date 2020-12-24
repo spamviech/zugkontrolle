@@ -35,6 +35,7 @@ module Zug.UI.Gtk.Gleis.Widget
   , WeichenRichtungAllgemein(..)
   , alsDreiweg
   , WeichenRichtung(..)
+  , KreuzungsArt(..)
     -- ** Anker-Punkte
   , AnchorName(..)
   , AnchorPoint(..)
@@ -540,6 +541,63 @@ kurvenWeicheLinksNew länge radius winkel =
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
+widthKreuzung :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
+widthKreuzung länge radius winkelBogenmaß proxy =
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
+
+heightKreuzung :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightKreuzung radius winkelBogenmaß proxy =
+    max (ceiling $ beschränkung proxy)
+    $ 2 * heightKurve radius winkelBogenmaß proxy - ceiling (beschränkung proxy)
+
+data KreuzungsArt
+    = MitKurve
+    | OhneKurve
+
+kreuzungNew :: forall m z.
+            (MonadIO m, Spurweite z)
+            => Double
+            -> Double
+            -> Double
+            -> KreuzungsArt
+            -> m (Gleis z)
+kreuzungNew länge radius winkel kreuzungsArt =
+    createGleisWidget
+        (widthKreuzung länge radius winkelBogenmaß)
+        (heightKreuzung radius winkelBogenmaß)
+        "Kreuzung"
+    $ \proxy -> do
+        lift $ Cairo.translate 0 $ startHeight proxy
+        zeichneGerade länge proxy
+        case kreuzungsArt of
+            MitKurve -> zeichneKurve radius winkelBogenmaß KeineBeschränkungen proxy
+            OhneKurve -> pure ()
+        lift $ do
+            Cairo.translate 0 $ -startHeight proxy
+            Cairo.stroke
+            Cairo.translate (halfWidth proxy) (halfHeight proxy)
+            Cairo.rotate winkelBogenmaß
+            Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+            Cairo.translate (-halfWidth proxy) (-halfHeight proxy)
+            Cairo.translate 0 $ startHeight proxy
+        zeichneGerade länge proxy
+        case kreuzungsArt of
+            MitKurve -> zeichneKurve radius winkelBogenmaß KeineBeschränkungen proxy
+            OhneKurve -> pure ()
+    where
+        startHeight :: Proxy z -> Double
+        startHeight proxy =
+            fromIntegral (heightKurve radius winkelBogenmaß proxy) - beschränkung proxy
+
+        halfWidth :: Proxy z -> Double
+        halfWidth proxy = 0.5 * fromIntegral (widthKreuzung länge radius winkelBogenmaß proxy)
+
+        halfHeight :: Proxy z -> Double
+        halfHeight proxy = 0.5 * fromIntegral (heightKreuzung radius winkelBogenmaß proxy)
+
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi * winkel / 180
+
 -- | Erstelle ein neues 'Gleis'.
 gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
 gleisNew Gerade {länge} = geradeNew länge
@@ -554,8 +612,8 @@ gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = 
     kurvenWeicheLinksNew länge radius winkel
 gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}} =
     kurvenWeicheRechtsNew länge radius winkel
-gleisNew Kreuzung {länge, radius, winkel} =
-    error $ "Kreuzung: " ++ show länge ++ ", " ++ show radius ++ ", " ++ show winkel --TODO
+gleisNew
+    Kreuzung {länge, radius, winkel, kreuzungsArt} = kreuzungNew länge radius winkel kreuzungsArt
 
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
 --
@@ -565,7 +623,8 @@ data GleisDefinition (z :: Zugtyp)
     = Gerade { länge :: Double }
     | Kurve { radius :: Double, winkel :: Double }
     | Weiche { länge :: Double, radius :: Double, winkel :: Double, richtung :: WeichenRichtung }
-    | Kreuzung { länge :: Double, radius :: Double, winkel :: Double }
+    | Kreuzung
+      { länge :: Double, radius :: Double, winkel :: Double, kreuzungsArt :: KreuzungsArt }
 
 data WeichenArt
     = WeicheZweiweg
