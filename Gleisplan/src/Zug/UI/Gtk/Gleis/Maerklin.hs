@@ -86,9 +86,10 @@ module Zug.UI.Gtk.Gleis.Maerklin
 
 import Control.Monad.Trans (MonadIO())
 
-import Zug.UI.Gtk.Gleis.Widget (Gleis, gleisNew, Zugtyp(Märklin), GleisDefinition(..), WeichenArt(..)
-                       , WeichenRichtungAllgemein(..), alsDreiweg, WeichenRichtung(..), gleisScale
-                       , gleisSetWidth, gleisSetHeight, gleisRotate)
+import Zug.Enums (Zugtyp(Märklin))
+import Zug.UI.Gtk.Gleis.Widget
+       (Gleis, gleisNew, GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
+      , alsDreiweg, WeichenRichtung(..), gleisScale, gleisSetWidth, gleisSetHeight, gleisRotate)
 
 märklinRIndustrie :: Double
 märklinRIndustrie = 286

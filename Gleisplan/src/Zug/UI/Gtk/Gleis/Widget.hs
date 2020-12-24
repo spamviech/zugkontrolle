@@ -29,8 +29,6 @@ Assistant should work again
 module Zug.UI.Gtk.Gleis.Widget
   ( -- * Gleis Widgets
     Gleis()
-  , Zugtyp(..)
-  , MitWidget(..)
     -- ** Definition
   , GleisDefinition(..)
   , WeichenArt(..)
@@ -68,16 +66,10 @@ import GI.Cairo.Render.Matrix (Matrix(Matrix))
 import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
--- import Zug.Enums (Zugtyp(..))
+import Zug.Enums (Zugtyp(..))
+import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
+
 -- import Zug.UI.Gtk.Hilfsfunktionen (fixedPutWidgetNew)
--- import Zug.UI.Gtk.Klassen (MitWidget(..))
-class MitWidget w where
-    erhalteWidget :: (MonadIO m) => w -> m Gtk.Widget
-
-data Zugtyp
-    = Märklin
-    | Lego
-
 -- | 'Gtk.Widget' von einem Gleis.
 -- Die Größe wird nur über 'gleisScale', 'gleisSetWidth' und 'gleisSetHeight' verändert.
 data Gleis (z :: Zugtyp) =

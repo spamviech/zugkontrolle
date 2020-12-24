@@ -19,7 +19,7 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinKurve5100New, märklinKurve5120New, märklinGerade5208New, märklinGerade5210New
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
       , Gleis, Zugtyp(Märklin), märklinGerade5106New, märklinGerade5107New)
-import Zug.UI.Gtk.Gleis.Widget (MitWidget(erhalteWidget))
+import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
 gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
