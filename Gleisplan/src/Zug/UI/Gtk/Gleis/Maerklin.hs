@@ -77,11 +77,6 @@ module Zug.UI.Gtk.Gleis.Maerklin
   , gleisNew
   , WeichenRichtungAllgemein(Links, Rechts)
   , Zugtyp(Märklin)
-    -- ** Anpassen der Größe
-  , gleisScale
-  , gleisSetWidth
-  , gleisSetHeight
-  , gleisRotate
   ) where
 
 import Control.Monad.Trans (MonadIO())
@@ -89,8 +84,7 @@ import Control.Monad.Trans (MonadIO())
 import Zug.Enums (Zugtyp(Märklin))
 import Zug.UI.Gtk.Gleis.Widget
        (Gleis, gleisNew, GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
-      , KreuzungsArt(MitKurve), alsDreiweg, WeichenRichtung(..), gleisScale, gleisSetWidth
-      , gleisSetHeight, gleisRotate)
+      , KreuzungsArt(MitKurve), alsDreiweg, WeichenRichtung(..))
 
 märklinRIndustrie :: Double
 märklinRIndustrie = 286

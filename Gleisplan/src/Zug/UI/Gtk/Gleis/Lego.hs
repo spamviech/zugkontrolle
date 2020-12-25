@@ -12,11 +12,6 @@ module Zug.UI.Gtk.Gleis.Lego
   , gleisNew
   , WeichenRichtungAllgemein(Links, Rechts)
   , Zugtyp(Lego)
-    -- ** Anpassen der Größe
-  , gleisScale
-  , gleisSetWidth
-  , gleisSetHeight
-  , gleisRotate
   ) where
 
 import Control.Monad.Trans (MonadIO())
@@ -24,8 +19,7 @@ import Control.Monad.Trans (MonadIO())
 import Zug.Enums (Zugtyp(Lego))
 import Zug.UI.Gtk.Gleis.Widget
        (Gleis, gleisNew, GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
-      , KreuzungsArt(OhneKurve), alsDreiweg, WeichenRichtung(..), gleisScale, gleisSetWidth
-      , gleisSetHeight, gleisRotate)
+      , KreuzungsArt(OhneKurve), alsDreiweg, WeichenRichtung(..))
 
 -- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
 {-
