@@ -18,8 +18,9 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinKurve5206New, märklinKurve5200New, märklinKurve5102New, märklinKurve5101New
       , märklinKurve5100New, märklinKurve5120New, märklinGerade5208New, märklinGerade5210New
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
-      , Gleis, Zugtyp(Märklin), märklinGerade5106New, märklinGerade5107New
-      , märklinKreuzung5128New, märklinKreuzung5207New)
+      , märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
+      , märklinKreuzung5207New, Zugtyp(Märklin))
+import Zug.UI.Gtk.Gleis.Widget (gleisAnzeigeNew, gleisPut, Gleis)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige

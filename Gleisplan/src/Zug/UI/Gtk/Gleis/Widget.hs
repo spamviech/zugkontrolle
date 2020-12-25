@@ -696,3 +696,4 @@ gleisRemove gleis@Gleis {drawingArea} GleisAnzeige {fixed, tvarGleise} = liftIO 
     if elem gleis $ concatMap NonEmpty.toList $ HashMap.elems gleise
         then Gtk.fixedRemove fixed drawingArea
         else pure ()
+-- TODO Text auf GleisAnzeige
