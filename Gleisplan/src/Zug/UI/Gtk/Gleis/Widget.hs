@@ -7,8 +7,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-
 ideas for rewrite with gtk4
@@ -39,13 +40,22 @@ module Zug.UI.Gtk.Gleis.Widget
     -- ** Anker-Punkte
   , AnchorName(..)
   , AnchorPoint(..)
-    -- * Konstruktor
+    -- * Methoden
+    -- ** Konstruktor
   , gleisNew
-    -- ** Anpassen der Größe
+    -- ** Anpassungen
   , gleisScale
   , gleisSetWidth
   , gleisSetHeight
   , gleisRotate
+    -- * Anzeige
+  , GleisAnzeige()
+  , Position(..)
+    -- ** Konstruktor
+  , gleisAnzeigeNew
+    -- ** Gleis platzieren
+  , gleisPut
+  , gleisRemove
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
@@ -58,9 +68,12 @@ import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
 import Data.Int (Int32)
-import Data.Proxy (Proxy(..))
+import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.Proxy (Proxy(Proxy))
 import Data.Text (Text)
 import qualified Data.Text as Text
+import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
@@ -83,6 +96,7 @@ data Gleis (z :: Zugtyp) =
     , tvarAnchorPoints :: TVar AnchorPointMap
     , tvarConnectedAnchors :: TVar [AnchorName]
     }
+    deriving (Eq)
 
 instance MitWidget (Gleis z) where
     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
@@ -643,3 +657,42 @@ data WeichenRichtung
 data KreuzungsArt
     = MitKurve
     | OhneKurve
+
+data Position = Position { x :: Double, y :: Double }
+    deriving (Eq, Generic)
+
+instance Hashable Position
+
+data GleisAnzeige (z :: Zugtyp) =
+    GleisAnzeige { fixed :: Gtk.Fixed, tvarGleise :: TVar (HashMap Position (NonEmpty (Gleis z))) }
+
+instance MitWidget (GleisAnzeige z) where
+    erhalteWidget :: (MonadIO m) => GleisAnzeige z -> m Gtk.Widget
+    erhalteWidget = Gtk.toWidget . fixed
+
+gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
+gleisAnzeigeNew = liftIO $ GleisAnzeige <$> Gtk.fixedNew <*> newTVarIO HashMap.empty
+
+-- | Bewege ein 'Gleis' zur angestrebten 'Position' einer 'GleisAnzeige'.
+--
+-- Wenn ein 'Gleis' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
+gleisPut :: (MonadIO m) => Gleis z -> Position -> GleisAnzeige z -> m ()
+gleisPut gleis@Gleis {drawingArea} position@Position {x, y} GleisAnzeige {fixed, tvarGleise} =
+    liftIO $ do
+        gleise <- readTVarIO tvarGleise
+        let (putOrMove, gleiseAnPosition) = case HashMap.lookup position gleise of
+                Nothing -> (Gtk.fixedPut, [])
+                Just ne -> (Gtk.fixedMove, NonEmpty.toList ne)
+        atomically
+            $ writeTVar tvarGleise $! HashMap.insert position (gleis :| gleiseAnPosition) gleise
+        putOrMove fixed drawingArea x y
+
+-- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
+--
+-- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
+gleisRemove :: (MonadIO m) => Gleis z -> GleisAnzeige z -> m ()
+gleisRemove gleis@Gleis {drawingArea} GleisAnzeige {fixed, tvarGleise} = liftIO $ do
+    gleise <- readTVarIO tvarGleise
+    if elem gleis $ concatMap NonEmpty.toList $ HashMap.elems gleise
+        then Gtk.fixedRemove fixed drawingArea
+        else pure ()

@@ -5,7 +5,7 @@ module Main (main) where
 import qualified GI.Gio as Gio
 import qualified GI.Gtk as Gtk
 
-import Zug.UI.Gtk.Gleis.Anzeige (gleisAnzeigeNew)
+import Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew)
 
 main :: IO ()
 main = do
@@ -21,6 +21,6 @@ createWindow application = do
     Gtk.windowSetDefaultSize appWindow 480 320
     scrolledWindow <- Gtk.scrolledWindowNew
     Gtk.windowSetChild appWindow $ Just scrolledWindow
-    gleisAnzeige <- gleisAnzeigeNew
-    Gtk.scrolledWindowSetChild scrolledWindow $ Just gleisAnzeige
+    gleisDemonstration <- gleisDemonstrationNew
+    Gtk.scrolledWindowSetChild scrolledWindow $ Just gleisDemonstration
     Gtk.widgetShow appWindow

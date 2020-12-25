@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 
-module Zug.UI.Gtk.Gleis.Anzeige (gleisAnzeigeNew) where
+module Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew) where
 
 import Control.Monad (foldM)
 import Control.Monad.Trans (MonadIO())
@@ -23,8 +23,8 @@ import Zug.UI.Gtk.Gleis.Maerklin
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
-gleisAnzeigeNew :: (MonadIO m) => m Gtk.Fixed
-gleisAnzeigeNew = do
+gleisDemonstrationNew :: (MonadIO m) => m Gtk.Fixed
+gleisDemonstrationNew = do
     fixed <- Gtk.fixedNew
     (width, height) <- foldM
         (putWithHeight fixed)

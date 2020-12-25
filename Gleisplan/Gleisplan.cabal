@@ -20,7 +20,7 @@ extra-source-files:
 library
   exposed-modules:
       Zug.Enums
-      Zug.UI.Gtk.Gleis.Anzeige
+      Zug.UI.Gtk.Gleis.Demonstration
       Zug.UI.Gtk.Gleis.Lego
       Zug.UI.Gtk.Gleis.Maerklin
       Zug.UI.Gtk.Gleis.Widget
