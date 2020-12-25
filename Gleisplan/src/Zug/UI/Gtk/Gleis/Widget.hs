@@ -10,6 +10,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-
 ideas for rewrite with gtk4
@@ -50,7 +51,6 @@ module Zug.UI.Gtk.Gleis.Widget
   , Position(..)
     -- ** Konstruktor
   , gleisAnzeigeNew
-  , gleisAnzeigeSetSizeRequest
     -- ** Gleis platzieren
   , gleisPut
   , gleisRemove
@@ -60,7 +60,7 @@ module Zug.UI.Gtk.Gleis.Widget
   ) where
 
 import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
-import Control.Monad (when, void)
+import Control.Monad (when, void, forM_)
 import Control.Monad.RWS.Strict
        (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
@@ -303,16 +303,16 @@ radiusBegrenzung radius proxy = radius + 0.5 * spurweite proxy + abstand proxy
 
 widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 widthKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß < 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
-    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
+    | winkelBogenmaß <= 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
+    | otherwise = error "Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt."
 
 heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 heightKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß < 0.5 * pi =
+    | winkelBogenmaß <= 0.5 * pi =
         ceiling
         $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
         + beschränkung proxy * cos winkelBogenmaß
-    | otherwise = error "Nur Kurven mit Winkel < pi/2 (90°) sind unterstützt."
+    | otherwise = error "Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt."
 
 -- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
 kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
@@ -692,23 +692,24 @@ gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
 gleisAnzeigeNew =
     liftIO $ GleisAnzeige <$> Gtk.fixedNew <*> newTVarIO 1 <*> newTVarIO [] <*> newTVarIO []
 
-gleisAnzeigeSetSizeRequest :: (MonadIO m) => GleisAnzeige z -> Int32 -> Int32 -> m ()
-gleisAnzeigeSetSizeRequest GleisAnzeige {fixed} = Gtk.widgetSetSizeRequest fixed
-
 -- | Bewege ein 'Gleis' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Gleis' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
 -- /winkel/ werden im Gradmaß übergeben und beschreiben eine Rotation im Uhrzeigersinn.
 gleisPut :: (MonadIO m) => GleisAnzeige z -> Gleis z -> Position -> Double -> m ()
-gleisPut GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea} position@Position {x, y} winkel =
-    liftIO $ do
-        gleisRotate gleis winkel
-        gleise <- readTVarIO tvarGleise
-        let (restGleise, putOrMove) = case partition ((== gleis) . fst) gleise of
-                ([], alleGleise) -> (alleGleise, Gtk.fixedPut)
-                (_gleisVorkommen, andereGleise) -> (andereGleise, Gtk.fixedMove)
-        atomically $ writeTVar tvarGleise $ (gleis, position) : restGleise
-        putOrMove fixed drawingArea x y
+gleisPut
+    GleisAnzeige {fixed, tvarScale, tvarGleise}
+    gleis@Gleis {drawingArea}
+    position@Position {x, y}
+    winkel = liftIO $ do
+    scale <- readTVarIO tvarScale
+    gleisRotate gleis winkel
+    gleise <- readTVarIO tvarGleise
+    let (restGleise, putOrMove) = case partition ((== gleis) . fst) gleise of
+            ([], alleGleise) -> (alleGleise, Gtk.fixedPut)
+            (_gleisVorkommen, andereGleise) -> (andereGleise, Gtk.fixedMove)
+    atomically $ writeTVar tvarGleise $ (gleis, position) : restGleise
+    putOrMove fixed drawingArea (scale * x) (scale * y)
 
 -- TODO gleisAnzeigeAttach using AnchorNames
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
@@ -723,17 +724,20 @@ gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea} = liftIO 
             Gtk.fixedRemove fixed drawingArea
             atomically $ writeTVar tvarGleise andereGleise
 
+-- TODO in gtk3 a label had an angle property as well
 -- | Bewege ein 'Gtk.Label' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Gtk.Label' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
 gleisAnzeigePutLabel :: (MonadIO m) => GleisAnzeige z -> Gtk.Label -> Position -> m ()
-gleisAnzeigePutLabel GleisAnzeige {fixed, tvarLabel} label position@Position {x, y} = liftIO $ do
-    bekannteLabel <- readTVarIO tvarLabel
-    let (restLabel, putOrMove) = case partition ((== label) . fst) bekannteLabel of
-            ([], alleLabel) -> (alleLabel, Gtk.fixedPut)
-            (_labelVorkommen, andereLabel) -> (andereLabel, Gtk.fixedMove)
-    atomically $ writeTVar tvarLabel $ (label, position) : restLabel
-    putOrMove fixed label x y
+gleisAnzeigePutLabel GleisAnzeige {fixed, tvarScale, tvarLabel} label position@Position {x, y} =
+    liftIO $ do
+        scale <- readTVarIO tvarScale
+        bekannteLabel <- readTVarIO tvarLabel
+        let (restLabel, putOrMove) = case partition ((== label) . fst) bekannteLabel of
+                ([], alleLabel) -> (alleLabel, Gtk.fixedPut)
+                (_labelVorkommen, andereLabel) -> (andereLabel, Gtk.fixedMove)
+        atomically $ writeTVar tvarLabel $ (label, position) : restLabel
+        putOrMove fixed label (scale * x) (scale * y)
 
 -- | Entferne ein 'Gtk.Label' aus der 'GleisAnzeige'.
 --
@@ -747,6 +751,15 @@ gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
             Gtk.fixedRemove fixed label
             atomically $ writeTVar tvarLabel andereLabel
 
+-- TODO scale label to appropriate size
 -- | Skaliere eine 'GleisAnzeige'.
 gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
-gleisAnzeigeScale GleisAnzeige {fixed, tvarScale} newScale = error "TODO" --TODO anpassen aller Positionen
+gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
+    atomically $ writeTVar tvarScale scale
+    gleise <- readTVarIO tvarGleise
+    forM_ gleise $ \(gleis@Gleis {drawingArea}, Position {x, y}) -> do
+        gleisScale gleis scale
+        Gtk.fixedMove fixed drawingArea (scale * x) (scale * y)
+    bekannteLabel <- readTVarIO tvarLabel
+    forM_ bekannteLabel $ \(label, Position {x, y})
+        -> Gtk.fixedMove fixed label (scale * x) (scale * y)
