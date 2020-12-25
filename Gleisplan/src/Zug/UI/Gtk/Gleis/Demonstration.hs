@@ -20,15 +20,15 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
       , märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
       , märklinKreuzung5207New, Zugtyp(Märklin))
-import Zug.UI.Gtk.Gleis.Widget (gleisAnzeigeNew, gleisPut, Gleis)
-import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
+import Zug.UI.Gtk.Gleis.Widget (GleisAnzeige, gleisAnzeigeNew, gleisAnzeigeSetSizeRequest, gleisPut
+                              , gleisGetSize, Gleis, gleisAnzeigePutLabel, Position(..))
 
 -- Beispiel-Anzeige
-gleisDemonstrationNew :: (MonadIO m) => m Gtk.Fixed
+gleisDemonstrationNew :: (MonadIO m) => m (GleisAnzeige 'Märklin)
 gleisDemonstrationNew = do
-    fixed <- Gtk.fixedNew
+    gleisAnzeige <- gleisAnzeigeNew
     (width, height) <- foldM
-        (putWithHeight fixed)
+        (putWithHeight gleisAnzeige)
         (0, padding)
         [ ("5106: ", märklinGerade5106New)
         , ("5107: ", märklinGerade5107New)
@@ -57,27 +57,27 @@ gleisDemonstrationNew = do
         , ("5140L:", märklinKurvenWeicheLinks5140New)
         , ("5128: ", märklinKreuzung5128New)
         , ("5207: ", märklinKreuzung5207New)]
-    Gtk.widgetSetSizeRequest fixed (2 * padding + width) (2 * padding + height)
-    pure fixed
+    gleisAnzeigeSetSizeRequest gleisAnzeige (2 * padding + width) (2 * padding + height)
+    pure gleisAnzeige
     where
         padding :: Int32
         padding = 5
 
         putWithHeight :: (MonadIO m)
-                      => Gtk.Fixed
+                      => GleisAnzeige 'Märklin
                       -> (Int32, Int32)
                       -> (Text, m (Gleis 'Märklin))
                       -> m (Int32, Int32)
-        putWithHeight fixed (maxWidth, y) (text, konstruktor) = do
+        putWithHeight gleisAnzeige (maxWidth, y) (text, konstruktor) = do
             label <- Gtk.labelNew $ Just text
-            Gtk.fixedPut fixed label (fromIntegral padding) $ fromIntegral y
+            gleisAnzeigePutLabel
+                gleisAnzeige
+                label
+                Position { x = fromIntegral padding, y = fromIntegral y }
             (_reqMinLabel, reqMaxLabel) <- Gtk.widgetGetPreferredSize label
             widthLabel <- Gtk.getRequisitionWidth reqMaxLabel
             let x = 2 * padding + widthLabel
             gleis <- konstruktor
-            widget <- erhalteWidget gleis
-            Gtk.fixedPut fixed widget (fromIntegral x) $ fromIntegral y
-            (_reqMin, reqMax) <- Gtk.widgetGetPreferredSize widget
-            width <- Gtk.getRequisitionWidth reqMax
-            height <- Gtk.getRequisitionHeight reqMax
+            gleisPut gleisAnzeige gleis Position { x = fromIntegral x, y = fromIntegral y } 0
+            (width, height) <- gleisGetSize gleis
             pure (max (x + width) maxWidth, y + height + padding)
