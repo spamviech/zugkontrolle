@@ -21,7 +21,7 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
       , märklinKreuzung5207New, Zugtyp(Märklin))
 import Zug.UI.Gtk.Gleis.Widget (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize, Gleis
-                              , gleisAnzeigePutLabel, Position(..))
+                              , gleisAnzeigePutLabel, Position(..), gleisAnzeigeScale)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
@@ -58,6 +58,7 @@ gleisDemonstrationNew = do
         , ("5140L:", märklinKurvenWeicheLinks5140New)
         , ("5128: ", märklinKreuzung5128New)
         , ("5207: ", märklinKreuzung5207New)]
+    gleisAnzeigeScale gleisAnzeige 1.4
     widget <- erhalteWidget gleisAnzeige
     Gtk.widgetSetMarginTop widget padding
     Gtk.widgetSetMarginBottom widget padding

@@ -59,7 +59,7 @@ module Zug.UI.Gtk.Gleis.Widget
   , gleisAnzeigeScale
   ) where
 
-import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, writeTVar)
+import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Monad (when, void, forM_)
 import Control.Monad.RWS.Strict
        (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
@@ -211,7 +211,8 @@ createGleisWidget widthFn heightFn anchorBaseName draw = do
     gleisScale gleis 1
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
-            (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
+            (scale, angle)
+                <- liftIO $ atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarAngle
             Cairo.save
             let halfWidth = 0.5 * fromIntegral newWidth
                 halfHeight = 0.5 * fromIntegral newHeight
@@ -703,9 +704,8 @@ gleisPut
     gleis@Gleis {drawingArea}
     position@Position {x, y}
     winkel = liftIO $ do
-    scale <- readTVarIO tvarScale
+    (scale, gleise) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarGleise
     gleisRotate gleis winkel
-    gleise <- readTVarIO tvarGleise
     let (restGleise, putOrMove) = case partition ((== gleis) . fst) gleise of
             ([], alleGleise) -> (alleGleise, Gtk.fixedPut)
             (_gleisVorkommen, andereGleise) -> (andereGleise, Gtk.fixedMove)
@@ -732,8 +732,7 @@ gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea} = liftIO 
 gleisAnzeigePutLabel :: (MonadIO m) => GleisAnzeige z -> Gtk.Label -> Position -> m ()
 gleisAnzeigePutLabel GleisAnzeige {fixed, tvarScale, tvarLabel} label position@Position {x, y} =
     liftIO $ do
-        scale <- readTVarIO tvarScale
-        bekannteLabel <- readTVarIO tvarLabel
+        (scale, bekannteLabel) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarLabel
         let (restLabel, putOrMove) = case partition ((== label) . fst) bekannteLabel of
                 ([], alleLabel) -> (alleLabel, Gtk.fixedPut)
                 (_labelVorkommen, andereLabel) -> (andereLabel, Gtk.fixedMove)
@@ -760,10 +759,17 @@ gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
 gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
 gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
     atomically $ writeTVar tvarScale scale
-    gleise <- readTVarIO tvarGleise
+    (gleise, bekannteLabel) <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
     forM_ gleise $ \(gleis@Gleis {drawingArea}, Position {x, y}) -> do
         gleisScale gleis scale
         Gtk.fixedMove fixed drawingArea (scale * x) (scale * y)
-    bekannteLabel <- readTVarIO tvarLabel
-    forM_ bekannteLabel $ \(label, Position {x, y})
-        -> Gtk.fixedMove fixed label (scale * x) (scale * y)
+    forM_ bekannteLabel $ \(label, Position {x, y}) -> do
+        -- transformS <- Gtk.fixedGetChildTransform fixed label
+        -- transform0 <- case transformS of
+        --     (Just transform) -> pure transform
+        --     Nothing -> Gsk.transformNew
+        let fScale = realToFrac scale
+        transform0 <- Gsk.transformNew
+        transform1 <- Gsk.transformScale transform0 fScale fScale
+        Gtk.fixedSetChildTransform fixed label $ Just transform1
+        Gtk.fixedMove fixed label (scale * x) (scale * y)
