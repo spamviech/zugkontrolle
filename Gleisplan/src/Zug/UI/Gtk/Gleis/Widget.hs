@@ -76,6 +76,7 @@ import qualified Data.Text as Text
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
+import qualified GI.Gsk as Gsk
 import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
@@ -752,6 +753,9 @@ gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
             atomically $ writeTVar tvarLabel andereLabel
 
 -- TODO scale label to appropriate size
+-- https://blog.gtk.org/2019/05/08/gtk-3-96-0/
+-- use 'fixedSetChildTransform' with a 'Gsk.Transform'
+-- might completely remove the necessity to scale/rotate drawings myself
 -- | Skaliere eine 'GleisAnzeige'.
 gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
 gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
