@@ -64,9 +64,10 @@ import Control.Monad.RWS.Strict
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
-import Data.Hashable (Hashable())
+import Data.Hashable (Hashable(hashWithSalt))
 import Data.Int (Int32)
 import Data.List (partition)
+import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -96,6 +97,10 @@ data Gleis (z :: Zugtyp) =
 instance MitWidget (Gleis z) where
     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
     erhalteWidget = Gtk.toWidget . drawingArea
+
+instance Hashable (Gleis z) where
+    hashWithSalt :: Int -> Gleis z -> Int
+    hashWithSalt salt Gleis {width, height} = hashWithSalt salt (width, height)
 
 -- | Speichern aller AnchorPoints
 type AnchorPointMap = HashMap AnchorName ConnectedAnchorPoint
@@ -648,7 +653,7 @@ data GleisAnzeige (z :: Zugtyp) =
     GleisAnzeige
     { fixed :: Gtk.Fixed
     , tvarScale :: TVar Double
-    , tvarGleise :: TVar [(Gleis z, Position)]
+    , tvarGleise :: TVar (HashMap (Gleis z) Position)
     , tvarLabel :: TVar [(Gtk.Label, Position)]
     }
 
@@ -658,7 +663,8 @@ instance MitWidget (GleisAnzeige z) where
 
 gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
 gleisAnzeigeNew =
-    liftIO $ GleisAnzeige <$> Gtk.fixedNew <*> newTVarIO 1 <*> newTVarIO [] <*> newTVarIO []
+    liftIO
+    $ GleisAnzeige <$> Gtk.fixedNew <*> newTVarIO 1 <*> newTVarIO HashMap.empty <*> newTVarIO []
 
 fixedSetChildTransformation
     :: (MonadIO m, Gtk.IsWidget w) => Gtk.Fixed -> w -> Position -> Double -> m ()
@@ -684,29 +690,48 @@ fixedSetChildTransformation fixed child Position {x, y, winkel} scale = liftIO $
 gleisPut :: (MonadIO m) => GleisAnzeige z -> Gleis z -> Position -> m ()
 gleisPut GleisAnzeige {fixed, tvarScale, tvarGleise} gleis@Gleis {drawingArea} position =
     liftIO $ do
-        (scale, gleise) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarGleise
-        restGleise <- case partition ((== gleis) . fst) gleise of
-            ([], alleGleise) -> do
-                Gtk.widgetInsertAfter drawingArea fixed (Nothing :: Maybe Gtk.Widget)
-                pure alleGleise
-            (_gleisVorkommen, andereGleise) -> pure andereGleise
-        atomically $ writeTVar tvarGleise $ (gleis, position) : restGleise
+        (scale, gleise) <- atomically $ do
+            scale <- readTVar tvarScale
+            gleise <- readTVar tvarGleise
+            writeTVar tvarGleise $! HashMap.insert gleis position gleise
+            pure (scale, gleise)
+        when (isNothing $ HashMap.lookup gleis gleise)
+            $ Gtk.widgetInsertAfter drawingArea fixed (Nothing :: Maybe Gtk.Widget)
+        -- TODO reset connected anchor points
+        -- don't forget the other side!!!
         fixedSetChildTransformation fixed drawingArea position scale
 
--- TODO gleisAnzeigeAttach using AnchorNames
+-- | Bewege /gleisA/ anschließend an /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
+--
+-- Der Rückgabewert signalisiert ob das anfügen erfolgreich wahr. Mögliche Fehlerquellen:
+-- * /gleisB/ ist kein Teil der 'GleisAnzeige'
+-- * /anchorNameA,B/ ist kein Anchor von /gleisA,B/
+-- * /anchorNameA,B/ ist bereits verbunden
+-- TODO what about previously connected anchors?
+gleisAttach
+    :: (MonadIO m) => GleisAnzeige z -> Gleis z -> AnchorName -> Gleis z -> AnchorName -> m Bool
+gleisAttach
+    gleisAnzeige@GleisAnzeige {tvarGleise}
+    gleisA@Gleis {tvarAnchorPoints = tvarAnchorPointsA}
+    anchorNameA
+    gleisB@Gleis {tvarAnchorPoints = tvarAnchorPointsB}
+    anchorNameB = liftIO $ do
+    gleise <- readTVarIO tvarGleise
+    let maybePositionB = HashMap.lookup gleisB gleise
+    _TODO
+
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
 --
 -- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
 gleisRemove :: (MonadIO m) => GleisAnzeige z -> Gleis z -> m ()
 gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea, tvarAnchorPoints} =
     liftIO $ do
-        (gleise, anchorPoints)
-            <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarAnchorPoints
-        case partition ((== gleis) . fst) gleise of
-            ([], _alleGleise) -> pure ()
-            (_gleisVorkommen, andereGleise) -> do
-                Gtk.fixedRemove fixed drawingArea
-                atomically $ writeTVar tvarGleise andereGleise
+        (gleise, anchorPoints) <- atomically $ do
+            gleise <- readTVar tvarGleise
+            anchorPoints <- readTVar tvarAnchorPoints
+            writeTVar tvarGleise $! HashMap.delete gleis gleise
+            pure (gleise, anchorPoints)
+        when (isJust $ HashMap.lookup gleis gleise) $ Gtk.fixedRemove fixed drawingArea
         forM_ anchorPoints $ \case
             SingleAnchorPoint {} -> pure ()
             ConnectedAnchorPoint {connectedAnchor, tvarConnectedAnchors, connectedDrawingArea} -> do
@@ -749,7 +774,7 @@ gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
 gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
     atomically $ writeTVar tvarScale scale
     (gleise, bekannteLabel) <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
-    forM_ gleise $ \(Gleis {drawingArea}, position) -> do
-        fixedSetChildTransformation fixed drawingArea position scale
+    forM_ (HashMap.toList gleise) $ \(Gleis {drawingArea}, position)
+        -> fixedSetChildTransformation fixed drawingArea position scale
     forM_ bekannteLabel
         $ \(label, position) -> fixedSetChildTransformation fixed label position scale
