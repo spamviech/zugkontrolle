@@ -28,6 +28,7 @@ import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 gleisDemonstrationNew :: (MonadIO m) => m (GleisAnzeige 'Märklin)
 gleisDemonstrationNew = do
     gleisAnzeige <- gleisAnzeigeNew
+    gleisAnzeigeScale gleisAnzeige 1.3
     foldM_
         (putWithHeight gleisAnzeige)
         (0, 0)
@@ -58,7 +59,6 @@ gleisDemonstrationNew = do
         , ("5140L:", märklinKurvenWeicheLinks5140New)
         , ("5128: ", märklinKreuzung5128New)
         , ("5207: ", märklinKreuzung5207New)]
-    gleisAnzeigeScale gleisAnzeige 5
     widget <- erhalteWidget gleisAnzeige
     Gtk.widgetSetMarginTop widget padding
     Gtk.widgetSetMarginBottom widget padding

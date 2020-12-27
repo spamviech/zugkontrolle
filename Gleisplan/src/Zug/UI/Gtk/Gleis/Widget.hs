@@ -72,6 +72,7 @@ import qualified Data.Text as Text
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
+import qualified GI.Graphene as Graphene
 import qualified GI.Gsk as Gsk
 import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
@@ -645,11 +646,16 @@ fixedSetChildTransformation fixed child Position {x, y, winkel} scale = liftIO $
     -- putStrLn $ "(" ++ show x ++ ", " ++ show y ++ ": " ++ show winkel ++ ") * " ++ show scale
     let fScale = realToFrac scale
         fWinkel = realToFrac winkel
+        scaledX = realToFrac $ scale * x
+        scaledY = realToFrac $ scale * y
     transform0 <- Gsk.transformNew
-    transform1 <- Gsk.transformScale transform0 fScale fScale
-    transform2 <- Gsk.transformRotate transform1 fWinkel
-    Gtk.fixedSetChildTransform fixed child $ Just transform2
-    Gtk.fixedMove fixed child (scale * x) (scale * y)
+    point <- Graphene.newZeroPoint
+    Graphene.setPointX point scaledX
+    Graphene.setPointY point scaledY
+    transform1 <- Gsk.transformTranslate transform0 point
+    transform2 <- Gsk.transformScale transform1 fScale fScale
+    transform3 <- Gsk.transformRotate transform2 fWinkel
+    Gtk.fixedSetChildTransform fixed child $ Just transform3
 
 -- | Bewege ein 'Gleis' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
