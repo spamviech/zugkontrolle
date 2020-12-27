@@ -28,7 +28,7 @@ import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 gleisDemonstrationNew :: (MonadIO m) => m (GleisAnzeige 'Märklin)
 gleisDemonstrationNew = do
     gleisAnzeige <- gleisAnzeigeNew
-    gleisAnzeigeScale gleisAnzeige 1.3
+    gleisAnzeigeScale gleisAnzeige 1.6
     foldM_
         (putWithHeight gleisAnzeige)
         (0, 0)

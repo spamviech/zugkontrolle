@@ -7,6 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-
 ideas for rewrite with gtk4
@@ -55,12 +56,12 @@ module Zug.UI.Gtk.Gleis.Widget
   , gleisAnzeigeScale
   ) where
 
-import Control.Concurrent.STM (atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
+import Control.Concurrent.STM
+       (modifyTVar', atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar)
 import Control.Monad (when, void, forM_)
 import Control.Monad.RWS.Strict
        (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
-import Data.Bool (bool)
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
@@ -89,7 +90,6 @@ data Gleis (z :: Zugtyp) =
     , width :: Int32
     , height :: Int32
     , tvarAnchorPoints :: TVar AnchorPointMap
-    , tvarConnectedAnchors :: TVar [AnchorName]
     }
     deriving (Eq)
 
@@ -98,7 +98,7 @@ instance MitWidget (Gleis z) where
     erhalteWidget = Gtk.toWidget . drawingArea
 
 -- | Speichern aller AnchorPoints
-type AnchorPointMap = HashMap AnchorName AnchorPoint
+type AnchorPointMap = HashMap AnchorName ConnectedAnchorPoint
 
 -- | Monad Transformer zum definieren der AnchorPoints
 type AnchorPointT m a = RWST Text AnchorPointMap Natural m a
@@ -110,6 +110,18 @@ newtype AnchorName = AnchorName { anchor :: Text }
 -- | Position und ausgehender Vektor eines AnchorPoint.
 data AnchorPoint =
     AnchorPoint { anchorX :: Double, anchorY :: Double, anchorVX :: Double, anchorVY :: Double }
+    deriving (Eq, Show)
+
+-- | 'AnchorPoint' und notwendige Informationen eines verbundenen Anchors.
+data ConnectedAnchorPoint
+    = ConnectedAnchorPoint
+      { anchorPoint :: AnchorPoint
+      , connectedAnchor :: AnchorName
+      , tvarConnectedAnchors :: TVar AnchorPointMap
+      , connectedDrawingArea :: Gtk.DrawingArea
+      }
+    | SingleAnchorPoint { anchorPoint :: AnchorPoint }
+    deriving (Eq)
 
 -- | Erstelle eine AnchorPoint an der aktuellen Stelle mit Gleisfortführung in Richtung (/vx/, /vy/),
 -- angegeben in user space.
@@ -124,7 +136,11 @@ makeAnchorPoint vx vy = do
     (anchorVX, anchorVY) <- lift $ Cairo.userToDeviceDistance vx vy
     anchorName <- fmap AnchorName
         $ (<>) <$> ask <*> (Text.pack . show <$> state (\n -> (n, succ n)))
-    tell $ HashMap.singleton anchorName AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
+    tell
+        $ HashMap.singleton
+            anchorName
+            SingleAnchorPoint
+            { anchorPoint = AnchorPoint { anchorX, anchorY, anchorVX, anchorVY } }
 
 -- | Erhalte die Breite und Höhe eines 'Gleis'es.
 gleisGetSize :: Gleis z -> (Int32, Int32)
@@ -141,8 +157,8 @@ createGleisWidget :: (MonadIO m)
                   -> (Proxy z -> AnchorPointT Cairo.Render ())
                   -> m (Gleis z)
 createGleisWidget widthFn heightFn anchorBaseName draw = do
-    (tvarScale, tvarAngle, tvarAnchorPoints, tvarConnectedAnchors) <- liftIO
-        $ (,,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty <*> newTVarIO []
+    (tvarScale, tvarAngle, tvarAnchorPoints)
+        <- liftIO $ (,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty
     let width = widthFn Proxy
         height = heightFn Proxy
     drawingArea <- Gtk.drawingAreaNew
@@ -150,7 +166,7 @@ createGleisWidget widthFn heightFn anchorBaseName draw = do
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis = Gleis { drawingArea, width, height, tvarAnchorPoints, tvarConnectedAnchors }
+    let gleis = Gleis { drawingArea, width, height, tvarAnchorPoints }
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
@@ -173,20 +189,25 @@ createGleisWidget widthFn heightFn anchorBaseName draw = do
             Cairo.save
             Cairo.setLineWidth 1
             userAnchorPoints <- flip HashMap.traverseWithKey deviceAnchorPoints
-                $ \anchorName AnchorPoint
-                {anchorX = deviceX, anchorY = deviceY, anchorVX = deviceVX, anchorVY = deviceVY}
-                -> do
+                $ \_anchorName connectedAnchorPoint -> do
+                    let AnchorPoint { anchorX = deviceX
+                                    , anchorY = deviceY
+                                    , anchorVX = deviceVX
+                                    , anchorVY = deviceVY} = anchorPoint connectedAnchorPoint
                     (anchorX, anchorY) <- Cairo.deviceToUser deviceX deviceY
                     (anchorVX, anchorVY) <- Cairo.deviceToUserDistance deviceVX deviceVY
                     -- show anchors
                     let len = anchorVX * anchorVX + anchorVY * anchorVY
                     Cairo.moveTo anchorX anchorY
-                    (r, g, b) <- bool (0, 0, 1) (0, 1, 0) . elem anchorName
-                        <$> liftIO (readTVarIO tvarConnectedAnchors)
+                    let (r, g, b) = case connectedAnchorPoint of
+                            ConnectedAnchorPoint {} -> (0, 1, 0)
+                            SingleAnchorPoint {} -> (0, 0, 1)
                     Cairo.setSourceRGB r g b
                     Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
                     Cairo.stroke
-                    pure AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
+                    pure
+                        $ connectedAnchorPoint
+                        { anchorPoint = AnchorPoint { anchorX, anchorY, anchorVX, anchorVY } }
             Cairo.restore
             liftIO $ atomically $ writeTVar tvarAnchorPoints userAnchorPoints
             pure True
@@ -677,13 +698,21 @@ gleisPut GleisAnzeige {fixed, tvarScale, tvarGleise} gleis@Gleis {drawingArea} p
 --
 -- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
 gleisRemove :: (MonadIO m) => GleisAnzeige z -> Gleis z -> m ()
-gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea} = liftIO $ do
-    gleise <- readTVarIO tvarGleise
-    case partition ((== gleis) . fst) gleise of
-        ([], _alleGleise) -> pure ()
-        (_gleisVorkommen, andereGleise) -> do
-            Gtk.fixedRemove fixed drawingArea
-            atomically $ writeTVar tvarGleise andereGleise
+gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea, tvarAnchorPoints} =
+    liftIO $ do
+        (gleise, anchorPoints)
+            <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarAnchorPoints
+        case partition ((== gleis) . fst) gleise of
+            ([], _alleGleise) -> pure ()
+            (_gleisVorkommen, andereGleise) -> do
+                Gtk.fixedRemove fixed drawingArea
+                atomically $ writeTVar tvarGleise andereGleise
+        forM_ anchorPoints $ \case
+            SingleAnchorPoint {} -> pure ()
+            ConnectedAnchorPoint {connectedAnchor, tvarConnectedAnchors, connectedDrawingArea} -> do
+                atomically $ modifyTVar' tvarConnectedAnchors $ HashMap.delete connectedAnchor
+                -- redraw other gleis
+                Gtk.widgetQueueDraw connectedDrawingArea
 
 -- | Bewege ein 'Gtk.Label' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
