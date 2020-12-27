@@ -58,7 +58,7 @@ gleisDemonstrationNew = do
         , ("5140L:", märklinKurvenWeicheLinks5140New)
         , ("5128: ", märklinKreuzung5128New)
         , ("5207: ", märklinKreuzung5207New)]
-    gleisAnzeigeScale gleisAnzeige 1.4
+    gleisAnzeigeScale gleisAnzeige 5
     widget <- erhalteWidget gleisAnzeige
     Gtk.widgetSetMarginTop widget padding
     Gtk.widgetSetMarginBottom widget padding
@@ -76,11 +76,17 @@ gleisDemonstrationNew = do
                       -> m (Int32, Int32)
         putWithHeight gleisAnzeige (maxWidth, y) (text, konstruktor) = do
             label <- Gtk.labelNew $ Just text
-            gleisAnzeigePutLabel gleisAnzeige label Position { x = 0, y = fromIntegral y }
+            gleisAnzeigePutLabel
+                gleisAnzeige
+                label
+                Position { x = 0, y = fromIntegral y, winkel = 0 }
             (_reqMinLabel, reqMaxLabel) <- Gtk.widgetGetPreferredSize label
             widthLabel <- Gtk.getRequisitionWidth reqMaxLabel
             let x = padding + widthLabel
             gleis <- konstruktor
-            gleisPut gleisAnzeige gleis Position { x = fromIntegral x, y = fromIntegral y } 0
-            (width, height) <- gleisGetSize gleis
+            gleisPut
+                gleisAnzeige
+                gleis
+                Position { x = fromIntegral x, y = fromIntegral y, winkel = 0 }
+            let (width, height) = gleisGetSize gleis
             pure (max (x + width) maxWidth, y + height + padding)

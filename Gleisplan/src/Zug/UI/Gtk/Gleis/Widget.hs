@@ -1,16 +1,12 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE ViewPatterns #-}
 
 {-
 ideas for rewrite with gtk4
@@ -44,8 +40,8 @@ module Zug.UI.Gtk.Gleis.Widget
     -- * Methoden
   , gleisNew
   , gleisGetSize
-  , gleisGetWidth
-  , gleisGetHeight
+    --   , gleisGetWidth
+    --   , gleisGetHeight
     -- * Anzeige
   , GleisAnzeige()
   , Position(..)
@@ -91,8 +87,6 @@ data Gleis (z :: Zugtyp) =
     { drawingArea :: Gtk.DrawingArea
     , width :: Int32
     , height :: Int32
-    , tvarScale :: TVar Double
-    , tvarAngle :: TVar Double
     , tvarAnchorPoints :: TVar AnchorPointMap
     , tvarConnectedAnchors :: TVar [AnchorName]
     }
@@ -131,52 +125,9 @@ makeAnchorPoint vx vy = do
         $ (<>) <$> ask <*> (Text.pack . show <$> state (\n -> (n, succ n)))
     tell $ HashMap.singleton anchorName AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
 
--- | Skaliere das 'Gleis' mit dem angegebenen Faktor.
-gleisScale :: (MonadIO m) => Gleis z -> Double -> m ()
-gleisScale gleis@Gleis {tvarScale} scale = do
-    liftIO $ atomically $ writeTVar tvarScale scale
-    gleisAdjustSizeRequest gleis
-
-gleisAdjustSizeRequest :: (MonadIO m) => Gleis z -> m ()
-gleisAdjustSizeRequest gleis@Gleis {drawingArea} = do
-    (adjustedWidth, adjustedHeight) <- gleisGetSize gleis
-    Gtk.drawingAreaSetContentHeight drawingArea adjustedHeight
-    Gtk.drawingAreaSetContentWidth drawingArea adjustedWidth
-
 -- | Erhalte die Breite und Höhe eines 'Gleis'es.
-gleisGetSize :: (MonadIO m) => Gleis z -> m (Int32, Int32)
-gleisGetSize Gleis {width, height, tvarScale, tvarAngle} = do
-    (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
-    let newWidth = scale * fromIntegral width
-        newHeight = scale * fromIntegral height
-        adjustedWidth = ceiling $ abs (newWidth * cos angle) + abs (newHeight * sin angle)
-        adjustedHeight = ceiling $ abs (newHeight * cos angle) + abs (newWidth * sin angle)
-    pure (adjustedWidth, adjustedHeight)
-
--- | Erhalte die Breite eines 'Gleis'es.
-gleisGetWidth :: (MonadIO m) => Gleis z -> m Int32
-gleisGetWidth Gleis {width, height, tvarScale, tvarAngle} = do
-    (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
-    let newWidth = scale * fromIntegral width
-        newHeight = scale * fromIntegral height
-        adjustedWidth = ceiling $ abs (newWidth * cos angle) + abs (newHeight * sin angle)
-    pure adjustedWidth
-
--- | Erhalte die Höhe eines 'Gleis'es.
-gleisGetHeight :: (MonadIO m) => Gleis z -> m Int32
-gleisGetHeight Gleis {width, height, tvarScale, tvarAngle} = do
-    (scale, angle) <- liftIO $ (,) <$> readTVarIO tvarScale <*> readTVarIO tvarAngle
-    let newWidth = scale * fromIntegral width
-        newHeight = scale * fromIntegral height
-        adjustedHeight = ceiling $ abs (newHeight * cos angle) + abs (newWidth * sin angle)
-    pure adjustedHeight
-
--- | Rotation um den angegebenen /winkel/ im Gradmaß.
--- Die Rotation ist im Uhrzeigersinn (siehe 'Cairo.rotate').
-gleisRotate :: (MonadIO m) => Gleis z -> Double -> m ()
-gleisRotate gleis@Gleis {tvarAngle} angle = do
-    liftIO $ atomically $ writeTVar tvarAngle angle
-    gleisAdjustSizeRequest gleis
+gleisGetSize :: Gleis z -> (Int32, Int32)
+gleisGetSize Gleis {width, height} = (width, height)
 
 -- | Create a new 'Gtk.DrawingArea' with a fixed size set up with the specified 'Cairo.Render' /draw/ path.
 --
@@ -198,17 +149,9 @@ createGleisWidget widthFn heightFn anchorBaseName draw = do
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis =
-            Gleis
-            { drawingArea
-            , width
-            , height
-            , tvarScale
-            , tvarAngle
-            , tvarAnchorPoints
-            , tvarConnectedAnchors
-            }
-    gleisScale gleis 1
+    let gleis = Gleis { drawingArea, width, height, tvarAnchorPoints, tvarConnectedAnchors }
+    Gtk.drawingAreaSetContentHeight drawingArea height
+    Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
             (scale, angle)
@@ -675,7 +618,8 @@ data KreuzungsArt
 --
 -- /x/-Koordinate wächst nach rechts.
 -- /y/-Koordinate wächst nach unten.
-data Position = Position { x :: Double, y :: Double }
+-- /winkel/ werden im Gradmaß übergeben und beschreiben eine Rotation im Uhrzeigersinn.
+data Position = Position { x :: Double, y :: Double, winkel :: Double }
     deriving (Eq, Ord)
 
 data GleisAnzeige (z :: Zugtyp) =
@@ -694,23 +638,33 @@ gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
 gleisAnzeigeNew =
     liftIO $ GleisAnzeige <$> Gtk.fixedNew <*> newTVarIO 1 <*> newTVarIO [] <*> newTVarIO []
 
+fixedSetChildTransformation
+    :: (MonadIO m, Gtk.IsWidget w) => Gtk.Fixed -> w -> Position -> Double -> m ()
+fixedSetChildTransformation fixed child Position {x, y, winkel} scale = liftIO $ do
+    -- FIXME debug message since it refuses to work atm
+    -- putStrLn $ "(" ++ show x ++ ", " ++ show y ++ ": " ++ show winkel ++ ") * " ++ show scale
+    let fScale = realToFrac scale
+        fWinkel = realToFrac winkel
+    transform0 <- Gsk.transformNew
+    transform1 <- Gsk.transformScale transform0 fScale fScale
+    transform2 <- Gsk.transformRotate transform1 fWinkel
+    Gtk.fixedSetChildTransform fixed child $ Just transform2
+    Gtk.fixedMove fixed child (scale * x) (scale * y)
+
 -- | Bewege ein 'Gleis' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Gleis' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
--- /winkel/ werden im Gradmaß übergeben und beschreiben eine Rotation im Uhrzeigersinn.
-gleisPut :: (MonadIO m) => GleisAnzeige z -> Gleis z -> Position -> Double -> m ()
-gleisPut
-    GleisAnzeige {fixed, tvarScale, tvarGleise}
-    gleis@Gleis {drawingArea}
-    position@Position {x, y}
-    winkel = liftIO $ do
-    (scale, gleise) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarGleise
-    gleisRotate gleis winkel
-    let (restGleise, putOrMove) = case partition ((== gleis) . fst) gleise of
-            ([], alleGleise) -> (alleGleise, Gtk.fixedPut)
-            (_gleisVorkommen, andereGleise) -> (andereGleise, Gtk.fixedMove)
-    atomically $ writeTVar tvarGleise $ (gleis, position) : restGleise
-    putOrMove fixed drawingArea (scale * x) (scale * y)
+gleisPut :: (MonadIO m) => GleisAnzeige z -> Gleis z -> Position -> m ()
+gleisPut GleisAnzeige {fixed, tvarScale, tvarGleise} gleis@Gleis {drawingArea} position =
+    liftIO $ do
+        (scale, gleise) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarGleise
+        restGleise <- case partition ((== gleis) . fst) gleise of
+            ([], alleGleise) -> do
+                Gtk.widgetInsertAfter drawingArea fixed (Nothing :: Maybe Gtk.Widget)
+                pure alleGleise
+            (_gleisVorkommen, andereGleise) -> pure andereGleise
+        atomically $ writeTVar tvarGleise $ (gleis, position) : restGleise
+        fixedSetChildTransformation fixed drawingArea position scale
 
 -- TODO gleisAnzeigeAttach using AnchorNames
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
@@ -725,19 +679,20 @@ gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea} = liftIO 
             Gtk.fixedRemove fixed drawingArea
             atomically $ writeTVar tvarGleise andereGleise
 
--- TODO in gtk3 a label had an angle property as well
 -- | Bewege ein 'Gtk.Label' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Gtk.Label' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
 gleisAnzeigePutLabel :: (MonadIO m) => GleisAnzeige z -> Gtk.Label -> Position -> m ()
-gleisAnzeigePutLabel GleisAnzeige {fixed, tvarScale, tvarLabel} label position@Position {x, y} =
-    liftIO $ do
-        (scale, bekannteLabel) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarLabel
-        let (restLabel, putOrMove) = case partition ((== label) . fst) bekannteLabel of
-                ([], alleLabel) -> (alleLabel, Gtk.fixedPut)
-                (_labelVorkommen, andereLabel) -> (andereLabel, Gtk.fixedMove)
-        atomically $ writeTVar tvarLabel $ (label, position) : restLabel
-        putOrMove fixed label (scale * x) (scale * y)
+gleisAnzeigePutLabel GleisAnzeige {fixed, tvarScale, tvarLabel} label position = liftIO $ do
+    (scale, bekannteLabel) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarLabel
+    restLabel <- case partition ((== label) . fst) bekannteLabel of
+        ([], alleLabel) -> do
+            -- Gtk.widgetInsertAfter label fixed (Nothing :: Maybe Gtk.Widget)
+            Gtk.fixedPut fixed label 0 0
+            pure alleLabel
+        (_labelVorkommen, andereLabel) -> pure andereLabel
+    atomically $ writeTVar tvarLabel $ (label, position) : restLabel
+    fixedSetChildTransformation fixed label position scale
 
 -- | Entferne ein 'Gtk.Label' aus der 'GleisAnzeige'.
 --
@@ -751,7 +706,6 @@ gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
             Gtk.fixedRemove fixed label
             atomically $ writeTVar tvarLabel andereLabel
 
--- TODO scale label to appropriate size
 -- https://blog.gtk.org/2019/05/08/gtk-3-96-0/
 -- use 'fixedSetChildTransform' with a 'Gsk.Transform'
 -- might completely remove the necessity to scale/rotate drawings myself
@@ -760,16 +714,7 @@ gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
 gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
     atomically $ writeTVar tvarScale scale
     (gleise, bekannteLabel) <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
-    forM_ gleise $ \(gleis@Gleis {drawingArea}, Position {x, y}) -> do
-        gleisScale gleis scale
-        Gtk.fixedMove fixed drawingArea (scale * x) (scale * y)
-    forM_ bekannteLabel $ \(label, Position {x, y}) -> do
-        -- transformS <- Gtk.fixedGetChildTransform fixed label
-        -- transform0 <- case transformS of
-        --     (Just transform) -> pure transform
-        --     Nothing -> Gsk.transformNew
-        let fScale = realToFrac scale
-        transform0 <- Gsk.transformNew
-        transform1 <- Gsk.transformScale transform0 fScale fScale
-        Gtk.fixedSetChildTransform fixed label $ Just transform1
-        Gtk.fixedMove fixed label (scale * x) (scale * y)
+    forM_ gleise $ \(Gleis {drawingArea}, position) -> do
+        fixedSetChildTransformation fixed drawingArea position scale
+    forM_ bekannteLabel
+        $ \(label, position) -> fixedSetChildTransformation fixed label position scale
