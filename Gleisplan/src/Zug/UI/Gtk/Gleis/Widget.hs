@@ -8,6 +8,7 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiWayIf #-}
 
 {-
 ideas for rewrite with gtk4
@@ -90,7 +91,7 @@ data Gleis (z :: Zugtyp) =
     { drawingArea :: Gtk.DrawingArea
     , width :: Int32
     , height :: Int32
-    , tvarAnchorPoints :: TVar AnchorPointMap
+    , tvarAnchorPoints :: TVar ConnectedAnchorPointMap
     }
     deriving (Eq)
 
@@ -102,8 +103,11 @@ instance Hashable (Gleis z) where
     hashWithSalt :: Int -> Gleis z -> Int
     hashWithSalt salt Gleis {width, height} = hashWithSalt salt (width, height)
 
+-- | Speichern aller AnchorPoints, inklusive Verbindungen
+type ConnectedAnchorPointMap = HashMap AnchorName ConnectedAnchorPoint
+
 -- | Speichern aller AnchorPoints
-type AnchorPointMap = HashMap AnchorName ConnectedAnchorPoint
+type AnchorPointMap = HashMap AnchorName AnchorPoint
 
 -- | Monad Transformer zum definieren der AnchorPoints
 type AnchorPointT m a = RWST Text AnchorPointMap Natural m a
@@ -141,11 +145,7 @@ makeAnchorPoint vx vy = do
     (anchorVX, anchorVY) <- lift $ Cairo.userToDeviceDistance vx vy
     anchorName <- fmap AnchorName
         $ (<>) <$> ask <*> (Text.pack . show <$> state (\n -> (n, succ n)))
-    tell
-        $ HashMap.singleton
-            anchorName
-            SingleAnchorPoint
-            { anchorPoint = AnchorPoint { anchorX, anchorY, anchorVX, anchorVY } }
+    tell $ HashMap.singleton anchorName AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
 
 -- | Erhalte die Breite und Höhe eines 'Gleis'es.
 gleisGetSize :: Gleis z -> (Int32, Int32)
@@ -176,8 +176,9 @@ createGleisWidget widthFn heightFn anchorBaseName draw = do
     Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
-            (scale, angle)
-                <- liftIO $ atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarAngle
+            (scale, angle, anchorPoints) <- liftIO
+                $ atomically
+                $ (,,) <$> readTVar tvarScale <*> readTVar tvarAngle <*> readTVar tvarAnchorPoints
             Cairo.save
             let halfWidth = 0.5 * fromIntegral newWidth
                 halfHeight = 0.5 * fromIntegral newHeight
@@ -194,25 +195,22 @@ createGleisWidget widthFn heightFn anchorBaseName draw = do
             Cairo.save
             Cairo.setLineWidth 1
             userAnchorPoints <- flip HashMap.traverseWithKey deviceAnchorPoints
-                $ \_anchorName connectedAnchorPoint -> do
-                    let AnchorPoint { anchorX = deviceX
-                                    , anchorY = deviceY
-                                    , anchorVX = deviceVX
-                                    , anchorVY = deviceVY} = anchorPoint connectedAnchorPoint
+                $ \anchorName AnchorPoint
+                {anchorX = deviceX, anchorY = deviceY, anchorVX = deviceVX, anchorVY = deviceVY}
+                -> do
                     (anchorX, anchorY) <- Cairo.deviceToUser deviceX deviceY
                     (anchorVX, anchorVY) <- Cairo.deviceToUserDistance deviceVX deviceVY
                     -- show anchors
                     let len = anchorVX * anchorVX + anchorVY * anchorVY
                     Cairo.moveTo anchorX anchorY
-                    let (r, g, b) = case connectedAnchorPoint of
-                            ConnectedAnchorPoint {} -> (0, 1, 0)
-                            SingleAnchorPoint {} -> (0, 0, 1)
+                    let (r, g, b, toConnected) = case HashMap.lookup anchorName anchorPoints of
+                            (Just c@ConnectedAnchorPoint {})
+                                -> (0, 1, 0, \a -> c { anchorPoint = a })
+                            _else -> (0, 0, 1, SingleAnchorPoint)
                     Cairo.setSourceRGB r g b
                     Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
                     Cairo.stroke
-                    pure
-                        $ connectedAnchorPoint
-                        { anchorPoint = AnchorPoint { anchorX, anchorY, anchorVX, anchorVY } }
+                    pure $ toConnected AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
             Cairo.restore
             liftIO $ atomically $ writeTVar tvarAnchorPoints userAnchorPoints
             pure True
@@ -701,13 +699,13 @@ gleisPut GleisAnzeige {fixed, tvarScale, tvarGleise} gleis@Gleis {drawingArea} p
         -- don't forget the other side!!!
         fixedSetChildTransformation fixed drawingArea position scale
 
--- | Bewege /gleisA/ anschließend an /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
+-- | Bewege /gleisA/ neben /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
 --
 -- Der Rückgabewert signalisiert ob das anfügen erfolgreich wahr. Mögliche Fehlerquellen:
 -- * /gleisB/ ist kein Teil der 'GleisAnzeige'
--- * /anchorNameA,B/ ist kein Anchor von /gleisA,B/
+-- * /anchorNameA,B/ ist kein Anchor von /gleisA,B/ (vorheriger Aufruf von 'gleisPut' notwendig)
+-- TODO use pre-defined (calculated) anchor positions, so this is no longer necessary
 -- * /anchorNameA,B/ ist bereits verbunden
--- TODO what about previously connected anchors?
 gleisAttach
     :: (MonadIO m) => GleisAnzeige z -> Gleis z -> AnchorName -> Gleis z -> AnchorName -> m Bool
 gleisAttach
@@ -716,8 +714,51 @@ gleisAttach
     anchorNameA
     gleisB@Gleis {tvarAnchorPoints = tvarAnchorPointsB}
     anchorNameB = liftIO $ do
-    gleise <- readTVarIO tvarGleise
-    let maybePositionB = HashMap.lookup gleisB gleise
+    (gleise, anchorPointsA, anchorPointsB) <- atomically $ do
+        gleise <- readTVar tvarGleise
+        anchorPointsA <- readTVar tvarAnchorPointsA
+        anchorPointsB <- readTVar tvarAnchorPointsB
+        let maybePosition = case HashMap.lookup gleisB gleise of
+                Nothing -> Nothing
+                (Just Position {x = xB, y = yB, winkel = winkelB}) -> case HashMap.lookup
+                    anchorNameA
+                    anchorPointsB of
+                    (Just
+                         SingleAnchorPoint { anchorPoint = AnchorPoint { anchorX = anchorXB
+                                                                       , anchorY = anchorYB
+                                                                       , anchorVX = anchorVXB
+                                                                       , anchorVY = anchorVYB}})
+                        -> case HashMap.lookup anchorNameA anchorPointsA of
+                            (Just
+                                 SingleAnchorPoint { anchorPoint = AnchorPoint
+                                                     {anchorVX = anchorVXA, anchorVY = anchorVYA}})
+                                -> Just
+                                    Position
+                                    { x = xB + anchorXB
+                                    , y = yB + anchorYB
+                                    , winkel = winkelB
+                                          + 180 / pi
+                                          * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
+                                             - winkelMitXAchse anchorVXA anchorVYA)
+                                    }
+                                where
+                                    -- Winkel im Bogenmaß zwischen Vektor und x-Achse
+                                    -- steigt im Uhrzeigersinn
+                                    winkelMitXAchse :: Double -> Double -> Double
+                                    winkelMitXAchse vx vy =
+                                        if
+                                            | vx > 0 && vy < 0 -> 1.5 * pi
+                                                + acos (vx / (vx * vx + vy * vy))
+                                            | vx < 0 && vy < 0 -> pi
+                                                + acos (vx / (vx * vx + vy * vy))
+                                            | vx < 0 && vy > 0 -> 0.5 * pi
+                                                + acos (vx / (vx * vx + vy * vy))
+                                            | otherwise -> acos $ vx / (vx * vx + vy * vy)
+                            _otherwise -> Nothing
+                    _otherwise -> Nothing
+        -- TODO mark both anchors
+        pure (gleise, anchorPointsA, anchorPointsB)
+    -- TODO gleisPut, ohne reset der AnchorPoints
     _TODO
 
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
