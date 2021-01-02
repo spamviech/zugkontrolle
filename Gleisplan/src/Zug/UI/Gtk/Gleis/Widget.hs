@@ -51,6 +51,7 @@ module Zug.UI.Gtk.Gleis.Widget
   , gleisAnzeigeNew
     -- ** Gleis platzieren
   , gleisPut
+  , gleisAttach
   , gleisRemove
   , gleisAnzeigePutLabel
   , gleisAnzeigeRemoveLabel
@@ -58,7 +59,7 @@ module Zug.UI.Gtk.Gleis.Widget
   ) where
 
 import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar
-                             , TMVar, newEmptyTMVarIO, tryReadTMVar, tryPutTMVar)
+                             , TMVar, newEmptyTMVarIO, tryReadTMVar, tryPutTMVar, tryTakeTMVar)
 import Control.Monad (when, void, forM_)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT, runMaybeT))
@@ -66,7 +67,9 @@ import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable(hashWithSalt))
 import Data.Int (Int32)
-import Data.List (partition)
+import Data.List (partition, foldl')
+import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
 import qualified Data.RTree as RTree
@@ -78,7 +81,7 @@ import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Gleis.Anchor
-       (AnchorPoint(..), AnchorName(..), AnchorPointMap, AnchorPointRTree, mbb)
+       (AnchorPoint(..), AnchorName(..), AnchorPointMap, AnchorPointRTree, mbbSearch, mbbPoint)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade, anchorPointsGerade, widthGerade, heightGerade)
 import Zug.UI.Gtk.Gleis.Kreuzung
        (zeichneKreuzung, anchorPointsKreuzung, widthKreuzung, heightKreuzung, KreuzungsArt(..))
@@ -119,6 +122,24 @@ instance Hashable (Gleis z) where
 gleisGetSize :: Gleis z -> (Int32, Int32)
 gleisGetSize Gleis {width, height} = (width, height)
 
+translateAnchorPoint :: Position -> AnchorPoint -> (Double, Double)
+translateAnchorPoint Position {x, y, winkel} AnchorPoint {anchorX, anchorY} = (fixedX, fixedY)
+    where
+        winkelBogenmaß :: Double
+        winkelBogenmaß = pi / 180 * winkel
+
+        fixedX :: Double
+        fixedX = x + anchorX * cos winkelBogenmaß + anchorY * sin winkelBogenmaß
+
+        fixedY :: Double
+        fixedY = y + anchorX * sin winkelBogenmaß + anchorY * cos winkelBogenmaß
+
+intersections :: Position -> AnchorPoint -> AnchorPointRTree -> [Gtk.DrawingArea]
+intersections position anchorPoint knownAnchorPoints =
+    concatMap NonEmpty.toList
+    $ uncurry mbbSearch (translateAnchorPoint position anchorPoint)
+    `RTree.intersect` knownAnchorPoints
+
 -- | Create a new 'Gtk.DrawingArea' with a fixed size set up with the specified 'Cairo.Render' /draw/ path.
 --
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
@@ -148,7 +169,7 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
     let gleis = Gleis { drawingArea, width, height, anchorPoints, tmvarParentInformation }
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
+    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
         -> void $ flip Cairo.renderWithContext context $ do
             Cairo.save
             Cairo.setLineWidth 1
@@ -165,13 +186,16 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
                 fmap (, position) $ lift $ readTVar tvarAnchorPoints
             case currentParentInformation of
                 (Just (knownAnchorPoints, position)) -> forM_ anchorPoints
-                    $ \AnchorPoint {anchorX, anchorY, anchorVX, anchorVY} -> do
+                    $ \anchorPoint@AnchorPoint {anchorX, anchorY, anchorVX, anchorVY} -> do
                         Cairo.moveTo anchorX anchorY
-                        let intersections = mbb anchorX anchorY `RTree.intersect` knownAnchorPoints
+                        let r, g, b :: Double
                             (r, g, b) =
-                                if length intersections > 1
+                                if not
+                                    $ any (/= drawingArea)
+                                    $ intersections position anchorPoint knownAnchorPoints
                                     then (0, 1, 0)
                                     else (0, 0, 1)
+                            len :: Double
                             len = anchorVX * anchorVX + anchorVY * anchorVY
                         Cairo.setSourceRGB r g b
                         Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
@@ -389,6 +413,45 @@ fixedSetChildTransformation fixed child Position {x, y, winkel} scale = liftIO $
     transform3 <- Gsk.transformRotate transform2 fWinkel
     Gtk.fixedSetChildTransform fixed child $ Just transform3
 
+-- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
+-- Returns list of 'Gtk.DrawingArea' with close 'AnchorPoint' to old or new location.
+moveAnchors :: TVar AnchorPointRTree
+            -> Maybe Position
+            -> Maybe Position
+            -> Gleis z
+            -> STM [Gtk.DrawingArea]
+moveAnchors tvarAnchorPoints maybeOldPosition maybeNewPosition Gleis {drawingArea, anchorPoints} = do
+    knownAnchorPoints <- readTVar tvarAnchorPoints
+    let intersectingDrawingAreas :: Maybe Position -> [Gtk.DrawingArea]
+        intersectingDrawingAreas Nothing = []
+        intersectingDrawingAreas (Just oldPosition) =
+            foldl' (\acc anchorPoint -> filter
+                        (/= drawingArea)
+                        (intersections oldPosition anchorPoint knownAnchorPoints)
+                    <> acc) [] anchorPoints
+        otherAnchorPoints :: AnchorPointRTree
+        otherAnchorPoints =
+            RTree.mapMaybe (NonEmpty.nonEmpty . NonEmpty.filter (/= drawingArea)) knownAnchorPoints
+        newAnchorPoints :: AnchorPointRTree
+        newAnchorPoints = maybe otherAnchorPoints insertAnchorPoints maybeNewPosition
+        insertAnchorPoints :: Position -> AnchorPointRTree
+        insertAnchorPoints newPosition =
+            foldl' (\acc anchorPoint -> RTree.insertWith
+                        (<>)
+                        (uncurry mbbPoint $ translateAnchorPoint newPosition anchorPoint)
+                        (drawingArea :| [])
+                        acc) otherAnchorPoints anchorPoints
+        newIntersectingDrawingAreas :: Maybe Position -> [Gtk.DrawingArea]
+        newIntersectingDrawingAreas Nothing = []
+        newIntersectingDrawingAreas (Just newPosition) =
+            foldl' (\acc anchorPoint -> filter
+                        (/= drawingArea)
+                        (intersections newPosition anchorPoint newAnchorPoints)
+                    <> acc) [] anchorPoints
+    writeTVar tvarAnchorPoints $! newAnchorPoints
+    pure
+        $ intersectingDrawingAreas maybeOldPosition <> newIntersectingDrawingAreas maybeNewPosition
+
 -- | Bewege ein 'Gleis' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Gleis' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
@@ -399,16 +462,14 @@ gleisPut
     position = liftIO $ do
     (scale, isNew, drawingAreas) <- atomically $ do
         scale <- readTVar tvarScale
+        -- move Position
         gleise <- readTVar tvarGleise
         writeTVar tvarGleise $! HashMap.insert gleis position gleise
-        -- make sure every gleis knows about other AnchorPoints
+        -- make sure every gleis knows about other AnchorPoints/Gleis-Positions
         tryPutTMVar tmvarParentInformation (tvarAnchorPoints, tvarGleise)
-        -- TODO reset connected anchor points
-        drawingAreas <- case HashMap.lookup gleis gleise of
-            (Just oldPosition) -> do
-                undefined
-            Nothing -> pure [] :: STM [Gtk.DrawingArea]
-        -- TODO add new anchor points
+        -- move anchor points
+        drawingAreas
+            <- moveAnchors tvarAnchorPoints (HashMap.lookup gleis gleise) (Just position) gleis
         pure (scale, isNothing $ HashMap.lookup gleis gleise, drawingAreas)
     -- Queue re-draw for previously connected gleise
     forM_ drawingAreas Gtk.widgetQueueDraw
@@ -426,8 +487,8 @@ gleisAttach
     gleisA@Gleis {anchorPoints = anchorPointsA}
     anchorNameA
     gleisB@Gleis {anchorPoints = anchorPointsB}
-    anchorNameB = liftIO $ do
-    (gleise, anchorPointsA, anchorPointsB) <- atomically $ do
+    anchorNameB = liftIO $ fmap isJust $ runMaybeT $ do
+    position <- MaybeT $ atomically $ do
         gleise <- readTVar tvarGleise
         let maybePosition = do
                 Position {x = xB, y = yB, winkel = winkelB} <- HashMap.lookup gleisB gleise
@@ -455,10 +516,8 @@ gleisAttach
                     | vx < 0 && vy < 0 -> pi + acos (vx / (vx * vx + vy * vy))
                     | vx < 0 && vy > 0 -> 0.5 * pi + acos (vx / (vx * vx + vy * vy))
                     | otherwise -> acos $ vx / (vx * vx + vy * vy)
-        -- TODO mark both anchors
-        pure (gleise, anchorPointsA, anchorPointsB)
-    -- TODO gleisPut, ohne reset der AnchorPoints
-    error "_TODO"   --TODO
+        pure maybePosition
+    lift $ gleisPut gleisAnzeige gleisA position
 
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
 --
@@ -470,8 +529,9 @@ gleisRemove
     (isChild, drawingAreas) <- atomically $ do
         gleise <- readTVar tvarGleise
         writeTVar tvarGleise $! HashMap.delete gleis gleise
-        -- TODO reset connected anchorPoints
-        drawingAreas <- undefined :: STM [Gtk.DrawingArea]
+        tryTakeTMVar tmvarParentInformation
+        -- reset anchorPoints
+        drawingAreas <- moveAnchors tvarAnchorPoints (HashMap.lookup gleis gleise) Nothing gleis
         pure (isJust $ HashMap.lookup gleis gleise, drawingAreas)
     forM_ drawingAreas Gtk.widgetQueueDraw
     when isChild $ Gtk.fixedRemove fixed drawingArea

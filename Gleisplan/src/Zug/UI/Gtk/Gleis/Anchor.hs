@@ -6,7 +6,8 @@ module Zug.UI.Gtk.Gleis.Anchor
   , AnchorPoint(..)
   , AnchorPointRTree
   , AnchorPointMap
-  , mbb
+  , mbbSearch
+  , mbbPoint
   , withAnchorName
   ) where
 
@@ -24,7 +25,7 @@ import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
 -- | AnchorPoints einer 'GleisAnzeige', sortiert nach 'Position'.
-type AnchorPointRTree = RTree (NonEmpty (AnchorName, AnchorPoint, Gtk.DrawingArea))
+type AnchorPointRTree = RTree (NonEmpty Gtk.DrawingArea)
 
 -- | AnchorPoints eines 'Gleis'es mit jeweiliger Bezeichnung
 type AnchorPointMap = HashMap AnchorName AnchorPoint
@@ -40,11 +41,14 @@ data AnchorPoint =
 
 instance Hashable AnchorPoint
 
-mbb :: Double -> Double -> RTree.MBB
-mbb x y = RTree.mbb (x - epsilon) (y - epsilon) (x + epsilon) (y + epsilon)
+mbbSearch :: Double -> Double -> RTree.MBB
+mbbSearch x y = RTree.mbb (x - epsilon) (y - epsilon) (x + epsilon) (y + epsilon)
     where
         epsilon :: Double
         epsilon = 0.5
+
+mbbPoint :: Double -> Double -> RTree.MBB
+mbbPoint x y = RTree.mbb x y x y
 
 withAnchorName :: Text -> [AnchorPoint] -> AnchorPointMap
 withAnchorName anchorBaseName = snd . foldl' foldFn (0, HashMap.empty)
