@@ -147,13 +147,13 @@ anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
         , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = startHeight + 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
+          , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = startHeight - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+          , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = -sin winkelBogenmaß
           }]
@@ -163,9 +163,6 @@ anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
 
         halfHeight :: Double
         halfHeight = 0.5 * height
-
-        startHeight :: Double
-        startHeight = max 0 $ height - beschränkung proxy
 
 widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthKurvenWeiche länge radius winkelBogenmaß proxy =
