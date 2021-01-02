@@ -100,7 +100,7 @@ anchorPointsKurve radius winkelBogenmaß proxy =
           { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }]

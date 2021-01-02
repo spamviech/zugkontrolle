@@ -68,16 +68,16 @@ anchorPointsKreuzung länge radius winkelBogenmaß proxy =
     withAnchorName
         "Kreuzung"
         [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-        , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
+          , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }
         , AnchorPoint
           { anchorX = width - radius * sin winkelBogenmaß
-          , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
+          , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
           , anchorVX = -cos winkelBogenmaß
           , anchorVY = -sin winkelBogenmaß
           }]
@@ -90,6 +90,3 @@ anchorPointsKreuzung länge radius winkelBogenmaß proxy =
 
         halfHeight :: Double
         halfHeight = 0.5 * height
-
-        startHeight :: Double
-        startHeight = max 0 $ height - beschränkung proxy

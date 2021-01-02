@@ -41,7 +41,7 @@ anchorPointsGerade länge proxy =
         [ AnchorPoint
           { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
         , AnchorPoint
-          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }]
+          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = 1, anchorVY = 0 }]
 
 -- | Breite einer Gerade mit angegebener Länge.
 widthGerade :: forall (z :: Zugtyp). Double -> Proxy z -> Int32

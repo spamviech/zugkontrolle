@@ -60,10 +60,10 @@ anchorPointsWeicheRechts länge radius winkelBogenmaß proxy =
         [ AnchorPoint
           { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
         , AnchorPoint
-          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = 1, anchorVY = 0 }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }]
@@ -94,12 +94,12 @@ anchorPointsWeicheLinks länge radius winkelBogenmaß proxy =
         , AnchorPoint
           { anchorX = länge
           , anchorY = height - 0.5 * beschränkung proxy
-          , anchorVX = -1
+          , anchorVX = 1
           , anchorVY = 0
           }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = height - radius * (1 - cos winkelBogenmaß)
+          , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = -sin winkelBogenmaß
           }]
@@ -144,16 +144,16 @@ anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
     withAnchorName
         "Dreiwegeweiche"
         [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-        , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
+          , anchorY = startHeight + 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
+          , anchorY = startHeight - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = -sin winkelBogenmaß
           }]
@@ -207,13 +207,13 @@ anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy =
           { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }
         , AnchorPoint
           { anchorX = länge + radius * sin winkelBogenmaß
-          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = sin winkelBogenmaß
           }]
@@ -245,13 +245,13 @@ anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy =
           }
         , AnchorPoint
           { anchorX = radius * sin winkelBogenmaß
-          , anchorY = height - radius * (1 - cos winkelBogenmaß)
+          , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = -sin winkelBogenmaß
           }
         , AnchorPoint
           { anchorX = länge + radius * sin winkelBogenmaß
-          , anchorY = height - radius * (1 - cos winkelBogenmaß)
+          , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
           , anchorVX = cos winkelBogenmaß
           , anchorVY = -sin winkelBogenmaß
           }]
