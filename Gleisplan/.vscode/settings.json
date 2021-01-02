@@ -19,6 +19,7 @@
         "doesn",
         "elems",
         "fmap",
+        "foldl",
         "hashable",
         "succ",
         "tmvar",

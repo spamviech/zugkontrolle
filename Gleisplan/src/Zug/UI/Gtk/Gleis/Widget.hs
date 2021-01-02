@@ -10,6 +10,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-
 ideas for rewrite with gtk4
@@ -59,7 +60,8 @@ module Zug.UI.Gtk.Gleis.Widget
   ) where
 
 import Control.Concurrent.STM
-       (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar')
+       (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar', TMVar
+      , newEmptyTMVarIO, putTMVar, takeTMVar, readTMVar, tryReadTMVar, tryPutTMVar)
 import Control.Monad (foldM, when, void, forM_)
 import Control.Monad.RWS.Strict
        (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
@@ -69,12 +71,14 @@ import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable(hashWithSalt))
 import Data.Int (Int32)
 import Data.List (partition)
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
 import Data.RTree (RTree)
 import qualified Data.RTree as RTree
 import Data.Text (Text)
 import qualified Data.Text as Text
+import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
@@ -94,7 +98,8 @@ data Gleis (z :: Zugtyp) =
     { drawingArea :: Gtk.DrawingArea
     , width :: Int32
     , height :: Int32
-    , tvarAnchorPoints :: TVar AnchorPointRTree
+    , anchorPoints :: HashMap AnchorName AnchorPoint
+    , tmvarAnchorPoints :: TMVar (TVar AnchorPointRTree)
     }
     deriving (Eq)
 
@@ -104,13 +109,11 @@ instance MitWidget (Gleis z) where
 
 instance Hashable (Gleis z) where
     hashWithSalt :: Int -> Gleis z -> Int
-    hashWithSalt salt Gleis {width, height} = hashWithSalt salt (width, height)
-
--- | Speichern aller AnchorPoints, inklusive Verbindungen
-type ConnectedAnchorPointMap = HashMap AnchorName ConnectedAnchorPoint
+    hashWithSalt salt Gleis {width, height, anchorPoints} =
+        hashWithSalt salt (width, height, anchorPoints)
 
 -- | Speichern aller AnchorPoints
-type AnchorPointRTree = RTree (AnchorName, AnchorPoint)
+type AnchorPointRTree = RTree (NonEmpty (AnchorName, AnchorPoint, Gtk.DrawingArea))
 
 -- | Namen um ausgezeichnete Punkte eines 'Gleis'es anzusprechen.
 newtype AnchorName = AnchorName { anchor :: Text }
@@ -119,7 +122,9 @@ newtype AnchorName = AnchorName { anchor :: Text }
 -- | Position und ausgehender Vektor eines AnchorPoint.
 data AnchorPoint =
     AnchorPoint { anchorX :: Double, anchorY :: Double, anchorVX :: Double, anchorVY :: Double }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
+
+instance Hashable AnchorPoint
 
 mbb :: AnchorPoint -> RTree.MBB
 mbb AnchorPoint {anchorX, anchorY} =
@@ -127,17 +132,6 @@ mbb AnchorPoint {anchorX, anchorY} =
     where
         epsilon :: Double
         epsilon = 0.5
-
--- | 'AnchorPoint' und notwendige Informationen eines verbundenen Anchors.
-data ConnectedAnchorPoint
-    = ConnectedAnchorPoint
-      { anchorPoint :: AnchorPoint
-      , connectedAnchor :: AnchorName
-      , tvarConnectedAnchors :: TVar ConnectedAnchorPointMap
-      , connectedDrawingArea :: Gtk.DrawingArea
-      }
-    | SingleAnchorPoint { anchorPoint :: AnchorPoint }
-    deriving (Eq)
 
 -- | Erhalte die Breite und Höhe eines 'Gleis'es (unscaled).
 gleisGetSize :: Gleis z -> (Int32, Int32)
@@ -147,29 +141,39 @@ gleisGetSize Gleis {width, height} = (width, height)
 --
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
 -- After the action 'Cairo.stroke' is executed.
-createGleisWidget :: (MonadIO m)
+createGleisWidget :: forall m z.
+                  (MonadIO m)
                   => (Proxy z -> Int32)
                   -> (Proxy z -> Int32)
+                  -> (Proxy z -> HashMap AnchorName AnchorPoint)
                   -> (Proxy z -> Cairo.Render ())
                   -> m (Gleis z)
-createGleisWidget widthFn heightFn draw = do
-    (tvarScale, tvarAngle, tvarAnchorPoints)
-        <- liftIO $ (,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty
-    let width = widthFn Proxy
-        height = heightFn Proxy
+createGleisWidget widthFn heightFn anchorPointsFn draw = do
+    (tvarScale, tvarAngle, tmvarAnchorPoints)
+        <- liftIO $ (,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newEmptyTMVarIO
+    let proxy :: Proxy z
+        proxy = Proxy
+        width :: Int32
+        width = widthFn proxy
+        height :: Int32
+        height = heightFn proxy
+        anchorPoints :: HashMap AnchorName AnchorPoint
+        anchorPoints = anchorPointsFn proxy
     drawingArea <- Gtk.drawingAreaNew
     Gtk.widgetSetHexpand drawingArea False
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis = Gleis { drawingArea, width, height, tvarAnchorPoints }
+    let gleis = Gleis { drawingArea, width, height, anchorPoints, tmvarAnchorPoints }
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ do
-            (scale, angle, connectedAnchorPoints) <- liftIO
+            (scale, angle, knownAnchorPoints) <- liftIO
                 $ atomically
-                $ (,,) <$> readTVar tvarScale <*> readTVar tvarAngle <*> readTVar tvarAnchorPoints
+                $ (,,) <$> readTVar tvarScale
+                <*> readTVar tvarAngle
+                <*> (tryReadTMVar tmvarAnchorPoints >>= maybe (pure RTree.empty) readTVar)
             Cairo.save
             let halfWidth = 0.5 * fromIntegral newWidth
                 halfHeight = 0.5 * fromIntegral newHeight
@@ -185,26 +189,19 @@ createGleisWidget widthFn heightFn draw = do
             -- container coordinates
             Cairo.save
             Cairo.setLineWidth 1
-            userAnchorPoints <- flip HashMap.traverseWithKey _deviceAnchorPoints
-                $ \anchorName AnchorPoint
-                {anchorX = deviceX, anchorY = deviceY, anchorVX = deviceVX, anchorVY = deviceVY}
-                -> do
-                    (anchorX, anchorY) <- Cairo.deviceToUser deviceX deviceY
-                    (anchorVX, anchorVY) <- Cairo.deviceToUserDistance deviceVX deviceVY
-                    -- show anchors
-                    let len = anchorVX * anchorVX + anchorVY * anchorVY
+            forM_ anchorPoints
+                $ \anchorPoint@AnchorPoint {anchorX, anchorY, anchorVX, anchorVY} -> do
                     Cairo.moveTo anchorX anchorY
-                    let (r, g, b, toConnected) =
-                            case HashMap.lookup anchorName connectedAnchorPoints of
-                                (Just c@ConnectedAnchorPoint {})
-                                    -> (0, 1, 0, \a -> c { anchorPoint = a })
-                                _else -> (0, 0, 1, SingleAnchorPoint)
+                    let intersections = mbb anchorPoint `RTree.intersect` knownAnchorPoints
+                        (r, g, b) =
+                            if length intersections > 1
+                                then (0, 1, 0)
+                                else (0, 0, 1)
+                        len = anchorVX * anchorVX + anchorVY * anchorVY
                     Cairo.setSourceRGB r g b
                     Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
                     Cairo.stroke
-                    pure $ toConnected AnchorPoint { anchorX, anchorY, anchorVX, anchorVY }
             Cairo.restore
-            liftIO $ atomically $ writeTVar tvarAnchorPoints userAnchorPoints
             pure True
     pure gleis
 
@@ -228,7 +225,10 @@ beschränkung gleis = spurweite gleis + 2 * abstand gleis
 -- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
 geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
 geradeNew länge =
-    createGleisWidget (const $ ceiling länge) (ceiling . beschränkung) "Gerade"
+    createGleisWidget
+        (const $ ceiling länge)
+        (ceiling . beschränkung)
+        (anchorPointsGerade länge)
     $ zeichneGerade länge
 
 -- | Pfad zum Zeichnen einer Geraden der angegebenen Länge.
@@ -251,11 +251,25 @@ zeichneGerade länge proxy = do
         gleisUnten :: Double
         gleisUnten = beschränkung proxy - abstand proxy
 
-anchorPointsGerade :: forall z. (Spurweite z) => Double -> Proxy z -> [AnchorPoint]
+withAnchorName :: Text -> [AnchorPoint] -> HashMap AnchorName AnchorPoint
+withAnchorName anchorBaseName =
+    fst . foldl' (\(n, acc) anchorPoint
+                  -> ( succ n
+                     , HashMap.insert
+                           AnchorName { anchor = anchorBaseName <> Text.pack (show n) }
+                           anchorPoint
+                           acc
+                     )) (0, HashMap.empty)
+
+anchorPointsGerade
+    :: forall z. (Spurweite z) => Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsGerade länge proxy =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }]
+    withAnchorName
+        "Gerade"
+        [ AnchorPoint
+          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }]
 
 -- Märklin verwendet mittleren Kurvenradius
 -- http://www.modellbau-wiki.de/wiki/Gleisradius
@@ -281,7 +295,7 @@ kurveNew radius winkel =
     createGleisWidget
         (widthKurve radius winkelBogenmaß)
         (heightKurve radius winkelBogenmaß)
-        "Kurve"
+        (anchorPointsKurve radius winkelBogenmaß)
     $ zeichneKurve radius winkelBogenmaß AlleBeschränkungen
     where
         winkelBogenmaß :: Double
@@ -350,15 +364,18 @@ zeichneKurve radius winkel kurvenBeschränkung proxy = do
         radiusBegrenzungAußen :: Double
         radiusBegrenzungAußen = radiusAußen + abstand proxy
 
-anchorPointsKurve :: (Spurweite z) => Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsKurve :: (Spurweite z) => Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsKurve radius winkelBogenmaß proxy =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }]
+    withAnchorName
+        "Kurve"
+        [ AnchorPoint
+          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = sin winkelBogenmaß
+          }]
 
 widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthWeiche länge radius winkelBogenmaß proxy =
@@ -374,7 +391,7 @@ weicheRechtsNew länge radius winkel =
     createGleisWidget
         (widthWeiche länge radius winkelBogenmaß)
         (heightWeiche radius winkelBogenmaß)
-        "WeicheRechts"
+        (anchorPointsWeicheRechts länge radius winkelBogenmaß)
     $ zeichneWeicheRechts länge radius winkelBogenmaß
     where
         winkelBogenmaß :: Double
@@ -387,24 +404,28 @@ zeichneWeicheRechts länge radius winkel proxy = do
     Cairo.stroke
     zeichneKurve radius winkel EndBeschränkung proxy
 
-anchorPointsWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsWeicheRechts
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsWeicheRechts länge radius winkelBogenmaß proxy =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }]
+    withAnchorName
+        "WeicheRechts"
+        [ AnchorPoint
+          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = sin winkelBogenmaß
+          }]
 
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
     createGleisWidget
         (widthWeiche länge radius winkelBogenmaß)
         (heightWeiche radius winkelBogenmaß)
-        "WeicheLinks"
+        (anchorPointsWeicheLinks länge radius winkelBogenmaß)
     $ \proxy -> do
         Cairo.translate (halfWidth proxy) (halfHeight proxy)
         Cairo.transform $ Matrix 1 0 0 (-1) 0 0
@@ -420,22 +441,29 @@ weicheLinksNew länge radius winkel =
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
-anchorPointsWeicheLinks :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsWeicheLinks
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsWeicheLinks länge radius winkelBogenmaß proxy =
-    [ AnchorPoint
-      { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = länge
-      , anchorY = height - 0.5 * beschränkung proxy
-      , anchorVX = -1
-      , anchorVY = 0
-      }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = height - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
+    withAnchorName
+        "WeicheLinks"
+        [ AnchorPoint
+          { anchorX = 0
+          , anchorY = height - 0.5 * beschränkung proxy
+          , anchorVX = -1
+          , anchorVY = 0
+          }
+        , AnchorPoint
+          { anchorX = länge
+          , anchorY = height - 0.5 * beschränkung proxy
+          , anchorVX = -1
+          , anchorVY = 0
+          }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = height - radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = -sin winkelBogenmaß
+          }]
     where
         height :: Double
         height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
@@ -455,7 +483,7 @@ dreiwegeweicheNew länge radius winkel =
     createGleisWidget
         (widthDreiwegeweiche länge radius winkelBogenmaß)
         (heightDreiwegeweiche radius winkelBogenmaß)
-        "Dreiwegeweiche"
+        (anchorPointsDreiwegeweiche länge radius winkelBogenmaß)
     $ \proxy -> do
         Cairo.translate 0 $ startHeight proxy
         zeichneWeicheRechts länge radius winkelBogenmaß proxy
@@ -482,22 +510,24 @@ dreiwegeweicheNew länge radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 anchorPointsDreiwegeweiche
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
-    [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
+    withAnchorName
+        "Dreiwegeweiche"
+        [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = sin winkelBogenmaß
+          }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = -sin winkelBogenmaß
+          }]
     where
         height :: Double
         height = fromIntegral $ heightDreiwegeweiche radius winkelBogenmaß proxy
@@ -522,7 +552,7 @@ kurvenWeicheRechtsNew länge radius winkel =
     createGleisWidget
         (widthKurvenWeiche länge radius winkelBogenmaß)
         (heightKurvenWeiche radius winkelBogenmaß)
-        "KurvenWeicheRechts"
+        (anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß)
     $ zeichneKurvenWeicheRechts länge radius winkelBogenmaß
     where
         winkelBogenmaß :: Double
@@ -552,21 +582,24 @@ zeichneKurvenWeicheRechts länge radius winkel proxy = do
         gleisUnten = beschränkung proxy - abstand proxy
 
 anchorPointsKurvenWeicheRechts
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = länge + radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }]
+    withAnchorName
+        "KurvenWeicheRechts"
+        [ AnchorPoint
+          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = sin winkelBogenmaß
+          }
+        , AnchorPoint
+          { anchorX = länge + radius * sin winkelBogenmaß
+          , anchorY = radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = sin winkelBogenmaß
+          }]
 
 kurvenWeicheLinksNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
@@ -574,7 +607,7 @@ kurvenWeicheLinksNew länge radius winkel =
     createGleisWidget
         (widthKurvenWeiche länge radius winkelBogenmaß)
         (heightKurvenWeiche radius winkelBogenmaß)
-        "KurvenWeicheLinks"
+        (anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß)
     $ \proxy -> do
         Cairo.translate (halfWidth proxy) (halfHeight proxy)
         Cairo.transform $ Matrix 1 0 0 (-1) 0 0
@@ -592,22 +625,28 @@ kurvenWeicheLinksNew länge radius winkel =
         winkelBogenmaß = pi * winkel / 180
 
 anchorPointsKurvenWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy =
-    [ AnchorPoint
-      { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = height - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = länge + radius * sin winkelBogenmaß
-      , anchorY = height - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
+    withAnchorName
+        "KurvenWeicheLinks"
+        [ AnchorPoint
+          { anchorX = 0
+          , anchorY = height - 0.5 * beschränkung proxy
+          , anchorVX = -1
+          , anchorVY = 0
+          }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = height - radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = -sin winkelBogenmaß
+          }
+        , AnchorPoint
+          { anchorX = länge + radius * sin winkelBogenmaß
+          , anchorY = height - radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = -sin winkelBogenmaß
+          }]
     where
         height :: Double
         height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
@@ -632,7 +671,7 @@ kreuzungNew länge radius winkel kreuzungsArt =
     createGleisWidget
         (widthKreuzung länge radius winkelBogenmaß)
         (heightKreuzung radius winkelBogenmaß)
-        "Kreuzung"
+        (anchorPointsKreuzung länge radius winkelBogenmaß)
     $ \proxy -> do
         Cairo.translate 0 $ startHeight proxy
         zeichneGerade länge proxy
@@ -662,22 +701,25 @@ kreuzungNew länge radius winkel kreuzungsArt =
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
-anchorPointsKreuzung :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsKreuzung
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> HashMap AnchorName AnchorPoint
 anchorPointsKreuzung länge radius winkelBogenmaß proxy =
-    [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = width - radius * sin winkelBogenmaß
-      , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = -cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
+    withAnchorName
+        "Kreuzung"
+        [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+        , AnchorPoint
+          { anchorX = radius * sin winkelBogenmaß
+          , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
+          , anchorVX = cos winkelBogenmaß
+          , anchorVY = sin winkelBogenmaß
+          }
+        , AnchorPoint
+          { anchorX = width - radius * sin winkelBogenmaß
+          , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
+          , anchorVX = -cos winkelBogenmaß
+          , anchorVY = -sin winkelBogenmaß
+          }]
     where
         width :: Double
         width = fromIntegral $ widthKreuzung länge radius winkelBogenmaß proxy
@@ -743,8 +785,8 @@ data KreuzungsArt
     deriving (Eq, Show)
 
 -- | Alle 'AnchorPoint's einer 'GleisDefinition'.
-anchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> [AnchorPoint]
-anchorPoints = \case
+getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> HashMap AnchorName AnchorPoint
+getAnchorPoints = \case
     Gerade {länge} -> anchorPointsGerade länge proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
         -> anchorPointsKurve radius winkelBogenmaß proxy
@@ -759,7 +801,7 @@ anchorPoints = \case
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts}
         -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
     Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKreuzung länge radius winkel proxy
+        -> anchorPointsKreuzung länge radius winkelBogenmaß proxy
     where
         proxy :: Proxy z
         proxy = Proxy
@@ -778,6 +820,7 @@ data GleisAnzeige (z :: Zugtyp) =
     , tvarScale :: TVar Double
     , tvarGleise :: TVar (HashMap (Gleis z) Position)
     , tvarLabel :: TVar [(Gtk.Label, Position)]
+    , tvarAnchorPoints :: TVar AnchorPointRTree
     }
 
 instance MitWidget (GleisAnzeige z) where
@@ -787,7 +830,11 @@ instance MitWidget (GleisAnzeige z) where
 gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
 gleisAnzeigeNew =
     liftIO
-    $ GleisAnzeige <$> Gtk.fixedNew <*> newTVarIO 1 <*> newTVarIO HashMap.empty <*> newTVarIO []
+    $ GleisAnzeige <$> Gtk.fixedNew
+    <*> newTVarIO 1
+    <*> newTVarIO HashMap.empty
+    <*> newTVarIO []
+    <*> newTVarIO RTree.empty
 
 fixedSetChildTransformation
     :: (MonadIO m, Gtk.IsWidget w) => Gtk.Fixed -> w -> Position -> Double -> m ()
@@ -814,105 +861,72 @@ fixedSetChildTransformation fixed child Position {x, y, winkel} scale = liftIO $
 -- Wenn ein 'Gleis' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
 gleisPut :: (MonadIO m) => GleisAnzeige z -> Gleis z -> Position -> m ()
 gleisPut
-    GleisAnzeige {fixed, tvarScale, tvarGleise}
-    gleis@Gleis {drawingArea, tvarAnchorPoints}
+    GleisAnzeige {fixed, tvarScale, tvarGleise, tvarAnchorPoints}
+    gleis@Gleis {drawingArea, tmvarAnchorPoints}
     position = liftIO $ do
     (scale, gleise, drawingAreas) <- atomically $ do
         scale <- readTVar tvarScale
         gleise <- readTVar tvarGleise
         writeTVar tvarGleise $! HashMap.insert gleis position gleise
-        -- reset connected anchor points
-        anchorPoints <- readTVar tvarAnchorPoints
-        (resetAnchorPoints, drawingAreas)
-            <- foldM resetConnectedAnchorPoints (HashMap.empty, []) $ HashMap.toList anchorPoints
-        writeTVar tvarAnchorPoints $! resetAnchorPoints
+        -- make sure every gleis knows about other AnchorPoints
+        tryPutTMVar tmvarAnchorPoints tvarAnchorPoints
+        -- TODO reset connected anchor points
+        drawingAreas <- _TODO
         pure (scale, gleise, drawingAreas)
     -- Queue re-draw for previously connected gleise
     forM_ drawingAreas Gtk.widgetQueueDraw
     when (isNothing $ HashMap.lookup gleis gleise)
         $ Gtk.widgetInsertAfter drawingArea fixed (Nothing :: Maybe Gtk.Widget)
     fixedSetChildTransformation fixed drawingArea position scale
-    where
-        resetConnectedAnchorPoints :: (ConnectedAnchorPointMap, [Gtk.DrawingArea])
-                                   -> (AnchorName, ConnectedAnchorPoint)
-                                   -> STM (ConnectedAnchorPointMap, [Gtk.DrawingArea])
-        resetConnectedAnchorPoints
-            (resetAnchorPoints, drawingAreas)
-            ( anchorName
-            , ConnectedAnchorPoint
-              {anchorPoint = ap, connectedAnchor, tvarConnectedAnchors, connectedDrawingArea}
-            ) = do
-            modifyTVar' tvarConnectedAnchors
-                $ flip HashMap.adjust connectedAnchor
-                $ SingleAnchorPoint . anchorPoint
-            pure
-                ( HashMap.insert
-                      anchorName
-                      SingleAnchorPoint { anchorPoint = ap }
-                      resetAnchorPoints
-                , connectedDrawingArea : drawingAreas
-                )
-        resetConnectedAnchorPoints
-            (resetAnchorPoints, drawingAreas)
-            (anchorName, connectedAnchorPoint) =
-            pure (HashMap.insert anchorName connectedAnchorPoint resetAnchorPoints, drawingAreas)
 
 -- | Bewege /gleisA/ neben /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
 --
 -- Der Rückgabewert signalisiert ob das anfügen erfolgreich wahr. Mögliche Fehlerquellen:
 -- * /gleisB/ ist kein Teil der 'GleisAnzeige'
--- * /anchorNameA,B/ ist kein Anchor von /gleisA,B/ (vorheriger Aufruf von 'gleisPut' notwendig)
--- TODO use pre-defined (calculated) anchor positions, so this is no longer necessary
--- * /anchorNameA,B/ ist bereits verbunden
 gleisAttach
     :: (MonadIO m) => GleisAnzeige z -> Gleis z -> AnchorName -> Gleis z -> AnchorName -> m Bool
 gleisAttach
     gleisAnzeige@GleisAnzeige {tvarGleise}
-    gleisA@Gleis {tvarAnchorPoints = tvarAnchorPointsA}
+    gleisA@Gleis {anchorPoints = anchorPointsA}
     anchorNameA
-    gleisB@Gleis {tvarAnchorPoints = tvarAnchorPointsB}
+    gleisB@Gleis {anchorPoints = anchorPointsB}
     anchorNameB = liftIO $ do
     (gleise, anchorPointsA, anchorPointsB) <- atomically $ do
         gleise <- readTVar tvarGleise
-        anchorPointsA <- readTVar tvarAnchorPointsA
-        anchorPointsB <- readTVar tvarAnchorPointsB
         let maybePosition = case HashMap.lookup gleisB gleise of
                 Nothing -> Nothing
                 (Just Position {x = xB, y = yB, winkel = winkelB}) -> case HashMap.lookup
                     anchorNameA
                     anchorPointsB of
                     (Just
-                         SingleAnchorPoint { anchorPoint = AnchorPoint { anchorX = anchorXB
-                                                                       , anchorY = anchorYB
-                                                                       , anchorVX = anchorVXB
-                                                                       , anchorVY = anchorVYB}})
-                        -> case HashMap.lookup anchorNameA anchorPointsA of
-                            (Just
-                                 SingleAnchorPoint { anchorPoint = AnchorPoint
-                                                     {anchorVX = anchorVXA, anchorVY = anchorVYA}})
-                                -> Just
-                                    Position
-                                    { x = xB + anchorXB
-                                    , y = yB + anchorYB
-                                    , winkel = winkelB
-                                          + 180 / pi
-                                          * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
-                                             - winkelMitXAchse anchorVXA anchorVYA)
-                                    }
-                                where
-                                    -- Winkel im Bogenmaß zwischen Vektor und x-Achse
-                                    -- steigt im Uhrzeigersinn
-                                    winkelMitXAchse :: Double -> Double -> Double
-                                    winkelMitXAchse vx vy =
-                                        if
-                                            | vx > 0 && vy < 0 -> 1.5 * pi
-                                                + acos (vx / (vx * vx + vy * vy))
-                                            | vx < 0 && vy < 0 -> pi
-                                                + acos (vx / (vx * vx + vy * vy))
-                                            | vx < 0 && vy > 0 -> 0.5 * pi
-                                                + acos (vx / (vx * vx + vy * vy))
-                                            | otherwise -> acos $ vx / (vx * vx + vy * vy)
-                            _otherwise -> Nothing
+                         AnchorPoint { anchorX = anchorXB
+                                     , anchorY = anchorYB
+                                     , anchorVX = anchorVXB
+                                     , anchorVY = anchorVYB}) -> case HashMap.lookup
+                        anchorNameA
+                        anchorPointsA of
+                        (Just AnchorPoint {anchorVX = anchorVXA, anchorVY = anchorVYA}) -> Just
+                            Position
+                            { x = xB + anchorXB
+                            , y = yB + anchorYB
+                            , winkel = winkelB
+                                  + 180 / pi
+                                  * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
+                                     - winkelMitXAchse anchorVXA anchorVYA)
+                            }
+                            where
+                                -- Winkel im Bogenmaß zwischen Vektor und x-Achse
+                                -- steigt im Uhrzeigersinn
+                                winkelMitXAchse :: Double -> Double -> Double
+                                winkelMitXAchse vx vy =
+                                    if
+                                        | vx > 0 && vy < 0 -> 1.5 * pi
+                                            + acos (vx / (vx * vx + vy * vy))
+                                        | vx < 0 && vy < 0 -> pi + acos (vx / (vx * vx + vy * vy))
+                                        | vx < 0 && vy > 0 -> 0.5 * pi
+                                            + acos (vx / (vx * vx + vy * vy))
+                                        | otherwise -> acos $ vx / (vx * vx + vy * vy)
+                        _otherwise -> Nothing
                     _otherwise -> Nothing
         -- TODO mark both anchors
         pure (gleise, anchorPointsA, anchorPointsB)
@@ -923,20 +937,17 @@ gleisAttach
 --
 -- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
 gleisRemove :: (MonadIO m) => GleisAnzeige z -> Gleis z -> m ()
-gleisRemove GleisAnzeige {fixed, tvarGleise} gleis@Gleis {drawingArea, tvarAnchorPoints} =
-    liftIO $ do
-        (gleise, anchorPoints) <- atomically $ do
-            gleise <- readTVar tvarGleise
-            anchorPoints <- readTVar tvarAnchorPoints
-            writeTVar tvarGleise $! HashMap.delete gleis gleise
-            pure (gleise, anchorPoints)
-        when (isJust $ HashMap.lookup gleis gleise) $ Gtk.fixedRemove fixed drawingArea
-        forM_ anchorPoints $ \case
-            SingleAnchorPoint {} -> pure ()
-            ConnectedAnchorPoint {connectedAnchor, tvarConnectedAnchors, connectedDrawingArea} -> do
-                atomically $ modifyTVar' tvarConnectedAnchors $ HashMap.delete connectedAnchor
-                -- redraw other gleis
-                Gtk.widgetQueueDraw connectedDrawingArea
+gleisRemove
+    GleisAnzeige {fixed, tvarGleise, tvarAnchorPoints}
+    gleis@Gleis {drawingArea, tmvarAnchorPoints} = liftIO $ do
+    (gleise, drawingAreas) <- atomically $ do
+        gleise <- readTVar tvarGleise
+        writeTVar tvarGleise $! HashMap.delete gleis gleise
+        -- TODO get connected anchorPoints
+        drawingAreas <- _TODO
+        pure (gleise, drawingAreas)
+    when (isJust $ HashMap.lookup gleis gleise) $ Gtk.fixedRemove fixed drawingArea
+    forM_ drawingAreas Gtk.widgetQueueDraw
 
 -- | Bewege ein 'Gtk.Label' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
