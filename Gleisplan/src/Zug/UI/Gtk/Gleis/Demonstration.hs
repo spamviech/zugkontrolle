@@ -20,9 +20,8 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
       , märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
       , märklinKreuzung5207New, Zugtyp(Märklin))
-import Zug.UI.Gtk.Gleis.Widget
-       (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisAttach, gleisGetSize, Gleis
-      , gleisAnzeigePutLabel, Position(..), gleisAnzeigeScale, AnchorName(..))
+import Zug.UI.Gtk.Gleis.Widget (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize, Gleis
+                              , gleisAnzeigePutLabel, Position(..), gleisAnzeigeScale)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
@@ -90,11 +89,4 @@ gleisDemonstrationNew = do
                 gleis
                 Position { x = fromIntegral x, y = fromIntegral y, winkel = 0 }
             let (width, height) = gleisGetSize gleis
-            gleis2 <- konstruktor
-            gleisAttach
-                gleisAnzeige
-                gleis2
-                AnchorName { anchor = "Kurve0" }
-                gleis
-                AnchorName { anchor = "Kurve1" }
             pure (max (x + width) maxWidth, y + height + padding)

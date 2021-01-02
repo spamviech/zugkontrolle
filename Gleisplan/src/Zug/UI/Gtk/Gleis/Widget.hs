@@ -131,7 +131,7 @@ translateAnchorPoint Position {x, y, winkel} AnchorPoint {anchorX, anchorY} = (f
         winkelBogenmaß = pi / 180 * winkel
 
         fixedX :: Double
-        fixedX = x + anchorX * cos winkelBogenmaß + anchorY * sin winkelBogenmaß
+        fixedX = x + anchorX * cos winkelBogenmaß - anchorY * sin winkelBogenmaß
 
         fixedY :: Double
         fixedY = y + anchorX * sin winkelBogenmaß + anchorY * cos winkelBogenmaß
