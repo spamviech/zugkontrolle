@@ -71,6 +71,8 @@ import Data.Int (Int32)
 import Data.List (partition)
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
+import Data.RTree (RTree)
+import qualified Data.RTree as RTree
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified GI.Cairo.Render as Cairo
@@ -92,7 +94,7 @@ data Gleis (z :: Zugtyp) =
     { drawingArea :: Gtk.DrawingArea
     , width :: Int32
     , height :: Int32
-    , tvarAnchorPoints :: TVar ConnectedAnchorPointMap
+    , tvarAnchorPoints :: TVar AnchorPointRTree
     }
     deriving (Eq)
 
@@ -108,7 +110,7 @@ instance Hashable (Gleis z) where
 type ConnectedAnchorPointMap = HashMap AnchorName ConnectedAnchorPoint
 
 -- | Speichern aller AnchorPoints
-type AnchorPointMap = HashMap AnchorName AnchorPoint
+type AnchorPointRTree = RTree (AnchorName, AnchorPoint)
 
 -- | Namen um ausgezeichnete Punkte eines 'Gleis'es anzusprechen.
 newtype AnchorName = AnchorName { anchor :: Text }
@@ -118,6 +120,13 @@ newtype AnchorName = AnchorName { anchor :: Text }
 data AnchorPoint =
     AnchorPoint { anchorX :: Double, anchorY :: Double, anchorVX :: Double, anchorVY :: Double }
     deriving (Eq, Show)
+
+mbb :: AnchorPoint -> RTree.MBB
+mbb AnchorPoint {anchorX, anchorY} =
+    RTree.mbb (anchorX - epsilon) (anchorY - epsilon) (anchorX + epsilon) (anchorY + epsilon)
+    where
+        epsilon :: Double
+        epsilon = 0.5
 
 -- | 'AnchorPoint' und notwendige Informationen eines verbundenen Anchors.
 data ConnectedAnchorPoint
@@ -141,10 +150,9 @@ gleisGetSize Gleis {width, height} = (width, height)
 createGleisWidget :: (MonadIO m)
                   => (Proxy z -> Int32)
                   -> (Proxy z -> Int32)
-                  -> Text
                   -> (Proxy z -> Cairo.Render ())
                   -> m (Gleis z)
-createGleisWidget widthFn heightFn anchorBaseName draw = do
+createGleisWidget widthFn heightFn draw = do
     (tvarScale, tvarAngle, tvarAnchorPoints)
         <- liftIO $ (,,) <$> newTVarIO 1 <*> newTVarIO 0 <*> newTVarIO HashMap.empty
     let width = widthFn Proxy
@@ -243,6 +251,12 @@ zeichneGerade länge proxy = do
         gleisUnten :: Double
         gleisUnten = beschränkung proxy - abstand proxy
 
+anchorPointsGerade :: forall z. (Spurweite z) => Double -> Proxy z -> [AnchorPoint]
+anchorPointsGerade länge proxy =
+    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }]
+
 -- Märklin verwendet mittleren Kurvenradius
 -- http://www.modellbau-wiki.de/wiki/Gleisradius
 radiusBegrenzung :: (Spurweite z) => Double -> Proxy z -> Double
@@ -336,6 +350,16 @@ zeichneKurve radius winkel kurvenBeschränkung proxy = do
         radiusBegrenzungAußen :: Double
         radiusBegrenzungAußen = radiusAußen + abstand proxy
 
+anchorPointsKurve :: (Spurweite z) => Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsKurve radius winkelBogenmaß proxy =
+    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = sin winkelBogenmaß
+      }]
+
 widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthWeiche länge radius winkelBogenmaß proxy =
     max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
@@ -363,6 +387,18 @@ zeichneWeicheRechts länge radius winkel proxy = do
     Cairo.stroke
     zeichneKurve radius winkel EndBeschränkung proxy
 
+anchorPointsWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsWeicheRechts länge radius winkelBogenmaß proxy =
+    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = sin winkelBogenmaß
+      }]
+
 weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 weicheLinksNew länge radius winkel =
     createGleisWidget
@@ -383,6 +419,26 @@ weicheLinksNew länge radius winkel =
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
+
+anchorPointsWeicheLinks :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsWeicheLinks länge radius winkelBogenmaß proxy =
+    [ AnchorPoint
+      { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = länge
+      , anchorY = height - 0.5 * beschränkung proxy
+      , anchorVX = -1
+      , anchorVY = 0
+      }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = height - radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = -sin winkelBogenmaß
+      }]
+    where
+        height :: Double
+        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
 
 widthDreiwegeweiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthDreiwegeweiche länge radius winkelBogenmaß proxy =
@@ -424,6 +480,33 @@ dreiwegeweicheNew länge radius winkel =
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
+
+anchorPointsDreiwegeweiche
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
+    [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = sin winkelBogenmaß
+      }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = -sin winkelBogenmaß
+      }]
+    where
+        height :: Double
+        height = fromIntegral $ heightDreiwegeweiche radius winkelBogenmaß proxy
+
+        halfHeight :: Double
+        halfHeight = 0.5 * height
+
+        startHeight :: Double
+        startHeight = max 0 $ height - beschränkung proxy
 
 widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthKurvenWeiche länge radius winkelBogenmaß proxy =
@@ -468,6 +551,23 @@ zeichneKurvenWeicheRechts länge radius winkel proxy = do
         gleisUnten :: Double
         gleisUnten = beschränkung proxy - abstand proxy
 
+anchorPointsKurvenWeicheRechts
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy =
+    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = sin winkelBogenmaß
+      }
+    , AnchorPoint
+      { anchorX = länge + radius * sin winkelBogenmaß
+      , anchorY = radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = sin winkelBogenmaß
+      }]
+
 kurvenWeicheLinksNew
     :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
 kurvenWeicheLinksNew länge radius winkel =
@@ -490,6 +590,27 @@ kurvenWeicheLinksNew länge radius winkel =
 
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
+
+anchorPointsKurvenWeicheLinks
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy =
+    [ AnchorPoint
+      { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = height - radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = -sin winkelBogenmaß
+      }
+    , AnchorPoint
+      { anchorX = länge + radius * sin winkelBogenmaß
+      , anchorY = height - radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = -sin winkelBogenmaß
+      }]
+    where
+        height :: Double
+        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
 
 widthKreuzung :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthKreuzung länge radius winkelBogenmaß proxy =
@@ -541,6 +662,35 @@ kreuzungNew länge radius winkel kreuzungsArt =
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
 
+anchorPointsKreuzung :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> [AnchorPoint]
+anchorPointsKreuzung länge radius winkelBogenmaß proxy =
+    [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+    , AnchorPoint
+      { anchorX = radius * sin winkelBogenmaß
+      , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
+      , anchorVX = cos winkelBogenmaß
+      , anchorVY = sin winkelBogenmaß
+      }
+    , AnchorPoint
+      { anchorX = width - radius * sin winkelBogenmaß
+      , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
+      , anchorVX = -cos winkelBogenmaß
+      , anchorVY = -sin winkelBogenmaß
+      }]
+    where
+        width :: Double
+        width = fromIntegral $ widthKreuzung länge radius winkelBogenmaß proxy
+
+        height :: Double
+        height = fromIntegral $ heightKreuzung radius winkelBogenmaß proxy
+
+        halfHeight :: Double
+        halfHeight = 0.5 * height
+
+        startHeight :: Double
+        startHeight = max 0 $ height - beschränkung proxy
+
 -- | Erstelle ein neues 'Gleis'.
 gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
 gleisNew Gerade {länge} = geradeNew länge
@@ -590,161 +740,29 @@ data WeichenRichtung
 data KreuzungsArt
     = MitKurve
     | OhneKurve
+    deriving (Eq, Show)
 
 -- | Alle 'AnchorPoint's einer 'GleisDefinition'.
 anchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> [AnchorPoint]
-anchorPoints Gerade {länge} =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }]
+anchorPoints = \case
+    Gerade {länge} -> anchorPointsGerade länge proxy
+    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> anchorPointsKurve radius winkelBogenmaß proxy
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts}
+        -> anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Links}
+        -> anchorPointsWeicheLinks länge radius winkelBogenmaß proxy
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
+        -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links}
+        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts}
+        -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
+    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> anchorPointsKreuzung länge radius winkel proxy
     where
         proxy :: Proxy z
         proxy = Proxy
-anchorPoints Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)} =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-anchorPoints
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts} =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-anchorPoints
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Links} =
-    [ AnchorPoint
-      { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = länge
-      , anchorY = height - 0.5 * beschränkung proxy
-      , anchorVX = -1
-      , anchorVY = 0
-      }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = height - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-
-        height :: Double
-        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
-anchorPoints
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege} =
-    [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-
-        height :: Double
-        height = fromIntegral $ heightDreiwegeweiche radius winkelBogenmaß proxy
-
-        halfHeight :: Double
-        halfHeight = 0.5 * height
-
-        startHeight :: Double
-        startHeight = max 0 $ height - beschränkung proxy
-anchorPoints
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links} =
-    [ AnchorPoint { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = länge + radius * sin winkelBogenmaß
-      , anchorY = radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-anchorPoints
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts} =
-    [ AnchorPoint
-      { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = height - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = länge + radius * sin winkelBogenmaß
-      , anchorY = height - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-
-        height :: Double
-        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
-anchorPoints Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)} =
-    [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-    , AnchorPoint
-      { anchorX = radius * sin winkelBogenmaß
-      , anchorY = startHeight + radius * (1 - cos winkelBogenmaß)
-      , anchorVX = cos winkelBogenmaß
-      , anchorVY = sin winkelBogenmaß
-      }
-    , AnchorPoint
-      { anchorX = width - radius * sin winkelBogenmaß
-      , anchorY = startHeight - radius * (1 - cos winkelBogenmaß)
-      , anchorVX = -cos winkelBogenmaß
-      , anchorVY = -sin winkelBogenmaß
-      }]
-    where
-        proxy :: Proxy z
-        proxy = Proxy
-
-        width :: Double
-        width = fromIntegral $ widthKreuzung länge radius winkelBogenmaß proxy
-
-        height :: Double
-        height = fromIntegral $ heightKreuzung radius winkelBogenmaß proxy
-
-        halfHeight :: Double
-        halfHeight = 0.5 * height
-
-        startHeight :: Double
-        startHeight = max 0 $ height - beschränkung proxy
 
 -- | Postion auf einer 'Gleisanzeige'.
 --
