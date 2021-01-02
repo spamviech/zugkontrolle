@@ -45,7 +45,7 @@ mbbSearch :: Double -> Double -> RTree.MBB
 mbbSearch x y = RTree.mbb (x - epsilon) (y - epsilon) (x + epsilon) (y + epsilon)
     where
         epsilon :: Double
-        epsilon = 0.5
+        epsilon = 2.5
 
 mbbPoint :: Double -> Double -> RTree.MBB
 mbbPoint x y = RTree.mbb x y x y

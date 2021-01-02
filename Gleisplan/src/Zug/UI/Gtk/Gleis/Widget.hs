@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE KindSignatures #-}
@@ -6,7 +7,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -52,6 +52,7 @@ module Zug.UI.Gtk.Gleis.Widget
     -- ** Gleis platzieren
   , gleisPut
   , gleisAttach
+  , AttachError
   , gleisRemove
   , gleisAnzeigePutLabel
   , gleisAnzeigeRemoveLabel
@@ -62,6 +63,7 @@ import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVarIO, rea
                              , TMVar, newEmptyTMVarIO, tryReadTMVar, tryPutTMVar, tryTakeTMVar)
 import Control.Monad (when, void, forM_)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
+import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT, runMaybeT))
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
@@ -193,8 +195,8 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
                                 if not
                                     $ any (/= drawingArea)
                                     $ intersections position anchorPoint knownAnchorPoints
-                                    then (0, 1, 0)
-                                    else (0, 0, 1)
+                                    then (0, 0, 1)
+                                    else (0, 1, 0)
                             len :: Double
                             len = anchorVX * anchorVX + anchorVY * anchorVY
                         Cairo.setSourceRGB r g b
@@ -476,32 +478,50 @@ gleisPut
     when isNew $ Gtk.widgetInsertAfter drawingArea fixed (Nothing :: Maybe Gtk.Widget)
     fixedSetChildTransformation fixed drawingArea position scale
 
+data AttachError
+    = GleisBNotFount
+    | AnchorBNotFound
+    | AnchorANotFount
+    deriving (Eq, Show)
+
 -- | Bewege /gleisA/ neben /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
 --
 -- Der Rückgabewert signalisiert ob das anfügen erfolgreich wahr. Mögliche Fehlerquellen:
--- * /gleisB/ ist kein Teil der 'GleisAnzeige'
-gleisAttach
-    :: (MonadIO m) => GleisAnzeige z -> Gleis z -> AnchorName -> Gleis z -> AnchorName -> m Bool
+-- * /gleisB/ ist kein Teil der 'GleisAnzeige'.
+-- * /anchorB/ ist kein 'AnchorPoint' von /gleisB/.
+-- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
+gleisAttach :: (MonadIO m)
+            => GleisAnzeige z
+            -> Gleis z
+            -> AnchorName
+            -> Gleis z
+            -> AnchorName
+            -> m (Either AttachError ())
 gleisAttach
     gleisAnzeige@GleisAnzeige {tvarGleise}
     gleisA@Gleis {anchorPoints = anchorPointsA}
     anchorNameA
     gleisB@Gleis {anchorPoints = anchorPointsB}
-    anchorNameB = liftIO $ fmap isJust $ runMaybeT $ do
-    position <- MaybeT $ atomically $ do
+    anchorNameB = liftIO $ runExceptT $ do
+    position <- ExceptT $ atomically $ do
         gleise <- readTVar tvarGleise
         let maybePosition = do
-                Position {x = xB, y = yB, winkel = winkelB} <- HashMap.lookup gleisB gleise
+                Position {x = xB, y = yB, winkel = winkelB} <- maybe (Left GleisBNotFount) Right
+                    $ HashMap.lookup gleisB gleise
                 AnchorPoint { anchorX = anchorXB
                             , anchorY = anchorYB
                             , anchorVX = anchorVXB
-                            , anchorVY = anchorVYB} <- HashMap.lookup anchorNameB anchorPointsB
-                AnchorPoint {anchorVX = anchorVXA, anchorVY = anchorVYA}
-                    <- HashMap.lookup anchorNameA anchorPointsA
+                            , anchorVY = anchorVYB} <- maybe (Left AnchorBNotFound) Right
+                    $ HashMap.lookup anchorNameB anchorPointsB
+                AnchorPoint { anchorX = anchorXA
+                            , anchorY = anchorYA
+                            , anchorVX = anchorVXA
+                            , anchorVY = anchorVYA} <- maybe (Left AnchorANotFount) Right
+                    $ HashMap.lookup anchorNameA anchorPointsA
                 pure
                     Position
-                    { x = xB + anchorXB
-                    , y = yB + anchorYB
+                    { x = xB + anchorXB - anchorXA
+                    , y = yB + anchorYB - anchorYA
                     , winkel = winkelB
                           + 180 / pi
                           * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
@@ -511,11 +531,15 @@ gleisAttach
             -- steigt im Uhrzeigersinn
             winkelMitXAchse :: Double -> Double -> Double
             winkelMitXAchse vx vy =
-                if
-                    | vx > 0 && vy < 0 -> 1.5 * pi + acos (vx / (vx * vx + vy * vy))
-                    | vx < 0 && vy < 0 -> pi + acos (vx / (vx * vx + vy * vy))
-                    | vx < 0 && vy > 0 -> 0.5 * pi + acos (vx / (vx * vx + vy * vy))
-                    | otherwise -> acos $ vx / (vx * vx + vy * vy)
+                if vy < 0
+                    then -acosWinkel
+                    else acosWinkel
+                where
+                    len :: Double
+                    len = vx * vx + vy * vy
+
+                    acosWinkel :: Double
+                    acosWinkel = acos $ vx / len
         pure maybePosition
     lift $ gleisPut gleisAnzeige gleisA position
 
