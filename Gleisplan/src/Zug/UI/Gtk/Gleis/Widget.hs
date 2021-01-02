@@ -518,14 +518,26 @@ gleisAttach
                             , anchorVX = anchorVXA
                             , anchorVY = anchorVYA} <- maybe (Left AnchorANotFount) Right
                     $ HashMap.lookup anchorNameA anchorPointsA
+                let winkelA :: Double
+                    winkelA = winkelB + 180 / pi * anchorWinkelDifferenzBogenmaß
+                    winkelBBogenmaß :: Double
+                    winkelBBogenmaß = pi / 180 * winkelB
+                    anchorWinkelDifferenzBogenmaß :: Double
+                    anchorWinkelDifferenzBogenmaß =
+                        winkelMitXAchse (-anchorVXB) (-anchorVYB)
+                        - winkelMitXAchse anchorVXA anchorVYA
+                    winkelABogenmaß :: Double
+                    winkelABogenmaß = winkelBBogenmaß + anchorWinkelDifferenzBogenmaß
                 pure
                     Position
-                    { x = xB + anchorXB - anchorXA
-                    , y = yB + anchorYB - anchorYA
-                    , winkel = winkelB
-                          + 180 / pi
-                          * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
-                             - winkelMitXAchse anchorVXA anchorVYA)
+                    { x = xB + anchorXB * cos winkelBBogenmaß
+                          - anchorYB * sin winkelBBogenmaß
+                          - anchorXA * cos winkelABogenmaß
+                          + anchorYA * sin winkelABogenmaß
+                    , y = yB + anchorXB * sin winkelBBogenmaß + anchorYB * cos winkelBBogenmaß
+                          - anchorXA * sin winkelABogenmaß
+                          - anchorYA * cos winkelABogenmaß
+                    , winkel = winkelA
                     }
             -- Winkel im Bogenmaß zwischen Vektor und x-Achse
             -- steigt im Uhrzeigersinn
