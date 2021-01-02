@@ -270,7 +270,7 @@ märklinKurvenWeicheRechts5140New :: (MonadIO m) => m (Gleis 'Märklin)
 märklinKurvenWeicheRechts5140New = gleisNew $ märklinKurvenWeiche5140 Rechts
 
 märklinKurvenWeicheLinks5140New :: (MonadIO m) => m (Gleis 'Märklin)
-märklinKurvenWeicheLinks5140New = gleisNew $ märklinKurvenWeiche5140 Rechts
+märklinKurvenWeicheLinks5140New = gleisNew $ märklinKurvenWeiche5140 Links
 
 {-
 Kreuzung
