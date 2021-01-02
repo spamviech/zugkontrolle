@@ -20,9 +20,15 @@ extra-source-files:
 library
   exposed-modules:
       Zug.Enums
+      Zug.UI.Gtk.Gleis.Anchor
       Zug.UI.Gtk.Gleis.Demonstration
+      Zug.UI.Gtk.Gleis.Gerade
+      Zug.UI.Gtk.Gleis.Kreuzung
+      Zug.UI.Gtk.Gleis.Kurve
       Zug.UI.Gtk.Gleis.Lego
       Zug.UI.Gtk.Gleis.Maerklin
+      Zug.UI.Gtk.Gleis.Spurweite
+      Zug.UI.Gtk.Gleis.Weiche
       Zug.UI.Gtk.Gleis.Widget
       Zug.UI.Gtk.Klassen
       Zug.UI.Gtk.Klassen.TemplateHaskell
@@ -48,6 +54,7 @@ library
     , stm >=2.5 && <2.6
     , template-haskell >=2.16 && <3
     , text >=1.2 && <1.3
+    , transformers >=0.5.6.2 && <0.6
     , unordered-containers >=0.2.13 && <0.3
   default-language: Haskell2010
 
@@ -76,5 +83,6 @@ executable Gleisplan
     , stm >=2.5 && <2.6
     , template-haskell >=2.16 && <3
     , text >=1.2 && <1.3
+    , transformers >=0.5.6.2 && <0.6
     , unordered-containers >=0.2.13 && <0.3
   default-language: Haskell2010
