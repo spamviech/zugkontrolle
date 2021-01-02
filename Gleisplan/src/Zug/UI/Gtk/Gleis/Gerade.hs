@@ -1,4 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ExplicitForAll #-}
 
 module Zug.UI.Gtk.Gleis.Gerade (zeichneGerade, anchorPointsGerade, widthGerade, heightGerade) where
 
@@ -6,6 +9,7 @@ import Data.Int (Int32)
 import Data.Proxy (Proxy())
 import qualified GI.Cairo.Render as Cairo
 
+import Zug.Enums (Zugtyp())
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(), beschränkung, abstand)
 
@@ -40,7 +44,7 @@ anchorPointsGerade länge proxy =
           { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }]
 
 -- | Breite einer Gerade mit angegebener Länge.
-widthGerade :: Double -> Proxy z -> Int32
+widthGerade :: forall (z :: Zugtyp). Double -> Proxy z -> Int32
 widthGerade länge = const $ ceiling länge
 
 -- | Höhe einer Gerade beliebiger Länge.

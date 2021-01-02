@@ -1,17 +1,14 @@
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE DeriveGeneric #-}
 
 {-
 ideas for rewrite with gtk4
@@ -60,45 +57,40 @@ module Zug.UI.Gtk.Gleis.Widget
   , gleisAnzeigeScale
   ) where
 
-import Control.Concurrent.STM
-       (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar', TMVar
-      , newEmptyTMVarIO, putTMVar, takeTMVar, readTMVar, tryReadTMVar, tryPutTMVar)
-import Control.Monad (foldM, when, void, forM_)
-import Control.Monad.RWS.Strict
-       (RWST(), MonadReader(ask), MonadState(state), MonadWriter(tell), execRWST)
+import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar
+                             , TMVar, newEmptyTMVarIO, tryReadTMVar, tryPutTMVar)
+import Control.Monad (when, void, forM_)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT, runMaybeT))
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable(hashWithSalt))
 import Data.Int (Int32)
-import Data.List (partition, foldl')
-import Data.List.NonEmpty (NonEmpty((:|)))
+import Data.List (partition)
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
-import Data.RTree (RTree)
 import qualified Data.RTree as RTree
-import Data.Text (Text)
-import qualified Data.Text as Text
-import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
-import GI.Cairo.Render.Matrix (Matrix(Matrix))
 import qualified GI.Graphene as Graphene
 import qualified GI.Gsk as Gsk
 import qualified GI.Gtk as Gtk
-import Numeric.Natural (Natural)
 
 import Zug.Enums (Zugtyp(..))
-import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorName(..), AnchorPointMap, AnchorPointRTree)
+import Zug.UI.Gtk.Gleis.Anchor
+       (AnchorPoint(..), AnchorName(..), AnchorPointMap, AnchorPointRTree, mbb)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade, anchorPointsGerade, widthGerade, heightGerade)
 import Zug.UI.Gtk.Gleis.Kreuzung
        (zeichneKreuzung, anchorPointsKreuzung, widthKreuzung, heightKreuzung, KreuzungsArt(..))
-import Zug.UI.Gtk.Gleis.Kurve (zeichneKurve, anchorPointsKurve, widthKurve, heightKurve)
-import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(..), radiusBegrenzung)
+import Zug.UI.Gtk.Gleis.Kurve (zeichneKurve, anchorPointsKurve, widthKurve, heightKurve
+                             , KurvenBeschränkung(AlleBeschränkungen))
+import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(..))
 import Zug.UI.Gtk.Gleis.Weiche
-       (zeichneWeicheRechts, anchorPointsWeicheRechts, zeichneWeicheLinks, anchorPointsWeicheLinks, widthWeiche
-      , heightWeiche, zeichneDreiwegeweiche, anchorPointsDreiwegeweiche, widthDreiwegeweiche, heightDreiwegeweiche)
+       (zeichneWeicheRechts, anchorPointsWeicheRechts, zeichneWeicheLinks, anchorPointsWeicheLinks
+      , widthWeiche, heightWeiche, zeichneDreiwegeweiche, anchorPointsDreiwegeweiche
+      , widthDreiwegeweiche, heightDreiwegeweiche, widthKurvenWeiche, heightKurvenWeiche
+      , zeichneKurvenWeicheRechts, anchorPointsKurvenWeicheRechts, zeichneKurvenWeicheLinks
+      , anchorPointsKurvenWeicheLinks)
 import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
 
 -- import Zug.UI.Gtk.Hilfsfunktionen (fixedPutWidgetNew)
@@ -139,7 +131,7 @@ createGleisWidget :: forall m z.
                   -> (Proxy z -> Cairo.Render ())
                   -> m (Gleis z)
 createGleisWidget widthFn heightFn anchorPointsFn draw = do
-    tmvarParentInformation <- newEmptyTMVarIO
+    tmvarParentInformation <- liftIO newEmptyTMVarIO
     let proxy :: Proxy z
         proxy = Proxy
         width :: Int32
@@ -167,14 +159,6 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
             -- mark anchor points
             Cairo.save
             Cairo.setLineWidth 1
-            currentParentInformation
-                <- liftIO $ atomically $ tryReadTMVar tmvarParentInformation >>= \case
-                    (Just (tvarAnchorPoints, tvarGleise)) -> do
-                        gleise <- readTVar tvarGleise
-                        case HashMap.lookup gleis gleise of
-                            (Just position) -> (, position) <$> readTVar tvarAnchorPoints
-                            Nothing -> pure Nothing
-                    Nothing -> pure Nothing
             currentParentInformation <- liftIO $ atomically $ runMaybeT $ do
                 (tvarAnchorPoints, tvarGleise) <- MaybeT $ tryReadTMVar tmvarParentInformation
                 position <- MaybeT $ HashMap.lookup gleis <$> readTVar tvarGleise
@@ -286,7 +270,7 @@ kreuzungNew länge radius winkel kreuzungsArt =
         (widthKreuzung länge radius winkelBogenmaß)
         (heightKreuzung radius winkelBogenmaß)
         (anchorPointsKreuzung länge radius winkelBogenmaß)
-    $ zeichneKreuzung länge radius winkelBogenmaß
+    $ zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt
     where
         winkelBogenmaß :: Double
         winkelBogenmaß = pi * winkel / 180
@@ -359,7 +343,7 @@ getAnchorPoints = \case
         proxy :: Proxy z
         proxy = Proxy
 
--- | Postion auf einer 'Gleisanzeige'.
+-- | Postion auf einer 'GleisAnzeige'.
 --
 -- /x/-Koordinate wächst nach rechts.
 -- /y/-Koordinate wächst nach unten.
@@ -418,11 +402,12 @@ gleisPut
         gleise <- readTVar tvarGleise
         writeTVar tvarGleise $! HashMap.insert gleis position gleise
         -- make sure every gleis knows about other AnchorPoints
-        tryPutTMVar tmvarAnchorPoints tvarAnchorPoints
+        tryPutTMVar tmvarParentInformation (tvarAnchorPoints, tvarGleise)
         -- TODO reset connected anchor points
         drawingAreas <- case HashMap.lookup gleis gleise of
-            (Just oldPosition) -> _TODO
-            Nothing -> pure []
+            (Just oldPosition) -> do
+                undefined
+            Nothing -> pure [] :: STM [Gtk.DrawingArea]
         -- TODO add new anchor points
         pure (scale, isNothing $ HashMap.lookup gleis gleise, drawingAreas)
     -- Queue re-draw for previously connected gleise
@@ -444,41 +429,32 @@ gleisAttach
     anchorNameB = liftIO $ do
     (gleise, anchorPointsA, anchorPointsB) <- atomically $ do
         gleise <- readTVar tvarGleise
-        let maybePosition = case HashMap.lookup gleisB gleise of
-                Nothing -> Nothing
-                (Just Position {x = xB, y = yB, winkel = winkelB}) -> case HashMap.lookup
-                    anchorNameA
-                    anchorPointsB of
-                    (Just
-                         AnchorPoint { anchorX = anchorXB
-                                     , anchorY = anchorYB
-                                     , anchorVX = anchorVXB
-                                     , anchorVY = anchorVYB}) -> case HashMap.lookup
-                        anchorNameA
-                        anchorPointsA of
-                        (Just AnchorPoint {anchorVX = anchorVXA, anchorVY = anchorVYA}) -> Just
-                            Position
-                            { x = xB + anchorXB
-                            , y = yB + anchorYB
-                            , winkel = winkelB
-                                  + 180 / pi
-                                  * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
-                                     - winkelMitXAchse anchorVXA anchorVYA)
-                            }
-                            where
-                                -- Winkel im Bogenmaß zwischen Vektor und x-Achse
-                                -- steigt im Uhrzeigersinn
-                                winkelMitXAchse :: Double -> Double -> Double
-                                winkelMitXAchse vx vy =
-                                    if
-                                        | vx > 0 && vy < 0 -> 1.5 * pi
-                                            + acos (vx / (vx * vx + vy * vy))
-                                        | vx < 0 && vy < 0 -> pi + acos (vx / (vx * vx + vy * vy))
-                                        | vx < 0 && vy > 0 -> 0.5 * pi
-                                            + acos (vx / (vx * vx + vy * vy))
-                                        | otherwise -> acos $ vx / (vx * vx + vy * vy)
-                        _otherwise -> Nothing
-                    _otherwise -> Nothing
+        let maybePosition = do
+                Position {x = xB, y = yB, winkel = winkelB} <- HashMap.lookup gleisB gleise
+                AnchorPoint { anchorX = anchorXB
+                            , anchorY = anchorYB
+                            , anchorVX = anchorVXB
+                            , anchorVY = anchorVYB} <- HashMap.lookup anchorNameB anchorPointsB
+                AnchorPoint {anchorVX = anchorVXA, anchorVY = anchorVYA}
+                    <- HashMap.lookup anchorNameA anchorPointsA
+                pure
+                    Position
+                    { x = xB + anchorXB
+                    , y = yB + anchorYB
+                    , winkel = winkelB
+                          + 180 / pi
+                          * (winkelMitXAchse (-anchorVXB) (-anchorVYB)
+                             - winkelMitXAchse anchorVXA anchorVYA)
+                    }
+            -- Winkel im Bogenmaß zwischen Vektor und x-Achse
+            -- steigt im Uhrzeigersinn
+            winkelMitXAchse :: Double -> Double -> Double
+            winkelMitXAchse vx vy =
+                if
+                    | vx > 0 && vy < 0 -> 1.5 * pi + acos (vx / (vx * vx + vy * vy))
+                    | vx < 0 && vy < 0 -> pi + acos (vx / (vx * vx + vy * vy))
+                    | vx < 0 && vy > 0 -> 0.5 * pi + acos (vx / (vx * vx + vy * vy))
+                    | otherwise -> acos $ vx / (vx * vx + vy * vy)
         -- TODO mark both anchors
         pure (gleise, anchorPointsA, anchorPointsB)
     -- TODO gleisPut, ohne reset der AnchorPoints
@@ -495,7 +471,7 @@ gleisRemove
         gleise <- readTVar tvarGleise
         writeTVar tvarGleise $! HashMap.delete gleis gleise
         -- TODO reset connected anchorPoints
-        drawingAreas <- _TODO
+        drawingAreas <- undefined :: STM [Gtk.DrawingArea]
         pure (isJust $ HashMap.lookup gleis gleise, drawingAreas)
     forM_ drawingAreas Gtk.widgetQueueDraw
     when isChild $ Gtk.fixedRemove fixed drawingArea
