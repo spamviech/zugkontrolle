@@ -215,116 +215,14 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
             pure True
     pure gleis
 
--- | Erzeuge eine neues gerades 'Gleis' der angegebenen Länge.
-geradeNew :: (MonadIO m, Spurweite z) => Double -> m (Gleis z)
-geradeNew länge =
-    createGleisWidget (widthGerade länge) heightGerade (anchorPointsGerade länge)
-    $ zeichneGerade länge
-
--- | Erzeuge eine neue Kurve mit angegebenen Radius und Winkel im Gradmaß.
-kurveNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> m (Gleis z)
-kurveNew radius winkel =
-    createGleisWidget
-        (widthKurve radius winkelBogenmaß)
-        (heightKurve radius winkelBogenmaß)
-        (anchorPointsKurve radius winkelBogenmaß)
-    $ zeichneKurve radius winkelBogenmaß AlleBeschränkungen
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
-weicheRechtsNew
-    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
-weicheRechtsNew länge radius winkel =
-    createGleisWidget
-        (widthWeiche länge radius winkelBogenmaß)
-        (heightWeiche radius winkelBogenmaß)
-        (anchorPointsWeicheRechts länge radius winkelBogenmaß)
-    $ zeichneWeicheRechts länge radius winkelBogenmaß
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
-weicheLinksNew :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
-weicheLinksNew länge radius winkel =
-    createGleisWidget
-        (widthWeiche länge radius winkelBogenmaß)
-        (heightWeiche radius winkelBogenmaß)
-        (anchorPointsWeicheLinks länge radius winkelBogenmaß)
-    $ zeichneWeicheLinks länge radius winkelBogenmaß
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
-dreiwegeweicheNew
-    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
-dreiwegeweicheNew länge radius winkel =
-    createGleisWidget
-        (widthDreiwegeweiche länge radius winkelBogenmaß)
-        (heightDreiwegeweiche radius winkelBogenmaß)
-        (anchorPointsDreiwegeweiche länge radius winkelBogenmaß)
-    $ zeichneDreiwegeweiche länge radius winkelBogenmaß
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
-kurvenWeicheRechtsNew
-    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
-kurvenWeicheRechtsNew länge radius winkel =
-    createGleisWidget
-        (widthKurvenWeiche länge radius winkelBogenmaß)
-        (heightKurvenWeiche radius winkelBogenmaß)
-        (anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß)
-    $ zeichneKurvenWeicheRechts länge radius winkelBogenmaß
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
-kurvenWeicheLinksNew
-    :: forall m z. (MonadIO m, Spurweite z) => Double -> Double -> Double -> m (Gleis z)
-kurvenWeicheLinksNew länge radius winkel =
-    createGleisWidget
-        (widthKurvenWeiche länge radius winkelBogenmaß)
-        (heightKurvenWeiche radius winkelBogenmaß)
-        (anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß)
-    $ zeichneKurvenWeicheLinks länge radius winkelBogenmaß
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
-kreuzungNew :: forall m z.
-            (MonadIO m, Spurweite z)
-            => Double
-            -> Double
-            -> Double
-            -> KreuzungsArt
-            -> m (Gleis z)
-kreuzungNew länge radius winkel kreuzungsArt =
-    createGleisWidget
-        (widthKreuzung länge radius winkelBogenmaß)
-        (heightKreuzung radius winkelBogenmaß)
-        (anchorPointsKreuzung länge radius winkelBogenmaß)
-    $ zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt
-    where
-        winkelBogenmaß :: Double
-        winkelBogenmaß = pi * winkel / 180
-
 -- | Erstelle ein neues 'Gleis'.
 gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
-gleisNew Gerade {länge} = geradeNew länge
-gleisNew Kurve {radius, winkel} = kurveNew radius winkel
-gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Links}} =
-    weicheLinksNew länge radius winkel
-gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}} =
-    weicheRechtsNew länge radius winkel
-gleisNew Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}} =
-    dreiwegeweicheNew länge radius winkel
-gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}} =
-    kurvenWeicheLinksNew länge radius winkel
-gleisNew Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}} =
-    kurvenWeicheRechtsNew länge radius winkel
-gleisNew
-    Kreuzung {länge, radius, winkel, kreuzungsArt} = kreuzungNew länge radius winkel kreuzungsArt
+gleisNew definition =
+    createGleisWidget
+        (getWidth definition)
+        (getHeight definition)
+        (getAnchorPoints definition)
+        (getZeichnen definition)
 
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
 --
@@ -356,26 +254,69 @@ data WeichenRichtung
     | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
 
 -- | Alle 'AnchorPoint's einer 'GleisDefinition'.
-getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> AnchorPointMap
+getAnchorPoints :: (Spurweite z) => GleisDefinition z -> Proxy z -> AnchorPointMap
 getAnchorPoints = \case
-    Gerade {länge} -> anchorPointsGerade länge proxy
+    Gerade {länge} -> anchorPointsGerade länge
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKurve radius winkelBogenmaß proxy
+        -> anchorPointsKurve radius winkelBogenmaß
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts}
-        -> anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
+        -> anchorPointsWeicheRechts länge radius winkelBogenmaß
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Links}
-        -> anchorPointsWeicheLinks länge radius winkelBogenmaß proxy
+        -> anchorPointsWeicheLinks länge radius winkelBogenmaß
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links}
-        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
+        -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts}
-        -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
+        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links}
+        -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß
     Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKreuzung länge radius winkelBogenmaß proxy
-    where
-        proxy :: Proxy z
-        proxy = Proxy
+        -> anchorPointsKreuzung länge radius winkelBogenmaß
+
+-- | Breite des zugehörigen 'Gleis'es einer 'GleisDefinition'.
+getWidth :: (Spurweite z) => GleisDefinition z -> Proxy z -> Int32
+getWidth = \case
+    Gerade {länge} -> widthGerade länge
+    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)} -> widthKurve radius winkelBogenmaß
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
+        -> widthDreiwegeweiche länge radius winkelBogenmaß
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal _rl}
+        -> widthWeiche länge radius winkelBogenmaß
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen _rl}
+        -> widthKurvenWeiche länge radius winkelBogenmaß
+    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> widthKreuzung länge radius winkelBogenmaß
+
+-- | Höhe des zugehörigen 'Gleis'es einer 'GleisDefinition'.
+getHeight :: (Spurweite z) => GleisDefinition z -> Proxy z -> Int32
+getHeight = \case
+    Gerade {} -> heightGerade
+    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> heightKurve radius winkelBogenmaß
+    Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
+        -> heightDreiwegeweiche radius winkelBogenmaß
+    Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal _rl}
+        -> heightWeiche radius winkelBogenmaß
+    Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen _rl}
+        -> heightKurvenWeiche radius winkelBogenmaß
+    Kreuzung {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> heightKreuzung radius winkelBogenmaß
+
+-- | Erstelle ein neues 'Gleis'.
+getZeichnen :: (Spurweite z) => GleisDefinition z -> Proxy z -> Cairo.Render ()
+getZeichnen Gerade {länge} = zeichneGerade länge
+getZeichnen Kurve {radius, winkel} = zeichneKurve radius winkel AlleBeschränkungen
+getZeichnen Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Links}} =
+    zeichneWeicheLinks länge radius winkel
+getZeichnen Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}} =
+    zeichneWeicheRechts länge radius winkel
+getZeichnen Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}} =
+    zeichneDreiwegeweiche länge radius winkel
+getZeichnen Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}} =
+    zeichneKurvenWeicheRechts länge radius winkel
+getZeichnen Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}} =
+    zeichneKurvenWeicheLinks länge radius winkel
+getZeichnen Kreuzung {länge, radius, winkel, kreuzungsArt} =
+    zeichneKreuzung länge radius winkel kreuzungsArt
 
 -- | Postion auf einer 'GleisAnzeige'.
 --
