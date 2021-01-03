@@ -5,6 +5,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -116,6 +117,7 @@ data Gleis (z :: Zugtyp) =
     , height :: Int32
     , anchorPoints :: AnchorPointMap
     , tmvarParentInformation :: TMVar (TVar AnchorPointRTree, TVar (HashMap (Gleis z) Position))
+    , definition :: GleisDefinition z
     }
     deriving (Eq)
 
@@ -154,29 +156,30 @@ intersections position anchorPoint knownAnchorPoints =
 --
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
 -- After the action 'Cairo.stroke' is executed.
-createGleisWidget :: forall m z.
-                  (MonadIO m)
-                  => (Proxy z -> Int32)
-                  -> (Proxy z -> Int32)
-                  -> (Proxy z -> AnchorPointMap)
-                  -> (Proxy z -> Cairo.Render ())
-                  -> m (Gleis z)
-createGleisWidget widthFn heightFn anchorPointsFn draw = do
+createGleisWidget
+    :: forall m z.
+    (MonadIO m)
+    => (GleisDefinition z -> Int32)
+    -> (GleisDefinition z -> Int32)
+    -> (GleisDefinition z -> AnchorPointMap)
+    -> (GleisDefinition z -> Cairo.Render ())
+    -> GleisDefinition z
+    -> m (Gleis z)
+createGleisWidget widthFn heightFn anchorPointsFn draw definition = do
     tmvarParentInformation <- liftIO newEmptyTMVarIO
-    let proxy :: Proxy z
-        proxy = Proxy
-        width :: Int32
-        width = widthFn proxy
+    let width :: Int32
+        width = widthFn definition
         height :: Int32
-        height = heightFn proxy
+        height = heightFn definition
         anchorPoints :: AnchorPointMap
-        anchorPoints = anchorPointsFn proxy
+        anchorPoints = anchorPointsFn definition
     drawingArea <- Gtk.drawingAreaNew
     Gtk.widgetSetHexpand drawingArea False
     Gtk.widgetSetHalign drawingArea Gtk.AlignStart
     Gtk.widgetSetVexpand drawingArea False
     Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis = Gleis { drawingArea, width, height, anchorPoints, tmvarParentInformation }
+    let gleis =
+            Gleis { drawingArea, width, height, anchorPoints, tmvarParentInformation, definition }
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
     Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
@@ -184,7 +187,7 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
             Cairo.save
             Cairo.setLineWidth 1
             Cairo.newPath
-            draw proxy
+            draw definition
             Cairo.stroke
             Cairo.restore
             -- mark anchor points
@@ -217,12 +220,7 @@ createGleisWidget widthFn heightFn anchorPointsFn draw = do
 
 -- | Erstelle ein neues 'Gleis'.
 gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
-gleisNew definition =
-    createGleisWidget
-        (getWidth definition)
-        (getHeight definition)
-        (getAnchorPoints definition)
-        (getZeichnen definition)
+gleisNew = createGleisWidget getWidth getHeight getAnchorPoints getZeichnen
 
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
 --
@@ -234,15 +232,21 @@ data GleisDefinition (z :: Zugtyp)
     | Weiche { länge :: Double, radius :: Double, winkel :: Double, richtung :: WeichenRichtung }
     | Kreuzung
       { länge :: Double, radius :: Double, winkel :: Double, kreuzungsArt :: KreuzungsArt }
+    deriving (Eq, Show)
 
 data WeichenArt
     = WeicheZweiweg
     | WeicheDreiweg
+    deriving (Eq, Show)
 
 data WeichenRichtungAllgemein (a :: WeichenArt) where
     Links :: WeichenRichtungAllgemein a
     Rechts :: WeichenRichtungAllgemein a
     Dreiwege :: WeichenRichtungAllgemein 'WeicheDreiweg
+
+deriving instance Eq (WeichenRichtungAllgemein a)
+
+deriving instance Show (WeichenRichtungAllgemein a)
 
 alsDreiweg :: WeichenRichtungAllgemein a -> WeichenRichtungAllgemein 'WeicheDreiweg
 alsDreiweg Links = Links
@@ -252,71 +256,86 @@ alsDreiweg Dreiwege = Dreiwege
 data WeichenRichtung
     = Normal { geradeRichtung :: WeichenRichtungAllgemein 'WeicheDreiweg }
     | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
+    deriving (Eq, Show)
 
 -- | Alle 'AnchorPoint's einer 'GleisDefinition'.
-getAnchorPoints :: (Spurweite z) => GleisDefinition z -> Proxy z -> AnchorPointMap
+getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> AnchorPointMap
 getAnchorPoints = \case
-    Gerade {länge} -> anchorPointsGerade länge
+    Gerade {länge} -> anchorPointsGerade länge proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKurve radius winkelBogenmaß
+        -> anchorPointsKurve radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts}
-        -> anchorPointsWeicheRechts länge radius winkelBogenmaß
+        -> anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Links}
-        -> anchorPointsWeicheLinks länge radius winkelBogenmaß
+        -> anchorPointsWeicheLinks länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß
+        -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts}
-        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß
+        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links}
-        -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß
+        -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
     Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKreuzung länge radius winkelBogenmaß
+        -> anchorPointsKreuzung länge radius winkelBogenmaß proxy
+    where
+        proxy :: Proxy z
+        proxy = Proxy
 
 -- | Breite des zugehörigen 'Gleis'es einer 'GleisDefinition'.
-getWidth :: (Spurweite z) => GleisDefinition z -> Proxy z -> Int32
+getWidth :: forall z. (Spurweite z) => GleisDefinition z -> Int32
 getWidth = \case
-    Gerade {länge} -> widthGerade länge
-    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)} -> widthKurve radius winkelBogenmaß
+    Gerade {länge} -> widthGerade länge proxy
+    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> widthKurve radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> widthDreiwegeweiche länge radius winkelBogenmaß
+        -> widthDreiwegeweiche länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal _rl}
-        -> widthWeiche länge radius winkelBogenmaß
+        -> widthWeiche länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen _rl}
-        -> widthKurvenWeiche länge radius winkelBogenmaß
+        -> widthKurvenWeiche länge radius winkelBogenmaß proxy
     Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> widthKreuzung länge radius winkelBogenmaß
+        -> widthKreuzung länge radius winkelBogenmaß proxy
+    where
+        proxy :: Proxy z
+        proxy = Proxy
 
 -- | Höhe des zugehörigen 'Gleis'es einer 'GleisDefinition'.
-getHeight :: (Spurweite z) => GleisDefinition z -> Proxy z -> Int32
+getHeight :: forall z. (Spurweite z) => GleisDefinition z -> Int32
 getHeight = \case
-    Gerade {} -> heightGerade
+    Gerade {} -> heightGerade proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> heightKurve radius winkelBogenmaß
+        -> heightKurve radius winkelBogenmaß proxy
     Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> heightDreiwegeweiche radius winkelBogenmaß
+        -> heightDreiwegeweiche radius winkelBogenmaß proxy
     Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal _rl}
-        -> heightWeiche radius winkelBogenmaß
+        -> heightWeiche radius winkelBogenmaß proxy
     Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen _rl}
-        -> heightKurvenWeiche radius winkelBogenmaß
+        -> heightKurvenWeiche radius winkelBogenmaß proxy
     Kreuzung {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> heightKreuzung radius winkelBogenmaß
+        -> heightKreuzung radius winkelBogenmaß proxy
+    where
+        proxy :: Proxy z
+        proxy = Proxy
 
 -- | Erstelle ein neues 'Gleis'.
-getZeichnen :: (Spurweite z) => GleisDefinition z -> Proxy z -> Cairo.Render ()
-getZeichnen Gerade {länge} = zeichneGerade länge
-getZeichnen Kurve {radius, winkel} = zeichneKurve radius winkel AlleBeschränkungen
-getZeichnen Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Links}} =
-    zeichneWeicheLinks länge radius winkel
-getZeichnen Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}} =
-    zeichneWeicheRechts länge radius winkel
-getZeichnen Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}} =
-    zeichneDreiwegeweiche länge radius winkel
-getZeichnen Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}} =
-    zeichneKurvenWeicheRechts länge radius winkel
-getZeichnen Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}} =
-    zeichneKurvenWeicheLinks länge radius winkel
-getZeichnen Kreuzung {länge, radius, winkel, kreuzungsArt} =
-    zeichneKreuzung länge radius winkel kreuzungsArt
+getZeichnen :: forall z. (Spurweite z) => GleisDefinition z -> Cairo.Render ()
+getZeichnen = \case
+    Gerade {länge} -> zeichneGerade länge proxy
+    Kurve {radius, winkel} -> zeichneKurve radius winkel AlleBeschränkungen proxy
+    Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Links}}
+        -> zeichneWeicheLinks länge radius winkel proxy
+    Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}}
+        -> zeichneWeicheRechts länge radius winkel proxy
+    Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}}
+        -> zeichneDreiwegeweiche länge radius winkel proxy
+    Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}}
+        -> zeichneKurvenWeicheRechts länge radius winkel proxy
+    Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}}
+        -> zeichneKurvenWeicheLinks länge radius winkel proxy
+    Kreuzung {länge, radius, winkel, kreuzungsArt}
+        -> zeichneKreuzung länge radius winkel kreuzungsArt proxy
+    where
+        proxy :: Proxy z
+        proxy = Proxy
 
 -- | Postion auf einer 'GleisAnzeige'.
 --
@@ -324,7 +343,7 @@ getZeichnen Kreuzung {länge, radius, winkel, kreuzungsArt} =
 -- /y/-Koordinate wächst nach unten.
 -- /winkel/ werden im Gradmaß übergeben und beschreiben eine Rotation im Uhrzeigersinn.
 data Position = Position { x :: Double, y :: Double, winkel :: Double }
-    deriving (Eq, Ord)
+    deriving (Eq, Show, Ord)
 
 data GleisAnzeige (z :: Zugtyp) =
     GleisAnzeige
@@ -334,6 +353,7 @@ data GleisAnzeige (z :: Zugtyp) =
     , tvarLabel :: TVar [(Gtk.Label, Position)]
     , tvarAnchorPoints :: TVar AnchorPointRTree
     }
+    deriving (Eq)
 
 instance MitWidget (GleisAnzeige z) where
     erhalteWidget :: (MonadIO m) => GleisAnzeige z -> m Gtk.Widget
