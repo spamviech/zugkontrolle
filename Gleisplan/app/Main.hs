@@ -6,7 +6,7 @@ import qualified GI.Gio as Gio
 import qualified GI.Gtk as Gtk
 
 import Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew)
-import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
+import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 main :: IO ()
 main = do
