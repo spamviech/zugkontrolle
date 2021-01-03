@@ -17,6 +17,7 @@ look at Gtk.renderLine (cairo-render/-connector should still work)
 Use `GLib.addIdle GLib.PRIORITY_DEFAULT $ gtkAction` to call Gtk from a forked thread
     (sync e.g. with TMVar for a blocking version)
     https://github.com/haskell-gi/haskell-gi/wiki/Using-threads-in-Gdk-and-Gtk--programs
+    addIdle for some reason move to gi-glib
 Gtk.Application has to be used instead of Gtk.main
     https://hackage.haskell.org/package/gi-gtk-4.0.2/docs/GI-Gtk-Objects-Application.html
     startup/activate-signals are in gi-gio
@@ -25,6 +26,13 @@ AspectFrame doesn't draw a frame around the child, so might be useful here
     doesn't pass scaling information to DrawingArea
     usefulness questionable anyway due to rotation requirement
 Assistant should work again
+Scrolling, Drag&Drop use EventController, added using 'Gtk.widgetAddController'
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-Widget.html#g:method:addController
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-EventControllerScroll.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DragSource.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DragIcon.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DropTarget.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DropTargetAsync.html
 -}
 module Zug.UI.Gtk.Gleis.Widget
   ( -- * Gleis Widgets
@@ -96,7 +104,7 @@ import Zug.UI.Gtk.Gleis.Weiche
       , widthDreiwegeweiche, heightDreiwegeweiche, widthKurvenWeiche, heightKurvenWeiche
       , zeichneKurvenWeicheRechts, anchorPointsKurvenWeicheRechts, zeichneKurvenWeicheLinks
       , anchorPointsKurvenWeicheLinks)
-import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
+import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 -- import Zug.UI.Gtk.Hilfsfunktionen (fixedPutWidgetNew)
 -- | 'Gtk.Widget' von einem Gleis.

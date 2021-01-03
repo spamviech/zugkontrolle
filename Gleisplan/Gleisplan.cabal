@@ -30,8 +30,7 @@ library
       Zug.UI.Gtk.Gleis.Spurweite
       Zug.UI.Gtk.Gleis.Weiche
       Zug.UI.Gtk.Gleis.Widget
-      Zug.UI.Gtk.Klassen
-      Zug.UI.Gtk.Klassen.TemplateHaskell
+      Zug.UI.Gtk.MitWidget
   other-modules:
       Paths_Gleisplan
   hs-source-dirs:

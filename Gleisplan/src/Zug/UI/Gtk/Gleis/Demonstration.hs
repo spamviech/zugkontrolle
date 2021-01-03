@@ -22,7 +22,7 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinKreuzung5207New, Zugtyp(Märklin))
 import Zug.UI.Gtk.Gleis.Widget (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize, Gleis
                               , gleisAnzeigePutLabel, Position(..), gleisAnzeigeScale)
-import Zug.UI.Gtk.Klassen (MitWidget(erhalteWidget))
+import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
 gleisDemonstrationNew :: (MonadIO m) => m (GleisAnzeige 'Märklin)
