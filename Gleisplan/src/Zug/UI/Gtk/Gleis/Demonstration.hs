@@ -61,11 +61,6 @@ gleisDemonstrationNew = do
         , ("5128: ", märklinKreuzung5128New)
         , ("5207: ", märklinKreuzung5207New)]
     gleisAnzeigeSave gleisAnzeige "demonstration.gleisplan"
-    widget <- erhalteWidget gleisAnzeige
-    Gtk.widgetSetMarginTop widget padding
-    Gtk.widgetSetMarginBottom widget padding
-    Gtk.widgetSetMarginStart widget padding
-    Gtk.widgetSetMarginEnd widget padding
     pure gleisAnzeige
     where
         padding :: Int32

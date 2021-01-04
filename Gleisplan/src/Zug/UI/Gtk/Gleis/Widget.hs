@@ -416,13 +416,19 @@ instance MitWidget (GleisAnzeige z) where
     erhalteWidget = Gtk.toWidget . fixed
 
 gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
-gleisAnzeigeNew =
-    liftIO
-    $ GleisAnzeige <$> Gtk.fixedNew
-    <*> newTVarIO 1
-    <*> newTVarIO HashMap.empty
-    <*> newTVarIO []
-    <*> newTVarIO RTree.empty
+gleisAnzeigeNew = liftIO $ do
+    fixed <- Gtk.fixedNew
+    Gtk.widgetSetMarginTop fixed margin
+    Gtk.widgetSetMarginBottom fixed margin
+    Gtk.widgetSetMarginStart fixed margin
+    Gtk.widgetSetMarginEnd fixed margin
+    GleisAnzeige fixed <$> newTVarIO 1
+        <*> newTVarIO HashMap.empty
+        <*> newTVarIO []
+        <*> newTVarIO RTree.empty
+    where
+        margin :: Int32
+        margin = 5
 
 fixedSetChildTransformation
     :: (MonadIO m, Gtk.IsWidget w) => Gtk.Fixed -> w -> Position -> Double -> m ()
@@ -630,9 +636,9 @@ gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
 -- | Skaliere eine 'GleisAnzeige'.
 gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
 gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
-    -- TODO only use one atomically here
-    atomically $ writeTVar tvarScale scale
-    (gleise, bekannteLabel) <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
+    (gleise, bekannteLabel) <- atomically $ do
+        writeTVar tvarScale scale
+        (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
     forM_ (HashMap.toList gleise) $ \(Gleis {drawingArea}, position)
         -> fixedSetChildTransformation fixed drawingArea position scale
     forM_ bekannteLabel
