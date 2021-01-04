@@ -356,7 +356,8 @@ getHeight = \case
 getZeichnen :: forall z. (Spurweite z) => GleisDefinition z -> Cairo.Render ()
 getZeichnen = \case
     Gerade {länge} -> zeichneGerade länge proxy
-    Kurve {radius, winkel} -> zeichneKurve radius winkel AlleBeschränkungen proxy
+    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
+        -> zeichneKurve radius winkelBogenmaß AlleBeschränkungen proxy
     Weiche { länge
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)

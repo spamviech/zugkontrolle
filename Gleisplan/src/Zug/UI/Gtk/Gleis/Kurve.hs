@@ -19,7 +19,11 @@ import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(spurweite), radiusBegrenzung, besch
 widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 widthKurve radius winkelBogenmaß proxy
     | winkelBogenmaß <= 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
-    | otherwise = error "Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt."
+    | otherwise =
+        error
+        $ "Winkel "
+        ++ show winkelBogenmaß
+        ++ " zu groß. Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt."
 
 heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 heightKurve radius winkelBogenmaß proxy
@@ -38,6 +42,7 @@ data KurvenBeschränkung
     | AnfangsBeschränkung
     | EndBeschränkung
     | AlleBeschränkungen
+    deriving (Eq, Show)
 
 anfangsBeschränkung :: KurvenBeschränkung -> Bool
 anfangsBeschränkung KeineBeschränkungen = False
@@ -61,6 +66,7 @@ zeichneKurve radius winkel kurvenBeschränkung proxy = do
         Cairo.lineTo 0 $ beschränkung proxy
         Cairo.stroke
     when (endBeschränkung kurvenBeschränkung) $ do
+        -- TODO is this even called?
         Cairo.moveTo begrenzungX0 begrenzungY0
         Cairo.lineTo begrenzungX1 begrenzungY1
         Cairo.stroke
