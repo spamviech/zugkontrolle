@@ -403,7 +403,10 @@ instance Binary Position
 -- disabling 'Gtk.scrolledWindowSetKineticScrolling' is probably desired
 data GleisAnzeige (z :: Zugtyp) =
     GleisAnzeige
-    { fixed :: Gtk.Fixed
+    { scrolledWindow :: Gtk.ScrolledWindow
+    , hAdjustment :: Gtk.Adjustment
+    , vAdjustment :: Gtk.Adjustment
+    , fixed :: Gtk.Fixed
     , tvarScale :: TVar Double
     , tvarGleise :: TVar (HashMap (Gleis z) Position)
     , tvarLabel :: TVar [(Gtk.Label, Position)]
@@ -413,19 +416,48 @@ data GleisAnzeige (z :: Zugtyp) =
 
 instance MitWidget (GleisAnzeige z) where
     erhalteWidget :: (MonadIO m) => GleisAnzeige z -> m Gtk.Widget
-    erhalteWidget = Gtk.toWidget . fixed
+    erhalteWidget = Gtk.toWidget . scrolledWindow
 
 gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
 gleisAnzeigeNew = liftIO $ do
+    {-
+    hAdjustment <- Gtk.adjustmentNew 0 0 1 0.1 1 1
+    vAdjustment <- Gtk.adjustmentNew 0 0 1 0.1 1 1
+    viewport <- Gtk.viewportNew (Just hAdjustment) (Just vAdjustment)
+    Gtk.viewportSetScrollToFocus viewport True
     fixed <- Gtk.fixedNew
+    Gtk.viewportSetChild viewport $ Just fixed
+    --}
+    --{-
+    scrolledWindow <- Gtk.scrolledWindowNew
+    Gtk.scrolledWindowSetKineticScrolling scrolledWindow False
+    Gtk.scrolledWindowSetPolicy scrolledWindow Gtk.PolicyTypeExternal Gtk.PolicyTypeExternal
+    hAdjustment <- Gtk.scrolledWindowGetHadjustment scrolledWindow
+    Gtk.adjustmentConfigure hAdjustment 0 0 1 0.1 1 1
+    vAdjustment <- Gtk.scrolledWindowGetVadjustment scrolledWindow
+    Gtk.adjustmentConfigure vAdjustment 0 0 1 0.1 1 1
+    fixed <- Gtk.fixedNew
+    Gtk.scrolledWindowSetChild scrolledWindow $ Just fixed
+    --}
     Gtk.widgetSetMarginTop fixed margin
     Gtk.widgetSetMarginBottom fixed margin
     Gtk.widgetSetMarginStart fixed margin
     Gtk.widgetSetMarginEnd fixed margin
-    GleisAnzeige fixed <$> newTVarIO 1
-        <*> newTVarIO HashMap.empty
-        <*> newTVarIO []
-        <*> newTVarIO RTree.empty
+    tvarScale <- newTVarIO 1
+    tvarGleise <- newTVarIO HashMap.empty
+    tvarLabel <- newTVarIO []
+    tvarAnchorPoints <- newTVarIO RTree.empty
+    pure
+        GleisAnzeige
+        { scrolledWindow
+        , hAdjustment
+        , vAdjustment
+        , fixed
+        , tvarScale
+        , tvarGleise
+        , tvarLabel
+        , tvarAnchorPoints
+        }
     where
         margin :: Int32
         margin = 5

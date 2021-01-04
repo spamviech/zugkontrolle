@@ -20,8 +20,5 @@ createWindow application = do
     appWindow <- Gtk.applicationWindowNew application
     Gtk.applicationAddWindow application appWindow
     Gtk.windowSetDefaultSize appWindow 480 320
-    scrolledWindow <- Gtk.scrolledWindowNew
-    Gtk.windowSetChild appWindow $ Just scrolledWindow
-    gleisDemonstration <- erhalteWidget =<< gleisDemonstrationNew
-    Gtk.scrolledWindowSetChild scrolledWindow $ Just gleisDemonstration
+    Gtk.windowSetChild appWindow . Just =<< erhalteWidget =<< gleisDemonstrationNew
     Gtk.widgetShow appWindow
