@@ -20,15 +20,16 @@ import Zug.UI.Gtk.Gleis.Maerklin
       , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
       , märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
       , märklinKreuzung5207New, Zugtyp(Märklin))
-import Zug.UI.Gtk.Gleis.Widget (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize, Gleis
-                              , gleisAnzeigePutLabel, Position(..), gleisAnzeigeScale)
+import Zug.UI.Gtk.Gleis.Widget
+       (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize, Gleis, gleisAnzeigePutLabel
+      , Position(..), gleisAnzeigeScale, gleisAnzeigeSave)
 import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 -- Beispiel-Anzeige
 gleisDemonstrationNew :: (MonadIO m) => m (GleisAnzeige 'Märklin)
 gleisDemonstrationNew = do
     gleisAnzeige <- gleisAnzeigeNew
-    gleisAnzeigeScale gleisAnzeige 1.6
+    gleisAnzeigeScale gleisAnzeige 1
     foldM_
         (putWithHeight gleisAnzeige)
         (0, 0)
@@ -42,8 +43,8 @@ gleisDemonstrationNew = do
         , ("5208: ", märklinGerade5208New)
         , ("5120: ", märklinKurve5120New)
         , ("5100: ", märklinKurve5100New)
-        , ("5101 :", märklinKurve5101New)
-        , ("5102 :", märklinKurve5102New)
+        , ("5101: ", märklinKurve5101New)
+        , ("5102: ", märklinKurve5102New)
         , ("5200: ", märklinKurve5200New)
         , ("5206: ", märklinKurve5206New)
         , ("5201: ", märklinKurve5201New)
@@ -59,6 +60,7 @@ gleisDemonstrationNew = do
         , ("5140L:", märklinKurvenWeicheLinks5140New)
         , ("5128: ", märklinKreuzung5128New)
         , ("5207: ", märklinKreuzung5207New)]
+    gleisAnzeigeSave gleisAnzeige "demonstration.gleisplan"
     widget <- erhalteWidget gleisAnzeige
     Gtk.widgetSetMarginTop widget padding
     Gtk.widgetSetMarginBottom widget padding

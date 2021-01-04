@@ -6,10 +6,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-
 ideas for rewrite with gtk4
@@ -51,8 +53,6 @@ module Zug.UI.Gtk.Gleis.Widget
     -- * Methoden
   , gleisNew
   , gleisGetSize
-    --   , gleisGetWidth
-    --   , gleisGetHeight
     -- * Anzeige
   , GleisAnzeige()
   , Position(..)
@@ -66,14 +66,20 @@ module Zug.UI.Gtk.Gleis.Widget
   , gleisAnzeigePutLabel
   , gleisAnzeigeRemoveLabel
   , gleisAnzeigeScale
+    -- ** Speichern / Laden
+  , gleisAnzeigeSave
+  , Binary(..)
   ) where
 
 import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar
                              , TMVar, newEmptyTMVarIO, tryReadTMVar, tryPutTMVar, tryTakeTMVar)
-import Control.Monad (when, void, forM_)
+import Control.Monad (when, void, forM_, forM)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
 import Control.Monad.Trans.Maybe (MaybeT(MaybeT, runMaybeT))
+import Data.Bifunctor (first)
+import Data.Binary (Binary())
+import qualified Data.Binary as Binary
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable(hashWithSalt))
@@ -84,6 +90,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
 import qualified Data.RTree as RTree
+import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
 import qualified GI.Graphene as Graphene
@@ -232,7 +239,9 @@ data GleisDefinition (z :: Zugtyp)
     | Weiche { länge :: Double, radius :: Double, winkel :: Double, richtung :: WeichenRichtung }
     | Kreuzung
       { länge :: Double, radius :: Double, winkel :: Double, kreuzungsArt :: KreuzungsArt }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
+
+instance Binary (GleisDefinition z)
 
 data WeichenArt
     = WeicheZweiweg
@@ -248,6 +257,31 @@ deriving instance Eq (WeichenRichtungAllgemein a)
 
 deriving instance Show (WeichenRichtungAllgemein a)
 
+instance Binary (WeichenRichtungAllgemein 'WeicheZweiweg) where
+    put :: WeichenRichtungAllgemein 'WeicheZweiweg -> Binary.Put
+    put Links = Binary.putWord8 0
+    put Rechts = Binary.putWord8 1
+
+    get :: Binary.Get (WeichenRichtungAllgemein 'WeicheZweiweg)
+    get = Binary.getWord8 >>= \case
+        0 -> pure Links
+        1 -> pure Rechts
+        2 -> fail "Unbekannte Zweiweg-WeichenRichtung: Dreiwege"
+        n -> fail $ "Unbekannte Zweiweg-WeichenRichtung: " <> show n
+
+instance Binary (WeichenRichtungAllgemein 'WeicheDreiweg) where
+    put :: WeichenRichtungAllgemein 'WeicheDreiweg -> Binary.Put
+    put Links = Binary.putWord8 0
+    put Rechts = Binary.putWord8 1
+    put Dreiwege = Binary.putWord8 2
+
+    get :: Binary.Get (WeichenRichtungAllgemein 'WeicheDreiweg)
+    get = Binary.getWord8 >>= \case
+        0 -> pure Links
+        1 -> pure Rechts
+        2 -> pure Dreiwege
+        n -> fail $ "Unbekannte Dreiweg-WeichenRichtung: " <> show n
+
 alsDreiweg :: WeichenRichtungAllgemein a -> WeichenRichtungAllgemein 'WeicheDreiweg
 alsDreiweg Links = Links
 alsDreiweg Rechts = Rechts
@@ -256,7 +290,9 @@ alsDreiweg Dreiwege = Dreiwege
 data WeichenRichtung
     = Normal { geradeRichtung :: WeichenRichtungAllgemein 'WeicheDreiweg }
     | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
+
+instance Binary WeichenRichtung
 
 -- | Alle 'AnchorPoint's einer 'GleisDefinition'.
 getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> AnchorPointMap
@@ -321,18 +357,33 @@ getZeichnen :: forall z. (Spurweite z) => GleisDefinition z -> Cairo.Render ()
 getZeichnen = \case
     Gerade {länge} -> zeichneGerade länge proxy
     Kurve {radius, winkel} -> zeichneKurve radius winkel AlleBeschränkungen proxy
-    Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Links}}
-        -> zeichneWeicheLinks länge radius winkel proxy
-    Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Rechts}}
-        -> zeichneWeicheRechts länge radius winkel proxy
-    Weiche {länge, radius, winkel, richtung = Normal {geradeRichtung = Dreiwege}}
-        -> zeichneDreiwegeweiche länge radius winkel proxy
-    Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Rechts}}
-        -> zeichneKurvenWeicheRechts länge radius winkel proxy
-    Weiche {länge, radius, winkel, richtung = Gebogen {gebogeneRichtung = Links}}
-        -> zeichneKurvenWeicheLinks länge radius winkel proxy
-    Kreuzung {länge, radius, winkel, kreuzungsArt}
-        -> zeichneKreuzung länge radius winkel kreuzungsArt proxy
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = Normal {geradeRichtung = Links}}
+        -> zeichneWeicheLinks länge radius winkelBogenmaß proxy
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = Normal {geradeRichtung = Rechts}}
+        -> zeichneWeicheRechts länge radius winkelBogenmaß proxy
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = Normal {geradeRichtung = Dreiwege}}
+        -> zeichneDreiwegeweiche länge radius winkelBogenmaß proxy
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = Gebogen {gebogeneRichtung = Rechts}}
+        -> zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = Gebogen {gebogeneRichtung = Links}}
+        -> zeichneKurvenWeicheLinks länge radius winkelBogenmaß proxy
+    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), kreuzungsArt}
+        -> zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt proxy
     where
         proxy :: Proxy z
         proxy = Proxy
@@ -343,8 +394,13 @@ getZeichnen = \case
 -- /y/-Koordinate wächst nach unten.
 -- /winkel/ werden im Gradmaß übergeben und beschreiben eine Rotation im Uhrzeigersinn.
 data Position = Position { x :: Double, y :: Double, winkel :: Double }
-    deriving (Eq, Show, Ord)
+    deriving (Eq, Show, Ord, Generic)
 
+instance Binary Position
+
+-- TODO add possibility to move shown widget portion (from x,y -> to x,y)
+-- i.e. using a 'Gtk.ScrolledWindow' without shown scrollbar (Gtk.scrolledWindowSetPolicy)
+-- disabling 'Gtk.scrolledWindowSetKineticScrolling' is probably desired
 data GleisAnzeige (z :: Zugtyp) =
     GleisAnzeige
     { fixed :: Gtk.Fixed
@@ -574,9 +630,17 @@ gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
 -- | Skaliere eine 'GleisAnzeige'.
 gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
 gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
+    -- TODO only use one atomically here
     atomically $ writeTVar tvarScale scale
     (gleise, bekannteLabel) <- atomically $ (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
     forM_ (HashMap.toList gleise) $ \(Gleis {drawingArea}, position)
         -> fixedSetChildTransformation fixed drawingArea position scale
     forM_ bekannteLabel
         $ \(label, position) -> fixedSetChildTransformation fixed label position scale
+
+gleisAnzeigeSave :: (MonadIO m) => GleisAnzeige z -> FilePath -> m ()
+gleisAnzeigeSave GleisAnzeige {tvarScale, tvarGleise, tvarLabel} filePath = liftIO $ do
+    (gleise, bekannteLabel, scale)
+        <- atomically $ (,,) <$> readTVar tvarGleise <*> readTVar tvarLabel <*> readTVar tvarScale
+    texte <- forM bekannteLabel $ \(a, b) -> (, b) <$> Gtk.labelGetLabel a
+    Binary.encodeFile filePath (map (first definition) $ HashMap.toList gleise, texte, Just scale)

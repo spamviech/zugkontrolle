@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Zug.UI.Gtk.Gleis.Kreuzung
   ( zeichneKreuzung
@@ -10,8 +11,10 @@ module Zug.UI.Gtk.Gleis.Kreuzung
   ) where
 
 import Control.Monad (when)
+import Data.Binary (Binary())
 import Data.Int (Int32)
 import Data.Proxy (Proxy())
+import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
 
@@ -33,7 +36,9 @@ heightKreuzung radius winkelBogenmaß proxy =
 data KreuzungsArt
     = MitKurve
     | OhneKurve
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
+
+instance Binary KreuzungsArt
 
 zeichneKreuzung
     :: (Spurweite z) => Double -> Double -> Double -> KreuzungsArt -> Proxy z -> Cairo.Render ()

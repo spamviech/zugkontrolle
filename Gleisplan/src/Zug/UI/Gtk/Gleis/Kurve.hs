@@ -27,7 +27,11 @@ heightKurve radius winkelBogenmaß proxy
         ceiling
         $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
         + beschränkung proxy * cos winkelBogenmaß
-    | otherwise = error "Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt."
+    | otherwise =
+        error
+        $ "Winkel "
+        ++ show winkelBogenmaß
+        ++ " zu groß. Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt. "
 
 data KurvenBeschränkung
     = KeineBeschränkungen
