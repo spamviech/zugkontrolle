@@ -11,7 +11,6 @@ module Zug.UI.Gtk.Gleis.Kreuzung
   , KreuzungsArt(..)
   , KurveFehler(..)
   , KurveErgebnis(..)
-  , beideErgebnisse
   ) where
 
 import Control.Monad (when)
