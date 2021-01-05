@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 
 module Zug.UI.Gtk.Gleis.Kurve
   ( zeichneKurve
@@ -11,26 +12,26 @@ module Zug.UI.Gtk.Gleis.Kurve
 
 import Control.Monad (when)
 import Data.Int (Int32)
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.Proxy (Proxy())
 import qualified GI.Cairo.Render as Cairo
 
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(spurweite), radiusBegrenzung, beschränkung, abstand)
 
-data KurveError
-    = ZuKleinerWinkel Double
-    | ZuGroßerWinkel Double
+newtype KurveError = NichtUnterstützeWinkel (NonEmpty Double)
+    deriving (Show, Eq, Semigroup)
 
 widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Either KurveError Int32
 widthKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß < 0 = Left $ ZuKleinerWinkel winkelBogenmaß
-    | winkelBogenmaß > 0.5 * pi = Left $ ZuGroßerWinkel winkelBogenmaß
+    | (winkelBogenmaß < 0) || (winkelBogenmaß > 0.5 * pi) =
+        Left $ NichtUnterstützeWinkel $ winkelBogenmaß :| []
     | otherwise = Right $ ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
 
 heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Either KurveError Int32
 heightKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß < 0 = Left $ ZuKleinerWinkel winkelBogenmaß
-    | winkelBogenmaß > 0.5 * pi = Left $ ZuGroßerWinkel winkelBogenmaß
+    | (winkelBogenmaß < 0) || (winkelBogenmaß > 0.5 * pi) =
+        Left $ NichtUnterstützeWinkel $ winkelBogenmaß :| []
     | otherwise =
         Right
         $ ceiling
