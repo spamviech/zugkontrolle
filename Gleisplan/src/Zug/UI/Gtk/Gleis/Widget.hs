@@ -163,20 +163,13 @@ intersections position anchorPoint knownAnchorPoints =
 --
 -- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
 -- After the action 'Cairo.stroke' is executed.
-createGleisWidget
-    :: forall m z.
-    (MonadIO m)
-    => (GleisDefinition z -> KurveErgebnis Int32)
-    -> (GleisDefinition z -> KurveErgebnis Int32)
-    -> (GleisDefinition z -> KurveErgebnis AnchorPointMap)
-    -> (GleisDefinition z -> KurveErgebnis (Cairo.Render ()))
-    -> GleisDefinition z
-    -> KurveErgebnis (m (Gleis z))
-createGleisWidget widthFn heightFn anchorPointsFn drawFn definition = do
-    width <- widthFn definition
-    height <- heightFn definition
-    anchorPoints <- anchorPointsFn definition
-    draw <- drawFn definition
+gleisNew
+    :: forall m z. (MonadIO m, Spurweite z) => GleisDefinition z -> KurveErgebnis (m (Gleis z))
+gleisNew definition = do
+    width <- getWidth definition
+    height <- getHeight definition
+    anchorPoints <- getAnchorPoints definition
+    zeichnen <- getZeichnen definition
     pure $ do
         tmvarParentInformation <- liftIO newEmptyTMVarIO
         drawingArea <- Gtk.drawingAreaNew
@@ -194,7 +187,7 @@ createGleisWidget widthFn heightFn anchorPointsFn drawFn definition = do
                 Cairo.save
                 Cairo.setLineWidth 1
                 Cairo.newPath
-                draw
+                zeichnen
                 Cairo.stroke
                 Cairo.restore
                 -- mark anchor points
@@ -224,10 +217,6 @@ createGleisWidget widthFn heightFn anchorPointsFn drawFn definition = do
                 Cairo.restore
                 pure True
         pure gleis
-
--- | Erstelle ein neues 'Gleis'.
-gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> KurveErgebnis (m (Gleis z))
-gleisNew = createGleisWidget getWidth getHeight getAnchorPoints getZeichnen
 
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
 --
@@ -570,12 +559,10 @@ gleisAttach
     position <- ExceptT $ atomically $ do
         gleise <- readTVar tvarGleise
         let maybePosition = do
-                Position {x = xB, y = yB, winkel = winkelB} <- maybe (Left GleisBNotFount) Right
+                positionB@Position {winkel = winkelB} <- maybe (Left GleisBNotFount) Right
                     $ HashMap.lookup gleisB gleise
-                AnchorPoint { anchorX = anchorXB
-                            , anchorY = anchorYB
-                            , anchorVX = anchorVXB
-                            , anchorVY = anchorVYB} <- maybe (Left AnchorBNotFound) Right
+                anchorPointB@AnchorPoint {anchorVX = anchorVXB, anchorVY = anchorVYB}
+                    <- maybe (Left AnchorBNotFound) Right
                     $ HashMap.lookup anchorNameB anchorPointsB
                 AnchorPoint { anchorX = anchorXA
                             , anchorY = anchorYA
@@ -592,13 +579,14 @@ gleisAttach
                         - winkelMitXAchse anchorVXA anchorVYA
                     winkelABogenmaß :: Double
                     winkelABogenmaß = winkelBBogenmaß + anchorWinkelDifferenzBogenmaß
+                    translatedAnchorXB, translatedAnchorYB :: Double
+                    (translatedAnchorXB, translatedAnchorYB) =
+                        translateAnchorPoint positionB anchorPointB
                 pure
                     Position
-                    { x = xB + anchorXB * cos winkelBBogenmaß
-                          - anchorYB * sin winkelBBogenmaß
-                          - anchorXA * cos winkelABogenmaß
+                    { x = translatedAnchorXB - anchorXA * cos winkelABogenmaß
                           + anchorYA * sin winkelABogenmaß
-                    , y = yB + anchorXB * sin winkelBBogenmaß + anchorYB * cos winkelBBogenmaß
+                    , y = translatedAnchorYB
                           - anchorXA * sin winkelABogenmaß
                           - anchorYA * cos winkelABogenmaß
                     , winkel = winkelA
