@@ -2,6 +2,7 @@
 
 module Main (main) where
 
+import Control.Monad (void)
 import qualified GI.Gio as Gio
 import qualified GI.Gtk as Gtk
 
@@ -9,11 +10,10 @@ import Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew)
 import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 main :: IO ()
-main = do
+main = void $ do
     application <- Gtk.applicationNew Nothing []
     Gio.onApplicationActivate application $ createWindow application
     Gio.applicationRun application Nothing
-    pure ()
 
 createWindow :: (Gtk.IsApplication a) => a -> IO ()
 createWindow application = do

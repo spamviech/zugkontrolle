@@ -6,6 +6,7 @@ module Zug.UI.Gtk.Gleis.Kurve
   , widthKurve
   , heightKurve
   , KurvenBeschränkung(..)
+  , KurveError(..)
   ) where
 
 import Control.Monad (when)
@@ -16,26 +17,25 @@ import qualified GI.Cairo.Render as Cairo
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(spurweite), radiusBegrenzung, beschränkung, abstand)
 
-widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-widthKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß <= 0.5 * pi = ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
-    | otherwise =
-        error
-        $ "Winkel "
-        ++ show winkelBogenmaß
-        ++ " zu groß. Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt."
+data KurveError
+    = ZuKleinerWinkel Double
+    | ZuGroßerWinkel Double
 
-heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Either KurveError Int32
+widthKurve radius winkelBogenmaß proxy
+    | winkelBogenmaß < 0 = Left $ ZuKleinerWinkel winkelBogenmaß
+    | winkelBogenmaß > 0.5 * pi = Left $ ZuGroßerWinkel winkelBogenmaß
+    | otherwise = Right $ ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
+
+heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Either KurveError Int32
 heightKurve radius winkelBogenmaß proxy
-    | winkelBogenmaß <= 0.5 * pi =
-        ceiling
+    | winkelBogenmaß < 0 = Left $ ZuKleinerWinkel winkelBogenmaß
+    | winkelBogenmaß > 0.5 * pi = Left $ ZuGroßerWinkel winkelBogenmaß
+    | otherwise =
+        Right
+        $ ceiling
         $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
         + beschränkung proxy * cos winkelBogenmaß
-    | otherwise =
-        error
-        $ "Winkel "
-        ++ show winkelBogenmaß
-        ++ " zu groß. Nur Kurven mit Winkel <= pi/2 (90°) sind unterstützt. "
 
 data KurvenBeschränkung
     = KeineBeschränkungen
