@@ -17,9 +17,15 @@ module Zug.UI.Gtk.Gleis.Lego
 import Control.Monad.Trans (MonadIO())
 
 import Zug.Enums (Zugtyp(Lego))
+import Zug.UI.Gtk.Gleis.Kurve (KurveErgebnis(KurveErgebnis))
 import Zug.UI.Gtk.Gleis.Widget
        (Gleis, gleisNew, GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
       , KreuzungsArt(OhneKurve), alsDreiweg, WeichenRichtung(..))
+
+unsafeGleisNew :: (MonadIO m) => GleisDefinition 'Lego -> m (Gleis 'Lego)
+unsafeGleisNew definition =
+    let (KurveErgebnis gleis) = gleisNew definition
+    in gleis
 
 -- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
 {-
@@ -48,4 +54,4 @@ legoGerade :: GleisDefinition 'Lego
 legoGerade = Gerade { länge = 13.6 }
 
 legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
-legoGeradeNew = gleisNew legoGerade
+legoGeradeNew = unsafeGleisNew legoGerade

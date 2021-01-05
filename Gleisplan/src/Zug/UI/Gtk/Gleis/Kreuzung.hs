@@ -15,7 +15,6 @@ module Zug.UI.Gtk.Gleis.Kreuzung
 
 import Control.Monad (when)
 import Data.Binary (Binary())
-import Data.Functor ((<&>))
 import Data.Int (Int32)
 import Data.Proxy (Proxy())
 import GHC.Generics (Generic())
@@ -24,9 +23,8 @@ import GI.Cairo.Render.Matrix (Matrix(Matrix))
 
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade)
-import Zug.UI.Gtk.Gleis.Kurve
-       (KurvenBeschränkung(KeineBeschränkungen), KurveFehler(..), KurveErgebnis(..)
-      , beideErgebnisse, widthKurve, heightKurve, zeichneKurve)
+import Zug.UI.Gtk.Gleis.Kurve (KurvenBeschränkung(KeineBeschränkungen), KurveFehler(..)
+                             , KurveErgebnis(..), widthKurve, heightKurve, zeichneKurve)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(), beschränkung)
 
 infixl 6 -#
@@ -60,17 +58,16 @@ zeichneKreuzung :: (Spurweite z)
                 -> KreuzungsArt
                 -> Proxy z
                 -> KurveErgebnis (Cairo.Render ())
-zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt proxy =
-    beideErgebnisse
-        (widthKreuzung länge radius winkelBogenmaß proxy)
-        (heightKurve radius winkelBogenmaß proxy)
-    <&> \(width, height) -> do
-        let startHeight :: Double
-            startHeight = max 0 $ fromIntegral height - beschränkung proxy
-            halfWidth :: Double
-            halfWidth = 0.5 * fromIntegral width
-            halfHeight :: Double
-            halfHeight = 0.5 * fromIntegral height
+zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt proxy = do
+    width <- widthKreuzung länge radius winkelBogenmaß proxy
+    height <- heightKreuzung radius winkelBogenmaß proxy
+    let halfWidth :: Double
+        halfWidth = 0.5 * fromIntegral width
+        halfHeight :: Double
+        halfHeight = 0.5 * fromIntegral height
+        startHeight :: Double
+        startHeight = halfHeight - 0.5 * beschränkung proxy
+    pure $ do
         Cairo.translate 0 startHeight
         zeichneGerade länge proxy
         when (kreuzungsArt == MitKurve)
@@ -88,26 +85,25 @@ zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt proxy =
 
 anchorPointsKreuzung
     :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis AnchorPointMap
-anchorPointsKreuzung länge radius winkelBogenmaß proxy =
-    beideErgebnisse
-        (widthKreuzung länge radius winkelBogenmaß proxy)
-        (heightKurve radius winkelBogenmaß proxy)
-    <&> \(fromIntegral -> width, fromIntegral -> height)
-    -> let halfHeight :: Double
-           halfHeight = 0.5 * height
-       in withAnchorName
-              "Kreuzung"
-              [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-              , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
-              , AnchorPoint
-                { anchorX = radius * sin winkelBogenmaß
-                , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
-                , anchorVX = cos winkelBogenmaß
-                , anchorVY = sin winkelBogenmaß
-                }
-              , AnchorPoint
-                { anchorX = width - radius * sin winkelBogenmaß
-                , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
-                , anchorVX = -cos winkelBogenmaß
-                , anchorVY = -sin winkelBogenmaß
-                }]
+anchorPointsKreuzung länge radius winkelBogenmaß proxy = do
+    width <- fromIntegral <$> widthKreuzung länge radius winkelBogenmaß proxy
+    height <- fromIntegral <$> heightKreuzung radius winkelBogenmaß proxy
+    let halfHeight :: Double
+        halfHeight = 0.5 * height
+    pure
+        $ withAnchorName
+            "Kreuzung"
+            [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
+            , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
+            , AnchorPoint
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
+              , anchorVX = cos winkelBogenmaß
+              , anchorVY = sin winkelBogenmaß
+              }
+            , AnchorPoint
+              { anchorX = width - radius * sin winkelBogenmaß
+              , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
+              , anchorVX = -cos winkelBogenmaß
+              , anchorVY = -sin winkelBogenmaß
+              }]

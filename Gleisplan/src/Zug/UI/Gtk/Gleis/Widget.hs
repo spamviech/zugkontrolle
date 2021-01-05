@@ -104,7 +104,7 @@ import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade, anchorPointsGerade, widthGerade, 
 import Zug.UI.Gtk.Gleis.Kreuzung
        (zeichneKreuzung, anchorPointsKreuzung, widthKreuzung, heightKreuzung, KreuzungsArt(..))
 import Zug.UI.Gtk.Gleis.Kurve (zeichneKurve, anchorPointsKurve, widthKurve, heightKurve
-                             , KurvenBeschränkung(AlleBeschränkungen))
+                             , KurvenBeschränkung(AlleBeschränkungen), KurveErgebnis(..))
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(..))
 import Zug.UI.Gtk.Gleis.Weiche
        (zeichneWeicheRechts, anchorPointsWeicheRechts, zeichneWeicheLinks, anchorPointsWeicheLinks
@@ -166,67 +166,67 @@ intersections position anchorPoint knownAnchorPoints =
 createGleisWidget
     :: forall m z.
     (MonadIO m)
-    => (GleisDefinition z -> Int32)
-    -> (GleisDefinition z -> Int32)
-    -> (GleisDefinition z -> AnchorPointMap)
-    -> (GleisDefinition z -> Cairo.Render ())
+    => (GleisDefinition z -> KurveErgebnis Int32)
+    -> (GleisDefinition z -> KurveErgebnis Int32)
+    -> (GleisDefinition z -> KurveErgebnis AnchorPointMap)
+    -> (GleisDefinition z -> KurveErgebnis (Cairo.Render ()))
     -> GleisDefinition z
-    -> m (Gleis z)
-createGleisWidget widthFn heightFn anchorPointsFn draw definition = do
-    tmvarParentInformation <- liftIO newEmptyTMVarIO
-    let width :: Int32
-        width = widthFn definition
-        height :: Int32
-        height = heightFn definition
-        anchorPoints :: AnchorPointMap
-        anchorPoints = anchorPointsFn definition
-    drawingArea <- Gtk.drawingAreaNew
-    Gtk.widgetSetHexpand drawingArea False
-    Gtk.widgetSetHalign drawingArea Gtk.AlignStart
-    Gtk.widgetSetVexpand drawingArea False
-    Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis =
-            Gleis { drawingArea, width, height, anchorPoints, tmvarParentInformation, definition }
-    Gtk.drawingAreaSetContentHeight drawingArea height
-    Gtk.drawingAreaSetContentWidth drawingArea width
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
-        -> void $ flip Cairo.renderWithContext context $ do
-            Cairo.save
-            Cairo.setLineWidth 1
-            Cairo.newPath
-            draw definition
-            Cairo.stroke
-            Cairo.restore
-            -- mark anchor points
-            Cairo.save
-            Cairo.setLineWidth 1
-            currentParentInformation <- liftIO $ atomically $ runMaybeT $ do
-                (tvarAnchorPoints, tvarGleise) <- MaybeT $ tryReadTMVar tmvarParentInformation
-                position <- MaybeT $ HashMap.lookup gleis <$> readTVar tvarGleise
-                fmap (, position) $ lift $ readTVar tvarAnchorPoints
-            case currentParentInformation of
-                (Just (knownAnchorPoints, position)) -> forM_ anchorPoints
-                    $ \anchorPoint@AnchorPoint {anchorX, anchorY, anchorVX, anchorVY} -> do
-                        Cairo.moveTo anchorX anchorY
-                        let r, g, b :: Double
-                            (r, g, b) =
-                                if not
-                                    $ any (/= drawingArea)
-                                    $ intersections position anchorPoint knownAnchorPoints
-                                    then (0, 0, 1)
-                                    else (0, 1, 0)
-                            len :: Double
-                            len = anchorVX * anchorVX + anchorVY * anchorVY
-                        Cairo.setSourceRGB r g b
-                        Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
-                        Cairo.stroke
-                Nothing -> pure ()
-            Cairo.restore
-            pure True
-    pure gleis
+    -> KurveErgebnis (m (Gleis z))
+createGleisWidget widthFn heightFn anchorPointsFn drawFn definition = do
+    width <- widthFn definition
+    height <- heightFn definition
+    anchorPoints <- anchorPointsFn definition
+    draw <- drawFn definition
+    pure $ do
+        tmvarParentInformation <- liftIO newEmptyTMVarIO
+        drawingArea <- Gtk.drawingAreaNew
+        Gtk.widgetSetHexpand drawingArea False
+        Gtk.widgetSetHalign drawingArea Gtk.AlignStart
+        Gtk.widgetSetVexpand drawingArea False
+        Gtk.widgetSetValign drawingArea Gtk.AlignStart
+        let gleis =
+                Gleis
+                { drawingArea, width, height, anchorPoints, tmvarParentInformation, definition }
+        Gtk.drawingAreaSetContentHeight drawingArea height
+        Gtk.drawingAreaSetContentWidth drawingArea width
+        Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
+            -> void $ flip Cairo.renderWithContext context $ do
+                Cairo.save
+                Cairo.setLineWidth 1
+                Cairo.newPath
+                draw
+                Cairo.stroke
+                Cairo.restore
+                -- mark anchor points
+                Cairo.save
+                Cairo.setLineWidth 1
+                currentParentInformation <- liftIO $ atomically $ runMaybeT $ do
+                    (tvarAnchorPoints, tvarGleise) <- MaybeT $ tryReadTMVar tmvarParentInformation
+                    position <- MaybeT $ HashMap.lookup gleis <$> readTVar tvarGleise
+                    fmap (, position) $ lift $ readTVar tvarAnchorPoints
+                case currentParentInformation of
+                    (Just (knownAnchorPoints, position)) -> forM_ anchorPoints
+                        $ \anchorPoint@AnchorPoint {anchorX, anchorY, anchorVX, anchorVY} -> do
+                            Cairo.moveTo anchorX anchorY
+                            let r, g, b :: Double
+                                (r, g, b) =
+                                    if not
+                                        $ any (/= drawingArea)
+                                        $ intersections position anchorPoint knownAnchorPoints
+                                        then (0, 0, 1)
+                                        else (0, 1, 0)
+                                len :: Double
+                                len = anchorVX * anchorVX + anchorVY * anchorVY
+                            Cairo.setSourceRGB r g b
+                            Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
+                            Cairo.stroke
+                    Nothing -> pure ()
+                Cairo.restore
+                pure True
+        pure gleis
 
 -- | Erstelle ein neues 'Gleis'.
-gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
+gleisNew :: (MonadIO m, Spurweite z) => GleisDefinition z -> KurveErgebnis (m (Gleis z))
 gleisNew = createGleisWidget getWidth getHeight getAnchorPoints getZeichnen
 
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
@@ -295,19 +295,19 @@ data WeichenRichtung
 instance Binary WeichenRichtung
 
 -- | Alle 'AnchorPoint's einer 'GleisDefinition'.
-getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> AnchorPointMap
+getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> KurveErgebnis AnchorPointMap
 getAnchorPoints = \case
-    Gerade {länge} -> anchorPointsGerade länge proxy
+    Gerade {länge} -> pure $ anchorPointsGerade länge proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKurve radius winkelBogenmaß proxy
+        -> pure $ anchorPointsKurve radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts}
-        -> anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
+        -> pure $ anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Links}
         -> anchorPointsWeicheLinks länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
         -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts}
-        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
+        -> pure $ anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links}
         -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
     Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
@@ -317,9 +317,9 @@ getAnchorPoints = \case
         proxy = Proxy
 
 -- | Breite des zugehörigen 'Gleis'es einer 'GleisDefinition'.
-getWidth :: forall z. (Spurweite z) => GleisDefinition z -> Int32
+getWidth :: forall z. (Spurweite z) => GleisDefinition z -> KurveErgebnis Int32
 getWidth = \case
-    Gerade {länge} -> widthGerade länge proxy
+    Gerade {länge} -> pure $ widthGerade länge proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
         -> widthKurve radius winkelBogenmaß proxy
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
@@ -335,9 +335,9 @@ getWidth = \case
         proxy = Proxy
 
 -- | Höhe des zugehörigen 'Gleis'es einer 'GleisDefinition'.
-getHeight :: forall z. (Spurweite z) => GleisDefinition z -> Int32
+getHeight :: forall z. (Spurweite z) => GleisDefinition z -> KurveErgebnis Int32
 getHeight = \case
-    Gerade {} -> heightGerade proxy
+    Gerade {} -> pure $ heightGerade proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
         -> heightKurve radius winkelBogenmaß proxy
     Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
@@ -353,11 +353,11 @@ getHeight = \case
         proxy = Proxy
 
 -- | Erstelle ein neues 'Gleis'.
-getZeichnen :: forall z. (Spurweite z) => GleisDefinition z -> Cairo.Render ()
+getZeichnen :: forall z. (Spurweite z) => GleisDefinition z -> KurveErgebnis (Cairo.Render ())
 getZeichnen = \case
-    Gerade {länge} -> zeichneGerade länge proxy
+    Gerade {länge} -> pure $ zeichneGerade länge proxy
     Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> zeichneKurve radius winkelBogenmaß AlleBeschränkungen proxy
+        -> pure $ zeichneKurve radius winkelBogenmaß AlleBeschränkungen proxy
     Weiche { länge
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)
@@ -367,7 +367,7 @@ getZeichnen = \case
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)
            , richtung = Normal {geradeRichtung = Rechts}}
-        -> zeichneWeicheRechts länge radius winkelBogenmaß proxy
+        -> pure $ zeichneWeicheRechts länge radius winkelBogenmaß proxy
     Weiche { länge
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)
@@ -377,7 +377,7 @@ getZeichnen = \case
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)
            , richtung = Gebogen {gebogeneRichtung = Rechts}}
-        -> zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
+        -> pure $ zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
     Weiche { länge
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)
