@@ -90,6 +90,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
 import qualified Data.RTree as RTree
+import Data.Text (Text)
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
@@ -387,6 +388,18 @@ data Position = Position { x :: Double, y :: Double, winkel :: Double }
     deriving (Eq, Show, Ord, Generic)
 
 instance Binary Position
+
+-- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:createLayout
+-- https://hackage.haskell.org/package/gi-pango-1.0.23/docs/GI-Pango-Objects-Layout.html#v:layoutSetText
+data GleisAnzeigeDrawingArea (z :: Zugtyp) =
+    GleisAnzeigeDrawingArea
+    { fixed :: Gtk.Fixed
+    , tvarScale :: TVar Double
+    , tvarWindow :: TVar (Double, Double) -- ^ x, y; width, height from size
+    , tvarGleise :: TVar (HashMap (GleisDefinition z) Position)
+    , tvarLabel :: TVar [(Text, Position)]
+    , tvarAnchorPoints :: TVar AnchorPointRTree
+    }
 
 -- TODO add possibility to move shown widget portion (from x,y -> to x,y)
 -- i.e. using a 'Gtk.ScrolledWindow' without shown scrollbar (Gtk.scrolledWindowSetPolicy)

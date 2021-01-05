@@ -23,6 +23,8 @@
         "fmap",
         "foldl",
         "hashable",
+        "pango",
+        "pangocairo",
         "succ",
         "tmvar",
         "tvar",
