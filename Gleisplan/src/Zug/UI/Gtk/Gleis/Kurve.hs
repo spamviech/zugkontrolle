@@ -1,5 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TupleSections #-}
 
 module Zug.UI.Gtk.Gleis.Kurve
   ( zeichneKurve
@@ -7,7 +10,9 @@ module Zug.UI.Gtk.Gleis.Kurve
   , widthKurve
   , heightKurve
   , KurvenBeschränkung(..)
-  , KurveError(..)
+  , KurveFehler(..)
+  , KurveErgebnis(..)
+  , beideErgebnisse
   ) where
 
 import Control.Monad (when)
@@ -19,21 +24,42 @@ import qualified GI.Cairo.Render as Cairo
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(spurweite), radiusBegrenzung, beschränkung, abstand)
 
-newtype KurveError = NichtUnterstützeWinkel (NonEmpty Double)
+newtype KurveFehler = NichtUnterstützeWinkel (NonEmpty Double)
     deriving (Show, Eq, Semigroup)
 
-widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Either KurveError Int32
+-- | 'Either'-Like Datentyp.
+-- Die 'Applicative'-Instanz sammelt alle Fehler, weshalb es keine 'Monad'en-Instanz geben kann.
+data KurveErgebnis a
+    = KurveErgebnis a
+    | KurveFehler KurveFehler
+    deriving (Show, Eq, Functor)
+
+beideErgebnisse :: KurveErgebnis a -> KurveErgebnis b -> KurveErgebnis (a, b)
+beideErgebnisse (KurveErgebnis a) = fmap (a, )
+beideErgebnisse (KurveFehler fehler) = (KurveFehler fehler <*>)
+
+instance Applicative KurveErgebnis where
+    pure :: a -> KurveErgebnis a
+    pure = KurveErgebnis
+
+    (<*>) :: KurveErgebnis (a -> b) -> KurveErgebnis a -> KurveErgebnis b
+    (KurveErgebnis f) <*> (KurveErgebnis a) = KurveErgebnis $ f a
+    (KurveErgebnis _f) <*> (KurveFehler fehlerA) = KurveFehler fehlerA
+    (KurveFehler fehlerF) <*> (KurveErgebnis _a) = KurveFehler fehlerF
+    (KurveFehler fehlerF) <*> (KurveFehler fehlerA) = KurveFehler $ fehlerF <> fehlerA
+
+widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
 widthKurve radius winkelBogenmaß proxy
     | (winkelBogenmaß < 0) || (winkelBogenmaß > 0.5 * pi) =
-        Left $ NichtUnterstützeWinkel $ winkelBogenmaß :| []
-    | otherwise = Right $ ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
+        KurveFehler $ NichtUnterstützeWinkel $ winkelBogenmaß :| []
+    | otherwise = KurveErgebnis $ ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
 
-heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Either KurveError Int32
+heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
 heightKurve radius winkelBogenmaß proxy
     | (winkelBogenmaß < 0) || (winkelBogenmaß > 0.5 * pi) =
-        Left $ NichtUnterstützeWinkel $ winkelBogenmaß :| []
+        KurveFehler $ NichtUnterstützeWinkel $ winkelBogenmaß :| []
     | otherwise =
-        Right
+        KurveErgebnis
         $ ceiling
         $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
         + beschränkung proxy * cos winkelBogenmaß
