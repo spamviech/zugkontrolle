@@ -5,8 +5,6 @@ module Zug.UI.Gtk.Gleis.Weiche
   (   -- * Gerade
     widthWeiche
   , heightWeiche
-  , KurveFehler(..)
-  , KurveErgebnis(..)
     -- ** Rechts
   , zeichneWeicheRechts
   , anchorPointsWeicheRechts
@@ -37,26 +35,16 @@ import GI.Cairo.Render.Matrix (Matrix(Matrix))
 import Zug.UI.Gtk.Gleis.Anchor
        (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade)
-import Zug.UI.Gtk.Gleis.Kurve
-       (KurvenBeschränkung(AlleBeschränkungen, EndBeschränkung), KurveFehler(..)
-      , KurveErgebnis(..), widthKurve, heightKurve, zeichneKurve)
+import Zug.UI.Gtk.Gleis.Kurve (KurvenBeschränkung(AlleBeschränkungen, EndBeschränkung)
+                             , widthKurve, heightKurve, zeichneKurve)
 import Zug.UI.Gtk.Gleis.Spurweite (abstand, Spurweite(), beschränkung)
 
-infixl 6 -#
-
-{-# INLINE (-#) #-}
-
--- | Identisch zu '-'. Definiert, damit Section-Syntax funktioniert (keine unary negation).
-(-#) :: (Num a) => a -> a -> a
-(-#) = (-)
-
-widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis Int32
+widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthWeiche länge radius winkelBogenmaß proxy =
-    max (ceiling länge) <$> widthKurve radius winkelBogenmaß proxy
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
 
-heightWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
-heightWeiche radius winkelBogenmaß proxy =
-    max (ceiling $ beschränkung proxy) <$> heightKurve radius winkelBogenmaß proxy
+heightWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
+heightWeiche = heightKurve
 
 -- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
 zeichneWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
@@ -83,108 +71,112 @@ anchorPointsWeicheRechts länge radius winkelBogenmaß proxy =
               }
               AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
 
-zeichneWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis (Cairo.Render ())
+zeichneWeicheLinks :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
 zeichneWeicheLinks länge radius winkelBogenmaß proxy = do
-    halfWidth <- (0.5 *) . fromIntegral <$> widthWeiche länge radius winkelBogenmaß proxy
-    halfHeight <- (0.5 *) . fromIntegral <$> heightWeiche radius winkelBogenmaß proxy
-    pure $ do
-        Cairo.translate halfWidth halfHeight
-        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth) (-halfHeight)
-        zeichneWeicheRechts länge radius winkelBogenmaß proxy
+    Cairo.translate halfWidth halfHeight
+    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+    Cairo.translate (-halfWidth) (-halfHeight)
+    zeichneWeicheRechts länge radius winkelBogenmaß proxy
+    where
+        halfWidth :: Double
+        halfWidth = 0.5 * fromIntegral (widthWeiche länge radius winkelBogenmaß proxy)
 
-anchorPointsWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis AnchorPointMap
-anchorPointsWeicheLinks länge radius winkelBogenmaß proxy = do
-    height <- fromIntegral <$> heightWeiche radius winkelBogenmaß proxy
-    pure
-        $ withAnchorName
-            "WeicheLinks"
-            [ AnchorPoint
-                  AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
-                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
-            , AnchorPoint
-                  AnchorPosition { anchorX = länge, anchorY = height - 0.5 * beschränkung proxy }
-                  AnchorDirection { anchorDX = 1, anchorDY = 0 }
-            , AnchorPoint
-                  AnchorPosition
-                  { anchorX = radius * sin winkelBogenmaß
-                  , anchorY =
-                        height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-                  }
-                  AnchorDirection
-                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
+        halfHeight :: Double
+        halfHeight = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß proxy)
 
-widthDreiwegeweiche
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis Int32
+anchorPointsWeicheLinks :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
+anchorPointsWeicheLinks länge radius winkelBogenmaß proxy =
+    withAnchorName
+        "WeicheLinks"
+        [ AnchorPoint
+              AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition { anchorX = länge, anchorY = height - 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = 1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
+    where
+        height :: Double
+        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
+
+widthDreiwegeweiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthDreiwegeweiche länge radius winkelBogenmaß proxy =
-    max (ceiling länge) <$> widthKurve radius winkelBogenmaß proxy
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
 
-heightDreiwegeweiche :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
+heightDreiwegeweiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 heightDreiwegeweiche radius winkelBogenmaß proxy =
-    max (ceiling $ beschränkung proxy) . (-# ceiling (beschränkung proxy)) . (2 *)
-    <$> heightKurve radius winkelBogenmaß proxy
+    max (ceiling $ beschränkung proxy)
+    $ 2 * heightKurve radius winkelBogenmaß proxy - ceiling (beschränkung proxy)
 
-zeichneDreiwegeweiche
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis (Cairo.Render ())
+zeichneDreiwegeweiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
 zeichneDreiwegeweiche länge radius winkelBogenmaß proxy = do
-    width <- widthDreiwegeweiche länge radius winkelBogenmaß proxy
-    height <- heightDreiwegeweiche radius winkelBogenmaß proxy
-    let halfWidth :: Double
+    Cairo.translate 0 startHeight
+    zeichneWeicheRechts länge radius winkelBogenmaß proxy
+    Cairo.translate 0 $ -startHeight
+    Cairo.stroke
+    Cairo.translate halfWidth halfHeight
+    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+    Cairo.translate (-halfWidth) (-halfHeight)
+    Cairo.translate 0 startHeight
+    zeichneKurve radius winkelBogenmaß EndBeschränkung proxy
+    where
+        width :: Int32
+        width = widthDreiwegeweiche länge radius winkelBogenmaß proxy
+
+        height :: Int32
+        height = heightDreiwegeweiche radius winkelBogenmaß proxy
+
+        halfWidth :: Double
         halfWidth = 0.5 * fromIntegral width
+
         halfHeight :: Double
         halfHeight = 0.5 * fromIntegral height
+
         startHeight :: Double
         startHeight = halfHeight - 0.5 * beschränkung proxy
-    pure $ do
-        Cairo.translate 0 startHeight
-        zeichneWeicheRechts länge radius winkelBogenmaß proxy
-        Cairo.translate 0 $ -startHeight
-        Cairo.stroke
-        Cairo.translate halfWidth halfHeight
-        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth) (-halfHeight)
-        Cairo.translate 0 startHeight
-        zeichneKurve radius winkelBogenmaß EndBeschränkung proxy
 
 anchorPointsDreiwegeweiche
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis AnchorPointMap
-anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy = do
-    height <- fromIntegral <$> heightDreiwegeweiche radius winkelBogenmaß proxy
-    let halfHeight :: Double
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
+anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
+    withAnchorName
+        "Dreiwegeweiche"
+        [ AnchorPoint
+              AnchorPosition { anchorX = 0, anchorY = halfHeight }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition { anchorX = länge, anchorY = halfHeight }
+              AnchorDirection { anchorDX = 1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
+    where
+        height :: Double
+        height = fromIntegral $ heightDreiwegeweiche radius winkelBogenmaß proxy
+
+        halfHeight :: Double
         halfHeight = 0.5 * height
-    pure
-        $ withAnchorName
-            "Dreiwegeweiche"
-            [ AnchorPoint
-                  AnchorPosition { anchorX = 0, anchorY = halfHeight }
-                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
-            , AnchorPoint
-                  AnchorPosition { anchorX = länge, anchorY = halfHeight }
-                  AnchorDirection { anchorDX = 1, anchorDY = 0 }
-            , AnchorPoint
-                  AnchorPosition
-                  { anchorX = radius * sin winkelBogenmaß
-                  , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
-                  }
-                  AnchorDirection
-                  { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
-            , AnchorPoint
-                  AnchorPosition
-                  { anchorX = radius * sin winkelBogenmaß
-                  , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
-                  }
-                  AnchorDirection
-                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
 
-widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis Int32
+widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
 widthKurvenWeiche länge radius winkelBogenmaß proxy =
-    (ceiling länge +) <$> widthKurve radius winkelBogenmaß proxy
+    ceiling länge + widthKurve radius winkelBogenmaß proxy
 
-heightKurvenWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
+heightKurvenWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 heightKurvenWeiche radius winkelBogenmaß proxy =
-    max (ceiling $ beschränkung proxy) <$> heightKurve radius winkelBogenmaß proxy
+    max (ceiling $ beschränkung proxy) $ heightKurve radius winkelBogenmaß proxy
 
 -- | Pfad zum Zeichnen einer Kurven-Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
 --
@@ -231,39 +223,38 @@ anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy =
               AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
 
 zeichneKurvenWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis (Cairo.Render ())
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
 zeichneKurvenWeicheLinks länge radius winkelBogenmaß proxy = do
-    halfWidth <- (0.5 *) . fromIntegral <$> widthKurvenWeiche länge radius winkelBogenmaß proxy
-    halfHeight <- (0.5 *) . fromIntegral <$> heightKurvenWeiche radius winkelBogenmaß proxy
-    pure $ do
-        Cairo.translate halfWidth halfHeight
-        Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-        Cairo.translate (-halfWidth) (-halfHeight)
-        zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
+    Cairo.translate halfWidth halfHeight
+    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+    Cairo.translate (-halfWidth) (-halfHeight)
+    zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
+    where
+        halfWidth :: Double
+        halfWidth = 0.5 * fromIntegral (widthKurvenWeiche länge radius winkelBogenmaß proxy)
+
+        halfHeight = 0.5 * fromIntegral (heightKurvenWeiche radius winkelBogenmaß proxy)
 
 anchorPointsKurvenWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis AnchorPointMap
-anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy = do
-    height <- fromIntegral <$> heightKurvenWeiche radius winkelBogenmaß proxy
-    pure
-        $ withAnchorName
-            "KurvenWeicheLinks"
-            [ AnchorPoint
-                  AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
-                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
-            , AnchorPoint
-                  AnchorPosition
-                  { anchorX = radius * sin winkelBogenmaß
-                  , anchorY =
-                        height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-                  }
-                  AnchorDirection
-                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }
-            , AnchorPoint
-                  AnchorPosition
-                  { anchorX = länge + radius * sin winkelBogenmaß
-                  , anchorY =
-                        height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-                  }
-                  AnchorDirection
-                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
+    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
+anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy =
+    withAnchorName
+        "KurvenWeicheLinks"
+        [ AnchorPoint
+              AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = länge + radius * sin winkelBogenmaß
+              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
+    where
+        height :: Double
+        height = fromIntegral $ heightKurvenWeiche radius winkelBogenmaß proxy

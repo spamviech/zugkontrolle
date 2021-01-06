@@ -10,8 +10,6 @@ module Zug.UI.Gtk.Gleis.Kurve
   , widthKurve
   , heightKurve
   , KurvenBeschränkung(..)
-  , KurveFehler(..)
-  , KurveErgebnis(..)
   ) where
 
 import Control.Monad (when)
@@ -23,45 +21,24 @@ import Zug.UI.Gtk.Gleis.Anchor
        (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(spurweite), radiusBegrenzung, beschränkung, abstand)
 
-newtype KurveFehler = NichtUnterstützeWinkel Double
-    deriving (Show, Eq)
-
--- | 'Either'-Like Datentyp.
--- Die 'Applicative'-Instanz sammelt alle Fehler, weshalb es keine 'Monad'en-Instanz geben kann.
-data KurveErgebnis a
-    = KurveErgebnis a
-    | KurveFehler KurveFehler
-    deriving (Show, Eq, Functor)
-
-instance Applicative KurveErgebnis where
-    pure :: a -> KurveErgebnis a
-    pure = KurveErgebnis
-
-    (<*>) :: KurveErgebnis (a -> b) -> KurveErgebnis a -> KurveErgebnis b
-    (KurveErgebnis f) <*> (KurveErgebnis a) = KurveErgebnis $ f a
-    (KurveFehler fehlerF) <*> _kurveErgebnis = KurveFehler fehlerF
-    _kurveErgebnis <*> (KurveFehler fehlerA) = KurveFehler fehlerA
-
-instance Monad KurveErgebnis where
-    (>>=) :: KurveErgebnis a -> (a -> KurveErgebnis b) -> KurveErgebnis b
-    (KurveErgebnis a) >>= f = f a
-    (KurveFehler fehler) >>= _f = KurveFehler fehler
-
-widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
+widthKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 widthKurve radius winkelBogenmaß proxy
-    | (winkelBogenmaß < 0) || (winkelBogenmaß > 0.5 * pi) =
-        KurveFehler $ NichtUnterstützeWinkel winkelBogenmaß
-    | otherwise = KurveErgebnis $ ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
+    | abs winkelBogenmaß < 0.5 * pi =
+        ceiling $ radiusBegrenzung radius proxy * sin winkelBogenmaß
+    | otherwise = ceiling $ radiusBegrenzung radius proxy
 
-heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> KurveErgebnis Int32
+heightKurve :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
 heightKurve radius winkelBogenmaß proxy
-    | (winkelBogenmaß < 0) || (winkelBogenmaß > 0.5 * pi) =
-        KurveFehler $ NichtUnterstützeWinkel winkelBogenmaß
-    | otherwise =
-        KurveErgebnis
-        $ ceiling
+    | abs winkelBogenmaß < 0.5 * pi =
+        ceiling
+        $ max (beschränkung proxy)
         $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
         + beschränkung proxy * cos winkelBogenmaß
+    | abs winkelBogenmaß < pi =
+        ceiling
+        $ max (beschränkung proxy)
+        $ radiusBegrenzung radius proxy * (1 - cos winkelBogenmaß)
+    | otherwise = ceiling $ max (beschränkung proxy) $ radiusBegrenzung radius proxy
 
 data KurvenBeschränkung
     = KeineBeschränkungen
