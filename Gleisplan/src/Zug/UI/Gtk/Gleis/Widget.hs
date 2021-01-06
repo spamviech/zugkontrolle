@@ -324,7 +324,7 @@ newtype TextId (z :: Zugtyp) = TextId { tId :: Natural }
 
 -- TODO add AnchorDirection?
 -- | AnchorPoints einer 'GleisAnzeige', sortiert nach 'Position'.
-type AnchorPointRTreeD (z :: Zugtyp) = RTree (NonEmpty (GleisId z))
+type AnchorPointRTree (z :: Zugtyp) = RTree (NonEmpty (GleisId z))
 
 -- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:createLayout
 -- https://hackage.haskell.org/package/gi-pango-1.0.23/docs/GI-Pango-Objects-Layout.html#v:layoutSetText
@@ -337,7 +337,7 @@ data GleisAnzeige (z :: Zugtyp) =
     , tvarNextTextId :: TVar (TextId z)
     , tvarGleise :: TVar (HashMap (GleisId z) (GleisDefinition z, Position))
     , tvarTexte :: TVar (HashMap (TextId z) (Text, Position))
-    , tvarAnchorPoints :: TVar (AnchorPointRTreeD z)
+    , tvarAnchorPoints :: TVar (AnchorPointRTree z)
     }
 
 instance MitWidget (GleisAnzeige z) where
@@ -347,7 +347,11 @@ instance MitWidget (GleisAnzeige z) where
 withSaveRestore :: Cairo.Render a -> Cairo.Render a
 withSaveRestore action = Cairo.save *> action <* Cairo.restore
 
-gleisAnzeigeNew :: (MonadIO m, Spurweite z) => m (GleisAnzeige z)
+-- TODO add hotkeys to adjust config
+-- scrolling for scale (zoom)
+-- right-click to move
+-- allow rotation? i.e. via middle click
+gleisAnzeigeNew :: forall m z. (MonadIO m, Spurweite z) => m (GleisAnzeige z)
 gleisAnzeigeNew = liftIO $ do
     drawingArea <- Gtk.drawingAreaNew
     tvarNextGleisId <- newTVarIO $ GleisId 0
@@ -359,59 +363,22 @@ gleisAnzeigeNew = liftIO $ do
     -- configure drawing area
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
+    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
         -> void $ flip Cairo.renderWithContext context $ withSaveRestore $ do
             Cairo.setLineWidth 1
-            (knownAnchorPoints, gleise, texte) <- liftIO
+            (knownAnchorPoints, gleise, texte, GleisAnzeigeConfig {x, y, scale}) <- liftIO
                 $ atomically
-                $ (,,) <$> readTVar tvarAnchorPoints <*> readTVar tvarGleise <*> readTVar tvarTexte
-            -- TODO respect GleisAnzeigeConfig (move + scale)
+                $ (,,,) <$> readTVar tvarAnchorPoints
+                <*> readTVar tvarGleise
+                <*> readTVar tvarTexte
+                <*> readTVar tvarConfig
+            -- adjust Scale and show window section
+            Cairo.scale scale scale
+            Cairo.translate (-x) (-y)
             -- zeichne Gleise
-            forM_ (HashMap.toList gleise)
-                $ \(gleisId, (gleisDefinition, position@Position {x, y, winkel}))
-                -> withSaveRestore $ do
-                    -- move to position and rotate
-                    let winkelBogenmaß :: Double
-                        winkelBogenmaß = pi / 180 * winkel
-                    Cairo.translate x y
-                    Cairo.rotate winkelBogenmaß
-                    -- draw rail
-                    withSaveRestore $ do
-                        Cairo.newPath
-                        getZeichnen gleisDefinition
-                        Cairo.stroke
-                    -- mark anchor points
-                    forM_ (getAnchorPoints gleisDefinition)
-                        $ \anchorPoint@AnchorPoint
-                        { anchorPosition = AnchorPosition {anchorX, anchorY}
-                        , anchorDirection = AnchorDirection {anchorDX, anchorDY}}
-                        -> withSaveRestore $ do
-                            Cairo.moveTo anchorX anchorY
-                            let r, g, b :: Double
-                                (r, g, b) =
-                                    if any (/= gleisId)
-                                        $ intersections position anchorPoint knownAnchorPoints
-                                        then (0, 1, 0)
-                                        else (0, 0, 1)
-                                len :: Double
-                                len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
-                            Cairo.setSourceRGB r g b
-                            Cairo.relLineTo (-5 * anchorDX / len) (-5 * anchorDY / len)
-                            Cairo.stroke
+            forM_ (HashMap.toList gleise) $ renderGleis knownAnchorPoints
             -- schreibe Texte
-            forM_ texte $ \(text, Position {x, y, winkel}) -> withSaveRestore $ do
-                -- move to position and rotate
-                let winkelBogenmaß :: Double
-                    winkelBogenmaß = pi / 180 * winkel
-                Cairo.translate x y
-                Cairo.rotate winkelBogenmaß
-                -- write text
-                Cairo.newPath
-                Cairo.moveTo 0 0
-                layout <- PangoCairo.createLayout context
-                Pango.layoutSetText layout text $ -1
-                PangoCairo.layoutPath context layout
-                Cairo.stroke
+            forM_ texte renderText
             pure True
     pure
         GleisAnzeige
@@ -430,6 +397,55 @@ gleisAnzeigeNew = liftIO $ do
         height :: Int32
         height = 400
 
+        renderGleis
+            :: AnchorPointRTree z -> (GleisId z, (GleisDefinition z, Position)) -> Cairo.Render ()
+        renderGleis
+            knownAnchorPoints
+            (gleisId, (gleisDefinition, position@Position {x, y, winkel})) = withSaveRestore $ do
+            -- move to position and rotate
+            let winkelBogenmaß :: Double
+                winkelBogenmaß = pi / 180 * winkel
+            Cairo.translate x y
+            Cairo.rotate winkelBogenmaß
+            -- draw rail
+            withSaveRestore $ do
+                Cairo.newPath
+                getZeichnen gleisDefinition
+                Cairo.stroke
+            -- mark anchor points
+            forM_ (getAnchorPoints gleisDefinition)
+                $ \anchorPoint@AnchorPoint
+                { anchorPosition = AnchorPosition {anchorX, anchorY}
+                , anchorDirection = AnchorDirection {anchorDX, anchorDY}} -> withSaveRestore $ do
+                    Cairo.moveTo anchorX anchorY
+                    let r, g, b :: Double
+                        (r, g, b) =
+                            if any (/= gleisId)
+                                $ intersections position anchorPoint knownAnchorPoints
+                                then (0, 1, 0)
+                                else (0, 0, 1)
+                        len :: Double
+                        len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
+                    Cairo.setSourceRGB r g b
+                    Cairo.relLineTo (-5 * anchorDX / len) (-5 * anchorDY / len)
+                    Cairo.stroke
+
+        renderText :: (Text, Position) -> Cairo.Render ()
+        renderText (text, Position {x, y, winkel}) = withSaveRestore $ do
+            context <- Cairo.getContext
+            -- move to position and rotate
+            let winkelBogenmaß :: Double
+                winkelBogenmaß = pi / 180 * winkel
+            Cairo.translate x y
+            Cairo.rotate winkelBogenmaß
+            -- write text
+            Cairo.newPath
+            Cairo.moveTo 0 0
+            layout <- PangoCairo.createLayout context
+            Pango.layoutSetText layout text $ -1
+            PangoCairo.layoutPath context layout
+            Cairo.stroke
+
 -- | Skaliere eine 'GleisAnzeige'.
 gleisAnzeigeConfig :: (MonadIO m) => GleisAnzeige z -> GleisAnzeigeConfig -> m ()
 gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} config = liftIO $ do
@@ -439,16 +455,16 @@ gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} config = liftIO $ do
 -- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
 -- Returns list of 'Gtk.DrawingArea' with close 'AnchorPoint' to old or new location.
 moveAnchors :: forall z.
-            TVar (AnchorPointRTreeD z)
+            TVar (AnchorPointRTree z)
             -> GleisId z
             -> Maybe (Position, AnchorPointMap)
             -> STM ()
 moveAnchors tvarAnchorPoints gleisId maybePositionAnchorPoints = do
     knownAnchorPoints <- readTVar tvarAnchorPoints
-    let otherAnchorPoints :: AnchorPointRTreeD z
+    let otherAnchorPoints :: AnchorPointRTree z
         otherAnchorPoints =
             RTree.mapMaybe (NonEmpty.nonEmpty . NonEmpty.filter (/= gleisId)) knownAnchorPoints
-        newAnchorPoints :: AnchorPointRTreeD z
+        newAnchorPoints :: AnchorPointRTree z
         newAnchorPoints = case maybePositionAnchorPoints of
             Nothing -> otherAnchorPoints
             (Just (position, anchorPoints))
