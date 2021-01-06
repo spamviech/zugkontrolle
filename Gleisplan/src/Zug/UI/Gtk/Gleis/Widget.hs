@@ -40,71 +40,56 @@ Scrolling, Drag&Drop use EventController, added using 'Gtk.widgetAddController'
     https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DropTargetAsync.html
 -}
 module Zug.UI.Gtk.Gleis.Widget
-  ( -- * Gleis Widgets
-    Gleis()
-    -- ** Definition
+  (  -- * GleisAnzeige
+    GleisAnzeige
+  , Position(..)
+  , GleisAnzeigeConfig(..)
+  , gleisAnzeigeNew
+  , gleisAnzeigeConfig
+    -- ** Gleise
+  , gleisPut
+  , GleisMoveError(..)
+  , gleisMove
+  , gleisRemove
+  , AttachError(..)
+  , gleisAttach
+  , AttachMoveError(..)
+  , gleisAttachMove
+    -- *** Definition
   , GleisDefinition(..)
-  , getWidth, getHeight
+  , getWidth
+  , getHeight
   , WeichenArt(..)
   , WeichenRichtungAllgemein(..)
   , alsDreiweg
   , WeichenRichtung(..)
   , KreuzungsArt(..)
-    -- ** Anker-Punkte
+    -- *** Anker-Punkte
   , AnchorName(..)
-  , AnchorPoint(..)
-    -- * Methoden
-  , gleisNew
-  , gleisGetSize
-    -- * Anzeige
-  , GleisAnzeige()
-  , Position(..)
-    -- ** Konstruktor
-  , gleisAnzeigeNew
-    -- ** Gleis platzieren
-  , gleisPut
-  , gleisAttach
-  , AttachError
-  , gleisRemove
-  , gleisAnzeigePutLabel
-  , gleisAnzeigeRemoveLabel
-  , gleisAnzeigeScale
+    -- ** Texte
+  , textPut
+  , TextMoveError(..)
+  , textMove
+  , textRemove
     -- ** Speichern / Laden
   , gleisAnzeigeSave
   , Binary(..)
-    -- * single DrawingArea-Variant
-  , GleisAnzeigeD
-  , GleisAnzeigeConfig(..)
-  , gleisAnzeigeNewD
-  , gleisAnzeigeConfigD
-    -- ** Gleise
-  , gleisPutD
-  , gleisMoveD
-  , gleisRemoveD
-    -- ** Texte
-  , textPutD
-  , textMoveD
-  , textRemoveD
   ) where
 
-import Control.Concurrent.STM
-       (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar', TMVar
-      , newEmptyTMVarIO, tryReadTMVar, tryPutTMVar, tryTakeTMVar)
-import Control.Monad (when, void, forM_, forM)
+import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVar, writeTVar, modifyTVar')
+import Control.Monad (void, forM_)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
-import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
-import Control.Monad.Trans.Maybe (MaybeT(MaybeT, runMaybeT))
+import Control.Monad.Trans.Except (withExceptT, ExceptT(ExceptT))
 import Data.Bifunctor (first)
 import Data.Binary (Binary())
 import qualified Data.Binary as Binary
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
-import Data.Hashable (Hashable(hashWithSalt))
+import Data.Hashable (Hashable())
 import Data.Int (Int32)
-import Data.List (partition, foldl')
+import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
 import Data.RTree (RTree)
 import qualified Data.RTree as RTree
@@ -112,17 +97,14 @@ import Data.Text (Text)
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
-import qualified GI.Graphene as Graphene
-import qualified GI.Gsk as Gsk
 import qualified GI.Gtk as Gtk
 import qualified GI.Pango as Pango
 import qualified GI.PangoCairo as PangoCairo
 import Numeric.Natural (Natural)
 
 import Zug.Enums (Zugtyp(..))
-import Zug.UI.Gtk.Gleis.Anchor
-       (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorName(..), AnchorPointMap
-      , AnchorPointRTree, mbbSearch, mbbPoint)
+import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..)
+                              , AnchorName(..), AnchorPointMap, mbbSearch, mbbPoint)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade, anchorPointsGerade, widthGerade, heightGerade)
 import Zug.UI.Gtk.Gleis.Kreuzung
        (zeichneKreuzung, anchorPointsKreuzung, widthKreuzung, heightKreuzung, KreuzungsArt(..))
@@ -136,33 +118,6 @@ import Zug.UI.Gtk.Gleis.Weiche
       , zeichneKurvenWeicheRechts, anchorPointsKurvenWeicheRechts, zeichneKurvenWeicheLinks
       , anchorPointsKurvenWeicheLinks)
 import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
-
--- import Zug.UI.Gtk.Hilfsfunktionen (fixedPutWidgetNew)
--- | 'Gtk.Widget' von einem Gleis.
--- Die Größe wird nur über 'gleisScale', 'gleisSetWidth' und 'gleisSetHeight' verändert.
-data Gleis (z :: Zugtyp) =
-    Gleis
-    { drawingArea :: Gtk.DrawingArea
-    , width :: Int32
-    , height :: Int32
-    , anchorPoints :: AnchorPointMap
-    , tmvarParentInformation :: TMVar (TVar AnchorPointRTree, TVar (HashMap (Gleis z) Position))
-    , definition :: GleisDefinition z
-    }
-    deriving (Eq)
-
-instance MitWidget (Gleis z) where
-    erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
-    erhalteWidget Gleis {drawingArea} = Gtk.toWidget drawingArea
-
-instance Hashable (Gleis z) where
-    hashWithSalt :: Int -> Gleis z -> Int
-    hashWithSalt salt Gleis {width, height, anchorPoints} =
-        hashWithSalt salt (width, height, anchorPoints)
-
--- | Erhalte die Breite und Höhe eines 'Gleis'es (unscaled).
-gleisGetSize :: Gleis z -> (Int32, Int32)
-gleisGetSize Gleis {width, height} = (width, height)
 
 translateAnchorPoint :: Position -> AnchorPosition -> (Double, Double)
 translateAnchorPoint Position {x, y, winkel} AnchorPosition {anchorX, anchorY} = (fixedX, fixedY)
@@ -181,71 +136,6 @@ intersections position anchorPoint knownAnchorPoints =
     concatMap NonEmpty.toList
     $ uncurry mbbSearch (translateAnchorPoint position $ anchorPosition anchorPoint)
     `RTree.intersect` knownAnchorPoints
-
--- | Create a new 'Gtk.DrawingArea' with a fixed size set up with the specified 'Cairo.Render' /draw/ path.
---
--- 'Cairo.setLineWidth' 1 is called before the /draw/ action is executed.
--- After the action 'Cairo.stroke' is executed.
-gleisNew :: forall m z. (MonadIO m, Spurweite z) => GleisDefinition z -> m (Gleis z)
-gleisNew definition = do
-    tmvarParentInformation <- liftIO newEmptyTMVarIO
-    drawingArea <- Gtk.drawingAreaNew
-    Gtk.widgetSetHexpand drawingArea False
-    Gtk.widgetSetHalign drawingArea Gtk.AlignStart
-    Gtk.widgetSetVexpand drawingArea False
-    Gtk.widgetSetValign drawingArea Gtk.AlignStart
-    let gleis =
-            Gleis { drawingArea, width, height, anchorPoints, tmvarParentInformation, definition }
-    Gtk.drawingAreaSetContentHeight drawingArea height
-    Gtk.drawingAreaSetContentWidth drawingArea width
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
-        -> void $ flip Cairo.renderWithContext context $ do
-            Cairo.save
-            Cairo.setLineWidth 1
-            Cairo.newPath
-            zeichnen
-            Cairo.stroke
-            Cairo.restore
-            -- mark anchor points
-            Cairo.save
-            Cairo.setLineWidth 1
-            currentParentInformation <- liftIO $ atomically $ runMaybeT $ do
-                (tvarAnchorPoints, tvarGleise) <- MaybeT $ tryReadTMVar tmvarParentInformation
-                position <- MaybeT $ HashMap.lookup gleis <$> readTVar tvarGleise
-                fmap (, position) $ lift $ readTVar tvarAnchorPoints
-            forM_ anchorPoints
-                $ \anchorPoint@AnchorPoint
-                { anchorPosition = AnchorPosition {anchorX, anchorY}
-                , anchorDirection = AnchorDirection {anchorDX, anchorDY}} -> do
-                    Cairo.moveTo anchorX anchorY
-                    let r, g, b :: Double
-                        (r, g, b) = case currentParentInformation of
-                            (Just (knownAnchorPoints, position))
-                                | any (/= drawingArea)
-                                    $ intersections position anchorPoint knownAnchorPoints
-                                    -> (0, 1, 0)
-                                | otherwise -> (0, 0, 1)
-                            Nothing -> (1, 0, 0)
-                        len :: Double
-                        len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
-                    Cairo.setSourceRGB r g b
-                    Cairo.relLineTo (-5 * anchorDX / len) (-5 * anchorDY / len)
-                    Cairo.stroke
-            Cairo.restore
-            pure True
-    pure gleis
-    where
-        width :: Int32
-        width = getWidth definition
-
-        height :: Int32
-        height = getHeight definition
-
-        anchorPoints :: AnchorPointMap
-        anchorPoints = getAnchorPoints definition
-
-        zeichnen :: Cairo.Render ()
-        zeichnen = getZeichnen definition
 
 -- | Notwendige Größen zur Charakterisierung eines 'Gleis'es.
 --
@@ -420,23 +310,27 @@ data Position = Position { x :: Double, y :: Double, winkel :: Double }
 instance Binary Position
 
 data GleisAnzeigeConfig = GleisAnzeigeConfig { scale :: Double, x :: Double, y :: Double }
-    deriving (Show, Eq)
+    deriving (Show, Eq, Generic)
+
+instance Binary GleisAnzeigeConfig
 
 newtype GleisId (z :: Zugtyp) = GleisId { gId :: Natural }
     deriving stock Show
-    deriving (Eq, Hashable) via Natural
+    deriving (Eq, Hashable, Binary) via Natural
 
 newtype TextId (z :: Zugtyp) = TextId { tId :: Natural }
     deriving stock Show
-    deriving (Eq, Hashable) via Natural
+    deriving (Eq, Hashable, Binary) via Natural
 
+-- TODO add AnchorDirection?
+-- | AnchorPoints einer 'GleisAnzeige', sortiert nach 'Position'.
 type AnchorPointRTreeD (z :: Zugtyp) = RTree (NonEmpty (GleisId z))
 
 -- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:createLayout
 -- https://hackage.haskell.org/package/gi-pango-1.0.23/docs/GI-Pango-Objects-Layout.html#v:layoutSetText
 -- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:layoutPath
-data GleisAnzeigeD (z :: Zugtyp) =
-    GleisAnzeigeD
+data GleisAnzeige (z :: Zugtyp) =
+    GleisAnzeige
     { drawingArea :: Gtk.DrawingArea
     , tvarConfig :: TVar GleisAnzeigeConfig
     , tvarNextGleisId :: TVar (GleisId z)
@@ -446,15 +340,15 @@ data GleisAnzeigeD (z :: Zugtyp) =
     , tvarAnchorPoints :: TVar (AnchorPointRTreeD z)
     }
 
-instance MitWidget (GleisAnzeigeD z) where
-    erhalteWidget :: (MonadIO m) => GleisAnzeigeD z -> m Gtk.Widget
-    erhalteWidget GleisAnzeigeD {drawingArea} = Gtk.toWidget drawingArea
+instance MitWidget (GleisAnzeige z) where
+    erhalteWidget :: (MonadIO m) => GleisAnzeige z -> m Gtk.Widget
+    erhalteWidget GleisAnzeige {drawingArea} = Gtk.toWidget drawingArea
 
 withSaveRestore :: Cairo.Render a -> Cairo.Render a
 withSaveRestore action = Cairo.save *> action <* Cairo.restore
 
-gleisAnzeigeNewD :: (MonadIO m, Spurweite z) => m (GleisAnzeigeD z)
-gleisAnzeigeNewD = liftIO $ do
+gleisAnzeigeNew :: (MonadIO m, Spurweite z) => m (GleisAnzeige z)
+gleisAnzeigeNew = liftIO $ do
     drawingArea <- Gtk.drawingAreaNew
     tvarNextGleisId <- newTVarIO $ GleisId 0
     tvarNextTextId <- newTVarIO $ TextId 0
@@ -520,7 +414,7 @@ gleisAnzeigeNewD = liftIO $ do
                 Cairo.stroke
             pure True
     pure
-        GleisAnzeigeD
+        GleisAnzeige
         { drawingArea
         , tvarNextGleisId
         , tvarNextTextId
@@ -537,19 +431,19 @@ gleisAnzeigeNewD = liftIO $ do
         height = 400
 
 -- | Skaliere eine 'GleisAnzeige'.
-gleisAnzeigeConfigD :: (MonadIO m) => GleisAnzeigeD z -> GleisAnzeigeConfig -> m ()
-gleisAnzeigeConfigD GleisAnzeigeD {drawingArea, tvarConfig} config = liftIO $ do
+gleisAnzeigeConfig :: (MonadIO m) => GleisAnzeige z -> GleisAnzeigeConfig -> m ()
+gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} config = liftIO $ do
     atomically $ writeTVar tvarConfig config
     Gtk.widgetQueueDraw drawingArea
 
 -- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
 -- Returns list of 'Gtk.DrawingArea' with close 'AnchorPoint' to old or new location.
-moveAnchorsD :: forall z.
-             TVar (AnchorPointRTreeD z)
-             -> GleisId z
-             -> Maybe (Position, AnchorPointMap)
-             -> STM ()
-moveAnchorsD tvarAnchorPoints gleisId maybePositionAnchorPoints = do
+moveAnchors :: forall z.
+            TVar (AnchorPointRTreeD z)
+            -> GleisId z
+            -> Maybe (Position, AnchorPointMap)
+            -> STM ()
+moveAnchors tvarAnchorPoints gleisId maybePositionAnchorPoints = do
     knownAnchorPoints <- readTVar tvarAnchorPoints
     let otherAnchorPoints :: AnchorPointRTreeD z
         otherAnchorPoints =
@@ -566,13 +460,10 @@ moveAnchorsD tvarAnchorPoints gleisId maybePositionAnchorPoints = do
     writeTVar tvarAnchorPoints $! newAnchorPoints
 
 -- | Füge ein Gleis zur angestrebten 'Position' einer 'GleisAnzeige' hinzu.
-gleisPutD :: (MonadIO m, Spurweite z)
-          => GleisAnzeigeD z
-          -> GleisDefinition z
-          -> Position
-          -> m (GleisId z)
-gleisPutD
-    GleisAnzeigeD {drawingArea, tvarNextGleisId, tvarGleise, tvarAnchorPoints}
+gleisPut
+    :: (MonadIO m, Spurweite z) => GleisAnzeige z -> GleisDefinition z -> Position -> m (GleisId z)
+gleisPut
+    GleisAnzeige {drawingArea, tvarNextGleisId, tvarGleise, tvarAnchorPoints}
     definition
     position = liftIO $ do
     gleisId <- atomically $ do
@@ -583,57 +474,53 @@ gleisPutD
         gleise <- readTVar tvarGleise
         writeTVar tvarGleise $! HashMap.insert gleisId (definition, position) gleise
         -- move anchor points
-        moveAnchorsD tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
+        moveAnchors tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
         -- result is newly created id
         pure gleisId
     -- Queue re-draw
     Gtk.widgetQueueDraw drawingArea
     pure gleisId
 
-data GleisMoveResult (z :: Zugtyp)
-    = GleisMoveSuccess
-    | InvalidGleisId (GleisId z)
+newtype GleisMoveError (z :: Zugtyp) = InvalidGleisId (GleisId z)
     deriving (Eq, Show)
 
 -- | Bewege das Gleis mit der übergebenen 'GleisId' zur angestrebten 'Position' einer 'GleisAnzeige'.
-gleisMoveD :: (MonadIO m, Spurweite z)
-           => GleisAnzeigeD z
-           -> GleisId z
-           -> Position
-           -> m (GleisMoveResult z)
-gleisMoveD GleisAnzeigeD {drawingArea, tvarGleise, tvarAnchorPoints} gleisId position = liftIO $ do
-    result <- atomically $ do
+gleisMove :: (MonadIO m, Spurweite z)
+          => GleisAnzeige z
+          -> GleisId z
+          -> Position
+          -> ExceptT (GleisMoveError z) m ()
+gleisMove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId position = do
+    ExceptT $ liftIO $ atomically $ do
         gleise <- readTVar tvarGleise
         case HashMap.lookup gleisId gleise of
-            Nothing -> pure $ InvalidGleisId gleisId
-            (Just (definition, _oldPosition)) -> do
+            Nothing -> pure $ Left $ InvalidGleisId gleisId
+            (Just (definition, _oldPosition)) -> Right <$> do
                 -- move Position
                 writeTVar tvarGleise $! HashMap.insert gleisId (definition, position) gleise
                 -- move anchor points
-                moveAnchorsD tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
-                pure GleisMoveSuccess
+                moveAnchors tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
     -- Queue re-draw
-    when (result == GleisMoveSuccess) $ Gtk.widgetQueueDraw drawingArea
-    pure result
+    liftIO $ Gtk.widgetQueueDraw drawingArea
 
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
 --
 -- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
-gleisRemoveD :: (MonadIO m) => GleisAnzeigeD z -> GleisId z -> m ()
-gleisRemoveD GleisAnzeigeD {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = liftIO $ do
+gleisRemove :: (MonadIO m) => GleisAnzeige z -> GleisId z -> m ()
+gleisRemove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = liftIO $ do
     atomically $ do
         -- remove from shown rails
         modifyTVar' tvarGleise $ HashMap.delete gleisId
         -- remove anchor points
-        moveAnchorsD tvarAnchorPoints gleisId Nothing
+        moveAnchors tvarAnchorPoints gleisId Nothing
     -- Queue re-draw
     Gtk.widgetQueueDraw drawingArea
 
 -- | Bewege einen 'Text' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Text' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
-textPutD :: (MonadIO m) => GleisAnzeigeD z -> Text -> Position -> m (TextId z)
-textPutD GleisAnzeigeD {drawingArea, tvarNextTextId, tvarTexte} text position = liftIO $ do
+textPut :: (MonadIO m) => GleisAnzeige z -> Text -> Position -> m (TextId z)
+textPut GleisAnzeige {drawingArea, tvarNextTextId, tvarTexte} text position = liftIO $ do
     textId <- atomically $ do
         -- create new id
         textId@TextId {tId} <- readTVar tvarNextTextId
@@ -650,182 +537,94 @@ textPutD GleisAnzeigeD {drawingArea, tvarNextTextId, tvarTexte} text position = 
 -- | Entferne einen 'Text' aus der 'GleisAnzeige'.
 --
 -- 'Text'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
-textRemoveD :: (MonadIO m) => GleisAnzeigeD z -> TextId z -> m ()
-textRemoveD GleisAnzeigeD {drawingArea, tvarTexte} textId = liftIO $ do
+textRemove :: (MonadIO m) => GleisAnzeige z -> TextId z -> m ()
+textRemove GleisAnzeige {drawingArea, tvarTexte} textId = liftIO $ do
     -- remove from show texts
     atomically $ modifyTVar' tvarTexte $ HashMap.delete textId
     -- Queue re-draw
     Gtk.widgetQueueDraw drawingArea
 
-data TextMoveResult (z :: Zugtyp)
-    = TextMoveSuccess
-    | InvalidTextId (TextId z)
+newtype TextMoveError (z :: Zugtyp) = InvalidTextId (TextId z)
     deriving (Eq, Show)
 
 -- | Bewege den 'Text' mit der übergebenen 'TextId' zur angestrebten 'Position' einer 'GleisAnzeige'.
-textMoveD
-    :: (MonadIO m, Spurweite z) => GleisAnzeigeD z -> TextId z -> Position -> m (TextMoveResult z)
-textMoveD GleisAnzeigeD {drawingArea, tvarTexte} textId position = liftIO $ do
-    result <- atomically $ do
+textMove :: (MonadIO m, Spurweite z)
+         => GleisAnzeige z
+         -> TextId z
+         -> Position
+         -> ExceptT (TextMoveError z) m ()
+textMove GleisAnzeige {drawingArea, tvarTexte} textId position = do
+    ExceptT $ liftIO $ atomically $ do
         texte <- readTVar tvarTexte
         case HashMap.lookup textId texte of
-            Nothing -> pure $ InvalidTextId textId
-            (Just (text, _oldPosition)) -> do
-                -- move Position
-                writeTVar tvarTexte $! HashMap.insert textId (text, position) texte
-                pure TextMoveSuccess
+            Nothing -> pure $ Left $ InvalidTextId textId
+            -- move Position
+            (Just (text, _oldPosition))
+                -> fmap Right $ writeTVar tvarTexte $! HashMap.insert textId (text, position) texte
     -- Queue re-draw
-    when (result == TextMoveSuccess) $ Gtk.widgetQueueDraw drawingArea
-    pure result
+    liftIO $ Gtk.widgetQueueDraw drawingArea
 
--- TODO add possibility to move shown widget portion (from x,y -> to x,y)
--- i.e. using a 'Gtk.ScrolledWindow' without shown scrollbar (Gtk.scrolledWindowSetPolicy)
--- disabling 'Gtk.scrolledWindowSetKineticScrolling' is probably desired
-data GleisAnzeige (z :: Zugtyp) =
-    GleisAnzeige
-    { scrolledWindow :: Gtk.ScrolledWindow
-    , hAdjustment :: Gtk.Adjustment
-    , vAdjustment :: Gtk.Adjustment
-    , fixed :: Gtk.Fixed
-    , tvarScale :: TVar Double
-    , tvarGleise :: TVar (HashMap (Gleis z) Position)
-    , tvarLabel :: TVar [(Gtk.Label, Position)]
-    , tvarAnchorPoints :: TVar AnchorPointRTree
-    }
-    deriving (Eq)
+data AttachError (z :: Zugtyp)
+    = GleisBNotFount (GleisId z)
+    | AnchorBNotFound AnchorName
+    | AnchorANotFount AnchorName
+    deriving (Eq, Show)
 
-instance MitWidget (GleisAnzeige z) where
-    erhalteWidget :: (MonadIO m) => GleisAnzeige z -> m Gtk.Widget
-    erhalteWidget = Gtk.toWidget . scrolledWindow
-
-gleisAnzeigeNew :: (MonadIO m) => m (GleisAnzeige z)
-gleisAnzeigeNew = liftIO $ do
-    {-
-    hAdjustment <- Gtk.adjustmentNew 0 0 1 0.1 1 1
-    vAdjustment <- Gtk.adjustmentNew 0 0 1 0.1 1 1
-    viewport <- Gtk.viewportNew (Just hAdjustment) (Just vAdjustment)
-    Gtk.viewportSetScrollToFocus viewport True
-    fixed <- Gtk.fixedNew
-    Gtk.viewportSetChild viewport $ Just fixed
-    --}
-    --{-
-    scrolledWindow <- Gtk.scrolledWindowNew
-    Gtk.scrolledWindowSetKineticScrolling scrolledWindow False
-    Gtk.scrolledWindowSetPolicy scrolledWindow Gtk.PolicyTypeExternal Gtk.PolicyTypeExternal
-    hAdjustment <- Gtk.scrolledWindowGetHadjustment scrolledWindow
-    Gtk.adjustmentConfigure hAdjustment 0 0 1 0.1 1 1
-    vAdjustment <- Gtk.scrolledWindowGetVadjustment scrolledWindow
-    Gtk.adjustmentConfigure vAdjustment 0 0 1 0.1 1 1
-    fixed <- Gtk.fixedNew
-    Gtk.scrolledWindowSetChild scrolledWindow $ Just fixed
-    --}
-    Gtk.widgetSetMarginTop fixed margin
-    Gtk.widgetSetMarginBottom fixed margin
-    Gtk.widgetSetMarginStart fixed margin
-    Gtk.widgetSetMarginEnd fixed margin
-    tvarScale <- newTVarIO 1
-    tvarGleise <- newTVarIO HashMap.empty
-    tvarLabel <- newTVarIO []
-    tvarAnchorPoints <- newTVarIO RTree.empty
+gleisAttachPosition
+    :: (Spurweite z)
+    => HashMap (GleisId z) (GleisDefinition z, Position)
+    -> GleisId z
+    -> AnchorName
+    -> GleisDefinition z
+    -> AnchorName
+    -> Either (AttachError z) Position
+gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA = do
+    (definitionB, positionB@Position {winkel = winkelB})
+        <- maybe (Left $ GleisBNotFount gleisIdB) Right $ HashMap.lookup gleisIdB gleise
+    AnchorPoint { anchorPosition = anchorPositionB
+                , anchorDirection = AnchorDirection {anchorDX = anchorDXB, anchorDY = anchorVYB}}
+        <- maybe (Left $ AnchorBNotFound anchorNameB) Right
+        $ HashMap.lookup anchorNameB
+        $ getAnchorPoints definitionB
+    AnchorPoint { anchorPosition = AnchorPosition {anchorX = anchorXA, anchorY = anchorYA}
+                , anchorDirection = AnchorDirection {anchorDX = anchorDXA, anchorDY = anchorVYA}}
+        <- maybe (Left $ AnchorANotFount anchorNameA) Right
+        $ HashMap.lookup anchorNameA
+        $ getAnchorPoints definitionA
+    let winkelA :: Double
+        winkelA = winkelB + 180 / pi * anchorWinkelDifferenzBogenmaß
+        winkelBBogenmaß :: Double
+        winkelBBogenmaß = pi / 180 * winkelB
+        anchorWinkelDifferenzBogenmaß :: Double
+        anchorWinkelDifferenzBogenmaß =
+            winkelMitXAchse (-anchorDXB) (-anchorVYB) - winkelMitXAchse anchorDXA anchorVYA
+        winkelABogenmaß :: Double
+        winkelABogenmaß = winkelBBogenmaß + anchorWinkelDifferenzBogenmaß
+        translatedAnchorXB, translatedAnchorYB :: Double
+        (translatedAnchorXB, translatedAnchorYB) = translateAnchorPoint positionB anchorPositionB
     pure
-        GleisAnzeige
-        { scrolledWindow
-        , hAdjustment
-        , vAdjustment
-        , fixed
-        , tvarScale
-        , tvarGleise
-        , tvarLabel
-        , tvarAnchorPoints
+        Position
+        { x = translatedAnchorXB - anchorXA * cos winkelABogenmaß
+              + anchorYA * sin winkelABogenmaß
+        , y = translatedAnchorYB
+              - anchorXA * sin winkelABogenmaß
+              - anchorYA * cos winkelABogenmaß
+        , winkel = winkelA
         }
     where
-        margin :: Int32
-        margin = 5
+        -- Winkel im Bogenmaß zwischen Vektor und x-Achse
+        -- steigt im Uhrzeigersinn
+        winkelMitXAchse :: Double -> Double -> Double
+        winkelMitXAchse vx vy =
+            if vy < 0
+                then -acosWinkel
+                else acosWinkel
+            where
+                len :: Double
+                len = sqrt $ vx * vx + vy * vy
 
-fixedSetChildTransformation
-    :: (MonadIO m, Gtk.IsWidget w) => Gtk.Fixed -> w -> Position -> Double -> m ()
-fixedSetChildTransformation fixed child Position {x, y, winkel} scale = liftIO $ do
-    let fScale = realToFrac scale
-        fWinkel = realToFrac winkel
-        scaledX = realToFrac $ scale * x
-        scaledY = realToFrac $ scale * y
-    transform0 <- Gsk.transformNew
-    point <- Graphene.newZeroPoint
-    Graphene.setPointX point scaledX
-    Graphene.setPointY point scaledY
-    transform1 <- Gsk.transformTranslate transform0 point
-    transform2 <- Gsk.transformScale transform1 fScale fScale
-    transform3 <- Gsk.transformRotate transform2 fWinkel
-    Gtk.fixedSetChildTransform fixed child $ Just transform3
-
--- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
--- Returns list of 'Gtk.DrawingArea' with close 'AnchorPoint' to old or new location.
-moveAnchors :: TVar AnchorPointRTree
-            -> Maybe Position
-            -> Maybe Position
-            -> Gleis z
-            -> STM [Gtk.DrawingArea]
-moveAnchors tvarAnchorPoints maybeOldPosition maybeNewPosition Gleis {drawingArea, anchorPoints} = do
-    knownAnchorPoints <- readTVar tvarAnchorPoints
-    let intersectingDrawingAreas :: Maybe Position -> [Gtk.DrawingArea]
-        intersectingDrawingAreas Nothing = []
-        intersectingDrawingAreas (Just oldPosition) =
-            foldl' (\acc anchorPoint -> filter
-                        (/= drawingArea)
-                        (intersections oldPosition anchorPoint knownAnchorPoints)
-                    <> acc) [] anchorPoints
-        otherAnchorPoints :: AnchorPointRTree
-        otherAnchorPoints =
-            RTree.mapMaybe (NonEmpty.nonEmpty . NonEmpty.filter (/= drawingArea)) knownAnchorPoints
-        newAnchorPoints :: AnchorPointRTree
-        newAnchorPoints = maybe otherAnchorPoints insertAnchorPoints maybeNewPosition
-        insertAnchorPoints :: Position -> AnchorPointRTree
-        insertAnchorPoints newPosition =
-            foldl' (\acc AnchorPoint {anchorPosition} -> RTree.insertWith
-                        (<>)
-                        (uncurry mbbPoint $ translateAnchorPoint newPosition anchorPosition)
-                        (drawingArea :| [])
-                        acc) otherAnchorPoints anchorPoints
-        newIntersectingDrawingAreas :: Maybe Position -> [Gtk.DrawingArea]
-        newIntersectingDrawingAreas Nothing = []
-        newIntersectingDrawingAreas (Just newPosition) =
-            foldl' (\acc anchorPoint -> filter
-                        (/= drawingArea)
-                        (intersections newPosition anchorPoint newAnchorPoints)
-                    <> acc) [] anchorPoints
-    writeTVar tvarAnchorPoints $! newAnchorPoints
-    pure
-        $ intersectingDrawingAreas maybeOldPosition <> newIntersectingDrawingAreas maybeNewPosition
-
--- | Bewege ein 'Gleis' zur angestrebten 'Position' einer 'GleisAnzeige'.
---
--- Wenn ein 'Gleis' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
-gleisPut :: (MonadIO m) => GleisAnzeige z -> Gleis z -> Position -> m ()
-gleisPut
-    GleisAnzeige {fixed, tvarScale, tvarGleise, tvarAnchorPoints}
-    gleis@Gleis {drawingArea, tmvarParentInformation}
-    position = liftIO $ do
-    (scale, isNew, drawingAreas) <- atomically $ do
-        scale <- readTVar tvarScale
-        -- move Position
-        gleise <- readTVar tvarGleise
-        writeTVar tvarGleise $! HashMap.insert gleis position gleise
-        -- make sure every gleis knows about other AnchorPoints/Gleis-Positions
-        tryPutTMVar tmvarParentInformation (tvarAnchorPoints, tvarGleise)
-        -- move anchor points
-        drawingAreas
-            <- moveAnchors tvarAnchorPoints (HashMap.lookup gleis gleise) (Just position) gleis
-        pure (scale, isNothing $ HashMap.lookup gleis gleise, drawingAreas)
-    -- Queue re-draw for previously connected gleise
-    forM_ drawingAreas Gtk.widgetQueueDraw
-    when isNew $ Gtk.widgetInsertAfter drawingArea fixed (Nothing :: Maybe Gtk.Widget)
-    fixedSetChildTransformation fixed drawingArea position scale
-
-data AttachError
-    = GleisBNotFount
-    | AnchorBNotFound
-    | AnchorANotFount
-    deriving (Eq, Show)
+                acosWinkel :: Double
+                acosWinkel = acos $ vx / len
 
 -- | Bewege /gleisA/ neben /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
 --
@@ -833,134 +632,51 @@ data AttachError
 -- * /gleisB/ ist kein Teil der 'GleisAnzeige'.
 -- * /anchorB/ ist kein 'AnchorPoint' von /gleisB/.
 -- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
-gleisAttach :: (MonadIO m)
+gleisAttach :: (MonadIO m, Spurweite z)
             => GleisAnzeige z
-            -> Gleis z
+            -> GleisId z
             -> AnchorName
-            -> Gleis z
+            -> GleisDefinition z
             -> AnchorName
-            -> m (Either AttachError ())
-gleisAttach
-    gleisAnzeige@GleisAnzeige {tvarGleise}
-    gleisA@Gleis {anchorPoints = anchorPointsA}
-    anchorNameA
-    gleisB@Gleis {anchorPoints = anchorPointsB}
-    anchorNameB = liftIO $ runExceptT $ do
-    position <- ExceptT $ atomically $ do
+            -> ExceptT (AttachError z) m (GleisId z)
+gleisAttach gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB definitionA anchorNameA = do
+    position <- ExceptT $ liftIO $ atomically $ do
         gleise <- readTVar tvarGleise
-        let maybePosition = do
-                positionB@Position {winkel = winkelB} <- maybe (Left GleisBNotFount) Right
-                    $ HashMap.lookup gleisB gleise
-                AnchorPoint { anchorPosition = anchorPositionB
-                            , anchorDirection =
-                              AnchorDirection {anchorDX = anchorDXB, anchorDY = anchorVYB}}
-                    <- maybe (Left AnchorBNotFound) Right
-                    $ HashMap.lookup anchorNameB anchorPointsB
-                AnchorPoint
-                    { anchorPosition = AnchorPosition {anchorX = anchorXA, anchorY = anchorYA}
-                    , anchorDirection =
-                      AnchorDirection {anchorDX = anchorDXA, anchorDY = anchorVYA}}
-                    <- maybe (Left AnchorANotFount) Right
-                    $ HashMap.lookup anchorNameA anchorPointsA
-                let winkelA :: Double
-                    winkelA = winkelB + 180 / pi * anchorWinkelDifferenzBogenmaß
-                    winkelBBogenmaß :: Double
-                    winkelBBogenmaß = pi / 180 * winkelB
-                    anchorWinkelDifferenzBogenmaß :: Double
-                    anchorWinkelDifferenzBogenmaß =
-                        winkelMitXAchse (-anchorDXB) (-anchorVYB)
-                        - winkelMitXAchse anchorDXA anchorVYA
-                    winkelABogenmaß :: Double
-                    winkelABogenmaß = winkelBBogenmaß + anchorWinkelDifferenzBogenmaß
-                    translatedAnchorXB, translatedAnchorYB :: Double
-                    (translatedAnchorXB, translatedAnchorYB) =
-                        translateAnchorPoint positionB anchorPositionB
-                pure
-                    Position
-                    { x = translatedAnchorXB - anchorXA * cos winkelABogenmaß
-                          + anchorYA * sin winkelABogenmaß
-                    , y = translatedAnchorYB
-                          - anchorXA * sin winkelABogenmaß
-                          - anchorYA * cos winkelABogenmaß
-                    , winkel = winkelA
-                    }
-            -- Winkel im Bogenmaß zwischen Vektor und x-Achse
-            -- steigt im Uhrzeigersinn
-            winkelMitXAchse :: Double -> Double -> Double
-            winkelMitXAchse vx vy =
-                if vy < 0
-                    then -acosWinkel
-                    else acosWinkel
-                where
-                    len :: Double
-                    len = vx * vx + vy * vy
+        pure $ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA
+    lift $ gleisPut gleisAnzeige definitionA position
 
-                    acosWinkel :: Double
-                    acosWinkel = acos $ vx / len
-        pure maybePosition
-    lift $ gleisPut gleisAnzeige gleisA position
+data AttachMoveError (z :: Zugtyp)
+    = AttachError (AttachError z)
+    | MoveError (GleisMoveError z)
+    | GleisANotFound (GleisId z)
 
--- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
+-- | Bewege /gleisA/ neben /gleisB/, so dass /anchorNameA/ direkt neben /anchorNameB/ liegt.
 --
--- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
-gleisRemove :: (MonadIO m) => GleisAnzeige z -> Gleis z -> m ()
-gleisRemove
-    GleisAnzeige {fixed, tvarGleise, tvarAnchorPoints}
-    gleis@Gleis {drawingArea, tmvarParentInformation} = liftIO $ do
-    (isChild, drawingAreas) <- atomically $ do
-        gleise <- readTVar tvarGleise
-        writeTVar tvarGleise $! HashMap.delete gleis gleise
-        tryTakeTMVar tmvarParentInformation
-        -- reset anchorPoints
-        drawingAreas <- moveAnchors tvarAnchorPoints (HashMap.lookup gleis gleise) Nothing gleis
-        pure (isJust $ HashMap.lookup gleis gleise, drawingAreas)
-    forM_ drawingAreas Gtk.widgetQueueDraw
-    when isChild $ Gtk.fixedRemove fixed drawingArea
-
--- | Bewege ein 'Gtk.Label' zur angestrebten 'Position' einer 'GleisAnzeige'.
---
--- Wenn ein 'Gtk.Label' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
-gleisAnzeigePutLabel :: (MonadIO m) => GleisAnzeige z -> Gtk.Label -> Position -> m ()
-gleisAnzeigePutLabel GleisAnzeige {fixed, tvarScale, tvarLabel} label position = liftIO $ do
-    (scale, bekannteLabel) <- atomically $ (,) <$> readTVar tvarScale <*> readTVar tvarLabel
-    restLabel <- case partition ((== label) . fst) bekannteLabel of
-        ([], alleLabel) -> do
-            -- Gtk.widgetInsertAfter label fixed (Nothing :: Maybe Gtk.Widget)
-            Gtk.fixedPut fixed label 0 0
-            pure alleLabel
-        (_labelVorkommen, andereLabel) -> pure andereLabel
-    atomically $ writeTVar tvarLabel $ (label, position) : restLabel
-    fixedSetChildTransformation fixed label position scale
-
--- | Entferne ein 'Gtk.Label' aus der 'GleisAnzeige'.
---
--- 'Gtk.Label' die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
-gleisAnzeigeRemoveLabel :: (MonadIO m) => GleisAnzeige z -> Gtk.Label -> m ()
-gleisAnzeigeRemoveLabel GleisAnzeige {fixed, tvarLabel} label = liftIO $ do
-    bekannteLabel <- readTVarIO tvarLabel
-    case partition ((== label) . fst) bekannteLabel of
-        ([], _alleGleise) -> pure ()
-        (_gleisVorkommen, andereLabel) -> do
-            Gtk.fixedRemove fixed label
-            atomically $ writeTVar tvarLabel andereLabel
-
--- https://blog.gtk.org/2019/05/08/gtk-3-96-0/
--- use 'fixedSetChildTransform' with a 'Gsk.Transform'
--- might completely remove the necessity to scale/rotate drawings myself
--- | Skaliere eine 'GleisAnzeige'.
-gleisAnzeigeScale :: (MonadIO m) => GleisAnzeige z -> Double -> m ()
-gleisAnzeigeScale GleisAnzeige {fixed, tvarScale, tvarGleise, tvarLabel} scale = liftIO $ do
-    (gleise, bekannteLabel) <- atomically $ do
-        writeTVar tvarScale scale
-        (,) <$> readTVar tvarGleise <*> readTVar tvarLabel
-    forM_ (HashMap.toList gleise) $ \(Gleis {drawingArea}, position)
-        -> fixedSetChildTransformation fixed drawingArea position scale
-    forM_ bekannteLabel
-        $ \(label, position) -> fixedSetChildTransformation fixed label position scale
+-- Der Rückgabewert signalisiert ob das anfügen erfolgreich wahr. Mögliche Fehlerquellen:
+-- * /gleisB/ ist kein Teil der 'GleisAnzeige'.
+-- * /gleisA/ ist kein Teil der 'GleisAnzeige'.
+-- * /anchorB/ ist kein 'AnchorPoint' von /gleisB/.
+-- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
+gleisAttachMove :: (MonadIO m, Spurweite z)
+                => GleisAnzeige z
+                -> GleisId z
+                -> AnchorName
+                -> GleisId z
+                -> AnchorName
+                -> ExceptT (AttachMoveError z) m ()
+gleisAttachMove gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB gleisIdA anchorNameA =
+    do
+        position <- ExceptT $ liftIO $ atomically $ do
+            gleise <- readTVar tvarGleise
+            case HashMap.lookup gleisIdA gleise of
+                Nothing -> pure $ Left $ GleisANotFound gleisIdA
+                (Just (definitionA, _oldPosition)) -> pure
+                    $ first AttachError
+                    $ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA
+        withExceptT MoveError $ gleisMove gleisAnzeige gleisIdA position
 
 gleisAnzeigeSave :: (MonadIO m) => GleisAnzeige z -> FilePath -> m ()
-gleisAnzeigeSave GleisAnzeige {tvarScale, tvarGleise, tvarLabel} filePath = liftIO $ do
-    (gleise, bekannteLabel, scale)
-        <- atomically $ (,,) <$> readTVar tvarGleise <*> readTVar tvarLabel <*> readTVar tvarScale
-    texte <- forM bekannteLabel $ \(a, b) -> (, b) <$> Gtk.labelGetLabel a
-    Binary.encodeFile filePath (map (first definition) $ HashMap.toList gleise, texte, Just scale)
+gleisAnzeigeSave GleisAnzeige {tvarConfig, tvarGleise, tvarTexte} filePath = liftIO $ do
+    (gleise, texte, config)
+        <- atomically $ (,,) <$> readTVar tvarGleise <*> readTVar tvarTexte <*> readTVar tvarConfig
+    Binary.encodeFile filePath (HashMap.toList gleise, HashMap.toList texte, Just config)

@@ -6,7 +6,6 @@ module Zug.UI.Gtk.Gleis.Anchor
   , AnchorPoint(..)
   , AnchorPosition(..)
   , AnchorDirection(..)
-  , AnchorPointRTree
   , AnchorPointMap
   , mbbSearch
   , mbbPoint
@@ -17,18 +16,11 @@ import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
 import Data.List (foldl')
-import Data.List.NonEmpty (NonEmpty())
-import Data.RTree (RTree)
 import qualified Data.RTree as RTree
 import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Generics (Generic())
-import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
-
--- TODO add AnchorDirection?
--- | AnchorPoints einer 'GleisAnzeige', sortiert nach 'Position'.
-type AnchorPointRTree = RTree (NonEmpty Gtk.DrawingArea)
 
 -- | AnchorPoints eines 'Gleis'es mit jeweiliger Bezeichnung
 type AnchorPointMap = HashMap AnchorName AnchorPoint

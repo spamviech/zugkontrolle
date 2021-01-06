@@ -6,20 +6,14 @@ Description: This modules defines all Lego (9V) rails I have access to.
 module Zug.UI.Gtk.Gleis.Lego
   ( -- * Gerade
     legoGerade
-  , legoGeradeNew
     -- * Convenience Re-Exports
-  , Gleis
-  , gleisNew
   , WeichenRichtungAllgemein(Links, Rechts)
   , Zugtyp(Lego)
   ) where
 
-import Control.Monad.Trans (MonadIO())
-
 import Zug.Enums (Zugtyp(Lego))
-import Zug.UI.Gtk.Gleis.Widget
-       (Gleis, gleisNew, GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
-      , KreuzungsArt(OhneKurve), alsDreiweg, WeichenRichtung(..))
+import Zug.UI.Gtk.Gleis.Widget (GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
+                              , KreuzungsArt(OhneKurve), alsDreiweg, WeichenRichtung(..))
 
 -- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
 {-
@@ -46,6 +40,3 @@ Lego Spurweite: 38mm
 -}
 legoGerade :: GleisDefinition 'Lego
 legoGerade = Gerade { länge = 13.6 }
-
-legoGeradeNew :: (MonadIO m) => m (Gleis 'Lego)
-legoGeradeNew = gleisNew legoGerade

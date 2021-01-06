@@ -6,7 +6,7 @@ import Control.Monad (void)
 import qualified GI.Gio as Gio
 import qualified GI.Gtk as Gtk
 
-import Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNewD)
+import Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew)
 import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 main :: IO ()
@@ -20,5 +20,5 @@ createWindow application = do
     appWindow <- Gtk.applicationWindowNew application
     Gtk.applicationAddWindow application appWindow
     Gtk.windowSetDefaultSize appWindow 480 320
-    Gtk.windowSetChild appWindow . Just =<< erhalteWidget =<< gleisDemonstrationNewD
+    Gtk.windowSetChild appWindow . Just =<< erhalteWidget =<< gleisDemonstrationNew
     Gtk.widgetShow appWindow
