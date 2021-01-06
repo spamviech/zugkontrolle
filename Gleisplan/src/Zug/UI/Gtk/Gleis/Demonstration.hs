@@ -1,8 +1,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
-module Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew) where
+module Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew, gleisDemonstrationNewD) where
 
 import Control.Monad (foldM_)
 import Control.Monad.Trans (MonadIO())
@@ -11,18 +12,26 @@ import Data.Text (Text)
 import qualified GI.Gtk as Gtk
 
 import Zug.UI.Gtk.Gleis.Maerklin
-       (märklinKurvenWeicheLinks5140New, märklinKurvenWeicheRechts5140New
-      , märklinDreiwegWeiche5214New, märklinWeicheLinks5202New, märklinWeicheRechts5202New
-      , märklinWeicheLinks5137New, märklinWeicheRechts5137New, märklinWeicheLinks5117New
-      , märklinWeicheRechts5117New, märklinKurve5205New, märklinKurve5201New
-      , märklinKurve5206New, märklinKurve5200New, märklinKurve5102New, märklinKurve5101New
-      , märklinKurve5100New, märklinKurve5120New, märklinGerade5208New, märklinGerade5210New
-      , märklinGerade5110New, märklinGerade5109New, märklinGerade5108New, märklinGerade5129New
-      , märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
-      , märklinKreuzung5207New, Zugtyp(Märklin))
+       (WeichenRichtungAllgemein(Links), märklinKurvenWeicheLinks5140New
+      , märklinKurvenWeicheRechts5140New, märklinDreiwegWeiche5214New, märklinWeicheLinks5202New
+      , märklinWeicheRechts5202New, märklinWeicheLinks5137New, märklinWeicheRechts5137New
+      , märklinWeicheLinks5117New, märklinWeicheRechts5117New, märklinKurve5205New
+      , märklinKurve5201New, märklinKurve5206New, märklinKurve5200New, märklinKurve5102New
+      , märklinKurve5101New, märklinKurve5100New, märklinKurve5120New, märklinGerade5208New
+      , märklinGerade5210New, märklinGerade5110New, märklinGerade5109New, märklinGerade5108New
+      , märklinGerade5129New, märklinGerade5106New, märklinGerade5107New, märklinKreuzung5128New
+      , märklinKreuzung5207New, Zugtyp(Märklin), märklinKurvenWeiche5140
+      , märklinDreiwegWeiche5214, märklinWeiche5202, märklinWeiche5137, märklinWeiche5117
+      , märklinKurve5205, märklinKurve5201, märklinKurve5206, märklinKurve5200
+      , märklinKurve5102, märklinKurve5101, märklinKurve5100, märklinKurve5120
+      , märklinGerade5208, märklinGerade5210, märklinGerade5110, märklinGerade5109
+      , märklinGerade5108, märklinGerade5129, märklinGerade5106, märklinGerade5107
+      , märklinKreuzung5128, märklinKreuzung5207)
 import Zug.UI.Gtk.Gleis.Widget
-       (GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize, Gleis, gleisAnzeigePutLabel
-      , Position(..), gleisAnzeigeScale, gleisAnzeigeSave)
+       (WeichenRichtungAllgemein(Rechts), GleisAnzeige, gleisAnzeigeNew, gleisPut, gleisGetSize
+      , Gleis, gleisAnzeigePutLabel, Position(..), gleisAnzeigeScale, gleisAnzeigeSave
+      , GleisAnzeigeD, GleisDefinition(), getWidth, getHeight, gleisAnzeigeNewD, gleisPutD, textPutD
+      , gleisAnzeigeConfigD, GleisAnzeigeConfig(..))
 
 -- Beispiel-Anzeige
 gleisDemonstrationNew :: (MonadIO m) => m (GleisAnzeige 'Märklin)
@@ -86,3 +95,59 @@ gleisDemonstrationNew = do
                 Position { x = fromIntegral x, y = fromIntegral y, winkel = 0 }
             let (width, height) = gleisGetSize gleis
             pure (max (x + width) maxWidth, y + height + padding)
+
+-- Beispiel-Anzeige
+gleisDemonstrationNewD :: (MonadIO m) => m (GleisAnzeigeD 'Märklin)
+gleisDemonstrationNewD = do
+    gleisAnzeige <- gleisAnzeigeNewD
+    gleisAnzeigeConfigD gleisAnzeige GleisAnzeigeConfig { x = 0, y = 0, scale = 1 }
+    foldM_
+        (putWithHeight gleisAnzeige)
+        (0, 0)
+        [ ("5106: ", märklinGerade5106)
+        , ("5107: ", märklinGerade5107)
+        , ("5129: ", märklinGerade5129)
+        , ("5108: ", märklinGerade5108)
+        , ("5109: ", märklinGerade5109)
+        , ("5110: ", märklinGerade5110)
+        , ("5210: ", märklinGerade5210)
+        , ("5208: ", märklinGerade5208)
+        , ("5120: ", märklinKurve5120)
+        , ("5100: ", märklinKurve5100)
+        , ("5101: ", märklinKurve5101)
+        , ("5102: ", märklinKurve5102)
+        , ("5200: ", märklinKurve5200)
+        , ("5206: ", märklinKurve5206)
+        , ("5201: ", märklinKurve5201)
+        , ("5205: ", märklinKurve5205)
+        , ("5117R:", märklinWeiche5117 Rechts)
+        , ("5117L:", märklinWeiche5117 Links)
+        , ("5137R:", märklinWeiche5137 Rechts)
+        , ("5137L:", märklinWeiche5137 Links)
+        , ("5202R:", märklinWeiche5202 Rechts)
+        , ("5202L:", märklinWeiche5202 Links)
+        , ("5214: ", märklinDreiwegWeiche5214)
+        , ("5140R:", märklinKurvenWeiche5140 Rechts)
+        , ("5140L:", märklinKurvenWeiche5140 Links)
+        , ("5128: ", märklinKreuzung5128)
+        , ("5207: ", märklinKreuzung5207)]
+    pure gleisAnzeige
+    where
+        padding :: Int32
+        padding = 5
+
+        putWithHeight :: (MonadIO m)
+                      => GleisAnzeigeD 'Märklin
+                      -> (Int32, Int32)
+                      -> (Text, GleisDefinition 'Märklin)
+                      -> m (Int32, Int32)
+        putWithHeight gleisAnzeige (maxWidth, y) (text, definition) = do
+            textPutD gleisAnzeige text Position { x = 0, y = fromIntegral y, winkel = 0 }
+            let widthLabel = 50
+            -- widthLabel <- getTextWidth reqMaxLabel
+            let x = padding + widthLabel
+            gleisPutD
+                gleisAnzeige
+                definition
+                Position { x = fromIntegral x, y = fromIntegral y, winkel = 0 }
+            pure (max (x + getWidth definition) maxWidth, y + getHeight definition + padding)

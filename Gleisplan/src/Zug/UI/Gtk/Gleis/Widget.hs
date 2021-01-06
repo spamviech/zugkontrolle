@@ -44,6 +44,7 @@ module Zug.UI.Gtk.Gleis.Widget
     Gleis()
     -- ** Definition
   , GleisDefinition(..)
+  , getWidth, getHeight
   , WeichenArt(..)
   , WeichenRichtungAllgemein(..)
   , alsDreiweg
@@ -71,6 +72,19 @@ module Zug.UI.Gtk.Gleis.Widget
     -- ** Speichern / Laden
   , gleisAnzeigeSave
   , Binary(..)
+    -- * single DrawingArea-Variant
+  , GleisAnzeigeD
+  , GleisAnzeigeConfig(..)
+  , gleisAnzeigeNewD
+  , gleisAnzeigeConfigD
+    -- ** Gleise
+  , gleisPutD
+  , gleisMoveD
+  , gleisRemoveD
+    -- ** Texte
+  , textPutD
+  , textMoveD
+  , textRemoveD
   ) where
 
 import Control.Concurrent.STM
@@ -432,6 +446,10 @@ data GleisAnzeigeD (z :: Zugtyp) =
     , tvarAnchorPoints :: TVar (AnchorPointRTreeD z)
     }
 
+instance MitWidget (GleisAnzeigeD z) where
+    erhalteWidget :: (MonadIO m) => GleisAnzeigeD z -> m Gtk.Widget
+    erhalteWidget GleisAnzeigeD {drawingArea} = Gtk.toWidget drawingArea
+
 withSaveRestore :: Cairo.Render a -> Cairo.Render a
 withSaveRestore action = Cairo.save *> action <* Cairo.restore
 
@@ -499,6 +517,7 @@ gleisAnzeigeNewD = liftIO $ do
                 layout <- PangoCairo.createLayout context
                 Pango.layoutSetText layout text $ -1
                 PangoCairo.layoutPath context layout
+                Cairo.stroke
             pure True
     pure
         GleisAnzeigeD
@@ -516,6 +535,12 @@ gleisAnzeigeNewD = liftIO $ do
 
         height :: Int32
         height = 400
+
+-- | Skaliere eine 'GleisAnzeige'.
+gleisAnzeigeConfigD :: (MonadIO m) => GleisAnzeigeD z -> GleisAnzeigeConfig -> m ()
+gleisAnzeigeConfigD GleisAnzeigeD {drawingArea, tvarConfig} config = liftIO $ do
+    atomically $ writeTVar tvarConfig config
+    Gtk.widgetQueueDraw drawingArea
 
 -- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
 -- Returns list of 'Gtk.DrawingArea' with close 'AnchorPoint' to old or new location.
