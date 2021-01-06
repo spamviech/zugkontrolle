@@ -192,25 +192,24 @@ gleisNew definition = do
                 (tvarAnchorPoints, tvarGleise) <- MaybeT $ tryReadTMVar tmvarParentInformation
                 position <- MaybeT $ HashMap.lookup gleis <$> readTVar tvarGleise
                 fmap (, position) $ lift $ readTVar tvarAnchorPoints
-            case currentParentInformation of
-                (Just (knownAnchorPoints, position)) -> forM_ anchorPoints
-                    $ \anchorPoint@AnchorPoint
-                    { anchorPosition = AnchorPosition {anchorX, anchorY}
-                    , anchorDirection = AnchorDirection {anchorDX, anchorDY}} -> do
-                        Cairo.moveTo anchorX anchorY
-                        let r, g, b :: Double
-                            (r, g, b) =
-                                if not
-                                    $ any (/= drawingArea)
+            forM_ anchorPoints
+                $ \anchorPoint@AnchorPoint
+                { anchorPosition = AnchorPosition {anchorX, anchorY}
+                , anchorDirection = AnchorDirection {anchorDX, anchorDY}} -> do
+                    Cairo.moveTo anchorX anchorY
+                    let r, g, b :: Double
+                        (r, g, b) = case currentParentInformation of
+                            (Just (knownAnchorPoints, position))
+                                | any (/= drawingArea)
                                     $ intersections position anchorPoint knownAnchorPoints
-                                    then (0, 0, 1)
-                                    else (0, 1, 0)
-                            len :: Double
-                            len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
-                        Cairo.setSourceRGB r g b
-                        Cairo.relLineTo (-anchorDX / len) (-anchorDY / len)
-                        Cairo.stroke
-                Nothing -> pure ()
+                                    -> (0, 1, 0)
+                                | otherwise -> (0, 0, 1)
+                            Nothing -> (1, 0, 0)
+                        len :: Double
+                        len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
+                    Cairo.setSourceRGB r g b
+                    Cairo.relLineTo (-5 * anchorDX / len) (-5 * anchorDY / len)
+                    Cairo.stroke
             Cairo.restore
             pure True
     pure gleis
