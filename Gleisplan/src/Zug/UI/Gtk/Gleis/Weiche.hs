@@ -34,7 +34,8 @@ import Data.Proxy (Proxy())
 import qualified GI.Cairo.Render as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
 
-import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
+import Zug.UI.Gtk.Gleis.Anchor
+       (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade)
 import Zug.UI.Gtk.Gleis.Kurve
        (KurvenBeschränkung(AlleBeschränkungen, EndBeschränkung), KurveFehler(..)
@@ -70,15 +71,17 @@ anchorPointsWeicheRechts länge radius winkelBogenmaß proxy =
     withAnchorName
         "WeicheRechts"
         [ AnchorPoint
-          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
         , AnchorPoint
-          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = 1, anchorVY = 0 }
+              AnchorPosition { anchorX = länge, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = 1, anchorDY = 0 }
         , AnchorPoint
-          { anchorX = radius * sin winkelBogenmaß
-          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-          , anchorVX = cos winkelBogenmaß
-          , anchorVY = sin winkelBogenmaß
-          }]
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
 
 zeichneWeicheLinks
     :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis (Cairo.Render ())
@@ -99,23 +102,19 @@ anchorPointsWeicheLinks länge radius winkelBogenmaß proxy = do
         $ withAnchorName
             "WeicheLinks"
             [ AnchorPoint
-              { anchorX = 0
-              , anchorY = height - 0.5 * beschränkung proxy
-              , anchorVX = -1
-              , anchorVY = 0
-              }
+                  AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
+                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = länge
-              , anchorY = height - 0.5 * beschränkung proxy
-              , anchorVX = 1
-              , anchorVY = 0
-              }
+                  AnchorPosition { anchorX = länge, anchorY = height - 0.5 * beschränkung proxy }
+                  AnchorDirection { anchorDX = 1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-              , anchorVX = cos winkelBogenmaß
-              , anchorVY = -sin winkelBogenmaß
-              }]
+                  AnchorPosition
+                  { anchorX = radius * sin winkelBogenmaß
+                  , anchorY =
+                        height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
 
 widthDreiwegeweiche
     :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis Int32
@@ -158,20 +157,26 @@ anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy = do
     pure
         $ withAnchorName
             "Dreiwegeweiche"
-            [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-            , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
+            [ AnchorPoint
+                  AnchorPosition { anchorX = 0, anchorY = halfHeight }
+                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
-              , anchorVX = cos winkelBogenmaß
-              , anchorVY = sin winkelBogenmaß
-              }
+                  AnchorPosition { anchorX = länge, anchorY = halfHeight }
+                  AnchorDirection { anchorDX = 1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
-              , anchorVX = cos winkelBogenmaß
-              , anchorVY = -sin winkelBogenmaß
-              }]
+                  AnchorPosition
+                  { anchorX = radius * sin winkelBogenmaß
+                  , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
+            , AnchorPoint
+                  AnchorPosition
+                  { anchorX = radius * sin winkelBogenmaß
+                  , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
 
 widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis Int32
 widthKurvenWeiche länge radius winkelBogenmaß proxy =
@@ -210,19 +215,20 @@ anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy =
     withAnchorName
         "KurvenWeicheRechts"
         [ AnchorPoint
-          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
         , AnchorPoint
-          { anchorX = radius * sin winkelBogenmaß
-          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-          , anchorVX = cos winkelBogenmaß
-          , anchorVY = sin winkelBogenmaß
-          }
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
         , AnchorPoint
-          { anchorX = länge + radius * sin winkelBogenmaß
-          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-          , anchorVX = cos winkelBogenmaß
-          , anchorVY = sin winkelBogenmaß
-          }]
+              AnchorPosition
+              { anchorX = länge + radius * sin winkelBogenmaß
+              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
 
 zeichneKurvenWeicheLinks
     :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> KurveErgebnis (Cairo.Render ())
@@ -243,20 +249,21 @@ anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy = do
         $ withAnchorName
             "KurvenWeicheLinks"
             [ AnchorPoint
-              { anchorX = 0
-              , anchorY = height - 0.5 * beschränkung proxy
-              , anchorVX = -1
-              , anchorVY = 0
-              }
+                  AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
+                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-              , anchorVX = cos winkelBogenmaß
-              , anchorVY = -sin winkelBogenmaß
-              }
+                  AnchorPosition
+                  { anchorX = radius * sin winkelBogenmaß
+                  , anchorY =
+                        height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }
             , AnchorPoint
-              { anchorX = länge + radius * sin winkelBogenmaß
-              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-              , anchorVX = cos winkelBogenmaß
-              , anchorVY = -sin winkelBogenmaß
-              }]
+                  AnchorPosition
+                  { anchorX = länge + radius * sin winkelBogenmaß
+                  , anchorY =
+                        height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]

@@ -21,7 +21,8 @@ import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
 
-import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
+import Zug.UI.Gtk.Gleis.Anchor
+       (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade)
 import Zug.UI.Gtk.Gleis.Kurve (KurvenBeschränkung(KeineBeschränkungen), KurveFehler(..)
                              , KurveErgebnis(..), widthKurve, heightKurve, zeichneKurve)
@@ -93,17 +94,23 @@ anchorPointsKreuzung länge radius winkelBogenmaß proxy = do
     pure
         $ withAnchorName
             "Kreuzung"
-            [ AnchorPoint { anchorX = 0, anchorY = halfHeight, anchorVX = -1, anchorVY = 0 }
-            , AnchorPoint { anchorX = länge, anchorY = halfHeight, anchorVX = 1, anchorVY = 0 }
+            [ AnchorPoint
+                  AnchorPosition { anchorX = 0, anchorY = halfHeight }
+                  AnchorDirection { anchorDX = -1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
-              , anchorVX = cos winkelBogenmaß
-              , anchorVY = sin winkelBogenmaß
-              }
+                  AnchorPosition { anchorX = länge, anchorY = halfHeight }
+                  AnchorDirection { anchorDX = 1, anchorDY = 0 }
             , AnchorPoint
-              { anchorX = width - radius * sin winkelBogenmaß
-              , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
-              , anchorVX = -cos winkelBogenmaß
-              , anchorVY = -sin winkelBogenmaß
-              }]
+                  AnchorPosition
+                  { anchorX = radius * sin winkelBogenmaß
+                  , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
+            , AnchorPoint
+                  AnchorPosition
+                  { anchorX = width - radius * sin winkelBogenmaß
+                  , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
+                  }
+                  AnchorDirection
+                  { anchorDX = -cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]

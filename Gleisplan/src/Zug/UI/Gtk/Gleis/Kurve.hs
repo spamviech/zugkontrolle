@@ -19,7 +19,8 @@ import Data.Int (Int32)
 import Data.Proxy (Proxy())
 import qualified GI.Cairo.Render as Cairo
 
-import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
+import Zug.UI.Gtk.Gleis.Anchor
+       (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(spurweite), radiusBegrenzung, beschränkung, abstand)
 
 newtype KurveFehler = NichtUnterstützeWinkel Double
@@ -91,7 +92,6 @@ zeichneKurve radius winkel kurvenBeschränkung proxy = do
         Cairo.lineTo 0 $ beschränkung proxy
         Cairo.stroke
     when (endBeschränkung kurvenBeschränkung) $ do
-        -- TODO is this even called?
         Cairo.moveTo begrenzungX0 begrenzungY0
         Cairo.lineTo begrenzungX1 begrenzungY1
         Cairo.stroke
@@ -132,10 +132,11 @@ anchorPointsKurve radius winkelBogenmaß proxy =
     withAnchorName
         "Kurve"
         [ AnchorPoint
-          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
         , AnchorPoint
-          { anchorX = radius * sin winkelBogenmaß
-          , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-          , anchorVX = cos winkelBogenmaß
-          , anchorVY = sin winkelBogenmaß
-          }]
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]

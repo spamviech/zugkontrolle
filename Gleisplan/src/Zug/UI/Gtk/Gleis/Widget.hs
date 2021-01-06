@@ -100,7 +100,8 @@ import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Gleis.Anchor
-       (AnchorPoint(..), AnchorName(..), AnchorPointMap, AnchorPointRTree, mbbSearch, mbbPoint)
+       (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorName(..), AnchorPointMap
+      , AnchorPointRTree, mbbSearch, mbbPoint)
 import Zug.UI.Gtk.Gleis.Gerade (zeichneGerade, anchorPointsGerade, widthGerade, heightGerade)
 import Zug.UI.Gtk.Gleis.Kreuzung
        (zeichneKreuzung, anchorPointsKreuzung, widthKreuzung, heightKreuzung, KreuzungsArt(..))
@@ -142,8 +143,8 @@ instance Hashable (Gleis z) where
 gleisGetSize :: Gleis z -> (Int32, Int32)
 gleisGetSize Gleis {width, height} = (width, height)
 
-translateAnchorPoint :: Position -> AnchorPoint -> (Double, Double)
-translateAnchorPoint Position {x, y, winkel} AnchorPoint {anchorX, anchorY} = (fixedX, fixedY)
+translateAnchorPoint :: Position -> AnchorPosition -> (Double, Double)
+translateAnchorPoint Position {x, y, winkel} AnchorPosition {anchorX, anchorY} = (fixedX, fixedY)
     where
         winkelBogenmaß :: Double
         winkelBogenmaß = pi / 180 * winkel
@@ -157,7 +158,7 @@ translateAnchorPoint Position {x, y, winkel} AnchorPoint {anchorX, anchorY} = (f
 intersections :: Position -> AnchorPoint -> AnchorPointRTree -> [Gtk.DrawingArea]
 intersections position anchorPoint knownAnchorPoints =
     concatMap NonEmpty.toList
-    $ uncurry mbbSearch (translateAnchorPoint position anchorPoint)
+    $ uncurry mbbSearch (translateAnchorPoint position $ anchorPosition anchorPoint)
     `RTree.intersect` knownAnchorPoints
 
 -- | Create a new 'Gtk.DrawingArea' with a fixed size set up with the specified 'Cairo.Render' /draw/ path.
@@ -200,7 +201,9 @@ gleisNew definition = do
                     fmap (, position) $ lift $ readTVar tvarAnchorPoints
                 case currentParentInformation of
                     (Just (knownAnchorPoints, position)) -> forM_ anchorPoints
-                        $ \anchorPoint@AnchorPoint {anchorX, anchorY, anchorVX, anchorVY} -> do
+                        $ \anchorPoint@AnchorPoint
+                        { anchorPosition = AnchorPosition {anchorX, anchorY}
+                        , anchorDirection = AnchorDirection {anchorDX, anchorDY}} -> do
                             Cairo.moveTo anchorX anchorY
                             let r, g, b :: Double
                                 (r, g, b) =
@@ -210,9 +213,9 @@ gleisNew definition = do
                                         then (0, 0, 1)
                                         else (0, 1, 0)
                                 len :: Double
-                                len = anchorVX * anchorVX + anchorVY * anchorVY
+                                len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
                             Cairo.setSourceRGB r g b
-                            Cairo.relLineTo (-5 * anchorVX / len) (-5 * anchorVY / len)
+                            Cairo.relLineTo (-anchorDX / len) (-anchorDY / len)
                             Cairo.stroke
                     Nothing -> pure ()
                 Cairo.restore
@@ -504,9 +507,9 @@ moveAnchors tvarAnchorPoints maybeOldPosition maybeNewPosition Gleis {drawingAre
         newAnchorPoints = maybe otherAnchorPoints insertAnchorPoints maybeNewPosition
         insertAnchorPoints :: Position -> AnchorPointRTree
         insertAnchorPoints newPosition =
-            foldl' (\acc anchorPoint -> RTree.insertWith
+            foldl' (\acc AnchorPoint {anchorPosition} -> RTree.insertWith
                         (<>)
-                        (uncurry mbbPoint $ translateAnchorPoint newPosition anchorPoint)
+                        (uncurry mbbPoint $ translateAnchorPoint newPosition anchorPosition)
                         (drawingArea :| [])
                         acc) otherAnchorPoints anchorPoints
         newIntersectingDrawingAreas :: Maybe Position -> [Gtk.DrawingArea]
@@ -574,13 +577,16 @@ gleisAttach
         let maybePosition = do
                 positionB@Position {winkel = winkelB} <- maybe (Left GleisBNotFount) Right
                     $ HashMap.lookup gleisB gleise
-                anchorPointB@AnchorPoint {anchorVX = anchorVXB, anchorVY = anchorVYB}
+                AnchorPoint { anchorPosition = anchorPositionB
+                            , anchorDirection =
+                              AnchorDirection {anchorDX = anchorDXB, anchorDY = anchorVYB}}
                     <- maybe (Left AnchorBNotFound) Right
                     $ HashMap.lookup anchorNameB anchorPointsB
-                AnchorPoint { anchorX = anchorXA
-                            , anchorY = anchorYA
-                            , anchorVX = anchorVXA
-                            , anchorVY = anchorVYA} <- maybe (Left AnchorANotFount) Right
+                AnchorPoint
+                    { anchorPosition = AnchorPosition {anchorX = anchorXA, anchorY = anchorYA}
+                    , anchorDirection =
+                      AnchorDirection {anchorDX = anchorDXA, anchorDY = anchorVYA}}
+                    <- maybe (Left AnchorANotFount) Right
                     $ HashMap.lookup anchorNameA anchorPointsA
                 let winkelA :: Double
                     winkelA = winkelB + 180 / pi * anchorWinkelDifferenzBogenmaß
@@ -588,13 +594,13 @@ gleisAttach
                     winkelBBogenmaß = pi / 180 * winkelB
                     anchorWinkelDifferenzBogenmaß :: Double
                     anchorWinkelDifferenzBogenmaß =
-                        winkelMitXAchse (-anchorVXB) (-anchorVYB)
-                        - winkelMitXAchse anchorVXA anchorVYA
+                        winkelMitXAchse (-anchorDXB) (-anchorVYB)
+                        - winkelMitXAchse anchorDXA anchorVYA
                     winkelABogenmaß :: Double
                     winkelABogenmaß = winkelBBogenmaß + anchorWinkelDifferenzBogenmaß
                     translatedAnchorXB, translatedAnchorYB :: Double
                     (translatedAnchorXB, translatedAnchorYB) =
-                        translateAnchorPoint positionB anchorPointB
+                        translateAnchorPoint positionB anchorPositionB
                 pure
                     Position
                     { x = translatedAnchorXB - anchorXA * cos winkelABogenmaß

@@ -4,6 +4,8 @@
 module Zug.UI.Gtk.Gleis.Anchor
   ( AnchorName(..)
   , AnchorPoint(..)
+  , AnchorPosition(..)
+  , AnchorDirection(..)
   , AnchorPointRTree
   , AnchorPointMap
   , mbbSearch
@@ -36,10 +38,20 @@ newtype AnchorName = AnchorName { anchor :: Text }
 
 -- | Position und ausgehender Vektor eines AnchorPoint.
 data AnchorPoint =
-    AnchorPoint { anchorX :: Double, anchorY :: Double, anchorVX :: Double, anchorVY :: Double }
+    AnchorPoint { anchorPosition :: AnchorPosition, anchorDirection :: AnchorDirection }
     deriving (Eq, Show, Generic)
 
 instance Hashable AnchorPoint
+
+data AnchorPosition = AnchorPosition { anchorX :: Double, anchorY :: Double }
+    deriving (Eq, Show, Generic)
+
+instance Hashable AnchorPosition
+
+data AnchorDirection = AnchorDirection { anchorDX :: Double, anchorDY :: Double }
+    deriving (Eq, Show, Generic)
+
+instance Hashable AnchorDirection
 
 mbbSearch :: Double -> Double -> RTree.MBB
 mbbSearch x y = RTree.mbb (x - epsilon) (y - epsilon) (x + epsilon) (y + epsilon)

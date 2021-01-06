@@ -10,7 +10,8 @@ import Data.Proxy (Proxy())
 import qualified GI.Cairo.Render as Cairo
 
 import Zug.Enums (Zugtyp())
-import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPointMap, withAnchorName)
+import Zug.UI.Gtk.Gleis.Anchor
+       (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..), AnchorPointMap, withAnchorName)
 import Zug.UI.Gtk.Gleis.Spurweite (Spurweite(), beschränkung, abstand)
 
 -- | Pfad zum Zeichnen einer Gerade angegebener Länge.
@@ -39,9 +40,11 @@ anchorPointsGerade länge proxy =
     withAnchorName
         "Gerade"
         [ AnchorPoint
-          { anchorX = 0, anchorY = 0.5 * beschränkung proxy, anchorVX = -1, anchorVY = 0 }
+              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
         , AnchorPoint
-          { anchorX = länge, anchorY = 0.5 * beschränkung proxy, anchorVX = 1, anchorVY = 0 }]
+              AnchorPosition { anchorX = länge, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = 1, anchorDY = 0 }]
 
 -- | Breite einer Gerade mit angegebener Länge.
 widthGerade :: forall (z :: Zugtyp). Double -> Proxy z -> Int32
