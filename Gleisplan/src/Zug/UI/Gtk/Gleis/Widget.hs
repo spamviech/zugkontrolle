@@ -12,6 +12,8 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DerivingVia #-}
 
 {-
 ideas for rewrite with gtk4
@@ -71,8 +73,9 @@ module Zug.UI.Gtk.Gleis.Widget
   , Binary(..)
   ) where
 
-import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar
-                             , TMVar, newEmptyTMVarIO, tryReadTMVar, tryPutTMVar, tryTakeTMVar)
+import Control.Concurrent.STM
+       (STM, atomically, TVar, newTVarIO, readTVarIO, readTVar, writeTVar, modifyTVar', TMVar
+      , newEmptyTMVarIO, tryReadTMVar, tryPutTMVar, tryTakeTMVar)
 import Control.Monad (when, void, forM_, forM)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
@@ -405,12 +408,15 @@ instance Binary Position
 data GleisAnzeigeConfig = GleisAnzeigeConfig { scale :: Double, x :: Double, y :: Double }
     deriving (Show, Eq)
 
-newtype GleisId = GleisId Natural
-    deriving (Show, Eq, Generic)
+newtype GleisId (z :: Zugtyp) = GleisId { gId :: Natural }
+    deriving stock Show
+    deriving (Eq, Hashable) via Natural
 
-instance Hashable GleisId
+newtype TextId (z :: Zugtyp) = TextId { tId :: Natural }
+    deriving stock Show
+    deriving (Eq, Hashable) via Natural
 
-type AnchorPointRTreeD = RTree (NonEmpty GleisId)
+type AnchorPointRTreeD (z :: Zugtyp) = RTree (NonEmpty (GleisId z))
 
 -- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:createLayout
 -- https://hackage.haskell.org/package/gi-pango-1.0.23/docs/GI-Pango-Objects-Layout.html#v:layoutSetText
@@ -419,9 +425,11 @@ data GleisAnzeigeD (z :: Zugtyp) =
     GleisAnzeigeD
     { drawingArea :: Gtk.DrawingArea
     , tvarConfig :: TVar GleisAnzeigeConfig
-    , tvarGleise :: TVar (HashMap GleisId (GleisDefinition z, Position))
-    , tvarTexte :: TVar [(Text, Position)]
-    , tvarAnchorPoints :: TVar AnchorPointRTreeD
+    , tvarNextGleisId :: TVar (GleisId z)
+    , tvarNextTextId :: TVar (TextId z)
+    , tvarGleise :: TVar (HashMap (GleisId z) (GleisDefinition z, Position))
+    , tvarTexte :: TVar (HashMap (TextId z) (Text, Position))
+    , tvarAnchorPoints :: TVar (AnchorPointRTreeD z)
     }
 
 withSaveRestore :: Cairo.Render a -> Cairo.Render a
@@ -430,20 +438,22 @@ withSaveRestore action = Cairo.save *> action <* Cairo.restore
 gleisAnzeigeNewD :: (MonadIO m, Spurweite z) => m (GleisAnzeigeD z)
 gleisAnzeigeNewD = liftIO $ do
     drawingArea <- Gtk.drawingAreaNew
+    tvarNextGleisId <- newTVarIO $ GleisId 0
+    tvarNextTextId <- newTVarIO $ TextId 0
     tvarConfig <- newTVarIO GleisAnzeigeConfig { scale = 1, x = 0, y = 0 }
     tvarGleise <- newTVarIO HashMap.empty
-    tvarTexte <- newTVarIO []
+    tvarTexte <- newTVarIO HashMap.empty
     tvarAnchorPoints <- newTVarIO RTree.empty
     -- configure drawing area
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
+    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context newWidth newHeight
         -> void $ flip Cairo.renderWithContext context $ withSaveRestore $ do
-            undefined --TODO
             Cairo.setLineWidth 1
             (knownAnchorPoints, gleise, texte) <- liftIO
                 $ atomically
                 $ (,,) <$> readTVar tvarAnchorPoints <*> readTVar tvarGleise <*> readTVar tvarTexte
+            -- TODO respect GleisAnzeigeConfig (move + scale)
             -- zeichne Gleise
             forM_ (HashMap.toList gleise)
                 $ \(gleisId, (gleisDefinition, position@Position {x, y, winkel}))
@@ -490,13 +500,158 @@ gleisAnzeigeNewD = liftIO $ do
                 Pango.layoutSetText layout text $ -1
                 PangoCairo.layoutPath context layout
             pure True
-    pure GleisAnzeigeD { drawingArea, tvarConfig, tvarGleise, tvarTexte, tvarAnchorPoints }
+    pure
+        GleisAnzeigeD
+        { drawingArea
+        , tvarNextGleisId
+        , tvarNextTextId
+        , tvarConfig
+        , tvarGleise
+        , tvarTexte
+        , tvarAnchorPoints
+        }
     where
         width :: Int32
         width = 600
 
         height :: Int32
         height = 400
+
+-- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
+-- Returns list of 'Gtk.DrawingArea' with close 'AnchorPoint' to old or new location.
+moveAnchorsD :: forall z.
+             TVar (AnchorPointRTreeD z)
+             -> GleisId z
+             -> Maybe (Position, AnchorPointMap)
+             -> STM ()
+moveAnchorsD tvarAnchorPoints gleisId maybePositionAnchorPoints = do
+    knownAnchorPoints <- readTVar tvarAnchorPoints
+    let otherAnchorPoints :: AnchorPointRTreeD z
+        otherAnchorPoints =
+            RTree.mapMaybe (NonEmpty.nonEmpty . NonEmpty.filter (/= gleisId)) knownAnchorPoints
+        newAnchorPoints :: AnchorPointRTreeD z
+        newAnchorPoints = case maybePositionAnchorPoints of
+            Nothing -> otherAnchorPoints
+            (Just (position, anchorPoints))
+                -> foldl' (\acc AnchorPoint {anchorPosition} -> RTree.insertWith
+                               (<>)
+                               (uncurry mbbPoint $ translateAnchorPoint position anchorPosition)
+                               (gleisId :| [])
+                               acc) otherAnchorPoints anchorPoints
+    writeTVar tvarAnchorPoints $! newAnchorPoints
+
+-- | Füge ein Gleis zur angestrebten 'Position' einer 'GleisAnzeige' hinzu.
+gleisPutD :: (MonadIO m, Spurweite z)
+          => GleisAnzeigeD z
+          -> GleisDefinition z
+          -> Position
+          -> m (GleisId z)
+gleisPutD
+    GleisAnzeigeD {drawingArea, tvarNextGleisId, tvarGleise, tvarAnchorPoints}
+    definition
+    position = liftIO $ do
+    gleisId <- atomically $ do
+        -- create new id
+        gleisId@GleisId {gId} <- readTVar tvarNextGleisId
+        writeTVar tvarNextGleisId $ GleisId $ succ gId
+        -- move Position
+        gleise <- readTVar tvarGleise
+        writeTVar tvarGleise $! HashMap.insert gleisId (definition, position) gleise
+        -- move anchor points
+        moveAnchorsD tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
+        -- result is newly created id
+        pure gleisId
+    -- Queue re-draw
+    Gtk.widgetQueueDraw drawingArea
+    pure gleisId
+
+data GleisMoveResult (z :: Zugtyp)
+    = GleisMoveSuccess
+    | InvalidGleisId (GleisId z)
+    deriving (Eq, Show)
+
+-- | Bewege das Gleis mit der übergebenen 'GleisId' zur angestrebten 'Position' einer 'GleisAnzeige'.
+gleisMoveD :: (MonadIO m, Spurweite z)
+           => GleisAnzeigeD z
+           -> GleisId z
+           -> Position
+           -> m (GleisMoveResult z)
+gleisMoveD GleisAnzeigeD {drawingArea, tvarGleise, tvarAnchorPoints} gleisId position = liftIO $ do
+    result <- atomically $ do
+        gleise <- readTVar tvarGleise
+        case HashMap.lookup gleisId gleise of
+            Nothing -> pure $ InvalidGleisId gleisId
+            (Just (definition, _oldPosition)) -> do
+                -- move Position
+                writeTVar tvarGleise $! HashMap.insert gleisId (definition, position) gleise
+                -- move anchor points
+                moveAnchorsD tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
+                pure GleisMoveSuccess
+    -- Queue re-draw
+    when (result == GleisMoveSuccess) $ Gtk.widgetQueueDraw drawingArea
+    pure result
+
+-- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
+--
+-- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
+gleisRemoveD :: (MonadIO m) => GleisAnzeigeD z -> GleisId z -> m ()
+gleisRemoveD GleisAnzeigeD {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = liftIO $ do
+    atomically $ do
+        -- remove from shown rails
+        modifyTVar' tvarGleise $ HashMap.delete gleisId
+        -- remove anchor points
+        moveAnchorsD tvarAnchorPoints gleisId Nothing
+    -- Queue re-draw
+    Gtk.widgetQueueDraw drawingArea
+
+-- | Bewege einen 'Text' zur angestrebten 'Position' einer 'GleisAnzeige'.
+--
+-- Wenn ein 'Text' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
+textPutD :: (MonadIO m) => GleisAnzeigeD z -> Text -> Position -> m (TextId z)
+textPutD GleisAnzeigeD {drawingArea, tvarNextTextId, tvarTexte} text position = liftIO $ do
+    textId <- atomically $ do
+        -- create new id
+        textId@TextId {tId} <- readTVar tvarNextTextId
+        writeTVar tvarNextTextId $ TextId $ succ tId
+        -- move Position
+        texte <- readTVar tvarTexte
+        writeTVar tvarTexte $! HashMap.insert textId (text, position) texte
+        -- result is newly created id
+        pure textId
+    -- Queue re-draw
+    Gtk.widgetQueueDraw drawingArea
+    pure textId
+
+-- | Entferne einen 'Text' aus der 'GleisAnzeige'.
+--
+-- 'Text'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
+textRemoveD :: (MonadIO m) => GleisAnzeigeD z -> TextId z -> m ()
+textRemoveD GleisAnzeigeD {drawingArea, tvarTexte} textId = liftIO $ do
+    -- remove from show texts
+    atomically $ modifyTVar' tvarTexte $ HashMap.delete textId
+    -- Queue re-draw
+    Gtk.widgetQueueDraw drawingArea
+
+data TextMoveResult (z :: Zugtyp)
+    = TextMoveSuccess
+    | InvalidTextId (TextId z)
+    deriving (Eq, Show)
+
+-- | Bewege den 'Text' mit der übergebenen 'TextId' zur angestrebten 'Position' einer 'GleisAnzeige'.
+textMoveD
+    :: (MonadIO m, Spurweite z) => GleisAnzeigeD z -> TextId z -> Position -> m (TextMoveResult z)
+textMoveD GleisAnzeigeD {drawingArea, tvarTexte} textId position = liftIO $ do
+    result <- atomically $ do
+        texte <- readTVar tvarTexte
+        case HashMap.lookup textId texte of
+            Nothing -> pure $ InvalidTextId textId
+            (Just (text, _oldPosition)) -> do
+                -- move Position
+                writeTVar tvarTexte $! HashMap.insert textId (text, position) texte
+                pure TextMoveSuccess
+    -- Queue re-draw
+    when (result == TextMoveSuccess) $ Gtk.widgetQueueDraw drawingArea
+    pure result
 
 -- TODO add possibility to move shown widget portion (from x,y -> to x,y)
 -- i.e. using a 'Gtk.ScrolledWindow' without shown scrollbar (Gtk.scrolledWindowSetPolicy)

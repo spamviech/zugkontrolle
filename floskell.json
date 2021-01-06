@@ -8,6 +8,7 @@
         "InstanceSigs",
         "DefaultSignatures",
         "GeneralizedNewtypeDeriving",
+        "DerivingVia",
         "StandaloneDeriving",
         "MultiParamTypeClasses",
         "ScopedTypeVariables",
