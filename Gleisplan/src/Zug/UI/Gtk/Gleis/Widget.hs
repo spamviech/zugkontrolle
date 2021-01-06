@@ -89,6 +89,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust, isNothing)
 import Data.Proxy (Proxy(Proxy))
+import Data.RTree (RTree)
 import qualified Data.RTree as RTree
 import Data.Text (Text)
 import GHC.Generics (Generic())
@@ -97,6 +98,9 @@ import qualified GI.Cairo.Render.Connector as Cairo
 import qualified GI.Graphene as Graphene
 import qualified GI.Gsk as Gsk
 import qualified GI.Gtk as Gtk
+import qualified GI.Pango as Pango
+import qualified GI.PangoCairo as PangoCairo
+import Numeric.Natural (Natural)
 
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Gleis.Anchor
@@ -132,7 +136,7 @@ data Gleis (z :: Zugtyp) =
 
 instance MitWidget (Gleis z) where
     erhalteWidget :: (MonadIO m) => Gleis z -> m Gtk.Widget
-    erhalteWidget = Gtk.toWidget . drawingArea
+    erhalteWidget Gleis {drawingArea} = Gtk.toWidget drawingArea
 
 instance Hashable (Gleis z) where
     hashWithSalt :: Int -> Gleis z -> Int
@@ -155,7 +159,7 @@ translateAnchorPoint Position {x, y, winkel} AnchorPosition {anchorX, anchorY} =
         fixedY :: Double
         fixedY = y + anchorX * sin winkelBogenmaß + anchorY * cos winkelBogenmaß
 
-intersections :: Position -> AnchorPoint -> AnchorPointRTree -> [Gtk.DrawingArea]
+intersections :: Position -> AnchorPoint -> RTree (NonEmpty a) -> [a]
 intersections position anchorPoint knownAnchorPoints =
     concatMap NonEmpty.toList
     $ uncurry mbbSearch (translateAnchorPoint position $ anchorPosition anchorPoint)
@@ -398,17 +402,101 @@ data Position = Position { x :: Double, y :: Double, winkel :: Double }
 
 instance Binary Position
 
+data GleisAnzeigeConfig = GleisAnzeigeConfig { scale :: Double, x :: Double, y :: Double }
+    deriving (Show, Eq)
+
+newtype GleisId = GleisId Natural
+    deriving (Show, Eq, Generic)
+
+instance Hashable GleisId
+
+type AnchorPointRTreeD = RTree (NonEmpty GleisId)
+
 -- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:createLayout
 -- https://hackage.haskell.org/package/gi-pango-1.0.23/docs/GI-Pango-Objects-Layout.html#v:layoutSetText
-data GleisAnzeigeDrawingArea (z :: Zugtyp) =
-    GleisAnzeigeDrawingArea
-    { fixed :: Gtk.Fixed
-    , tvarScale :: TVar Double
-    , tvarWindow :: TVar (Double, Double) -- ^ x, y; width, height from size
-    , tvarGleise :: TVar (HashMap (GleisDefinition z) Position)
-    , tvarLabel :: TVar [(Text, Position)]
-    , tvarAnchorPoints :: TVar AnchorPointRTree
+-- https://hackage.haskell.org/package/gi-pangocairo-1.0.24/docs/GI-PangoCairo-Functions.html#v:layoutPath
+data GleisAnzeigeD (z :: Zugtyp) =
+    GleisAnzeigeD
+    { drawingArea :: Gtk.DrawingArea
+    , tvarConfig :: TVar GleisAnzeigeConfig
+    , tvarGleise :: TVar (HashMap GleisId (GleisDefinition z, Position))
+    , tvarTexte :: TVar [(Text, Position)]
+    , tvarAnchorPoints :: TVar AnchorPointRTreeD
     }
+
+withSaveRestore :: Cairo.Render a -> Cairo.Render a
+withSaveRestore action = Cairo.save *> action <* Cairo.restore
+
+gleisAnzeigeNewD :: (MonadIO m, Spurweite z) => m (GleisAnzeigeD z)
+gleisAnzeigeNewD = liftIO $ do
+    drawingArea <- Gtk.drawingAreaNew
+    tvarConfig <- newTVarIO GleisAnzeigeConfig { scale = 1, x = 0, y = 0 }
+    tvarGleise <- newTVarIO HashMap.empty
+    tvarTexte <- newTVarIO []
+    tvarAnchorPoints <- newTVarIO RTree.empty
+    -- configure drawing area
+    Gtk.drawingAreaSetContentHeight drawingArea height
+    Gtk.drawingAreaSetContentWidth drawingArea width
+    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
+        -> void $ flip Cairo.renderWithContext context $ withSaveRestore $ do
+            undefined --TODO
+            Cairo.setLineWidth 1
+            (knownAnchorPoints, gleise, texte) <- liftIO
+                $ atomically
+                $ (,,) <$> readTVar tvarAnchorPoints <*> readTVar tvarGleise <*> readTVar tvarTexte
+            -- zeichne Gleise
+            forM_ (HashMap.toList gleise)
+                $ \(gleisId, (gleisDefinition, position@Position {x, y, winkel}))
+                -> withSaveRestore $ do
+                    -- move to position and rotate
+                    let winkelBogenmaß :: Double
+                        winkelBogenmaß = pi / 180 * winkel
+                    Cairo.translate x y
+                    Cairo.rotate winkelBogenmaß
+                    -- draw rail
+                    withSaveRestore $ do
+                        Cairo.newPath
+                        getZeichnen gleisDefinition
+                        Cairo.stroke
+                    -- mark anchor points
+                    forM_ (getAnchorPoints gleisDefinition)
+                        $ \anchorPoint@AnchorPoint
+                        { anchorPosition = AnchorPosition {anchorX, anchorY}
+                        , anchorDirection = AnchorDirection {anchorDX, anchorDY}}
+                        -> withSaveRestore $ do
+                            Cairo.moveTo anchorX anchorY
+                            let r, g, b :: Double
+                                (r, g, b) =
+                                    if any (/= gleisId)
+                                        $ intersections position anchorPoint knownAnchorPoints
+                                        then (0, 1, 0)
+                                        else (0, 0, 1)
+                                len :: Double
+                                len = sqrt $ anchorDX * anchorDX + anchorDY * anchorDY
+                            Cairo.setSourceRGB r g b
+                            Cairo.relLineTo (-5 * anchorDX / len) (-5 * anchorDY / len)
+                            Cairo.stroke
+            -- schreibe Texte
+            forM_ texte $ \(text, Position {x, y, winkel}) -> withSaveRestore $ do
+                -- move to position and rotate
+                let winkelBogenmaß :: Double
+                    winkelBogenmaß = pi / 180 * winkel
+                Cairo.translate x y
+                Cairo.rotate winkelBogenmaß
+                -- write text
+                Cairo.newPath
+                Cairo.moveTo 0 0
+                layout <- PangoCairo.createLayout context
+                Pango.layoutSetText layout text $ -1
+                PangoCairo.layoutPath context layout
+            pure True
+    pure GleisAnzeigeD { drawingArea, tvarConfig, tvarGleise, tvarTexte, tvarAnchorPoints }
+    where
+        width :: Int32
+        width = 600
+
+        height :: Int32
+        height = 400
 
 -- TODO add possibility to move shown widget portion (from x,y -> to x,y)
 -- i.e. using a 'Gtk.ScrolledWindow' without shown scrollbar (Gtk.scrolledWindowSetPolicy)

@@ -26,6 +26,7 @@ import GHC.Generics (Generic())
 import qualified GI.Gtk as Gtk
 import Numeric.Natural (Natural)
 
+-- TODO add AnchorDirection?
 -- | AnchorPoints einer 'GleisAnzeige', sortiert nach 'Position'.
 type AnchorPointRTree = RTree (NonEmpty Gtk.DrawingArea)
 
