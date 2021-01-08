@@ -34,6 +34,10 @@ Assistant should work again
 Scrolling, Drag&Drop use EventController, added using 'Gtk.widgetAddController'
     https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-Widget.html#g:method:addController
     https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-EventControllerScroll.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-GestureZoom.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-GestureClick.html
+    https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-GestureDrag.html
+Drag & Drop specific EventController; probably only required when multiple widgets are involved
     https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DragSource.html
     https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DragIcon.html
     https://hackage.haskell.org/package/gi-gtk-4.0.3/docs/GI-Gtk-Objects-DropTarget.html
@@ -73,10 +77,12 @@ module Zug.UI.Gtk.Gleis.Widget
   , textRemove
     -- ** Speichern / Laden
   , gleisAnzeigeSave
-  , Binary(..)
+  , gleisAnzeigeLoad
+  , LoadError(..)
   ) where
 
 import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVar, writeTVar, modifyTVar')
+import Control.Exception (handle)
 import Control.Monad (void, forM_)
 import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
 import Control.Monad.Trans.Except (withExceptT, ExceptT(ExceptT))
@@ -94,6 +100,8 @@ import Data.Proxy (Proxy(Proxy))
 import Data.RTree (RTree)
 import qualified Data.RTree as RTree
 import Data.Text (Text)
+import qualified Data.Text as Text
+import Data.Version (Version())
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
@@ -102,6 +110,7 @@ import qualified GI.Pango as Pango
 import qualified GI.PangoCairo as PangoCairo
 import Numeric.Natural (Natural)
 
+import Paths_Gleisplan (version)
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..)
                               , AnchorName(..), AnchorPointMap, mbbSearch, mbbPoint)
@@ -695,4 +704,40 @@ gleisAnzeigeSave :: (MonadIO m) => GleisAnzeige z -> FilePath -> m ()
 gleisAnzeigeSave GleisAnzeige {tvarConfig, tvarGleise, tvarTexte} filePath = liftIO $ do
     (gleise, texte, config)
         <- atomically $ (,,) <$> readTVar tvarGleise <*> readTVar tvarTexte <*> readTVar tvarConfig
-    Binary.encodeFile filePath (HashMap.toList gleise, HashMap.toList texte, Just config)
+    Binary.encodeFile filePath (version, HashMap.elems gleise, HashMap.elems texte, config)
+
+data LoadError
+    = IOError IOError
+    | DecodingError Text
+    deriving (Show, Eq)
+
+gleisAnzeigeLoad
+    :: forall m z. (MonadIO m, Spurweite z) => GleisAnzeige z -> FilePath -> ExceptT LoadError m ()
+gleisAnzeigeLoad
+    gleisAnzeige@GleisAnzeige
+    {drawingArea, tvarGleise, tvarTexte, tvarAnchorPoints, tvarNextGleisId, tvarNextTextId}
+    filePath = do
+    ( _saveVersion :: Version
+        , gleise :: [(GleisDefinition z, Position)]
+        , texte :: [(Text, Position)]
+        , config :: GleisAnzeigeConfig
+        ) <- ExceptT
+        $ liftIO
+        $ handle (pure . Left . IOError)
+        $ first (DecodingError . Text.pack . snd) <$> Binary.decodeFileOrFail filePath
+    liftIO $ do
+        -- remove all present rails and texts
+        atomically $ do
+            writeTVar tvarGleise HashMap.empty
+            writeTVar tvarTexte HashMap.empty
+            writeTVar tvarAnchorPoints RTree.empty
+            -- reset ids (not really necessary)
+            writeTVar tvarNextGleisId $ GleisId 0
+            writeTVar tvarNextTextId $ TextId 0
+        -- add saved rails ands texts
+        forM_ gleise $ uncurry $ gleisPut gleisAnzeige
+        forM_ texte $ uncurry $ textPut gleisAnzeige
+        -- restore config
+        gleisAnzeigeConfig gleisAnzeige config
+        -- make sure loaded rails are shown
+        Gtk.widgetQueueDraw drawingArea

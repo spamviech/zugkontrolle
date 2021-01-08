@@ -56,7 +56,12 @@
                 },
                 {
                     "prefixes": [
-                        "Zug"
+                        "Zug",
+                        "Paths_Zugkontrolle",
+                        "Paths_Zugkontrolle-Base",
+                        "Paths_Zugkontrolle-Cmd",
+                        "Paths_Zugkontrolle-Gtk",
+                        "Paths_Gleisplan"
                     ],
                     "order": "sorted"
                 }

@@ -16,6 +16,7 @@ dependencies:
 - binary >= 0.8.8 && < 0.9
 - bytestring >= 0.10.12 && < 0.12
 - data-r-tree >= 0.6 && < 0.7
+- directory >= 1.3.6.1 && < 1.4
 - haskell-gi-overloading == 0.0
 - gi-cairo-render >= 0.1 && < 0.2
 - gi-cairo-connector >= 0.1 && < 0.2
