@@ -89,6 +89,7 @@ import Control.Monad.Trans.Except (withExceptT, ExceptT(ExceptT))
 import Data.Bifunctor (first)
 import Data.Binary (Binary())
 import qualified Data.Binary as Binary
+import Data.Binary.Get (ByteOffset)
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
@@ -100,7 +101,6 @@ import Data.Proxy (Proxy(Proxy))
 import Data.RTree (RTree)
 import qualified Data.RTree as RTree
 import Data.Text (Text)
-import qualified Data.Text as Text
 import Data.Version (Version())
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
@@ -700,15 +700,27 @@ gleisAttachMove gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB glei
                     $ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA
         withExceptT MoveError $ gleisMove gleisAnzeige gleisIdA position
 
-gleisAnzeigeSave :: (MonadIO m) => GleisAnzeige z -> FilePath -> m ()
-gleisAnzeigeSave GleisAnzeige {tvarConfig, tvarGleise, tvarTexte} filePath = liftIO $ do
-    (gleise, texte, config)
-        <- atomically $ (,,) <$> readTVar tvarGleise <*> readTVar tvarTexte <*> readTVar tvarConfig
-    Binary.encodeFile filePath (version, HashMap.elems gleise, HashMap.elems texte, config)
+newtype SaveError = SaveIOError IOError
 
+-- TODO can encodeFile throw IOError as well?
+-- e.g. isAlreadyInUseError, isFullError, isPermissionError
+gleisAnzeigeSave :: (MonadIO m) => GleisAnzeige z -> FilePath -> ExceptT SaveError m ()
+gleisAnzeigeSave GleisAnzeige {tvarConfig, tvarGleise, tvarTexte} filePath = do
+    (gleise, texte, config) <- liftIO
+        $ atomically
+        $ (,,) <$> readTVar tvarGleise <*> readTVar tvarTexte <*> readTVar tvarConfig
+    ExceptT
+        $ liftIO
+        $ handle (pure . Left . SaveIOError)
+        $ Right
+        <$> Binary.encodeFile filePath (version, HashMap.elems gleise, HashMap.elems texte, config)
+
+-- TODO classify IOError instead of simply re-throwing?
+-- with a fallback UnexpectedIOError
+-- https://hackage.haskell.org/package/base-4.14.1.0/docs/System-IO-Error.html#g:2
 data LoadError
-    = IOError IOError
-    | DecodingError Text
+    = LoadIOError IOError
+    | DecodingError (ByteOffset, String)
     deriving (Show, Eq)
 
 gleisAnzeigeLoad
@@ -723,8 +735,8 @@ gleisAnzeigeLoad
         , config :: GleisAnzeigeConfig
         ) <- ExceptT
         $ liftIO
-        $ handle (pure . Left . IOError)
-        $ first (DecodingError . Text.pack . snd) <$> Binary.decodeFileOrFail filePath
+        $ handle (pure . Left . LoadIOError)
+        $ first DecodingError <$> Binary.decodeFileOrFail filePath
     liftIO $ do
         -- remove all present rails and texts
         atomically $ do
