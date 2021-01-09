@@ -23,6 +23,7 @@
         "fmap",
         "foldl",
         "hashable",
+        "keyval",
         "pango",
         "pangocairo",
         "succ",

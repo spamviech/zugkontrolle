@@ -64,6 +64,12 @@
                         "Paths_Gleisplan"
                     ],
                     "order": "sorted"
+                },
+                {
+                    "prefixes": [
+                        "Debug"
+                    ],
+                    "order": "sorted"
                 }
             ]
         },

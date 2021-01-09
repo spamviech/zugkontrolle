@@ -357,9 +357,12 @@ withSaveRestore :: Cairo.Render a -> Cairo.Render a
 withSaveRestore action = Cairo.save *> action <* Cairo.restore
 
 -- TODO add hotkeys to adjust config
--- scrolling for scale (zoom)
+-- scrolling & zoom gesture for scale (zoom)
 -- right-click to move
--- allow rotation? i.e. via middle click
+--      GestureClick and right click behave weirdly, might be fixed in newer versions
+-- allow rotation? e.g. via middle click
+-- TODO Ctrl+0/Num0 reset to scale 1
+-- TODO <> reset to position 0x0
 gleisAnzeigeNew :: forall m z. (MonadIO m, Spurweite z) => m (GleisAnzeige z)
 gleisAnzeigeNew = liftIO $ do
     drawingArea <- Gtk.drawingAreaNew
