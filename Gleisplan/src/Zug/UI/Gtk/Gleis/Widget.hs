@@ -358,11 +358,13 @@ withSaveRestore action = Cairo.save *> action <* Cairo.restore
 
 -- TODO add hotkeys to adjust config
 -- scrolling & zoom gesture for scale (zoom)
+--      maybe only Ctrl+Scroll for zoom, so touch screen works correctly
 -- right-click to move
 --      GestureClick and right click behave weirdly, might be fixed in newer versions
+--      use arrow-keys to move instead
 -- allow rotation? e.g. via middle click
 -- TODO Ctrl+0/Num0 reset to scale 1
--- TODO <> reset to position 0x0
+-- TODO Home/Pos1 reset to position 0x0
 gleisAnzeigeNew :: forall m z. (MonadIO m, Spurweite z) => m (GleisAnzeige z)
 gleisAnzeigeNew = liftIO $ do
     drawingArea <- Gtk.drawingAreaNew

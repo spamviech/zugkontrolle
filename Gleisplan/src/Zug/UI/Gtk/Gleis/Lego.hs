@@ -4,8 +4,11 @@
 Description: This modules defines all Lego (9V) rails I have access to.
 -}
 module Zug.UI.Gtk.Gleis.Lego
-  ( -- * Gerade
+  ( -- * Gleise
     legoGerade
+  , legoKurve
+  , legoWeiche
+  , legoKreuzung
     -- * Convenience Re-Exports
   , WeichenRichtungAllgemein(Links, Rechts)
   , Zugtyp(Lego)
@@ -17,7 +20,7 @@ import Zug.UI.Gtk.Gleis.Widget (GleisDefinition(..), WeichenArt(..), WeichenRich
 
 -- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
 {-
- Der Maßstab liegt zwischen 1:35 - 1:49.
+Der Maßstab liegt zwischen 1:35 - 1:49.
 Spurbreite
     Innen: ca. 3,81 cm (38,1 mm)
     Außen: ca. 4,20 cm (42,0 mm)
@@ -38,5 +41,41 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
 {-
 Lego Spurweite: 38mm
 -}
+legoLänge :: Double
+legoLänge = 12.8
+
+legoRadius :: Double
+legoRadius = 320
+
+legoWinkel :: Double
+legoWinkel = 22.5
+
 legoGerade :: GleisDefinition 'Lego
-legoGerade = Gerade { länge = 13.6 }
+legoGerade = Gerade { länge = legoLänge }
+
+legoKurve :: GleisDefinition 'Lego
+legoKurve = Kurve { radius = legoRadius, winkel = legoWinkel }
+
+-- TODO stimmt nicht genau, eigentlich eine leichte S-Kurve
+{-
+Die Geometrie der LEGO Eisenbahnweichen hat sich mit Einführung des 9 V Systems verändert.
+Das Parallelgleis nach der Weiche ist nun 8 Noppen vom Hauptgleis entfernt.
+Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
+-------------------------------------------------------
+1 Noppe ist rund 0,8 cm (genauer: 0,79675... cm)
+1,00 cm sind rund 1,25 Noppen (genauer: 1,255...) 
+-------------------------------------------------------
+Nach 1 Gerade/Kurve sind Haupt- und Parallelgleis auf der selben Höhe
+-}
+legoWeiche :: WeichenRichtungAllgemein 'WeicheZweiweg -> GleisDefinition 'Lego
+legoWeiche lr =
+    Weiche
+    { länge = legoLänge
+    , radius = legoRadius
+    , winkel = legoWinkel
+    , richtung = Normal $ alsDreiweg lr
+    }
+
+legoKreuzung :: GleisDefinition 'Lego
+legoKreuzung =
+    Kreuzung { länge = legoLänge, radius = 6.4, winkel = 90, kreuzungsArt = OhneKurve }
