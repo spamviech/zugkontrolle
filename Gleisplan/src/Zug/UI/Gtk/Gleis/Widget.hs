@@ -460,10 +460,11 @@ gleisAnzeigeNew = liftIO $ do
             PangoCairo.layoutPath context layout
             Cairo.stroke
 
--- | Skaliere eine 'GleisAnzeige'.
-gleisAnzeigeConfig :: (MonadIO m) => GleisAnzeige z -> GleisAnzeigeConfig -> m ()
-gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} config = liftIO $ do
-    atomically $ writeTVar tvarConfig config
+-- | Anpassen der 'GleisAnzeigeConfig' einer 'GleisAnzeige'.
+gleisAnzeigeConfig
+    :: (MonadIO m) => GleisAnzeige z -> (GleisAnzeigeConfig -> GleisAnzeigeConfig) -> m ()
+gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} updateFn = liftIO $ do
+    atomically $ modifyTVar' tvarConfig updateFn
     Gtk.widgetQueueDraw drawingArea
 
 -- | Remove current 'AnchorPoint' of the 'Gleis' and, if available, move them to the new location.
@@ -755,6 +756,6 @@ gleisAnzeigeLoad
         forM_ gleise $ uncurry $ gleisPut gleisAnzeige
         forM_ texte $ uncurry $ textPut gleisAnzeige
         -- restore config
-        gleisAnzeigeConfig gleisAnzeige config
+        gleisAnzeigeConfig gleisAnzeige $ const config
         -- make sure loaded rails are shown
         Gtk.widgetQueueDraw drawingArea

@@ -29,7 +29,7 @@ gleisDemonstrationNew = do
     gleisAnzeige <- gleisAnzeigeNew
     runExceptT $ catchE (gleisAnzeigeLoad gleisAnzeige saveFile) $ \exception -> do
         liftIO $ print exception
-        gleisAnzeigeConfig gleisAnzeige GleisAnzeigeConfig { x = 0, y = 0, scale = 1 }
+        gleisAnzeigeConfig gleisAnzeige $ const GleisAnzeigeConfig { x = 0, y = 0, scale = 1 }
         foldM_
             (putWithHeight gleisAnzeige)
             (0, 0)
