@@ -28,6 +28,11 @@ createWindow application = do
     legacyController <- Gtk.eventControllerLegacyNew
     Gtk.onEventControllerLegacyEvent legacyController $ \event -> do
         maybeMsg <- Gdk.eventGetEventType event >>= \case
+            -- when registered directly on the window, there are no unpaired button release events
+            -- the program loses focus, so the release event isn't caught as well
+            -- if you move the mouse outside the program region, release is still caught
+            -- to pair them, store a (HashMap Button Position)?
+            --      this way we always get the distance between press an release
             Gdk.EventTypeButtonPress -> do
                 buttonEvent <- Gdk.unsafeCastTo Gdk.ButtonEvent event
                 Just . ("pressed button: " <>) . show <$> Gdk.buttonEventGetButton buttonEvent
