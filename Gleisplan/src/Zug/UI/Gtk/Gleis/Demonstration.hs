@@ -77,9 +77,10 @@ gleisDemonstrationNew = do
         putWithHeight gleisAnzeige (maxWidth, y) (text, definition) = do
             textPut gleisAnzeige text Position { x = 0, y = fromIntegral y, winkel = 0 }
             -- TODO estimate for now
-            let widthLabel = 50
+            let widthLabel = 60
             -- widthLabel <- getTextWidth reqMaxLabel
             let x = padding + widthLabel
+            liftIO $ print x
             gleisPut
                 gleisAnzeige
                 definition
