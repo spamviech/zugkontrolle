@@ -19,7 +19,7 @@
 ideas for rewrite with gtk4
     start from scratch (UI), so legacy-based mistakes might vanish
 look at Gtk.renderLine (cairo-render/-connector should still work)
-Use `GLib.addIdle GLib.PRIORITY_DEFAULT $ gtkAction` to call Gtk from a forked thread
+Use `GLib.idleAdd GLib.PRIORITY_DEFAULT_IDLE $ gtkAction` to call Gtk from a forked thread
     (sync e.g. with TMVar for a blocking version)
     https://github.com/haskell-gi/haskell-gi/wiki/Using-threads-in-Gdk-and-Gtk--programs
     addIdle for some reason move to gi-glib
@@ -365,6 +365,7 @@ withSaveRestore action = Cairo.save *> action <* Cairo.restore
 -- allow rotation? e.g. via middle click
 -- TODO Ctrl+0/Num0 reset to scale 1
 -- TODO Home/Pos1 reset to position 0x0
+-- | This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisAnzeigeNew :: forall m z. (MonadIO m, Spurweite z) => m (GleisAnzeige z)
 gleisAnzeigeNew = liftIO $ do
     drawingArea <- Gtk.drawingAreaNew
@@ -461,6 +462,8 @@ gleisAnzeigeNew = liftIO $ do
             Cairo.stroke
 
 -- | Anpassen der 'GleisAnzeigeConfig' einer 'GleisAnzeige'.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisAnzeigeConfig
     :: (MonadIO m) => GleisAnzeige z -> (GleisAnzeigeConfig -> GleisAnzeigeConfig) -> m ()
 gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} updateFn = liftIO $ do
@@ -491,6 +494,8 @@ moveAnchors tvarAnchorPoints gleisId maybePositionAnchorPoints = do
     writeTVar tvarAnchorPoints $! newAnchorPoints
 
 -- | Füge ein Gleis zur angestrebten 'Position' einer 'GleisAnzeige' hinzu.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisPut
     :: (MonadIO m, Spurweite z) => GleisAnzeige z -> GleisDefinition z -> Position -> m (GleisId z)
 gleisPut
@@ -516,6 +521,8 @@ newtype GleisMoveError (z :: Zugtyp) = InvalidGleisId (GleisId z)
     deriving (Eq, Show)
 
 -- | Bewege das Gleis mit der übergebenen 'GleisId' zur angestrebten 'Position' einer 'GleisAnzeige'.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisMove :: (MonadIO m, Spurweite z)
           => GleisAnzeige z
           -> GleisId z
@@ -537,6 +544,8 @@ gleisMove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId posit
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
 --
 -- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisRemove :: (MonadIO m) => GleisAnzeige z -> GleisId z -> m ()
 gleisRemove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = liftIO $ do
     atomically $ do
@@ -550,6 +559,8 @@ gleisRemove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = l
 -- | Bewege einen 'Text' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- Wenn ein 'Text' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 textPut :: (MonadIO m) => GleisAnzeige z -> Text -> Position -> m (TextId z)
 textPut GleisAnzeige {drawingArea, tvarNextTextId, tvarTexte} text position = liftIO $ do
     textId <- atomically $ do
@@ -568,6 +579,8 @@ textPut GleisAnzeige {drawingArea, tvarNextTextId, tvarTexte} text position = li
 -- | Entferne einen 'Text' aus der 'GleisAnzeige'.
 --
 -- 'Text'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 textRemove :: (MonadIO m) => GleisAnzeige z -> TextId z -> m ()
 textRemove GleisAnzeige {drawingArea, tvarTexte} textId = liftIO $ do
     -- remove from show texts
@@ -579,6 +592,8 @@ newtype TextMoveError (z :: Zugtyp) = InvalidTextId (TextId z)
     deriving (Eq, Show)
 
 -- | Bewege den 'Text' mit der übergebenen 'TextId' zur angestrebten 'Position' einer 'GleisAnzeige'.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 textMove :: (MonadIO m, Spurweite z)
          => GleisAnzeige z
          -> TextId z
@@ -663,6 +678,8 @@ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA = do
 -- * /gleisB/ ist kein Teil der 'GleisAnzeige'.
 -- * /anchorB/ ist kein 'AnchorPoint' von /gleisB/.
 -- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisAttach :: (MonadIO m, Spurweite z)
             => GleisAnzeige z
             -> GleisId z
@@ -688,6 +705,8 @@ data AttachMoveError (z :: Zugtyp)
 -- * /gleisA/ ist kein Teil der 'GleisAnzeige'.
 -- * /anchorB/ ist kein 'AnchorPoint' von /gleisB/.
 -- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
+--
+-- This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisAttachMove :: (MonadIO m, Spurweite z)
                 => GleisAnzeige z
                 -> GleisId z
@@ -729,6 +748,7 @@ data LoadError
     | DecodingError (ByteOffset, String)
     deriving (Show, Eq)
 
+-- |This function contains Gtk-methods, thus must be run in the Gtk main thread
 gleisAnzeigeLoad
     :: forall m z. (MonadIO m, Spurweite z) => GleisAnzeige z -> FilePath -> ExceptT LoadError m ()
 gleisAnzeigeLoad
