@@ -97,7 +97,7 @@ createMoveController :: GleisAnzeige z -> IO Gtk.EventControllerLegacy
 createMoveController gleisAnzeige = do
     moveController <- Gtk.eventControllerLegacyNew
     tvarPressedKeys <- newTVarIO HashSet.empty
-    --{-
+    {-
     let speed = 50                              -- units / (scale * s)
         -- delay has to be above a certain threshold
         -- otherwise the program won't finish when the main thread is done
@@ -128,7 +128,7 @@ createMoveController gleisAnzeige = do
                 }
             pure GLib.SOURCE_REMOVE
     --}
-    {-
+    --{-
     tvarTime <- newTVarIO 0
     let speed = 50   -- units / (scale * s)
     widget <- erhalteWidget gleisAnzeige
