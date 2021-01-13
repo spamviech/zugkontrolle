@@ -9,7 +9,6 @@ module Main (main) where
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.STM (newTVarIO, readTVarIO, atomically, modifyTVar', readTVar, writeTVar)
 import Control.Monad (void, unless, forever)
-import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.HashSet as HashSet
 import Data.Hashable (Hashable)
 import GHC.Generics (Generic)
@@ -24,6 +23,7 @@ import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 main :: IO ()
 main = void $ do
+    Gtk.init
     application <- Gtk.applicationNew Nothing []
     Gio.onApplicationActivate application $ createWindow application
     Gio.applicationRun application Nothing
@@ -93,14 +93,17 @@ createWindow application = do
 -- | key event to move window
 -- EventControllerKey:
 --      keyReleased event is not able to suppress further event propagation (void return instead of Bool)
-createMoveController :: (MonadIO m) => GleisAnzeige z -> m Gtk.EventControllerLegacy
-createMoveController gleisAnzeige = liftIO $ do
+createMoveController :: GleisAnzeige z -> IO Gtk.EventControllerLegacy
+createMoveController gleisAnzeige = do
     moveController <- Gtk.eventControllerLegacyNew
     tvarPressedKeys <- newTVarIO HashSet.empty
-    {-
+    --{-
     let speed = 50                              -- units / (scale * s)
-        delay = 100000                          -- µs
-        delta scale = speed * scale / delay     -- units (as used by DrawingArea)
+        -- delay has to be above a certain threshold
+        -- otherwise the program won't finish when the main thread is done
+        -- (windows, ghc bug?)
+        delay = 500000                                      -- µs
+        delta scale = speed * scale * delay * 0.000001      -- units (as used by DrawingArea)
     forkIO $ forever $ do
         threadDelay $ ceiling delay
         pressedKeys <- readTVarIO tvarPressedKeys
@@ -125,7 +128,7 @@ createMoveController gleisAnzeige = liftIO $ do
                 }
             pure GLib.SOURCE_REMOVE
     --}
-    --{-
+    {-
     tvarTime <- newTVarIO 0
     let speed = 50   -- units / (scale * s)
     widget <- erhalteWidget gleisAnzeige
