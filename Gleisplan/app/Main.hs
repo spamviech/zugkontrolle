@@ -6,9 +6,8 @@
 
 module Main (main) where
 
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (newTVarIO, readTVarIO, atomically, modifyTVar', readTVar, writeTVar)
-import Control.Monad (void, unless, forever)
+import Control.Concurrent.STM (newTVarIO, atomically, modifyTVar', readTVar, writeTVar)
+import Control.Monad (void, unless)
 import qualified Data.HashSet as HashSet
 import Data.Hashable (Hashable)
 import GHC.Generics (Generic)
@@ -97,38 +96,6 @@ createMoveController :: GleisAnzeige z -> IO Gtk.EventControllerLegacy
 createMoveController gleisAnzeige = do
     moveController <- Gtk.eventControllerLegacyNew
     tvarPressedKeys <- newTVarIO HashSet.empty
-    {-
-    let speed = 50                              -- units / (scale * s)
-        -- delay has to be above a certain threshold
-        -- otherwise the program won't finish when the main thread is done
-        -- (windows, ghc bug?)
-        delay = 500000                                      -- µs
-        delta scale = speed * scale * delay * 0.000001      -- units (as used by DrawingArea)
-    forkIO $ forever $ do
-        threadDelay $ ceiling delay
-        pressedKeys <- readTVarIO tvarPressedKeys
-        unless (null pressedKeys) $ void $ GLib.idleAdd GLib.PRIORITY_DEFAULT_IDLE $ do
-            gleisAnzeigeConfig gleisAnzeige
-                $ \GleisAnzeigeConfig {scale, x, y} -> GleisAnzeigeConfig
-                { scale
-                , x = x
-                      + (if HashSet.member KeyRight pressedKeys
-                             then delta scale
-                             else 0)
-                      - if HashSet.member KeyLeft pressedKeys
-                          then delta scale
-                          else 0
-                , y = y
-                      + (if HashSet.member KeyDown pressedKeys
-                             then delta scale
-                             else 0)
-                      - if HashSet.member KeyUp pressedKeys
-                          then delta scale
-                          else 0
-                }
-            pure GLib.SOURCE_REMOVE
-    --}
-    --{-
     tvarTime <- newTVarIO 0
     let speed = 50   -- units / (scale * s)
     widget <- erhalteWidget gleisAnzeige
@@ -138,28 +105,19 @@ createMoveController gleisAnzeige = do
             lastTime <- readTVar tvarTime
             writeTVar tvarTime $! currentTime
             (lastTime, ) <$> readTVar tvarPressedKeys
-        unless (null pressedKeys) $ do
-            gleisAnzeigeConfig gleisAnzeige $ \GleisAnzeigeConfig {scale, x, y}
-                -> let delta = fromIntegral (currentTime - lastTime) * scale * speed * 0.000001
-                   in GleisAnzeigeConfig
-                      { scale
-                      , x = x
-                            + (if HashSet.member KeyRight pressedKeys
-                                   then delta
-                                   else 0)
-                            - if HashSet.member KeyLeft pressedKeys
-                                then delta
-                                else 0
-                      , y = y
-                            + (if HashSet.member KeyDown pressedKeys
-                                   then delta
-                                   else 0)
-                            - if HashSet.member KeyUp pressedKeys
-                                then delta
-                                else 0
-                      }
+        let ifPressed key value
+                | HashSet.member key pressedKeys = value
+                | otherwise = 0
+            delay = fromIntegral $ currentTime - lastTime       -- µs
+            change keyPositive keyNegative scale =
+                ifPressed keyPositive delta - ifPressed keyNegative delta
+                where
+                    delta = speed * scale * delay * 0.000001    -- units (as used by DrawingArea)
+        unless (null pressedKeys)
+            $ gleisAnzeigeConfig gleisAnzeige
+            $ \GleisAnzeigeConfig {scale, x, y} -> GleisAnzeigeConfig
+            { scale, x = x + change KeyRight KeyLeft scale, y = y + change KeyDown KeyUp scale }
         pure GLib.SOURCE_CONTINUE
-    --}
     Gtk.onEventControllerLegacyEvent moveController $ \event -> Gdk.eventGetEventType event >>= \case
         Gdk.EventTypeKeyPress -> do
             keyEvent <- Gdk.unsafeCastTo Gdk.KeyEvent event

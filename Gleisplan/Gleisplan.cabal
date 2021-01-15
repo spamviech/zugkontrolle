@@ -37,7 +37,7 @@ library
       src
   ghc-options: -Wall -Widentities -Wno-unused-do-bind
   build-depends:
-      base >=4.14 && <5
+      base >=4.13 && <5
     , binary >=0.8.8 && <0.9
     , bytestring >=0.10.12 && <0.12
     , data-r-tree >=0.6 && <0.7
@@ -57,7 +57,7 @@ library
     , haskell-gi-overloading ==0.0
     , mtl >=2.2 && <2.3
     , stm >=2.5 && <2.6
-    , template-haskell >=2.16 && <3
+    , template-haskell >=2.15 && <3
     , text >=1.2 && <1.3
     , transformers >=0.5.6.2 && <0.6
     , unordered-containers >=0.2.13 && <0.3
@@ -72,7 +72,7 @@ executable Gleisplan
   ghc-options: -Wall -Widentities -Wno-unused-do-bind -threaded
   build-depends:
       Gleisplan
-    , base >=4.14 && <5
+    , base >=4.13 && <5
     , binary >=0.8.8 && <0.9
     , bytestring >=0.10.12 && <0.12
     , data-r-tree >=0.6 && <0.7
@@ -92,7 +92,7 @@ executable Gleisplan
     , haskell-gi-overloading ==0.0
     , mtl >=2.2 && <2.3
     , stm >=2.5 && <2.6
-    , template-haskell >=2.16 && <3
+    , template-haskell >=2.15 && <3
     , text >=1.2 && <1.3
     , transformers >=0.5.6.2 && <0.6
     , unordered-containers >=0.2.13 && <0.3
