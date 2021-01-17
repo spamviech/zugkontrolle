@@ -3,11 +3,12 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Main (main) where
 
 import Control.Concurrent.STM (newTVarIO, atomically, modifyTVar', readTVar, writeTVar)
-import Control.Monad (void, unless)
+import Control.Monad (void)
 import qualified Data.HashSet as HashSet
 import Data.Hashable (Hashable)
 import GHC.Generics (Generic)
@@ -32,6 +33,7 @@ data Key
     | KeyDown
     | KeyLeft
     | KeyRight
+    | KeyHome
     deriving (Show, Eq, Generic)
 
 instance Hashable Key
@@ -89,6 +91,11 @@ createWindow application = do
     Gtk.widgetAddController appWindow legacyController
     Gtk.widgetShow appWindow
 
+data PositionChange
+    = PositionReset
+    | PositionUnchanged
+    | PositionMove { deltaX :: Double -> Double, deltaY :: Double -> Double }
+
 -- | key event to move window
 -- EventControllerKey:
 --      keyReleased event is not able to suppress further event propagation (void return instead of Bool)
@@ -97,26 +104,49 @@ createMoveController gleisAnzeige = do
     moveController <- Gtk.eventControllerLegacyNew
     tvarPressedKeys <- newTVarIO HashSet.empty
     tvarTime <- newTVarIO 0
-    let speed = 50   -- units / (scale * s)
+    tvarSpeed <- newTVarIO 0
+    -- all units are given as used by 'Position' (unscaled)
+    let acceleration = 250  -- units / s^2
+        drag = 1            -- 1 / s
     widget <- erhalteWidget gleisAnzeige
     Gtk.widgetAddTickCallback widget $ \_widget frameClock -> do
-        currentTime <- Gdk.frameClockGetFrameTime frameClock    -- µs
-        (lastTime, pressedKeys) <- atomically $ do
+        currentTime <- Gdk.frameClockGetFrameTime frameClock        -- µs
+        changes <- atomically $ do
             lastTime <- readTVar tvarTime
             writeTVar tvarTime $! currentTime
-            (lastTime, ) <$> readTVar tvarPressedKeys
-        let ifPressed key value
-                | HashSet.member key pressedKeys = value
-                | otherwise = 0
-            delay = fromIntegral $ currentTime - lastTime       -- µs
-            change keyPositive keyNegative scale =
-                ifPressed keyPositive delta - ifPressed keyNegative delta
-                where
-                    delta = speed * scale * delay * 0.000001    -- units (as used by DrawingArea)
-        unless (null pressedKeys)
-            $ gleisAnzeigeConfig gleisAnzeige
-            $ \GleisAnzeigeConfig {scale, x, y} -> GleisAnzeigeConfig
-            { scale, x = x + change KeyRight KeyLeft scale, y = y + change KeyDown KeyUp scale }
+            lastSpeed <- readTVar tvarSpeed
+            pressedKeys <- readTVar tvarPressedKeys
+            if
+                | HashSet.member KeyHome pressedKeys -> do
+                    writeTVar tvarSpeed 0
+                    pure PositionReset
+                | null pressedKeys -> do
+                    writeTVar tvarSpeed 0
+                    pure PositionUnchanged
+                | otherwise -> do
+                    let delay_µs = fromIntegral $ currentTime - lastTime    -- µs
+                        delay_s = 0.000001 * delay_µs                       -- s
+                        currentSpeed =
+                            lastSpeed + acceleration * delay_s - drag * lastSpeed * delay_s  -- units / s
+                        -- TODO respect direction (reset speed when direction changes?)
+                        -- TODO use polar coordinates, so diagonal movement is not faster?
+                        ifPressed key value
+                            | HashSet.member key pressedKeys = value
+                            | otherwise = 0
+                        change keyPositive keyNegative scale =
+                            ifPressed keyPositive delta - ifPressed keyNegative delta
+                            where
+                                delta = currentSpeed * scale * delay_s    -- scaled units (as used by DrawingArea)
+                        deltaX = change KeyRight KeyLeft
+                        deltaY = change KeyDown KeyUp
+                    writeTVar tvarSpeed $! currentSpeed
+                    pure $ PositionMove { deltaX, deltaY }
+        case changes of
+            PositionReset -> gleisAnzeigeConfig gleisAnzeige $ \config -> config { x = 0, y = 0 }
+            PositionUnchanged -> pure ()
+            PositionMove {deltaX, deltaY}
+                -> gleisAnzeigeConfig gleisAnzeige $ \GleisAnzeigeConfig {scale, x, y}
+                -> GleisAnzeigeConfig { scale, x = x + deltaX scale, y = y + deltaY scale }
         pure GLib.SOURCE_CONTINUE
     Gtk.onEventControllerLegacyEvent moveController $ \event -> Gdk.eventGetEventType event >>= \case
         Gdk.EventTypeKeyPress -> do
@@ -137,7 +167,7 @@ createMoveController gleisAnzeige = do
                     atomically $ modifyTVar' tvarPressedKeys $ HashSet.insert KeyRight
                     pure True
                 Gdk.KEY_Home -> do
-                    gleisAnzeigeConfig gleisAnzeige $ \config -> config { x = 0, y = 0 }
+                    atomically $ modifyTVar' tvarPressedKeys $ HashSet.insert KeyHome
                     pure True
                 _other -> pure False
         Gdk.EventTypeKeyRelease -> do
@@ -156,6 +186,9 @@ createMoveController gleisAnzeige = do
                     pure True
                 Gdk.KEY_Right -> do
                     atomically $ modifyTVar' tvarPressedKeys $ HashSet.delete KeyRight
+                    pure True
+                Gdk.KEY_Home -> do
+                    atomically $ modifyTVar' tvarPressedKeys $ HashSet.delete KeyHome
                     pure True
                 _other -> pure False
         _otherwise -> pure False
