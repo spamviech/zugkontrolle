@@ -7,7 +7,7 @@ module Zug.UI.Gtk.Gleis.Demonstration (gleisDemonstrationNew) where
 
 import Control.Carrier.Error.Either (runError, ErrorC())
 import Control.Carrier.Lift (Has())
-import Control.Effect.Error (Error(), Throw(), catchError)
+import Control.Effect.Catch (catchError)
 import Control.Effect.Lift (Lift(), sendIO)
 import Control.Monad (foldM_)
 import Data.Int (Int32)
@@ -26,57 +26,17 @@ import Zug.UI.Gtk.Gleis.Widget
       , SaveError(), getWidth, getHeight, gleisAnzeigeNew, gleisAnzeigeConfig, gleisPut, textPut
       , gleisAnzeigeSave, gleisAnzeigeLoad)
 
+type RunError err m a = ErrorC err m a -> m (Either err a)
+
 -- Beispiel-Anzeige
 gleisDemonstrationNew :: IO (GleisAnzeige 'Märklin)
 gleisDemonstrationNew = do
     gleisAnzeige <- gleisAnzeigeNew
-    (runError :: ErrorC SaveError m a -> m (Either SaveError a))
-        $ (runError :: ErrorC LoadError m a -> m (Either LoadError a))
-        $ loadOrCreateAndSave gleisAnzeige
-    pure gleisAnzeige
-    where
-        saveFile :: FilePath
-        saveFile = "demonstration.gleisplan"
-
-        padding :: Int32
-        padding = 5
-
-        putWithHeight :: (Has (Lift IO) sig m)
-                      => GleisAnzeige 'Märklin
-                      -> (Int32, Int32)
-                      -> (Text, GleisDefinition 'Märklin)
-                      -> m (Int32, Int32)
-        putWithHeight gleisAnzeige (maxWidth, y) (text, definition) = do
-            textPut gleisAnzeige text Position { x = 0, y = fromIntegral y, winkel = 0 }
-            -- TODO estimate for now
-            let widthLabel = 60
-            -- widthLabel <- getTextWidth reqMaxLabel
-            let x = padding + widthLabel
-            sendIO $ print x
-            gleisPut
-                gleisAnzeige
-                definition
-                Position { x = fromIntegral x, y = fromIntegral y, winkel = 0 }
-            pure (max (x + getWidth definition) maxWidth, y + getHeight definition + padding)
-
-        loadOrCreateAndSave
-            :: (Has (Error LoadError) sig m, Has (Throw SaveError) sig m, Has (Lift IO) sig m)
-            => GleisAnzeige 'Märklin
-            -> m ()
-        loadOrCreateAndSave gleisAnzeige =
-            catchError (gleisAnzeigeLoad gleisAnzeige saveFile) $ handlerLoad gleisAnzeige
-
-        handlerLoad :: (Has (Throw SaveError) sig m, Has (Lift IO) sig m)
-                    => GleisAnzeige 'Märklin
-                    -> LoadError
-                    -> m ()
-        handlerLoad gleisAnzeige exception = do
-            sendIO $ print exception
-            createAndSave gleisAnzeige
-
-        createAndSave
-            :: (Has (Throw SaveError) sig m, Has (Lift IO) sig m) => GleisAnzeige 'Märklin -> m ()
-        createAndSave gleisAnzeige = do
+    (runError :: RunError SaveError m a)
+        $ (runError :: RunError LoadError m a)
+        $ catchError (gleisAnzeigeLoad gleisAnzeige saveFile)
+        $ \exception -> do
+            sendIO $ print (exception :: LoadError)
             gleisAnzeigeConfig gleisAnzeige $ const GleisAnzeigeConfig { x = 0, y = 0, scale = 1 }
             foldM_
                 (putWithHeight gleisAnzeige)
@@ -109,3 +69,28 @@ gleisDemonstrationNew = do
                 , ("5128: ", märklinKreuzung5128)
                 , ("5207: ", märklinKreuzung5207)]
             gleisAnzeigeSave gleisAnzeige "demonstration.gleisplan"
+    pure gleisAnzeige
+    where
+        saveFile :: FilePath
+        saveFile = "demonstration.gleisplan"
+
+        padding :: Int32
+        padding = 5
+
+        putWithHeight :: (Has (Lift IO) sig m)
+                      => GleisAnzeige 'Märklin
+                      -> (Int32, Int32)
+                      -> (Text, GleisDefinition 'Märklin)
+                      -> m (Int32, Int32)
+        putWithHeight gleisAnzeige (maxWidth, y) (text, definition) = do
+            textPut gleisAnzeige text Position { x = 0, y = fromIntegral y, winkel = 0 }
+            -- TODO estimate for now
+            let widthLabel = 60
+            -- widthLabel <- getTextWidth reqMaxLabel
+            let x = padding + widthLabel
+            sendIO $ print x
+            gleisPut
+                gleisAnzeige
+                definition
+                Position { x = fromIntegral x, y = fromIntegral y, winkel = 0 }
+            pure (max (x + getWidth definition) maxWidth, y + getHeight definition + padding)
