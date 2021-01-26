@@ -11,6 +11,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DerivingVia #-}
@@ -77,15 +78,17 @@ module Zug.UI.Gtk.Gleis.Widget
   , textRemove
     -- ** Speichern / Laden
   , gleisAnzeigeSave
+  , SaveError()
   , gleisAnzeigeLoad
   , LoadError(..)
   ) where
 
+import Control.Carrier.Error.Either (runError, ErrorC())
 import Control.Concurrent.STM (STM, atomically, TVar, newTVarIO, readTVar, writeTVar, modifyTVar')
-import Control.Exception (handle)
+import Control.Effect.Exception (handle, try)
+import Control.Effect.Lift (Lift(), sendIO)
+import Control.Effect.Throw (Has(), Throw(), liftEither)
 import Control.Monad (void, forM_)
-import Control.Monad.Trans (MonadIO(liftIO), MonadTrans(lift))
-import Control.Monad.Trans.Except (withExceptT, ExceptT(ExceptT))
 import Data.Bifunctor (first)
 import Data.Binary (Binary())
 import qualified Data.Binary as Binary
@@ -350,8 +353,8 @@ data GleisAnzeige (z :: Zugtyp) =
     }
 
 instance MitWidget (GleisAnzeige z) where
-    erhalteWidget :: (MonadIO m) => GleisAnzeige z -> m Gtk.Widget
-    erhalteWidget GleisAnzeige {drawingArea} = Gtk.toWidget drawingArea
+    erhalteWidget :: (Has (Lift IO) sig m) => GleisAnzeige z -> m Gtk.Widget
+    erhalteWidget GleisAnzeige {drawingArea} = sendIO $ Gtk.toWidget drawingArea
 
 withSaveRestore :: Cairo.Render a -> Cairo.Render a
 withSaveRestore action = Cairo.save *> action <* Cairo.restore
@@ -366,8 +369,8 @@ withSaveRestore action = Cairo.save *> action <* Cairo.restore
 -- TODO Ctrl+0/Num0 reset to scale 1
 -- TODO Home/Pos1 reset to position 0x0
 -- | This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisAnzeigeNew :: forall m z. (MonadIO m, Spurweite z) => m (GleisAnzeige z)
-gleisAnzeigeNew = liftIO $ do
+gleisAnzeigeNew :: forall m sig z. (Has (Lift IO) sig m, Spurweite z) => m (GleisAnzeige z)
+gleisAnzeigeNew = sendIO $ do
     drawingArea <- Gtk.drawingAreaNew
     tvarNextGleisId <- newTVarIO $ GleisId 0
     tvarNextTextId <- newTVarIO $ TextId 0
@@ -378,15 +381,14 @@ gleisAnzeigeNew = liftIO $ do
     -- configure drawing area
     Gtk.drawingAreaSetContentHeight drawingArea height
     Gtk.drawingAreaSetContentWidth drawingArea width
-    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight
-        -> void $ flip Cairo.renderWithContext context $ withSaveRestore $ do
+    Gtk.drawingAreaSetDrawFunc drawingArea $ Just $ \_drawingArea context _newWidth _newHeight -> do
+        (knownAnchorPoints, gleise, texte, GleisAnzeigeConfig {x, y, scale}) <- atomically
+            $ (,,,) <$> readTVar tvarAnchorPoints
+            <*> readTVar tvarGleise
+            <*> readTVar tvarTexte
+            <*> readTVar tvarConfig
+        void $ flip Cairo.renderWithContext context $ withSaveRestore $ do
             Cairo.setLineWidth 1
-            (knownAnchorPoints, gleise, texte, GleisAnzeigeConfig {x, y, scale}) <- liftIO
-                $ atomically
-                $ (,,,) <$> readTVar tvarAnchorPoints
-                <*> readTVar tvarGleise
-                <*> readTVar tvarTexte
-                <*> readTVar tvarConfig
             -- adjust Scale and show window section
             Cairo.scale scale scale
             Cairo.translate (-x) (-y)
@@ -464,9 +466,11 @@ gleisAnzeigeNew = liftIO $ do
 -- | Anpassen der 'GleisAnzeigeConfig' einer 'GleisAnzeige'.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisAnzeigeConfig
-    :: (MonadIO m) => GleisAnzeige z -> (GleisAnzeigeConfig -> GleisAnzeigeConfig) -> m ()
-gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} updateFn = liftIO $ do
+gleisAnzeigeConfig :: (Has (Lift IO) sig m)
+                   => GleisAnzeige z
+                   -> (GleisAnzeigeConfig -> GleisAnzeigeConfig)
+                   -> m ()
+gleisAnzeigeConfig GleisAnzeige {drawingArea, tvarConfig} updateFn = sendIO $ do
     atomically $ modifyTVar' tvarConfig updateFn
     Gtk.widgetQueueDraw drawingArea
 
@@ -496,12 +500,15 @@ moveAnchors tvarAnchorPoints gleisId maybePositionAnchorPoints = do
 -- | Füge ein Gleis zur angestrebten 'Position' einer 'GleisAnzeige' hinzu.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisPut
-    :: (MonadIO m, Spurweite z) => GleisAnzeige z -> GleisDefinition z -> Position -> m (GleisId z)
+gleisPut :: (Has (Lift IO) sig m, Spurweite z)
+         => GleisAnzeige z
+         -> GleisDefinition z
+         -> Position
+         -> m (GleisId z)
 gleisPut
     GleisAnzeige {drawingArea, tvarNextGleisId, tvarGleise, tvarAnchorPoints}
     definition
-    position = liftIO $ do
+    position = sendIO $ do
     gleisId <- atomically $ do
         -- create new id
         gleisId@GleisId {gId} <- readTVar tvarNextGleisId
@@ -523,13 +530,13 @@ newtype GleisMoveError (z :: Zugtyp) = InvalidGleisId (GleisId z)
 -- | Bewege das Gleis mit der übergebenen 'GleisId' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisMove :: (MonadIO m, Spurweite z)
+gleisMove :: (Has (Throw (GleisMoveError z)) sig m, Has (Lift IO) sig m, Spurweite z)
           => GleisAnzeige z
           -> GleisId z
           -> Position
-          -> ExceptT (GleisMoveError z) m ()
+          -> m ()
 gleisMove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId position = do
-    ExceptT $ liftIO $ atomically $ do
+    liftEither =<< (sendIO . atomically) do
         gleise <- readTVar tvarGleise
         case HashMap.lookup gleisId gleise of
             Nothing -> pure $ Left $ InvalidGleisId gleisId
@@ -539,15 +546,15 @@ gleisMove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId posit
                 -- move anchor points
                 moveAnchors tvarAnchorPoints gleisId $ Just (position, getAnchorPoints definition)
     -- Queue re-draw
-    liftIO $ Gtk.widgetQueueDraw drawingArea
+    sendIO $ Gtk.widgetQueueDraw drawingArea
 
 -- | Entferne ein 'Gleis' aus der 'GleisAnzeige'.
 --
 -- 'Gleis'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisRemove :: (MonadIO m) => GleisAnzeige z -> GleisId z -> m ()
-gleisRemove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = liftIO $ do
+gleisRemove :: (Has (Lift IO) sig m) => GleisAnzeige z -> GleisId z -> m ()
+gleisRemove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = sendIO $ do
     atomically $ do
         -- remove from shown rails
         modifyTVar' tvarGleise $ HashMap.delete gleisId
@@ -561,8 +568,8 @@ gleisRemove GleisAnzeige {drawingArea, tvarGleise, tvarAnchorPoints} gleisId = l
 -- Wenn ein 'Text' kein Teil der 'GleisAnzeige' war wird es neu hinzugefügt.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-textPut :: (MonadIO m) => GleisAnzeige z -> Text -> Position -> m (TextId z)
-textPut GleisAnzeige {drawingArea, tvarNextTextId, tvarTexte} text position = liftIO $ do
+textPut :: (Has (Lift IO) sig m) => GleisAnzeige z -> Text -> Position -> m (TextId z)
+textPut GleisAnzeige {drawingArea, tvarNextTextId, tvarTexte} text position = sendIO $ do
     textId <- atomically $ do
         -- create new id
         textId@TextId {tId} <- readTVar tvarNextTextId
@@ -581,8 +588,8 @@ textPut GleisAnzeige {drawingArea, tvarNextTextId, tvarTexte} text position = li
 -- 'Text'e die kein Teil der 'GleisAnzeige' sind werden stillschweigend ignoriert.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-textRemove :: (MonadIO m) => GleisAnzeige z -> TextId z -> m ()
-textRemove GleisAnzeige {drawingArea, tvarTexte} textId = liftIO $ do
+textRemove :: (Has (Lift IO) sig m) => GleisAnzeige z -> TextId z -> m ()
+textRemove GleisAnzeige {drawingArea, tvarTexte} textId = sendIO $ do
     -- remove from show texts
     atomically $ modifyTVar' tvarTexte $ HashMap.delete textId
     -- Queue re-draw
@@ -594,13 +601,13 @@ newtype TextMoveError (z :: Zugtyp) = InvalidTextId (TextId z)
 -- | Bewege den 'Text' mit der übergebenen 'TextId' zur angestrebten 'Position' einer 'GleisAnzeige'.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-textMove :: (MonadIO m, Spurweite z)
+textMove :: (Has (Throw (TextMoveError z)) sig m, Has (Lift IO) sig m, Spurweite z)
          => GleisAnzeige z
          -> TextId z
          -> Position
-         -> ExceptT (TextMoveError z) m ()
+         -> m ()
 textMove GleisAnzeige {drawingArea, tvarTexte} textId position = do
-    ExceptT $ liftIO $ atomically $ do
+    liftEither =<< (sendIO . atomically) do
         texte <- readTVar tvarTexte
         case HashMap.lookup textId texte of
             Nothing -> pure $ Left $ InvalidTextId textId
@@ -608,7 +615,7 @@ textMove GleisAnzeige {drawingArea, tvarTexte} textId position = do
             (Just (text, _oldPosition))
                 -> fmap Right $ writeTVar tvarTexte $! HashMap.insert textId (text, position) texte
     -- Queue re-draw
-    liftIO $ Gtk.widgetQueueDraw drawingArea
+    sendIO $ Gtk.widgetQueueDraw drawingArea
 
 data AttachError (z :: Zugtyp)
     = GleisBNotFount (GleisId z)
@@ -680,18 +687,18 @@ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA = do
 -- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisAttach :: (MonadIO m, Spurweite z)
+gleisAttach :: (Has (Throw (AttachError z)) sig m, Has (Lift IO) sig m, Spurweite z)
             => GleisAnzeige z
             -> GleisId z
             -> AnchorName
             -> GleisDefinition z
             -> AnchorName
-            -> ExceptT (AttachError z) m (GleisId z)
+            -> m (GleisId z)
 gleisAttach gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB definitionA anchorNameA = do
-    position <- ExceptT $ liftIO $ atomically $ do
+    position <- liftEither =<< (sendIO . atomically) do
         gleise <- readTVar tvarGleise
         pure $ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA
-    lift $ gleisPut gleisAnzeige definitionA position
+    gleisPut gleisAnzeige definitionA position
 
 data AttachMoveError (z :: Zugtyp)
     = AttachError (AttachError z)
@@ -707,38 +714,37 @@ data AttachMoveError (z :: Zugtyp)
 -- * /anchorA/ ist kein 'AnchorPoint' von /gleisA/.
 --
 -- This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisAttachMove :: (MonadIO m, Spurweite z)
+gleisAttachMove :: forall m sig z.
+                (Has (Throw (AttachMoveError z)) sig m, Has (Lift IO) sig m, Spurweite z)
                 => GleisAnzeige z
                 -> GleisId z
                 -> AnchorName
                 -> GleisId z
                 -> AnchorName
-                -> ExceptT (AttachMoveError z) m ()
-gleisAttachMove gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB gleisIdA anchorNameA =
-    do
-        position <- ExceptT $ liftIO $ atomically $ do
-            gleise <- readTVar tvarGleise
-            case HashMap.lookup gleisIdA gleise of
-                Nothing -> pure $ Left $ GleisANotFound gleisIdA
-                (Just (definitionA, _oldPosition)) -> pure
-                    $ first AttachError
-                    $ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA
-        withExceptT MoveError $ gleisMove gleisAnzeige gleisIdA position
+                -> m ()
+gleisAttachMove gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB gleisIdA anchorNameA = do
+    position <- liftEither =<< (sendIO . atomically) do
+        gleise <- readTVar tvarGleise
+        case HashMap.lookup gleisIdA gleise of
+            Nothing -> pure $ Left $ GleisANotFound gleisIdA
+            (Just (definitionA, _oldPosition)) -> pure
+                $ first AttachError
+                $ gleisAttachPosition gleise gleisIdB anchorNameB definitionA anchorNameA
+    liftEither . first MoveError
+        =<< runError (gleisMove gleisAnzeige gleisIdA position :: ErrorC (GleisMoveError z) m ())
 
 newtype SaveError = SaveIOError IOError
 
 -- TODO can encodeFile throw IOError as well?
 -- e.g. isAlreadyInUseError, isFullError, isPermissionError
-gleisAnzeigeSave :: (MonadIO m) => GleisAnzeige z -> FilePath -> ExceptT SaveError m ()
+gleisAnzeigeSave
+    :: (Has (Throw SaveError) sig m, Has (Lift IO) sig m) => GleisAnzeige z -> FilePath -> m ()
 gleisAnzeigeSave GleisAnzeige {tvarConfig, tvarGleise, tvarTexte} filePath = do
-    (gleise, texte, config) <- liftIO
+    (gleise, texte, config) <- sendIO
         $ atomically
         $ (,,) <$> readTVar tvarGleise <*> readTVar tvarTexte <*> readTVar tvarConfig
-    ExceptT
-        $ liftIO
-        $ handle (pure . Left . SaveIOError)
-        $ Right
-        <$> Binary.encodeFile filePath (version, HashMap.elems gleise, HashMap.elems texte, config)
+    let saveData = (version, HashMap.elems gleise, HashMap.elems texte, config)
+    liftEither . first SaveIOError =<< try (sendIO $ Binary.encodeFile filePath saveData)
 
 -- TODO classify IOError instead of simply re-throwing?
 -- with a fallback UnexpectedIOError
@@ -749,8 +755,11 @@ data LoadError
     deriving (Show, Eq)
 
 -- |This function contains Gtk-methods, thus must be run in the Gtk main thread
-gleisAnzeigeLoad
-    :: forall m z. (MonadIO m, Spurweite z) => GleisAnzeige z -> FilePath -> ExceptT LoadError m ()
+gleisAnzeigeLoad :: forall m sig z.
+                 (Has (Throw LoadError) sig m, Has (Lift IO) sig m, Spurweite z)
+                 => GleisAnzeige z
+                 -> FilePath
+                 -> m ()
 gleisAnzeigeLoad
     gleisAnzeige@GleisAnzeige
     {drawingArea, tvarGleise, tvarTexte, tvarAnchorPoints, tvarNextGleisId, tvarNextTextId}
@@ -759,11 +768,10 @@ gleisAnzeigeLoad
         , gleise :: [(GleisDefinition z, Position)]
         , texte :: [(Text, Position)]
         , config :: GleisAnzeigeConfig
-        ) <- ExceptT
-        $ liftIO
-        $ handle (pure . Left . LoadIOError)
-        $ first DecodingError <$> Binary.decodeFileOrFail filePath
-    liftIO $ do
+        ) <- liftEither
+        =<< (handle (pure . Left . LoadIOError) . fmap (first DecodingError))
+            (sendIO $ Binary.decodeFileOrFail filePath)
+    sendIO $ do
         -- remove all present rails and texts
         atomically $ do
             writeTVar tvarGleise HashMap.empty

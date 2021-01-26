@@ -16,27 +16,27 @@ Aufgrund dieser wird in Modulen mit Funktionen, die diese Typklassen verwenden d
 -}
 module Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget), mitWidgetShow, mitWidgetHide) where
 
-import Control.Monad.Trans (MonadIO())
+import Control.Effect.Lift (Has(), Lift(), sendIO)
 import qualified GI.Gtk as Gtk
 
 import Zug.Enums (Zugtyp(..), ZugtypEither(..))
 
 class MitWidget w where
-    erhalteWidget :: (MonadIO m) => w -> m Gtk.Widget
+    erhalteWidget :: (Has (Lift IO) sig m) => w -> m Gtk.Widget
 
-instance {-# OVERLAPPABLE #-} (Gtk.IsWidget w) => MitWidget w where
-    erhalteWidget :: (MonadIO m) => w -> m Gtk.Widget
-    erhalteWidget = Gtk.toWidget
+instance {-# OVERLAPPABLE #-}(Gtk.IsWidget w) => MitWidget w where
+    erhalteWidget :: (Has (Lift IO) sig m) => w -> m Gtk.Widget
+    erhalteWidget = sendIO . Gtk.toWidget
 
 instance (MitWidget (a 'Märklin), MitWidget (a 'Lego)) => MitWidget (ZugtypEither a) where
-    erhalteWidget :: (MonadIO m) => ZugtypEither a -> m Gtk.Widget
+    erhalteWidget :: (Has (Lift IO) sig m) => ZugtypEither a -> m Gtk.Widget
     erhalteWidget (ZugtypMärklin a) = erhalteWidget a
     erhalteWidget (ZugtypLego a) = erhalteWidget a
 
 -- | Zeige ein 'MitWidget'
-mitWidgetShow :: (MonadIO m, MitWidget w) => w -> m ()
-mitWidgetShow w = Gtk.widgetShow =<< erhalteWidget w
+mitWidgetShow :: (Has (Lift IO) sig m, MitWidget w) => w -> m ()
+mitWidgetShow w = sendIO . Gtk.widgetShow =<< erhalteWidget w
 
 -- | Verstecke ein 'MitWidget'
-mitWidgetHide :: (MonadIO m, MitWidget w) => w -> m ()
-mitWidgetHide w = Gtk.widgetHide =<< erhalteWidget w
+mitWidgetHide :: (Has (Lift IO) sig m, MitWidget w) => w -> m ()
+mitWidgetHide w = sendIO . Gtk.widgetHide =<< erhalteWidget w
