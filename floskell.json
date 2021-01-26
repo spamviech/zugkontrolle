@@ -9,6 +9,7 @@
         "DefaultSignatures",
         "GeneralizedNewtypeDeriving",
         "DerivingVia",
+        "NumericUnderscores",
         "StandaloneDeriving",
         "MultiParamTypeClasses",
         "ScopedTypeVariables",

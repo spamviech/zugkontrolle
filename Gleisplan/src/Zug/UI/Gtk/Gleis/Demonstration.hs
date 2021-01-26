@@ -26,6 +26,7 @@ import Zug.UI.Gtk.Gleis.Widget
       , SaveError(), getWidth, getHeight, gleisAnzeigeNew, gleisAnzeigeConfig, gleisPut, textPut
       , gleisAnzeigeSave, gleisAnzeigeLoad)
 
+-- | Simplify required type Annotation
 type RunError err m a = ErrorC err m a -> m (Either err a)
 
 -- Beispiel-Anzeige
