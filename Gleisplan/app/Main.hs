@@ -5,7 +5,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE NumericUnderscores #-}
 
 module Main (main) where
 
@@ -114,8 +113,9 @@ createWindow application = do
 
 data PositionChange
     = PositionReset
-    | PositionUnchanged
     | PositionMove { deltaX :: Double -> Double, deltaY :: Double -> Double }
+
+data Speed = Speed { vX :: Double, vY :: Double }
 
 -- | key event to move window
 -- EventControllerKey:
@@ -127,19 +127,19 @@ createMoveController gleisAnzeige = do
     tvarScrolls <- newTVarIO HashSet.empty
     tvarLastScrolls <- newTVarIO (HashSet.empty, 0)
     tvarTime <- newTVarIO 0
-    tvarSpeed <- newTVarIO 0
+    tvarSpeed <- newTVarIO Speed { vX = 0, vY = 0 }
     -- all units are given as used by 'Position' (unscaled)
-    let acceleration = 1_000        -- units / s^2
+    let acceleration = 1000         -- unit / s^2
         drag = 10                   -- 1 / s
         -- time a scroll event is kept alive
-        scrollLifetime = 500_000    -- µs
+        scrollLifetime = 750000     -- µs
     widget <- erhalteWidget gleisAnzeige
     Gtk.widgetAddTickCallback widget $ \_widget frameClock -> do
         currentTime <- Gdk.frameClockGetFrameTime frameClock        -- µs
         changes <- atomically $ do
             lastTime <- readTVar tvarTime
             writeTVar tvarTime $! currentTime
-            lastSpeed <- readTVar tvarSpeed
+            Speed {vX = lastVX, vY = lastVY} <- readTVar tvarSpeed
             pressedKeys <- readTVar tvarPressedKeys
             currentScrolls <- readTVar tvarScrolls
             (lastScrolls, lastScrollTime) <- readTVar tvarLastScrolls
@@ -151,38 +151,39 @@ createMoveController gleisAnzeige = do
                     writeTVar tvarScrolls HashSet.empty
                     writeTVar tvarLastScrolls (currentScrolls, currentTime)
                     pure currentScrolls
-            if
-                | HashSet.member KeyHome pressedKeys -> do
-                    writeTVar tvarSpeed 0
+            if HashSet.member KeyHome pressedKeys
+                then do
+                    writeTVar tvarSpeed Speed { vX = 0, vY = 0 }
                     pure PositionReset
-                | null pressedKeys && null scrolls -> do
-                    writeTVar tvarSpeed 0
-                    pure PositionUnchanged
-                | otherwise -> do
+                else do
                     let delay_µs = fromIntegral $ currentTime - lastTime    -- µs
-                        delay_s = 0.000_001 * delay_µs                      -- s
-                        currentSpeed =
-                            lastSpeed + acceleration * delay_s - drag * lastSpeed * delay_s  -- units / s
-                        -- TODO respect direction (reset speed when direction changes?)
-                        -- TODO use polar coordinates, so diagonal movement is not faster?
-                        change keyPositive scrollPositive keyNegative scrollNegative scale =
+                        delay_s = 0.000001 * delay_µs                       -- s
+                        directionAcceleration keyPositive scrollPositive keyNegative scrollNegative =
                             ifPressedOrScroll keyPositive scrollPositive
                             - ifPressedOrScroll keyNegative scrollNegative
                             where
                                 ifPressedOrScroll key scroll
                                     | HashSet.member key pressedKeys
                                         || HashSet.member scroll scrolls =
-                                        currentSpeed
-                                        * scale
-                                        * delay_s    -- scaled units (as used by DrawingArea)
+                                        1
                                     | otherwise = 0
-                        deltaX = change KeyRight ScrollRight KeyLeft ScrollLeft
-                        deltaY = change KeyDown ScrollDown KeyUp ScrollUp
-                    writeTVar tvarSpeed $! currentSpeed
+                        -- acceleration due to user input
+                        unitAX = directionAcceleration KeyRight ScrollRight KeyLeft ScrollLeft
+                        unitAY = directionAcceleration KeyDown ScrollDown KeyUp ScrollUp
+                        unitLen = max 1 $ sqrt $ unitAX * unitAX + unitAY * unitAY
+                        -- keep acceleration constant size, independent of direction
+                        aX = acceleration * unitAX / unitLen   -- unit / s^2
+                        aY = acceleration * unitAY / unitLen   -- unit / s^2
+                        -- speed after acceleration
+                        vX = lastVX + aX * delay_s - drag * lastVX * delay_s
+                        vY = lastVY + aY * delay_s - drag * lastVY * delay_s
+                        currentSpeed = Speed { vX, vY }
+                        deltaX scale = vX * scale * delay_s    -- scaled units (as used by DrawingArea)
+                        deltaY scale = vY * scale * delay_s    -- scaled units (as used by DrawingArea)
+                    writeTVar tvarSpeed currentSpeed
                     pure PositionMove { deltaX, deltaY }
         case changes of
             PositionReset -> gleisAnzeigeConfig gleisAnzeige $ \config -> config { x = 0, y = 0 }
-            PositionUnchanged -> pure ()
             PositionMove {deltaX, deltaY}
                 -> gleisAnzeigeConfig gleisAnzeige $ \GleisAnzeigeConfig {scale, x, y}
                 -> GleisAnzeigeConfig { scale, x = x + deltaX scale, y = y + deltaY scale }
