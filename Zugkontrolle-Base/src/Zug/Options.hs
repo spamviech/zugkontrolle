@@ -25,6 +25,7 @@ module Zug.Options
 
 import Control.Monad.Reader.Class (MonadReader(), asks)
 import Control.Monad.Trans (MonadIO, liftIO)
+import Data.Semigroup(Semigroup((<>)))
 import Data.Text (unpack)
 import Data.Version (Version)
 import Options.Applicative

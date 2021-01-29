@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
@@ -20,6 +20,7 @@ module Zug.Warteschlange
 import Data.Foldable (toList)
 import Data.Sequence (Seq((:<|), (:|>)))
 import qualified Data.Sequence as Seq
+import Data.Semigroup(Semigroup())
 import Data.Text (Text)
 import Prelude hiding (seq)
 

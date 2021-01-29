@@ -22,6 +22,7 @@ import Data.List (foldl')
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (fromJust)
+import Data.Semigroup(Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)

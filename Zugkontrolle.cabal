@@ -43,7 +43,7 @@ executable Zugkontrolle
     , ansi-terminal >=0.8 && <1
     , base >=4.7 && <5
     , directory >=1.3 && <2
-    , mtl >=2.2 && <3
+    , mtl >=2.2 && <2.3
     , text >=1.2 && <2
   if flag(gui)
     cpp-options: -DZUGKONTROLLEGUI
