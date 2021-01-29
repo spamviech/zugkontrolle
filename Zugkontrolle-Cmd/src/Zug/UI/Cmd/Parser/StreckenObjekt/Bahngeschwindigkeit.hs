@@ -20,6 +20,7 @@ module Zug.UI.Cmd.Parser.StreckenObjekt.Bahngeschwindigkeit
 
 import Data.Foldable (Foldable(toList))
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Word (Word8)

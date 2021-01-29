@@ -2,7 +2,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
