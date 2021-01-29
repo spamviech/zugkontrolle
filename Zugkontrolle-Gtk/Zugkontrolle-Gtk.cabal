@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8aacf19d9b74efda0479379257a53c5ee1610c00bb11ad2a2d53f52397a0f97d
+-- hash: 4932ee27448265bb3a408ef798bff6e52824e60ffa0571c105627c86f5f26bd0
 
 name:           Zugkontrolle-Gtk
 version:        0.1.0.0
@@ -75,6 +75,6 @@ library
     , haskell-gi-overloading ==0.0
     , mtl >=2.2 && <3
     , stm >=2.4 && <3
-    , template-haskell >=2.12 && <3
+    , template-haskell >=2.11 && <3
     , text >=1.2 && <2
   default-language: Haskell2010

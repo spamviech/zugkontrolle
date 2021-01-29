@@ -26,7 +26,7 @@ dependencies:
 - haskell-gi-overloading == 0.0
 - mtl >= 2.2 && < 3
 - stm >= 2.4 && < 3
-- template-haskell >= 2.12 && < 3
+- template-haskell >= 2.11 && < 3
 - text >= 1.2 && < 2
 
 ghc-options:

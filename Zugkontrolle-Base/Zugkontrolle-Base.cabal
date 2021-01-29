@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 43af3ae052c18ff035ac38d8a71860e3a746a915912cdcf5941b9eb495b7218d
+-- hash: f3d492d4000f2a96988261da3b4ebb0658136aaa786f7d5af8fcdfe953c7b193
 
 name:           Zugkontrolle-Base
 version:        0.1.0.0
@@ -68,7 +68,7 @@ library
     , mtl >=2.2 && <3
     , optparse-applicative >=0.14 && <1
     , stm >=2.4 && <3
-    , template-haskell >=2.12 && <3
+    , template-haskell >=2.11 && <3
     , text >=1.2 && <2
     , wiringPi >=1.0 && <2
     , yaml >=0.8 && <1
