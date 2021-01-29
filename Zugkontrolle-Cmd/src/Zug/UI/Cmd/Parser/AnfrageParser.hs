@@ -263,10 +263,15 @@ instance (Zwischenwert a) => Monad (AnfrageParser a) where
                 }
             AFStatusAnfrage {anfrageObjekt, konstruktor}
                 -> AFStatusAnfrage { anfrageObjekt, konstruktor = konstruktor >=> f }
-            AFStatusAnfrageMärklin {anfrageObjektMärklin, konstruktorMärklin}
-                -> AFStatusAnfrageMärklin { anfrageObjektMärklin, konstruktorMärklin = konstruktorMärklin >=> f }
-            AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego}
-                -> AFStatusAnfrageLego { anfrageObjektLego, konstruktorLego = konstruktorLego >=> f }
+            AFStatusAnfrageMärklin
+                {anfrageObjektMärklin, konstruktorMärklin} -> AFStatusAnfrageMärklin
+                { anfrageObjektMärklin
+                , konstruktorMärklin = konstruktorMärklin >=> f
+                }
+            AFStatusAnfrageLego {anfrageObjektLego, konstruktorLego} -> AFStatusAnfrageLego
+                { anfrageObjektLego
+                , konstruktorLego = konstruktorLego >=> f
+                }
 
 instance (Zwischenwert a) => MonadPlus (AnfrageParser a)
 

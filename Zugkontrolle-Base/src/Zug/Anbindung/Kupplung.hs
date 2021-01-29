@@ -16,7 +16,7 @@ import Control.Applicative (Alternative(..))
 import Control.Monad.Trans (MonadIO())
 import Data.Aeson.Types ((.:), (.=))
 import qualified Data.Aeson.Types as Aeson
-import Data.Semigroup(Semigroup((<>)))
+import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import Data.Text (Text)
 

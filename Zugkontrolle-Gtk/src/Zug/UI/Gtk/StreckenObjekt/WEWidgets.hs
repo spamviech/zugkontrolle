@@ -347,10 +347,7 @@ weichePackNew weiche = do
     let justTVarSprache = Just weTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT
-            m
-            o
-            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckeRichtungPackNew
         weiche
         (erhalteRichtungen weiche)

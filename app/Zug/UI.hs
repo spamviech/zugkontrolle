@@ -10,10 +10,10 @@ module Zug.UI (main) where
 import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans (MonadIO(liftIO))
 import qualified Data.Text.IO as Text
--- Auto-generiertes Cabal-Modul
-import qualified Paths_Zugkontrolle as Paths
 import System.Console.ANSI (setSGR, SGR(..), ConsoleLayer(..), ColorIntensity(..), Color(..))
 
+-- Auto-generiertes Cabal-Modul
+import qualified Paths_Zugkontrolle as Paths
 import qualified Zug.Language as Language
 import Zug.Options (getOptions, Options(..), UI(..), PWM(SoftwarePWM, HardwarePWM), VersionReader())
 #ifndef ZUGKONTROLLESILENCE

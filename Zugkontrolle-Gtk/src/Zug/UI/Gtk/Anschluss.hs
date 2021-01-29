@@ -233,7 +233,9 @@ anschlussAuswahlInterruptPinNew maybeTVar name = do
         <- boxPackWidgetNewDefault aawPCF8574PortBox $ pinAuswahlNew maybeTVar Language.interrupt
     pure
         AnschlussAuswahlWidgetInterruptPin
-        { aawAnschlussAuswahlWidget, aawPCF8574PortInterruptPin = auswahlInterruptPin }
+        { aawAnschlussAuswahlWidget
+        , aawPCF8574PortInterruptPin = auswahlInterruptPin
+        }
 
 type family AnschlussAuswahl (i :: InterruptPinBenötigt) where
     AnschlussAuswahl 'InterruptPinBenötigt = Anschluss 'MitInterruptPin
@@ -267,14 +269,14 @@ aktuellerAnschluss
 aktuellerAnschluss
     AnschlussAuswahlWidgetInterruptPin
     { aawAnschlussAuswahlWidget = AnschlussAuswahlWidget
-      { aawNotebook
-      , aawPin
-      , aawPCF8574PortPage
-      , aawPCF8574PortVariante
-      , aawPCF8574PortA0
-      , aawPCF8574PortA1
-      , aawPCF8574PortA2
-      , aawPCF8574Port}
+          { aawNotebook
+          , aawPin
+          , aawPCF8574PortPage
+          , aawPCF8574PortVariante
+          , aawPCF8574PortA0
+          , aawPCF8574PortA1
+          , aawPCF8574PortA2
+          , aawPCF8574Port}
     , aawPCF8574PortInterruptPin} = Gtk.notebookGetCurrentPage aawNotebook >>= \case
     page
         | page == aawPCF8574PortPage -> do
@@ -287,7 +289,9 @@ aktuellerAnschluss
             pure
                 $ AnschlussPCF8574Port
                 $ PCF8574Port
-                { pcf8574 = PCF8574InterruptPin { iVariant, iA0, iA1, iA2, interruptPin }, port }
+                { pcf8574 = PCF8574InterruptPin { iVariant, iA0, iA1, iA2, interruptPin }
+                , port
+                }
         -- Verwende als Standard die Pin-Eingabe
         | otherwise -> AnschlussPin <$> aktuellerPin aawPin
 
@@ -332,17 +336,17 @@ setzeAnschluss
 setzeAnschluss
     AnschlussAuswahlWidgetInterruptPin
     { aawAnschlussAuswahlWidget = AnschlussAuswahlWidget
-      { aawNotebook
-      , aawPCF8574PortPage
-      , aawPCF8574PortVariante
-      , aawPCF8574PortA0
-      , aawPCF8574PortA1
-      , aawPCF8574PortA2
-      , aawPCF8574Port}
+          { aawNotebook
+          , aawPCF8574PortPage
+          , aawPCF8574PortVariante
+          , aawPCF8574PortA0
+          , aawPCF8574PortA1
+          , aawPCF8574PortA2
+          , aawPCF8574Port}
     , aawPCF8574PortInterruptPin}
     AnschlussPCF8574Port
     { pcf8574Port =
-      PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port}} =
+          PCF8574Port {pcf8574 = PCF8574InterruptPin {iVariant, iA0, iA1, iA2, interruptPin}, port}} =
     do
         Gtk.setNotebookPage aawNotebook aawPCF8574PortPage
         setzeAuswahl aawPCF8574PortVariante iVariant

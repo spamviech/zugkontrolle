@@ -207,10 +207,7 @@ streckenabschnittPackNew streckenabschnitt@Streckenabschnitt {stromAnschluss} = 
     let justTVarSprache = Just stTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT
-            m
-            o
-            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
         streckenabschnitt
         stTVarSprache

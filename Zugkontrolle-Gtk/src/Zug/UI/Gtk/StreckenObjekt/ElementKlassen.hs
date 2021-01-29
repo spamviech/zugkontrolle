@@ -141,7 +141,10 @@ hinzufügenWidgetWegstreckeRichtungPackNew objekt richtungen tvar fortfahrenWenn
             $ const Text.empty
         pure
             WegstreckeCheckButtonRichtung
-            { wcbrWidget, wcbrRegistrierterCheckButton, wcbrRichtungsAuswahl }
+            { wcbrWidget
+            , wcbrRegistrierterCheckButton
+            , wcbrRichtungsAuswahl
+            }
 
 -- | Entferne 'Widget's zum Hinzufügen zu einer 'Wegstrecke' aus der entsprechenden Box
 entferneHinzufügenWegstreckeWidgets

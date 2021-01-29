@@ -429,9 +429,8 @@ beiÄnderung anschluss intEdge aktion = do
                          -> [(BitValue, BitValue)
                             -> IO EventBehalten]
                          -> ((BitValue, BitValue) -> IO EventBehalten)
-                         -> IO
-                             [(BitValue, BitValue)
-                             -> IO EventBehalten]
+                         -> IO [(BitValue, BitValue)
+                               -> IO EventBehalten]
         aktionAusführen bitValues acc akt = eventAnhängen <$> akt bitValues
             where
                 eventAnhängen :: EventBehalten -> [(BitValue, BitValue) -> IO EventBehalten]

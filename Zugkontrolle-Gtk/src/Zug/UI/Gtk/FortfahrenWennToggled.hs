@@ -46,7 +46,9 @@ import Zug.UI.Gtk.SpracheGui (SpracheGuiReader(), verwendeSpracheGui, TVarSprach
 -- Ansonsten wird die Sensitivität des 'Button's deaktiviert.
 data FortfahrenWennToggled =
     FortfahrenWennToggled
-    { fortfahren :: Gtk.Button, checkButtonsRec :: NonEmpty RegistrierterCheckButton }
+    { fortfahren :: Gtk.Button
+    , checkButtonsRec :: NonEmpty RegistrierterCheckButton
+    }
     deriving (Eq)
 
 -- | Erhalte die mit einem 'FortfahrenWennToggled' assoziierten 'RegistrierterCheckButton's.

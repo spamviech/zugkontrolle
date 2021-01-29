@@ -49,10 +49,10 @@ import Zug.UI.Gtk.SpracheGui
 data AuswahlWidget e
     = AuswahlRadioButton { widget :: Gtk.Widget, enumButtons :: NonEmpty (e, Gtk.RadioButton) }
     | AuswahlComboBox
-      { widget :: Gtk.Widget
-      , comboBox :: Gtk.ComboBox
-      , enumIndicesIters :: NonEmpty (e, Int32, Gtk.TreeIter)
-      }
+          { widget :: Gtk.Widget
+          , comboBox :: Gtk.ComboBox
+          , enumIndicesIters :: NonEmpty (e, Int32, Gtk.TreeIter)
+          }
     deriving (Eq)
 
 instance MitWidget (AuswahlWidget e) where

@@ -374,11 +374,10 @@ buttonHinzufügenPack
     => p
     -> b
     -> Maybe TVarSprachewechselAktionen
-    -> m
-        ( Gtk.Button
-        , Objekt
-          -> IO ()
-        )
+    -> m ( Gtk.Button
+         , Objekt
+               -> IO ()
+         )
 buttonHinzufügenPack parentWindow box maybeTVar = do
     tmvarAssistantHinzufügen <- liftIO $ atomically $ newTMVar Nothing
     objektReader <- ask

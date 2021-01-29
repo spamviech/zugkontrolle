@@ -190,10 +190,7 @@ kupplungPackNew kupplung@Kupplung {kupplungsAnschluss} = do
     let justTVarSprache = Just kuTVarSprache
     -- Zum Hinzufügen-Dialog von Wegstrecke/Plan hinzufügen
     fortfahrenWennToggledWegstrecke <- erhalteFortfahrenWennToggledWegstrecke
-        :: MStatusAllgemeinT
-            m
-            o
-            (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
+        :: MStatusAllgemeinT m o (FortfahrenWennToggledVar (StatusAllgemein o) (StatusVar o) WegstreckeCheckButtonVoid)
     hinzufügenWegstreckeWidget <- hinzufügenWidgetWegstreckePackNew
         kupplung
         kuTVarSprache

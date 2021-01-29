@@ -143,7 +143,13 @@ assistantHinzufügenNew parent maybeTVar = mdo
         , (hinzufügenPlanNew window zugtypAuswahl maybeTVar, Language.plan)]
     let assistantHinzufügen =
             AssistantHinzufügen
-            { window, notebook, fließendAuswahl, zugtypAuswahl, indexSeiten, tmVarErgebnis }
+            { window
+            , notebook
+            , fließendAuswahl
+            , zugtypAuswahl
+            , indexSeiten
+            , tmVarErgebnis
+            }
     functionBox <- boxPackWidgetNew vBox packingDefault paddingDefault End
         $ Gtk.boxNew Gtk.OrientationHorizontal 0
     statusVar <- erhalteStatusVar :: m StatusVarGui

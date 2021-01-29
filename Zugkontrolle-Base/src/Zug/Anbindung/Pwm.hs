@@ -83,22 +83,22 @@ pwmFrequenzHzNormal = 500
 -- | Erhalte PWMValue ausgehend von einem Wert zwischen 0 und 'pwmEingabeMaximal'.
 erhaltePwmWert :: (Integral i) => Natural -> i -> PwmValueUnmodifiziert
 erhaltePwmWert pwmGrenzeMax wert = PwmValueUnmodifiziert $ fromIntegral ergebnis
-    where
-        {-
+    {-
             Verwende Natural um Fehler wegen zu kleinem Wertebereich zu vermeiden.
             Multipliziere zuerst alle Werte, bevor sie normalisiert werden um Rundungsfehler zu verhindern.
             Möglich, nachdem die Funktion nicht in Performance-kritischen Bereichen (und selten) aufgerufen wird.
             Effektivspannung skaliert wie die Wurzel des PwmValue.
             Der Eingabewert wird daher quadriert um linear mit der Effektivspannung zu skalieren.
         -}
-        ergebnis :: Natural
-        ergebnis = div wertSkaliert (pwmEingabeMaximal * pwmEingabeMaximal)
+        where
+            ergebnis :: Natural
+            ergebnis = div wertSkaliert (pwmEingabeMaximal * pwmEingabeMaximal)
 
-        wertSkaliert :: Natural
-        wertSkaliert = pwmGrenzeMax * wertBegrenzt * wertBegrenzt
+            wertSkaliert :: Natural
+            wertSkaliert = pwmGrenzeMax * wertBegrenzt * wertBegrenzt
 
-        wertBegrenzt :: Natural
-        wertBegrenzt = min pwmEingabeMaximal $ fromIntegral wert
+            wertBegrenzt :: Natural
+            wertBegrenzt = min pwmEingabeMaximal $ fromIntegral wert
 
 -- | Maximaler Eingabewert für 'geschwindigkeit'.
 pwmEingabeMaximal :: Natural
@@ -112,8 +112,8 @@ pwmGrenzeVoll = fromIntegral pwmGrenze
 pwmGrenzeReduziert :: Natural
 pwmGrenzeReduziert =
     div (pwmGrenzeVoll * spannungFahrt * spannungFahrt) (spannungQuelle * spannungQuelle)
+-- Effektivspannung skaliert wie die Wurzel des PwmValues.
     where
-        -- Effektivspannung skaliert wie die Wurzel des PwmValues.
         spannungFahrt :: Natural
         spannungFahrt = 16
 

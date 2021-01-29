@@ -24,7 +24,7 @@ import Control.Monad (when)
 import Control.Monad.Trans (MonadIO(liftIO))
 import Data.Aeson.Types ((.=), (.:))
 import qualified Data.Aeson.Types as Aeson
-import Data.Semigroup(Semigroup((<>)))
+import Data.Semigroup (Semigroup((<>)))
 import Data.Text (Text)
 import Numeric.Natural (Natural)
 import qualified Text.ParserCombinators.ReadP as ReadP

@@ -18,9 +18,9 @@ module Zug.Warteschlange
   ) where
 
 import Data.Foldable (toList)
+import Data.Semigroup (Semigroup())
 import Data.Sequence (Seq((:<|), (:|>)))
 import qualified Data.Sequence as Seq
-import Data.Semigroup(Semigroup())
 import Data.Text (Text)
 import Prelude hiding (seq)
 

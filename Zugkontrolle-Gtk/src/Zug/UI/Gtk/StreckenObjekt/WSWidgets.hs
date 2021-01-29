@@ -576,7 +576,7 @@ wegstreckePackNew
                         <$> buttonUmdrehenPackNew
                             wsFunctionBox
                             (GeschwindigkeitPhantom wsMärklin
-                                 :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
+                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Märklin)
                             wsTVarSprache
                             wsTVarEvent
                             statusVar
@@ -584,7 +584,7 @@ wegstreckePackNew
                         <$> auswahlFahrtrichtungEinstellenPackNew
                             wsFunctionBox
                             (GeschwindigkeitPhantom wsLego
-                                 :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
+                             :: GeschwindigkeitPhantom Wegstrecke 'Pwm 'Lego)
                             wsTVarSprache
                             wsTVarEvent
                             statusVar

@@ -179,7 +179,7 @@ module Zug.Language
 import Control.Monad.Trans (MonadIO())
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Semigroup(Semigroup((<>)))
+import Data.Semigroup (Semigroup((<>)))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
