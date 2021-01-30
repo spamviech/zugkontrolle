@@ -67,7 +67,7 @@ data Speed = Speed { vX :: Double, vY :: Double }
 --      event has no position, probably requires constant storage of EventTypeMotionNotify result
 -- GestureClick:
 --      no way to get the pressed button, right click is always only unpairedRelease
-legacyControllerNew ::  IO Gtk.EventControllerLegacy
+legacyControllerNew :: IO Gtk.EventControllerLegacy
 legacyControllerNew = do
     legacyController <- Gtk.eventControllerLegacyNew
     Gtk.onEventControllerLegacyEvent legacyController $ \event -> do
@@ -119,8 +119,9 @@ moveControllerNew gleisAnzeige = do
     Gtk.widgetAddTickCallback widget $ \_widget frameClock -> do
         currentTime <- Gdk.frameClockGetFrameTime frameClock        -- µs
         changes <- atomically $ do
+            maybeLastTime <- readTVar tvarTime
             writeTVar tvarTime $ Just currentTime
-            readTVar tvarTime >>= \case
+            case maybeLastTime of
                 Nothing -> pure PositionMove { deltaX = const 0, deltaY = const 0 }
                 (Just lastTime) -> do
                     Speed {vX = lastVX, vY = lastVY} <- readTVar tvarSpeed
