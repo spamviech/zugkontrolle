@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Zug.UI.Gtk.EventController (createMoveController) where
+module Zug.UI.Gtk.EventController (legacyControllerNew, moveControllerNew) where
 
 import Control.Concurrent.STM (newTVarIO, atomically, modifyTVar', readTVar, writeTVar)
 import qualified Data.HashSet as HashSet
@@ -55,11 +55,55 @@ data PositionChange
 
 data Speed = Speed { vX :: Double, vY :: Double }
 
+-- | test legacy events
+--      use one EventControllerLegacy to rule them all?
+--      probably better to have one for each action, i.e. a movingController, zoomingController, etc.
+-- key events only happen in appWindow, they are not passed to children
+-- EventControllerKey:
+--      keyReleased event is not able to suppress further event propagation (void return instead of Bool)
+-- EventControllerScroll:
+--      event has no position, probably requires constant storage of EventTypeMotionNotify result
+-- EventControllerZoom:
+--      event has no position, probably requires constant storage of EventTypeMotionNotify result
+-- GestureClick:
+--      no way to get the pressed button, right click is always only unpairedRelease
+legacyControllerNew ::  IO Gtk.EventControllerLegacy
+legacyControllerNew = do
+    legacyController <- Gtk.eventControllerLegacyNew
+    Gtk.onEventControllerLegacyEvent legacyController $ \event -> do
+        maybeMsg <- Gdk.eventGetEventType event >>= \case
+            -- when registered directly on the window, there are no unpaired button release events
+            -- the program loses focus, so the release event isn't caught as well
+            -- if you move the mouse outside the program region, release is still caught
+            -- to pair them, store a (HashMap Button Position)?
+            --      this way we always get the distance between press an release
+            Gdk.EventTypeButtonPress -> do
+                buttonEvent <- Gdk.unsafeCastTo Gdk.ButtonEvent event
+                Just . ("pressed button: " <>) . show <$> Gdk.buttonEventGetButton buttonEvent
+            Gdk.EventTypeButtonRelease -> do
+                buttonEvent <- Gdk.unsafeCastTo Gdk.ButtonEvent event
+                Just . ("released button: " <>) . show <$> Gdk.buttonEventGetButton buttonEvent
+            Gdk.EventTypeKeyPress -> pure Nothing
+            Gdk.EventTypeKeyRelease -> pure Nothing
+            Gdk.EventTypeScroll -> pure Nothing
+            Gdk.EventTypeMotionNotify -> pure Nothing    -- main occurring event, clutters console
+            eventType -> pure $ Just $ show eventType
+        case maybeMsg of
+            (Just msg) -> do
+                putStrLn "----------"
+                print =<< Gdk.eventGetPosition event
+                putStrLn msg
+            Nothing -> pure ()
+        pure False
+    pure legacyController
+
 -- | key event to move window
 -- EventControllerKey:
 --      keyReleased event is not able to suppress further event propagation (void return instead of Bool)
-createMoveController :: GleisAnzeige z -> IO Gtk.EventControllerLegacy
-createMoveController gleisAnzeige = do
+--
+-- Has to be added to the Toplevel window!
+moveControllerNew :: GleisAnzeige z -> IO Gtk.EventControllerLegacy
+moveControllerNew gleisAnzeige = do
     moveController <- Gtk.eventControllerLegacyNew
     tvarPressedKeys <- newTVarIO HashSet.empty
     tvarScrolls <- newTVarIO HashSet.empty
