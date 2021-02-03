@@ -1,8 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 9f35175992bd2512c94d912bbb6c8ce1d858f447d6400d92c3ca046d4b913108
 
 name:           Zugkontrolle
 version:        2.0.0.0
