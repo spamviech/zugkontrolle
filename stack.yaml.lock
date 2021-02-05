@@ -131,12 +131,16 @@ packages:
   original:
     hackage: gi-glib-2.0.24@sha256:46726f0fb6b0ef0d6f6620d53025a9ca2a5bc273ab65496b368df7bc3dbe6d83,9558
 - completed:
-    hackage: haskell-gi-0.24.7@sha256:d1cf3e64589c9c366228f8fe89d2d48207b3ca11b48966ef976fedfa679a819b,5241
+    name: haskell-gi
+    version: 0.24.8
+    git: git@github.com:spamviech/haskell-gi.git
     pantry-tree:
-      size: 4348
-      sha256: c6db02339d61f70cfb687c7786c4441b9fa2658ce4b4aac19395f2e939ed8f1b
+      size: 33036
+      sha256: b1bf0b52422ce02f4a63bad66208c89d71320e249bfe88a687cdd9e3197c66cd
+    commit: 7f4d315e06d2065edb70c0f46978c748ea6de1c7
   original:
-    hackage: haskell-gi-0.24.7@sha256:d1cf3e64589c9c366228f8fe89d2d48207b3ca11b48966ef976fedfa679a819b,5241
+    git: git@github.com:spamviech/haskell-gi.git
+    commit: 7f4d315e06d2065edb70c0f46978c748ea6de1c7
 - completed:
     hackage: ansi-terminal-0.11@sha256:97470250c92aae14c4c810d7f664c532995ba8910e2ad797b29f22ad0d2d0194,3307
     pantry-tree:
@@ -153,7 +157,7 @@ packages:
     hackage: ansi-wl-pprint-0.6.9@sha256:20d30674f137d43aa0279c2c2cc5e45a5f1c3c57e301852494906158b6313bf7,2388
 snapshots:
 - completed:
-    size: 527836
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/11/22.yaml
-    sha256: 341870ac98d8a9f8f77c4adf2e9e0b22063e264a7fbeb4c85b7af5f380dac60e
-  original: lts-11.22
+    size: 563100
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/0.yaml
+    sha256: e93a85871577ea3423d5f3454b2b6bd37c2c2123c79faf511dfb64f5b49a9f8b
+  original: lts-17.0
