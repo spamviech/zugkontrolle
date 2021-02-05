@@ -19,7 +19,7 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 #resolver: nightly-2020-07-12
-resolver: lts-17.0
+resolver: lts-11.22
 
 # Overrides the compiler version in the resolver.
 # Note that the compiler-check flag also applies to the version numbers.
