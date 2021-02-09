@@ -1,3 +1,3 @@
-[submodule "Sync-Github-Issues"]
-	path = Sync-Github-Issues
-	url = https://github.com/spamviech/Sync-Github-Issues.git
+[submodule "Sync-GitHub-Issues"]
+	path = Sync-GitHub-Issues
+	url = https://github.com/spamviech/Sync-GitHub-Issues.git
