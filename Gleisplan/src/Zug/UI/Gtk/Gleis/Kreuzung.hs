@@ -12,9 +12,9 @@ module Zug.UI.Gtk.Gleis.Kreuzung
   ) where
 
 import Control.Monad (when)
-import Data.Binary (Binary())
 import Data.Int (Int32)
 import Data.Proxy (Proxy())
+import Flat (Flat())
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import GI.Cairo.Render.Matrix (Matrix(Matrix))
@@ -40,7 +40,7 @@ data KreuzungsArt
     | OhneKurve
     deriving (Eq, Show, Generic)
 
-instance Binary KreuzungsArt
+instance Flat KreuzungsArt
 
 zeichneKreuzung
     :: (Spurweite z) => Double -> Double -> Double -> KreuzungsArt -> Proxy z -> Cairo.Render ()

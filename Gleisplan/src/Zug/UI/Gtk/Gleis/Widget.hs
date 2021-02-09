@@ -4,6 +4,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -90,9 +91,7 @@ import Control.Effect.Lift (Lift(), sendIO)
 import Control.Effect.Throw (Has(), Throw(), liftEither)
 import Control.Monad (void, forM_)
 import Data.Bifunctor (first)
-import Data.Binary (Binary())
-import qualified Data.Binary as Binary
-import Data.Binary.Get (ByteOffset)
+import qualified Data.ByteString as Bytestring
 import Data.HashMap.Strict (HashMap())
 import qualified Data.HashMap.Strict as HashMap
 import Data.Hashable (Hashable())
@@ -104,7 +103,10 @@ import Data.Proxy (Proxy(Proxy))
 import Data.RTree (RTree)
 import qualified Data.RTree as RTree
 import Data.Text (Text)
-import Data.Version (Version())
+import Flat (Flat(..))
+import qualified Flat
+import qualified Flat.Decoder as Flat
+import qualified Flat.Encoder as Flat
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
@@ -112,8 +114,8 @@ import qualified GI.Gtk as Gtk
 import qualified GI.Pango as Pango
 import qualified GI.PangoCairo as PangoCairo
 import Numeric.Natural (Natural)
+import System.IO (IOMode(ReadMode, WriteMode), withBinaryFile)
 
-import Paths_Gleisplan (version)
 import Zug.Enums (Zugtyp(..))
 import Zug.UI.Gtk.Gleis.Anchor (AnchorPoint(..), AnchorPosition(..), AnchorDirection(..)
                               , AnchorName(..), AnchorPointMap, mbbSearch, mbbPoint)
@@ -161,7 +163,7 @@ data GleisDefinition (z :: Zugtyp)
       { länge :: Double, radius :: Double, winkel :: Double, kreuzungsArt :: KreuzungsArt }
     deriving (Eq, Show, Generic)
 
-instance Binary (GleisDefinition z)
+instance Flat (GleisDefinition z)
 
 data WeichenArt
     = WeicheZweiweg
@@ -177,30 +179,46 @@ deriving instance Eq (WeichenRichtungAllgemein a)
 
 deriving instance Show (WeichenRichtungAllgemein a)
 
-instance Binary (WeichenRichtungAllgemein 'WeicheZweiweg) where
-    put :: WeichenRichtungAllgemein 'WeicheZweiweg -> Binary.Put
-    put Links = Binary.putWord8 0
-    put Rechts = Binary.putWord8 1
+-- | Helper type to automatically derive Generic, and transitively Flat instance
+data FlatRichtung
+    = FlatLinks
+    | FlatRechts
+    | FlatDreiwege
+    deriving (Show, Eq, Generic)
 
-    get :: Binary.Get (WeichenRichtungAllgemein 'WeicheZweiweg)
-    get = Binary.getWord8 >>= \case
-        0 -> pure Links
-        1 -> pure Rechts
-        2 -> fail "Unbekannte Zweiweg-WeichenRichtung: Dreiwege"
-        n -> fail $ "Unbekannte Zweiweg-WeichenRichtung: " <> show n
+instance Flat FlatRichtung
 
-instance Binary (WeichenRichtungAllgemein 'WeicheDreiweg) where
-    put :: WeichenRichtungAllgemein 'WeicheDreiweg -> Binary.Put
-    put Links = Binary.putWord8 0
-    put Rechts = Binary.putWord8 1
-    put Dreiwege = Binary.putWord8 2
+alsFlat :: WeichenRichtungAllgemein a -> FlatRichtung
+alsFlat Links = FlatLinks
+alsFlat Rechts = FlatRechts
+alsFlat Dreiwege = FlatDreiwege
 
-    get :: Binary.Get (WeichenRichtungAllgemein 'WeicheDreiweg)
-    get = Binary.getWord8 >>= \case
-        0 -> pure Links
-        1 -> pure Rechts
-        2 -> pure Dreiwege
-        n -> fail $ "Unbekannte Dreiweg-WeichenRichtung: " <> show n
+instance Flat (WeichenRichtungAllgemein 'WeicheZweiweg) where
+    encode :: WeichenRichtungAllgemein 'WeicheZweiweg -> Flat.Encoding
+    encode = encode . alsFlat
+
+    decode :: Flat.Get (WeichenRichtungAllgemein 'WeicheZweiweg)
+    decode = decode >>= \case
+        FlatLinks -> pure Links
+        FlatRechts -> pure Rechts
+        FlatDreiwege -> fail "Unbekannte Zweiweg-WeichenRichtung: Dreiwege"
+
+    size :: WeichenRichtungAllgemein 'WeicheZweiweg -> Flat.NumBits -> Flat.NumBits
+    size = size . alsFlat
+
+    -- TODO two bits should be enough
+instance Flat (WeichenRichtungAllgemein 'WeicheDreiweg) where
+    encode :: WeichenRichtungAllgemein 'WeicheDreiweg -> Flat.Encoding
+    encode = encode . alsFlat
+
+    decode :: Flat.Get (WeichenRichtungAllgemein 'WeicheDreiweg)
+    decode = decode >>= \case
+        FlatLinks -> pure Links
+        FlatRechts -> pure Rechts
+        FlatDreiwege -> pure Dreiwege
+
+    size :: WeichenRichtungAllgemein 'WeicheDreiweg -> Flat.NumBits -> Flat.NumBits
+    size = size . alsFlat
 
 alsDreiweg :: WeichenRichtungAllgemein a -> WeichenRichtungAllgemein 'WeicheDreiweg
 alsDreiweg Links = Links
@@ -212,7 +230,7 @@ data WeichenRichtung
     | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
     deriving (Eq, Show, Generic)
 
-instance Binary WeichenRichtung
+instance Flat WeichenRichtung
 
 -- TODO getGleisAttribute :: GleisDefinition z -> GleisAttribute
 -- data GleisAttribute = GleisAttribute {width, height, anchorPoints, zeichnen}
@@ -319,20 +337,20 @@ getZeichnen = \case
 data Position = Position { x :: Double, y :: Double, winkel :: Double }
     deriving (Eq, Show, Ord, Generic)
 
-instance Binary Position
+instance Flat Position
 
 data GleisAnzeigeConfig = GleisAnzeigeConfig { scale :: Double, x :: Double, y :: Double }
     deriving (Show, Eq, Generic)
 
-instance Binary GleisAnzeigeConfig
+instance Flat GleisAnzeigeConfig
 
 newtype GleisId (z :: Zugtyp) = GleisId { gId :: Natural }
     deriving stock Show
-    deriving (Eq, Hashable, Binary) via Natural
+    deriving (Eq, Hashable, Flat) via Natural
 
 newtype TextId (z :: Zugtyp) = TextId { tId :: Natural }
     deriving stock Show
-    deriving (Eq, Hashable, Binary) via Natural
+    deriving (Eq, Hashable, Flat) via Natural
 
 -- TODO add AnchorDirection?
 -- | AnchorPoints einer 'GleisAnzeige', sortiert nach 'Position'.
@@ -735,6 +753,9 @@ gleisAttachMove gleisAnzeige@GleisAnzeige {tvarGleise} gleisIdB anchorNameB glei
 
 newtype SaveError = SaveIOError IOError
 
+saveVersion :: Natural
+saveVersion = 0
+
 -- TODO can encodeFile throw IOError as well?
 -- e.g. isAlreadyInUseError, isFullError, isPermissionError
 gleisAnzeigeSave
@@ -743,15 +764,17 @@ gleisAnzeigeSave GleisAnzeige {tvarConfig, tvarGleise, tvarTexte} filePath = do
     (gleise, texte, config) <- sendIO
         $ atomically
         $ (,,) <$> readTVar tvarGleise <*> readTVar tvarTexte <*> readTVar tvarConfig
-    let saveData = (version, HashMap.elems gleise, HashMap.elems texte, config)
-    liftEither . first SaveIOError =<< try (sendIO $ Binary.encodeFile filePath saveData)
+    let saveData = (saveVersion, HashMap.elems gleise, HashMap.elems texte, config)
+    liftEither . first SaveIOError
+        =<< try
+            (sendIO $ withBinaryFile filePath WriteMode $ flip Bytestring.hPut $ Flat.flat saveData)
 
 -- TODO classify IOError instead of simply re-throwing?
 -- with a fallback UnexpectedIOError
 -- https://hackage.haskell.org/package/base-4.14.1.0/docs/System-IO-Error.html#g:2
 data LoadError
     = LoadIOError IOError
-    | DecodingError (ByteOffset, String)
+    | DecodingError Flat.DecodeException
     deriving (Show, Eq)
 
 -- |This function contains Gtk-methods, thus must be run in the Gtk main thread
@@ -764,13 +787,13 @@ gleisAnzeigeLoad
     gleisAnzeige@GleisAnzeige
     {drawingArea, tvarGleise, tvarTexte, tvarAnchorPoints, tvarNextGleisId, tvarNextTextId}
     filePath = do
-    ( _saveVersion :: Version
+    ( _saveVersion :: Natural
         , gleise :: [(GleisDefinition z, Position)]
         , texte :: [(Text, Position)]
         , config :: GleisAnzeigeConfig
         ) <- liftEither
         =<< (handle (pure . Left . LoadIOError) . fmap (first DecodingError))
-            (sendIO $ Binary.decodeFileOrFail filePath)
+            (sendIO $ Flat.unflat <$> withBinaryFile filePath ReadMode Bytestring.hGetContents)
     sendIO $ do
         -- remove all present rails and texts
         atomically $ do
