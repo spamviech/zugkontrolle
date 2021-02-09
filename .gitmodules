@@ -1,0 +1,3 @@
+[submodule "Sync-Github-Issues"]
+	path = Sync-Github-Issues
+	url = https://github.com/spamviech/Sync-Github-Issues.git
