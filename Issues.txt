@@ -8,13 +8,14 @@ gi-gtk/gi-gtk-declarative verwenden?
     ghc 8.10.1 scheint wieder zu funktionieren
         Probleme mit stack
             aktuell wird cabal-install versucht
+                kann auf raspi3 (1GB RAM) nicht kompiliert werden (Cabal, out-of-memory)?
     gi-gtk-Funktionen sind meistens MonadIO
         die meisten liftIO-Blöcke sind nicht mehr notwendig
 
 Laden von Plänen mit AusführenPlan (andere Pläne) schlägt fehl (Gtk-UI)
     vermutlich schlägt Umwandlung in PlanGui fehl, weil andere Pläne nicht gefunden werden.
 
-Mit..-Klassen durch typ-Synonyme von it-has ersetzen?
+Mit..-Klassen durch typ-Synonyme von it-has/data-has ersetzen?
     http://hackage.haskell.org/package/it-has
 
 Pin-Setup bei Hinzufügen
@@ -56,6 +57,7 @@ Einstellungen in yaml-Datei speichern?
 
 Polysemy anstelle von mtl verwenden
     Hauptsächlich zum ausprobieren, ich mag aber auch die Constraints
+    Wegen version constraints anstelle fused-effects in Gleisplan ausprobiert
 
 Gtk-UI, Plan Hinzufügen:
     Ersetzten des Auswahl-Fensters durch ComboBox?
