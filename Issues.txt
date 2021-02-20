@@ -1,375 +1,245 @@
+#Issue: 2
+Hilfetext von optparse-applicative übersetzten
+
+Eigene helper-Funktion erstellen.
+
+Außerdem sämtliche Hilfetexte in Language.hs auslagern.
+---------------
+#Issue: 4
+Beispiel-Schaltpläne erstellen
+
+Beispiel-Schaltpläne zum Anschluss der Schiene an den Rhaspberry Pi erstellen.
+
+In der ReadMe erwähnen/verlinken.
+---------------
+#Issue: 7
 gi-gtk/gi-gtk-declarative verwenden?
-    gi-gtk scheint neuer und besser gewartet zu sein.
-        Übersetzung fertig
-    Wirft auf Raspberry Pi bisher Fehlermeldungen.
-        Warten bis eine neue GHC-Version auf Raspi funktioniert?
-            8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/
-            funktioniert auf Windows nicht (TemplateHaskell)!
-    ghc 8.10.1 scheint wieder zu funktionieren
-        Probleme mit stack
-            aktuell wird cabal-install versucht
-                kann auf raspi3 (1GB RAM) nicht kompiliert werden (Cabal, out-of-memory)?
-    gi-gtk-Funktionen sind meistens MonadIO
-        die meisten liftIO-Blöcke sind nicht mehr notwendig
 
-Laden von Plänen mit AusführenPlan (andere Pläne) schlägt fehl (Gtk-UI)
-    vermutlich schlägt Umwandlung in PlanGui fehl, weil andere Pläne nicht gefunden werden.
+gi-gtk scheint neuer und besser gewartet zu sein.
 
-Mit..-Klassen durch typ-Synonyme von it-has/data-has ersetzen?
-    http://hackage.haskell.org/package/it-has
+Wirft auf Rhaspberry Pi bisher Fehlermeldungen.
+---------------
+#Issue: 12
+Erlaube "Warten auf Signal"
 
-Pin-Setup bei Hinzufügen
-    pinMode pin OUTPUT
-        INPUT bei Signal-Pins
+Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.  
+Zeit-basierte Lösung wird weiterhin unterstützt.
 
-Ändere Liste zu (Map Name a)
-    newtype NameSet a = NameSet (Set (Benannt a))
-        class MitName a where
-            erhalteName :: a -> Text
-        instance (MitName a) => Ord (Benannt a)
-    newtype NameSet a = NameSet (Map Name a)
-        insert :: a -> NameSet a -> Maybe a
-            Rückgabe: bisheriger Wert
-        remove :: a -> NameSet a -> Bool
-            Rückgabe: Wert vorhanden == True
-        Instanzen: Eq, Foldable, IsList, Traversable(?)
-    GTK-UI:
-        Plan/Wegstrecke-Aktionen können werden ebenfalls angezeigt werden
-    Vermeide doppelte Einträge
-    Laden einer Liste schlägt momentan für gesamte Liste fehl
-        Elementweise überprüfen und nur fehlgeschlagene ignorieren
-        Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
-        Nicht für Wegstrecken-Element-Listen verwenden!
-    Entfernen funktioniert nur, wenn keine Wegstrecke/Plan betroffen
-        Alternativ ebenfalls entfernen
+Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
+~~~~~~~~~~~~~~~
+#Comment: 782711033
+Implementiert, aber bisher noch keine sinnvolle Anschlussmöglichkeit gefunden (löst zu unsinnigen Zeiten aus, z.B. bei Weichen auf der anderen Seite der Platte).
+---------------
+#Issue: 13
+stack 2.1.1 error message
 
-Gtk-UI benötigt lange, bis etwas zu sehen ist
-    Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
-    Dummy-Fenster wird erstellt
-        momentan ohne Funktion
-        reagiert auf keine Eingaben
-        zeigt zumindest an, dass etwas passiert
+to keep for another machine
 
-Einstellungen in yaml-Datei speichern?
-    Sprache
-    Gtk-UI: Einzelseiten
-    UI?
+```
+pi@raspberrypi:~ $ stack setup --resolver=lts-11.22
+Found an invalid compiler at "/home/pi/.stack/programs/arm-linux/ghc-8.2.2/bin/ghc-8.2.2": Control.Exception.Safe.throwString called with:
 
-Polysemy anstelle von mtl verwenden
-    Hauptsächlich zum ausprobieren, ich mag aber auch die Constraints
-    Wegen version constraints anstelle fused-effects in Gleisplan ausprobiert
+Could not find any of: ["/home/pi/.stack/programs/arm-linux/ghc-8.2.2/bin/haddock-8.2.2","/home/pi/.stack/programs/arm-linux/ghc-8.2.2/bin/haddock-ghc-8.2.2","/home/pi/.stack/programs/arm-linux/ghc-8.2.2/bin/haddock","/home/pi/.stack/programs/arm-linux/ghc-8.2.2/bin/haddock-ghc"]
+Called from:
+  throwString (src/Stack/Setup.hs:721:25 in stack-2.1.1-GtK6XRqT1yE8D8XGzFLzrs:Stack.Setup)
 
-Gtk-UI, Plan Hinzufügen:
-    Ersetzten des Auswahl-Fensters durch ComboBox?
-        muss bei öffnen des Dialogs jedesmal neu gefüllt/an aktuellen Zustand angepasst werden
+```
+~~~~~~~~~~~~~~~
+#Comment: 581142758
+Can be solved following instructions in this blog post:
+https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/#solving-troubles-with-ghc
+---------------
+#Issue: 14
+Code-Stil vereinheitlichen
 
-Implementiere Server/Client-Modus:
-    Raspi läuft im Server-Modus und reagiert auf eingehende Nachrichten (evtl. nur von fester IP-Adresse)
-        stdout-Ausgabe der eigene IP-Adresse bei Start
-    Client sendet Nachrichten an angegebene TCP-Adresse
-    Zusätzliche Kommandozeilenoption:
-        --ip
-            Gibt die eigene IP-Adresse aus und beendet sich
-    Benötigte Packages:
-        network-info
-            eigene IP-Adresse
-        network-simple
-            TCP-Nachrichten mit einfachem API
-
-Code-Stil vereinheitlichen:
-    hlint berücksichtigen(?)
-    Alle (auch eigene) Module mit Import-Liste
-    Namen auf Deutsch
-    Verwendung der Spracherweiterungen
-        ScopedTypeVariables
+-    hlint berücksichtigen(?)
+-    Konstruktoren nur wenn notwendig in Klammern setzten
+-    Argumente von Typkonstruktoren eingerückt, jeweils in neuer Zeile
+-    Funktionen ohne Pattern match (nur ein Variablen-Pattern) ohne extra Leerzeichen
+-    Alle (auch eigene) Module mit Import-Liste
+-    Namen auf Deutsch
+-    Verwendung der Spracherweiterungen
+        - ScopedTypeVariables
             explizites `forall a.` in Deklaration bindet a als festen Typ für die gesamte Funktion (auch let/where-Deklarationen)
             erlaubt vorher teilweise unmögliche Typ-Deklarationen (z.B. res :: a in einem where-Binding als Rückgabewert der Funktion verwendbar)
-        OverlappableInstances
+        - OverlappableInstances
+              {-# Overlappable #-}/{-# Overlapping #-} bei Instanz-Deklaration
+              allgemeinen Fall abdeckbar, ohne Spezial-Instanzen zu verhindern
+              Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
+- etc.
+~~~~~~~~~~~~~~~
+#Comment: 771699436
+Deutlich besser geworden, vor allem durch automatische floskell-Anwendung und hlint-Anzeige durch haskell-language-server (plugins).
+
+Bleibt offen, da es nie verkehrt ist einen reminder dafür zu haben. ;)
+---------------
+#Issue: 19
+Test-Suite erstellen?
+
+Muss gepflegt werden um Sinn zu machen.
+Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
+---------------
+#Issue: 21
+Beispiel-Schaltpläne erstellen
+
+Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
+In der ReadMe erwähnen/verlinken.
+---------------
+#Issue: 22
+Allgemeines(Debug) Anschluss-Objekt mit allen möglichen Funktionen erstellen?
+
+- Strom an/aus
+    permanent
+    auf Zeit
+- PWM
+- Signal erkennen
+    wenn implementiert
+---------------
+#Issue: 23
+CPP im Code entfernen
+
+- Durch Plugin-System ersetzen?
+    - Cmd-UI immer vorhanden
+    - Bei Programmstart durchsuchen des Ordners "./UI/"
+        Für jede vorhandene Datei biete es als Option für UI an
+        Erwarte eine main :: IO ()-Funktion, welche bei Auswahl aufgerufen wird.
+    - https://hackage.haskell.org/package/plugins
+    - https://hackage.haskell.org/package/dynamic-loader
+- Verschiedene Executables (in package.yaml) macht vtl. mehr Sinn
+---------------
+#Issue: 24
+Code-Stil vereinheitlichen
+
+-    hlint berücksichtigen(?)
+-    Alle (auch eigene) Module mit Import-Liste
+-    Namen auf Deutsch
+-    Verwendung der Spracherweiterungen
+      - ScopedTypeVariables
+            explizites `forall a.` in Deklaration bindet a als festen Typ für die gesamte Funktion (auch let/where-Deklarationen)
+            erlaubt vorher teilweise unmögliche Typ-Deklarationen (z.B. res :: a in einem where-Binding als Rückgabewert der Funktion verwendbar)
+       - OverlappableInstances
             {-# Overlappable #-}/{-# Overlapping #-} bei Instanz-Deklaration
             allgemeinen Fall abdeckbar, ohne Spezial-Instanzen zu verhindern
             Benötigt Spracherweiterungen FlexibleInstances, UndecidableInstances, MonoLocalBinds (?)
             Done
-    floskell.json verbessern
-        alte Ideen:
+-    floskell.json verbessern
+       -    alte Ideen:
             Konstruktoren nur wenn notwendig in Klammern setzten
             Argumente von Typkonstruktoren eingerückt, jeweils in neuer Zeile
             Funktionen ohne Pattern match (nur ein Variablen-Pattern) ohne extra Leerzeichen
-        aktuelle Version sollte für alle Dateien angewendet sein
-        formatOnSave ist ebenfalls aktiviert
-    etc.
+       -    aktuelle Version sollte für alle Dateien angewendet sein
+       -    formatOnSave ist ebenfalls aktiviert
+-    etc.
+---------------
+#Issue: 25
+Implementiere Server/Client-Modus:
 
-CPP im Code entfernen
-    Durch Plugin-System ersetzen
-        Cmd-UI immer vorhanden
-        Bei Programmstart durchsuchen des Ordners "./UI/"
-            Für jede vorhandene Datei biete es als Option für UI an
-            Erwarte eine main :: IO ()-Funktion, welche bei Auswahl aufgerufen wird.
-        https://hackage.haskell.org/package/plugins
-        https://hackage.haskell.org/package/dynamic-loader
-    Verschiedene Executables (in package.yaml) macht mehr Sinn
+- Raspi läuft im Server-Modus und reagiert auf eingehende Nachrichten (evtl. nur von fester IP-Adresse)
+    stdout-Ausgabe der eigene IP-Adresse bei Start
+- Client sendet Nachrichten an angegebene TCP-Adresse
+- Zusätzliche Kommandozeilenoption:
+    --ip
+        Gibt die eigene IP-Adresse aus und beendet sich
+- Benötigte Packages:
+    - network-info
+        eigene IP-Adresse
+    - network-simple
+        TCP-Nachrichten mit einfachem API
+---------------
+#Issue: 26
+Gtk-UI, Plan Hinzufügen verbessern
 
-Allgemeines(Debug) Anschluss-Objekt mit allen möglichen Funktionen erstellen?
-    Strom an/aus
-        permanent
-        auf Zeit
-    PWM
-    Signal erkennen
-        wenn implementiert
+Ersetzten des Auswahl-Fensters durch ComboBox?
+    muss bei öffnen des Dialogs jedesmal neu gefüllt/an aktuellen Zustand angepasst werden
+---------------
+#Issue: 27
+Polysemy anstelle von mtl verwenden
 
-Beispiel-Schaltpläne erstellen
-    Beispiel-Schaltpläne zum Anschluss der Schiene an den Raspberry Pi erstellen.
-    In der ReadMe erwähnen/verlinken.
+Hauptsächlich zum ausprobieren, ich mag aber auch die Constraints
+Wegen version constraints anstelle fused-effects in Gleisplan ausprobiert
+---------------
+#Issue: 28
+Einstellungen in yaml-Datei (o.ä.) speichern?
 
+- Sprache
+- Gtk-UI: Einzelseiten
+- UI?
+- --load filepath?
+---------------
+#Issue: 29
+Gtk-UI benötigt lange, bis etwas zu sehen ist
+
+- Willkommens-Fenster, evtl. mit Fortschrittsanzeige anzeigen
+- Dummy-Fenster wird erstellt
+    - momentan ohne Funktion
+    - reagiert auf keine Eingaben
+    - zeigt zumindest an, dass etwas passiert
+---------------
+#Issue: 30
+Ändere Liste zu (Map Name a)
+
+- newtype NameSet a = NameSet (Set (Benannt a))
+    ```
+    class MitName a where
+        erhalteName :: a -> Text
+    instance (MitName a) => Ord (Benannt a)
+    ```
+- newtype NameSet a = NameSet (Map Name a)
+    ```
+    insert :: a -> NameSet a -> Maybe a
+        Rückgabe: bisheriger Wert
+    remove :: a -> NameSet a -> Bool
+        Rückgabe: Wert vorhanden == True
+    ````
+    Instanzen: Eq, Foldable, IsList, Traversable(?)
+- GTK-UI:
+    Plan/Wegstrecke-Aktionen können werden ebenfalls angezeigt werden
+- Vermeide doppelte Einträge
+- Laden einer Liste schlägt momentan für gesamte Liste fehl
+    Elementweise überprüfen und nur fehlgeschlagene ignorieren
+    Nach Laden Liste mit fehlgeschlagenen Elementen anzeigen
+    Nicht für Wegstrecken-Element-Listen verwenden!
+- Entfernen funktioniert nur, wenn keine Wegstrecke/Plan betroffen
+    Alternativ ebenfalls entfernen
+---------------
+#Issue: 31
+Pin-Setup bei Hinzufügen
+
+pinMode pin OUTPUT
+    INPUT bei Signal-Pins
+---------------
+#Issue: 32
+Mit..-Klassen durch typ-Synonyme von it-has/data-has ersetzen?
+
+http://hackage.haskell.org/package/it-has
+http://hackage.haskell.org/package/data-has
+---------------
+#Issue: 33
+Laden von Plänen mit AusführenPlan (andere Pläne) schlägt fehl (Gtk-UI)
+
+vermutlich schlägt Umwandlung in PlanGui fehl, weil andere Pläne nicht gefunden werden.
+---------------
+#Issue: 34
+gi-gtk/gi-gtk-declarative verwenden?
+
+- gi-gtk scheint neuer und besser gewartet zu sein.
+    Übersetzung fertig
+- Wirft auf Raspberry Pi bisher Fehlermeldungen.
+    Warten bis eine neue GHC-Version auf Raspi funktioniert?
+        8.6.3 benötigt besondere Behandlung: https://svejcar.dev/posts/2019/09/23/haskell-on-raspberry-pi-4/
+        funktioniert auf Windows nicht (TemplateHaskell)!
+- ghc 8.10.1 scheint wieder zu funktionieren
+    Probleme mit stack
+        aktuell wird cabal-install versucht
+            kann auf raspi3 (1GB RAM) nicht kompiliert werden (Cabal, out-of-memory)?
+- gi-gtk-Funktionen sind meistens MonadIO
+    die meisten liftIO-Blöcke sind nicht mehr notwendig
+______________________________
+#Issue: 20
 Hilfetext von optparse-applicative übersetzten
-    Eigene helper-Funktion erstellen.
-    Außerdem sämtliche Hilfetexte in Language.hs auslagern.
 
-Test-Suite erstellen?
-    Muss gepflegt werden um Sinn zu machen.
-    Nachdem das de-facto ein persönliches Projekt ist vermutlich den Aufwand nicht Wert.
-
----------------------------Gelöst----------------------------------------------------------------
-Pläne werden nicht aus ausführen-Box (Plan hinzufügen) beim entfernen gelöscht
-    fixed
-
-Orphans in Zug.Save vermeiden
-    From/ToJSON-Instanzen in den jeweiligen Modulen definieren.
-    Orphans erzeugen mehr Arbeit für den Compiler (darum die Warnung mit -Worphans)
-    Done
-
-Warteschlange über Data.Sequence Implementieren?
-    Done
-
-Wartezeit auf einen Konstruktor beschränken
-    Andere Konstruktoren durch PatternSynonyms ersetzen
-        COMPLETE-Pragmas nicht vergessen
-    Done
-
-Gtk-UI:
-    Plan synchronisiert nicht andere Widgets.
-        PlanAllgemein o, AktionAllgemein o
-        BGWidgets, etc. müssen Synchronisation übernehmen (bisher in Widget-Event!)
-    Analog für Wegstrecke?
-        Widget-Event dann ein einfaches ausführenAktion wsWidgets
-        möglich über RecursiveDo
-    Done
-
-Anschluss in GADT umwandeln
-    Mit Phantomtyp, der einen InterruptPin garantiert
-    Done
-
-Gtk-UI:
-    OverlappableInstances ersetzten durch explizite Instanzen (bessere Fehlermeldungen)
-        erzeugt durch TemplateHaskell, überprüfen der benötigten Instanz bei allen Gtk-Typen
-    Done
-
-mdo/rec verwenden?
-    Spracherweiterung RecursiveDo
-    Definitionen in einem Do-Block sind überall verfügbar, nicht nur danach
-        Monade benötigt MonadFix-Typklasse (für IO gegeben, vermutlich nicht State/RWS)
-    Vor allem für Gtk-UI nützlich
-        Würde helfen häufiges Pattern
-            Widget erzeugen
-            verwenden
-            danach erst in Box packen
-        durch einfaches boxPackWidgetNew zu ersetzen
-    Eingesetzt, wo ich eine sinnvolle Anwendung gefunden habe
-
-Zug.UI.Gtk.StreckenObjekt ist zu groß
-    hie brauch ewig zum laden
-    aufsplitten in mehrere Untermodule sinnvoll
-        eins pro Objekt-Typ?
-    Zug.UI.Cmd.Parser.StreckenObjekt hat das gleiche Problem
-    Done
-
-Erlaube "Warten auf Signal"
-    Ergänze "Warten"-Funktion von Plänen auf ein Signal (Pin-Input = HIGH/LOW) zu warten.
-        GUI-Darstellung:
-            leerer/roter Kreis
-            wird grün, wenn Signal triggert
-    Zeit-basierte Lösung wird weiterhin unterstützt.
-    Mögliche Realisierung über Kontaktschienen (Ground-Kontakt durch Zug verbunden).
-    Done
-
-GTK stürzt öfters ab
-    Zu viele Widgets?
-    Passiert vor allem auf raspi
-    AssistantHinzufügen besonders anfällig
-        neu schreiben?
-        nachdem einziger Assistant in gesamtem Programm ist allgemeine Variante nicht notwendig
-        beseitigt vermutlich nicht-skalierende Widgets
-    Scheint gefixt zu sein
-
-Gtk-UI: Widgets synchronisieren
-    Jedes Widget enthält ein (TVar Bool), welches angibt ob der Effekt ausgelöst wird
-    Wegstrecke wird gesetzt ->
-        Alle enthaltenen Elemente werden angepasst
-        Andere Wegstrecken werden gesetzt, wenn alle relevanten Elemente übereinstimmen
-    WegstreckenElement wird gesetzt ->
-        Wegstrecke wird gesetzt, falls es das einzige Element der Kategorie ist
-    Done
-
-Gtk-UI:
-    Wegstrecken->Wegstrecken-Elemente (Expander)
-        Scrollbares Widget im Expander (vor allem für Horizontale Überlänge)
-    Done
-
-Bahngeschwindigkeit nur Pins (kein Anschluss) erlauben
-    PWM über I2C hört sich nicht vielversprechend an
-    Gleichstrom (PWM) funktioniert nur bei einigen Loks/benötigt je nach Lok eine eigene Frequenz?
-        Umstellen auf konstante Wechselstrom-Fahrströme (16V/25V)
-    Done
-
-Haddock schlägt an Language.hs fehl
-    Sonderzeichen im Namen bei fehlender Dokumentation führt zu Absturz von Haddock
-    Probieren ob ein-Datei-Version funktioniert
-        Funktioniert, aber jetzt stürzt Haddock nach Zug.Options ab
-    kritische Haddock-Fehlermeldungen werden nicht immer am Ende angezeigt!
-        floskell rückt bei GADTs die Haddock-Dokumentation ein
-        -- ^ Dokumentation von Konstruktor-Argumenten führt zu haddock-Fehlern
-    fixed
-
-Beim Wegstrecke hinzufügen skaliert der Seiteninhalt nicht.
-    Vermutlich ein Problem mit Assistant
-        evtl. muss Gtk.widgetExpand/Gtk.widgetVExpand explizit gesetzt werden
-    Könnte auch ein Problem mit ZugtypSpezifisch sein
-    Funktioniert auf raspi!!!!
-        Warum????
-    Plan hinzufügen: gleiches Problem, diesmal auch auf raspi
-    fixed (war ein problem mit ScrollbaresWidget)
-
-Einträge erscheinen öfters in yaml-Datei
-    vermutlich von Laden -> Speichern
-    Abbrechen beim Hinzufügen?
-    Gefixt
-
-Pläne mit Dauerschleife werden nicht ausgeführt
-    Eq-Instanz versucht unendlich lange Listen zu vergleichen
-    Gefixt
-
-Jedem Plan eine eigene ProgressBar spendieren.
-    Aktuell kommt es zu RaceConditions in der Anzeige wenn mehrere gleichzeitig ausgeführt werden.
-        Done
-    Außerdem muss überprüft werden, warum ProgressBar (vertikal) so klein sind.
-
-Anzeige sprachabhängig, ohne Show-Instanz
-    über eigene Anzeige-Klasse
-        Done
-    speichern der aktuellen Sprache im Zustand
-        Kommandozeilen-Argument bezieht sich nur noch auf Anfangs-Sprache
-            Speichern in .json?
-            Wird nicht gespeichert
-        Sprachwechsel im Cmd-UI kein Problem:
-            wird sowieso neu erzeugt
-            muss noch implementiert werden
-                Done
-        GTK-Objekte müssen bei Sprachwechsel neu benannt werden
-            ergänze (SP ObjektGui) im Zustand um [Sprache -> IO ()]
-                werden bei Sprachwechsel alle via sequence_ aufgerufen
-                wie wird die IO-Funktion wieder gelöscht?
-                    ToDo!!!
-                    Widgets werden nicht gelöscht -> IO-Aktion muss auch nicht gelöscht werden
-                    führt evtl. zu Memory-Leaks, wenn das Programm zu lange läuft
-                Mit Objekt als Widget taggen? [(Gtk.Widget, Sprache -> IO ())]
-                    Map/HashMap wegen fehlender Ord/Hashable-Instanz nicht möglich
-                Speichere (Maybe [Sprache -> IO ()]) in TVar, welche bei löschen auf Nothing gesetzt wird
-                    Übergebe Maybe (TVar (Maybe [Sprache -> IO ()])) an verwendeSpracheGui
-                    Wenn Nothing, speichere weiterhin global
-                    Wenn TVar, schaue Inhalt an
-                        Wenn Nothing füge ausführen aller TVar-Aktionen zur globalen Liste hinzu
-                            und ersetzte TVar-Inhalt durch Just [übergebeneAktion]
-                        Wenn (Just ..) füge nur die übergebene Aktion zur TVar hinzu
-                Speichere Aktionen in SpracheGui als [Either (Sprache -> IO ()) (TVar (Maybe [Sprache -> IO ()]))]
-                    Wenn bei Aufruf (via foldM) TVar mit Nothing entdeckt wird, lösche diesen Eintrag
-                    Ist ein widgetDestroy notwendig?
-                Führe außerdem widgetDestroy beim entfernen aus
-                    jeweils äußerstes Widget (welches bisher nur aus Container entfernt wird) sollte ausreichen
-            Sprachwechsel über AuswahlWidget (ComboBox)
-                Done
-
-Speichern von json in yaml konvertieren
-    Packet yaml zur Konvertierung verwenden
-        https://hackage.haskell.org/package/yaml
-    Verwendet intern aeson, kann somit problemlos als plug-and-play replacement verwendet werden
-        Done
-
-Gtk.StreckenObjekt.hs
-    ..PackNew auf MStatusGuiT umstellen
-    TMVar wird dadurch nicht mehr benötigt
-        es kann 'ausführenTMVarBefehl' in 'buttonLadenPack' verwendet werden
-    Done
-
-Cmd-UI:
-    *Unbekannt aus Datentypen entfernen und eigenen (ParseErgebnis a)-Datentyp verwenden
-        *Unbekannt hat überall identische Struktur
-    Analog zu Either als Fehler-Monade
-        Monade geht nicht, wegen Either-Ähnlicher Typvariable (keine anderen Typen erlaubt)
-        -> eigene Verkettung-Funktion erstellen
-            Done
-    wähleBefehl oft mit AFFehler als Ausweich-Lösung und AFZwischenwert für jedes Ergebnis
-        -> eigenen Befehl wähleFortsetzung erstellen
-            Done
-    Jede Auswertung von AnfrageFortsetzung hat vorherigen Zustand
-        -> muss im Fehlerfall nicht gespeichert werden
-            Done
-    Done
-
-Rekursion in Plan ermöglichen
-    erlaubt Divide-And-Conquer beim aufbauen größerer Pläne
-    potentielle Endlosschleifen
-        problematisch?
-        nein, da 'ausführenAbbrechen' immer möglich
-        bei Anzeigen/Eq-Vergleich auf Wiederholungen prüfen!
-            kann mit UI nicht erzeugt werden
-            Speichern in .json ebenfalls nicht möglich
-            verwende nur Name bei Plänen
-                vermeidet rekursive Aufrufe
-                speichern Problematisch, wenn Plan schon gelöscht
-                erfordert durchsuchen anderer Pläne beim Laden
-                    Parse-Reihenfolge wichtig?
-        Schleife-Aktion um Dauerschleife problemlos zu ermöglichen
-            Probleme bei ausführenAktion/ausführenPlan
-        eigenes Feld in Plan für Dauerschleife
-            endliche Wiederholungen möglich mit 2 Plänen
-            dadurch kein Integer-Feld notwendig
-    Done
-
-Zugtyp-Mischformen von Wegstrecken
-    Mischformen können aktuell zu potentiell unerwartetem Verhalten führen:
-        Wenn als Märklin interpretiert: alle Lego-Bahngeschwindigkeiten werden auf Vorwärts gestellt
-        Wenn als Lego interpretiert: alle Märklin-Bahngeschwindigkeiten drehen um
-    Mögliche Lösungen:
-        Smart-Constructor für Wegstrecken um (wenn nötig) einen eindeutigen Zugtyp sicherzustellen?
-        wegstrecke :: Text -> [Bahngeschwindigkeit] -> [Streckenabschnitt] -> [(Weiche, Richtung)] -> [Kupplung] -> Maybe Wegstrecke
-            stelle smart-Destructor zum Pattern Matching bereit
-            Selector-Funktionen exportieren?
-            PatternSynonyms verwenden?
-                https://haskell-explained.gitlab.io/blog/posts/2019/08/27/pattern-synonyms/index.html
-        Identischer View-Datentyp mit exportiertem Konstruktor?
-        Alternativ Umdrehen bei unklarem Zugtyp der verwendeten Bahngeschwindigkeiten verbieten?
-    Gelöst über Zugtyp-Phantomtyp (DataKinds)
-
-PCF8574Port als alternative zu Pin erlauben
-    Summentyp Anschluss
-    definiert in PCF8574.hs?
-    eigenes Modul verwenden (Anschluss.hs) für einfache Erweiterung?
-        Done
-MVar durch TVar ersetzen
-    sollen sowieso immer gefüllt sein
-        Done
-
-VRCheckbutton durch abstrakten Datentyp RegistrierterCheckButton ersetzen
-    FortfahrenWennToggled mit MVar ersetzten durch abstrakten Datentyp, welcher registrieren beim erstellen ausführt (... -> IO RegistrierterCheckbutton)?
-        LinkedMVar benötigt dadurch Update-Aktion nicht mehr
-        Konstruktor muss LinkedMVar kennen
-    LinkeMVar entfernen?
-        Done
-
-Widget.hs: eigenen bool-like Datentyp für Position erstellen
-    data Position = First | Last
-    newtype für Padding
-        Done
-
-GTK-UI: Gleichzeitiges Anzeigen mehrerer Kategorien ermöglichen
-    optional?
-    VPaned/HPaned verwenden
+Eigene helper-Funktion erstellen.
+Außerdem sämtliche Hilfetexte in Language.hs auslagern.
+~~~~~~~~~~~~~~~
+#Comment: 782710296
+oops, duplicate of #2 
