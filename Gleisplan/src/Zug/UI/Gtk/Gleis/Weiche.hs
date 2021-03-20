@@ -25,6 +25,15 @@ module Zug.UI.Gtk.Gleis.Weiche
     -- ** Links
   , zeichneKurvenWeicheLinks
   , anchorPointsKurvenWeicheLinks
+    -- * S-Kurve
+  , widthSKurveWeiche
+  , heightSKurveWeiche
+    -- ** Rechts
+  , zeichneSKurveWeicheRechts
+  , anchorPointsSKurveWeicheRechts
+    -- ** Links
+  , zeichneSKurveWeicheLinks
+  , anchorPointsSKurveWeicheLinks
   ) where
 
 import Data.Int (Int32)
@@ -258,3 +267,72 @@ anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy =
     where
         height :: Double
         height = fromIntegral $ heightKurvenWeiche radius winkelBogenmaß proxy
+
+widthSKurveWeiche :: (Spurweite z) => Double -> Double -> Double -> Double -> Proxy z -> Int32
+widthSKurveWeiche länge radius winkelBogenmaß sWinkelBogenmaß proxy =
+    -- TODO
+    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
+
+heightSKurveWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
+heightSKurveWeiche radius winkelBogenmaß sWinkelBogenmaß = heightKurve radius winkelBogenmaß
+
+-- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
+zeichneSKurveWeicheRechts
+    :: (Spurweite z) => Double -> Double -> Double -> Double -> Proxy z -> Cairo.Render ()
+zeichneSKurveWeicheRechts länge radius winkel sWinkelBogenmaß proxy = do
+    zeichneGerade länge proxy
+    Cairo.stroke
+    zeichneKurve radius winkel EndBeschränkung proxy
+
+anchorPointsSKurveWeicheRechts
+    :: (Spurweite z) => Double -> Double -> Double -> Double -> Proxy z -> AnchorPointMap
+anchorPointsSKurveWeicheRechts länge radius winkelBogenmaß sWinkelBogenmaß proxy =
+    withAnchorName
+        "WeicheRechts"
+        [ AnchorPoint
+              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition { anchorX = länge, anchorY = 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = 1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
+
+zeichneSKurveWeicheLinks
+    :: (Spurweite z) => Double -> Double -> Double -> Double -> Proxy z -> Cairo.Render ()
+zeichneSKurveWeicheLinks länge radius winkelBogenmaß sWinkelBogenmaß proxy = do
+    Cairo.translate halfWidth halfHeight
+    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
+    Cairo.translate (-halfWidth) (-halfHeight)
+    zeichneWeicheRechts länge radius winkelBogenmaß proxy
+    where
+        halfWidth :: Double
+        halfWidth = 0.5 * fromIntegral (widthWeiche länge radius winkelBogenmaß proxy)
+
+        halfHeight :: Double
+        halfHeight = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß proxy)
+
+anchorPointsSKurveWeicheLinks
+    :: (Spurweite z) => Double -> Double -> Double -> Double -> Proxy z -> AnchorPointMap
+anchorPointsSKurveWeicheLinks länge radius winkelBogenmaß sWinkelBogenmaß proxy =
+    withAnchorName
+        "WeicheLinks"
+        [ AnchorPoint
+              AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = -1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition { anchorX = länge, anchorY = height - 0.5 * beschränkung proxy }
+              AnchorDirection { anchorDX = 1, anchorDY = 0 }
+        , AnchorPoint
+              AnchorPosition
+              { anchorX = radius * sin winkelBogenmaß
+              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
+              }
+              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
+    where
+        height :: Double
+        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy

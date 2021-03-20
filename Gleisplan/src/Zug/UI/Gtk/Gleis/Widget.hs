@@ -132,7 +132,9 @@ import Zug.UI.Gtk.Gleis.Weiche
       , widthWeiche, heightWeiche, zeichneDreiwegeweiche, anchorPointsDreiwegeweiche
       , widthDreiwegeweiche, heightDreiwegeweiche, widthKurvenWeiche, heightKurvenWeiche
       , zeichneKurvenWeicheRechts, anchorPointsKurvenWeicheRechts, zeichneKurvenWeicheLinks
-      , anchorPointsKurvenWeicheLinks)
+      , anchorPointsKurvenWeicheLinks, widthSKurveWeiche, heightSKurveWeiche
+      , zeichneSKurveWeicheRechts, anchorPointsSKurveWeicheRechts, zeichneSKurveWeicheLinks
+      , anchorPointsSKurveWeicheLinks)
 import Zug.UI.Gtk.MitWidget (MitWidget(erhalteWidget))
 
 translateAnchorPoint :: Position -> AnchorPosition -> (Double, Double)
@@ -235,14 +237,28 @@ getGleisAttribute = \case
         , anchorPoints = anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
         , zeichne = zeichneWeicheRechts länge radius winkelBogenmaß proxy
         }
+    Weiche
+        { länge
+        , radius
+        , winkel = ((pi / 180 *) -> winkelBogenmaß)
+        , richtung = SKurve SLinks {sWinkel = ((pi / 180 *) -> sWinkelBogenmaß)}} -> GleisAttribute
+        { width = widthSKurveWeiche länge radius winkelBogenmaß sWinkelBogenmaß proxy
+        , height = heightSKurveWeiche radius winkelBogenmaß sWinkelBogenmaß proxy
+        , zeichne = zeichneSKurveWeicheLinks länge radius winkelBogenmaß sWinkelBogenmaß proxy
+        , anchorPoints =
+              anchorPointsSKurveWeicheLinks länge radius winkelBogenmaß sWinkelBogenmaß proxy
+        }
     Weiche { länge
            , radius
            , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = SKurve SLinks {sWinkel}} -> GleisAttribute {  }
-    Weiche { länge
-           , radius
-           , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = SKurve SRechts {sWinkel}} -> GleisAttribute {  }
+           , richtung = SKurve SRechts {sWinkel = ((pi / 180 *) -> sWinkelBogenmaß)}}
+        -> GleisAttribute
+        { width = widthSKurveWeiche länge radius winkelBogenmaß sWinkelBogenmaß proxy
+        , height = heightSKurveWeiche radius winkelBogenmaß sWinkelBogenmaß proxy
+        , zeichne = zeichneSKurveWeicheRechts länge radius winkelBogenmaß sWinkelBogenmaß proxy
+        , anchorPoints =
+              anchorPointsSKurveWeicheRechts länge radius winkelBogenmaß sWinkelBogenmaß proxy
+        }
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
         -> GleisAttribute
         { width = widthDreiwegeweiche länge radius winkelBogenmaß proxy
