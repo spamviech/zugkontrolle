@@ -10,13 +10,13 @@ module Zug.UI.Gtk.Gleis.Lego
   , legoWeiche
   , legoKreuzung
     -- * Convenience Re-Exports
-  , WeichenRichtungAllgemein(Links, Rechts)
+  , WeichenRichtungSKurve(..)
   , Zugtyp(Lego)
   ) where
 
 import Zug.Enums (Zugtyp(Lego))
-import Zug.UI.Gtk.Gleis.Widget (GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
-                              , KreuzungsArt(OhneKurve), alsDreiweg, WeichenRichtung(..))
+import Zug.UI.Gtk.Gleis.Widget (GleisDefinition(..), WeichenRichtungSKurve(..)
+                              , KreuzungsArt(OhneKurve), WeichenRichtung(..))
 
 -- https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/
 {-
@@ -57,6 +57,7 @@ legoKurve :: GleisDefinition 'Lego
 legoKurve = Kurve { radius = legoRadius, winkel = legoWinkel }
 
 -- TODO stimmt nicht genau, eigentlich eine leichte S-Kurve
+-- 6 rechts, dann 3 links; insgesamt 30°
 {-
 Die Geometrie der LEGO Eisenbahnweichen hat sich mit Einführung des 9 V Systems verändert.
 Das Parallelgleis nach der Weiche ist nun 8 Noppen vom Hauptgleis entfernt.
@@ -67,14 +68,9 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 -------------------------------------------------------
 Nach 1 Gerade/Kurve sind Haupt- und Parallelgleis auf der selben Höhe
 -}
-legoWeiche :: WeichenRichtungAllgemein 'WeicheZweiweg -> GleisDefinition 'Lego
+legoWeiche :: WeichenRichtungSKurve -> GleisDefinition 'Lego
 legoWeiche lr =
-    Weiche
-    { länge = legoLänge
-    , radius = legoRadius
-    , winkel = legoWinkel
-    , richtung = Normal $ alsDreiweg lr
-    }
+    Weiche { länge = legoLänge, radius = legoRadius, winkel = legoWinkel, richtung = SKurve lr }
 
 legoKreuzung :: GleisDefinition 'Lego
 legoKreuzung =

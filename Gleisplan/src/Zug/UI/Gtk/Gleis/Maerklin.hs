@@ -34,13 +34,15 @@ module Zug.UI.Gtk.Gleis.Maerklin
   , märklinKreuzung5128
   , märklinKreuzung5207
     -- * Convenience Re-Exports
-  , WeichenRichtungAllgemein(Links, Rechts)
+  , WeichenRichtungGerade(Links, Rechts)
+  , WeichenRichtungGebogen(GLinks, GRechts)
   , Zugtyp(Märklin)
   ) where
 
 import Zug.Enums (Zugtyp(Märklin))
-import Zug.UI.Gtk.Gleis.Widget (GleisDefinition(..), WeichenArt(..), WeichenRichtungAllgemein(..)
-                              , KreuzungsArt(MitKurve), alsDreiweg, WeichenRichtung(..))
+import Zug.UI.Gtk.Gleis.Widget
+       (GleisDefinition(..), WeichenRichtungGerade(..), WeichenRichtungGebogen(..)
+      , KreuzungsArt(MitKurve), WeichenRichtung(..))
 
 märklinRIndustrie :: Double
 märklinRIndustrie = 286
@@ -129,17 +131,17 @@ Weiche
     5202 L/R: L180mm, 24.28°, R437.4mm
     5214 (3-Weg): L180mm, 24,28°, R437.4mm
 -}
-märklinWeiche5117 :: WeichenRichtungAllgemein 'WeicheZweiweg -> GleisDefinition 'Märklin
-märklinWeiche5117 lr =
-    Weiche { länge = 180, radius = märklinR1, winkel = 30, richtung = Normal $ alsDreiweg lr }
+märklinWeiche5117 :: WeichenRichtungGerade -> GleisDefinition 'Märklin
+märklinWeiche5117
+    lr = Weiche { länge = 180, radius = märklinR1, winkel = 30, richtung = Normal lr }
 
-märklinWeiche5137 :: WeichenRichtungAllgemein 'WeicheZweiweg -> GleisDefinition 'Märklin
-märklinWeiche5137 lr =
-    Weiche { länge = 180, radius = märklinR1, winkel = 22.5, richtung = Normal $ alsDreiweg lr }
+märklinWeiche5137 :: WeichenRichtungGerade -> GleisDefinition 'Märklin
+märklinWeiche5137
+    lr = Weiche { länge = 180, radius = märklinR1, winkel = 22.5, richtung = Normal lr }
 
-märklinWeiche5202 :: WeichenRichtungAllgemein 'WeicheZweiweg -> GleisDefinition 'Märklin
-märklinWeiche5202 lr =
-    Weiche { länge = 180, radius = märklinR1, winkel = 24.28, richtung = Normal $ alsDreiweg lr }
+märklinWeiche5202 :: WeichenRichtungGerade -> GleisDefinition 'Märklin
+märklinWeiche5202
+    lr = Weiche { länge = 180, radius = märklinR1, winkel = 24.28, richtung = Normal lr }
 
 märklinDreiwegWeiche5214 :: GleisDefinition 'Märklin
 märklinDreiwegWeiche5214 =
@@ -149,7 +151,7 @@ märklinDreiwegWeiche5214 =
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 -}
-märklinKurvenWeiche5140 :: WeichenRichtungAllgemein 'WeicheZweiweg -> GleisDefinition 'Märklin
+märklinKurvenWeiche5140 :: WeichenRichtungGebogen -> GleisDefinition 'Märklin
 märklinKurvenWeiche5140
     lr = Weiche { länge = 77.4, radius = märklinR1, winkel = 30, richtung = Gebogen lr }
 

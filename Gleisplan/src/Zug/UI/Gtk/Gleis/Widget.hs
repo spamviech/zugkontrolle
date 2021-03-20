@@ -3,6 +3,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE GADTs #-}
@@ -63,13 +67,13 @@ module Zug.UI.Gtk.Gleis.Widget
   , gleisAttachMove
     -- *** Definition
   , GleisDefinition(..)
-  , getWidth
-  , getHeight
-  , WeichenArt(..)
-  , WeichenRichtungAllgemein(..)
-  , alsDreiweg
+  , WeichenRichtungGerade(..)
+  , WeichenRichtungGebogen(..)
+  , WeichenRichtungSKurve(..)
   , WeichenRichtung(..)
   , KreuzungsArt(..)
+  , getWidth
+  , getHeight
     -- *** Anker-Punkte
   , AnchorName(..)
     -- ** Texte
@@ -105,8 +109,6 @@ import qualified Data.RTree as RTree
 import Data.Text (Text)
 import Flat (Flat(..))
 import qualified Flat
-import qualified Flat.Decoder as Flat
-import qualified Flat.Encoder as Flat
 import GHC.Generics (Generic())
 import qualified GI.Cairo.Render as Cairo
 import qualified GI.Cairo.Render.Connector as Cairo
@@ -166,168 +168,124 @@ data GleisDefinition (z :: Zugtyp)
 instance Flat (GleisDefinition z)
 
 data WeichenArt
-    = WeicheZweiweg
-    | WeicheDreiweg
+    = WeicheGerade
+    | WeicheGebogen
+    | WeicheSKurve
     deriving (Eq, Show)
 
-data WeichenRichtungAllgemein (a :: WeichenArt) where
-    Links :: WeichenRichtungAllgemein a
-    Rechts :: WeichenRichtungAllgemein a
-    Dreiwege :: WeichenRichtungAllgemein 'WeicheDreiweg
+data WeichenRichtungGerade
+    = Links
+    | Rechts
+    | Dreiwege
+    deriving (Eq, Show, Generic)
 
-deriving instance Eq (WeichenRichtungAllgemein a)
+instance Flat WeichenRichtungGerade
 
-deriving instance Show (WeichenRichtungAllgemein a)
+data WeichenRichtungGebogen
+    = GLinks
+    | GRechts
+    deriving (Eq, Show, Generic)
 
--- | Helper type to automatically derive Generic, and transitively Flat instance
-data FlatRichtung
-    = FlatLinks
-    | FlatRechts
-    | FlatDreiwege
-    deriving (Show, Eq, Generic)
+instance Flat WeichenRichtungGebogen
 
-instance Flat FlatRichtung
+data WeichenRichtungSKurve
+    = SLinks { sWinkel :: Double }
+    | SRechts { sWinkel :: Double }
+    deriving (Eq, Show, Generic)
 
-alsFlat :: WeichenRichtungAllgemein a -> FlatRichtung
-alsFlat Links = FlatLinks
-alsFlat Rechts = FlatRechts
-alsFlat Dreiwege = FlatDreiwege
-
-instance Flat (WeichenRichtungAllgemein 'WeicheZweiweg) where
-    encode :: WeichenRichtungAllgemein 'WeicheZweiweg -> Flat.Encoding
-    encode = encode . alsFlat
-
-    decode :: Flat.Get (WeichenRichtungAllgemein 'WeicheZweiweg)
-    decode = decode >>= \case
-        FlatLinks -> pure Links
-        FlatRechts -> pure Rechts
-        FlatDreiwege -> fail "Unbekannte Zweiweg-WeichenRichtung: Dreiwege"
-
-    size :: WeichenRichtungAllgemein 'WeicheZweiweg -> Flat.NumBits -> Flat.NumBits
-    size = size . alsFlat
-
-    -- TODO two bits should be enough
-instance Flat (WeichenRichtungAllgemein 'WeicheDreiweg) where
-    encode :: WeichenRichtungAllgemein 'WeicheDreiweg -> Flat.Encoding
-    encode = encode . alsFlat
-
-    decode :: Flat.Get (WeichenRichtungAllgemein 'WeicheDreiweg)
-    decode = decode >>= \case
-        FlatLinks -> pure Links
-        FlatRechts -> pure Rechts
-        FlatDreiwege -> pure Dreiwege
-
-    size :: WeichenRichtungAllgemein 'WeicheDreiweg -> Flat.NumBits -> Flat.NumBits
-    size = size . alsFlat
-
-alsDreiweg :: WeichenRichtungAllgemein a -> WeichenRichtungAllgemein 'WeicheDreiweg
-alsDreiweg Links = Links
-alsDreiweg Rechts = Rechts
-alsDreiweg Dreiwege = Dreiwege
+instance Flat WeichenRichtungSKurve
 
 data WeichenRichtung
-    = Normal { geradeRichtung :: WeichenRichtungAllgemein 'WeicheDreiweg }
-    | Gebogen { gebogeneRichtung :: WeichenRichtungAllgemein 'WeicheZweiweg }
+    = Normal { geradeRichtung :: WeichenRichtungGerade }
+    | Gebogen { gebogeneRichtung :: WeichenRichtungGebogen }
+    | SKurve { sKurveRichtung :: WeichenRichtungSKurve }
     deriving (Eq, Show, Generic)
 
 instance Flat WeichenRichtung
 
--- TODO getGleisAttribute :: GleisDefinition z -> GleisAttribute
--- data GleisAttribute = GleisAttribute {width, height, anchorPoints, zeichnen}
--- | Alle 'AnchorPoint's einer 'GleisDefinition'.
-getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> AnchorPointMap
-getAnchorPoints = \case
-    Gerade {länge} -> anchorPointsGerade länge proxy
-    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKurve radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts}
-        -> anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
+data GleisAttribute =
+    GleisAttribute
+    { width :: Int32, height :: Int32, anchorPoints :: AnchorPointMap, zeichne :: Cairo.Render () }
+
+getGleisAttribute :: forall z. (Spurweite z) => GleisDefinition z -> GleisAttribute
+getGleisAttribute = \case
+    Gerade {länge} -> GleisAttribute
+        { width = widthGerade länge proxy
+        , height = heightGerade proxy
+        , anchorPoints = anchorPointsGerade länge proxy
+        , zeichne = zeichneGerade länge proxy
+        }
+    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)} -> GleisAttribute
+        { width = widthKurve radius winkelBogenmaß proxy
+        , height = heightKurve radius winkelBogenmaß proxy
+        , anchorPoints = anchorPointsKurve radius winkelBogenmaß proxy
+        , zeichne = zeichneKurve radius winkelBogenmaß AlleBeschränkungen proxy
+        }
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Links}
-        -> anchorPointsWeicheLinks länge radius winkelBogenmaß proxy
+        -> GleisAttribute
+        { width = widthWeiche länge radius winkelBogenmaß proxy
+        , height = heightWeiche radius winkelBogenmaß proxy
+        , anchorPoints = anchorPointsWeicheLinks länge radius winkelBogenmaß proxy
+        , zeichne = zeichneWeicheLinks länge radius winkelBogenmaß proxy
+        }
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Rechts}
+        -> GleisAttribute
+        { width = widthWeiche länge radius winkelBogenmaß proxy
+        , height = heightWeiche radius winkelBogenmaß proxy
+        , anchorPoints = anchorPointsWeicheRechts länge radius winkelBogenmaß proxy
+        , zeichne = zeichneWeicheRechts länge radius winkelBogenmaß proxy
+        }
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = SKurve SLinks {sWinkel}} -> GleisAttribute {  }
+    Weiche { länge
+           , radius
+           , winkel = ((pi / 180 *) -> winkelBogenmaß)
+           , richtung = SKurve SRechts {sWinkel}} -> GleisAttribute {  }
     Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Rechts}
-        -> anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen Links}
-        -> anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
-    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> anchorPointsKreuzung länge radius winkelBogenmaß proxy
+        -> GleisAttribute
+        { width = widthDreiwegeweiche länge radius winkelBogenmaß proxy
+        , height = heightDreiwegeweiche radius winkelBogenmaß proxy
+        , anchorPoints = anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy
+        , zeichne = zeichneDreiwegeweiche länge radius winkelBogenmaß proxy
+        }
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen GRechts}
+        -> GleisAttribute
+        { width = widthKurvenWeiche länge radius winkelBogenmaß proxy
+        , height = heightKurvenWeiche radius winkelBogenmaß proxy
+        , anchorPoints = anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy
+        , zeichne = zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
+        }
+    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen GLinks}
+        -> GleisAttribute
+        { width = widthKurvenWeiche länge radius winkelBogenmaß proxy
+        , height = heightKurvenWeiche radius winkelBogenmaß proxy
+        , anchorPoints = anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy
+        , zeichne = zeichneKurvenWeicheLinks länge radius winkelBogenmaß proxy
+        }
+    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), kreuzungsArt}
+        -> GleisAttribute
+        { width = widthKreuzung länge radius winkelBogenmaß proxy
+        , height = heightKreuzung länge radius proxy
+        , anchorPoints = anchorPointsKreuzung länge radius winkelBogenmaß proxy
+        , zeichne = zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt proxy
+        }
     where
         proxy :: Proxy z
         proxy = Proxy
 
 -- | Breite des zugehörigen 'Gleis'es einer 'GleisDefinition'.
 getWidth :: forall z. (Spurweite z) => GleisDefinition z -> Int32
-getWidth = \case
-    Gerade {länge} -> widthGerade länge proxy
-    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> widthKurve radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> widthDreiwegeweiche länge radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal _rl}
-        -> widthWeiche länge radius winkelBogenmaß proxy
-    Weiche {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen _rl}
-        -> widthKurvenWeiche länge radius winkelBogenmaß proxy
-    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> widthKreuzung länge radius winkelBogenmaß proxy
-    where
-        proxy :: Proxy z
-        proxy = Proxy
+getWidth = width . getGleisAttribute
 
 -- | Höhe des zugehörigen 'Gleis'es einer 'GleisDefinition'.
 getHeight :: forall z. (Spurweite z) => GleisDefinition z -> Int32
-getHeight = \case
-    Gerade {} -> heightGerade proxy
-    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> heightKurve radius winkelBogenmaß proxy
-    Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal Dreiwege}
-        -> heightDreiwegeweiche radius winkelBogenmaß proxy
-    Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Normal _rl}
-        -> heightWeiche radius winkelBogenmaß proxy
-    Weiche {radius, winkel = ((pi / 180 *) -> winkelBogenmaß), richtung = Gebogen _rl}
-        -> heightKurvenWeiche radius winkelBogenmaß proxy
-    Kreuzung {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> heightKreuzung radius winkelBogenmaß proxy
-    where
-        proxy :: Proxy z
-        proxy = Proxy
+getHeight = height . getGleisAttribute
 
--- | Erstelle ein neues 'Gleis'.
-getZeichnen :: forall z. (Spurweite z) => GleisDefinition z -> Cairo.Render ()
-getZeichnen = \case
-    Gerade {länge} -> zeichneGerade länge proxy
-    Kurve {radius, winkel = ((pi / 180 *) -> winkelBogenmaß)}
-        -> zeichneKurve radius winkelBogenmaß AlleBeschränkungen proxy
-    Weiche { länge
-           , radius
-           , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = Normal {geradeRichtung = Links}}
-        -> zeichneWeicheLinks länge radius winkelBogenmaß proxy
-    Weiche { länge
-           , radius
-           , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = Normal {geradeRichtung = Rechts}}
-        -> zeichneWeicheRechts länge radius winkelBogenmaß proxy
-    Weiche { länge
-           , radius
-           , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = Normal {geradeRichtung = Dreiwege}}
-        -> zeichneDreiwegeweiche länge radius winkelBogenmaß proxy
-    Weiche { länge
-           , radius
-           , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = Gebogen {gebogeneRichtung = Rechts}}
-        -> zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
-    Weiche { länge
-           , radius
-           , winkel = ((pi / 180 *) -> winkelBogenmaß)
-           , richtung = Gebogen {gebogeneRichtung = Links}}
-        -> zeichneKurvenWeicheLinks länge radius winkelBogenmaß proxy
-    Kreuzung {länge, radius, winkel = ((pi / 180 *) -> winkelBogenmaß), kreuzungsArt}
-        -> zeichneKreuzung länge radius winkelBogenmaß kreuzungsArt proxy
-    where
-        proxy :: Proxy z
-        proxy = Proxy
+-- | Alle 'AnchorPoint's einer 'GleisDefinition'.
+getAnchorPoints :: forall z. (Spurweite z) => GleisDefinition z -> AnchorPointMap
+getAnchorPoints = anchorPoints . getGleisAttribute
 
 -- | Postion auf einer 'GleisAnzeige'.
 --
@@ -442,13 +400,14 @@ gleisAnzeigeNew = sendIO $ do
                 winkelBogenmaß = pi / 180 * winkel
             Cairo.translate x y
             Cairo.rotate winkelBogenmaß
+            let GleisAttribute {zeichne, anchorPoints} = getGleisAttribute gleisDefinition
             -- draw rail
             withSaveRestore $ do
                 Cairo.newPath
-                getZeichnen gleisDefinition
+                zeichne
                 Cairo.stroke
             -- mark anchor points
-            forM_ (getAnchorPoints gleisDefinition)
+            forM_ anchorPoints
                 $ \anchorPoint@AnchorPoint
                 { anchorPosition = AnchorPosition {anchorX, anchorY}
                 , anchorDirection = AnchorDirection {anchorDX, anchorDY}} -> withSaveRestore $ do

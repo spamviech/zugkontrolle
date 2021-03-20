@@ -14,13 +14,13 @@ import Data.Int (Int32)
 import Data.Text (Text)
 
 import Zug.UI.Gtk.Gleis.Maerklin
-       (WeichenRichtungAllgemein(Links, Rechts), Zugtyp(Märklin), märklinKurvenWeiche5140
-      , märklinDreiwegWeiche5214, märklinWeiche5202, märklinWeiche5137, märklinWeiche5117
-      , märklinKurve5205, märklinKurve5201, märklinKurve5206, märklinKurve5200
-      , märklinKurve5102, märklinKurve5101, märklinKurve5100, märklinKurve5120
-      , märklinGerade5208, märklinGerade5210, märklinGerade5110, märklinGerade5109
-      , märklinGerade5108, märklinGerade5129, märklinGerade5106, märklinGerade5107
-      , märklinKreuzung5128, märklinKreuzung5207)
+       (WeichenRichtungGerade(Links, Rechts), WeichenRichtungGebogen(GLinks, GRechts)
+      , Zugtyp(Märklin), märklinKurvenWeiche5140, märklinDreiwegWeiche5214, märklinWeiche5202
+      , märklinWeiche5137, märklinWeiche5117, märklinKurve5205, märklinKurve5201
+      , märklinKurve5206, märklinKurve5200, märklinKurve5102, märklinKurve5101
+      , märklinKurve5100, märklinKurve5120, märklinGerade5208, märklinGerade5210
+      , märklinGerade5110, märklinGerade5109, märklinGerade5108, märklinGerade5129
+      , märklinGerade5106, märklinGerade5107, märklinKreuzung5128, märklinKreuzung5207)
 import Zug.UI.Gtk.Gleis.Widget
        (GleisAnzeige, GleisAnzeigeConfig(..), Position(..), GleisDefinition(), LoadError()
       , SaveError(), getWidth, getHeight, gleisAnzeigeNew, gleisAnzeigeConfig, gleisPut, textPut
@@ -65,8 +65,8 @@ gleisDemonstrationNew = do
                 , ("5202R:", märklinWeiche5202 Rechts)
                 , ("5202L:", märklinWeiche5202 Links)
                 , ("5214: ", märklinDreiwegWeiche5214)
-                , ("5140R:", märklinKurvenWeiche5140 Rechts)
-                , ("5140L:", märklinKurvenWeiche5140 Links)
+                , ("5140R:", märklinKurvenWeiche5140 GRechts)
+                , ("5140L:", märklinKurvenWeiche5140 GLinks)
                 , ("5128: ", märklinKreuzung5128)
                 , ("5207: ", märklinKreuzung5207)]
             gleisAnzeigeSave gleisAnzeige "demonstration.gleisplan"
