@@ -1,9 +1,11 @@
 .stack-work/
 dist-newstyle/
 dist/
+target/
 *~
 *.o
 cabal.project.local
+
 /bin/Zugkontrolle
 /bin/Zugkontrolle.exe
 
@@ -16,4 +18,4 @@ Zugkontrolle-Gtk/stack.yaml.lock
 /Schaltpläne/*.synctex.gz
 /stuff/
 
-/haskell-gi/
+Issues.txt
