@@ -160,6 +160,9 @@ Alternativ kann natürlich direkt die von `cargo build` erzeugte binary gestarte
 
 ### Starten des pigpio daemon
 
+TODO: Nicht sicher wie die bindings funktionieren,
+kann evtl. weiter sudo für hardware-pwm (dafür kein pigpiod) benötigen.
+
 Um eine Ausführung ohne root-Rechte zu ermöglichen wird `pigpiod` verwendet.
 Mehr Informationen dazu auf der [pigpio Website](http://abyz.me.uk/rpi/pigpio/pigpiod.html).
 Der Befehl zum starten lautet
