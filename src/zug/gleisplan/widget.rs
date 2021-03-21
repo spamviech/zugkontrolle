@@ -9,12 +9,9 @@ use kurve::*;
 use weiche::*;
 
 /// Definition eines Gleises
-pub enum GleisDefinition {
-    Gerade(Gerade),
-    Kurve(Kurve),
-    Weiche(Weiche),
-    Kreuzung(Kreuzung),
+pub enum GleisDefinition<T> {
+    Gerade(Gerade<T>),
+    Kurve(Kurve<T>),
+    Weiche(Weiche<T>),
+    Kreuzung(Kreuzung<T>),
 }
-
-// TODO: Spurweite
-// erneut Zugtyp-phantom-type?

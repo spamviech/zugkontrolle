@@ -1,9 +1,31 @@
 //! newtypes for f64, to avoid mixing of length, radius, angle (radians/degree), etc.
 
+use std::convert::From;
+
+use crate::zug::zugtyp::*;
+
+// TODO
 // non_ascii_idents might be stabilized soon
 // use german names then (currently blocked by umlauts)
 // https://github.com/rust-lang/rust/issues/55467
-use std::convert::From;
+
+/// Spurweite [mm]
+pub struct Spurweite(f64);
+
+pub trait Zugtyp {
+    #[allow(non_upper_case_globals)]
+    const spurweite: Spurweite;
+}
+
+impl Zugtyp for Maerklin {
+    #[allow(non_upper_case_globals)]
+    const spurweite: Spurweite = Spurweite(16.5);
+}
+
+impl Zugtyp for Lego {
+    #[allow(non_upper_case_globals)]
+    const spurweite: Spurweite = Spurweite(38.);
+}
 
 /// Längenmaß [mm]
 pub struct Length(f64);

@@ -1,7 +1,10 @@
+use std::marker::PhantomData;
+
 use crate::zug::gleisplan::types::*;
 
 /// Definition einer Weiche
-pub struct Weiche {
+pub struct Weiche<T> {
+    pub zugtyp: PhantomData<T>,
     pub length: Length,
     pub radius: Radius,
     pub angle: Angle,
