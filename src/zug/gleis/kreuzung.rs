@@ -8,7 +8,7 @@
 
 use std::marker::PhantomData;
 
-use crate::zug::gleisplan::types::*;
+use super::types::*;
 
 /// Definition einer Kreuzung
 pub struct Kreuzung<T> {

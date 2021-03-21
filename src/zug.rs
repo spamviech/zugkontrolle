@@ -1,2 +1,2 @@
-pub mod gleisplan;
+pub mod gleis;
 pub mod zugtyp;

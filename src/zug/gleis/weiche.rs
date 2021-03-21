@@ -7,7 +7,7 @@
 // https://github.com/rust-lang/rust/issues/55467
 use std::marker::PhantomData;
 
-use crate::zug::gleisplan::types::*;
+use super::types::*;
 
 /// Definition einer Weiche
 pub struct Weiche<T> {

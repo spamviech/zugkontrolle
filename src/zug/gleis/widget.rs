@@ -1,12 +1,7 @@
-pub mod gerade;
-pub mod kreuzung;
-pub mod kurve;
-pub mod weiche;
-
-use gerade::*;
-use kreuzung::*;
-use kurve::*;
-use weiche::*;
+use super::gerade::*;
+use super::kreuzung::*;
+use super::kurve::*;
+use super::weiche::*;
 
 /// Definition eines Gleises
 pub enum GleisDefinition<T> {
