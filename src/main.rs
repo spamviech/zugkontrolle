@@ -2,7 +2,7 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, Button};
 
-mod Zug;
+mod zug;
 
 fn main() {
     let application =
