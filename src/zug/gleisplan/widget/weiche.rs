@@ -1,3 +1,10 @@
+//! Definition und zeichnen einer Weiche
+
+// TODO
+// non_ascii_idents might be stabilized soon
+// use english names until then :(
+// (nightly crashes atm on Sized-check)
+// https://github.com/rust-lang/rust/issues/55467
 use std::marker::PhantomData;
 
 use crate::zug::gleisplan::types::*;
@@ -7,7 +14,7 @@ pub struct Weiche<T> {
     pub zugtyp: PhantomData<T>,
     pub length: Length,
     pub radius: Radius,
-    pub angle: Angle,
+    pub angle: AngleDegrees,
     pub direction: WeichenRichtung,
 }
 pub enum WeichenRichtung {
@@ -25,6 +32,6 @@ pub enum WeichenRichtungGebogen {
     Rechts,
 }
 pub enum WeichenRichtungSKurve {
-    Links(Angle),
-    Rechts(Angle),
+    Links(AngleDegrees),
+    Rechts(AngleDegrees),
 }

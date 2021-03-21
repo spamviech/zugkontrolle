@@ -1,3 +1,10 @@
+//! Definition und zeichnen einer Kurve
+
+// TODO
+// non_ascii_idents might be stabilized soon
+// use english names until then :(
+// (nightly crashes atm on Sized-check)
+// https://github.com/rust-lang/rust/issues/55467
 use std::marker::PhantomData;
 
 use crate::zug::gleisplan::types::*;
@@ -6,5 +13,5 @@ use crate::zug::gleisplan::types::*;
 pub struct Kurve<T> {
     pub zugtyp: PhantomData<T>,
     pub radius: Radius,
-    pub angle: Angle,
+    pub angle: AngleDegrees,
 }

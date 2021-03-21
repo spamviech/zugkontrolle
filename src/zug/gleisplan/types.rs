@@ -1,13 +1,14 @@
 //! newtypes for f64, to avoid mixing of length, radius, angle (radians/degree), etc.
 
+// TODO
+// non_ascii_idents might be stabilized soon
+// use english names until then :(
+// (nightly crashes atm on Sized-check)
+// https://github.com/rust-lang/rust/issues/55467
+
 use std::convert::From;
 
 use crate::zug::zugtyp::*;
-
-// TODO
-// non_ascii_idents might be stabilized soon
-// use german names then (currently blocked by umlauts)
-// https://github.com/rust-lang/rust/issues/55467
 
 /// Spurweite [mm]
 pub struct Spurweite(f64);
