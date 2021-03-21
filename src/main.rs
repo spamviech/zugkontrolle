@@ -2,6 +2,8 @@ use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, Button};
 
+mod Zug;
+
 fn main() {
     let application =
         Application::new(None, Default::default()).expect("failed to initialize GTK application");
