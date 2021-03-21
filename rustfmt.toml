@@ -1,0 +1,24 @@
+# https://rust-lang.github.io/rustfmt
+# written with v1.4.36 in mind
+combine_control_expr = false
+comment_width = 100
+format_code_in_doc_comments = true
+format_macro_matchers = true
+format_strings = true
+imports_layout = "HorizontalVertical"
+match_block_trailing_comma = true
+newline_style = "Unix"
+overflow_delimited_expr = true
+reorder_impl_items = true
+group_imports = "StdExternalCrate"
+spaces_around_ranges = true
+trailing_semicolon = false
+use_field_init_shorthand = true
+use_small_heuristics = "Max"
+use_try_shorthand = true
+wrap_comments = true
+
+# default value, but just to be sure
+hard_tabs = false
+tab_spaces = 4
+max_width = 100
