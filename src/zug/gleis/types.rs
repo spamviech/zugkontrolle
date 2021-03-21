@@ -29,13 +29,13 @@ impl Zugtyp for Lego {
 }
 
 /// Längenmaß [mm]
-pub struct Length(f64);
+pub struct Length(pub f64);
 
 /// Radius [mm]
-pub struct Radius(f64);
+pub struct Radius(pub f64);
 
 /// Winkel [Bogenmaß]
-pub struct Angle(f64);
+pub struct Angle(pub f64);
 
 // automatically implements Trait Into
 impl From<AngleDegrees> for Angle {
@@ -45,7 +45,7 @@ impl From<AngleDegrees> for Angle {
 }
 
 /// Winkel [Grad]
-pub struct AngleDegrees(f64);
+pub struct AngleDegrees(pub f64);
 
 impl From<Angle> for AngleDegrees {
     fn from(Angle(f): Angle) -> AngleDegrees {
