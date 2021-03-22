@@ -48,49 +48,6 @@ pub enum GleisDefinition<Z> {
     Weiche(Weiche<Z>),
     Kreuzung(Kreuzung<Z>),
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GleisAnchors {
-    Gerade(GeradeAnchors),
-    /* Kurve(KurveAnchors),
-     * Weiche(WeicheAnchors),
-     * Kreuzung(KreuzungAnchors), */
-}
-
-impl<Z: Zugtyp + Debug> Zeichnen for GleisDefinition<Z> {
-    type AnchorName = GleisAnchors;
-
-    fn width(&self) -> u64 {
-        match self {
-            GleisDefinition::Gerade(gerade) => gerade.width(),
-            _ => unimplemented!("{:?}.width()", self),
-        }
-    }
-
-    fn height(&self) -> u64 {
-        match self {
-            GleisDefinition::Gerade(gerade) => gerade.height(),
-            _ => unimplemented!("{:?}.height()", self),
-        }
-    }
-
-    fn zeichne(&self, c: Context) {
-        match self {
-            GleisDefinition::Gerade(gerade) => gerade.zeichne(c),
-            _ => unimplemented!("{:?}.zeichne(c)", self),
-        }
-    }
-
-    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
-        match self {
-            GleisDefinition::Gerade(gerade) => gerade
-                .anchor_points()
-                .into_iter()
-                .map(|(k, v)| (GleisAnchors::Gerade(k), v))
-                .collect(),
-            _ => unimplemented!("{:?}.anchor_points()", self),
-        }
-    }
-}
 
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]

@@ -7,6 +7,9 @@ use rstar::Point;
 use super::types::*;
 
 /// Sammlung aller AnchorPoint für ein Gleis
+/// FIXME create own map type with non-Option lookups
+/// Creation only when all are present
+/// Traits tbd.
 pub type AnchorPointMap<AnchorName> = HashMap<AnchorName, AnchorPoint>;
 
 // /// Bezeichner für einen AnchorPoint
