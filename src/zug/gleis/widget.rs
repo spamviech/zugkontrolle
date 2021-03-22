@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+use cairo::Context;
 use log::*;
 use nonempty::NonEmpty;
 use rstar::{primitives::PointWithData, RTree};
@@ -14,6 +15,25 @@ use super::kreuzung::*;
 use super::kurve::*;
 use super::types::*;
 use super::weiche::*;
+
+pub trait Zeichnen {
+    /// Maximale Breite
+    fn width(&self) -> u64;
+
+    /// Maximale Höhe
+    fn height(&self) -> u64;
+
+    /// Darstellen im Kontext an Position (0,0).
+    ///
+    /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
+    fn zeichne(&self, c: Context);
+
+    /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
+    ///
+    /// Position ausgehend von zeichnen bei (0,0),
+    /// Richtung nach außen zeigend.
+    fn anchor_points(&self) -> AnchorPointMap;
+}
 
 /// Definition eines Gleises
 #[derive(Debug, Clone)]
@@ -49,6 +69,7 @@ impl<Z: Debug> GleisIdLock<Z> {
     pub fn read(&self) -> RwLockReadGuard<Option<GleisId<Z>>> {
         self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
+
     fn write(&self) -> RwLockWriteGuard<Option<GleisId<Z>>> {
         self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
@@ -111,6 +132,7 @@ impl<Z: Debug> Gleise<Z> {
         gleise.map.insert(GleisId(gleis_id, PhantomData), gleis);
         gleis_id_lock
     }
+
     pub fn remove(&mut self, gleis_id_lock: GleisIdLock<Z>) {
         let mut gleise = self.write();
         let mut optional_id = gleis_id_lock.write();

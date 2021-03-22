@@ -6,17 +6,21 @@ use rstar::Point;
 
 use super::types::*;
 
+/// Sammlung aller AnchorPoint für ein Gleis
 pub type AnchorPointMap = HashMap<AnchorName, AnchorPoint>;
 
+/// Bezeichner für einen AnchorPoint
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct AnchorName(pub String);
 
+/// Ein AnchorPoint repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct AnchorPoint {
     pub position: AnchorPosition,
     pub direction: AnchorDirection,
 }
 
+/// Anschluss-Position wenn startend bei (0,0) auf dem Canvas gezeichnet wird.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct AnchorPosition {
     pub x: CanvasX,
@@ -49,12 +53,14 @@ impl Point for AnchorPosition {
     }
 }
 
+/// Anschluss-Richtung (ausgehend)
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct AnchorDirection {
     pub dx: CanvasX,
     pub dy: CanvasY,
 }
 
+/// Hilfsfunktion zur automatischen AnchorName-Erzeugung.
 pub(crate) fn with_anchor_name<const N: usize>(
     description: &str,
     anchor_points: [AnchorPoint; N],

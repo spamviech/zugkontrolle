@@ -12,6 +12,7 @@ use cairo::Context;
 
 use super::anchor::*;
 use super::types::*;
+use super::widget::Zeichnen;
 
 /// Definition einer Gerade
 #[derive(Debug, Clone)]
@@ -20,17 +21,16 @@ pub struct Gerade<Z> {
     pub length: Length,
 }
 
-// TODO convert to Trait?
-impl<Z: Zugtyp> Gerade<Z> {
-    pub fn width(&self) -> u64 {
+impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
+    fn width(&self) -> u64 {
         CanvasAbstand::new(self.length.0).pixel()
     }
 
-    pub fn height(&self) -> u64 {
+    fn height(&self) -> u64 {
         Z::beschraenkung.pixel()
     }
 
-    pub fn zeichne(&self, c: Context) {
+    fn zeichne(&self, c: Context) {
         // Beschränkungen
         c.move_to(self.gleis_links().0, self.beschraenkung_oben().0);
         c.line_to(self.gleis_links().0, self.beschraenkung_unten().0);
@@ -43,7 +43,7 @@ impl<Z: Zugtyp> Gerade<Z> {
         c.line_to(self.gleis_rechts().0, self.gleis_unten().0)
     }
 
-    pub fn anchor_points(&self) -> AnchorPointMap {
+    fn anchor_points(&self) -> AnchorPointMap {
         with_anchor_name("Gerade", [
             AnchorPoint {
                 position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
@@ -55,8 +55,10 @@ impl<Z: Zugtyp> Gerade<Z> {
             },
         ])
     }
+}
 
-    // Utility functions
+// Utility functions
+impl<Z: Zugtyp> Gerade<Z> {
     fn gleis_links(&self) -> CanvasX {
         CanvasX::default()
     }
