@@ -6,7 +6,6 @@ use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use cairo::Context;
 use log::*;
-use nonempty::NonEmpty;
 use rstar::{primitives::PointWithData, RTree};
 
 use super::anchor::*;
@@ -49,6 +48,15 @@ pub enum GleisDefinition<Z> {
     Kreuzung(Kreuzung<Z>),
 }
 
+impl<Z: Zugtyp + Debug> GleisDefinition<Z> {
+    fn into_zeichnen(&self) -> &impl Zeichnen {
+        match self {
+            GleisDefinition::Gerade(gerade) => gerade,
+            _ => unimplemented!("{:?}.into_zeichnen", self),
+        }
+    }
+}
+
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]
 pub struct Position {
@@ -56,9 +64,17 @@ pub struct Position {
     pub y: CanvasY,
     pub winkel: Angle,
 }
+impl Position {
+    /// AnchorPosition nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
+    pub fn transformation(&self, anchor: AnchorPosition) -> AnchorPosition {
+        let x = CanvasX(self.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
+        let y = CanvasY(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
+        AnchorPosition { x, y }
+    }
+}
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
-pub type AnchorPointRTree<Z> = RTree<PointWithData<NonEmpty<GleisIdLock<Z>>, AnchorPosition>>;
+type AnchorPointRTree<Z> = RTree<PointWithData<GleisId<Z>, AnchorPosition>>;
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
 #[derive(Debug)]
@@ -132,26 +148,42 @@ struct GleiseInternal<Z> {
     next_id: u64,
 }
 
-impl<Z: Debug> Gleise<Z> {
+impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     pub fn add(&mut self, gleis: Gleis<Z>) -> GleisIdLock<Z> {
         let mut gleise = self.write();
         let gleis_id: u64 = gleise.next_id;
         let gleis_id_lock: GleisIdLock<Z> = GleisIdLock::new(gleis_id);
         // increase next id
         gleise.next_id += 1;
-        // TODO add to AnchorMap
-        let _bla = &gleis;
+        // add to anchor_points
+        let Gleis { definition, position } = &gleis;
+        for anchor in definition.into_zeichnen().anchor_points().values() {
+            gleise.anchor_points.insert(PointWithData::new(
+                GleisId::new(gleis_id),
+                position.transformation(anchor.position),
+            ))
+        }
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
         gleis_id_lock
     }
-
     pub fn remove(&mut self, gleis_id_lock: GleisIdLock<Z>) {
         let mut gleise = self.write();
         let mut optional_id = gleis_id_lock.write();
         // only delete once
         if let Some(gleis_id) = optional_id.as_ref() {
-            let _gleis = gleise.map.remove(gleis_id);
+            let Gleis { definition, position } = gleise
+                .map
+                .remove(gleis_id)
+                .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+            // delete from anchor_points
+            for anchor in definition.into_zeichnen().anchor_points().values() {
+                gleise.anchor_points.remove(&PointWithData::new(
+                    // TODO is it possible to use the reference we have?
+                    GleisId::new(gleis_id.0),
+                    position.transformation(anchor.position),
+                ));
+            }
         }
         // make sure everyone knows about the deletion
         *optional_id = None;
@@ -159,6 +191,6 @@ impl<Z: Debug> Gleise<Z> {
 }
 
 fn warn_poison<T: Debug>(poisoned: PoisonError<T>, description: &str) -> T {
-    warn!("Poisoned {} RwLock: {:?}", description, poisoned);
+    warn!("Poisoned {} RwLock: {:?}! Trying to continue anyway.", description, poisoned);
     poisoned.into_inner()
 }

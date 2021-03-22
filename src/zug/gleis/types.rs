@@ -48,6 +48,13 @@ pub struct Length(pub f64);
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Radius(pub f64);
 
+/// Trigonometrische Funktionen für Winkel.
+pub trait Trigonometrie {
+    fn cos(&self) -> f64;
+    fn sin(&self) -> f64;
+    fn tan(&self) -> f64;
+}
+
 /// Winkel [Bogenmaß]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Angle(pub f64);
@@ -56,6 +63,17 @@ pub struct Angle(pub f64);
 impl From<AngleDegrees> for Angle {
     fn from(AngleDegrees(f): AngleDegrees) -> Angle {
         Angle(f.to_degrees())
+    }
+}
+impl Trigonometrie for Angle {
+    fn cos(&self) -> f64 {
+        self.0.cos()
+    }
+    fn sin(&self) -> f64 {
+        self.0.sin()
+    }
+    fn tan(&self) -> f64 {
+        self.0.tan()
     }
 }
 
@@ -68,6 +86,17 @@ impl From<Angle> for AngleDegrees {
         AngleDegrees(f.to_degrees())
     }
 }
+impl Trigonometrie for AngleDegrees {
+    fn cos(&self) -> f64 {
+        self.0.to_radians().cos()
+    }
+    fn sin(&self) -> f64 {
+        self.0.to_radians().sin()
+    }
+    fn tan(&self) -> f64 {
+        self.0.to_radians().tan()
+    }
+}
 
 /// Horizontale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -77,6 +106,32 @@ impl Default for CanvasX {
         CanvasX(0.)
     }
 }
+// with Self
+impl Add<CanvasX> for CanvasX {
+    type Output = CanvasX;
+
+    fn add(self, CanvasX(rhs): CanvasX) -> CanvasX {
+        CanvasX(self.0 + rhs)
+    }
+}
+impl AddAssign<CanvasX> for CanvasX {
+    fn add_assign(&mut self, CanvasX(rhs): CanvasX) {
+        self.0 += rhs
+    }
+}
+impl Sub<CanvasX> for CanvasX {
+    type Output = Self;
+
+    fn sub(self, CanvasX(rhs): CanvasX) -> Self {
+        CanvasX(self.0 - rhs)
+    }
+}
+impl SubAssign<CanvasX> for CanvasX {
+    fn sub_assign(&mut self, CanvasX(rhs): CanvasX) {
+        self.0 -= rhs
+    }
+}
+// with CanvasAbstand
 impl Add<CanvasAbstand> for CanvasX {
     type Output = CanvasX;
 
@@ -109,6 +164,32 @@ impl Default for CanvasY {
         CanvasY(0.)
     }
 }
+// with Self
+impl Add<CanvasY> for CanvasY {
+    type Output = CanvasY;
+
+    fn add(self, CanvasY(rhs): CanvasY) -> CanvasY {
+        CanvasY(self.0 + rhs)
+    }
+}
+impl AddAssign<CanvasY> for CanvasY {
+    fn add_assign(&mut self, CanvasY(rhs): CanvasY) {
+        self.0 += rhs
+    }
+}
+impl Sub<CanvasY> for CanvasY {
+    type Output = Self;
+
+    fn sub(self, CanvasY(rhs): CanvasY) -> Self {
+        CanvasY(self.0 - rhs)
+    }
+}
+impl SubAssign<CanvasY> for CanvasY {
+    fn sub_assign(&mut self, CanvasY(rhs): CanvasY) {
+        self.0 -= rhs
+    }
+}
+// with CanvasAbstand
 impl Add<CanvasAbstand> for CanvasY {
     type Output = Self;
 
