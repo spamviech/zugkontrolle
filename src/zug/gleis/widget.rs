@@ -28,11 +28,16 @@ pub trait Zeichnen {
     /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
     fn zeichne(&self, c: Context);
 
+    /// Identifier for AnchorPoints.
+    /// An enum is advised, but others work as well.
+    ///
+    /// Since they are used as keys in an HashMap, Hash+Eq must be implemented (derived).
+    type AnchorName;
     /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei (0,0),
     /// Richtung nach außen zeigend.
-    fn anchor_points(&self) -> AnchorPointMap;
+    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName>;
 }
 
 /// Definition eines Gleises
@@ -43,8 +48,17 @@ pub enum GleisDefinition<Z> {
     Weiche(Weiche<Z>),
     Kreuzung(Kreuzung<Z>),
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GleisAnchors {
+    Gerade(GeradeAnchors),
+    /* Kurve(KurveAnchors),
+     * Weiche(WeicheAnchors),
+     * Kreuzung(KreuzungAnchors), */
+}
 
 impl<Z: Zugtyp + Debug> Zeichnen for GleisDefinition<Z> {
+    type AnchorName = GleisAnchors;
+
     fn width(&self) -> u64 {
         match self {
             GleisDefinition::Gerade(gerade) => gerade.width(),
@@ -66,9 +80,13 @@ impl<Z: Zugtyp + Debug> Zeichnen for GleisDefinition<Z> {
         }
     }
 
-    fn anchor_points(&self) -> AnchorPointMap {
+    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
         match self {
-            GleisDefinition::Gerade(gerade) => gerade.anchor_points(),
+            GleisDefinition::Gerade(gerade) => gerade
+                .anchor_points()
+                .into_iter()
+                .map(|(k, v)| (GleisAnchors::Gerade(k), v))
+                .collect(),
             _ => unimplemented!("{:?}.anchor_points()", self),
         }
     }
@@ -96,6 +114,10 @@ impl<Z> Clone for GleisIdLock<Z> {
 }
 
 impl<Z: Debug> GleisIdLock<Z> {
+    fn new(gleis_id: u64) -> GleisIdLock<Z> {
+        GleisIdLock(Arc::new(RwLock::new(Some(GleisId::new(gleis_id)))))
+    }
+
     pub fn read(&self) -> RwLockReadGuard<Option<GleisId<Z>>> {
         self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
@@ -110,6 +132,11 @@ impl<Z: Debug> GleisIdLock<Z> {
 /// The API will only provide &GleisIdLock<Z>.
 #[derive(Debug)]
 pub struct GleisId<Z>(u64, PhantomData<*const Z>);
+impl<Z> GleisId<Z> {
+    fn new(gleis_id: u64) -> GleisId<Z> {
+        GleisId(gleis_id, PhantomData)
+    }
+}
 // explicit implementation needed due to phantom type
 // derived instead required corresponding Trait implemented on phantom type
 impl<Z> PartialEq for GleisId<Z> {
@@ -152,14 +179,13 @@ impl<Z: Debug> Gleise<Z> {
     pub fn add(&mut self, gleis: Gleis<Z>) -> GleisIdLock<Z> {
         let mut gleise = self.write();
         let gleis_id: u64 = gleise.next_id;
+        let gleis_id_lock: GleisIdLock<Z> = GleisIdLock::new(gleis_id);
         // increase next id
         gleise.next_id += 1;
         // TODO add to AnchorMap
-        let gleis_id_lock: GleisIdLock<Z> =
-            GleisIdLock(Arc::new(RwLock::new(Some(GleisId(gleis_id, PhantomData)))));
         let _bla = &gleis;
-        // TODO add to HashMap
-        gleise.map.insert(GleisId(gleis_id, PhantomData), gleis);
+        // add to HashMap
+        gleise.map.insert(GleisId::new(gleis_id), gleis);
         gleis_id_lock
     }
 

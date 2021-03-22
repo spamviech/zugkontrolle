@@ -7,11 +7,11 @@ use rstar::Point;
 use super::types::*;
 
 /// Sammlung aller AnchorPoint für ein Gleis
-pub type AnchorPointMap = HashMap<AnchorName, AnchorPoint>;
+pub type AnchorPointMap<AnchorName> = HashMap<AnchorName, AnchorPoint>;
 
-/// Bezeichner für einen AnchorPoint
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct AnchorName(pub String);
+// /// Bezeichner für einen AnchorPoint
+// #[derive(Debug, Hash, PartialEq, Eq)]
+// pub struct AnchorName(pub String);
 
 /// Ein AnchorPoint repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -60,11 +60,19 @@ pub struct AnchorDirection {
     pub dy: CanvasY,
 }
 
+/*
+FIXME requires min_const_generics, might come to stable soon
+https://github.com/rust-lang/rust/pull/79135
+The version target is 1.50 (2020-12-31 => beta, 2021-02-11 => stable) 1.51 (2021-02-11 => beta,
+2021-03-25 => stable).
+
+enums are probably better anyway
+
 /// Hilfsfunktion zur automatischen AnchorName-Erzeugung.
 pub(crate) fn with_anchor_name<const N: usize>(
     description: &str,
     anchor_points: [AnchorPoint; N],
-) -> AnchorPointMap {
+) -> AnchorPointMap<String> {
     let mut anchor_point_map = HashMap::new();
     for i in 0 .. N {
         let anchor_point = anchor_points[i];
@@ -72,3 +80,4 @@ pub(crate) fn with_anchor_name<const N: usize>(
     }
     anchor_point_map
 }
+*/

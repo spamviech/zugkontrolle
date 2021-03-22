@@ -6,6 +6,8 @@
 // (nightly crashes atm on Sized-check)
 // https://github.com/rust-lang/rust/issues/55467
 
+use std::collections::HashMap;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 use cairo::Context;
@@ -21,7 +23,15 @@ pub struct Gerade<Z> {
     pub length: Length,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum GeradeAnchors {
+    Anfang,
+    Ende,
+}
+
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
+    type AnchorName = GeradeAnchors;
+
     fn width(&self) -> u64 {
         CanvasAbstand::new(self.length.0).pixel()
     }
@@ -43,17 +53,17 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         c.line_to(self.gleis_rechts().0, self.gleis_unten().0)
     }
 
-    fn anchor_points(&self) -> AnchorPointMap {
-        with_anchor_name("Gerade", [
-            AnchorPoint {
-                position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
-                direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
-            },
-            AnchorPoint {
-                position: AnchorPosition { x: self.gleis_rechts(), y: self.beschraenkung_mitte() },
-                direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
-            },
-        ])
+    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
+        let mut anchor_points = HashMap::with_capacity(2);
+        anchor_points.insert(GeradeAnchors::Anfang, AnchorPoint {
+            position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
+            direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
+        });
+        anchor_points.insert(GeradeAnchors::Ende, AnchorPoint {
+            position: AnchorPosition { x: self.gleis_rechts(), y: self.beschraenkung_mitte() },
+            direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
+        });
+        anchor_points
     }
 }
 
