@@ -1,9 +1,10 @@
 //! anchor points to mark connection points of a rail
 
-use nonempty::NonEmpty;
-use rstar::{primitives::PointWithData, Point, RTree};
 use std::collections::HashMap;
-use std::marker::PhantomData;
+
+use rstar::Point;
+
+use super::types::*;
 
 pub type AnchorPointMap = HashMap<AnchorName, AnchorPoint>;
 
@@ -18,30 +19,31 @@ pub struct AnchorPoint {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct AnchorPosition {
-    pub x: f64,
-    pub y: f64,
+    pub x: CanvasX,
+    pub y: CanvasY,
 }
 // copy+paste from example implementation for IntegerPoint
 impl Point for AnchorPosition {
     type Scalar = f64;
+
     const DIMENSIONS: usize = 2;
 
     fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self {
-        AnchorPosition { x: generator(0), y: generator(1) }
+        AnchorPosition { x: CanvasX(generator(0)), y: CanvasY(generator(1)) }
     }
 
     fn nth(&self, index: usize) -> Self::Scalar {
         match index {
-            0 => self.x,
-            1 => self.y,
+            0 => self.x.0,
+            1 => self.y.0,
             _ => unreachable!(),
         }
     }
 
     fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar {
         match index {
-            0 => &mut self.x,
-            1 => &mut self.y,
+            0 => &mut self.x.0,
+            1 => &mut self.y.0,
             _ => unreachable!(),
         }
     }
@@ -49,13 +51,18 @@ impl Point for AnchorPosition {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct AnchorDirection {
-    pub x: f64,
-    pub y: f64,
+    pub dx: CanvasX,
+    pub dy: CanvasY,
 }
 
-/// R-Tree of all anchor points, specifying the corresponding widget
-pub type AnchorPointRTree<Z> = RTree<PointWithData<NonEmpty<GleisId<Z>>, AnchorPosition>>;
-
-/// Identifier for corresponding widget
-/// TODO: use Mutex instead?
-pub struct GleisId<Z>(u64, PhantomData<Z>);
+pub(crate) fn with_anchor_name<const N: usize>(
+    description: &str,
+    anchor_points: [AnchorPoint; N],
+) -> AnchorPointMap {
+    let mut anchor_point_map = HashMap::new();
+    for i in 0 .. N {
+        let anchor_point = anchor_points[i];
+        anchor_point_map.insert(AnchorName(format!("{}{}", description, i)), anchor_point);
+    }
+    anchor_point_map
+}

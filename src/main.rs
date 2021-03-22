@@ -1,10 +1,19 @@
+// #![feature(min_const_generics)]
+// shouldn't be necessary for long
+// https://github.com/rust-lang/rust/pull/79135
+// The version target is 1.50 (2020-12-31 => beta, 2021-02-11 => stable) 1.51 (2021-02-11 => beta,
+// 2021-03-25 => stable).
+
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, Button};
+use simple_logger::SimpleLogger;
 
 pub mod zug;
 
 fn main() {
+    SimpleLogger::new().init().expect("failed to initialize error logging");
+
     let application =
         Application::new(None, Default::default()).expect("failed to initialize GTK application");
 
