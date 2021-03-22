@@ -44,6 +44,36 @@ pub enum GleisDefinition<Z> {
     Kreuzung(Kreuzung<Z>),
 }
 
+impl<Z: Zugtyp + Debug> Zeichnen for GleisDefinition<Z> {
+    fn width(&self) -> u64 {
+        match self {
+            GleisDefinition::Gerade(gerade) => gerade.width(),
+            _ => unimplemented!("{:?}.width()", self),
+        }
+    }
+
+    fn height(&self) -> u64 {
+        match self {
+            GleisDefinition::Gerade(gerade) => gerade.height(),
+            _ => unimplemented!("{:?}.height()", self),
+        }
+    }
+
+    fn zeichne(&self, c: Context) {
+        match self {
+            GleisDefinition::Gerade(gerade) => gerade.zeichne(c),
+            _ => unimplemented!("{:?}.zeichne(c)", self),
+        }
+    }
+
+    fn anchor_points(&self) -> AnchorPointMap {
+        match self {
+            GleisDefinition::Gerade(gerade) => gerade.anchor_points(),
+            _ => unimplemented!("{:?}.anchor_points()", self),
+        }
+    }
+}
+
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]
 pub struct Position {
