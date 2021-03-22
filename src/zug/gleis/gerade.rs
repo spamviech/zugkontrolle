@@ -23,39 +23,43 @@ pub struct Gerade<Z> {
 // TODO convert to Trait?
 impl<Z: Zugtyp> Gerade<Z> {
     pub fn width(&self) -> u64 {
-        self.length.0.ceil() as u64
+        CanvasAbstand::new(self.length.0).pixel()
     }
 
     pub fn height(&self) -> u64 {
-        Z::beschraenkung.0.ceil() as u64
+        Z::beschraenkung.pixel()
     }
 
     pub fn zeichne(&self, c: Context) {
+        let gleis_links: CanvasX = CanvasX::default();
+        let gleis_rechts: CanvasX = CanvasX::default() + CanvasAbstand::new(self.length.0);
+        let beschraenkung_oben: CanvasY = CanvasY::default();
+        let beschraenkung_unten: CanvasY = CanvasY::default() + Z::beschraenkung;
         // Beschränkungen
-        c.move_to(0., 0.);
-        c.line_to(0., Z::beschraenkung.0);
-        c.move_to(self.length.0, 0.);
-        c.line_to(self.length.0, Z::beschraenkung.0);
+        c.move_to(gleis_links.0, beschraenkung_oben.0);
+        c.line_to(gleis_links.0, beschraenkung_unten.0);
+        c.move_to(gleis_rechts.0, beschraenkung_oben.0);
+        c.line_to(gleis_rechts.0, beschraenkung_unten.0);
         // Gleis
-        let gleis_oben = Z::abstand.0;
-        let gleis_unten = Z::beschraenkung.0;
-        c.move_to(0., gleis_oben);
-        c.line_to(self.length.0, gleis_oben);
-        c.move_to(0., gleis_unten);
-        c.line_to(self.length.0, gleis_unten)
+        let gleis_oben: CanvasY = CanvasY::default() + Z::abstand;
+        let gleis_unten: CanvasY = CanvasY::default() + Z::beschraenkung;
+        c.move_to(gleis_links.0, gleis_oben.0);
+        c.line_to(gleis_rechts.0, gleis_oben.0);
+        c.move_to(gleis_links.0, gleis_unten.0);
+        c.line_to(gleis_rechts.0, gleis_unten.0)
     }
 
     pub fn anchor_points(&self) -> AnchorPointMap {
+        let gleis_links: CanvasX = CanvasX::default();
+        let gleis_rechts: CanvasX = CanvasX::default() + CanvasAbstand::new(self.length.0);
+        let beschraenkung_mitte: CanvasY = CanvasY::default() + 0.5 * Z::beschraenkung;
         with_anchor_name("Gerade", [
             AnchorPoint {
-                position: AnchorPosition { x: CanvasX(0.), y: CanvasY(0.5 * Z::beschraenkung.0) },
+                position: AnchorPosition { x: gleis_links, y: beschraenkung_mitte },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
             AnchorPoint {
-                position: AnchorPosition {
-                    x: CanvasX(self.length.0),
-                    y: CanvasY(0.5 * Z::beschraenkung.0),
-                },
+                position: AnchorPosition { x: gleis_rechts, y: beschraenkung_mitte },
                 direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
         ])
