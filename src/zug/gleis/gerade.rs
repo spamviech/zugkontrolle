@@ -38,7 +38,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         Z::beschraenkung().pixel()
     }
 
-    fn zeichne(&self, cairo: Cairo) {
+    fn zeichne(&self, cairo: &Cairo) {
         // Beschränkungen
         cairo.move_to(self.gleis_links(), self.beschraenkung_oben());
         cairo.line_to(self.gleis_links(), self.beschraenkung_unten());

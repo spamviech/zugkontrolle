@@ -26,7 +26,7 @@ pub trait Zeichnen {
     /// Darstellen im Kontext an Position (0,0).
     ///
     /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
-    fn zeichne(&self, cairo: Cairo);
+    fn zeichne(&self, cairo: &Cairo);
 
     /// Identifier for AnchorPoints.
     /// An enum is advised, but others work as well.

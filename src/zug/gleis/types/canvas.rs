@@ -1,9 +1,10 @@
 //! newtypes für einen cairo::Context
 
 use std::convert::From;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use cairo::Context;
+pub use cairo::Matrix;
 
 use super::angle::Angle;
 
@@ -56,6 +57,10 @@ impl Cairo {
     pub fn rotate(&self, angle: Angle) {
         self.0.rotate(angle.0)
     }
+
+    pub fn transform(&self, matrix: Matrix) {
+        self.0.transform(matrix)
+    }
 }
 
 /// Horizontale Koordinate auf einem Cairo-Canvas
@@ -90,6 +95,13 @@ impl SubAssign<CanvasAbstand> for CanvasX {
         self.0 -= rhs
     }
 }
+impl Neg for CanvasX {
+    type Output = CanvasX;
+
+    fn neg(self) -> Self {
+        CanvasX(-self.0)
+    }
+}
 /// Vertikale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CanvasY(pub f64);
@@ -120,6 +132,13 @@ impl Sub<CanvasAbstand> for CanvasY {
 impl SubAssign<CanvasAbstand> for CanvasY {
     fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 -= rhs
+    }
+}
+impl Neg for CanvasY {
+    type Output = CanvasY;
+
+    fn neg(self) -> Self {
+        CanvasY(-self.0)
     }
 }
 /// Radius auf einem Cairo-Canvas

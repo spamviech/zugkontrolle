@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 
 use super::anchor::*;
 use super::types::*;
-use super::widget::*;
+use super::widget::Zeichnen;
 
 /// Definition einer Kurve
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         Z::beschraenkung().max(&comparison).pixel()
     }
 
-    fn zeichne(&self, cairo: Cairo) {
+    fn zeichne(&self, cairo: &Cairo) {
         zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), KurvenBeschraenkung::Alle)
     }
 
@@ -111,7 +111,7 @@ impl KurvenBeschraenkung {
 }
 
 pub(crate) fn zeichne_kurve<Z: Zugtyp>(
-    cairo: Cairo,
+    cairo: &Cairo,
     radius: Radius,
     winkel: Angle,
     beschraenkungen: KurvenBeschraenkung,
