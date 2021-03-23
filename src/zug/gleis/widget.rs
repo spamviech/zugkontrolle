@@ -6,7 +6,6 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use cairo::Context;
 use log::*;
 use rstar::{primitives::PointWithData, RTree};
 
@@ -27,7 +26,7 @@ pub trait Zeichnen {
     /// Darstellen im Kontext an Position (0,0).
     ///
     /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
-    fn zeichne(&self, c: Context);
+    fn zeichne(&self, cairo: Cairo);
 
     /// Identifier for AnchorPoints.
     /// An enum is advised, but others work as well.

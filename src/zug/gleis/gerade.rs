@@ -10,8 +10,6 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use cairo::Context;
-
 use super::anchor::*;
 use super::types::*;
 use super::widget::Zeichnen;
@@ -40,17 +38,17 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         Z::beschraenkung().pixel()
     }
 
-    fn zeichne(&self, c: Context) {
+    fn zeichne(&self, cairo: Cairo) {
         // Beschränkungen
-        c.move_to(self.gleis_links().0, self.beschraenkung_oben().0);
-        c.line_to(self.gleis_links().0, self.beschraenkung_unten().0);
-        c.move_to(self.gleis_rechts().0, self.beschraenkung_oben().0);
-        c.line_to(self.gleis_rechts().0, self.beschraenkung_unten().0);
+        cairo.move_to(self.gleis_links(), self.beschraenkung_oben());
+        cairo.line_to(self.gleis_links(), self.beschraenkung_unten());
+        cairo.move_to(self.gleis_rechts(), self.beschraenkung_oben());
+        cairo.line_to(self.gleis_rechts(), self.beschraenkung_unten());
         // Gleis
-        c.move_to(self.gleis_links().0, self.gleis_oben().0);
-        c.line_to(self.gleis_rechts().0, self.gleis_oben().0);
-        c.move_to(self.gleis_links().0, self.gleis_unten().0);
-        c.line_to(self.gleis_rechts().0, self.gleis_unten().0)
+        cairo.move_to(self.gleis_links(), self.gleis_oben());
+        cairo.line_to(self.gleis_rechts(), self.gleis_oben());
+        cairo.move_to(self.gleis_links(), self.gleis_unten());
+        cairo.line_to(self.gleis_rechts(), self.gleis_unten())
     }
 
     fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {

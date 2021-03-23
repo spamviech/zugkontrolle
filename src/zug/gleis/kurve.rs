@@ -10,8 +10,6 @@ use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
 
-use cairo::Context;
-
 use super::anchor::*;
 use super::types::*;
 use super::widget::*;
@@ -53,8 +51,8 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         Z::beschraenkung().max(&comparison).pixel()
     }
 
-    fn zeichne(&self, c: Context) {
-        zeichne_kurve::<Z>(c, self.radius, self.angle.into(), KurvenBeschraenkung::Alle)
+    fn zeichne(&self, cairo: Cairo) {
+        zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), KurvenBeschraenkung::Alle)
     }
 
     fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
@@ -113,7 +111,7 @@ impl KurvenBeschraenkung {
 }
 
 pub(crate) fn zeichne_kurve<Z: Zugtyp>(
-    c: Context,
+    cairo: Cairo,
     radius: Radius,
     winkel: Angle,
     beschraenkungen: KurvenBeschraenkung,
@@ -135,26 +133,14 @@ pub(crate) fn zeichne_kurve<Z: Zugtyp>(
     let bogen_zentrum_y: CanvasY = CanvasY::default() + Z::abstand + radius_aussen.into();
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {
-        c.move_to(gleis_links.0, gleis_links_oben.0);
-        c.line_to(gleis_links.0, gleis_links_unten.0);
+        cairo.move_to(gleis_links, gleis_links_oben);
+        cairo.line_to(gleis_links, gleis_links_unten);
     }
     if beschraenkungen.end_beschraenkung() {
-        c.move_to(begrenzung_x0.0, begrenzung_y0.0);
-        c.line_to(begrenzung_x1.0, begrenzung_y1.0);
+        cairo.move_to(begrenzung_x0, begrenzung_y0);
+        cairo.line_to(begrenzung_x1, begrenzung_y1);
     }
     // Gleis
-    c.arc(
-        gleis_links.0,
-        bogen_zentrum_y.0,
-        radius_aussen.0,
-        winkel_anfang.0,
-        (winkel_anfang + winkel).0,
-    );
-    c.arc(
-        gleis_links.0,
-        bogen_zentrum_y.0,
-        radius_innen.0,
-        winkel_anfang.0,
-        (winkel_anfang + winkel).0,
-    );
+    cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_anfang + winkel);
+    cairo.arc(gleis_links, bogen_zentrum_y, radius_innen, winkel_anfang, winkel_anfang + winkel);
 }
