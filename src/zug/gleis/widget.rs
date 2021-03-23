@@ -46,6 +46,9 @@ pub enum GleisDefinition<Z> {
     Gerade(Gerade<Z>),
     Kurve(Kurve<Z>),
     Weiche(Weiche<Z>),
+    DreiwegeWeiche(DreiwegeWeiche<Z>),
+    KurvenWeiche(KurvenWeiche<Z>),
+    SKurveWeiche(SKurveWeiche<Z>),
     Kreuzung(Kreuzung<Z>),
 }
 
@@ -53,6 +56,14 @@ impl<Z: Zugtyp + Debug> GleisDefinition<Z> {
     fn into_zeichnen(&self) -> &impl Zeichnen {
         match self {
             GleisDefinition::Gerade(gerade) => gerade,
+            // GleisDefinition::Kurve(kurve) => kurve,
+            // TODO Weichen
+            // GleisDefinition::Kreuzung(kreuzung) => kreuzung
+            // FIXME impl needs equal return types
+            // Box<dyn Zeichnen> needs a specification for associated type AnchorName
+            // probably means we need explicit match statements everywhere :(
+            // or a reimplementation for required methods here?
+            // currently required: anchor_points().values()
             _ => unimplemented!("{:?}.into_zeichnen", self),
         }
     }
