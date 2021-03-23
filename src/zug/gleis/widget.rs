@@ -149,6 +149,7 @@ struct GleiseInternal<Z> {
 }
 
 impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
+    /// Add a new gleis to its position.
     pub fn add(&mut self, gleis: Gleis<Z>) -> GleisIdLock<Z> {
         let mut gleise = self.write();
         let gleis_id: u64 = gleise.next_id;
@@ -167,6 +168,36 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         gleise.map.insert(GleisId::new(gleis_id), gleis);
         gleis_id_lock
     }
+    /// Move an existing gleis to the new position.
+    ///
+    /// This is called relocate instead of move since the latter is a reserved keyword.
+    pub fn relocate(&mut self, gleis_id: &GleisId<Z>, position_neu: Position) {
+        let GleiseInternal { map, anchor_points, next_id: _ } = &mut *self.write();
+        let Gleis { definition, position } =
+            map.get_mut(gleis_id).expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+        // delete from anchor_points
+        for anchor in definition.into_zeichnen().anchor_points().values() {
+            // delete old anchor position
+            anchor_points.remove(&PointWithData::new(
+                // TODO is it possible to use the reference we have?
+                GleisId::new(gleis_id.0),
+                position.transformation(anchor.position),
+            ));
+            // add new anchor position
+            anchor_points.insert(PointWithData::new(
+                // TODO is it possible to use the reference we have?
+                GleisId::new(gleis_id.0),
+                position_neu.transformation(anchor.position),
+            ))
+        }
+        // store new position
+        *position = position_neu;
+    }
+    /// Remove the Gleis associated the the GleisId.
+    ///
+    /// The value contained inside GleisIdLock<Z> is set to None.
+    /// Removing a value multiple times is no error.
+    /// Only the first remove has an effect.
     pub fn remove(&mut self, gleis_id_lock: GleisIdLock<Z>) {
         let mut gleise = self.write();
         let mut optional_id = gleis_id_lock.write();
