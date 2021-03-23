@@ -35,7 +35,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn width(&self) -> u64 {
         let factor = if self.angle.abs() < Angle(0.5 * PI) { self.angle.sin() } else { 1. };
-        (Z::beschraenkung * factor).pixel()
+        (Z::beschraenkung() * factor).pixel()
     }
 
     fn height(&self) -> u64 {
@@ -43,14 +43,14 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         let angle_abs = self.angle.abs();
         let comparison = if angle_abs < Angle(0.5 * PI) {
             Z::radius_begrenzung(self.radius) * (1. - self.angle.cos())
-                + Z::beschraenkung * self.angle.cos()
+                + Z::beschraenkung() * self.angle.cos()
         } else if angle_abs < Angle(PI) {
             Z::radius_begrenzung(self.radius) * (1. - self.angle.cos())
         } else {
             Z::radius_begrenzung(self.radius)
         };
         // Mindestgröße: Beschränkung einer Geraden
-        Z::beschraenkung.max(&comparison).pixel()
+        Z::beschraenkung().max(&comparison).pixel()
     }
 
     fn zeichne(&self, c: Context) {
@@ -64,7 +64,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             AnchorPoint {
                 position: AnchorPosition {
                     x: CanvasX::default(),
-                    y: CanvasY::default() + 0.5 * Z::beschraenkung,
+                    y: CanvasY::default() + 0.5 * Z::beschraenkung(),
                 },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
@@ -75,7 +75,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                 position: AnchorPosition {
                     x: CanvasX(self.radius.0 * self.angle.sin()),
                     y: CanvasY::default()
-                        + (0.5 * Z::beschraenkung
+                        + (0.5 * Z::beschraenkung()
                             + CanvasAbstand::new(self.radius.0) * (1. - self.angle.cos())),
                 },
                 direction: AnchorDirection {
@@ -123,15 +123,15 @@ pub(crate) fn zeichne_kurve<Z: Zugtyp>(
     let winkel_anfang: Angle = Angle(3. * PI / 2.);
     let gleis_links: CanvasX = CanvasX::default();
     let gleis_links_oben: CanvasY = CanvasY::default();
-    let gleis_links_unten: CanvasY = CanvasY::default() + Z::beschraenkung;
+    let gleis_links_unten: CanvasY = CanvasY::default() + Z::beschraenkung();
     let radius_innen: CanvasRadius = CanvasRadius::default() + radius_abstand - 0.5 * spurweite;
     let radius_aussen: CanvasRadius = CanvasRadius::default() + radius_abstand + 0.5 * spurweite;
     let radius_begrenzung_aussen: CanvasAbstand = CanvasAbstand::from(radius_aussen) + Z::abstand;
     let begrenzung_x0: CanvasX = CanvasX::default() + radius_begrenzung_aussen * winkel.sin();
     let begrenzung_y0: CanvasY =
         CanvasY::default() + radius_begrenzung_aussen * (1. - winkel.cos());
-    let begrenzung_x1: CanvasX = begrenzung_x0 - Z::beschraenkung * winkel.sin();
-    let begrenzung_y1: CanvasY = begrenzung_y0 + Z::beschraenkung * winkel.cos();
+    let begrenzung_x1: CanvasX = begrenzung_x0 - Z::beschraenkung() * winkel.sin();
+    let begrenzung_y1: CanvasY = begrenzung_y0 + Z::beschraenkung() * winkel.cos();
     let bogen_zentrum_y: CanvasY = CanvasY::default() + Z::abstand + radius_aussen.into();
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {

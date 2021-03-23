@@ -37,7 +37,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn height(&self) -> u64 {
-        Z::beschraenkung.pixel()
+        Z::beschraenkung().pixel()
     }
 
     fn zeichne(&self, c: Context) {
@@ -55,14 +55,20 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 
     fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
         let mut anchor_points = HashMap::with_capacity(2);
-        anchor_points.insert(GeradeAnchors::Anfang, AnchorPoint {
-            position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
-            direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
-        });
-        anchor_points.insert(GeradeAnchors::Ende, AnchorPoint {
-            position: AnchorPosition { x: self.gleis_rechts(), y: self.beschraenkung_mitte() },
-            direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
-        });
+        anchor_points.insert(
+            GeradeAnchors::Anfang,
+            AnchorPoint {
+                position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
+                direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
+            },
+        );
+        anchor_points.insert(
+            GeradeAnchors::Ende,
+            AnchorPoint {
+                position: AnchorPosition { x: self.gleis_rechts(), y: self.beschraenkung_mitte() },
+                direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
+            },
+        );
         anchor_points
     }
 }
@@ -78,7 +84,7 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn beschraenkung_mitte(&self) -> CanvasY {
-        CanvasY::default() + 0.5 * Z::beschraenkung
+        CanvasY::default() + 0.5 * Z::beschraenkung()
     }
 
     fn beschraenkung_oben(&self) -> CanvasY {
@@ -86,7 +92,7 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn beschraenkung_unten(&self) -> CanvasY {
-        CanvasY::default() + Z::beschraenkung
+        CanvasY::default() + Z::beschraenkung()
     }
 
     fn gleis_oben(&self) -> CanvasY {
@@ -94,6 +100,6 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn gleis_unten(&self) -> CanvasY {
-        CanvasY::default() + Z::beschraenkung
+        CanvasY::default() + Z::beschraenkung()
     }
 }
