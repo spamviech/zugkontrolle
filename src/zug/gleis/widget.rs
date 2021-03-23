@@ -1,3 +1,5 @@
+//! Anzeige der GleisDefinition auf einem Canvas
+
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
