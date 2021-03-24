@@ -6,7 +6,6 @@
 // (nightly crashes atm on Sized-check)
 // https://github.com/rust-lang/rust/issues/55467
 
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -26,16 +25,15 @@ pub enum GeradeAnchorName {
     Anfang,
     Ende,
 }
-
 #[derive(Debug)]
-pub struct GeradeAnchors {
+pub struct GeradeAnchorPoints {
     anfang: AnchorPoint,
     ende: AnchorPoint,
 }
 
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     type AnchorName = GeradeAnchorName;
-    type AnchorPoints = GeradeAnchors;
+    type AnchorPoints = GeradeAnchorPoints;
 
     fn width(&self) -> u64 {
         CanvasAbstand::new(self.length.0).pixel()
@@ -59,7 +57,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        GeradeAnchors {
+        GeradeAnchorPoints {
             anfang: AnchorPoint {
                 position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
@@ -72,7 +70,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 }
 
-impl AnchorLookup<GeradeAnchorName> for GeradeAnchors {
+impl AnchorLookup<GeradeAnchorName> for GeradeAnchorPoints {
     fn get(&self, key: GeradeAnchorName) -> &AnchorPoint {
         match key {
             GeradeAnchorName::Anfang => &self.anfang,
@@ -85,7 +83,7 @@ impl AnchorLookup<GeradeAnchorName> for GeradeAnchors {
             GeradeAnchorName::Ende => &mut self.ende,
         }
     }
-    fn map<F: Fn(&AnchorPoint)>(&self, action: F) {
+    fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {
         action(&self.anfang);
         action(&self.ende);
     }

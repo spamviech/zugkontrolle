@@ -6,14 +6,13 @@
 // (nightly crashes atm on Sized-check)
 // https://github.com/rust-lang/rust/issues/55467
 
-use std::collections::HashMap;
 use std::marker::PhantomData;
 
 use super::anchor::*;
 use super::gerade::Gerade;
 use super::kurve::*;
 use super::types::*;
-use super::widget::Zeichnen;
+use super::widget::{AnchorLookup, Zeichnen};
 
 /// Definition einer Kreuzung
 #[derive(Debug, Clone)]
@@ -32,15 +31,23 @@ pub enum KreuzungsArt {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum KreuzungAnchors {
+pub enum KreuzungAnchorName {
     Anfang0,
     Ende0,
     Anfang1,
     Ende1,
 }
+#[derive(Debug)]
+pub struct KreuzungAnchorPoints {
+    anfang0: AnchorPoint,
+    ende0: AnchorPoint,
+    anfang1: AnchorPoint,
+    ende1: AnchorPoint,
+}
 
 impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
-    type AnchorName = KreuzungAnchors;
+    type AnchorName = KreuzungAnchorName;
+    type AnchorPoints = KreuzungAnchorPoints;
 
     fn width(&self) -> u64 {
         let width_kurve =
@@ -85,7 +92,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         }
     }
 
-    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
+    fn anchor_points(&self) -> Self::AnchorPoints {
         let width: CanvasX = CanvasX(self.width() as f64);
         let anfang0_x: CanvasX = CanvasX::default();
         let ende0_x: CanvasX = anfang0_x + CanvasAbstand::new(self.length.0);
@@ -95,35 +102,48 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let anfang1_y: CanvasY = half_height + radius_abstand * (1. - self.angle.cos());
         let ende1_x: CanvasX = width - radius_abstand * self.angle.sin();
         let ende1_y: CanvasY = half_height - radius_abstand * (1. - self.angle.cos());
-        let mut anchor_points = HashMap::with_capacity(2);
-        anchor_points.insert(
-            KreuzungAnchors::Anfang0,
-            AnchorPoint {
+        KreuzungAnchorPoints {
+            anfang0: AnchorPoint {
                 position: AnchorPosition { x: anfang0_x, y: half_height },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points.insert(
-            KreuzungAnchors::Ende0,
-            AnchorPoint {
+            ende0: AnchorPoint {
                 position: AnchorPosition { x: ende0_x, y: half_height },
                 direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points.insert(
-            KreuzungAnchors::Anfang1,
-            AnchorPoint {
+            anfang1: AnchorPoint {
                 position: AnchorPosition { x: anfang1_x, y: anfang1_y },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points.insert(
-            KreuzungAnchors::Ende1,
-            AnchorPoint {
+            ende1: AnchorPoint {
                 position: AnchorPosition { x: ende1_x, y: ende1_y },
                 direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points
+        }
+    }
+}
+
+impl AnchorLookup<KreuzungAnchorName> for KreuzungAnchorPoints {
+    fn get(&self, key: KreuzungAnchorName) -> &AnchorPoint {
+        match key {
+            KreuzungAnchorName::Anfang0 => &self.anfang0,
+            KreuzungAnchorName::Ende0 => &self.ende0,
+            KreuzungAnchorName::Anfang1 => &self.anfang1,
+            KreuzungAnchorName::Ende1 => &self.ende1,
+        }
+    }
+    fn get_mut(&mut self, key: KreuzungAnchorName) -> &mut AnchorPoint {
+        match key {
+            KreuzungAnchorName::Anfang0 => &mut self.anfang0,
+            KreuzungAnchorName::Ende0 => &mut self.ende0,
+            KreuzungAnchorName::Anfang1 => &mut self.anfang1,
+            KreuzungAnchorName::Ende1 => &mut self.ende1,
+        }
+    }
+    fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {
+        action(&self.anfang0);
+        action(&self.ende0);
+        action(&self.anfang1);
+        action(&self.ende1);
     }
 }

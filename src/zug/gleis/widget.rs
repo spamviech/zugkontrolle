@@ -48,7 +48,7 @@ pub trait AnchorLookup<AnchorName> {
     /// failure-free mutable lookup for a specific /AnchorPoint/.
     fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint;
     /// Perform action for all /AnchorPoint/s.
-    fn map<F: Fn(&AnchorPoint)>(&self, action: F);
+    fn map<F: FnMut(&AnchorPoint)>(&self, action: F);
 }
 
 /// Definition eines Gleises
@@ -176,16 +176,20 @@ fn relocate_anchor_points<T, Z>(
     definition: &T,
     position: &Position,
     position_neu: &Position,
-    gleis_id: GleisId<Z>,
+    gleis_id: u64,
 ) where
     T: Zeichnen,
     T::AnchorPoints: AnchorLookup<T::AnchorName>,
 {
     definition.anchor_points().map(|anchor| {
-        anchor_points
-            .remove(&PointWithData::new(gleis_id, position.transformation(anchor.position)));
-        anchor_points
-            .insert(PointWithData::new(gleis_id, position_neu.transformation(anchor.position)))
+        anchor_points.remove(&PointWithData::new(
+            GleisId::new(gleis_id),
+            position.transformation(anchor.position),
+        ));
+        anchor_points.insert(PointWithData::new(
+            GleisId::new(gleis_id),
+            position_neu.transformation(anchor.position),
+        ))
     })
 }
 
@@ -193,14 +197,16 @@ fn remove_anchor_points<T, Z>(
     anchor_points: &mut AnchorPointRTree<Z>,
     definition: &T,
     position: &Position,
-    gleis_id: GleisId<Z>,
+    gleis_id: u64,
 ) where
     T: Zeichnen,
     T::AnchorPoints: AnchorLookup<T::AnchorName>,
 {
     definition.anchor_points().map(|anchor| {
-        anchor_points
-            .remove(&PointWithData::new(gleis_id, position.transformation(anchor.position)));
+        anchor_points.remove(&PointWithData::new(
+            GleisId::new(gleis_id),
+            position.transformation(anchor.position),
+        ));
     })
 }
 
@@ -218,6 +224,12 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
             GleisDefinition::Gerade(gerade) => {
                 add_anchor_points(&mut gleise.anchor_points, gerade, position, gleis_id)
             }
+            GleisDefinition::Kurve(kurve) => {
+                add_anchor_points(&mut gleise.anchor_points, kurve, position, gleis_id)
+            }
+            GleisDefinition::Kreuzung(kreuzung) => {
+                add_anchor_points(&mut gleise.anchor_points, kreuzung, position, gleis_id)
+            }
             _ => unimplemented!("add anchor points"),
         }
         // add to HashMap
@@ -228,17 +240,33 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
     pub fn relocate(&mut self, gleis_id: GleisId<Z>, position_neu: Position) {
-        let GleiseInternal { map, anchor_points, next_id: _ } = &mut *self.write();
-        let Gleis { definition, position } =
-            map.get_mut(&gleis_id).expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+        let gleise: &mut GleiseInternal<Z> = &mut *self.write();
+        let Gleis { definition, position } = gleise
+            .map
+            .get_mut(&gleis_id)
+            .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
         // relocate anchor_points
         match definition {
             GleisDefinition::Gerade(gerade) => relocate_anchor_points(
-                &mut anchor_points,
+                &mut gleise.anchor_points,
                 gerade,
-                &position,
+                position,
                 &position_neu,
-                gleis_id,
+                gleis_id.0,
+            ),
+            GleisDefinition::Kurve(kurve) => relocate_anchor_points(
+                &mut gleise.anchor_points,
+                kurve,
+                position,
+                &position_neu,
+                gleis_id.0,
+            ),
+            GleisDefinition::Kreuzung(kreuzung) => relocate_anchor_points(
+                &mut gleise.anchor_points,
+                kreuzung,
+                position,
+                &position_neu,
+                gleis_id.0,
             ),
             _ => unimplemented!("add anchor points"),
         }
@@ -254,16 +282,25 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         let mut gleise = self.write();
         let mut optional_id = gleis_id_lock.write();
         // only delete once
-        if let Some(gleis_id) = *optional_id {
+        if let Some(gleis_id) = optional_id.as_ref() {
             let Gleis { definition, position } = gleise
                 .map
-                .remove(&gleis_id)
+                .remove(gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
             match definition {
                 GleisDefinition::Gerade(gerade) => {
-                    remove_anchor_points(&mut gleise.anchor_points, &gerade, &position, gleis_id)
+                    remove_anchor_points(&mut gleise.anchor_points, &gerade, &position, gleis_id.0)
                 }
+                GleisDefinition::Kurve(kurve) => {
+                    remove_anchor_points(&mut gleise.anchor_points, &kurve, &position, gleis_id.0)
+                }
+                GleisDefinition::Kreuzung(kreuzung) => remove_anchor_points(
+                    &mut gleise.anchor_points,
+                    &kreuzung,
+                    &position,
+                    gleis_id.0,
+                ),
                 _ => unimplemented!("add anchor points"),
             }
         }

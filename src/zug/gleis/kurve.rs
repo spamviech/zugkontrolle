@@ -6,13 +6,12 @@
 // (nightly crashes atm on Sized-check)
 // https://github.com/rust-lang/rust/issues/55467
 
-use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
 
 use super::anchor::*;
 use super::types::*;
-use super::widget::Zeichnen;
+use super::widget::{AnchorLookup, Zeichnen};
 
 /// Definition einer Kurve
 #[derive(Debug, Clone)]
@@ -23,13 +22,19 @@ pub struct Kurve<T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum KurveAnchors {
+pub enum KurveAnchorName {
     Anfang,
     Ende,
 }
+#[derive(Debug)]
+pub struct KurveAnchorPoints {
+    anfang: AnchorPoint,
+    ende: AnchorPoint,
+}
 
 impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
-    type AnchorName = KurveAnchors;
+    type AnchorName = KurveAnchorName;
+    type AnchorPoints = KurveAnchorPoints;
 
     fn width(&self) -> u64 {
         let factor = if self.angle.abs() < Angle(0.5 * PI) { self.angle.sin() } else { 1. };
@@ -55,21 +60,16 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), KurvenBeschraenkung::Alle)
     }
 
-    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
-        let mut anchor_points = HashMap::with_capacity(2);
-        anchor_points.insert(
-            KurveAnchors::Anfang,
-            AnchorPoint {
+    fn anchor_points(&self) -> Self::AnchorPoints {
+        KurveAnchorPoints {
+            anfang: AnchorPoint {
                 position: AnchorPosition {
                     x: CanvasX::default(),
                     y: CanvasY::default() + 0.5 * Z::beschraenkung(),
                 },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points.insert(
-            KurveAnchors::Ende,
-            AnchorPoint {
+            ende: AnchorPoint {
                 position: AnchorPosition {
                     x: CanvasX(self.radius.0 * self.angle.sin()),
                     y: CanvasY::default()
@@ -81,8 +81,26 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                     dy: CanvasY(self.angle.sin()),
                 },
             },
-        );
-        anchor_points
+        }
+    }
+}
+
+impl AnchorLookup<KurveAnchorName> for KurveAnchorPoints {
+    fn get(&self, key: KurveAnchorName) -> &AnchorPoint {
+        match key {
+            KurveAnchorName::Anfang => &self.anfang,
+            KurveAnchorName::Ende => &self.ende,
+        }
+    }
+    fn get_mut(&mut self, key: KurveAnchorName) -> &mut AnchorPoint {
+        match key {
+            KurveAnchorName::Anfang => &mut self.anfang,
+            KurveAnchorName::Ende => &mut self.ende,
+        }
+    }
+    fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {
+        action(&self.anfang);
+        action(&self.ende);
     }
 }
 
