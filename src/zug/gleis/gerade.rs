@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 
 use super::anchor::*;
 use super::types::*;
-use super::widget::Zeichnen;
+use super::widget::{AnchorLookup, Zeichnen};
 
 /// Definition einer Gerade
 #[derive(Debug, Clone)]
@@ -22,13 +22,20 @@ pub struct Gerade<Z> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum GeradeAnchors {
+pub enum GeradeAnchorName {
     Anfang,
     Ende,
 }
 
+#[derive(Debug)]
+pub struct GeradeAnchors {
+    anfang: AnchorPoint,
+    ende: AnchorPoint,
+}
+
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
-    type AnchorName = GeradeAnchors;
+    type AnchorName = GeradeAnchorName;
+    type AnchorPoints = GeradeAnchors;
 
     fn width(&self) -> u64 {
         CanvasAbstand::new(self.length.0).pixel()
@@ -51,23 +58,36 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         cairo.line_to(self.gleis_rechts(), self.gleis_unten())
     }
 
-    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName> {
-        let mut anchor_points = HashMap::with_capacity(2);
-        anchor_points.insert(
-            GeradeAnchors::Anfang,
-            AnchorPoint {
+    fn anchor_points(&self) -> Self::AnchorPoints {
+        GeradeAnchors {
+            anfang: AnchorPoint {
                 position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points.insert(
-            GeradeAnchors::Ende,
-            AnchorPoint {
+            ende: AnchorPoint {
                 position: AnchorPosition { x: self.gleis_rechts(), y: self.beschraenkung_mitte() },
                 direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
-        );
-        anchor_points
+        }
+    }
+}
+
+impl AnchorLookup<GeradeAnchorName> for GeradeAnchors {
+    fn get(&self, key: GeradeAnchorName) -> &AnchorPoint {
+        match key {
+            GeradeAnchorName::Anfang => &self.anfang,
+            GeradeAnchorName::Ende => &self.ende,
+        }
+    }
+    fn get_mut(&mut self, key: GeradeAnchorName) -> &mut AnchorPoint {
+        match key {
+            GeradeAnchorName::Anfang => &mut self.anfang,
+            GeradeAnchorName::Ende => &mut self.ende,
+        }
+    }
+    fn map<F: Fn(&AnchorPoint)>(&self, action: F) {
+        action(&self.anfang);
+        action(&self.ende);
     }
 }
 

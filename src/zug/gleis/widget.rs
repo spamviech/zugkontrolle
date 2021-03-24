@@ -47,8 +47,8 @@ pub trait AnchorLookup<AnchorName> {
     fn get(&self, key: AnchorName) -> &AnchorPoint;
     /// failure-free mutable lookup for a specific /AnchorPoint/.
     fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint;
-    /// /Iterator/ over all /AnchorPoint/s.
-    fn values(&self) -> Box<dyn Iterator<Item = AnchorPoint>>;
+    /// Perform action for all /AnchorPoint/s.
+    fn map<F: Fn(&AnchorPoint)>(&self, action: F);
 }
 
 /// Definition eines Gleises
@@ -163,12 +163,12 @@ fn add_anchor_points<T, Z>(
     T: Zeichnen,
     T::AnchorPoints: AnchorLookup<T::AnchorName>,
 {
-    for anchor in definition.anchor_points().values() {
+    definition.anchor_points().map(|anchor| {
         anchor_points.insert(PointWithData::new(
             GleisId::new(gleis_id),
             position.transformation(anchor.position),
         ))
-    }
+    })
 }
 
 fn relocate_anchor_points<T, Z>(
@@ -181,12 +181,12 @@ fn relocate_anchor_points<T, Z>(
     T: Zeichnen,
     T::AnchorPoints: AnchorLookup<T::AnchorName>,
 {
-    for anchor in definition.anchor_points().values() {
+    definition.anchor_points().map(|anchor| {
         anchor_points
             .remove(&PointWithData::new(gleis_id, position.transformation(anchor.position)));
         anchor_points
             .insert(PointWithData::new(gleis_id, position_neu.transformation(anchor.position)))
-    }
+    })
 }
 
 fn remove_anchor_points<T, Z>(
@@ -198,10 +198,10 @@ fn remove_anchor_points<T, Z>(
     T: Zeichnen,
     T::AnchorPoints: AnchorLookup<T::AnchorName>,
 {
-    for anchor in definition.anchor_points().values() {
+    definition.anchor_points().map(|anchor| {
         anchor_points
             .remove(&PointWithData::new(gleis_id, position.transformation(anchor.position)));
-    }
+    })
 }
 
 impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
