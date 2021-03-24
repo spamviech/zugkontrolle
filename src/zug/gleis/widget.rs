@@ -33,11 +33,22 @@ pub trait Zeichnen {
     ///
     /// Since they are used as keys in an HashMap, Hash+Eq must be implemented (derived).
     type AnchorName;
+    /// Storage Type for AnchorPoints, should implement /AnchorLookup<Self::AnchorName>/.
+    type AnchorPoints;
     /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
     ///
     /// Position ausgehend von zeichnen bei (0,0),
     /// Richtung nach außen zeigend.
-    fn anchor_points(&self) -> AnchorPointMap<Self::AnchorName>;
+    fn anchor_points(&self) -> Self::AnchorPoints;
+}
+
+pub trait AnchorLookup<AnchorName> {
+    /// failure-free lookup for a specific /AnchorPoint/.
+    fn get(&self, key: AnchorName) -> &AnchorPoint;
+    /// failure-free mutable lookup for a specific /AnchorPoint/.
+    fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint;
+    /// /Iterator/ over all /AnchorPoint/s.
+    fn values(&self) -> Box<dyn Iterator<Item = AnchorPoint>>;
 }
 
 /// Definition eines Gleises
@@ -50,23 +61,6 @@ pub enum GleisDefinition<Z> {
     KurvenWeiche(KurvenWeiche<Z>),
     SKurveWeiche(SKurveWeiche<Z>),
     Kreuzung(Kreuzung<Z>),
-}
-
-impl<Z: Zugtyp + Debug> GleisDefinition<Z> {
-    fn into_zeichnen(&self) -> &impl Zeichnen {
-        match self {
-            GleisDefinition::Gerade(gerade) => gerade,
-            // GleisDefinition::Kurve(kurve) => kurve,
-            // TODO Weichen
-            // GleisDefinition::Kreuzung(kreuzung) => kreuzung
-            // FIXME impl needs equal return types
-            // Box<dyn Zeichnen> needs a specification for associated type AnchorName
-            // probably means we need explicit match statements everywhere :(
-            // or a reimplementation for required methods here?
-            // currently required: anchor_points().values()
-            _ => unimplemented!("{:?}.into_zeichnen", self),
-        }
-    }
 }
 
 /// Position eines Gleises/Textes auf der Canvas
@@ -160,6 +154,56 @@ struct GleiseInternal<Z> {
     next_id: u64,
 }
 
+fn add_anchor_points<T, Z>(
+    anchor_points: &mut AnchorPointRTree<Z>,
+    definition: &T,
+    position: &Position,
+    gleis_id: u64,
+) where
+    T: Zeichnen,
+    T::AnchorPoints: AnchorLookup<T::AnchorName>,
+{
+    for anchor in definition.anchor_points().values() {
+        anchor_points.insert(PointWithData::new(
+            GleisId::new(gleis_id),
+            position.transformation(anchor.position),
+        ))
+    }
+}
+
+fn relocate_anchor_points<T, Z>(
+    anchor_points: &mut AnchorPointRTree<Z>,
+    definition: &T,
+    position: &Position,
+    position_neu: &Position,
+    gleis_id: GleisId<Z>,
+) where
+    T: Zeichnen,
+    T::AnchorPoints: AnchorLookup<T::AnchorName>,
+{
+    for anchor in definition.anchor_points().values() {
+        anchor_points
+            .remove(&PointWithData::new(gleis_id, position.transformation(anchor.position)));
+        anchor_points
+            .insert(PointWithData::new(gleis_id, position_neu.transformation(anchor.position)))
+    }
+}
+
+fn remove_anchor_points<T, Z>(
+    anchor_points: &mut AnchorPointRTree<Z>,
+    definition: &T,
+    position: &Position,
+    gleis_id: GleisId<Z>,
+) where
+    T: Zeichnen,
+    T::AnchorPoints: AnchorLookup<T::AnchorName>,
+{
+    for anchor in definition.anchor_points().values() {
+        anchor_points
+            .remove(&PointWithData::new(gleis_id, position.transformation(anchor.position)));
+    }
+}
+
 impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Add a new gleis to its position.
     pub fn add(&mut self, gleis: Gleis<Z>) -> GleisIdLock<Z> {
@@ -170,11 +214,11 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         gleise.next_id += 1;
         // add to anchor_points
         let Gleis { definition, position } = &gleis;
-        for anchor in definition.into_zeichnen().anchor_points().values() {
-            gleise.anchor_points.insert(PointWithData::new(
-                GleisId::new(gleis_id),
-                position.transformation(anchor.position),
-            ))
+        match definition {
+            GleisDefinition::Gerade(gerade) => {
+                add_anchor_points(&mut gleise.anchor_points, gerade, position, gleis_id)
+            }
+            _ => unimplemented!("add anchor points"),
         }
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
@@ -183,24 +227,20 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
-    pub fn relocate(&mut self, gleis_id: &GleisId<Z>, position_neu: Position) {
+    pub fn relocate(&mut self, gleis_id: GleisId<Z>, position_neu: Position) {
         let GleiseInternal { map, anchor_points, next_id: _ } = &mut *self.write();
         let Gleis { definition, position } =
-            map.get_mut(gleis_id).expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
-        // delete from anchor_points
-        for anchor in definition.into_zeichnen().anchor_points().values() {
-            // delete old anchor position
-            anchor_points.remove(&PointWithData::new(
-                // TODO is it possible to use the reference we have?
-                GleisId::new(gleis_id.0),
-                position.transformation(anchor.position),
-            ));
-            // add new anchor position
-            anchor_points.insert(PointWithData::new(
-                // TODO is it possible to use the reference we have?
-                GleisId::new(gleis_id.0),
-                position_neu.transformation(anchor.position),
-            ))
+            map.get_mut(&gleis_id).expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+        // relocate anchor_points
+        match definition {
+            GleisDefinition::Gerade(gerade) => relocate_anchor_points(
+                &mut anchor_points,
+                gerade,
+                &position,
+                &position_neu,
+                gleis_id,
+            ),
+            _ => unimplemented!("add anchor points"),
         }
         // store new position
         *position = position_neu;
@@ -214,18 +254,17 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         let mut gleise = self.write();
         let mut optional_id = gleis_id_lock.write();
         // only delete once
-        if let Some(gleis_id) = optional_id.as_ref() {
+        if let Some(gleis_id) = *optional_id {
             let Gleis { definition, position } = gleise
                 .map
-                .remove(gleis_id)
+                .remove(&gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
-            for anchor in definition.into_zeichnen().anchor_points().values() {
-                gleise.anchor_points.remove(&PointWithData::new(
-                    // TODO is it possible to use the reference we have?
-                    GleisId::new(gleis_id.0),
-                    position.transformation(anchor.position),
-                ));
+            match definition {
+                GleisDefinition::Gerade(gerade) => {
+                    remove_anchor_points(&mut gleise.anchor_points, &gerade, &position, gleis_id)
+                }
+                _ => unimplemented!("add anchor points"),
             }
         }
         // make sure everyone knows about the deletion
