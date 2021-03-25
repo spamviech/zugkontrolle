@@ -3,7 +3,7 @@
 use rstar::primitives::PointWithData;
 
 use super::point;
-use crate::zug::gleis::widget::{AnchorLookup, GleisId, Position, Zeichnen};
+use crate::gleis::widget::{AnchorLookup, GleisId, Position, Zeichnen};
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
 #[derive(Debug)]

@@ -3,7 +3,8 @@ use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, Button};
 use simple_logger::SimpleLogger;
 
-pub mod zug;
+pub mod gleis;
+pub mod zugtyp;
 
 fn main() {
     SimpleLogger::new().init().expect("failed to initialize error logging");

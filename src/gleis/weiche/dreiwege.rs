@@ -8,7 +8,7 @@
 
 use std::marker::PhantomData;
 
-use crate::zug::gleis::types::*;
+use crate::gleis::types::*;
 
 /// Definition einer Dreiwege-Weiche
 #[derive(Debug, Clone)]

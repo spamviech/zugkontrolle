@@ -11,7 +11,7 @@ pub mod canvas;
 pub use angle::*;
 pub use canvas::*;
 
-use crate::zug::zugtyp::*;
+use crate::zugtyp::*;
 
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]

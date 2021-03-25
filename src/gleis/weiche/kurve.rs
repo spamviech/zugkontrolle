@@ -9,7 +9,7 @@
 use std::marker::PhantomData;
 
 use super::gerade::*;
-use crate::zug::gleis::types::*;
+use crate::gleis::types::*;
 
 /// Definition einer Kurven-Weiche
 #[derive(Debug, Clone)]

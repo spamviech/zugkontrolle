@@ -2,7 +2,7 @@
 
 use rstar;
 
-use crate::zug::gleis::types::*;
+use crate::gleis::types::*;
 
 /// Ein Point repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]

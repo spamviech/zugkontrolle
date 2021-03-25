@@ -8,11 +8,11 @@
 
 use std::marker::PhantomData;
 
-use crate::zug::gleis::anchor;
-use crate::zug::gleis::gerade::Gerade;
-use crate::zug::gleis::kurve::Kurve;
-use crate::zug::gleis::types::*;
-use crate::zug::gleis::widget::{AnchorLookup, Zeichnen};
+use crate::gleis::anchor;
+use crate::gleis::gerade::Gerade;
+use crate::gleis::kurve::Kurve;
+use crate::gleis::types::*;
+use crate::gleis::widget::{AnchorLookup, Zeichnen};
 
 /// Definition einer Weiche
 #[derive(Debug, Clone)]
