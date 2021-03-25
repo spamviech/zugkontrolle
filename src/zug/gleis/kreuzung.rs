@@ -77,7 +77,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         // utility sizes
         let width: CanvasX = CanvasX(self.width() as f64);
         let half_width: CanvasX = CanvasX(0.5 * width.0);
-        let start_x: CanvasX = CanvasX::default();
+        let start_x: CanvasX = CanvasX(0.);
         let height: CanvasY = CanvasY(self.height() as f64);
         let half_height: CanvasY = CanvasY(0.5 * height.0);
         let start_y: CanvasY = half_height - 0.5 * Z::beschraenkung();
@@ -105,12 +105,12 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let width: CanvasX = CanvasX(self.width() as f64);
-        let anfang0_x: CanvasX = CanvasX::default();
+        let anfang0_x: CanvasX = CanvasX(0.);
         let ende0_x: CanvasX = anfang0_x + CanvasAbstand::new(self.length.0);
         let half_height: CanvasY = CanvasY(0.5 * (self.height() as f64));
         let radius_abstand: CanvasAbstand = CanvasAbstand::new(self.radius.0);
         let angle = self.angle();
-        let anfang1_x: CanvasX = CanvasX::default() + radius_abstand * angle.sin();
+        let anfang1_x: CanvasX = CanvasX(0.) + radius_abstand * angle.sin();
         let anfang1_y: CanvasY = half_height + radius_abstand * (1. - angle.cos());
         let ende1_x: CanvasX = width - radius_abstand * angle.sin();
         let ende1_y: CanvasY = half_height - radius_abstand * (1. - angle.cos());

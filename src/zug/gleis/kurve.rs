@@ -64,15 +64,15 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX::default(),
-                    y: CanvasY::default() + 0.5 * Z::beschraenkung(),
+                    x: CanvasX(0.),
+                    y: CanvasY(0.) + 0.5 * Z::beschraenkung(),
                 },
                 direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
             ende: anchor::Point {
                 position: anchor::Position {
                     x: CanvasX(self.radius.0 * self.angle.sin()),
-                    y: CanvasY::default()
+                    y: CanvasY(0.)
                         + (0.5 * Z::beschraenkung()
                             + CanvasAbstand::new(self.radius.0) * (1. - self.angle.cos())),
                 },
@@ -137,18 +137,17 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     let radius_abstand = CanvasAbstand::new(radius.0);
     let spurweite = CanvasAbstand::new(Z::spurweite.0);
     let winkel_anfang: Angle = Angle(3. * PI / 2.);
-    let gleis_links: CanvasX = CanvasX::default();
-    let gleis_links_oben: CanvasY = CanvasY::default();
-    let gleis_links_unten: CanvasY = CanvasY::default() + Z::beschraenkung();
-    let radius_innen: CanvasRadius = CanvasRadius::default() + radius_abstand - 0.5 * spurweite;
-    let radius_aussen: CanvasRadius = CanvasRadius::default() + radius_abstand + 0.5 * spurweite;
+    let gleis_links: CanvasX = CanvasX(0.);
+    let gleis_links_oben: CanvasY = CanvasY(0.);
+    let gleis_links_unten: CanvasY = CanvasY(0.) + Z::beschraenkung();
+    let radius_innen: CanvasRadius = CanvasRadius(0.) + radius_abstand - 0.5 * spurweite;
+    let radius_aussen: CanvasRadius = CanvasRadius(0.) + radius_abstand + 0.5 * spurweite;
     let radius_begrenzung_aussen: CanvasAbstand = CanvasAbstand::from(radius_aussen) + Z::abstand;
-    let begrenzung_x0: CanvasX = CanvasX::default() + radius_begrenzung_aussen * winkel.sin();
-    let begrenzung_y0: CanvasY =
-        CanvasY::default() + radius_begrenzung_aussen * (1. - winkel.cos());
+    let begrenzung_x0: CanvasX = CanvasX(0.) + radius_begrenzung_aussen * winkel.sin();
+    let begrenzung_y0: CanvasY = CanvasY(0.) + radius_begrenzung_aussen * (1. - winkel.cos());
     let begrenzung_x1: CanvasX = begrenzung_x0 - Z::beschraenkung() * winkel.sin();
     let begrenzung_y1: CanvasY = begrenzung_y0 + Z::beschraenkung() * winkel.cos();
-    let bogen_zentrum_y: CanvasY = CanvasY::default() + Z::abstand + radius_aussen.into();
+    let bogen_zentrum_y: CanvasY = CanvasY(0.) + Z::abstand + radius_aussen.into();
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {
         cairo.move_to(gleis_links, gleis_links_oben);

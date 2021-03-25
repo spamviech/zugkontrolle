@@ -95,30 +95,30 @@ impl AnchorLookup<AnchorName> for AnchorPoints {
 // Utility functions
 impl<Z: Zugtyp> Gerade<Z> {
     fn gleis_links(&self) -> CanvasX {
-        CanvasX::default()
+        CanvasX(0.)
     }
 
     fn gleis_rechts(&self) -> CanvasX {
-        CanvasX::default() + CanvasAbstand::new(self.length.0)
+        CanvasX(0.) + CanvasAbstand::new(self.length.0)
     }
 
     fn beschraenkung_mitte(&self) -> CanvasY {
-        CanvasY::default() + 0.5 * Z::beschraenkung()
+        CanvasY(0.) + 0.5 * Z::beschraenkung()
     }
 
     fn beschraenkung_oben(&self) -> CanvasY {
-        CanvasY::default()
+        CanvasY(0.)
     }
 
     fn beschraenkung_unten(&self) -> CanvasY {
-        CanvasY::default() + Z::beschraenkung()
+        CanvasY(0.) + Z::beschraenkung()
     }
 
     fn gleis_oben(&self) -> CanvasY {
-        CanvasY::default() + Z::abstand
+        CanvasY(0.) + Z::abstand
     }
 
     fn gleis_unten(&self) -> CanvasY {
-        CanvasY::default() + Z::beschraenkung()
+        CanvasY(0.) + Z::beschraenkung()
     }
 }

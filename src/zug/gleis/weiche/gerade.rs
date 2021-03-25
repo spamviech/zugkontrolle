@@ -8,7 +8,11 @@
 
 use std::marker::PhantomData;
 
+use crate::zug::gleis::anchor;
+use crate::zug::gleis::gerade::Gerade;
+use crate::zug::gleis::kurve::Kurve;
 use crate::zug::gleis::types::*;
+use crate::zug::gleis::widget::{AnchorLookup, Zeichnen};
 
 /// Definition einer Weiche
 #[derive(Debug, Clone)]
@@ -19,80 +23,117 @@ pub struct Weiche<Z> {
     pub angle: AngleDegrees,
     pub direction: WeichenRichtung,
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WeichenRichtung {
     Links,
     Rechts,
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum WeicheAnchors {
+pub enum AnchorName {
     Anfang,
     Gerade,
     Kurve,
 }
-/*
-widthWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
-widthWeiche länge radius winkelBogenmaß proxy =
-    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
+#[derive(Debug)]
+pub struct AnchorPoints {
+    anfang: anchor::Point,
+    gerade: anchor::Point,
+    kurve: anchor::Point,
+}
 
-heightWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-heightWeiche = heightKurve
+impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
--- | Pfad zum Zeichnen einer Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
-zeichneWeicheRechts :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
-zeichneWeicheRechts länge radius winkel proxy = do
-    zeichneGerade länge proxy
-    Cairo.stroke
-    zeichneKurve radius winkel EndBeschränkung proxy
+    fn width(&self) -> u64 {
+        let Weiche { zugtyp, length, radius, angle, direction: _ } = *self;
+        let width_gerade = Gerade { zugtyp, length }.width();
+        let width_kurve = Kurve { zugtyp, radius, angle }.width();
+        width_gerade.max(width_kurve)
+    }
 
-anchorPointsWeicheRechts
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
-anchorPointsWeicheRechts länge radius winkelBogenmaß proxy =
-    withAnchorName
-        "WeicheRechts"
-        [ AnchorPoint
-              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
-              AnchorDirection { anchorDX = -1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition { anchorX = länge, anchorY = 0.5 * beschränkung proxy }
-              AnchorDirection { anchorDX = 1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
+    fn height(&self) -> u64 {
+        let Weiche { zugtyp, length: _, radius, angle, direction: _ } = *self;
+        Kurve { zugtyp, radius, angle }.width()
+    }
 
-zeichneWeicheLinks :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
-zeichneWeicheLinks länge radius winkelBogenmaß proxy = do
-    Cairo.translate halfWidth halfHeight
-    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-    Cairo.translate (-halfWidth) (-halfHeight)
-    zeichneWeicheRechts länge radius winkelBogenmaß proxy
-    where
-        halfWidth :: Double
-        halfWidth = 0.5 * fromIntegral (widthWeiche länge radius winkelBogenmaß proxy)
+    fn zeichne(&self, cairo: &Cairo) {
+        let Weiche { zugtyp, length, radius, angle, direction } = *self;
+        if direction == WeichenRichtung::Links {
+            // spiegel y-Achse in der Mitte
+            let x = CanvasX(0.);
+            let half_height = CanvasY(0.5 * (self.height() as f64));
+            cairo.translate(x, half_height);
+            cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
+            cairo.translate(-x, -half_height);
+        }
+        Gerade { zugtyp, length }.zeichne(cairo);
+        Kurve { zugtyp, radius, angle }.zeichne(cairo)
+    }
 
-        halfHeight :: Double
-        halfHeight = 0.5 * fromIntegral (heightWeiche radius winkelBogenmaß proxy)
+    fn anchor_points(&self) -> Self::AnchorPoints {
+        let start_height: CanvasY;
+        let mult: f64;
+        match self.direction {
+            WeichenRichtung::Links => {
+                start_height = CanvasY(0.);
+                mult = 1.;
+            }
+            WeichenRichtung::Rechts => {
+                start_height = CanvasY(self.height() as f64);
+                mult = -1.;
+            }
+        };
+        AnchorPoints {
+            anfang: anchor::Point {
+                position: anchor::Position {
+                    x: CanvasX(0.),
+                    y: start_height + mult * 0.5 * Z::beschraenkung(),
+                },
+                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(mult * 0.) },
+            },
+            gerade: anchor::Point {
+                position: anchor::Position {
+                    x: CanvasX(0.) + CanvasAbstand::new(self.length.0),
+                    y: start_height + mult * 0.5 * Z::beschraenkung(),
+                },
+                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(mult * 0.) },
+            },
+            kurve: anchor::Point {
+                position: anchor::Position {
+                    x: CanvasX(0.) + self.angle.sin() * CanvasAbstand::new(self.radius.0),
+                    y: start_height
+                        + mult
+                            * (0.5 * Z::beschraenkung()
+                                + CanvasAbstand::new(self.radius.0) * (1. - self.angle.cos())),
+                },
+                direction: anchor::Direction {
+                    dx: CanvasX(self.angle.cos()),
+                    dy: CanvasY(mult * self.angle.sin()),
+                },
+            },
+        }
+    }
+}
 
-anchorPointsWeicheLinks :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
-anchorPointsWeicheLinks länge radius winkelBogenmaß proxy =
-    withAnchorName
-        "WeicheLinks"
-        [ AnchorPoint
-              AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
-              AnchorDirection { anchorDX = -1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition { anchorX = länge, anchorY = height - 0.5 * beschränkung proxy }
-              AnchorDirection { anchorDX = 1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
-    where
-        height :: Double
-        height = fromIntegral $ heightWeiche radius winkelBogenmaß proxy
-*/
+impl AnchorLookup<AnchorName> for AnchorPoints {
+    fn get(&self, key: AnchorName) -> &anchor::Point {
+        match key {
+            AnchorName::Anfang => &self.anfang,
+            AnchorName::Gerade => &self.gerade,
+            AnchorName::Kurve => &self.kurve,
+        }
+    }
+    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point {
+        match key {
+            AnchorName::Anfang => &mut self.anfang,
+            AnchorName::Gerade => &mut self.gerade,
+            AnchorName::Kurve => &mut self.kurve,
+        }
+    }
+    fn map<F: FnMut(&anchor::Point)>(&self, mut action: F) {
+        action(&self.anfang);
+        action(&self.gerade);
+        action(&self.kurve);
+    }
+}

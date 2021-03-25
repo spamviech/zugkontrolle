@@ -66,11 +66,6 @@ impl Cairo {
 /// Horizontale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CanvasX(pub f64);
-impl Default for CanvasX {
-    fn default() -> Self {
-        CanvasX(0.)
-    }
-}
 impl Add<CanvasAbstand> for CanvasX {
     type Output = CanvasX;
 
@@ -105,11 +100,6 @@ impl Neg for CanvasX {
 /// Vertikale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CanvasY(pub f64);
-impl Default for CanvasY {
-    fn default() -> Self {
-        CanvasY(0.)
-    }
-}
 impl Add<CanvasAbstand> for CanvasY {
     type Output = Self;
 
@@ -144,11 +134,6 @@ impl Neg for CanvasY {
 /// Radius auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CanvasRadius(pub f64);
-impl Default for CanvasRadius {
-    fn default() -> Self {
-        CanvasRadius(0.)
-    }
-}
 impl Add<CanvasAbstand> for CanvasRadius {
     type Output = Self;
 
