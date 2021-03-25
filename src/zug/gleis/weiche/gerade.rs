@@ -73,43 +73,43 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: CanvasY;
-        let mult: f64;
+        let multiplier: f64;
         match self.direction {
             WeichenRichtung::Links => {
                 start_height = CanvasY(0.);
-                mult = 1.;
+                multiplier = 1.;
             }
             WeichenRichtung::Rechts => {
                 start_height = CanvasY(self.height() as f64);
-                mult = -1.;
+                multiplier = -1.;
             }
         };
         AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
                     x: CanvasX(0.),
-                    y: start_height + mult * 0.5 * Z::beschraenkung(),
+                    y: start_height + multiplier * 0.5 * Z::beschraenkung(),
                 },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(mult * 0.) },
+                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(multiplier * 0.) },
             },
             gerade: anchor::Point {
                 position: anchor::Position {
                     x: CanvasX(0.) + CanvasAbstand::new(self.length.0),
-                    y: start_height + mult * 0.5 * Z::beschraenkung(),
+                    y: start_height + multiplier * 0.5 * Z::beschraenkung(),
                 },
-                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(mult * 0.) },
+                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(multiplier * 0.) },
             },
             kurve: anchor::Point {
                 position: anchor::Position {
                     x: CanvasX(0.) + self.angle.sin() * CanvasAbstand::new(self.radius.0),
                     y: start_height
-                        + mult
+                        + multiplier
                             * (0.5 * Z::beschraenkung()
                                 + CanvasAbstand::new(self.radius.0) * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {
                     dx: CanvasX(self.angle.cos()),
-                    dy: CanvasY(mult * self.angle.sin()),
+                    dy: CanvasY(multiplier * self.angle.sin()),
                 },
             },
         }
