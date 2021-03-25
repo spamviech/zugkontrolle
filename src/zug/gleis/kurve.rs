@@ -57,7 +57,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn zeichne(&self, cairo: &Cairo) {
-        zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), Beschraenkung::Alle)
+        zeichne::<Z>(cairo, self.radius, self.angle.into(), Beschraenkung::Alle)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -128,7 +128,7 @@ impl Beschraenkung {
     }
 }
 
-pub(crate) fn zeichne_kurve<Z: Zugtyp>(
+pub(crate) fn zeichne<Z: Zugtyp>(
     cairo: &Cairo,
     radius: Radius,
     winkel: Angle,

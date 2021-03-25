@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use super::anchor::*;
 use super::gerade::Gerade;
-use super::kurve::{self, zeichne_kurve, Kurve};
+use super::kurve::{self, Kurve};
 use super::types::*;
 use super::widget::{AnchorLookup, Zeichnen};
 
@@ -22,12 +22,17 @@ pub struct Kreuzung<T> {
     pub radius: Radius,
     // TODO: winkel kann aus radius und länge berechnet werden?
     pub angle: AngleDegrees,
-    pub kreuzungs_art: KreuzungsArt,
+    pub variante: Variante,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KreuzungsArt {
+pub enum Variante {
     MitKurve,
     OhneKurve,
+}
+impl<Z> Kreuzung<Z> {
+    fn angle(&self) -> Angle {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -76,8 +81,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         cairo.save();
         cairo.translate(start_x, start_y);
         gerade.zeichne(cairo);
-        if self.kreuzungs_art == KreuzungsArt::MitKurve {
-            zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), kurve::Beschraenkung::Keine);
+        if self.variante == Variante::MitKurve {
+            kurve::zeichne::<Z>(cairo, self.radius, self.angle.into(), kurve::Beschraenkung::Keine);
         }
         cairo.restore();
         // gedrehte Gerade + zweite Kurve
@@ -87,8 +92,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         cairo.translate(-half_width, -half_height);
         cairo.translate(start_x, start_y);
         gerade.zeichne(cairo);
-        if self.kreuzungs_art == KreuzungsArt::MitKurve {
-            zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), kurve::Beschraenkung::Keine);
+        if self.variante == Variante::MitKurve {
+            kurve::zeichne::<Z>(cairo, self.radius, self.angle.into(), kurve::Beschraenkung::Keine);
         }
     }
 
