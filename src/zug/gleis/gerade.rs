@@ -21,19 +21,19 @@ pub struct Gerade<Z> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum GeradeAnchorName {
+pub enum AnchorName {
     Anfang,
     Ende,
 }
 #[derive(Debug)]
-pub struct GeradeAnchorPoints {
+pub struct AnchorPoints {
     anfang: AnchorPoint,
     ende: AnchorPoint,
 }
 
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
-    type AnchorName = GeradeAnchorName;
-    type AnchorPoints = GeradeAnchorPoints;
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
     fn width(&self) -> u64 {
         CanvasAbstand::new(self.length.0).pixel()
@@ -57,7 +57,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        GeradeAnchorPoints {
+        AnchorPoints {
             anfang: AnchorPoint {
                 position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
@@ -70,17 +70,17 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 }
 
-impl AnchorLookup<GeradeAnchorName> for GeradeAnchorPoints {
-    fn get(&self, key: GeradeAnchorName) -> &AnchorPoint {
+impl AnchorLookup<AnchorName> for AnchorPoints {
+    fn get(&self, key: AnchorName) -> &AnchorPoint {
         match key {
-            GeradeAnchorName::Anfang => &self.anfang,
-            GeradeAnchorName::Ende => &self.ende,
+            AnchorName::Anfang => &self.anfang,
+            AnchorName::Ende => &self.ende,
         }
     }
-    fn get_mut(&mut self, key: GeradeAnchorName) -> &mut AnchorPoint {
+    fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint {
         match key {
-            GeradeAnchorName::Anfang => &mut self.anfang,
-            GeradeAnchorName::Ende => &mut self.ende,
+            AnchorName::Anfang => &mut self.anfang,
+            AnchorName::Ende => &mut self.ende,
         }
     }
     fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {

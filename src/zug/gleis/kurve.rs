@@ -22,19 +22,19 @@ pub struct Kurve<T> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum KurveAnchorName {
+pub enum AnchorName {
     Anfang,
     Ende,
 }
 #[derive(Debug)]
-pub struct KurveAnchorPoints {
+pub struct AnchorPoints {
     anfang: AnchorPoint,
     ende: AnchorPoint,
 }
 
 impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
-    type AnchorName = KurveAnchorName;
-    type AnchorPoints = KurveAnchorPoints;
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
     fn width(&self) -> u64 {
         let factor = if self.angle.abs() < Angle(0.5 * PI) { self.angle.sin() } else { 1. };
@@ -57,11 +57,11 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn zeichne(&self, cairo: &Cairo) {
-        zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), KurvenBeschraenkung::Alle)
+        zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), Beschraenkung::Alle)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        KurveAnchorPoints {
+        AnchorPoints {
             anfang: AnchorPoint {
                 position: AnchorPosition {
                     x: CanvasX::default(),
@@ -85,17 +85,17 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 }
 
-impl AnchorLookup<KurveAnchorName> for KurveAnchorPoints {
-    fn get(&self, key: KurveAnchorName) -> &AnchorPoint {
+impl AnchorLookup<AnchorName> for AnchorPoints {
+    fn get(&self, key: AnchorName) -> &AnchorPoint {
         match key {
-            KurveAnchorName::Anfang => &self.anfang,
-            KurveAnchorName::Ende => &self.ende,
+            AnchorName::Anfang => &self.anfang,
+            AnchorName::Ende => &self.ende,
         }
     }
-    fn get_mut(&mut self, key: KurveAnchorName) -> &mut AnchorPoint {
+    fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint {
         match key {
-            KurveAnchorName::Anfang => &mut self.anfang,
-            KurveAnchorName::Ende => &mut self.ende,
+            AnchorName::Anfang => &mut self.anfang,
+            AnchorName::Ende => &mut self.ende,
         }
     }
     fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {
@@ -105,25 +105,25 @@ impl AnchorLookup<KurveAnchorName> for KurveAnchorPoints {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum KurvenBeschraenkung {
+pub(crate) enum Beschraenkung {
     Keine,
     Anfang,
     Ende,
     Alle,
 }
 
-impl KurvenBeschraenkung {
+impl Beschraenkung {
     fn anfangs_beschraenkung(&self) -> bool {
         match self {
-            KurvenBeschraenkung::Anfang | KurvenBeschraenkung::Alle => true,
-            KurvenBeschraenkung::Keine | KurvenBeschraenkung::Ende => false,
+            Beschraenkung::Anfang | Beschraenkung::Alle => true,
+            Beschraenkung::Keine | Beschraenkung::Ende => false,
         }
     }
 
     fn end_beschraenkung(&self) -> bool {
         match self {
-            KurvenBeschraenkung::Ende | KurvenBeschraenkung::Alle => true,
-            KurvenBeschraenkung::Keine | KurvenBeschraenkung::Anfang => false,
+            Beschraenkung::Ende | Beschraenkung::Alle => true,
+            Beschraenkung::Keine | Beschraenkung::Anfang => false,
         }
     }
 }
@@ -132,7 +132,7 @@ pub(crate) fn zeichne_kurve<Z: Zugtyp>(
     cairo: &Cairo,
     radius: Radius,
     winkel: Angle,
-    beschraenkungen: KurvenBeschraenkung,
+    beschraenkungen: Beschraenkung,
 ) {
     let radius_abstand = CanvasAbstand::new(radius.0);
     let spurweite = CanvasAbstand::new(Z::spurweite.0);

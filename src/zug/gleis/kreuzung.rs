@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use super::anchor::*;
 use super::gerade::Gerade;
-use super::kurve::*;
+use super::kurve::{self, zeichne_kurve, Kurve};
 use super::types::*;
 use super::widget::{AnchorLookup, Zeichnen};
 
@@ -31,14 +31,14 @@ pub enum KreuzungsArt {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum KreuzungAnchorName {
+pub enum AnchorName {
     Anfang0,
     Ende0,
     Anfang1,
     Ende1,
 }
 #[derive(Debug)]
-pub struct KreuzungAnchorPoints {
+pub struct AnchorPoints {
     anfang0: AnchorPoint,
     ende0: AnchorPoint,
     anfang1: AnchorPoint,
@@ -46,8 +46,8 @@ pub struct KreuzungAnchorPoints {
 }
 
 impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
-    type AnchorName = KreuzungAnchorName;
-    type AnchorPoints = KreuzungAnchorPoints;
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
     fn width(&self) -> u64 {
         let width_kurve =
@@ -77,7 +77,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         cairo.translate(start_x, start_y);
         gerade.zeichne(cairo);
         if self.kreuzungs_art == KreuzungsArt::MitKurve {
-            zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), KurvenBeschraenkung::Keine);
+            zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), kurve::Beschraenkung::Keine);
         }
         cairo.restore();
         // gedrehte Gerade + zweite Kurve
@@ -88,7 +88,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         cairo.translate(start_x, start_y);
         gerade.zeichne(cairo);
         if self.kreuzungs_art == KreuzungsArt::MitKurve {
-            zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), KurvenBeschraenkung::Keine);
+            zeichne_kurve::<Z>(cairo, self.radius, self.angle.into(), kurve::Beschraenkung::Keine);
         }
     }
 
@@ -102,7 +102,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let anfang1_y: CanvasY = half_height + radius_abstand * (1. - self.angle.cos());
         let ende1_x: CanvasX = width - radius_abstand * self.angle.sin();
         let ende1_y: CanvasY = half_height - radius_abstand * (1. - self.angle.cos());
-        KreuzungAnchorPoints {
+        AnchorPoints {
             anfang0: AnchorPoint {
                 position: AnchorPosition { x: anfang0_x, y: half_height },
                 direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
@@ -123,21 +123,21 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     }
 }
 
-impl AnchorLookup<KreuzungAnchorName> for KreuzungAnchorPoints {
-    fn get(&self, key: KreuzungAnchorName) -> &AnchorPoint {
+impl AnchorLookup<AnchorName> for AnchorPoints {
+    fn get(&self, key: AnchorName) -> &AnchorPoint {
         match key {
-            KreuzungAnchorName::Anfang0 => &self.anfang0,
-            KreuzungAnchorName::Ende0 => &self.ende0,
-            KreuzungAnchorName::Anfang1 => &self.anfang1,
-            KreuzungAnchorName::Ende1 => &self.ende1,
+            AnchorName::Anfang0 => &self.anfang0,
+            AnchorName::Ende0 => &self.ende0,
+            AnchorName::Anfang1 => &self.anfang1,
+            AnchorName::Ende1 => &self.ende1,
         }
     }
-    fn get_mut(&mut self, key: KreuzungAnchorName) -> &mut AnchorPoint {
+    fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint {
         match key {
-            KreuzungAnchorName::Anfang0 => &mut self.anfang0,
-            KreuzungAnchorName::Ende0 => &mut self.ende0,
-            KreuzungAnchorName::Anfang1 => &mut self.anfang1,
-            KreuzungAnchorName::Ende1 => &mut self.ende1,
+            AnchorName::Anfang0 => &mut self.anfang0,
+            AnchorName::Ende0 => &mut self.ende0,
+            AnchorName::Anfang1 => &mut self.anfang1,
+            AnchorName::Ende1 => &mut self.ende1,
         }
     }
     fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {
