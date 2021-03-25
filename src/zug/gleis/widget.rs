@@ -7,9 +7,8 @@ use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use log::*;
-use rstar::{primitives::PointWithData, RTree};
 
-use super::anchor::*;
+use super::anchor;
 use super::gerade::*;
 use super::kreuzung::*;
 use super::kurve::*;
@@ -43,12 +42,12 @@ pub trait Zeichnen {
 }
 
 pub trait AnchorLookup<AnchorName> {
-    /// failure-free lookup for a specific /AnchorPoint/.
-    fn get(&self, key: AnchorName) -> &AnchorPoint;
-    /// failure-free mutable lookup for a specific /AnchorPoint/.
-    fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint;
-    /// Perform action for all /AnchorPoint/s.
-    fn map<F: FnMut(&AnchorPoint)>(&self, action: F);
+    /// failure-free lookup for a specific /anchor::Point/.
+    fn get(&self, key: AnchorName) -> &anchor::Point;
+    /// failure-free mutable lookup for a specific /anchor::Point/.
+    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point;
+    /// Perform action for all /anchor::Point/s.
+    fn map<F: FnMut(&anchor::Point)>(&self, action: F);
 }
 
 /// Definition eines Gleises
@@ -63,103 +62,24 @@ pub enum GleisDefinition<Z> {
     Kreuzung(Kreuzung<Z>),
 }
 impl<Z: Debug + Zugtyp> GleisDefinition<Z> {
-    fn execute<F: TransformAnchorPoints>(
+    fn execute<F: anchor::rstar::Transform>(
         &self,
         action: &F,
-        anchor_points: &mut AnchorPointRTree<Z>,
+        anchor_points: &mut anchor::rstar::RTree<Z>,
         gleis_id: u64,
     ) {
         match self {
-            GleisDefinition::Gerade(gerade) => action.transform(anchor_points, gerade, gleis_id),
-            GleisDefinition::Kurve(kurve) => action.transform(anchor_points, kurve, gleis_id),
+            GleisDefinition::Gerade(gerade) => {
+                action.transform(anchor_points, gerade, || GleisId::new(gleis_id))
+            }
+            GleisDefinition::Kurve(kurve) => {
+                action.transform(anchor_points, kurve, || GleisId::new(gleis_id))
+            }
             GleisDefinition::Kreuzung(kreuzung) => {
-                action.transform(anchor_points, kreuzung, gleis_id)
+                action.transform(anchor_points, kreuzung, || GleisId::new(gleis_id))
             }
             _ => unimplemented!("execute not implemented for: {:?}", self),
         }
-    }
-}
-// see section `Cheating Rank-2`
-// https://leshow.github.io/post/cheat_rank_n/
-trait TransformAnchorPoints {
-    fn transform<T, Z>(
-        &self,
-        anchor_points: &mut AnchorPointRTree<Z>,
-        definition: &T,
-        gleis_id: u64,
-    ) where
-        T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>;
-}
-/// Add anchor points
-struct AddAnchorPoints {
-    position: Position,
-}
-impl TransformAnchorPoints for AddAnchorPoints {
-    fn transform<T, Z>(
-        &self,
-        anchor_points: &mut AnchorPointRTree<Z>,
-        definition: &T,
-        gleis_id: u64,
-    ) where
-        T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
-    {
-        definition.anchor_points().map(|anchor| {
-            anchor_points.insert(PointWithData::new(
-                GleisId::new(gleis_id),
-                self.position.transformation(anchor.position),
-            ))
-        })
-    }
-}
-/// Relocate (move) anchor points
-struct RelocateAnchorPoints {
-    from: Position,
-    to: Position,
-}
-impl TransformAnchorPoints for RelocateAnchorPoints {
-    fn transform<T, Z>(
-        &self,
-        anchor_points: &mut AnchorPointRTree<Z>,
-        definition: &T,
-        gleis_id: u64,
-    ) where
-        T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
-    {
-        definition.anchor_points().map(|anchor| {
-            anchor_points.remove(&PointWithData::new(
-                GleisId::new(gleis_id),
-                self.from.transformation(anchor.position),
-            ));
-            anchor_points.insert(PointWithData::new(
-                GleisId::new(gleis_id),
-                self.to.transformation(anchor.position),
-            ))
-        })
-    }
-}
-/// Remove (delete) anchor points
-struct RemoveAnchorPoints {
-    position: Position,
-}
-impl TransformAnchorPoints for RemoveAnchorPoints {
-    fn transform<T, Z>(
-        &self,
-        anchor_points: &mut AnchorPointRTree<Z>,
-        definition: &T,
-        gleis_id: u64,
-    ) where
-        T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
-    {
-        definition.anchor_points().map(|anchor| {
-            anchor_points.remove(&PointWithData::new(
-                GleisId::new(gleis_id),
-                self.position.transformation(anchor.position),
-            ));
-        })
     }
 }
 
@@ -171,16 +91,13 @@ pub struct Position {
     pub winkel: Angle,
 }
 impl Position {
-    /// AnchorPosition nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
-    pub fn transformation(&self, anchor: AnchorPosition) -> AnchorPosition {
+    /// anchor::Position nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
+    pub fn transformation(&self, anchor: anchor::Position) -> anchor::Position {
         let x = CanvasX(self.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
         let y = CanvasY(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
-        AnchorPosition { x, y }
+        anchor::Position { x, y }
     }
 }
-
-/// R-Tree of all anchor points, specifying the corresponding widget definition
-type AnchorPointRTree<Z> = RTree<PointWithData<GleisId<Z>, AnchorPosition>>;
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
 #[derive(Debug)]
@@ -250,7 +167,7 @@ impl<Z: Debug> Gleise<Z> {
 #[derive(Debug)]
 struct GleiseInternal<Z> {
     map: HashMap<GleisId<Z>, Gleis<Z>>,
-    anchor_points: AnchorPointRTree<Z>,
+    anchor_points: anchor::rstar::RTree<Z>,
     next_id: u64,
 }
 
@@ -265,7 +182,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         // add to anchor_points
         let Gleis { definition, position } = &gleis;
         definition.execute(
-            &AddAnchorPoints { position: position.clone() },
+            &anchor::rstar::Add { position: position.clone() },
             &mut gleise.anchor_points,
             gleis_id,
         );
@@ -273,6 +190,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         gleise.map.insert(GleisId::new(gleis_id), gleis);
         gleis_id_lock
     }
+
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
@@ -284,13 +202,14 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
             .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
         // relocate anchor_points
         definition.execute(
-            &RelocateAnchorPoints { from: position.clone(), to: position_neu.clone() },
+            &anchor::rstar::Relocate { from: position.clone(), to: position_neu.clone() },
             &mut gleise.anchor_points,
             gleis_id.0,
         );
         // store new position
         *position = position_neu;
     }
+
     /// Remove the Gleis associated the the GleisId.
     ///
     /// The value contained inside GleisIdLock<Z> is set to None.
@@ -307,7 +226,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
             definition.execute(
-                &RemoveAnchorPoints { position },
+                &anchor::rstar::Remove { position },
                 &mut gleise.anchor_points,
                 gleis_id.0,
             );

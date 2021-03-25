@@ -9,7 +9,7 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
 
-use super::anchor::*;
+use super::anchor;
 use super::types::*;
 use super::widget::{AnchorLookup, Zeichnen};
 
@@ -27,8 +27,8 @@ pub enum AnchorName {
 }
 #[derive(Debug)]
 pub struct AnchorPoints {
-    anfang: AnchorPoint,
-    ende: AnchorPoint,
+    anfang: anchor::Point,
+    ende: anchor::Point,
 }
 
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
@@ -58,32 +58,35 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         AnchorPoints {
-            anfang: AnchorPoint {
-                position: AnchorPosition { x: self.gleis_links(), y: self.beschraenkung_mitte() },
-                direction: AnchorDirection { dx: CanvasX(-1.), dy: CanvasY(0.) },
+            anfang: anchor::Point {
+                position: anchor::Position { x: self.gleis_links(), y: self.beschraenkung_mitte() },
+                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-            ende: AnchorPoint {
-                position: AnchorPosition { x: self.gleis_rechts(), y: self.beschraenkung_mitte() },
-                direction: AnchorDirection { dx: CanvasX(1.), dy: CanvasY(0.) },
+            ende: anchor::Point {
+                position: anchor::Position {
+                    x: self.gleis_rechts(),
+                    y: self.beschraenkung_mitte(),
+                },
+                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
         }
     }
 }
 
 impl AnchorLookup<AnchorName> for AnchorPoints {
-    fn get(&self, key: AnchorName) -> &AnchorPoint {
+    fn get(&self, key: AnchorName) -> &anchor::Point {
         match key {
             AnchorName::Anfang => &self.anfang,
             AnchorName::Ende => &self.ende,
         }
     }
-    fn get_mut(&mut self, key: AnchorName) -> &mut AnchorPoint {
+    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point {
         match key {
             AnchorName::Anfang => &mut self.anfang,
             AnchorName::Ende => &mut self.ende,
         }
     }
-    fn map<F: FnMut(&AnchorPoint)>(&self, mut action: F) {
+    fn map<F: FnMut(&anchor::Point)>(&self, mut action: F) {
         action(&self.anfang);
         action(&self.ende);
     }
