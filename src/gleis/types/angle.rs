@@ -12,7 +12,13 @@ pub trait Trigonometrie {
 
 /// Winkel \[Bogenmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
-pub struct Angle(pub f64);
+pub struct Angle(pub(crate) f64);
+
+impl Angle {
+    pub fn new(angle: f64) -> Self {
+        Angle(angle)
+    }
+}
 
 // automatically implements Trait Into
 impl From<AngleDegrees> for Angle {
@@ -59,7 +65,13 @@ impl Trigonometrie for Angle {
 
 /// Winkel \[Gradmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
-pub struct AngleDegrees(pub f64);
+pub struct AngleDegrees(f64);
+
+impl AngleDegrees {
+    pub fn new(angle: f64) -> Self {
+        AngleDegrees(angle)
+    }
+}
 
 impl From<Angle> for AngleDegrees {
     fn from(Angle(f): Angle) -> AngleDegrees {

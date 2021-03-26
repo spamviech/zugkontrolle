@@ -36,7 +36,7 @@ impl<Z> Kreuzung<Z> {
         // pi/2 doesn't work either, since it violates the formula
         // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
         // only for radius=0 as well both formulas are satisfied by any angle
-        Angle(2. * (0.5 * self.length.0 / self.radius.0).atan())
+        Angle::new(2. * (0.5 * self.length.0 / self.radius.0).atan())
     }
 }
 

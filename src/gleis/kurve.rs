@@ -32,17 +32,17 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn width(&self) -> u64 {
-        let factor = if self.angle.abs() < Angle(0.5 * PI) { self.angle.sin() } else { 1. };
+        let factor = if self.angle.abs() < Angle::new(0.5 * PI) { self.angle.sin() } else { 1. };
         (Z::beschraenkung() * factor).pixel()
     }
 
     fn height(&self) -> u64 {
         // Höhe des Bogen
         let angle_abs = self.angle.abs();
-        let comparison = if angle_abs < Angle(0.5 * PI) {
+        let comparison = if angle_abs < Angle::new(0.5 * PI) {
             Z::radius_begrenzung(self.radius) * (1. - self.angle.cos())
                 + Z::beschraenkung() * self.angle.cos()
-        } else if angle_abs < Angle(PI) {
+        } else if angle_abs < Angle::new(PI) {
             Z::radius_begrenzung(self.radius) * (1. - self.angle.cos())
         } else {
             Z::radius_begrenzung(self.radius)
@@ -114,7 +114,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
 ) {
     let radius_abstand = CanvasAbstand::new(radius.0);
     let spurweite = CanvasAbstand::new(Z::spurweite.0);
-    let winkel_anfang: Angle = Angle(3. * PI / 2.);
+    let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let gleis_links: CanvasX = CanvasX(0.);
     let gleis_links_oben: CanvasY = CanvasY(0.);
     let gleis_links_unten: CanvasY = CanvasY(0.) + Z::beschraenkung();
