@@ -8,6 +8,7 @@
 
 use std::marker::PhantomData;
 
+use crate::gleis::anchor;
 use crate::gleis::types::*;
 
 /// Definition einer Weiche mit S-Kurve
@@ -23,4 +24,10 @@ pub struct SKurveWeiche<Z> {
 pub enum WeichenRichtungSKurve {
     Links(AngleDegrees),
     Rechts(AngleDegrees),
+}
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+pub enum AnchorName {
+    Anfang,
+    Gerade,
+    Kurve,
 }

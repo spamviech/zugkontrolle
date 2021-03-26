@@ -8,7 +8,12 @@
 
 use std::marker::PhantomData;
 
+use super::gerade::{Weiche, WeichenRichtung};
+use crate::gleis::anchor;
+use crate::gleis::gerade::Gerade;
+use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
+use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Dreiwege-Weiche
 #[derive(Debug, Clone)]
@@ -18,77 +23,85 @@ pub struct DreiwegeWeiche<Z> {
     pub radius: Radius,
     pub angle: AngleDegrees,
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum DreiwegeWeicheAnchors {
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+pub enum AnchorName {
     Anfang,
     Gerade,
     Links,
     Rechts,
 }
-/*
-widthDreiwegeweiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
-widthDreiwegeweiche länge radius winkelBogenmaß proxy =
-    max (ceiling länge) $ widthKurve radius winkelBogenmaß proxy
+impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
-heightDreiwegeweiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-heightDreiwegeweiche radius winkelBogenmaß proxy =
-    max (ceiling $ beschränkung proxy)
-    $ 2 * heightKurve radius winkelBogenmaß proxy - ceiling (beschränkung proxy)
+    fn width(&self) -> u64 {
+        let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
+        let width_gerade = Gerade { zugtyp, length }.width();
+        let width_kurve = Kurve { zugtyp, radius, angle }.width();
+        width_gerade.max(width_kurve)
+    }
 
-zeichneDreiwegeweiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
-zeichneDreiwegeweiche länge radius winkelBogenmaß proxy = do
-    Cairo.translate 0 startHeight
-    zeichneWeicheRechts länge radius winkelBogenmaß proxy
-    Cairo.translate 0 $ -startHeight
-    Cairo.stroke
-    Cairo.translate halfWidth halfHeight
-    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-    Cairo.translate (-halfWidth) (-halfHeight)
-    Cairo.translate 0 startHeight
-    zeichneKurve radius winkelBogenmaß EndBeschränkung proxy
-    where
-        width :: Int32
-        width = widthDreiwegeweiche länge radius winkelBogenmaß proxy
+    fn height(&self) -> u64 {
+        let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
+        let height_gerade = Gerade { zugtyp, length }.height();
+        let height_kurven =
+            2 * Kurve { zugtyp, radius, angle }.height() - Z::beschraenkung().pixel();
+        height_gerade.max(height_kurven)
+    }
 
-        height :: Int32
-        height = heightDreiwegeweiche radius winkelBogenmaß proxy
+    fn zeichne(&self, cairo: &Cairo) {
+        let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
+        let half_width: CanvasX = CanvasX(0.5 * self.width() as f64);
+        let half_height: CanvasY = CanvasY(0.5 * self.height() as f64);
+        let start_width: CanvasX = CanvasX(0.);
+        let start_height: CanvasY = half_height - 0.5 * Z::beschraenkung();
+        // Weiche mit Abzweigung Rechts
+        cairo.translate(start_width, start_height);
+        Weiche { zugtyp, length, radius, angle, direction: WeichenRichtung::Rechts }.zeichne(cairo);
+        cairo.translate(-start_width, -start_height);
+        // Abzweigung Links
+        cairo.translate(half_width, half_height);
+        cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
+        cairo.translate(-half_width, -half_height);
+        cairo.translate(start_width, start_height);
+        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
+    }
 
-        halfWidth :: Double
-        halfWidth = 0.5 * fromIntegral width
-
-        halfHeight :: Double
-        halfHeight = 0.5 * fromIntegral height
-
-        startHeight :: Double
-        startHeight = halfHeight - 0.5 * beschränkung proxy
-
-anchorPointsDreiwegeweiche
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
-anchorPointsDreiwegeweiche länge radius winkelBogenmaß proxy =
-    withAnchorName
-        "Dreiwegeweiche"
-        [ AnchorPoint
-              AnchorPosition { anchorX = 0, anchorY = halfHeight }
-              AnchorDirection { anchorDX = -1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition { anchorX = länge, anchorY = halfHeight }
-              AnchorDirection { anchorDX = 1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = halfHeight + radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = halfHeight - radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
-    where
-        height :: Double
-        height = fromIntegral $ heightDreiwegeweiche radius winkelBogenmaß proxy
-
-        halfHeight :: Double
-        halfHeight = 0.5 * height
-*/
+    fn anchor_points(&self) -> AnchorPoints {
+        let height: CanvasY = CanvasY(self.height() as f64);
+        let half_height: CanvasY = CanvasY(0.) + 0.5 * CanvasAbstand::from(height);
+        let length: CanvasAbstand = self.length.into();
+        let radius: CanvasAbstand = self.radius.into();
+        let anfang_x: CanvasX = CanvasX(0.);
+        AnchorPoints {
+            anfang: anchor::Point {
+                position: anchor::Position { x: anfang_x, y: half_height },
+                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
+            },
+            gerade: anchor::Point {
+                position: anchor::Position { x: anfang_x + length, y: half_height },
+                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
+            },
+            links: anchor::Point {
+                position: anchor::Position {
+                    x: anfang_x + radius * self.angle.sin(),
+                    y: half_height + radius * (1. - self.angle.cos()),
+                },
+                direction: anchor::Direction {
+                    dx: CanvasX(self.angle.cos()),
+                    dy: CanvasY(self.angle.sin()),
+                },
+            },
+            rechts: anchor::Point {
+                position: anchor::Position {
+                    x: anfang_x + radius * self.angle.sin(),
+                    y: half_height - radius * (1. - self.angle.cos()),
+                },
+                direction: anchor::Direction {
+                    dx: CanvasX(self.angle.cos()),
+                    dy: CanvasY(-self.angle.sin()),
+                },
+            },
+        }
+    }
+}
