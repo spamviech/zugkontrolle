@@ -2,8 +2,8 @@
 
 use rstar::primitives::PointWithData;
 
-use super::point;
-use crate::gleis::widget::{AnchorLookup, GleisId, Position, Zeichnen};
+use super::{point, Lookup};
+use crate::gleis::widget::{GleisId, Position, Zeichnen};
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub trait Transform {
     fn transform<T, F, Z>(&self, anchor_points: &mut RTree<Z>, definition: &T, gleis_id: F)
     where
         T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
+        T::AnchorPoints: Lookup<T::AnchorName>,
         F: Fn() -> GleisId<Z>;
 }
 /// Add anchor points
@@ -39,10 +39,10 @@ impl Transform for Add {
     fn transform<T, F, Z>(&self, anchor_points: &mut RTree<Z>, definition: &T, gleis_id: F)
     where
         T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
+        T::AnchorPoints: Lookup<T::AnchorName>,
         F: Fn() -> GleisId<Z>,
     {
-        definition.anchor_points().map(|anchor| {
+        definition.anchor_points().foreach(|anchor| {
             anchor_points.insert(PointWithData::new(
                 gleis_id(),
                 self.position.transformation(anchor.position),
@@ -60,10 +60,10 @@ impl Transform for Relocate {
     fn transform<T, F, Z>(&self, anchor_points: &mut RTree<Z>, definition: &T, gleis_id: F)
     where
         T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
+        T::AnchorPoints: Lookup<T::AnchorName>,
         F: Fn() -> GleisId<Z>,
     {
-        definition.anchor_points().map(|anchor| {
+        definition.anchor_points().foreach(|anchor| {
             anchor_points
                 .remove(&PointWithData::new(gleis_id(), self.from.transformation(anchor.position)));
             anchor_points
@@ -80,10 +80,10 @@ impl Transform for Remove {
     fn transform<T, F, Z>(&self, anchor_points: &mut RTree<Z>, definition: &T, gleis_id: F)
     where
         T: Zeichnen,
-        T::AnchorPoints: AnchorLookup<T::AnchorName>,
+        T::AnchorPoints: Lookup<T::AnchorName>,
         F: Fn() -> GleisId<Z>,
     {
-        definition.anchor_points().map(|anchor| {
+        definition.anchor_points().foreach(|anchor| {
             anchor_points.remove(&PointWithData::new(
                 gleis_id(),
                 self.position.transformation(anchor.position),

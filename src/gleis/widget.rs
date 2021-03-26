@@ -41,15 +41,6 @@ pub trait Zeichnen {
     fn anchor_points(&self) -> Self::AnchorPoints;
 }
 
-pub trait AnchorLookup<AnchorName> {
-    /// failure-free lookup for a specific /anchor::Point/.
-    fn get(&self, key: AnchorName) -> &anchor::Point;
-    /// failure-free mutable lookup for a specific /anchor::Point/.
-    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point;
-    /// Perform action for all /anchor::Point/s.
-    fn map<F: FnMut(&anchor::Point)>(&self, action: F);
-}
-
 /// Definition eines Gleises
 #[derive(Debug, Clone)]
 pub enum GleisDefinition<Z> {

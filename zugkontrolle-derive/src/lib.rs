@@ -48,7 +48,7 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
             }
         };
         let impl_lookup: proc_macro2::TokenStream = quote! {
-            impl #base_ident::gleis::widget::AnchorLookup<#enum_name> for #struct_name {
+            impl #base_ident::gleis::anchor::Lookup<#enum_name> for #struct_name {
                 fn get(&self, key: #enum_name) -> &#base_ident::gleis::anchor::Point {
                     match key {
                         #(#enum_name::#enum_variants => &self.#struct_fields),*
@@ -59,7 +59,7 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
                         #(#enum_name::#enum_variants => &mut self.#struct_fields),*
                     }
                 }
-                fn map<F: FnMut(&#base_ident::gleis::anchor::Point)>(&self, mut action: F) {
+                fn foreach<F: FnMut(&#base_ident::gleis::anchor::Point)>(&self, mut action: F) {
                     #(action(&self.#struct_fields));*
                 }
             }
