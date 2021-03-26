@@ -33,7 +33,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn width(&self) -> u64 {
         let factor = if self.angle.abs() < Angle::new(0.5 * PI) { self.angle.sin() } else { 1. };
-        (beschraenkung::<Z>() * factor).pixel()
+        (radius_begrenzung::<Z>(self.radius) * factor).pixel()
     }
 
     fn height(&self) -> u64 {
