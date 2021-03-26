@@ -1,7 +1,15 @@
+//! Steuerung einer Model-Eisenbahn über einen raspberry pi
+
+use std::marker::PhantomData;
+
 use gio::prelude::*;
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button};
+use gtk::{Application, ApplicationWindow, DrawingArea};
 use simple_logger::SimpleLogger;
+
+use gleis::gerade::Gerade;
+use gleis::types::*;
+use gleis::widget::Zeichnen;
 
 pub mod gleis;
 pub mod zugtyp;
@@ -26,18 +34,22 @@ fn main() {
         window.set_title("Zugkontrolle");
         window.set_default_size(600, 400);
 
-        let button = Button::with_label("Click me!");
-        button.connect_clicked(|b| {
-            let next = match b.get_label() {
-                Some(g) => match g.as_str() {
-                    "Click me!" => "Click me again!",
-                    _ => "Click me!",
-                },
-                None => panic!("Button without label"),
-            };
-            b.set_label(next);
-        });
-        window.add(&button);
+        let drawing_area = DrawingArea::new();
+        fn test(_drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
+            let cairo: &Cairo = &Cairo::new(c);
+            let gerade: Gerade<zugtyp::Maerklin> =
+                Gerade { length: Length(180.), zugtyp: PhantomData };
+            cairo.translate(
+                CanvasX((400 - gerade.width()) as f64),
+                CanvasY((200 - gerade.height()) as f64),
+            );
+            gerade.zeichne(cairo);
+            cairo.stroke();
+            glib::signal::Inhibit(false)
+        }
+        drawing_area.set_size_request(600, 400);
+        drawing_area.connect_draw(test);
+        window.add(&drawing_area);
 
         window.show_all();
     });

@@ -13,10 +13,10 @@ use super::angle::Angle;
 /// Only implements the methods I need, might add others later.
 /// All methods only work with corresponding Canvas..-Types
 #[derive(Debug)]
-pub struct Cairo(Context);
+pub struct Cairo<'t>(&'t Context);
 
-impl Cairo {
-    pub fn new(c: Context) -> Cairo {
+impl<'t> Cairo<'t> {
+    pub fn new(c: &'t Context) -> Cairo<'t> {
         Cairo(c)
     }
 
