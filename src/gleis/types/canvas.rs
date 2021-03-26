@@ -7,6 +7,7 @@ use cairo::Context;
 pub use cairo::Matrix;
 
 use super::angle::Angle;
+use super::{Length, Radius, Spurweite};
 
 /// newtype auf einen cairo-Context
 ///
@@ -162,9 +163,7 @@ impl SubAssign<CanvasAbstand> for CanvasRadius {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CanvasAbstand(f64);
 impl CanvasAbstand {
-    /// Umrechnung von mm-Größen auf Canvas-Koordinaten
-    /// Verwenden dieser Funktion um evtl. in der Zukunft einen Faktor zu erlauben
-    pub const fn new(abstand_mm: f64) -> CanvasAbstand {
+    const fn new_from_mm(abstand_mm: f64) -> CanvasAbstand {
         CanvasAbstand(abstand_mm)
     }
 
@@ -271,5 +270,22 @@ impl Div<f64> for CanvasAbstand {
 impl DivAssign<f64> for CanvasAbstand {
     fn div_assign(&mut self, rhs: f64) {
         self.0 /= rhs
+    }
+}
+/// Umrechnung von mm-Größen auf Canvas-Koordinaten
+/// Verwenden dieser Funktion um evtl. in der Zukunft einen Faktor zu erlauben
+impl From<Spurweite> for CanvasAbstand {
+    fn from(Spurweite(spurweite): Spurweite) -> CanvasAbstand {
+        CanvasAbstand::new_from_mm(spurweite)
+    }
+}
+impl From<Length> for CanvasAbstand {
+    fn from(Length(length): Length) -> CanvasAbstand {
+        CanvasAbstand::new_from_mm(length)
+    }
+}
+impl From<Radius> for CanvasAbstand {
+    fn from(Radius(radius): Radius) -> CanvasAbstand {
+        CanvasAbstand::new_from_mm(radius)
     }
 }

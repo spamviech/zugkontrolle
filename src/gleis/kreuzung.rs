@@ -59,7 +59,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     }
 
     fn height(&self) -> u64 {
-        let height_beschraenkung = Z::beschraenkung().pixel();
+        let height_beschraenkung = beschraenkung::<Z>().pixel();
         let height_kurve =
             Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.height();
         let height_kurven = 2 * height_kurve - height_beschraenkung;
@@ -73,7 +73,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_x: CanvasX = CanvasX(0.);
         let height: CanvasY = CanvasY(self.height() as f64);
         let half_height: CanvasY = CanvasY(0.5 * height.0);
-        let start_y: CanvasY = half_height - 0.5 * Z::beschraenkung();
+        let start_y: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
         let gerade = Gerade { zugtyp: self.zugtyp, length: self.length };
         let angle = self.angle();
         // horizontale Gerade + erste Kurve

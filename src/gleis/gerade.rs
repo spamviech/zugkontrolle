@@ -35,7 +35,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn height(&self) -> u64 {
-        Z::beschraenkung().pixel()
+        beschraenkung::<Z>().pixel()
     }
 
     fn zeichne(&self, cairo: &Cairo) {
@@ -79,7 +79,7 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn beschraenkung_mitte(&self) -> CanvasY {
-        self.beschraenkung_oben() + 0.5 * Z::beschraenkung()
+        self.beschraenkung_oben() + 0.5 * beschraenkung::<Z>()
     }
 
     fn beschraenkung_oben(&self) -> CanvasY {
@@ -87,14 +87,14 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn beschraenkung_unten(&self) -> CanvasY {
-        self.beschraenkung_oben() + Z::beschraenkung()
+        self.beschraenkung_oben() + beschraenkung::<Z>()
     }
 
     fn gleis_oben(&self) -> CanvasY {
-        CanvasY(0.) + Z::abstand
+        CanvasY(0.) + abstand::<Z>()
     }
 
     fn gleis_unten(&self) -> CanvasY {
-        self.gleis_oben() + Z::beschraenkung() - 2. * Z::abstand
+        self.gleis_oben() + beschraenkung::<Z>() - 2. * abstand::<Z>()
     }
 }

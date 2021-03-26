@@ -45,7 +45,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
         let height_gerade = Gerade { zugtyp, length }.height();
         let height_kurven =
-            2 * Kurve { zugtyp, radius, angle }.height() - Z::beschraenkung().pixel();
+            2 * Kurve { zugtyp, radius, angle }.height() - beschraenkung::<Z>().pixel();
         height_gerade.max(height_kurven)
     }
 
@@ -54,7 +54,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let half_width: CanvasX = CanvasX(0.5 * self.width() as f64);
         let half_height: CanvasY = CanvasY(0.5 * self.height() as f64);
         let start_width: CanvasX = CanvasX(0.);
-        let start_height: CanvasY = half_height - 0.5 * Z::beschraenkung();
+        let start_height: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
         // Weiche mit Abzweigung Rechts
         cairo.translate(start_width, start_height);
         Weiche { zugtyp, length, radius, angle, direction: WeichenRichtung::Rechts }.zeichne(cairo);

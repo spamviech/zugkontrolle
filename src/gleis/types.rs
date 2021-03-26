@@ -20,28 +20,30 @@ use crate::zugtyp::*;
 pub struct Spurweite(pub f64);
 
 pub trait Zugtyp {
-    #[allow(non_upper_case_globals)]
-    const spurweite: Spurweite;
-
-    // abgeleitete Größe unter der Umrechnung 1mm
-    #[allow(non_upper_case_globals)]
-    const abstand: CanvasAbstand = CanvasAbstand::new(Self::spurweite.0 / 3.);
-    fn beschraenkung() -> CanvasAbstand {
-        CanvasAbstand::new(Self::spurweite.0) + 2. * Self::abstand
-    }
-    fn radius_begrenzung(radius: Radius) -> CanvasAbstand {
-        CanvasAbstand::new(radius.0) + 0.5 * CanvasAbstand::new(Self::spurweite.0) + Self::abstand
-    }
+    const SPURWEITE: Spurweite;
+}
+// abgeleitete Größe unter der Umrechnung 1mm
+/// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
+pub fn abstand<Z: Zugtyp>() -> CanvasAbstand {
+    CanvasAbstand::from(Z::SPURWEITE) / 3.
+}
+/// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
+pub fn beschraenkung<Z: Zugtyp>() -> CanvasAbstand {
+    CanvasAbstand::from(Z::SPURWEITE) + 2. * abstand::<Z>()
+}
+/// Äußerster Radius (inklusive Beschränkung) einer Kurve
+pub fn radius_begrenzung<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
+    CanvasAbstand::from(radius) + 0.5 * CanvasAbstand::from(Z::SPURWEITE) + abstand::<Z>()
 }
 
 impl Zugtyp for Maerklin {
     #[allow(non_upper_case_globals)]
-    const spurweite: Spurweite = Spurweite(16.5);
+    const SPURWEITE: Spurweite = Spurweite(16.5);
 }
 
 impl Zugtyp for Lego {
     #[allow(non_upper_case_globals)]
-    const spurweite: Spurweite = Spurweite(38.);
+    const SPURWEITE: Spurweite = Spurweite(38.);
 }
 
 /// Längenmaß \[mm\]
@@ -50,11 +52,6 @@ pub struct Length(f64);
 impl Length {
     pub fn new(length: f64) -> Self {
         Length(length)
-    }
-}
-impl From<Length> for CanvasAbstand {
-    fn from(length: Length) -> CanvasAbstand {
-        CanvasAbstand::new(length.0)
     }
 }
 impl Div<Length> for Length {
@@ -76,11 +73,6 @@ pub struct Radius(f64);
 impl Radius {
     pub fn new(radius: f64) -> Self {
         Radius(radius)
-    }
-}
-impl From<Radius> for CanvasAbstand {
-    fn from(length: Radius) -> CanvasAbstand {
-        CanvasAbstand::new(length.0)
     }
 }
 impl Div<Radius> for Radius {

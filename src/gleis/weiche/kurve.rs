@@ -53,8 +53,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-half_width, -half_height);
         }
-        let gleis_oben: CanvasY = CanvasY(0.) + Z::abstand;
-        let gleis_unten: CanvasY = CanvasY(0.) + Z::beschraenkung() - Z::abstand;
+        let gleis_oben: CanvasY = CanvasY(0.) + abstand::<Z>();
+        let gleis_unten: CanvasY = CanvasY(0.) + beschraenkung::<Z>() - abstand::<Z>();
         let kurve_innen_anfang: CanvasX = CanvasX(0.);
         let kurve_aussen_anfang: CanvasX = kurve_innen_anfang + CanvasAbstand::from(self.length);
         let angle: Angle = self.angle.into();
@@ -83,7 +83,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 multiplier = -1.;
             }
         };
-        let halbe_beschraenkung: CanvasAbstand = 0.5 * Z::beschraenkung();
+        let halbe_beschraenkung: CanvasAbstand = 0.5 * beschraenkung::<Z>();
         let radius_abstand: CanvasAbstand = CanvasAbstand::from(self.radius);
         let kurve_anchor_direction: anchor::Direction = anchor::Direction {
             dx: CanvasX(self.angle.cos()),
