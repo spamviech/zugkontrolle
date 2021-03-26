@@ -96,6 +96,6 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn gleis_unten(&self) -> CanvasY {
-        CanvasY(0.) + Z::beschraenkung()
+        CanvasY(0.) + Z::beschraenkung() - Z::abstand
     }
 }
