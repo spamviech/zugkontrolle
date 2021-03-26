@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
-use crate::gleis::kurve::Kurve;
+use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
 use crate::gleis::widget::Zeichnen;
 
@@ -62,7 +62,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             cairo.translate(-x, -half_height);
         }
         Gerade { zugtyp, length }.zeichne(cairo);
-        Kurve { zugtyp, radius, angle }.zeichne(cairo)
+        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
