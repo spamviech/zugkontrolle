@@ -39,7 +39,7 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
         let struct_definition: proc_macro2::TokenStream = quote! {
             #[derive(Debug)]
             #enum_vis struct #struct_name {
-                #(#struct_fields : #base_ident::gleis::anchor::Point),*
+                #(pub #struct_fields : #base_ident::gleis::anchor::Point),*
             }
         };
         let impl_lookup: proc_macro2::TokenStream = quote! {
