@@ -20,9 +20,6 @@ pub mod zugtyp;
 #[doc(inline)]
 pub use std;
 
-#[cfg(feature = "derive")]
-pub use zugkontrolle_derive::AnchorLookup;
-
 fn main() {
     SimpleLogger::new().init().expect("failed to initialize error logging");
 

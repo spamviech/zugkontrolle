@@ -9,6 +9,7 @@
 use std::marker::PhantomData;
 
 use super::gerade::*;
+use crate::gleis::anchor;
 use crate::gleis::types::*;
 
 /// Definition einer Kurven-Weiche
@@ -20,8 +21,8 @@ pub struct KurvenWeiche<Z> {
     pub angle: AngleDegrees,
     pub direction: WeichenRichtung,
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum KurvenWeicheAnchors {
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
+pub enum AnchorName {
     Anfang,
     Innen,
     Aussen,

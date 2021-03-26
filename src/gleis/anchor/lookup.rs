@@ -2,6 +2,8 @@
 
 use super::Point;
 
+pub use zugkontrolle_derive::Lookup;
+
 pub trait Lookup<AnchorName> {
     /// failure-free lookup for a specific /anchor::Point/.
     fn get(&self, key: AnchorName) -> &Point;

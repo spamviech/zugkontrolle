@@ -7,7 +7,7 @@ use quote::{format_ident, quote};
 use syn;
 
 /// For external use
-#[proc_macro_derive(AnchorLookup)]
+#[proc_macro_derive(Lookup)]
 pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -30,13 +30,8 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
         let enum_variants: Vec<syn::Ident> =
             enum_data.variants.iter().map(|v| v.ident.clone()).collect();
         // construct a struct using a snake_case field for every variant, each holding an anchor::point
-        let struct_name: syn::Ident = format_ident!(
-            "{}",
-            match enum_name.to_string().as_str() {
-                "AnchorName" => "AnchorPoints".to_string(),
-                s => "AnchorPoints".to_string() + s,
-            }
-        );
+        let struct_name: syn::Ident =
+            format_ident!("{}Points", enum_name.to_string().trim_end_matches("Name"));
         let struct_fields: Vec<syn::Ident> = enum_variants
             .iter()
             .map(|ident| format_ident!("{}", to_snake_case(&ident.to_string())))
