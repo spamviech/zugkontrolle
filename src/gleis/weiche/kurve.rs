@@ -8,9 +8,12 @@
 
 use std::marker::PhantomData;
 
-use super::gerade::*;
+use super::gerade::WeichenRichtung;
 use crate::gleis::anchor;
+use crate::gleis::gerade::Gerade;
+use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
+use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Kurven-Weiche
 #[derive(Debug, Clone)]
@@ -27,93 +30,87 @@ pub enum AnchorName {
     Innen,
     Aussen,
 }
-/*
-widthKurvenWeiche :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Int32
-widthKurvenWeiche länge radius winkelBogenmaß proxy =
-    ceiling länge + widthKurve radius winkelBogenmaß proxy
 
-heightKurvenWeiche :: (Spurweite z) => Double -> Double -> Proxy z -> Int32
-heightKurvenWeiche radius winkelBogenmaß proxy =
-    max (ceiling $ beschränkung proxy) $ heightKurve radius winkelBogenmaß proxy
+impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
+    type AnchorName = AnchorName;
+    type AnchorPoints = AnchorPoints;
 
--- | Pfad zum Zeichnen einer Kurven-Weiche mit angegebener Länge und Rechts-Kurve mit Kurvenradius und Winkel im Bogenmaß.
---
--- Beide Kurven haben den gleichen Radius und Winkel, die äußere Kurve beginnt erst nach /länge/.
-zeichneKurvenWeicheRechts
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
-zeichneKurvenWeicheRechts länge radius winkel proxy = do
-    zeichneKurve radius winkel AlleBeschränkungen proxy
-    Cairo.stroke
-    -- Gerade vor äußerer Kurve
-    Cairo.moveTo 0 gleisOben
-    Cairo.lineTo länge gleisOben
-    Cairo.moveTo 0 gleisUnten
-    Cairo.lineTo länge gleisUnten
-    Cairo.stroke
-    Cairo.translate länge 0
-    zeichneKurve radius winkel EndBeschränkung proxy
-    where
-        gleisOben :: Double
-        gleisOben = abstand proxy
+    fn width(&self) -> u64 {
+        let KurvenWeiche { zugtyp, length, radius, angle, direction: _ } = *self;
+        Gerade { zugtyp, length }.width() + Kurve { zugtyp, radius, angle }.width()
+    }
 
-        gleisUnten :: Double
-        gleisUnten = beschränkung proxy - abstand proxy
+    fn height(&self) -> u64 {
+        let KurvenWeiche { zugtyp, length: _, radius, angle, direction: _ } = *self;
+        Kurve { zugtyp, radius, angle }.height()
+    }
 
-anchorPointsKurvenWeicheRechts
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
-anchorPointsKurvenWeicheRechts länge radius winkelBogenmaß proxy =
-    withAnchorName
-        "KurvenWeicheRechts"
-        [ AnchorPoint
-              AnchorPosition { anchorX = 0, anchorY = 0.5 * beschränkung proxy }
-              AnchorDirection { anchorDX = -1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = länge + radius * sin winkelBogenmaß
-              , anchorY = 0.5 * beschränkung proxy + radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = sin winkelBogenmaß }]
+    fn zeichne(&self, cairo: &Cairo) {
+        if self.direction == WeichenRichtung::Links {
+            let half_width: CanvasX = CanvasX(self.width() as f64);
+            let half_height: CanvasY = CanvasY(self.height() as f64);
+            cairo.translate(half_width, half_height);
+            cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
+            cairo.translate(-half_width, -half_height);
+        }
+        let gleis_oben: CanvasY = CanvasY(0.) + Z::abstand;
+        let gleis_unten: CanvasY = CanvasY(0.) + Z::beschraenkung() - Z::abstand;
+        let kurve_innen_anfang: CanvasX = CanvasX(0.);
+        let kurve_aussen_anfang: CanvasX = kurve_innen_anfang + CanvasAbstand::new(self.length.0);
+        let angle: Angle = self.angle.into();
+        // innere Kurve
+        kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Alle);
+        // Gerade vor äußerer Kurve
+        cairo.move_to(kurve_innen_anfang, gleis_oben);
+        cairo.line_to(kurve_aussen_anfang, gleis_oben);
+        cairo.move_to(kurve_innen_anfang, gleis_unten);
+        cairo.line_to(kurve_aussen_anfang, gleis_unten);
+        // äußere Kurve
+        cairo.move_to(kurve_aussen_anfang, CanvasY(0.));
+        kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Ende);
+    }
 
-zeichneKurvenWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> Cairo.Render ()
-zeichneKurvenWeicheLinks länge radius winkelBogenmaß proxy = do
-    Cairo.translate halfWidth halfHeight
-    Cairo.transform $ Matrix 1 0 0 (-1) 0 0
-    Cairo.translate (-halfWidth) (-halfHeight)
-    zeichneKurvenWeicheRechts länge radius winkelBogenmaß proxy
-    where
-        halfWidth :: Double
-        halfWidth = 0.5 * fromIntegral (widthKurvenWeiche länge radius winkelBogenmaß proxy)
-
-        halfHeight = 0.5 * fromIntegral (heightKurvenWeiche radius winkelBogenmaß proxy)
-
-anchorPointsKurvenWeicheLinks
-    :: (Spurweite z) => Double -> Double -> Double -> Proxy z -> AnchorPointMap
-anchorPointsKurvenWeicheLinks länge radius winkelBogenmaß proxy =
-    withAnchorName
-        "KurvenWeicheLinks"
-        [ AnchorPoint
-              AnchorPosition { anchorX = 0, anchorY = height - 0.5 * beschränkung proxy }
-              AnchorDirection { anchorDX = -1, anchorDY = 0 }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = radius * sin winkelBogenmaß
-              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }
-        , AnchorPoint
-              AnchorPosition
-              { anchorX = länge + radius * sin winkelBogenmaß
-              , anchorY = height - 0.5 * beschränkung proxy - radius * (1 - cos winkelBogenmaß)
-              }
-              AnchorDirection { anchorDX = cos winkelBogenmaß, anchorDY = -sin winkelBogenmaß }]
-    where
-        height :: Double
-        height = fromIntegral $ heightKurvenWeiche radius winkelBogenmaß proxy
-*/
+    fn anchor_points(&self) -> Self::AnchorPoints {
+        let start_height: CanvasY;
+        let multiplier: f64;
+        match self.direction {
+            WeichenRichtung::Links => {
+                start_height = CanvasY(0.);
+                multiplier = 1.;
+            }
+            WeichenRichtung::Rechts => {
+                start_height = CanvasY(self.height() as f64);
+                multiplier = -1.;
+            }
+        };
+        let halbe_beschraenkung: CanvasAbstand = 0.5 * Z::beschraenkung();
+        let radius_abstand: CanvasAbstand = CanvasAbstand::new(self.radius.0);
+        let kurve_anchor_direction: anchor::Direction = anchor::Direction {
+            dx: CanvasX(self.angle.cos()),
+            dy: CanvasY(multiplier * self.angle.sin()),
+        };
+        let kurve_anchor_x: CanvasX = CanvasX(0.) + radius_abstand * self.angle.sin();
+        let kurve_anchor_y: CanvasY = start_height
+            + multiplier * (halbe_beschraenkung + radius_abstand * (1. - self.angle.cos()));
+        AnchorPoints {
+            anfang: anchor::Point {
+                position: anchor::Position {
+                    x: CanvasX(0.),
+                    y: start_height + multiplier * halbe_beschraenkung,
+                },
+                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(multiplier * 0.) },
+            },
+            innen: anchor::Point {
+                position: anchor::Position { x: kurve_anchor_x, y: kurve_anchor_y },
+                direction: kurve_anchor_direction,
+            },
+            aussen: anchor::Point {
+                position: anchor::Position {
+                    x: kurve_anchor_x + CanvasAbstand::new(self.length.0),
+                    y: kurve_anchor_y,
+                },
+                direction: kurve_anchor_direction,
+            },
+        }
+    }
+}
