@@ -12,7 +12,9 @@ use super::anchor;
 use super::gerade::Gerade;
 use super::kurve::{self, Kurve};
 use super::types::*;
-use super::widget::{AnchorLookup, Zeichnen};
+use super::widget::Zeichnen;
+use crate as zugkontrolle;
+use zugkontrolle_derive::AnchorLookup;
 
 /// Definition einer Kreuzung
 #[derive(Debug, Clone)]
@@ -40,19 +42,12 @@ impl<Z> Kreuzung<Z> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
 pub enum AnchorName {
     Anfang0,
     Ende0,
     Anfang1,
     Ende1,
-}
-#[derive(Debug)]
-pub struct AnchorPoints {
-    anfang0: anchor::Point,
-    ende0: anchor::Point,
-    anfang1: anchor::Point,
-    ende1: anchor::Point,
 }
 
 impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
@@ -115,47 +110,22 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let ende1_x: CanvasX = width - radius_abstand * angle.sin();
         let ende1_y: CanvasY = half_height - radius_abstand * (1. - angle.cos());
         AnchorPoints {
-            anfang0: anchor::Point {
+            anfang_0: anchor::Point {
                 position: anchor::Position { x: anfang0_x, y: half_height },
                 direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-            ende0: anchor::Point {
+            ende_0: anchor::Point {
                 position: anchor::Position { x: ende0_x, y: half_height },
                 direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
-            anfang1: anchor::Point {
+            anfang_1: anchor::Point {
                 position: anchor::Position { x: anfang1_x, y: anfang1_y },
                 direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
             },
-            ende1: anchor::Point {
+            ende_1: anchor::Point {
                 position: anchor::Position { x: ende1_x, y: ende1_y },
                 direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
         }
-    }
-}
-
-impl AnchorLookup<AnchorName> for AnchorPoints {
-    fn get(&self, key: AnchorName) -> &anchor::Point {
-        match key {
-            AnchorName::Anfang0 => &self.anfang0,
-            AnchorName::Ende0 => &self.ende0,
-            AnchorName::Anfang1 => &self.anfang1,
-            AnchorName::Ende1 => &self.ende1,
-        }
-    }
-    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point {
-        match key {
-            AnchorName::Anfang0 => &mut self.anfang0,
-            AnchorName::Ende0 => &mut self.ende0,
-            AnchorName::Anfang1 => &mut self.anfang1,
-            AnchorName::Ende1 => &mut self.ende1,
-        }
-    }
-    fn map<F: FnMut(&anchor::Point)>(&self, mut action: F) {
-        action(&self.anfang0);
-        action(&self.ende0);
-        action(&self.anfang1);
-        action(&self.ende1);
     }
 }

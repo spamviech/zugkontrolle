@@ -8,11 +8,13 @@
 
 use std::marker::PhantomData;
 
+use crate as zugkontrolle;
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::Kurve;
 use crate::gleis::types::*;
-use crate::gleis::widget::{AnchorLookup, Zeichnen};
+use crate::gleis::widget::Zeichnen;
+use zugkontrolle_derive::AnchorLookup;
 
 /// Definition einer Weiche
 #[derive(Debug, Clone)]
@@ -28,17 +30,11 @@ pub enum WeichenRichtung {
     Links,
     Rechts,
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
 pub enum AnchorName {
     Anfang,
     Gerade,
     Kurve,
-}
-#[derive(Debug)]
-pub struct AnchorPoints {
-    anfang: anchor::Point,
-    gerade: anchor::Point,
-    kurve: anchor::Point,
 }
 
 impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
@@ -113,27 +109,5 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                 },
             },
         }
-    }
-}
-
-impl AnchorLookup<AnchorName> for AnchorPoints {
-    fn get(&self, key: AnchorName) -> &anchor::Point {
-        match key {
-            AnchorName::Anfang => &self.anfang,
-            AnchorName::Gerade => &self.gerade,
-            AnchorName::Kurve => &self.kurve,
-        }
-    }
-    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point {
-        match key {
-            AnchorName::Anfang => &mut self.anfang,
-            AnchorName::Gerade => &mut self.gerade,
-            AnchorName::Kurve => &mut self.kurve,
-        }
-    }
-    fn map<F: FnMut(&anchor::Point)>(&self, mut action: F) {
-        action(&self.anfang);
-        action(&self.gerade);
-        action(&self.kurve);
     }
 }

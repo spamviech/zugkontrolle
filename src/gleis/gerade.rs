@@ -11,7 +11,9 @@ use std::marker::PhantomData;
 
 use super::anchor;
 use super::types::*;
-use super::widget::{AnchorLookup, Zeichnen};
+use super::widget::Zeichnen;
+use crate as zugkontrolle;
+use zugkontrolle_derive::AnchorLookup;
 
 /// Definition einer Gerade
 #[derive(Debug, Clone)]
@@ -20,15 +22,10 @@ pub struct Gerade<Z> {
     pub length: Length,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
 pub enum AnchorName {
     Anfang,
     Ende,
-}
-#[derive(Debug)]
-pub struct AnchorPoints {
-    anfang: anchor::Point,
-    ende: anchor::Point,
 }
 
 impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
@@ -70,25 +67,6 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
                 direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
             },
         }
-    }
-}
-
-impl AnchorLookup<AnchorName> for AnchorPoints {
-    fn get(&self, key: AnchorName) -> &anchor::Point {
-        match key {
-            AnchorName::Anfang => &self.anfang,
-            AnchorName::Ende => &self.ende,
-        }
-    }
-    fn get_mut(&mut self, key: AnchorName) -> &mut anchor::Point {
-        match key {
-            AnchorName::Anfang => &mut self.anfang,
-            AnchorName::Ende => &mut self.ende,
-        }
-    }
-    fn map<F: FnMut(&anchor::Point)>(&self, mut action: F) {
-        action(&self.anfang);
-        action(&self.ende);
     }
 }
 

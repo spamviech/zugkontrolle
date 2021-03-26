@@ -1,0 +1,15 @@
+[package]
+name = "zugkontrolle_derive"
+version = "2.0.0"
+authors = ["Wolfgang Witt <Wolfgang.Witt@campus.lmu.de>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "~1.0.64"
+quote = "~1.0.9"
+proc-macro2 = "~1.0.24"
+Inflector = "~0.11.4"

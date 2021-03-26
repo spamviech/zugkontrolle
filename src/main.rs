@@ -6,6 +6,9 @@ use simple_logger::SimpleLogger;
 pub mod gleis;
 pub mod zugtyp;
 
+#[cfg(feature = "derive")]
+pub use zugkontrolle_derive::AnchorLookup;
+
 fn main() {
     SimpleLogger::new().init().expect("failed to initialize error logging");
 
