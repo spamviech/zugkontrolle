@@ -2,6 +2,7 @@ use inflector::cases::snakecase::to_snake_case;
 use proc_macro;
 use proc_macro::TokenStream;
 use proc_macro2;
+use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn;
 
@@ -13,24 +14,17 @@ pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse input!");
 
     // Build the trait implementation
-    impl_anchor_lookup(&ast, "zugkontrolle")
+    impl_anchor_lookup(&ast)
 }
 
-/// For internal use only, uses /crate/ as basename
-#[proc_macro_derive(AnchorLookupCrate)]
-pub fn anchor_lookup_crate_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
-    let ast = syn::parse(input).expect("Failed to parse input!");
-
-    // Build the trait implementation
-    impl_anchor_lookup(&ast, "crate")
-}
-
-fn impl_anchor_lookup(ast: &syn::DeriveInput, basename: &str) -> TokenStream {
+fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
     let gen: proc_macro2::TokenStream;
     if let syn::Data::Enum(enum_data) = &ast.data {
-        let base_ident: syn::Ident = format_ident!("{}", basename);
+        let base_ident: syn::Ident =
+            match crate_name("zugkontrolle").expect("zugkontrolle missing in `Cargo.toml`") {
+                FoundCrate::Itself => format_ident!("{}", "crate"),
+                FoundCrate::Name(name) => format_ident!("{}", name),
+            };
         let enum_name: &syn::Ident = &ast.ident;
         let enum_vis: &syn::Visibility = &ast.vis;
         let enum_variants: Vec<syn::Ident> =
@@ -47,16 +41,12 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput, basename: &str) -> TokenStream {
             .iter()
             .map(|ident| format_ident!("{}", to_snake_case(&ident.to_string())))
             .collect();
-        // TODO check if this actually works
-        // especially: derive and #enum_vis (for private, i.e. no explicit visibility)
         let struct_definition: proc_macro2::TokenStream = quote! {
             #[derive(Debug)]
             #enum_vis struct #struct_name {
                 #(#struct_fields : #base_ident::gleis::anchor::Point),*
             }
         };
-        // TODO check if we need to qualify idents here
-        // format_ident!("{}::{}", #enum_name,#enum_variants)
         let impl_lookup: proc_macro2::TokenStream = quote! {
             impl #base_ident::gleis::widget::AnchorLookup<#enum_name> for #struct_name {
                 fn get(&self, key: #enum_name) -> &#base_ident::gleis::anchor::Point {

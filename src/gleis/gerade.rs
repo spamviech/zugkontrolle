@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 use super::anchor;
 use super::types::*;
 use super::widget::Zeichnen;
-use zugkontrolle_derive::AnchorLookupCrate;
+use zugkontrolle_derive::AnchorLookup;
 
 /// Definition einer Gerade
 #[derive(Debug, Clone)]
@@ -21,7 +21,7 @@ pub struct Gerade<Z> {
     pub length: Length,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookupCrate)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
 pub enum AnchorName {
     Anfang,
     Ende,

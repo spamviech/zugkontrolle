@@ -10,8 +10,8 @@ edition = "2018"
 # re-export the AnchorLookup-macro
 derive = []
 
-[dependencies.zugkontrolle_derive]
-path = "zugkontrolle_derive"
+[dependencies.zugkontrolle-derive]
+path = "zugkontrolle-derive"
 
 [dependencies]
 rust-pigpio = "~0.2.0"

@@ -13,7 +13,7 @@ use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::Kurve;
 use crate::gleis::types::*;
 use crate::gleis::widget::Zeichnen;
-use zugkontrolle_derive::AnchorLookupCrate;
+use zugkontrolle_derive::AnchorLookup;
 
 /// Definition einer Weiche
 #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ pub enum WeichenRichtung {
     Links,
     Rechts,
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookupCrate)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
 pub enum AnchorName {
     Anfang,
     Gerade,

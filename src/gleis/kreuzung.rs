@@ -13,7 +13,7 @@ use super::gerade::Gerade;
 use super::kurve::{self, Kurve};
 use super::types::*;
 use super::widget::Zeichnen;
-use zugkontrolle_derive::AnchorLookupCrate;
+use zugkontrolle_derive::AnchorLookup;
 
 /// Definition einer Kreuzung
 #[derive(Debug, Clone)]
@@ -41,7 +41,7 @@ impl<Z> Kreuzung<Z> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookupCrate)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
 pub enum AnchorName {
     Anfang0,
     Ende0,
