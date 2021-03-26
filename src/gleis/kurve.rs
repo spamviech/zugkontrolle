@@ -66,10 +66,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             },
             ende: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(self.radius.0 * self.angle.sin()),
+                    x: CanvasX(0.) + CanvasAbstand::from(self.radius) * self.angle.sin(),
                     y: CanvasY(0.)
                         + (0.5 * Z::beschraenkung()
-                            + CanvasAbstand::new(self.radius.0) * (1. - self.angle.cos())),
+                            + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {
                     dx: CanvasX(self.angle.cos()),
@@ -112,7 +112,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     winkel: Angle,
     beschraenkungen: Beschraenkung,
 ) {
-    let radius_abstand = CanvasAbstand::new(radius.0);
+    let radius_abstand = CanvasAbstand::from(radius);
     let spurweite = CanvasAbstand::new(Z::spurweite.0);
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let gleis_links: CanvasX = CanvasX(0.);

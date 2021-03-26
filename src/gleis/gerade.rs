@@ -31,7 +31,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn width(&self) -> u64 {
-        CanvasAbstand::new(self.length.0).pixel()
+        CanvasAbstand::from(self.length).pixel()
     }
 
     fn height(&self) -> u64 {
@@ -75,11 +75,11 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn gleis_rechts(&self) -> CanvasX {
-        CanvasX(0.) + CanvasAbstand::new(self.length.0)
+        self.gleis_links() + CanvasAbstand::from(self.length)
     }
 
     fn beschraenkung_mitte(&self) -> CanvasY {
-        CanvasY(0.) + 0.5 * Z::beschraenkung()
+        self.beschraenkung_oben() + 0.5 * Z::beschraenkung()
     }
 
     fn beschraenkung_oben(&self) -> CanvasY {
@@ -87,7 +87,7 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn beschraenkung_unten(&self) -> CanvasY {
-        CanvasY(0.) + Z::beschraenkung()
+        self.beschraenkung_oben() + Z::beschraenkung()
     }
 
     fn gleis_oben(&self) -> CanvasY {
@@ -95,6 +95,6 @@ impl<Z: Zugtyp> Gerade<Z> {
     }
 
     fn gleis_unten(&self) -> CanvasY {
-        CanvasY(0.) + Z::beschraenkung() - Z::abstand
+        self.gleis_oben() + Z::beschraenkung() - 2. * Z::abstand
     }
 }

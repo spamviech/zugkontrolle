@@ -36,7 +36,7 @@ impl<Z> Kreuzung<Z> {
         // pi/2 doesn't work either, since it violates the formula
         // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
         // only for radius=0 as well both formulas are satisfied by any angle
-        Angle::new(2. * (0.5 * self.length.0 / self.radius.0).atan())
+        Angle::new(2. * (0.5 * (self.length / self.radius)).atan())
     }
 }
 
@@ -55,7 +55,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn width(&self) -> u64 {
         let width_kurve =
             Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.width();
-        CanvasAbstand::new(self.length.0).pixel().max(width_kurve)
+        CanvasAbstand::from(self.length).pixel().max(width_kurve)
     }
 
     fn height(&self) -> u64 {
@@ -99,9 +99,9 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let width: CanvasX = CanvasX(self.width() as f64);
         let anfang0_x: CanvasX = CanvasX(0.);
-        let ende0_x: CanvasX = anfang0_x + CanvasAbstand::new(self.length.0);
+        let ende0_x: CanvasX = anfang0_x + CanvasAbstand::from(self.length);
         let half_height: CanvasY = CanvasY(0.5 * (self.height() as f64));
-        let radius_abstand: CanvasAbstand = CanvasAbstand::new(self.radius.0);
+        let radius_abstand: CanvasAbstand = CanvasAbstand::from(self.radius);
         let angle = self.angle();
         let anfang1_x: CanvasX = CanvasX(0.) + radius_abstand * angle.sin();
         let anfang1_y: CanvasY = half_height + radius_abstand * (1. - angle.cos());

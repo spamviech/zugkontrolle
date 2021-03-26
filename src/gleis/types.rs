@@ -11,6 +11,8 @@ pub mod canvas;
 pub use angle::*;
 pub use canvas::*;
 
+use std::ops::Div;
+
 use crate::zugtyp::*;
 
 /// Spurweite \[mm\]
@@ -44,8 +46,52 @@ impl Zugtyp for Lego {
 
 /// Längenmaß \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Length(pub f64);
+pub struct Length(f64);
+impl Length {
+    pub fn new(length: f64) -> Self {
+        Length(length)
+    }
+}
+impl From<Length> for CanvasAbstand {
+    fn from(length: Length) -> CanvasAbstand {
+        CanvasAbstand::new(length.0)
+    }
+}
+impl Div<Length> for Length {
+    type Output = f64;
+    fn div(self, other: Length) -> f64 {
+        self.0 / other.0
+    }
+}
+impl Div<Radius> for Length {
+    type Output = f64;
+    fn div(self, other: Radius) -> f64 {
+        self.0 / other.0
+    }
+}
 
 /// Radius \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Radius(pub f64);
+pub struct Radius(f64);
+impl Radius {
+    pub fn new(radius: f64) -> Self {
+        Radius(radius)
+    }
+}
+impl From<Radius> for CanvasAbstand {
+    fn from(length: Radius) -> CanvasAbstand {
+        CanvasAbstand::new(length.0)
+    }
+}
+impl Div<Radius> for Radius {
+    type Output = f64;
+    fn div(self, other: Radius) -> f64 {
+        self.0 / other.0
+    }
+}
+impl Div<Length> for Radius {
+    type Output = f64;
+    fn div(self, other: Length) -> f64 {
+        self.0 / other.0
+    }
+}

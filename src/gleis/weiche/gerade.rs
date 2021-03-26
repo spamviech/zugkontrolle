@@ -88,18 +88,18 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             },
             gerade: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + CanvasAbstand::new(self.length.0),
+                    x: CanvasX(0.) + CanvasAbstand::from(self.length),
                     y: start_height + multiplier * 0.5 * Z::beschraenkung(),
                 },
                 direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(multiplier * 0.) },
             },
             kurve: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + self.angle.sin() * CanvasAbstand::new(self.radius.0),
+                    x: CanvasX(0.) + self.angle.sin() * CanvasAbstand::from(self.radius),
                     y: start_height
                         + multiplier
                             * (0.5 * Z::beschraenkung()
-                                + CanvasAbstand::new(self.radius.0) * (1. - self.angle.cos())),
+                                + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {
                     dx: CanvasX(self.angle.cos()),

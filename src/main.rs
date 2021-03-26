@@ -36,7 +36,7 @@ fn main() {
             let allocation = drawing_area.get_allocation();
             let cairo: &Cairo = &Cairo::new(c);
             let gerade: Gerade<zugtyp::Maerklin> =
-                Gerade { length: Length(180.), zugtyp: PhantomData };
+                Gerade { length: Length::new(180.), zugtyp: PhantomData };
             cairo.translate(
                 CanvasX(0.5 * (allocation.width as u64 - gerade.width()) as f64),
                 CanvasY(0.5 * (allocation.height as u64 - gerade.height()) as f64),

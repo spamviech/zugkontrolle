@@ -56,7 +56,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let gleis_oben: CanvasY = CanvasY(0.) + Z::abstand;
         let gleis_unten: CanvasY = CanvasY(0.) + Z::beschraenkung() - Z::abstand;
         let kurve_innen_anfang: CanvasX = CanvasX(0.);
-        let kurve_aussen_anfang: CanvasX = kurve_innen_anfang + CanvasAbstand::new(self.length.0);
+        let kurve_aussen_anfang: CanvasX = kurve_innen_anfang + CanvasAbstand::from(self.length);
         let angle: Angle = self.angle.into();
         // innere Kurve
         kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Alle);
@@ -84,7 +84,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             }
         };
         let halbe_beschraenkung: CanvasAbstand = 0.5 * Z::beschraenkung();
-        let radius_abstand: CanvasAbstand = CanvasAbstand::new(self.radius.0);
+        let radius_abstand: CanvasAbstand = CanvasAbstand::from(self.radius);
         let kurve_anchor_direction: anchor::Direction = anchor::Direction {
             dx: CanvasX(self.angle.cos()),
             dy: CanvasY(multiplier * self.angle.sin()),
@@ -106,7 +106,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             },
             aussen: anchor::Point {
                 position: anchor::Position {
-                    x: kurve_anchor_x + CanvasAbstand::new(self.length.0),
+                    x: kurve_anchor_x + CanvasAbstand::from(self.length),
                     y: kurve_anchor_y,
                 },
                 direction: kurve_anchor_direction,
