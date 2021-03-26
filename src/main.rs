@@ -35,13 +35,14 @@ fn main() {
         window.set_default_size(600, 400);
 
         let drawing_area = DrawingArea::new();
-        fn test(_drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
+        fn test(drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
+            let allocation = drawing_area.get_allocation();
             let cairo: &Cairo = &Cairo::new(c);
             let gerade: Gerade<zugtyp::Maerklin> =
                 Gerade { length: Length(180.), zugtyp: PhantomData };
             cairo.translate(
-                CanvasX((400 - gerade.width()) as f64),
-                CanvasY((200 - gerade.height()) as f64),
+                CanvasX(0.5 * (allocation.width as u64 - gerade.width()) as f64),
+                CanvasY(0.5 * (allocation.height as u64 - gerade.height()) as f64),
             );
             gerade.zeichne(cairo);
             cairo.stroke();

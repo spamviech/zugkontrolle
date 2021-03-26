@@ -81,7 +81,9 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 }
 
+// TODO remove unused?
 #[derive(Debug, PartialEq, Eq)]
+#[allow(dead_code)]
 pub(crate) enum Beschraenkung {
     Keine,
     Anfang,
