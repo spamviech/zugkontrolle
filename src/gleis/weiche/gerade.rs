@@ -8,13 +8,12 @@
 
 use std::marker::PhantomData;
 
-use crate as zugkontrolle;
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::Kurve;
 use crate::gleis::types::*;
 use crate::gleis::widget::Zeichnen;
-use zugkontrolle_derive::AnchorLookup;
+use zugkontrolle_derive::AnchorLookupCrate;
 
 /// Definition einer Weiche
 #[derive(Debug, Clone)]
@@ -30,7 +29,7 @@ pub enum WeichenRichtung {
     Links,
     Rechts,
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookupCrate)]
 pub enum AnchorName {
     Anfang,
     Gerade,

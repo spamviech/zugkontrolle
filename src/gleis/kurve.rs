@@ -12,8 +12,7 @@ use std::marker::PhantomData;
 use super::anchor;
 use super::types::*;
 use super::widget::Zeichnen;
-use crate as zugkontrolle;
-use zugkontrolle_derive::AnchorLookup;
+use zugkontrolle_derive::AnchorLookupCrate;
 
 /// Definition einer Kurve
 #[derive(Debug, Clone)]
@@ -23,7 +22,7 @@ pub struct Kurve<T> {
     pub angle: AngleDegrees,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookup)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, AnchorLookupCrate)]
 pub enum AnchorName {
     Anfang,
     Ende,

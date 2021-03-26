@@ -5,6 +5,7 @@ use proc_macro2;
 use quote::{format_ident, quote};
 use syn;
 
+/// For external use
 #[proc_macro_derive(AnchorLookup)]
 pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
@@ -12,12 +13,24 @@ pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse input!");
 
     // Build the trait implementation
-    impl_anchor_lookup(&ast)
+    impl_anchor_lookup(&ast, "zugkontrolle")
 }
 
-fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
+/// For internal use only, uses /crate/ as basename
+#[proc_macro_derive(AnchorLookupCrate)]
+pub fn anchor_lookup_crate_derive(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let ast = syn::parse(input).expect("Failed to parse input!");
+
+    // Build the trait implementation
+    impl_anchor_lookup(&ast, "crate")
+}
+
+fn impl_anchor_lookup(ast: &syn::DeriveInput, basename: &str) -> TokenStream {
     let gen: proc_macro2::TokenStream;
     if let syn::Data::Enum(enum_data) = &ast.data {
+        let base_ident: syn::Ident = format_ident!("{}", basename);
         let enum_name: &syn::Ident = &ast.ident;
         let enum_vis: &syn::Visibility = &ast.vis;
         let enum_variants: Vec<syn::Ident> =
@@ -39,24 +52,24 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
         let struct_definition: proc_macro2::TokenStream = quote! {
             #[derive(Debug)]
             #enum_vis struct #struct_name {
-                #(#struct_fields : zugkontrolle::gleis::anchor::Point),*
+                #(#struct_fields : #base_ident::gleis::anchor::Point),*
             }
         };
         // TODO check if we need to qualify idents here
         // format_ident!("{}::{}", #enum_name,#enum_variants)
         let impl_lookup: proc_macro2::TokenStream = quote! {
-            impl zugkontrolle::gleis::widget::AnchorLookup<#enum_name> for #struct_name {
-                fn get(&self, key: #enum_name) -> &zugkontrolle::gleis::anchor::Point {
+            impl #base_ident::gleis::widget::AnchorLookup<#enum_name> for #struct_name {
+                fn get(&self, key: #enum_name) -> &#base_ident::gleis::anchor::Point {
                     match key {
                         #(#enum_name::#enum_variants => &self.#struct_fields),*
                     }
                 }
-                fn get_mut(&mut self, key: #enum_name) -> &mut zugkontrolle::gleis::anchor::Point {
+                fn get_mut(&mut self, key: #enum_name) -> &mut #base_ident::gleis::anchor::Point {
                     match key {
                         #(#enum_name::#enum_variants => &mut self.#struct_fields),*
                     }
                 }
-                fn map<F: FnMut(&zugkontrolle::gleis::anchor::Point)>(&self, mut action: F) {
+                fn map<F: FnMut(&#base_ident::gleis::anchor::Point)>(&self, mut action: F) {
                     #(action(&self.#struct_fields));*
                 }
             }
