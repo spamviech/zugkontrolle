@@ -16,6 +16,9 @@ use crate::gleis::types::*;
 use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Dreiwege-Weiche
+///
+/// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+/// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(Debug, Clone)]
 pub struct DreiwegeWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,

@@ -15,6 +15,9 @@ use crate::gleis::types::*;
 use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Weiche
+///
+/// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+/// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(Debug, Clone)]
 pub struct Weiche<Z> {
     pub zugtyp: PhantomData<*const Z>,

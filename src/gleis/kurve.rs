@@ -14,6 +14,9 @@ use super::types::*;
 use super::widget::Zeichnen;
 
 /// Definition einer Kurve
+///
+/// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
+/// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(Debug, Clone)]
 pub struct Kurve<T> {
     pub zugtyp: PhantomData<*const T>,
@@ -33,19 +36,19 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn width(&self) -> u64 {
         let factor = if self.angle.abs() < Angle::new(0.5 * PI) { self.angle.sin() } else { 1. };
-        (radius_begrenzung::<Z>(self.radius) * factor).pixel()
+        (radius_begrenzung_aussen::<Z>(self.radius) * factor).pixel()
     }
 
     fn height(&self) -> u64 {
         // Höhe des Bogen
         let angle_abs = self.angle.abs();
         let comparison = if angle_abs < Angle::new(0.5 * PI) {
-            radius_begrenzung::<Z>(self.radius) * (1. - self.angle.cos())
+            radius_begrenzung_aussen::<Z>(self.radius) * (1. - self.angle.cos())
                 + beschraenkung::<Z>() * self.angle.cos()
         } else if angle_abs < Angle::new(PI) {
-            radius_begrenzung::<Z>(self.radius) * (1. - self.angle.cos())
+            radius_begrenzung_aussen::<Z>(self.radius) * (1. - self.angle.cos())
         } else {
-            radius_begrenzung::<Z>(self.radius)
+            radius_begrenzung_aussen::<Z>(self.radius)
         };
         // Mindestgröße: Beschränkung einer Geraden
         beschraenkung::<Z>().max(&comparison).pixel()

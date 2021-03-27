@@ -33,7 +33,6 @@ fn main() {
     application.connect_activate(|app| {
         let window = ApplicationWindow::new(app);
         window.set_title("Zugkontrolle");
-        window.set_default_size(600, 400);
 
         let drawing_area = DrawingArea::new();
         fn test(drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
@@ -81,7 +80,7 @@ fn main() {
             show_gleis(cairo, kreuzung);
             glib::signal::Inhibit(false)
         }
-        drawing_area.set_size_request(600, 800);
+        drawing_area.set_size_request(600, 600);
         drawing_area.connect_draw(test);
         window.add(&drawing_area);
 

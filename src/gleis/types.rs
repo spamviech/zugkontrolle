@@ -32,8 +32,12 @@ pub fn beschraenkung<Z: Zugtyp>() -> CanvasAbstand {
     CanvasAbstand::from(Z::SPURWEITE) + 2. * abstand::<Z>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
+pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
     CanvasAbstand::from(radius) + 0.5 * CanvasAbstand::from(Z::SPURWEITE) + abstand::<Z>()
+}
+/// Innerster Radius (inklusive Beschränkung) einer Kurve
+pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
+    CanvasAbstand::from(radius) - 0.5 * CanvasAbstand::from(Z::SPURWEITE) - abstand::<Z>()
 }
 
 impl Zugtyp for Maerklin {
