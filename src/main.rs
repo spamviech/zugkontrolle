@@ -49,6 +49,29 @@ fn main() {
                 zugtyp: PhantomData,
             };
             show_gleis(cairo, kurve);
+            let weiche: Weiche<Maerklin> = Weiche {
+                length: Length::new(180.),
+                radius: Radius::new(360.),
+                angle: AngleDegrees::new(30.),
+                direction: WeichenRichtung::Links,
+                zugtyp: PhantomData,
+            };
+            show_gleis(cairo, weiche);
+            let dreiwege_weiche: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
+                length: Length::new(180.),
+                radius: Radius::new(360.),
+                angle: AngleDegrees::new(30.),
+                zugtyp: PhantomData,
+            };
+            show_gleis(cairo, dreiwege_weiche);
+            let kurven_weiche: KurvenWeiche<Maerklin> = KurvenWeiche {
+                length: Length::new(100.),
+                radius: Radius::new(360.),
+                angle: AngleDegrees::new(30.),
+                direction: WeichenRichtung::Links,
+                zugtyp: PhantomData,
+            };
+            show_gleis(cairo, kurven_weiche);
             let kreuzung: Kreuzung<Maerklin> = Kreuzung {
                 length: Length::new(180.),
                 radius: Radius::new(360.),
@@ -58,7 +81,7 @@ fn main() {
             show_gleis(cairo, kreuzung);
             glib::signal::Inhibit(false)
         }
-        drawing_area.set_size_request(600, 400);
+        drawing_area.set_size_request(600, 800);
         drawing_area.connect_draw(test);
         window.add(&drawing_area);
 
