@@ -48,7 +48,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn height(&self) -> u64 {
         let Weiche { zugtyp, length: _, radius, angle, direction: _ } = *self;
-        Kurve { zugtyp, radius, angle }.width()
+        Kurve { zugtyp, radius, angle }.height()
     }
 
     fn zeichne(&self, cairo: &Cairo) {
