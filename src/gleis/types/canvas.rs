@@ -6,7 +6,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 use cairo::Context;
 pub use cairo::Matrix;
 
-use super::angle::Angle;
+use super::angle::{Angle, Trigonometrie};
 use super::{Length, Radius, Spurweite};
 
 /// newtype auf einen cairo-Context
@@ -29,6 +29,10 @@ impl<'t> Cairo<'t> {
         self.0.line_to(x.0, y.0)
     }
 
+    /// Strike an arc around (xc,xy) with given radius from angle1 to angle2
+    ///
+    /// Unlike the method on the cairo context,
+    /// doesn't strike a direct line from the current point to the start of the arc!
     pub fn arc(
         &self,
         xc: CanvasX,
@@ -37,6 +41,8 @@ impl<'t> Cairo<'t> {
         angle1: Angle,
         angle2: Angle,
     ) {
+        let radius_abstand: CanvasAbstand = radius.into();
+        self.move_to(xc + radius_abstand * angle1.cos(), yc + radius_abstand * angle1.sin());
         self.0.arc(xc.0, yc.0, radius.0, angle1.0, angle2.0)
     }
 
