@@ -36,10 +36,6 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    // x(phi) = radius * cos(phi)
-    //          + if (phi>angle) {radius_reverse * (sin(angle-phi)-sin(angle))} else {0}
-    // y(phi) = radius * (1 - sin(phi))
-    //          + if (phi>angle_reverse) {radius_reverse * (cos(angle)-cos(angle-phi))} else {0}
     fn width(&self) -> u64 {
         let SKurveWeiche {
             zugtyp,
@@ -72,22 +68,42 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
         let width_unten2 = CanvasAbstand::from(radius_innen) * angle.cos()
             + CanvasAbstand::from(radius_reverse_aussen) * factor_reverse;
         let width_unten = width_unten1.max(&width_unten2);
-        let width_beschraenkung = beschraenkung::<Z>() * factor;
-        width_gerade.max((width_oben.max(&width_unten) + width_beschraenkung).pixel())
+        width_gerade.max(width_oben.max(&width_unten).pixel())
     }
 
     fn height(&self) -> u64 {
         let SKurveWeiche {
-            zugtyp,
-            length,
+            zugtyp: _,
+            length: _,
             radius,
             angle,
             radius_reverse,
             angle_reverse,
             direction: _,
         } = *self;
-        panic!();
-        Kurve { zugtyp, radius, angle }.width()
+        let factor = if angle.abs() < Angle::new(PI) { 1. - angle.sin() } else { 1. };
+        let factor_reverse = if (angle_reverse - angle).abs() < Angle::new(PI) {
+            angle.cos() - (angle - angle_reverse).cos()
+        } else {
+            1.
+        }
+        .max(0.);
+        let radius_aussen = radius_begrenzung_aussen::<Z>(radius);
+        let radius_innen = radius_begrenzung_innen::<Z>(radius);
+        let radius_reverse_aussen = radius_begrenzung_aussen::<Z>(radius_reverse);
+        let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
+        // obere Beschränkung
+        let height_oben1: CanvasAbstand = CanvasAbstand::from(radius_aussen) * factor;
+        let height_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * angle.cos()
+            + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
+        let height_oben: CanvasAbstand = height_oben1.max(&height_oben2);
+        // untere Beschränkung
+        let height_unten1 = beschraenkung::<Z>() + CanvasAbstand::from(radius_innen) * factor;
+        let height_unten2 = beschraenkung::<Z>()
+            + CanvasAbstand::from(radius_innen) * (1. - angle.sin())
+            + CanvasAbstand::from(radius_reverse_aussen) * factor_reverse;
+        let height_unten = height_unten1.max(&height_unten2);
+        height_oben.max(&height_unten).pixel()
     }
 
     fn zeichne(&self, cairo: &Cairo) {
