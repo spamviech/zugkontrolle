@@ -9,11 +9,12 @@
 use std::f64::consts::PI;
 use std::marker::PhantomData;
 
-use super::gerade::{AnchorName, AnchorPoints, WeichenRichtung};
+use super::gerade::WeichenRichtung;
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
+use crate::gleis::weiche;
 use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Weiche mit S-Kurve
@@ -33,8 +34,8 @@ pub struct SKurveWeiche<Z> {
 }
 
 impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
-    type AnchorName = AnchorName;
-    type AnchorPoints = AnchorPoints;
+    type AnchorName = weiche::gerade::AnchorName;
+    type AnchorPoints = weiche::gerade::AnchorPoints;
 
     fn width(&self) -> u64 {
         let SKurveWeiche {
@@ -49,7 +50,7 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
         let width_gerade = Gerade { zugtyp, length }.width();
         let factor = if angle.abs() < Angle::new(0.5 * PI) { angle.cos() } else { 1. };
         let factor_reverse = if (angle_reverse - angle).abs() < Angle::new(0.5 * PI) {
-            (angle - angle_reverse).sin() - angle.sin()
+            (angle - angle_reverse).cos() - angle.cos()
         } else {
             1.
         }
@@ -81,9 +82,9 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
             angle_reverse,
             direction: _,
         } = *self;
-        let factor = if angle.abs() < Angle::new(PI) { 1. - angle.sin() } else { 1. };
+        let factor = if angle.abs() < Angle::new(PI) { 1. - angle.cos() } else { 1. };
         let factor_reverse = if (angle_reverse - angle).abs() < Angle::new(PI) {
-            angle.cos() - (angle - angle_reverse).cos()
+            angle.sin() - (angle - angle_reverse).sin()
         } else {
             1.
         }
@@ -142,8 +143,8 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
                 multiplier = -1.;
             }
         };
-        panic!();
-        AnchorPoints {
+        let final_angle = self.angle + self.angle_reverse;
+        weiche::gerade::AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
                     x: CanvasX(0.),
@@ -164,11 +165,12 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
-                                + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())),
+                                + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())
+                                + panic!()),
                 },
                 direction: anchor::Direction {
-                    dx: CanvasX(self.angle.cos()),
-                    dy: CanvasY(multiplier * self.angle.sin()),
+                    dx: CanvasX(final_angle.cos()),
+                    dy: CanvasY(multiplier * final_angle.sin()),
                 },
             },
         }
