@@ -48,7 +48,6 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
 
     fn zeichne(&self, cairo: &Cairo) {
         let SKurveWeiche { zugtyp, length, radius, angle, angle_reverse, direction } = *self;
-        panic!();
         if direction == WeichenRichtung::Links {
             // spiegel y-Achse in der Mitte
             let x = CanvasX(0.);
@@ -57,6 +56,7 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
         }
+        panic!();
         Gerade { zugtyp, length }.zeichne(cairo);
         kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
     }

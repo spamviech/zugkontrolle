@@ -47,11 +47,12 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn zeichne(&self, cairo: &Cairo) {
         if self.direction == WeichenRichtung::Links {
-            let half_width: CanvasX = CanvasX(self.width() as f64);
-            let half_height: CanvasY = CanvasY(self.height() as f64);
-            cairo.translate(half_width, half_height);
+            // spiegel y-Achse in der Mitte
+            let x = CanvasX(0.);
+            let half_height = CanvasY(0.5 * (self.height() as f64));
+            cairo.translate(x, half_height);
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-            cairo.translate(-half_width, -half_height);
+            cairo.translate(-x, -half_height);
         }
         let gleis_oben: CanvasY = CanvasY(0.) + abstand::<Z>();
         let gleis_unten: CanvasY = CanvasY(0.) + beschraenkung::<Z>() - abstand::<Z>();
@@ -66,7 +67,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         cairo.move_to(kurve_innen_anfang, gleis_unten);
         cairo.line_to(kurve_aussen_anfang, gleis_unten);
         // äußere Kurve
-        cairo.move_to(kurve_aussen_anfang, CanvasY(0.));
+        cairo.translate(kurve_aussen_anfang, CanvasY(0.));
         kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Ende);
     }
 
