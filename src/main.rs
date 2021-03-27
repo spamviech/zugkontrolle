@@ -72,12 +72,12 @@ fn main() {
             };
             show_gleis(cairo, kurven_weiche);
             let s_kurven_weiche: SKurvenWeiche<Maerklin> = SKurvenWeiche {
-                length: Length::new(100.),
-                radius: Radius::new(360.),
-                angle: AngleDegrees::new(45.),
-                radius_reverse: Radius::new(360.),
-                angle_reverse: AngleDegrees::new(15.),
-                direction: WeichenRichtung::Links,
+                length: Length::new(180.),
+                radius: Radius::new(250.),
+                angle: AngleDegrees::new(40.),
+                radius_reverse: Radius::new(300.),
+                angle_reverse: AngleDegrees::new(10.),
+                direction: WeichenRichtung::Rechts,
                 zugtyp: PhantomData,
             };
             show_gleis(cairo, s_kurven_weiche);
@@ -90,7 +90,7 @@ fn main() {
             show_gleis(cairo, kreuzung);
             glib::signal::Inhibit(false)
         }
-        drawing_area.set_size_request(600, 600);
+        drawing_area.set_size_request(400, 700);
         drawing_area.connect_draw(test);
         window.add(&drawing_area);
 

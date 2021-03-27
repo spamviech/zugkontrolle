@@ -64,6 +64,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let width_oben1: CanvasAbstand = CanvasAbstand::from(radius_aussen) * factor;
         let width_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * angle.sin()
             + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
+        println!(
+            "{:?}+{:?}*{:?}={:?}",
+            CanvasAbstand::from(radius_aussen) * angle.sin(),
+            CanvasAbstand::from(radius_reverse_innen),
+            factor_reverse,
+            width_oben2
+        );
         let width_oben: CanvasAbstand = width_oben1.max(&width_oben2);
         // untere Beschränkung
         let width_unten1 = CanvasAbstand::from(radius_innen) * factor;
@@ -101,8 +108,9 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
         let height_oben: CanvasAbstand = height_oben1.max(&height_oben2);
         // untere Beschränkung
-        let height_unten1 = beschraenkung::<Z>() + CanvasAbstand::from(radius_innen) * factor;
-        let height_unten2 = beschraenkung::<Z>()
+        let gleis_unten_start = abstand::<Z>() + CanvasAbstand::from(Z::SPURWEITE);
+        let height_unten1 = gleis_unten_start + CanvasAbstand::from(radius_innen) * factor;
+        let height_unten2 = gleis_unten_start
             + CanvasAbstand::from(radius_innen) * (1. - angle.cos())
             + CanvasAbstand::from(radius_reverse_aussen) * factor_reverse;
         let height_unten = height_unten1.max(&height_unten2);
@@ -127,9 +135,30 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
         }
+        // zeichne gerade
         Gerade { zugtyp, length }.zeichne(cairo);
+        // zeichne ersten Teil der S-Kurve
         kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Keine);
-        // panic!();
+        let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+        // verschiebe Kontext an Position nach erster Kurve
+        cairo.translate(
+            CanvasX(0.) + radius_begrenzung_aussen * self.angle.sin(),
+            CanvasY(0.) + radius_begrenzung_aussen * (1. - self.angle.cos()),
+        );
+        cairo.rotate(self.angle.into());
+        // spiegel die y-Achse, damit die Kurve in die entgegengesetzte Richtung geht
+        let x = CanvasX(0.);
+        let half_beschraenkung = CanvasY(0.) + 0.5 * beschraenkung::<Z>();
+        cairo.translate(x, half_beschraenkung);
+        cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
+        cairo.translate(x, -half_beschraenkung);
+        // zeichne zweiten Teil der S-Kurve
+        kurve::zeichne::<Z>(
+            cairo,
+            radius_reverse,
+            angle_reverse.into(),
+            kurve::Beschraenkung::Ende,
+        );
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
