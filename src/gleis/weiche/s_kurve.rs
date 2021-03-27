@@ -83,9 +83,10 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             angle_reverse,
             direction: _,
         } = *self;
+        let angle_difference = angle - angle_reverse;
         let factor = if angle.abs() < Angle::new(PI) { 1. - angle.cos() } else { 1. };
-        let factor_reverse = if (angle_reverse - angle).abs() < Angle::new(PI) {
-            angle.sin() - (angle - angle_reverse).sin()
+        let factor_reverse = if angle_difference.abs() < Angle::new(PI) {
+            angle.sin() - angle_difference.sin()
         } else {
             1.
         }
@@ -96,13 +97,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
         let height_oben1: CanvasAbstand = CanvasAbstand::from(radius_aussen) * factor;
-        let height_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * angle.cos()
+        let height_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * (1. - angle.cos())
             + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
         let height_oben: CanvasAbstand = height_oben1.max(&height_oben2);
         // untere Beschränkung
         let height_unten1 = beschraenkung::<Z>() + CanvasAbstand::from(radius_innen) * factor;
         let height_unten2 = beschraenkung::<Z>()
-            + CanvasAbstand::from(radius_innen) * (1. - angle.sin())
+            + CanvasAbstand::from(radius_innen) * (1. - angle.cos())
             + CanvasAbstand::from(radius_reverse_aussen) * factor_reverse;
         let height_unten = height_unten1.max(&height_unten2);
         height_oben.max(&height_unten).pixel()
