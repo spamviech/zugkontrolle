@@ -44,11 +44,11 @@ impl<'t> Cairo<'t> {
         self.0.stroke()
     }
 
-    pub fn save(&self) {
-        self.0.save()
-    }
-    pub fn restore(&self) {
-        self.0.restore()
+    /// perform a /save/ before and a /restore/ after action
+    pub fn with_save_restore<F: FnOnce(&Self)>(&self, action: F) {
+        self.0.save();
+        action(self);
+        self.0.restore();
     }
 
     pub fn translate(&self, tx: CanvasX, ty: CanvasY) {

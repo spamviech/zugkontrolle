@@ -77,13 +77,13 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let gerade = Gerade { zugtyp: self.zugtyp, length: self.length };
         let angle = self.angle();
         // horizontale Gerade + erste Kurve
-        cairo.save();
-        cairo.translate(start_x, start_y);
-        gerade.zeichne(cairo);
-        if self.variante == Variante::MitKurve {
-            kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Keine);
-        }
-        cairo.restore();
+        cairo.with_save_restore(|cairo| {
+            cairo.translate(start_x, start_y);
+            gerade.zeichne(cairo);
+            if self.variante == Variante::MitKurve {
+                kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Keine);
+            }
+        });
         // gedrehte Gerade + zweite Kurve
         cairo.translate(half_width, half_height);
         cairo.rotate(angle);
