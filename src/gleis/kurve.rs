@@ -83,12 +83,9 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 }
 
-// TODO remove unused?
 #[derive(Debug, PartialEq, Eq)]
-#[allow(dead_code)]
 pub(crate) enum Beschraenkung {
     Keine,
-    Anfang,
     Ende,
     Alle,
 }
@@ -96,7 +93,7 @@ pub(crate) enum Beschraenkung {
 impl Beschraenkung {
     fn anfangs_beschraenkung(&self) -> bool {
         match self {
-            Beschraenkung::Anfang | Beschraenkung::Alle => true,
+            Beschraenkung::Alle => true,
             Beschraenkung::Keine | Beschraenkung::Ende => false,
         }
     }
@@ -104,7 +101,7 @@ impl Beschraenkung {
     fn end_beschraenkung(&self) -> bool {
         match self {
             Beschraenkung::Ende | Beschraenkung::Alle => true,
-            Beschraenkung::Keine | Beschraenkung::Anfang => false,
+            Beschraenkung::Keine => false,
         }
     }
 }
