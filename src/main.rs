@@ -44,14 +44,14 @@ fn main() {
                 Gerade { length: Length::new(180.), zugtyp: PhantomData };
             show_gleis(cairo, gerade);
             let kurve: Kurve<Maerklin> = Kurve {
-                radius: Radius::new(29.),
+                radius: Radius::new(360.),
                 angle: AngleDegrees::new(30.),
                 zugtyp: PhantomData,
             };
             show_gleis(cairo, kurve);
             let kreuzung: Kreuzung<Maerklin> = Kreuzung {
                 length: Length::new(180.),
-                radius: Radius::new(29.),
+                radius: Radius::new(360.),
                 variante: kreuzung::Variante::MitKurve,
                 zugtyp: PhantomData,
             };
@@ -69,22 +69,27 @@ fn main() {
 }
 
 fn show_gleis<T: Zeichnen>(cairo: &Cairo, gleis: T) {
-    // zeichne gleis
-    cairo.with_save_restore(|cairo| gleis.zeichne(cairo));
-    cairo.stroke();
-    // zeichne Box umd das Gleis (überprüfen von width, height)
     cairo.with_save_restore(|cairo| {
-        cairo.set_source_rgb(0., 1., 0.);
-        let left = CanvasX(0.);
-        let right = CanvasX(gleis.width() as f64);
-        let up = CanvasY(0.);
-        let down = CanvasY(gleis.height() as f64);
-        cairo.move_to(left, up);
-        cairo.line_to(right, up);
-        cairo.line_to(right, down);
-        cairo.line_to(left, down);
-        cairo.line_to(left, up);
-        cairo.stroke();
+        cairo.translate(CanvasX(-0.5 * (gleis.width() as f64)), CanvasY(0.));
+        // zeichne Box umd das Gleis (überprüfen von width, height)
+        cairo.with_save_restore(|cairo| {
+            cairo.set_source_rgb(0., 1., 0.);
+            let left = CanvasX(0.);
+            let right = CanvasX(gleis.width() as f64);
+            let up = CanvasY(0.);
+            let down = CanvasY(gleis.height() as f64);
+            cairo.move_to(left, up);
+            cairo.line_to(right, up);
+            cairo.line_to(right, down);
+            cairo.line_to(left, down);
+            cairo.line_to(left, up);
+            cairo.stroke();
+        });
+        // zeichne gleis
+        cairo.with_save_restore(|cairo| {
+            gleis.zeichne(cairo);
+            cairo.stroke();
+        });
     });
     // verschiebe Context, damit nächstes Gleis unter das aktuelle gezeichnet wird
     let skip_y: CanvasAbstand = CanvasY(10.).into();
