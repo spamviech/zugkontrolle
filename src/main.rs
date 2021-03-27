@@ -8,8 +8,12 @@ use gtk::{Application, ApplicationWindow, DrawingArea};
 use simple_logger::SimpleLogger;
 
 use gleis::gerade::Gerade;
+use gleis::kreuzung::{self, Kreuzung};
+use gleis::kurve::Kurve;
 use gleis::types::*;
+use gleis::weiche::{DreiwegeWeiche, KurvenWeiche, Weiche, WeichenRichtung};
 use gleis::widget::Zeichnen;
+use zugtyp::Maerklin;
 
 pub mod gleis;
 pub mod zugtyp;
@@ -35,14 +39,23 @@ fn main() {
         fn test(drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
             let allocation = drawing_area.get_allocation();
             let cairo: &Cairo = &Cairo::new(c);
-            let gerade: Gerade<zugtyp::Maerklin> =
+            cairo.translate(CanvasX(0.5 * (allocation.width as u64) as f64), CanvasY(10.));
+            let gerade: Gerade<Maerklin> =
                 Gerade { length: Length::new(180.), zugtyp: PhantomData };
-            cairo.translate(
-                CanvasX(0.5 * (allocation.width as u64 - gerade.width()) as f64),
-                CanvasY(0.5 * (allocation.height as u64 - gerade.height()) as f64),
-            );
-            gerade.zeichne(cairo);
-            cairo.stroke();
+            show_gleis(cairo, gerade);
+            let kurve: Kurve<Maerklin> = Kurve {
+                radius: Radius::new(29.),
+                angle: AngleDegrees::new(30.),
+                zugtyp: PhantomData,
+            };
+            show_gleis(cairo, kurve);
+            let kreuzung: Kreuzung<Maerklin> = Kreuzung {
+                length: Length::new(180.),
+                radius: Radius::new(29.),
+                variante: kreuzung::Variante::MitKurve,
+                zugtyp: PhantomData,
+            };
+            show_gleis(cairo, kreuzung);
             glib::signal::Inhibit(false)
         }
         drawing_area.set_size_request(600, 400);
@@ -53,4 +66,27 @@ fn main() {
     });
 
     application.run(&[]);
+}
+
+fn show_gleis<T: Zeichnen>(cairo: &Cairo, gleis: T) {
+    // zeichne gleis
+    cairo.with_save_restore(|cairo| gleis.zeichne(cairo));
+    cairo.stroke();
+    // zeichne Box umd das Gleis (überprüfen von width, height)
+    cairo.with_save_restore(|cairo| {
+        cairo.set_source_rgb(0., 1., 0.);
+        let left = CanvasX(0.);
+        let right = CanvasX(gleis.width() as f64);
+        let up = CanvasY(0.);
+        let down = CanvasY(gleis.height() as f64);
+        cairo.move_to(left, up);
+        cairo.line_to(right, up);
+        cairo.line_to(right, down);
+        cairo.line_to(left, down);
+        cairo.line_to(left, up);
+        cairo.stroke();
+    });
+    // verschiebe Context, damit nächstes Gleis unter das aktuelle gezeichnet wird
+    let skip_y: CanvasAbstand = CanvasY(10.).into();
+    cairo.translate(CanvasX(0.), CanvasY(gleis.height() as f64) + skip_y);
 }

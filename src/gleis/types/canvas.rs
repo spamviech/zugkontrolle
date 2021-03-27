@@ -62,6 +62,13 @@ impl<'t> Cairo<'t> {
     pub fn transform(&self, matrix: Matrix) {
         self.0.transform(matrix)
     }
+
+    pub fn set_source_rgb(&self, red: f64, green: f64, blue: f64) {
+        self.0.set_source_rgb(red, green, blue)
+    }
+    pub fn set_source_rgba(&self, red: f64, green: f64, blue: f64, alpha: f64) {
+        self.0.set_source_rgba(red, green, blue, alpha)
+    }
 }
 
 /// Horizontale Koordinate auf einem Cairo-Canvas
