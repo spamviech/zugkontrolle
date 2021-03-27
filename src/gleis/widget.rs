@@ -49,7 +49,7 @@ pub enum GleisDefinition<Z> {
     Weiche(Weiche<Z>),
     DreiwegeWeiche(DreiwegeWeiche<Z>),
     KurvenWeiche(KurvenWeiche<Z>),
-    SKurveWeiche(SKurveWeiche<Z>),
+    SKurvenWeiche(SKurvenWeiche<Z>),
     Kreuzung(Kreuzung<Z>),
 }
 impl<Z: Debug + Zugtyp> GleisDefinition<Z> {

@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 use super::gerade::WeichenRichtung;
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
-use crate::gleis::kurve::{self, Kurve};
+use crate::gleis::kurve;
 use crate::gleis::types::*;
 use crate::gleis::weiche;
 use crate::gleis::widget::Zeichnen;
@@ -23,7 +23,7 @@ use crate::gleis::widget::Zeichnen;
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
 #[derive(Debug, Clone)]
-pub struct SKurveWeiche<Z> {
+pub struct SKurvenWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,
     pub radius: Radius,
@@ -33,12 +33,12 @@ pub struct SKurveWeiche<Z> {
     pub direction: WeichenRichtung,
 }
 
-impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
+impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     type AnchorName = weiche::gerade::AnchorName;
     type AnchorPoints = weiche::gerade::AnchorPoints;
 
     fn width(&self) -> u64 {
-        let SKurveWeiche {
+        let SKurvenWeiche {
             zugtyp,
             length,
             radius,
@@ -73,7 +73,7 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
     }
 
     fn height(&self) -> u64 {
-        let SKurveWeiche {
+        let SKurvenWeiche {
             zugtyp: _,
             length: _,
             radius,
@@ -108,7 +108,7 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
     }
 
     fn zeichne(&self, cairo: &Cairo) {
-        let SKurveWeiche {
+        let SKurvenWeiche {
             zugtyp,
             length,
             radius,
@@ -125,9 +125,9 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
         }
-        panic!();
         Gerade { zugtyp, length }.zeichne(cairo);
-        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
+        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Keine);
+        // panic!();
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -143,7 +143,7 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
                 multiplier = -1.;
             }
         };
-        let final_angle = self.angle + self.angle_reverse;
+        let angle_difference = self.angle - self.angle_reverse;
         weiche::gerade::AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
@@ -161,16 +161,20 @@ impl<Z: Zugtyp> Zeichnen for SKurveWeiche<Z> {
             },
             kurve: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + self.angle.sin() * CanvasAbstand::from(self.radius),
+                    x: CanvasX(0.)
+                        + CanvasAbstand::from(self.radius) * self.angle.sin()
+                        + CanvasAbstand::from(self.radius_reverse)
+                            * (angle_difference.cos() - self.angle.cos()),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
                                 + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())
-                                + panic!()),
+                                + CanvasAbstand::from(self.radius_reverse)
+                                    * (angle_difference.sin() - self.angle.sin())),
                 },
                 direction: anchor::Direction {
-                    dx: CanvasX(final_angle.cos()),
-                    dy: CanvasY(multiplier * final_angle.sin()),
+                    dx: CanvasX(angle_difference.cos()),
+                    dy: CanvasY(multiplier * angle_difference.sin()),
                 },
             },
         }
