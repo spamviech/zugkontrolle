@@ -23,7 +23,7 @@ impl Angle {
 // automatically implements Trait Into
 impl From<AngleDegrees> for Angle {
     fn from(AngleDegrees(f): AngleDegrees) -> Angle {
-        Angle(f.to_degrees())
+        Angle(f.to_radians())
     }
 }
 impl PartialEq<AngleDegrees> for Angle {
