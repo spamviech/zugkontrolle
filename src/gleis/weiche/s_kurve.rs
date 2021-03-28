@@ -9,7 +9,7 @@
 use std::f64::consts::PI;
 use std::marker::PhantomData;
 
-use super::gerade::WeichenRichtung;
+use super::Richtung;
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve;
@@ -30,7 +30,7 @@ pub struct SKurvenWeiche<Z> {
     pub angle: AngleDegrees,
     pub radius_reverse: Radius,
     pub angle_reverse: AngleDegrees,
-    pub direction: WeichenRichtung,
+    pub direction: Richtung,
 }
 
 impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
@@ -122,7 +122,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             angle_reverse,
             direction,
         } = *self;
-        if direction == WeichenRichtung::Links {
+        if direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
             let x = CanvasX(0.);
             let half_height = CanvasY(0.5 * (self.height() as f64));
@@ -160,11 +160,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let start_height: CanvasY;
         let multiplier: f64;
         match self.direction {
-            WeichenRichtung::Links => {
+            Richtung::Links => {
                 start_height = CanvasY(0.);
                 multiplier = 1.;
             }
-            WeichenRichtung::Rechts => {
+            Richtung::Rechts => {
                 start_height = CanvasY(self.height() as f64);
                 multiplier = -1.;
             }

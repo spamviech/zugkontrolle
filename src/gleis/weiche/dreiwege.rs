@@ -8,7 +8,7 @@
 
 use std::marker::PhantomData;
 
-use super::gerade::{Weiche, WeichenRichtung};
+use super::gerade::{Richtung, Weiche};
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::{self, Kurve};
@@ -60,7 +60,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let start_height: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
         // Weiche mit Abzweigung Rechts
         cairo.translate(start_width, start_height);
-        Weiche { zugtyp, length, radius, angle, direction: WeichenRichtung::Rechts }.zeichne(cairo);
+        Weiche { zugtyp, length, radius, angle, direction: Richtung::Rechts }.zeichne(cairo);
         cairo.translate(-start_width, -start_height);
         // Abzweigung Links
         cairo.translate(half_width, half_height);

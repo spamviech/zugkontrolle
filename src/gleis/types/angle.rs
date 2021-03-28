@@ -15,7 +15,7 @@ pub trait Trigonometrie {
 pub struct Angle(pub(crate) f64);
 
 impl Angle {
-    pub fn new(angle: f64) -> Self {
+    pub const fn new(angle: f64) -> Self {
         Angle(angle)
     }
 }
@@ -80,7 +80,7 @@ impl Trigonometrie for Angle {
 pub struct AngleDegrees(f64);
 
 impl AngleDegrees {
-    pub fn new(angle: f64) -> Self {
+    pub const fn new(angle: f64) -> Self {
         AngleDegrees(angle)
     }
 }

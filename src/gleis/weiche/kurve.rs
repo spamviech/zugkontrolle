@@ -8,7 +8,7 @@
 
 use std::marker::PhantomData;
 
-use super::gerade::WeichenRichtung;
+use super::Richtung;
 use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::{self, Kurve};
@@ -25,7 +25,7 @@ pub struct KurvenWeiche<Z> {
     pub length: Length,
     pub radius: Radius,
     pub angle: AngleDegrees,
-    pub direction: WeichenRichtung,
+    pub direction: Richtung,
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
 pub enum AnchorName {
@@ -49,7 +49,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     }
 
     fn zeichne(&self, cairo: &Cairo) {
-        if self.direction == WeichenRichtung::Links {
+        if self.direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
             let x = CanvasX(0.);
             let half_height = CanvasY(0.5 * (self.height() as f64));
@@ -78,11 +78,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let start_height: CanvasY;
         let multiplier: f64;
         match self.direction {
-            WeichenRichtung::Links => {
+            Richtung::Links => {
                 start_height = CanvasY(0.);
                 multiplier = 1.;
             }
-            WeichenRichtung::Rechts => {
+            Richtung::Rechts => {
                 start_height = CanvasY(self.height() as f64);
                 multiplier = -1.;
             }

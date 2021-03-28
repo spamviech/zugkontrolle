@@ -54,7 +54,7 @@ impl Zugtyp for Lego {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Length(f64);
 impl Length {
-    pub fn new(length: f64) -> Self {
+    pub const fn new(length: f64) -> Self {
         Length(length)
     }
 }
@@ -75,7 +75,7 @@ impl Div<Radius> for Length {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Radius(f64);
 impl Radius {
-    pub fn new(radius: f64) -> Self {
+    pub const fn new(radius: f64) -> Self {
         Radius(radius)
     }
 }

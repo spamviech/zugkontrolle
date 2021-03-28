@@ -11,7 +11,7 @@ use gleis::gerade::Gerade;
 use gleis::kreuzung::{self, Kreuzung};
 use gleis::kurve::Kurve;
 use gleis::types::*;
-use gleis::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche, WeichenRichtung};
+use gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 use gleis::widget::Zeichnen;
 use zugtyp::Maerklin;
 
@@ -52,7 +52,7 @@ fn main() {
                 length: Length::new(180.),
                 radius: Radius::new(360.),
                 angle: AngleDegrees::new(30.),
-                direction: WeichenRichtung::Links,
+                direction: weiche::Richtung::Links,
                 zugtyp: PhantomData,
             };
             show_gleis(cairo, weiche);
@@ -67,7 +67,7 @@ fn main() {
                 length: Length::new(100.),
                 radius: Radius::new(360.),
                 angle: AngleDegrees::new(30.),
-                direction: WeichenRichtung::Links,
+                direction: weiche::Richtung::Links,
                 zugtyp: PhantomData,
             };
             show_gleis(cairo, kurven_weiche);
@@ -77,7 +77,7 @@ fn main() {
                 angle: AngleDegrees::new(40.),
                 radius_reverse: Radius::new(300.),
                 angle_reverse: AngleDegrees::new(10.),
-                direction: WeichenRichtung::Rechts,
+                direction: weiche::Richtung::Rechts,
                 zugtyp: PhantomData,
             };
             show_gleis(cairo, s_kurven_weiche);
