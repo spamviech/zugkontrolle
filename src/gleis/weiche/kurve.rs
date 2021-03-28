@@ -78,11 +78,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let start_height: CanvasY;
         let multiplier: f64;
         match self.direction {
-            Richtung::Links => {
+            Richtung::Rechts => {
                 start_height = CanvasY(0.);
                 multiplier = 1.;
             }
-            Richtung::Rechts => {
+            Richtung::Links => {
                 start_height = CanvasY(self.height() as f64);
                 multiplier = -1.;
             }

@@ -160,11 +160,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let start_height: CanvasY;
         let multiplier: f64;
         match self.direction {
-            Richtung::Links => {
+            Richtung::Rechts => {
                 start_height = CanvasY(0.);
                 multiplier = 1.;
             }
-            Richtung::Rechts => {
+            Richtung::Links => {
                 start_height = CanvasY(self.height() as f64);
                 multiplier = -1.;
             }
@@ -196,7 +196,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                             * (0.5 * beschraenkung::<Z>()
                                 + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())
                                 + CanvasAbstand::from(self.radius_reverse)
-                                    * (self.angle.cos() - angle_difference.cos())),
+                                    * (angle_difference.cos() - self.angle.cos())),
                 },
                 direction: anchor::Direction {
                     dx: CanvasX(angle_difference.cos()),

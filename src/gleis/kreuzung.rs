@@ -118,11 +118,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             },
             anfang_1: anchor::Point {
                 position: anchor::Position { x: anfang1_x, y: anfang1_y },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
+                direction: anchor::Direction { dx: CanvasX(angle.cos()), dy: CanvasY(angle.sin()) },
             },
             ende_1: anchor::Point {
                 position: anchor::Position { x: ende1_x, y: ende1_y },
-                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
+                direction: anchor::Direction {
+                    dx: CanvasX(-angle.cos()),
+                    dy: CanvasY(-angle.sin()),
+                },
             },
         }
     }
