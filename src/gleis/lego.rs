@@ -32,9 +32,13 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
 Lego Spurweite: 38mm
 */
 #[allow(non_upper_case_globals)]
-const length: Length = Length::new(12.8);
+const length: Length = Length::new(128.);
+#[allow(non_upper_case_globals)]
+const double_length: Length = Length::new(256.);
 #[allow(non_upper_case_globals)]
 const radius: Radius = Radius::new(320.);
+#[allow(non_upper_case_globals)]
+const half_length_radius: Radius = Radius::new(64.);
 #[allow(non_upper_case_globals)]
 const angle: AngleDegrees = AngleDegrees::new(22.5);
 #[allow(non_upper_case_globals)]
@@ -61,7 +65,7 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche {
         zugtyp,
-        length,
+        length: double_length,
         radius,
         angle: double_angle,
         radius_reverse: radius,
@@ -70,5 +74,9 @@ pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     }
 }
 
-pub const KREUZUNG: Kreuzung<Lego> =
-    Kreuzung { zugtyp, length, radius: Radius::new(6.4), variante: kreuzung::Variante::OhneKurve };
+pub const KREUZUNG: Kreuzung<Lego> = Kreuzung {
+    zugtyp,
+    length,
+    radius: half_length_radius,
+    variante: kreuzung::Variante::OhneKurve,
+};

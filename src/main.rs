@@ -1,19 +1,14 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
 
-use std::marker::PhantomData;
-
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, DrawingArea};
 use simple_logger::SimpleLogger;
 
-use gleis::gerade::Gerade;
-use gleis::kreuzung::{self, Kreuzung};
-use gleis::kurve::Kurve;
 use gleis::types::*;
-use gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
+use gleis::weiche;
 use gleis::widget::Zeichnen;
-use zugtyp::Maerklin;
+use gleis::{lego, maerklin};
 
 pub mod gleis;
 pub mod zugtyp;
@@ -35,62 +30,30 @@ fn main() {
         window.set_title("Zugkontrolle");
 
         let drawing_area = DrawingArea::new();
+        drawing_area.set_size_request(800, 600);
         fn test(drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
             let allocation = drawing_area.get_allocation();
             let cairo: &Cairo = &Cairo::new(c);
-            cairo.translate(CanvasX(0.5 * (allocation.width as u64) as f64), CanvasY(10.));
-            let gerade: Gerade<Maerklin> =
-                Gerade { length: Length::new(180.), zugtyp: PhantomData };
-            show_gleis(cairo, gerade);
-            let kurve: Kurve<Maerklin> = Kurve {
-                radius: Radius::new(360.),
-                angle: AngleDegrees::new(30.),
-                zugtyp: PhantomData,
-            };
-            show_gleis(cairo, kurve);
-            let weiche: Weiche<Maerklin> = Weiche {
-                length: Length::new(180.),
-                radius: Radius::new(360.),
-                angle: AngleDegrees::new(30.),
-                direction: weiche::Richtung::Links,
-                zugtyp: PhantomData,
-            };
-            show_gleis(cairo, weiche);
-            let dreiwege_weiche: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
-                length: Length::new(180.),
-                radius: Radius::new(360.),
-                angle: AngleDegrees::new(30.),
-                zugtyp: PhantomData,
-            };
-            show_gleis(cairo, dreiwege_weiche);
-            let kurven_weiche: KurvenWeiche<Maerklin> = KurvenWeiche {
-                length: Length::new(100.),
-                radius: Radius::new(360.),
-                angle: AngleDegrees::new(30.),
-                direction: weiche::Richtung::Links,
-                zugtyp: PhantomData,
-            };
-            show_gleis(cairo, kurven_weiche);
-            let s_kurven_weiche: SKurvenWeiche<Maerklin> = SKurvenWeiche {
-                length: Length::new(180.),
-                radius: Radius::new(250.),
-                angle: AngleDegrees::new(40.),
-                radius_reverse: Radius::new(300.),
-                angle_reverse: AngleDegrees::new(10.),
-                direction: weiche::Richtung::Rechts,
-                zugtyp: PhantomData,
-            };
-            show_gleis(cairo, s_kurven_weiche);
-            let kreuzung: Kreuzung<Maerklin> = Kreuzung {
-                length: Length::new(180.),
-                radius: Radius::new(360.),
-                variante: kreuzung::Variante::MitKurve,
-                zugtyp: PhantomData,
-            };
-            show_gleis(cairo, kreuzung);
+            // Märklin Gleise
+            cairo.with_save_restore(|cairo| {
+                cairo.translate(CanvasX(0.25 * (allocation.width as u64) as f64), CanvasY(10.));
+                show_gleis(cairo, maerklin::MAERKLIN_GERADE_5106);
+                show_gleis(cairo, maerklin::MAERKLIN_KURVE_5100);
+                show_gleis(cairo, maerklin::maerklin_weiche_5202(weiche::Richtung::Links));
+                show_gleis(cairo, maerklin::MAERKLIN_DREIWEGE_WEICHE_5214);
+                show_gleis(cairo, maerklin::maerklin_kurven_weiche_5140(weiche::Richtung::Links));
+                show_gleis(cairo, maerklin::MAERKLIN_KREUZUNG_5207);
+            });
+            // Lego Gleise
+            cairo.with_save_restore(|cairo| {
+                cairo.translate(CanvasX(0.75 * (allocation.width as u64) as f64), CanvasY(10.));
+                show_gleis(cairo, lego::GERADE);
+                show_gleis(cairo, lego::KURVE);
+                show_gleis(cairo, lego::weiche(weiche::Richtung::Links));
+                show_gleis(cairo, lego::KREUZUNG);
+            });
             glib::signal::Inhibit(false)
         }
-        drawing_area.set_size_request(400, 700);
         drawing_area.connect_draw(test);
         window.add(&drawing_area);
 
