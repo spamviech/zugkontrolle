@@ -10,11 +10,10 @@ use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, Weiche};
 use crate::zugtyp::Maerklin;
 
 // Märklin Kurven-Radien
-const MAERKLIN_R_INDUSTRIE: Radius = Radius::new(286.);
-const MAERKLIN_R1: Radius = Radius::new(360.);
-const MAERKLIN_R2: Radius = Radius::new(437.4);
-#[allow(non_upper_case_globals)]
-const zugtyp: PhantomData<*const Maerklin> = PhantomData;
+const RADIUS_INDUSTRIE: Radius = Radius::new(286.);
+const RADIUS_R1: Radius = Radius::new(360.);
+const RADIUS_R2: Radius = Radius::new(437.4);
+const ZUGTYP: PhantomData<*const Maerklin> = PhantomData;
 
 /*
 H0 Spurweite: 16.5mm
@@ -28,14 +27,14 @@ Gerade
     5210: L16mm
     5208: L8mm
 */
-pub const MAERKLIN_GERADE_5106: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(180.) };
-pub const MAERKLIN_GERADE_5107: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(90.) };
-pub const MAERKLIN_GERADE_5129: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(70.) };
-pub const MAERKLIN_GERADE_5108: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(45.) };
-pub const MAERKLIN_GERADE_5109: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(33.5) };
-pub const MAERKLIN_GERADE_5110: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(22.5) };
-pub const MAERKLIN_GERADE_5210: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(16.) };
-pub const MAERKLIN_GERADE_5208: Gerade<Maerklin> = Gerade { zugtyp, length: Length::new(8.) };
+pub const GERADE_5106: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(180.) };
+pub const GERADE_5107: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(90.) };
+pub const GERADE_5129: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(70.) };
+pub const GERADE_5108: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(45.) };
+pub const GERADE_5109: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(33.5) };
+pub const GERADE_5110: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(22.5) };
+pub const GERADE_5210: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(16.) };
+pub const GERADE_5208: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(8.) };
 
 /*
 Kurve
@@ -48,22 +47,22 @@ Kurve
     5201: 15°, R437.4mm
     5205: 5.72°, R437.4mm
 */
-pub const MAERKLIN_KURVE_5120: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R_INDUSTRIE, angle: AngleDegrees::new(45.) };
-pub const MAERKLIN_KURVE_5100: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R1, angle: AngleDegrees::new(30.) };
-pub const MAERKLIN_KURVE_5101: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R1, angle: AngleDegrees::new(15.) };
-pub const MAERKLIN_KURVE_5102: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R1, angle: AngleDegrees::new(7.5) };
-pub const MAERKLIN_KURVE_5200: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R2, angle: AngleDegrees::new(30.) };
-pub const MAERKLIN_KURVE_5206: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R2, angle: AngleDegrees::new(24.28) };
-pub const MAERKLIN_KURVE_5201: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R2, angle: AngleDegrees::new(15.) };
-pub const MAERKLIN_KURVE_5205: Kurve<Maerklin> =
-    Kurve { zugtyp, radius: MAERKLIN_R2, angle: AngleDegrees::new(5.72) };
+pub const KURVE_5120: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_INDUSTRIE, angle: AngleDegrees::new(45.) };
+pub const KURVE_5100: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: AngleDegrees::new(30.) };
+pub const KURVE_5101: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: AngleDegrees::new(15.) };
+pub const KURVE_5102: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: AngleDegrees::new(7.5) };
+pub const KURVE_5200: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(30.) };
+pub const KURVE_5206: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(24.28) };
+pub const KURVE_5201: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(15.) };
+pub const KURVE_5205: Kurve<Maerklin> =
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(5.72) };
 
 /*
 Weiche
@@ -71,29 +70,29 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-pub const fn maerklin_weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
+pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
-        zugtyp,
+        zugtyp: ZUGTYP,
         length: Length::new(180.),
-        radius: MAERKLIN_R2,
+        radius: RADIUS_R2,
         angle: AngleDegrees::new(30.),
         direction: richtung,
     }
 }
-pub const fn maerklin_weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
+pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
-        zugtyp,
+        zugtyp: ZUGTYP,
         length: Length::new(180.),
-        radius: MAERKLIN_R2,
+        radius: RADIUS_R2,
         angle: AngleDegrees::new(22.5),
         direction: richtung,
     }
 }
-pub const fn maerklin_weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
+pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
-        zugtyp,
+        zugtyp: ZUGTYP,
         length: Length::new(180.),
-        radius: MAERKLIN_R2,
+        radius: RADIUS_R2,
         angle: AngleDegrees::new(24.28),
         direction: richtung,
     }
@@ -103,10 +102,10 @@ pub const fn maerklin_weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin
 Dreiwege-Weiche
     5214: L180mm, 24,28°, R437.4mm
 */
-pub const MAERKLIN_DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
-    zugtyp,
+pub const DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
+    zugtyp: ZUGTYP,
     length: Length::new(180.),
-    radius: MAERKLIN_R2,
+    radius: RADIUS_R2,
     angle: AngleDegrees::new(24.28),
 };
 
@@ -114,11 +113,11 @@ pub const MAERKLIN_DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeic
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-pub const fn maerklin_kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
+pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
     KurvenWeiche {
-        zugtyp,
+        zugtyp: ZUGTYP,
         length: Length::new(77.3),
-        radius: MAERKLIN_R1,
+        radius: RADIUS_R1,
         angle: AngleDegrees::new(30.),
         direction: richtung,
     }
@@ -129,18 +128,18 @@ Kreuzung
     5128: L193mm, 30°, R360mm
     5207: L180mm, 24.28°, R437.4mm
 */
-pub const MAERKLIN_KREUZUNG_5128: Kreuzung<Maerklin> = Kreuzung {
-    zugtyp,
+pub const KREUZUNG_5128: Kreuzung<Maerklin> = Kreuzung {
+    zugtyp: ZUGTYP,
     length: Length::new(193.),
-    radius: MAERKLIN_R1,
+    radius: RADIUS_R1,
     variante: kreuzung::Variante::MitKurve,
 };
 // Länge/Winkel 24.28 passt nicht!
 // https://www.stummiforum.de/viewtopic.php?t=29741#p309938
-pub const MAERKLIN_KREUZUNG_5207: Kreuzung<Maerklin> = Kreuzung {
-    zugtyp,
+pub const KREUZUNG_5207: Kreuzung<Maerklin> = Kreuzung {
+    zugtyp: ZUGTYP,
     length: Length::new(180.),
-    radius: MAERKLIN_R2,
+    radius: RADIUS_R2,
     variante: kreuzung::Variante::MitKurve,
 };
 

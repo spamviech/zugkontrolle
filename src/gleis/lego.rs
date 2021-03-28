@@ -31,24 +31,17 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
     Kreis-Radius (halber Kreis, Außen bis Kreismittelpunkt): ca. 44 Noppen / 35 cm
 Lego Spurweite: 38mm
 */
-#[allow(non_upper_case_globals)]
-const length: Length = Length::new(128.);
-#[allow(non_upper_case_globals)]
-const double_length: Length = Length::new(256.);
-#[allow(non_upper_case_globals)]
-const radius: Radius = Radius::new(320.);
-#[allow(non_upper_case_globals)]
-const half_length_radius: Radius = Radius::new(64.);
-#[allow(non_upper_case_globals)]
-const angle: AngleDegrees = AngleDegrees::new(22.5);
-#[allow(non_upper_case_globals)]
-const double_angle: AngleDegrees = AngleDegrees::new(45.);
-#[allow(non_upper_case_globals)]
-const zugtyp: PhantomData<*const Lego> = PhantomData;
+const LENGTH: Length = Length::new(128.);
+const DOUBLE_LENGTH: Length = Length::new(256.);
+const RADIUS: Radius = Radius::new(320.);
+const HALF_LENGTH_RADIUS: Radius = Radius::new(64.);
+const ANGLE: AngleDegrees = AngleDegrees::new(22.5);
+const DOUBLE_ANGLE: AngleDegrees = AngleDegrees::new(45.);
+const ZUGTYP: PhantomData<*const Lego> = PhantomData;
 
-pub const GERADE: Gerade<Lego> = Gerade { zugtyp, length };
+pub const GERADE: Gerade<Lego> = Gerade { zugtyp: ZUGTYP, length: LENGTH };
 
-pub const KURVE: Kurve<Lego> = Kurve { zugtyp, radius, angle };
+pub const KURVE: Kurve<Lego> = Kurve { zugtyp: ZUGTYP, radius: RADIUS, angle: ANGLE };
 
 /*
 Eine leichte S-Kurve: 6 rechts, dann 3 links; insgesamt 22.5°
@@ -64,19 +57,19 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 */
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche {
-        zugtyp,
-        length: double_length,
-        radius,
-        angle: double_angle,
-        radius_reverse: radius,
-        angle_reverse: angle,
+        zugtyp: ZUGTYP,
+        length: DOUBLE_LENGTH,
+        radius: RADIUS,
+        angle: DOUBLE_ANGLE,
+        radius_reverse: RADIUS,
+        angle_reverse: ANGLE,
         direction: richtung,
     }
 }
 
 pub const KREUZUNG: Kreuzung<Lego> = Kreuzung {
-    zugtyp,
-    length,
-    radius: half_length_radius,
+    zugtyp: ZUGTYP,
+    length: LENGTH,
+    radius: HALF_LENGTH_RADIUS,
     variante: kreuzung::Variante::OhneKurve,
 };

@@ -38,12 +38,12 @@ fn main() {
             // Märklin Gleise
             cairo.with_save_restore(|cairo| {
                 cairo.translate(CanvasX(0.25 * (allocation.width as u64) as f64), CanvasY(10.));
-                show_gleis(cairo, maerklin::MAERKLIN_GERADE_5106);
-                show_gleis(cairo, maerklin::MAERKLIN_KURVE_5100);
-                show_gleis(cairo, maerklin::maerklin_weiche_5202(weiche::Richtung::Links));
-                show_gleis(cairo, maerklin::MAERKLIN_DREIWEGE_WEICHE_5214);
-                show_gleis(cairo, maerklin::maerklin_kurven_weiche_5140(weiche::Richtung::Links));
-                show_gleis(cairo, maerklin::MAERKLIN_KREUZUNG_5207);
+                show_gleis(cairo, maerklin::GERADE_5106);
+                show_gleis(cairo, maerklin::KURVE_5100);
+                show_gleis(cairo, maerklin::weiche_5202(weiche::Richtung::Links));
+                show_gleis(cairo, maerklin::DREIWEGE_WEICHE_5214);
+                show_gleis(cairo, maerklin::kurven_weiche_5140(weiche::Richtung::Links));
+                show_gleis(cairo, maerklin::KREUZUNG_5207);
             });
             // Lego Gleise
             cairo.with_save_restore(|cairo| {
