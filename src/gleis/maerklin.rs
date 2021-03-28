@@ -79,6 +79,8 @@ pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
         direction: richtung,
     }
 }
+pub const WEICHE_5117_RECHTS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Rechts);
+pub const WEICHE_5117_LINKS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Links);
 pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
@@ -88,6 +90,8 @@ pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
         direction: richtung,
     }
 }
+pub const WEICHE_5137_RECHTS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Rechts);
+pub const WEICHE_5137_LINKS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Links);
 pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
@@ -97,6 +101,8 @@ pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
         direction: richtung,
     }
 }
+pub const WEICHE_5202_RECHTS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Rechts);
+pub const WEICHE_5202_LINKS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Links);
 
 /*
 Dreiwege-Weiche
@@ -122,6 +128,10 @@ pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maer
         direction: richtung,
     }
 }
+pub const KURVEN_WEICHE_5140_RECHTS: KurvenWeiche<Maerklin> =
+    kurven_weiche_5140(weiche::Richtung::Rechts);
+pub const KURVEN_WEICHE_5140_LINKS: KurvenWeiche<Maerklin> =
+    kurven_weiche_5140(weiche::Richtung::Links);
 
 /*
 Kreuzung

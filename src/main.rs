@@ -7,7 +7,6 @@ use simple_logger::SimpleLogger;
 
 use gleis::anchor::{self, Lookup};
 use gleis::types::*;
-use gleis::weiche;
 use gleis::widget::Zeichnen;
 use gleis::{lego, maerklin};
 
@@ -40,9 +39,9 @@ fn main() {
                 cairo.translate(CanvasX(0.25 * (allocation.width as u64) as f64), CanvasY(10.));
                 show_gleis(cairo, maerklin::GERADE_5106);
                 show_gleis(cairo, maerklin::KURVE_5100);
-                show_gleis(cairo, maerklin::weiche_5202(weiche::Richtung::Links));
+                show_gleis(cairo, maerklin::WEICHE_5202_LINKS);
                 show_gleis(cairo, maerklin::DREIWEGE_WEICHE_5214);
-                show_gleis(cairo, maerklin::kurven_weiche_5140(weiche::Richtung::Links));
+                show_gleis(cairo, maerklin::KURVEN_WEICHE_5140_LINKS);
                 show_gleis(cairo, maerklin::KREUZUNG_5207);
             });
             // Lego Gleise
@@ -50,7 +49,7 @@ fn main() {
                 cairo.translate(CanvasX(0.75 * (allocation.width as u64) as f64), CanvasY(10.));
                 show_gleis(cairo, lego::GERADE);
                 show_gleis(cairo, lego::KURVE);
-                show_gleis(cairo, lego::weiche(weiche::Richtung::Links));
+                show_gleis(cairo, lego::WEICHE_RECHTS);
                 show_gleis(cairo, lego::KREUZUNG);
             });
             glib::signal::Inhibit(false)

@@ -66,6 +66,8 @@ pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
         direction: richtung,
     }
 }
+pub const WEICHE_RECHTS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Rechts);
+pub const WEICHE_LINKS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Links);
 
 pub const KREUZUNG: Kreuzung<Lego> = Kreuzung {
     zugtyp: ZUGTYP,
