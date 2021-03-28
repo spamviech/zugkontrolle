@@ -24,9 +24,15 @@ impl<'t> Cairo<'t> {
     pub fn move_to(&self, x: CanvasX, y: CanvasY) {
         self.0.move_to(x.0, y.0)
     }
+    pub fn rel_move_to(&self, dx: CanvasX, dy: CanvasY) {
+        self.0.rel_move_to(dx.0, dy.0)
+    }
 
     pub fn line_to(&self, x: CanvasX, y: CanvasY) {
         self.0.line_to(x.0, y.0)
+    }
+    pub fn rel_line_to(&self, dx: CanvasX, dy: CanvasY) {
+        self.0.rel_line_to(dx.0, dy.0)
     }
 
     /// Strike an arc around (xc,xy) with given radius from angle1 to angle2

@@ -5,6 +5,7 @@ use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, DrawingArea};
 use simple_logger::SimpleLogger;
 
+use gleis::anchor::{self, Lookup};
 use gleis::types::*;
 use gleis::weiche;
 use gleis::widget::Zeichnen;
@@ -63,7 +64,11 @@ fn main() {
     application.run(&[]);
 }
 
-fn show_gleis<T: Zeichnen>(cairo: &Cairo, gleis: T) {
+fn show_gleis<T>(cairo: &Cairo, gleis: T)
+where
+    T: Zeichnen,
+    T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+{
     cairo.with_save_restore(|cairo| {
         cairo.translate(CanvasX(-0.5 * (gleis.width() as f64)), CanvasY(0.));
         // zeichne Box umd das Gleis (überprüfen von width, height)
@@ -84,6 +89,23 @@ fn show_gleis<T: Zeichnen>(cairo: &Cairo, gleis: T) {
         cairo.with_save_restore(|cairo| {
             gleis.zeichne(cairo);
             cairo.stroke();
+        });
+        // zeichne anchor points
+        cairo.with_save_restore(|cairo| {
+            cairo.set_source_rgb(0., 0., 1.);
+            gleis.anchor_points().foreach(
+                |anchor::Point {
+                     position: anchor::Position { x, y },
+                     direction: anchor::Direction { dx, dy },
+                 }| {
+                    cairo.move_to(*x, *y);
+                    cairo.line_to(
+                        *x + 5. * CanvasAbstand::from(*dx),
+                        *y + 5. * CanvasAbstand::from(*dy),
+                    );
+                },
+            );
+            cairo.stroke()
         });
     });
     // verschiebe Context, damit nächstes Gleis unter das aktuelle gezeichnet wird
