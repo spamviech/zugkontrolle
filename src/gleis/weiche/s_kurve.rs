@@ -51,7 +51,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let width_gerade = Gerade { zugtyp, length }.width();
         let factor = if angle.abs() < Angle::new(0.5 * PI) { angle.sin() } else { 1. };
         let factor_reverse = if angle_difference.abs() < Angle::new(0.5 * PI) {
-            angle_difference.cos() - angle.cos()
+            angle.sin() - angle_difference.sin()
         } else {
             1.
         }
@@ -64,13 +64,6 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let width_oben1: CanvasAbstand = CanvasAbstand::from(radius_aussen) * factor;
         let width_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * angle.sin()
             + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
-        println!(
-            "{:?}+{:?}*{:?}={:?}",
-            CanvasAbstand::from(radius_aussen) * angle.sin(),
-            CanvasAbstand::from(radius_reverse_innen),
-            factor_reverse,
-            width_oben2
-        );
         let width_oben: CanvasAbstand = width_oben1.max(&width_oben2);
         // untere Beschränkung
         let width_unten1 = CanvasAbstand::from(radius_innen) * factor;
@@ -93,26 +86,28 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let angle_difference = angle - angle_reverse;
         let factor = if angle.abs() < Angle::new(PI) { 1. - angle.cos() } else { 1. };
         let factor_reverse = if angle_difference.abs() < Angle::new(PI) {
-            angle.sin() - angle_difference.sin()
+            angle_difference.cos() - angle.cos()
         } else {
             1.
         }
         .max(0.);
-        let radius_aussen = radius_begrenzung_aussen::<Z>(radius);
-        let radius_innen = radius_begrenzung_innen::<Z>(radius);
-        let radius_reverse_aussen = radius_begrenzung_aussen::<Z>(radius_reverse);
-        let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
+        let radius_aussen: CanvasAbstand = radius_begrenzung_aussen::<Z>(radius).into();
+        let radius_reverse_innen: CanvasAbstand =
+            radius_begrenzung_innen::<Z>(radius_reverse).into();
         // obere Beschränkung
-        let height_oben1: CanvasAbstand = CanvasAbstand::from(radius_aussen) * factor;
-        let height_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * (1. - angle.cos())
-            + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
+        let height_oben1: CanvasAbstand = radius_aussen * factor;
+        let height_oben2: CanvasAbstand =
+            radius_aussen * (1. - angle.cos()) + radius_reverse_innen * factor_reverse;
         let height_oben: CanvasAbstand = height_oben1.max(&height_oben2);
         // untere Beschränkung
-        let gleis_unten_start = abstand::<Z>() + CanvasAbstand::from(Z::SPURWEITE);
-        let height_unten1 = gleis_unten_start + CanvasAbstand::from(radius_innen) * factor;
+        let gleis_unten_start = beschraenkung::<Z>();
+        let radius_innen: CanvasAbstand = radius_begrenzung_innen::<Z>(radius).into();
+        let radius_reverse_aussen: CanvasAbstand =
+            radius_begrenzung_aussen::<Z>(radius_reverse).into();
+        let height_unten1 = gleis_unten_start + radius_innen * factor;
         let height_unten2 = gleis_unten_start
-            + CanvasAbstand::from(radius_innen) * (1. - angle.cos())
-            + CanvasAbstand::from(radius_reverse_aussen) * factor_reverse;
+            + radius_innen * (1. - angle.cos())
+            + radius_reverse_aussen * factor_reverse;
         let height_unten = height_unten1.max(&height_unten2);
         height_oben.max(&height_unten).pixel()
     }
@@ -195,13 +190,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                     x: CanvasX(0.)
                         + CanvasAbstand::from(self.radius) * self.angle.sin()
                         + CanvasAbstand::from(self.radius_reverse)
-                            * (angle_difference.cos() - self.angle.cos()),
+                            * (self.angle.sin() - angle_difference.sin()),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
                                 + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())
                                 + CanvasAbstand::from(self.radius_reverse)
-                                    * (angle_difference.sin() - self.angle.sin())),
+                                    * (self.angle.cos() - angle_difference.cos())),
                 },
                 direction: anchor::Direction {
                     dx: CanvasX(angle_difference.cos()),
