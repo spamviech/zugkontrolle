@@ -84,7 +84,7 @@ impl<'t> Cairo<'t> {
 }
 
 /// Horizontale Koordinate auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct CanvasX(pub f64);
 impl Add<CanvasAbstand> for CanvasX {
     type Output = CanvasX;
@@ -118,7 +118,7 @@ impl Neg for CanvasX {
     }
 }
 /// Vertikale Koordinate auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct CanvasY(pub f64);
 impl Add<CanvasAbstand> for CanvasY {
     type Output = Self;
@@ -179,7 +179,7 @@ impl SubAssign<CanvasAbstand> for CanvasRadius {
     }
 }
 /// Abstand/Länge auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct CanvasAbstand(f64);
 impl CanvasAbstand {
     const fn new_from_mm(abstand_mm: f64) -> CanvasAbstand {
