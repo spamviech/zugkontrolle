@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use gtk::{ContainerExt, DrawingArea, WidgetExt};
+use gtk::{ContainerExt, DrawingArea, PanedExt, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -128,7 +128,8 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         let gleise_clone = gleise.clone();
         let zeichne_gleise_mit_anchor_points =
             move |drawing_area: &DrawingArea, c: &cairo::Context| {
-                let allocation = drawing_area.get_allocation();
+                // TODO don't draw out of bound Gleise
+                let _allocation = drawing_area.get_allocation();
                 let cairo: &Cairo = &Cairo::new(c);
                 // Zeichne Gleise
                 let GleiseInternal { drawing_area: _, map, anchor_points, next_id: _ } =
@@ -163,13 +164,30 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         gleise
     }
 
+    /// convenience function that automatically calls set_size_request on the newly created widget
+    pub fn new_with_size(width: CanvasX, height: CanvasY) -> Gleise<Z> {
+        let mut gleise = Gleise::new();
+        gleise.set_size_request(width, height);
+        gleise
+    }
+
     pub fn set_size_request(&mut self, width: CanvasX, height: CanvasY) {
         self.write().drawing_area.set_size_request(width.0 as i32, height.0 as i32);
     }
 
-    /// Placeholder, bis mir eine bessere methode einfällt
+    /// TODO Placeholder, bis mir eine bessere methode einfällt
     pub fn add_to_container<C: ContainerExt>(&self, container: &C) {
         container.add(&self.read().drawing_area)
+    }
+
+    /// TODO Placeholder, bis mir eine bessere methode einfällt
+    pub fn add_to_paned1<P: PanedExt>(&self, paned: &P) {
+        paned.add1(&self.read().drawing_area)
+    }
+
+    /// TODO Placeholder, bis mir eine bessere methode einfällt
+    pub fn add_to_paned2<P: PanedExt>(&self, paned: &P) {
+        paned.add2(&self.read().drawing_area)
     }
 }
 
@@ -189,6 +207,9 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         );
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
+        // trigger redraw
+        gleise.drawing_area.queue_draw();
+        // return value
         gleis_id_lock
     }
 
@@ -209,6 +230,8 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         );
         // store new position
         *position = position_neu;
+        // trigger redraw
+        gleise.drawing_area.queue_draw();
     }
 
     /// Create a new gleis with anchor_name adjacent to the target_anchor_point.
@@ -256,6 +279,9 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         );
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
+        // trigger redraw
+        gleise.drawing_area.queue_draw();
+        // return value
         gleis_id_lock
     }
 
@@ -283,6 +309,8 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         }
         // make sure everyone knows about the deletion
         *optional_id = None;
+        // trigger redraw
+        gleise.drawing_area.queue_draw();
     }
 }
 

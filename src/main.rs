@@ -2,10 +2,9 @@
 
 use gio::prelude::*;
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, DrawingArea};
+use gtk::{Application, ApplicationWindow, Orientation, Paned};
 use simple_logger::SimpleLogger;
 
-use zugkontrolle::gleis::anchor::{self, Lookup};
 use zugkontrolle::gleis::definition::Definition;
 use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::widget::{Gleis, Gleise, Position};
@@ -22,11 +21,20 @@ fn main() {
         let window = ApplicationWindow::new(app);
         window.set_title("Zugkontrolle");
 
-        let mut gleise: Gleise<Maerklin> = Gleise::new();
-        gleise.set_size_request(CanvasX(800.), CanvasY(600.));
+        let paned: Paned = Paned::new(Orientation::Horizontal);
+        window.add(&paned);
 
-        gleise.add(Gleis {
+        let mut gleise_maerklin: Gleise<Maerklin> =
+            Gleise::new_with_size(CanvasX(800.), CanvasY(300.));
+        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(800.), CanvasY(300.));
+
+        gleise_maerklin.add(Gleis {
             definition: maerklin::GERADE_5106.definition(),
+            position: Position { x: CanvasX(5.), y: CanvasY(5.), winkel: Angle::new(0.) },
+        });
+
+        gleise_lego.add(Gleis {
+            definition: lego::GERADE.definition(),
             position: Position { x: CanvasX(5.), y: CanvasY(5.), winkel: Angle::new(0.) },
         });
         // drawing_area.set_size_request(800, 600);
@@ -56,7 +64,8 @@ fn main() {
         // drawing_area.connect_draw(test);
         // window.add(&drawing_area);
 
-        gleise.add_to_container(&window);
+        gleise_maerklin.add_to_paned1(&paned);
+        gleise_lego.add_to_paned2(&paned);
 
         window.show_all();
     });

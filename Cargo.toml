@@ -38,3 +38,11 @@ features = ["v1_16"]
 [dependencies.glib]
 version = "0.10.3"
 features = ["v2_64"]
+
+# [dependencies.gtk4]
+# git = "https://github.com/gtk-rs/gtk4-rs.git"
+# package = "gtk4"
+#
+# [dependencies.gdk4]
+# git = "https://github.com/gtk-rs/gtk4-rs.git"
+# package = "gtk4"

@@ -182,9 +182,9 @@ pub struct ZeichneAnchorPoints<'s, 't>(pub &'s Cairo<'t>);
 impl<'s, 't> VerwendeAnchorPoints for ZeichneAnchorPoints<'s, 't> {
     fn verwende_anchor_points<T, Z>(
         &self,
-        anchor_points: &anchor::rstar::RTree<Z>,
+        _anchor_points: &anchor::rstar::RTree<Z>,
         definition: &T,
-        gleis_id: &GleisId<Z>,
+        _gleis_id: &GleisId<Z>,
     ) where
         T: Zeichnen,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
