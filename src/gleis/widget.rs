@@ -159,7 +159,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                         // zeichne anchor points
                         cairo.with_save_restore(|cairo| {
                             definition.verwende_anchor_points(
-                                &ZeichneAnchorPoints(cairo),
+                                &ZeichneAnchorPoints { cairo, position },
                                 anchor_points,
                                 gleis_id,
                             );
@@ -195,7 +195,20 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
 
 impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Add a new gleis to its position.
-    pub fn add(&mut self, gleis: Gleis<Z>) -> GleisIdLock<Z> {
+    pub fn add<T>(&mut self, definition: T, position: Position) -> (GleisIdLock<Z>, T::AnchorPoints)
+    where
+        T: Zeichnen + Into<GleisDefinition<Z>>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+    {
+        // calculate absolute position for AnchorPoints
+        let anchor_points = definition.anchor_points().map(
+            |&anchor::Point { position: anchor_position, direction }| anchor::Point {
+                position: position.transformation(anchor_position),
+                direction,
+            },
+        );
+        // create gleis
+        let gleis = Gleis { definition: definition.into(), position };
         let mut gleise = self.write();
         let (gleis_id, gleis_id_lock) = gleise.next_id();
         // increase next id
@@ -212,13 +225,15 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         // trigger redraw
         gleise.drawing_area.queue_draw();
         // return value
-        gleis_id_lock
+        (gleis_id_lock, anchor_points)
     }
 
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
     pub fn relocate(&mut self, gleis_id: &GleisId<Z>, position_neu: Position) {
+        // TODO find a way to return T::AnchorPoints here
+        // e.g. a new phantom type for GleisId??
         let gleise: &mut GleiseInternal<Z> = &mut *self.write();
         let Gleis { definition, position } = gleise
             .map
@@ -242,13 +257,11 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         definition: T,
         anchor_name: T::AnchorName,
         target_anchor_point: anchor::Point,
-    ) -> GleisIdLock<Z>
+    ) -> (GleisIdLock<Z>, T::AnchorPoints)
     where
         T: Zeichnen + Into<GleisDefinition<Z>>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let mut gleise = self.write();
-        let (gleis_id, gleis_id_lock) = gleise.next_id();
         // calculate new position
         fn winkel_mit_x_achse(direction: &anchor::Direction) -> Angle {
             let len = (direction.dx.0 * direction.dx.0 + direction.dy.0 * direction.dy.0).sqrt();
@@ -272,19 +285,8 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
                 - CanvasAbstand::from(anchor_point.position.y) * winkel.cos(),
             winkel,
         };
-        let gleis = Gleis { definition: definition.into(), position: position.clone() };
-        // add to anchor_points
-        gleis.definition.execute(
-            &anchor::rstar::Add { position },
-            &mut gleise.anchor_points,
-            || GleisId::new(gleis_id),
-        );
-        // add to HashMap
-        gleise.map.insert(GleisId::new(gleis_id), gleis);
-        // trigger redraw
-        gleise.drawing_area.queue_draw();
-        // return value
-        gleis_id_lock
+        // add new gleis
+        self.add(definition, position)
     }
 
     /// Remove the Gleis associated the the GleisId.

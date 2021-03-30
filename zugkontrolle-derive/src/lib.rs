@@ -57,6 +57,11 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
                 fn foreach<F: FnMut(&#base_ident::gleis::anchor::Point)>(&self, mut action: F) {
                     #(action(&self.#struct_fields));*
                 }
+                fn map<F: Fn(&#base_ident::gleis::anchor::Point)->#base_ident::gleis::anchor::Point>(&self, mut action: F) -> Self {
+                    #struct_name {
+                        #(#struct_fields: action(&self.#struct_fields)),*
+                    }
+                }
             }
         };
         gen = quote! {

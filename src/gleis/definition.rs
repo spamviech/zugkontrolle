@@ -8,7 +8,7 @@ use super::kreuzung::Kreuzung;
 use super::kurve::Kurve;
 use super::types::{Cairo, CanvasAbstand, Zeichnen, Zugtyp};
 use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
-use super::widget::GleisId;
+use super::widget::{GleisId, Position};
 
 /// Definition eines Gleises
 #[derive(Debug, Clone)]
@@ -174,13 +174,16 @@ pub trait VerwendeAnchorPoints {
         T: Zeichnen,
         T::AnchorPoints: Lookup<T::AnchorName>;
 }
-pub struct ZeichneAnchorPoints<'s, 't>(pub &'s Cairo<'t>);
+pub struct ZeichneAnchorPoints<'s, 't> {
+    pub cairo: &'s Cairo<'t>,
+    pub position: &'s Position,
+}
 impl<'s, 't> VerwendeAnchorPoints for ZeichneAnchorPoints<'s, 't> {
     fn verwende_anchor_points<T, Z>(
         &self,
-        _anchor_points: &anchor::rstar::RTree<Z>,
+        anchor_points: &anchor::rstar::RTree<Z>,
         definition: &T,
-        _gleis_id: &GleisId<Z>,
+        gleis_id: &GleisId<Z>,
     ) where
         T: Zeichnen,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
@@ -188,19 +191,23 @@ impl<'s, 't> VerwendeAnchorPoints for ZeichneAnchorPoints<'s, 't> {
         // current position???
         // we need to compare with other anchor points
         definition.anchor_points().foreach(
-            |anchor::Point {
-                 position: anchor::Position { x, y },
+            |&anchor::Point {
+                 position: anchor_position,
                  direction: anchor::Direction { dx, dy },
              }| {
-                // TODO check current position, if match with different gleisId use green instead
-                // self.0.set_source_rgb(0., 1., 0.);
-                self.0.set_source_rgb(0., 0., 1.);
-                self.0.move_to(*x, *y);
-                self.0.line_to(
-                    *x + 5. * CanvasAbstand::from(*dx),
-                    *y + 5. * CanvasAbstand::from(*dy),
-                );
-                self.0.stroke();
+                let ZeichneAnchorPoints { cairo, position } = self;
+                let (r, g, b) = if anchor_points
+                    .has_other_id_at_point(gleis_id, &position.transformation(anchor_position))
+                {
+                    (0., 1., 0.)
+                } else {
+                    (0., 0., 1.)
+                };
+                cairo.set_source_rgb(r, g, b);
+                let anchor::Position { x, y } = anchor_position;
+                cairo.move_to(x, y);
+                cairo.line_to(x + 5. * CanvasAbstand::from(dx), y + 5. * CanvasAbstand::from(dy));
+                cairo.stroke();
             },
         )
     }

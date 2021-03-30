@@ -11,4 +11,6 @@ pub trait Lookup<AnchorName> {
     fn get_mut(&mut self, key: AnchorName) -> &mut Point;
     /// Perform action for all /anchor::Point/s.
     fn foreach<F: FnMut(&Point)>(&self, action: F);
+    /// Adjust all /anchor::Point/s.
+    fn map<F: Fn(&Point) -> Point>(&self, action: F) -> Self;
 }

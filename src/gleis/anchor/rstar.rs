@@ -1,6 +1,6 @@
 //! storing of anchors in a spacial container
 
-use rstar::primitives::PointWithData;
+pub(crate) use rstar::primitives::PointWithData;
 
 use super::{point, Lookup};
 use crate::gleis::types::Zeichnen;
@@ -10,16 +10,28 @@ use crate::gleis::widget::{GleisId, Position};
 #[derive(Debug)]
 pub struct RTree<Z>(rstar::RTree<PointWithData<GleisId<Z>, point::Position>>);
 impl<Z> RTree<Z> {
-    // FIXME should be used somewhere, right??
-    #[allow(dead_code)]
     pub(crate) fn new() -> RTree<Z> {
         RTree(rstar::RTree::new())
     }
-    fn insert(&mut self, t: PointWithData<GleisId<Z>, point::Position>) {
+    pub(crate) fn insert(&mut self, t: PointWithData<GleisId<Z>, point::Position>) {
         self.0.insert(t)
     }
-    fn remove(&mut self, t: &PointWithData<GleisId<Z>, point::Position>) {
+    pub(crate) fn remove(&mut self, t: &PointWithData<GleisId<Z>, point::Position>) {
         self.0.remove(t);
+    }
+    // Vec return type since the original return type is private and /impl Iterator/ has 'static requirement
+    pub(crate) fn has_other_id_at_point(
+        &self,
+        gleis_id: &GleisId<Z>,
+        position: &point::Position,
+    ) -> bool {
+        let other_ids_at_point = self
+            .0
+            .locate_all_at_point(position)
+            .map(|PointWithData { data, .. }| data)
+            .filter(|&id| id != gleis_id)
+            .count();
+        other_ids_at_point > 0
     }
 }
 

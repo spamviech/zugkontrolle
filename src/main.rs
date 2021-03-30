@@ -10,9 +10,11 @@ use gtk::{
 };
 use simple_logger::SimpleLogger;
 
+use zugkontrolle::gleis::anchor;
 use zugkontrolle::gleis::definition::GleisDefinition;
 use zugkontrolle::gleis::types::*;
-use zugkontrolle::gleis::widget::{Gleis, Gleise, Position};
+use zugkontrolle::gleis::widget::{GleisIdLock, Gleise, Position};
+use zugkontrolle::gleis::{gerade, kurve};
 use zugkontrolle::gleis::{lego, maerklin};
 use zugkontrolle::zugtyp::{Lego, Maerklin};
 
@@ -27,15 +29,17 @@ impl<'t, Z> AppendGleise<'t, Z> {
 }
 
 impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
-    fn append<T: Zeichnen + Into<GleisDefinition<Z>>>(&mut self, definition: T) {
+    fn append<T>(&mut self, definition: T) -> (GleisIdLock<Z>, T::AnchorPoints)
+    where
+        T: Zeichnen + Into<GleisDefinition<Z>>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+    {
         let x: CanvasX =
             CanvasX(200.) - 0.5 * CanvasAbstand::from(CanvasX(definition.width() as f64));
         let height: CanvasAbstand = CanvasY(definition.height() as f64).into();
-        self.gleise.add(Gleis {
-            definition: definition.into(),
-            position: Position { x, y: self.y, winkel: Angle::new(0.) },
-        });
+        let res = self.gleise.add(definition, Position { x, y: self.y, winkel: Angle::new(0.) });
         self.y += height + CanvasAbstand::from(CanvasY(5.));
+        res
     }
 }
 
@@ -83,8 +87,11 @@ fn main() {
         let mut append_lego = AppendGleise::new(&mut gleise_lego);
         append_lego.append(lego::GERADE);
         append_lego.append(lego::KURVE);
-        append_lego.append(lego::WEICHE_RECHTS);
+        let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
         append_lego.append(lego::KREUZUNG);
+        // try attach
+        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
+        gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
     });
 
     application.run(&[]);
