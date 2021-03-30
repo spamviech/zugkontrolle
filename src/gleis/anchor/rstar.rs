@@ -32,6 +32,7 @@ pub trait Transform {
         T::AnchorPoints: Lookup<T::AnchorName>,
         F: Fn() -> GleisId<Z>;
 }
+
 /// Add anchor points
 pub struct Add {
     pub position: Position,

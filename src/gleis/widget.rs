@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+use gtk::{DrawingArea, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -85,9 +86,9 @@ pub struct Gleis<Z> {
 pub struct Gleise<Z>(Arc<RwLock<GleiseInternal<Z>>>);
 
 impl<Z: Debug> Gleise<Z> {
-    // fn read(&self) -> RwLockReadGuard<GleiseInternal<Z>> {
-    //     self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleiseMap"))
-    // }
+    fn read(&self) -> RwLockReadGuard<GleiseInternal<Z>> {
+        self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleiseMap"))
+    }
     fn write(&self) -> RwLockWriteGuard<GleiseInternal<Z>> {
         self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleiseMap"))
     }
@@ -95,6 +96,7 @@ impl<Z: Debug> Gleise<Z> {
 
 #[derive(Debug)]
 struct GleiseInternal<Z> {
+    drawing_area: DrawingArea,
     map: HashMap<GleisId<Z>, Gleis<Z>>,
     anchor_points: anchor::rstar::RTree<Z>,
     next_id: u64,
@@ -107,6 +109,62 @@ impl<Z: Debug> GleiseInternal<Z> {
         // increase next id
         self.next_id += 1;
         (gleis_id, gleis_id_lock)
+    }
+}
+
+impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
+    pub fn new() -> Gleise<Z> {
+        let drawing_area = DrawingArea::new();
+        // TODO is this a good default size?
+        drawing_area.set_size_request(600, 400);
+        // create outwards representation
+        let gleise = Gleise(Arc::new(RwLock::new(GleiseInternal {
+            drawing_area,
+            map: HashMap::new(),
+            anchor_points: anchor::rstar::RTree::new(),
+            next_id: 0,
+        })));
+        // connect draw callback
+        let gleise_clone = gleise.clone();
+        let zeichne_gleise_mit_anchor_points =
+            move |drawing_area: &DrawingArea, c: &cairo::Context| {
+                let allocation = drawing_area.get_allocation();
+                let cairo: &Cairo = &Cairo::new(c);
+                // Zeichne Gleise
+                let GleiseInternal { drawing_area: _, map, anchor_points, next_id: _ } =
+                    &*gleise_clone.read();
+                for (gleis_id, Gleis { definition, position }) in map.iter() {
+                    // bewege Kontext zur Position
+                    cairo.translate(position.x, position.y);
+                    // drehe Kontext um die Mitte
+                    let width = CanvasX(0.5 * (definition.verwende(&Size::Width) as f64));
+                    let height = CanvasY(0.5 * (definition.verwende(&Size::Height) as f64));
+                    cairo.translate(width, height);
+                    cairo.rotate(position.winkel);
+                    cairo.translate(-width, -height);
+                    // zeichne Gleis
+                    cairo.with_save_restore(|cairo| {
+                        definition.verwende(&Zeichne(cairo));
+                        cairo.stroke();
+                    });
+                    // zeichne anchor points
+                    cairo.with_save_restore(|cairo| {
+                        definition.verwende_anchor_points(
+                            &ZeichneAnchorPoints(cairo),
+                            anchor_points,
+                            gleis_id,
+                        );
+                    });
+                }
+                glib::signal::Inhibit(false)
+            };
+        gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
+        // return
+        gleise
+    }
+
+    pub fn set_size_request(&mut self, width: CanvasX, height: CanvasY) {
+        self.write().drawing_area.set_size_request(width.0 as i32, height.0 as i32);
     }
 }
 
