@@ -196,7 +196,9 @@ impl<'s, 't> VerwendeAnchorPoints for ZeichneAnchorPoints<'s, 't> {
                  position: anchor::Position { x, y },
                  direction: anchor::Direction { dx, dy },
              }| {
-                self.0.set_source_rgb(0., 1., 0.);
+                // TODO check current position, if match with different gleisId use green instead
+                // self.0.set_source_rgb(0., 1., 0.);
+                self.0.set_source_rgb(0., 0., 1.);
                 self.0.move_to(*x, *y);
                 self.0.line_to(
                     *x + 5. * CanvasAbstand::from(*dx),

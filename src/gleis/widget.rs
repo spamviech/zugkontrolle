@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use gtk::{DrawingArea, WidgetExt};
+use gtk::{ContainerExt, DrawingArea, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -79,8 +79,8 @@ impl<Z> Hash for GleisId<Z> {
 
 #[derive(Debug, Clone)]
 pub struct Gleis<Z> {
-    definition: GleisDefinition<Z>,
-    position: Position,
+    pub definition: GleisDefinition<Z>,
+    pub position: Position,
 }
 #[derive(Debug, Clone)]
 pub struct Gleise<Z>(Arc<RwLock<GleiseInternal<Z>>>);
@@ -165,6 +165,11 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
 
     pub fn set_size_request(&mut self, width: CanvasX, height: CanvasY) {
         self.write().drawing_area.set_size_request(width.0 as i32, height.0 as i32);
+    }
+
+    /// Placeholder, bis mir eine bessere methode einfällt
+    pub fn add_to_container<C: ContainerExt>(&self, container: &C) {
+        container.add(&self.read().drawing_area)
     }
 }
 
