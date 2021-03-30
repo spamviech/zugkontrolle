@@ -8,20 +8,12 @@
 
 pub mod angle;
 pub mod canvas;
+pub use crate::zugtyp::{Spurweite, Zugtyp};
 pub use angle::*;
 pub use canvas::*;
 
 use std::ops::Div;
 
-use crate::zugtyp::*;
-
-/// Spurweite \[mm\]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Spurweite(pub f64);
-
-pub trait Zugtyp {
-    const SPURWEITE: Spurweite;
-}
 // abgeleitete Größe unter der Umrechnung 1mm
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
 pub fn abstand<Z: Zugtyp>() -> CanvasAbstand {
@@ -38,16 +30,6 @@ pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
     CanvasAbstand::from(radius) - 0.5 * CanvasAbstand::from(Z::SPURWEITE) - abstand::<Z>()
-}
-
-impl Zugtyp for Maerklin {
-    #[allow(non_upper_case_globals)]
-    const SPURWEITE: Spurweite = Spurweite(16.5);
-}
-
-impl Zugtyp for Lego {
-    #[allow(non_upper_case_globals)]
-    const SPURWEITE: Spurweite = Spurweite(38.);
 }
 
 /// Längenmaß \[mm\]
