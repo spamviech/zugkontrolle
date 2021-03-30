@@ -95,43 +95,39 @@ impl<Z: Debug + Zugtyp> GleisDefinition<Z> {
         }
     }
 }
-pub trait Definition<Z> {
-    /// Konvertiere in eine GleisDefinition
-    fn definition(self) -> GleisDefinition<Z>;
-}
-impl<Z> Definition<Z> for Gerade<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Gerade(self)
+impl<Z> From<Gerade<Z>> for GleisDefinition<Z> {
+    fn from(gerade: Gerade<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::Gerade(gerade)
     }
 }
-impl<Z> Definition<Z> for Kurve<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Kurve(self)
+impl<Z> From<Kurve<Z>> for GleisDefinition<Z> {
+    fn from(kurve: Kurve<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::Kurve(kurve)
     }
 }
-impl<Z> Definition<Z> for Weiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Weiche(self)
+impl<Z> From<Weiche<Z>> for GleisDefinition<Z> {
+    fn from(weiche: Weiche<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::Weiche(weiche)
     }
 }
-impl<Z> Definition<Z> for DreiwegeWeiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::DreiwegeWeiche(self)
+impl<Z> From<DreiwegeWeiche<Z>> for GleisDefinition<Z> {
+    fn from(dreiwege_weiche: DreiwegeWeiche<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::DreiwegeWeiche(dreiwege_weiche)
     }
 }
-impl<Z> Definition<Z> for KurvenWeiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::KurvenWeiche(self)
+impl<Z> From<KurvenWeiche<Z>> for GleisDefinition<Z> {
+    fn from(kurven_weiche: KurvenWeiche<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::KurvenWeiche(kurven_weiche)
     }
 }
-impl<Z> Definition<Z> for SKurvenWeiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::SKurvenWeiche(self)
+impl<Z> From<SKurvenWeiche<Z>> for GleisDefinition<Z> {
+    fn from(s_kurven_weiche: SKurvenWeiche<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::SKurvenWeiche(s_kurven_weiche)
     }
 }
-impl<Z> Definition<Z> for Kreuzung<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Kreuzung(self)
+impl<Z> From<Kreuzung<Z>> for GleisDefinition<Z> {
+    fn from(kreuzung: Kreuzung<Z>) -> GleisDefinition<Z> {
+        GleisDefinition::Kreuzung(kreuzung)
     }
 }
 

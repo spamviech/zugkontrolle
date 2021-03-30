@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use gtk::{ContainerExt, DrawingArea, PanedExt, WidgetExt};
+use gtk::{ContainerExt, DrawingArea, DrawingAreaBuilder, PanedExt, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -114,9 +114,16 @@ impl<Z: Debug> GleiseInternal<Z> {
 
 impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
     pub fn new() -> Gleise<Z> {
-        let drawing_area = DrawingArea::new();
         // TODO is this a good default size?
-        drawing_area.set_size_request(600, 400);
+        Gleise::new_with_size(CanvasX(600.), CanvasY(400.))
+    }
+
+    /// convenience function that automatically calls set_size_request on the newly created widget
+    pub fn new_with_size(width: CanvasX, height: CanvasY) -> Gleise<Z> {
+        let drawing_area = DrawingAreaBuilder::new()
+            .width_request(width.0 as i32)
+            .height_request(height.0 as i32)
+            .build();
         // create outwards representation
         let gleise = Gleise(Arc::new(RwLock::new(GleiseInternal {
             drawing_area,
@@ -135,39 +142,34 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                 let GleiseInternal { drawing_area: _, map, anchor_points, next_id: _ } =
                     &*gleise_clone.read();
                 for (gleis_id, Gleis { definition, position }) in map.iter() {
-                    // bewege Kontext zur Position
-                    cairo.translate(position.x, position.y);
-                    // drehe Kontext um die Mitte
-                    let width = CanvasX(0.5 * (definition.verwende(&Size::Width) as f64));
-                    let height = CanvasY(0.5 * (definition.verwende(&Size::Height) as f64));
-                    cairo.translate(width, height);
-                    cairo.rotate(position.winkel);
-                    cairo.translate(-width, -height);
-                    // zeichne Gleis
                     cairo.with_save_restore(|cairo| {
-                        definition.verwende(&Zeichne(cairo));
-                        cairo.stroke();
-                    });
-                    // zeichne anchor points
-                    cairo.with_save_restore(|cairo| {
-                        definition.verwende_anchor_points(
-                            &ZeichneAnchorPoints(cairo),
-                            anchor_points,
-                            gleis_id,
-                        );
+                        // bewege Kontext zur Position
+                        cairo.translate(position.x, position.y);
+                        // drehe Kontext um die Mitte
+                        let width = CanvasX(0.5 * (definition.verwende(&Size::Width) as f64));
+                        let height = CanvasY(0.5 * (definition.verwende(&Size::Height) as f64));
+                        cairo.translate(width, height);
+                        cairo.rotate(position.winkel);
+                        cairo.translate(-width, -height);
+                        // zeichne Gleis
+                        cairo.with_save_restore(|cairo| {
+                            definition.verwende(&Zeichne(cairo));
+                            cairo.stroke();
+                        });
+                        // zeichne anchor points
+                        cairo.with_save_restore(|cairo| {
+                            definition.verwende_anchor_points(
+                                &ZeichneAnchorPoints(cairo),
+                                anchor_points,
+                                gleis_id,
+                            );
+                        });
                     });
                 }
                 glib::signal::Inhibit(false)
             };
         gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
         // return
-        gleise
-    }
-
-    /// convenience function that automatically calls set_size_request on the newly created widget
-    pub fn new_with_size(width: CanvasX, height: CanvasY) -> Gleise<Z> {
-        let mut gleise = Gleise::new();
-        gleise.set_size_request(width, height);
         gleise
     }
 
@@ -242,7 +244,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         target_anchor_point: anchor::Point,
     ) -> GleisIdLock<Z>
     where
-        T: Zeichnen + Definition<Z>,
+        T: Zeichnen + Into<GleisDefinition<Z>>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let mut gleise = self.write();
@@ -270,7 +272,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
                 - CanvasAbstand::from(anchor_point.position.y) * winkel.cos(),
             winkel,
         };
-        let gleis = Gleis { definition: definition.definition(), position: position.clone() };
+        let gleis = Gleis { definition: definition.into(), position: position.clone() };
         // add to anchor_points
         gleis.definition.execute(
             &anchor::rstar::Add { position },

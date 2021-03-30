@@ -1,15 +1,43 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
 
+use std::fmt::Debug;
+
 use gio::prelude::*;
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Orientation, Paned};
+use gtk::{
+    Application, ApplicationWindow, Orientation, Paned, PanedBuilder, ScrolledWindow,
+    ScrolledWindowBuilder,
+};
 use simple_logger::SimpleLogger;
 
-use zugkontrolle::gleis::definition::Definition;
+use zugkontrolle::gleis::definition::GleisDefinition;
 use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::widget::{Gleis, Gleise, Position};
 use zugkontrolle::gleis::{lego, maerklin};
 use zugkontrolle::zugtyp::{Lego, Maerklin};
+
+struct AppendGleise<'t, Z> {
+    gleise: &'t mut Gleise<Z>,
+    y: CanvasY,
+}
+impl<'t, Z> AppendGleise<'t, Z> {
+    fn new(gleise: &'t mut Gleise<Z>) -> AppendGleise<'t, Z> {
+        AppendGleise { gleise, y: CanvasY(5.) }
+    }
+}
+
+impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
+    fn append<T: Zeichnen + Into<GleisDefinition<Z>>>(&mut self, definition: T) {
+        let x: CanvasX =
+            CanvasX(200.) - 0.5 * CanvasAbstand::from(CanvasX(definition.width() as f64));
+        let height: CanvasAbstand = CanvasY(definition.height() as f64).into();
+        self.gleise.add(Gleis {
+            definition: definition.into(),
+            position: Position { x, y: self.y, winkel: Angle::new(0.) },
+        });
+        self.y += height + CanvasAbstand::from(CanvasY(5.));
+    }
+}
 
 fn main() {
     SimpleLogger::new().init().expect("failed to initialize error logging");
@@ -21,53 +49,42 @@ fn main() {
         let window = ApplicationWindow::new(app);
         window.set_title("Zugkontrolle");
 
-        let paned: Paned = Paned::new(Orientation::Horizontal);
+        let paned: Paned =
+            PanedBuilder::new().orientation(Orientation::Horizontal).position(400).build();
         window.add(&paned);
 
+        let scrolled_window1: ScrolledWindow = ScrolledWindowBuilder::new()
+            .propagate_natural_width(true)
+            .propagate_natural_height(true)
+            .build();
         let mut gleise_maerklin: Gleise<Maerklin> =
-            Gleise::new_with_size(CanvasX(800.), CanvasY(300.));
-        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(800.), CanvasY(300.));
+            Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
+        gleise_maerklin.add_to_container(&scrolled_window1);
+        paned.add1(&scrolled_window1);
 
-        gleise_maerklin.add(Gleis {
-            definition: maerklin::GERADE_5106.definition(),
-            position: Position { x: CanvasX(5.), y: CanvasY(5.), winkel: Angle::new(0.) },
-        });
-
-        gleise_lego.add(Gleis {
-            definition: lego::GERADE.definition(),
-            position: Position { x: CanvasX(5.), y: CanvasY(5.), winkel: Angle::new(0.) },
-        });
-        // drawing_area.set_size_request(800, 600);
-        // fn test(drawing_area: &DrawingArea, c: &cairo::Context) -> glib::signal::Inhibit {
-        //     let allocation = drawing_area.get_allocation();
-        //     let cairo: &Cairo = &Cairo::new(c);
-        //     // Märklin Gleise
-        //     cairo.with_save_restore(|cairo| {
-        //         cairo.translate(CanvasX(0.25 * (allocation.width as u64) as f64), CanvasY(10.));
-        //         show_gleis(cairo, maerklin::GERADE_5106);
-        //         show_gleis(cairo, maerklin::KURVE_5100);
-        //         show_gleis(cairo, maerklin::WEICHE_5202_LINKS);
-        //         show_gleis(cairo, maerklin::DREIWEGE_WEICHE_5214);
-        //         show_gleis(cairo, maerklin::KURVEN_WEICHE_5140_LINKS);
-        //         show_gleis(cairo, maerklin::KREUZUNG_5207);
-        //     });
-        //     // Lego Gleise
-        //     cairo.with_save_restore(|cairo| {
-        //         cairo.translate(CanvasX(0.75 * (allocation.width as u64) as f64), CanvasY(10.));
-        //         show_gleis(cairo, lego::GERADE);
-        //         show_gleis(cairo, lego::KURVE);
-        //         show_gleis(cairo, lego::WEICHE_RECHTS);
-        //         show_gleis(cairo, lego::KREUZUNG);
-        //     });
-        //     glib::signal::Inhibit(false)
-        // }
-        // drawing_area.connect_draw(test);
-        // window.add(&drawing_area);
-
-        gleise_maerklin.add_to_paned1(&paned);
-        gleise_lego.add_to_paned2(&paned);
+        let scrolled_window2: ScrolledWindow = ScrolledWindowBuilder::new()
+            .propagate_natural_width(true)
+            .propagate_natural_height(true)
+            .build();
+        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
+        gleise_lego.add_to_container(&scrolled_window2);
+        paned.add2(&scrolled_window2);
 
         window.show_all();
+
+        let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
+        append_maerklin.append(maerklin::GERADE_5106);
+        append_maerklin.append(maerklin::KURVE_5100);
+        append_maerklin.append(maerklin::WEICHE_5202_LINKS);
+        append_maerklin.append(maerklin::DREIWEGE_WEICHE_5214);
+        append_maerklin.append(maerklin::KURVEN_WEICHE_5140_LINKS);
+        append_maerklin.append(maerklin::KREUZUNG_5207);
+
+        let mut append_lego = AppendGleise::new(&mut gleise_lego);
+        append_lego.append(lego::GERADE);
+        append_lego.append(lego::KURVE);
+        append_lego.append(lego::WEICHE_RECHTS);
+        append_lego.append(lego::KREUZUNG);
     });
 
     application.run(&[]);
