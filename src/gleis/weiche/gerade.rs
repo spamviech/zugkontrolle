@@ -12,7 +12,6 @@ use crate::gleis::anchor;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
-use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Weiche
 ///

@@ -11,7 +11,6 @@ use std::marker::PhantomData;
 
 use super::anchor;
 use super::types::*;
-use super::widget::Zeichnen;
 
 /// Definition einer Kurve
 ///

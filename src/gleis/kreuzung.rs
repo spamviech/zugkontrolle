@@ -12,7 +12,6 @@ use super::anchor;
 use super::gerade::Gerade;
 use super::kurve::{self, Kurve};
 use super::types::*;
-use super::widget::Zeichnen;
 
 /// Definition einer Kreuzung
 #[derive(Debug, Clone)]

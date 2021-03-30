@@ -15,7 +15,6 @@ use crate::gleis::gerade::Gerade;
 use crate::gleis::kurve;
 use crate::gleis::types::*;
 use crate::gleis::weiche;
-use crate::gleis::widget::Zeichnen;
 
 /// Definition einer Weiche mit S-Kurve
 ///

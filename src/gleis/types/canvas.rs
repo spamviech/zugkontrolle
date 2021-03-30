@@ -83,6 +83,32 @@ impl<'t> Cairo<'t> {
     }
 }
 
+pub trait Zeichnen {
+    /// Maximale Breite
+    fn width(&self) -> u64;
+
+    /// Maximale Höhe
+    fn height(&self) -> u64;
+
+    /// Darstellen im Kontext an Position (0,0).
+    ///
+    /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
+    fn zeichne(&self, cairo: &Cairo);
+
+    /// Identifier for AnchorPoints.
+    /// An enum is advised, but others work as well.
+    ///
+    /// Since they are used as keys in an HashMap, Hash+Eq must be implemented (derived).
+    type AnchorName;
+    /// Storage Type for AnchorPoints, should implement /AnchorLookup<Self::AnchorName>/.
+    type AnchorPoints;
+    /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
+    ///
+    /// Position ausgehend von zeichnen bei (0,0),
+    /// Richtung nach außen zeigend.
+    fn anchor_points(&self) -> Self::AnchorPoints;
+}
+
 /// Horizontale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct CanvasX(pub f64);

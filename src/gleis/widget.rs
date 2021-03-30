@@ -9,120 +9,8 @@ use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use log::*;
 
 use super::anchor::{self, Lookup};
-use super::gerade::*;
-use super::kreuzung::*;
-use super::kurve::*;
+use super::definition::*;
 use super::types::*;
-use super::weiche::*;
-
-pub trait Zeichnen {
-    /// Maximale Breite
-    fn width(&self) -> u64;
-
-    /// Maximale Höhe
-    fn height(&self) -> u64;
-
-    /// Darstellen im Kontext an Position (0,0).
-    ///
-    /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
-    fn zeichne(&self, cairo: &Cairo);
-
-    /// Identifier for AnchorPoints.
-    /// An enum is advised, but others work as well.
-    ///
-    /// Since they are used as keys in an HashMap, Hash+Eq must be implemented (derived).
-    type AnchorName;
-    /// Storage Type for AnchorPoints, should implement /AnchorLookup<Self::AnchorName>/.
-    type AnchorPoints;
-    /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
-    ///
-    /// Position ausgehend von zeichnen bei (0,0),
-    /// Richtung nach außen zeigend.
-    fn anchor_points(&self) -> Self::AnchorPoints;
-}
-
-/// Definition eines Gleises
-#[derive(Debug, Clone)]
-pub enum GleisDefinition<Z> {
-    Gerade(Gerade<Z>),
-    Kurve(Kurve<Z>),
-    Weiche(Weiche<Z>),
-    DreiwegeWeiche(DreiwegeWeiche<Z>),
-    KurvenWeiche(KurvenWeiche<Z>),
-    SKurvenWeiche(SKurvenWeiche<Z>),
-    Kreuzung(Kreuzung<Z>),
-}
-impl<Z: Debug + Zugtyp> GleisDefinition<Z> {
-    fn execute<F: anchor::rstar::Transform>(
-        &self,
-        action: &F,
-        anchor_points: &mut anchor::rstar::RTree<Z>,
-        gleis_id: u64,
-    ) {
-        match self {
-            GleisDefinition::Gerade(gerade) => {
-                action.transform(anchor_points, gerade, || GleisId::new(gleis_id))
-            }
-            GleisDefinition::Kurve(kurve) => {
-                action.transform(anchor_points, kurve, || GleisId::new(gleis_id))
-            }
-            GleisDefinition::Weiche(weiche) => {
-                action.transform(anchor_points, weiche, || GleisId::new(gleis_id))
-            }
-            GleisDefinition::DreiwegeWeiche(dreiwege_weiche) => {
-                action.transform(anchor_points, dreiwege_weiche, || GleisId::new(gleis_id))
-            }
-            GleisDefinition::KurvenWeiche(kurven_weiche) => {
-                action.transform(anchor_points, kurven_weiche, || GleisId::new(gleis_id))
-            }
-            GleisDefinition::SKurvenWeiche(s_kurven_weiche) => {
-                action.transform(anchor_points, s_kurven_weiche, || GleisId::new(gleis_id))
-            }
-            GleisDefinition::Kreuzung(kreuzung) => {
-                action.transform(anchor_points, kreuzung, || GleisId::new(gleis_id))
-            }
-        }
-    }
-}
-pub trait Definition<Z> {
-    /// Konvertiere in eine GleisDefinition
-    fn definition(self) -> GleisDefinition<Z>;
-}
-impl<Z> Definition<Z> for Gerade<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Gerade(self)
-    }
-}
-impl<Z> Definition<Z> for Kurve<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Kurve(self)
-    }
-}
-impl<Z> Definition<Z> for Weiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Weiche(self)
-    }
-}
-impl<Z> Definition<Z> for DreiwegeWeiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::DreiwegeWeiche(self)
-    }
-}
-impl<Z> Definition<Z> for KurvenWeiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::KurvenWeiche(self)
-    }
-}
-impl<Z> Definition<Z> for SKurvenWeiche<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::SKurvenWeiche(self)
-    }
-}
-impl<Z> Definition<Z> for Kreuzung<Z> {
-    fn definition(self) -> GleisDefinition<Z> {
-        GleisDefinition::Kreuzung(self)
-    }
-}
 
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]
@@ -234,7 +122,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         definition.execute(
             &anchor::rstar::Add { position: position.clone() },
             &mut gleise.anchor_points,
-            gleis_id,
+            || GleisId::new(gleis_id),
         );
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
@@ -254,7 +142,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         definition.execute(
             &anchor::rstar::Relocate { from: position.clone(), to: position_neu.clone() },
             &mut gleise.anchor_points,
-            gleis_id.0,
+            || GleisId::new(gleis_id.0),
         );
         // store new position
         *position = position_neu;
@@ -301,7 +189,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         gleis.definition.execute(
             &anchor::rstar::Add { position },
             &mut gleise.anchor_points,
-            gleis_id,
+            || GleisId::new(gleis_id),
         );
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
@@ -327,7 +215,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
             definition.execute(
                 &anchor::rstar::Remove { position },
                 &mut gleise.anchor_points,
-                gleis_id.0,
+                || GleisId::new(gleis_id.0),
             );
         }
         // make sure everyone knows about the deletion
