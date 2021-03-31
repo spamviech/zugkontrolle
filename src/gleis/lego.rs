@@ -43,7 +43,7 @@ const ANGLE: AngleDegrees = AngleDegrees::new(ANGLE_VALUE);
 pub const KURVE: Kurve<Lego> = Kurve { zugtyp: ZUGTYP, radius: RADIUS, angle: ANGLE };
 
 /*
-Eine leichte S-Kurve: 6 Lücken rechts, dann 2 Lücken links; insgesamt 22.5°
+Eine leichte S-Kurve: 6.5 Lücken rechts, dann 2.5 Lücken links; insgesamt 22.5°
 Normale Kurve (22.5°) hat 4 Lücken
 Nach 1 Gerade/Kurve sind Haupt- und Parallelgleis auf der selben Höhe
 -------------------------------------------------------
@@ -55,8 +55,8 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 1,00 cm sind rund 1,25 Noppen (genauer: 1,255...)
 */
 const DOUBLE_LENGTH: Length = Length::new(2. * LENGTH_VALUE);
-const ANGLE_OUTWARDS: AngleDegrees = AngleDegrees::new(1.5 * ANGLE_VALUE);
-const ANGLE_INWARDS: AngleDegrees = AngleDegrees::new(0.5 * ANGLE_VALUE);
+const ANGLE_OUTWARDS: AngleDegrees = AngleDegrees::new(1.625 * ANGLE_VALUE);
+const ANGLE_INWARDS: AngleDegrees = AngleDegrees::new(0.625 * ANGLE_VALUE);
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche {
         zugtyp: ZUGTYP,
