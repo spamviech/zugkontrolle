@@ -1,5 +1,7 @@
 //! anchor points to mark connection points of a rail
 
+use std::ops::Neg;
+
 use rstar;
 
 use crate::gleis::types::*;
@@ -16,6 +18,12 @@ pub struct Point {
 pub struct Position {
     pub x: CanvasX,
     pub y: CanvasY,
+}
+impl Neg for Position {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Position { x: -self.x, y: -self.y }
+    }
 }
 // copy+paste from example implementation for IntegerPoint
 impl rstar::Point for Position {
@@ -49,4 +57,10 @@ impl rstar::Point for Position {
 pub struct Direction {
     pub dx: CanvasX,
     pub dy: CanvasY,
+}
+impl Neg for Direction {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Direction { dx: -self.dx, dy: -self.dy }
+    }
 }

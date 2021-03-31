@@ -191,12 +191,8 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                     cairo.with_save_restore(|cairo| {
                         // bewege Kontext zur Position
                         cairo.translate(position.x, position.y);
-                        // drehe Kontext um die Mitte
-                        let width = CanvasX(0.5 * (definition.verwende(&Size::Width) as f64));
-                        let height = CanvasY(0.5 * (definition.verwende(&Size::Height) as f64));
-                        cairo.translate(width, height);
+                        // drehe Kontext um (0,0)
                         cairo.rotate(position.winkel);
-                        cairo.translate(-width, -height);
                         // zeichne Gleis
                         cairo.with_save_restore(|cairo| {
                             definition.verwende(&Zeichne(cairo));
@@ -335,7 +331,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         }
         let anchor_points: T::AnchorPoints = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Angle = winkel_mit_x_achse(&anchor_point.direction)
+        let winkel: Angle = winkel_mit_x_achse(&-anchor_point.direction)
             - winkel_mit_x_achse(&target_anchor_point.direction);
         let position = Position {
             x: target_anchor_point.position.x
