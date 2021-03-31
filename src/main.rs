@@ -20,9 +20,8 @@ use gtk4::{
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
-use zugkontrolle::gleis::definition::GleisDefinition;
 use zugkontrolle::gleis::types::*;
-use zugkontrolle::gleis::widget::{GleisIdLock, Gleise, Position};
+use zugkontrolle::gleis::widget::{GleisIdLock, Gleise, GleiseMap, Position};
 use zugkontrolle::gleis::{gerade, kurve};
 use zugkontrolle::gleis::{lego, maerklin};
 use zugkontrolle::zugtyp::{Lego, Maerklin};
@@ -38,9 +37,9 @@ impl<'t, Z> AppendGleise<'t, Z> {
 }
 
 impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
-    fn append<T>(&mut self, definition: T) -> (GleisIdLock<Z>, T::AnchorPoints)
+    fn append<T>(&mut self, definition: T) -> (GleisIdLock<T>, T::AnchorPoints)
     where
-        T: Zeichnen + Into<GleisDefinition<Z>>,
+        T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let x: CanvasX =

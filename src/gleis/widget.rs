@@ -17,8 +17,11 @@ use gtk4::{DrawingArea, DrawingAreaBuilder, DrawingAreaExt, Paned, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
-use super::definition::*;
+use super::gerade::Gerade;
+use super::kreuzung::Kreuzung;
+use super::kurve::Kurve;
 use super::types::*;
+use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]
@@ -47,55 +50,62 @@ impl Position {
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
 #[derive(Debug)]
-pub struct GleisIdLock<Z>(Arc<RwLock<Option<GleisId<Z>>>>);
+pub struct GleisIdLock<T>(Arc<RwLock<Option<GleisId<T>>>>);
 
-impl<Z> Clone for GleisIdLock<Z> {
+impl<T> Clone for GleisIdLock<T> {
     fn clone(&self) -> Self {
         GleisIdLock(self.0.clone())
     }
 }
 
-impl<Z: Debug> GleisIdLock<Z> {
-    fn new(gleis_id: u64) -> GleisIdLock<Z> {
+impl<T: Debug> GleisIdLock<T> {
+    fn new(gleis_id: u64) -> Self {
         GleisIdLock(Arc::new(RwLock::new(Some(GleisId::new(gleis_id)))))
     }
 
-    pub fn read(&self) -> RwLockReadGuard<Option<GleisId<Z>>> {
+    pub fn read(&self) -> RwLockReadGuard<Option<GleisId<T>>> {
         self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
 
-    fn write(&self) -> RwLockWriteGuard<Option<GleisId<Z>>> {
+    fn write(&self) -> RwLockWriteGuard<Option<GleisId<T>>> {
         self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct Any;
 
 /// Identifier for a Gleis.  Will probably change between restarts.
 ///
 /// The API will only provide &GleisIdLock<Z>.
 #[derive(Debug)]
-pub struct GleisId<Z>(u64, PhantomData<*const Z>);
-impl<Z> GleisId<Z> {
-    fn new(gleis_id: u64) -> GleisId<Z> {
+pub struct GleisId<T>(u64, PhantomData<*const T>);
+impl<T> GleisId<T> {
+    fn new(gleis_id: u64) -> GleisId<T> {
         GleisId(gleis_id, PhantomData)
+    }
+
+    pub(crate) fn as_any(&self) -> GleisId<Any> {
+        GleisId::new(self.0)
     }
 }
 // explicit implementation needed due to phantom type
 // derived instead required corresponding Trait implemented on phantom type
-impl<Z> PartialEq for GleisId<Z> {
+impl<T> PartialEq for GleisId<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
-impl<Z> Eq for GleisId<Z> {}
-impl<Z> Hash for GleisId<Z> {
+impl<T> Eq for GleisId<T> {}
+impl<T> Hash for GleisId<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Gleis<Z> {
-    pub definition: GleisDefinition<Z>,
+pub struct Gleis<T> {
+    pub definition: T,
     pub position: Position,
 }
 
@@ -114,18 +124,80 @@ impl<Z: Debug> Gleise<Z> {
     }
 }
 
+/// Internal Representation for Gleise
+///
+/// This is only exported, since /GleiseMap/ needs this to be public.
 #[derive(Debug)]
-struct GleiseInternal<Z> {
+pub struct GleiseInternal<Z> {
     drawing_area: DrawingArea,
-    map: HashMap<GleisId<Z>, Gleis<Z>>,
-    anchor_points: anchor::rstar::RTree<Z>,
+    geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
+    kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
+    kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,
+    weichen: HashMap<GleisId<Weiche<Z>>, Gleis<Weiche<Z>>>,
+    dreiwege_weichen: HashMap<GleisId<DreiwegeWeiche<Z>>, Gleis<DreiwegeWeiche<Z>>>,
+    kurven_weichen: HashMap<GleisId<KurvenWeiche<Z>>, Gleis<KurvenWeiche<Z>>>,
+    s_kurven_weichen: HashMap<GleisId<SKurvenWeiche<Z>>, Gleis<SKurvenWeiche<Z>>>,
+    anchor_points: anchor::rstar::RTree,
     next_id: u64,
 }
 
+pub trait GleiseMap<Z>: Sized {
+    fn get_map_mut(gleise: &mut GleiseInternal<Z>) -> &mut HashMap<GleisId<Self>, Gleis<Self>>;
+}
+impl<Z> GleiseMap<Z> for Gerade<Z> {
+    fn get_map_mut(
+        GleiseInternal { geraden, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        geraden
+    }
+}
+impl<Z> GleiseMap<Z> for Kurve<Z> {
+    fn get_map_mut(
+        GleiseInternal { kurven, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        kurven
+    }
+}
+impl<Z> GleiseMap<Z> for Weiche<Z> {
+    fn get_map_mut(
+        GleiseInternal { weichen, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        weichen
+    }
+}
+impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
+    fn get_map_mut(
+        GleiseInternal { kurven_weichen, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        kurven_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
+    fn get_map_mut(
+        GleiseInternal { dreiwege_weichen, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        dreiwege_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
+    fn get_map_mut(
+        GleiseInternal { s_kurven_weichen, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        s_kurven_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for Kreuzung<Z> {
+    fn get_map_mut(
+        GleiseInternal { kreuzungen, .. }: &mut GleiseInternal<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        kreuzungen
+    }
+}
+
 impl<Z: Debug> GleiseInternal<Z> {
-    fn next_id(&mut self) -> (u64, GleisIdLock<Z>) {
+    fn next_id<T: Debug>(&mut self) -> (u64, GleisIdLock<T>) {
         let gleis_id: u64 = self.next_id;
-        let gleis_id_lock: GleisIdLock<Z> = GleisIdLock::new(gleis_id);
+        let gleis_id_lock: GleisIdLock<T> = GleisIdLock::new(gleis_id);
         // increase next id
         self.next_id += 1;
         (gleis_id, gleis_id_lock)
@@ -139,7 +211,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
     }
 
     /// convenience function that automatically calls set_size_request on the newly created widget
-    pub fn new_with_size(width: CanvasX, height: CanvasY) -> Gleise<Z> {
+    pub fn new_with_size(width: CanvasX, height: CanvasY) -> Self {
         let drawing_area = DrawingAreaBuilder::new()
             .width_request(width.0 as i32)
             .height_request(height.0 as i32)
@@ -147,7 +219,13 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         // create outwards representation
         let gleise = Gleise(Arc::new(RwLock::new(GleiseInternal {
             drawing_area,
-            map: HashMap::new(),
+            geraden: HashMap::new(),
+            kurven: HashMap::new(),
+            weichen: HashMap::new(),
+            kurven_weichen: HashMap::new(),
+            dreiwege_weichen: HashMap::new(),
+            s_kurven_weichen: HashMap::new(),
+            kreuzungen: HashMap::new(),
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
         })));
@@ -198,29 +276,114 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                 let _allocation = drawing_area.get_allocation();
                 let cairo: &Cairo = &Cairo::new(c);
                 // Zeichne Gleise
-                let GleiseInternal { drawing_area: _, map, anchor_points, next_id: _ } =
-                    &*gleise_clone.read();
-                for (gleis_id, Gleis { definition, position }) in map.iter() {
-                    cairo.with_save_restore(|cairo| {
-                        // bewege Kontext zur Position
-                        cairo.translate(position.x, position.y);
-                        // drehe Kontext um (0,0)
-                        cairo.rotate(position.winkel);
-                        // zeichne Gleis
+                let GleiseInternal {
+                    geraden,
+                    kurven,
+                    weichen,
+                    kurven_weichen,
+                    dreiwege_weichen,
+                    s_kurven_weichen,
+                    kreuzungen,
+                    anchor_points,
+                    ..
+                } = &*gleise_clone.read();
+                fn zeichne_alle_gleise<T, F: Fn(&GleisId<T>, &anchor::Position) -> bool>(
+                    cairo: &Cairo,
+                    has_other_id_at_point: F,
+                    map: &HashMap<GleisId<T>, Gleis<T>>,
+                ) where
+                    T: Zeichnen,
+                    T::AnchorPoints: Lookup<T::AnchorName>,
+                {
+                    for (gleis_id, Gleis { definition, position }) in map.iter() {
                         cairo.with_save_restore(|cairo| {
-                            definition.verwende(&Zeichne(cairo));
-                            cairo.stroke();
+                            // bewege Kontext zur Position
+                            cairo.translate(position.x, position.y);
+                            // drehe Kontext um (0,0)
+                            cairo.rotate(position.winkel);
+                            // zeichne Gleis
+                            cairo.with_save_restore(|cairo| {
+                                definition.zeichne(cairo);
+                                cairo.stroke();
+                            });
+                            // zeichne anchor points
+                            cairo.with_save_restore(|cairo| {
+                                definition.anchor_points().foreach(
+                                    |&anchor::Point {
+                                         position: anchor_position,
+                                         direction: anchor::Direction { dx, dy },
+                                     }| {
+                                        let (r, g, b) = if has_other_id_at_point(
+                                            gleis_id,
+                                            &position.transformation(anchor_position),
+                                        ) {
+                                            (0., 1., 0.)
+                                        } else {
+                                            (0., 0., 1.)
+                                        };
+                                        cairo.set_source_rgb(r, g, b);
+                                        let anchor::Position { x, y } = anchor_position;
+                                        cairo.move_to(x, y);
+                                        cairo.line_to(
+                                            x + 5. * CanvasAbstand::from(dx),
+                                            y + 5. * CanvasAbstand::from(dy),
+                                        );
+                                        cairo.stroke();
+                                    },
+                                )
+                            });
                         });
-                        // zeichne anchor points
-                        cairo.with_save_restore(|cairo| {
-                            definition.verwende_anchor_points(
-                                &ZeichneAnchorPoints { cairo, position },
-                                anchor_points,
-                                gleis_id,
-                            );
-                        });
-                    });
+                    }
                 }
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    geraden,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    kurven,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    kurven_weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    s_kurven_weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    dreiwege_weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    kreuzungen,
+                );
             };
         #[cfg(feature = "gtk4-rs")]
         gleise.read().drawing_area.set_draw_func(zeichne_gleise_mit_anchor_points);
@@ -265,9 +428,9 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
 
 impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Add a new gleis to its position.
-    pub fn add<T>(&mut self, definition: T, position: Position) -> (GleisIdLock<Z>, T::AnchorPoints)
+    pub fn add<T>(&mut self, definition: T, position: Position) -> (GleisIdLock<T>, T::AnchorPoints)
     where
-        T: Zeichnen + Into<GleisDefinition<Z>>,
+        T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         // calculate absolute position for AnchorPoints
@@ -278,7 +441,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
             },
         );
         // create gleis
-        let gleis = Gleis { definition: definition.into(), position };
+        let gleis = Gleis { definition, position };
         let mut gleise = self.write();
         let (gleis_id, gleis_id_lock) = gleise.next_id();
         // increase next id
@@ -290,7 +453,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
                 .insert(anchor::rstar::PointWithData::new(GleisId::new(gleis_id), anchor.position))
         });
         // add to HashMap
-        gleise.map.insert(GleisId::new(gleis_id), gleis);
+        T::get_map_mut(&mut gleise).insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
         gleise.drawing_area.queue_draw();
         // return value
@@ -300,24 +463,49 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
-    pub fn relocate(&mut self, gleis_id: &GleisId<Z>, position_neu: Position) {
+    pub fn relocate<T>(&mut self, gleis_id: &GleisId<T>, position_neu: Position) -> T::AnchorPoints
+    where
+        T: Debug + Zeichnen + GleiseMap<Z>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+    {
         // TODO find a way to return T::AnchorPoints here
         // e.g. a new phantom type for GleisId??
         let gleise: &mut GleiseInternal<Z> = &mut *self.write();
-        let Gleis { definition, position } = gleise
-            .map
+        let Gleis { definition, position } = T::get_map_mut(gleise)
             .get_mut(&gleis_id)
             .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
-        // relocate anchor_points
-        definition.execute(
-            &anchor::rstar::Relocate { from: position.clone(), to: position_neu.clone() },
-            &mut gleise.anchor_points,
-            || GleisId::new(gleis_id.0),
+        // calculate absolute position for current AnchorPoints
+        let anchor_points = definition.anchor_points().map(
+            |&anchor::Point { position: anchor_position, direction }| anchor::Point {
+                position: position.transformation(anchor_position),
+                direction: position.rotation(direction),
+            },
+        );
+        // calculate absolute position for new AnchorPoints
+        let anchor_points_neu = definition.anchor_points().map(
+            |&anchor::Point { position: anchor_position, direction }| anchor::Point {
+                position: position_neu.transformation(anchor_position),
+                direction: position_neu.rotation(direction),
+            },
         );
         // store new position
         *position = position_neu;
+        // delete old from anchor_points
+        anchor_points.foreach(|anchor| {
+            gleise
+                .anchor_points
+                .remove(&anchor::rstar::PointWithData::new(gleis_id.as_any(), anchor.position));
+        });
+        // add new to anchor_points
+        anchor_points_neu.foreach(|anchor| {
+            gleise
+                .anchor_points
+                .insert(anchor::rstar::PointWithData::new(gleis_id.as_any(), anchor.position))
+        });
         // trigger redraw
         gleise.drawing_area.queue_draw();
+        // return value
+        anchor_points_neu
     }
 
     /// Create a new gleis with anchor_name adjacent to the target_anchor_point.
@@ -326,9 +514,9 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         definition: T,
         anchor_name: T::AnchorName,
         target_anchor_point: anchor::Point,
-    ) -> (GleisIdLock<Z>, T::AnchorPoints)
+    ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
-        T: Zeichnen + Into<GleisDefinition<Z>>,
+        T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         // calculate new position
@@ -364,21 +552,25 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Removing a value multiple times is no error.
     /// Only the first remove has an effect.
     /// Regardless, after a remove the associated Gleis is guaranteed to be removed.
-    pub fn remove(&mut self, gleis_id_lock: GleisIdLock<Z>) {
+    pub fn remove<T>(&mut self, gleis_id_lock: GleisIdLock<T>)
+    where
+        T: Debug + Zeichnen + GleiseMap<Z>,
+        T::AnchorPoints: Lookup<T::AnchorName>,
+    {
         let mut gleise = self.write();
         let mut optional_id = gleis_id_lock.write();
         // only delete once
         if let Some(gleis_id) = optional_id.as_ref() {
-            let Gleis { definition, position } = gleise
-                .map
+            let Gleis { definition, position } = T::get_map_mut(&mut gleise)
                 .remove(gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
-            definition.execute(
-                &anchor::rstar::Remove { position },
-                &mut gleise.anchor_points,
-                || GleisId::new(gleis_id.0),
-            );
+            definition.anchor_points().foreach(|anchor| {
+                gleise.anchor_points.remove(&anchor::rstar::PointWithData::new(
+                    gleis_id.as_any(),
+                    position.transformation(anchor.position),
+                ));
+            });
         }
         // make sure everyone knows about the deletion
         *optional_id = None;
