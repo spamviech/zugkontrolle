@@ -47,7 +47,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
             CanvasX(200.) - 0.5 * CanvasAbstand::from(CanvasX(definition.width() as f64));
         let height: CanvasAbstand = CanvasY(definition.height() as f64).into();
         let res = self.gleise.add(definition, Position { x, y: self.y, winkel: Angle::new(0.) });
-        self.y += height + CanvasAbstand::from(CanvasY(5.));
+        self.y += height + CanvasAbstand::from(CanvasY(25.));
         res
     }
 }
@@ -93,7 +93,7 @@ fn main() {
             .propagate_natural_width(true)
             .propagate_natural_height(true)
             .build();
-        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
+        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(500.), CanvasY(800.));
         #[cfg(feature = "gtk-rs")]
         {
             gleise_lego.add_to_container(&scrolled_window2);
@@ -110,6 +110,7 @@ fn main() {
         #[cfg(feature = "gtk4-rs")]
         window.show();
 
+        // Märklin-Gleise
         let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
         append_maerklin.append(maerklin::GERADE_5106);
         append_maerklin.append(maerklin::KURVE_5100);
@@ -118,21 +119,29 @@ fn main() {
         append_maerklin.append(maerklin::KURVEN_WEICHE_5140_LINKS);
         append_maerklin.append(maerklin::KREUZUNG_5207);
 
+        // Lego-Gleise
         let mut append_lego = AppendGleise::new(&mut gleise_lego);
-        append_lego.append(lego::GERADE);
+        let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
         append_lego.append(lego::KURVE);
         let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
+        let (kreuzung_lock, _kreuzung_anchor_points) = append_lego.append(lego::KREUZUNG);
         append_lego.append(lego::KREUZUNG);
-        // try attach
-        let (_g2_id_lock, g2_anchor_points) = gleise_lego.attach(
-            lego::GERADE,
-            gerade::AnchorName::Anfang,
-            weiche_anchor_points.gerade,
-        );
-        let (_k2_id_lock, k2_anchor_points) =
-            gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
-        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, g2_anchor_points.ende);
-        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, k2_anchor_points.anfang);
+        // relocate
+        if let Some(gleis_id) = &*gerade_lock.read() {
+            gleise_lego.relocate(
+                gleis_id,
+                Position {
+                    x: CanvasX(200.),
+                    y: CanvasY(5.),
+                    winkel: AngleDegrees::new(22.5).into(),
+                },
+            );
+        }
+        // attach
+        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, weiche_anchor_points.gerade);
+        gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
+        // remove
+        gleise_lego.remove(kreuzung_lock);
     });
 
     application.run(&[]);
