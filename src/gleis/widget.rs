@@ -324,9 +324,9 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
             let len = (direction.dx.0 * direction.dx.0 + direction.dy.0 * direction.dy.0).sqrt();
             let acos_winkel = Angle((direction.dx.0 / len).acos());
             if direction.dy < CanvasY(0.) {
-                -acos_winkel
-            } else {
                 acos_winkel
+            } else {
+                -acos_winkel
             }
         }
         let anchor_points: T::AnchorPoints = definition.anchor_points();

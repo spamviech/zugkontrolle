@@ -60,16 +60,16 @@ fn main() {
 
     application.connect_activate(|app| {
         let window = ApplicationWindow::new(app);
-        #[cfg(feature="gtk-rs")]
+        #[cfg(feature = "gtk-rs")]
         window.set_title("Zugkontrolle");
-        #[cfg(feature="gtk4-rs")]
+        #[cfg(feature = "gtk4-rs")]
         window.set_title(Some("Zugkontrolle"));
 
         let paned: Paned =
             PanedBuilder::new().orientation(Orientation::Horizontal).position(400).build();
-        #[cfg(feature="gtk-rs")]
+        #[cfg(feature = "gtk-rs")]
         window.add(&paned);
-        #[cfg(feature="gtk4-rs")]
+        #[cfg(feature = "gtk4-rs")]
         window.set_child(Some(&paned));
 
         let scrolled_window1: ScrolledWindow = ScrolledWindowBuilder::new()
@@ -78,12 +78,12 @@ fn main() {
             .build();
         let mut gleise_maerklin: Gleise<Maerklin> =
             Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
-        #[cfg(feature="gtk-rs")]
+        #[cfg(feature = "gtk-rs")]
         {
             gleise_maerklin.add_to_container(&scrolled_window1);
             paned.add1(&scrolled_window1);
         }
-        #[cfg(feature="gtk4-rs")]
+        #[cfg(feature = "gtk4-rs")]
         {
             gleise_maerklin.add_to_scrolled_window(&scrolled_window1);
             paned.set_start_child(&scrolled_window1);
@@ -94,20 +94,20 @@ fn main() {
             .propagate_natural_height(true)
             .build();
         let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
-        #[cfg(feature="gtk-rs")]
+        #[cfg(feature = "gtk-rs")]
         {
             gleise_lego.add_to_container(&scrolled_window2);
             paned.add2(&scrolled_window2);
         }
-        #[cfg(feature="gtk4-rs")]
+        #[cfg(feature = "gtk4-rs")]
         {
             gleise_lego.add_to_scrolled_window(&scrolled_window2);
             paned.set_end_child(&scrolled_window2);
         }
 
-        #[cfg(feature="gtk-rs")]
+        #[cfg(feature = "gtk-rs")]
         window.show_all();
-        #[cfg(feature="gtk4-rs")]
+        #[cfg(feature = "gtk4-rs")]
         window.show();
 
         let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
@@ -124,7 +124,7 @@ fn main() {
         let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
         append_lego.append(lego::KREUZUNG);
         // try attach
-        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
+        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, weiche_anchor_points.gerade);
         gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
     });
 
