@@ -5,8 +5,16 @@ authors = ["Wolfgang Witt <Wolfgang.Witt@campus.lmu.de>"]
 edition = "2018"
 license = "MIT"
 publish = false
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+# use either gtk3 or gtk4 bindings
+# chose exactly 1!
+gtk-rs = ["gtk"]
+gtk4-rs = ["gtk4"]
+default = ["gtk4-rs"]
 
 [dependencies.zugkontrolle-derive]
 path = "zugkontrolle-derive"
@@ -23,16 +31,18 @@ argh = "0.1.4"
 version = "1.0.124"
 features = ["derive"]
 
-[target.'cfg(unix)'.dependencies.gtk]
+[dependencies.gtk]
 git = "https://github.com/gtk-rs/gtk-rs.git"
 package = "gtk"
 features = ["v3_24_9"]
+optional = true
 
 # always use gtk4 once ubuntu gets a package for it
-[target.'cfg(windows)'.dependencies.gtk4]
+[dependencies.gtk4]
 git = "https://github.com/gtk-rs/gtk4-rs.git"
 package = "gtk4"
 features = ["v4_2"]
+optional = true
 
 [dependencies.gio]
 git = "https://github.com/gtk-rs/gtk-rs.git"

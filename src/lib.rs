@@ -1,4 +1,8 @@
 //! Steuerung einer Model-Eisenbahn über einen raspberry pi
+//!
+//! - feature /gtk-rs/: use gtk3 bindings
+//! - feature /gtk4-rs/: use gtk4 bindings
+//! You must choose exactly one
 
 pub mod gleis;
 pub mod zugtyp;
@@ -8,3 +12,9 @@ pub mod zugtyp;
 #[cfg(doc)]
 #[doc(inline)]
 pub use std;
+
+#[cfg(all(feature = "gtk4-rs", feature = "gtk-rs"))]
+compile_error!("feature \"gtk4-rs\" and feature \"gtk-rs\" cannot be enabled at the same time");
+
+#[cfg(not(any(feature = "gtk4-rs", feature = "gtk-rs")))]
+compile_error!("exactly one of feature \"gtk4-rs\" and feature \"gtk-rs\" must be enabled");

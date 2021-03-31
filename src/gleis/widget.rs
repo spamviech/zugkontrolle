@@ -6,12 +6,13 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-#[cfg(target_family = "windows")]
+#[cfg(feature = "gtk4-rs")]
 use glib::{Cast, IsA};
-#[cfg(target_family = "unix")]
+#[cfg(feature = "gtk-rs")]
 use gtk::{ContainerExt, DrawingArea, DrawingAreaBuilder, PanedExt, WidgetExt};
+#[cfg(feature = "gtk4-rs")]
 use gtk4::ScrolledWindow;
-#[cfg(target_family = "windows")]
+#[cfg(feature = "gtk4-rs")]
 use gtk4::{DrawingArea, DrawingAreaBuilder, DrawingAreaExt, Paned, WidgetExt};
 use log::*;
 
@@ -139,7 +140,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         })));
         // connect draw callback
         let gleise_clone = gleise.clone();
-        #[cfg(target_family = "unix")]
+        #[cfg(feature = "gtk-rs")]
         let zeichne_gleise_mit_anchor_points =
             move |drawing_area: &DrawingArea, c: &cairo::Context| {
                 // TODO don't draw out of bound Gleise
@@ -175,9 +176,9 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                 }
                 glib::signal::Inhibit(false)
             };
-        #[cfg(target_family = "unix")]
+        #[cfg(feature = "gtk-rs")]
         gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
-        #[cfg(target_family = "windows")]
+        #[cfg(feature = "gtk4-rs")]
         let zeichne_gleise_mit_anchor_points =
             move |drawing_area: &DrawingArea, c: &cairo::Context, _width: i32, _height: i32| {
                 // TODO don't draw out of bound Gleise
@@ -212,7 +213,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                     });
                 }
             };
-        #[cfg(target_family = "windows")]
+        #[cfg(feature = "gtk4-rs")]
         gleise.read().drawing_area.set_draw_func(zeichne_gleise_mit_anchor_points);
         // return
         gleise
@@ -223,31 +224,31 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
     }
 
     /// TODO Placeholder, bis mir eine bessere methode einfällt
-    #[cfg(target_family = "unix")]
+    #[cfg(feature = "gtk-rs")]
     pub fn add_to_container<C: ContainerExt>(&self, container: &C) {
         container.add(&self.read().drawing_area)
     }
-    #[cfg(target_family = "windows")]
+    #[cfg(feature = "gtk4-rs")]
     pub fn add_to_scrolled_window<C: IsA<ScrolledWindow>>(&self, scrolled_window: &C) {
         scrolled_window.upcast_ref().set_child(Some(&self.read().drawing_area))
     }
 
     /// TODO Placeholder, bis mir eine bessere methode einfällt
-    #[cfg(target_family = "unix")]
+    #[cfg(feature = "gtk-rs")]
     pub fn add_to_paned1<P: PanedExt>(&self, paned: &P) {
         paned.add1(&self.read().drawing_area)
     }
-    #[cfg(target_family = "windows")]
+    #[cfg(feature = "gtk4-rs")]
     pub fn add_to_paned1<P: IsA<Paned>>(&self, paned: &P) {
         paned.upcast_ref().set_start_child(&self.read().drawing_area)
     }
 
     /// TODO Placeholder, bis mir eine bessere methode einfällt
-    #[cfg(target_family = "unix")]
-    pub fn add_to_paned2<P: IsA<Paned>>(&self, paned: &P) {
+    #[cfg(feature = "gtk-rs")]
+    pub fn add_to_paned2<P: PanedExt>(&self, paned: &P) {
         paned.add2(&self.read().drawing_area)
     }
-    #[cfg(target_family = "windows")]
+    #[cfg(feature = "gtk4-rs")]
     pub fn add_to_paned2<P: IsA<Paned>>(&self, paned: &P) {
         paned.upcast_ref().set_end_child(&self.read().drawing_area)
     }
