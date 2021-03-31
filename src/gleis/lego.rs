@@ -31,20 +31,20 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
     Kreis-Radius (halber Kreis, Außen bis Kreismittelpunkt): ca. 44 Noppen / 35 cm
 Lego Spurweite: 38mm
 */
-const LENGTH: Length = Length::new(128.);
-const DOUBLE_LENGTH: Length = Length::new(256.);
+const LENGTH_VALUE: f64 = 128.;
+const LENGTH: Length = Length::new(LENGTH_VALUE);
 const RADIUS: Radius = Radius::new(320.);
-const HALF_LENGTH_RADIUS: Radius = Radius::new(64.);
-const ANGLE: AngleDegrees = AngleDegrees::new(22.5);
-const DOUBLE_ANGLE: AngleDegrees = AngleDegrees::new(45.);
+const ANGLE_VALUE: f64 = 22.5;
 const ZUGTYP: PhantomData<*const Lego> = PhantomData;
 
 pub const GERADE: Gerade<Lego> = Gerade { zugtyp: ZUGTYP, length: LENGTH };
 
+const ANGLE: AngleDegrees = AngleDegrees::new(ANGLE_VALUE);
 pub const KURVE: Kurve<Lego> = Kurve { zugtyp: ZUGTYP, radius: RADIUS, angle: ANGLE };
 
 /*
-Eine leichte S-Kurve: 6 rechts, dann 3 links; insgesamt 22.5°
+Eine leichte S-Kurve: 6 Lücken rechts, dann 3 Lücken links; insgesamt 22.5°
+Normale Kurve (22.5°) hat 4 Lücken
 Nach 1 Gerade/Kurve sind Haupt- und Parallelgleis auf der selben Höhe
 -------------------------------------------------------
 Die Geometrie der LEGO Eisenbahnweichen hat sich mit Einführung des 9 V Systems verändert.
@@ -53,22 +53,25 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 -------------------------------------------------------
 1 Noppe ist rund 0,8 cm (genauer: 0,79675... cm)
 1,00 cm sind rund 1,25 Noppen (genauer: 1,255...)
--------------------------------------------------------
 */
+const DOUBLE_LENGTH: Length = Length::new(2. * LENGTH_VALUE);
+const ANGLE_OUTWARDS: AngleDegrees = AngleDegrees::new(1.5 * ANGLE_VALUE);
+const ANGLE_INWARDS: AngleDegrees = AngleDegrees::new(0.75 * ANGLE_VALUE);
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche {
         zugtyp: ZUGTYP,
         length: DOUBLE_LENGTH,
         radius: RADIUS,
-        angle: DOUBLE_ANGLE,
+        angle: ANGLE_OUTWARDS,
         radius_reverse: RADIUS,
-        angle_reverse: ANGLE,
+        angle_reverse: ANGLE_INWARDS,
         direction: richtung,
     }
 }
 pub const WEICHE_RECHTS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Rechts);
 pub const WEICHE_LINKS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Links);
 
+const HALF_LENGTH_RADIUS: Radius = Radius::new(0.5 * LENGTH_VALUE);
 pub const KREUZUNG: Kreuzung<Lego> = Kreuzung {
     zugtyp: ZUGTYP,
     length: LENGTH,

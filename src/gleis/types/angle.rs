@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::convert::From;
-use std::ops::{Add, Neg, Sub};
+use std::ops::{Add, Mul, Neg, Sub};
 
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
@@ -64,6 +64,18 @@ impl Neg for Angle {
     type Output = Self;
     fn neg(self) -> Self {
         Angle(-self.0)
+    }
+}
+impl Mul<f64> for Angle {
+    type Output = Self;
+    fn mul(self, other: f64) -> Self {
+        Angle(other * self.0)
+    }
+}
+impl Mul<Angle> for f64 {
+    type Output = Angle;
+    fn mul(self, Angle(other): Angle) -> Angle {
+        Angle(self * other)
     }
 }
 impl Trigonometrie for Angle {
@@ -134,6 +146,18 @@ impl Neg for AngleDegrees {
     type Output = Self;
     fn neg(self) -> Self {
         AngleDegrees(-self.0)
+    }
+}
+impl Mul<f64> for AngleDegrees {
+    type Output = Self;
+    fn mul(self, other: f64) -> Self {
+        AngleDegrees(other * self.0)
+    }
+}
+impl Mul<AngleDegrees> for f64 {
+    type Output = AngleDegrees;
+    fn mul(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
+        AngleDegrees(self * other)
     }
 }
 impl Trigonometrie for AngleDegrees {
