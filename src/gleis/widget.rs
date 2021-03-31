@@ -34,6 +34,15 @@ impl Position {
         let y = CanvasY(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
         anchor::Position { x, y }
     }
+
+    /// anchor::Direction nachdem das Objekt um den Winkel gedreht wird.
+    pub fn rotation(&self, direction: anchor::Direction) -> anchor::Direction {
+        let dx = CanvasX(0.) + CanvasAbstand::from(direction.dx) * self.winkel.cos()
+            - CanvasAbstand::from(direction.dy) * self.winkel.sin();
+        let dy = CanvasY(0.) + CanvasAbstand::from(direction.dx) * self.winkel.sin()
+            - CanvasAbstand::from(direction.dy) * self.winkel.cos();
+        anchor::Direction { dx, dy }
+    }
 }
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
@@ -261,7 +270,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         let anchor_points = definition.anchor_points().map(
             |&anchor::Point { position: anchor_position, direction }| anchor::Point {
                 position: position.transformation(anchor_position),
-                direction,
+                direction: position.rotation(direction),
             },
         );
         // create gleis
@@ -332,7 +341,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         let anchor_points: T::AnchorPoints = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
         let winkel: Angle = winkel_mit_x_achse(&-anchor_point.direction)
-            - winkel_mit_x_achse(&target_anchor_point.direction);
+            + winkel_mit_x_achse(&target_anchor_point.direction);
         let position = Position {
             x: target_anchor_point.position.x
                 - CanvasAbstand::from(anchor_point.position.x) * winkel.cos()

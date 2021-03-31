@@ -124,8 +124,15 @@ fn main() {
         let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
         append_lego.append(lego::KREUZUNG);
         // try attach
-        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, weiche_anchor_points.gerade);
-        gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
+        let (_g2_id_lock, g2_anchor_points) = gleise_lego.attach(
+            lego::GERADE,
+            gerade::AnchorName::Anfang,
+            weiche_anchor_points.gerade,
+        );
+        let (_k2_id_lock, k2_anchor_points) =
+            gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
+        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, g2_anchor_points.ende);
+        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, k2_anchor_points.anfang);
     });
 
     application.run(&[]);
