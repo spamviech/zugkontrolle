@@ -45,28 +45,8 @@ pub trait Transform {
         F: Fn() -> GleisId<Z>;
 }
 
-/// Add anchor points
-pub struct Add {
-    pub position: Position,
-}
-impl Transform for Add {
-    fn transform<T, F, Z>(&self, anchor_points: &mut RTree<Z>, definition: &T, gleis_id: F)
-    where
-        T: Zeichnen,
-        T::AnchorPoints: Lookup<T::AnchorName>,
-        F: Fn() -> GleisId<Z>,
-    {
-        definition.anchor_points().foreach(|anchor| {
-            anchor_points.insert(PointWithData::new(
-                gleis_id(),
-                self.position.transformation(anchor.position),
-            ))
-        })
-    }
-}
-
 /// Relocate (move) anchor points
-pub struct Relocate {
+pub(crate) struct Relocate {
     pub from: Position,
     pub to: Position,
 }
@@ -87,7 +67,7 @@ impl Transform for Relocate {
 }
 
 /// Remove (delete) anchor points
-pub struct Remove {
+pub(crate) struct Remove {
     pub position: Position,
 }
 impl Transform for Remove {

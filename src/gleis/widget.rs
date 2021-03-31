@@ -98,6 +98,10 @@ pub struct Gleis<Z> {
     pub definition: GleisDefinition<Z>,
     pub position: Position,
 }
+
+/// Anzeige aller Gleise
+///
+/// Achtung: Alle Methoden sind blocking!
 #[derive(Debug, Clone)]
 pub struct Gleise<Z>(Arc<RwLock<GleiseInternal<Z>>>);
 
@@ -280,12 +284,11 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         // increase next id
         gleise.next_id += 1;
         // add to anchor_points
-        let Gleis { definition, position } = &gleis;
-        definition.execute(
-            &anchor::rstar::Add { position: position.clone() },
-            &mut gleise.anchor_points,
-            || GleisId::new(gleis_id),
-        );
+        anchor_points.foreach(|anchor| {
+            gleise
+                .anchor_points
+                .insert(anchor::rstar::PointWithData::new(GleisId::new(gleis_id), anchor.position))
+        });
         // add to HashMap
         gleise.map.insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
