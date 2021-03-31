@@ -79,12 +79,13 @@ fn main() {
             Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
         #[cfg(feature = "gtk-rs")]
         {
-            gleise_maerklin.add_to_container(&scrolled_window1);
+            gleise_maerklin.with_drawing_area(|drawing_area| scrolled_window1.add(drawing_area));
             paned.add1(&scrolled_window1);
         }
         #[cfg(feature = "gtk4-rs")]
         {
-            gleise_maerklin.add_to_scrolled_window(&scrolled_window1);
+            gleise_maerklin
+                .with_drawing_area(|drawing_area| scrolled_window1.set_child(Some(drawing_area)));
             paned.set_start_child(&scrolled_window1);
         }
 
@@ -95,12 +96,13 @@ fn main() {
         let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(500.), CanvasY(800.));
         #[cfg(feature = "gtk-rs")]
         {
-            gleise_lego.add_to_container(&scrolled_window2);
+            gleise_lego.with_drawing_area(|drawing_area| scrolled_window2.add(drawing_area));
             paned.add2(&scrolled_window2);
         }
         #[cfg(feature = "gtk4-rs")]
         {
-            gleise_lego.add_to_scrolled_window(&scrolled_window2);
+            gleise_lego
+                .with_drawing_area(|drawing_area| scrolled_window2.set_child(Some(drawing_area)));
             paned.set_end_child(&scrolled_window2);
         }
 

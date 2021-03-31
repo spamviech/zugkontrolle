@@ -6,14 +6,10 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-#[cfg(feature = "gtk4-rs")]
-use glib::{Cast, IsA};
 #[cfg(feature = "gtk-rs")]
-use gtk::{ContainerExt, DrawingArea, DrawingAreaBuilder, PanedExt, WidgetExt};
+use gtk::{DrawingArea, DrawingAreaBuilder, WidgetExt};
 #[cfg(feature = "gtk4-rs")]
-use gtk4::ScrolledWindow;
-#[cfg(feature = "gtk4-rs")]
-use gtk4::{DrawingArea, DrawingAreaBuilder, DrawingAreaExt, Paned, WidgetExt};
+use gtk4::{DrawingArea, DrawingAreaBuilder, DrawingAreaExt, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -364,34 +360,8 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         self.write().drawing_area.set_size_request(width.0 as i32, height.0 as i32);
     }
 
-    /// TODO Placeholder, bis mir eine bessere methode einfällt
-    #[cfg(feature = "gtk-rs")]
-    pub fn add_to_container<C: ContainerExt>(&self, container: &C) {
-        container.add(&self.read().drawing_area)
-    }
-    #[cfg(feature = "gtk4-rs")]
-    pub fn add_to_scrolled_window<C: IsA<ScrolledWindow>>(&self, scrolled_window: &C) {
-        scrolled_window.upcast_ref().set_child(Some(&self.read().drawing_area))
-    }
-
-    /// TODO Placeholder, bis mir eine bessere methode einfällt
-    #[cfg(feature = "gtk-rs")]
-    pub fn add_to_paned1<P: PanedExt>(&self, paned: &P) {
-        paned.add1(&self.read().drawing_area)
-    }
-    #[cfg(feature = "gtk4-rs")]
-    pub fn add_to_paned1<P: IsA<Paned>>(&self, paned: &P) {
-        paned.upcast_ref().set_start_child(&self.read().drawing_area)
-    }
-
-    /// TODO Placeholder, bis mir eine bessere methode einfällt
-    #[cfg(feature = "gtk-rs")]
-    pub fn add_to_paned2<P: PanedExt>(&self, paned: &P) {
-        paned.add2(&self.read().drawing_area)
-    }
-    #[cfg(feature = "gtk4-rs")]
-    pub fn add_to_paned2<P: IsA<Paned>>(&self, paned: &P) {
-        paned.upcast_ref().set_end_child(&self.read().drawing_area)
+    pub fn with_drawing_area<T, F: FnOnce(&mut DrawingArea) -> T>(&mut self, action: F) -> T {
+        action(&mut self.write().drawing_area)
     }
 }
 
