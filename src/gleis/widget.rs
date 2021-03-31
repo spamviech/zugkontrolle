@@ -231,7 +231,6 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         })));
         // connect draw callback
         let gleise_clone = gleise.clone();
-        #[cfg(feature = "gtk-rs")]
         let zeichne_gleise_mit_anchor_points =
             move |drawing_area: &DrawingArea, c: &cairo::Context| {
                 // TODO don't draw out of bound Gleise
@@ -352,123 +351,11 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         #[cfg(feature = "gtk-rs")]
         gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
         #[cfg(feature = "gtk4-rs")]
-        let zeichne_gleise_mit_anchor_points =
+        gleise.read().drawing_area.set_draw_func(
             move |drawing_area: &DrawingArea, c: &cairo::Context, _width: i32, _height: i32| {
-                // TODO don't draw out of bound Gleise
-                let _allocation = drawing_area.get_allocation();
-                let cairo: &Cairo = &Cairo::new(c);
-                // Zeichne Gleise
-                let GleiseInternal {
-                    geraden,
-                    kurven,
-                    weichen,
-                    kurven_weichen,
-                    dreiwege_weichen,
-                    s_kurven_weichen,
-                    kreuzungen,
-                    anchor_points,
-                    ..
-                } = &*gleise_clone.read();
-                fn zeichne_alle_gleise<T, F: Fn(&GleisId<T>, &anchor::Position) -> bool>(
-                    cairo: &Cairo,
-                    has_other_id_at_point: F,
-                    map: &HashMap<GleisId<T>, Gleis<T>>,
-                ) where
-                    T: Zeichnen,
-                    T::AnchorPoints: Lookup<T::AnchorName>,
-                {
-                    for (gleis_id, Gleis { definition, position }) in map.iter() {
-                        cairo.with_save_restore(|cairo| {
-                            // bewege Kontext zur Position
-                            cairo.translate(position.x, position.y);
-                            // drehe Kontext um (0,0)
-                            cairo.rotate(position.winkel);
-                            // zeichne Gleis
-                            cairo.with_save_restore(|cairo| {
-                                definition.zeichne(cairo);
-                                cairo.stroke();
-                            });
-                            // zeichne anchor points
-                            cairo.with_save_restore(|cairo| {
-                                definition.anchor_points().foreach(
-                                    |&anchor::Point {
-                                         position: anchor_position,
-                                         direction: anchor::Direction { dx, dy },
-                                     }| {
-                                        let (r, g, b) = if has_other_id_at_point(
-                                            gleis_id,
-                                            &position.transformation(anchor_position),
-                                        ) {
-                                            (0., 1., 0.)
-                                        } else {
-                                            (0., 0., 1.)
-                                        };
-                                        cairo.set_source_rgb(r, g, b);
-                                        let anchor::Position { x, y } = anchor_position;
-                                        cairo.move_to(x, y);
-                                        cairo.line_to(
-                                            x + 5. * CanvasAbstand::from(dx),
-                                            y + 5. * CanvasAbstand::from(dy),
-                                        );
-                                        cairo.stroke();
-                                    },
-                                )
-                            });
-                        });
-                    }
-                }
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    geraden,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    kurven,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    kurven_weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    s_kurven_weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    dreiwege_weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    kreuzungen,
-                );
-            };
-        #[cfg(feature = "gtk4-rs")]
-        gleise.read().drawing_area.set_draw_func(zeichne_gleise_mit_anchor_points);
+                zeichne_gleise_mit_anchor_points(drawing_area, c);
+            },
+        );
         // return
         gleise
     }
