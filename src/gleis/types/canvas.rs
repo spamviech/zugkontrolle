@@ -58,9 +58,9 @@ impl<'t> Cairo<'t> {
 
     /// perform a /save/ before and a /restore/ after action
     pub fn with_save_restore<F: FnOnce(&Self)>(&self, action: F) {
-        self.0.save();
+        self.0.save().expect("Error in cairo::Context::save");
         action(self);
-        self.0.restore();
+        self.0.restore().expect("Error in cairo::Context::restore");
     }
 
     pub fn translate(&self, tx: CanvasX, ty: CanvasY) {

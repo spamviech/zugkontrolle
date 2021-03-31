@@ -6,7 +6,13 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+#[cfg(target_family = "windows")]
+use glib::{Cast, IsA};
+#[cfg(target_family = "unix")]
 use gtk::{ContainerExt, DrawingArea, DrawingAreaBuilder, PanedExt, WidgetExt};
+use gtk4::ScrolledWindow;
+#[cfg(target_family = "windows")]
+use gtk4::{DrawingArea, DrawingAreaBuilder, DrawingAreaExt, Paned, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -133,6 +139,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         })));
         // connect draw callback
         let gleise_clone = gleise.clone();
+        #[cfg(target_family = "unix")]
         let zeichne_gleise_mit_anchor_points =
             move |drawing_area: &DrawingArea, c: &cairo::Context| {
                 // TODO don't draw out of bound Gleise
@@ -168,7 +175,45 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                 }
                 glib::signal::Inhibit(false)
             };
+        #[cfg(target_family = "unix")]
         gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
+        #[cfg(target_family = "windows")]
+        let zeichne_gleise_mit_anchor_points =
+            move |drawing_area: &DrawingArea, c: &cairo::Context, _width: i32, _height: i32| {
+                // TODO don't draw out of bound Gleise
+                let _allocation = drawing_area.get_allocation();
+                let cairo: &Cairo = &Cairo::new(c);
+                // Zeichne Gleise
+                let GleiseInternal { drawing_area: _, map, anchor_points, next_id: _ } =
+                    &*gleise_clone.read();
+                for (gleis_id, Gleis { definition, position }) in map.iter() {
+                    cairo.with_save_restore(|cairo| {
+                        // bewege Kontext zur Position
+                        cairo.translate(position.x, position.y);
+                        // drehe Kontext um die Mitte
+                        let width = CanvasX(0.5 * (definition.verwende(&Size::Width) as f64));
+                        let height = CanvasY(0.5 * (definition.verwende(&Size::Height) as f64));
+                        cairo.translate(width, height);
+                        cairo.rotate(position.winkel);
+                        cairo.translate(-width, -height);
+                        // zeichne Gleis
+                        cairo.with_save_restore(|cairo| {
+                            definition.verwende(&Zeichne(cairo));
+                            cairo.stroke();
+                        });
+                        // zeichne anchor points
+                        cairo.with_save_restore(|cairo| {
+                            definition.verwende_anchor_points(
+                                &ZeichneAnchorPoints { cairo, position },
+                                anchor_points,
+                                gleis_id,
+                            );
+                        });
+                    });
+                }
+            };
+        #[cfg(target_family = "windows")]
+        gleise.read().drawing_area.set_draw_func(zeichne_gleise_mit_anchor_points);
         // return
         gleise
     }
@@ -178,18 +223,33 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
     }
 
     /// TODO Placeholder, bis mir eine bessere methode einfällt
+    #[cfg(target_family = "unix")]
     pub fn add_to_container<C: ContainerExt>(&self, container: &C) {
         container.add(&self.read().drawing_area)
     }
-
-    /// TODO Placeholder, bis mir eine bessere methode einfällt
-    pub fn add_to_paned1<P: PanedExt>(&self, paned: &P) {
-        paned.add1(&self.read().drawing_area)
+    #[cfg(target_family = "windows")]
+    pub fn add_to_scrolled_window<C: IsA<ScrolledWindow>>(&self, scrolled_window: &C) {
+        scrolled_window.upcast_ref().set_child(Some(&self.read().drawing_area))
     }
 
     /// TODO Placeholder, bis mir eine bessere methode einfällt
-    pub fn add_to_paned2<P: PanedExt>(&self, paned: &P) {
+    #[cfg(target_family = "unix")]
+    pub fn add_to_paned1<P: PanedExt>(&self, paned: &P) {
+        paned.add1(&self.read().drawing_area)
+    }
+    #[cfg(target_family = "windows")]
+    pub fn add_to_paned1<P: IsA<Paned>>(&self, paned: &P) {
+        paned.upcast_ref().set_start_child(&self.read().drawing_area)
+    }
+
+    /// TODO Placeholder, bis mir eine bessere methode einfällt
+    #[cfg(target_family = "unix")]
+    pub fn add_to_paned2<P: IsA<Paned>>(&self, paned: &P) {
         paned.add2(&self.read().drawing_area)
+    }
+    #[cfg(target_family = "windows")]
+    pub fn add_to_paned2<P: IsA<Paned>>(&self, paned: &P) {
+        paned.upcast_ref().set_end_child(&self.read().drawing_area)
     }
 }
 

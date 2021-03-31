@@ -23,26 +23,25 @@ argh = "0.1.4"
 version = "1.0.124"
 features = ["derive"]
 
-[dependencies.gtk]
-version = "0.9.2"
-features = ["v3_24"]
+[target.'cfg(unix)'.dependencies.gtk]
+git = "https://github.com/gtk-rs/gtk-rs.git"
+package = "gtk"
+features = ["v3_24_9"]
+
+# always use gtk4 once ubuntu gets a package for it
+[target.'cfg(windows)'.dependencies.gtk4]
+git = "https://github.com/gtk-rs/gtk4-rs.git"
+package = "gtk4"
+features = ["v4_2"]
 
 [dependencies.gio]
-version = "0.9.1"
-features = ["v2_64"]
+git = "https://github.com/gtk-rs/gtk-rs.git"
+features = ["v2_66"]
 
 [dependencies.cairo-rs]
-version = "0.9.1"
+git = "https://github.com/gtk-rs/gtk-rs.git"
 features = ["v1_16"]
 
 [dependencies.glib]
-version = "0.10.3"
+git = "https://github.com/gtk-rs/gtk-rs.git"
 features = ["v2_64"]
-
-# [dependencies.gtk4]
-# git = "https://github.com/gtk-rs/gtk4-rs.git"
-# package = "gtk4"
-#
-# [dependencies.gdk4]
-# git = "https://github.com/gtk-rs/gtk4-rs.git"
-# package = "gtk4"
