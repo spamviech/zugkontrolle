@@ -238,35 +238,117 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                 let _allocation = drawing_area.get_allocation();
                 let cairo: &Cairo = &Cairo::new(c);
                 // Zeichne Gleise
-                let GleiseInternal { drawing_area: _, map, anchor_points, next_id: _ } =
-                    &*gleise_clone.read();
-                for (gleis_id, Gleis { definition, position }) in map.iter() {
-                    cairo.with_save_restore(|cairo| {
-                        // bewege Kontext zur Position
-                        cairo.translate(position.x, position.y);
-                        // drehe Kontext um die Mitte
-                        let width = CanvasX(0.5 * (definition.verwende(&Size::Width) as f64));
-                        let height = CanvasY(0.5 * (definition.verwende(&Size::Height) as f64));
-                        cairo.translate(width, height);
-                        cairo.rotate(position.winkel);
-                        cairo.translate(-width, -height);
-                        // zeichne Gleis
+                let GleiseInternal {
+                    geraden,
+                    kurven,
+                    weichen,
+                    kurven_weichen,
+                    dreiwege_weichen,
+                    s_kurven_weichen,
+                    kreuzungen,
+                    anchor_points,
+                    ..
+                } = &*gleise_clone.read();
+                fn zeichne_alle_gleise<T, F: Fn(&GleisId<T>, &anchor::Position) -> bool>(
+                    cairo: &Cairo,
+                    has_other_id_at_point: F,
+                    map: &HashMap<GleisId<T>, Gleis<T>>,
+                ) where
+                    T: Zeichnen,
+                    T::AnchorPoints: Lookup<T::AnchorName>,
+                {
+                    for (gleis_id, Gleis { definition, position }) in map.iter() {
                         cairo.with_save_restore(|cairo| {
-                            definition.verwende(&Zeichne(cairo));
-                            cairo.stroke();
+                            // bewege Kontext zur Position
+                            cairo.translate(position.x, position.y);
+                            // drehe Kontext um (0,0)
+                            cairo.rotate(position.winkel);
+                            // zeichne Gleis
+                            cairo.with_save_restore(|cairo| {
+                                definition.zeichne(cairo);
+                                cairo.stroke();
+                            });
+                            // zeichne anchor points
+                            cairo.with_save_restore(|cairo| {
+                                definition.anchor_points().foreach(
+                                    |&anchor::Point {
+                                         position: anchor_position,
+                                         direction: anchor::Direction { dx, dy },
+                                     }| {
+                                        let (r, g, b) = if has_other_id_at_point(
+                                            gleis_id,
+                                            &position.transformation(anchor_position),
+                                        ) {
+                                            (0., 1., 0.)
+                                        } else {
+                                            (0., 0., 1.)
+                                        };
+                                        cairo.set_source_rgb(r, g, b);
+                                        let anchor::Position { x, y } = anchor_position;
+                                        cairo.move_to(x, y);
+                                        cairo.line_to(
+                                            x + 5. * CanvasAbstand::from(dx),
+                                            y + 5. * CanvasAbstand::from(dy),
+                                        );
+                                        cairo.stroke();
+                                    },
+                                )
+                            });
                         });
-                        // zeichne anchor points
-                        cairo.with_save_restore(|cairo| {
-                            definition.verwende_anchor_points(
-                                &ZeichneAnchorPoints { cairo, position },
-                                anchor_points,
-                                gleis_id,
-                            );
-                        });
-                    });
+                    }
                 }
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    geraden,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    kurven,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    kurven_weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    s_kurven_weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    dreiwege_weichen,
+                );
+                zeichne_alle_gleise(
+                    cairo,
+                    |gleis_id, position| {
+                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
+                    },
+                    kreuzungen,
+                );
                 glib::signal::Inhibit(false)
             };
+
         #[cfg(feature = "gtk-rs")]
         gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
         #[cfg(feature = "gtk4-rs")]
