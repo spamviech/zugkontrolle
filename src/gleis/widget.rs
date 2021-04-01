@@ -42,6 +42,31 @@ impl Position {
             - CanvasAbstand::from(direction.dy) * self.winkel.cos();
         anchor::Direction { dx, dy }
     }
+
+    /// Position damit anchor::Point übereinander mit entgegengesetzter Richtung liegen
+    fn attach_position<T>(
+        definition: &T,
+        anchor_name: T::AnchorName,
+        target_anchor_point: anchor::Point,
+    ) -> Self
+    where
+        T: Zeichnen,
+        T::AnchorPoints: Lookup<T::AnchorName>,
+    {
+        let anchor_points: T::AnchorPoints = definition.anchor_points();
+        let anchor_point = anchor_points.get(anchor_name);
+        let winkel: Angle = (-anchor_point.direction).winkel_mit_x_achse()
+            + target_anchor_point.direction.winkel_mit_x_achse();
+        Position {
+            x: target_anchor_point.position.x
+                - CanvasAbstand::from(anchor_point.position.x) * winkel.cos()
+                + CanvasAbstand::from(anchor_point.position.y) * winkel.sin(),
+            y: target_anchor_point.position.y
+                - CanvasAbstand::from(anchor_point.position.x) * winkel.sin()
+                - CanvasAbstand::from(anchor_point.position.y) * winkel.cos(),
+            winkel,
+        }
+    }
 }
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
@@ -368,11 +393,12 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
 
 impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
     /// Add a new gleis to its position.
-    pub fn add<T>(&mut self, definition: T, position: Position) -> (GleisIdLock<T>, T::AnchorPoints)
+    pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
+        let Gleis { definition, position } = &gleis;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
             |&anchor::Point { position: anchor_position, direction }| anchor::Point {
@@ -380,8 +406,6 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
                 direction: position.rotation(direction),
             },
         );
-        // create gleis
-        let gleis = Gleis { definition, position };
         let mut gleise = self.write();
         let (gleis_id, gleis_id_lock) = gleise.next_id();
         // increase next id
@@ -398,6 +422,23 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         gleise.drawing_area.queue_draw();
         // return value
         (gleis_id_lock, anchor_points)
+    }
+
+    /// Create a new gleis with anchor_name adjacent to the target_anchor_point.
+    pub fn add_attach<T>(
+        &mut self,
+        definition: T,
+        anchor_name: T::AnchorName,
+        target_anchor_point: anchor::Point,
+    ) -> (GleisIdLock<T>, T::AnchorPoints)
+    where
+        T: Debug + Zeichnen + GleiseMap<Z>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+    {
+        // calculate new position
+        let position = Position::attach_position(&definition, anchor_name, target_anchor_point);
+        // add new gleis
+        self.add(Gleis { definition, position })
     }
 
     /// Move an existing gleis to the new position.
@@ -448,42 +489,26 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         anchor_points_neu
     }
 
-    /// Create a new gleis with anchor_name adjacent to the target_anchor_point.
-    pub fn attach<T>(
+    /// Move an existing gleis gleis with anchor_name adjacent to the target_anchor_point.
+    pub fn relocate_attach<T>(
         &mut self,
-        definition: T,
+        gleis_id: &GleisId<T>,
         anchor_name: T::AnchorName,
         target_anchor_point: anchor::Point,
-    ) -> (GleisIdLock<T>, T::AnchorPoints)
+    ) -> T::AnchorPoints
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        // calculate new position
-        fn winkel_mit_x_achse(direction: &anchor::Direction) -> Angle {
-            let len = (direction.dx.0 * direction.dx.0 + direction.dy.0 * direction.dy.0).sqrt();
-            let acos_winkel = Angle((direction.dx.0 / len).acos());
-            if direction.dy < CanvasY(0.) {
-                acos_winkel
-            } else {
-                -acos_winkel
-            }
-        }
-        let anchor_points: T::AnchorPoints = definition.anchor_points();
-        let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Angle = winkel_mit_x_achse(&-anchor_point.direction)
-            + winkel_mit_x_achse(&target_anchor_point.direction);
-        let position = Position {
-            x: target_anchor_point.position.x
-                - CanvasAbstand::from(anchor_point.position.x) * winkel.cos()
-                + CanvasAbstand::from(anchor_point.position.y) * winkel.sin(),
-            y: target_anchor_point.position.y
-                - CanvasAbstand::from(anchor_point.position.x) * winkel.sin()
-                - CanvasAbstand::from(anchor_point.position.y) * winkel.cos(),
-            winkel,
+        let position = {
+            let gleise: &mut GleiseInternal<Z> = &mut *self.write();
+            let Gleis { definition, .. } = T::get_map_mut(gleise)
+                .get(&gleis_id)
+                .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
+            Position::attach_position(definition, anchor_name, target_anchor_point)
         };
-        // add new gleis
-        self.add(definition, position)
+        // move gleis to new position
+        self.relocate(gleis_id, position)
     }
 
     /// Remove the Gleis associated the the GleisId.

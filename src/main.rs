@@ -21,7 +21,7 @@ use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
 use zugkontrolle::gleis::types::*;
-use zugkontrolle::gleis::widget::{GleisIdLock, Gleise, GleiseMap, Position};
+use zugkontrolle::gleis::widget::{Gleis, GleisIdLock, Gleise, GleiseMap, Position};
 use zugkontrolle::gleis::{gerade, kurve};
 use zugkontrolle::gleis::{lego, maerklin};
 use zugkontrolle::zugtyp::{Lego, Maerklin};
@@ -45,7 +45,9 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let x: CanvasX =
             CanvasX(200.) - 0.5 * CanvasAbstand::from(CanvasX(definition.width() as f64));
         let height: CanvasAbstand = CanvasY(definition.height() as f64).into();
-        let res = self.gleise.add(definition, Position { x, y: self.y, winkel: Angle::new(0.) });
+        let res = self
+            .gleise
+            .add(Gleis { definition, position: Position { x, y: self.y, winkel: Angle::new(0.) } });
         self.y += height + CanvasAbstand::from(CanvasY(25.));
         res
     }
@@ -123,7 +125,7 @@ fn main() {
         // Lego-Gleise
         let mut append_lego = AppendGleise::new(&mut gleise_lego);
         let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
-        append_lego.append(lego::KURVE);
+        let (kurve_lock, _kurve_anchor_points) = append_lego.append(lego::KURVE);
         let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
         let (kreuzung_lock, _kreuzung_anchor_points) = append_lego.append(lego::KREUZUNG);
         append_lego.append(lego::KREUZUNG);
@@ -132,17 +134,27 @@ fn main() {
             gleise_lego.relocate(
                 gleis_id,
                 Position {
-                    x: CanvasX(200.),
-                    y: CanvasY(5.),
-                    winkel: AngleDegrees::new(22.5).into(),
+                    x: CanvasX(250.),
+                    y: CanvasY(10.),
+                    winkel: AngleDegrees::new(90.).into(),
                 },
             );
         }
         // attach
-        gleise_lego.attach(lego::GERADE, gerade::AnchorName::Anfang, weiche_anchor_points.gerade);
-        gleise_lego.attach(lego::KURVE, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
+        gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
+        // relocate-attach
+        if let Some(gleis_id) = &*kurve_lock.read() {
+            gleise_lego.relocate_attach(
+                gleis_id,
+                kurve::AnchorName::Ende,
+                weiche_anchor_points.kurve,
+            );
+        }
         // remove
+        let kreuzung_lock_clone = kreuzung_lock.clone();
         gleise_lego.remove(kreuzung_lock);
+        // assert!(kreuzung_lock.read().is_none());
+        assert!(kreuzung_lock_clone.read().is_none());
     });
 
     application.run(&[]);
