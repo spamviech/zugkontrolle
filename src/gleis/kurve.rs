@@ -58,8 +58,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn fuelle(&self, cairo: &mut Cairo) {
-        //TODO
-        println!("TODO")
+        fuelle::<Z>(cairo, self.radius, self.angle.into())
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -119,6 +118,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     let radius_abstand = CanvasAbstand::from(radius);
     let spurweite = CanvasAbstand::from(Z::SPURWEITE);
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
+    let winkel_ende: Angle = winkel_anfang + winkel;
     let gleis_links: CanvasX = CanvasX(0.);
     let gleis_links_oben: CanvasY = CanvasY(0.);
     let gleis_links_unten: CanvasY = CanvasY(0.) + beschraenkung::<Z>();
@@ -130,7 +130,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     let begrenzung_y0: CanvasY = CanvasY(0.) + radius_begrenzung_aussen * (1. - winkel.cos());
     let begrenzung_x1: CanvasX = begrenzung_x0 - beschraenkung::<Z>() * winkel.sin();
     let begrenzung_y1: CanvasY = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
-    let bogen_zentrum_y: CanvasY = CanvasY(0.) + abstand::<Z>() + radius_aussen.into();
+    let bogen_zentrum_y: CanvasY = CanvasY(0.) + radius_begrenzung_aussen;
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {
         cairo.move_to(gleis_links, gleis_links_oben);
@@ -141,6 +141,29 @@ pub(crate) fn zeichne<Z: Zugtyp>(
         cairo.line_to(begrenzung_x1, begrenzung_y1);
     }
     // Gleis
-    cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_anfang + winkel);
-    cairo.arc(gleis_links, bogen_zentrum_y, radius_innen, winkel_anfang, winkel_anfang + winkel);
+    cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_ende, true);
+    cairo.arc(gleis_links, bogen_zentrum_y, radius_innen, winkel_anfang, winkel_ende, true);
+}
+
+pub(crate) fn fuelle<Z: Zugtyp>(cairo: &mut Cairo, radius: Radius, winkel: Angle) {
+    let radius_abstand = CanvasAbstand::from(radius);
+    let spurweite = CanvasAbstand::from(Z::SPURWEITE);
+    let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
+    let winkel_ende: Angle = winkel_anfang + winkel;
+    let gleis_links: CanvasX = CanvasX(0.);
+    let radius_innen_abstand = radius_abstand - 0.5 * spurweite;
+    let radius_innen: CanvasRadius = CanvasRadius(0.) + radius_innen_abstand;
+    let radius_aussen_abstand = radius_abstand + 0.5 * spurweite;
+    let radius_aussen: CanvasRadius = CanvasRadius(0.) + radius_aussen_abstand;
+    let bogen_zentrum_y: CanvasY = CanvasY(0.) + abstand::<Z>() + radius_aussen.into();
+    // path schreiben
+    cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_ende, true);
+    cairo.arc_negative(
+        gleis_links,
+        bogen_zentrum_y,
+        radius_innen,
+        winkel_ende,
+        winkel_anfang,
+        false,
+    );
 }
