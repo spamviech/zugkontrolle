@@ -47,7 +47,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         Kurve { zugtyp, radius, angle }.height()
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         if self.direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
             let x = CanvasX(0.);
@@ -71,6 +71,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         // äußere Kurve
         cairo.translate(kurve_aussen_anfang, CanvasY(0.));
         kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Ende);
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        //TODO
+        println!("TODO")
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

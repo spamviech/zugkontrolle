@@ -65,7 +65,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         height_beschraenkung.max(height_kurven)
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         // utility sizes
         let width: CanvasX = CanvasX(self.width() as f64);
         let half_width: CanvasX = CanvasX(0.5 * width.0);
@@ -93,6 +93,11 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         if self.variante == Variante::MitKurve {
             kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Keine);
         }
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        //TODO
+        println!("TODO")
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

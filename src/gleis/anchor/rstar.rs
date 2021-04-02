@@ -24,6 +24,8 @@ impl RTree {
         gleis_id: &GleisId<Any>,
         position: &point::Position,
     ) -> bool {
+        // TODO use other data structure to also find "close" points,
+        // not only completely identical ones (double precision is a thing!)
         let other_ids_at_point = self
             .0
             .locate_all_at_point(position)

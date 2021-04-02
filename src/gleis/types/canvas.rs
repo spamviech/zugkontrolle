@@ -8,6 +8,7 @@ pub use cairo::Matrix;
 
 use super::angle::{Angle, Trigonometrie};
 use super::{Length, Radius, Spurweite};
+use crate::gleis::anchor;
 
 /// newtype auf einen cairo-Context
 ///
@@ -21,26 +22,26 @@ impl<'t> Cairo<'t> {
         Cairo(c)
     }
 
-    pub fn move_to(&self, x: CanvasX, y: CanvasY) {
+    pub fn move_to(&mut self, x: CanvasX, y: CanvasY) {
         self.0.move_to(x.0, y.0)
     }
-    pub fn rel_move_to(&self, dx: CanvasX, dy: CanvasY) {
+    pub fn rel_move_to(&mut self, dx: CanvasX, dy: CanvasY) {
         self.0.rel_move_to(dx.0, dy.0)
     }
 
-    pub fn line_to(&self, x: CanvasX, y: CanvasY) {
+    pub fn line_to(&mut self, x: CanvasX, y: CanvasY) {
         self.0.line_to(x.0, y.0)
     }
-    pub fn rel_line_to(&self, dx: CanvasX, dy: CanvasY) {
+    pub fn rel_line_to(&mut self, dx: CanvasX, dy: CanvasY) {
         self.0.rel_line_to(dx.0, dy.0)
     }
 
-    /// Strike an arc around (xc,xy) with given radius from angle1 to angle2
+    /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (clockwise)
     ///
     /// Unlike the method on the cairo context,
     /// doesn't strike a direct line from the current point to the start of the arc!
     pub fn arc(
-        &self,
+        &mut self,
         xc: CanvasX,
         yc: CanvasY,
         radius: CanvasRadius,
@@ -52,48 +53,91 @@ impl<'t> Cairo<'t> {
         self.0.arc(xc.0, yc.0, radius.0, angle1.0, angle2.0)
     }
 
-    pub fn stroke(&self) {
+    /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (counterclockwise)
+    ///
+    /// Unlike the method on the cairo context,
+    /// doesn't strike a direct line from the current point to the start of the arc!
+    pub fn arc_negative(
+        &mut self,
+        xc: CanvasX,
+        yc: CanvasY,
+        radius: CanvasRadius,
+        angle1: Angle,
+        angle2: Angle,
+    ) {
+        let radius_abstand: CanvasAbstand = radius.into();
+        self.move_to(xc + radius_abstand * angle1.cos(), yc + radius_abstand * angle1.sin());
+        self.0.arc_negative(xc.0, yc.0, radius.0, angle1.0, angle2.0)
+    }
+
+    pub fn new_path(&mut self) {
+        self.0.new_path()
+    }
+
+    pub fn stroke(&mut self) {
         self.0.stroke()
     }
 
+    pub fn stroke_preserve(&mut self) {
+        self.0.stroke_preserve()
+    }
+
+    pub fn fill(&mut self) {
+        self.0.fill()
+    }
+
+    pub fn fill_preserve(&mut self) {
+        self.0.fill_preserve()
+    }
+
     /// perform a /save/ before and a /restore/ after action
-    pub fn with_save_restore<F: FnOnce(&Self)>(&self, action: F) {
+    pub fn with_save_restore<F: FnOnce(&mut Self)>(&mut self, action: F) {
         self.0.save().expect("Error in cairo::Context::save");
         action(self);
         self.0.restore().expect("Error in cairo::Context::restore");
     }
 
-    pub fn translate(&self, tx: CanvasX, ty: CanvasY) {
+    pub fn translate(&mut self, tx: CanvasX, ty: CanvasY) {
         self.0.translate(tx.0, ty.0)
     }
 
-    pub fn rotate(&self, angle: Angle) {
+    pub fn rotate(&mut self, angle: Angle) {
         self.0.rotate(angle.0)
     }
 
-    pub fn transform(&self, matrix: Matrix) {
+    pub fn transform(&mut self, matrix: Matrix) {
         self.0.transform(matrix)
     }
 
-    pub fn set_source_rgb(&self, red: f64, green: f64, blue: f64) {
+    pub fn set_source_rgb(&mut self, red: f64, green: f64, blue: f64) {
         self.0.set_source_rgb(red, green, blue)
     }
-    pub fn set_source_rgba(&self, red: f64, green: f64, blue: f64, alpha: f64) {
+    pub fn set_source_rgba(&mut self, red: f64, green: f64, blue: f64, alpha: f64) {
         self.0.set_source_rgba(red, green, blue, alpha)
     }
 }
 
-pub trait Zeichnen {
+pub trait Zeichnen
+where
+    Self::AnchorPoints: anchor::Lookup<Self::AnchorName>,
+{
     /// Maximale Breite
     fn width(&self) -> u64;
 
     /// Maximale Höhe
     fn height(&self) -> u64;
 
-    /// Darstellen im Kontext an Position (0,0).
+    /// Erzeuge den Pfad für Darstellung der Linien.
     ///
     /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
-    fn zeichne(&self, cairo: &Cairo);
+    /// /cairo.stroke()/ wird nachfolgend aufgerufen.
+    fn zeichne(&self, cairo: &mut Cairo);
+
+    /// Erzeuge einen Pfad zum Einfärben für Darstellung des Streckenabschnittes.
+    ///
+    /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
+    /// /cairo.fill()/ wird nachfolgend aufgerufen.
+    fn fuelle(&self, cairo: &mut Cairo);
 
     /// Identifier for AnchorPoints.
     /// An enum is advised, but others work as well.

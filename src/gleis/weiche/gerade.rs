@@ -53,7 +53,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         Kurve { zugtyp, radius, angle }.height()
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         let Weiche { zugtyp, length, radius, angle, direction } = *self;
         if direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
@@ -65,6 +65,11 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         }
         Gerade { zugtyp, length }.zeichne(cairo);
         kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        //TODO
+        println!("TODO")
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

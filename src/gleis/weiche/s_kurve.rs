@@ -111,7 +111,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         height_oben.max(&height_unten).pixel()
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         let SKurvenWeiche {
             zugtyp,
             length,
@@ -153,6 +153,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             angle_reverse.into(),
             kurve::Beschraenkung::Ende,
         );
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        //TODO
+        println!("TODO")
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

@@ -37,7 +37,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         beschraenkung::<Z>().pixel()
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         // Beschränkungen
         cairo.move_to(self.gleis_links(), self.beschraenkung_oben());
         cairo.line_to(self.gleis_links(), self.beschraenkung_unten());
@@ -48,6 +48,14 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         cairo.line_to(self.gleis_rechts(), self.gleis_oben());
         cairo.move_to(self.gleis_links(), self.gleis_unten());
         cairo.line_to(self.gleis_rechts(), self.gleis_unten())
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        cairo.move_to(self.gleis_links(), self.gleis_oben());
+        cairo.line_to(self.gleis_links(), self.gleis_unten());
+        cairo.line_to(self.gleis_rechts(), self.gleis_unten());
+        cairo.line_to(self.gleis_rechts(), self.gleis_oben());
+        cairo.line_to(self.gleis_links(), self.gleis_oben());
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

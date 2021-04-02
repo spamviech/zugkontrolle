@@ -226,12 +226,11 @@ impl<Z: Debug> GleiseInternal<Z> {
 }
 
 fn zeichne_alle_gleise<T, F>(
-    cairo: &Cairo,
+    cairo: &mut Cairo,
     has_other_id_at_point: F,
     map: &HashMap<GleisId<T>, Gleis<T>>,
 ) where
     T: Zeichnen,
-    T::AnchorPoints: Lookup<T::AnchorName>,
     F: Fn(GleisId<Any>, anchor::Position) -> bool,
 {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
@@ -240,8 +239,17 @@ fn zeichne_alle_gleise<T, F>(
             cairo.translate(position.x, position.y);
             // drehe Kontext um (0,0)
             cairo.rotate(position.winkel);
+            // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
+            cairo.with_save_restore(|cairo| {
+                cairo.new_path();
+                definition.fuelle(cairo);
+                // TODO Farbe abhängig vom Streckenabschnitt
+                cairo.set_source_rgb(1., 0., 0.);
+                cairo.fill();
+            });
             // zeichne Gleis
             cairo.with_save_restore(|cairo| {
+                cairo.new_path();
                 definition.zeichne(cairo);
                 cairo.stroke();
             });
@@ -252,6 +260,7 @@ fn zeichne_alle_gleise<T, F>(
                          position: anchor_position,
                          direction: anchor::Direction { dx, dy },
                      }| {
+                        cairo.new_path();
                         let (r, g, b) = if has_other_id_at_point(
                             gleis_id.as_any(),
                             position.transformation(anchor_position),
@@ -306,7 +315,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
             move |drawing_area: &DrawingArea, c: &cairo::Context| {
                 // TODO don't draw out of bound Gleise
                 let _allocation = drawing_area.get_allocation();
-                let cairo: &Cairo = &Cairo::new(c);
+                let cairo: &mut Cairo = &mut Cairo::new(c);
                 // Zeichne Gleise
                 let GleiseInternal {
                     geraden,

@@ -51,7 +51,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         height_gerade.max(height_kurven)
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
         let half_width: CanvasX = CanvasX(0.5 * self.width() as f64);
         let half_height: CanvasY = CanvasY(0.5 * self.height() as f64);
@@ -67,6 +67,11 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         cairo.translate(-half_width, -half_height);
         cairo.translate(start_width, start_height);
         kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        //TODO
+        println!("TODO")
     }
 
     fn anchor_points(&self) -> AnchorPoints {

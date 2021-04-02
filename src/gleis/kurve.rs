@@ -53,8 +53,13 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         beschraenkung::<Z>().max(&comparison).pixel()
     }
 
-    fn zeichne(&self, cairo: &Cairo) {
+    fn zeichne(&self, cairo: &mut Cairo) {
         zeichne::<Z>(cairo, self.radius, self.angle.into(), Beschraenkung::Alle)
+    }
+
+    fn fuelle(&self, cairo: &mut Cairo) {
+        //TODO
+        println!("TODO")
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -106,7 +111,7 @@ impl Beschraenkung {
 }
 
 pub(crate) fn zeichne<Z: Zugtyp>(
-    cairo: &Cairo,
+    cairo: &mut Cairo,
     radius: Radius,
     winkel: Angle,
     beschraenkungen: Beschraenkung,
