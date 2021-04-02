@@ -225,13 +225,14 @@ impl<Z: Debug> GleiseInternal<Z> {
     }
 }
 
-fn zeichne_alle_gleise<T, F: Fn(&GleisId<T>, &anchor::Position) -> bool>(
+fn zeichne_alle_gleise<T, F>(
     cairo: &Cairo,
     has_other_id_at_point: F,
     map: &HashMap<GleisId<T>, Gleis<T>>,
 ) where
     T: Zeichnen,
     T::AnchorPoints: Lookup<T::AnchorName>,
+    F: Fn(GleisId<Any>, anchor::Position) -> bool,
 {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         cairo.with_save_restore(|cairo| {
@@ -252,8 +253,8 @@ fn zeichne_alle_gleise<T, F: Fn(&GleisId<T>, &anchor::Position) -> bool>(
                          direction: anchor::Direction { dx, dy },
                      }| {
                         let (r, g, b) = if has_other_id_at_point(
-                            gleis_id,
-                            &position.transformation(anchor_position),
+                            gleis_id.as_any(),
+                            position.transformation(anchor_position),
                         ) {
                             (0., 1., 0.)
                         } else {
@@ -318,55 +319,15 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
                     anchor_points,
                     ..
                 } = &*gleise_clone.read();
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    geraden,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    kurven,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    kurven_weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    s_kurven_weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    dreiwege_weichen,
-                );
-                zeichne_alle_gleise(
-                    cairo,
-                    |gleis_id, position| {
-                        anchor_points.has_other_id_at_point(&gleis_id.as_any(), position)
-                    },
-                    kreuzungen,
-                );
+                let has_other_id_at_point =
+                    |gleis_id, position| anchor_points.has_other_id_at_point(&gleis_id, &position);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, geraden);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, kurven);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, weichen);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, kurven_weichen);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, s_kurven_weichen);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, dreiwege_weichen);
+                zeichne_alle_gleise(cairo, has_other_id_at_point, kreuzungen);
                 glib::signal::Inhibit(false)
             };
 
