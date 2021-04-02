@@ -47,11 +47,10 @@ impl<'t> Cairo<'t> {
         radius: CanvasRadius,
         angle1: Angle,
         angle2: Angle,
-        move_to: bool,
+        new_sub_path: bool,
     ) {
-        if move_to {
-            let radius_abstand: CanvasAbstand = radius.into();
-            self.move_to(xc + radius_abstand * angle1.cos(), yc + radius_abstand * angle1.sin());
+        if new_sub_path {
+            self.new_sub_path()
         }
         self.0.arc(xc.0, yc.0, radius.0, angle1.0, angle2.0)
     }
@@ -67,17 +66,20 @@ impl<'t> Cairo<'t> {
         radius: CanvasRadius,
         angle1: Angle,
         angle2: Angle,
-        move_to: bool,
+        new_sub_path: bool,
     ) {
-        if move_to {
-            let radius_abstand: CanvasAbstand = radius.into();
-            self.move_to(xc + radius_abstand * angle1.cos(), yc + radius_abstand * angle1.sin());
+        if new_sub_path {
+            self.new_sub_path()
         }
         self.0.arc_negative(xc.0, yc.0, radius.0, angle1.0, angle2.0)
     }
 
     pub fn new_path(&mut self) {
         self.0.new_path()
+    }
+
+    pub fn new_sub_path(&mut self) {
+        self.0.new_sub_path()
     }
 
     pub fn stroke(&mut self) {
