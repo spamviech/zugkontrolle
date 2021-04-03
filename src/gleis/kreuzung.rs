@@ -102,10 +102,10 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_y: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
         let spurweite: CanvasAbstand = Z::SPURWEITE.into();
-        let translated_oben_y: CanvasY = CanvasY(0.) + abstand::<Z>();
-        let translated_unten_y: CanvasY = translated_oben_y + spurweite;
-        let translated_links_x: CanvasX = CanvasX(0.);
-        let translated_rechts_x: CanvasX = width;
+        let translated_gerade_oben_y: CanvasY = CanvasY(0.) + abstand::<Z>();
+        let translated_gerade_unten_y: CanvasY = translated_gerade_oben_y + spurweite;
+        let translated_gerade_links_x: CanvasX = CanvasX(0.);
+        let translated_gerade_rechts_x: CanvasX = width;
         // approximation to avoid divide-by-zero error
         let inv_tan: f64 = if angle.cos() < 0.01 { 0. } else { 1. / angle.tan() };
         let inv_sin: f64 = if angle.sin() < 0.5 * spurweite / width.to_abstand() {
@@ -113,31 +113,43 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         } else {
             1. / angle.sin()
         };
-        let delta_x: CanvasAbstand = 0.5 * spurweite * (inv_sin - inv_tan);
+        let delta_x: CanvasAbstand = 0.5 * spurweite * (inv_sin + inv_tan);
         let delta_x_oben_unten: CanvasAbstand = spurweite * inv_tan;
-        let translated_unten_links_ueberschneiden_x: CanvasX =
-            translated_links_x + 0.5 * CanvasAbstand::from(width) - delta_x;
         let translated_oben_links_ueberschneiden_x: CanvasX =
-            translated_unten_links_ueberschneiden_x - delta_x_oben_unten;
-        let translated_oben_rechts_ueberschneiden_x: CanvasX =
-            translated_links_x + 0.5 * CanvasAbstand::from(width) + delta_x;
+            translated_gerade_links_x + 0.5 * CanvasAbstand::from(width) - delta_x;
+        let translated_unten_links_ueberschneiden_x: CanvasX =
+            translated_oben_links_ueberschneiden_x + delta_x_oben_unten;
         let translated_unten_rechts_ueberschneiden_x: CanvasX =
-            translated_oben_rechts_ueberschneiden_x + delta_x_oben_unten;
+            translated_gerade_links_x + 0.5 * CanvasAbstand::from(width) + delta_x;
+        let translated_oben_rechts_ueberschneiden_x: CanvasX =
+            translated_unten_rechts_ueberschneiden_x + delta_x_oben_unten;
+        let translated_gedreht_unten_rechts_x: CanvasX = translated_unten_links_ueberschneiden_x
+            + translated_unten_links_ueberschneiden_x.to_abstand() * angle.cos();
+        let translated_gedreht_unten_rechts_y: CanvasY = translated_gerade_unten_y
+            + translated_unten_links_ueberschneiden_x.to_abstand() * angle.sin();
+        let translated_gedreht_oben_rechts_x: CanvasX =
+            translated_gedreht_unten_rechts_x + spurweite * angle.sin();
+        let translated_gedreht_oben_rechts_y: CanvasY =
+            translated_gedreht_unten_rechts_y - spurweite * angle.cos();
         let zeichne_rand = |cairo: &mut Cairo| {
             cairo.translate(start_x, start_y);
-            // TODO
+            cairo.line_to(translated_unten_rechts_ueberschneiden_x, translated_gerade_unten_y);
+            cairo.line_to(translated_gedreht_oben_rechts_x, translated_gedreht_oben_rechts_y);
+            cairo.line_to(translated_gedreht_unten_rechts_x, translated_gedreht_unten_rechts_y);
             if self.variante == Variante::MitKurve {
                 kurve::fuelle::<Z>(cairo, self.radius, angle, kurve::Rand::Innen);
             } else {
-                // TODO
+                cairo.line_to(translated_oben_links_ueberschneiden_x, translated_gerade_unten_y);
+                cairo.line_to(translated_gerade_links_x, translated_gerade_unten_y);
             }
-            cairo.line_to(translated_links_x, translated_unten_y);
-            cairo.line_to(translated_links_x, translated_oben_y);
-            cairo.line_to(translated_oben_links_ueberschneiden_x, translated_oben_y);
+            cairo.line_to(translated_gerade_links_x, translated_gerade_oben_y);
+            cairo.line_to(translated_oben_links_ueberschneiden_x, translated_gerade_oben_y);
         };
         // horizontale Gerade + erste Kurve
         cairo.new_path();
         cairo.with_save_restore(zeichne_rand);
+        // TODO falsche Richtung :(
+        cairo.stroke();
         cairo.new_sub_path();
         // gedrehte Gerade + zweite Kurve
         cairo.translate(half_width, half_height);
