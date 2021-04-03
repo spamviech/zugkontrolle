@@ -6,7 +6,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 use cairo::Context;
 pub use cairo::Matrix;
 
-use super::angle::{Angle, Trigonometrie};
+use super::angle::Angle;
 use super::{Length, Radius, Spurweite};
 use crate::gleis::anchor;
 
@@ -80,6 +80,10 @@ impl<'t> Cairo<'t> {
 
     pub fn new_sub_path(&mut self) {
         self.0.new_sub_path()
+    }
+
+    pub fn close_path(&mut self) {
+        self.0.close_path()
     }
 
     pub fn stroke(&mut self) {
@@ -298,6 +302,13 @@ impl SubAssign<CanvasAbstand> for CanvasAbstand {
         self.0 -= rhs
     }
 }
+// get ratio
+impl Div<CanvasAbstand> for CanvasAbstand {
+    type Output = f64;
+    fn div(self, rhs: Self) -> Self::Output {
+        self.0 / rhs.0
+    }
+}
 // with CanvasX
 impl From<CanvasX> for CanvasAbstand {
     fn from(CanvasX(input): CanvasX) -> Self {
@@ -384,5 +395,13 @@ impl From<Length> for CanvasAbstand {
 impl From<Radius> for CanvasAbstand {
     fn from(Radius(radius): Radius) -> CanvasAbstand {
         CanvasAbstand::new_from_mm(radius)
+    }
+}
+pub trait ToAbstand {
+    fn to_abstand(self) -> CanvasAbstand;
+}
+impl<T: Into<CanvasAbstand>> ToAbstand for T {
+    fn to_abstand(self) -> CanvasAbstand {
+        self.into()
     }
 }

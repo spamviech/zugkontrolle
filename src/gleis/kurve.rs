@@ -58,7 +58,8 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn fuelle(&self, cairo: &mut Cairo) {
-        fuelle::<Z>(cairo, self.radius, self.angle.into())
+        fuelle::<Z>(cairo, self.radius, self.angle.into(), Rand::Alle);
+        cairo.close_path()
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -92,7 +93,6 @@ pub(crate) enum Beschraenkung {
     Ende,
     Alle,
 }
-
 impl Beschraenkung {
     fn anfangs_beschraenkung(&self) -> bool {
         match self {
@@ -145,7 +145,26 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     cairo.arc(gleis_links, bogen_zentrum_y, radius_innen, winkel_anfang, winkel_ende, true);
 }
 
-pub(crate) fn fuelle<Z: Zugtyp>(cairo: &mut Cairo, radius: Radius, winkel: Angle) {
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Rand {
+    Innen,
+    Alle,
+}
+impl Rand {
+    fn aussen(&self) -> bool {
+        match self {
+            Rand::Alle => true,
+            Rand::Innen => false,
+        }
+    }
+
+    fn innen(&self) -> bool {
+        match self {
+            Rand::Alle | Rand::Innen => true,
+        }
+    }
+}
+pub(crate) fn fuelle<Z: Zugtyp>(cairo: &mut Cairo, radius: Radius, winkel: Angle, rand: Rand) {
     let radius_abstand = CanvasAbstand::from(radius);
     let spurweite = CanvasAbstand::from(Z::SPURWEITE);
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
@@ -157,13 +176,17 @@ pub(crate) fn fuelle<Z: Zugtyp>(cairo: &mut Cairo, radius: Radius, winkel: Angle
     let radius_aussen: CanvasRadius = CanvasRadius(0.) + radius_aussen_abstand;
     let bogen_zentrum_y: CanvasY = CanvasY(0.) + abstand::<Z>() + radius_aussen.into();
     // path schreiben
-    cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_ende, true);
-    cairo.arc_negative(
-        gleis_links,
-        bogen_zentrum_y,
-        radius_innen,
-        winkel_ende,
-        winkel_anfang,
-        false,
-    );
+    if rand.aussen() {
+        cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_ende, false)
+    }
+    if rand.innen() {
+        cairo.arc_negative(
+            gleis_links,
+            bogen_zentrum_y,
+            radius_innen,
+            winkel_ende,
+            winkel_anfang,
+            false,
+        )
+    }
 }

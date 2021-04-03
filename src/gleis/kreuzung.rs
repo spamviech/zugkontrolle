@@ -75,29 +75,76 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_y: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
         let gerade = Gerade { zugtyp: self.zugtyp, length: self.length };
         let angle = self.angle();
-        // horizontale Gerade + erste Kurve
-        cairo.with_save_restore(|cairo| {
+        let zeichne_kontur = |cairo: &mut Cairo| {
             cairo.translate(start_x, start_y);
             gerade.zeichne(cairo);
             if self.variante == Variante::MitKurve {
                 kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Keine);
             }
-        });
+        };
+        // horizontale Gerade + erste Kurve
+        cairo.with_save_restore(zeichne_kontur);
         // gedrehte Gerade + zweite Kurve
         cairo.translate(half_width, half_height);
         cairo.rotate(angle);
         cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
         cairo.translate(-half_width, -half_height);
-        cairo.translate(start_x, start_y);
-        gerade.zeichne(cairo);
-        if self.variante == Variante::MitKurve {
-            kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Keine);
-        }
+        zeichne_kontur(cairo);
     }
 
     fn fuelle(&self, cairo: &mut Cairo) {
-        //TODO
-        println!("TODO")
+        // utility sizes
+        let width: CanvasX = CanvasX(self.width() as f64);
+        let half_width: CanvasX = CanvasX(0.5 * width.0);
+        let start_x: CanvasX = CanvasX(0.);
+        let height: CanvasY = CanvasY(self.height() as f64);
+        let half_height: CanvasY = CanvasY(0.5 * height.0);
+        let start_y: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
+        let angle = self.angle();
+        let spurweite: CanvasAbstand = Z::SPURWEITE.into();
+        let translated_oben_y: CanvasY = CanvasY(0.) + abstand::<Z>();
+        let translated_unten_y: CanvasY = translated_oben_y + spurweite;
+        let translated_links_x: CanvasX = CanvasX(0.);
+        let translated_rechts_x: CanvasX = width;
+        // approximation to avoid divide-by-zero error
+        let inv_tan: f64 = if angle.cos() < 0.01 { 0. } else { 1. / angle.tan() };
+        let inv_sin: f64 = if angle.sin() < 0.5 * spurweite / width.to_abstand() {
+            2. * width.to_abstand() / spurweite
+        } else {
+            1. / angle.sin()
+        };
+        let delta_x: CanvasAbstand = 0.5 * spurweite * (inv_sin - inv_tan);
+        let delta_x_oben_unten: CanvasAbstand = spurweite * inv_tan;
+        let translated_unten_links_ueberschneiden_x: CanvasX =
+            translated_links_x + 0.5 * CanvasAbstand::from(width) - delta_x;
+        let translated_oben_links_ueberschneiden_x: CanvasX =
+            translated_unten_links_ueberschneiden_x - delta_x_oben_unten;
+        let translated_oben_rechts_ueberschneiden_x: CanvasX =
+            translated_links_x + 0.5 * CanvasAbstand::from(width) + delta_x;
+        let translated_unten_rechts_ueberschneiden_x: CanvasX =
+            translated_oben_rechts_ueberschneiden_x + delta_x_oben_unten;
+        let zeichne_rand = |cairo: &mut Cairo| {
+            cairo.translate(start_x, start_y);
+            // TODO
+            if self.variante == Variante::MitKurve {
+                kurve::fuelle::<Z>(cairo, self.radius, angle, kurve::Rand::Innen);
+            } else {
+                // TODO
+            }
+            cairo.line_to(translated_links_x, translated_unten_y);
+            cairo.line_to(translated_links_x, translated_oben_y);
+            cairo.line_to(translated_oben_links_ueberschneiden_x, translated_oben_y);
+        };
+        // horizontale Gerade + erste Kurve
+        cairo.new_path();
+        cairo.with_save_restore(zeichne_rand);
+        cairo.new_sub_path();
+        // gedrehte Gerade + zweite Kurve
+        cairo.translate(half_width, half_height);
+        cairo.rotate(angle);
+        cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
+        cairo.translate(-half_width, -half_height);
+        zeichne_rand(cairo)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
