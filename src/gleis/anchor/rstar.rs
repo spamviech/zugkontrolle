@@ -1,6 +1,6 @@
 //! storing of anchors in a spacial container
 
-pub(crate) use rstar::{primitives::PointWithData, primitives::Rectangle, AABB};
+pub(crate) use rstar::primitives::PointWithData;
 
 use super::point;
 use crate::gleis::widget::{Any, GleisId};
@@ -9,27 +9,29 @@ use crate::gleis::widget::{Any, GleisId};
 #[derive(Debug)]
 pub(crate) struct RTree(rstar::RTree<PointWithData<GleisId<Any>, point::Position>>);
 impl RTree {
+    /// create a new RTree to store anchors with position data
     pub(crate) fn new() -> Self {
         RTree(rstar::RTree::new())
     }
-    pub(crate) fn insert(&mut self, t: PointWithData<GleisId<Any>, point::Position>) {
-        self.0.insert(t)
+    /// insert an anchor into the RTree
+    pub(crate) fn insert<T>(&mut self, gleis_id: &GleisId<T>, position: point::Position) {
+        self.0.insert(PointWithData::new(gleis_id.as_any(), position))
     }
-    pub(crate) fn remove(&mut self, t: &PointWithData<GleisId<Any>, point::Position>) {
-        self.0.remove(t);
+    /// remove one copy of the specified anchor from the RTree
+    pub(crate) fn remove<T>(&mut self, gleis_id: &GleisId<T>, &position: &point::Position) {
+        self.0.remove(&PointWithData::new(gleis_id.as_any(), position));
     }
-    // Vec return type since the original return type is private and /impl Iterator/ has 'static requirement
+    /// check if an anchor with a different id is present at the specified position
     pub(crate) fn has_other_id_at_point(
         &self,
         gleis_id: &GleisId<Any>,
-        position: &point::Position,
+        &position: &point::Position,
     ) -> bool {
         // TODO also store and check if direction matches?
         let other_ids_at_point = self
             .0
-            .locate_within_distance(position.clone(), 2.5)
-            .map(|PointWithData { data, .. }| data)
-            .filter(|&id| id != gleis_id)
+            .locate_within_distance(position, 2.5)
+            .filter(|&PointWithData { data, .. }| data != gleis_id)
             .count();
         other_ids_at_point > 0
     }

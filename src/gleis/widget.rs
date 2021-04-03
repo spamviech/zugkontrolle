@@ -378,9 +378,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         gleise.next_id += 1;
         // add to anchor_points
         anchor_points.foreach(|anchor| {
-            gleise
-                .anchor_points
-                .insert(anchor::rstar::PointWithData::new(GleisId::new(gleis_id), anchor.position))
+            gleise.anchor_points.insert::<T>(&GleisId::new(gleis_id), anchor.position)
         });
         // add to HashMap
         T::get_map_mut(&mut gleise).insert(GleisId::new(gleis_id), gleis);
@@ -439,16 +437,10 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         *position = position_neu;
         // delete old from anchor_points
         anchor_points.foreach(|anchor| {
-            gleise
-                .anchor_points
-                .remove(&anchor::rstar::PointWithData::new(gleis_id.as_any(), anchor.position));
+            gleise.anchor_points.remove(gleis_id, &anchor.position);
         });
         // add new to anchor_points
-        anchor_points_neu.foreach(|anchor| {
-            gleise
-                .anchor_points
-                .insert(anchor::rstar::PointWithData::new(gleis_id.as_any(), anchor.position))
-        });
+        anchor_points_neu.foreach(|anchor| gleise.anchor_points.insert(gleis_id, anchor.position));
         // trigger redraw
         gleise.drawing_area.queue_draw();
         // return value
@@ -497,10 +489,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
             definition.anchor_points().foreach(|anchor| {
-                gleise.anchor_points.remove(&anchor::rstar::PointWithData::new(
-                    gleis_id.as_any(),
-                    position.transformation(anchor.position),
-                ));
+                gleise.anchor_points.remove(gleis_id, &position.transformation(anchor.position));
             });
         }
         // make sure everyone knows about the deletion
