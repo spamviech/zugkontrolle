@@ -143,7 +143,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             cairo.line_to(translated_oben_links_ueberschneiden_x, translated_gerade_oben_y);
         };
         // horizontale Gerade + erste Kurve
-        cairo.new_path();
         cairo.with_save_restore(zeichne_rand);
         cairo.new_sub_path();
         // gedrehte Gerade + zweite Kurve

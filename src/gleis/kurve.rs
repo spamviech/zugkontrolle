@@ -148,12 +148,13 @@ pub(crate) fn zeichne<Z: Zugtyp>(
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Rand {
     Innen,
+    Aussen,
     Alle,
 }
 impl Rand {
     fn aussen(&self) -> bool {
         match self {
-            Rand::Alle => true,
+            Rand::Alle | Rand::Aussen => true,
             Rand::Innen => false,
         }
     }
@@ -161,6 +162,7 @@ impl Rand {
     fn innen(&self) -> bool {
         match self {
             Rand::Alle | Rand::Innen => true,
+            Rand::Aussen => false,
         }
     }
 }
