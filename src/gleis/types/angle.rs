@@ -8,6 +8,9 @@ pub trait Trigonometrie {
     fn cos(&self) -> f64;
     fn sin(&self) -> f64;
     fn tan(&self) -> f64;
+    fn acos(input: f64) -> Self;
+    fn asin(input: f64) -> Self;
+    fn atan(input: f64) -> Self;
 }
 
 /// Winkel \[Bogenmaß\]
@@ -91,6 +94,15 @@ impl Trigonometrie for Angle {
     fn tan(&self) -> f64 {
         self.0.tan()
     }
+    fn acos(input: f64) -> Self {
+        Angle(input.acos())
+    }
+    fn asin(input: f64) -> Self {
+        Angle(input.asin())
+    }
+    fn atan(input: f64) -> Self {
+        Angle(input.atan())
+    }
 }
 
 /// Winkel \[Gradmaß\]
@@ -172,5 +184,14 @@ impl Trigonometrie for AngleDegrees {
     }
     fn tan(&self) -> f64 {
         self.0.to_radians().tan()
+    }
+    fn acos(input: f64) -> Self {
+        AngleDegrees(input.acos().to_degrees())
+    }
+    fn asin(input: f64) -> Self {
+        AngleDegrees(input.asin().to_degrees())
+    }
+    fn atan(input: f64) -> Self {
+        AngleDegrees(input.atan().to_degrees())
     }
 }

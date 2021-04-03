@@ -68,7 +68,7 @@ impl Direction {
     // Winkel zwischen Richtungs-Vektor und x-Achse
     pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
         let len = (self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt();
-        let acos_winkel = Angle((self.dx.0 / len).acos());
+        let acos_winkel = Angle::acos(self.dx.0 / len);
         if self.dy < CanvasY(0.) {
             acos_winkel
         } else {
