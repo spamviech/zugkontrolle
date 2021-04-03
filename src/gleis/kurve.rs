@@ -73,10 +73,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             },
             ende: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + CanvasAbstand::from(self.radius) * self.angle.sin(),
+                    x: CanvasX(0.) + self.radius.to_abstand() * self.angle.sin(),
                     y: CanvasY(0.)
                         + (0.5 * beschraenkung::<Z>()
-                            + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())),
+                            + self.radius.to_abstand() * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {
                     dx: CanvasX(self.angle.cos()),
@@ -115,8 +115,8 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     winkel: Angle,
     beschraenkungen: Beschraenkung,
 ) {
-    let radius_abstand = CanvasAbstand::from(radius);
-    let spurweite = CanvasAbstand::from(Z::SPURWEITE);
+    let radius_abstand = radius.to_abstand();
+    let spurweite = Z::SPURWEITE.to_abstand();
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let winkel_ende: Angle = winkel_anfang + winkel;
     let gleis_links: CanvasX = CanvasX(0.);
@@ -124,8 +124,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     let gleis_links_unten: CanvasY = CanvasY(0.) + beschraenkung::<Z>();
     let radius_innen: CanvasRadius = CanvasRadius(0.) + radius_abstand - 0.5 * spurweite;
     let radius_aussen: CanvasRadius = CanvasRadius(0.) + radius_abstand + 0.5 * spurweite;
-    let radius_begrenzung_aussen: CanvasAbstand =
-        CanvasAbstand::from(radius_aussen) + abstand::<Z>();
+    let radius_begrenzung_aussen: CanvasAbstand = radius_aussen.to_abstand() + abstand::<Z>();
     let begrenzung_x0: CanvasX = CanvasX(0.) + radius_begrenzung_aussen * winkel.sin();
     let begrenzung_y0: CanvasY = CanvasY(0.) + radius_begrenzung_aussen * (1. - winkel.cos());
     let begrenzung_x1: CanvasX = begrenzung_x0 - beschraenkung::<Z>() * winkel.sin();
@@ -167,8 +166,8 @@ impl Rand {
     }
 }
 pub(crate) fn fuelle<Z: Zugtyp>(cairo: &mut Cairo, radius: Radius, winkel: Angle, rand: Rand) {
-    let radius_abstand = CanvasAbstand::from(radius);
-    let spurweite = CanvasAbstand::from(Z::SPURWEITE);
+    let radius_abstand = radius.to_abstand();
+    let spurweite = Z::SPURWEITE.to_abstand();
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let winkel_ende: Angle = winkel_anfang + winkel;
     let gleis_links: CanvasX = CanvasX(0.);

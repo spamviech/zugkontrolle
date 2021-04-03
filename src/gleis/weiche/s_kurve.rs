@@ -60,14 +60,14 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let radius_reverse_aussen = radius_begrenzung_aussen::<Z>(radius_reverse);
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
-        let width_oben1: CanvasAbstand = CanvasAbstand::from(radius_aussen) * factor;
-        let width_oben2: CanvasAbstand = CanvasAbstand::from(radius_aussen) * angle.sin()
-            + CanvasAbstand::from(radius_reverse_innen) * factor_reverse;
+        let width_oben1: CanvasAbstand = radius_aussen.to_abstand() * factor;
+        let width_oben2: CanvasAbstand = radius_aussen.to_abstand() * angle.sin()
+            + radius_reverse_innen.to_abstand() * factor_reverse;
         let width_oben: CanvasAbstand = width_oben1.max(&width_oben2);
         // untere Beschränkung
-        let width_unten1 = CanvasAbstand::from(radius_innen) * factor;
-        let width_unten2 = CanvasAbstand::from(radius_innen) * angle.sin()
-            + CanvasAbstand::from(radius_reverse_aussen) * factor_reverse;
+        let width_unten1 = radius_innen.to_abstand() * factor;
+        let width_unten2 = radius_innen.to_abstand() * angle.sin()
+            + radius_reverse_aussen.to_abstand() * factor_reverse;
         let width_unten = width_unten1.max(&width_unten2);
         width_gerade.max(width_oben.max(&width_unten).pixel())
     }
@@ -184,7 +184,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             },
             gerade: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + CanvasAbstand::from(self.length),
+                    x: CanvasX(0.) + self.length.to_abstand(),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
                 direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(multiplier * 0.) },
@@ -192,14 +192,14 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             kurve: anchor::Point {
                 position: anchor::Position {
                     x: CanvasX(0.)
-                        + CanvasAbstand::from(self.radius) * self.angle.sin()
-                        + CanvasAbstand::from(self.radius_reverse)
+                        + self.radius.to_abstand() * self.angle.sin()
+                        + self.radius_reverse.to_abstand()
                             * (self.angle.sin() - angle_difference.sin()),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
-                                + CanvasAbstand::from(self.radius) * (1. - self.angle.cos())
-                                + CanvasAbstand::from(self.radius_reverse)
+                                + self.radius.to_abstand() * (1. - self.angle.cos())
+                                + self.radius_reverse.to_abstand()
                                     * (angle_difference.cos() - self.angle.cos())),
                 },
                 direction: anchor::Direction {

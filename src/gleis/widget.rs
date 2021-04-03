@@ -36,10 +36,10 @@ impl Position {
 
     /// anchor::Direction nachdem das Objekt um den Winkel gedreht wird.
     pub fn rotation(&self, direction: anchor::Direction) -> anchor::Direction {
-        let dx = CanvasX(0.) + CanvasAbstand::from(direction.dx) * self.winkel.cos()
-            - CanvasAbstand::from(direction.dy) * self.winkel.sin();
-        let dy = CanvasY(0.) + CanvasAbstand::from(direction.dx) * self.winkel.sin()
-            - CanvasAbstand::from(direction.dy) * self.winkel.cos();
+        let dx = CanvasX(0.) + direction.dx.to_abstand() * self.winkel.cos()
+            - direction.dy.to_abstand() * self.winkel.sin();
+        let dy = CanvasY(0.) + direction.dx.to_abstand() * self.winkel.sin()
+            - direction.dy.to_abstand() * self.winkel.cos();
         anchor::Direction { dx, dy }
     }
 
@@ -58,12 +58,11 @@ impl Position {
         let winkel: Angle = (-anchor_point.direction).winkel_mit_x_achse()
             + target_anchor_point.direction.winkel_mit_x_achse();
         Position {
-            x: target_anchor_point.position.x
-                - CanvasAbstand::from(anchor_point.position.x) * winkel.cos()
-                + CanvasAbstand::from(anchor_point.position.y) * winkel.sin(),
+            x: target_anchor_point.position.x - anchor_point.position.x.to_abstand() * winkel.cos()
+                + anchor_point.position.y.to_abstand() * winkel.sin(),
             y: target_anchor_point.position.y
-                - CanvasAbstand::from(anchor_point.position.x) * winkel.sin()
-                - CanvasAbstand::from(anchor_point.position.y) * winkel.cos(),
+                - anchor_point.position.x.to_abstand() * winkel.sin()
+                - anchor_point.position.y.to_abstand() * winkel.cos(),
             winkel,
         }
     }
@@ -272,10 +271,7 @@ fn zeichne_alle_gleise<T, F>(
                         cairo.set_source_rgb(r, g, b);
                         let anchor::Position { x, y } = anchor_position;
                         cairo.move_to(x, y);
-                        cairo.line_to(
-                            x + 5. * CanvasAbstand::from(dx),
-                            y + 5. * CanvasAbstand::from(dy),
-                        );
+                        cairo.line_to(x + 5. * dx.to_abstand(), y + 5. * dy.to_abstand());
                         cairo.stroke();
                     },
                 )

@@ -54,7 +54,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn width(&self) -> u64 {
         let width_kurve =
             Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.width();
-        CanvasAbstand::from(self.length).pixel().max(width_kurve)
+        self.length.to_abstand().pixel().max(width_kurve)
     }
 
     fn height(&self) -> u64 {
@@ -115,11 +115,11 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let delta_x: CanvasAbstand = 0.5 * spurweite * (inv_sin + inv_tan);
         let delta_x_oben_unten: CanvasAbstand = spurweite * inv_tan;
         let translated_oben_links_ueberschneiden_x: CanvasX =
-            translated_gerade_links_x + 0.5 * CanvasAbstand::from(width) - delta_x;
+            translated_gerade_links_x + 0.5 * width.to_abstand() - delta_x;
         let translated_unten_links_ueberschneiden_x: CanvasX =
             translated_oben_links_ueberschneiden_x + delta_x_oben_unten;
         let translated_unten_rechts_ueberschneiden_x: CanvasX =
-            translated_gerade_links_x + 0.5 * CanvasAbstand::from(width) + delta_x;
+            translated_gerade_links_x + 0.5 * width.to_abstand() + delta_x;
         let translated_gedreht_unten_rechts_x: CanvasX = translated_unten_links_ueberschneiden_x
             + translated_unten_links_ueberschneiden_x.to_abstand() * angle.cos();
         let translated_gedreht_unten_rechts_y: CanvasY = translated_gerade_unten_y
@@ -156,9 +156,9 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let width: CanvasX = CanvasX(self.width() as f64);
         let anfang0_x: CanvasX = CanvasX(0.);
-        let ende0_x: CanvasX = anfang0_x + CanvasAbstand::from(self.length);
+        let ende0_x: CanvasX = anfang0_x + self.length.to_abstand();
         let half_height: CanvasY = CanvasY(0.5 * (self.height() as f64));
-        let radius_abstand: CanvasAbstand = CanvasAbstand::from(self.radius);
+        let radius_abstand: CanvasAbstand = self.radius.to_abstand();
         let angle = self.angle();
         let anfang1_x: CanvasX = CanvasX(0.) + radius_abstand * angle.sin();
         let anfang1_y: CanvasY = half_height + radius_abstand * (1. - angle.cos());

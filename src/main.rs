@@ -42,13 +42,12 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let x: CanvasX =
-            CanvasX(200.) - 0.5 * CanvasAbstand::from(CanvasX(definition.width() as f64));
+        let x: CanvasX = CanvasX(200.) - 0.5 * CanvasX(definition.width() as f64).to_abstand();
         let height: CanvasAbstand = CanvasY(definition.height() as f64).into();
         let res = self
             .gleise
             .add(Gleis { definition, position: Position { x, y: self.y, winkel: Angle::new(0.) } });
-        self.y += height + CanvasAbstand::from(CanvasY(25.));
+        self.y += height + CanvasY(25.).to_abstand();
         res
     }
 }

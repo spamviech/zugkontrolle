@@ -17,19 +17,19 @@ use std::ops::Div;
 // abgeleitete Größe unter der Umrechnung 1mm
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
 pub fn abstand<Z: Zugtyp>() -> CanvasAbstand {
-    CanvasAbstand::from(Z::SPURWEITE) / 3.
+    Z::SPURWEITE.to_abstand() / 3.
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
 pub fn beschraenkung<Z: Zugtyp>() -> CanvasAbstand {
-    CanvasAbstand::from(Z::SPURWEITE) + 2. * abstand::<Z>()
+    Z::SPURWEITE.to_abstand() + 2. * abstand::<Z>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
-    CanvasAbstand::from(radius) + 0.5 * CanvasAbstand::from(Z::SPURWEITE) + abstand::<Z>()
+    radius.to_abstand() + 0.5 * Z::SPURWEITE.to_abstand() + abstand::<Z>()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> CanvasAbstand {
-    CanvasAbstand::from(radius) - 0.5 * CanvasAbstand::from(Z::SPURWEITE) - abstand::<Z>()
+    radius.to_abstand() - 0.5 * Z::SPURWEITE.to_abstand() - abstand::<Z>()
 }
 
 /// Längenmaß \[mm\]
