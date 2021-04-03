@@ -105,7 +105,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let translated_gerade_oben_y: CanvasY = CanvasY(0.) + abstand::<Z>();
         let translated_gerade_unten_y: CanvasY = translated_gerade_oben_y + spurweite;
         let translated_gerade_links_x: CanvasX = CanvasX(0.);
-        let translated_gerade_rechts_x: CanvasX = width;
         // approximation to avoid divide-by-zero error
         let inv_tan: f64 = if angle.cos() < 0.01 { 0. } else { 1. / angle.tan() };
         let inv_sin: f64 = if angle.sin() < 0.5 * spurweite / width.to_abstand() {
@@ -121,8 +120,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             translated_oben_links_ueberschneiden_x + delta_x_oben_unten;
         let translated_unten_rechts_ueberschneiden_x: CanvasX =
             translated_gerade_links_x + 0.5 * CanvasAbstand::from(width) + delta_x;
-        let translated_oben_rechts_ueberschneiden_x: CanvasX =
-            translated_unten_rechts_ueberschneiden_x + delta_x_oben_unten;
         let translated_gedreht_unten_rechts_x: CanvasX = translated_unten_links_ueberschneiden_x
             + translated_unten_links_ueberschneiden_x.to_abstand() * angle.cos();
         let translated_gedreht_unten_rechts_y: CanvasY = translated_gerade_unten_y
@@ -148,8 +145,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         // horizontale Gerade + erste Kurve
         cairo.new_path();
         cairo.with_save_restore(zeichne_rand);
-        // TODO falsche Richtung :(
-        cairo.stroke();
         cairo.new_sub_path();
         // gedrehte Gerade + zweite Kurve
         cairo.translate(half_width, half_height);
