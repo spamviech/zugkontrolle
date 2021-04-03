@@ -1,6 +1,6 @@
 //! storing of anchors in a spacial container
 
-pub(crate) use rstar::primitives::PointWithData;
+pub(crate) use rstar::{primitives::PointWithData, primitives::Rectangle, AABB};
 
 use super::point;
 use crate::gleis::widget::{Any, GleisId};
@@ -24,11 +24,10 @@ impl RTree {
         gleis_id: &GleisId<Any>,
         position: &point::Position,
     ) -> bool {
-        // TODO use other data structure to also find "close" points,
-        // not only completely identical ones (double precision is a thing!)
+        // TODO also store and check if direction matches?
         let other_ids_at_point = self
             .0
-            .locate_all_at_point(position)
+            .locate_within_distance(position.clone(), 2.5)
             .map(|PointWithData { data, .. }| data)
             .filter(|&id| id != gleis_id)
             .count();
