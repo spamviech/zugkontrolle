@@ -50,16 +50,16 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     fn zeichne(&self, cairo: &mut Cairo) {
         if self.direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
-            let x = CanvasX(0.);
-            let half_height = CanvasY(0.5 * (self.height() as f64));
+            let x = canvas::X(0.);
+            let half_height = canvas::Y(0.5 * (self.height() as f64));
             cairo.translate(x, half_height);
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
         }
-        let gleis_oben: CanvasY = CanvasY(0.) + abstand::<Z>();
-        let gleis_unten: CanvasY = CanvasY(0.) + beschraenkung::<Z>() - abstand::<Z>();
-        let kurve_innen_anfang: CanvasX = CanvasX(0.);
-        let kurve_aussen_anfang: CanvasX = kurve_innen_anfang + self.length.to_abstand();
+        let gleis_oben: canvas::Y = canvas::Y(0.) + abstand::<Z>();
+        let gleis_unten: canvas::Y = canvas::Y(0.) + beschraenkung::<Z>() - abstand::<Z>();
+        let kurve_innen_anfang: canvas::X = canvas::X(0.);
+        let kurve_aussen_anfang: canvas::X = kurve_innen_anfang + self.length.to_abstand();
         let angle: Angle = self.angle.into();
         // innere Kurve
         kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Alle);
@@ -69,7 +69,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         cairo.move_to(kurve_innen_anfang, gleis_unten);
         cairo.line_to(kurve_aussen_anfang, gleis_unten);
         // äußere Kurve
-        cairo.translate(kurve_aussen_anfang, CanvasY(0.));
+        cairo.translate(kurve_aussen_anfang, canvas::Y(0.));
         kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Ende);
     }
 
@@ -79,34 +79,34 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let start_height: CanvasY;
+        let start_height: canvas::Y;
         let multiplier: f64;
         match self.direction {
             Richtung::Rechts => {
-                start_height = CanvasY(0.);
+                start_height = canvas::Y(0.);
                 multiplier = 1.;
             }
             Richtung::Links => {
-                start_height = CanvasY(self.height() as f64);
+                start_height = canvas::Y(self.height() as f64);
                 multiplier = -1.;
             }
         };
         let halbe_beschraenkung: CanvasAbstand = 0.5 * beschraenkung::<Z>();
         let radius_abstand: CanvasAbstand = self.radius.to_abstand();
         let kurve_anchor_direction: anchor::Direction = anchor::Direction {
-            dx: CanvasX(self.angle.cos()),
-            dy: CanvasY(multiplier * self.angle.sin()),
+            dx: canvas::X(self.angle.cos()),
+            dy: canvas::Y(multiplier * self.angle.sin()),
         };
-        let kurve_anchor_x: CanvasX = CanvasX(0.) + radius_abstand * self.angle.sin();
-        let kurve_anchor_y: CanvasY = start_height
+        let kurve_anchor_x: canvas::X = canvas::X(0.) + radius_abstand * self.angle.sin();
+        let kurve_anchor_y: canvas::Y = start_height
             + multiplier * (halbe_beschraenkung + radius_abstand * (1. - self.angle.cos()));
         AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.),
+                    x: canvas::X(0.),
                     y: start_height + multiplier * halbe_beschraenkung,
                 },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(multiplier * 0.) },
+                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
             innen: anchor::Point {
                 position: anchor::Position { x: kurve_anchor_x, y: kurve_anchor_y },

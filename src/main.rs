@@ -28,11 +28,11 @@ use zugkontrolle::zugtyp::{Lego, Maerklin};
 
 struct AppendGleise<'t, Z> {
     gleise: &'t mut Gleise<Z>,
-    y: CanvasY,
+    y: canvas::Y,
 }
 impl<'t, Z> AppendGleise<'t, Z> {
     fn new(gleise: &'t mut Gleise<Z>) -> AppendGleise<'t, Z> {
-        AppendGleise { gleise, y: CanvasY(5.) }
+        AppendGleise { gleise, y: canvas::Y(5.) }
     }
 }
 
@@ -42,12 +42,13 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let x: CanvasX = CanvasX(200.) - 0.5 * CanvasX(definition.width() as f64).to_abstand();
-        let height: CanvasAbstand = CanvasY(definition.height() as f64).into();
+        let x: canvas::X =
+            canvas::X(200.) - 0.5 * canvas::X(definition.width() as f64).to_abstand();
+        let height: CanvasAbstand = canvas::Y(definition.height() as f64).into();
         let res = self
             .gleise
             .add(Gleis { definition, position: Position { x, y: self.y, winkel: Angle::new(0.) } });
-        self.y += height + CanvasY(25.).to_abstand();
+        self.y += height + canvas::Y(25.).to_abstand();
         res
     }
 }
@@ -77,7 +78,7 @@ fn main() {
             .propagate_natural_height(true)
             .build();
         let mut gleise_maerklin: Gleise<Maerklin> =
-            Gleise::new_with_size(CanvasX(400.), CanvasY(800.));
+            Gleise::new_with_size(canvas::X(400.), canvas::Y(800.));
         #[cfg(feature = "gtk-rs")]
         {
             gleise_maerklin.with_drawing_area(|drawing_area| scrolled_window1.add(drawing_area));
@@ -94,7 +95,7 @@ fn main() {
             .propagate_natural_width(true)
             .propagate_natural_height(true)
             .build();
-        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(CanvasX(500.), CanvasY(800.));
+        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(canvas::X(500.), canvas::Y(800.));
         #[cfg(feature = "gtk-rs")]
         {
             gleise_lego.with_drawing_area(|drawing_area| scrolled_window2.add(drawing_area));
@@ -133,8 +134,8 @@ fn main() {
             gleise_lego.relocate(
                 gleis_id,
                 Position {
-                    x: CanvasX(250.),
-                    y: CanvasY(10.),
+                    x: canvas::X(250.),
+                    y: canvas::Y(10.),
                     winkel: AngleDegrees::new(90.).into(),
                 },
             );

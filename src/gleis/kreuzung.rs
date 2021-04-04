@@ -51,60 +51,59 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn width(&self) -> u64 {
-        let width_kurve =
-            Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.width();
-        self.length.to_abstand().pixel().max(width_kurve)
+    fn size(&self) -> canvas::Size {
+        let size_kurve =
+            Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.size();
+        let height_beschraenkung = beschraenkung::<Z>();
+        let height_kurven = 2 * size_kurve.height.to_abstand() - height_beschraenkung;
+        canvas::Size::new(
+            canvas::X(0.) + self.length.to_abstand().max(&size_kurve.width.to_abstand()),
+            canvas::Y(0.) + height_beschraenkung.max(height_kurven),
+        )
     }
 
-    fn height(&self) -> u64 {
-        let height_beschraenkung = beschraenkung::<Z>().pixel();
-        let height_kurve =
-            Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.height();
-        let height_kurven = 2 * height_kurve - height_beschraenkung;
-        height_beschraenkung.max(height_kurven)
-    }
-
-    fn zeichne(&self, cairo: &mut Cairo) {
+    fn zeichne(&self, path_builder: &mut canvas::PathBuilder) {
         // utility sizes
-        let width: CanvasX = CanvasX(self.width() as f64);
-        let half_width: CanvasX = CanvasX(0.5 * width.0);
-        let start_x: CanvasX = CanvasX(0.);
-        let height: CanvasY = CanvasY(self.height() as f64);
-        let half_height: CanvasY = CanvasY(0.5 * height.0);
-        let start_y: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
+        let size: canvas::Size = self.size();
+        let width: canvas::X = size.width;
+        let half_width: canvas::X = canvas::X(0.5 * width.0);
+        let start_x: canvas::X = canvas::X(0.);
+        let height: canvas::Y = size.height;
+        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let gerade = Gerade { zugtyp: self.zugtyp, length: self.length };
         let angle = self.angle();
-        let zeichne_kontur = |cairo: &mut Cairo| {
-            cairo.translate(start_x, start_y);
-            gerade.zeichne(cairo);
+        let zeichne_kontur = |path_builder: &mut canvas::PathBuilder| {
+            path_builder.translate(start_x, start_y);
+            gerade.zeichne(path_builder);
             if self.variante == Variante::MitKurve {
-                kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Keine);
+                kurve::zeichne::<Z>(path_builder, self.radius, angle, kurve::Beschraenkung::Keine);
             }
         };
         // horizontale Gerade + erste Kurve
-        cairo.with_save_restore(zeichne_kontur);
+        path_builder.with_save(zeichne_kontur);
         // gedrehte Gerade + zweite Kurve
-        cairo.translate(half_width, half_height);
-        cairo.rotate(angle);
-        cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-        cairo.translate(-half_width, -half_height);
-        zeichne_kontur(cairo);
+        path_builder.translate(half_width, half_height);
+        path_builder.rotate(angle);
+        path_builder.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
+        path_builder.translate(-half_width, -half_height);
+        zeichne_kontur(path_builder);
     }
 
+    /*
     fn fuelle(&self, cairo: &mut Cairo) {
         // utility sizes
-        let width: CanvasX = CanvasX(self.width() as f64);
-        let half_width: CanvasX = CanvasX(0.5 * width.0);
-        let start_x: CanvasX = CanvasX(0.);
-        let height: CanvasY = CanvasY(self.height() as f64);
-        let half_height: CanvasY = CanvasY(0.5 * height.0);
-        let start_y: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
+        let width: canvas::X = canvas::X(self.width() as f64);
+        let half_width: canvas::X = canvas::X(0.5 * width.0);
+        let start_x: canvas::X = canvas::X(0.);
+        let height: canvas::Y = canvas::Y(self.height() as f64);
+        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
         let spurweite: CanvasAbstand = Z::SPURWEITE.into();
-        let translated_gerade_oben_y: CanvasY = CanvasY(0.) + abstand::<Z>();
-        let translated_gerade_unten_y: CanvasY = translated_gerade_oben_y + spurweite;
-        let translated_gerade_links_x: CanvasX = CanvasX(0.);
+        let translated_gerade_oben_y: canvas::Y = canvas::Y(0.) + abstand::<Z>();
+        let translated_gerade_unten_y: canvas::Y = translated_gerade_oben_y + spurweite;
+        let translated_gerade_links_x: canvas::X = canvas::X(0.);
         // approximation to avoid divide-by-zero error
         let inv_tan: f64 = if angle.cos() < 0.01 { 0. } else { 1. / angle.tan() };
         let inv_sin: f64 = if angle.sin() < 0.5 * spurweite / width.to_abstand() {
@@ -114,19 +113,19 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         };
         let delta_x: CanvasAbstand = 0.5 * spurweite * (inv_sin + inv_tan);
         let delta_x_oben_unten: CanvasAbstand = spurweite * inv_tan;
-        let translated_oben_links_ueberschneiden_x: CanvasX =
+        let translated_oben_links_ueberschneiden_x: canvas::X =
             translated_gerade_links_x + 0.5 * width.to_abstand() - delta_x;
-        let translated_unten_links_ueberschneiden_x: CanvasX =
+        let translated_unten_links_ueberschneiden_x: canvas::X =
             translated_oben_links_ueberschneiden_x + delta_x_oben_unten;
-        let translated_unten_rechts_ueberschneiden_x: CanvasX =
+        let translated_unten_rechts_ueberschneiden_x: canvas::X =
             translated_gerade_links_x + 0.5 * width.to_abstand() + delta_x;
-        let translated_gedreht_unten_rechts_x: CanvasX = translated_unten_links_ueberschneiden_x
+        let translated_gedreht_unten_rechts_x: canvas::X = translated_unten_links_ueberschneiden_x
             + translated_unten_links_ueberschneiden_x.to_abstand() * angle.cos();
-        let translated_gedreht_unten_rechts_y: CanvasY = translated_gerade_unten_y
+        let translated_gedreht_unten_rechts_y: canvas::Y = translated_gerade_unten_y
             + translated_unten_links_ueberschneiden_x.to_abstand() * angle.sin();
-        let translated_gedreht_oben_rechts_x: CanvasX =
+        let translated_gedreht_oben_rechts_x: canvas::X =
             translated_gedreht_unten_rechts_x + spurweite * angle.sin();
-        let translated_gedreht_oben_rechts_y: CanvasY =
+        let translated_gedreht_oben_rechts_y: canvas::Y =
             translated_gedreht_unten_rechts_y - spurweite * angle.cos();
         let zeichne_rand = |cairo: &mut Cairo| {
             cairo.translate(start_x, start_y);
@@ -152,36 +151,40 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         cairo.translate(-half_width, -half_height);
         zeichne_rand(cairo)
     }
+    */
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let width: CanvasX = CanvasX(self.width() as f64);
-        let anfang0_x: CanvasX = CanvasX(0.);
-        let ende0_x: CanvasX = anfang0_x + self.length.to_abstand();
-        let half_height: CanvasY = CanvasY(0.5 * (self.height() as f64));
+        let width: canvas::X = canvas::X(self.width() as f64);
+        let anfang0_x: canvas::X = canvas::X(0.);
+        let ende0_x: canvas::X = anfang0_x + self.length.to_abstand();
+        let half_height: canvas::Y = canvas::Y(0.5 * (self.height() as f64));
         let radius_abstand: CanvasAbstand = self.radius.to_abstand();
         let angle = self.angle();
-        let anfang1_x: CanvasX = CanvasX(0.) + radius_abstand * angle.sin();
-        let anfang1_y: CanvasY = half_height + radius_abstand * (1. - angle.cos());
-        let ende1_x: CanvasX = width - radius_abstand * angle.sin();
-        let ende1_y: CanvasY = half_height - radius_abstand * (1. - angle.cos());
+        let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand * angle.sin();
+        let anfang1_y: canvas::Y = half_height + radius_abstand * (1. - angle.cos());
+        let ende1_x: canvas::X = width - radius_abstand * angle.sin();
+        let ende1_y: canvas::Y = half_height - radius_abstand * (1. - angle.cos());
         AnchorPoints {
             anfang_0: anchor::Point {
                 position: anchor::Position { x: anfang0_x, y: half_height },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
+                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
             ende_0: anchor::Point {
                 position: anchor::Position { x: ende0_x, y: half_height },
-                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
+                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(0.) },
             },
             anfang_1: anchor::Point {
                 position: anchor::Position { x: anfang1_x, y: anfang1_y },
-                direction: anchor::Direction { dx: CanvasX(angle.cos()), dy: CanvasY(angle.sin()) },
+                direction: anchor::Direction {
+                    dx: canvas::X(angle.cos()),
+                    dy: canvas::Y(angle.sin()),
+                },
             },
             ende_1: anchor::Point {
                 position: anchor::Position { x: ende1_x, y: ende1_y },
                 direction: anchor::Direction {
-                    dx: CanvasX(-angle.cos()),
-                    dy: CanvasY(-angle.sin()),
+                    dx: canvas::X(-angle.cos()),
+                    dy: canvas::Y(-angle.sin()),
                 },
             },
         }

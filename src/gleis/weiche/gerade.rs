@@ -58,8 +58,8 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         let Weiche { zugtyp, length, radius, angle, direction } = *self;
         if direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
-            let x = CanvasX(0.);
-            let half_height = CanvasY(0.5 * (self.height() as f64));
+            let x = canvas::X(0.);
+            let half_height = canvas::Y(0.5 * (self.height() as f64));
             cairo.translate(x, half_height);
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
@@ -72,8 +72,8 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         let Weiche { zugtyp: _, length, radius, angle, direction } = *self;
         if direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
-            let x = CanvasX(0.);
-            let half_height = CanvasY(0.5 * (self.height() as f64));
+            let x = canvas::X(0.);
+            let half_height = canvas::Y(0.5 * (self.height() as f64));
             cairo.translate(x, half_height);
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
@@ -84,16 +84,16 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
         let winkel_ende: Angle = winkel_anfang + angle;
         let radius_innen_abstand = radius_abstand - 0.5 * spurweite;
-        let radius_innen: CanvasRadius = CanvasRadius(0.) + radius_innen_abstand;
+        let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_innen_abstand;
         let radius_aussen_abstand = radius_abstand + 0.5 * spurweite;
-        let radius_aussen: CanvasRadius = CanvasRadius(0.) + radius_aussen_abstand;
-        let bogen_zentrum_y: CanvasY = CanvasY(0.) + abstand::<Z>() + radius_aussen.into();
-        let gleis_links: CanvasX = CanvasX(0.);
-        let gerade_rechts: CanvasX = gleis_links + length.to_abstand();
-        let gerade_oben: CanvasY = CanvasY(0.) + abstand::<Z>();
-        let gerade_unten: CanvasY = gerade_oben + spurweite;
+        let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
+        let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen.into();
+        let gleis_links: canvas::X = canvas::X(0.);
+        let gerade_rechts: canvas::X = gleis_links + length.to_abstand();
+        let gerade_oben: canvas::Y = canvas::Y(0.) + abstand::<Z>();
+        let gerade_unten: canvas::Y = gerade_oben + spurweite;
         let winkel_ueberschneiden: Angle = Angle::acos(1. - spurweite / radius_abstand);
-        let gerade_kurve_ueberschneiden: CanvasX =
+        let gerade_kurve_ueberschneiden: canvas::X =
             gleis_links + radius_abstand * winkel_ueberschneiden.sin();
         // zeichne Gleis
         cairo.arc_negative(
@@ -120,44 +120,44 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let start_height: CanvasY;
+        let start_height: canvas::Y;
         let multiplier: f64;
         match self.direction {
             Richtung::Rechts => {
-                start_height = CanvasY(0.);
+                start_height = canvas::Y(0.);
                 multiplier = 1.;
             }
             Richtung::Links => {
-                start_height = CanvasY(self.height() as f64);
+                start_height = canvas::Y(self.height() as f64);
                 multiplier = -1.;
             }
         };
         AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.),
+                    x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(multiplier * 0.) },
+                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
             gerade: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + self.length.to_abstand(),
+                    x: canvas::X(0.) + self.length.to_abstand(),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(multiplier * 0.) },
+                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
             },
             kurve: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + self.angle.sin() * self.radius.to_abstand(),
+                    x: canvas::X(0.) + self.angle.sin() * self.radius.to_abstand(),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
                                 + self.radius.to_abstand() * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {
-                    dx: CanvasX(self.angle.cos()),
-                    dy: CanvasY(multiplier * self.angle.sin()),
+                    dx: canvas::X(self.angle.cos()),
+                    dy: canvas::Y(multiplier * self.angle.sin()),
                 },
             },
         }

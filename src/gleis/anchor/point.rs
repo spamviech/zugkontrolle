@@ -16,8 +16,8 @@ pub struct Point {
 /// Anschluss-Position wenn startend bei (0,0) auf dem Canvas gezeichnet wird.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Position {
-    pub x: CanvasX,
-    pub y: CanvasY,
+    pub x: canvas::X,
+    pub y: canvas::Y,
 }
 impl Neg for Position {
     type Output = Self;
@@ -32,7 +32,7 @@ impl rstar::Point for Position {
     const DIMENSIONS: usize = 2;
 
     fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self {
-        Position { x: CanvasX(generator(0)), y: CanvasY(generator(1)) }
+        Position { x: canvas::X(generator(0)), y: canvas::Y(generator(1)) }
     }
 
     fn nth(&self, index: usize) -> Self::Scalar {
@@ -55,8 +55,8 @@ impl rstar::Point for Position {
 /// Anschluss-Richtung (ausgehend)
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Direction {
-    pub dx: CanvasX,
-    pub dy: CanvasY,
+    pub dx: canvas::X,
+    pub dy: canvas::Y,
 }
 impl Neg for Direction {
     type Output = Self;
@@ -69,7 +69,7 @@ impl Direction {
     pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
         let len = (self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt();
         let acos_winkel = Angle::acos(self.dx.0 / len);
-        if self.dy < CanvasY(0.) {
+        if self.dy < canvas::Y(0.) {
             acos_winkel
         } else {
             -acos_winkel

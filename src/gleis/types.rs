@@ -10,11 +10,11 @@ pub mod angle;
 pub mod canvas;
 pub use crate::zugtyp::{Spurweite, Zugtyp};
 pub use angle::*;
+pub use canvas::ToAbstand;
 
 use std::ops::Div;
 
 use super::anchor;
-use canvas::ToAbstand;
 
 // abgeleitete Größe unter der Umrechnung 1mm
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
@@ -84,7 +84,7 @@ where
     fn size(&self) -> canvas::Size;
 
     /// Erzeuge den Pfad für Darstellung der Linien.
-    fn zeichne(&self) -> canvas::Path;
+    fn zeichne(&self, path_builder: &mut canvas::PathBuilder);
 
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.

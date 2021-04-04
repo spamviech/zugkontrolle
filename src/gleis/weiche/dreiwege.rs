@@ -53,10 +53,10 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
 
     fn zeichne(&self, cairo: &mut Cairo) {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
-        let half_width: CanvasX = CanvasX(0.5 * self.width() as f64);
-        let half_height: CanvasY = CanvasY(0.5 * self.height() as f64);
-        let start_width: CanvasX = CanvasX(0.);
-        let start_height: CanvasY = half_height - 0.5 * beschraenkung::<Z>();
+        let half_width: canvas::X = canvas::X(0.5 * self.width() as f64);
+        let half_height: canvas::Y = canvas::Y(0.5 * self.height() as f64);
+        let start_width: canvas::X = canvas::X(0.);
+        let start_height: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         // Weiche mit Abzweigung Rechts
         cairo.translate(start_width, start_height);
         Weiche { zugtyp, length, radius, angle, direction: Richtung::Rechts }.zeichne(cairo);
@@ -75,19 +75,19 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     }
 
     fn anchor_points(&self) -> AnchorPoints {
-        let height: CanvasY = CanvasY(self.height() as f64);
-        let half_height: CanvasY = CanvasY(0.) + 0.5 * height.to_abstand();
+        let height: canvas::Y = canvas::Y(self.height() as f64);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
         let length: CanvasAbstand = self.length.into();
         let radius: CanvasAbstand = self.radius.into();
-        let anfang_x: CanvasX = CanvasX(0.);
+        let anfang_x: canvas::X = canvas::X(0.);
         AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position { x: anfang_x, y: half_height },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(0.) },
+                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
             gerade: anchor::Point {
                 position: anchor::Position { x: anfang_x + length, y: half_height },
-                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(0.) },
+                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(0.) },
             },
             links: anchor::Point {
                 position: anchor::Position {
@@ -95,8 +95,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
                     y: half_height + radius * (1. - self.angle.cos()),
                 },
                 direction: anchor::Direction {
-                    dx: CanvasX(self.angle.cos()),
-                    dy: CanvasY(self.angle.sin()),
+                    dx: canvas::X(self.angle.cos()),
+                    dy: canvas::Y(self.angle.sin()),
                 },
             },
             rechts: anchor::Point {
@@ -105,8 +105,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
                     y: half_height - radius * (1. - self.angle.cos()),
                 },
                 direction: anchor::Direction {
-                    dx: CanvasX(self.angle.cos()),
-                    dy: CanvasY(-self.angle.sin()),
+                    dx: canvas::X(self.angle.cos()),
+                    dy: canvas::Y(-self.angle.sin()),
                 },
             },
         }

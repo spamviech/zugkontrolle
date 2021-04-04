@@ -240,7 +240,10 @@ fn zeichne_alle_gleise<T, F>(
             frame.translate(canvas::Vector { dx: position.x, dy: position.y });
             // drehe Kontext um (0,0)
             frame.rotate(position.winkel);
-            let path = definition.zeichne();
+            // erzeuge Pfad
+            let path_builder = canvas::PathBuilder::new();
+            definition.zeichne(&mut path_builder);
+            let path = path_builder.build();
             // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
             frame.with_save(|frame| {
                 // TODO Farbe abhängig vom Streckenabschnitt

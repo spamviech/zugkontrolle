@@ -186,7 +186,7 @@ impl Add<Y> for Abstand {
         Y(self.0 + rhs)
     }
 }
-// with CanvasRadius
+// with canvas::Radius
 impl From<Radius> for Abstand {
     fn from(Radius(input): Radius) -> Self {
         Abstand(input)
@@ -258,8 +258,8 @@ impl<T: Into<Abstand>> ToAbstand for T {}
 /// Coordinate type safe variant of /iced::Point/
 #[derive(Debug, PartialEq)]
 pub struct Point {
-    x: X,
-    y: Y,
+    pub x: X,
+    pub y: Y,
 }
 impl Point {
     pub fn new(x: X, y: Y) -> Self {
@@ -280,8 +280,8 @@ impl From<anchor::Position> for Point {
 /// Coordinate type safe variant of /iced::Size/
 #[derive(Debug, PartialEq)]
 pub struct Size {
-    width: X,
-    height: Y,
+    pub width: X,
+    pub height: Y,
 }
 impl Size {
     pub fn new(width: X, height: Y) -> Self {
@@ -297,8 +297,8 @@ impl From<Size> for iced::Size<f32> {
 /// Coordinate type safe variant of /iced::Vector/
 #[derive(Debug, PartialEq)]
 pub struct Vector {
-    dx: X,
-    dy: Y,
+    pub dx: X,
+    pub dy: Y,
 }
 impl Vector {
     pub fn new(dx: X, dy: Y) -> Self {
@@ -488,17 +488,17 @@ impl<'t> Cairo<'t> {
         Cairo(c)
     }
 
-    pub fn move_to(&mut self, x: CanvasX, y: CanvasY) {
+    pub fn move_to(&mut self, x: canvas::X, y: canvas::Y) {
         self.0.move_to(x.0, y.0)
     }
-    pub fn rel_move_to(&mut self, dx: CanvasX, dy: CanvasY) {
+    pub fn rel_move_to(&mut self, dx: canvas::X, dy: canvas::Y) {
         self.0.rel_move_to(dx.0, dy.0)
     }
 
-    pub fn line_to(&mut self, x: CanvasX, y: CanvasY) {
+    pub fn line_to(&mut self, x: canvas::X, y: canvas::Y) {
         self.0.line_to(x.0, y.0)
     }
-    pub fn rel_line_to(&mut self, dx: CanvasX, dy: CanvasY) {
+    pub fn rel_line_to(&mut self, dx: canvas::X, dy: canvas::Y) {
         self.0.rel_line_to(dx.0, dy.0)
     }
 
@@ -508,9 +508,9 @@ impl<'t> Cairo<'t> {
     /// doesn't strike a direct line from the current point to the start of the arc.
     pub fn arc(
         &mut self,
-        xc: CanvasX,
-        yc: CanvasY,
-        radius: CanvasRadius,
+        xc: canvas::X,
+        yc: canvas::Y,
+        radius: canvas::Radius,
         angle1: Angle,
         angle2: Angle,
         new_sub_path: bool,
@@ -527,9 +527,9 @@ impl<'t> Cairo<'t> {
     /// doesn't strike a direct line from the current point to the start of the arc!
     pub fn arc_negative(
         &mut self,
-        xc: CanvasX,
-        yc: CanvasY,
-        radius: CanvasRadius,
+        xc: canvas::X,
+        yc: canvas::Y,
+        radius: canvas::Radius,
         angle1: Angle,
         angle2: Angle,
         new_sub_path: bool,
@@ -575,7 +575,7 @@ impl<'t> Cairo<'t> {
         self.0.restore().expect("Error in cairo::Context::restore");
     }
 
-    pub fn translate(&mut self, tx: CanvasX, ty: CanvasY) {
+    pub fn translate(&mut self, tx: canvas::X, ty: canvas::Y) {
         self.0.translate(tx.0, ty.0)
     }
 
@@ -633,95 +633,95 @@ where
 
 /// Horizontale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct CanvasX(pub f64);
-impl Add<CanvasAbstand> for CanvasX {
-    type Output = CanvasX;
+pub struct canvas::X(pub f64);
+impl Add<CanvasAbstand> for canvas::X {
+    type Output = canvas::X;
 
-    fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> CanvasX {
-        CanvasX(self.0 + rhs)
+    fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> canvas::X {
+        canvas::X(self.0 + rhs)
     }
 }
-impl AddAssign<CanvasAbstand> for CanvasX {
+impl AddAssign<CanvasAbstand> for canvas::X {
     fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 += rhs
     }
 }
-impl Sub<CanvasAbstand> for CanvasX {
+impl Sub<CanvasAbstand> for canvas::X {
     type Output = Self;
 
     fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasX(self.0 - rhs)
+        canvas::X(self.0 - rhs)
     }
 }
-impl SubAssign<CanvasAbstand> for CanvasX {
+impl SubAssign<CanvasAbstand> for canvas::X {
     fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 -= rhs
     }
 }
-impl Neg for CanvasX {
-    type Output = CanvasX;
+impl Neg for canvas::X {
+    type Output = canvas::X;
 
     fn neg(self) -> Self {
-        CanvasX(-self.0)
+        canvas::X(-self.0)
     }
 }
 /// Vertikale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct CanvasY(pub f64);
-impl Add<CanvasAbstand> for CanvasY {
+pub struct canvas::Y(pub f64);
+impl Add<CanvasAbstand> for canvas::Y {
     type Output = Self;
 
     fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasY(self.0 + rhs)
+        canvas::Y(self.0 + rhs)
     }
 }
-impl AddAssign<CanvasAbstand> for CanvasY {
+impl AddAssign<CanvasAbstand> for canvas::Y {
     fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 += rhs
     }
 }
-impl Sub<CanvasAbstand> for CanvasY {
+impl Sub<CanvasAbstand> for canvas::Y {
     type Output = Self;
 
     fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasY(self.0 - rhs)
+        canvas::Y(self.0 - rhs)
     }
 }
-impl SubAssign<CanvasAbstand> for CanvasY {
+impl SubAssign<CanvasAbstand> for canvas::Y {
     fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 -= rhs
     }
 }
-impl Neg for CanvasY {
-    type Output = CanvasY;
+impl Neg for canvas::Y {
+    type Output = canvas::Y;
 
     fn neg(self) -> Self {
-        CanvasY(-self.0)
+        canvas::Y(-self.0)
     }
 }
 /// Radius auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct CanvasRadius(pub f64);
-impl Add<CanvasAbstand> for CanvasRadius {
+pub struct canvas::Radius(pub f64);
+impl Add<CanvasAbstand> for canvas::Radius {
     type Output = Self;
 
     fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasRadius(self.0 + rhs)
+        canvas::Radius(self.0 + rhs)
     }
 }
-impl AddAssign<CanvasAbstand> for CanvasRadius {
+impl AddAssign<CanvasAbstand> for canvas::Radius {
     fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 += rhs
     }
 }
-impl Sub<CanvasAbstand> for CanvasRadius {
+impl Sub<CanvasAbstand> for canvas::Radius {
     type Output = Self;
 
     fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasRadius(self.0 - rhs)
+        canvas::Radius(self.0 - rhs)
     }
 }
-impl SubAssign<CanvasAbstand> for CanvasRadius {
+impl SubAssign<CanvasAbstand> for canvas::Radius {
     fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
         self.0 -= rhs
     }
@@ -775,43 +775,43 @@ impl Div<CanvasAbstand> for CanvasAbstand {
         self.0 / rhs.0
     }
 }
-// with CanvasX
-impl From<CanvasX> for CanvasAbstand {
-    fn from(CanvasX(input): CanvasX) -> Self {
+// with canvas::X
+impl From<canvas::X> for CanvasAbstand {
+    fn from(canvas::X(input): canvas::X) -> Self {
         CanvasAbstand(input)
     }
 }
-impl Add<CanvasX> for CanvasAbstand {
-    type Output = CanvasX;
+impl Add<canvas::X> for CanvasAbstand {
+    type Output = canvas::X;
 
-    fn add(self, CanvasX(rhs): CanvasX) -> CanvasX {
-        CanvasX(self.0 + rhs)
+    fn add(self, canvas::X(rhs): canvas::X) -> canvas::X {
+        canvas::X(self.0 + rhs)
     }
 }
-// with CanvasY
-impl From<CanvasY> for CanvasAbstand {
-    fn from(CanvasY(input): CanvasY) -> Self {
+// with canvas::Y
+impl From<canvas::Y> for CanvasAbstand {
+    fn from(canvas::Y(input): canvas::Y) -> Self {
         CanvasAbstand(input)
     }
 }
-impl Add<CanvasY> for CanvasAbstand {
-    type Output = CanvasY;
+impl Add<canvas::Y> for CanvasAbstand {
+    type Output = canvas::Y;
 
-    fn add(self, CanvasY(rhs): CanvasY) -> CanvasY {
-        CanvasY(self.0 + rhs)
+    fn add(self, canvas::Y(rhs): canvas::Y) -> canvas::Y {
+        canvas::Y(self.0 + rhs)
     }
 }
-// with CanvasRadius
-impl From<CanvasRadius> for CanvasAbstand {
-    fn from(CanvasRadius(input): CanvasRadius) -> Self {
+// with canvas::Radius
+impl From<canvas::Radius> for CanvasAbstand {
+    fn from(canvas::Radius(input): canvas::Radius) -> Self {
         CanvasAbstand(input)
     }
 }
-impl Add<CanvasRadius> for CanvasAbstand {
-    type Output = CanvasRadius;
+impl Add<canvas::Radius> for CanvasAbstand {
+    type Output = canvas::Radius;
 
-    fn add(self, CanvasRadius(rhs): CanvasRadius) -> CanvasRadius {
-        CanvasRadius(self.0 + rhs)
+    fn add(self, canvas::Radius(rhs): canvas::Radius) -> canvas::Radius {
+        canvas::Radius(self.0 + rhs)
     }
 }
 // scale with f64

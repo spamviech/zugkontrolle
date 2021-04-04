@@ -123,8 +123,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         } = *self;
         if direction == Richtung::Links {
             // spiegel y-Achse in der Mitte
-            let x = CanvasX(0.);
-            let half_height = CanvasY(0.5 * (self.height() as f64));
+            let x = canvas::X(0.);
+            let half_height = canvas::Y(0.5 * (self.height() as f64));
             cairo.translate(x, half_height);
             cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
             cairo.translate(-x, -half_height);
@@ -136,13 +136,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
         // verschiebe Kontext an Position nach erster Kurve
         cairo.translate(
-            CanvasX(0.) + radius_begrenzung_aussen * self.angle.sin(),
-            CanvasY(0.) + radius_begrenzung_aussen * (1. - self.angle.cos()),
+            canvas::X(0.) + radius_begrenzung_aussen * self.angle.sin(),
+            canvas::Y(0.) + radius_begrenzung_aussen * (1. - self.angle.cos()),
         );
         cairo.rotate(self.angle.into());
         // spiegel die y-Achse, damit die Kurve in die entgegengesetzte Richtung geht
-        let x = CanvasX(0.);
-        let half_beschraenkung = CanvasY(0.) + 0.5 * beschraenkung::<Z>();
+        let x = canvas::X(0.);
+        let half_beschraenkung = canvas::Y(0.) + 0.5 * beschraenkung::<Z>();
         cairo.translate(x, half_beschraenkung);
         cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
         cairo.translate(x, -half_beschraenkung);
@@ -161,15 +161,15 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let start_height: CanvasY;
+        let start_height: canvas::Y;
         let multiplier: f64;
         match self.direction {
             Richtung::Rechts => {
-                start_height = CanvasY(0.);
+                start_height = canvas::Y(0.);
                 multiplier = 1.;
             }
             Richtung::Links => {
-                start_height = CanvasY(self.height() as f64);
+                start_height = canvas::Y(self.height() as f64);
                 multiplier = -1.;
             }
         };
@@ -177,21 +177,21 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         weiche::gerade::AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.),
+                    x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: CanvasX(-1.), dy: CanvasY(multiplier * 0.) },
+                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
             gerade: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.) + self.length.to_abstand(),
+                    x: canvas::X(0.) + self.length.to_abstand(),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: CanvasX(1.), dy: CanvasY(multiplier * 0.) },
+                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
             },
             kurve: anchor::Point {
                 position: anchor::Position {
-                    x: CanvasX(0.)
+                    x: canvas::X(0.)
                         + self.radius.to_abstand() * self.angle.sin()
                         + self.radius_reverse.to_abstand()
                             * (self.angle.sin() - angle_difference.sin()),
@@ -203,8 +203,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                                     * (angle_difference.cos() - self.angle.cos())),
                 },
                 direction: anchor::Direction {
-                    dx: CanvasX(angle_difference.cos()),
-                    dy: CanvasY(multiplier * angle_difference.sin()),
+                    dx: canvas::X(angle_difference.cos()),
+                    dy: canvas::Y(multiplier * angle_difference.sin()),
                 },
             },
         }
