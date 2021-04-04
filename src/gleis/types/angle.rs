@@ -5,20 +5,20 @@ use std::ops::{Add, Mul, Neg, Sub};
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
     fn abs(&self) -> Self;
-    fn cos(&self) -> f64;
-    fn sin(&self) -> f64;
-    fn tan(&self) -> f64;
-    fn acos(input: f64) -> Self;
-    fn asin(input: f64) -> Self;
-    fn atan(input: f64) -> Self;
+    fn cos(&self) -> f32;
+    fn sin(&self) -> f32;
+    fn tan(&self) -> f32;
+    fn acos(input: f32) -> Self;
+    fn asin(input: f32) -> Self;
+    fn atan(input: f32) -> Self;
 }
 
 /// Winkel \[Bogenmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
-pub struct Angle(pub(crate) f64);
+pub struct Angle(pub(crate) f32);
 
 impl Angle {
-    pub const fn new(angle: f64) -> Self {
+    pub const fn new(angle: f32) -> Self {
         Angle(angle)
     }
 }
@@ -69,13 +69,13 @@ impl Neg for Angle {
         Angle(-self.0)
     }
 }
-impl Mul<f64> for Angle {
+impl Mul<f32> for Angle {
     type Output = Self;
-    fn mul(self, other: f64) -> Self {
+    fn mul(self, other: f32) -> Self {
         Angle(other * self.0)
     }
 }
-impl Mul<Angle> for f64 {
+impl Mul<Angle> for f32 {
     type Output = Angle;
     fn mul(self, Angle(other): Angle) -> Angle {
         Angle(self * other)
@@ -85,32 +85,32 @@ impl Trigonometrie for Angle {
     fn abs(&self) -> Angle {
         Angle(self.0.abs())
     }
-    fn cos(&self) -> f64 {
+    fn cos(&self) -> f32 {
         self.0.cos()
     }
-    fn sin(&self) -> f64 {
+    fn sin(&self) -> f32 {
         self.0.sin()
     }
-    fn tan(&self) -> f64 {
+    fn tan(&self) -> f32 {
         self.0.tan()
     }
-    fn acos(input: f64) -> Self {
+    fn acos(input: f32) -> Self {
         Angle(input.acos())
     }
-    fn asin(input: f64) -> Self {
+    fn asin(input: f32) -> Self {
         Angle(input.asin())
     }
-    fn atan(input: f64) -> Self {
+    fn atan(input: f32) -> Self {
         Angle(input.atan())
     }
 }
 
 /// Winkel \[Gradmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
-pub struct AngleDegrees(f64);
+pub struct AngleDegrees(f32);
 
 impl AngleDegrees {
-    pub const fn new(angle: f64) -> Self {
+    pub const fn new(angle: f32) -> Self {
         AngleDegrees(angle)
     }
 }
@@ -160,13 +160,13 @@ impl Neg for AngleDegrees {
         AngleDegrees(-self.0)
     }
 }
-impl Mul<f64> for AngleDegrees {
+impl Mul<f32> for AngleDegrees {
     type Output = Self;
-    fn mul(self, other: f64) -> Self {
+    fn mul(self, other: f32) -> Self {
         AngleDegrees(other * self.0)
     }
 }
-impl Mul<AngleDegrees> for f64 {
+impl Mul<AngleDegrees> for f32 {
     type Output = AngleDegrees;
     fn mul(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
         AngleDegrees(self * other)
@@ -176,22 +176,22 @@ impl Trigonometrie for AngleDegrees {
     fn abs(&self) -> AngleDegrees {
         AngleDegrees(self.0.abs())
     }
-    fn cos(&self) -> f64 {
+    fn cos(&self) -> f32 {
         self.0.to_radians().cos()
     }
-    fn sin(&self) -> f64 {
+    fn sin(&self) -> f32 {
         self.0.to_radians().sin()
     }
-    fn tan(&self) -> f64 {
+    fn tan(&self) -> f32 {
         self.0.to_radians().tan()
     }
-    fn acos(input: f64) -> Self {
+    fn acos(input: f32) -> Self {
         AngleDegrees(input.acos().to_degrees())
     }
-    fn asin(input: f64) -> Self {
+    fn asin(input: f32) -> Self {
         AngleDegrees(input.asin().to_degrees())
     }
-    fn atan(input: f64) -> Self {
+    fn atan(input: f32) -> Self {
         AngleDegrees(input.atan().to_degrees())
     }
 }

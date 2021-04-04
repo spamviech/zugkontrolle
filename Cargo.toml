@@ -31,6 +31,10 @@ argh = "0.1.4"
 version = "1.0.124"
 features = ["derive"]
 
+[dependencies.iced]
+version = "0.3.0"
+features = ["canvas"]
+
 [dependencies.gtk]
 git = "https://github.com/gtk-rs/gtk-rs.git"
 package = "gtk"

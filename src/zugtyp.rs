@@ -2,7 +2,7 @@
 
 /// Spurweite \[mm\]
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Spurweite(pub f64);
+pub struct Spurweite(pub f32);
 pub trait Zugtyp {
     const SPURWEITE: Spurweite;
 }

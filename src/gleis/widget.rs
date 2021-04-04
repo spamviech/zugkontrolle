@@ -22,23 +22,25 @@ use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]
 pub struct Position {
-    pub x: CanvasX,
-    pub y: CanvasY,
+    pub x: canvas::X,
+    pub y: canvas::Y,
     pub winkel: Angle,
 }
 impl Position {
     /// anchor::Position nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
     pub fn transformation(&self, anchor: anchor::Position) -> anchor::Position {
-        let x = CanvasX(self.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
-        let y = CanvasY(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
+        let x =
+            canvas::X(self.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
+        let y =
+            canvas::Y(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
         anchor::Position { x, y }
     }
 
     /// anchor::Direction nachdem das Objekt um den Winkel gedreht wird.
     pub fn rotation(&self, direction: anchor::Direction) -> anchor::Direction {
-        let dx = CanvasX(0.) + direction.dx.to_abstand() * self.winkel.cos()
+        let dx = canvas::X(0.) + direction.dx.to_abstand() * self.winkel.cos()
             - direction.dy.to_abstand() * self.winkel.sin();
-        let dy = CanvasY(0.) + direction.dx.to_abstand() * self.winkel.sin()
+        let dy = canvas::Y(0.) + direction.dx.to_abstand() * self.winkel.sin()
             - direction.dy.to_abstand() * self.winkel.cos();
         anchor::Direction { dx, dy }
     }
@@ -149,7 +151,7 @@ impl<Z: Debug> Gleise<Z> {
 /// This is only exported, since /GleiseMap/ needs this to be public.
 #[derive(Debug)]
 pub struct GleiseInternal<Z> {
-    drawing_area: DrawingArea,
+    canvas: canvas::Cache,
     geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
     kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
     kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,
@@ -225,7 +227,7 @@ impl<Z: Debug> GleiseInternal<Z> {
 }
 
 fn zeichne_alle_gleise<T, F>(
-    cairo: &mut Cairo,
+    frame: &mut canvas::Frame,
     has_other_id_at_point: F,
     map: &HashMap<GleisId<T>, Gleis<T>>,
 ) where
@@ -233,48 +235,45 @@ fn zeichne_alle_gleise<T, F>(
     F: Fn(GleisId<Any>, anchor::Position) -> bool,
 {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
-        cairo.with_save_restore(|cairo| {
+        frame.with_save(|frame| {
             // bewege Kontext zur Position
-            cairo.translate(position.x, position.y);
+            frame.translate(canvas::Vector { dx: position.x, dy: position.y });
             // drehe Kontext um (0,0)
-            cairo.rotate(position.winkel);
+            frame.rotate(position.winkel);
+            let path = definition.zeichne();
             // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
-            cairo.with_save_restore(|cairo| {
-                cairo.new_path();
-                definition.fuelle(cairo);
+            frame.with_save(|frame| {
                 // TODO Farbe abhängig vom Streckenabschnitt
-                cairo.set_source_rgb(1., 0., 0.);
-                cairo.fill();
+                frame.fill(
+                    &path,
+                    canvas::Fill {
+                        color: canvas::Color { r: 1., g: 0., b: 0., a: 1. },
+                        rule: canvas::FillRule::NonZero,
+                    },
+                );
             });
             // zeichne Gleis
-            cairo.with_save_restore(|cairo| {
-                cairo.new_path();
-                definition.zeichne(cairo);
-                cairo.stroke();
+            frame.with_save(|frame| {
+                frame.stroke(&path, canvas::Stroke::default());
             });
             // zeichne anchor points
-            cairo.with_save_restore(|cairo| {
-                definition.anchor_points().foreach(
-                    |&anchor::Point {
-                         position: anchor_position,
-                         direction: anchor::Direction { dx, dy },
-                     }| {
-                        cairo.new_path();
-                        let (r, g, b) = if has_other_id_at_point(
-                            gleis_id.as_any(),
-                            position.transformation(anchor_position),
-                        ) {
-                            (0., 1., 0.)
-                        } else {
-                            (0., 0., 1.)
-                        };
-                        cairo.set_source_rgb(r, g, b);
-                        let anchor::Position { x, y } = anchor_position;
-                        cairo.move_to(x, y);
-                        cairo.line_to(x + 5. * dx.to_abstand(), y + 5. * dy.to_abstand());
-                        cairo.stroke();
-                    },
-                )
+            frame.with_save(|frame| {
+                definition.anchor_points().foreach(|&anchor| {
+                    let color = if has_other_id_at_point(
+                        gleis_id.as_any(),
+                        position.transformation(anchor.position),
+                    ) {
+                        canvas::Color { r: 0., g: 1., b: 0., a: 1. }
+                    } else {
+                        canvas::Color { r: 0., g: 0., b: 1., a: 1. }
+                    };
+                    let path_builder = canvas::PathBuilder::new();
+                    path_builder.move_to(anchor.position.into());
+                    path_builder
+                        .line_to(canvas::Point::from(anchor.position) + anchor.direction.into());
+                    let path = path_builder.build();
+                    frame.stroke(&path, canvas::Stroke { color, ..canvas::Stroke::default() });
+                })
             });
         });
     }
@@ -282,19 +281,9 @@ fn zeichne_alle_gleise<T, F>(
 
 impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
     pub fn new() -> Gleise<Z> {
-        // TODO is this a good default size?
-        Gleise::new_with_size(CanvasX(600.), CanvasY(400.))
-    }
-
-    /// convenience function that automatically calls set_size_request on the newly created widget
-    pub fn new_with_size(width: CanvasX, height: CanvasY) -> Self {
-        let drawing_area = DrawingAreaBuilder::new()
-            .width_request(width.0 as i32)
-            .height_request(height.0 as i32)
-            .build();
         // create outwards representation
-        let gleise = Gleise(Arc::new(RwLock::new(GleiseInternal {
-            drawing_area,
+        Gleise(Arc::new(RwLock::new(GleiseInternal {
+            canvas: canvas::Cache::default(),
             geraden: HashMap::new(),
             kurven: HashMap::new(),
             weichen: HashMap::new(),
@@ -304,56 +293,41 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
             kreuzungen: HashMap::new(),
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
-        })));
-        // connect draw callback
-        let gleise_clone = gleise.clone();
-        let zeichne_gleise_mit_anchor_points =
-            move |drawing_area: &DrawingArea, c: &cairo::Context| {
-                // TODO don't draw out of bound Gleise
-                let _allocation = drawing_area.get_allocation();
-                let cairo: &mut Cairo = &mut Cairo::new(c);
-                // Zeichne Gleise
-                let GleiseInternal {
-                    geraden,
-                    kurven,
-                    weichen,
-                    kurven_weichen,
-                    dreiwege_weichen,
-                    s_kurven_weichen,
-                    kreuzungen,
-                    anchor_points,
-                    ..
-                } = &*gleise_clone.read();
-                let has_other_id_at_point =
-                    |gleis_id, position| anchor_points.has_other_id_at_point(&gleis_id, &position);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, geraden);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, kurven);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, weichen);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, kurven_weichen);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, s_kurven_weichen);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, dreiwege_weichen);
-                zeichne_alle_gleise(cairo, has_other_id_at_point, kreuzungen);
-                glib::signal::Inhibit(false)
-            };
-
-        #[cfg(feature = "gtk-rs")]
-        gleise.read().drawing_area.connect_draw(zeichne_gleise_mit_anchor_points);
-        #[cfg(feature = "gtk4-rs")]
-        gleise.read().drawing_area.set_draw_func(
-            move |drawing_area: &DrawingArea, c: &cairo::Context, _width: i32, _height: i32| {
-                zeichne_gleise_mit_anchor_points(drawing_area, c);
-            },
-        );
-        // return
-        gleise
+        })))
     }
-
-    pub fn set_size_request(&mut self, width: CanvasX, height: CanvasY) {
-        self.write().drawing_area.set_size_request(width.0 as i32, height.0 as i32);
-    }
-
-    pub fn with_drawing_area<T, F: FnOnce(&mut DrawingArea) -> T>(&mut self, action: F) -> T {
-        action(&mut self.write().drawing_area)
+}
+impl<Z: Debug + Zugtyp> iced::canvas::Program<()> for Gleise<Z> {
+    fn draw(
+        &self,
+        bounds: iced::Rectangle,
+        _cursor: iced::canvas::Cursor,
+    ) -> Vec<iced::canvas::Geometry> {
+        let GleiseInternal {
+            canvas,
+            geraden,
+            kurven,
+            weichen,
+            kurven_weichen,
+            dreiwege_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+            anchor_points,
+            ..
+        } = &*self.read();
+        vec![canvas.draw(bounds.size(), |frame| {
+            // TODO don't draw out of bound Gleise
+            // Zeichne Gleise
+            let has_other_id_at_point =
+                |gleis_id, position| anchor_points.has_other_id_at_point(&gleis_id, &position);
+            let boxed_frame = canvas::Frame::new(frame);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, geraden);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kurven);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, weichen);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kurven_weichen);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, s_kurven_weichen);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, dreiwege_weichen);
+            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kreuzungen);
+        })]
     }
 }
 
@@ -383,7 +357,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         // add to HashMap
         T::get_map_mut(&mut gleise).insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
-        gleise.drawing_area.queue_draw();
+        gleise.canvas.clear();
         // return value
         (gleis_id_lock, anchor_points)
     }
@@ -442,7 +416,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         // add new to anchor_points
         anchor_points_neu.foreach(|anchor| gleise.anchor_points.insert(gleis_id, anchor.position));
         // trigger redraw
-        gleise.drawing_area.queue_draw();
+        gleise.canvas.clear();
         // return value
         anchor_points_neu
     }
@@ -495,7 +469,7 @@ impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
         // make sure everyone knows about the deletion
         *optional_id = None;
         // trigger redraw
-        gleise.drawing_area.queue_draw();
+        gleise.canvas.clear();
     }
 }
 
