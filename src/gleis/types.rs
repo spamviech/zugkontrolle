@@ -84,7 +84,7 @@ where
     fn size(&self) -> canvas::Size;
 
     /// Erzeuge den Pfad für Darstellung der Linien.
-    fn zeichne(&self, path_builder: &mut canvas::PathBuilder);
+    fn zeichne(&self) -> Vec<canvas::Path>;
 
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.

@@ -27,7 +27,7 @@ impl Neg for Position {
 }
 // copy+paste from example implementation for IntegerPoint
 impl rstar::Point for Position {
-    type Scalar = f64;
+    type Scalar = f32;
 
     const DIMENSIONS: usize = 2;
 

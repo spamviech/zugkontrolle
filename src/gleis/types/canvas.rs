@@ -1,6 +1,7 @@
 //! newtypes für einen cairo::Context
 
 use std::convert::From;
+use std::f32::consts::PI;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use iced::{self, canvas};
@@ -12,7 +13,7 @@ use super::angle::Angle;
 
 // re-exports
 pub use iced::{
-    canvas::{Cache, Fill, FillRule, Path, Stroke, Text},
+    canvas::{Cache, Fill, FillRule, Stroke, Text},
     Color,
 };
 
@@ -370,31 +371,88 @@ impl From<Arc> for canvas::path::Arc {
     }
 }
 
+/// Pfad auf dem Canvas
+///
+/// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
+pub struct Path {
+    path: canvas::Path,
+    transformations: Vec<Transformation>,
+}
+
+/// Unterstützte Transformationen
+pub enum Transformation {
+    /// Verschiebe alle Koordinaten um den übergebenen Vector.
+    Translate(Vector),
+    /// Rotiere alle Koordinaten um den Ursprung (im Uhrzeigersinn)
+    Rotate(Angle),
+    /// Skaliere alle Koordinaten (x',y') = (x*scale, y*scale)
+    Scale(f32),
+}
 /// newtype auf einem /iced::widget::canvas::path::Builder/
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.
 /// Alle Methoden verwenden die hier definierten Typen.
-pub struct PathBuilder(canvas::path::Builder);
+pub struct PathBuilder {
+    builder: canvas::path::Builder,
+    transformations: Vec<Transformation>,
+    invert_x: bool,
+    invert_y: bool,
+}
+/// Helper struct, so I don't make stupid mistakes (e.g. inverting twice)
+struct Inverted<T>(T);
+impl<T> Inverted<T> {
+    fn into<S: From<T>>(self) -> S {
+        self.0.into()
+    }
+}
 impl PathBuilder {
     /// create a new PathBuilder
     pub fn new() -> Self {
-        PathBuilder(canvas::path::Builder::new())
+        PathBuilder::new_with_transformations(Vec::new())
+    }
+    /// create a new PathBuilder for a path after applying all given transformations
+    pub fn new_with_transformations(transformations: Vec<Transformation>) -> Self {
+        PathBuilder {
+            builder: canvas::path::Builder::new(),
+            transformations,
+            invert_x: false,
+            invert_y: false,
+        }
     }
 
     /// Finalize the Path, building the immutable result
     pub fn build(self) -> Path {
-        self.0.build()
+        Path { path: self.builder.build(), transformations: self.transformations }
+    }
+
+    fn invert_point_axis(&self, Point { x, y }: Point) -> Inverted<Point> {
+        Inverted(Point {
+            x: if self.invert_x { -x } else { x },
+            y: if self.invert_y { -y } else { y },
+        })
+    }
+    fn invert_angle_axis(&self, angle: Angle) -> Inverted<Angle> {
+        let inverted_x = if self.invert_x { Angle::new(PI) - angle } else { angle };
+        Inverted(if self.invert_y { -inverted_x } else { inverted_x })
+    }
+    fn invert_arc_axis(&self, Arc { center, radius, start, end }: Arc) -> Inverted<Arc> {
+        Inverted(Arc {
+            center: self.invert_point_axis(center).0,
+            radius,
+            start: self.invert_angle_axis(start).0,
+            end: self.invert_angle_axis(end).0,
+        })
     }
 
     // start a new subpath at /point/
     pub fn move_to(&mut self, point: Point) {
-        self.0.move_to(point.into())
+        self.builder.move_to(self.invert_point_axis(point).into())
     }
 
     /// strike a direct line from the current point to /point/
     pub fn line_to(&mut self, point: Point) {
-        self.0.line_to(point.into())
+        self.builder.line_to(self.invert_point_axis(point).into())
     }
 
     /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (clockwise).
@@ -406,7 +464,7 @@ impl PathBuilder {
         // TODO still required?
         // self.new_sub_path()
         // }
-        self.0.arc(arc.into())
+        self.builder.arc(self.invert_arc_axis(arc).into())
     }
 
     /// Strike an arc from /a/ to /b/ with given radius (clockwise).
@@ -417,12 +475,26 @@ impl PathBuilder {
         if new_sub_path {
             self.move_to(a)
         }
-        self.0.arc_to(a.into(), b.into(), radius.0)
+        self.builder.arc_to(
+            self.invert_point_axis(a).into(),
+            self.invert_point_axis(b).into(),
+            radius.0,
+        )
     }
 
     /// strike a direct line from the current point to the start of the last subpath
     pub fn close(&mut self) {
-        self.0.close()
+        self.builder.close()
+    }
+
+    // Alle folgenden Methoden verwenden eine gespiegelte x-Achse (x',y') = (-x,y)
+    pub fn invert_x(&mut self) {
+        self.invert_x = !self.invert_x;
+    }
+
+    // Alle folgenden Methoden verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
+    pub fn invert_y(&mut self) {
+        self.invert_y = !self.invert_y;
     }
 }
 
@@ -433,13 +505,23 @@ impl<'t> Frame<'t> {
     }
 
     /// Draws the stroke of the given Path on the Frame with the provided style.
-    pub fn stroke(&mut self, path: &Path, stroke: impl Into<Stroke>) {
-        self.0.stroke(path, stroke)
+    pub fn stroke(&mut self, Path { path, transformations }: &Path, stroke: impl Into<Stroke>) {
+        self.with_save(|frame| {
+            for transformation in transformations {
+                frame.transformation(transformation)
+            }
+            frame.0.stroke(path, stroke)
+        })
     }
 
     /// Draws the given Path on the Frame by filling it with the provided style.
-    pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        self.0.fill(path, fill)
+    pub fn fill(&mut self, Path { path, transformations }: &Path, fill: impl Into<Fill>) {
+        self.with_save(|frame| {
+            for transformation in transformations {
+                frame.transformation(transformation)
+            }
+            self.0.fill(path, fill)
+        })
     }
 
     /// Draws the characters of the given Text on the Frame, filling them with the given color.
@@ -456,19 +538,13 @@ impl<'t> Frame<'t> {
         self.0.with_save(|frame| action(&mut Frame(frame)))
     }
 
-    /// Applies a translation to the current transform of the Frame.
-    pub fn translate(&mut self, vector: Vector) {
-        self.0.translate(vector.into())
-    }
-
-    /// Applies a rotation to the current transform of the Frame.
-    pub fn rotate(&mut self, angle: Angle) {
-        self.0.rotate(angle.0)
-    }
-
-    /// Applies a scaling to the current transform of the Frame.
-    pub fn scale(&mut self, scale: f32) {
-        self.0.scale(scale)
+    /// Wende die übergebene Transformation auf den Frame an.
+    pub fn transformation(&mut self, &transformation: &Transformation) {
+        match transformation {
+            Transformation::Translate(vector) => self.0.translate(vector.into()),
+            Transformation::Rotate(angle) => self.0.rotate(angle.0),
+            Transformation::Scale(scale) => self.0.scale(scale),
+        }
     }
 }
 

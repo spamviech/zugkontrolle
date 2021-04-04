@@ -124,9 +124,6 @@ impl Beschraenkung {
 // factor_y is expected to be -1 or +1, although other values should work as well
 pub(crate) fn zeichne<Z: Zugtyp>(
     path_builder: &mut canvas::PathBuilder,
-    start_x: canvas::X,
-    start_y: canvas::Y,
-    factor_y: f32,
     radius: Radius,
     winkel: Angle,
     beschraenkungen: Beschraenkung,
@@ -134,20 +131,20 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     // Utility Größen
     let radius_abstand: canvas::Abstand = radius.to_abstand();
     let spurweite: canvas::Abstand = Z::SPURWEITE.to_abstand();
-    let winkel_anfang: Angle = Angle::new(PI) + factor_y * Angle::new(PI / 2.);
-    let winkel_ende: Angle = winkel_anfang + factor_y * winkel;
-    let gleis_links: canvas::X = start_x;
-    let gleis_links_oben: canvas::Y = start_y;
-    let gleis_links_unten: canvas::Y = gleis_links_oben + factor_y * beschraenkung::<Z>();
+    let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
+    let winkel_ende: Angle = winkel_anfang + winkel;
+    let gleis_links: canvas::X = canvas::X(0.);
+    let gleis_links_oben: canvas::Y = canvas::Y(0.);
+    let gleis_links_unten: canvas::Y = gleis_links_oben + beschraenkung::<Z>();
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_abstand - 0.5 * spurweite;
     let radius_aussen: canvas::Radius = radius_innen + spurweite;
     let radius_begrenzung_aussen: canvas::Abstand = radius_aussen.to_abstand() + abstand::<Z>();
     let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen * winkel.sin();
     let begrenzung_y0: canvas::Y =
-        gleis_links_unten + factor_y * radius_begrenzung_aussen * (1. - winkel.cos());
+        gleis_links_unten + radius_begrenzung_aussen * (1. - winkel.cos());
     let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>() * winkel.sin();
-    let begrenzung_y1: canvas::Y = begrenzung_y0 + factor_y * beschraenkung::<Z>() * winkel.cos();
-    let bogen_zentrum_y: canvas::Y = gleis_links_oben + factor_y * radius_begrenzung_aussen;
+    let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
+    let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen;
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {
         path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben));

@@ -36,8 +36,10 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         )
     }
 
-    fn zeichne(&self, path_builder: &mut canvas::PathBuilder) {
-        zeichne::<Z>(&mut path_builder, canvas::X(0.), canvas::Y(0.), self.length);
+    fn zeichne(&self) -> Vec<canvas::Path> {
+        let path_builder = canvas::PathBuilder::new();
+        zeichne::<Z>(&mut path_builder, self.length);
+        vec![path_builder.build()]
     }
 
     /*
@@ -67,15 +69,10 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 }
 
-pub(crate) fn zeichne<Z: Zugtyp>(
-    path_builder: &mut canvas::PathBuilder,
-    start_x: canvas::X,
-    start_y: canvas::Y,
-    laenge: Length,
-) {
-    let gleis_links: canvas::X = start_x;
+pub(crate) fn zeichne<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge: Length) {
+    let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
-    let beschraenkung_oben: canvas::Y = start_y;
+    let beschraenkung_oben: canvas::Y = canvas::Y(0.);
     let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschraenkung::<Z>();
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
