@@ -145,6 +145,11 @@ impl<Z: Debug> Gleise<Z> {
         self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleiseMap"))
     }
 }
+impl<Z: Debug + Zugtyp + Eq + Clone + 'static> Default for Gleise<Z> {
+    fn default() -> Self {
+        Gleise::new()
+    }
+}
 
 /// Internal Representation for Gleise
 ///

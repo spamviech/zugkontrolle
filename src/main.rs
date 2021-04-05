@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use iced;
+use iced::{executor, Application, Clipboard, Command, Container, Element, Length, Settings};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
@@ -39,109 +39,103 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
     }
 }
 
-fn main() {
+struct Zugkontrolle {
+    gleise_maerklin: Gleise<Maerklin>,
+    gleise_lego: Gleise<Lego>,
+}
+impl Application for Zugkontrolle {
+    type Executor = executor::Default;
+    type Message = ();
+    type Flags = (Gleise<Maerklin>, Gleise<Lego>);
+
+    fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
+        (Zugkontrolle { gleise_maerklin, gleise_lego }, Command::none())
+    }
+
+    fn title(&self) -> String {
+        "Zugkontrolle".to_string()
+    }
+
+    fn update(
+        &mut self,
+        _message: Self::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<Self::Message> {
+        Command::none()
+    }
+
+    fn view(&mut self) -> Element<Self::Message> {
+        let canvas_maerklin = Container::new(
+            iced::Canvas::new(self.gleise_maerklin).width(Length::Fill).height(Length::Fill),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill);
+        let canvas_lego = Container::new(
+            iced::Canvas::new(self.gleise_lego).width(Length::Fill).height(Length::Fill),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill);
+        let (pane_state, pane_maerklin) = iced::pane_grid::State::new(canvas_maerklin);
+        match pane_state.split(iced::pane_grid::Axis::Horizontal, &pane_maerklin, canvas_lego) {
+            Some(_) => {}
+            None => panic!("Failed to split pane!"),
+        }
+        let paned_grid = iced::PaneGrid::new(&mut pane_state, |pane, content| {
+            iced::pane_grid::Content::new(content)
+        });
+        Container::new(paned_grid)
+            .width(Length::Units(600))
+            .height(Length::Units(800))
+            .padding(20)
+            .center_x()
+            .center_y()
+            .into()
+    }
+}
+
+fn main() -> iced::Result {
     SimpleLogger::new().init().expect("failed to initialize error logging");
 
-    let application =
-        Application::new(None, Default::default()).expect("failed to initialize GTK application");
+    // Märklin-Gleise
+    let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();
+    let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
+    append_maerklin.append(maerklin::GERADE_5106);
+    append_maerklin.append(maerklin::KURVE_5100);
+    append_maerklin.append(maerklin::WEICHE_5202_LINKS);
+    append_maerklin.append(maerklin::DREIWEGE_WEICHE_5214);
+    append_maerklin.append(maerklin::KURVEN_WEICHE_5140_LINKS);
+    append_maerklin.append(maerklin::KREUZUNG_5207);
 
-    application.connect_activate(|app| {
-        let window = ApplicationWindow::new(app);
-        #[cfg(feature = "gtk-rs")]
-        window.set_title("Zugkontrolle");
-        #[cfg(feature = "gtk4-rs")]
-        window.set_title(Some("Zugkontrolle"));
+    // Lego-Gleise
+    let mut gleise_lego: Gleise<Lego> = Gleise::new();
+    let mut append_lego = AppendGleise::new(&mut gleise_lego);
+    let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
+    let (kurve_lock, _kurve_anchor_points) = append_lego.append(lego::KURVE);
+    let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
+    let (kreuzung_lock, _kreuzung_anchor_points) = append_lego.append(lego::KREUZUNG);
+    append_lego.append(lego::KREUZUNG);
+    // relocate
+    if let Some(gleis_id) = &*gerade_lock.read() {
+        gleise_lego.relocate(
+            gleis_id,
+            Position {
+                x: canvas::X(250.),
+                y: canvas::Y(10.),
+                winkel: AngleDegrees::new(90.).into(),
+            },
+        );
+    }
+    // attach
+    gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
+    // relocate-attach
+    if let Some(gleis_id) = &*kurve_lock.read() {
+        gleise_lego.relocate_attach(gleis_id, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
+    }
+    // remove
+    let kreuzung_lock_clone = kreuzung_lock.clone();
+    gleise_lego.remove(kreuzung_lock);
+    // assert!(kreuzung_lock.read().is_none());
+    assert!(kreuzung_lock_clone.read().is_none());
 
-        let paned: Paned =
-            PanedBuilder::new().orientation(Orientation::Horizontal).position(400).build();
-        #[cfg(feature = "gtk-rs")]
-        window.add(&paned);
-        #[cfg(feature = "gtk4-rs")]
-        window.set_child(Some(&paned));
-
-        let scrolled_window1: ScrolledWindow = ScrolledWindowBuilder::new()
-            .propagate_natural_width(true)
-            .propagate_natural_height(true)
-            .build();
-        let mut gleise_maerklin: Gleise<Maerklin> =
-            Gleise::new_with_size(canvas::X(400.), canvas::Y(800.));
-        #[cfg(feature = "gtk-rs")]
-        {
-            gleise_maerklin.with_drawing_area(|drawing_area| scrolled_window1.add(drawing_area));
-            paned.add1(&scrolled_window1);
-        }
-        #[cfg(feature = "gtk4-rs")]
-        {
-            gleise_maerklin
-                .with_drawing_area(|drawing_area| scrolled_window1.set_child(Some(drawing_area)));
-            paned.set_start_child(&scrolled_window1);
-        }
-
-        let scrolled_window2: ScrolledWindow = ScrolledWindowBuilder::new()
-            .propagate_natural_width(true)
-            .propagate_natural_height(true)
-            .build();
-        let mut gleise_lego: Gleise<Lego> = Gleise::new_with_size(canvas::X(500.), canvas::Y(800.));
-        #[cfg(feature = "gtk-rs")]
-        {
-            gleise_lego.with_drawing_area(|drawing_area| scrolled_window2.add(drawing_area));
-            paned.add2(&scrolled_window2);
-        }
-        #[cfg(feature = "gtk4-rs")]
-        {
-            gleise_lego
-                .with_drawing_area(|drawing_area| scrolled_window2.set_child(Some(drawing_area)));
-            paned.set_end_child(&scrolled_window2);
-        }
-
-        #[cfg(feature = "gtk-rs")]
-        window.show_all();
-        #[cfg(feature = "gtk4-rs")]
-        window.show();
-
-        // Märklin-Gleise
-        let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
-        append_maerklin.append(maerklin::GERADE_5106);
-        append_maerklin.append(maerklin::KURVE_5100);
-        append_maerklin.append(maerklin::WEICHE_5202_LINKS);
-        append_maerklin.append(maerklin::DREIWEGE_WEICHE_5214);
-        append_maerklin.append(maerklin::KURVEN_WEICHE_5140_LINKS);
-        append_maerklin.append(maerklin::KREUZUNG_5207);
-
-        // Lego-Gleise
-        let mut append_lego = AppendGleise::new(&mut gleise_lego);
-        let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
-        let (kurve_lock, _kurve_anchor_points) = append_lego.append(lego::KURVE);
-        let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
-        let (kreuzung_lock, _kreuzung_anchor_points) = append_lego.append(lego::KREUZUNG);
-        append_lego.append(lego::KREUZUNG);
-        // relocate
-        if let Some(gleis_id) = &*gerade_lock.read() {
-            gleise_lego.relocate(
-                gleis_id,
-                Position {
-                    x: canvas::X(250.),
-                    y: canvas::Y(10.),
-                    winkel: AngleDegrees::new(90.).into(),
-                },
-            );
-        }
-        // attach
-        gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
-        // relocate-attach
-        if let Some(gleis_id) = &*kurve_lock.read() {
-            gleise_lego.relocate_attach(
-                gleis_id,
-                kurve::AnchorName::Ende,
-                weiche_anchor_points.kurve,
-            );
-        }
-        // remove
-        let kreuzung_lock_clone = kreuzung_lock.clone();
-        gleise_lego.remove(kreuzung_lock);
-        // assert!(kreuzung_lock.read().is_none());
-        assert!(kreuzung_lock_clone.read().is_none());
-    });
-
-    application.run(&[]);
+    Zugkontrolle::run(Settings { flags: (gleise_maerklin, gleise_lego), ..Settings::default() })
 }
