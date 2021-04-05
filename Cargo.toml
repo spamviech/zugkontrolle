@@ -26,4 +26,4 @@ features = ["derive"]
 
 [dependencies.iced]
 version = "0.3.0"
-features = ["canvas"]
+features = ["glow","glow_canvas"]
