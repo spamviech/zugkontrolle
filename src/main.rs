@@ -2,7 +2,9 @@
 
 use std::fmt::Debug;
 
-use iced::{executor, Application, Clipboard, Command, Container, Element, Length, Settings};
+use iced::{
+    executor, Application, Clipboard, Color, Command, Container, Element, Length, Settings,
+};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
@@ -39,6 +41,31 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
     }
 }
 
+struct PaneGridStyle;
+impl iced::pane_grid::StyleSheet for PaneGridStyle {
+    fn picked_split(&self) -> Option<iced::pane_grid::Line> {
+        Some(iced::pane_grid::Line { color: iced::Color::BLACK, width: 2.5 })
+    }
+    fn hovered_split(&self) -> Option<iced::pane_grid::Line> {
+        Some(iced::pane_grid::Line { color: iced::Color::BLACK, width: 2. })
+    }
+}
+
+struct ContainerStyle;
+impl iced::container::StyleSheet for ContainerStyle {
+    fn style(&self) -> iced::container::Style {
+        iced::container::Style {
+            border_color: iced::Color::BLACK,
+            border_width: 2.,
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Message {
+    Resized(iced::pane_grid::ResizeEvent),
+}
 enum AnyGleise {
     Maerklin(Gleise<Maerklin>),
     Lego(Gleise<Lego>),
@@ -50,7 +77,7 @@ struct Zugkontrolle {
 }
 impl Application for Zugkontrolle {
     type Executor = executor::Default;
-    type Message = ();
+    type Message = Message;
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
@@ -58,7 +85,7 @@ impl Application for Zugkontrolle {
             iced::pane_grid::State::new(AnyGleise::Maerklin(gleise_maerklin.clone()));
         pane_state
             .split(
-                iced::pane_grid::Axis::Horizontal,
+                iced::pane_grid::Axis::Vertical,
                 &pane_maerklin,
                 AnyGleise::Lego(gleise_lego.clone()),
             )
@@ -72,23 +99,37 @@ impl Application for Zugkontrolle {
 
     fn update(
         &mut self,
-        _message: Self::Message,
+        message: Self::Message,
         _clipboard: &mut Clipboard,
     ) -> Command<Self::Message> {
+        match message {
+            Message::Resized(iced::pane_grid::ResizeEvent { split, ratio }) => {
+                self.pane_state.resize(&split, ratio)
+            }
+        }
+
         Command::none()
     }
 
     fn view(&mut self) -> Element<Self::Message> {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
-            AnyGleise::Maerklin(gleise_maerklin) => iced::Canvas::new(gleise_maerklin)
-                .width(Length::Units(300))
-                .height(Length::Fill)
-                .into(),
-            AnyGleise::Lego(gleise_lego) => {
-                iced::Canvas::new(gleise_lego).width(Length::Units(300)).height(Length::Fill).into()
-            }
-        });
-        Container::new(paned_grid).width(Length::Fill).height(Length::Fill).padding(20).into()
+            AnyGleise::Maerklin(gleise_maerklin) => iced::Container::new(
+                iced::Canvas::new(gleise_maerklin).width(Length::Units(300)).height(Length::Fill),
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(ContainerStyle)
+            .into(),
+            AnyGleise::Lego(gleise_lego) => iced::Container::new(
+                iced::Canvas::new(gleise_lego).width(Length::Units(300)).height(Length::Fill),
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(ContainerStyle)
+            .into(),
+        })
+        .on_resize(0, Message::Resized);
+        Container::new(paned_grid).width(Length::Fill).height(Length::Fill).padding(10).into()
     }
 }
 

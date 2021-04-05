@@ -309,7 +309,7 @@ impl<Z: Zugtyp + Debug + Eq + Clone + 'static> Gleise<Z> {
         })))
     }
 }
-impl<Z: Debug + Zugtyp> iced::canvas::Program<()> for Gleise<Z> {
+impl<Z: Debug + Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
     fn draw(
         &self,
         bounds: iced::Rectangle,
