@@ -8,8 +8,10 @@
 
 use std::marker::PhantomData;
 
+use canvas::Transformation;
+
 use super::anchor;
-use super::gerade::Gerade;
+use super::gerade::{self, Gerade};
 use super::kurve::{self, Kurve};
 use super::types::*;
 
@@ -55,14 +57,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let size_kurve =
             Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.size();
         let height_beschraenkung = beschraenkung::<Z>();
-        let height_kurven = 2 * size_kurve.height.to_abstand() - height_beschraenkung;
+        let height_kurven = 2. * size_kurve.height.to_abstand() - height_beschraenkung;
         canvas::Size::new(
             canvas::X(0.) + self.length.to_abstand().max(&size_kurve.width.to_abstand()),
-            canvas::Y(0.) + height_beschraenkung.max(height_kurven),
+            canvas::Y(0.) + height_beschraenkung.max(&height_kurven),
         )
     }
 
-    fn zeichne(&self, path_builder: &mut canvas::PathBuilder) {
+    fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
         let size: canvas::Size = self.size();
         let width: canvas::X = size.width;
@@ -74,20 +76,28 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let gerade = Gerade { zugtyp: self.zugtyp, length: self.length };
         let angle = self.angle();
         let zeichne_kontur = |path_builder: &mut canvas::PathBuilder| {
-            path_builder.translate(start_x, start_y);
-            gerade.zeichne(path_builder);
+            gerade::zeichne::<Z>(path_builder, self.length);
             if self.variante == Variante::MitKurve {
                 kurve::zeichne::<Z>(path_builder, self.radius, angle, kurve::Beschraenkung::Keine);
             }
         };
         // horizontale Gerade + erste Kurve
-        path_builder.with_save(zeichne_kontur);
+        let horizontal_builder =
+            canvas::PathBuilder::new_with_transformations(vec![canvas::Transformation::Translate(
+                canvas::Vector::new(start_x, start_y),
+            )]);
+        zeichne_kontur(&mut horizontal_builder);
         // gedrehte Gerade + zweite Kurve
-        path_builder.translate(half_width, half_height);
-        path_builder.rotate(angle);
-        path_builder.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-        path_builder.translate(-half_width, -half_height);
-        zeichne_kontur(path_builder);
+        let gedreht_builder = canvas::PathBuilder::new_with_transformations(vec![
+            canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
+            canvas::Transformation::Rotate(angle),
+            // transformations with assumed inverted y-Axis
+            canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
+            canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
+        ]);
+        gedreht_builder.with_invert_y(|path_builder| zeichne_kontur(path_builder));
+        // return value
+        vec![horizontal_builder.build(), gedreht_builder.build()]
     }
 
     /*
@@ -154,11 +164,11 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     */
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let width: canvas::X = canvas::X(self.width() as f64);
+        let canvas::Size { width, height } = self.size();
         let anfang0_x: canvas::X = canvas::X(0.);
         let ende0_x: canvas::X = anfang0_x + self.length.to_abstand();
-        let half_height: canvas::Y = canvas::Y(0.5 * (self.height() as f64));
-        let radius_abstand: CanvasAbstand = self.radius.to_abstand();
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
+        let radius_abstand: canvas::Abstand = self.radius.to_abstand();
         let angle = self.angle();
         let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand * angle.sin();
         let anfang1_y: canvas::Y = half_height + radius_abstand * (1. - angle.cos());

@@ -55,16 +55,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         canvas::Size { width, height }
     }
 
-    fn zeichne(&self, path_builder: &mut canvas::PathBuilder) {
-        zeichne::<Z>(
-            &mut path_builder,
-            canvas::X(0.),
-            canvas::Y(0.),
-            1.,
-            self.radius,
-            self.angle.into(),
-            Beschraenkung::Alle,
-        )
+    fn zeichne(&self) -> Vec<canvas::Path> {
+        let path_builder = canvas::PathBuilder::new();
+        zeichne::<Z>(&mut path_builder, self.radius, self.angle.into(), Beschraenkung::Alle);
+        vec![path_builder.build()]
     }
 
     /*
