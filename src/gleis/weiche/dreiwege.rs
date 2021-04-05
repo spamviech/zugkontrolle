@@ -36,22 +36,20 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn width(&self) -> u64 {
+    fn size(&self) -> canvas::Size {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
-        let width_gerade = Gerade { zugtyp, length }.width();
-        let width_kurve = Kurve { zugtyp, radius, angle }.width();
-        width_gerade.max(width_kurve)
+        let size_gerade = Gerade { zugtyp, length }.size();
+        let size_kurve = Kurve { zugtyp, radius, angle }.size();
+        let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z>();
+        canvas::Size {
+            width: canvas::X(0.)
+                + size_gerade.width.to_abstand().max(&size_kurve.width.to_abstand()),
+            height: canvas::Y(0.) + size_gerade.height.to_abstand().max(&height_kurven),
+        }
     }
 
-    fn height(&self) -> u64 {
-        let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
-        let height_gerade = Gerade { zugtyp, length }.height();
-        let height_kurven =
-            2 * Kurve { zugtyp, radius, angle }.height() - beschraenkung::<Z>().pixel();
-        height_gerade.max(height_kurven)
-    }
-
-    fn zeichne(&self, cairo: &mut Cairo) {
+    fn zeichne(&self) -> Vec<canvas::Path> {
+        /*
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
         let half_width: canvas::X = canvas::X(0.5 * self.width() as f64);
         let half_height: canvas::Y = canvas::Y(0.5 * self.height() as f64);
@@ -67,18 +65,23 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         cairo.translate(-half_width, -half_height);
         cairo.translate(start_width, start_height);
         kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
+        */
+        println!("TODO DreiwegeWeiche");
+        vec![]
     }
 
+    /*
     fn fuelle(&self, cairo: &mut Cairo) {
         //TODO
         println!("TODO")
     }
+    */
 
     fn anchor_points(&self) -> AnchorPoints {
-        let height: canvas::Y = canvas::Y(self.height() as f64);
+        let height: canvas::Y = self.size().height;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
-        let length: CanvasAbstand = self.length.into();
-        let radius: CanvasAbstand = self.radius.into();
+        let length: canvas::Abstand = self.length.into();
+        let radius: canvas::Abstand = self.radius.into();
         let anfang_x: canvas::X = canvas::X(0.);
         AnchorPoints {
             anfang: anchor::Point {

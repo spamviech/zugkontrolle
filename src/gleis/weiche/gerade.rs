@@ -6,7 +6,6 @@
 // (nightly crashes atm on Sized-check)
 // https://github.com/rust-lang/rust/issues/55467
 
-use std::f64::consts::PI;
 use std::marker::PhantomData;
 
 use crate::gleis::anchor;
@@ -54,7 +53,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        let Weiche { zugtyp, length, radius, angle, direction } = *self;
+        let Weiche { zugtyp: _, length, radius, angle, direction } = *self;
         let transformations = if direction == Richtung::Links {
             vec![canvas::Transformation::Translate(canvas::Vector::new(
                 canvas::X(0.),
@@ -63,7 +62,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         } else {
             Vec::new()
         };
-        let path_builder = canvas::PathBuilder::new_with_transformations(transformations);
+        let mut path_builder = canvas::PathBuilder::new_with_transformations(transformations);
         if direction == Richtung::Links {
             path_builder.with_invert_y(|builder| {
                 gerade::zeichne::<Z>(builder, length);

@@ -2,21 +2,7 @@
 
 use std::fmt::Debug;
 
-use gio::prelude::*;
-#[cfg(feature = "gtk-rs")]
-use gtk::prelude::*;
-#[cfg(feature = "gtk-rs")]
-use gtk::{
-    Application, ApplicationWindow, Orientation, Paned, PanedBuilder, ScrolledWindow,
-    ScrolledWindowBuilder,
-};
-#[cfg(feature = "gtk4-rs")]
-use gtk4::prelude::*;
-#[cfg(feature = "gtk4-rs")]
-use gtk4::{
-    Application, ApplicationWindow, Orientation, Paned, PanedBuilder, ScrolledWindow,
-    ScrolledWindowBuilder,
-};
+use iced;
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
@@ -42,9 +28,9 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let x: canvas::X =
-            canvas::X(200.) - 0.5 * canvas::X(definition.width() as f64).to_abstand();
-        let height: CanvasAbstand = canvas::Y(definition.height() as f64).into();
+        let size: canvas::Size = definition.size();
+        let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
+        let height: canvas::Abstand = size.height.into();
         let res = self
             .gleise
             .add(Gleis { definition, position: Position { x, y: self.y, winkel: Angle::new(0.) } });

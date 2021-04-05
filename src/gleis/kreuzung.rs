@@ -8,10 +8,8 @@
 
 use std::marker::PhantomData;
 
-use canvas::Transformation;
-
 use super::anchor;
-use super::gerade::{self, Gerade};
+use super::gerade::{self};
 use super::kurve::{self, Kurve};
 use super::types::*;
 
@@ -73,7 +71,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let height: canvas::Y = size.height;
         let half_height: canvas::Y = canvas::Y(0.5 * height.0);
         let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
-        let gerade = Gerade { zugtyp: self.zugtyp, length: self.length };
         let angle = self.angle();
         let zeichne_kontur = |path_builder: &mut canvas::PathBuilder| {
             gerade::zeichne::<Z>(path_builder, self.length);
@@ -82,13 +79,13 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             }
         };
         // horizontale Gerade + erste Kurve
-        let horizontal_builder =
+        let mut horizontal_builder =
             canvas::PathBuilder::new_with_transformations(vec![canvas::Transformation::Translate(
                 canvas::Vector::new(start_x, start_y),
             )]);
         zeichne_kontur(&mut horizontal_builder);
         // gedrehte Gerade + zweite Kurve
-        let gedreht_builder = canvas::PathBuilder::new_with_transformations(vec![
+        let mut gedreht_builder = canvas::PathBuilder::new_with_transformations(vec![
             canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
             canvas::Transformation::Rotate(angle),
             // transformations with assumed inverted y-Axis

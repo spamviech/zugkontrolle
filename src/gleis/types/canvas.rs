@@ -257,7 +257,7 @@ pub trait ToAbstand: Into<Abstand> {
 impl<T: Into<Abstand>> ToAbstand for T {}
 
 /// Coordinate type safe variant of /iced::Point/
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Point {
     pub x: X,
     pub y: Y,
@@ -279,7 +279,7 @@ impl From<anchor::Position> for Point {
 }
 
 /// Coordinate type safe variant of /iced::Size/
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Size {
     pub width: X,
     pub height: Y,
@@ -296,7 +296,7 @@ impl From<Size> for iced::Size<f32> {
 }
 
 /// Coordinate type safe variant of /iced::Vector/
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vector {
     pub dx: X,
     pub dy: Y,
@@ -348,12 +348,12 @@ impl Add<Point> for Vector {
 }
 
 /// Coordinate type safe variant of /iced::widget::canvas::path::Arc/
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Arc {
-    center: Point,
-    radius: Radius,
-    start: Angle,
-    end: Angle,
+    pub center: Point,
+    pub radius: Radius,
+    pub start: Angle,
+    pub end: Angle,
 }
 impl Arc {
     pub fn new(center: Point, radius: Radius, start: Angle, end: Angle) -> Self {
@@ -473,7 +473,7 @@ impl PathBuilder {
     /// Otherwise, strike a direct line from the current point to the start of the arc.
     pub fn arc_to(&mut self, a: Point, b: Point, radius: Radius, new_sub_path: bool) {
         if new_sub_path {
-            self.move_to(a)
+            self.move_to(a.clone())
         }
         self.builder.arc_to(
             self.invert_point_axis(a).into(),
@@ -528,7 +528,7 @@ impl<'t> Frame<'t> {
             for transformation in transformations {
                 frame.transformation(transformation)
             }
-            self.0.fill(path, fill)
+            frame.0.fill(path, fill)
         })
     }
 
@@ -547,11 +547,11 @@ impl<'t> Frame<'t> {
     }
 
     /// Wende die übergebene Transformation auf den Frame an.
-    pub fn transformation(&mut self, &transformation: &Transformation) {
+    pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
-            Transformation::Translate(vector) => self.0.translate(vector.into()),
+            Transformation::Translate(vector) => self.0.translate((*vector).into()),
             Transformation::Rotate(angle) => self.0.rotate(angle.0),
-            Transformation::Scale(scale) => self.0.scale(scale),
+            Transformation::Scale(scale) => self.0.scale(*scale),
         }
     }
 }

@@ -37,7 +37,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        let path_builder = canvas::PathBuilder::new();
+        let mut path_builder = canvas::PathBuilder::new();
         zeichne::<Z>(&mut path_builder, self.length);
         vec![path_builder.build()]
     }

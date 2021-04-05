@@ -246,7 +246,7 @@ fn zeichne_alle_gleise<T, F>(
             // erzeuge Pfade
             let paths = definition.zeichne();
             // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
-            for path in paths {
+            for path in paths.iter() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
                     frame.fill(
@@ -259,33 +259,30 @@ fn zeichne_alle_gleise<T, F>(
                 });
             }
             // zeichne Gleis
-            for path in paths {
+            for path in paths.iter() {
                 frame.with_save(|frame| {
                     frame.stroke(&path, canvas::Stroke::default());
                 });
             }
             // zeichne anchor points
-            for path in paths {
-                frame.with_save(|frame| {
-                    definition.anchor_points().foreach(|&anchor| {
-                        let color = if has_other_id_at_point(
-                            gleis_id.as_any(),
-                            position.transformation(anchor.position),
-                        ) {
-                            canvas::Color { r: 0., g: 1., b: 0., a: 1. }
-                        } else {
-                            canvas::Color { r: 0., g: 0., b: 1., a: 1. }
-                        };
-                        let path_builder = canvas::PathBuilder::new();
-                        path_builder.move_to(anchor.position.into());
-                        path_builder.line_to(
-                            canvas::Point::from(anchor.position) + anchor.direction.into(),
-                        );
-                        let path = path_builder.build();
-                        frame.stroke(&path, canvas::Stroke { color, ..canvas::Stroke::default() });
-                    })
-                });
-            }
+            frame.with_save(|frame| {
+                definition.anchor_points().foreach(|&anchor| {
+                    let color = if has_other_id_at_point(
+                        gleis_id.as_any(),
+                        position.transformation(anchor.position),
+                    ) {
+                        canvas::Color { r: 0., g: 1., b: 0., a: 1. }
+                    } else {
+                        canvas::Color { r: 0., g: 0., b: 1., a: 1. }
+                    };
+                    let mut path_builder = canvas::PathBuilder::new();
+                    path_builder.move_to(anchor.position.into());
+                    path_builder
+                        .line_to(canvas::Point::from(anchor.position) + anchor.direction.into());
+                    let path = path_builder.build();
+                    frame.stroke(&path, canvas::Stroke { color, ..canvas::Stroke::default() });
+                })
+            });
         });
     }
 }
@@ -330,7 +327,7 @@ impl<Z: Debug + Zugtyp> iced::canvas::Program<()> for Gleise<Z> {
             // Zeichne Gleise
             let has_other_id_at_point =
                 |gleis_id, position| anchor_points.has_other_id_at_point(&gleis_id, &position);
-            let boxed_frame = canvas::Frame::new(frame);
+            let mut boxed_frame = canvas::Frame::new(frame);
             zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, geraden);
             zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kurven);
             zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, weichen);
