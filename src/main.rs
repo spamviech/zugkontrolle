@@ -39,7 +39,12 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
     }
 }
 
+enum AnyGleise {
+    Maerklin(Gleise<Maerklin>),
+    Lego(Gleise<Lego>),
+}
 struct Zugkontrolle {
+    pane_state: iced::pane_grid::State<AnyGleise>,
     gleise_maerklin: Gleise<Maerklin>,
     gleise_lego: Gleise<Lego>,
 }
@@ -49,7 +54,16 @@ impl Application for Zugkontrolle {
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
-        (Zugkontrolle { gleise_maerklin, gleise_lego }, Command::none())
+        let (mut pane_state, pane_maerklin) =
+            iced::pane_grid::State::new(AnyGleise::Maerklin(gleise_maerklin.clone()));
+        pane_state
+            .split(
+                iced::pane_grid::Axis::Horizontal,
+                &pane_maerklin,
+                AnyGleise::Lego(gleise_lego.clone()),
+            )
+            .expect("Failed to split pane!");
+        (Zugkontrolle { pane_state, gleise_maerklin, gleise_lego }, Command::none())
     }
 
     fn title(&self) -> String {
@@ -65,36 +79,25 @@ impl Application for Zugkontrolle {
     }
 
     fn view(&mut self) -> Element<Self::Message> {
-        let canvas_maerklin = Container::new(
-            iced::Canvas::new(self.gleise_maerklin).width(Length::Fill).height(Length::Fill),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill);
-        let canvas_lego = Container::new(
-            iced::Canvas::new(self.gleise_lego).width(Length::Fill).height(Length::Fill),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill);
-        let (pane_state, pane_maerklin) = iced::pane_grid::State::new(canvas_maerklin);
-        match pane_state.split(iced::pane_grid::Axis::Horizontal, &pane_maerklin, canvas_lego) {
-            Some(_) => {}
-            None => panic!("Failed to split pane!"),
-        }
-        let paned_grid = iced::PaneGrid::new(&mut pane_state, |pane, content| {
-            iced::pane_grid::Content::new(content)
+        let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
+            AnyGleise::Maerklin(gleise_maerklin) => iced::Canvas::new(gleise_maerklin)
+                .width(Length::Units(300))
+                .height(Length::Fill)
+                .into(),
+            AnyGleise::Lego(gleise_lego) => {
+                iced::Canvas::new(gleise_lego).width(Length::Units(300)).height(Length::Fill).into()
+            }
         });
-        Container::new(paned_grid)
-            .width(Length::Units(600))
-            .height(Length::Units(800))
-            .padding(20)
-            .center_x()
-            .center_y()
-            .into()
+        Container::new(paned_grid).width(Length::Fill).height(Length::Fill).padding(20).into()
     }
 }
 
 fn main() -> iced::Result {
-    SimpleLogger::new().init().expect("failed to initialize error logging");
+    SimpleLogger::new()
+        .with_level(log::LevelFilter::Off)
+        .with_module_level("zugkontrolle", log::LevelFilter::Debug)
+        .init()
+        .expect("failed to initialize error logging");
 
     // Märklin-Gleise
     let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();
