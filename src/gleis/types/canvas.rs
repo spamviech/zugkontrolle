@@ -490,7 +490,7 @@ impl PathBuilder {
     /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y)
     ///
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
-    pub fn with_invert_x(&mut self, action: impl FnOnce(&mut Self)) {
+    pub fn with_invert_x(&mut self, action: impl for<'s> FnOnce(&'s mut Self)) {
         self.invert_x = !self.invert_x;
         action(self);
         self.invert_x = !self.invert_x;
@@ -499,7 +499,7 @@ impl PathBuilder {
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
     ///
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
-    pub fn with_invert_y(&mut self, action: impl FnOnce(&mut Self)) {
+    pub fn with_invert_y(&mut self, action: impl for<'s> FnOnce(&'s mut Self)) {
         self.invert_y = !self.invert_y;
         action(self);
         self.invert_y = !self.invert_y;

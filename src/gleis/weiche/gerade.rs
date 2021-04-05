@@ -10,7 +10,7 @@ use std::f64::consts::PI;
 use std::marker::PhantomData;
 
 use crate::gleis::anchor;
-use crate::gleis::gerade::Gerade;
+use crate::gleis::gerade::{self, Gerade};
 use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
 
@@ -42,32 +42,46 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn width(&self) -> u64 {
+    fn size(&self) -> canvas::Size {
         let Weiche { zugtyp, length, radius, angle, direction: _ } = *self;
-        let width_gerade = Gerade { zugtyp, length }.width();
-        let width_kurve = Kurve { zugtyp, radius, angle }.width();
-        width_gerade.max(width_kurve)
-    }
-
-    fn height(&self) -> u64 {
-        let Weiche { zugtyp, length: _, radius, angle, direction: _ } = *self;
-        Kurve { zugtyp, radius, angle }.height()
-    }
-
-    fn zeichne(&self, cairo: &mut Cairo) {
-        let Weiche { zugtyp, length, radius, angle, direction } = *self;
-        if direction == Richtung::Links {
-            // spiegel y-Achse in der Mitte
-            let x = canvas::X(0.);
-            let half_height = canvas::Y(0.5 * (self.height() as f64));
-            cairo.translate(x, half_height);
-            cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-            cairo.translate(-x, -half_height);
+        let gerade_size = Gerade { zugtyp, length }.size();
+        let kurve_size = Kurve { zugtyp, radius, angle }.size();
+        canvas::Size {
+            width: canvas::X(0.)
+                + gerade_size.width.to_abstand().max(&kurve_size.width.to_abstand()),
+            height: kurve_size.height,
         }
-        Gerade { zugtyp, length }.zeichne(cairo);
-        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
     }
 
+    fn zeichne(&self) -> Vec<canvas::Path> {
+        let Weiche { zugtyp, length, radius, angle, direction } = *self;
+        let transformations = if direction == Richtung::Links {
+            vec![canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                self.size().height,
+            ))]
+        } else {
+            Vec::new()
+        };
+        let path_builder = canvas::PathBuilder::new_with_transformations(transformations);
+        if direction == Richtung::Links {
+            path_builder.with_invert_y(|builder| {
+                gerade::zeichne::<Z>(builder, length);
+                kurve::zeichne::<Z>(builder, radius, angle.into(), kurve::Beschraenkung::Ende);
+            });
+        } else {
+            gerade::zeichne::<Z>(&mut path_builder, length);
+            kurve::zeichne::<Z>(
+                &mut path_builder,
+                radius,
+                angle.into(),
+                kurve::Beschraenkung::Ende,
+            );
+        }
+        vec![path_builder.build()]
+    }
+
+    /*
     fn fuelle(&self, cairo: &mut Cairo) {
         let Weiche { zugtyp: _, length, radius, angle, direction } = *self;
         if direction == Richtung::Links {
@@ -118,17 +132,18 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         );
         cairo.close_path();
     }
+    */
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: canvas::Y;
-        let multiplier: f64;
+        let multiplier: f32;
         match self.direction {
             Richtung::Rechts => {
                 start_height = canvas::Y(0.);
                 multiplier = 1.;
             }
             Richtung::Links => {
-                start_height = canvas::Y(self.height() as f64);
+                start_height = self.size().height;
                 multiplier = -1.;
             }
         };

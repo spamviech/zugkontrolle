@@ -31,10 +31,10 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
     Kreis-Radius (halber Kreis, Außen bis Kreismittelpunkt): ca. 44 Noppen / 35 cm
 Lego Spurweite: 38mm
 */
-const LENGTH_VALUE: f64 = 128.;
+const LENGTH_VALUE: f32 = 128.;
 const LENGTH: Length = Length::new(LENGTH_VALUE);
 const RADIUS: Radius = Radius::new(320.);
-const ANGLE_VALUE: f64 = 22.5;
+const ANGLE_VALUE: f32 = 22.5;
 const ZUGTYP: PhantomData<*const Lego> = PhantomData;
 
 pub const GERADE: Gerade<Lego> = Gerade { zugtyp: ZUGTYP, length: LENGTH };
