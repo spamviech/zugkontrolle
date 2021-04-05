@@ -2,9 +2,7 @@
 
 use std::fmt::Debug;
 
-use iced::{
-    executor, Application, Clipboard, Color, Command, Container, Element, Length, Settings,
-};
+use iced::{Application, Clipboard, Command, Container, Element, Length, Settings};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
@@ -41,23 +39,23 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
     }
 }
 
-struct PaneGridStyle;
-impl iced::pane_grid::StyleSheet for PaneGridStyle {
-    fn picked_split(&self) -> Option<iced::pane_grid::Line> {
-        Some(iced::pane_grid::Line { color: iced::Color::BLACK, width: 2.5 })
+mod background {
+    pub(crate) struct White;
+    impl iced::container::StyleSheet for White {
+        fn style(&self) -> iced::container::Style {
+            iced::container::Style {
+                background: Some(iced::Background::Color(iced::Color::WHITE)),
+                ..Default::default()
+            }
+        }
     }
-    fn hovered_split(&self) -> Option<iced::pane_grid::Line> {
-        Some(iced::pane_grid::Line { color: iced::Color::BLACK, width: 2. })
-    }
-}
-
-struct ContainerStyle;
-impl iced::container::StyleSheet for ContainerStyle {
-    fn style(&self) -> iced::container::Style {
-        iced::container::Style {
-            border_color: iced::Color::BLACK,
-            border_width: 2.,
-            ..Default::default()
+    pub(crate) struct Black;
+    impl iced::container::StyleSheet for Black {
+        fn style(&self) -> iced::container::Style {
+            iced::container::Style {
+                background: Some(iced::Background::Color(iced::Color::BLACK)),
+                ..Default::default()
+            }
         }
     }
 }
@@ -76,7 +74,7 @@ struct Zugkontrolle {
     gleise_lego: Gleise<Lego>,
 }
 impl Application for Zugkontrolle {
-    type Executor = executor::Default;
+    type Executor = iced::executor::Default;
     type Message = Message;
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
 
@@ -113,23 +111,35 @@ impl Application for Zugkontrolle {
 
     fn view(&mut self) -> Element<Self::Message> {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
-            AnyGleise::Maerklin(gleise_maerklin) => iced::Container::new(
+            AnyGleise::Maerklin(gleise_maerklin) => Container::new(
                 iced::Canvas::new(gleise_maerklin).width(Length::Units(300)).height(Length::Fill),
             )
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(ContainerStyle)
+            .style(background::White)
             .into(),
-            AnyGleise::Lego(gleise_lego) => iced::Container::new(
+            AnyGleise::Lego(gleise_lego) => Container::new(
                 iced::Canvas::new(gleise_lego).width(Length::Units(300)).height(Length::Fill),
             )
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(ContainerStyle)
+            .style(background::White)
             .into(),
         })
+        .spacing(1)
         .on_resize(0, Message::Resized);
-        Container::new(paned_grid).width(Length::Fill).height(Length::Fill).padding(10).into()
+        Container::new(
+            Container::new(paned_grid)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(background::Black)
+                .padding(1),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(background::White)
+        .padding(10)
+        .into()
     }
 }
 
