@@ -346,6 +346,34 @@ impl Add<Point> for Vector {
         Point { x: self.dx + other.x.to_abstand(), y: self.dy + other.y.to_abstand() }
     }
 }
+// scale with f32
+impl Mul<Vector> for f32 {
+    type Output = Vector;
+    fn mul(self, other: Vector) -> Self::Output {
+        Vector {
+            dx: X(0.) + self * other.dx.to_abstand(),
+            dy: Y(0.) + self * other.dy.to_abstand(),
+        }
+    }
+}
+impl Mul<f32> for Vector {
+    type Output = Vector;
+    fn mul(self, other: f32) -> Self::Output {
+        Vector {
+            dx: X(0.) + self.dx.to_abstand() * other,
+            dy: Y(0.) + self.dy.to_abstand() * other,
+        }
+    }
+}
+impl Div<f32> for Vector {
+    type Output = Vector;
+    fn div(self, other: f32) -> Self::Output {
+        Vector {
+            dx: X(0.) + self.dx.to_abstand() / other,
+            dy: Y(0.) + self.dy.to_abstand() / other,
+        }
+    }
+}
 
 /// Coordinate type safe variant of /iced::widget::canvas::path::Arc/
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -447,17 +475,6 @@ impl From<Arc> for Inverted<Arc, Y> {
         )
     }
 }
-
-/// One action supported by the PathBuilder
-enum PathPiece<P, A> {
-    MoveTo(P),
-    LineTo(P),
-    Arc(A),
-    ArcTo { from: P, to: P, radius: Radius },
-    Close,
-    WithInvertX(Vec<PathPiece<Inverted<P, X>, Inverted<A, X>>>),
-    WithInvertY(Vec<PathPiece<Inverted<P, Y>, Inverted<A, Y>>>),
-}
 /// newtype auf einem /iced::widget::canvas::path::Builder/
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
@@ -490,24 +507,22 @@ impl PathBuilder {
         Path { path: self.builder.build(), transformations: self.transformations }
     }
 
-    fn invert_point_axis(&self, Point { x, y }: Point) -> Inverted<Point, X> {
+    fn invert_point_axis(&self, point: Point) -> Inverted<Point, ()> {
+        let point_invert_x =
+            if self.invert_x { Inverted::<Point, X>::from(point).0 } else { point };
         Inverted(
-            Point { x: if self.invert_x { -x } else { x }, y: if self.invert_y { -y } else { y } },
+            if self.invert_y {
+                Inverted::<Point, Y>::from(point_invert_x).0
+            } else {
+                point_invert_x
+            },
             PhantomData,
         )
     }
-    fn invert_angle_axis(&self, angle: Angle) -> Inverted<Angle, X> {
-        let inverted_x = if self.invert_x { Angle::new(PI) - angle } else { angle };
-        Inverted(if self.invert_y { -inverted_x } else { inverted_x }, PhantomData)
-    }
-    fn invert_arc_axis(&self, Arc { center, radius, start, end }: Arc) -> Inverted<Arc, X> {
+    fn invert_arc_axis(&self, arc: Arc) -> Inverted<Arc, ()> {
+        let arc_invert_x = if self.invert_x { Inverted::<Arc, X>::from(arc).0 } else { arc };
         Inverted(
-            Arc {
-                center: self.invert_point_axis(center).0,
-                radius,
-                start: self.invert_angle_axis(start).0,
-                end: self.invert_angle_axis(end).0,
-            },
+            if self.invert_y { Inverted::<Arc, Y>::from(arc_invert_x).0 } else { arc_invert_x },
             PhantomData,
         )
     }
@@ -534,6 +549,9 @@ impl PathBuilder {
         self.builder.arc(self.invert_arc_axis(arc).into())
     }
 
+    /*
+    // TODO Funktioniert nicht mit invert_x :(
+    // iced-github-Issue öffnen, die verwendete Bibliothek scheint eine Flag zu unterstützen
     /// Strike an arc from /a/ to /b/ with given radius (clockwise).
     ///
     /// If /move_to/ is /true/ start a new subgraph before the arc.
@@ -548,6 +566,7 @@ impl PathBuilder {
             radius.0,
         )
     }
+    */
 
     /// strike a direct line from the current point to the start of the last subpath
     pub fn close(&mut self) {
@@ -626,396 +645,3 @@ impl<'t> Frame<'t> {
         }
     }
 }
-
-/*
-///////////////////////////////////////////////////////////////////////////
-// old gtk/cairo based implementation
-
-/// newtype auf einen cairo-Context
-///
-/// Only implements the methods I need, might add others later.
-/// All methods only work with corresponding Canvas..-Types
-#[derive(Debug)]
-pub struct Cairo<'t>(&'t Context);
-
-impl<'t> Cairo<'t> {
-    pub fn new(c: &'t Context) -> Cairo<'t> {
-        Cairo(c)
-    }
-
-    pub fn move_to(&mut self, x: canvas::X, y: canvas::Y) {
-        self.0.move_to(x.0, y.0)
-    }
-    pub fn rel_move_to(&mut self, dx: canvas::X, dy: canvas::Y) {
-        self.0.rel_move_to(dx.0, dy.0)
-    }
-
-    pub fn line_to(&mut self, x: canvas::X, y: canvas::Y) {
-        self.0.line_to(x.0, y.0)
-    }
-    pub fn rel_line_to(&mut self, dx: canvas::X, dy: canvas::Y) {
-        self.0.rel_line_to(dx.0, dy.0)
-    }
-
-    /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (clockwise).
-    ///
-    /// If /move_to/ is /true/ start a new subgraph, this way the method
-    /// doesn't strike a direct line from the current point to the start of the arc.
-    pub fn arc(
-        &mut self,
-        xc: canvas::X,
-        yc: canvas::Y,
-        radius: canvas::Radius,
-        angle1: Angle,
-        angle2: Angle,
-        new_sub_path: bool,
-    ) {
-        if new_sub_path {
-            self.new_sub_path()
-        }
-        self.0.arc(xc.0, yc.0, radius.0, angle1.0 as f64, angle2.0 as f64)
-    }
-
-    /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (counterclockwise).
-    ///
-    /// If /move_to/ is /true/ start a new subgraph, this way the method
-    /// doesn't strike a direct line from the current point to the start of the arc!
-    pub fn arc_negative(
-        &mut self,
-        xc: canvas::X,
-        yc: canvas::Y,
-        radius: canvas::Radius,
-        angle1: Angle,
-        angle2: Angle,
-        new_sub_path: bool,
-    ) {
-        if new_sub_path {
-            self.new_sub_path()
-        }
-        self.0.arc_negative(xc.0, yc.0, radius.0, angle1.0 as f64, angle2.0 as f64)
-    }
-
-    pub fn new_path(&mut self) {
-        self.0.new_path()
-    }
-
-    pub fn new_sub_path(&mut self) {
-        self.0.new_sub_path()
-    }
-
-    pub fn close_path(&mut self) {
-        self.0.close_path()
-    }
-
-    pub fn stroke(&mut self) {
-        self.0.stroke()
-    }
-
-    pub fn stroke_preserve(&mut self) {
-        self.0.stroke_preserve()
-    }
-
-    pub fn fill(&mut self) {
-        self.0.fill()
-    }
-
-    pub fn fill_preserve(&mut self) {
-        self.0.fill_preserve()
-    }
-
-    /// perform a /save/ before and a /restore/ after action
-    pub fn with_save_restore<F: FnOnce(&mut Self)>(&mut self, action: F) {
-        self.0.save().expect("Error in cairo::Context::save");
-        action(self);
-        self.0.restore().expect("Error in cairo::Context::restore");
-    }
-
-    pub fn translate(&mut self, tx: canvas::X, ty: canvas::Y) {
-        self.0.translate(tx.0, ty.0)
-    }
-
-    pub fn rotate(&mut self, angle: Angle) {
-        self.0.rotate(angle.0 as f64)
-    }
-
-    pub fn transform(&mut self, matrix: Matrix) {
-        self.0.transform(matrix)
-    }
-
-    pub fn set_source_rgb(&mut self, red: f64, green: f64, blue: f64) {
-        self.0.set_source_rgb(red, green, blue)
-    }
-    pub fn set_source_rgba(&mut self, red: f64, green: f64, blue: f64, alpha: f64) {
-        self.0.set_source_rgba(red, green, blue, alpha)
-    }
-}
-
-pub trait ZeichnenCairo
-where
-    Self::AnchorPoints: anchor::Lookup<Self::AnchorName>,
-{
-    /// Maximale Breite
-    fn width(&self) -> u64;
-
-    /// Maximale Höhe
-    fn height(&self) -> u64;
-
-    /// Erzeuge den Pfad für Darstellung der Linien.
-    ///
-    /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
-    /// /cairo.stroke()/ wird nachfolgend aufgerufen.
-    fn zeichne(&self, cairo: &mut Cairo);
-
-    /// Erzeuge einen Pfad zum Einfärben für Darstellung des Streckenabschnittes.
-    ///
-    /// Der Kontext wurde bereits für eine Darstellung in korrekter Position transformiert.
-    /// /cairo.fill()/ wird nachfolgend aufgerufen.
-    fn fuelle(&self, cairo: &mut Cairo);
-
-    /// Identifier for AnchorPoints.
-    /// An enum is advised, but others work as well.
-    ///
-    /// Since they are used as keys in an HashMap, Hash+Eq must be implemented (derived).
-    type AnchorName;
-    /// Storage Type for AnchorPoints, should implement /AnchorLookup<Self::AnchorName>/.
-    type AnchorPoints;
-    /// AnchorPoints (Anschluss-Möglichkeiten für andere Gleise).
-    ///
-    /// Position ausgehend von zeichnen bei (0,0),
-    /// Richtung nach außen zeigend.
-    fn anchor_points(&self) -> Self::AnchorPoints;
-}
-
-/// Horizontale Koordinate auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct canvas::X(pub f64);
-impl Add<CanvasAbstand> for canvas::X {
-    type Output = canvas::X;
-
-    fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> canvas::X {
-        canvas::X(self.0 + rhs)
-    }
-}
-impl AddAssign<CanvasAbstand> for canvas::X {
-    fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 += rhs
-    }
-}
-impl Sub<CanvasAbstand> for canvas::X {
-    type Output = Self;
-
-    fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        canvas::X(self.0 - rhs)
-    }
-}
-impl SubAssign<CanvasAbstand> for canvas::X {
-    fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 -= rhs
-    }
-}
-impl Neg for canvas::X {
-    type Output = canvas::X;
-
-    fn neg(self) -> Self {
-        canvas::X(-self.0)
-    }
-}
-/// Vertikale Koordinate auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct canvas::Y(pub f64);
-impl Add<CanvasAbstand> for canvas::Y {
-    type Output = Self;
-
-    fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        canvas::Y(self.0 + rhs)
-    }
-}
-impl AddAssign<CanvasAbstand> for canvas::Y {
-    fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 += rhs
-    }
-}
-impl Sub<CanvasAbstand> for canvas::Y {
-    type Output = Self;
-
-    fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        canvas::Y(self.0 - rhs)
-    }
-}
-impl SubAssign<CanvasAbstand> for canvas::Y {
-    fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 -= rhs
-    }
-}
-impl Neg for canvas::Y {
-    type Output = canvas::Y;
-
-    fn neg(self) -> Self {
-        canvas::Y(-self.0)
-    }
-}
-/// Radius auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct canvas::Radius(pub f64);
-impl Add<CanvasAbstand> for canvas::Radius {
-    type Output = Self;
-
-    fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        canvas::Radius(self.0 + rhs)
-    }
-}
-impl AddAssign<CanvasAbstand> for canvas::Radius {
-    fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 += rhs
-    }
-}
-impl Sub<CanvasAbstand> for canvas::Radius {
-    type Output = Self;
-
-    fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        canvas::Radius(self.0 - rhs)
-    }
-}
-impl SubAssign<CanvasAbstand> for canvas::Radius {
-    fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 -= rhs
-    }
-}
-/// Abstand/Länge auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct CanvasAbstand(f64);
-impl CanvasAbstand {
-    const fn new_from_mm(abstand_mm: f64) -> CanvasAbstand {
-        CanvasAbstand(abstand_mm)
-    }
-
-    pub fn max(&self, other: &CanvasAbstand) -> CanvasAbstand {
-        CanvasAbstand(self.0.max(other.0))
-    }
-
-    /// Anzahl benötigter Pixel um den CanvasAbstand darstellen zu können
-    pub fn pixel(&self) -> u64 {
-        self.0.ceil() as u64
-    }
-}
-// with Self
-impl Add<CanvasAbstand> for CanvasAbstand {
-    type Output = Self;
-
-    fn add(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasAbstand(self.0 + rhs)
-    }
-}
-impl AddAssign<CanvasAbstand> for CanvasAbstand {
-    fn add_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 += rhs
-    }
-}
-impl Sub<CanvasAbstand> for CanvasAbstand {
-    type Output = Self;
-
-    fn sub(self, CanvasAbstand(rhs): CanvasAbstand) -> Self {
-        CanvasAbstand(self.0 - rhs)
-    }
-}
-impl SubAssign<CanvasAbstand> for CanvasAbstand {
-    fn sub_assign(&mut self, CanvasAbstand(rhs): CanvasAbstand) {
-        self.0 -= rhs
-    }
-}
-// get ratio
-impl Div<CanvasAbstand> for CanvasAbstand {
-    type Output = f64;
-    fn div(self, rhs: Self) -> Self::Output {
-        self.0 / rhs.0
-    }
-}
-// with canvas::X
-impl From<canvas::X> for CanvasAbstand {
-    fn from(canvas::X(input): canvas::X) -> Self {
-        CanvasAbstand(input)
-    }
-}
-impl Add<canvas::X> for CanvasAbstand {
-    type Output = canvas::X;
-
-    fn add(self, canvas::X(rhs): canvas::X) -> canvas::X {
-        canvas::X(self.0 + rhs)
-    }
-}
-// with canvas::Y
-impl From<canvas::Y> for CanvasAbstand {
-    fn from(canvas::Y(input): canvas::Y) -> Self {
-        CanvasAbstand(input)
-    }
-}
-impl Add<canvas::Y> for CanvasAbstand {
-    type Output = canvas::Y;
-
-    fn add(self, canvas::Y(rhs): canvas::Y) -> canvas::Y {
-        canvas::Y(self.0 + rhs)
-    }
-}
-// with canvas::Radius
-impl From<canvas::Radius> for CanvasAbstand {
-    fn from(canvas::Radius(input): canvas::Radius) -> Self {
-        CanvasAbstand(input)
-    }
-}
-impl Add<canvas::Radius> for CanvasAbstand {
-    type Output = canvas::Radius;
-
-    fn add(self, canvas::Radius(rhs): canvas::Radius) -> canvas::Radius {
-        canvas::Radius(self.0 + rhs)
-    }
-}
-// scale with f64
-impl Mul<f64> for CanvasAbstand {
-    type Output = CanvasAbstand;
-
-    fn mul(self, rhs: f64) -> CanvasAbstand {
-        CanvasAbstand(self.0 * rhs)
-    }
-}
-impl Mul<CanvasAbstand> for f64 {
-    type Output = CanvasAbstand;
-
-    fn mul(self, CanvasAbstand(rhs): CanvasAbstand) -> CanvasAbstand {
-        CanvasAbstand(self * rhs)
-    }
-}
-impl MulAssign<f64> for CanvasAbstand {
-    fn mul_assign(&mut self, rhs: f64) {
-        self.0 *= rhs
-    }
-}
-impl Div<f64> for CanvasAbstand {
-    type Output = CanvasAbstand;
-
-    fn div(self, rhs: f64) -> CanvasAbstand {
-        CanvasAbstand(self.0 / rhs)
-    }
-}
-impl DivAssign<f64> for CanvasAbstand {
-    fn div_assign(&mut self, rhs: f64) {
-        self.0 /= rhs
-    }
-}
-/// Umrechnung von mm-Größen auf Canvas-Koordinaten
-/// Verwenden dieser Funktion um evtl. in der Zukunft einen Faktor zu erlauben
-impl From<super::Spurweite> for CanvasAbstand {
-    fn from(super::Spurweite(spurweite): super::Spurweite) -> CanvasAbstand {
-        CanvasAbstand::new_from_mm(spurweite as f64)
-    }
-}
-impl From<super::Length> for CanvasAbstand {
-    fn from(super::Length(length): super::Length) -> CanvasAbstand {
-        CanvasAbstand::new_from_mm(length as f64)
-    }
-}
-impl From<super::Radius> for CanvasAbstand {
-    fn from(super::Radius(radius): super::Radius) -> CanvasAbstand {
-        CanvasAbstand::new_from_mm(radius as f64)
-    }
-}
-*/

@@ -268,7 +268,14 @@ fn zeichne_alle_gleise<T, F>(
             // zeichne Gleis
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
-                    frame.stroke(&path, canvas::Stroke::default());
+                    frame.stroke(
+                        &path,
+                        canvas::Stroke {
+                            color: canvas::Color::BLACK,
+                            width: 1.5,
+                            ..Default::default()
+                        },
+                    );
                 });
             }
             // zeichne anchor points
@@ -284,10 +291,15 @@ fn zeichne_alle_gleise<T, F>(
                     };
                     let mut path_builder = canvas::PathBuilder::new();
                     path_builder.move_to(anchor.position.into());
-                    path_builder
-                        .line_to(canvas::Point::from(anchor.position) + anchor.direction.into());
+                    path_builder.line_to(
+                        canvas::Point::from(anchor.position)
+                            + 5. * canvas::Vector::from(anchor.direction),
+                    );
                     let path = path_builder.build();
-                    frame.stroke(&path, canvas::Stroke { color, ..canvas::Stroke::default() });
+                    frame.stroke(
+                        &path,
+                        canvas::Stroke { color, width: 1.5, ..canvas::Stroke::default() },
+                    );
                 });
             });
         })
