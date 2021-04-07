@@ -1,8 +1,8 @@
 //! newtypes für einen cairo::Context
 
-use std::convert::From;
 use std::f32::consts::PI;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::{convert::From, marker::PhantomData};
 
 use iced::{self, canvas};
 // use cairo::Context;
@@ -388,6 +388,76 @@ pub enum Transformation {
     /// Skaliere alle Koordinaten (x',y') = (x*scale, y*scale)
     Scale(f32),
 }
+
+/// Helper struct, so I don't make stupid mistakes (e.g. inverting twice)
+struct Inverted<T, Axis>(T, PhantomData<*const Axis>);
+impl<T, Axis> Inverted<T, Axis> {
+    fn into<S: From<T>>(self) -> S {
+        self.0.into()
+    }
+}
+impl<T: Into<Inverted<T, B>>, A, B> From<Inverted<T, A>> for Inverted<Inverted<T, A>, B> {
+    fn from(inverted: Inverted<T, A>) -> Self {
+        Inverted(Inverted(inverted.0.into().0, inverted.1), PhantomData)
+    }
+}
+impl From<Point> for Inverted<Point, X> {
+    fn from(point: Point) -> Self {
+        Inverted(Point { x: -point.x, ..point }, PhantomData)
+    }
+}
+impl From<Point> for Inverted<Point, Y> {
+    fn from(point: Point) -> Self {
+        Inverted(Point { y: -point.y, ..point }, PhantomData)
+    }
+}
+impl From<Angle> for Inverted<Angle, X> {
+    fn from(angle: Angle) -> Self {
+        Inverted(Angle::new(PI) - angle, PhantomData)
+    }
+}
+impl From<Angle> for Inverted<Angle, Y> {
+    fn from(angle: Angle) -> Self {
+        Inverted(-angle, PhantomData)
+    }
+}
+impl From<Arc> for Inverted<Arc, X> {
+    fn from(arc: Arc) -> Self {
+        Inverted(
+            Arc {
+                center: Inverted::<Point, X>::from(arc.center).0,
+                start: Inverted::<Angle, X>::from(arc.start).0,
+                end: Inverted::<Angle, X>::from(arc.end).0,
+                ..arc
+            },
+            PhantomData,
+        )
+    }
+}
+impl From<Arc> for Inverted<Arc, Y> {
+    fn from(arc: Arc) -> Self {
+        Inverted(
+            Arc {
+                center: Inverted::<Point, Y>::from(arc.center).0,
+                start: Inverted::<Angle, Y>::from(arc.start).0,
+                end: Inverted::<Angle, Y>::from(arc.end).0,
+                ..arc
+            },
+            PhantomData,
+        )
+    }
+}
+
+/// One action supported by the PathBuilder
+enum PathPiece<P, A> {
+    MoveTo(P),
+    LineTo(P),
+    Arc(A),
+    ArcTo { from: P, to: P, radius: Radius },
+    Close,
+    WithInvertX(Vec<PathPiece<Inverted<P, X>, Inverted<A, X>>>),
+    WithInvertY(Vec<PathPiece<Inverted<P, Y>, Inverted<A, Y>>>),
+}
 /// newtype auf einem /iced::widget::canvas::path::Builder/
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
@@ -399,13 +469,7 @@ pub struct PathBuilder {
     invert_x: bool,
     invert_y: bool,
 }
-/// Helper struct, so I don't make stupid mistakes (e.g. inverting twice)
-struct Inverted<T>(T);
-impl<T> Inverted<T> {
-    fn into<S: From<T>>(self) -> S {
-        self.0.into()
-    }
-}
+
 impl PathBuilder {
     /// create a new PathBuilder
     pub fn new() -> Self {
@@ -426,23 +490,26 @@ impl PathBuilder {
         Path { path: self.builder.build(), transformations: self.transformations }
     }
 
-    fn invert_point_axis(&self, Point { x, y }: Point) -> Inverted<Point> {
-        Inverted(Point {
-            x: if self.invert_x { -x } else { x },
-            y: if self.invert_y { -y } else { y },
-        })
+    fn invert_point_axis(&self, Point { x, y }: Point) -> Inverted<Point, X> {
+        Inverted(
+            Point { x: if self.invert_x { -x } else { x }, y: if self.invert_y { -y } else { y } },
+            PhantomData,
+        )
     }
-    fn invert_angle_axis(&self, angle: Angle) -> Inverted<Angle> {
+    fn invert_angle_axis(&self, angle: Angle) -> Inverted<Angle, X> {
         let inverted_x = if self.invert_x { Angle::new(PI) - angle } else { angle };
-        Inverted(if self.invert_y { -inverted_x } else { inverted_x })
+        Inverted(if self.invert_y { -inverted_x } else { inverted_x }, PhantomData)
     }
-    fn invert_arc_axis(&self, Arc { center, radius, start, end }: Arc) -> Inverted<Arc> {
-        Inverted(Arc {
-            center: self.invert_point_axis(center).0,
-            radius,
-            start: self.invert_angle_axis(start).0,
-            end: self.invert_angle_axis(end).0,
-        })
+    fn invert_arc_axis(&self, Arc { center, radius, start, end }: Arc) -> Inverted<Arc, X> {
+        Inverted(
+            Arc {
+                center: self.invert_point_axis(center).0,
+                radius,
+                start: self.invert_angle_axis(start).0,
+                end: self.invert_angle_axis(end).0,
+            },
+            PhantomData,
+        )
     }
 
     // start a new subpath at /point/
@@ -478,7 +545,7 @@ impl PathBuilder {
         self.builder.arc_to(
             self.invert_point_axis(a).into(),
             self.invert_point_axis(b).into(),
-            -radius.0,
+            radius.0,
         )
     }
 
@@ -490,6 +557,8 @@ impl PathBuilder {
     /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y)
     ///
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
+    /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
+    /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
     pub fn with_invert_x(&mut self, action: impl for<'s> FnOnce(&'s mut Self)) {
         self.invert_x = !self.invert_x;
         action(self);
@@ -499,6 +568,8 @@ impl PathBuilder {
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
     ///
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
+    /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
+    /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
     pub fn with_invert_y(&mut self, action: impl for<'s> FnOnce(&'s mut Self)) {
         self.invert_y = !self.invert_y;
         action(self);

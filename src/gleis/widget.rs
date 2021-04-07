@@ -252,19 +252,26 @@ fn zeichne_alle_gleise<T, F>(
             for path in definition.fuelle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
-                    frame.fill(
+                    frame.stroke(
                         &path,
-                        canvas::Fill {
+                        canvas::Stroke {
                             color: canvas::Color { r: 1., g: 0., b: 0., a: 1. },
-                            rule: canvas::FillRule::NonZero,
+                            ..Default::default()
                         },
                     );
+                    // frame.fill(
+                    //     &path,
+                    //     canvas::Fill {
+                    //         color: canvas::Color { r: 1., g: 0., b: 0., a: 1. },
+                    //         rule: canvas::FillRule::NonZero,
+                    //     },
+                    // );
                 });
             }
             // zeichne Gleis
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
-                    frame.stroke(&path, canvas::Stroke::default());
+                    // frame.stroke(&path, canvas::Stroke::default());
                 });
             }
             // zeichne anchor points
