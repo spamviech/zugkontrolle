@@ -84,7 +84,7 @@ where
     fn size(&self) -> canvas::Size;
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
-    fn fuelle(&self) -> Vec<canvas::Path>;
+    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<canvas::Path>;

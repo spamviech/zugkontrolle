@@ -80,7 +80,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         vec![path_builder.build()]
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)> {
         /*
             let Weiche { zugtyp: _, length, radius, angle, direction } = *self;
             if direction == Richtung::Links {

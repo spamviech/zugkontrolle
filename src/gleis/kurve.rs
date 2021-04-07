@@ -56,15 +56,17 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        let mut path_builder = canvas::PathBuilder::new();
-        zeichne::<Z>(&mut path_builder, self.radius, self.angle.into(), Beschraenkung::Alle);
-        vec![path_builder.build()]
+        let mut zeichne_builder = canvas::PathBuilder::new();
+        zeichne::<Z>(&mut zeichne_builder, self.radius, self.angle.into(), Beschraenkung::Alle);
+        let mut fuelle_builder = canvas::PathBuilder::new();
+        fuelle::<Z>(&mut fuelle_builder, self.radius, self.angle.into());
+        vec![zeichne_builder.build()]
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
-        let mut path_builder = canvas::PathBuilder::new();
-        fuelle::<Z>(&mut path_builder, self.radius, self.angle.into());
-        vec![path_builder.build()]
+    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)> {
+        let mut fuelle_builder = canvas::PathBuilder::new();
+        fuelle::<Z>(&mut fuelle_builder, self.radius, self.angle.into());
+        vec![(fuelle_builder.build(), canvas::FillRule::EvenOdd)]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -162,6 +164,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     });
 }
 
+/// Geplant für canvas::PathType::EvenOdd
 pub(crate) fn fuelle<Z: Zugtyp>(
     path_builder: &mut canvas::PathBuilder,
     radius: Radius,
@@ -184,14 +187,15 @@ pub(crate) fn fuelle<Z: Zugtyp>(
     let gleis_links_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
     // Koordinaten rechts
-    let gleis_rechts_oben_x: canvas::X = gleis_links + radius_aussen_abstand * winkel.sin();
-    let gleis_rechts_oben_y: canvas::Y =
-        gleis_links_oben + radius_aussen_abstand * (1. - winkel.cos());
-    let gleis_rechts_unten_x: canvas::X = gleis_rechts_oben_x - spurweite * winkel.sin();
-    let gleis_rechts_unten_y: canvas::Y = gleis_rechts_oben_y + spurweite * winkel.cos();
+    let gleis_rechts_oben: canvas::Point = canvas::Point::new(
+        gleis_links + radius_aussen_abstand * winkel.sin(),
+        gleis_links_oben + radius_aussen_abstand * (1. - winkel.cos()),
+    );
+    let gleis_rechts_unten: canvas::Point = canvas::Point::new(
+        gleis_rechts_oben.x - spurweite * winkel.sin(),
+        gleis_rechts_oben.y + spurweite * winkel.cos(),
+    );
     // obere Kurve
-    // path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_unten));
-    // path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben));
     path_builder.arc(canvas::Arc {
         center: canvas::Point::new(gleis_links, bogen_zentrum_y),
         radius: radius_aussen,
@@ -200,13 +204,17 @@ pub(crate) fn fuelle<Z: Zugtyp>(
     });
     path_builder.close();
     // untere Kurve
-    // path_builder.move_to(canvas::Point::new(gleis_rechts_oben_x, gleis_rechts_oben_y));
-    // path_builder.arc_to(
-    //     canvas::Point::new(gleis_rechts_unten_x, gleis_rechts_unten_y),
-    //     canvas::Point::new(gleis_links, gleis_links_unten),
-    //     radius_innen,
-    //     false,
-    // );
-    // path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_oben));
-    // path_builder.close();
+    path_builder.arc(canvas::Arc {
+        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+        radius: radius_innen,
+        start: winkel_anfang,
+        end: winkel_ende,
+    });
+    path_builder.close();
+    // Zwischen-Teil
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben));
+    path_builder.line_to(gleis_rechts_oben);
+    path_builder.line_to(gleis_rechts_unten);
+    path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten));
+    path_builder.close();
 }

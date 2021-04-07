@@ -78,7 +78,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         vec![]
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)> {
         //TODO
         println!("TODO KurvenWeiche");
         vec![]

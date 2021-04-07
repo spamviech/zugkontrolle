@@ -41,10 +41,10 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         zeichne::<Z>(&mut path_builder, self.length);
         vec![path_builder.build()]
     }
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)> {
         let mut path_builder = canvas::PathBuilder::new();
         fuelle::<Z>(&mut path_builder, self.length);
-        vec![path_builder.build()]
+        vec![(path_builder.build(), canvas::FillRule::NonZero)]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
