@@ -70,12 +70,11 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         vec![]
     }
 
-    /*
-    fn fuelle(&self, cairo: &mut Cairo) {
+    fn fuelle(&self) -> Vec<canvas::Path> {
         //TODO
-        println!("TODO")
+        println!("TODO fülle DreiwegeWeiche");
+        vec![]
     }
-    */
 
     fn anchor_points(&self) -> AnchorPoints {
         let height: canvas::Y = self.size().height;

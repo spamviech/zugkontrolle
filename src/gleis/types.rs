@@ -83,7 +83,10 @@ where
     /// Maximale x,y-Werte
     fn size(&self) -> canvas::Size;
 
-    /// Erzeuge den Pfad für Darstellung der Linien.
+    /// Erzeuge die Pfade für Färben des Hintergrunds.
+    fn fuelle(&self) -> Vec<canvas::Path>;
+
+    /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<canvas::Path>;
 
     /// Identifier for AnchorPoints.

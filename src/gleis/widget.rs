@@ -248,10 +248,8 @@ fn zeichne_alle_gleise<T, F>(
             }));
             // drehe Kontext um (0,0)
             frame.transformation(&canvas::Transformation::Rotate(position.winkel));
-            // erzeuge Pfade
-            let paths = definition.zeichne();
             // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
-            for path in paths.iter() {
+            for path in definition.fuelle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
                     frame.fill(
@@ -264,14 +262,14 @@ fn zeichne_alle_gleise<T, F>(
                 });
             }
             // zeichne Gleis
-            for path in paths.iter() {
+            for path in definition.zeichne() {
                 frame.with_save(|frame| {
                     frame.stroke(&path, canvas::Stroke::default());
                 });
             }
             // zeichne anchor points
-            frame.with_save(|frame| {
-                definition.anchor_points().foreach(|&anchor| {
+            definition.anchor_points().foreach(|&anchor| {
+                frame.with_save(|frame| {
                     let color = if has_other_id_at_point(
                         gleis_id.as_any(),
                         position.transformation(anchor.position),
@@ -286,9 +284,9 @@ fn zeichne_alle_gleise<T, F>(
                         .line_to(canvas::Point::from(anchor.position) + anchor.direction.into());
                     let path = path_builder.build();
                     frame.stroke(&path, canvas::Stroke { color, ..canvas::Stroke::default() });
-                })
+                });
             });
-        });
+        })
     }
 }
 

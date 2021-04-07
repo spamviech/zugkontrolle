@@ -78,12 +78,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         vec![]
     }
 
-    /*
-    fn fuelle(&self, cairo: &mut Cairo) {
+    fn fuelle(&self) -> Vec<canvas::Path> {
         //TODO
-        println!("TODO")
+        println!("TODO KurvenWeiche");
+        vec![]
     }
-    */
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: canvas::Y;

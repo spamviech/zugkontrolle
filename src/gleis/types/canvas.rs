@@ -478,7 +478,7 @@ impl PathBuilder {
         self.builder.arc_to(
             self.invert_point_axis(a).into(),
             self.invert_point_axis(b).into(),
-            radius.0,
+            -radius.0,
         )
     }
 

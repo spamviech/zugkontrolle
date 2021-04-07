@@ -61,12 +61,12 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         vec![path_builder.build()]
     }
 
-    /*
-    fn fuelle(&self, cairo: &mut Cairo) {
-        fuelle::<Z>(cairo, self.radius, self.angle.into(), Rand::Alle);
-        cairo.close_path()
+    fn fuelle(&self) -> Vec<canvas::Path> {
+        let mut path_builder = canvas::PathBuilder::new();
+        fuelle::<Z>(&mut path_builder, self.radius, self.angle.into());
+        path_builder.close();
+        vec![path_builder.build()]
     }
-    */
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         AnchorPoints {
@@ -135,7 +135,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     let radius_begrenzung_aussen: canvas::Abstand = radius_aussen.to_abstand() + abstand::<Z>();
     let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen * winkel.sin();
     let begrenzung_y0: canvas::Y =
-        gleis_links_unten + radius_begrenzung_aussen * (1. - winkel.cos());
+        gleis_links_oben + radius_begrenzung_aussen * (1. - winkel.cos());
     let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>() * winkel.sin();
     let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
     let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen;
@@ -163,52 +163,49 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     });
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Rand {
-    Innen,
-    Aussen,
-    Alle,
-}
-impl Rand {
-    fn aussen(&self) -> bool {
-        match self {
-            Rand::Alle | Rand::Aussen => true,
-            Rand::Innen => false,
-        }
-    }
-
-    fn innen(&self) -> bool {
-        match self {
-            Rand::Alle | Rand::Innen => true,
-            Rand::Aussen => false,
-        }
-    }
-}
-/*
-pub(crate) fn fuelle<Z: Zugtyp>(cairo: &mut Cairo, radius: Radius, winkel: Angle, rand: Rand) {
+pub(crate) fn fuelle<Z: Zugtyp>(
+    path_builder: &mut canvas::PathBuilder,
+    radius: Radius,
+    winkel: Angle,
+) {
     let radius_abstand = radius.to_abstand();
     let spurweite = Z::SPURWEITE.to_abstand();
+    // Koordinaten für den Bogen
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let winkel_ende: Angle = winkel_anfang + winkel;
-    let gleis_links: canvas::X = canvas::X(0.);
     let radius_innen_abstand = radius_abstand - 0.5 * spurweite;
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_innen_abstand;
     let radius_aussen_abstand = radius_abstand + 0.5 * spurweite;
     let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
+    let radius_aussen_abstand: canvas::Abstand = radius_aussen.to_abstand();
     let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen.into();
-    // path schreiben
-    if rand.aussen() {
-        cairo.arc(gleis_links, bogen_zentrum_y, radius_aussen, winkel_anfang, winkel_ende, false)
-    }
-    if rand.innen() {
-        cairo.arc_negative(
-            gleis_links,
-            bogen_zentrum_y,
-            radius_innen,
-            winkel_ende,
-            winkel_anfang,
-            false,
-        )
-    }
+    // Koordinaten links
+    let gleis_links: canvas::X = canvas::X(0.);
+    let beschraenkung_oben: canvas::Y = canvas::Y(0.);
+    let gleis_links_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
+    // Koordinaten rechts
+    let gleis_rechts_oben_x: canvas::X = gleis_links + radius_aussen_abstand * winkel.sin();
+    let gleis_rechts_oben_y: canvas::Y =
+        gleis_links_oben + radius_aussen_abstand * (1. - winkel.cos());
+    let gleis_rechts_unten_x: canvas::X = gleis_rechts_oben_x - spurweite * winkel.sin();
+    let gleis_rechts_unten_y: canvas::Y = gleis_rechts_oben_y + spurweite * winkel.cos();
+    // obere Kurve
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_unten));
+    path_builder.arc(canvas::Arc {
+        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+        radius: radius_aussen,
+        start: winkel_anfang,
+        end: winkel_ende,
+    });
+    path_builder.line_to(canvas::Point::new(gleis_rechts_unten_x, gleis_rechts_unten_y));
+    // untere Kurve
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben));
+    path_builder.arc(canvas::Arc {
+        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+        radius: radius_innen,
+        start: winkel_anfang,
+        end: winkel_ende,
+    });
+    path_builder.line_to(canvas::Point::new(gleis_rechts_oben_x, gleis_rechts_oben_y));
 }
-*/
