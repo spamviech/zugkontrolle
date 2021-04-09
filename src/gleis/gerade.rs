@@ -42,7 +42,9 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         vec![path_builder.build()]
     }
     fn fuelle(&self) -> Vec<canvas::Path> {
-        vec![fuelle::<Z>(self.length)]
+        let mut path_builder = canvas::PathBuilder::new();
+        fuelle::<Z>(&mut path_builder, self.length);
+        vec![path_builder.build()]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -81,8 +83,7 @@ pub(crate) fn zeichne<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge:
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten));
 }
 
-pub(crate) fn fuelle<Z: Zugtyp>(laenge: Length) -> canvas::Path {
-    let mut path_builder = canvas::PathBuilder::new();
+pub(crate) fn fuelle<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge: Length) {
     // Koordinaten
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
@@ -95,6 +96,4 @@ pub(crate) fn fuelle<Z: Zugtyp>(laenge: Length) -> canvas::Path {
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten));
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben));
     path_builder.line_to(canvas::Point::new(gleis_links, gleis_oben));
-    // Rückgabewert
-    path_builder.build()
 }
