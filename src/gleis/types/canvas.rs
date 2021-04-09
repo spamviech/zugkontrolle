@@ -408,6 +408,7 @@ pub struct Path {
 }
 
 /// Unterstützte Transformationen
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Transformation {
     /// Verschiebe alle Koordinaten um den übergebenen Vector.
     Translate(Vector),
