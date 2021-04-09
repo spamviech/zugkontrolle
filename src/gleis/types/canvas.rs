@@ -548,7 +548,7 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     }
 
     /*
-    // TODO Funktioniert nicht mit invert_x :(
+    // TODO Funktioniert nicht mit with_invert_x,y :(
     // iced-github-Issue öffnen, die verwendete Bibliothek scheint eine Flag zu unterstützen
     /// Strike an arc from /a/ to /b/ with given radius (clockwise).
     ///

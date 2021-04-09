@@ -115,68 +115,72 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        /*
-            // utility sizes
-            let width: canvas::X = canvas::X(self.width() as f64);
-            let half_width: canvas::X = canvas::X(0.5 * width.0);
-            let start_x: canvas::X = canvas::X(0.);
-            let height: canvas::Y = canvas::Y(self.height() as f64);
-            let half_height: canvas::Y = canvas::Y(0.5 * height.0);
-            let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
-            let angle = self.angle();
-            let spurweite: CanvasAbstand = Z::SPURWEITE.into();
-            let translated_gerade_oben_y: canvas::Y = canvas::Y(0.) + abstand::<Z>();
-            let translated_gerade_unten_y: canvas::Y = translated_gerade_oben_y + spurweite;
-            let translated_gerade_links_x: canvas::X = canvas::X(0.);
-            // approximation to avoid divide-by-zero error
-            let inv_tan: f64 = if angle.cos() < 0.01 { 0. } else { 1. / angle.tan() };
-            let inv_sin: f64 = if angle.sin() < 0.5 * spurweite / width.to_abstand() {
-                2. * width.to_abstand() / spurweite
-            } else {
-                1. / angle.sin()
-            };
-            let delta_x: CanvasAbstand = 0.5 * spurweite * (inv_sin + inv_tan);
-            let delta_x_oben_unten: CanvasAbstand = spurweite * inv_tan;
-            let translated_oben_links_ueberschneiden_x: canvas::X =
-                translated_gerade_links_x + 0.5 * width.to_abstand() - delta_x;
-            let translated_unten_links_ueberschneiden_x: canvas::X =
-                translated_oben_links_ueberschneiden_x + delta_x_oben_unten;
-            let translated_unten_rechts_ueberschneiden_x: canvas::X =
-                translated_gerade_links_x + 0.5 * width.to_abstand() + delta_x;
-            let translated_gedreht_unten_rechts_x: canvas::X = translated_unten_links_ueberschneiden_x
-                + translated_unten_links_ueberschneiden_x.to_abstand() * angle.cos();
-            let translated_gedreht_unten_rechts_y: canvas::Y = translated_gerade_unten_y
-                + translated_unten_links_ueberschneiden_x.to_abstand() * angle.sin();
-            let translated_gedreht_oben_rechts_x: canvas::X =
-                translated_gedreht_unten_rechts_x + spurweite * angle.sin();
-            let translated_gedreht_oben_rechts_y: canvas::Y =
-                translated_gedreht_unten_rechts_y - spurweite * angle.cos();
-            let zeichne_rand = |cairo: &mut Cairo| {
-                cairo.translate(start_x, start_y);
-                cairo.line_to(translated_unten_rechts_ueberschneiden_x, translated_gerade_unten_y);
-                cairo.line_to(translated_gedreht_oben_rechts_x, translated_gedreht_oben_rechts_y);
-                cairo.line_to(translated_gedreht_unten_rechts_x, translated_gedreht_unten_rechts_y);
-                if self.variante == Variante::MitKurve {
-                    kurve::fuelle::<Z>(cairo, self.radius, angle, kurve::Rand::Innen);
-                } else {
-                    cairo.line_to(translated_oben_links_ueberschneiden_x, translated_gerade_unten_y);
-                    cairo.line_to(translated_gerade_links_x, translated_gerade_unten_y);
-                }
-                cairo.line_to(translated_gerade_links_x, translated_gerade_oben_y);
-                cairo.line_to(translated_oben_links_ueberschneiden_x, translated_gerade_oben_y);
-            };
-            // horizontale Gerade + erste Kurve
-            cairo.with_save_restore(zeichne_rand);
-            cairo.new_sub_path();
-            // gedrehte Gerade + zweite Kurve
-            cairo.translate(half_width, half_height);
-            cairo.rotate(angle);
-            cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-            cairo.translate(-half_width, -half_height);
-            zeichne_rand(cairo)
-        */
-        println!("TODO fülle Kreuzung");
-        vec![]
+        // utility sizes
+        let size: canvas::Size = self.size();
+        let width: canvas::X = size.width;
+        let half_width: canvas::X = canvas::X(0.5 * width.0);
+        let start_x: canvas::X = canvas::X(0.);
+        let height: canvas::Y = size.height;
+        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let angle = self.angle();
+        let mut builder_vec = Vec::new();
+        // horizontale Gerade + erste Kurve
+        let horizontal_transformations =
+            vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
+        let mut horizontal_gerade_builder = canvas::PathBuilder::new();
+        gerade::fuelle::<Z, canvas::Point, canvas::Arc>(
+            &mut horizontal_gerade_builder,
+            self.length,
+        );
+        builder_vec.push(
+            horizontal_gerade_builder
+                .build_under_transformations(horizontal_transformations.clone()),
+        );
+        if self.variante == Variante::MitKurve {
+            let mut horizontal_kurve_builder = canvas::PathBuilder::new();
+            kurve::fuelle::<Z, canvas::Point, canvas::Arc>(
+                &mut horizontal_kurve_builder,
+                self.radius,
+                angle,
+            );
+            builder_vec.push(
+                horizontal_kurve_builder.build_under_transformations(horizontal_transformations),
+            );
+        }
+        // gedrehte Gerade + zweite Kurve
+        let gedreht_transformations = vec![
+            canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
+            canvas::Transformation::Rotate(angle),
+            // transformations with assumed inverted y-Axis
+            canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
+            canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
+        ];
+        let mut gedreht_gerade_builder = canvas::PathBuilder::new();
+        gedreht_gerade_builder.with_invert_y(|path_builder| {
+            gerade::fuelle::<
+                Z,
+                canvas::Inverted<canvas::Point, canvas::Y>,
+                canvas::Inverted<canvas::Arc, canvas::Y>,
+            >(path_builder, self.length);
+        });
+        builder_vec.push(
+            gedreht_gerade_builder.build_under_transformations(gedreht_transformations.clone()),
+        );
+        if self.variante == Variante::MitKurve {
+            let mut gedreht_kurve_builder = canvas::PathBuilder::new();
+            gedreht_kurve_builder.with_invert_y(|path_builder| {
+                kurve::fuelle::<
+                    Z,
+                    canvas::Inverted<canvas::Point, canvas::Y>,
+                    canvas::Inverted<canvas::Arc, canvas::Y>,
+                >(path_builder, self.radius, angle);
+            });
+            builder_vec
+                .push(gedreht_kurve_builder.build_under_transformations(gedreht_transformations));
+        }
+        // Rückgabewert
+        builder_vec
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

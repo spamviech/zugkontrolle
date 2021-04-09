@@ -100,7 +100,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         };
         let mut gerade_builder = canvas::PathBuilder::new();
         let mut kurve_builder = canvas::PathBuilder::new();
-        let builder_vec = if direction == Richtung::Links {
+        if direction == Richtung::Links {
             gerade_builder.with_invert_y(|builder| {
                 gerade::fuelle::<
                     Z,
