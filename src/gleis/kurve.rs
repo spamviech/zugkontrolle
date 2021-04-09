@@ -17,10 +17,10 @@ use super::types::*;
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(Debug, Clone)]
-pub struct Kurve<T> {
-    pub zugtyp: PhantomData<*const T>,
+pub struct Kurve<Z> {
+    pub zugtyp: PhantomData<*const Z>,
     pub radius: Radius,
-    pub angle: AngleDegrees,
+    pub angle: Angle,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
@@ -56,24 +56,24 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        let mut zeichne_builder = canvas::PathBuilder::new();
-        zeichne::<Z, canvas::Point, canvas::Arc>(
-            &mut zeichne_builder,
+        vec![zeichne(
+            self.zugtyp,
             self.radius,
-            self.angle.into(),
+            self.angle,
             Beschraenkung::Alle,
-        );
-        vec![zeichne_builder.build()]
+            Vec::new(),
+            canvas::PathBuilder::with_normal_axis,
+        )]
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        let mut fuelle_builder = canvas::PathBuilder::new();
-        fuelle::<Z, canvas::Point, canvas::Arc>(
-            &mut fuelle_builder,
+        vec![fuelle(
+            self.zugtyp,
             self.radius,
-            self.angle.into(),
-        );
-        vec![fuelle_builder.build()]
+            self.angle,
+            Vec::new(),
+            canvas::PathBuilder::with_normal_axis,
+        )]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -123,8 +123,34 @@ impl Beschraenkung {
     }
 }
 
-// factor_y is expected to be -1 or +1, although other values should work as well
 pub(crate) fn zeichne<Z, P, A>(
+    _zugtyp: PhantomData<*const Z>,
+    radius: Radius,
+    winkel: Angle,
+    beschraenkungen: Beschraenkung,
+    transformations: Vec<canvas::Transformation>,
+    with_invert_axis: impl FnOnce(
+        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
+        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+    ),
+) -> canvas::Path
+where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
+    let mut path_builder = canvas::PathBuilder::new();
+    with_invert_axis(
+        &mut path_builder,
+        Box::new(move |builder| {
+            zeichne_internal::<Z, P, A>(builder, radius, winkel, beschraenkungen)
+        }),
+    );
+    path_builder.build_under_transformations(transformations)
+}
+
+// factor_y is expected to be -1 or +1, although other values should work as well
+fn zeichne_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: Radius,
     winkel: Angle,
@@ -181,8 +207,31 @@ pub(crate) fn zeichne<Z, P, A>(
     );
 }
 
-/// Geplant für canvas::PathType::EvenOdd
 pub(crate) fn fuelle<Z, P, A>(
+    _zugtyp: PhantomData<*const Z>,
+    radius: Radius,
+    winkel: Angle,
+    transformations: Vec<canvas::Transformation>,
+    with_invert_axis: impl FnOnce(
+        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
+        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+    ),
+) -> canvas::Path
+where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
+    let mut path_builder = canvas::PathBuilder::new();
+    with_invert_axis(
+        &mut path_builder,
+        Box::new(move |builder| fuelle_internal::<Z, P, A>(builder, radius, winkel)),
+    );
+    path_builder.build_under_transformations(transformations)
+}
+
+/// Geplant für canvas::PathType::EvenOdd
+fn fuelle_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: Radius,
     winkel: Angle,

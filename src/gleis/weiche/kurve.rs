@@ -23,7 +23,7 @@ pub struct KurvenWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,
     pub radius: Radius,
-    pub angle: AngleDegrees,
+    pub angle: Angle,
     pub direction: Richtung,
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]

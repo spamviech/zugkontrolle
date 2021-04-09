@@ -252,13 +252,6 @@ fn zeichne_alle_gleise<T, F>(
             for path in definition.fuelle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
-                    // frame.stroke(
-                    //     &path,
-                    //     canvas::Stroke {
-                    //         color: canvas::Color { r: 1., g: 0., b: 0., a: 1. },
-                    //         ..Default::default()
-                    //     },
-                    // );
                     frame.fill(
                         &path,
                         canvas::Fill {

@@ -23,7 +23,7 @@ pub struct DreiwegeWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,
     pub radius: Radius,
-    pub angle: AngleDegrees,
+    pub angle: Angle,
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
 pub enum AnchorName {

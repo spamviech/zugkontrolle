@@ -1,5 +1,6 @@
 //! This modules defines all Lego (9V) rails I have access to.
 
+use std::f32::consts::PI;
 use std::marker::PhantomData;
 
 use super::gerade::Gerade;
@@ -34,12 +35,13 @@ Lego Spurweite: 38mm
 const LENGTH_VALUE: f32 = 128.;
 const LENGTH: Length = Length::new(LENGTH_VALUE);
 const RADIUS: Radius = Radius::new(320.);
-const ANGLE_VALUE: f32 = 22.5;
+const ANGLE_VALUE_DEGREE: f32 = 22.5;
+const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 const ZUGTYP: PhantomData<*const Lego> = PhantomData;
 
 pub const GERADE: Gerade<Lego> = Gerade { zugtyp: ZUGTYP, length: LENGTH };
 
-const ANGLE: AngleDegrees = AngleDegrees::new(ANGLE_VALUE);
+const ANGLE: Angle = Angle::new(ANGLE_VALUE);
 pub const KURVE: Kurve<Lego> = Kurve { zugtyp: ZUGTYP, radius: RADIUS, angle: ANGLE };
 
 /*
@@ -55,8 +57,8 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 1,00 cm sind rund 1,25 Noppen (genauer: 1,255...)
 */
 const DOUBLE_LENGTH: Length = Length::new(2. * LENGTH_VALUE);
-const ANGLE_OUTWARDS: AngleDegrees = AngleDegrees::new(1.625 * ANGLE_VALUE);
-const ANGLE_INWARDS: AngleDegrees = AngleDegrees::new(0.625 * ANGLE_VALUE);
+const ANGLE_OUTWARDS: Angle = Angle::new(1.625 * ANGLE_VALUE);
+const ANGLE_INWARDS: Angle = Angle::new(0.625 * ANGLE_VALUE);
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche {
         zugtyp: ZUGTYP,

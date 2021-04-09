@@ -1,5 +1,6 @@
 //! This modules defines all Märklin rails I have access to.
 
+use std::f32::consts::PI;
 use std::marker::PhantomData;
 
 use super::gerade::Gerade;
@@ -48,21 +49,21 @@ Kurve
     5205: 5.72°, R437.4mm
 */
 pub const KURVE_5120: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_INDUSTRIE, angle: AngleDegrees::new(45.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_INDUSTRIE, angle: Angle::new(45. * PI / 180.) };
 pub const KURVE_5100: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: AngleDegrees::new(30.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(30. * PI / 180.) };
 pub const KURVE_5101: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: AngleDegrees::new(15.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(15. * PI / 180.) };
 pub const KURVE_5102: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: AngleDegrees::new(7.5) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(7.5 * PI / 180.) };
 pub const KURVE_5200: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(30.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(30. * PI / 180.) };
 pub const KURVE_5206: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(24.28) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(24.28 * PI / 180.) };
 pub const KURVE_5201: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(15.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(15. * PI / 180.) };
 pub const KURVE_5205: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: AngleDegrees::new(5.72) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(5.72 * PI / 180.) };
 
 /*
 Weiche
@@ -70,34 +71,37 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
+const ANGLE_5117: Angle = Angle::new(30. * PI / 180.);
 pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
         length: Length::new(180.),
         radius: RADIUS_R2,
-        angle: AngleDegrees::new(30.),
+        angle: ANGLE_5117,
         direction: richtung,
     }
 }
 pub const WEICHE_5117_RECHTS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Rechts);
 pub const WEICHE_5117_LINKS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Links);
+const ANGLE_5137: Angle = Angle::new(22.5 * PI / 180.);
 pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
         length: Length::new(180.),
         radius: RADIUS_R2,
-        angle: AngleDegrees::new(22.5),
+        angle: ANGLE_5137,
         direction: richtung,
     }
 }
 pub const WEICHE_5137_RECHTS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Rechts);
 pub const WEICHE_5137_LINKS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Links);
+const ANGLE_5202: Angle = Angle::new(24.28 * PI / 180.);
 pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
         length: Length::new(180.),
         radius: RADIUS_R2,
-        angle: AngleDegrees::new(24.28),
+        angle: ANGLE_5202,
         direction: richtung,
     }
 }
@@ -112,19 +116,20 @@ pub const DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
     zugtyp: ZUGTYP,
     length: Length::new(180.),
     radius: RADIUS_R2,
-    angle: AngleDegrees::new(24.28),
+    angle: Angle::new(24.28 * PI / 180.),
 };
 
 /*
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
+const ANGLE_5140: Angle = Angle(30. * PI / 180.);
 pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
     KurvenWeiche {
         zugtyp: ZUGTYP,
         length: Length::new(77.3),
         radius: RADIUS_R1,
-        angle: AngleDegrees::new(30.),
+        angle: ANGLE_5140,
         direction: richtung,
     }
 }

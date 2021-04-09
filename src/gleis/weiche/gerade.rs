@@ -22,7 +22,7 @@ pub struct Weiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,
     pub radius: Radius,
-    pub angle: AngleDegrees,
+    pub angle: Angle,
     pub direction: Richtung,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,80 +53,77 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        let Weiche { zugtyp: _, length, radius, angle, direction } = *self;
-        let transformations = if direction == Richtung::Links {
-            vec![canvas::Transformation::Translate(canvas::Vector::new(
+        let Weiche { zugtyp, length, radius, angle, direction } = *self;
+        if direction == Richtung::Links {
+            let transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
                 canvas::X(0.),
                 self.size().height,
-            ))]
+            ))];
+            vec![
+                gerade::zeichne(
+                    zugtyp,
+                    length,
+                    transformations.clone(),
+                    canvas::PathBuilder::with_invert_y,
+                ),
+                kurve::zeichne(
+                    zugtyp,
+                    radius,
+                    angle,
+                    kurve::Beschraenkung::Ende,
+                    transformations,
+                    canvas::PathBuilder::with_invert_y,
+                ),
+            ]
         } else {
-            Vec::new()
-        };
-        let mut path_builder = canvas::PathBuilder::new();
-        if direction == Richtung::Links {
-            path_builder.with_invert_y(|builder| {
-                gerade::zeichne::<
-                    Z,
-                    canvas::Inverted<canvas::Point, canvas::Y>,
-                    canvas::Inverted<canvas::Arc, canvas::Y>,
-                >(builder, length);
-                kurve::zeichne::<
-                    Z,
-                    canvas::Inverted<canvas::Point, canvas::Y>,
-                    canvas::Inverted<canvas::Arc, canvas::Y>,
-                >(builder, radius, angle.into(), kurve::Beschraenkung::Ende);
-            })
-        } else {
-            gerade::zeichne::<Z, canvas::Point, canvas::Arc>(&mut path_builder, length);
-            kurve::zeichne::<Z, canvas::Point, canvas::Arc>(
-                &mut path_builder,
-                radius,
-                angle.into(),
-                kurve::Beschraenkung::Ende,
-            )
-        };
-        vec![path_builder.build_under_transformations(transformations)]
+            vec![
+                gerade::zeichne(zugtyp, length, Vec::new(), canvas::PathBuilder::with_normal_axis),
+                kurve::zeichne(
+                    zugtyp,
+                    radius,
+                    angle,
+                    kurve::Beschraenkung::Ende,
+                    Vec::new(),
+                    canvas::PathBuilder::with_normal_axis,
+                ),
+            ]
+        }
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        let Weiche { zugtyp: _, length, radius, angle, direction } = *self;
-        let transformations = if direction == Richtung::Links {
-            vec![canvas::Transformation::Translate(canvas::Vector::new(
+        let Weiche { zugtyp, length, radius, angle, direction } = *self;
+        if direction == Richtung::Links {
+            let transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
                 canvas::X(0.),
                 self.size().height,
-            ))]
+            ))];
+            vec![
+                gerade::fuelle(
+                    zugtyp,
+                    length,
+                    transformations.clone(),
+                    canvas::PathBuilder::with_invert_y,
+                ),
+                kurve::fuelle(
+                    zugtyp,
+                    radius,
+                    angle,
+                    transformations,
+                    canvas::PathBuilder::with_invert_y,
+                ),
+            ]
         } else {
-            Vec::new()
-        };
-        let mut gerade_builder = canvas::PathBuilder::new();
-        let mut kurve_builder = canvas::PathBuilder::new();
-        if direction == Richtung::Links {
-            gerade_builder.with_invert_y(|builder| {
-                gerade::fuelle::<
-                    Z,
-                    canvas::Inverted<canvas::Point, canvas::Y>,
-                    canvas::Inverted<canvas::Arc, canvas::Y>,
-                >(builder, length);
-            });
-            kurve_builder.with_invert_y(|builder| {
-                kurve::fuelle::<
-                    Z,
-                    canvas::Inverted<canvas::Point, canvas::Y>,
-                    canvas::Inverted<canvas::Arc, canvas::Y>,
-                >(builder, radius, angle.into());
-            })
-        } else {
-            gerade::fuelle::<Z, canvas::Point, canvas::Arc>(&mut gerade_builder, length);
-            kurve::fuelle::<Z, canvas::Point, canvas::Arc>(
-                &mut kurve_builder,
-                radius,
-                angle.into(),
-            );
-        };
-        vec![
-            gerade_builder.build_under_transformations(transformations.clone()),
-            kurve_builder.build_under_transformations(transformations),
-        ]
+            vec![
+                gerade::fuelle(zugtyp, length, Vec::new(), canvas::PathBuilder::with_normal_axis),
+                kurve::fuelle(
+                    zugtyp,
+                    radius,
+                    angle,
+                    Vec::new(),
+                    canvas::PathBuilder::with_normal_axis,
+                ),
+            ]
+        }
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

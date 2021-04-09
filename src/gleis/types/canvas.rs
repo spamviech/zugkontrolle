@@ -571,6 +571,13 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
         self.builder.close()
     }
 
+    /// Alle Methoden der closure verwenden unveränderte Achsen (x',y') = (x,y)
+    ///
+    /// Convenience-Funktion um nicht permanent no-op closures erstellen zu müssen.
+    pub fn with_normal_axis(&mut self, action: impl for<'s> FnOnce(&'s mut PathBuilder<P, A>)) {
+        action(self)
+    }
+
     /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y)
     ///
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.

@@ -26,9 +26,9 @@ pub struct SKurvenWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,
     pub radius: Radius,
-    pub angle: AngleDegrees,
+    pub angle: Angle,
     pub radius_reverse: Radius,
-    pub angle_reverse: AngleDegrees,
+    pub angle_reverse: Angle,
     pub direction: Richtung,
 }
 

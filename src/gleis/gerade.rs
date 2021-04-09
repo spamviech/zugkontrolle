@@ -37,14 +37,11 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        let mut path_builder = canvas::PathBuilder::new();
-        zeichne::<Z, canvas::Point, canvas::Arc>(&mut path_builder, self.length);
-        vec![path_builder.build()]
+        vec![zeichne(self.zugtyp, self.length, Vec::new(), canvas::PathBuilder::with_normal_axis)]
     }
+
     fn fuelle(&self) -> Vec<canvas::Path> {
-        let mut path_builder = canvas::PathBuilder::new();
-        fuelle::<Z, canvas::Point, canvas::Arc>(&mut path_builder, self.length);
-        vec![path_builder.build()]
+        vec![fuelle(self.zugtyp, self.length, Vec::new(), canvas::PathBuilder::with_normal_axis)]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
@@ -64,7 +61,29 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 }
 
-pub(crate) fn zeichne<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
+pub(crate) fn zeichne<Z, P, A>(
+    _zugtyp: PhantomData<*const Z>,
+    laenge: Length,
+    transformations: Vec<canvas::Transformation>,
+    with_invert_axis: impl FnOnce(
+        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
+        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+    ),
+) -> canvas::Path
+where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
+    let mut path_builder = canvas::PathBuilder::new();
+    with_invert_axis(
+        &mut path_builder,
+        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, laenge)),
+    );
+    path_builder.build_under_transformations(transformations)
+}
+
+fn zeichne_internal<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
 where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
@@ -88,7 +107,29 @@ where
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
 }
 
-pub(crate) fn fuelle<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
+pub(crate) fn fuelle<Z, P, A>(
+    _zugtyp: PhantomData<*const Z>,
+    laenge: Length,
+    transformations: Vec<canvas::Transformation>,
+    with_invert_axis: impl FnOnce(
+        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
+        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+    ),
+) -> canvas::Path
+where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
+    let mut path_builder = canvas::PathBuilder::new();
+    with_invert_axis(
+        &mut path_builder,
+        Box::new(move |builder| fuelle_internal::<Z, P, A>(builder, laenge)),
+    );
+    path_builder.build_under_transformations(transformations)
+}
+
+fn fuelle_internal<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
 where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
