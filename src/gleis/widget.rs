@@ -39,8 +39,8 @@ impl Position {
     /// anchor::Direction nachdem das Objekt um den Winkel gedreht wird.
     pub fn rotation(&self, direction: anchor::Direction) -> anchor::Direction {
         let dx = canvas::X(0.) + direction.dx.to_abstand() * self.winkel.cos()
-            - direction.dy.to_abstand() * self.winkel.sin();
-        let dy = canvas::Y(0.) + direction.dx.to_abstand() * self.winkel.sin()
+            - direction.dy.to_abstand().convert() * self.winkel.sin();
+        let dy = canvas::Y(0.) + direction.dx.to_abstand().convert() * self.winkel.sin()
             - direction.dy.to_abstand() * self.winkel.cos();
         anchor::Direction { dx, dy }
     }
@@ -61,9 +61,9 @@ impl Position {
             + target_anchor_point.direction.winkel_mit_x_achse();
         Position {
             x: target_anchor_point.position.x - anchor_point.position.x.to_abstand() * winkel.cos()
-                + anchor_point.position.y.to_abstand() * winkel.sin(),
+                + anchor_point.position.y.to_abstand().convert() * winkel.sin(),
             y: target_anchor_point.position.y
-                - anchor_point.position.x.to_abstand() * winkel.sin()
+                - anchor_point.position.x.to_abstand().convert() * winkel.sin()
                 - anchor_point.position.y.to_abstand() * winkel.cos(),
             winkel,
         }

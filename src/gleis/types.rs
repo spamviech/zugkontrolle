@@ -18,20 +18,20 @@ use super::anchor;
 
 // abgeleitete Größe unter der Umrechnung 1mm
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-pub fn abstand<Z: Zugtyp>() -> canvas::Abstand {
+pub fn abstand<Z: Zugtyp, T>() -> canvas::Abstand<T> {
     Z::SPURWEITE.to_abstand() / 3.
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschraenkung<Z: Zugtyp>() -> canvas::Abstand {
-    Z::SPURWEITE.to_abstand() + 2. * abstand::<Z>()
+pub fn beschraenkung<Z: Zugtyp, T>() -> canvas::Abstand<T> {
+    Z::SPURWEITE.to_abstand() + 2. * abstand::<Z, T>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand {
-    radius.to_abstand() + 0.5 * Z::SPURWEITE.to_abstand() + abstand::<Z>()
+pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand<canvas::Radius> {
+    radius.to_abstand() + 0.5 * Z::SPURWEITE.to_abstand() + abstand::<Z, canvas::Radius>()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand {
-    radius.to_abstand() - 0.5 * Z::SPURWEITE.to_abstand() - abstand::<Z>()
+pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand<canvas::Radius> {
+    radius.to_abstand() - 0.5 * Z::SPURWEITE.to_abstand() - abstand::<Z, canvas::Radius>()
 }
 
 /// Längenmaß \[mm\]

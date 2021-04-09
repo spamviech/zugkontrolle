@@ -40,7 +40,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
         let size_gerade = Gerade { zugtyp, length }.size();
         let size_kurve = Kurve { zugtyp, radius, angle }.size();
-        let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z>();
+        let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z, canvas::Y>();
         canvas::Size {
             width: canvas::X(0.)
                 + size_gerade.width.to_abstand().max(&size_kurve.width.to_abstand()),
@@ -79,8 +79,10 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     fn anchor_points(&self) -> AnchorPoints {
         let height: canvas::Y = self.size().height;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
-        let length: canvas::Abstand = self.length.into();
-        let radius: canvas::Abstand = self.radius.into();
+        let length: canvas::Abstand<canvas::X> = self.length.to_abstand();
+        let radius: canvas::Abstand<canvas::Radius> = self.radius.to_abstand();
+        let radius_x: canvas::Abstand<canvas::X> = radius.convert();
+        let radius_y: canvas::Abstand<canvas::Y> = radius.convert();
         let anfang_x: canvas::X = canvas::X(0.);
         AnchorPoints {
             anfang: anchor::Point {
@@ -93,8 +95,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             },
             links: anchor::Point {
                 position: anchor::Position {
-                    x: anfang_x + radius * self.angle.sin(),
-                    y: half_height + radius * (1. - self.angle.cos()),
+                    x: anfang_x + radius_x * self.angle.sin(),
+                    y: half_height + radius_y * (1. - self.angle.cos()),
                 },
                 direction: anchor::Direction {
                     dx: canvas::X(self.angle.cos()),
@@ -103,8 +105,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             },
             rechts: anchor::Point {
                 position: anchor::Position {
-                    x: anfang_x + radius * self.angle.sin(),
-                    y: half_height - radius * (1. - self.angle.cos()),
+                    x: anfang_x + radius_x * self.angle.sin(),
+                    y: half_height - radius_y * (1. - self.angle.cos()),
                 },
                 direction: anchor::Direction {
                     dx: canvas::X(self.angle.cos()),

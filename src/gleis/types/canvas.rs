@@ -20,27 +20,39 @@ pub use iced::{
 /// Horizontale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct X(pub f32);
-impl Add<Abstand> for X {
-    type Output = Self;
+impl From<X> for Abstand<X> {
+    fn from(X(input): X) -> Self {
+        Abstand(input, PhantomData)
+    }
+}
+impl Add<X> for Abstand<X> {
+    type Output = X;
 
-    fn add(self, Abstand(rhs): Abstand) -> Self {
+    fn add(self, X(rhs): X) -> Self::Output {
         X(self.0 + rhs)
     }
 }
-impl AddAssign<Abstand> for X {
-    fn add_assign(&mut self, Abstand(rhs): Abstand) {
+impl Add<Abstand<X>> for X {
+    type Output = Self;
+
+    fn add(self, Abstand(rhs, _phantom_data): Abstand<X>) -> Self {
+        X(self.0 + rhs)
+    }
+}
+impl AddAssign<Abstand<X>> for X {
+    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<X>) {
         self.0 += rhs
     }
 }
-impl Sub<Abstand> for X {
+impl Sub<Abstand<X>> for X {
     type Output = Self;
 
-    fn sub(self, Abstand(rhs): Abstand) -> Self {
+    fn sub(self, Abstand(rhs, _phantom_data): Abstand<X>) -> Self {
         X(self.0 - rhs)
     }
 }
-impl SubAssign<Abstand> for X {
-    fn sub_assign(&mut self, Abstand(rhs): Abstand) {
+impl SubAssign<Abstand<X>> for X {
+    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<X>) {
         self.0 -= rhs
     }
 }
@@ -54,27 +66,39 @@ impl Neg for X {
 /// Vertikale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Y(pub f32);
-impl Add<Abstand> for Y {
-    type Output = Self;
+impl From<Y> for Abstand<Y> {
+    fn from(Y(input): Y) -> Self {
+        Abstand(input, PhantomData)
+    }
+}
+impl Add<Y> for Abstand<Y> {
+    type Output = Y;
 
-    fn add(self, Abstand(rhs): Abstand) -> Self {
+    fn add(self, Y(rhs): Y) -> Self::Output {
         Y(self.0 + rhs)
     }
 }
-impl AddAssign<Abstand> for Y {
-    fn add_assign(&mut self, Abstand(rhs): Abstand) {
+impl Add<Abstand<Y>> for Y {
+    type Output = Self;
+
+    fn add(self, Abstand(rhs, _phantom_data): Abstand<Y>) -> Self {
+        Y(self.0 + rhs)
+    }
+}
+impl AddAssign<Abstand<Y>> for Y {
+    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Y>) {
         self.0 += rhs
     }
 }
-impl Sub<Abstand> for Y {
+impl Sub<Abstand<Y>> for Y {
     type Output = Self;
 
-    fn sub(self, Abstand(rhs): Abstand) -> Self {
+    fn sub(self, Abstand(rhs, _phantom_data): Abstand<Y>) -> Self {
         Y(self.0 - rhs)
     }
 }
-impl SubAssign<Abstand> for Y {
-    fn sub_assign(&mut self, Abstand(rhs): Abstand) {
+impl SubAssign<Abstand<Y>> for Y {
+    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Y>) {
         self.0 -= rhs
     }
 }
@@ -88,173 +112,145 @@ impl Neg for Y {
 /// Radius auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Radius(pub f32);
-impl Add<Abstand> for Radius {
-    type Output = Self;
-
-    fn add(self, Abstand(rhs): Abstand) -> Self {
-        Radius(self.0 + rhs)
-    }
-}
-impl AddAssign<Abstand> for Radius {
-    fn add_assign(&mut self, Abstand(rhs): Abstand) {
-        self.0 += rhs
-    }
-}
-impl Sub<Abstand> for Radius {
-    type Output = Self;
-
-    fn sub(self, Abstand(rhs): Abstand) -> Self {
-        Radius(self.0 - rhs)
-    }
-}
-impl SubAssign<Abstand> for Radius {
-    fn sub_assign(&mut self, Abstand(rhs): Abstand) {
-        self.0 -= rhs
-    }
-}
-/// Abstand/Länge auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-pub struct Abstand(f32);
-impl Abstand {
-    const fn new_from_mm(abstand_mm: f32) -> Abstand {
-        Abstand(abstand_mm)
-    }
-
-    pub fn max(&self, other: &Abstand) -> Abstand {
-        Abstand(self.0.max(other.0))
-    }
-
-    /// Anzahl benötigter Pixel um den CanvasAbstand darstellen zu können
-    pub fn pixel(&self) -> u64 {
-        self.0.ceil() as u64
-    }
-}
-// with Self
-impl Add<Self> for Abstand {
-    type Output = Self;
-
-    fn add(self, Abstand(rhs): Abstand) -> Self {
-        Abstand(self.0 + rhs)
-    }
-}
-impl AddAssign<Self> for Abstand {
-    fn add_assign(&mut self, Abstand(rhs): Abstand) {
-        self.0 += rhs
-    }
-}
-impl Sub<Self> for Abstand {
-    type Output = Self;
-
-    fn sub(self, Abstand(rhs): Abstand) -> Self {
-        Abstand(self.0 - rhs)
-    }
-}
-impl SubAssign<Self> for Abstand {
-    fn sub_assign(&mut self, Abstand(rhs): Abstand) {
-        self.0 -= rhs
-    }
-}
-// get ratio
-impl Div<Self> for Abstand {
-    type Output = f32;
-    fn div(self, rhs: Self) -> Self::Output {
-        self.0 / rhs.0
-    }
-}
-// with X
-impl From<X> for Abstand {
-    fn from(X(input): X) -> Self {
-        Abstand(input)
-    }
-}
-impl Add<X> for Abstand {
-    type Output = X;
-
-    fn add(self, X(rhs): X) -> Self::Output {
-        X(self.0 + rhs)
-    }
-}
-// with Y
-impl From<Y> for Abstand {
-    fn from(Y(input): Y) -> Self {
-        Abstand(input)
-    }
-}
-impl Add<Y> for Abstand {
-    type Output = Y;
-
-    fn add(self, Y(rhs): Y) -> Self::Output {
-        Y(self.0 + rhs)
-    }
-}
-// with canvas::Radius
-impl From<Radius> for Abstand {
+impl From<Radius> for Abstand<Radius> {
     fn from(Radius(input): Radius) -> Self {
-        Abstand(input)
+        Abstand(input, PhantomData)
     }
 }
-impl Add<Radius> for Abstand {
+impl Add<Radius> for Abstand<Radius> {
     type Output = Radius;
 
     fn add(self, Radius(rhs): Radius) -> Self::Output {
         Radius(self.0 + rhs)
     }
 }
-// scale with f32
-impl Mul<f32> for Abstand {
+impl Add<Abstand<Radius>> for Radius {
     type Output = Self;
 
-    fn mul(self, rhs: f32) -> Abstand {
-        Abstand(self.0 * rhs)
+    fn add(self, Abstand(rhs, _phantom_data): Abstand<Radius>) -> Self {
+        Radius(self.0 + rhs)
     }
 }
-impl Mul<Abstand> for f32 {
-    type Output = Abstand;
+impl AddAssign<Abstand<Radius>> for Radius {
+    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Radius>) {
+        self.0 += rhs
+    }
+}
+impl Sub<Abstand<Radius>> for Radius {
+    type Output = Self;
 
-    fn mul(self, Abstand(rhs): Abstand) -> Abstand {
-        Abstand(self * rhs)
+    fn sub(self, Abstand(rhs, _phantom_data): Abstand<Radius>) -> Self {
+        Radius(self.0 - rhs)
     }
 }
-impl MulAssign<f32> for Abstand {
+impl SubAssign<Abstand<Radius>> for Radius {
+    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Radius>) {
+        self.0 -= rhs
+    }
+}
+/// Abstand/Länge auf einem Cairo-Canvas
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+pub struct Abstand<T>(f32, PhantomData<*const T>);
+impl<T> Abstand<T> {
+    const fn new_from_mm(abstand_mm: f32) -> Self {
+        Abstand(abstand_mm, PhantomData)
+    }
+
+    pub fn max(&self, other: &Self) -> Self {
+        Abstand(self.0.max(other.0), self.1)
+    }
+
+    pub fn convert<S>(self) -> Abstand<S> {
+        Abstand(self.0, PhantomData)
+    }
+}
+// with Self
+impl<T> Add<Self> for Abstand<T> {
+    type Output = Self;
+
+    fn add(self, Abstand(rhs, phantom_data): Self) -> Self {
+        Abstand(self.0 + rhs, phantom_data)
+    }
+}
+impl<T> AddAssign<Self> for Abstand<T> {
+    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Self) {
+        self.0 += rhs
+    }
+}
+impl<T> Sub<Self> for Abstand<T> {
+    type Output = Self;
+
+    fn sub(self, Abstand(rhs, phantom_data): Self) -> Self {
+        Abstand(self.0 - rhs, phantom_data)
+    }
+}
+impl<T> SubAssign<Self> for Abstand<T> {
+    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Self) {
+        self.0 -= rhs
+    }
+}
+// get ratio
+impl<A, B> Div<Abstand<B>> for Abstand<A> {
+    type Output = f32;
+    fn div(self, rhs: Abstand<B>) -> Self::Output {
+        self.0 / rhs.0
+    }
+}
+// scale with f32
+impl<T> Mul<f32> for Abstand<T> {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Abstand(self.0 * rhs, self.1)
+    }
+}
+impl<T> Mul<Abstand<T>> for f32 {
+    type Output = Abstand<T>;
+
+    fn mul(self, Abstand(rhs, phantom_data): Abstand<T>) -> Self::Output {
+        Abstand(self * rhs, phantom_data)
+    }
+}
+impl<T> MulAssign<f32> for Abstand<T> {
     fn mul_assign(&mut self, rhs: f32) {
         self.0 *= rhs
     }
 }
-impl Div<f32> for Abstand {
+impl<T> Div<f32> for Abstand<T> {
     type Output = Self;
 
-    fn div(self, rhs: f32) -> Abstand {
-        Abstand(self.0 / rhs)
+    fn div(self, rhs: f32) -> Self::Output {
+        Abstand(self.0 / rhs, self.1)
     }
 }
-impl DivAssign<f32> for Abstand {
+impl<T> DivAssign<f32> for Abstand<T> {
     fn div_assign(&mut self, rhs: f32) {
         self.0 /= rhs
     }
 }
 /// Umrechnung von mm-Größen auf Canvas-Koordinaten
 /// Verwenden dieser Funktion um evtl. in der Zukunft einen Faktor zu erlauben
-impl From<super::Spurweite> for Abstand {
+impl<T> From<super::Spurweite> for Abstand<T> {
     fn from(super::Spurweite(spurweite): super::Spurweite) -> Self {
         Abstand::new_from_mm(spurweite)
     }
 }
-impl From<super::Length> for Abstand {
+impl<T> From<super::Length> for Abstand<T> {
     fn from(super::Length(length): super::Length) -> Self {
         Abstand::new_from_mm(length)
     }
 }
-impl From<super::Radius> for Abstand {
+impl From<super::Radius> for Abstand<Radius> {
     fn from(super::Radius(radius): super::Radius) -> Self {
         Abstand::new_from_mm(radius)
     }
 }
-pub trait ToAbstand: Into<Abstand> {
-    fn to_abstand(self) -> Abstand {
+pub trait ToAbstand<T>: Into<Abstand<T>> {
+    fn to_abstand(self) -> Abstand<T> {
         self.into()
     }
 }
-impl<T: Into<Abstand>> ToAbstand for T {}
+impl<T: Into<Abstand<S>>, S> ToAbstand<S> for T {}
 
 /// Coordinate type safe variant of /iced::Point/
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -537,13 +533,8 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
 
     /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (clockwise).
     ///
-    /// If /move_to/ is /true/ start a new subgraph, this way the method
-    /// doesn't strike a direct line from the current point to the start of the arc.
+    /// Start a new subgraph.
     pub fn arc(&mut self, arc: A /*, new_sub_path: bool*/) {
-        // if new_sub_path {
-        // TODO still required?
-        // self.new_sub_path()
-        // }
         self.builder.arc(arc.to_arc().into())
     }
 

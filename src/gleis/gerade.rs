@@ -32,7 +32,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     fn size(&self) -> canvas::Size {
         canvas::Size::new(
             canvas::X(0.) + self.length.to_abstand(),
-            canvas::Y(0.) + beschraenkung::<Z>(),
+            canvas::Y(0.) + beschraenkung::<Z, canvas::Y>(),
         )
     }
 
@@ -47,7 +47,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links: canvas::X = canvas::X(0.);
         let gleis_rechts: canvas::X = gleis_links + self.length.to_abstand();
-        let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschraenkung::<Z>();
+        let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschraenkung::<Z, canvas::Y>();
         AnchorPoints {
             anfang: anchor::Point {
                 position: anchor::Position { x: gleis_links, y: beschraenkung_mitte },
@@ -92,8 +92,8 @@ where
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschraenkung::<Z>();
-    let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschraenkung::<Z, canvas::Y>();
+    let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z, canvas::Y>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Beschränkungen
     path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben).into());
@@ -139,7 +139,7 @@ where
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z, canvas::Y>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Zeichne Umriss
     path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());

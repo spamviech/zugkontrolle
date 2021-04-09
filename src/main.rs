@@ -30,7 +30,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
     {
         let size: canvas::Size = definition.size();
         let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
-        let height: canvas::Abstand = size.height.into();
+        let height: canvas::Abstand<canvas::Y> = size.height.into();
         let res = self
             .gleise
             .add(Gleis { definition, position: Position { x, y: self.y, winkel: Angle::new(0.) } });

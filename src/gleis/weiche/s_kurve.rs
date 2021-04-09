@@ -57,20 +57,22 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             1.
         }
         .max(0.);
-        let radius_aussen = radius_begrenzung_aussen::<Z>(radius);
+        let radius_aussen = radius_begrenzung_aussen::<Z>(radius).to_abstand();
+        let radius_aussen_x: canvas::Abstand<canvas::X> = radius_aussen.convert();
         let radius_innen = radius_begrenzung_innen::<Z>(radius);
+        let radius_innen_x: canvas::Abstand<canvas::X> = radius_innen.convert();
         let radius_reverse_aussen = radius_begrenzung_aussen::<Z>(radius_reverse);
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
-        let width_oben1: canvas::Abstand = radius_aussen.to_abstand() * factor_width;
-        let width_oben2: canvas::Abstand = radius_aussen.to_abstand() * angle.sin()
-            + radius_reverse_innen.to_abstand() * factor_width_reverse;
-        let width_oben: canvas::Abstand = width_oben1.max(&width_oben2);
+        let width_oben1: canvas::Abstand<canvas::X> = radius_aussen_x * factor_width;
+        let width_oben2: canvas::Abstand<canvas::X> = radius_aussen_x * angle.sin()
+            + radius_reverse_innen.to_abstand().convert() * factor_width_reverse;
+        let width_oben: canvas::Abstand<canvas::X> = width_oben1.max(&width_oben2);
         // untere Beschränkung
-        let width_unten1 = radius_innen.to_abstand() * factor_width;
-        let width_unten2 = radius_innen.to_abstand() * angle.sin()
-            + radius_reverse_aussen.to_abstand() * factor_width_reverse;
-        let width_unten = width_unten1.max(&width_unten2);
+        let width_unten1: canvas::Abstand<canvas::X> = radius_innen_x * factor_width;
+        let width_unten2: canvas::Abstand<canvas::X> = radius_innen_x * angle.sin()
+            + radius_reverse_aussen.to_abstand().convert() * factor_width_reverse;
+        let width_unten: canvas::Abstand<canvas::X> = width_unten1.max(&width_unten2);
 
         // Höhen-Berechnung
         let factor_height = if angle.abs() < Angle::new(PI) { 1. - angle.cos() } else { 1. };
@@ -80,19 +82,21 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             1.
         }
         .max(0.);
-        let radius_aussen: canvas::Abstand = radius_begrenzung_aussen::<Z>(radius).into();
-        let radius_reverse_innen: canvas::Abstand =
-            radius_begrenzung_innen::<Z>(radius_reverse).into();
+        let radius_aussen: canvas::Abstand<canvas::Y> =
+            radius_begrenzung_aussen::<Z>(radius).to_abstand().convert();
+        let radius_reverse_innen: canvas::Abstand<canvas::Y> =
+            radius_begrenzung_innen::<Z>(radius_reverse).to_abstand().convert();
         // obere Beschränkung
-        let height_oben1: canvas::Abstand = radius_aussen * factor_height;
-        let height_oben2: canvas::Abstand =
+        let height_oben1: canvas::Abstand<canvas::Y> = radius_aussen * factor_height;
+        let height_oben2: canvas::Abstand<canvas::Y> =
             radius_aussen * (1. - angle.cos()) + radius_reverse_innen * factor_height_reverse;
-        let height_oben: canvas::Abstand = height_oben1.max(&height_oben2);
+        let height_oben: canvas::Abstand<canvas::Y> = height_oben1.max(&height_oben2);
         // untere Beschränkung
-        let gleis_unten_start = beschraenkung::<Z>();
-        let radius_innen: canvas::Abstand = radius_begrenzung_innen::<Z>(radius).into();
-        let radius_reverse_aussen: canvas::Abstand =
-            radius_begrenzung_aussen::<Z>(radius_reverse).into();
+        let gleis_unten_start = beschraenkung::<Z, canvas::Y>();
+        let radius_innen: canvas::Abstand<canvas::Y> =
+            radius_begrenzung_innen::<Z>(radius).to_abstand().convert();
+        let radius_reverse_aussen: canvas::Abstand<canvas::Y> =
+            radius_begrenzung_aussen::<Z>(radius_reverse).to_abstand().convert();
         let height_unten1 = gleis_unten_start + radius_innen * factor_height;
         let height_unten2 = gleis_unten_start
             + radius_innen * (1. - angle.cos())
@@ -178,28 +182,28 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             anfang: anchor::Point {
                 position: anchor::Position {
                     x: canvas::X(0.),
-                    y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                    y: start_height + multiplier * 0.5 * beschraenkung::<Z, canvas::Y>(),
                 },
                 direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
             gerade: anchor::Point {
                 position: anchor::Position {
                     x: canvas::X(0.) + self.length.to_abstand(),
-                    y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                    y: start_height + multiplier * 0.5 * beschraenkung::<Z, canvas::Y>(),
                 },
                 direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
             },
             kurve: anchor::Point {
                 position: anchor::Position {
                     x: canvas::X(0.)
-                        + self.radius.to_abstand() * self.angle.sin()
-                        + self.radius_reverse.to_abstand()
+                        + self.radius.to_abstand().convert() * self.angle.sin()
+                        + self.radius_reverse.to_abstand().convert()
                             * (self.angle.sin() - angle_difference.sin()),
                     y: start_height
                         + multiplier
-                            * (0.5 * beschraenkung::<Z>()
-                                + self.radius.to_abstand() * (1. - self.angle.cos())
-                                + self.radius_reverse.to_abstand()
+                            * (0.5 * beschraenkung::<Z, canvas::Y>()
+                                + self.radius.to_abstand().convert() * (1. - self.angle.cos())
+                                + self.radius_reverse.to_abstand().convert()
                                     * (angle_difference.cos() - self.angle.cos())),
                 },
                 direction: anchor::Direction {

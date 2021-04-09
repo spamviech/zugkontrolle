@@ -36,21 +36,22 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     fn size(&self) -> canvas::Size {
         // Breite
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+        let radius_begrenzung_aussen_y = radius_begrenzung_aussen.convert();
         let width_factor =
             if self.angle.abs() < Angle::new(0.5 * PI) { self.angle.sin() } else { 1. };
-        let width = canvas::X(0.) + radius_begrenzung_aussen * width_factor;
+        let width = canvas::X(0.) + radius_begrenzung_aussen.convert() * width_factor;
         // Höhe des Bogen
         let angle_abs = self.angle.abs();
         let comparison = if angle_abs < Angle::new(0.5 * PI) {
-            radius_begrenzung_aussen * (1. - self.angle.cos())
-                + beschraenkung::<Z>() * self.angle.cos()
+            radius_begrenzung_aussen_y * (1. - self.angle.cos())
+                + beschraenkung::<Z, canvas::Y>() * self.angle.cos()
         } else if angle_abs < Angle::new(PI) {
-            radius_begrenzung_aussen * (1. - self.angle.cos())
+            radius_begrenzung_aussen_y * (1. - self.angle.cos())
         } else {
-            radius_begrenzung_aussen
+            radius_begrenzung_aussen_y
         };
         // Mindesthöhe: Beschränkung einer Geraden
-        let height = canvas::Y(0.) + beschraenkung::<Z>().max(&comparison);
+        let height = canvas::Y(0.) + beschraenkung::<Z, canvas::Y>().max(&comparison);
 
         canvas::Size { width, height }
     }
@@ -81,16 +82,16 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             anfang: anchor::Point {
                 position: anchor::Position {
                     x: canvas::X(0.),
-                    y: canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
+                    y: canvas::Y(0.) + 0.5 * beschraenkung::<Z, canvas::Y>(),
                 },
                 direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
             ende: anchor::Point {
                 position: anchor::Position {
-                    x: canvas::X(0.) + self.radius.to_abstand() * self.angle.sin(),
+                    x: canvas::X(0.) + self.radius.to_abstand().convert() * self.angle.sin(),
                     y: canvas::Y(0.)
-                        + (0.5 * beschraenkung::<Z>()
-                            + self.radius.to_abstand() * (1. - self.angle.cos())),
+                        + (0.5 * beschraenkung::<Z, canvas::Y>()
+                            + self.radius.to_abstand().convert() * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {
                     dx: canvas::X(self.angle.cos()),
@@ -161,22 +162,24 @@ fn zeichne_internal<Z, P, A>(
     A: From<canvas::Arc> + canvas::ToArc,
 {
     // Utility Größen
-    let radius_abstand: canvas::Abstand = radius.to_abstand();
-    let spurweite: canvas::Abstand = Z::SPURWEITE.to_abstand();
+    let radius_abstand: canvas::Abstand<canvas::Radius> = radius.to_abstand();
+    let spurweite: canvas::Abstand<canvas::Radius> = Z::SPURWEITE.to_abstand();
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let winkel_ende: Angle = winkel_anfang + winkel;
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_links_oben: canvas::Y = canvas::Y(0.);
-    let gleis_links_unten: canvas::Y = gleis_links_oben + beschraenkung::<Z>();
+    let gleis_links_unten: canvas::Y = gleis_links_oben + beschraenkung::<Z, canvas::Y>();
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_abstand - 0.5 * spurweite;
     let radius_aussen: canvas::Radius = radius_innen + spurweite;
-    let radius_begrenzung_aussen: canvas::Abstand = radius_aussen.to_abstand() + abstand::<Z>();
-    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen * winkel.sin();
+    let radius_begrenzung_aussen: canvas::Abstand<canvas::Radius> =
+        radius_aussen.to_abstand() + abstand::<Z, canvas::Radius>();
+    let radius_begrenzung_aussen_y: canvas::Abstand<canvas::Y> = radius_begrenzung_aussen.convert();
+    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen.convert() * winkel.sin();
     let begrenzung_y0: canvas::Y =
-        gleis_links_oben + radius_begrenzung_aussen * (1. - winkel.cos());
-    let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>() * winkel.sin();
-    let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
-    let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen;
+        gleis_links_oben + radius_begrenzung_aussen_y * (1. - winkel.cos());
+    let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z, canvas::X>() * winkel.sin();
+    let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z, canvas::Y>() * winkel.cos();
+    let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen_y;
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {
         path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
@@ -249,21 +252,22 @@ fn fuelle_internal<Z, P, A>(
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_innen_abstand;
     let radius_aussen_abstand = radius_abstand + 0.5 * spurweite;
     let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
-    let radius_aussen_abstand: canvas::Abstand = radius_aussen.to_abstand();
-    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen.into();
+    let radius_aussen_abstand: canvas::Abstand<canvas::Radius> = radius_aussen.to_abstand();
+    let bogen_zentrum_y: canvas::Y =
+        canvas::Y(0.) + abstand::<Z, canvas::Y>() + radius_aussen_abstand.convert();
     // Koordinaten links
     let gleis_links: canvas::X = canvas::X(0.);
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let gleis_links_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let gleis_links_oben: canvas::Y = beschraenkung_oben + abstand::<Z, canvas::Y>();
     let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
     // Koordinaten rechts
     let gleis_rechts_oben: canvas::Point = canvas::Point::new(
-        gleis_links + radius_aussen_abstand * winkel.sin(),
-        gleis_links_oben + radius_aussen_abstand * (1. - winkel.cos()),
+        gleis_links + radius_aussen_abstand.convert() * winkel.sin(),
+        gleis_links_oben + radius_aussen_abstand.convert() * (1. - winkel.cos()),
     );
     let gleis_rechts_unten: canvas::Point = canvas::Point::new(
-        gleis_rechts_oben.x - spurweite * winkel.sin(),
-        gleis_rechts_oben.y + spurweite * winkel.cos(),
+        gleis_rechts_oben.x - spurweite.convert() * winkel.sin(),
+        gleis_rechts_oben.y + spurweite.convert() * winkel.cos(),
     );
     // obere Kurve
     path_builder.arc(
