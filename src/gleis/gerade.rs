@@ -38,12 +38,12 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         let mut path_builder = canvas::PathBuilder::new();
-        zeichne::<Z>(&mut path_builder, self.length);
+        zeichne::<Z, canvas::Point, canvas::Arc>(&mut path_builder, self.length);
         vec![path_builder.build()]
     }
     fn fuelle(&self) -> Vec<canvas::Path> {
         let mut path_builder = canvas::PathBuilder::new();
-        fuelle::<Z>(&mut path_builder, self.length);
+        fuelle::<Z, canvas::Point, canvas::Arc>(&mut path_builder, self.length);
         vec![path_builder.build()]
     }
 
@@ -64,7 +64,12 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 }
 
-pub(crate) fn zeichne<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge: Length) {
+pub(crate) fn zeichne<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
+where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
@@ -72,18 +77,23 @@ pub(crate) fn zeichne<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge:
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Beschränkungen
-    path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben));
-    path_builder.line_to(canvas::Point::new(gleis_links, beschraenkung_unten));
-    path_builder.move_to(canvas::Point::new(gleis_rechts, beschraenkung_oben));
-    path_builder.line_to(canvas::Point::new(gleis_rechts, beschraenkung_unten));
+    path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben).into());
+    path_builder.line_to(canvas::Point::new(gleis_links, beschraenkung_unten).into());
+    path_builder.move_to(canvas::Point::new(gleis_rechts, beschraenkung_oben).into());
+    path_builder.line_to(canvas::Point::new(gleis_rechts, beschraenkung_unten).into());
     // Gleis
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben));
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben));
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_unten));
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten));
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());
+    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_unten).into());
+    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
 }
 
-pub(crate) fn fuelle<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge: Length) {
+pub(crate) fn fuelle<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
+where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
     // Koordinaten
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
@@ -91,9 +101,9 @@ pub(crate) fn fuelle<Z: Zugtyp>(path_builder: &mut canvas::PathBuilder, laenge: 
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Zeichne Umriss
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben));
-    path_builder.line_to(canvas::Point::new(gleis_links, gleis_unten));
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten));
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben));
-    path_builder.line_to(canvas::Point::new(gleis_links, gleis_oben));
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());
+    path_builder.line_to(canvas::Point::new(gleis_links, gleis_unten).into());
+    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
+    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());
+    path_builder.line_to(canvas::Point::new(gleis_links, gleis_oben).into());
 }

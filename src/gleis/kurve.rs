@@ -57,13 +57,22 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         let mut zeichne_builder = canvas::PathBuilder::new();
-        zeichne::<Z>(&mut zeichne_builder, self.radius, self.angle.into(), Beschraenkung::Alle);
+        zeichne::<Z, canvas::Point, canvas::Arc>(
+            &mut zeichne_builder,
+            self.radius,
+            self.angle.into(),
+            Beschraenkung::Alle,
+        );
         vec![zeichne_builder.build()]
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
         let mut fuelle_builder = canvas::PathBuilder::new();
-        fuelle::<Z>(&mut fuelle_builder, self.radius, self.angle.into());
+        fuelle::<Z, canvas::Point, canvas::Arc>(
+            &mut fuelle_builder,
+            self.radius,
+            self.angle.into(),
+        );
         vec![fuelle_builder.build()]
     }
 
@@ -115,12 +124,16 @@ impl Beschraenkung {
 }
 
 // factor_y is expected to be -1 or +1, although other values should work as well
-pub(crate) fn zeichne<Z: Zugtyp>(
-    path_builder: &mut canvas::PathBuilder,
+pub(crate) fn zeichne<Z, P, A>(
+    path_builder: &mut canvas::PathBuilder<P, A>,
     radius: Radius,
     winkel: Angle,
     beschraenkungen: Beschraenkung,
-) {
+) where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
     // Utility Größen
     let radius_abstand: canvas::Abstand = radius.to_abstand();
     let spurweite: canvas::Abstand = Z::SPURWEITE.to_abstand();
@@ -140,34 +153,44 @@ pub(crate) fn zeichne<Z: Zugtyp>(
     let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen;
     // Beschränkungen
     if beschraenkungen.anfangs_beschraenkung() {
-        path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben));
-        path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten));
+        path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
+        path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
     }
     if beschraenkungen.end_beschraenkung() {
-        path_builder.move_to(canvas::Point::new(begrenzung_x0, begrenzung_y0));
-        path_builder.line_to(canvas::Point::new(begrenzung_x1, begrenzung_y1));
+        path_builder.move_to(canvas::Point::new(begrenzung_x0, begrenzung_y0).into());
+        path_builder.line_to(canvas::Point::new(begrenzung_x1, begrenzung_y1).into());
     }
     // Gleis
-    path_builder.arc(canvas::Arc {
-        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-        radius: canvas::Radius(0.) + radius_aussen.to_abstand(),
-        start: winkel_anfang,
-        end: winkel_ende,
-    });
-    path_builder.arc(canvas::Arc {
-        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-        radius: canvas::Radius(0.) + radius_innen.to_abstand(),
-        start: winkel_anfang,
-        end: winkel_ende,
-    });
+    path_builder.arc(
+        canvas::Arc {
+            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+            radius: canvas::Radius(0.) + radius_aussen.to_abstand(),
+            start: winkel_anfang,
+            end: winkel_ende,
+        }
+        .into(),
+    );
+    path_builder.arc(
+        canvas::Arc {
+            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+            radius: canvas::Radius(0.) + radius_innen.to_abstand(),
+            start: winkel_anfang,
+            end: winkel_ende,
+        }
+        .into(),
+    );
 }
 
 /// Geplant für canvas::PathType::EvenOdd
-pub(crate) fn fuelle<Z: Zugtyp>(
-    path_builder: &mut canvas::PathBuilder,
+pub(crate) fn fuelle<Z, P, A>(
+    path_builder: &mut canvas::PathBuilder<P, A>,
     radius: Radius,
     winkel: Angle,
-) {
+) where
+    Z: Zugtyp,
+    P: From<canvas::Point> + canvas::ToPoint,
+    A: From<canvas::Arc> + canvas::ToArc,
+{
     let radius_abstand = radius.to_abstand();
     let spurweite = Z::SPURWEITE.to_abstand();
     // Koordinaten für den Bogen
@@ -194,25 +217,31 @@ pub(crate) fn fuelle<Z: Zugtyp>(
         gleis_rechts_oben.y + spurweite * winkel.cos(),
     );
     // obere Kurve
-    path_builder.arc(canvas::Arc {
-        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-        radius: radius_aussen,
-        start: winkel_anfang,
-        end: winkel_ende,
-    });
+    path_builder.arc(
+        canvas::Arc {
+            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+            radius: radius_aussen,
+            start: winkel_anfang,
+            end: winkel_ende,
+        }
+        .into(),
+    );
     path_builder.close();
     // untere Kurve
-    path_builder.arc(canvas::Arc {
-        center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-        radius: radius_innen,
-        start: winkel_anfang,
-        end: winkel_ende,
-    });
+    path_builder.arc(
+        canvas::Arc {
+            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+            radius: radius_innen,
+            start: winkel_anfang,
+            end: winkel_ende,
+        }
+        .into(),
+    );
     path_builder.close();
     // Zwischen-Teil
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben));
-    path_builder.line_to(gleis_rechts_oben);
-    path_builder.line_to(gleis_rechts_unten);
-    path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten));
+    path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
+    path_builder.line_to(gleis_rechts_oben.into());
+    path_builder.line_to(gleis_rechts_unten.into());
+    path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
     path_builder.close();
 }

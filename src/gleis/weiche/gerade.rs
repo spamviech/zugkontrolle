@@ -8,6 +8,8 @@
 
 use std::marker::PhantomData;
 
+use canvas::PathBuilder;
+
 use crate::gleis::anchor;
 use crate::gleis::gerade::{self, Gerade};
 use crate::gleis::kurve::{self, Kurve};
@@ -62,22 +64,31 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         } else {
             Vec::new()
         };
-        let mut path_builder = canvas::PathBuilder::new_with_transformations(transformations);
-        if direction == Richtung::Links {
+        let mut path_builder = canvas::PathBuilder::new();
+        let path_builder = if direction == Richtung::Links {
             path_builder.with_invert_y(|builder| {
-                gerade::zeichne::<Z>(builder, length);
-                kurve::zeichne::<Z>(builder, radius, angle.into(), kurve::Beschraenkung::Ende);
-            });
+                gerade::zeichne::<
+                    Z,
+                    canvas::Inverted<canvas::Point, canvas::Y>,
+                    canvas::Inverted<canvas::Arc, canvas::Y>,
+                >(builder, length);
+                kurve::zeichne::<
+                    Z,
+                    canvas::Inverted<canvas::Point, canvas::Y>,
+                    canvas::Inverted<canvas::Arc, canvas::Y>,
+                >(builder, radius, angle.into(), kurve::Beschraenkung::Ende);
+            })
         } else {
-            gerade::zeichne::<Z>(&mut path_builder, length);
-            kurve::zeichne::<Z>(
+            gerade::zeichne::<Z, canvas::Point, canvas::Arc>(&mut path_builder, length);
+            kurve::zeichne::<Z, canvas::Point, canvas::Arc>(
                 &mut path_builder,
                 radius,
                 angle.into(),
                 kurve::Beschraenkung::Ende,
             );
-        }
-        vec![path_builder.build()]
+            path_builder
+        };
+        vec![path_builder.build_under_transformations(transformations)]
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
@@ -90,21 +101,40 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         } else {
             Vec::new()
         };
-        let mut gerade_builder =
-            canvas::PathBuilder::new_with_transformations(transformations.clone());
-        let mut kurve_builder = canvas::PathBuilder::new_with_transformations(transformations);
-        if direction == Richtung::Links {
-            gerade_builder.with_invert_y(|builder| {
-                gerade::fuelle::<Z>(builder, length);
-            });
-            kurve_builder.with_invert_y(|builder| {
-                kurve::fuelle::<Z>(builder, radius, angle.into());
-            });
+        let mut gerade_builder = canvas::PathBuilder::new();
+        let mut kurve_builder = canvas::PathBuilder::new();
+        let builder_vec = if direction == Richtung::Links {
+            vec![
+                gerade_builder.with_invert_y(|builder| {
+                    gerade::fuelle::<
+                        Z,
+                        canvas::Inverted<canvas::Point, canvas::Y>,
+                        canvas::Inverted<canvas::Arc, canvas::Y>,
+                    >(builder, length);
+                }),
+                kurve_builder.with_invert_y(|builder| {
+                    kurve::fuelle::<
+                        Z,
+                        canvas::Inverted<canvas::Point, canvas::Y>,
+                        canvas::Inverted<canvas::Arc, canvas::Y>,
+                    >(builder, radius, angle.into());
+                }),
+            ]
         } else {
-            gerade::fuelle::<Z>(&mut gerade_builder, length);
-            kurve::fuelle::<Z>(&mut kurve_builder, radius, angle.into());
-        }
-        vec![gerade_builder.build(), kurve_builder.build()]
+            gerade::fuelle::<Z, canvas::Point, canvas::Arc>(&mut gerade_builder, length);
+            kurve::fuelle::<Z, canvas::Point, canvas::Arc>(
+                &mut kurve_builder,
+                radius,
+                angle.into(),
+            );
+            vec![gerade_builder, kurve_builder]
+        };
+        builder_vec
+            .into_iter()
+            .map(|builder| {
+                PathBuilder::build_under_transformations(builder, transformations.clone())
+            })
+            .collect()
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

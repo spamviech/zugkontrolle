@@ -72,29 +72,46 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let half_height: canvas::Y = canvas::Y(0.5 * height.0);
         let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
-        let zeichne_kontur = |path_builder: &mut canvas::PathBuilder| {
-            gerade::zeichne::<Z>(path_builder, self.length);
-            if self.variante == Variante::MitKurve {
-                kurve::zeichne::<Z>(path_builder, self.radius, angle, kurve::Beschraenkung::Keine);
-            }
-        };
         // horizontale Gerade + erste Kurve
-        let mut horizontal_builder =
-            canvas::PathBuilder::new_with_transformations(vec![canvas::Transformation::Translate(
-                canvas::Vector::new(start_x, start_y),
-            )]);
-        zeichne_kontur(&mut horizontal_builder);
+        let mut horizontal_builder = canvas::PathBuilder::new();
+        gerade::zeichne::<Z, canvas::Point, canvas::Arc>(&mut horizontal_builder, self.length);
+        if self.variante == Variante::MitKurve {
+            kurve::zeichne::<Z, canvas::Point, canvas::Arc>(
+                &mut horizontal_builder,
+                self.radius,
+                angle,
+                kurve::Beschraenkung::Keine,
+            );
+        }
         // gedrehte Gerade + zweite Kurve
-        let mut gedreht_builder = canvas::PathBuilder::new_with_transformations(vec![
-            canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
-            canvas::Transformation::Rotate(angle),
-            // transformations with assumed inverted y-Axis
-            canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
-            canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
-        ]);
-        gedreht_builder.with_invert_y(|path_builder| zeichne_kontur(path_builder));
+        let gedreht_builder = canvas::PathBuilder::new();
+        let gedreht_builder = gedreht_builder.with_invert_y(|path_builder| {
+            gerade::zeichne::<
+                Z,
+                canvas::Inverted<canvas::Point, canvas::Y>,
+                canvas::Inverted<canvas::Arc, canvas::Y>,
+            >(path_builder, self.length);
+            if self.variante == Variante::MitKurve {
+                kurve::zeichne::<
+                    Z,
+                    canvas::Inverted<canvas::Point, canvas::Y>,
+                    canvas::Inverted<canvas::Arc, canvas::Y>,
+                >(path_builder, self.radius, angle, kurve::Beschraenkung::Keine);
+            }
+        });
         // return value
-        vec![horizontal_builder.build(), gedreht_builder.build()]
+        vec![
+            horizontal_builder.build_under_transformations(vec![
+                canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y)),
+            ]),
+            gedreht_builder.build_under_transformations(vec![
+                canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
+                canvas::Transformation::Rotate(angle),
+                // transformations with assumed inverted y-Axis
+                canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
+                canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
+            ]),
+        ]
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {

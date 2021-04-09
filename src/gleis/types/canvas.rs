@@ -419,10 +419,31 @@ pub enum Transformation {
 }
 
 /// Helper struct, so I don't make stupid mistakes (e.g. inverting twice)
-struct Inverted<T, Axis>(T, PhantomData<*const Axis>);
-impl<T, Axis> Inverted<T, Axis> {
-    fn into<S: From<T>>(self) -> S {
-        self.0.into()
+pub struct Inverted<T, Axis>(T, PhantomData<*const Axis>);
+pub trait ToPoint {
+    fn to_point(self) -> Point;
+}
+impl ToPoint for Point {
+    fn to_point(self) -> Point {
+        self
+    }
+}
+impl<P: ToPoint, Axis> ToPoint for Inverted<P, Axis> {
+    fn to_point(self) -> Point {
+        self.0.to_point()
+    }
+}
+pub trait ToArc {
+    fn to_arc(self) -> Arc;
+}
+impl ToArc for Arc {
+    fn to_arc(self) -> Arc {
+        self
+    }
+}
+impl<A: ToArc, Axis> ToArc for Inverted<A, Axis> {
+    fn to_arc(self) -> Arc {
+        self.0.to_arc()
     }
 }
 impl<T: Into<Inverted<T, B>>, A, B> From<Inverted<T, A>> for Inverted<Inverted<T, A>, B> {
@@ -481,73 +502,49 @@ impl From<Arc> for Inverted<Arc, Y> {
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.
 /// Alle Methoden verwenden die hier definierten Typen.
-pub struct PathBuilder {
+pub struct PathBuilder<P, A> {
     builder: canvas::path::Builder,
-    transformations: Vec<Transformation>,
-    invert_x: bool,
-    invert_y: bool,
+    phantom_data: PhantomData<*const (P, A)>,
 }
 
-impl PathBuilder {
+impl PathBuilder<Point, Arc> {
     /// create a new PathBuilder
     pub fn new() -> Self {
-        PathBuilder::new_with_transformations(Vec::new())
-    }
-    /// create a new PathBuilder for a path after applying all given transformations
-    pub fn new_with_transformations(transformations: Vec<Transformation>) -> Self {
-        PathBuilder {
-            builder: canvas::path::Builder::new(),
-            transformations,
-            invert_x: false,
-            invert_y: false,
-        }
+        PathBuilder { builder: canvas::path::Builder::new(), phantom_data: PhantomData }
     }
 
     /// Finalize the Path, building the immutable result
     pub fn build(self) -> Path {
-        Path { path: self.builder.build(), transformations: self.transformations }
+        self.build_under_transformations(Vec::new())
     }
 
-    fn invert_point_axis(&self, point: Point) -> Inverted<Point, ()> {
-        let point_invert_x =
-            if self.invert_x { Inverted::<Point, X>::from(point).0 } else { point };
-        Inverted(
-            if self.invert_y {
-                Inverted::<Point, Y>::from(point_invert_x).0
-            } else {
-                point_invert_x
-            },
-            PhantomData,
-        )
+    /// Finalize the Path, building the immutable result after applying all given transformations
+    pub fn build_under_transformations(self, transformations: Vec<Transformation>) -> Path {
+        Path { path: self.builder.build(), transformations }
     }
-    fn invert_arc_axis(&self, arc: Arc) -> Inverted<Arc, ()> {
-        let arc_invert_x = if self.invert_x { Inverted::<Arc, X>::from(arc).0 } else { arc };
-        Inverted(
-            if self.invert_y { Inverted::<Arc, Y>::from(arc_invert_x).0 } else { arc_invert_x },
-            PhantomData,
-        )
-    }
+}
 
+impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     // start a new subpath at /point/
-    pub fn move_to(&mut self, point: Point) {
-        self.builder.move_to(self.invert_point_axis(point).into())
+    pub fn move_to(&mut self, point: P) {
+        self.builder.move_to(point.to_point().into())
     }
 
     /// strike a direct line from the current point to /point/
-    pub fn line_to(&mut self, point: Point) {
-        self.builder.line_to(self.invert_point_axis(point).into())
+    pub fn line_to(&mut self, point: P) {
+        self.builder.line_to(point.to_point().into())
     }
 
     /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (clockwise).
     ///
     /// If /move_to/ is /true/ start a new subgraph, this way the method
     /// doesn't strike a direct line from the current point to the start of the arc.
-    pub fn arc(&mut self, arc: Arc /*, new_sub_path: bool*/) {
+    pub fn arc(&mut self, arc: A /*, new_sub_path: bool*/) {
         // if new_sub_path {
         // TODO still required?
         // self.new_sub_path()
         // }
-        self.builder.arc(self.invert_arc_axis(arc).into())
+        self.builder.arc(arc.to_arc().into())
     }
 
     /*
@@ -579,10 +576,14 @@ impl PathBuilder {
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
     /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
     /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
-    pub fn with_invert_x(&mut self, action: impl for<'s> FnOnce(&'s mut Self)) {
-        self.invert_x = !self.invert_x;
-        action(self);
-        self.invert_x = !self.invert_x;
+    pub fn with_invert_x(
+        self,
+        action: impl for<'s> FnOnce(&'s mut PathBuilder<Inverted<P, X>, Inverted<A, X>>),
+    ) -> Self {
+        let mut inverted_builder: PathBuilder<Inverted<P, X>, Inverted<A, X>> =
+            PathBuilder { builder: self.builder, phantom_data: PhantomData };
+        action(&mut inverted_builder);
+        PathBuilder { builder: inverted_builder.builder, phantom_data: self.phantom_data }
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
@@ -590,10 +591,14 @@ impl PathBuilder {
     /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
     /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
     /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
-    pub fn with_invert_y(&mut self, action: impl for<'s> FnOnce(&'s mut Self)) {
-        self.invert_y = !self.invert_y;
-        action(self);
-        self.invert_y = !self.invert_y;
+    pub fn with_invert_y(
+        self,
+        action: impl for<'s> FnOnce(&'s mut PathBuilder<Inverted<P, Y>, Inverted<A, Y>>),
+    ) -> Self {
+        let mut inverted_builder: PathBuilder<Inverted<P, Y>, Inverted<A, Y>> =
+            PathBuilder { builder: self.builder, phantom_data: PhantomData };
+        action(&mut inverted_builder);
+        PathBuilder { builder: inverted_builder.builder, phantom_data: self.phantom_data }
     }
 }
 
