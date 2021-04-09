@@ -19,6 +19,7 @@ rstar = "0.8.2"
 log = "0.4.14"
 simple_logger = "1.11.0"
 argh = "0.1.4"
+take_mut = "0.2.2"
 
 [dependencies.serde]
 version = "1.0.124"

@@ -577,13 +577,15 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
     /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
     pub fn with_invert_x(
-        self,
+        &mut self,
         action: impl for<'s> FnOnce(&'s mut PathBuilder<Inverted<P, X>, Inverted<A, X>>),
-    ) -> Self {
-        let mut inverted_builder: PathBuilder<Inverted<P, X>, Inverted<A, X>> =
-            PathBuilder { builder: self.builder, phantom_data: PhantomData };
-        action(&mut inverted_builder);
-        PathBuilder { builder: inverted_builder.builder, phantom_data: self.phantom_data }
+    ) {
+        take_mut::take(&mut self.builder, |builder| {
+            let mut inverted_builder: PathBuilder<Inverted<P, X>, Inverted<A, X>> =
+                PathBuilder { builder, phantom_data: PhantomData };
+            action(&mut inverted_builder);
+            inverted_builder.builder
+        })
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
@@ -592,13 +594,15 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
     /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
     pub fn with_invert_y(
-        self,
+        &mut self,
         action: impl for<'s> FnOnce(&'s mut PathBuilder<Inverted<P, Y>, Inverted<A, Y>>),
-    ) -> Self {
-        let mut inverted_builder: PathBuilder<Inverted<P, Y>, Inverted<A, Y>> =
-            PathBuilder { builder: self.builder, phantom_data: PhantomData };
-        action(&mut inverted_builder);
-        PathBuilder { builder: inverted_builder.builder, phantom_data: self.phantom_data }
+    ) {
+        take_mut::take(&mut self.builder, |builder| {
+            let mut inverted_builder: PathBuilder<Inverted<P, Y>, Inverted<A, Y>> =
+                PathBuilder { builder, phantom_data: PhantomData };
+            action(&mut inverted_builder);
+            inverted_builder.builder
+        })
     }
 }
 

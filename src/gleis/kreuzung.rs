@@ -84,8 +84,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             );
         }
         // gedrehte Gerade + zweite Kurve
-        let gedreht_builder = canvas::PathBuilder::new();
-        let gedreht_builder = gedreht_builder.with_invert_y(|path_builder| {
+        let mut gedreht_builder = canvas::PathBuilder::new();
+        gedreht_builder.with_invert_y(|path_builder| {
             gerade::zeichne::<
                 Z,
                 canvas::Inverted<canvas::Point, canvas::Y>,
