@@ -97,7 +97,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         vec![horizontal_builder.build(), gedreht_builder.build()]
     }
 
-    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)> {
+    fn fuelle(&self) -> Vec<canvas::Path> {
         /*
             // utility sizes
             let width: canvas::X = canvas::X(self.width() as f64);

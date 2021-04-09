@@ -249,7 +249,7 @@ fn zeichne_alle_gleise<T, F>(
             // drehe Kontext um (0,0)
             frame.transformation(&canvas::Transformation::Rotate(position.winkel));
             // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
-            for (path, rule) in definition.fuelle() {
+            for path in definition.fuelle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
                     // frame.stroke(
@@ -261,7 +261,10 @@ fn zeichne_alle_gleise<T, F>(
                     // );
                     frame.fill(
                         &path,
-                        canvas::Fill { color: canvas::Color { r: 1., g: 0., b: 0., a: 1. }, rule },
+                        canvas::Fill {
+                            color: canvas::Color { r: 1., g: 0., b: 0., a: 1. },
+                            rule: canvas::FillRule::EvenOdd,
+                        },
                     );
                 });
             }

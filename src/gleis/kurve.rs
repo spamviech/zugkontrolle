@@ -63,10 +63,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         vec![zeichne_builder.build()]
     }
 
-    fn fuelle(&self) -> Vec<(canvas::Path, canvas::FillRule)> {
+    fn fuelle(&self) -> Vec<canvas::Path> {
         let mut fuelle_builder = canvas::PathBuilder::new();
         fuelle::<Z>(&mut fuelle_builder, self.radius, self.angle.into());
-        vec![(fuelle_builder.build(), canvas::FillRule::EvenOdd)]
+        vec![fuelle_builder.build()]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
