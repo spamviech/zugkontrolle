@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 
 use super::Richtung;
 use crate::gleis::anchor;
-use crate::gleis::gerade::Gerade;
+use crate::gleis::gerade::{self, Gerade};
 use crate::gleis::kurve;
 use crate::gleis::types::*;
 use crate::gleis::weiche;
@@ -111,57 +111,171 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        /*
-        let SKurvenWeiche {
-            zugtyp,
-            length,
-            radius,
-            angle,
-            radius_reverse,
-            angle_reverse,
-            direction,
-        } = *self;
-        if direction == Richtung::Links {
-            // spiegel y-Achse in der Mitte
-            let x = canvas::X(0.);
-            let half_height = canvas::Y(0.5 * (self.height() as f64));
-            cairo.translate(x, half_height);
-            cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-            cairo.translate(-x, -half_height);
+        // utility sizes
+        let mut paths = Vec::new();
+        if self.direction == Richtung::Links {
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                self.size().height,
+            ))];
+            // Gerade
+            paths.push(gerade::zeichne(
+                self.zugtyp,
+                self.length,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Kurve nach außen
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                kurve::Beschraenkung::Keine,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Kurve nach innen
+            let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.) + radius_begrenzung_aussen.convert() * self.angle.sin(),
+                canvas::Y(0.) + radius_begrenzung_aussen.convert() * (1. - self.angle.cos()),
+            )));
+            transformations.push(canvas::Transformation::Rotate(self.angle));
+            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                canvas::Y(0.) + beschraenkung::<Z, canvas::Y>(),
+            )));
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius_reverse,
+                self.angle,
+                kurve::Beschraenkung::Ende,
+                transformations,
+                canvas::PathBuilder::with_normal_axis,
+            ));
+        } else {
+            // Gerade
+            paths.push(gerade::zeichne(
+                self.zugtyp,
+                self.length,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Kurve nach außen
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                kurve::Beschraenkung::Keine,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Kurve nach innen
+            let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+            let transformations = vec![
+                canvas::Transformation::Translate(canvas::Vector::new(
+                    canvas::X(0.) + radius_begrenzung_aussen.convert() * self.angle.sin(),
+                    canvas::Y(0.) + radius_begrenzung_aussen.convert() * (1. - self.angle.cos()),
+                )),
+                canvas::Transformation::Rotate(self.angle),
+                canvas::Transformation::Translate(canvas::Vector::new(
+                    canvas::X(0.),
+                    canvas::Y(0.) + beschraenkung::<Z, canvas::Y>(),
+                )),
+            ];
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius_reverse,
+                self.angle,
+                kurve::Beschraenkung::Ende,
+                transformations,
+                canvas::PathBuilder::with_invert_y,
+            ));
         }
-        // zeichne gerade
-        Gerade { zugtyp, length }.zeichne(cairo);
-        // zeichne ersten Teil der S-Kurve
-        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Keine);
-        let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
-        // verschiebe Kontext an Position nach erster Kurve
-        cairo.translate(
-            canvas::X(0.) + radius_begrenzung_aussen * self.angle.sin(),
-            canvas::Y(0.) + radius_begrenzung_aussen * (1. - self.angle.cos()),
-        );
-        cairo.rotate(self.angle.into());
-        // spiegel die y-Achse, damit die Kurve in die entgegengesetzte Richtung geht
-        let x = canvas::X(0.);
-        let half_beschraenkung = canvas::Y(0.) + 0.5 * beschraenkung::<Z>();
-        cairo.translate(x, half_beschraenkung);
-        cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-        cairo.translate(x, -half_beschraenkung);
-        // zeichne zweiten Teil der S-Kurve
-        kurve::zeichne::<Z>(
-            cairo,
-            radius_reverse,
-            angle_reverse.into(),
-            kurve::Beschraenkung::Ende,
-        );
-        */
-        println!("TODO SKurvenWeiche");
-        vec![]
+        // return value
+        paths
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        //TODO
-        println!("TODO fülle SKurvenWeiche");
-        vec![]
+        // utility sizes
+        let mut paths = Vec::new();
+        if self.direction == Richtung::Links {
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                self.size().height,
+            ))];
+            // Gerade
+            paths.push(gerade::fuelle(
+                self.zugtyp,
+                self.length,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Kurve nach außen
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Kurve nach innen
+            let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.) + radius_begrenzung_aussen.convert() * self.angle.sin(),
+                canvas::Y(0.) + radius_begrenzung_aussen.convert() * (1. - self.angle.cos()),
+            )));
+            transformations.push(canvas::Transformation::Rotate(self.angle));
+            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                canvas::Y(0.) + beschraenkung::<Z, canvas::Y>(),
+            )));
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius_reverse,
+                self.angle,
+                transformations,
+                canvas::PathBuilder::with_normal_axis,
+            ));
+        } else {
+            // Gerade
+            paths.push(gerade::fuelle(
+                self.zugtyp,
+                self.length,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Kurve nach außen
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Kurve nach innen
+            let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+            let transformations = vec![
+                canvas::Transformation::Translate(canvas::Vector::new(
+                    canvas::X(0.) + radius_begrenzung_aussen.convert() * self.angle.sin(),
+                    canvas::Y(0.) + radius_begrenzung_aussen.convert() * (1. - self.angle.cos()),
+                )),
+                canvas::Transformation::Rotate(self.angle),
+                canvas::Transformation::Translate(canvas::Vector::new(
+                    canvas::X(0.),
+                    canvas::Y(0.) + beschraenkung::<Z, canvas::Y>(),
+                )),
+            ];
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius_reverse,
+                self.angle,
+                transformations,
+                canvas::PathBuilder::with_invert_y,
+            ));
+        }
+        // return value
+        paths
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
