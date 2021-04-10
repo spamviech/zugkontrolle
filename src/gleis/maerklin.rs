@@ -16,6 +16,13 @@ const RADIUS_R1: Radius = Radius::new(360.);
 const RADIUS_R2: Radius = Radius::new(437.4);
 const ZUGTYP: PhantomData<*const Maerklin> = PhantomData;
 
+// floating point semantics aren't supported in const functions
+macro_rules! as_radians {
+    ($degrees:expr) => {
+        $degrees * PI / 180.
+    };
+}
+
 /*
 H0 Spurweite: 16.5mm
 Gerade
@@ -49,21 +56,21 @@ Kurve
     5205: 5.72°, R437.4mm
 */
 pub const KURVE_5120: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_INDUSTRIE, angle: Angle::new(45. * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_INDUSTRIE, angle: Angle::new(as_radians!(45.)) };
 pub const KURVE_5100: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(30. * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(as_radians!(30.)) };
 pub const KURVE_5101: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(15. * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(as_radians!(15.)) };
 pub const KURVE_5102: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(7.5 * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(as_radians!(7.5)) };
 pub const KURVE_5200: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(30. * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(30.)) };
 pub const KURVE_5206: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(24.28 * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(24.28)) };
 pub const KURVE_5201: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(15. * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(15.)) };
 pub const KURVE_5205: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(5.72 * PI / 180.) };
+    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(5.72)) };
 
 /*
 Weiche
@@ -71,7 +78,7 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-const ANGLE_5117: Angle = Angle::new(30. * PI / 180.);
+const ANGLE_5117: Angle = Angle::new(as_radians!(30.));
 pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
@@ -83,7 +90,7 @@ pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
 }
 pub const WEICHE_5117_RECHTS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Rechts);
 pub const WEICHE_5117_LINKS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Links);
-const ANGLE_5137: Angle = Angle::new(22.5 * PI / 180.);
+const ANGLE_5137: Angle = Angle::new(as_radians!(22.5));
 pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
@@ -95,7 +102,7 @@ pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
 }
 pub const WEICHE_5137_RECHTS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Rechts);
 pub const WEICHE_5137_LINKS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Links);
-const ANGLE_5202: Angle = Angle::new(24.28 * PI / 180.);
+const ANGLE_5202: Angle = Angle::new(as_radians!(24.28));
 pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     Weiche {
         zugtyp: ZUGTYP,
@@ -116,14 +123,14 @@ pub const DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
     zugtyp: ZUGTYP,
     length: Length::new(180.),
     radius: RADIUS_R2,
-    angle: Angle::new(24.28 * PI / 180.),
+    angle: Angle::new(as_radians!(24.28)),
 };
 
 /*
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-const ANGLE_5140: Angle = Angle(30. * PI / 180.);
+const ANGLE_5140: Angle = Angle(as_radians!(30.));
 pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
     KurvenWeiche {
         zugtyp: ZUGTYP,
