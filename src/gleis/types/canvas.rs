@@ -4,9 +4,7 @@ use std::f32::consts::PI;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::{convert::From, marker::PhantomData};
 
-use iced::{self, canvas};
-// use cairo::Context;
-// pub use cairo::Matrix;
+use iced;
 
 use super::anchor;
 use super::angle::Angle;
@@ -371,7 +369,7 @@ impl Div<f32> for Vector {
     }
 }
 
-/// Coordinate type safe variant of /iced::widget::canvas::path::Arc/
+/// Coordinate type safe variant of /iced::canvas::path::Arc/
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Arc {
     pub center: Point,
@@ -384,9 +382,9 @@ impl Arc {
         Arc { center, radius, start, end }
     }
 }
-impl From<Arc> for canvas::path::Arc {
+impl From<Arc> for iced::canvas::path::Arc {
     fn from(Arc { center, radius, start, end }: Arc) -> Self {
-        canvas::path::Arc {
+        iced::canvas::path::Arc {
             center: center.into(),
             radius: radius.0,
             start_angle: start.0,
@@ -399,7 +397,7 @@ impl From<Arc> for canvas::path::Arc {
 ///
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
 pub struct Path {
-    path: canvas::Path,
+    path: iced::canvas::Path,
     transformations: Vec<Transformation>,
 }
 
@@ -493,20 +491,20 @@ impl From<Arc> for Inverted<Arc, Y> {
         )
     }
 }
-/// newtype auf einem /iced::widget::canvas::path::Builder/
+/// newtype auf einem /iced::canvas::path::Builder/
 ///
 /// Implementiert nur Methoden, die ich auch benötige.
 /// Evtl. werden später weitere hinzugefügt.
 /// Alle Methoden verwenden die hier definierten Typen.
 pub struct PathBuilder<P, A> {
-    builder: canvas::path::Builder,
+    builder: iced::canvas::path::Builder,
     phantom_data: PhantomData<*const (P, A)>,
 }
 
 impl PathBuilder<Point, Arc> {
     /// create a new PathBuilder
     pub fn new() -> Self {
-        PathBuilder { builder: canvas::path::Builder::new(), phantom_data: PhantomData }
+        PathBuilder { builder: iced::canvas::path::Builder::new(), phantom_data: PhantomData }
     }
 
     /// Finalize the Path, building the immutable result
@@ -604,9 +602,9 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     }
 }
 
-pub struct Frame<'t>(&'t mut canvas::Frame);
+pub struct Frame<'t>(&'t mut iced::canvas::Frame);
 impl<'t> Frame<'t> {
-    pub fn new(frame: &'t mut canvas::Frame) -> Self {
+    pub fn new(frame: &'t mut iced::canvas::Frame) -> Self {
         Frame(frame)
     }
 
@@ -632,7 +630,7 @@ impl<'t> Frame<'t> {
 
     /// Draws the characters of the given Text on the Frame, filling them with the given color.
     ///
-    /// **Warning:** problems regarding transformation/rotation/scaling from /iced::widget::canvas::Frame/ apply here as well!
+    /// **Warning:** problems regarding transformation/rotation/scaling from /iced::canvas::Frame/ apply here as well!
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text)
     }

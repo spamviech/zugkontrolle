@@ -70,8 +70,6 @@ enum AnyGleise {
 }
 struct Zugkontrolle {
     pane_state: iced::pane_grid::State<AnyGleise>,
-    gleise_maerklin: Gleise<Maerklin>,
-    gleise_lego: Gleise<Lego>,
 }
 impl Application for Zugkontrolle {
     type Executor = iced::executor::Default;
@@ -80,15 +78,11 @@ impl Application for Zugkontrolle {
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
         let (mut pane_state, pane_maerklin) =
-            iced::pane_grid::State::new(AnyGleise::Maerklin(gleise_maerklin.clone()));
+            iced::pane_grid::State::new(AnyGleise::Maerklin(gleise_maerklin));
         pane_state
-            .split(
-                iced::pane_grid::Axis::Vertical,
-                &pane_maerklin,
-                AnyGleise::Lego(gleise_lego.clone()),
-            )
+            .split(iced::pane_grid::Axis::Vertical, &pane_maerklin, AnyGleise::Lego(gleise_lego))
             .expect("Failed to split pane!");
-        (Zugkontrolle { pane_state, gleise_maerklin, gleise_lego }, Command::none())
+        (Zugkontrolle { pane_state }, Command::none())
     }
 
     fn title(&self) -> String {
