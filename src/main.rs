@@ -29,8 +29,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let size: canvas::Size = definition.size();
-        // let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
-        let x: canvas::X = canvas::X(5.);
+        let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
         let height: canvas::Abstand<canvas::Y> = size.height.into();
         let res = self
             .gleise
@@ -107,14 +106,14 @@ impl Application for Zugkontrolle {
     fn view(&mut self) -> Element<Self::Message> {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
             AnyGleise::Maerklin(gleise_maerklin) => Container::new(
-                iced::Canvas::new(gleise_maerklin).width(Length::Units(300)).height(Length::Fill),
+                iced::Canvas::new(gleise_maerklin).width(Length::Fill).height(Length::Fill),
             )
             .width(Length::Fill)
             .height(Length::Fill)
             .style(background::White)
             .into(),
             AnyGleise::Lego(gleise_lego) => Container::new(
-                iced::Canvas::new(gleise_lego).width(Length::Units(300)).height(Length::Fill),
+                iced::Canvas::new(gleise_lego).width(Length::Fill).height(Length::Fill),
             )
             .width(Length::Fill)
             .height(Length::Fill)
