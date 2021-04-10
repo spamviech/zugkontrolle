@@ -14,7 +14,7 @@ use super::kurve::{self, Kurve};
 use super::types::*;
 
 /// Definition einer Kreuzung
-#[derive(Debug, Clone)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct Kreuzung<T> {
     pub zugtyp: PhantomData<*const T>,
     pub length: Length,

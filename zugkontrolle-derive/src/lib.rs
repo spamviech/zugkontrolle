@@ -6,7 +6,137 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn;
 
-/// For external use
+#[proc_macro_derive(Debug)]
+pub fn debug_derive(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let ast = syn::parse(input).expect("Failed to parse input!");
+
+    // Build the trait implementation
+    impl_debug(&ast)
+}
+fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
+    let syn::DeriveInput { ident, data, generics, .. } = ast;
+
+    // body of the fmt method
+    let fmt = if let syn::Data::Struct(syn::DataStruct { fields, .. }) = data {
+        let ident_str = ident.to_string();
+        let fields_list = fields_list(fields);
+        let (fs_vec, fields_match) = match fields_list {
+            Some(fs) => {
+                let fs_iter = fs.iter().map(|field| &field.ident);
+                (fs_iter.clone().collect(), quote!({#(#fs_iter),*}))
+            }
+            None => (Vec::new(), quote! {}),
+        };
+        let fs_str = fs_vec.iter().map(|mid| match mid {
+            Some(id) => id.to_string() + ": ",
+            None => String::new(),
+        });
+        quote! {
+            let #ident #fields_match = self;
+            write!(f, "{} {{", #ident_str)?;
+            #(write!(f, "{}{:?}, ", #fs_str, #fs_vec)?);*;
+            write!(f, "}}")
+        }
+    } else {
+        unimplemented!("Only data structs are supported! Given ast: {:?}", ast)
+    };
+
+    let mut generic_lifetimes = Vec::new();
+    let mut generic_types = Vec::new();
+    for g in generics.params.iter() {
+        match g {
+            syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
+            syn::GenericParam::Type(ty) => generic_types.push(&ty.ident),
+            syn::GenericParam::Const(_c) => {}
+        }
+    }
+
+    let gen: proc_macro2::TokenStream = quote! {
+        impl<#(#generic_lifetimes),* #(#generic_types),*> std::fmt::Debug for #ident<#(#generic_lifetimes),* #(#generic_types),*> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                #fmt
+            }
+        }
+    };
+    gen.into()
+}
+#[proc_macro_derive(Clone)]
+pub fn clone_derive(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let ast = syn::parse(input).expect("Failed to parse input!");
+
+    // Build the trait implementation
+    impl_clone(&ast)
+}
+fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
+    let syn::DeriveInput { ident, data, generics, .. } = ast;
+
+    // body of the clone method
+    let clone = if let syn::Data::Struct(syn::DataStruct { fields, .. }) = data {
+        let fields_list = fields_list(fields);
+        let (fs_vec, fields_match) = match fields_list {
+            Some(fs) => {
+                let fs_iter = fs.iter().map(|field| &field.ident);
+                (fs_iter.clone().collect(), quote!({#(#fs_iter),*}))
+            }
+            None => (Vec::new(), quote! {}),
+        };
+        quote! {
+            let #ident #fields_match = self;
+            #ident {
+                #(#fs_vec: #fs_vec.clone()),*
+            }
+        }
+    } else {
+        unimplemented!("Only data structs are supported! Given ast: {:?}", ast)
+    };
+
+    let mut generic_lifetimes = Vec::new();
+    let mut generic_types = Vec::new();
+    for g in generics.params.iter() {
+        match g {
+            syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
+            syn::GenericParam::Type(ty) => generic_types.push(&ty.ident),
+            syn::GenericParam::Const(_c) => {}
+        }
+    }
+
+    let gen: proc_macro2::TokenStream = quote! {
+        impl<#(#generic_lifetimes),* #(#generic_types),*> Clone for #ident<#(#generic_lifetimes),* #(#generic_types),*> {
+            fn clone(&self) -> Self {
+                #clone
+            }
+        }
+    };
+    gen.into()
+}
+
+fn fields_list(
+    fields: &syn::Fields,
+) -> Option<&syn::punctuated::Punctuated<syn::Field, syn::token::Comma>> {
+    match fields {
+        syn::Fields::Named(syn::FieldsNamed { named, .. }) => Some(named),
+        syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => Some(unnamed),
+        syn::Fields::Unit => None,
+    }
+}
+
+/*
+impl<Z> std::fmt::Debug for Gerade<Z> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Gerade {{length: {:?}}}", self.length)
+    }
+}
+impl<Z> Clone for Gerade<Z> {
+    fn clone(&self) -> Self {
+        Gerade { zugtyp: self.zugtyp, length: self.length }
+    }
+}
+*/
+
 #[proc_macro_derive(Lookup)]
 pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
@@ -18,15 +148,15 @@ pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
 }
 
 fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
-    let gen: proc_macro2::TokenStream;
-    if let syn::Data::Enum(enum_data) = &ast.data {
+    let syn::DeriveInput { ident, data, vis, .. } = ast;
+    let gen: proc_macro2::TokenStream = if let syn::Data::Enum(enum_data) = data {
         let base_ident: syn::Ident =
             match crate_name("zugkontrolle").expect("zugkontrolle missing in `Cargo.toml`") {
                 FoundCrate::Itself => format_ident!("{}", "crate"),
                 FoundCrate::Name(name) => format_ident!("{}", name),
             };
-        let enum_name: &syn::Ident = &ast.ident;
-        let enum_vis: &syn::Visibility = &ast.vis;
+        let enum_name: &syn::Ident = ident;
+        let enum_vis: &syn::Visibility = vis;
         let enum_variants: Vec<syn::Ident> =
             enum_data.variants.iter().map(|v| v.ident.clone()).collect();
         // construct a struct using a snake_case field for every variant, each holding an anchor::point
@@ -64,12 +194,12 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
                 }
             }
         };
-        gen = quote! {
+        quote! {
             #struct_definition
             #impl_lookup
-        };
+        }
     } else {
         panic!("Not an enum: {:?}", ast)
-    }
+    };
     gen.into()
 }

@@ -148,6 +148,7 @@ fn main() -> iced::Result {
     let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();
     let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
     append_maerklin.append(maerklin::GERADE_5106);
+    println!("{:?}", maerklin::GERADE_5106);
     append_maerklin.append(maerklin::KURVE_5100);
     append_maerklin.append(maerklin::WEICHE_5202_LINKS);
     append_maerklin.append(maerklin::DREIWEGE_WEICHE_5214);

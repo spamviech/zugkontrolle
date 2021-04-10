@@ -16,7 +16,7 @@ use super::types::*;
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[derive(Debug, Clone)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct Kurve<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub radius: Radius,

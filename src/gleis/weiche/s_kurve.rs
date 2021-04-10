@@ -21,7 +21,7 @@ use crate::gleis::weiche;
 /// Bei extremen Winkeln (<0, >90°, angle_reverse>angle) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
-#[derive(Debug, Clone)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct SKurvenWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,

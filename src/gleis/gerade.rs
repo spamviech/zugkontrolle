@@ -13,7 +13,7 @@ use super::anchor;
 use super::types::*;
 
 /// Definition einer Gerade
-#[derive(Debug, Clone)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct Gerade<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub length: Length,

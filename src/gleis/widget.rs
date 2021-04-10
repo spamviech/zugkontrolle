@@ -6,10 +6,6 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-#[cfg(feature = "gtk-rs")]
-use gtk::{DrawingArea, DrawingAreaBuilder, WidgetExt};
-#[cfg(feature = "gtk4-rs")]
-use gtk4::{DrawingArea, DrawingAreaBuilder, DrawingAreaExt, WidgetExt};
 use log::*;
 
 use super::anchor::{self, Lookup};
@@ -154,7 +150,7 @@ impl<Z: Debug + Zugtyp + Eq + Clone + 'static> Default for Gleise<Z> {
 */
 
 /// Anzeige aller Gleise.
-#[derive(Debug)]
+#[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
     canvas: canvas::Cache,
     geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
@@ -320,7 +316,7 @@ fn zeichne_alle_gleise<T, F>(
         })
     }
 }
-impl<Z: Debug + Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
+impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -355,7 +351,7 @@ impl<Z: Debug + Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
     }
 }
 
-impl<Z: Zugtyp + Debug + Eq> Gleise<Z> {
+impl<Z: Zugtyp> Gleise<Z> {
     /// Add a new gleis to its position.
     pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisIdLock<T>, T::AnchorPoints)
     where
