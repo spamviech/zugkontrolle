@@ -96,7 +96,7 @@ pub(crate) struct Any;
 /// Identifier for a Gleis.  Will probably change between restarts.
 ///
 /// The API will only provide &GleisIdLock<Z>.
-#[derive(Debug)]
+#[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T>(u64, PhantomData<*const T>);
 impl<T> GleisId<T> {
     fn new(gleis_id: u64) -> GleisId<T> {

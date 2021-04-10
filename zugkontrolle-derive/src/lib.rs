@@ -21,23 +21,39 @@ fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
     // body of the fmt method
     let fmt = if let syn::Data::Struct(syn::DataStruct { fields, .. }) = data {
         let ident_str = ident.to_string();
-        let fields_list = fields_list(fields);
-        let (fs_vec, fields_match) = match fields_list {
-            Some(fs) => {
-                let fs_iter = fs.iter().map(|field| &field.ident);
-                (fs_iter.clone().collect(), quote!({#(#fs_iter),*}))
+        match fields {
+            syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
+                let fs_iter = named.iter().map(|field| &field.ident);
+                let fs_vec: Vec<&Option<syn::Ident>> = fs_iter.clone().collect();
+                let fs_str = fs_vec.iter().map(|mid| match mid {
+                    Some(id) => id.to_string() + ": ",
+                    None => String::new(),
+                });
+                quote! {
+                    let #ident {#(#fs_iter),*} = self;
+                    write!(f, "{} {{", #ident_str)?;
+                    #(write!(f, "{}{:?}, ", #fs_str, #fs_vec)?);*;
+                    write!(f, "}}")
+                }
             }
-            None => (Vec::new(), quote! {}),
-        };
-        let fs_str = fs_vec.iter().map(|mid| match mid {
-            Some(id) => id.to_string() + ": ",
-            None => String::new(),
-        });
-        quote! {
-            let #ident #fields_match = self;
-            write!(f, "{} {{", #ident_str)?;
-            #(write!(f, "{}{:?}, ", #fs_str, #fs_vec)?);*;
-            write!(f, "}}")
+            syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
+                let fs_iter = unnamed.iter().map(|field| &field.ident);
+                let mut i: usize = 0;
+                let fs_str: Vec<syn::Ident> = fs_iter
+                    .map(|_| {
+                        i += 1;
+                        format_ident!("i{}", i)
+                    })
+                    .collect();
+                quote! {
+                    let #ident (#(#fs_str),*) = self;
+                    write!(f, "{} (", #ident_str)?;
+                    #(write!(f, "{:?}, ", #fs_str)?);*;
+                    write!(f, ")")
+                }
+            }
+            syn::Fields::Unit => quote! {
+            write!(f, "{}", #ident_str)?;},
         }
     } else {
         unimplemented!("Only data structs are supported! Given ast: {:?}", ast)
@@ -76,19 +92,32 @@ fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
 
     // body of the clone method
     let clone = if let syn::Data::Struct(syn::DataStruct { fields, .. }) = data {
-        let fields_list = fields_list(fields);
-        let (fs_vec, fields_match) = match fields_list {
-            Some(fs) => {
-                let fs_iter = fs.iter().map(|field| &field.ident);
-                (fs_iter.clone().collect(), quote!({#(#fs_iter),*}))
+        match fields {
+            syn::Fields::Named(syn::FieldsNamed { named, .. }) => {
+                let fs_iter = named.iter().map(|field| &field.ident);
+                let fs_vec: Vec<&Option<syn::Ident>> = fs_iter.clone().collect();
+                quote! {
+                    let #ident {#(#fs_iter),*} = self;
+                    #ident {
+                        #(#fs_vec: #fs_vec.clone()),*
+                    }
+                }
             }
-            None => (Vec::new(), quote! {}),
-        };
-        quote! {
-            let #ident #fields_match = self;
-            #ident {
-                #(#fs_vec: #fs_vec.clone()),*
+            syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
+                let fs_iter = unnamed.iter().map(|field| &field.ident);
+                let mut i: usize = 0;
+                let fs_str: Vec<syn::Ident> = fs_iter
+                    .map(|_| {
+                        i += 1;
+                        format_ident!("i{}", i)
+                    })
+                    .collect();
+                quote! {
+                    let #ident (#(#fs_str),*) = self;
+                    #ident (#(#fs_str),*)
+                }
             }
+            syn::Fields::Unit => quote! {#ident},
         }
     } else {
         unimplemented!("Only data structs are supported! Given ast: {:?}", ast)
@@ -113,29 +142,6 @@ fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
     };
     gen.into()
 }
-
-fn fields_list(
-    fields: &syn::Fields,
-) -> Option<&syn::punctuated::Punctuated<syn::Field, syn::token::Comma>> {
-    match fields {
-        syn::Fields::Named(syn::FieldsNamed { named, .. }) => Some(named),
-        syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => Some(unnamed),
-        syn::Fields::Unit => None,
-    }
-}
-
-/*
-impl<Z> std::fmt::Debug for Gerade<Z> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Gerade {{length: {:?}}}", self.length)
-    }
-}
-impl<Z> Clone for Gerade<Z> {
-    fn clone(&self) -> Self {
-        Gerade { zugtyp: self.zugtyp, length: self.length }
-    }
-}
-*/
 
 #[proc_macro_derive(Lookup)]
 pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
