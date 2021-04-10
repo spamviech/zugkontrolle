@@ -62,7 +62,7 @@ mod background {
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Resized(iced::pane_grid::ResizeEvent),
+    ResizePane(iced::pane_grid::ResizeEvent),
 }
 enum AnyGleise {
     Maerklin(Gleise<Maerklin>),
@@ -95,7 +95,7 @@ impl Application for Zugkontrolle {
         _clipboard: &mut Clipboard,
     ) -> Command<Self::Message> {
         match message {
-            Message::Resized(iced::pane_grid::ResizeEvent { split, ratio }) => {
+            Message::ResizePane(iced::pane_grid::ResizeEvent { split, ratio }) => {
                 self.pane_state.resize(&split, ratio)
             }
         }
@@ -121,7 +121,7 @@ impl Application for Zugkontrolle {
             .into(),
         })
         .spacing(1)
-        .on_resize(0, Message::Resized);
+        .on_resize(0, Message::ResizePane);
         Container::new(
             Container::new(paned_grid)
                 .width(Length::Fill)
