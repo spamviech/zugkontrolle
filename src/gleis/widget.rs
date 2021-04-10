@@ -67,16 +67,10 @@ impl Position {
 }
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
-#[derive(Debug)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct GleisIdLock<T>(Arc<RwLock<Option<GleisId<T>>>>);
 
-impl<T> Clone for GleisIdLock<T> {
-    fn clone(&self) -> Self {
-        GleisIdLock(self.0.clone())
-    }
-}
-
-impl<T: Debug> GleisIdLock<T> {
+impl<T> GleisIdLock<T> {
     fn new(gleis_id: u64) -> Self {
         GleisIdLock(Arc::new(RwLock::new(Some(GleisId::new(gleis_id)))))
     }

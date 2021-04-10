@@ -114,7 +114,7 @@ fn impl_clone(ast: &syn::DeriveInput) -> TokenStream {
                     .collect();
                 quote! {
                     let #ident (#(#fs_str),*) = self;
-                    #ident (#(#fs_str),*)
+                    #ident (#(#fs_str.clone()),*)
                 }
             }
             syn::Fields::Unit => quote! {#ident},
