@@ -240,23 +240,19 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
     }
 }
 
-fn zeichne_alle_gleise<T, F>(
-    frame: &mut canvas::Frame,
-    has_other_id_at_point: F,
-    map: &HashMap<GleisId<T>, Gleis<T>>,
-) where
-    T: Zeichnen,
-    F: Fn(GleisId<Any>, anchor::Position) -> bool,
-{
+fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
+    // bewege Kontext zur Position
+    frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
+        dx: position.x,
+        dy: position.y,
+    }));
+    // drehe Kontext um (0,0)
+    frame.transformation(&canvas::Transformation::Rotate(position.winkel));
+}
+fn fuelle_alle_gleise<T: Zeichnen>(frame: &mut canvas::Frame, map: &HashMap<GleisId<T>, Gleis<T>>) {
     for (_gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
-            // bewege Kontext zur Position
-            frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
-                dx: position.x,
-                dy: position.y,
-            }));
-            // drehe Kontext um (0,0)
-            frame.transformation(&canvas::Transformation::Rotate(position.winkel));
+            move_to_position(frame, position);
             // einfärben
             for path in definition.fuelle() {
                 frame.with_save(|frame| {
@@ -272,15 +268,14 @@ fn zeichne_alle_gleise<T, F>(
             }
         })
     }
+}
+fn zeichne_alle_gleise<T: Zeichnen>(
+    frame: &mut canvas::Frame,
+    map: &HashMap<GleisId<T>, Gleis<T>>,
+) {
     for (_gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
-            // bewege Kontext zur Position
-            frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
-                dx: position.x,
-                dy: position.y,
-            }));
-            // drehe Kontext um (0,0)
-            frame.transformation(&canvas::Transformation::Rotate(position.winkel));
+            move_to_position(frame, position);
             // zeichne Kontur
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
@@ -296,15 +291,15 @@ fn zeichne_alle_gleise<T, F>(
             }
         })
     }
+}
+fn zeichne_alle_anchor_points<T: Zeichnen>(
+    frame: &mut canvas::Frame,
+    has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Position) -> bool,
+    map: &HashMap<GleisId<T>, Gleis<T>>,
+) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
-            // bewege Kontext zur Position
-            frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
-                dx: position.x,
-                dy: position.y,
-            }));
-            // drehe Kontext um (0,0)
-            frame.transformation(&canvas::Transformation::Rotate(position.winkel));
+            move_to_position(frame, position);
             // zeichne anchor points
             definition.anchor_points().foreach(|&anchor| {
                 frame.with_save(|frame| {
@@ -316,12 +311,11 @@ fn zeichne_alle_gleise<T, F>(
                     } else {
                         canvas::Color::from_rgb(0., 0., 1.)
                     };
+                    let direction: canvas::Vector = anchor.direction.into();
+                    let scale: f32 = canvas::X(5.).to_abstand() / direction.length::<canvas::X>();
                     let mut path_builder = canvas::PathBuilder::new();
                     path_builder.move_to(anchor.position.into());
-                    path_builder.line_to(
-                        canvas::Point::from(anchor.position)
-                            + 5. * canvas::Vector::from(anchor.direction),
-                    );
+                    path_builder.line_to(canvas::Point::from(anchor.position) + scale * direction);
                     let path = path_builder.build();
                     frame.stroke(
                         &path,
@@ -356,13 +350,30 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
             let has_other_id_at_point =
                 |gleis_id, position| anchor_points.has_other_id_at_point(&gleis_id, &position);
             let mut boxed_frame = canvas::Frame::new(frame);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, geraden);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kurven);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, weichen);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kurven_weichen);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, s_kurven_weichen);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, dreiwege_weichen);
-            zeichne_alle_gleise(&mut boxed_frame, has_other_id_at_point, kreuzungen);
+            // Hintergrund
+            fuelle_alle_gleise(&mut boxed_frame, geraden);
+            fuelle_alle_gleise(&mut boxed_frame, kurven);
+            fuelle_alle_gleise(&mut boxed_frame, weichen);
+            fuelle_alle_gleise(&mut boxed_frame, kurven_weichen);
+            fuelle_alle_gleise(&mut boxed_frame, s_kurven_weichen);
+            fuelle_alle_gleise(&mut boxed_frame, dreiwege_weichen);
+            fuelle_alle_gleise(&mut boxed_frame, kreuzungen);
+            // Kontur
+            zeichne_alle_gleise(&mut boxed_frame, geraden);
+            zeichne_alle_gleise(&mut boxed_frame, kurven);
+            zeichne_alle_gleise(&mut boxed_frame, weichen);
+            zeichne_alle_gleise(&mut boxed_frame, kurven_weichen);
+            zeichne_alle_gleise(&mut boxed_frame, s_kurven_weichen);
+            zeichne_alle_gleise(&mut boxed_frame, dreiwege_weichen);
+            zeichne_alle_gleise(&mut boxed_frame, kreuzungen);
+            // AnchorPoints
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, geraden);
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kurven);
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, weichen);
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kurven_weichen);
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, s_kurven_weichen);
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, dreiwege_weichen);
+            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kreuzungen);
         })]
     }
 }

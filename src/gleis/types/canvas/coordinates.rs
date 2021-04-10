@@ -291,6 +291,9 @@ impl Vector {
     pub fn new(dx: X, dy: Y) -> Self {
         Vector { dx, dy }
     }
+    pub fn length<T>(&self) -> Abstand<T> {
+        Abstand(self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0, PhantomData)
+    }
 }
 impl From<Vector> for iced::Vector {
     fn from(Vector { dx, dy }: Vector) -> Self {
