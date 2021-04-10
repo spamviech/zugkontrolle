@@ -8,9 +8,8 @@
 
 use std::marker::PhantomData;
 
-use super::gerade::{Richtung, Weiche};
 use crate::gleis::anchor;
-use crate::gleis::gerade::Gerade;
+use crate::gleis::gerade::{self, Gerade};
 use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
 
@@ -49,31 +48,87 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        /*
-        let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
-        let half_width: canvas::X = canvas::X(0.5 * self.width() as f64);
-        let half_height: canvas::Y = canvas::Y(0.5 * self.height() as f64);
-        let start_width: canvas::X = canvas::X(0.);
-        let start_height: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
-        // Weiche mit Abzweigung Rechts
-        cairo.translate(start_width, start_height);
-        Weiche { zugtyp, length, radius, angle, direction: Richtung::Rechts }.zeichne(cairo);
-        cairo.translate(-start_width, -start_height);
-        // Abzweigung Links
-        cairo.translate(half_width, half_height);
-        cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-        cairo.translate(-half_width, -half_height);
-        cairo.translate(start_width, start_height);
-        kurve::zeichne::<Z>(cairo, radius, angle.into(), kurve::Beschraenkung::Ende);
-        */
-        println!("TODO DreiwegeWeiche");
-        vec![]
+        // utility sizes
+        let size: canvas::Size = self.size();
+        let start_x: canvas::X = canvas::X(0.);
+        let height: canvas::Y = size.height;
+        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z, canvas::Y>();
+        let mut paths = Vec::new();
+        let rechts_transformations =
+            vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
+        let links_transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
+            start_x,
+            start_y + beschraenkung::<Z, canvas::Y>(),
+        ))];
+        // Gerade
+        paths.push(gerade::zeichne(
+            self.zugtyp,
+            self.length,
+            rechts_transformations.clone(),
+            canvas::PathBuilder::with_normal_axis,
+        ));
+        // Rechts
+        paths.push(kurve::zeichne(
+            self.zugtyp,
+            self.radius,
+            self.angle,
+            kurve::Beschraenkung::Ende,
+            rechts_transformations,
+            canvas::PathBuilder::with_normal_axis,
+        ));
+        // Links
+        paths.push(kurve::zeichne(
+            self.zugtyp,
+            self.radius,
+            self.angle,
+            kurve::Beschraenkung::Ende,
+            links_transformations,
+            canvas::PathBuilder::with_invert_y,
+        ));
+        // return value
+        paths
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        //TODO
-        println!("TODO fülle DreiwegeWeiche");
-        vec![]
+        // utility sizes
+        let size: canvas::Size = self.size();
+        let start_x: canvas::X = canvas::X(0.);
+        let height: canvas::Y = size.height;
+        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z, canvas::Y>();
+        let mut paths = Vec::new();
+        let rechts_transformations =
+            vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
+        let links_transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
+            start_x,
+            start_y + beschraenkung::<Z, canvas::Y>(),
+        ))];
+        // Gerade
+        paths.push(gerade::fuelle(
+            self.zugtyp,
+            self.length,
+            rechts_transformations.clone(),
+            canvas::PathBuilder::with_normal_axis,
+        ));
+        // Rechts
+        paths.push(kurve::fuelle(
+            self.zugtyp,
+            self.radius,
+            self.angle,
+            rechts_transformations,
+            canvas::PathBuilder::with_normal_axis,
+        ));
+        // Links
+        paths.push(kurve::fuelle(
+            self.zugtyp,
+            self.radius,
+            self.angle,
+            links_transformations,
+            canvas::PathBuilder::with_invert_y,
+        ));
+        // return value
+        paths
     }
 
     fn anchor_points(&self) -> AnchorPoints {
