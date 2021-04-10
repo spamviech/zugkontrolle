@@ -50,11 +50,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let gleis_oben: canvas::Y = canvas::Y(0.) + abstand::<Z, canvas::Y>();
-        let gleis_unten: canvas::Y =
-            canvas::Y(0.) + beschraenkung::<Z, canvas::Y>() - abstand::<Z, canvas::Y>();
-        let kurve_innen_anfang: canvas::X = canvas::X(0.);
-        let kurve_aussen_anfang: canvas::X = kurve_innen_anfang + self.length.to_abstand();
+        let aussen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
+            canvas::X(0.) + self.length.to_abstand(),
+            canvas::Y(0.),
+        ));
+        // Zeichne Pfad
         let mut paths = Vec::new();
         if self.direction == Richtung::Links {
             let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
@@ -71,21 +71,15 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 canvas::PathBuilder::with_invert_y,
             ));
             // Gerade vor äußerer Kurve
-            paths.push({
-                let mut path_builder = canvas::PathBuilder::new();
-                path_builder.with_invert_y(|builder| {
-                    builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_oben).into());
-                    builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_oben).into());
-                    builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_unten).into());
-                    builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_unten).into());
-                });
-                path_builder.build_under_transformations(transformations.clone())
-            });
+            paths.push(gerade::zeichne(
+                self.zugtyp,
+                self.length,
+                false,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
             // Äußere Kurve
-            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.) + self.length.to_abstand(),
-                canvas::Y(0.),
-            )));
+            transformations.push(aussen_transformation);
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius,
@@ -105,24 +99,20 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 canvas::PathBuilder::with_normal_axis,
             ));
             // Gerade vor äußerer Kurve
-            paths.push({
-                let mut path_builder = canvas::PathBuilder::new();
-                path_builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_oben));
-                path_builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_oben));
-                path_builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_unten));
-                path_builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_unten));
-                path_builder.build()
-            });
+            paths.push(gerade::zeichne(
+                self.zugtyp,
+                self.length,
+                false,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
             // Äußere Kurve
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius,
                 self.angle,
                 kurve::Beschraenkung::Ende,
-                vec![canvas::Transformation::Translate(canvas::Vector::new(
-                    canvas::X(0.) + self.length.to_abstand(),
-                    canvas::Y(0.),
-                ))],
+                vec![aussen_transformation],
                 canvas::PathBuilder::with_normal_axis,
             ));
         }
@@ -132,6 +122,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
+        let aussen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
+            canvas::X(0.) + self.length.to_abstand(),
+            canvas::Y(0.),
+        ));
+        // Zeichne Pfad
         let mut paths = Vec::new();
         if self.direction == Richtung::Links {
             let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
@@ -154,10 +149,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 canvas::PathBuilder::with_invert_y,
             ));
             // Äußere Kurve
-            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.) + self.length.to_abstand(),
-                canvas::Y(0.),
-            )));
+            transformations.push(aussen_transformation);
             paths.push(kurve::fuelle(
                 self.zugtyp,
                 self.radius,
@@ -186,10 +178,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius,
                 self.angle,
-                vec![canvas::Transformation::Translate(canvas::Vector::new(
-                    canvas::X(0.) + self.length.to_abstand(),
-                    canvas::Y(0.),
-                ))],
+                vec![aussen_transformation],
                 canvas::PathBuilder::with_normal_axis,
             ));
         }

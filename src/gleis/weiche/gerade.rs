@@ -63,6 +63,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                 gerade::zeichne(
                     zugtyp,
                     length,
+                    true,
                     transformations.clone(),
                     canvas::PathBuilder::with_invert_y,
                 ),
@@ -77,7 +78,13 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             ]
         } else {
             vec![
-                gerade::zeichne(zugtyp, length, Vec::new(), canvas::PathBuilder::with_normal_axis),
+                gerade::zeichne(
+                    zugtyp,
+                    length,
+                    true,
+                    Vec::new(),
+                    canvas::PathBuilder::with_normal_axis,
+                ),
                 kurve::zeichne(
                     zugtyp,
                     radius,

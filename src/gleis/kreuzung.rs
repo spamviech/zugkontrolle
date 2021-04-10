@@ -86,12 +86,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         paths.push(gerade::zeichne(
             self.zugtyp,
             self.length,
+            true,
             horizontal_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
         paths.push(gerade::zeichne(
             self.zugtyp,
             self.length,
+            true,
             gedreht_transformations.clone(),
             canvas::PathBuilder::with_invert_y,
         ));

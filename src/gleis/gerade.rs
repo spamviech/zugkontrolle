@@ -37,7 +37,13 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        vec![zeichne(self.zugtyp, self.length, Vec::new(), canvas::PathBuilder::with_normal_axis)]
+        vec![zeichne(
+            self.zugtyp,
+            self.length,
+            true,
+            Vec::new(),
+            canvas::PathBuilder::with_normal_axis,
+        )]
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
@@ -64,6 +70,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<*const Z>,
     laenge: Length,
+    beschraenkungen: bool,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
         &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
@@ -78,13 +85,16 @@ where
     let mut path_builder = canvas::PathBuilder::new();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, laenge)),
+        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, laenge, beschraenkungen)),
     );
     path_builder.build_under_transformations(transformations)
 }
 
-fn zeichne_internal<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
-where
+fn zeichne_internal<Z, P, A>(
+    path_builder: &mut canvas::PathBuilder<P, A>,
+    laenge: Length,
+    beschraenkungen: bool,
+) where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
     A: From<canvas::Arc> + canvas::ToArc,
@@ -96,10 +106,12 @@ where
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z, canvas::Y>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Beschränkungen
-    path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben).into());
-    path_builder.line_to(canvas::Point::new(gleis_links, beschraenkung_unten).into());
-    path_builder.move_to(canvas::Point::new(gleis_rechts, beschraenkung_oben).into());
-    path_builder.line_to(canvas::Point::new(gleis_rechts, beschraenkung_unten).into());
+    if beschraenkungen {
+        path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben).into());
+        path_builder.line_to(canvas::Point::new(gleis_links, beschraenkung_unten).into());
+        path_builder.move_to(canvas::Point::new(gleis_rechts, beschraenkung_oben).into());
+        path_builder.line_to(canvas::Point::new(gleis_rechts, beschraenkung_unten).into());
+    }
     // Gleis
     path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());

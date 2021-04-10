@@ -65,6 +65,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths.push(gerade::zeichne(
             self.zugtyp,
             self.length,
+            true,
             rechts_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
