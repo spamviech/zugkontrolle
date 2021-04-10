@@ -6,7 +6,7 @@ use std::{convert::From, marker::PhantomData};
 use iced;
 
 use crate::gleis::anchor;
-use crate::gleis::types::{angle::Angle, mm};
+use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 
 /// Konvertierung in einen Abstand.
 pub trait ToAbstand<T> {
@@ -288,16 +288,36 @@ pub struct Vector {
     pub dy: Y,
 }
 impl Vector {
+    /// Erzeuge einen neuen Vektor.
     pub fn new(dx: X, dy: Y) -> Self {
         Vector { dx, dy }
     }
+    /// Berechne die Länge des Vektors.
     pub fn length<T>(&self) -> Abstand<T> {
         Abstand(self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0, PhantomData)
+    }
+    /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist.
+    pub fn rotate<T: Trigonometrie>(&self, winkel: T) -> Self {
+        // https://de.wikipedia.org/wiki/Drehmatrix#Drehmatrix_der_Ebene_%E2%84%9D%C2%B2
+        // geht von Drehung gegen den Uhrzeigersinn und nach oben steigender y-Achse aus
+        Vector {
+            dx: X(0.) + winkel.cos() * self.dx.to_abstand()
+                - winkel.sin() * self.dy.to_abstand().convert(),
+            dy: Y(0.)
+                + winkel.sin() * self.dx.to_abstand().convert()
+                + winkel.cos() * self.dy.to_abstand(),
+        }
     }
 }
 impl From<Vector> for iced::Vector {
     fn from(Vector { dx, dy }: Vector) -> Self {
         iced::Vector { x: dx.0, y: dy.0 }
+    }
+}
+impl Neg for Vector {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Vector { dx: -self.dx, dy: -self.dy }
     }
 }
 // Convert to Vector
@@ -333,6 +353,19 @@ impl Add<Point> for Vector {
     type Output = Point;
     fn add(self, other: Point) -> Self::Output {
         Point { x: self.dx + other.x.to_abstand(), y: self.dy + other.y.to_abstand() }
+    }
+}
+// substract Vector from Point
+impl SubAssign<Vector> for Point {
+    fn sub_assign(&mut self, other: Vector) {
+        self.x -= other.dx.to_abstand();
+        self.y -= other.dy.to_abstand();
+    }
+}
+impl Sub<Vector> for Point {
+    type Output = Point;
+    fn sub(self, other: Vector) -> Self::Output {
+        Point { x: self.x - other.dx.to_abstand(), y: self.y - other.dy.to_abstand() }
     }
 }
 // scale with f32

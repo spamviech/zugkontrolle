@@ -312,11 +312,15 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                         canvas::Color::from_rgb(0., 0., 1.)
                     };
                     let direction: canvas::Vector = anchor.direction.into();
+                    let direction_side: canvas::Vector = direction.rotate(AngleDegrees::new(90.));
+                    let anchor_position: canvas::Point = anchor.position.into();
                     let scale: f32 = canvas::X(5.).to_abstand() / direction.length::<canvas::X>();
                     let mut path_builder = canvas::PathBuilder::new();
-                    path_builder.move_to(anchor.position.into());
-                    path_builder.line_to(canvas::Point::from(anchor.position) + scale * direction);
+                    path_builder.move_to(anchor_position + 0.5 * scale * direction_side);
+                    path_builder.line_to(anchor_position + scale * direction);
+                    path_builder.line_to(anchor_position - 0.5 * scale * direction_side);
                     let path = path_builder.build();
+                    // TODO fill on connect/snap for drag&drop
                     frame.stroke(
                         &path,
                         canvas::Stroke { color, width: 1.5, ..canvas::Stroke::default() },
