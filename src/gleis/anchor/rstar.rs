@@ -14,12 +14,12 @@ impl RTree {
         RTree(rstar::RTree::new())
     }
     /// insert an anchor into the RTree
-    pub(crate) fn insert<T>(&mut self, gleis_id: &GleisId<T>, position: point::Position) {
-        self.0.insert(PointWithData::new(gleis_id.as_any(), position))
+    pub(crate) fn insert(&mut self, gleis_id: GleisId<Any>, position: point::Position) {
+        self.0.insert(PointWithData::new(gleis_id, position))
     }
     /// remove one copy of the specified anchor from the RTree
-    pub(crate) fn remove<T>(&mut self, gleis_id: &GleisId<T>, &position: &point::Position) {
-        self.0.remove(&PointWithData::new(gleis_id.as_any(), position));
+    pub(crate) fn remove(&mut self, gleis_id: GleisId<Any>, &position: &point::Position) {
+        self.0.remove(&PointWithData::new(gleis_id, position));
     }
     /// check if an anchor with a different id is present at the specified position
     pub(crate) fn has_other_id_at_point(

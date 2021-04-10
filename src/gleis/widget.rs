@@ -97,7 +97,7 @@ impl<T> GleisId<T> {
         GleisId(gleis_id, PhantomData)
     }
 
-    pub(crate) fn as_any(&self) -> GleisId<Any> {
+    fn as_any(&self) -> GleisId<Any> {
         GleisId::new(self.0)
     }
 }
@@ -364,9 +364,8 @@ impl<Z: Zugtyp> Gleise<Z> {
         // increase next id
         self.next_id += 1;
         // add to anchor_points
-        anchor_points.foreach(|anchor| {
-            self.anchor_points.insert::<T>(&GleisId::new(gleis_id), anchor.position)
-        });
+        anchor_points
+            .foreach(|anchor| self.anchor_points.insert(GleisId::new(gleis_id), anchor.position));
         // add to HashMap
         T::get_map_mut(self).insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
@@ -421,10 +420,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         *position = position_neu;
         // delete old from anchor_points
         anchor_points.foreach(|anchor| {
-            self.anchor_points.remove(gleis_id, &anchor.position);
+            self.anchor_points.remove(gleis_id.as_any(), &anchor.position);
         });
         // add new to anchor_points
-        anchor_points_neu.foreach(|anchor| self.anchor_points.insert(gleis_id, anchor.position));
+        anchor_points_neu
+            .foreach(|anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.position));
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -471,7 +471,8 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
             definition.anchor_points().foreach(|anchor| {
-                self.anchor_points.remove(gleis_id, &position.transformation(anchor.position));
+                self.anchor_points
+                    .remove(gleis_id.as_any(), &position.transformation(anchor.position));
             });
         }
         // make sure everyone knows about the deletion
