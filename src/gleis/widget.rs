@@ -248,7 +248,7 @@ fn zeichne_alle_gleise<T, F>(
     T: Zeichnen,
     F: Fn(GleisId<Any>, anchor::Position) -> bool,
 {
-    for (gleis_id, Gleis { definition, position }) in map.iter() {
+    for (_gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
             // bewege Kontext zur Position
             frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
@@ -257,7 +257,7 @@ fn zeichne_alle_gleise<T, F>(
             }));
             // drehe Kontext um (0,0)
             frame.transformation(&canvas::Transformation::Rotate(position.winkel));
-            // einfärben (vor Kontur zeichen, damit diese auf jeden Fall sichtbar ist)
+            // einfärben
             for path in definition.fuelle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
@@ -270,7 +270,18 @@ fn zeichne_alle_gleise<T, F>(
                     );
                 });
             }
-            // zeichne Gleis
+        })
+    }
+    for (_gleis_id, Gleis { definition, position }) in map.iter() {
+        frame.with_save(|frame| {
+            // bewege Kontext zur Position
+            frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
+                dx: position.x,
+                dy: position.y,
+            }));
+            // drehe Kontext um (0,0)
+            frame.transformation(&canvas::Transformation::Rotate(position.winkel));
+            // zeichne Kontur
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
                     frame.stroke(
@@ -283,6 +294,17 @@ fn zeichne_alle_gleise<T, F>(
                     );
                 });
             }
+        })
+    }
+    for (gleis_id, Gleis { definition, position }) in map.iter() {
+        frame.with_save(|frame| {
+            // bewege Kontext zur Position
+            frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
+                dx: position.x,
+                dy: position.y,
+            }));
+            // drehe Kontext um (0,0)
+            frame.transformation(&canvas::Transformation::Rotate(position.winkel));
             // zeichne anchor points
             definition.anchor_points().foreach(|&anchor| {
                 frame.with_save(|frame| {
@@ -290,9 +312,9 @@ fn zeichne_alle_gleise<T, F>(
                         gleis_id.as_any(),
                         position.transformation(anchor.position),
                     ) {
-                        canvas::Color { r: 0., g: 1., b: 0., a: 1. }
+                        canvas::Color::from_rgb(0., 1., 0.)
                     } else {
-                        canvas::Color { r: 0., g: 0., b: 1., a: 1. }
+                        canvas::Color::from_rgb(0., 0., 1.)
                     };
                     let mut path_builder = canvas::PathBuilder::new();
                     path_builder.move_to(anchor.position.into());

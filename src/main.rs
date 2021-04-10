@@ -159,7 +159,7 @@ fn main() -> iced::Result {
     let mut append_lego = AppendGleise::new(&mut gleise_lego);
     let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
     let (kurve_lock, _kurve_anchor_points) = append_lego.append(lego::KURVE);
-    let (_weiche_id_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
+    let (_weiche_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
     let (kreuzung_lock, _kreuzung_anchor_points) = append_lego.append(lego::KREUZUNG);
     append_lego.append(lego::KREUZUNG);
     // relocate
