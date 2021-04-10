@@ -153,7 +153,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius_reverse,
-                self.angle,
+                self.angle_reverse,
                 kurve::Beschraenkung::Ende,
                 transformations,
                 canvas::PathBuilder::with_normal_axis,
@@ -180,7 +180,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius_reverse,
-                self.angle,
+                self.angle_reverse,
                 kurve::Beschraenkung::Ende,
                 s_kurve_transformations,
                 canvas::PathBuilder::with_invert_y,
@@ -231,7 +231,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             paths.push(kurve::fuelle(
                 self.zugtyp,
                 self.radius_reverse,
-                self.angle,
+                self.angle_reverse,
                 transformations,
                 canvas::PathBuilder::with_normal_axis,
             ));
@@ -255,7 +255,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             paths.push(kurve::fuelle(
                 self.zugtyp,
                 self.radius_reverse,
-                self.angle,
+                self.angle_reverse,
                 s_kurve_transformations,
                 canvas::PathBuilder::with_invert_y,
             ));
