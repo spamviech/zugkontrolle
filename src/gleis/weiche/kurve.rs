@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use super::Richtung;
 use crate::gleis::anchor;
-use crate::gleis::gerade::Gerade;
+use crate::gleis::gerade::{self, Gerade};
 use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
 
@@ -49,39 +49,152 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
-        /*
-        if self.direction == Richtung::Links {
-            // spiegel y-Achse in der Mitte
-            let x = canvas::X(0.);
-            let half_height = canvas::Y(0.5 * (self.height() as f64));
-            cairo.translate(x, half_height);
-            cairo.transform(Matrix { x0: 0., y0: 0., xx: 1., xy: 0., yx: 0., yy: -1. });
-            cairo.translate(-x, -half_height);
-        }
-        let gleis_oben: canvas::Y = canvas::Y(0.) + abstand::<Z>();
-        let gleis_unten: canvas::Y = canvas::Y(0.) + beschraenkung::<Z>() - abstand::<Z>();
+        // utility sizes
+        let gleis_oben: canvas::Y = canvas::Y(0.) + abstand::<Z, canvas::Y>();
+        let gleis_unten: canvas::Y =
+            canvas::Y(0.) + beschraenkung::<Z, canvas::Y>() - abstand::<Z, canvas::Y>();
         let kurve_innen_anfang: canvas::X = canvas::X(0.);
         let kurve_aussen_anfang: canvas::X = kurve_innen_anfang + self.length.to_abstand();
-        let angle: Angle = self.angle.into();
-        // innere Kurve
-        kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Alle);
-        // Gerade vor äußerer Kurve
-        cairo.move_to(kurve_innen_anfang, gleis_oben);
-        cairo.line_to(kurve_aussen_anfang, gleis_oben);
-        cairo.move_to(kurve_innen_anfang, gleis_unten);
-        cairo.line_to(kurve_aussen_anfang, gleis_unten);
-        // äußere Kurve
-        cairo.translate(kurve_aussen_anfang, canvas::Y(0.));
-        kurve::zeichne::<Z>(cairo, self.radius, angle, kurve::Beschraenkung::Ende);
-        */
-        println!("TODO KurvenWeiche");
-        vec![]
+        let mut paths = Vec::new();
+        if self.direction == Richtung::Links {
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                self.size().height,
+            ))];
+            // Innere Kurve
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                kurve::Beschraenkung::Alle,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Gerade vor äußerer Kurve
+            paths.push({
+                let mut path_builder = canvas::PathBuilder::new();
+                path_builder.with_invert_y(|builder| {
+                    builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_oben).into());
+                    builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_oben).into());
+                    builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_unten).into());
+                    builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_unten).into());
+                });
+                path_builder.build_under_transformations(transformations.clone())
+            });
+            // Äußere Kurve
+            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.) + self.length.to_abstand(),
+                canvas::Y(0.),
+            )));
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                kurve::Beschraenkung::Ende,
+                transformations,
+                canvas::PathBuilder::with_invert_y,
+            ));
+        } else {
+            // Innere Kurve
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                kurve::Beschraenkung::Alle,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Gerade vor äußerer Kurve
+            paths.push({
+                let mut path_builder = canvas::PathBuilder::new();
+                path_builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_oben));
+                path_builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_oben));
+                path_builder.move_to(canvas::Point::new(kurve_innen_anfang, gleis_unten));
+                path_builder.line_to(canvas::Point::new(kurve_aussen_anfang, gleis_unten));
+                path_builder.build()
+            });
+            // Äußere Kurve
+            paths.push(kurve::zeichne(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                kurve::Beschraenkung::Ende,
+                vec![canvas::Transformation::Translate(canvas::Vector::new(
+                    canvas::X(0.) + self.length.to_abstand(),
+                    canvas::Y(0.),
+                ))],
+                canvas::PathBuilder::with_normal_axis,
+            ));
+        }
+        // return value
+        paths
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        //TODO
-        println!("TODO KurvenWeiche");
-        vec![]
+        // utility sizes
+        let mut paths = Vec::new();
+        if self.direction == Richtung::Links {
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.),
+                self.size().height,
+            ))];
+            // Innere Kurve
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Gerade vor äußerer Kurve
+            paths.push(gerade::fuelle(
+                self.zugtyp,
+                self.length,
+                transformations.clone(),
+                canvas::PathBuilder::with_invert_y,
+            ));
+            // Äußere Kurve
+            transformations.push(canvas::Transformation::Translate(canvas::Vector::new(
+                canvas::X(0.) + self.length.to_abstand(),
+                canvas::Y(0.),
+            )));
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                transformations,
+                canvas::PathBuilder::with_invert_y,
+            ));
+        } else {
+            // Innere Kurve
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Gerade vor äußerer Kurve
+            paths.push(gerade::fuelle(
+                self.zugtyp,
+                self.length,
+                Vec::new(),
+                canvas::PathBuilder::with_normal_axis,
+            ));
+            // Äußere Kurve
+            paths.push(kurve::fuelle(
+                self.zugtyp,
+                self.radius,
+                self.angle,
+                vec![canvas::Transformation::Translate(canvas::Vector::new(
+                    canvas::X(0.) + self.length.to_abstand(),
+                    canvas::Y(0.),
+                ))],
+                canvas::PathBuilder::with_normal_axis,
+            ));
+        }
+        // return value
+        paths
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

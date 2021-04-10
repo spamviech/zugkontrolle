@@ -29,7 +29,8 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let size: canvas::Size = definition.size();
-        let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
+        // let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
+        let x: canvas::X = canvas::X(5.);
         let height: canvas::Abstand<canvas::Y> = size.height.into();
         let res = self
             .gleise
