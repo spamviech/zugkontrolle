@@ -39,7 +39,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
         let size_gerade = Gerade { zugtyp, length }.size();
         let size_kurve = Kurve { zugtyp, radius, angle }.size();
-        let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z, canvas::Y>();
+        let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z>();
         canvas::Size {
             width: canvas::X(0.)
                 + size_gerade.width.to_abstand().max(&size_kurve.width.to_abstand()),
@@ -53,13 +53,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let start_x: canvas::X = canvas::X(0.);
         let height: canvas::Y = size.height;
         let half_height: canvas::Y = canvas::Y(0.5 * height.0);
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z, canvas::Y>();
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let mut paths = Vec::new();
         let rechts_transformations =
             vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
         let links_transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
             start_x,
-            start_y + beschraenkung::<Z, canvas::Y>(),
+            start_y + beschraenkung::<Z>(),
         ))];
         // Gerade
         paths.push(gerade::zeichne(
@@ -97,13 +97,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let start_x: canvas::X = canvas::X(0.);
         let height: canvas::Y = size.height;
         let half_height: canvas::Y = canvas::Y(0.5 * height.0);
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z, canvas::Y>();
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let mut paths = Vec::new();
         let rechts_transformations =
             vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
         let links_transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
             start_x,
-            start_y + beschraenkung::<Z, canvas::Y>(),
+            start_y + beschraenkung::<Z>(),
         ))];
         // Gerade
         paths.push(gerade::fuelle(

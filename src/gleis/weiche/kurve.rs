@@ -199,7 +199,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 multiplier = -1.;
             }
         };
-        let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschraenkung::<Z, canvas::Y>();
+        let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschraenkung::<Z>();
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius.to_abstand();
         let kurve_anchor_direction: anchor::Direction = anchor::Direction {
             dx: canvas::X(self.angle.cos()),

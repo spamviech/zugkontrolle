@@ -150,14 +150,14 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             anfang: anchor::Point {
                 position: anchor::Position {
                     x: canvas::X(0.),
-                    y: start_height + multiplier * 0.5 * beschraenkung::<Z, canvas::Y>(),
+                    y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
                 direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
             gerade: anchor::Point {
                 position: anchor::Position {
                     x: canvas::X(0.) + self.length.to_abstand(),
-                    y: start_height + multiplier * 0.5 * beschraenkung::<Z, canvas::Y>(),
+                    y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
                 direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
             },
@@ -166,7 +166,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     x: canvas::X(0.) + self.angle.sin() * self.radius.to_abstand().convert(),
                     y: start_height
                         + multiplier
-                            * (0.5 * beschraenkung::<Z, canvas::Y>()
+                            * (0.5 * beschraenkung::<Z>()
                                 + self.radius.to_abstand().convert() * (1. - self.angle.cos())),
                 },
                 direction: anchor::Direction {

@@ -8,72 +8,32 @@
 
 pub mod angle;
 pub mod canvas;
-pub use crate::zugtyp::{Spurweite, Zugtyp};
+pub mod mm;
+
+// re-exports
+pub use crate::zugtyp::Zugtyp;
 pub use angle::*;
 pub use canvas::ToAbstand;
-
-use std::ops::Div;
+pub use mm::*;
 
 use super::anchor;
 
 // abgeleitete Größe unter der Umrechnung 1mm
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-pub fn abstand<Z: Zugtyp, T>() -> canvas::Abstand<T> {
+pub fn abstand<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
     Z::SPURWEITE.to_abstand() / 3.
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschraenkung<Z: Zugtyp, T>() -> canvas::Abstand<T> {
-    Z::SPURWEITE.to_abstand() + 2. * abstand::<Z, T>()
+pub fn beschraenkung<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
+    Z::SPURWEITE.to_abstand() + 2. * abstand::<Z>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand<canvas::Radius> {
-    radius.to_abstand() + 0.5 * Z::SPURWEITE.to_abstand() + abstand::<Z, canvas::Radius>()
+    radius.to_abstand() + 0.5 * Z::SPURWEITE.to_abstand().convert() + abstand::<Z>().convert()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand<canvas::Radius> {
-    radius.to_abstand() - 0.5 * Z::SPURWEITE.to_abstand() - abstand::<Z, canvas::Radius>()
-}
-
-/// Längenmaß \[mm\]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Length(f32);
-impl Length {
-    pub const fn new(length: f32) -> Self {
-        Length(length)
-    }
-}
-impl Div<Length> for Length {
-    type Output = f32;
-    fn div(self, other: Length) -> f32 {
-        self.0 / other.0
-    }
-}
-impl Div<Radius> for Length {
-    type Output = f32;
-    fn div(self, other: Radius) -> f32 {
-        self.0 / other.0
-    }
-}
-
-/// Radius \[mm\]
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Radius(f32);
-impl Radius {
-    pub const fn new(radius: f32) -> Self {
-        Radius(radius)
-    }
-}
-impl Div<Radius> for Radius {
-    type Output = f32;
-    fn div(self, other: Radius) -> f32 {
-        self.0 / other.0
-    }
-}
-impl Div<Length> for Radius {
-    type Output = f32;
-    fn div(self, other: Length) -> f32 {
-        self.0 / other.0
-    }
+    radius.to_abstand() - 0.5 * Z::SPURWEITE.to_abstand().convert() - abstand::<Z>().convert()
 }
 
 pub trait Zeichnen

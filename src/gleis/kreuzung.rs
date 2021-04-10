@@ -54,7 +54,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn size(&self) -> canvas::Size {
         let size_kurve =
             Kurve { zugtyp: self.zugtyp, radius: self.radius, angle: self.angle().into() }.size();
-        let height_beschraenkung = beschraenkung::<Z, canvas::Y>();
+        let height_beschraenkung = beschraenkung::<Z>();
         let height_kurven = 2. * size_kurve.height.to_abstand() - height_beschraenkung;
         canvas::Size::new(
             canvas::X(0.) + self.length.to_abstand().max(&size_kurve.width.to_abstand()),
@@ -70,7 +70,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_x: canvas::X = canvas::X(0.);
         let height: canvas::Y = size.height;
         let half_height: canvas::Y = canvas::Y(0.5 * height.0);
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z, canvas::Y>();
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
         let mut paths = Vec::new();
         // Geraden
@@ -128,7 +128,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_x: canvas::X = canvas::X(0.);
         let height: canvas::Y = size.height;
         let half_height: canvas::Y = canvas::Y(0.5 * height.0);
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z, canvas::Y>();
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
         let mut paths = Vec::new();
         // Geraden
