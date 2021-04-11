@@ -147,29 +147,29 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             }
         };
         AnchorPoints {
-            anfang: anchor::Point {
-                position: anchor::Position {
+            anfang: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
-            gerade: anchor::Point {
-                position: anchor::Position {
+            gerade: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.) + self.length.to_abstand(),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
             },
-            kurve: anchor::Point {
-                position: anchor::Position {
+            kurve: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.) + self.angle.sin() * self.radius.to_abstand().convert(),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
                                 + self.radius.to_abstand().convert() * (1. - self.angle.cos())),
                 },
-                direction: anchor::Direction {
+                direction: canvas::Vector {
                     dx: canvas::X(self.angle.cos()),
                     dy: canvas::Y(multiplier * self.angle.sin()),
                 },

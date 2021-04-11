@@ -65,13 +65,13 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         let gleis_rechts: canvas::X = gleis_links + self.length.to_abstand();
         let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschraenkung::<Z>();
         AnchorPoints {
-            anfang: anchor::Point {
-                position: anchor::Position { x: gleis_links, y: beschraenkung_mitte },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+            anfang: anchor::Anchor {
+                position: canvas::Point { x: gleis_links, y: beschraenkung_mitte },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
-            ende: anchor::Point {
-                position: anchor::Position { x: gleis_rechts, y: beschraenkung_mitte },
-                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(0.) },
+            ende: anchor::Anchor {
+                position: canvas::Point { x: gleis_rechts, y: beschraenkung_mitte },
+                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(0.) },
             },
         }
     }

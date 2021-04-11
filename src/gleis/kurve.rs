@@ -79,21 +79,21 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         AnchorPoints {
-            anfang: anchor::Point {
-                position: anchor::Position {
+            anfang: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.),
                     y: canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
-            ende: anchor::Point {
-                position: anchor::Position {
+            ende: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.) + self.radius.to_abstand().convert() * self.angle.sin(),
                     y: canvas::Y(0.)
                         + (0.5 * beschraenkung::<Z>()
                             + self.radius.to_abstand().convert() * (1. - self.angle.cos())),
                 },
-                direction: anchor::Direction {
+                direction: canvas::Vector {
                     dx: canvas::X(self.angle.cos()),
                     dy: canvas::Y(self.angle.sin()),
                 },

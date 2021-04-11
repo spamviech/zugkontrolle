@@ -201,7 +201,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         };
         let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschraenkung::<Z>();
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius.to_abstand();
-        let kurve_anchor_direction: anchor::Direction = anchor::Direction {
+        let kurve_anchor_direction: canvas::Vector = canvas::Vector {
             dx: canvas::X(self.angle.cos()),
             dy: canvas::Y(multiplier * self.angle.sin()),
         };
@@ -210,19 +210,19 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             + multiplier
                 * (halbe_beschraenkung + radius_abstand.convert() * (1. - self.angle.cos()));
         AnchorPoints {
-            anfang: anchor::Point {
-                position: anchor::Position {
+            anfang: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.),
                     y: start_height + multiplier * halbe_beschraenkung,
                 },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
-            innen: anchor::Point {
-                position: anchor::Position { x: kurve_anchor_x, y: kurve_anchor_y },
+            innen: anchor::Anchor {
+                position: canvas::Point { x: kurve_anchor_x, y: kurve_anchor_y },
                 direction: kurve_anchor_direction,
             },
-            aussen: anchor::Point {
-                position: anchor::Position {
+            aussen: anchor::Anchor {
+                position: canvas::Point {
                     x: kurve_anchor_x + self.length.to_abstand(),
                     y: kurve_anchor_y,
                 },

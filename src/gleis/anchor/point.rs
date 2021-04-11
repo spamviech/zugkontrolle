@@ -1,38 +1,23 @@
 //! anchor points to mark connection points of a rail
 
-use std::ops::Neg;
-
 use rstar;
 
 use crate::gleis::types::*;
 
 /// Ein Point repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Point {
-    pub position: Position,
-    pub direction: Direction,
-}
-
-/// Anschluss-Position wenn startend bei (0,0) auf dem Canvas gezeichnet wird.
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Position {
-    pub x: canvas::X,
-    pub y: canvas::Y,
-}
-impl Neg for Position {
-    type Output = Self;
-    fn neg(self) -> Self {
-        Position { x: -self.x, y: -self.y }
-    }
+pub struct Anchor {
+    pub position: canvas::Point,
+    pub direction: canvas::Vector,
 }
 // copy+paste from example implementation for IntegerPoint
-impl rstar::Point for Position {
+impl rstar::Point for canvas::Point {
     type Scalar = f32;
 
     const DIMENSIONS: usize = 2;
 
     fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self {
-        Position { x: canvas::X(generator(0)), y: canvas::Y(generator(1)) }
+        canvas::Point { x: canvas::X(generator(0)), y: canvas::Y(generator(1)) }
     }
 
     fn nth(&self, index: usize) -> Self::Scalar {
@@ -48,31 +33,6 @@ impl rstar::Point for Position {
             0 => &mut self.x.0,
             1 => &mut self.y.0,
             _ => unreachable!(),
-        }
-    }
-}
-
-/// Anschluss-Richtung (ausgehend)
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Direction {
-    pub dx: canvas::X,
-    pub dy: canvas::Y,
-}
-impl Neg for Direction {
-    type Output = Self;
-    fn neg(self) -> Self {
-        Direction { dx: -self.dx, dy: -self.dy }
-    }
-}
-impl Direction {
-    // Winkel zwischen Richtungs-Vektor und x-Achse
-    pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
-        let len = (self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt();
-        let acos_winkel = Angle::acos(self.dx.0 / len);
-        if self.dy < canvas::Y(0.) {
-            acos_winkel
-        } else {
-            -acos_winkel
         }
     }
 }

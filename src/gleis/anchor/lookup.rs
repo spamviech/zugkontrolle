@@ -1,16 +1,16 @@
-//! Trait für failure-free lookup von /anchor::Point/
+//! Trait für failure-free lookup von /anchor::Anchor/
 
-use super::Point;
+use super::Anchor;
 
 pub use zugkontrolle_derive::Lookup;
 
 pub trait Lookup<AnchorName> {
-    /// failure-free lookup for a specific /anchor::Point/.
-    fn get(&self, key: AnchorName) -> &Point;
-    /// failure-free mutable lookup for a specific /anchor::Point/.
-    fn get_mut(&mut self, key: AnchorName) -> &mut Point;
-    /// Perform action for all /anchor::Point/s.
-    fn foreach<F: FnMut(&Point)>(&self, action: F);
-    /// Adjust all /anchor::Point/s.
-    fn map<F: Fn(&Point) -> Point>(&self, action: F) -> Self;
+    /// failure-free lookup for a specific /Anchor/.
+    fn get(&self, key: AnchorName) -> &Anchor;
+    /// failure-free mutable lookup for a specific /Anchor/.
+    fn get_mut(&mut self, key: AnchorName) -> &mut Anchor;
+    /// Perform action for all /Anchor/s.
+    fn foreach<F: FnMut(&Anchor)>(&self, action: F);
+    /// Adjust all /Anchor/s.
+    fn map<F: Fn(&Anchor) -> Anchor>(&self, action: F) -> Self;
 }

@@ -188,24 +188,24 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let ende1_x: canvas::X = width - radius_abstand_x * angle.sin();
         let ende1_y: canvas::Y = half_height - radius_abstand_y * (1. - angle.cos());
         AnchorPoints {
-            anfang_0: anchor::Point {
-                position: anchor::Position { x: anfang0_x, y: half_height },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+            anfang_0: anchor::Anchor {
+                position: canvas::Point { x: anfang0_x, y: half_height },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
-            ende_0: anchor::Point {
-                position: anchor::Position { x: ende0_x, y: half_height },
-                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(0.) },
+            ende_0: anchor::Anchor {
+                position: canvas::Point { x: ende0_x, y: half_height },
+                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(0.) },
             },
-            anfang_1: anchor::Point {
-                position: anchor::Position { x: anfang1_x, y: anfang1_y },
-                direction: anchor::Direction {
+            anfang_1: anchor::Anchor {
+                position: canvas::Point { x: anfang1_x, y: anfang1_y },
+                direction: canvas::Vector {
                     dx: canvas::X(angle.cos()),
                     dy: canvas::Y(angle.sin()),
                 },
             },
-            ende_1: anchor::Point {
-                position: anchor::Position { x: ende1_x, y: ende1_y },
-                direction: anchor::Direction {
+            ende_1: anchor::Anchor {
+                position: canvas::Point { x: ende1_x, y: ende1_y },
+                direction: canvas::Vector {
                     dx: canvas::X(-angle.cos()),
                     dy: canvas::Y(-angle.sin()),
                 },

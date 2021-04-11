@@ -141,30 +141,30 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let radius_y: canvas::Abstand<canvas::Y> = radius.convert();
         let anfang_x: canvas::X = canvas::X(0.);
         AnchorPoints {
-            anfang: anchor::Point {
-                position: anchor::Position { x: anfang_x, y: half_height },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+            anfang: anchor::Anchor {
+                position: canvas::Point { x: anfang_x, y: half_height },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
             },
-            gerade: anchor::Point {
-                position: anchor::Position { x: anfang_x + length, y: half_height },
-                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(0.) },
+            gerade: anchor::Anchor {
+                position: canvas::Point { x: anfang_x + length, y: half_height },
+                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(0.) },
             },
-            links: anchor::Point {
-                position: anchor::Position {
+            links: anchor::Anchor {
+                position: canvas::Point {
                     x: anfang_x + radius_x * self.angle.sin(),
                     y: half_height + radius_y * (1. - self.angle.cos()),
                 },
-                direction: anchor::Direction {
+                direction: canvas::Vector {
                     dx: canvas::X(self.angle.cos()),
                     dy: canvas::Y(self.angle.sin()),
                 },
             },
-            rechts: anchor::Point {
-                position: anchor::Position {
+            rechts: anchor::Anchor {
+                position: canvas::Point {
                     x: anfang_x + radius_x * self.angle.sin(),
                     y: half_height - radius_y * (1. - self.angle.cos()),
                 },
-                direction: anchor::Direction {
+                direction: canvas::Vector {
                     dx: canvas::X(self.angle.cos()),
                     dy: canvas::Y(-self.angle.sin()),
                 },

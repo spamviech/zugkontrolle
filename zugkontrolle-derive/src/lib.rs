@@ -165,7 +165,7 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
         let enum_vis: &syn::Visibility = vis;
         let enum_variants: Vec<syn::Ident> =
             enum_data.variants.iter().map(|v| v.ident.clone()).collect();
-        // construct a struct using a snake_case field for every variant, each holding an anchor::point
+        // construct a struct using a snake_case field for every variant, each holding an anchor::Anchor
         let struct_name: syn::Ident =
             format_ident!("{}Points", enum_name.to_string().trim_end_matches("Name"));
         let struct_fields: Vec<syn::Ident> = enum_variants
@@ -175,25 +175,25 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
         let struct_definition: proc_macro2::TokenStream = quote! {
             #[derive(Debug)]
             #enum_vis struct #struct_name {
-                #(pub #struct_fields : #base_ident::gleis::anchor::Point),*
+                #(pub #struct_fields : #base_ident::gleis::anchor::Anchor),*
             }
         };
         let impl_lookup: proc_macro2::TokenStream = quote! {
             impl #base_ident::gleis::anchor::Lookup<#enum_name> for #struct_name {
-                fn get(&self, key: #enum_name) -> &#base_ident::gleis::anchor::Point {
+                fn get(&self, key: #enum_name) -> &#base_ident::gleis::anchor::Anchor {
                     match key {
                         #(#enum_name::#enum_variants => &self.#struct_fields),*
                     }
                 }
-                fn get_mut(&mut self, key: #enum_name) -> &mut #base_ident::gleis::anchor::Point {
+                fn get_mut(&mut self, key: #enum_name) -> &mut #base_ident::gleis::anchor::Anchor {
                     match key {
                         #(#enum_name::#enum_variants => &mut self.#struct_fields),*
                     }
                 }
-                fn foreach<F: FnMut(&#base_ident::gleis::anchor::Point)>(&self, mut action: F) {
+                fn foreach<F: FnMut(&#base_ident::gleis::anchor::Anchor)>(&self, mut action: F) {
                     #(action(&self.#struct_fields));*
                 }
-                fn map<F: Fn(&#base_ident::gleis::anchor::Point)->#base_ident::gleis::anchor::Point>(&self, mut action: F) -> Self {
+                fn map<F: Fn(&#base_ident::gleis::anchor::Anchor)->#base_ident::gleis::anchor::Anchor>(&self, mut action: F) -> Self {
                     #struct_name {
                         #(#struct_fields: action(&self.#struct_fields)),*
                     }

@@ -279,22 +279,22 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         };
         let angle_difference = self.angle - self.angle_reverse;
         weiche::gerade::AnchorPoints {
-            anfang: anchor::Point {
-                position: anchor::Position {
+            anfang: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
             },
-            gerade: anchor::Point {
-                position: anchor::Position {
+            gerade: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.) + self.length.to_abstand(),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: anchor::Direction { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
             },
-            kurve: anchor::Point {
-                position: anchor::Position {
+            kurve: anchor::Anchor {
+                position: canvas::Point {
                     x: canvas::X(0.)
                         + self.radius.to_abstand().convert() * self.angle.sin()
                         + self.radius_reverse.to_abstand().convert()
@@ -306,7 +306,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                                 + self.radius_reverse.to_abstand().convert()
                                     * (angle_difference.cos() - self.angle.cos())),
                 },
-                direction: anchor::Direction {
+                direction: canvas::Vector {
                     dx: canvas::X(angle_difference.cos()),
                     dy: canvas::Y(multiplier * angle_difference.sin()),
                 },

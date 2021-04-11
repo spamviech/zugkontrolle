@@ -23,29 +23,29 @@ pub struct Position {
     pub winkel: Angle,
 }
 impl Position {
-    /// anchor::Position nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
-    pub fn transformation(&self, anchor: anchor::Position) -> anchor::Position {
+    /// canvas::Point nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
+    pub fn transformation(&self, anchor: canvas::Point) -> canvas::Point {
         let x =
             canvas::X(self.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
         let y =
             canvas::Y(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
-        anchor::Position { x, y }
+        canvas::Point { x, y }
     }
 
-    /// anchor::Direction nachdem das Objekt um den Winkel gedreht wird.
-    pub fn rotation(&self, direction: anchor::Direction) -> anchor::Direction {
+    /// canvas::Vector nachdem das Objekt um den Winkel gedreht wird.
+    pub fn rotation(&self, direction: canvas::Vector) -> canvas::Vector {
         let dx = canvas::X(0.) + direction.dx.to_abstand() * self.winkel.cos()
             - direction.dy.to_abstand().convert() * self.winkel.sin();
         let dy = canvas::Y(0.) + direction.dx.to_abstand().convert() * self.winkel.sin()
             - direction.dy.to_abstand() * self.winkel.cos();
-        anchor::Direction { dx, dy }
+        canvas::Vector { dx, dy }
     }
 
-    /// Position damit anchor::Point übereinander mit entgegengesetzter Richtung liegen
+    /// Position damit anchor::Anchor übereinander mit entgegengesetzter Richtung liegen
     fn attach_position<T>(
         definition: &T,
         anchor_name: T::AnchorName,
-        target_anchor_point: anchor::Point,
+        target_anchor_point: anchor::Anchor,
     ) -> Self
     where
         T: Zeichnen,
@@ -294,7 +294,7 @@ fn zeichne_alle_gleise<T: Zeichnen>(
 }
 fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut canvas::Frame,
-    has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Position) -> bool,
+    has_other_id_at_point: impl Fn(GleisId<Any>, canvas::Point) -> bool,
     map: &HashMap<GleisId<T>, Gleis<T>>,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
@@ -412,7 +412,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         let Gleis { definition, position } = &gleis;
         // calculate absolute position for AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&anchor::Point { position: anchor_position, direction }| anchor::Point {
+            |&anchor::Anchor { position: anchor_position, direction }| anchor::Anchor {
                 position: position.transformation(anchor_position),
                 direction: position.rotation(direction),
             },
@@ -436,7 +436,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         definition: T,
         anchor_name: T::AnchorName,
-        target_anchor_point: anchor::Point,
+        target_anchor_point: anchor::Anchor,
     ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
@@ -461,14 +461,14 @@ impl<Z: Zugtyp> Gleise<Z> {
             .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
         // calculate absolute position for current AnchorPoints
         let anchor_points = definition.anchor_points().map(
-            |&anchor::Point { position: anchor_position, direction }| anchor::Point {
+            |&anchor::Anchor { position: anchor_position, direction }| anchor::Anchor {
                 position: position.transformation(anchor_position),
                 direction: position.rotation(direction),
             },
         );
         // calculate absolute position for new AnchorPoints
         let anchor_points_neu = definition.anchor_points().map(
-            |&anchor::Point { position: anchor_position, direction }| anchor::Point {
+            |&anchor::Anchor { position: anchor_position, direction }| anchor::Anchor {
                 position: position_neu.transformation(anchor_position),
                 direction: position_neu.rotation(direction),
             },
@@ -493,7 +493,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         &mut self,
         gleis_id: &GleisId<T>,
         anchor_name: T::AnchorName,
-        target_anchor_point: anchor::Point,
+        target_anchor_point: anchor::Anchor,
     ) -> T::AnchorPoints
     where
         T: Debug + Zeichnen + GleiseMap<Z>,

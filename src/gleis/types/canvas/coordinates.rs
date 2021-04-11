@@ -5,7 +5,6 @@ use std::{convert::From, marker::PhantomData};
 
 use iced;
 
-use crate::gleis::anchor;
 use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 
 /// Konvertierung in einen Abstand.
@@ -258,11 +257,6 @@ impl From<Point> for iced::Point {
         iced::Point { x: x.0, y: y.0 }
     }
 }
-impl From<anchor::Position> for Point {
-    fn from(anchor::Position { x, y }: anchor::Position) -> Self {
-        Point { x, y }
-    }
-}
 
 /// Coordinate type safe variant of /iced::Size/
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -295,6 +289,16 @@ impl Vector {
     /// Berechne die Länge des Vektors.
     pub fn length<T>(&self) -> Abstand<T> {
         Abstand(self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0, PhantomData)
+    }
+    // Winkel zwischen Richtungs-Vektor und x-Achse
+    pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
+        let len = (self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt();
+        let acos_winkel = Angle::acos(self.dx.0 / len);
+        if self.dy < Y(0.) {
+            acos_winkel
+        } else {
+            -acos_winkel
+        }
     }
     /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist.
     pub fn rotate<T: Trigonometrie>(&self, winkel: T) -> Self {
@@ -329,11 +333,6 @@ impl From<Point> for Vector {
 impl From<Size> for Vector {
     fn from(Size { width, height }: Size) -> Self {
         Vector { dx: width, dy: height }
-    }
-}
-impl From<anchor::Direction> for Vector {
-    fn from(anchor::Direction { dx, dy }: anchor::Direction) -> Self {
-        Vector { dx, dy }
     }
 }
 // add Vector and Point
