@@ -39,7 +39,7 @@ const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 const ZUGTYP: PhantomData<*const Lego> = PhantomData;
 
-pub const GERADE: Gerade<Lego> = Gerade { zugtyp: ZUGTYP, length: LENGTH };
+pub const GERADE: Gerade<Lego> = Gerade::new(LENGTH);
 
 const ANGLE: Angle = Angle::new(ANGLE_VALUE);
 pub const KURVE: Kurve<Lego> = Kurve { zugtyp: ZUGTYP, radius: RADIUS, angle: ANGLE };

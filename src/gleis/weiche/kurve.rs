@@ -39,7 +39,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn size(&self) -> canvas::Size {
         let KurvenWeiche { zugtyp, length, radius, angle, direction: _ } = *self;
-        let size_gerade = Gerade { zugtyp, length }.size();
+        let size_gerade = Gerade { zugtyp, length, description: None }.size();
         let size_kurve = Kurve { zugtyp, radius, angle }.size();
         canvas::Size {
             width: canvas::X(0.)

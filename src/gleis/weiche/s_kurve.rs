@@ -47,7 +47,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             direction: _,
         } = *self;
         let angle_difference = angle - angle_reverse;
-        let size_gerade = Gerade { zugtyp, length }.size();
+        let size_gerade = Gerade { zugtyp, length, description: None }.size();
 
         //Breiten-Berechnung
         let factor_width = if angle.abs() < Angle::new(0.5 * PI) { angle.sin() } else { 1. };

@@ -10,7 +10,7 @@ use super::angle::Angle;
 // re-exports
 pub use iced::{
     canvas::{Cache, Fill, FillRule, Stroke, Text},
-    Color,
+    Color, HorizontalAlignment, VerticalAlignment,
 };
 
 pub mod coordinates;

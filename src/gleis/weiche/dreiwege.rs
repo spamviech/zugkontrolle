@@ -37,7 +37,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
 
     fn size(&self) -> canvas::Size {
         let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
-        let size_gerade = Gerade { zugtyp, length }.size();
+        let size_gerade = Gerade { zugtyp, length, description: None }.size();
         let size_kurve = Kurve { zugtyp, radius, angle }.size();
         let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z>();
         canvas::Size {

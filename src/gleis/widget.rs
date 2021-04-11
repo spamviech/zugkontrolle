@@ -378,6 +378,24 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
             zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, s_kurven_weichen);
             zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, dreiwege_weichen);
             zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kreuzungen);
+            // Beschreibung
+            drop(boxed_frame);
+            for (_gleis_id, Gleis { definition, position }) in geraden.iter() {
+                if let Some(content) = definition.description {
+                    frame.fill_text(canvas::Text {
+                        content: content.to_string(),
+                        position: canvas::Point::from(position.transformation(anchor::Position {
+                            x: canvas::X(0.) + 0.5 * definition.length.to_abstand(),
+                            y: canvas::Y(0.) + 0.5 * Z::SPURWEITE.to_abstand(),
+                        }))
+                        .into(),
+                        color: canvas::Color::BLACK,
+                        horizontal_alignment: canvas::HorizontalAlignment::Center,
+                        vertical_alignment: canvas::VerticalAlignment::Center,
+                        ..Default::default()
+                    });
+                }
+            }
         })]
     }
 }

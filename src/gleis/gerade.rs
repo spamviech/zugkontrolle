@@ -16,7 +16,17 @@ use super::types::*;
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct Gerade<Z> {
     pub zugtyp: PhantomData<*const Z>,
+    // TODO convert to canvas::Abstand<canvas::X>
     pub length: Length,
+    pub description: Option<&'static str>,
+}
+impl<Z> Gerade<Z> {
+    pub const fn new(laenge: Length) -> Self {
+        Gerade { zugtyp: PhantomData, length: laenge, description: None }
+    }
+    pub const fn new_with_description(laenge: Length, beschreibung: &'static str) -> Self {
+        Gerade { zugtyp: PhantomData, length: laenge, description: Some(beschreibung) }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
@@ -117,6 +127,7 @@ fn zeichne_internal<Z, P, A>(
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());
     path_builder.move_to(canvas::Point::new(gleis_links, gleis_unten).into());
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
+    // Beschreibung
 }
 
 pub(crate) fn fuelle<Z, P, A>(

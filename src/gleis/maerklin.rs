@@ -35,14 +35,14 @@ Gerade
     5210: L16mm
     5208: L8mm
 */
-pub const GERADE_5106: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(180.) };
-pub const GERADE_5107: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(90.) };
-pub const GERADE_5129: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(70.) };
-pub const GERADE_5108: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(45.) };
-pub const GERADE_5109: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(33.5) };
-pub const GERADE_5110: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(22.5) };
-pub const GERADE_5210: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(16.) };
-pub const GERADE_5208: Gerade<Maerklin> = Gerade { zugtyp: ZUGTYP, length: Length::new(8.) };
+pub const GERADE_5106: Gerade<Maerklin> = Gerade::new_with_description(Length::new(180.), "5106");
+pub const GERADE_5107: Gerade<Maerklin> = Gerade::new_with_description(Length::new(90.), "5107");
+pub const GERADE_5129: Gerade<Maerklin> = Gerade::new_with_description(Length::new(70.), "5129");
+pub const GERADE_5108: Gerade<Maerklin> = Gerade::new_with_description(Length::new(45.), "5108");
+pub const GERADE_5109: Gerade<Maerklin> = Gerade::new_with_description(Length::new(33.5), "5109");
+pub const GERADE_5110: Gerade<Maerklin> = Gerade::new_with_description(Length::new(22.5), "5110");
+pub const GERADE_5210: Gerade<Maerklin> = Gerade::new_with_description(Length::new(16.), "5210");
+pub const GERADE_5208: Gerade<Maerklin> = Gerade::new_with_description(Length::new(8.), "5208");
 
 /*
 Kurve
