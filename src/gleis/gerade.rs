@@ -16,16 +16,15 @@ use super::types::*;
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct Gerade<Z> {
     pub zugtyp: PhantomData<*const Z>,
-    // TODO convert to canvas::Abstand<canvas::X>
-    pub length: Length,
-    pub description: Option<&'static str>,
+    pub laenge: canvas::Abstand<canvas::X>,
+    pub beschreibung: Option<&'static str>,
 }
 impl<Z> Gerade<Z> {
-    pub const fn new(laenge: Length) -> Self {
-        Gerade { zugtyp: PhantomData, length: laenge, description: None }
+    pub const fn new(length: Length) -> Self {
+        Gerade { zugtyp: PhantomData, laenge: length.to_abstand(), beschreibung: None }
     }
-    pub const fn new_with_description(laenge: Length, beschreibung: &'static str) -> Self {
-        Gerade { zugtyp: PhantomData, length: laenge, description: Some(beschreibung) }
+    pub const fn new_with_description(length: Length, description: &'static str) -> Self {
+        Gerade { zugtyp: PhantomData, laenge: length.to_abstand(), beschreibung: Some(description) }
     }
 }
 
@@ -40,16 +39,13 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> canvas::Size {
-        canvas::Size::new(
-            canvas::X(0.) + self.length.to_abstand(),
-            canvas::Y(0.) + beschraenkung::<Z>(),
-        )
+        size::<Z>(self.laenge)
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         vec![zeichne(
             self.zugtyp,
-            self.length,
+            self.laenge,
             true,
             Vec::new(),
             canvas::PathBuilder::with_normal_axis,
@@ -57,12 +53,12 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 
     fn fuelle(&self) -> Vec<canvas::Path> {
-        vec![fuelle(self.zugtyp, self.length, Vec::new(), canvas::PathBuilder::with_normal_axis)]
+        vec![fuelle(self.zugtyp, self.laenge, Vec::new(), canvas::PathBuilder::with_normal_axis)]
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links: canvas::X = canvas::X(0.);
-        let gleis_rechts: canvas::X = gleis_links + self.length.to_abstand();
+        let gleis_rechts: canvas::X = gleis_links + self.laenge;
         let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschraenkung::<Z>();
         AnchorPoints {
             anfang: anchor::Anchor {
@@ -77,9 +73,13 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     }
 }
 
+pub(crate) fn size<Z: Zugtyp>(laenge: canvas::Abstand<canvas::X>) -> canvas::Size {
+    canvas::Size::new(canvas::X(0.) + laenge, canvas::Y(0.) + beschraenkung::<Z>())
+}
+
 pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<*const Z>,
-    laenge: Length,
+    laenge: canvas::Abstand<canvas::X>,
     beschraenkungen: bool,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
@@ -102,7 +102,7 @@ where
 
 fn zeichne_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
-    laenge: Length,
+    laenge: canvas::Abstand<canvas::X>,
     beschraenkungen: bool,
 ) where
     Z: Zugtyp,
@@ -110,7 +110,7 @@ fn zeichne_internal<Z, P, A>(
     A: From<canvas::Arc> + canvas::ToArc,
 {
     let gleis_links: canvas::X = canvas::X(0.);
-    let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
+    let gleis_rechts: canvas::X = gleis_links + laenge;
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
     let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschraenkung::<Z>();
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
@@ -132,7 +132,7 @@ fn zeichne_internal<Z, P, A>(
 
 pub(crate) fn fuelle<Z, P, A>(
     _zugtyp: PhantomData<*const Z>,
-    laenge: Length,
+    laenge: canvas::Abstand<canvas::X>,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
         &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
@@ -152,15 +152,17 @@ where
     path_builder.build_under_transformations(transformations)
 }
 
-fn fuelle_internal<Z, P, A>(path_builder: &mut canvas::PathBuilder<P, A>, laenge: Length)
-where
+fn fuelle_internal<Z, P, A>(
+    path_builder: &mut canvas::PathBuilder<P, A>,
+    laenge: canvas::Abstand<canvas::X>,
+) where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
     A: From<canvas::Arc> + canvas::ToArc,
 {
     // Koordinaten
     let gleis_links: canvas::X = canvas::X(0.);
-    let gleis_rechts: canvas::X = gleis_links + laenge.to_abstand();
+    let gleis_rechts: canvas::X = gleis_links + laenge;
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();

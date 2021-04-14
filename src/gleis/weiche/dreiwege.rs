@@ -8,10 +8,8 @@
 
 use std::marker::PhantomData;
 
-use crate::gleis::anchor;
-use crate::gleis::gerade::{self, Gerade};
-use crate::gleis::kurve::{self, Kurve};
 use crate::gleis::types::*;
+use crate::gleis::{anchor, gerade, kurve};
 
 /// Definition einer Dreiwege-Weiche
 ///
@@ -20,10 +18,37 @@ use crate::gleis::types::*;
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct DreiwegeWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
-    pub length: Length,
-    pub radius: Radius,
-    pub angle: Angle,
+    pub laenge: canvas::Abstand<canvas::X>,
+    pub radius: canvas::Abstand<canvas::Radius>,
+    pub winkel: Angle,
+    pub beschreibung: Option<&'static str>,
 }
+impl<Z> DreiwegeWeiche<Z> {
+    pub const fn new(length: Length, radius: Radius, angle: Angle) -> Self {
+        DreiwegeWeiche {
+            zugtyp: PhantomData,
+            laenge: length.to_abstand(),
+            radius: radius.to_abstand(),
+            winkel: angle,
+            beschreibung: None,
+        }
+    }
+    pub const fn new_with_description(
+        length: Length,
+        radius: Radius,
+        angle: Angle,
+        description: &'static str,
+    ) -> Self {
+        DreiwegeWeiche {
+            zugtyp: PhantomData,
+            laenge: length.to_abstand(),
+            radius: radius.to_abstand(),
+            winkel: angle,
+            beschreibung: Some(description),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
 pub enum AnchorName {
     Anfang,
@@ -36,9 +61,9 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> canvas::Size {
-        let DreiwegeWeiche { zugtyp, length, radius, angle } = *self;
-        let size_gerade = Gerade { zugtyp, length, description: None }.size();
-        let size_kurve = Kurve { zugtyp, radius, angle }.size();
+        let DreiwegeWeiche { laenge, radius, winkel, .. } = *self;
+        let size_gerade = gerade::size::<Z>(laenge);
+        let size_kurve = kurve::size::<Z>(radius, winkel);
         let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z>();
         canvas::Size {
             width: canvas::X(0.)
@@ -64,7 +89,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         // Gerade
         paths.push(gerade::zeichne(
             self.zugtyp,
-            self.length,
+            self.laenge,
             true,
             rechts_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
@@ -73,7 +98,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths.push(kurve::zeichne(
             self.zugtyp,
             self.radius,
-            self.angle,
+            self.winkel,
             kurve::Beschraenkung::Ende,
             rechts_transformations,
             canvas::PathBuilder::with_normal_axis,
@@ -82,7 +107,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths.push(kurve::zeichne(
             self.zugtyp,
             self.radius,
-            self.angle,
+            self.winkel,
             kurve::Beschraenkung::Ende,
             links_transformations,
             canvas::PathBuilder::with_invert_y,
@@ -108,7 +133,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         // Gerade
         paths.push(gerade::fuelle(
             self.zugtyp,
-            self.length,
+            self.laenge,
             rechts_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
@@ -116,7 +141,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths.push(kurve::fuelle(
             self.zugtyp,
             self.radius,
-            self.angle,
+            self.winkel,
             rechts_transformations,
             canvas::PathBuilder::with_normal_axis,
         ));
@@ -124,7 +149,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths.push(kurve::fuelle(
             self.zugtyp,
             self.radius,
-            self.angle,
+            self.winkel,
             links_transformations,
             canvas::PathBuilder::with_invert_y,
         ));
@@ -135,8 +160,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     fn anchor_points(&self) -> AnchorPoints {
         let height: canvas::Y = self.size().height;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
-        let length: canvas::Abstand<canvas::X> = self.length.to_abstand();
-        let radius: canvas::Abstand<canvas::Radius> = self.radius.to_abstand();
+        let length: canvas::Abstand<canvas::X> = self.laenge;
+        let radius: canvas::Abstand<canvas::Radius> = self.radius;
         let radius_x: canvas::Abstand<canvas::X> = radius.convert();
         let radius_y: canvas::Abstand<canvas::Y> = radius.convert();
         let anfang_x: canvas::X = canvas::X(0.);
@@ -151,22 +176,22 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             },
             links: anchor::Anchor {
                 position: canvas::Point {
-                    x: anfang_x + radius_x * self.angle.sin(),
-                    y: half_height + radius_y * (1. - self.angle.cos()),
+                    x: anfang_x + radius_x * self.winkel.sin(),
+                    y: half_height + radius_y * (1. - self.winkel.cos()),
                 },
                 direction: canvas::Vector {
-                    dx: canvas::X(self.angle.cos()),
-                    dy: canvas::Y(self.angle.sin()),
+                    dx: canvas::X(self.winkel.cos()),
+                    dy: canvas::Y(self.winkel.sin()),
                 },
             },
             rechts: anchor::Anchor {
                 position: canvas::Point {
-                    x: anfang_x + radius_x * self.angle.sin(),
-                    y: half_height - radius_y * (1. - self.angle.cos()),
+                    x: anfang_x + radius_x * self.winkel.sin(),
+                    y: half_height - radius_y * (1. - self.winkel.cos()),
                 },
                 direction: canvas::Vector {
-                    dx: canvas::X(self.angle.cos()),
-                    dy: canvas::Y(-self.angle.sin()),
+                    dx: canvas::X(self.winkel.cos()),
+                    dy: canvas::Y(-self.winkel.sin()),
                 },
             },
         }

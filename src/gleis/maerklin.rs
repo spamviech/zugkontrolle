@@ -1,7 +1,6 @@
 //! This modules defines all Märklin rails I have access to.
 
 use std::f32::consts::PI;
-use std::marker::PhantomData;
 
 use super::gerade::Gerade;
 use super::kreuzung::{self, Kreuzung};
@@ -14,7 +13,6 @@ use crate::zugtyp::Maerklin;
 const RADIUS_INDUSTRIE: Radius = Radius::new(286.);
 const RADIUS_R1: Radius = Radius::new(360.);
 const RADIUS_R2: Radius = Radius::new(437.4);
-const ZUGTYP: PhantomData<*const Maerklin> = PhantomData;
 
 // floating point semantics aren't supported in const functions
 macro_rules! as_radians {
@@ -56,21 +54,21 @@ Kurve
     5205: 5.72°, R437.4mm
 */
 pub const KURVE_5120: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_INDUSTRIE, angle: Angle::new(as_radians!(45.)) };
+    Kurve::new_with_description(RADIUS_INDUSTRIE, Angle::new(as_radians!(45.)), "5120");
 pub const KURVE_5100: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(as_radians!(30.)) };
+    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(30.)), "5100");
 pub const KURVE_5101: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(as_radians!(15.)) };
+    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(15.)), "5101");
 pub const KURVE_5102: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R1, angle: Angle::new(as_radians!(7.5)) };
+    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(7.5)), "5102");
 pub const KURVE_5200: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(30.)) };
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(30.)), "5200");
 pub const KURVE_5206: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(24.28)) };
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(24.28)), "5206");
 pub const KURVE_5201: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(15.)) };
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(15.)), "5201");
 pub const KURVE_5205: Kurve<Maerklin> =
-    Kurve { zugtyp: ZUGTYP, radius: RADIUS_R2, angle: Angle::new(as_radians!(5.72)) };
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(5.72)), "5205");
 
 /*
 Weiche
@@ -80,37 +78,31 @@ Weiche
 */
 const ANGLE_5117: Angle = Angle::new(as_radians!(30.));
 pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
-    Weiche {
-        zugtyp: ZUGTYP,
-        length: Length::new(180.),
-        radius: RADIUS_R2,
-        angle: ANGLE_5117,
-        direction: richtung,
-    }
+    let beschreibung = match richtung {
+        weiche::Richtung::Links => "5117L",
+        weiche::Richtung::Rechts => "5117R",
+    };
+    Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
 }
 pub const WEICHE_5117_RECHTS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Rechts);
 pub const WEICHE_5117_LINKS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Links);
 const ANGLE_5137: Angle = Angle::new(as_radians!(22.5));
 pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
-    Weiche {
-        zugtyp: ZUGTYP,
-        length: Length::new(180.),
-        radius: RADIUS_R2,
-        angle: ANGLE_5137,
-        direction: richtung,
-    }
+    let beschreibung = match richtung {
+        weiche::Richtung::Links => "5137L",
+        weiche::Richtung::Rechts => "5137R",
+    };
+    Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
 }
 pub const WEICHE_5137_RECHTS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Rechts);
 pub const WEICHE_5137_LINKS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Links);
 const ANGLE_5202: Angle = Angle::new(as_radians!(24.28));
 pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
-    Weiche {
-        zugtyp: ZUGTYP,
-        length: Length::new(180.),
-        radius: RADIUS_R2,
-        angle: ANGLE_5202,
-        direction: richtung,
-    }
+    let beschreibung = match richtung {
+        weiche::Richtung::Links => "5202L",
+        weiche::Richtung::Rechts => "5202R",
+    };
+    Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
 }
 pub const WEICHE_5202_RECHTS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Rechts);
 pub const WEICHE_5202_LINKS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Links);
@@ -119,12 +111,12 @@ pub const WEICHE_5202_LINKS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Li
 Dreiwege-Weiche
     5214: L180mm, 24,28°, R437.4mm
 */
-pub const DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche {
-    zugtyp: ZUGTYP,
-    length: Length::new(180.),
-    radius: RADIUS_R2,
-    angle: Angle::new(as_radians!(24.28)),
-};
+pub const DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche::new_with_description(
+    Length::new(180.),
+    RADIUS_R2,
+    Angle::new(as_radians!(24.28)),
+    "5214",
+);
 
 /*
 Kurven-Weiche
@@ -132,13 +124,17 @@ Kurven-Weiche
 */
 const ANGLE_5140: Angle = Angle(as_radians!(30.));
 pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
-    KurvenWeiche {
-        zugtyp: ZUGTYP,
-        length: Length::new(77.3),
-        radius: RADIUS_R1,
-        angle: ANGLE_5140,
-        direction: richtung,
-    }
+    let beschreibung = match richtung {
+        weiche::Richtung::Links => "5140L",
+        weiche::Richtung::Rechts => "5140R",
+    };
+    KurvenWeiche::new_with_description(
+        Length::new(77.3),
+        RADIUS_R1,
+        ANGLE_5140,
+        richtung,
+        beschreibung,
+    )
 }
 pub const KURVEN_WEICHE_5140_RECHTS: KurvenWeiche<Maerklin> =
     kurven_weiche_5140(weiche::Richtung::Rechts);
@@ -150,20 +146,20 @@ Kreuzung
     5128: L193mm, 30°, R360mm
     5207: L180mm, 24.28°, R437.4mm
 */
-pub const KREUZUNG_5128: Kreuzung<Maerklin> = Kreuzung {
-    zugtyp: ZUGTYP,
-    length: Length::new(193.),
-    radius: RADIUS_R1,
-    variante: kreuzung::Variante::MitKurve,
-};
+pub const KREUZUNG_5128: Kreuzung<Maerklin> = Kreuzung::new_with_description(
+    Length::new(193.),
+    RADIUS_R1,
+    kreuzung::Variante::MitKurve,
+    "5128",
+);
 // Länge/Winkel 24.28 passt nicht!
 // https://www.stummiforum.de/viewtopic.php?t=29741#p309938
-pub const KREUZUNG_5207: Kreuzung<Maerklin> = Kreuzung {
-    zugtyp: ZUGTYP,
-    length: Length::new(180.),
-    radius: RADIUS_R2,
-    variante: kreuzung::Variante::MitKurve,
-};
+pub const KREUZUNG_5207: Kreuzung<Maerklin> = Kreuzung::new_with_description(
+    Length::new(180.),
+    RADIUS_R2,
+    kreuzung::Variante::MitKurve,
+    "5207",
+);
 
 // TODO
 /*

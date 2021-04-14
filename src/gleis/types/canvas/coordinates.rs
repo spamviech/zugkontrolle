@@ -7,16 +7,11 @@ use iced;
 
 use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 
-/// Konvertierung in einen Abstand.
-pub trait ToAbstand<T> {
-    fn to_abstand(self) -> Abstand<T>;
-}
-
 /// Horizontale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct X(pub f32);
-impl ToAbstand<X> for X {
-    fn to_abstand(self) -> Abstand<X> {
+impl X {
+    pub fn to_abstand(self) -> Abstand<X> {
         Abstand(self.0, PhantomData)
     }
 }
@@ -61,8 +56,8 @@ impl Neg for X {
 /// Vertikale Koordinate auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Y(pub f32);
-impl ToAbstand<Y> for Y {
-    fn to_abstand(self) -> Abstand<Y> {
+impl Y {
+    pub fn to_abstand(self) -> Abstand<Y> {
         Abstand(self.0, PhantomData)
     }
 }
@@ -107,8 +102,8 @@ impl Neg for Y {
 /// Radius auf einem Cairo-Canvas
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Radius(pub f32);
-impl ToAbstand<Radius> for Radius {
-    fn to_abstand(self) -> Abstand<Radius> {
+impl Radius {
+    pub fn to_abstand(self) -> Abstand<Radius> {
         Abstand(self.0, PhantomData)
     }
 }
@@ -225,18 +220,18 @@ impl<T> DivAssign<f32> for Abstand<T> {
 }
 /// Umrechnung von mm-Größen auf Canvas-Koordinaten
 /// Verwenden dieser Funktion um evtl. in der Zukunft einen Faktor zu erlauben
-impl ToAbstand<Y> for mm::Spurweite {
-    fn to_abstand(self) -> Abstand<Y> {
+impl mm::Spurweite {
+    pub const fn to_abstand(self) -> Abstand<Y> {
         Abstand::new_from_mm(self.0)
     }
 }
-impl ToAbstand<X> for mm::Length {
-    fn to_abstand(self) -> Abstand<X> {
+impl mm::Length {
+    pub const fn to_abstand(self) -> Abstand<X> {
         Abstand::new_from_mm(self.0)
     }
 }
-impl ToAbstand<Radius> for mm::Radius {
-    fn to_abstand(self) -> Abstand<Radius> {
+impl mm::Radius {
+    pub const fn to_abstand(self) -> Abstand<Radius> {
         Abstand::new_from_mm(self.0)
     }
 }

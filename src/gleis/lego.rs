@@ -1,7 +1,6 @@
 //! This modules defines all Lego (9V) rails I have access to.
 
 use std::f32::consts::PI;
-use std::marker::PhantomData;
 
 use super::gerade::Gerade;
 use super::kreuzung::{self, Kreuzung};
@@ -37,12 +36,11 @@ const LENGTH: Length = Length::new(LENGTH_VALUE);
 const RADIUS: Radius = Radius::new(320.);
 const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
-const ZUGTYP: PhantomData<*const Lego> = PhantomData;
 
 pub const GERADE: Gerade<Lego> = Gerade::new(LENGTH);
 
 const ANGLE: Angle = Angle::new(ANGLE_VALUE);
-pub const KURVE: Kurve<Lego> = Kurve { zugtyp: ZUGTYP, radius: RADIUS, angle: ANGLE };
+pub const KURVE: Kurve<Lego> = Kurve::new(RADIUS, ANGLE);
 
 /*
 Eine leichte S-Kurve: 6.5 Lücken rechts, dann 2.5 Lücken links; insgesamt 22.5°
@@ -60,23 +58,11 @@ const DOUBLE_LENGTH: Length = Length::new(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS: Angle = Angle::new(1.625 * ANGLE_VALUE);
 const ANGLE_INWARDS: Angle = Angle::new(0.625 * ANGLE_VALUE);
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
-    SKurvenWeiche {
-        zugtyp: ZUGTYP,
-        length: DOUBLE_LENGTH,
-        radius: RADIUS,
-        angle: ANGLE_OUTWARDS,
-        radius_reverse: RADIUS,
-        angle_reverse: ANGLE_INWARDS,
-        direction: richtung,
-    }
+    SKurvenWeiche::new(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }
 pub const WEICHE_RECHTS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Rechts);
 pub const WEICHE_LINKS: SKurvenWeiche<Lego> = weiche(weiche::Richtung::Links);
 
 const HALF_LENGTH_RADIUS: Radius = Radius::new(0.5 * LENGTH_VALUE);
-pub const KREUZUNG: Kreuzung<Lego> = Kreuzung {
-    zugtyp: ZUGTYP,
-    length: LENGTH,
-    radius: HALF_LENGTH_RADIUS,
-    variante: kreuzung::Variante::OhneKurve,
-};
+pub const KREUZUNG: Kreuzung<Lego> =
+    Kreuzung::new(LENGTH, HALF_LENGTH_RADIUS, kreuzung::Variante::OhneKurve);

@@ -380,13 +380,13 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
             zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kreuzungen);
             // Beschreibung
             for (_gleis_id, Gleis { definition, position }) in geraden.iter() {
-                if let Some(content) = definition.description {
+                if let Some(content) = definition.beschreibung {
                     boxed_frame.with_save(|frame| {
                         move_to_position(frame, position);
                         frame.fill_text(canvas::Text {
                             content: content.to_string(),
                             position: canvas::Point::new(
-                                canvas::X(0.) + 0.5 * definition.length.to_abstand(),
+                                canvas::X(0.) + 0.5 * definition.laenge,
                                 canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
                             )
                             .into(),

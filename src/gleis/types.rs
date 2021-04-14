@@ -13,7 +13,6 @@ pub mod mm;
 // re-exports
 pub use crate::zugtyp::Zugtyp;
 pub use angle::*;
-pub use canvas::ToAbstand;
 pub use mm::*;
 
 use super::anchor;
@@ -28,12 +27,16 @@ pub fn beschraenkung<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
     Z::SPURWEITE.to_abstand() + 2. * abstand::<Z>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_aussen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand<canvas::Radius> {
-    radius.to_abstand() + 0.5 * Z::SPURWEITE.to_abstand().convert() + abstand::<Z>().convert()
+pub fn radius_begrenzung_aussen<Z: Zugtyp>(
+    radius: canvas::Abstand<canvas::Radius>,
+) -> canvas::Abstand<canvas::Radius> {
+    radius + 0.5 * Z::SPURWEITE.to_abstand().convert() + abstand::<Z>().convert()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Radius) -> canvas::Abstand<canvas::Radius> {
-    radius.to_abstand() - 0.5 * Z::SPURWEITE.to_abstand().convert() - abstand::<Z>().convert()
+pub fn radius_begrenzung_innen<Z: Zugtyp>(
+    radius: canvas::Abstand<canvas::Radius>,
+) -> canvas::Abstand<canvas::Radius> {
+    radius - 0.5 * Z::SPURWEITE.to_abstand().convert() - abstand::<Z>().convert()
 }
 
 pub trait Zeichnen
