@@ -158,11 +158,6 @@ pub struct Gleise<Z> {
     next_id: u64,
 }
 
-impl<Z> Default for Gleise<Z> {
-    fn default() -> Self {
-        Gleise::new()
-    }
-}
 impl<Z> Gleise<Z> {
     pub fn new() -> Self {
         Gleise {

@@ -29,7 +29,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let size: canvas::Size = definition.size();
-        let x: canvas::X = canvas::X(200.) - 0.5 * size.width.to_abstand();
+        let x: canvas::X = canvas::X(150.) - 0.5 * size.width.to_abstand();
         let height: canvas::Abstand<canvas::Y> = size.height.to_abstand();
         let res = self
             .gleise
@@ -185,5 +185,30 @@ fn main() -> iced::Result {
     // assert!(kreuzung_lock.read().is_none());
     assert!(kreuzung_lock_clone.read().is_none());
 
-    Zugkontrolle::run(Settings { flags: (gleise_maerklin, gleise_lego), ..Settings::default() })
+    Zugkontrolle::run(Settings {
+        // set Icon here
+        // can be created from 32bpp RGBA data.
+        // pub fn from_rgba(rgba: Vec<u8>, width: u32, height: u32) -> Result<Self, Error>
+        // https://docs.rs/iced/0.3.0/iced/window/icon/struct.Icon.html#method.from_rgba
+        // conversion from an RGBAImage from the image crate:
+        // https://docs.rs/winit/0.18.1/src/winit/icon.rs.html#159
+        // #[cfg(feature = "icon_loading")]
+        // /// Requires the `icon_loading` feature.
+        // impl From<image::RgbaImage> for Icon {
+        //     fn from(buf: image::RgbaImage) -> Self {
+        //         let (width, height) = buf.dimensions();
+        //         let mut rgba = Vec::with_capacity((width * height) as usize * PIXEL_SIZE);
+        //         for (_, _, pixel) in buf.enumerate_pixels() {
+        //             rgba.extend_from_slice(&pixel.data);
+        //         }
+        //         Icon { rgba, width, height }
+        //     }
+        // }
+        // https://docs.rs/image/0.23.14/image/
+        // seems to be ImageBuffer now
+        // https://docs.rs/image/0.23.14/image/struct.ImageBuffer.html
+        // as_raw, dimensions
+        window: iced::window::Settings { size: (900, 700), ..Default::default() },
+        ..Settings::with_flags((gleise_maerklin, gleise_lego))
+    })
 }
