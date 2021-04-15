@@ -56,6 +56,21 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         vec![fuelle(self.zugtyp, self.laenge, Vec::new(), canvas::PathBuilder::with_normal_axis)]
     }
 
+    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
+        self.beschreibung.map(|text| {
+            (
+                canvas::Position {
+                    point: canvas::Point::new(
+                        canvas::X(0.) + 0.5 * self.laenge,
+                        canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
+                    ),
+                    winkel: Angle::new(0.),
+                },
+                text,
+            )
+        })
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links: canvas::X = canvas::X(0.);
         let gleis_rechts: canvas::X = gleis_links + self.laenge;

@@ -271,6 +271,30 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
         })
     }
 }
+fn schreibe_alle_beschreibungen<T: Zeichnen>(
+    frame: &mut canvas::Frame,
+    map: &HashMap<GleisId<T>, Gleis<T>>,
+) {
+    for (_gleis_id, Gleis { definition, position }) in map.iter() {
+        if let Some((relative_position, content)) = definition.beschreibung() {
+            let point = position.point
+                + canvas::Vector::from(relative_position.point).rotate(position.winkel);
+            let winkel = position.winkel + relative_position.winkel;
+            let absolute_position = canvas::Position { point, winkel };
+            frame.with_save(|frame| {
+                move_to_position(frame, &absolute_position);
+                frame.fill_text(canvas::Text {
+                    content: content.to_string(),
+                    position: iced::Point::ORIGIN,
+                    color: canvas::Color::BLACK,
+                    horizontal_alignment: canvas::HorizontalAlignment::Center,
+                    vertical_alignment: canvas::VerticalAlignment::Center,
+                    ..Default::default()
+                });
+            })
+        }
+    }
+}
 impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
     fn draw(
         &self,
@@ -320,25 +344,13 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
             zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, dreiwege_weichen);
             zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kreuzungen);
             // Beschreibung
-            for (_gleis_id, Gleis { definition, position }) in geraden.iter() {
-                if let Some(content) = definition.beschreibung {
-                    boxed_frame.with_save(|frame| {
-                        move_to_position(frame, position);
-                        frame.fill_text(canvas::Text {
-                            content: content.to_string(),
-                            position: canvas::Point::new(
-                                canvas::X(0.) + 0.5 * definition.laenge,
-                                canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
-                            )
-                            .into(),
-                            color: canvas::Color::BLACK,
-                            horizontal_alignment: canvas::HorizontalAlignment::Center,
-                            vertical_alignment: canvas::VerticalAlignment::Center,
-                            ..Default::default()
-                        });
-                    })
-                }
-            }
+            schreibe_alle_beschreibungen(&mut boxed_frame, geraden);
+            schreibe_alle_beschreibungen(&mut boxed_frame, kurven);
+            schreibe_alle_beschreibungen(&mut boxed_frame, weichen);
+            schreibe_alle_beschreibungen(&mut boxed_frame, kurven_weichen);
+            schreibe_alle_beschreibungen(&mut boxed_frame, s_kurven_weichen);
+            schreibe_alle_beschreibungen(&mut boxed_frame, dreiwege_weichen);
+            schreibe_alle_beschreibungen(&mut boxed_frame, kreuzungen);
         })]
     }
 }

@@ -295,6 +295,33 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         paths
     }
 
+    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
+        self.beschreibung.map(|text| {
+            let start_height: canvas::Y;
+            let multiplier: f32;
+            match self.richtung {
+                Richtung::Rechts => {
+                    start_height = canvas::Y(0.);
+                    multiplier = 1.;
+                }
+                Richtung::Links => {
+                    start_height = self.size().height;
+                    multiplier = -1.;
+                }
+            };
+            (
+                canvas::Position {
+                    point: canvas::Point::new(
+                        canvas::X(0.) + 0.5 * self.laenge,
+                        start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                    ),
+                    winkel: Angle::new(0.),
+                },
+                text,
+            )
+        })
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: canvas::Y;
         let multiplier: f32;

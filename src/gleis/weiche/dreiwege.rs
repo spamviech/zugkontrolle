@@ -157,6 +157,26 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths
     }
 
+    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
+        self.beschreibung.map(|text| {
+            let size: canvas::Size = self.size();
+            let start_x: canvas::X = canvas::X(0.);
+            let height: canvas::Y = size.height;
+            let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+            let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+            (
+                canvas::Position {
+                    point: canvas::Point::new(
+                        start_x + 0.5 * self.laenge,
+                        start_y + 0.5 * beschraenkung::<Z>(),
+                    ),
+                    winkel: Angle::new(0.),
+                },
+                text,
+            )
+        })
+    }
+
     fn anchor_points(&self) -> AnchorPoints {
         let height: canvas::Y = self.size().height;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();

@@ -81,6 +81,24 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         )]
     }
 
+    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
+        self.beschreibung.map(|text| {
+            let half_angle = 0.5 * self.winkel;
+            (
+                canvas::Position {
+                    point: canvas::Point::new(
+                        canvas::X(0.) + self.radius.as_x() * half_angle.sin(),
+                        canvas::Y(0.)
+                            + 0.5 * beschraenkung::<Z>()
+                            + self.radius.as_y() * (1. - half_angle.cos()),
+                    ),
+                    winkel: Angle::new(0.),
+                },
+                text,
+            )
+        })
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         AnchorPoints {
             anfang: anchor::Anchor {
@@ -94,8 +112,8 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                 position: canvas::Point {
                     x: canvas::X(0.) + self.radius.as_x() * self.winkel.sin(),
                     y: canvas::Y(0.)
-                        + (0.5 * beschraenkung::<Z>()
-                            + self.radius.as_y() * (1. - self.winkel.cos())),
+                        + 0.5 * beschraenkung::<Z>()
+                        + self.radius.as_y() * (1. - self.winkel.cos()),
                 },
                 direction: canvas::Vector {
                     dx: canvas::X(self.winkel.cos()),

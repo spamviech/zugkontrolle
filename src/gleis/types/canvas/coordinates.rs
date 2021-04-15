@@ -144,6 +144,10 @@ impl<T> Abstand<T> {
         Abstand(abstand_mm, PhantomData)
     }
 
+    pub fn min(&self, other: &Self) -> Self {
+        Abstand(self.0.min(other.0), self.1)
+    }
+
     pub fn max(&self, other: &Self) -> Self {
         Abstand(self.0.max(other.0), self.1)
     }

@@ -53,6 +53,9 @@ where
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<canvas::Path>;
 
+    /// Beschreibung und Position (falls verfügbar)
+    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)>;
+
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type AnchorName;
