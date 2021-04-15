@@ -420,3 +420,27 @@ impl From<Arc> for iced::canvas::path::Arc {
         }
     }
 }
+
+/// Position eines Gleises/Textes auf der Canvas
+#[derive(Debug, Clone)]
+pub struct Position {
+    pub point: Point,
+    pub winkel: Angle,
+}
+impl Position {
+    /// Point nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
+    pub fn transformation(&self, anchor: Point) -> Point {
+        let x = X(self.point.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
+        let y = Y(self.point.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
+        Point { x, y }
+    }
+
+    /// Vector nachdem das Objekt um den Winkel gedreht wird.
+    pub fn rotation(&self, direction: Vector) -> Vector {
+        let dx = X(0.) + direction.dx.to_abstand() * self.winkel.cos()
+            - direction.dy.to_abstand().as_x() * self.winkel.sin();
+        let dy = Y(0.) + direction.dx.to_abstand().as_y() * self.winkel.sin()
+            - direction.dy.to_abstand() * self.winkel.cos();
+        Vector { dx, dy }
+    }
+}

@@ -7,7 +7,7 @@ use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::anchor;
 use zugkontrolle::gleis::types::*;
-use zugkontrolle::gleis::widget::{Gleis, GleisIdLock, Gleise, GleiseMap, Position};
+use zugkontrolle::gleis::widget::{Gleis, GleisIdLock, Gleise, GleiseMap};
 use zugkontrolle::gleis::{gerade, kurve};
 use zugkontrolle::gleis::{lego, maerklin};
 use zugkontrolle::zugtyp::{Lego, Maerklin};
@@ -33,7 +33,10 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let height: canvas::Abstand<canvas::Y> = size.height.to_abstand();
         let res = self.gleise.add(Gleis {
             definition,
-            position: Position { point: canvas::Point { x, y: self.y }, winkel: Angle::new(0.) },
+            position: canvas::Position {
+                point: canvas::Point { x, y: self.y },
+                winkel: Angle::new(0.),
+            },
         });
         self.y += height + canvas::Y(25.).to_abstand();
         res
@@ -167,7 +170,7 @@ fn main() -> iced::Result {
     if let Some(gleis_id) = &*gerade_lock.read() {
         gleise_lego.relocate(
             gleis_id,
-            Position {
+            canvas::Position {
                 point: canvas::Point { x: canvas::X(250.), y: canvas::Y(10.) },
                 winkel: AngleDegrees::new(90.).into(),
             },

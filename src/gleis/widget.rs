@@ -15,61 +15,6 @@ use super::kurve::Kurve;
 use super::types::*;
 use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
-/// Position eines Gleises/Textes auf der Canvas
-#[derive(Debug, Clone)]
-pub struct Position {
-    pub point: canvas::Point,
-    pub winkel: Angle,
-}
-impl Position {
-    /// canvas::Point nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
-    pub fn transformation(&self, anchor: canvas::Point) -> canvas::Point {
-        let x = canvas::X(
-            self.point.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin(),
-        );
-        let y = canvas::Y(
-            self.point.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos(),
-        );
-        canvas::Point { x, y }
-    }
-
-    /// canvas::Vector nachdem das Objekt um den Winkel gedreht wird.
-    pub fn rotation(&self, direction: canvas::Vector) -> canvas::Vector {
-        let dx = canvas::X(0.) + direction.dx.to_abstand() * self.winkel.cos()
-            - direction.dy.to_abstand().as_x() * self.winkel.sin();
-        let dy = canvas::Y(0.) + direction.dx.to_abstand().as_y() * self.winkel.sin()
-            - direction.dy.to_abstand() * self.winkel.cos();
-        canvas::Vector { dx, dy }
-    }
-
-    /// Position damit anchor::Anchor übereinander mit entgegengesetzter Richtung liegen
-    fn attach_position<T>(
-        definition: &T,
-        anchor_name: T::AnchorName,
-        target_anchor_point: anchor::Anchor,
-    ) -> Self
-    where
-        T: Zeichnen,
-        T::AnchorPoints: Lookup<T::AnchorName>,
-    {
-        let anchor_points: T::AnchorPoints = definition.anchor_points();
-        let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Angle = (-anchor_point.direction).winkel_mit_x_achse()
-            + target_anchor_point.direction.winkel_mit_x_achse();
-        Position {
-            point: canvas::Point {
-                x: target_anchor_point.position.x
-                    - anchor_point.position.x.to_abstand() * winkel.cos()
-                    + anchor_point.position.y.to_abstand().as_x() * winkel.sin(),
-                y: target_anchor_point.position.y
-                    - anchor_point.position.x.to_abstand().as_y() * winkel.sin()
-                    - anchor_point.position.y.to_abstand() * winkel.cos(),
-            },
-            winkel,
-        }
-    }
-}
-
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
 pub struct GleisIdLock<T>(Arc<RwLock<Option<GleisId<T>>>>);
@@ -122,7 +67,7 @@ impl<T> Hash for GleisId<T> {
 #[derive(Debug, Clone)]
 pub struct Gleis<T> {
     pub definition: T,
-    pub position: Position,
+    pub position: canvas::Position,
 }
 
 /*
@@ -239,7 +184,7 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
     }
 }
 
-fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
+fn move_to_position(frame: &mut canvas::Frame, position: &canvas::Position) {
     // bewege Kontext zur Position
     frame.transformation(&canvas::Transformation::Translate(position.point.into()));
     // drehe Kontext um (0,0)
@@ -398,6 +343,35 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
     }
 }
 
+impl canvas::Position {
+    /// Position damit anchor::Anchor übereinander mit entgegengesetzter Richtung liegen
+    fn attach_position<T>(
+        definition: &T,
+        anchor_name: T::AnchorName,
+        target_anchor_point: anchor::Anchor,
+    ) -> Self
+    where
+        T: Zeichnen,
+        T::AnchorPoints: Lookup<T::AnchorName>,
+    {
+        let anchor_points: T::AnchorPoints = definition.anchor_points();
+        let anchor_point = anchor_points.get(anchor_name);
+        let winkel: Angle = (-anchor_point.direction).winkel_mit_x_achse()
+            + target_anchor_point.direction.winkel_mit_x_achse();
+        canvas::Position {
+            point: canvas::Point {
+                x: target_anchor_point.position.x
+                    - anchor_point.position.x.to_abstand() * winkel.cos()
+                    + anchor_point.position.y.to_abstand().as_x() * winkel.sin(),
+                y: target_anchor_point.position.y
+                    - anchor_point.position.x.to_abstand().as_y() * winkel.sin()
+                    - anchor_point.position.y.to_abstand() * winkel.cos(),
+            },
+            winkel,
+        }
+    }
+}
+
 impl<Z: Zugtyp> Gleise<Z> {
     /// Add a new gleis to its position.
     pub fn add<T>(&mut self, gleis: Gleis<T>) -> (GleisIdLock<T>, T::AnchorPoints)
@@ -439,7 +413,8 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         // calculate new position
-        let position = Position::attach_position(&definition, anchor_name, target_anchor_point);
+        let position =
+            canvas::Position::attach_position(&definition, anchor_name, target_anchor_point);
         // add new gleis
         self.add(Gleis { definition, position })
     }
@@ -447,7 +422,11 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
-    pub fn relocate<T>(&mut self, gleis_id: &GleisId<T>, position_neu: Position) -> T::AnchorPoints
+    pub fn relocate<T>(
+        &mut self,
+        gleis_id: &GleisId<T>,
+        position_neu: canvas::Position,
+    ) -> T::AnchorPoints
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
@@ -499,7 +478,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             let Gleis { definition, .. } = T::get_map_mut(self)
                 .get(&gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
-            Position::attach_position(definition, anchor_name, target_anchor_point)
+            canvas::Position::attach_position(definition, anchor_name, target_anchor_point)
         };
         // move gleis to new position
         self.relocate(gleis_id, position)
