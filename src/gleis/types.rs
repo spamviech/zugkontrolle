@@ -30,13 +30,13 @@ pub fn beschraenkung<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
 pub fn radius_begrenzung_aussen<Z: Zugtyp>(
     radius: canvas::Abstand<canvas::Radius>,
 ) -> canvas::Abstand<canvas::Radius> {
-    radius + 0.5 * Z::SPURWEITE.to_abstand().convert() + abstand::<Z>().convert()
+    radius + 0.5 * Z::SPURWEITE.to_abstand().as_radius() + abstand::<Z>().as_radius()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_innen<Z: Zugtyp>(
     radius: canvas::Abstand<canvas::Radius>,
 ) -> canvas::Abstand<canvas::Radius> {
-    radius - 0.5 * Z::SPURWEITE.to_abstand().convert() - abstand::<Z>().convert()
+    radius - 0.5 * Z::SPURWEITE.to_abstand().as_radius() - abstand::<Z>().as_radius()
 }
 
 pub trait Zeichnen

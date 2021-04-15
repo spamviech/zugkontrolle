@@ -201,8 +201,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let ende0_x: canvas::X = anfang0_x + self.laenge;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
-        let radius_abstand_x: canvas::Abstand<canvas::X> = radius_abstand.convert();
-        let radius_abstand_y: canvas::Abstand<canvas::Y> = radius_abstand.convert();
+        let radius_abstand_x: canvas::Abstand<canvas::X> = radius_abstand.as_x();
+        let radius_abstand_y: canvas::Abstand<canvas::Y> = radius_abstand.as_y();
         let angle = self.angle();
         let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand_x * angle.sin();
         let anfang1_y: canvas::Y = half_height + radius_abstand_y * (1. - angle.cos());

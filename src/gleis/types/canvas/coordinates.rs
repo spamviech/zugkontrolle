@@ -3,8 +3,6 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::{convert::From, marker::PhantomData};
 
-use iced;
-
 use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 
 /// Horizontale Koordinate auf einem Cairo-Canvas
@@ -150,7 +148,15 @@ impl<T> Abstand<T> {
         Abstand(self.0.max(other.0), self.1)
     }
 
-    pub fn convert<S>(self) -> Abstand<S> {
+    pub fn as_x(self) -> Abstand<X> {
+        Abstand(self.0, PhantomData)
+    }
+
+    pub fn as_y(self) -> Abstand<Y> {
+        Abstand(self.0, PhantomData)
+    }
+
+    pub fn as_radius(self) -> Abstand<Radius> {
         Abstand(self.0, PhantomData)
     }
 }
@@ -301,9 +307,9 @@ impl Vector {
         // geht von Drehung gegen den Uhrzeigersinn und nach oben steigender y-Achse aus
         Vector {
             dx: X(0.) + winkel.cos() * self.dx.to_abstand()
-                - winkel.sin() * self.dy.to_abstand().convert(),
+                - winkel.sin() * self.dy.to_abstand().as_x(),
             dy: Y(0.)
-                + winkel.sin() * self.dx.to_abstand().convert()
+                + winkel.sin() * self.dx.to_abstand().as_y()
                 + winkel.cos() * self.dy.to_abstand(),
         }
     }

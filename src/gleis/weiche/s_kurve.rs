@@ -90,20 +90,20 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         }
         .max(0.);
         let radius_aussen = radius_begrenzung_aussen::<Z>(radius);
-        let radius_aussen_x: canvas::Abstand<canvas::X> = radius_aussen.convert();
+        let radius_aussen_x: canvas::Abstand<canvas::X> = radius_aussen.as_x();
         let radius_innen = radius_begrenzung_innen::<Z>(radius);
-        let radius_innen_x: canvas::Abstand<canvas::X> = radius_innen.convert();
+        let radius_innen_x: canvas::Abstand<canvas::X> = radius_innen.as_x();
         let radius_reverse_aussen = radius_begrenzung_aussen::<Z>(radius_reverse);
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
         let width_oben1: canvas::Abstand<canvas::X> = radius_aussen_x * factor_width;
         let width_oben2: canvas::Abstand<canvas::X> =
-            radius_aussen_x * winkel.sin() + radius_reverse_innen.convert() * factor_width_reverse;
+            radius_aussen_x * winkel.sin() + radius_reverse_innen.as_x() * factor_width_reverse;
         let width_oben: canvas::Abstand<canvas::X> = width_oben1.max(&width_oben2);
         // untere Beschränkung
         let width_unten1: canvas::Abstand<canvas::X> = radius_innen_x * factor_width;
         let width_unten2: canvas::Abstand<canvas::X> =
-            radius_innen_x * winkel.sin() + radius_reverse_aussen.convert() * factor_width_reverse;
+            radius_innen_x * winkel.sin() + radius_reverse_aussen.as_x() * factor_width_reverse;
         let width_unten: canvas::Abstand<canvas::X> = width_unten1.max(&width_unten2);
 
         // Höhen-Berechnung
@@ -115,9 +115,9 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         }
         .max(0.);
         let radius_aussen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_aussen::<Z>(radius).convert();
+            radius_begrenzung_aussen::<Z>(radius).as_y();
         let radius_reverse_innen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_innen::<Z>(radius_reverse).convert();
+            radius_begrenzung_innen::<Z>(radius_reverse).as_y();
         // obere Beschränkung
         let height_oben1: canvas::Abstand<canvas::Y> = radius_aussen * factor_height;
         let height_oben2: canvas::Abstand<canvas::Y> =
@@ -125,10 +125,9 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let height_oben: canvas::Abstand<canvas::Y> = height_oben1.max(&height_oben2);
         // untere Beschränkung
         let gleis_unten_start = beschraenkung::<Z>();
-        let radius_innen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_innen::<Z>(radius).convert();
+        let radius_innen: canvas::Abstand<canvas::Y> = radius_begrenzung_innen::<Z>(radius).as_y();
         let radius_reverse_aussen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_aussen::<Z>(radius_reverse).convert();
+            radius_begrenzung_aussen::<Z>(radius_reverse).as_y();
         let height_unten1 = gleis_unten_start + radius_innen * factor_height;
         let height_unten2 = gleis_unten_start
             + radius_innen * (1. - winkel.cos())
@@ -147,8 +146,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
         let s_kurve_transformations = vec![
             canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.) + radius_begrenzung_aussen.convert() * self.winkel.sin(),
-                canvas::Y(0.) + radius_begrenzung_aussen.convert() * (1. - self.winkel.cos()),
+                canvas::X(0.) + radius_begrenzung_aussen.as_x() * self.winkel.sin(),
+                canvas::Y(0.) + radius_begrenzung_aussen.as_y() * (1. - self.winkel.cos()),
             )),
             canvas::Transformation::Rotate(self.winkel),
             canvas::Transformation::Translate(canvas::Vector::new(
@@ -227,8 +226,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
         let s_kurve_transformations = vec![
             canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.) + radius_begrenzung_aussen.convert() * self.winkel.sin(),
-                canvas::Y(0.) + radius_begrenzung_aussen.convert() * (1. - self.winkel.cos()),
+                canvas::X(0.) + radius_begrenzung_aussen.as_x() * self.winkel.sin(),
+                canvas::Y(0.) + radius_begrenzung_aussen.as_y() * (1. - self.winkel.cos()),
             )),
             canvas::Transformation::Rotate(self.winkel),
             canvas::Transformation::Translate(canvas::Vector::new(
@@ -328,14 +327,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             kurve: anchor::Anchor {
                 position: canvas::Point {
                     x: canvas::X(0.)
-                        + self.radius.convert() * self.winkel.sin()
-                        + self.radius_reverse.convert()
-                            * (self.winkel.sin() - angle_difference.sin()),
+                        + self.radius.as_x() * self.winkel.sin()
+                        + self.radius_reverse.as_x() * (self.winkel.sin() - angle_difference.sin()),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
-                                + self.radius.convert() * (1. - self.winkel.cos())
-                                + self.radius_reverse.convert()
+                                + self.radius.as_y() * (1. - self.winkel.cos())
+                                + self.radius_reverse.as_y()
                                     * (angle_difference.cos() - self.winkel.cos())),
                 },
                 direction: canvas::Vector {

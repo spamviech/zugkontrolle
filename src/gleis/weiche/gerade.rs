@@ -190,11 +190,11 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             },
             kurve: anchor::Anchor {
                 position: canvas::Point {
-                    x: canvas::X(0.) + self.winkel.sin() * self.radius.convert(),
+                    x: canvas::X(0.) + self.winkel.sin() * self.radius.as_x(),
                     y: start_height
                         + multiplier
                             * (0.5 * beschraenkung::<Z>()
-                                + self.radius.convert() * (1. - self.winkel.cos())),
+                                + self.radius.as_y() * (1. - self.winkel.cos())),
                 },
                 direction: canvas::Vector {
                     dx: canvas::X(self.winkel.cos()),

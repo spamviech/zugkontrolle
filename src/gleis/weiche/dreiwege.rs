@@ -162,8 +162,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
         let length: canvas::Abstand<canvas::X> = self.laenge;
         let radius: canvas::Abstand<canvas::Radius> = self.radius;
-        let radius_x: canvas::Abstand<canvas::X> = radius.convert();
-        let radius_y: canvas::Abstand<canvas::Y> = radius.convert();
+        let radius_x: canvas::Abstand<canvas::X> = radius.as_x();
+        let radius_y: canvas::Abstand<canvas::Y> = radius.as_y();
         let anfang_x: canvas::X = canvas::X(0.);
         AnchorPoints {
             anfang: anchor::Anchor {

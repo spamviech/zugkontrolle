@@ -232,11 +232,9 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             dx: canvas::X(self.winkel.cos()),
             dy: canvas::Y(multiplier * self.winkel.sin()),
         };
-        let kurve_anchor_x: canvas::X =
-            canvas::X(0.) + radius_abstand.convert() * self.winkel.sin();
+        let kurve_anchor_x: canvas::X = canvas::X(0.) + radius_abstand.as_x() * self.winkel.sin();
         let kurve_anchor_y: canvas::Y = start_height
-            + multiplier
-                * (halbe_beschraenkung + radius_abstand.convert() * (1. - self.winkel.cos()));
+            + multiplier * (halbe_beschraenkung + radius_abstand.as_y() * (1. - self.winkel.cos()));
         AnchorPoints {
             anfang: anchor::Anchor {
                 position: canvas::Point {

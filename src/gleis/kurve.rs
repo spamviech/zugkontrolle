@@ -92,10 +92,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             },
             ende: anchor::Anchor {
                 position: canvas::Point {
-                    x: canvas::X(0.) + self.radius.convert() * self.winkel.sin(),
+                    x: canvas::X(0.) + self.radius.as_x() * self.winkel.sin(),
                     y: canvas::Y(0.)
                         + (0.5 * beschraenkung::<Z>()
-                            + self.radius.convert() * (1. - self.winkel.cos())),
+                            + self.radius.as_y() * (1. - self.winkel.cos())),
                 },
                 direction: canvas::Vector {
                     dx: canvas::X(self.winkel.cos()),
@@ -112,9 +112,9 @@ pub(crate) fn size<Z: Zugtyp>(
 ) -> canvas::Size {
     // Breite
     let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(radius);
-    let radius_begrenzung_aussen_y = radius_begrenzung_aussen.convert();
+    let radius_begrenzung_aussen_y = radius_begrenzung_aussen.as_y();
     let width_factor = if winkel.abs() < Angle::new(0.5 * PI) { winkel.sin() } else { 1. };
-    let width = canvas::X(0.) + radius_begrenzung_aussen.convert() * width_factor;
+    let width = canvas::X(0.) + radius_begrenzung_aussen.as_x() * width_factor;
     // Höhe des Bogen
     let angle_abs = winkel.abs();
     let comparison = if angle_abs < Angle::new(0.5 * PI) {
@@ -190,7 +190,7 @@ fn zeichne_internal<Z, P, A>(
     A: From<canvas::Arc> + canvas::ToArc,
 {
     // Utility Größen
-    let spurweite: canvas::Abstand<canvas::Radius> = Z::SPURWEITE.to_abstand().convert();
+    let spurweite: canvas::Abstand<canvas::Radius> = Z::SPURWEITE.to_abstand().as_radius();
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let winkel_ende: Angle = winkel_anfang + winkel;
     let gleis_links: canvas::X = canvas::X(0.);
@@ -199,12 +199,12 @@ fn zeichne_internal<Z, P, A>(
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius - 0.5 * spurweite;
     let radius_aussen: canvas::Radius = radius_innen + spurweite;
     let radius_begrenzung_aussen: canvas::Abstand<canvas::Radius> =
-        radius_aussen.to_abstand() + abstand::<Z>().convert();
-    let radius_begrenzung_aussen_y: canvas::Abstand<canvas::Y> = radius_begrenzung_aussen.convert();
-    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen.convert() * winkel.sin();
+        radius_aussen.to_abstand() + abstand::<Z>().as_radius();
+    let radius_begrenzung_aussen_y: canvas::Abstand<canvas::Y> = radius_begrenzung_aussen.as_y();
+    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen.as_x() * winkel.sin();
     let begrenzung_y0: canvas::Y =
         gleis_links_oben + radius_begrenzung_aussen_y * (1. - winkel.cos());
-    let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>().convert() * winkel.sin();
+    let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>().as_x() * winkel.sin();
     let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
     let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen_y;
     // Beschränkungen
@@ -270,7 +270,7 @@ fn fuelle_internal<Z, P, A>(
     P: From<canvas::Point> + canvas::ToPoint,
     A: From<canvas::Arc> + canvas::ToArc,
 {
-    let spurweite = Z::SPURWEITE.to_abstand().convert();
+    let spurweite = Z::SPURWEITE.to_abstand().as_radius();
     // Koordinaten für den Bogen
     let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
     let winkel_ende: Angle = winkel_anfang + winkel;
@@ -279,8 +279,7 @@ fn fuelle_internal<Z, P, A>(
     let radius_aussen_abstand = radius + 0.5 * spurweite;
     let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
     let radius_aussen_abstand: canvas::Abstand<canvas::Radius> = radius_aussen.to_abstand();
-    let bogen_zentrum_y: canvas::Y =
-        canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.convert();
+    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
     // Koordinaten links
     let gleis_links: canvas::X = canvas::X(0.);
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
@@ -288,12 +287,12 @@ fn fuelle_internal<Z, P, A>(
     let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
     // Koordinaten rechts
     let gleis_rechts_oben: canvas::Point = canvas::Point::new(
-        gleis_links + radius_aussen_abstand.convert() * winkel.sin(),
-        gleis_links_oben + radius_aussen_abstand.convert() * (1. - winkel.cos()),
+        gleis_links + radius_aussen_abstand.as_x() * winkel.sin(),
+        gleis_links_oben + radius_aussen_abstand.as_y() * (1. - winkel.cos()),
     );
     let gleis_rechts_unten: canvas::Point = canvas::Point::new(
-        gleis_rechts_oben.x - spurweite.convert() * winkel.sin(),
-        gleis_rechts_oben.y + spurweite.convert() * winkel.cos(),
+        gleis_rechts_oben.x - spurweite.as_x() * winkel.sin(),
+        gleis_rechts_oben.y + spurweite.as_y() * winkel.cos(),
     );
     // obere Kurve
     path_builder.arc(

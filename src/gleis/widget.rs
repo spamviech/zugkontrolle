@@ -18,25 +18,26 @@ use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 /// Position eines Gleises/Textes auf der Canvas
 #[derive(Debug, Clone)]
 pub struct Position {
-    pub x: canvas::X,
-    pub y: canvas::Y,
+    pub point: canvas::Point,
     pub winkel: Angle,
 }
 impl Position {
     /// canvas::Point nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
     pub fn transformation(&self, anchor: canvas::Point) -> canvas::Point {
-        let x =
-            canvas::X(self.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin());
-        let y =
-            canvas::Y(self.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos());
+        let x = canvas::X(
+            self.point.x.0 + anchor.x.0 * self.winkel.cos() - anchor.y.0 * self.winkel.sin(),
+        );
+        let y = canvas::Y(
+            self.point.y.0 + anchor.x.0 * self.winkel.sin() + anchor.y.0 * self.winkel.cos(),
+        );
         canvas::Point { x, y }
     }
 
     /// canvas::Vector nachdem das Objekt um den Winkel gedreht wird.
     pub fn rotation(&self, direction: canvas::Vector) -> canvas::Vector {
         let dx = canvas::X(0.) + direction.dx.to_abstand() * self.winkel.cos()
-            - direction.dy.to_abstand().convert() * self.winkel.sin();
-        let dy = canvas::Y(0.) + direction.dx.to_abstand().convert() * self.winkel.sin()
+            - direction.dy.to_abstand().as_x() * self.winkel.sin();
+        let dy = canvas::Y(0.) + direction.dx.to_abstand().as_y() * self.winkel.sin()
             - direction.dy.to_abstand() * self.winkel.cos();
         canvas::Vector { dx, dy }
     }
@@ -56,11 +57,14 @@ impl Position {
         let winkel: Angle = (-anchor_point.direction).winkel_mit_x_achse()
             + target_anchor_point.direction.winkel_mit_x_achse();
         Position {
-            x: target_anchor_point.position.x - anchor_point.position.x.to_abstand() * winkel.cos()
-                + anchor_point.position.y.to_abstand().convert() * winkel.sin(),
-            y: target_anchor_point.position.y
-                - anchor_point.position.x.to_abstand().convert() * winkel.sin()
-                - anchor_point.position.y.to_abstand() * winkel.cos(),
+            point: canvas::Point {
+                x: target_anchor_point.position.x
+                    - anchor_point.position.x.to_abstand() * winkel.cos()
+                    + anchor_point.position.y.to_abstand().as_x() * winkel.sin(),
+                y: target_anchor_point.position.y
+                    - anchor_point.position.x.to_abstand().as_y() * winkel.sin()
+                    - anchor_point.position.y.to_abstand() * winkel.cos(),
+            },
             winkel,
         }
     }
@@ -237,10 +241,7 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
 
 fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     // bewege Kontext zur Position
-    frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
-        dx: position.x,
-        dy: position.y,
-    }));
+    frame.transformation(&canvas::Transformation::Translate(position.point.into()));
     // drehe Kontext um (0,0)
     frame.transformation(&canvas::Transformation::Rotate(position.winkel));
 }

@@ -31,9 +31,10 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let size: canvas::Size = definition.size();
         let x: canvas::X = canvas::X(150.) - 0.5 * size.width.to_abstand();
         let height: canvas::Abstand<canvas::Y> = size.height.to_abstand();
-        let res = self
-            .gleise
-            .add(Gleis { definition, position: Position { x, y: self.y, winkel: Angle::new(0.) } });
+        let res = self.gleise.add(Gleis {
+            definition,
+            position: Position { point: canvas::Point { x, y: self.y }, winkel: Angle::new(0.) },
+        });
         self.y += height + canvas::Y(25.).to_abstand();
         res
     }
@@ -167,8 +168,7 @@ fn main() -> iced::Result {
         gleise_lego.relocate(
             gleis_id,
             Position {
-                x: canvas::X(250.),
-                y: canvas::Y(10.),
+                point: canvas::Point { x: canvas::X(250.), y: canvas::Y(10.) },
                 winkel: AngleDegrees::new(90.).into(),
             },
         );
