@@ -4,7 +4,7 @@ use rstar;
 
 use crate::gleis::types::*;
 
-/// Ein Point repräsentiert Anschlüsse eines Gleises.
+/// Ein /Anchor/ repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Anchor {
     pub position: canvas::Point,

@@ -235,7 +235,7 @@ fn zeichne_alle_gleise<T: Zeichnen>(
 }
 fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut canvas::Frame,
-    has_other_id_at_point: impl Fn(GleisId<Any>, canvas::Point) -> bool,
+    has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> bool,
     map: &HashMap<GleisId<T>, Gleis<T>>,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
@@ -246,7 +246,10 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                 frame.with_save(|frame| {
                     let color = if has_other_id_at_point(
                         gleis_id.as_any(),
-                        position.transformation(anchor.position),
+                        anchor::Anchor {
+                            position: position.transformation(anchor.position),
+                            direction: position.rotation(anchor.direction),
+                        },
                     ) {
                         canvas::Color::from_rgb(0., 1., 0.)
                     } else {
@@ -316,8 +319,9 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
         vec![canvas.draw(bounds.size(), |frame| {
             // TODO don't draw out of bound Gleise
             // Zeichne Gleise
-            let has_other_id_at_point =
-                |gleis_id, position| anchor_points.has_other_id_at_point(&gleis_id, &position);
+            let has_other_id_at_point = |gleis_id, position| {
+                anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
+            };
             let mut boxed_frame = canvas::Frame::new(frame);
             // Hintergrund
             fuelle_alle_gleise(&mut boxed_frame, geraden);
@@ -404,7 +408,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.next_id += 1;
         // add to anchor_points
         anchor_points
-            .foreach(|anchor| self.anchor_points.insert(GleisId::new(gleis_id), anchor.position));
+            .foreach(|anchor| self.anchor_points.insert(GleisId::new(gleis_id), anchor.clone()));
         // add to HashMap
         T::get_map_mut(self).insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
@@ -464,11 +468,11 @@ impl<Z: Zugtyp> Gleise<Z> {
         *position = position_neu;
         // delete old from anchor_points
         anchor_points.foreach(|anchor| {
-            self.anchor_points.remove(gleis_id.as_any(), &anchor.position);
+            self.anchor_points.remove(gleis_id.as_any(), &anchor);
         });
         // add new to anchor_points
         anchor_points_neu
-            .foreach(|anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.position));
+            .foreach(|anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -515,8 +519,13 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
             definition.anchor_points().foreach(|anchor| {
-                self.anchor_points
-                    .remove(gleis_id.as_any(), &position.transformation(anchor.position));
+                self.anchor_points.remove(
+                    gleis_id.as_any(),
+                    &anchor::Anchor {
+                        position: position.transformation(anchor.position),
+                        direction: position.rotation(anchor.direction),
+                    },
+                );
             });
         }
         // make sure everyone knows about the deletion

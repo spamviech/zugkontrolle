@@ -323,6 +323,13 @@ impl Vector {
     pub fn scalar_product(&self, other: &Vector) -> f32 {
         self.dx.0 * other.dx.0 + self.dy.0 * other.dy.0
     }
+    /// Berechne das Skalarprodukt zweier Vektoren, normiert auf Einheitsvektoren.
+    ///
+    /// Es gilt `self.scalar_product_normalized(other) == winkel_zwischen_self_und_other.cos()`.
+    pub fn scalar_product_normalized(&self, other: &Vector) -> f32 {
+        (self.dx.0 * other.dx.0 + self.dy.0 * other.dy.0)
+            / (self.length::<X>().0 * other.length::<X>().0)
+    }
 }
 impl From<Vector> for iced::Vector {
     fn from(Vector { dx, dy }: Vector) -> Self {
