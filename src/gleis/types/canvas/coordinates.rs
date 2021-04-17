@@ -317,6 +317,12 @@ impl Vector {
                 + winkel.cos() * self.dy.to_abstand(),
         }
     }
+    /// Berechne das Skalarprodukt zweier Vektoren.
+    ///
+    /// Es gilt `self.scalar_product(other) == self.length() * other.length() * winkel_zwischen_self_und_other.cos()`.
+    pub fn scalar_product(&self, other: &Vector) -> f32 {
+        self.dx.0 * other.dx.0 + self.dy.0 * other.dy.0
+    }
 }
 impl From<Vector> for iced::Vector {
     fn from(Vector { dx, dy }: Vector) -> Self {
