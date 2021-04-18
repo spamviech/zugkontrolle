@@ -199,8 +199,17 @@ fn main() -> iced::Result {
 }
 
 fn icon() -> iced::window::Icon {
-    // created using the /image/ crate, printing out the resulting ImageBuffer::as_raw()
-    let icon_data = vec![
+    // originally created using the /image/ crate, printing out the resulting ImageBuffer::as_raw()
+    // let buf = match image::open("Zugkontrolle.png") {
+    //  image::DynamicImage::ImageRgba8(buf) => buf,
+    //    _ => unimplemented!(),
+    //};
+    // let (width, height) = icon_buf.dimensions();
+    // let data = icon_buf.into_raw();
+    // println!("{}x{}\n{:?}", width, height, data);
+    let width = 32;
+    let height = 32;
+    let data = vec![
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 35, 35, 35, 255, 35, 35, 35,
@@ -398,5 +407,5 @@ fn icon() -> iced::window::Icon {
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     ];
 
-    iced::window::Icon::from_rgba(icon_data, 32, 32).expect("failed to create Icon")
+    iced::window::Icon::from_rgba(data, width, height).expect("failed to create Icon")
 }
