@@ -88,7 +88,7 @@ pub struct Gleise<Z> {
 impl<Z> Gleise<Z> {
     pub fn new() -> Self {
         Gleise {
-            canvas: canvas::Cache::default(),
+            canvas: canvas::Cache::new(),
             geraden: HashMap::new(),
             kurven: HashMap::new(),
             weichen: HashMap::new(),
@@ -276,7 +276,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
         }
     }
 }
-impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
+impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
     fn draw(
         &self,
         bounds: iced::Rectangle,
@@ -300,39 +300,38 @@ impl<Z: Zugtyp, T> iced::canvas::Program<T> for Gleise<Z> {
             let has_other_id_at_point = |gleis_id, position| {
                 anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
             };
-            let mut boxed_frame = canvas::Frame::new(frame);
             // Hintergrund
-            fuelle_alle_gleise(&mut boxed_frame, geraden);
-            fuelle_alle_gleise(&mut boxed_frame, kurven);
-            fuelle_alle_gleise(&mut boxed_frame, weichen);
-            fuelle_alle_gleise(&mut boxed_frame, kurven_weichen);
-            fuelle_alle_gleise(&mut boxed_frame, s_kurven_weichen);
-            fuelle_alle_gleise(&mut boxed_frame, dreiwege_weichen);
-            fuelle_alle_gleise(&mut boxed_frame, kreuzungen);
+            fuelle_alle_gleise(frame, geraden);
+            fuelle_alle_gleise(frame, kurven);
+            fuelle_alle_gleise(frame, weichen);
+            fuelle_alle_gleise(frame, kurven_weichen);
+            fuelle_alle_gleise(frame, s_kurven_weichen);
+            fuelle_alle_gleise(frame, dreiwege_weichen);
+            fuelle_alle_gleise(frame, kreuzungen);
             // Kontur
-            zeichne_alle_gleise(&mut boxed_frame, geraden);
-            zeichne_alle_gleise(&mut boxed_frame, kurven);
-            zeichne_alle_gleise(&mut boxed_frame, weichen);
-            zeichne_alle_gleise(&mut boxed_frame, kurven_weichen);
-            zeichne_alle_gleise(&mut boxed_frame, s_kurven_weichen);
-            zeichne_alle_gleise(&mut boxed_frame, dreiwege_weichen);
-            zeichne_alle_gleise(&mut boxed_frame, kreuzungen);
+            zeichne_alle_gleise(frame, geraden);
+            zeichne_alle_gleise(frame, kurven);
+            zeichne_alle_gleise(frame, weichen);
+            zeichne_alle_gleise(frame, kurven_weichen);
+            zeichne_alle_gleise(frame, s_kurven_weichen);
+            zeichne_alle_gleise(frame, dreiwege_weichen);
+            zeichne_alle_gleise(frame, kreuzungen);
             // AnchorPoints
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, geraden);
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kurven);
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, weichen);
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kurven_weichen);
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, s_kurven_weichen);
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, dreiwege_weichen);
-            zeichne_alle_anchor_points(&mut boxed_frame, has_other_id_at_point, kreuzungen);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, geraden);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, weichen);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven_weichen);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, s_kurven_weichen);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, dreiwege_weichen);
+            zeichne_alle_anchor_points(frame, has_other_id_at_point, kreuzungen);
             // Beschreibung
-            schreibe_alle_beschreibungen(&mut boxed_frame, geraden);
-            schreibe_alle_beschreibungen(&mut boxed_frame, kurven);
-            schreibe_alle_beschreibungen(&mut boxed_frame, weichen);
-            schreibe_alle_beschreibungen(&mut boxed_frame, kurven_weichen);
-            schreibe_alle_beschreibungen(&mut boxed_frame, s_kurven_weichen);
-            schreibe_alle_beschreibungen(&mut boxed_frame, dreiwege_weichen);
-            schreibe_alle_beschreibungen(&mut boxed_frame, kreuzungen);
+            schreibe_alle_beschreibungen(frame, geraden);
+            schreibe_alle_beschreibungen(frame, kurven);
+            schreibe_alle_beschreibungen(frame, weichen);
+            schreibe_alle_beschreibungen(frame, kurven_weichen);
+            schreibe_alle_beschreibungen(frame, s_kurven_weichen);
+            schreibe_alle_beschreibungen(frame, dreiwege_weichen);
+            schreibe_alle_beschreibungen(frame, kreuzungen);
         })]
     }
 }

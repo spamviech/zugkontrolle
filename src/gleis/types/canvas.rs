@@ -9,7 +9,7 @@ use super::angle::Angle;
 
 // re-exports
 pub use iced::{
-    canvas::{Cache, Fill, FillRule, Stroke, Text},
+    canvas::{Fill, FillRule, Stroke, Text},
     Color, HorizontalAlignment, VerticalAlignment,
 };
 
@@ -272,5 +272,25 @@ impl<'t> Frame<'t> {
             Transformation::Rotate(angle) => self.0.rotate(angle.0),
             Transformation::Scale(scale) => self.0.scale(*scale),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Cache(iced::canvas::Cache);
+impl Cache {
+    pub fn new() -> Self {
+        Cache(iced::canvas::Cache::new())
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear()
+    }
+
+    pub fn draw(
+        &self,
+        bounds: iced::Size<f32>,
+        draw_fn: impl Fn(&mut Frame),
+    ) -> iced::canvas::Geometry {
+        self.0.draw(bounds, |frame| draw_fn(&mut Frame(frame)))
     }
 }
