@@ -83,6 +83,7 @@ pub struct Gleise<Z> {
     s_kurven_weichen: HashMap<GleisId<SKurvenWeiche<Z>>, Gleis<SKurvenWeiche<Z>>>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
+    grabbed: Option<GleisId<Any>>,
 }
 
 impl<Z> Gleise<Z> {
@@ -98,6 +99,7 @@ impl<Z> Gleise<Z> {
             kreuzungen: HashMap::new(),
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
+            grabbed: None,
         }
     }
     fn next_id<T: Debug>(&mut self) -> (u64, GleisIdLock<T>) {
