@@ -70,28 +70,6 @@ pub struct Gleis<T> {
     pub position: canvas::Position,
 }
 
-/*
-/// Anzeige aller Gleise
-///
-/// Achtung: Alle Methoden sind blocking!
-#[derive(Debug, Clone)]
-pub struct Gleise<Z>(Arc<RwLock<GleiseInternal<Z>>>);
-
-impl<Z: Debug> Gleise<Z> {
-    fn read(&self) -> RwLockReadGuard<GleiseInternal<Z>> {
-        self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleiseMap"))
-    }
-    fn write(&self) -> RwLockWriteGuard<GleiseInternal<Z>> {
-        self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleiseMap"))
-    }
-}
-impl<Z: Debug + Zugtyp + Eq + Clone + 'static> Default for Gleise<Z> {
-    fn default() -> Self {
-        Gleise::new()
-    }
-}
-*/
-
 /// Anzeige aller Gleise.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
