@@ -200,7 +200,7 @@ fn main() -> iced::Result {
 
 fn icon() -> iced::window::Icon {
     // originally created using the /image/ crate, printing out the resulting ImageBuffer::into_raw()
-    // let buf = match image::open("Zugkontrolle.png").expect("failed to load image") {
+    // let buf = match image::open("Icon/Zugkontrolle.png").expect("failed to load image") {
     //     image::DynamicImage::ImageRgba8(buf) => buf,
     //     _ => unimplemented!(),
     // };
