@@ -213,8 +213,8 @@ fn zeichne_alle_gleise<T: Zeichnen>(
 }
 fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut canvas::Frame,
-    has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> bool,
     map: &HashMap<GleisId<T>, Gleis<T>>,
+    has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> bool,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
@@ -305,38 +305,25 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 let has_other_id_at_point = |gleis_id, position| {
                     anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
                 };
+                macro_rules! mit_allen_gleisen {
+                    ($funktion:expr$(, $($extra_args:expr),+)?) => {
+                        $funktion(frame, geraden$(, $($extra_args),+)?);
+                        $funktion(frame, kurven$(, $($extra_args),+)?);
+                        $funktion(frame, weichen$(, $($extra_args),+)?);
+                        $funktion(frame, kurven_weichen$(, $($extra_args),+)?);
+                        $funktion(frame, s_kurven_weichen$(, $($extra_args),+)?);
+                        $funktion(frame, dreiwege_weichen$(, $($extra_args),+)?);
+                        $funktion(frame, kreuzungen$(, $($extra_args),+)?);
+                    };
+                }
                 // Hintergrund
-                fuelle_alle_gleise(frame, geraden);
-                fuelle_alle_gleise(frame, kurven);
-                fuelle_alle_gleise(frame, weichen);
-                fuelle_alle_gleise(frame, kurven_weichen);
-                fuelle_alle_gleise(frame, s_kurven_weichen);
-                fuelle_alle_gleise(frame, dreiwege_weichen);
-                fuelle_alle_gleise(frame, kreuzungen);
+                mit_allen_gleisen!(fuelle_alle_gleise);
                 // Kontur
-                zeichne_alle_gleise(frame, geraden);
-                zeichne_alle_gleise(frame, kurven);
-                zeichne_alle_gleise(frame, weichen);
-                zeichne_alle_gleise(frame, kurven_weichen);
-                zeichne_alle_gleise(frame, s_kurven_weichen);
-                zeichne_alle_gleise(frame, dreiwege_weichen);
-                zeichne_alle_gleise(frame, kreuzungen);
+                mit_allen_gleisen!(zeichne_alle_gleise);
                 // AnchorPoints
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, geraden);
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven);
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, weichen);
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven_weichen);
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, s_kurven_weichen);
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, dreiwege_weichen);
-                zeichne_alle_anchor_points(frame, has_other_id_at_point, kreuzungen);
+                mit_allen_gleisen!(zeichne_alle_anchor_points, has_other_id_at_point);
                 // Beschreibung
-                schreibe_alle_beschreibungen(frame, geraden);
-                schreibe_alle_beschreibungen(frame, kurven);
-                schreibe_alle_beschreibungen(frame, weichen);
-                schreibe_alle_beschreibungen(frame, kurven_weichen);
-                schreibe_alle_beschreibungen(frame, s_kurven_weichen);
-                schreibe_alle_beschreibungen(frame, dreiwege_weichen);
-                schreibe_alle_beschreibungen(frame, kreuzungen);
+                mit_allen_gleisen!(schreibe_alle_beschreibungen);
             },
         )]
     }
