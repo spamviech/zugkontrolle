@@ -170,8 +170,19 @@ fn move_to_position(frame: &mut canvas::Frame, position: &canvas::Position) {
     // drehe Kontext um (0,0)
     frame.transformation(&canvas::Transformation::Rotate(position.winkel));
 }
-fn fuelle_alle_gleise<T: Zeichnen>(frame: &mut canvas::Frame, map: &HashMap<GleisId<T>, Gleis<T>>) {
-    for (_gleis_id, Gleis { definition, position }) in map.iter() {
+fn transparency<T>(gleis_id: &GleisId<T>, is_grabbed: &impl Fn(GleisId<Any>) -> bool) -> f32 {
+    if is_grabbed(gleis_id.as_any()) {
+        0.5
+    } else {
+        1.
+    }
+}
+fn fuelle_alle_gleise<T: Zeichnen>(
+    frame: &mut canvas::Frame,
+    map: &HashMap<GleisId<T>, Gleis<T>>,
+    is_grabbed: impl Fn(GleisId<Any>) -> bool,
+) {
+    for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // einfärben
@@ -181,7 +192,12 @@ fn fuelle_alle_gleise<T: Zeichnen>(frame: &mut canvas::Frame, map: &HashMap<Glei
                     frame.fill(
                         &path,
                         canvas::Fill {
-                            color: canvas::Color { r: 1., g: 0., b: 0., a: 1. },
+                            color: canvas::Color {
+                                r: 1.,
+                                g: 0.,
+                                b: 0.,
+                                a: transparency(gleis_id, &is_grabbed),
+                            },
                             rule: canvas::FillRule::EvenOdd,
                         },
                     );
@@ -193,8 +209,9 @@ fn fuelle_alle_gleise<T: Zeichnen>(frame: &mut canvas::Frame, map: &HashMap<Glei
 fn zeichne_alle_gleise<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
+    is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
-    for (_gleis_id, Gleis { definition, position }) in map.iter() {
+    for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne Kontur
@@ -203,7 +220,10 @@ fn zeichne_alle_gleise<T: Zeichnen>(
                     frame.stroke(
                         &path,
                         canvas::Stroke {
-                            color: canvas::Color::BLACK,
+                            color: canvas::Color {
+                                a: transparency(gleis_id, &is_grabbed),
+                                ..canvas::Color::BLACK
+                            },
                             width: 1.5,
                             ..Default::default()
                         },
@@ -217,6 +237,7 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
     has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> bool,
+    is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
@@ -231,9 +252,9 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                             direction: position.rotation(anchor.direction),
                         },
                     ) {
-                        canvas::Color::from_rgb(0., 1., 0.)
+                        canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
                     } else {
-                        canvas::Color::from_rgb(0., 0., 1.)
+                        canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
                     };
                     let direction: canvas::Vector = anchor.direction.into();
                     let direction_side: canvas::Vector = direction.rotate(AngleDegrees::new(90.));
@@ -294,6 +315,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             s_kurven_weichen,
             kreuzungen,
             anchor_points,
+            grabbed,
             ..
         } = self;
         vec![canvas.draw(
@@ -304,6 +326,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             |frame| {
                 // TODO don't draw out of bound Gleise
                 // Zeichne Gleise
+                let is_grabbed = |gleis_id| &Some(gleis_id) == grabbed;
                 let has_other_id_at_point = |gleis_id, position| {
                     anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
                 };
@@ -319,15 +342,44 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     };
                 }
                 // Hintergrund
-                mit_allen_gleisen!(fuelle_alle_gleise);
+                mit_allen_gleisen!(fuelle_alle_gleise, is_grabbed);
                 // Kontur
-                mit_allen_gleisen!(zeichne_alle_gleise);
+                mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
                 // AnchorPoints
-                mit_allen_gleisen!(zeichne_alle_anchor_points, has_other_id_at_point);
+                mit_allen_gleisen!(zeichne_alle_anchor_points, has_other_id_at_point, is_grabbed);
                 // Beschreibung
                 mit_allen_gleisen!(schreibe_alle_beschreibungen);
             },
         )]
+    }
+    fn update(
+        &mut self,
+        event: iced::canvas::Event,
+        bounds: iced::Rectangle,
+        cursor: iced::canvas::Cursor,
+    ) -> (iced::canvas::event::Status, Option<Message>) {
+        if cursor.is_over(&bounds) {
+            match event {
+                iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
+                    iced::mouse::Button::Left,
+                )) => {
+                    // TODO actually find the clicked gleis
+                    self.grabbed = Some(GleisId::new(0));
+                    self.canvas.clear();
+                    (iced::canvas::event::Status::Captured, None)
+                }
+                iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
+                    iced::mouse::Button::Left,
+                )) => {
+                    self.grabbed = None;
+                    self.canvas.clear();
+                    (iced::canvas::event::Status::Captured, None)
+                }
+                _otherwise => (iced::canvas::event::Status::Ignored, None),
+            }
+        } else {
+            (iced::canvas::event::Status::Ignored, None)
+        }
     }
 }
 
