@@ -64,20 +64,17 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let DreiwegeWeiche { laenge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(laenge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
-        let height_kurven = 2. * size_kurve.height.to_abstand() - beschraenkung::<Z>();
+        let height_kurven = 2. * size_kurve.height - beschraenkung::<Z>();
         canvas::Size {
-            width: canvas::X(0.)
-                + size_gerade.width.to_abstand().max(&size_kurve.width.to_abstand()),
-            height: canvas::Y(0.) + size_gerade.height.to_abstand().max(&height_kurven),
+            width: size_gerade.width.max(&size_kurve.width),
+            height: size_gerade.height.max(&height_kurven),
         }
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let size: canvas::Size = self.size();
         let start_x: canvas::X = canvas::X(0.);
-        let height: canvas::Y = size.height;
-        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
         let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let mut paths = Vec::new();
         let rechts_transformations =
@@ -118,10 +115,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
 
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let size: canvas::Size = self.size();
         let start_x: canvas::X = canvas::X(0.);
-        let height: canvas::Y = size.height;
-        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
         let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let mut paths = Vec::new();
         let rechts_transformations =
@@ -159,10 +154,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
 
     fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
         self.beschreibung.map(|text| {
-            let size: canvas::Size = self.size();
             let start_x: canvas::X = canvas::X(0.);
-            let height: canvas::Y = size.height;
-            let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+            let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
             let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
             (
                 canvas::Position {
@@ -178,8 +171,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     }
 
     fn anchor_points(&self) -> AnchorPoints {
-        let height: canvas::Y = self.size().height;
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
+        let height: canvas::Abstand<canvas::Y> = self.size().height;
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let length: canvas::Abstand<canvas::X> = self.laenge;
         let radius: canvas::Abstand<canvas::Radius> = self.radius;
         let radius_x: canvas::Abstand<canvas::X> = radius.as_x();
@@ -188,31 +181,31 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         AnchorPoints {
             anfang: anchor::Anchor {
                 position: canvas::Point { x: anfang_x, y: half_height },
-                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
             },
             gerade: anchor::Anchor {
                 position: canvas::Point { x: anfang_x + length, y: half_height },
-                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(0.)),
             },
             links: anchor::Anchor {
                 position: canvas::Point {
                     x: anfang_x + radius_x * self.winkel.sin(),
                     y: half_height + radius_y * (1. - self.winkel.cos()),
                 },
-                direction: canvas::Vector {
-                    dx: canvas::X(self.winkel.cos()),
-                    dy: canvas::Y(self.winkel.sin()),
-                },
+                direction: canvas::Vector::new(
+                    canvas::X(self.winkel.cos()),
+                    canvas::Y(self.winkel.sin()),
+                ),
             },
             rechts: anchor::Anchor {
                 position: canvas::Point {
                     x: anfang_x + radius_x * self.winkel.sin(),
                     y: half_height - radius_y * (1. - self.winkel.cos()),
                 },
-                direction: canvas::Vector {
-                    dx: canvas::X(self.winkel.cos()),
-                    dy: canvas::Y(-self.winkel.sin()),
-                },
+                direction: canvas::Vector::new(
+                    canvas::X(self.winkel.cos()),
+                    canvas::Y(-self.winkel.sin()),
+                ),
             },
         }
     }

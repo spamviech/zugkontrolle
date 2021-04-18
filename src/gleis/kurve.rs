@@ -106,7 +106,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                     x: canvas::X(0.),
                     y: canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
                 },
-                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
             },
             ende: anchor::Anchor {
                 position: canvas::Point {
@@ -115,10 +115,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                         + 0.5 * beschraenkung::<Z>()
                         + self.radius.as_y() * (1. - self.winkel.cos()),
                 },
-                direction: canvas::Vector {
-                    dx: canvas::X(self.winkel.cos()),
-                    dy: canvas::Y(self.winkel.sin()),
-                },
+                direction: canvas::Vector::new(
+                    canvas::X(self.winkel.cos()),
+                    canvas::Y(self.winkel.sin()),
+                ),
             },
         }
     }
@@ -132,7 +132,7 @@ pub(crate) fn size<Z: Zugtyp>(
     let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(radius);
     let radius_begrenzung_aussen_y = radius_begrenzung_aussen.as_y();
     let width_factor = if winkel.abs() < Angle::new(0.5 * PI) { winkel.sin() } else { 1. };
-    let width = canvas::X(0.) + radius_begrenzung_aussen.as_x() * width_factor;
+    let width = radius_begrenzung_aussen.as_x() * width_factor;
     // Höhe des Bogen
     let angle_abs = winkel.abs();
     let comparison = if angle_abs < Angle::new(0.5 * PI) {
@@ -143,7 +143,7 @@ pub(crate) fn size<Z: Zugtyp>(
         radius_begrenzung_aussen_y
     };
     // Mindesthöhe: Beschränkung einer Geraden
-    let height = canvas::Y(0.) + beschraenkung::<Z>().max(&comparison);
+    let height = beschraenkung::<Z>().max(&comparison);
     // Rückgabewert
     canvas::Size { width, height }
 }

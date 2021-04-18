@@ -78,18 +78,18 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         AnchorPoints {
             anfang: anchor::Anchor {
                 position: canvas::Point { x: gleis_links, y: beschraenkung_mitte },
-                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
             },
             ende: anchor::Anchor {
                 position: canvas::Point { x: gleis_rechts, y: beschraenkung_mitte },
-                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(0.)),
             },
         }
     }
 }
 
 pub(crate) fn size<Z: Zugtyp>(laenge: canvas::Abstand<canvas::X>) -> canvas::Size {
-    canvas::Size::new(canvas::X(0.) + laenge, canvas::Y(0.) + beschraenkung::<Z>())
+    canvas::Size::new(laenge, beschraenkung::<Z>())
 }
 
 pub(crate) fn zeichne<Z, P, A>(

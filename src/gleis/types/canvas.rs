@@ -286,11 +286,7 @@ impl Cache {
         self.0.clear()
     }
 
-    pub fn draw(
-        &self,
-        bounds: iced::Size<f32>,
-        draw_fn: impl Fn(&mut Frame),
-    ) -> iced::canvas::Geometry {
-        self.0.draw(bounds, |frame| draw_fn(&mut Frame(frame)))
+    pub fn draw(&self, bounds: Size, draw_fn: impl Fn(&mut Frame)) -> iced::canvas::Geometry {
+        self.0.draw(bounds.into(), |frame| draw_fn(&mut Frame(frame)))
     }
 }

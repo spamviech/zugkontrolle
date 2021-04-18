@@ -135,9 +135,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let height_unten = height_unten1.max(&height_unten2);
 
         canvas::Size {
-            width: canvas::X(0.)
-                + size_gerade.width.to_abstand().max(&width_oben.max(&width_unten)),
-            height: canvas::Y(0.) + height_oben.max(&height_unten),
+            width: size_gerade.width.max(&width_oben.max(&width_unten)),
+            height: height_oben.max(&height_unten),
         }
     }
 
@@ -158,10 +157,10 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.),
-                self.size().height,
-            ))];
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+                dx: canvas::X(0.).to_abstand(),
+                dy: self.size().height,
+            })];
             // Gerade
             paths.push(gerade::zeichne(
                 self.zugtyp,
@@ -238,10 +237,10 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.),
-                self.size().height,
-            ))];
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+                dx: canvas::X(0.).to_abstand(),
+                dy: self.size().height,
+            })];
             // Gerade
             paths.push(gerade::fuelle(
                 self.zugtyp,
@@ -305,7 +304,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                     multiplier = 1.;
                 }
                 Richtung::Links => {
-                    start_height = self.size().height;
+                    start_height = canvas::Y(0.) + self.size().height;
                     multiplier = -1.;
                 }
             };
@@ -331,7 +330,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 multiplier = 1.;
             }
             Richtung::Links => {
-                start_height = self.size().height;
+                start_height = canvas::Y(0.) + self.size().height;
                 multiplier = -1.;
             }
         };
@@ -342,14 +341,14 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                     x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
             },
             gerade: anchor::Anchor {
                 position: canvas::Point {
                     x: canvas::X(0.) + self.laenge,
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
-                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
             },
             kurve: anchor::Anchor {
                 position: canvas::Point {
@@ -363,10 +362,10 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                                 + self.radius_reverse.as_y()
                                     * (angle_difference.cos() - self.winkel.cos())),
                 },
-                direction: canvas::Vector {
-                    dx: canvas::X(angle_difference.cos()),
-                    dy: canvas::Y(multiplier * angle_difference.sin()),
-                },
+                direction: canvas::Vector::new(
+                    canvas::X(angle_difference.cos()),
+                    canvas::Y(multiplier * angle_difference.sin()),
+                ),
             },
         }
     }

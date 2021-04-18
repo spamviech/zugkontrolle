@@ -68,11 +68,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let KurvenWeiche { laenge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(laenge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
-        canvas::Size {
-            width: canvas::X(0.)
-                + size_gerade.width.to_abstand().max(&size_kurve.width.to_abstand()),
-            height: size_kurve.height,
-        }
+        canvas::Size { width: size_gerade.width.max(&size_kurve.width), height: size_kurve.height }
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
@@ -84,10 +80,10 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.),
-                self.size().height,
-            ))];
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+                dx: canvas::X(0.).to_abstand(),
+                dy: self.size().height,
+            })];
             // Innere Kurve
             paths.push(kurve::zeichne(
                 self.zugtyp,
@@ -156,10 +152,10 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.),
-                self.size().height,
-            ))];
+            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+                dx: canvas::X(0.).to_abstand(),
+                dy: self.size().height,
+            })];
             // Innere Kurve
             paths.push(kurve::fuelle(
                 self.zugtyp,
@@ -223,14 +219,14 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                     multiplier = 1.;
                 }
                 Richtung::Links => {
-                    start_height = self.size().height;
+                    start_height = canvas::Y(0.) + self.size().height;
                     multiplier = -1.;
                 }
             };
             (
                 canvas::Position {
                     point: canvas::Point::new(
-                        canvas::X(0.) + self.laenge.min(&(0.5 * self.size().width.to_abstand())),
+                        canvas::X(0.) + self.laenge.min(&(0.5 * self.size().width)),
                         start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
@@ -249,16 +245,16 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 multiplier = 1.;
             }
             Richtung::Links => {
-                start_height = self.size().height;
+                start_height = canvas::Y(0.) + self.size().height;
                 multiplier = -1.;
             }
         };
         let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschraenkung::<Z>();
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
-        let kurve_anchor_direction: canvas::Vector = canvas::Vector {
-            dx: canvas::X(self.winkel.cos()),
-            dy: canvas::Y(multiplier * self.winkel.sin()),
-        };
+        let kurve_anchor_direction: canvas::Vector = canvas::Vector::new(
+            canvas::X(self.winkel.cos()),
+            canvas::Y(multiplier * self.winkel.sin()),
+        );
         let kurve_anchor_x: canvas::X = canvas::X(0.) + radius_abstand.as_x() * self.winkel.sin();
         let kurve_anchor_y: canvas::Y = start_height
             + multiplier * (halbe_beschraenkung + radius_abstand.as_y() * (1. - self.winkel.cos()));
@@ -268,7 +264,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                     x: canvas::X(0.),
                     y: start_height + multiplier * halbe_beschraenkung,
                 },
-                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(multiplier * 0.) },
+                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
             },
             innen: anchor::Anchor {
                 position: canvas::Point { x: kurve_anchor_x, y: kurve_anchor_y },

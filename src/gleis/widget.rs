@@ -294,45 +294,51 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             anchor_points,
             ..
         } = self;
-        vec![canvas.draw(bounds.size(), |frame| {
-            // TODO don't draw out of bound Gleise
-            // Zeichne Gleise
-            let has_other_id_at_point = |gleis_id, position| {
-                anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
-            };
-            // Hintergrund
-            fuelle_alle_gleise(frame, geraden);
-            fuelle_alle_gleise(frame, kurven);
-            fuelle_alle_gleise(frame, weichen);
-            fuelle_alle_gleise(frame, kurven_weichen);
-            fuelle_alle_gleise(frame, s_kurven_weichen);
-            fuelle_alle_gleise(frame, dreiwege_weichen);
-            fuelle_alle_gleise(frame, kreuzungen);
-            // Kontur
-            zeichne_alle_gleise(frame, geraden);
-            zeichne_alle_gleise(frame, kurven);
-            zeichne_alle_gleise(frame, weichen);
-            zeichne_alle_gleise(frame, kurven_weichen);
-            zeichne_alle_gleise(frame, s_kurven_weichen);
-            zeichne_alle_gleise(frame, dreiwege_weichen);
-            zeichne_alle_gleise(frame, kreuzungen);
-            // AnchorPoints
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, geraden);
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven);
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, weichen);
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven_weichen);
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, s_kurven_weichen);
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, dreiwege_weichen);
-            zeichne_alle_anchor_points(frame, has_other_id_at_point, kreuzungen);
-            // Beschreibung
-            schreibe_alle_beschreibungen(frame, geraden);
-            schreibe_alle_beschreibungen(frame, kurven);
-            schreibe_alle_beschreibungen(frame, weichen);
-            schreibe_alle_beschreibungen(frame, kurven_weichen);
-            schreibe_alle_beschreibungen(frame, s_kurven_weichen);
-            schreibe_alle_beschreibungen(frame, dreiwege_weichen);
-            schreibe_alle_beschreibungen(frame, kreuzungen);
-        })]
+        vec![canvas.draw(
+            canvas::Size::new(
+                canvas::X(bounds.width).to_abstand(),
+                canvas::Y(bounds.height).to_abstand(),
+            ),
+            |frame| {
+                // TODO don't draw out of bound Gleise
+                // Zeichne Gleise
+                let has_other_id_at_point = |gleis_id, position| {
+                    anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
+                };
+                // Hintergrund
+                fuelle_alle_gleise(frame, geraden);
+                fuelle_alle_gleise(frame, kurven);
+                fuelle_alle_gleise(frame, weichen);
+                fuelle_alle_gleise(frame, kurven_weichen);
+                fuelle_alle_gleise(frame, s_kurven_weichen);
+                fuelle_alle_gleise(frame, dreiwege_weichen);
+                fuelle_alle_gleise(frame, kreuzungen);
+                // Kontur
+                zeichne_alle_gleise(frame, geraden);
+                zeichne_alle_gleise(frame, kurven);
+                zeichne_alle_gleise(frame, weichen);
+                zeichne_alle_gleise(frame, kurven_weichen);
+                zeichne_alle_gleise(frame, s_kurven_weichen);
+                zeichne_alle_gleise(frame, dreiwege_weichen);
+                zeichne_alle_gleise(frame, kreuzungen);
+                // AnchorPoints
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, geraden);
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven);
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, weichen);
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, kurven_weichen);
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, s_kurven_weichen);
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, dreiwege_weichen);
+                zeichne_alle_anchor_points(frame, has_other_id_at_point, kreuzungen);
+                // Beschreibung
+                schreibe_alle_beschreibungen(frame, geraden);
+                schreibe_alle_beschreibungen(frame, kurven);
+                schreibe_alle_beschreibungen(frame, weichen);
+                schreibe_alle_beschreibungen(frame, kurven_weichen);
+                schreibe_alle_beschreibungen(frame, s_kurven_weichen);
+                schreibe_alle_beschreibungen(frame, dreiwege_weichen);
+                schreibe_alle_beschreibungen(frame, kreuzungen);
+            },
+        )]
     }
 }
 

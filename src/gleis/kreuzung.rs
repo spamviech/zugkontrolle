@@ -76,21 +76,19 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn size(&self) -> canvas::Size {
         let size_kurve = kurve::size::<Z>(self.radius, self.angle());
         let height_beschraenkung = beschraenkung::<Z>();
-        let height_kurven = 2. * size_kurve.height.to_abstand() - height_beschraenkung;
+        let height_kurven = 2. * size_kurve.height - height_beschraenkung;
         canvas::Size::new(
-            canvas::X(0.) + self.laenge.max(&size_kurve.width.to_abstand()),
-            canvas::Y(0.) + height_beschraenkung.max(&height_kurven),
+            self.laenge.max(&size_kurve.width),
+            height_beschraenkung.max(&height_kurven),
         )
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let size: canvas::Size = self.size();
-        let width: canvas::X = size.width;
-        let half_width: canvas::X = canvas::X(0.5 * width.0);
+        let canvas::Size { width, height } = self.size();
+        let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
         let start_x: canvas::X = canvas::X(0.);
-        let height: canvas::Y = size.height;
-        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
         let mut paths = Vec::new();
@@ -143,12 +141,10 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
 
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let size: canvas::Size = self.size();
-        let width: canvas::X = size.width;
-        let half_width: canvas::X = canvas::X(0.5 * width.0);
+        let canvas::Size { width, height } = self.size();
+        let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
         let start_x: canvas::X = canvas::X(0.);
-        let height: canvas::Y = size.height;
-        let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
         let angle = self.angle();
         let mut paths = Vec::new();
@@ -200,8 +196,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             // utility sizes
             let size: canvas::Size = self.size();
             let start_x: canvas::X = canvas::X(0.);
-            let height: canvas::Y = size.height;
-            let half_height: canvas::Y = canvas::Y(0.5 * height.0);
+            let height: canvas::Abstand<canvas::Y> = size.height;
+            let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
             let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
             (
                 canvas::Position {
@@ -220,37 +216,31 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let canvas::Size { width, height } = self.size();
         let anfang0_x: canvas::X = canvas::X(0.);
         let ende0_x: canvas::X = anfang0_x + self.laenge;
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height.to_abstand();
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
         let radius_abstand_x: canvas::Abstand<canvas::X> = radius_abstand.as_x();
         let radius_abstand_y: canvas::Abstand<canvas::Y> = radius_abstand.as_y();
         let angle = self.angle();
         let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand_x * angle.sin();
         let anfang1_y: canvas::Y = half_height + radius_abstand_y * (1. - angle.cos());
-        let ende1_x: canvas::X = width - radius_abstand_x * angle.sin();
+        let ende1_x: canvas::X = canvas::X(0.) + width - radius_abstand_x * angle.sin();
         let ende1_y: canvas::Y = half_height - radius_abstand_y * (1. - angle.cos());
         AnchorPoints {
             anfang_0: anchor::Anchor {
                 position: canvas::Point { x: anfang0_x, y: half_height },
-                direction: canvas::Vector { dx: canvas::X(-1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
             },
             ende_0: anchor::Anchor {
                 position: canvas::Point { x: ende0_x, y: half_height },
-                direction: canvas::Vector { dx: canvas::X(1.), dy: canvas::Y(0.) },
+                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(0.)),
             },
             anfang_1: anchor::Anchor {
                 position: canvas::Point { x: anfang1_x, y: anfang1_y },
-                direction: canvas::Vector {
-                    dx: canvas::X(angle.cos()),
-                    dy: canvas::Y(angle.sin()),
-                },
+                direction: canvas::Vector::new(canvas::X(angle.cos()), canvas::Y(angle.sin())),
             },
             ende_1: anchor::Anchor {
                 position: canvas::Point { x: ende1_x, y: ende1_y },
-                direction: canvas::Vector {
-                    dx: canvas::X(-angle.cos()),
-                    dy: canvas::Y(-angle.sin()),
-                },
+                direction: canvas::Vector::new(canvas::X(-angle.cos()), canvas::Y(-angle.sin())),
             },
         }
     }

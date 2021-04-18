@@ -266,11 +266,11 @@ impl From<Point> for iced::Point {
 /// Coordinate type safe variant of /iced::Size/
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Size {
-    pub width: X,
-    pub height: Y,
+    pub width: Abstand<X>,
+    pub height: Abstand<Y>,
 }
 impl Size {
-    pub fn new(width: X, height: Y) -> Self {
+    pub fn new(width: Abstand<X>, height: Abstand<Y>) -> Self {
         Size { width, height }
     }
 }
@@ -283,13 +283,13 @@ impl From<Size> for iced::Size<f32> {
 /// Coordinate type safe variant of /iced::Vector/
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vector {
-    pub dx: X,
-    pub dy: Y,
+    pub dx: Abstand<X>,
+    pub dy: Abstand<Y>,
 }
 impl Vector {
     /// Erzeuge einen neuen Vektor.
-    pub fn new(dx: X, dy: Y) -> Self {
-        Vector { dx, dy }
+    pub fn new(x: X, y: Y) -> Self {
+        Vector { dx: x.to_abstand(), dy: y.to_abstand() }
     }
     /// Berechne die Länge des Vektors.
     pub fn length<T>(&self) -> Abstand<T> {
@@ -299,7 +299,7 @@ impl Vector {
     pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
         let len = (self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt();
         let acos_winkel = Angle::acos(self.dx.0 / len);
-        if self.dy < Y(0.) {
+        if self.dy.0 < 0. {
             acos_winkel
         } else {
             -acos_winkel
@@ -310,11 +310,8 @@ impl Vector {
         // https://de.wikipedia.org/wiki/Drehmatrix#Drehmatrix_der_Ebene_%E2%84%9D%C2%B2
         // geht von Drehung gegen den Uhrzeigersinn und nach oben steigender y-Achse aus
         Vector {
-            dx: X(0.) + winkel.cos() * self.dx.to_abstand()
-                - winkel.sin() * self.dy.to_abstand().as_x(),
-            dy: Y(0.)
-                + winkel.sin() * self.dx.to_abstand().as_y()
-                + winkel.cos() * self.dy.to_abstand(),
+            dx: winkel.cos() * self.dx - winkel.sin() * self.dy.as_x(),
+            dy: winkel.sin() * self.dx.as_y() + winkel.cos() * self.dy,
         }
     }
     /// Berechne das Skalarprodukt zweier Vektoren.
@@ -327,8 +324,7 @@ impl Vector {
     ///
     /// Es gilt `self.scalar_product_normalized(other) == winkel_zwischen_self_und_other.cos()`.
     pub fn scalar_product_normalized(&self, other: &Vector) -> f32 {
-        (self.dx.0 * other.dx.0 + self.dy.0 * other.dy.0)
-            / (self.length::<X>().0 * other.length::<X>().0)
+        self.scalar_product(other) / (self.length::<X>().0 * other.length::<X>().0)
     }
 }
 impl From<Vector> for iced::Vector {
@@ -338,14 +334,16 @@ impl From<Vector> for iced::Vector {
 }
 impl Neg for Vector {
     type Output = Self;
-    fn neg(self) -> Self::Output {
-        Vector { dx: -self.dx, dy: -self.dy }
+    fn neg(mut self) -> Self::Output {
+        self.dx.0 *= -1.;
+        self.dy.0 *= -1.;
+        self
     }
 }
 // Convert to Vector
 impl From<Point> for Vector {
     fn from(Point { x, y }: Point) -> Self {
-        Vector { dx: x, dy: y }
+        Vector { dx: x.to_abstand(), dy: y.to_abstand() }
     }
 }
 impl From<Size> for Vector {
@@ -356,61 +354,52 @@ impl From<Size> for Vector {
 // add Vector and Point
 impl AddAssign<Vector> for Point {
     fn add_assign(&mut self, other: Vector) {
-        self.x += other.dx.to_abstand();
-        self.y += other.dy.to_abstand();
+        self.x += other.dx;
+        self.y += other.dy;
     }
 }
 impl Add<Vector> for Point {
     type Output = Point;
     fn add(self, other: Vector) -> Self::Output {
-        Point { x: self.x + other.dx.to_abstand(), y: self.y + other.dy.to_abstand() }
+        Point { x: self.x + other.dx, y: self.y + other.dy }
     }
 }
 impl Add<Point> for Vector {
     type Output = Point;
     fn add(self, other: Point) -> Self::Output {
-        Point { x: self.dx + other.x.to_abstand(), y: self.dy + other.y.to_abstand() }
+        Point { x: self.dx + other.x, y: self.dy + other.y }
     }
 }
 // substract Vector from Point
 impl SubAssign<Vector> for Point {
     fn sub_assign(&mut self, other: Vector) {
-        self.x -= other.dx.to_abstand();
-        self.y -= other.dy.to_abstand();
+        self.x -= other.dx;
+        self.y -= other.dy;
     }
 }
 impl Sub<Vector> for Point {
     type Output = Point;
     fn sub(self, other: Vector) -> Self::Output {
-        Point { x: self.x - other.dx.to_abstand(), y: self.y - other.dy.to_abstand() }
+        Point { x: self.x - other.dx, y: self.y - other.dy }
     }
 }
 // scale with f32
 impl Mul<Vector> for f32 {
     type Output = Vector;
     fn mul(self, other: Vector) -> Self::Output {
-        Vector {
-            dx: X(0.) + self * other.dx.to_abstand(),
-            dy: Y(0.) + self * other.dy.to_abstand(),
-        }
+        Vector { dx: self * other.dx, dy: self * other.dy }
     }
 }
 impl Mul<f32> for Vector {
     type Output = Vector;
     fn mul(self, other: f32) -> Self::Output {
-        Vector {
-            dx: X(0.) + self.dx.to_abstand() * other,
-            dy: Y(0.) + self.dy.to_abstand() * other,
-        }
+        Vector { dx: self.dx * other, dy: self.dy * other }
     }
 }
 impl Div<f32> for Vector {
     type Output = Vector;
     fn div(self, other: f32) -> Self::Output {
-        Vector {
-            dx: X(0.) + self.dx.to_abstand() / other,
-            dy: Y(0.) + self.dy.to_abstand() / other,
-        }
+        Vector { dx: self.dx / other, dy: self.dy / other }
     }
 }
 
@@ -454,10 +443,8 @@ impl Position {
 
     /// Vector nachdem das Objekt um den Winkel gedreht wird.
     pub fn rotation(&self, direction: Vector) -> Vector {
-        let dx = X(0.) + direction.dx.to_abstand() * self.winkel.cos()
-            - direction.dy.to_abstand().as_x() * self.winkel.sin();
-        let dy = Y(0.) + direction.dx.to_abstand().as_y() * self.winkel.sin()
-            - direction.dy.to_abstand() * self.winkel.cos();
+        let dx = direction.dx * self.winkel.cos() - direction.dy.as_x() * self.winkel.sin();
+        let dy = direction.dx.as_y() * self.winkel.sin() - direction.dy * self.winkel.cos();
         Vector { dx, dy }
     }
 }
