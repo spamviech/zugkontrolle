@@ -358,13 +358,31 @@ impl AddAssign<Vector> for Point {
         self.y += other.dy;
     }
 }
+impl AddAssign<&Vector> for Point {
+    fn add_assign(&mut self, other: &Vector) {
+        self.x += other.dx;
+        self.y += other.dy;
+    }
+}
 impl Add<Vector> for Point {
     type Output = Point;
     fn add(self, other: Vector) -> Self::Output {
         Point { x: self.x + other.dx, y: self.y + other.dy }
     }
 }
+impl Add<&Vector> for Point {
+    type Output = Point;
+    fn add(self, other: &Vector) -> Self::Output {
+        Point { x: self.x + other.dx, y: self.y + other.dy }
+    }
+}
 impl Add<Point> for Vector {
+    type Output = Point;
+    fn add(self, other: Point) -> Self::Output {
+        Point { x: self.dx + other.x, y: self.dy + other.y }
+    }
+}
+impl Add<Point> for &Vector {
     type Output = Point;
     fn add(self, other: Point) -> Self::Output {
         Point { x: self.dx + other.x, y: self.dy + other.y }
@@ -377,9 +395,21 @@ impl SubAssign<Vector> for Point {
         self.y -= other.dy;
     }
 }
+impl SubAssign<&Vector> for Point {
+    fn sub_assign(&mut self, other: &Vector) {
+        self.x -= other.dx;
+        self.y -= other.dy;
+    }
+}
 impl Sub<Vector> for Point {
     type Output = Point;
     fn sub(self, other: Vector) -> Self::Output {
+        Point { x: self.x - other.dx, y: self.y - other.dy }
+    }
+}
+impl Sub<&Vector> for Point {
+    type Output = Point;
+    fn sub(self, other: &Vector) -> Self::Output {
         Point { x: self.x - other.dx, y: self.y - other.dy }
     }
 }
@@ -387,6 +417,12 @@ impl Sub<Vector> for Point {
 impl Mul<Vector> for f32 {
     type Output = Vector;
     fn mul(self, other: Vector) -> Self::Output {
+        Vector { dx: self * other.dx, dy: self * other.dy }
+    }
+}
+impl Mul<&Vector> for f32 {
+    type Output = Vector;
+    fn mul(self, other: &Vector) -> Self::Output {
         Vector { dx: self * other.dx, dy: self * other.dy }
     }
 }

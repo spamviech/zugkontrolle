@@ -42,12 +42,17 @@ pub(crate) struct Any;
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T>(u64, PhantomData<*const T>);
 impl<T> GleisId<T> {
-    fn new(gleis_id: u64) -> GleisId<T> {
+    fn new(gleis_id: u64) -> Self {
         GleisId(gleis_id, PhantomData)
     }
 
     fn as_any(&self) -> GleisId<Any> {
         GleisId::new(self.0)
+    }
+
+    // implemented as method, so it stays private
+    fn clone(&self) -> Self {
+        GleisId(self.0, self.1)
     }
 }
 // explicit implementation needed due to phantom type
@@ -70,6 +75,85 @@ pub struct Gleis<T> {
     pub position: canvas::Position,
 }
 
+enum Grabbed<Z> {
+    Gerade { gleis_id: GleisId<Gerade<Z>>, grab_location: canvas::Vector },
+    Kurve { gleis_id: GleisId<Kurve<Z>>, grab_location: canvas::Vector },
+    Weiche { gleis_id: GleisId<Weiche<Z>>, grab_location: canvas::Vector },
+    DreiwegeWeiche { gleis_id: GleisId<DreiwegeWeiche<Z>>, grab_location: canvas::Vector },
+    KurvenWeiche { gleis_id: GleisId<KurvenWeiche<Z>>, grab_location: canvas::Vector },
+    SKurvenWeiche { gleis_id: GleisId<SKurvenWeiche<Z>>, grab_location: canvas::Vector },
+    Kreuzung { gleis_id: GleisId<Kreuzung<Z>>, grab_location: canvas::Vector },
+}
+impl<Z> Grabbed<Z> {
+    fn id_as_any(&self) -> GleisId<Any> {
+        match self {
+            Grabbed::Gerade { gleis_id, .. } => gleis_id.as_any(),
+            Grabbed::Kurve { gleis_id, .. } => gleis_id.as_any(),
+            Grabbed::Weiche { gleis_id, .. } => gleis_id.as_any(),
+            Grabbed::DreiwegeWeiche { gleis_id, .. } => gleis_id.as_any(),
+            Grabbed::KurvenWeiche { gleis_id, .. } => gleis_id.as_any(),
+            Grabbed::SKurvenWeiche { gleis_id, .. } => gleis_id.as_any(),
+            Grabbed::Kreuzung { gleis_id, .. } => gleis_id.as_any(),
+        }
+    }
+    fn grab_location(&self) -> &canvas::Vector {
+        match self {
+            Grabbed::Gerade { grab_location, .. } => grab_location,
+            Grabbed::Kurve { grab_location, .. } => grab_location,
+            Grabbed::Weiche { grab_location, .. } => grab_location,
+            Grabbed::DreiwegeWeiche { grab_location, .. } => grab_location,
+            Grabbed::KurvenWeiche { grab_location, .. } => grab_location,
+            Grabbed::SKurvenWeiche { grab_location, .. } => grab_location,
+            Grabbed::Kreuzung { grab_location, .. } => grab_location,
+        }
+    }
+}
+
+impl<Z> std::fmt::Debug for Grabbed<Z> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Grabbed::")?;
+        match self {
+            Grabbed::Gerade { gleis_id, grab_location } => {
+                write!(f, "Gerade {{gleis_id: {:?}, grab_location: {:?}}}", gleis_id, grab_location)
+            }
+            Grabbed::Kurve { gleis_id, grab_location } => {
+                write!(f, "Kurve {{gleis_id: {:?}, grab_location: {:?}}}", gleis_id, grab_location)
+            }
+            Grabbed::Weiche { gleis_id, grab_location } => {
+                write!(f, "Weiche {{gleis_id: {:?}, grab_location: {:?}}}", gleis_id, grab_location)
+            }
+            Grabbed::DreiwegeWeiche { gleis_id, grab_location } => {
+                write!(
+                    f,
+                    "DreiwegeWeiche {{gleis_id: {:?}, grab_location: {:?}}}",
+                    gleis_id, grab_location
+                )
+            }
+            Grabbed::KurvenWeiche { gleis_id, grab_location } => {
+                write!(
+                    f,
+                    "KurvenWeiche {{gleis_id: {:?}, grab_location: {:?}}}",
+                    gleis_id, grab_location
+                )
+            }
+            Grabbed::SKurvenWeiche { gleis_id, grab_location } => {
+                write!(
+                    f,
+                    "SKurvenWeiche {{gleis_id: {:?}, grab_location: {:?}}}",
+                    gleis_id, grab_location
+                )
+            }
+            Grabbed::Kreuzung { gleis_id, grab_location } => {
+                write!(
+                    f,
+                    "Kreuzung {{gleis_id: {:?}, grab_location: {:?}}}",
+                    gleis_id, grab_location
+                )
+            }
+        }
+    }
+}
+
 /// Anzeige aller Gleise.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
@@ -83,7 +167,7 @@ pub struct Gleise<Z> {
     s_kurven_weichen: HashMap<GleisId<SKurvenWeiche<Z>>, Gleis<SKurvenWeiche<Z>>>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
-    grabbed: Option<GleisId<Any>>,
+    grabbed: Option<Grabbed<Z>>,
 }
 
 impl<Z> Gleise<Z> {
@@ -326,7 +410,13 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             |frame| {
                 // TODO don't draw out of bound Gleise
                 // Zeichne Gleise
-                let is_grabbed = |gleis_id| &Some(gleis_id) == grabbed;
+                let is_grabbed = |gleis_id| {
+                    if let Some(grabbed) = grabbed {
+                        gleis_id == grabbed.id_as_any()
+                    } else {
+                        false
+                    }
+                };
                 let has_other_id_at_point = |gleis_id, position| {
                     anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
                 };
@@ -369,14 +459,19 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         let canvas_pos =
                             canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                         for (gleis_id, Gleis { definition, position }) in self.geraden.iter() {
-                            let rel_pos = canvas_pos - canvas::Vector::from(position.point);
-                            let pos_vec = canvas::Vector::from(rel_pos).rotate(-position.winkel);
-                            if pos_vec.dx > canvas::X(0.).to_abstand()
-                                && pos_vec.dx < definition.laenge
-                                && pos_vec.dy > abstand::<Z>()
-                                && pos_vec.dy < abstand::<Z>() + Z::SPURWEITE.to_abstand()
+                            let relative_pos = canvas::Vector::from(
+                                canvas_pos - canvas::Vector::from(position.point),
+                            );
+                            let rotated_pos = relative_pos.rotate(-position.winkel);
+                            if rotated_pos.dx > canvas::X(0.).to_abstand()
+                                && rotated_pos.dx < definition.laenge
+                                && rotated_pos.dy > abstand::<Z>()
+                                && rotated_pos.dy < abstand::<Z>() + Z::SPURWEITE.to_abstand()
                             {
-                                self.grabbed = Some(gleis_id.as_any());
+                                self.grabbed = Some(Grabbed::Gerade {
+                                    gleis_id: gleis_id.clone(),
+                                    grab_location: relative_pos,
+                                });
                                 break;
                             }
                         }
@@ -391,9 +486,53 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     self.canvas.clear();
                     (iced::canvas::event::Status::Captured, None)
                 }
-                iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
-                    if self.grabbed.is_some() {
-                        // TODO relocate grabbed gleis
+                iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
+                    if let Some(grabbed) = &self.grabbed {
+                        if let Some(in_pos) = cursor.position_in(&bounds) {
+                            let point =
+                                canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
+                                    - grabbed.grab_location();
+                            macro_rules! relocate_grabbed {
+                                ($gleis_id: expr, $map: expr) => {{
+                                    let Gleis { position, .. } =
+                                        $map.get(&$gleis_id).expect("grabbed a non-existing gleis");
+                                    let position_neu =
+                                        canvas::Position { point, winkel: position.winkel };
+                                    self.relocate(&$gleis_id, position_neu);
+                                }};
+                            }
+                            match grabbed {
+                                Grabbed::Gerade { gleis_id, .. } => {
+                                    // create clone, so borrow to self can end
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.geraden)
+                                }
+                                Grabbed::Kurve { gleis_id, .. } => {
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.kurven)
+                                }
+                                Grabbed::Weiche { gleis_id, .. } => {
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.weichen)
+                                }
+                                Grabbed::DreiwegeWeiche { gleis_id, .. } => {
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.dreiwege_weichen)
+                                }
+                                Grabbed::KurvenWeiche { gleis_id, .. } => {
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.kurven_weichen)
+                                }
+                                Grabbed::SKurvenWeiche { gleis_id, .. } => {
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.s_kurven_weichen)
+                                }
+                                Grabbed::Kreuzung { gleis_id, .. } => {
+                                    let gleis_id_clone = gleis_id.clone();
+                                    relocate_grabbed!(gleis_id_clone, self.kreuzungen)
+                                }
+                            }
+                        }
                     }
                     (iced::canvas::event::Status::Ignored, None)
                 }
