@@ -164,8 +164,8 @@ fn main() -> iced::Result {
     let (gerade_lock, _gerade_anchor_points) = append_lego.append(lego::GERADE);
     let (kurve_lock, _kurve_anchor_points) = append_lego.append(lego::KURVE);
     let (_weiche_lock, weiche_anchor_points) = append_lego.append(lego::WEICHE_RECHTS);
-    let (kreuzung_lock, _kreuzung_anchor_points) = append_lego.append(lego::KREUZUNG);
-    append_lego.append(lego::KREUZUNG);
+    let (kreuzung0_lock, _kreuzung0_anchor_points) = append_lego.append(lego::KREUZUNG);
+    let (_kreuzung1_lock, kreuzung1_anchor_points) = append_lego.append(lego::KREUZUNG);
     // relocate
     if let Some(gleis_id) = &*gerade_lock.read() {
         gleise_lego.relocate(
@@ -178,15 +178,16 @@ fn main() -> iced::Result {
     }
     // attach
     gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
+    gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, kreuzung1_anchor_points.ende_1);
     // relocate-attach
     if let Some(gleis_id) = &*kurve_lock.read() {
         gleise_lego.relocate_attach(gleis_id, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
     }
     // remove
-    let kreuzung_lock_clone = kreuzung_lock.clone();
-    gleise_lego.remove(kreuzung_lock);
-    // assert!(kreuzung_lock.read().is_none());
-    assert!(kreuzung_lock_clone.read().is_none());
+    let kreuzung0_lock_clone = kreuzung0_lock.clone();
+    gleise_lego.remove(kreuzung0_lock);
+    // assert!(kreuzung0_lock.read().is_none());
+    assert!(kreuzung0_lock_clone.read().is_none());
 
     Zugkontrolle::run(Settings {
         window: iced::window::Settings {
