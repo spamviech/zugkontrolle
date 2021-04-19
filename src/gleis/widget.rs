@@ -363,8 +363,24 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                     iced::mouse::Button::Left,
                 )) => {
+                    // TODO store bounding box in rtree as well, to avoid searching everything stored?
                     // TODO actually find the clicked gleis
-                    self.grabbed = Some(GleisId::new(0));
+                    if let Some(in_pos) = cursor.position_in(&bounds) {
+                        let canvas_pos =
+                            canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
+                        for (gleis_id, Gleis { definition, position }) in self.geraden.iter() {
+                            let rel_pos = canvas_pos - canvas::Vector::from(position.point);
+                            let pos_vec = canvas::Vector::from(rel_pos).rotate(-position.winkel);
+                            if pos_vec.dx > canvas::X(0.).to_abstand()
+                                && pos_vec.dx < definition.laenge
+                                && pos_vec.dy > abstand::<Z>()
+                                && pos_vec.dy < abstand::<Z>() + Z::SPURWEITE.to_abstand()
+                            {
+                                self.grabbed = Some(gleis_id.as_any());
+                                break;
+                            }
+                        }
+                    }
                     self.canvas.clear();
                     (iced::canvas::event::Status::Captured, None)
                 }
@@ -374,6 +390,12 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     self.grabbed = None;
                     self.canvas.clear();
                     (iced::canvas::event::Status::Captured, None)
+                }
+                iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
+                    if self.grabbed.is_some() {
+                        // TODO relocate grabbed gleis
+                    }
+                    (iced::canvas::event::Status::Ignored, None)
                 }
                 _otherwise => (iced::canvas::event::Status::Ignored, None),
             }
