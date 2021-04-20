@@ -197,35 +197,34 @@ impl<A, B> Div<Abstand<B>> for Abstand<A> {
     }
 }
 // scale with f32
-impl<T> Mul<f32> for Abstand<T> {
-    type Output = Self;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        Abstand(self.0 * rhs, self.1)
-    }
-}
-impl<T> Mul<Abstand<T>> for f32 {
-    type Output = Abstand<T>;
-
-    fn mul(self, Abstand(rhs, phantom_data): Abstand<T>) -> Self::Output {
-        Abstand(self * rhs, phantom_data)
-    }
-}
 impl<T> MulAssign<f32> for Abstand<T> {
     fn mul_assign(&mut self, rhs: f32) {
         self.0 *= rhs
     }
 }
-impl<T> Div<f32> for Abstand<T> {
+impl<T> Mul<f32> for Abstand<T> {
     type Output = Self;
-
-    fn div(self, rhs: f32) -> Self::Output {
-        Abstand(self.0 / rhs, self.1)
+    fn mul(mut self, rhs: f32) -> Self::Output {
+        self *= rhs;
+        self
+    }
+}
+impl<T> Mul<Abstand<T>> for f32 {
+    type Output = Abstand<T>;
+    fn mul(self, rhs: Abstand<T>) -> Self::Output {
+        rhs * self
     }
 }
 impl<T> DivAssign<f32> for Abstand<T> {
     fn div_assign(&mut self, rhs: f32) {
         self.0 /= rhs
+    }
+}
+impl<T> Div<f32> for Abstand<T> {
+    type Output = Self;
+    fn div(mut self, rhs: f32) -> Self::Output {
+        self /= rhs;
+        self
     }
 }
 /// Umrechnung von mm-Größen auf Canvas-Koordinaten

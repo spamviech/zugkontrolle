@@ -213,9 +213,25 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     }
 
     fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
-        //TODO
-        println!("TODO innerhalb Kreuzung");
-        false
+        // utility sizes
+        let canvas::Size { width, height } = self.size();
+        let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
+        let start_x: canvas::X = canvas::X(0.);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_vector = canvas::Vector::new(start_x, start_y);
+        let mid_vector = canvas::Vector::new(half_width, half_height);
+        let winkel = self.angle();
+        // sub-checks
+        let horizontal_vector = relative_position - start_vector;
+        let mut gedreht_vector = (relative_position - mid_vector).rotate(-winkel);
+        gedreht_vector.dy *= -1.;
+        gedreht_vector += mid_vector - start_vector;
+        gerade::innerhalb::<Z>(self.laenge, horizontal_vector)
+            || gerade::innerhalb::<Z>(self.laenge, gedreht_vector)
+            || (self.variante == Variante::MitKurve
+                && (kurve::innerhalb::<Z>(self.radius, winkel, horizontal_vector)
+                    || kurve::innerhalb::<Z>(self.radius, winkel, gedreht_vector)))
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
