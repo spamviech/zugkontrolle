@@ -475,9 +475,55 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                                 break;
                             }
                         }
+                        for (gleis_id, Gleis { definition, position }) in self.kurven.iter() {
+                            let relative_pos = canvas::Vector::from(
+                                canvas_pos - canvas::Vector::from(position.point),
+                            );
+                            let rotated_pos = relative_pos.rotate(-position.winkel);
+                            // Koordinaten für den Bogen
+                            let spurweite = Z::SPURWEITE.to_abstand().as_radius();
+                            let radius_innen_abstand = definition.radius - 0.5 * spurweite;
+                            let radius_aussen_abstand = definition.radius + 0.5 * spurweite;
+                            let radius_aussen: canvas::Radius =
+                                canvas::Radius(0.) + radius_aussen_abstand;
+                            let radius_aussen_abstand: canvas::Abstand<canvas::Radius> =
+                                radius_aussen.to_abstand();
+                            let bogen_zentrum_y: canvas::Y =
+                                canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
+                            let radius_vector = canvas::Vector::from(
+                                canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - rotated_pos,
+                            );
+                            let laenge = radius_vector.length();
+                            if laenge > radius_innen_abstand && laenge < radius_aussen_abstand {
+                                let mut angle: Angle =
+                                    // we need to invert the y-axis, since this calculation assumes increasing y upwards
+                                    // additionally, the vector has to be inverted
+                                    // to simplify we invert the check for x instead
+                                    if radius_vector.dx < canvas::X(0.).to_abstand() {
+                                        Angle::acos(radius_vector.dy / laenge)
+                                    } else {
+                                        -Angle::acos(radius_vector.dy / laenge)
+                                    };
+                                // normalize angle
+                                while angle < Angle(0.) {
+                                    angle += Angle(2. * std::f32::consts::PI)
+                                }
+                                if angle < definition.winkel {
+                                    self.grabbed = Some(Grabbed::Kurve {
+                                        gleis_id: gleis_id.clone(),
+                                        grab_location: relative_pos,
+                                    });
+                                    break;
+                                }
+                            }
+                        }
                     }
-                    self.canvas.clear();
-                    (iced::canvas::event::Status::Captured, None)
+                    if self.grabbed.is_some() {
+                        self.canvas.clear();
+                        (iced::canvas::event::Status::Captured, None)
+                    } else {
+                        (iced::canvas::event::Status::Ignored, None)
+                    }
                 }
                 iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                     iced::mouse::Button::Left,

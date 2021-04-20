@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::convert::From;
-use std::ops::{Add, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
@@ -39,28 +39,52 @@ impl PartialOrd<AngleDegrees> for Angle {
         self.partial_cmp(&Angle::from(*other))
     }
 }
+impl AddAssign<Angle> for Angle {
+    fn add_assign(&mut self, Angle(other): Angle) {
+        self.0 += other
+    }
+}
 impl Add<Angle> for Angle {
     type Output = Self;
-    fn add(self, Angle(other): Angle) -> Angle {
-        Angle(self.0 + other)
+    fn add(mut self, other: Angle) -> Angle {
+        self += other;
+        self
+    }
+}
+impl AddAssign<AngleDegrees> for Angle {
+    fn add_assign(&mut self, AngleDegrees(other): AngleDegrees) {
+        self.0 += other.to_radians()
     }
 }
 impl Add<AngleDegrees> for Angle {
     type Output = Angle;
-    fn add(self, AngleDegrees(other): AngleDegrees) -> Angle {
-        Angle(self.0 + other.to_radians())
+    fn add(mut self, other: AngleDegrees) -> Angle {
+        self += other;
+        self
+    }
+}
+impl SubAssign<Angle> for Angle {
+    fn sub_assign(&mut self, Angle(other): Angle) {
+        self.0 -= other
     }
 }
 impl Sub<Angle> for Angle {
     type Output = Self;
-    fn sub(self, Angle(other): Angle) -> Angle {
-        Angle(self.0 - other)
+    fn sub(mut self, other: Angle) -> Angle {
+        self -= other;
+        self
+    }
+}
+impl SubAssign<AngleDegrees> for Angle {
+    fn sub_assign(&mut self, AngleDegrees(other): AngleDegrees) {
+        self.0 -= other.to_radians()
     }
 }
 impl Sub<AngleDegrees> for Angle {
     type Output = Angle;
-    fn sub(self, AngleDegrees(other): AngleDegrees) -> Angle {
-        Angle(self.0 - other.to_radians())
+    fn sub(mut self, other: AngleDegrees) -> Angle {
+        self -= other;
+        self
     }
 }
 impl Neg for Angle {
@@ -138,8 +162,8 @@ impl Add<AngleDegrees> for AngleDegrees {
 }
 impl Add<Angle> for AngleDegrees {
     type Output = Angle;
-    fn add(self, Angle(other): Angle) -> Angle {
-        Angle(self.0.to_radians() + other)
+    fn add(self, other: Angle) -> Angle {
+        other + self
     }
 }
 impl Sub<AngleDegrees> for AngleDegrees {
@@ -150,8 +174,8 @@ impl Sub<AngleDegrees> for AngleDegrees {
 }
 impl Sub<Angle> for AngleDegrees {
     type Output = Angle;
-    fn sub(self, Angle(other): Angle) -> Angle {
-        Angle(self.0.to_radians() - other)
+    fn sub(self, other: Angle) -> Angle {
+        other - self
     }
 }
 impl Neg for AngleDegrees {

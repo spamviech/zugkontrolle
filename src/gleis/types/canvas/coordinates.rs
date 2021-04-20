@@ -98,7 +98,7 @@ impl Neg for Y {
     }
 }
 /// Radius auf einem Cairo-Canvas
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Radius(pub f32);
 impl Radius {
     pub fn to_abstand(self) -> Abstand<Radius> {
@@ -293,7 +293,7 @@ impl Vector {
     }
     /// Berechne die Länge des Vektors.
     pub fn length<T>(&self) -> Abstand<T> {
-        Abstand(self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0, PhantomData)
+        Abstand((self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt(), PhantomData)
     }
     // Winkel zwischen Richtungs-Vektor und x-Achse
     pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
