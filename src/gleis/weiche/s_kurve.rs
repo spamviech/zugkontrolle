@@ -143,17 +143,20 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
-        let s_kurve_transformations = vec![
-            canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.) + radius_begrenzung_aussen.as_x() * self.winkel.sin(),
-                canvas::Y(0.) + radius_begrenzung_aussen.as_y() * (1. - self.winkel.cos()),
-            )),
-            canvas::Transformation::Rotate(self.winkel),
-            canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.),
-                canvas::Y(0.) + beschraenkung::<Z>(),
-            )),
-        ];
+        let s_kurve_transformations = |multiplier: f32| {
+            let winkel = multiplier * self.winkel;
+            vec![
+                canvas::Transformation::Translate(canvas::Vector {
+                    dx: multiplier * radius_begrenzung_aussen.as_x() * winkel.sin(),
+                    dy: multiplier * radius_begrenzung_aussen.as_y() * (1. - winkel.cos()),
+                }),
+                canvas::Transformation::Rotate(winkel),
+                canvas::Transformation::Translate(canvas::Vector {
+                    dx: canvas::X(0.).to_abstand(),
+                    dy: multiplier * beschraenkung::<Z>(),
+                }),
+            ]
+        };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
@@ -179,7 +182,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 canvas::PathBuilder::with_invert_y,
             ));
             // Kurve nach innen
-            transformations.extend(s_kurve_transformations);
+            transformations.extend(s_kurve_transformations(-1.));
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius_reverse,
@@ -212,7 +215,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.radius_reverse,
                 self.winkel_reverse,
                 kurve::Beschraenkung::Ende,
-                s_kurve_transformations,
+                s_kurve_transformations(1.),
                 canvas::PathBuilder::with_invert_y,
             ));
         }
@@ -223,17 +226,20 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
-        let s_kurve_transformations = vec![
-            canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.) + radius_begrenzung_aussen.as_x() * self.winkel.sin(),
-                canvas::Y(0.) + radius_begrenzung_aussen.as_y() * (1. - self.winkel.cos()),
-            )),
-            canvas::Transformation::Rotate(self.winkel),
-            canvas::Transformation::Translate(canvas::Vector::new(
-                canvas::X(0.),
-                canvas::Y(0.) + beschraenkung::<Z>(),
-            )),
-        ];
+        let s_kurve_transformations = |multiplier: f32| {
+            let winkel = multiplier * self.winkel;
+            vec![
+                canvas::Transformation::Translate(canvas::Vector {
+                    dx: multiplier * radius_begrenzung_aussen.as_x() * winkel.sin(),
+                    dy: multiplier * radius_begrenzung_aussen.as_y() * (1. - winkel.cos()),
+                }),
+                canvas::Transformation::Rotate(winkel),
+                canvas::Transformation::Translate(canvas::Vector {
+                    dx: canvas::X(0.).to_abstand(),
+                    dy: multiplier * beschraenkung::<Z>(),
+                }),
+            ]
+        };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
@@ -257,7 +263,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 canvas::PathBuilder::with_invert_y,
             ));
             // Kurve nach innen
-            transformations.extend(s_kurve_transformations);
+            transformations.extend(s_kurve_transformations(-1.));
             paths.push(kurve::fuelle(
                 self.zugtyp,
                 self.radius_reverse,
@@ -286,7 +292,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius_reverse,
                 self.winkel_reverse,
-                s_kurve_transformations,
+                s_kurve_transformations(1.),
                 canvas::PathBuilder::with_invert_y,
             ));
         }
@@ -322,9 +328,45 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     }
 
     fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        // utility sizes
+        let start_x: canvas::X = canvas::X(0.);
+        let start_height: canvas::Y;
+        let multiplier: f32;
+        match self.richtung {
+            Richtung::Rechts => {
+                start_height = canvas::Y(0.);
+                multiplier = 1.;
+            }
+            Richtung::Links => {
+                start_height = canvas::Y(0.) + self.size().height;
+                multiplier = -1.;
+            }
+        };
+        let start_vector = canvas::Vector::new(start_x, start_height);
+        let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+        let inverted_winkel = multiplier * self.winkel;
+        let s_kurve_start_vector = canvas::Vector {
+            dx: multiplier * radius_begrenzung_aussen.as_x() * inverted_winkel.sin(),
+            dy: multiplier * radius_begrenzung_aussen.as_y() * (1. - inverted_winkel.cos()),
+        };
+        // sub-checks
+        let mut relative_vector = relative_position - start_vector;
+        relative_vector.dy *= multiplier;
+        let mut s_kurve_vector = relative_vector - s_kurve_start_vector;
+        s_kurve_vector.rotate(inverted_winkel);
+        s_kurve_vector += canvas::Vector {
+            dx: canvas::X(0.).to_abstand(),
+            dy: multiplier * beschraenkung::<Z>(),
+        };
+        s_kurve_vector.dy *= -1.;
+        gerade::innerhalb::<Z>(self.laenge, relative_vector)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
+            || kurve::innerhalb::<Z>(
+                self.radius,
+                self.winkel_reverse,
+                relative_vector - s_kurve_vector,
+            )
         //TODO
-        println!("TODO innerhalb SKurvenWeiche");
-        false
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
