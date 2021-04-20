@@ -448,54 +448,50 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
     ) -> (iced::canvas::event::Status, Option<Message>) {
-        if cursor.is_over(&bounds) {
-            match event {
-                iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
-                    iced::mouse::Button::Left,
-                )) => {
-                    // TODO store bounding box in rtree as well, to avoid searching everything stored?
-                    // TODO actually find the clicked gleis
-                    if let Some(in_pos) = cursor.position_in(&bounds) {
-                        let canvas_pos =
-                            canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
-                        for (gleis_id, Gleis { definition, position }) in self.geraden.iter() {
-                            let relative_pos = canvas::Vector::from(
-                                canvas_pos - canvas::Vector::from(position.point),
-                            );
-                            let rotated_pos = relative_pos.rotate(-position.winkel);
-                            if rotated_pos.dx > canvas::X(0.).to_abstand()
-                                && rotated_pos.dx < definition.laenge
-                                && rotated_pos.dy > abstand::<Z>()
-                                && rotated_pos.dy < abstand::<Z>() + Z::SPURWEITE.to_abstand()
-                            {
-                                self.grabbed = Some(Grabbed::Gerade {
-                                    gleis_id: gleis_id.clone(),
-                                    grab_location: relative_pos,
-                                });
-                                break;
-                            }
+        let event_status = match event {
+            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
+                iced::mouse::Button::Left,
+            )) if cursor.is_over(&bounds) => {
+                // TODO store bounding box in rtree as well, to avoid searching everything stored?
+                // TODO actually find the clicked gleis
+                if let Some(in_pos) = cursor.position_in(&bounds) {
+                    let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
+                    for (gleis_id, Gleis { definition, position }) in self.geraden.iter() {
+                        let relative_pos =
+                            canvas::Vector::from(canvas_pos - canvas::Vector::from(position.point));
+                        let rotated_pos = relative_pos.rotate(-position.winkel);
+                        if rotated_pos.dx > canvas::X(0.).to_abstand()
+                            && rotated_pos.dx < definition.laenge
+                            && rotated_pos.dy > abstand::<Z>()
+                            && rotated_pos.dy < abstand::<Z>() + Z::SPURWEITE.to_abstand()
+                        {
+                            self.grabbed = Some(Grabbed::Gerade {
+                                gleis_id: gleis_id.clone(),
+                                grab_location: relative_pos,
+                            });
+                            break;
                         }
-                        for (gleis_id, Gleis { definition, position }) in self.kurven.iter() {
-                            let relative_pos = canvas::Vector::from(
-                                canvas_pos - canvas::Vector::from(position.point),
-                            );
-                            let rotated_pos = relative_pos.rotate(-position.winkel);
-                            // Koordinaten für den Bogen
-                            let spurweite = Z::SPURWEITE.to_abstand().as_radius();
-                            let radius_innen_abstand = definition.radius - 0.5 * spurweite;
-                            let radius_aussen_abstand = definition.radius + 0.5 * spurweite;
-                            let radius_aussen: canvas::Radius =
-                                canvas::Radius(0.) + radius_aussen_abstand;
-                            let radius_aussen_abstand: canvas::Abstand<canvas::Radius> =
-                                radius_aussen.to_abstand();
-                            let bogen_zentrum_y: canvas::Y =
-                                canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
-                            let radius_vector = canvas::Vector::from(
-                                canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - rotated_pos,
-                            );
-                            let laenge = radius_vector.length();
-                            if laenge > radius_innen_abstand && laenge < radius_aussen_abstand {
-                                let mut angle: Angle =
+                    }
+                    for (gleis_id, Gleis { definition, position }) in self.kurven.iter() {
+                        let relative_pos =
+                            canvas::Vector::from(canvas_pos - canvas::Vector::from(position.point));
+                        let rotated_pos = relative_pos.rotate(-position.winkel);
+                        // Koordinaten für den Bogen
+                        let spurweite = Z::SPURWEITE.to_abstand().as_radius();
+                        let radius_innen_abstand = definition.radius - 0.5 * spurweite;
+                        let radius_aussen_abstand = definition.radius + 0.5 * spurweite;
+                        let radius_aussen: canvas::Radius =
+                            canvas::Radius(0.) + radius_aussen_abstand;
+                        let radius_aussen_abstand: canvas::Abstand<canvas::Radius> =
+                            radius_aussen.to_abstand();
+                        let bogen_zentrum_y: canvas::Y =
+                            canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
+                        let radius_vector = canvas::Vector::from(
+                            canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - rotated_pos,
+                        );
+                        let laenge = radius_vector.length();
+                        if laenge > radius_innen_abstand && laenge < radius_aussen_abstand {
+                            let mut angle: Angle =
                                     // we need to invert the y-axis, since this calculation assumes increasing y upwards
                                     // additionally, the vector has to be inverted
                                     // to simplify we invert the check for x instead
@@ -504,89 +500,93 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                                     } else {
                                         -Angle::acos(radius_vector.dy / laenge)
                                     };
-                                // normalize angle
-                                while angle < Angle(0.) {
-                                    angle += Angle(2. * std::f32::consts::PI)
-                                }
-                                if angle < definition.winkel {
-                                    self.grabbed = Some(Grabbed::Kurve {
-                                        gleis_id: gleis_id.clone(),
-                                        grab_location: relative_pos,
-                                    });
-                                    break;
-                                }
+                            // normalize angle
+                            while angle < Angle(0.) {
+                                angle += Angle(2. * std::f32::consts::PI)
+                            }
+                            if angle < definition.winkel {
+                                self.grabbed = Some(Grabbed::Kurve {
+                                    gleis_id: gleis_id.clone(),
+                                    grab_location: relative_pos,
+                                });
+                                break;
                             }
                         }
                     }
-                    if self.grabbed.is_some() {
-                        self.canvas.clear();
-                        (iced::canvas::event::Status::Captured, None)
-                    } else {
-                        (iced::canvas::event::Status::Ignored, None)
-                    }
                 }
-                iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
-                    iced::mouse::Button::Left,
-                )) => {
-                    self.grabbed = None;
-                    self.canvas.clear();
-                    (iced::canvas::event::Status::Captured, None)
+                if self.grabbed.is_some() {
+                    iced::canvas::event::Status::Captured
+                } else {
+                    iced::canvas::event::Status::Ignored
                 }
-                iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
-                    if let Some(grabbed) = &self.grabbed {
-                        if let Some(in_pos) = cursor.position_in(&bounds) {
-                            let point =
-                                canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
-                                    - grabbed.grab_location();
-                            macro_rules! relocate_grabbed {
-                                ($gleis_id: expr, $map: expr) => {{
-                                    let Gleis { position, .. } =
-                                        $map.get(&$gleis_id).expect("grabbed a non-existing gleis");
-                                    let position_neu =
-                                        canvas::Position { point, winkel: position.winkel };
-                                    self.relocate(&$gleis_id, position_neu);
-                                }};
-                            }
-                            match grabbed {
-                                Grabbed::Gerade { gleis_id, .. } => {
-                                    // create clone, so borrow to self can end
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.geraden)
-                                }
-                                Grabbed::Kurve { gleis_id, .. } => {
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.kurven)
-                                }
-                                Grabbed::Weiche { gleis_id, .. } => {
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.weichen)
-                                }
-                                Grabbed::DreiwegeWeiche { gleis_id, .. } => {
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.dreiwege_weichen)
-                                }
-                                Grabbed::KurvenWeiche { gleis_id, .. } => {
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.kurven_weichen)
-                                }
-                                Grabbed::SKurvenWeiche { gleis_id, .. } => {
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.s_kurven_weichen)
-                                }
-                                Grabbed::Kreuzung { gleis_id, .. } => {
-                                    let gleis_id_clone = gleis_id.clone();
-                                    relocate_grabbed!(gleis_id_clone, self.kreuzungen)
-                                }
-                            }
-                        }
-                    }
-                    (iced::canvas::event::Status::Ignored, None)
-                }
-                _otherwise => (iced::canvas::event::Status::Ignored, None),
             }
-        } else {
-            (iced::canvas::event::Status::Ignored, None)
+            iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
+                iced::mouse::Button::Left,
+            )) => {
+                if self.grabbed.is_some() {
+                    self.grabbed = None;
+                    iced::canvas::event::Status::Captured
+                } else {
+                    iced::canvas::event::Status::Ignored
+                }
+            }
+            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ })
+                if cursor.is_over(&bounds) =>
+            {
+                if let Some(grabbed) = &self.grabbed {
+                    if let Some(in_pos) = cursor.position_in(&bounds) {
+                        let point = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
+                            - grabbed.grab_location();
+                        macro_rules! relocate_grabbed {
+                            ($gleis_id: expr, $map: expr) => {{
+                                let Gleis { position, .. } =
+                                    $map.get(&$gleis_id).expect("grabbed a non-existing gleis");
+                                let position_neu =
+                                    canvas::Position { point, winkel: position.winkel };
+                                self.relocate(&$gleis_id, position_neu);
+                            }};
+                        }
+                        match grabbed {
+                            Grabbed::Gerade { gleis_id, .. } => {
+                                // create clone, so borrow to self can end
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.geraden)
+                            }
+                            Grabbed::Kurve { gleis_id, .. } => {
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.kurven)
+                            }
+                            Grabbed::Weiche { gleis_id, .. } => {
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.weichen)
+                            }
+                            Grabbed::DreiwegeWeiche { gleis_id, .. } => {
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.dreiwege_weichen)
+                            }
+                            Grabbed::KurvenWeiche { gleis_id, .. } => {
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.kurven_weichen)
+                            }
+                            Grabbed::SKurvenWeiche { gleis_id, .. } => {
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.s_kurven_weichen)
+                            }
+                            Grabbed::Kreuzung { gleis_id, .. } => {
+                                let gleis_id_clone = gleis_id.clone();
+                                relocate_grabbed!(gleis_id_clone, self.kreuzungen)
+                            }
+                        }
+                    }
+                }
+                iced::canvas::event::Status::Captured
+            }
+            _otherwise => iced::canvas::event::Status::Ignored,
+        };
+        if event_status == iced::canvas::event::Status::Captured {
+            self.canvas.clear()
         }
+        (event_status, None)
     }
 }
 
