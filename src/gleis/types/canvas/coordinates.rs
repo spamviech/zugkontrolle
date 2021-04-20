@@ -351,66 +351,159 @@ impl From<Size> for Vector {
         Vector { dx: width, dy: height }
     }
 }
-// add Vector and Point
-impl AddAssign<Vector> for Point {
-    fn add_assign(&mut self, other: Vector) {
-        self.x += other.dx;
-        self.y += other.dy;
+// add two Vector
+impl AddAssign<&Vector> for Vector {
+    fn add_assign(&mut self, other: &Vector) {
+        self.dx += other.dx;
+        self.dy += other.dy;
     }
 }
+impl AddAssign<Vector> for Vector {
+    fn add_assign(&mut self, other: Vector) {
+        *self += &other
+    }
+}
+impl Add<Vector> for Vector {
+    type Output = Self;
+    fn add(mut self, other: Vector) -> Self::Output {
+        self += other;
+        self
+    }
+}
+impl Add<&Vector> for Vector {
+    type Output = Self;
+    fn add(mut self, other: &Vector) -> Self::Output {
+        self += other;
+        self
+    }
+}
+// subtract one vector from another
+impl SubAssign<&Vector> for Vector {
+    fn sub_assign(&mut self, other: &Vector) {
+        self.dx -= other.dx;
+        self.dy -= other.dy;
+    }
+}
+impl SubAssign<Vector> for Vector {
+    fn sub_assign(&mut self, other: Vector) {
+        *self -= &other
+    }
+}
+impl Sub<&Vector> for Vector {
+    type Output = Self;
+    fn sub(mut self, other: &Vector) -> Self::Output {
+        self -= other;
+        self
+    }
+}
+impl Sub<Vector> for Vector {
+    type Output = Self;
+    fn sub(mut self, other: Vector) -> Self::Output {
+        self -= other;
+        self
+    }
+}
+// add Vector and Point
 impl AddAssign<&Vector> for Point {
     fn add_assign(&mut self, other: &Vector) {
         self.x += other.dx;
         self.y += other.dy;
     }
 }
+impl AddAssign<Vector> for Point {
+    fn add_assign(&mut self, other: Vector) {
+        *self += &other
+    }
+}
 impl Add<Vector> for Point {
     type Output = Point;
-    fn add(self, other: Vector) -> Self::Output {
-        Point { x: self.x + other.dx, y: self.y + other.dy }
+    fn add(mut self, other: Vector) -> Self::Output {
+        self += other;
+        self
     }
 }
 impl Add<&Vector> for Point {
     type Output = Point;
-    fn add(self, other: &Vector) -> Self::Output {
-        Point { x: self.x + other.dx, y: self.y + other.dy }
-    }
-}
-impl Add<Point> for Vector {
-    type Output = Point;
-    fn add(self, other: Point) -> Self::Output {
-        Point { x: self.dx + other.x, y: self.dy + other.y }
+    fn add(mut self, other: &Vector) -> Self::Output {
+        self += other;
+        self
     }
 }
 impl Add<Point> for &Vector {
     type Output = Point;
     fn add(self, other: Point) -> Self::Output {
-        Point { x: self.dx + other.x, y: self.dy + other.y }
+        other + self
+    }
+}
+impl Add<Point> for Vector {
+    type Output = Point;
+    fn add(self, other: Point) -> Self::Output {
+        other + self
     }
 }
 // substract Vector from Point
-impl SubAssign<Vector> for Point {
-    fn sub_assign(&mut self, other: Vector) {
-        self.x -= other.dx;
-        self.y -= other.dy;
-    }
-}
 impl SubAssign<&Vector> for Point {
     fn sub_assign(&mut self, other: &Vector) {
         self.x -= other.dx;
         self.y -= other.dy;
     }
 }
-impl Sub<Vector> for Point {
-    type Output = Point;
-    fn sub(self, other: Vector) -> Self::Output {
-        Point { x: self.x - other.dx, y: self.y - other.dy }
+impl SubAssign<Vector> for Point {
+    fn sub_assign(&mut self, other: Vector) {
+        *self -= &other
     }
 }
 impl Sub<&Vector> for Point {
     type Output = Point;
-    fn sub(self, other: &Vector) -> Self::Output {
-        Point { x: self.x - other.dx, y: self.y - other.dy }
+    fn sub(mut self, other: &Vector) -> Self::Output {
+        self -= other;
+        self
+    }
+}
+impl Sub<Vector> for Point {
+    type Output = Point;
+    fn sub(mut self, other: Vector) -> Self::Output {
+        self -= other;
+        self
+    }
+}
+// scale with Abstand<T>
+impl<T> MulAssign<Abstand<T>> for Vector {
+    fn mul_assign(&mut self, Abstand(other, PhantomData): Abstand<T>) {
+        self.dx *= other;
+        self.dy *= other;
+    }
+}
+impl<T> Mul<Abstand<T>> for Vector {
+    type Output = Vector;
+    fn mul(mut self, other: Abstand<T>) -> Self::Output {
+        self *= other;
+        self
+    }
+}
+impl<T> Mul<Vector> for Abstand<T> {
+    type Output = Vector;
+    fn mul(self, other: Vector) -> Self::Output {
+        other * self
+    }
+}
+impl<T> Mul<&Vector> for Abstand<T> {
+    type Output = Vector;
+    fn mul(self, other: &Vector) -> Self::Output {
+        *other * self
+    }
+}
+impl<T> DivAssign<Abstand<T>> for Vector {
+    fn div_assign(&mut self, Abstand(other, PhantomData): Abstand<T>) {
+        self.dx /= other;
+        self.dy /= other;
+    }
+}
+impl<T> Div<Abstand<T>> for Vector {
+    type Output = Vector;
+    fn div(mut self, other: Abstand<T>) -> Self::Output {
+        self /= other;
+        self
     }
 }
 // scale with f32
