@@ -480,7 +480,7 @@ impl Position {
     /// Vector nachdem das Objekt um den Winkel gedreht wird.
     pub fn rotation(&self, direction: Vector) -> Vector {
         let dx = direction.dx * self.winkel.cos() - direction.dy.as_x() * self.winkel.sin();
-        let dy = direction.dx.as_y() * self.winkel.sin() - direction.dy * self.winkel.cos();
+        let dy = direction.dx.as_y() * self.winkel.sin() + direction.dy * self.winkel.cos();
         Vector { dx, dy }
     }
 }

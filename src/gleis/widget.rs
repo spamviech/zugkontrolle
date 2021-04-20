@@ -42,7 +42,7 @@ pub(crate) struct Any;
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleisId<T>(u64, PhantomData<*const T>);
 impl<T> GleisId<T> {
-    fn new(gleis_id: u64) -> Self {
+    pub fn new(gleis_id: u64) -> Self {
         GleisId(gleis_id, PhantomData)
     }
 
@@ -557,8 +557,8 @@ impl canvas::Position {
     {
         let anchor_points: T::AnchorPoints = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Angle = (-anchor_point.direction).winkel_mit_x_achse()
-            + target_anchor_point.direction.winkel_mit_x_achse();
+        let winkel: Angle = anchor_point.direction.winkel_mit_x_achse()
+            - (-target_anchor_point.direction).winkel_mit_x_achse();
         canvas::Position {
             point: canvas::Point {
                 x: target_anchor_point.position.x
