@@ -184,9 +184,26 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     }
 
     fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
-        //TODO
-        println!("TODO innerhalb Weiche");
-        false
+        // utility sizes
+        let start_x: canvas::X = canvas::X(0.);
+        let start_height: canvas::Y;
+        let multiplier: f32;
+        match self.richtung {
+            Richtung::Rechts => {
+                start_height = canvas::Y(0.);
+                multiplier = 1.;
+            }
+            Richtung::Links => {
+                start_height = canvas::Y(0.) + self.size().height;
+                multiplier = -1.;
+            }
+        };
+        let start_vector = canvas::Vector::new(start_x, start_height);
+        // sub-checks
+        let mut relative_vector = relative_position - start_vector;
+        relative_vector.dy *= multiplier;
+        gerade::innerhalb::<Z>(self.laenge, relative_vector)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
