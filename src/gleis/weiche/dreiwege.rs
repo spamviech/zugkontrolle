@@ -171,9 +171,21 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     }
 
     fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
-        //TODO
-        println!("TODO innerhalb DreiwegeWeiche");
-        false
+        // utility sizes
+        let canvas::Size { width: _, height } = self.size();
+        let start_x: canvas::X = canvas::X(0.);
+        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
+        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_vector = canvas::Vector::new(start_x, start_y);
+        // sub-checks
+        let relative_vector = relative_position - start_vector;
+        let inverted_vector = canvas::Vector {
+            dx: relative_vector.dx,
+            dy: beschraenkung::<Z>() - relative_vector.dy,
+        };
+        gerade::innerhalb::<Z>(self.laenge, relative_vector)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
+            || kurve::innerhalb::<Z>(self.radius, self.winkel, inverted_vector)
     }
 
     fn anchor_points(&self) -> AnchorPoints {
