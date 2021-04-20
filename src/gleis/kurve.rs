@@ -99,6 +99,10 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         })
     }
 
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        innerhalb::<Z>(self.radius, self.winkel, relative_position)
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         AnchorPoints {
             anfang: anchor::Anchor {
@@ -340,4 +344,36 @@ fn fuelle_internal<Z, P, A>(
     path_builder.line_to(gleis_rechts_unten.into());
     path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
     path_builder.close();
+}
+
+pub(crate) fn innerhalb<Z: Zugtyp>(
+    radius: canvas::Abstand<canvas::Radius>,
+    winkel: Angle,
+    relative_position: canvas::Vector,
+) -> bool {
+    let spurweite = Z::SPURWEITE.to_abstand().as_radius();
+    let radius_innen_abstand = radius - 0.5 * spurweite;
+    let radius_aussen_abstand = radius + 0.5 * spurweite;
+    let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
+    let radius_aussen_abstand: canvas::Abstand<canvas::Radius> = radius_aussen.to_abstand();
+    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
+    let radius_vector = canvas::Vector::from(
+        canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - relative_position,
+    );
+    let laenge = radius_vector.length();
+    if laenge > radius_innen_abstand && laenge < radius_aussen_abstand {
+        let mut angle: Angle = if radius_vector.dx > canvas::X(0.).to_abstand() {
+            -Angle::acos(radius_vector.dy / laenge)
+        } else {
+            Angle::acos(radius_vector.dy / laenge)
+        };
+        // normalize angle
+        while angle < Angle(0.) {
+            angle += Angle(2. * std::f32::consts::PI)
+        }
+        if angle < winkel {
+            return true;
+        }
+    }
+    false
 }

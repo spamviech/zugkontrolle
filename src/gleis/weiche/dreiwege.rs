@@ -170,6 +170,12 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         })
     }
 
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        //TODO
+        println!("TODO innerhalb DreiwegeWeiche");
+        false
+    }
+
     fn anchor_points(&self) -> AnchorPoints {
         let height: canvas::Abstand<canvas::Y> = self.size().height;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;

@@ -56,6 +56,9 @@ where
     /// Beschreibung und Position (falls verfügbar)
     fn beschreibung(&self) -> Option<(canvas::Position, &'static str)>;
 
+    /// Zeigt der /canvas::Vector/ auf das Gleis?
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool;
+
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
     type AnchorName;

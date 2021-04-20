@@ -183,6 +183,12 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         })
     }
 
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        //TODO
+        println!("TODO innerhalb Weiche");
+        false
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: canvas::Y;
         let multiplier: f32;

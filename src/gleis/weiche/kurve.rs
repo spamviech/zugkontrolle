@@ -236,6 +236,12 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         })
     }
 
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        //TODO
+        println!("TODO innerhalb KurvenWeiche");
+        false
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         let start_height: canvas::Y;
         let multiplier: f32;

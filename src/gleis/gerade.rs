@@ -71,6 +71,10 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         })
     }
 
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        innerhalb::<Z>(self.laenge, relative_position)
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links: canvas::X = canvas::X(0.);
         let gleis_rechts: canvas::X = gleis_links + self.laenge;
@@ -187,4 +191,14 @@ fn fuelle_internal<Z, P, A>(
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
     path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());
     path_builder.line_to(canvas::Point::new(gleis_links, gleis_oben).into());
+}
+
+pub(crate) fn innerhalb<Z: Zugtyp>(
+    laenge: canvas::Abstand<canvas::X>,
+    relative_position: canvas::Vector,
+) -> bool {
+    relative_position.dx >= canvas::X(0.).to_abstand()
+        && relative_position.dx <= laenge
+        && relative_position.dy >= abstand::<Z>()
+        && relative_position.dy <= abstand::<Z>() + Z::SPURWEITE.to_abstand()
 }

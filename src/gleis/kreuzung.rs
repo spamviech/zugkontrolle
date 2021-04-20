@@ -212,6 +212,12 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         })
     }
 
+    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+        //TODO
+        println!("TODO innerhalb Kreuzung");
+        false
+    }
+
     fn anchor_points(&self) -> Self::AnchorPoints {
         let canvas::Size { width, height } = self.size();
         let anfang0_x: canvas::X = canvas::X(0.);
