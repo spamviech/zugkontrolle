@@ -344,29 +344,21 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         };
         let start_vector = canvas::Vector::new(start_x, start_height);
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
-        let inverted_winkel = multiplier * self.winkel;
+        let multiplied_winkel = multiplier * self.winkel;
         let s_kurve_start_vector = canvas::Vector {
-            dx: multiplier * radius_begrenzung_aussen.as_x() * inverted_winkel.sin(),
-            dy: multiplier * radius_begrenzung_aussen.as_y() * (1. - inverted_winkel.cos()),
+            dx: multiplier * radius_begrenzung_aussen.as_x() * multiplied_winkel.sin(),
+            dy: radius_begrenzung_aussen.as_y() * (1. - multiplied_winkel.cos()),
         };
         // sub-checks
         let mut relative_vector = relative_position - start_vector;
         relative_vector.dy *= multiplier;
-        let mut s_kurve_vector = relative_vector - s_kurve_start_vector;
-        s_kurve_vector.rotate(inverted_winkel);
-        s_kurve_vector += canvas::Vector {
-            dx: canvas::X(0.).to_abstand(),
-            dy: multiplier * beschraenkung::<Z>(),
-        };
+        let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotate(-self.winkel);
+        s_kurve_vector -=
+            canvas::Vector { dx: canvas::X(0.).to_abstand(), dy: beschraenkung::<Z>() };
         s_kurve_vector.dy *= -1.;
         gerade::innerhalb::<Z>(self.laenge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
-            || kurve::innerhalb::<Z>(
-                self.radius,
-                self.winkel_reverse,
-                relative_vector - s_kurve_vector,
-            )
-        //TODO
+            || kurve::innerhalb::<Z>(self.radius_reverse, self.winkel_reverse, s_kurve_vector)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {

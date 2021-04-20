@@ -5,7 +5,7 @@ use std::{convert::From, marker::PhantomData};
 
 use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 
-/// Horizontale Koordinate auf einem Cairo-Canvas
+/// Horizontale Koordinate auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct X(pub f32);
 impl X {
@@ -51,7 +51,7 @@ impl Neg for X {
         X(-self.0)
     }
 }
-/// Vertikale Koordinate auf einem Cairo-Canvas
+/// Vertikale Koordinate auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Y(pub f32);
 impl Y {
@@ -97,7 +97,7 @@ impl Neg for Y {
         Y(-self.0)
     }
 }
-/// Radius auf einem Cairo-Canvas
+/// Radius auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Radius(pub f32);
 impl Radius {
@@ -136,7 +136,7 @@ impl SubAssign<Abstand<Radius>> for Radius {
         self.0 -= rhs
     }
 }
-/// Abstand/Länge auf einem Cairo-Canvas
+/// Abstand/Länge auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Abstand<T>(f32, PhantomData<*const T>);
 impl<T> Abstand<T> {
@@ -506,28 +506,42 @@ impl<T> Div<Abstand<T>> for Vector {
     }
 }
 // scale with f32
+impl MulAssign<f32> for Vector {
+    fn mul_assign(&mut self, other: f32) {
+        self.dx *= other;
+        self.dy *= other;
+    }
+}
+impl Mul<f32> for Vector {
+    type Output = Vector;
+    fn mul(mut self, other: f32) -> Self::Output {
+        self *= other;
+        self
+    }
+}
 impl Mul<Vector> for f32 {
     type Output = Vector;
     fn mul(self, other: Vector) -> Self::Output {
-        Vector { dx: self * other.dx, dy: self * other.dy }
+        other * self
     }
 }
 impl Mul<&Vector> for f32 {
     type Output = Vector;
     fn mul(self, other: &Vector) -> Self::Output {
-        Vector { dx: self * other.dx, dy: self * other.dy }
+        *other * self
     }
 }
-impl Mul<f32> for Vector {
-    type Output = Vector;
-    fn mul(self, other: f32) -> Self::Output {
-        Vector { dx: self.dx * other, dy: self.dy * other }
+impl DivAssign<f32> for Vector {
+    fn div_assign(&mut self, other: f32) {
+        self.dx /= other;
+        self.dy /= other;
     }
 }
 impl Div<f32> for Vector {
     type Output = Vector;
-    fn div(self, other: f32) -> Self::Output {
-        Vector { dx: self.dx / other, dy: self.dy / other }
+    fn div(mut self, other: f32) -> Self::Output {
+        self /= other;
+        self
     }
 }
 
