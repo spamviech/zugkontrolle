@@ -50,10 +50,6 @@ impl<T> GleisId<T> {
         GleisId::new(self.0)
     }
 
-    pub(crate) fn to_any(self) -> GleisId<Any> {
-        GleisId::new(self.0)
-    }
-
     // implemented as method, so it stays private
     fn clone(&self) -> Self {
         GleisId(self.0, self.1)
@@ -93,35 +89,43 @@ enum AnyId<Z> {
     SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
     Kreuzung(GleisId<Kreuzung<Z>>),
 }
+macro_rules! maybe_clone {
+    ($x:expr => @no_clone) => {
+        $x
+    };
+    ($x:expr $(=> @clone)?) => {
+        $x.clone()
+    };
+}
 macro_rules! with_any_id {
-    ($any_id: expr, $(@no_clone)? $function: expr$(, $($extra_arg:expr),+)?) => {
+    ($any_id: expr $(=> @$clone: tt)?, $function: expr$(, $($extra_arg:expr),+)?) => {
         match $any_id {
             AnyId::Gerade(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
             AnyId::Kurve(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
             AnyId::Weiche(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
             AnyId::DreiwegeWeiche(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
             AnyId::KurvenWeiche(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
             AnyId::SKurvenWeiche(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
             AnyId::Kreuzung(gleis_id) => {
-                let gleis_id_clone = gleis_id.clone();
+                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
                 $function(gleis_id_clone$(, $($extra_arg),+)?)
             }
         }
@@ -129,7 +133,7 @@ macro_rules! with_any_id {
 }
 impl<Z> AnyId<Z> {
     fn id_as_any(&self) -> GleisId<Any> {
-        with_any_id!(self, GleisId::to_any)
+        with_any_id!(self => @no_clone, GleisId::as_any)
     }
 }
 
