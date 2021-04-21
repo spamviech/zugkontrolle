@@ -50,6 +50,10 @@ impl<T> GleisId<T> {
         GleisId::new(self.0)
     }
 
+    pub(crate) fn to_any(self) -> GleisId<Any> {
+        GleisId::new(self.0)
+    }
+
     // implemented as method, so it stays private
     fn clone(&self) -> Self {
         GleisId(self.0, self.1)
@@ -89,17 +93,43 @@ enum AnyId<Z> {
     SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
     Kreuzung(GleisId<Kreuzung<Z>>),
 }
+macro_rules! with_any_id {
+    ($any_id: expr, $(@no_clone)? $function: expr$(, $($extra_arg:expr),+)?) => {
+        match $any_id {
+            AnyId::Gerade(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+            AnyId::Kurve(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+            AnyId::Weiche(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+            AnyId::DreiwegeWeiche(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+            AnyId::KurvenWeiche(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+            AnyId::SKurvenWeiche(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+            AnyId::Kreuzung(gleis_id) => {
+                let gleis_id_clone = gleis_id.clone();
+                $function(gleis_id_clone$(, $($extra_arg),+)?)
+            }
+        }
+    };
+}
 impl<Z> AnyId<Z> {
     fn id_as_any(&self) -> GleisId<Any> {
-        match self {
-            AnyId::Gerade(gleis_id) => gleis_id.as_any(),
-            AnyId::Kurve(gleis_id) => gleis_id.as_any(),
-            AnyId::Weiche(gleis_id) => gleis_id.as_any(),
-            AnyId::DreiwegeWeiche(gleis_id) => gleis_id.as_any(),
-            AnyId::KurvenWeiche(gleis_id) => gleis_id.as_any(),
-            AnyId::SKurvenWeiche(gleis_id) => gleis_id.as_any(),
-            AnyId::Kreuzung(gleis_id) => gleis_id.as_any(),
-        }
+        with_any_id!(self, GleisId::to_any)
     }
 }
 
@@ -363,8 +393,8 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
     }
 }
 fn relocate_grabbed<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
-    gleise: &mut Gleise<Z>,
     gleis_id: GleisId<T>,
+    gleise: &mut Gleise<Z>,
     point: canvas::Point,
 ) {
     let Gleis { position, .. } =
@@ -373,8 +403,8 @@ fn relocate_grabbed<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
     gleise.relocate(&gleis_id, position_neu);
 }
 fn snap_to_anchor<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
-    gleise: &mut Gleise<Z>,
     gleis_id: GleisId<T>,
+    gleise: &mut Gleise<Z>,
 ) {
     let Gleis { definition, position } =
         T::get_map_mut(gleise).get(&gleis_id).expect("failed to lookup grabbed Gleis");
@@ -472,40 +502,6 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
     ) -> (iced::canvas::event::Status, Option<Message>) {
-        macro_rules! with_any_id {
-            ($any_id: expr, $function: expr$(, $($extra_arg:expr),+)?) => {
-                match $any_id {
-                    AnyId::Gerade(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                    AnyId::Kurve(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                    AnyId::Weiche(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                    AnyId::DreiwegeWeiche(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                    AnyId::KurvenWeiche(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                    AnyId::SKurvenWeiche(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                    AnyId::Kreuzung(gleis_id) => {
-                        let gleis_id_clone = gleis_id.clone();
-                        $function(self, gleis_id_clone$(, $($extra_arg),+)?)
-                    }
-                }
-            };
-        }
         let event_status = match event {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
@@ -548,7 +544,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let Some(Grabbed { gleis_id, .. }) = &self.grabbed {
-                    with_any_id!(gleis_id, snap_to_anchor);
+                    with_any_id!(gleis_id, snap_to_anchor, self);
                     self.grabbed = None;
                     iced::canvas::event::Status::Captured
                 } else {
@@ -562,7 +558,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     if let Some(in_pos) = cursor.position_in(&bounds) {
                         let point = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
                             - grab_location;
-                        with_any_id!(gleis_id, relocate_grabbed, point);
+                        with_any_id!(gleis_id, relocate_grabbed, self, point);
                     }
                 }
                 iced::canvas::event::Status::Captured
