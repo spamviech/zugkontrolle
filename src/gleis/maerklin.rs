@@ -6,7 +6,7 @@ use super::gerade::Gerade;
 use super::kreuzung::{self, Kreuzung};
 use super::kurve::Kurve;
 use super::types::*;
-use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, Weiche};
+use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 // TODO
 // non_ascii_idents might be stabilized soon
@@ -18,6 +18,56 @@ pub struct Maerklin;
 impl Zugtyp for Maerklin {
     #[allow(non_upper_case_globals)]
     const SPURWEITE: Spurweite = Spurweite(16.5);
+
+    type Geschwindigkeit = f32;
+    type GeschwindigkeitsAnschluss = Anschluss;
+    fn geschwindigkeit(
+        anschluss: &mut Self::GeschwindigkeitsAnschluss,
+        wert: Self::Geschwindigkeit,
+    ) {
+    }
+    fn umdrehen(anschluss: &mut Self::GeschwindigkeitsAnschluss) {}
+
+    fn geraden() -> Vec<Gerade<Self>> {
+        vec![
+            GERADE_5106,
+            GERADE_5107,
+            GERADE_5108,
+            GERADE_5109,
+            GERADE_5110,
+            GERADE_5129,
+            GERADE_5208,
+            GERADE_5210,
+        ]
+    }
+    fn kurven() -> Vec<Kurve<Self>> {
+        vec![
+            KURVE_5100, KURVE_5101, KURVE_5102, KURVE_5120, KURVE_5200, KURVE_5201, KURVE_5205,
+            KURVE_5206,
+        ]
+    }
+    fn weichen() -> Vec<Weiche<Self>> {
+        vec![
+            WEICHE_5117_LINKS,
+            WEICHE_5117_RECHTS,
+            WEICHE_5137_LINKS,
+            WEICHE_5137_RECHTS,
+            WEICHE_5202_LINKS,
+            WEICHE_5202_RECHTS,
+        ]
+    }
+    fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>> {
+        vec![DREIWEGE_WEICHE_5214]
+    }
+    fn kurven_weichen() -> Vec<KurvenWeiche<Self>> {
+        vec![KURVEN_WEICHE_5140_LINKS, KURVEN_WEICHE_5140_RECHTS]
+    }
+    fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
+        vec![]
+    }
+    fn kreuzungen() -> Vec<Kreuzung<Self>> {
+        vec![KREUZUNG_5128, KREUZUNG_5207]
+    }
 }
 
 // Märklin Kurven-Radien

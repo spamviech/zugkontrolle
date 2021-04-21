@@ -11,7 +11,7 @@ pub mod canvas;
 pub mod mm;
 
 // re-exports
-pub use crate::zugtyp::Zugtyp;
+pub use crate::zugtyp::{Anschluss, Zugtyp};
 pub use angle::*;
 pub use mm::*;
 

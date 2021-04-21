@@ -6,13 +6,44 @@ use super::gerade::Gerade;
 use super::kreuzung::{self, Kreuzung};
 use super::kurve::Kurve;
 use super::types::*;
-use super::weiche::{self, SKurvenWeiche};
+use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Lego;
 impl Zugtyp for Lego {
     #[allow(non_upper_case_globals)]
     const SPURWEITE: Spurweite = Spurweite(38.);
+
+    type Geschwindigkeit = f32;
+    type GeschwindigkeitsAnschluss = (Anschluss, Anschluss);
+    fn geschwindigkeit(
+        anschluss: &mut Self::GeschwindigkeitsAnschluss,
+        wert: Self::Geschwindigkeit,
+    ) {
+    }
+    fn umdrehen(anschluss: &mut Self::GeschwindigkeitsAnschluss) {}
+
+    fn geraden() -> Vec<Gerade<Self>> {
+        vec![GERADE]
+    }
+    fn kurven() -> Vec<Kurve<Self>> {
+        vec![KURVE]
+    }
+    fn weichen() -> Vec<Weiche<Self>> {
+        vec![]
+    }
+    fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>> {
+        vec![]
+    }
+    fn kurven_weichen() -> Vec<KurvenWeiche<Self>> {
+        vec![]
+    }
+    fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
+        vec![WEICHE_LINKS, WEICHE_RECHTS]
+    }
+    fn kreuzungen() -> Vec<Kreuzung<Self>> {
+        vec![KREUZUNG]
+    }
 }
 
 /*
