@@ -46,7 +46,7 @@ impl<T> GleisId<T> {
         GleisId(gleis_id, PhantomData)
     }
 
-    fn as_any(&self) -> GleisId<Any> {
+    pub(crate) fn as_any(&self) -> GleisId<Any> {
         GleisId::new(self.0)
     }
 
@@ -298,22 +298,23 @@ fn zeichne_alle_gleise<T: Zeichnen>(
 fn zeichne_alle_anchor_points<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
-    has_other_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> bool,
+    has_other_and_grabbed_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> (bool, bool),
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // zeichne anchor points
-            definition.anchor_points().foreach(|&anchor| {
+            definition.anchor_points().foreach(|_name, &anchor| {
                 frame.with_save(|frame| {
-                    let color = if has_other_id_at_point(
+                    let (opposing, grabbed) = has_other_and_grabbed_id_at_point(
                         gleis_id.as_any(),
                         anchor::Anchor {
                             position: position.transformation(anchor.position),
                             direction: position.rotation(anchor.direction),
                         },
-                    ) {
+                    );
+                    let color = if opposing {
                         canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
                     } else {
                         canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
@@ -327,11 +328,11 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                     path_builder.line_to(anchor_position + scale * direction);
                     path_builder.line_to(anchor_position - 0.5 * scale * direction_side);
                     let path = path_builder.build();
-                    // TODO fill on connect/snap for drag&drop
-                    frame.stroke(
-                        &path,
-                        canvas::Stroke { color, width: 1.5, ..canvas::Stroke::default() },
-                    );
+                    frame.stroke(&path, canvas::Stroke { color, width: 1.5, ..Default::default() });
+                    // fill on connect/snap for drag&drop
+                    if grabbed {
+                        frame.fill(&path, canvas::Fill { color, ..Default::default() });
+                    }
                 });
             });
         })
@@ -395,8 +396,12 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         false
                     }
                 };
-                let has_other_id_at_point = |gleis_id, position| {
-                    anchor_points.has_other_id_at_point(&gleis_id, &position).is_some()
+                let has_other_and_grabbed_id_at_point = |gleis_id, position| {
+                    anchor_points.has_other_and_grabbed_id_at_point(
+                        &gleis_id,
+                        |id| is_grabbed(id.clone()),
+                        &position,
+                    )
                 };
                 macro_rules! mit_allen_gleisen {
                     ($funktion:expr$(, $($extra_args:expr),+)?) => {
@@ -414,7 +419,11 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 // Kontur
                 mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
                 // AnchorPoints
-                mit_allen_gleisen!(zeichne_alle_anchor_points, has_other_id_at_point, is_grabbed);
+                mit_allen_gleisen!(
+                    zeichne_alle_anchor_points,
+                    has_other_and_grabbed_id_at_point,
+                    &is_grabbed
+                );
                 // Beschreibung
                 mit_allen_gleisen!(schreibe_alle_beschreibungen);
             },
@@ -432,7 +441,6 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 iced::mouse::Button::Left,
             )) if cursor.is_over(&bounds) => {
                 // TODO store bounding box in rtree as well, to avoid searching everything stored?
-                // TODO actually find the clicked gleis
                 if let Some(in_pos) = cursor.position_in(&bounds) {
                     let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
@@ -469,7 +477,64 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if self.grabbed.is_some() {
+                if let Some(Grabbed { gleis_id, .. }) = &self.grabbed {
+                    macro_rules! snap_to_anchor {
+                        ($gleis_id: expr, $map: expr) => {{
+                            let Gleis { definition, position } =
+                                $map.get(&$gleis_id).expect("failed to lookup grabbed Gleis");
+                            // calculate absolute position for AnchorPoints
+                            let anchor_points = definition.anchor_points().map(
+                                |&anchor::Anchor { position: anchor_position, direction }| {
+                                    anchor::Anchor {
+                                        position: position.transformation(anchor_position),
+                                        direction: position.rotation(direction),
+                                    }
+                                },
+                            );
+                            let mut snap = None;
+                            anchor_points.foreach(|anchor_name, anchor| {
+                                if snap.is_none() {
+                                    snap = self
+                                        .anchor_points
+                                        .get_other_id_at_point($gleis_id.as_any(), anchor)
+                                        .map(|snap_anchor| (anchor_name, snap_anchor))
+                                }
+                            });
+                            if let Some((snap_name, snap_anchor)) = snap {
+                                self.relocate_attach(&$gleis_id, snap_name, snap_anchor);
+                            }
+                        }};
+                    }
+                    match gleis_id {
+                        AnyId::Gerade(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.geraden)
+                        }
+                        AnyId::Kurve(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.kurven)
+                        }
+                        AnyId::Weiche(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.weichen)
+                        }
+                        AnyId::DreiwegeWeiche(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.dreiwege_weichen)
+                        }
+                        AnyId::KurvenWeiche(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.kurven_weichen)
+                        }
+                        AnyId::SKurvenWeiche(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.s_kurven_weichen)
+                        }
+                        AnyId::Kreuzung(gleis_id) => {
+                            let gleis_id_clone = gleis_id.clone();
+                            snap_to_anchor!(gleis_id_clone, self.kreuzungen)
+                        }
+                    }
                     self.grabbed = None;
                     iced::canvas::event::Status::Captured
                 } else {
@@ -584,8 +649,9 @@ impl<Z: Zugtyp> Gleise<Z> {
         // increase next id
         self.next_id += 1;
         // add to anchor_points
-        anchor_points
-            .foreach(|anchor| self.anchor_points.insert(GleisId::new(gleis_id), anchor.clone()));
+        anchor_points.foreach(|_name, anchor| {
+            self.anchor_points.insert(GleisId::new(gleis_id), anchor.clone())
+        });
         // add to HashMap
         T::get_map_mut(self).insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
@@ -644,12 +710,12 @@ impl<Z: Zugtyp> Gleise<Z> {
         // store new position
         *position = position_neu;
         // delete old from anchor_points
-        anchor_points.foreach(|anchor| {
+        anchor_points.foreach(|_name, anchor| {
             self.anchor_points.remove(gleis_id.as_any(), &anchor);
         });
         // add new to anchor_points
         anchor_points_neu
-            .foreach(|anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
+            .foreach(|_name, anchor| self.anchor_points.insert(gleis_id.as_any(), anchor.clone()));
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -695,7 +761,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .remove(gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
-            definition.anchor_points().foreach(|anchor| {
+            definition.anchor_points().foreach(|_name, anchor| {
                 self.anchor_points.remove(
                     gleis_id.as_any(),
                     &anchor::Anchor {

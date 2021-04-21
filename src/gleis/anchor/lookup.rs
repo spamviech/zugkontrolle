@@ -10,7 +10,7 @@ pub trait Lookup<AnchorName> {
     /// failure-free mutable lookup for a specific /Anchor/.
     fn get_mut(&mut self, key: AnchorName) -> &mut Anchor;
     /// Perform action for all /Anchor/s.
-    fn foreach<F: FnMut(&Anchor)>(&self, action: F);
+    fn foreach<F: FnMut(AnchorName, &Anchor)>(&self, action: F);
     /// Adjust all /Anchor/s.
     fn map<F: Fn(&Anchor) -> Anchor>(&self, action: F) -> Self;
 }

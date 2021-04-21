@@ -190,8 +190,8 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
                         #(#enum_name::#enum_variants => &mut self.#struct_fields),*
                     }
                 }
-                fn foreach<F: FnMut(&#base_ident::gleis::anchor::Anchor)>(&self, mut action: F) {
-                    #(action(&self.#struct_fields));*
+                fn foreach<F: FnMut(#enum_name, &#base_ident::gleis::anchor::Anchor)>(&self, mut action: F) {
+                    #(action(#enum_name::#enum_variants, &self.#struct_fields));*
                 }
                 fn map<F: Fn(&#base_ident::gleis::anchor::Anchor)->#base_ident::gleis::anchor::Anchor>(&self, mut action: F) -> Self {
                     #struct_name {
