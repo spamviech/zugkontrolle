@@ -511,17 +511,19 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
                         ($map:expr, AnyId::$konstruktor:ident) => {
-                            for (gleis_id, Gleis { definition, position }) in $map.iter() {
-                                let relative_pos = canvas::Vector::from(
-                                    canvas_pos - canvas::Vector::from(position.point),
-                                );
-                                let rotated_pos = relative_pos.rotate(-position.winkel);
-                                if definition.innerhalb(rotated_pos) {
-                                    self.grabbed = Some(Grabbed {
-                                        gleis_id: AnyId::$konstruktor(gleis_id.clone()),
-                                        grab_location: relative_pos,
-                                    });
-                                    break;
+                            if self.grabbed.is_none() {
+                                for (gleis_id, Gleis { definition, position }) in $map.iter() {
+                                    let relative_pos = canvas::Vector::from(
+                                        canvas_pos - canvas::Vector::from(position.point),
+                                    );
+                                    let rotated_pos = relative_pos.rotate(-position.winkel);
+                                    if definition.innerhalb(rotated_pos) {
+                                        self.grabbed = Some(Grabbed {
+                                            gleis_id: AnyId::$konstruktor(gleis_id.clone()),
+                                            grab_location: relative_pos,
+                                        });
+                                        break;
+                                    }
                                 }
                             }
                         };
