@@ -7,7 +7,13 @@ use super::kreuzung::{self, Kreuzung};
 use super::kurve::Kurve;
 use super::types::*;
 use super::weiche::{self, SKurvenWeiche};
-use crate::zugtyp::Lego;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Lego;
+impl Zugtyp for Lego {
+    #[allow(non_upper_case_globals)]
+    const SPURWEITE: Spurweite = Spurweite(38.);
+}
 
 /*
 https://blaulicht-schiene.jimdofree.com/projekte/lego-daten/

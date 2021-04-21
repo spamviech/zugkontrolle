@@ -5,12 +5,10 @@ use std::fmt::Debug;
 use iced::{Application, Clipboard, Command, Container, Element, Length, Settings};
 use simple_logger::SimpleLogger;
 
-use zugkontrolle::gleis::anchor;
 use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::widget::{Gleis, GleisIdLock, Gleise, GleiseMap};
-use zugkontrolle::gleis::{gerade, kurve};
-use zugkontrolle::gleis::{lego, maerklin};
-use zugkontrolle::zugtyp::{Lego, Maerklin};
+use zugkontrolle::gleis::{anchor, gerade, kurve};
+use zugkontrolle::gleis::{lego, lego::Lego, maerklin, maerklin::Maerklin};
 
 struct AppendGleise<'t, Z> {
     gleise: &'t mut Gleise<Z>,
