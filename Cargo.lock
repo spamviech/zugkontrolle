@@ -72,12 +72,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arducam_mipicamera"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3ef0470978f86d5ac261e807e1ff6cd0f84dc2e9ce4f9b3d61ef21b03f482b1"
-
-[[package]]
 name = "argh"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2378,6 +2372,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24d5f089152e60f62d28b835fbff2cd2e8dc0baf1ac13343bef92ab7eed84548"
 
 [[package]]
+name = "rppal"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb26758c881b4837b2f4aef569e4251f75388e36b37204e1804ef429c220121c"
+dependencies = [
+ "lazy_static",
+ "libc",
+]
+
+[[package]]
 name = "rstar"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2400,12 +2404,6 @@ dependencies = [
  "constant_time_eq",
  "crossbeam-utils",
 ]
-
-[[package]]
-name = "rust-pigpio"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e42cf7e4445497bbdcf7e8a6cdef2b51c51f95c2c8744c934d029a1719c77f8"
 
 [[package]]
 name = "rustc-hash"
@@ -3258,13 +3256,12 @@ checksum = "b07db065a5cf61a7e4ba64f29e67db906fb1787316516c4e6e5ff0fea1efcd8a"
 name = "zugkontrolle"
 version = "2.0.0"
 dependencies = [
- "arducam_mipicamera",
  "argh",
  "bincode",
  "iced",
  "log",
+ "rppal",
  "rstar",
- "rust-pigpio",
  "serde",
  "simple_logger",
  "take_mut",
