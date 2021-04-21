@@ -75,80 +75,58 @@ pub struct Gleis<T> {
     pub position: canvas::Position,
 }
 
-enum Grabbed<Z> {
-    Gerade { gleis_id: GleisId<Gerade<Z>>, grab_location: canvas::Vector },
-    Kurve { gleis_id: GleisId<Kurve<Z>>, grab_location: canvas::Vector },
-    Weiche { gleis_id: GleisId<Weiche<Z>>, grab_location: canvas::Vector },
-    DreiwegeWeiche { gleis_id: GleisId<DreiwegeWeiche<Z>>, grab_location: canvas::Vector },
-    KurvenWeiche { gleis_id: GleisId<KurvenWeiche<Z>>, grab_location: canvas::Vector },
-    SKurvenWeiche { gleis_id: GleisId<SKurvenWeiche<Z>>, grab_location: canvas::Vector },
-    Kreuzung { gleis_id: GleisId<Kreuzung<Z>>, grab_location: canvas::Vector },
+#[derive(zugkontrolle_derive::Debug)]
+struct Grabbed<Z> {
+    gleis_id: AnyId<Z>,
+    grab_location: canvas::Vector,
 }
-impl<Z> Grabbed<Z> {
+enum AnyId<Z> {
+    Gerade(GleisId<Gerade<Z>>),
+    Kurve(GleisId<Kurve<Z>>),
+    Weiche(GleisId<Weiche<Z>>),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>),
+    KurvenWeiche(GleisId<KurvenWeiche<Z>>),
+    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
+    Kreuzung(GleisId<Kreuzung<Z>>),
+}
+impl<Z> AnyId<Z> {
     fn id_as_any(&self) -> GleisId<Any> {
         match self {
-            Grabbed::Gerade { gleis_id, .. } => gleis_id.as_any(),
-            Grabbed::Kurve { gleis_id, .. } => gleis_id.as_any(),
-            Grabbed::Weiche { gleis_id, .. } => gleis_id.as_any(),
-            Grabbed::DreiwegeWeiche { gleis_id, .. } => gleis_id.as_any(),
-            Grabbed::KurvenWeiche { gleis_id, .. } => gleis_id.as_any(),
-            Grabbed::SKurvenWeiche { gleis_id, .. } => gleis_id.as_any(),
-            Grabbed::Kreuzung { gleis_id, .. } => gleis_id.as_any(),
-        }
-    }
-    fn grab_location(&self) -> &canvas::Vector {
-        match self {
-            Grabbed::Gerade { grab_location, .. } => grab_location,
-            Grabbed::Kurve { grab_location, .. } => grab_location,
-            Grabbed::Weiche { grab_location, .. } => grab_location,
-            Grabbed::DreiwegeWeiche { grab_location, .. } => grab_location,
-            Grabbed::KurvenWeiche { grab_location, .. } => grab_location,
-            Grabbed::SKurvenWeiche { grab_location, .. } => grab_location,
-            Grabbed::Kreuzung { grab_location, .. } => grab_location,
+            AnyId::Gerade(gleis_id) => gleis_id.as_any(),
+            AnyId::Kurve(gleis_id) => gleis_id.as_any(),
+            AnyId::Weiche(gleis_id) => gleis_id.as_any(),
+            AnyId::DreiwegeWeiche(gleis_id) => gleis_id.as_any(),
+            AnyId::KurvenWeiche(gleis_id) => gleis_id.as_any(),
+            AnyId::SKurvenWeiche(gleis_id) => gleis_id.as_any(),
+            AnyId::Kreuzung(gleis_id) => gleis_id.as_any(),
         }
     }
 }
 
-impl<Z> std::fmt::Debug for Grabbed<Z> {
+impl<Z> std::fmt::Debug for AnyId<Z> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Grabbed::")?;
         match self {
-            Grabbed::Gerade { gleis_id, grab_location } => {
-                write!(f, "Gerade {{gleis_id: {:?}, grab_location: {:?}}}", gleis_id, grab_location)
+            AnyId::Gerade(gleis_id) => {
+                write!(f, "Gerade({:?})", gleis_id)
             }
-            Grabbed::Kurve { gleis_id, grab_location } => {
-                write!(f, "Kurve {{gleis_id: {:?}, grab_location: {:?}}}", gleis_id, grab_location)
+            AnyId::Kurve(gleis_id) => {
+                write!(f, "Kurve({:?})", gleis_id)
             }
-            Grabbed::Weiche { gleis_id, grab_location } => {
-                write!(f, "Weiche {{gleis_id: {:?}, grab_location: {:?}}}", gleis_id, grab_location)
+            AnyId::Weiche(gleis_id) => {
+                write!(f, "Weiche({:?})", gleis_id)
             }
-            Grabbed::DreiwegeWeiche { gleis_id, grab_location } => {
-                write!(
-                    f,
-                    "DreiwegeWeiche {{gleis_id: {:?}, grab_location: {:?}}}",
-                    gleis_id, grab_location
-                )
+            AnyId::DreiwegeWeiche(gleis_id) => {
+                write!(f, "DreiwegeWeiche({:?})", gleis_id)
             }
-            Grabbed::KurvenWeiche { gleis_id, grab_location } => {
-                write!(
-                    f,
-                    "KurvenWeiche {{gleis_id: {:?}, grab_location: {:?}}}",
-                    gleis_id, grab_location
-                )
+            AnyId::KurvenWeiche(gleis_id) => {
+                write!(f, "KurvenWeiche({:?})", gleis_id)
             }
-            Grabbed::SKurvenWeiche { gleis_id, grab_location } => {
-                write!(
-                    f,
-                    "SKurvenWeiche {{gleis_id: {:?}, grab_location: {:?}}}",
-                    gleis_id, grab_location
-                )
+            AnyId::SKurvenWeiche(gleis_id) => {
+                write!(f, "SKurvenWeiche({:?})", gleis_id)
             }
-            Grabbed::Kreuzung { gleis_id, grab_location } => {
-                write!(
-                    f,
-                    "Kreuzung {{gleis_id: {:?}, grab_location: {:?}}}",
-                    gleis_id, grab_location
-                )
+            AnyId::Kreuzung(gleis_id) => {
+                write!(f, "Kreuzung({:?})", gleis_id)
             }
         }
     }
@@ -410,9 +388,9 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             |frame| {
                 // TODO don't draw out of bound Gleise
                 // Zeichne Gleise
-                let is_grabbed = |gleis_id| {
-                    if let Some(grabbed) = grabbed {
-                        gleis_id == grabbed.id_as_any()
+                let is_grabbed = |parameter_id| {
+                    if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                        parameter_id == gleis_id.id_as_any()
                     } else {
                         false
                     }
@@ -458,15 +436,15 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 if let Some(in_pos) = cursor.position_in(&bounds) {
                     let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
-                        ($map:expr, Grabbed::$konstruktor:ident) => {
+                        ($map:expr, AnyId::$konstruktor:ident) => {
                             for (gleis_id, Gleis { definition, position }) in $map.iter() {
                                 let relative_pos = canvas::Vector::from(
                                     canvas_pos - canvas::Vector::from(position.point),
                                 );
                                 let rotated_pos = relative_pos.rotate(-position.winkel);
                                 if definition.innerhalb(rotated_pos) {
-                                    self.grabbed = Some(Grabbed::$konstruktor {
-                                        gleis_id: gleis_id.clone(),
+                                    self.grabbed = Some(Grabbed {
+                                        gleis_id: AnyId::$konstruktor(gleis_id.clone()),
                                         grab_location: relative_pos,
                                     });
                                     break;
@@ -474,13 +452,13 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                             }
                         };
                     }
-                    find_clicked!(self.geraden, Grabbed::Gerade);
-                    find_clicked!(self.kurven, Grabbed::Kurve);
-                    find_clicked!(self.weichen, Grabbed::Weiche);
-                    find_clicked!(self.dreiwege_weichen, Grabbed::DreiwegeWeiche);
-                    find_clicked!(self.kurven_weichen, Grabbed::KurvenWeiche);
-                    find_clicked!(self.s_kurven_weichen, Grabbed::SKurvenWeiche);
-                    find_clicked!(self.kreuzungen, Grabbed::Kreuzung);
+                    find_clicked!(self.geraden, AnyId::Gerade);
+                    find_clicked!(self.kurven, AnyId::Kurve);
+                    find_clicked!(self.weichen, AnyId::Weiche);
+                    find_clicked!(self.dreiwege_weichen, AnyId::DreiwegeWeiche);
+                    find_clicked!(self.kurven_weichen, AnyId::KurvenWeiche);
+                    find_clicked!(self.s_kurven_weichen, AnyId::SKurvenWeiche);
+                    find_clicked!(self.kreuzungen, AnyId::Kreuzung);
                 }
                 if self.grabbed.is_some() {
                     iced::canvas::event::Status::Captured
@@ -501,10 +479,10 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ })
                 if cursor.is_over(&bounds) =>
             {
-                if let Some(grabbed) = &self.grabbed {
+                if let Some(Grabbed { gleis_id, grab_location }) = &self.grabbed {
                     if let Some(in_pos) = cursor.position_in(&bounds) {
                         let point = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
-                            - grabbed.grab_location();
+                            - grab_location;
                         macro_rules! relocate_grabbed {
                             ($gleis_id: expr, $map: expr) => {{
                                 let Gleis { position, .. } =
@@ -514,33 +492,33 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                                 self.relocate(&$gleis_id, position_neu);
                             }};
                         }
-                        match grabbed {
-                            Grabbed::Gerade { gleis_id, .. } => {
+                        match gleis_id {
+                            AnyId::Gerade(gleis_id) => {
                                 // create clone, so borrow to self can end
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.geraden)
                             }
-                            Grabbed::Kurve { gleis_id, .. } => {
+                            AnyId::Kurve(gleis_id) => {
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.kurven)
                             }
-                            Grabbed::Weiche { gleis_id, .. } => {
+                            AnyId::Weiche(gleis_id) => {
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.weichen)
                             }
-                            Grabbed::DreiwegeWeiche { gleis_id, .. } => {
+                            AnyId::DreiwegeWeiche(gleis_id) => {
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.dreiwege_weichen)
                             }
-                            Grabbed::KurvenWeiche { gleis_id, .. } => {
+                            AnyId::KurvenWeiche(gleis_id) => {
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.kurven_weichen)
                             }
-                            Grabbed::SKurvenWeiche { gleis_id, .. } => {
+                            AnyId::SKurvenWeiche(gleis_id) => {
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.s_kurven_weichen)
                             }
-                            Grabbed::Kreuzung { gleis_id, .. } => {
+                            AnyId::Kreuzung(gleis_id) => {
                                 let gleis_id_clone = gleis_id.clone();
                                 relocate_grabbed!(gleis_id_clone, self.kreuzungen)
                             }
