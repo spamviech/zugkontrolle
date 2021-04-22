@@ -7,6 +7,7 @@ use std::marker::PhantomData;
 use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use log::*;
+use serde::{Deserialize, Serialize};
 
 use super::anchor::{self, Lookup};
 use super::gerade::Gerade;
@@ -39,7 +40,7 @@ pub(crate) struct Any;
 /// Identifier for a Gleis.  Will probably change between restarts.
 ///
 /// The API will only provide &GleisIdLock<Z>.
-#[derive(zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct GleisId<T>(u64, PhantomData<*const T>);
 impl<T> GleisId<T> {
     pub fn new(gleis_id: u64) -> Self {
@@ -69,7 +70,7 @@ impl<T> Hash for GleisId<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
     pub definition: T,
     pub position: canvas::Position,
@@ -166,10 +167,8 @@ impl<Z> std::fmt::Debug for AnyId<Z> {
     }
 }
 
-/// Anzeige aller Gleise.
-#[derive(zugkontrolle_derive::Debug)]
-pub struct Gleise<Z> {
-    canvas: canvas::Cache,
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+pub struct GleiseMaps<Z> {
     geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
     kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
     kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,
@@ -177,6 +176,66 @@ pub struct Gleise<Z> {
     dreiwege_weichen: HashMap<GleisId<DreiwegeWeiche<Z>>, Gleis<DreiwegeWeiche<Z>>>,
     kurven_weichen: HashMap<GleisId<KurvenWeiche<Z>>, Gleis<KurvenWeiche<Z>>>,
     s_kurven_weichen: HashMap<GleisId<SKurvenWeiche<Z>>, Gleis<SKurvenWeiche<Z>>>,
+}
+
+pub trait GleiseMap<Z>: Sized {
+    fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut HashMap<GleisId<Self>, Gleis<Self>>;
+}
+impl<Z> GleiseMap<Z> for Gerade<Z> {
+    fn get_map_mut(
+        GleiseMaps { geraden, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        geraden
+    }
+}
+impl<Z> GleiseMap<Z> for Kurve<Z> {
+    fn get_map_mut(
+        GleiseMaps { kurven, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        kurven
+    }
+}
+impl<Z> GleiseMap<Z> for Weiche<Z> {
+    fn get_map_mut(
+        GleiseMaps { weichen, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        weichen
+    }
+}
+impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
+    fn get_map_mut(
+        GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        kurven_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
+    fn get_map_mut(
+        GleiseMaps { dreiwege_weichen, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        dreiwege_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
+    fn get_map_mut(
+        GleiseMaps { s_kurven_weichen, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        s_kurven_weichen
+    }
+}
+impl<Z> GleiseMap<Z> for Kreuzung<Z> {
+    fn get_map_mut(
+        GleiseMaps { kreuzungen, .. }: &mut GleiseMaps<Z>,
+    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+        kreuzungen
+    }
+}
+
+/// Anzeige aller Gleise.
+#[derive(zugkontrolle_derive::Debug)]
+pub struct Gleise<Z> {
+    canvas: canvas::Cache,
+    maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
     grabbed: Option<Grabbed<Z>>,
@@ -186,13 +245,15 @@ impl<Z> Gleise<Z> {
     pub fn new() -> Self {
         Gleise {
             canvas: canvas::Cache::new(),
-            geraden: HashMap::new(),
-            kurven: HashMap::new(),
-            weichen: HashMap::new(),
-            kurven_weichen: HashMap::new(),
-            dreiwege_weichen: HashMap::new(),
-            s_kurven_weichen: HashMap::new(),
-            kreuzungen: HashMap::new(),
+            maps: GleiseMaps {
+                geraden: HashMap::new(),
+                kurven: HashMap::new(),
+                weichen: HashMap::new(),
+                kurven_weichen: HashMap::new(),
+                dreiwege_weichen: HashMap::new(),
+                s_kurven_weichen: HashMap::new(),
+                kreuzungen: HashMap::new(),
+            },
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
             grabbed: None,
@@ -204,59 +265,6 @@ impl<Z> Gleise<Z> {
         // increase next id
         self.next_id += 1;
         (gleis_id, gleis_id_lock)
-    }
-}
-
-pub trait GleiseMap<Z>: Sized {
-    fn get_map_mut(gleise: &mut Gleise<Z>) -> &mut HashMap<GleisId<Self>, Gleis<Self>>;
-}
-impl<Z> GleiseMap<Z> for Gerade<Z> {
-    fn get_map_mut(
-        Gleise { geraden, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        geraden
-    }
-}
-impl<Z> GleiseMap<Z> for Kurve<Z> {
-    fn get_map_mut(
-        Gleise { kurven, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        kurven
-    }
-}
-impl<Z> GleiseMap<Z> for Weiche<Z> {
-    fn get_map_mut(
-        Gleise { weichen, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        weichen
-    }
-}
-impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
-    fn get_map_mut(
-        Gleise { kurven_weichen, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        kurven_weichen
-    }
-}
-impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
-    fn get_map_mut(
-        Gleise { dreiwege_weichen, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        dreiwege_weichen
-    }
-}
-impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
-    fn get_map_mut(
-        Gleise { s_kurven_weichen, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        s_kurven_weichen
-    }
-}
-impl<Z> GleiseMap<Z> for Kreuzung<Z> {
-    fn get_map_mut(
-        Gleise { kreuzungen, .. }: &mut Gleise<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        kreuzungen
     }
 }
 
@@ -402,7 +410,7 @@ fn relocate_grabbed<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
     point: canvas::Point,
 ) {
     let Gleis { position, .. } =
-        T::get_map_mut(gleise).get(&gleis_id).expect("grabbed a non-existing gleis");
+        T::get_map_mut(&mut gleise.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
     let position_neu = canvas::Position { point, winkel: position.winkel };
     gleise.relocate(&gleis_id, position_neu);
 }
@@ -411,7 +419,7 @@ fn snap_to_anchor<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
     gleise: &mut Gleise<Z>,
 ) {
     let Gleis { definition, position } =
-        T::get_map_mut(gleise).get(&gleis_id).expect("failed to lookup grabbed Gleis");
+        T::get_map_mut(&mut gleise.maps).get(&gleis_id).expect("failed to lookup grabbed Gleis");
     // calculate absolute position for AnchorPoints
     let anchor_points = definition.anchor_points().map(
         |&anchor::Anchor { position: anchor_position, direction }| anchor::Anchor {
@@ -440,13 +448,16 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
     ) -> Vec<iced::canvas::Geometry> {
         let Gleise {
             canvas,
-            geraden,
-            kurven,
-            weichen,
-            kurven_weichen,
-            dreiwege_weichen,
-            s_kurven_weichen,
-            kreuzungen,
+            maps:
+                GleiseMaps {
+                    geraden,
+                    kurven,
+                    weichen,
+                    kurven_weichen,
+                    dreiwege_weichen,
+                    s_kurven_weichen,
+                    kreuzungen,
+                },
             anchor_points,
             grabbed,
             ..
@@ -532,13 +543,13 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                             }
                         };
                     }
-                    find_clicked!(self.geraden, AnyId::Gerade);
-                    find_clicked!(self.kurven, AnyId::Kurve);
-                    find_clicked!(self.weichen, AnyId::Weiche);
-                    find_clicked!(self.dreiwege_weichen, AnyId::DreiwegeWeiche);
-                    find_clicked!(self.kurven_weichen, AnyId::KurvenWeiche);
-                    find_clicked!(self.s_kurven_weichen, AnyId::SKurvenWeiche);
-                    find_clicked!(self.kreuzungen, AnyId::Kreuzung);
+                    find_clicked!(self.maps.geraden, AnyId::Gerade);
+                    find_clicked!(self.maps.kurven, AnyId::Kurve);
+                    find_clicked!(self.maps.weichen, AnyId::Weiche);
+                    find_clicked!(self.maps.dreiwege_weichen, AnyId::DreiwegeWeiche);
+                    find_clicked!(self.maps.kurven_weichen, AnyId::KurvenWeiche);
+                    find_clicked!(self.maps.s_kurven_weichen, AnyId::SKurvenWeiche);
+                    find_clicked!(self.maps.kreuzungen, AnyId::Kreuzung);
                 }
                 if self.grabbed.is_some() {
                     iced::canvas::event::Status::Captured
@@ -630,7 +641,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             self.anchor_points.insert(GleisId::new(gleis_id), anchor.clone())
         });
         // add to HashMap
-        T::get_map_mut(self).insert(GleisId::new(gleis_id), gleis);
+        T::get_map_mut(&mut self.maps).insert(GleisId::new(gleis_id), gleis);
         // trigger redraw
         self.canvas.clear();
         // return value
@@ -667,7 +678,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let Gleis { definition, position } = T::get_map_mut(self)
+        let Gleis { definition, position } = T::get_map_mut(&mut self.maps)
             .get_mut(&gleis_id)
             .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
         // calculate absolute position for current AnchorPoints
@@ -711,7 +722,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let position = {
-            let Gleis { definition, .. } = T::get_map_mut(self)
+            let Gleis { definition, .. } = T::get_map_mut(&mut self.maps)
                 .get(&gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             canvas::Position::attach_position(definition, anchor_name, target_anchor_point)
@@ -734,7 +745,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         let mut optional_id = gleis_id_lock.write();
         // only delete once
         if let Some(gleis_id) = optional_id.as_ref() {
-            let Gleis { definition, position } = T::get_map_mut(self)
+            let Gleis { definition, position } = T::get_map_mut(&mut self.maps)
                 .remove(gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points

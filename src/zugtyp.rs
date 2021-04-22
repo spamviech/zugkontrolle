@@ -21,17 +21,6 @@ pub struct Spurweite(pub f32);
 pub trait Zugtyp: Sized {
     /// Spurweite in mm.
     const SPURWEITE: Spurweite;
-    /// Mögliche Geschwindigkeitswerte
-    type Geschwindigkeit;
-    /// Anschluss zur Geschwindigkeitskontrolle
-    type GeschwindigkeitsAnschluss;
-    /// Einstellen der Geschwindigkeit
-    fn geschwindigkeit(
-        anschluss: &mut Self::GeschwindigkeitsAnschluss,
-        wert: Self::Geschwindigkeit,
-    );
-    /// Umdrehen
-    fn umdrehen(anschluss: &mut Self::GeschwindigkeitsAnschluss);
 
     fn geraden() -> Vec<Gerade<Self>>;
     fn kurven() -> Vec<Kurve<Self>>;
@@ -40,4 +29,18 @@ pub trait Zugtyp: Sized {
     fn kurven_weichen() -> Vec<KurvenWeiche<Self>>;
     fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>>;
     fn kreuzungen() -> Vec<Kreuzung<Self>>;
+}
+
+// TODO vermutlich nur 2 Varianten, evtl. besser Methoden zu verwenden.
+pub trait Geschwindigkeit {
+    /// Mögliche Geschwindigkeitswerte
+    type Wert;
+    /// Anschluss/Anschlüsse zur Geschwindigkeitskontrolle
+    type Anschluss;
+    /// Einstellen der Geschwindigkeit
+    fn geschwindigkeit(anschluss: &mut Self::Anschluss, wert: Self::Wert);
+    // Fahrtrichtung (falls vorhanden)
+    type Fahrtrichtung;
+    /// Umdrehen
+    fn umdrehen(anschluss: &mut Self::Anschluss, fahrtrichtung: Self::Fahrtrichtung);
 }

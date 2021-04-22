@@ -1,12 +1,15 @@
 //! Koordinaten auf einem iced::canvas::Frame
 
+use std::convert::From;
+use std::marker::PhantomData;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-use std::{convert::From, marker::PhantomData};
+
+use serde::{Deserialize, Serialize};
 
 use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 
 /// Horizontale Koordinate auf einem Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct X(pub f32);
 impl X {
     pub fn to_abstand(self) -> Abstand<X> {
@@ -52,7 +55,7 @@ impl Neg for X {
     }
 }
 /// Vertikale Koordinate auf einem Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct Y(pub f32);
 impl Y {
     pub fn to_abstand(self) -> Abstand<Y> {
@@ -98,7 +101,7 @@ impl Neg for Y {
     }
 }
 /// Radius auf einem Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct Radius(pub f32);
 impl Radius {
     pub fn to_abstand(self) -> Abstand<Radius> {
@@ -137,7 +140,7 @@ impl SubAssign<Abstand<Radius>> for Radius {
     }
 }
 /// Abstand/Länge auf einem Canvas
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct Abstand<T>(f32, PhantomData<*const T>);
 impl<T> Abstand<T> {
     const fn new_from_mm(abstand_mm: f32) -> Self {
@@ -246,7 +249,7 @@ impl mm::Radius {
 }
 
 /// Coordinate type safe variant of /iced::Point/
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Point {
     pub x: X,
     pub y: Y,
@@ -263,7 +266,7 @@ impl From<Point> for iced::Point {
 }
 
 /// Coordinate type safe variant of /iced::Size/
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Size {
     pub width: Abstand<X>,
     pub height: Abstand<Y>,
@@ -280,7 +283,7 @@ impl From<Size> for iced::Size<f32> {
 }
 
 /// Coordinate type safe variant of /iced::Vector/
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub struct Vector {
     pub dx: Abstand<X>,
     pub dy: Abstand<Y>,
@@ -570,7 +573,7 @@ impl From<Arc> for iced::canvas::path::Arc {
 }
 
 /// Position eines Gleises/Textes auf der Canvas
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub point: Point,
     pub winkel: Angle,

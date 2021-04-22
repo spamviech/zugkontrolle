@@ -1,6 +1,10 @@
+//! Winkel in Bogen- und Gradmaß
+
 use std::cmp::Ordering;
 use std::convert::From;
 use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
+
+use serde::{Deserialize, Serialize};
 
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
@@ -14,7 +18,7 @@ pub trait Trigonometrie {
 }
 
 /// Winkel \[Bogenmaß\]
-#[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
+#[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Angle(pub(crate) f32);
 
 impl Angle {

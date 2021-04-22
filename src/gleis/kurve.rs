@@ -9,6 +9,8 @@
 use std::f32::consts::PI;
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use super::anchor;
 use super::types::*;
 
@@ -16,12 +18,12 @@ use super::types::*;
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kurve<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
-    pub beschreibung: Option<&'static str>,
+    pub beschreibung: Option<String>,
 }
 impl<Z> Kurve<Z> {
     pub const fn new(radius: Radius, angle: Angle) -> Self {
@@ -32,16 +34,16 @@ impl<Z> Kurve<Z> {
             beschreibung: None,
         }
     }
-    pub const fn new_with_description(
+    pub fn new_with_description(
         radius: Radius,
         angle: Angle,
-        description: &'static str,
+        description: impl Into<String>,
     ) -> Self {
         Kurve {
             zugtyp: PhantomData,
             radius: radius.to_abstand(),
             winkel: angle,
-            beschreibung: Some(description),
+            beschreibung: Some(description.into()),
         }
     }
 }
@@ -81,8 +83,8 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         )]
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
-        self.beschreibung.map(|text| {
+    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+        self.beschreibung.as_ref().map(|text| {
             let half_angle = 0.5 * self.winkel;
             (
                 canvas::Position {

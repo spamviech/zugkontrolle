@@ -8,6 +8,8 @@
 
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use crate::gleis::types::*;
 use crate::gleis::{anchor, gerade, kurve};
 
@@ -15,13 +17,13 @@ use crate::gleis::{anchor, gerade, kurve};
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct DreiwegeWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub laenge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
-    pub beschreibung: Option<&'static str>,
+    pub beschreibung: Option<String>,
 }
 impl<Z> DreiwegeWeiche<Z> {
     pub const fn new(length: Length, radius: Radius, angle: Angle) -> Self {
@@ -33,18 +35,18 @@ impl<Z> DreiwegeWeiche<Z> {
             beschreibung: None,
         }
     }
-    pub const fn new_with_description(
+    pub fn new_with_description(
         length: Length,
         radius: Radius,
         angle: Angle,
-        description: &'static str,
+        description: impl Into<String>,
     ) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
             laenge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
-            beschreibung: Some(description),
+            beschreibung: Some(description.into()),
         }
     }
 }
@@ -152,8 +154,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
-        self.beschreibung.map(|text| {
+    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+        self.beschreibung.as_ref().map(|text| {
             let start_x: canvas::X = canvas::X(0.);
             let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
             let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();

@@ -9,22 +9,28 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use super::anchor;
 use super::types::*;
 
 /// Definition einer Gerade
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Gerade<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub laenge: canvas::Abstand<canvas::X>,
-    pub beschreibung: Option<&'static str>,
+    pub beschreibung: Option<String>,
 }
 impl<Z> Gerade<Z> {
     pub const fn new(length: Length) -> Self {
         Gerade { zugtyp: PhantomData, laenge: length.to_abstand(), beschreibung: None }
     }
-    pub const fn new_with_description(length: Length, description: &'static str) -> Self {
-        Gerade { zugtyp: PhantomData, laenge: length.to_abstand(), beschreibung: Some(description) }
+    pub fn new_with_description(length: Length, description: impl Into<String>) -> Self {
+        Gerade {
+            zugtyp: PhantomData,
+            laenge: length.to_abstand(),
+            beschreibung: Some(description.into()),
+        }
     }
 }
 
@@ -56,8 +62,8 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         vec![fuelle(self.zugtyp, self.laenge, Vec::new(), canvas::PathBuilder::with_normal_axis)]
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
-        self.beschreibung.map(|text| {
+    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+        self.beschreibung.as_ref().map(|text| {
             (
                 canvas::Position {
                     point: canvas::Point::new(

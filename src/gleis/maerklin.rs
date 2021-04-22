@@ -16,57 +16,53 @@ use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Maerklin;
 impl Zugtyp for Maerklin {
-    #[allow(non_upper_case_globals)]
     const SPURWEITE: Spurweite = Spurweite(16.5);
-
-    type Geschwindigkeit = f32;
-    type GeschwindigkeitsAnschluss = Anschluss;
-    fn geschwindigkeit(
-        anschluss: &mut Self::GeschwindigkeitsAnschluss,
-        wert: Self::Geschwindigkeit,
-    ) {
-    }
-    fn umdrehen(anschluss: &mut Self::GeschwindigkeitsAnschluss) {}
 
     fn geraden() -> Vec<Gerade<Self>> {
         vec![
-            GERADE_5106,
-            GERADE_5107,
-            GERADE_5108,
-            GERADE_5109,
-            GERADE_5110,
-            GERADE_5129,
-            GERADE_5208,
-            GERADE_5210,
+            gerade_5106(),
+            gerade_5107(),
+            gerade_5108(),
+            gerade_5109(),
+            gerade_5110(),
+            gerade_5129(),
+            gerade_5208(),
+            gerade_5210(),
         ]
     }
     fn kurven() -> Vec<Kurve<Self>> {
         vec![
-            KURVE_5100, KURVE_5101, KURVE_5102, KURVE_5120, KURVE_5200, KURVE_5201, KURVE_5205,
-            KURVE_5206,
+            kurve_5100(),
+            kurve_5101(),
+            kurve_5102(),
+            kurve_5120(),
+            kurve_5200(),
+            kurve_5201(),
+            kurve_5205(),
+            kurve_5206(),
         ]
     }
     fn weichen() -> Vec<Weiche<Self>> {
         vec![
-            WEICHE_5117_LINKS,
-            WEICHE_5117_RECHTS,
-            WEICHE_5137_LINKS,
-            WEICHE_5137_RECHTS,
-            WEICHE_5202_LINKS,
-            WEICHE_5202_RECHTS,
+            weiche_5117_links(),
+            weiche_5117_rechts(),
+            weiche_5137_links(),
+            weiche_5137_rechts(),
+            weiche_5202_links(),
+            weiche_5202_rechts(),
         ]
     }
     fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>> {
-        vec![DREIWEGE_WEICHE_5214]
+        vec![dreiwege_weiche_5214()]
     }
     fn kurven_weichen() -> Vec<KurvenWeiche<Self>> {
-        vec![KURVEN_WEICHE_5140_LINKS, KURVEN_WEICHE_5140_RECHTS]
+        vec![kurven_weiche_5140_links(), kurven_weiche_5140_rechts()]
     }
     fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
         vec![]
     }
     fn kreuzungen() -> Vec<Kreuzung<Self>> {
-        vec![KREUZUNG_5128, KREUZUNG_5207]
+        vec![kreuzung_5128(), kreuzung_5207()]
     }
 }
 
@@ -94,14 +90,30 @@ Gerade
     5210: L16mm
     5208: L8mm
 */
-pub const GERADE_5106: Gerade<Maerklin> = Gerade::new_with_description(Length::new(180.), "5106");
-pub const GERADE_5107: Gerade<Maerklin> = Gerade::new_with_description(Length::new(90.), "5107");
-pub const GERADE_5129: Gerade<Maerklin> = Gerade::new_with_description(Length::new(70.), "5129");
-pub const GERADE_5108: Gerade<Maerklin> = Gerade::new_with_description(Length::new(45.), "5108");
-pub const GERADE_5109: Gerade<Maerklin> = Gerade::new_with_description(Length::new(33.5), "5109");
-pub const GERADE_5110: Gerade<Maerklin> = Gerade::new_with_description(Length::new(22.5), "5110");
-pub const GERADE_5210: Gerade<Maerklin> = Gerade::new_with_description(Length::new(16.), "5210");
-pub const GERADE_5208: Gerade<Maerklin> = Gerade::new_with_description(Length::new(8.), "5208");
+pub fn gerade_5106() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(180.), "5106")
+}
+pub fn gerade_5107() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(90.), "5107")
+}
+pub fn gerade_5129() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(70.), "5129")
+}
+pub fn gerade_5108() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(45.), "5108")
+}
+pub fn gerade_5109() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(33.5), "5109")
+}
+pub fn gerade_5110() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(22.5), "5110")
+}
+pub fn gerade_5210() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(16.), "5210")
+}
+pub fn gerade_5208() -> Gerade<Maerklin> {
+    Gerade::new_with_description(Length::new(8.), "5208")
+}
 
 /*
 Kurve
@@ -114,22 +126,30 @@ Kurve
     5201: 15°, R437.4mm
     5205: 5.72°, R437.4mm
 */
-pub const KURVE_5120: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_INDUSTRIE, Angle::new(as_radians!(45.)), "5120");
-pub const KURVE_5100: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(30.)), "5100");
-pub const KURVE_5101: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(15.)), "5101");
-pub const KURVE_5102: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(7.5)), "5102");
-pub const KURVE_5200: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(30.)), "5200");
-pub const KURVE_5206: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(24.28)), "5206");
-pub const KURVE_5201: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(15.)), "5201");
-pub const KURVE_5205: Kurve<Maerklin> =
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(5.72)), "5205");
+pub fn kurve_5120() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_INDUSTRIE, Angle::new(as_radians!(45.)), "5120")
+}
+pub fn kurve_5100() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(30.)), "5100")
+}
+pub fn kurve_5101() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(15.)), "5101")
+}
+pub fn kurve_5102() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(7.5)), "5102")
+}
+pub fn kurve_5200() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(30.)), "5200")
+}
+pub fn kurve_5206() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(24.28)), "5206")
+}
+pub fn kurve_5201() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(15.)), "5201")
+}
+pub fn kurve_5205() -> Kurve<Maerklin> {
+    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(5.72)), "5205")
+}
 
 /*
 Weiche
@@ -138,53 +158,67 @@ Weiche
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
 const ANGLE_5117: Angle = Angle::new(as_radians!(30.));
-pub const fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
+pub fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5117L",
         weiche::Richtung::Rechts => "5117R",
     };
     Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
 }
-pub const WEICHE_5117_RECHTS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Rechts);
-pub const WEICHE_5117_LINKS: Weiche<Maerklin> = weiche_5117(weiche::Richtung::Links);
+pub fn weiche_5117_rechts() -> Weiche<Maerklin> {
+    weiche_5117(weiche::Richtung::Rechts)
+}
+pub fn weiche_5117_links() -> Weiche<Maerklin> {
+    weiche_5117(weiche::Richtung::Links)
+}
 const ANGLE_5137: Angle = Angle::new(as_radians!(22.5));
-pub const fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
+pub fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5137L",
         weiche::Richtung::Rechts => "5137R",
     };
     Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
 }
-pub const WEICHE_5137_RECHTS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Rechts);
-pub const WEICHE_5137_LINKS: Weiche<Maerklin> = weiche_5137(weiche::Richtung::Links);
+pub fn weiche_5137_rechts() -> Weiche<Maerklin> {
+    weiche_5137(weiche::Richtung::Rechts)
+}
+pub fn weiche_5137_links() -> Weiche<Maerklin> {
+    weiche_5137(weiche::Richtung::Links)
+}
 const ANGLE_5202: Angle = Angle::new(as_radians!(24.28));
-pub const fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
+pub fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5202L",
         weiche::Richtung::Rechts => "5202R",
     };
     Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
 }
-pub const WEICHE_5202_RECHTS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Rechts);
-pub const WEICHE_5202_LINKS: Weiche<Maerklin> = weiche_5202(weiche::Richtung::Links);
+pub fn weiche_5202_rechts() -> Weiche<Maerklin> {
+    weiche_5202(weiche::Richtung::Rechts)
+}
+pub fn weiche_5202_links() -> Weiche<Maerklin> {
+    weiche_5202(weiche::Richtung::Links)
+}
 
 /*
 Dreiwege-Weiche
     5214: L180mm, 24,28°, R437.4mm
 */
-pub const DREIWEGE_WEICHE_5214: DreiwegeWeiche<Maerklin> = DreiwegeWeiche::new_with_description(
-    Length::new(180.),
-    RADIUS_R2,
-    Angle::new(as_radians!(24.28)),
-    "5214",
-);
+pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Maerklin> {
+    DreiwegeWeiche::new_with_description(
+        Length::new(180.),
+        RADIUS_R2,
+        Angle::new(as_radians!(24.28)),
+        "5214",
+    )
+}
 
 /*
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
 const ANGLE_5140: Angle = Angle(as_radians!(30.));
-pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
+pub fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5140L",
         weiche::Richtung::Rechts => "5140R",
@@ -197,30 +231,36 @@ pub const fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maer
         beschreibung,
     )
 }
-pub const KURVEN_WEICHE_5140_RECHTS: KurvenWeiche<Maerklin> =
-    kurven_weiche_5140(weiche::Richtung::Rechts);
-pub const KURVEN_WEICHE_5140_LINKS: KurvenWeiche<Maerklin> =
-    kurven_weiche_5140(weiche::Richtung::Links);
+pub fn kurven_weiche_5140_rechts() -> KurvenWeiche<Maerklin> {
+    kurven_weiche_5140(weiche::Richtung::Rechts)
+}
+pub fn kurven_weiche_5140_links() -> KurvenWeiche<Maerklin> {
+    kurven_weiche_5140(weiche::Richtung::Links)
+}
 
 /*
 Kreuzung
     5128: L193mm, 30°, R360mm
     5207: L180mm, 24.28°, R437.4mm
 */
-pub const KREUZUNG_5128: Kreuzung<Maerklin> = Kreuzung::new_with_description(
-    Length::new(193.),
-    RADIUS_R1,
-    kreuzung::Variante::MitKurve,
-    "5128",
-);
+pub fn kreuzung_5128() -> Kreuzung<Maerklin> {
+    Kreuzung::new_with_description(
+        Length::new(193.),
+        RADIUS_R1,
+        kreuzung::Variante::MitKurve,
+        "5128",
+    )
+}
 // Länge/Winkel 24.28 passt nicht!
 // https://www.stummiforum.de/viewtopic.php?t=29741#p309938
-pub const KREUZUNG_5207: Kreuzung<Maerklin> = Kreuzung::new_with_description(
-    Length::new(180.),
-    RADIUS_R2,
-    kreuzung::Variante::MitKurve,
-    "5207",
-);
+pub fn kreuzung_5207() -> Kreuzung<Maerklin> {
+    Kreuzung::new_with_description(
+        Length::new(180.),
+        RADIUS_R2,
+        kreuzung::Variante::MitKurve,
+        "5207",
+    )
+}
 
 // TODO
 /*

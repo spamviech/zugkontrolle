@@ -11,17 +11,7 @@ use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Lego;
 impl Zugtyp for Lego {
-    #[allow(non_upper_case_globals)]
     const SPURWEITE: Spurweite = Spurweite(38.);
-
-    type Geschwindigkeit = f32;
-    type GeschwindigkeitsAnschluss = (Anschluss, Anschluss);
-    fn geschwindigkeit(
-        anschluss: &mut Self::GeschwindigkeitsAnschluss,
-        wert: Self::Geschwindigkeit,
-    ) {
-    }
-    fn umdrehen(anschluss: &mut Self::GeschwindigkeitsAnschluss) {}
 
     fn geraden() -> Vec<Gerade<Self>> {
         vec![GERADE]

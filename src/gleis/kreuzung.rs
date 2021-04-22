@@ -8,19 +8,21 @@
 
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use super::types::*;
 use super::{anchor, gerade, kurve};
 
 /// Definition einer Kreuzung
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kreuzung<T> {
     pub zugtyp: PhantomData<*const T>,
     pub laenge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub variante: Variante,
-    pub beschreibung: Option<&'static str>,
+    pub beschreibung: Option<String>,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Variante {
     MitKurve,
     OhneKurve,
@@ -45,18 +47,18 @@ impl<Z> Kreuzung<Z> {
             beschreibung: None,
         }
     }
-    pub const fn new_with_description(
+    pub fn new_with_description(
         length: Length,
         radius: Radius,
         variante: Variante,
-        description: &'static str,
+        description: impl Into<String>,
     ) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
             laenge: length.to_abstand(),
             radius: radius.to_abstand(),
             variante,
-            beschreibung: Some(description),
+            beschreibung: Some(description.into()),
         }
     }
 }
@@ -191,8 +193,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
-        self.beschreibung.map(|text| {
+    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+        self.beschreibung.as_ref().map(|text| {
             // utility sizes
             let size: canvas::Size = self.size();
             let start_x: canvas::X = canvas::X(0.);

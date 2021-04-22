@@ -149,12 +149,12 @@ fn main() -> iced::Result {
     // Märklin-Gleise
     let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();
     let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
-    append_maerklin.append(maerklin::GERADE_5106);
-    append_maerklin.append(maerklin::KURVE_5100);
-    append_maerklin.append(maerklin::WEICHE_5202_LINKS);
-    append_maerklin.append(maerklin::DREIWEGE_WEICHE_5214);
-    append_maerklin.append(maerklin::KURVEN_WEICHE_5140_LINKS);
-    append_maerklin.append(maerklin::KREUZUNG_5207);
+    append_maerklin.append(maerklin::gerade_5106());
+    append_maerklin.append(maerklin::kurve_5100());
+    append_maerklin.append(maerklin::weiche_5202_links());
+    append_maerklin.append(maerklin::dreiwege_weiche_5214());
+    append_maerklin.append(maerklin::kurven_weiche_5140_links());
+    append_maerklin.append(maerklin::kreuzung_5207());
 
     // Lego-Gleise
     let mut gleise_lego: Gleise<Lego> = Gleise::new();

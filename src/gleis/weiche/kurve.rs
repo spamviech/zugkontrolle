@@ -8,6 +8,8 @@
 
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use super::Richtung;
 use crate::gleis::types::*;
 use crate::gleis::{anchor, gerade, kurve};
@@ -16,14 +18,14 @@ use crate::gleis::{anchor, gerade, kurve};
 ///
 /// Bei extremen Winkeln (<0, >180°) wird in negativen x-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
+#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct KurvenWeiche<Z> {
     pub zugtyp: PhantomData<*const Z>,
     pub laenge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
     pub richtung: Richtung,
-    pub beschreibung: Option<&'static str>,
+    pub beschreibung: Option<String>,
 }
 impl<Z> KurvenWeiche<Z> {
     pub const fn new(length: Length, radius: Radius, angle: Angle, richtung: Richtung) -> Self {
@@ -36,12 +38,12 @@ impl<Z> KurvenWeiche<Z> {
             beschreibung: None,
         }
     }
-    pub const fn new_with_description(
+    pub fn new_with_description(
         length: Length,
         radius: Radius,
         angle: Angle,
         richtung: Richtung,
-        description: &'static str,
+        description: impl Into<String>,
     ) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
@@ -49,7 +51,7 @@ impl<Z> KurvenWeiche<Z> {
             radius: radius.to_abstand(),
             winkel: angle,
             richtung,
-            beschreibung: Some(description),
+            beschreibung: Some(description.into()),
         }
     }
 }
@@ -209,8 +211,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)> {
-        self.beschreibung.map(|text| {
+    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+        self.beschreibung.as_ref().map(|text| {
             let start_height: canvas::Y;
             let multiplier: f32;
             match self.richtung {

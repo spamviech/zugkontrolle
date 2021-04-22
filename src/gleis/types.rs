@@ -54,7 +54,7 @@ where
     fn zeichne(&self) -> Vec<canvas::Path>;
 
     /// Beschreibung und Position (falls verfügbar)
-    fn beschreibung(&self) -> Option<(canvas::Position, &'static str)>;
+    fn beschreibung(&self) -> Option<(canvas::Position, &String)>;
 
     /// Zeigt der /canvas::Vector/ auf das Gleis?
     fn innerhalb(&self, relative_position: canvas::Vector) -> bool;
