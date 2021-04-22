@@ -13,12 +13,22 @@ resolver = "2"
 path = "zugkontrolle-derive"
 
 [dependencies]
-bincode = "1.3.2"
 rstar = "0.8.2"
 log = "0.4.14"
 simple_logger = "1.11.0"
-argh = "0.1.4"
 take_mut = "0.2.2"
+# so far unused, mentioned so I don't forget how they are called
+argh = "0.1.4"
+serde_yaml = "0.8.17"
+bincode = "1.3.2"
+# probably best to only use one
+once = "0.3.4"
+once_cell = "1.7.2"
+# decide which raspi crate to use
+# rppal seems to be the most rusty, but requires target-specific cfg-code from me
+# I will probably abstract over the interface anyway, so using c-like bindings might be more convenient
+rust-pigpio = "0.2.0"
+apigpio = "0.1.1"
 
 [dependencies.serde]
 version = "1.0.124"
