@@ -19,6 +19,7 @@ simple_logger = "1.11.0"
 take_mut = "0.2.2"
 # so far unused, mentioned so I don't forget how they are called
 walkdir = "2.3.2"
+serde_yaml = "0.8.17"
 argh = "0.1.4"
 bincode = "1.3.2"
 # probably best to only use one (if any)

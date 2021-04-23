@@ -124,6 +124,7 @@ pub mod value {
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Zugtyp {
         pub spurweite: canvas::Abstand<canvas::Y>,
+        pub umdrehen: Umdrehen,
         pub geraden: Vec<Gerade<()>>,
         pub kurven: Vec<Kurve<()>>,
         pub weichen: Vec<Weiche<()>>,
@@ -170,10 +171,15 @@ pub mod value {
 }
 
 pub mod deserialize {
-    use std::marker::PhantomData;
+    use std::collections::HashMap;
+    use std::fs::File;
+    use std::path::Path;
+    use std::{ffi::OsStr, marker::PhantomData};
 
     use serde::Deserialize;
+    use walkdir::WalkDir;
 
+    use super::value::Umdrehen;
     use crate::gleis::types::*;
     use crate::gleis::{gerade, kreuzung, kurve, weiche};
 
@@ -183,6 +189,7 @@ pub mod deserialize {
     #[derive(Debug, Deserialize)]
     pub struct Zugtyp {
         pub spurweite: f32,
+        pub umdrehen: Umdrehen,
         pub geraden: Vec<Gerade>,
         pub kurven: Vec<Kurve>,
         pub weichen: Vec<Weiche>,
@@ -190,6 +197,30 @@ pub mod deserialize {
         pub kurven_weichen: Vec<KurvenWeiche>,
         pub s_kurven_weichen: Vec<SKurvenWeiche>,
         pub kreuzungen: Vec<Kreuzung>,
+    }
+    impl Zugtyp {
+        pub fn load_all_from_dir<P: AsRef<Path>>(dir: P) -> HashMap<String, Self> {
+            let mut zugtypen = HashMap::new();
+
+            for entry in
+                WalkDir::new(dir).min_depth(1).max_depth(1).into_iter().filter_entry(|dir_entry| {
+                    dir_entry.path().extension().and_then(OsStr::to_str) == Some("yaml")
+                })
+            {
+                if let Ok(dir_entry) = entry {
+                    let path = dir_entry.path();
+                    if let Some(name_ref) = path.file_stem().and_then(OsStr::to_str) {
+                        let name = name_ref.to_string();
+                        if let Ok(file) = File::open(path) {
+                            if let Ok(zugtyp) = serde_yaml::from_reader(file) {
+                                zugtypen.insert(name, zugtyp);
+                            }
+                        }
+                    }
+                }
+            }
+            zugtypen
+        }
     }
 
     #[derive(Debug, Deserialize)]
