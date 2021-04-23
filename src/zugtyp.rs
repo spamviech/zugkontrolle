@@ -179,7 +179,7 @@ pub mod deserialize {
     use serde::Deserialize;
     use walkdir::WalkDir;
 
-    use super::value::Umdrehen;
+    use super::value::{self, Umdrehen};
     use crate::gleis::types::*;
     use crate::gleis::{gerade, kreuzung, kurve, weiche};
 
@@ -220,6 +220,33 @@ pub mod deserialize {
                 }
             }
             zugtypen
+        }
+    }
+    impl From<Zugtyp> for value::Zugtyp {
+        fn from(
+            Zugtyp {
+                spurweite,
+                umdrehen,
+                geraden,
+                kurven,
+                weichen,
+                dreiwege_weichen,
+                kurven_weichen,
+                s_kurven_weichen,
+                kreuzungen,
+            }: Zugtyp,
+        ) -> Self {
+            value::Zugtyp {
+                spurweite: Spurweite(spurweite).to_abstand(),
+                umdrehen,
+                geraden: geraden.into_iter().map(Into::into).collect(),
+                kurven: kurven.into_iter().map(Into::into).collect(),
+                weichen: weichen.into_iter().map(Into::into).collect(),
+                dreiwege_weichen: dreiwege_weichen.into_iter().map(Into::into).collect(),
+                kurven_weichen: kurven_weichen.into_iter().map(Into::into).collect(),
+                s_kurven_weichen: s_kurven_weichen.into_iter().map(Into::into).collect(),
+                kreuzungen: kreuzungen.into_iter().map(Into::into).collect(),
+            }
         }
     }
 
