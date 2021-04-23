@@ -18,7 +18,7 @@ log = "0.4.14"
 simple_logger = "1.11.0"
 take_mut = "0.2.2"
 # so far unused, mentioned so I don't forget how they are called
-nonempty = "0.6.0"
+walkdir = "2.3.2"
 argh = "0.1.4"
 bincode = "1.3.2"
 # probably best to only use one (if any)
@@ -31,6 +31,11 @@ rust-pigpio = "0.2.0"
 # requires tokio, so only consider if it is used anyway
 # in that case, also enable the corresponding /iced/ feature
 #apigpio = "0.1.1"
+
+[dependencies.non-empty-vec]
+# version = "0.1.2"
+git = "https://github.com/yihuang/non-empty-vec"
+features = ["serde"]
 
 [dependencies.serde]
 version = "1.0.124"

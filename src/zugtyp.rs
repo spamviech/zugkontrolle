@@ -1,5 +1,7 @@
 //! Zugtyp Trait + Phantom-Typen + Spurweite
 
+use serde::{Deserialize, Serialize};
+
 use crate::gleis::{
     gerade::Gerade,
     kreuzung::Kreuzung,
@@ -13,6 +15,7 @@ use crate::gleis::{
 // Als Inspiration:
 // The GPIO war: macro bunkers for typestate explosions
 // https://www.ecorax.net/macro-bunker-1/
+#[derive(Serialize, Deserialize)]
 pub struct Anschluss;
 
 /// Spurweite \[mm\]
@@ -31,27 +34,80 @@ pub trait Zugtyp: Sized {
     fn kreuzungen() -> Vec<Kreuzung<Self>>;
 }
 
-// TODO vermutlich nur 2 Varianten, evtl. besser Methoden zu verwenden.
-pub trait Geschwindigkeit {
-    /// Mögliche Geschwindigkeitswerte
-    type Wert;
-    /// Anschluss/Anschlüsse zur Geschwindigkeitskontrolle
-    type Anschluss;
-    /// Einstellen der Geschwindigkeit
-    fn geschwindigkeit(anschluss: &mut Self::Anschluss, wert: Self::Wert);
-    // Fahrtrichtung (falls vorhanden)
-    type Fahrtrichtung;
-    /// Umdrehen
-    fn umdrehen(anschluss: &mut Self::Anschluss, fahrtrichtung: Self::Fahrtrichtung);
+pub mod geschwindigkeit {
+    use non_empty_vec::NonEmpty;
+
+    use super::*;
+
+    // TODO vermutlich nur 2 Varianten, evtl. besser Methoden zu verwenden.
+    pub enum Geschwindigkeit {
+        Pwm(Anschluss),
+        FesteSpannung(NonEmpty<Anschluss>),
+    }
+    impl Geschwindigkeit {
+        pub fn geschwindigkeit(&mut self, wert: u8) {
+            //TODO
+            unimplemented!("geschwindigkeit({:?})", wert)
+        }
+    }
+
+    // TODO in zwei Datentypen aufteilen, Summentyp behalten?
+    // unterschiedliche assoziierte Typen zum Geschwindigkeit einstellen, keine Eigenschaft der Geschwindigkeit
+    // Nicht wirklich Eigenschaft eines Zugtyps, beide können parallel existieren.
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Pwm;
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct FesteSpannung;
 }
 
 pub mod value {
-    use serde::{Deserialize, Serialize};
+    use std::time::Duration;
 
+    use super::geschwindigkeit::*;
     use super::*;
     use crate::gleis::types::*;
 
-    #[derive(Serialize, Deserialize)]
+    // TODO in Zugtyp hinzufügen
+    // einziger wirklicher Unterschied zwischen Märklin/Lego
+    // in zwei Datentypen aufteilen, Summentyp behalten?
+    // unterschiedliche Methoden: umdrehen(), fahrtrichtung_einstellen(Fahrtrichtung)
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Uberspannung {
+        zeit: Duration,
+    }
+    impl Uberspannung {
+        // TODO FesteSpannung benötigt einen zusätzlichen Anschluss!
+        // über associated Type regeln?
+        pub fn umdrehen(&self, geschwindigkeit: &mut Geschwindigkeit) {
+            // TODO
+            unimplemented!("umdrehen")
+        }
+    }
+
+    #[derive(Debug)]
+    pub enum Fahrtrichtung {
+        Vorwaerts,
+        Rueckwaerts,
+    }
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Schalter;
+    impl Schalter {
+        pub fn fahrtrichtung_einstellen(
+            fahrtrichtung: Fahrtrichtung,
+            anschluss: &mut Anschluss,
+            geschwindigkeit: &mut Geschwindigkeit,
+        ) {
+            // TODO
+            unimplemented!("fahrtrichtung_einstellen({:?})", fahrtrichtung)
+        }
+    }
+    #[derive(Debug, Serialize, Deserialize)]
+    pub enum Umdrehen {
+        Uberspannung(Uberspannung),
+        Schalter(Schalter),
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
     pub struct Zugtyp {
         pub spurweite: canvas::Abstand<canvas::Y>,
         pub geraden: Vec<Gerade<()>>,
@@ -93,6 +149,10 @@ pub mod value {
             radius - 0.5 * self.spurweite.as_radius() - self.abstand().as_radius()
         }
     }
+
+    // TODO use walkdir to go through all yaml/toml/? files in a subdirectory
+    // yaml feels more natural (mostly no quotes for strings/enums)
+    // toml doesn't add new dependencies (toml-crate already required)
 }
 
 pub mod deserialize {
@@ -106,7 +166,7 @@ pub mod deserialize {
     // TODO erstelle via Macro
     /// mockup-Variante von super::value::Zugtyp, für schönere toml-Darstellung
     /// f32-Werte sind mm-Größen
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct Zugtyp {
         pub spurweite: f32,
         pub geraden: Vec<Gerade>,
@@ -118,7 +178,7 @@ pub mod deserialize {
         pub kreuzungen: Vec<Kreuzung>,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct Gerade {
         pub laenge: f32,
         pub beschreibung: Option<String>,
@@ -133,7 +193,7 @@ pub mod deserialize {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct Kurve {
         pub radius: f32,
         pub winkel: f32,
@@ -150,7 +210,7 @@ pub mod deserialize {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct Weiche;
     impl<Z> From<Weiche> for weiche::Weiche<Z> {
         fn from(_: Weiche) -> Self {
@@ -163,7 +223,7 @@ pub mod deserialize {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct DreiwegeWeiche;
     impl<Z> From<DreiwegeWeiche> for weiche::DreiwegeWeiche<Z> {
         fn from(_: DreiwegeWeiche) -> Self {
@@ -171,7 +231,7 @@ pub mod deserialize {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct KurvenWeiche;
     impl<Z> From<KurvenWeiche> for weiche::KurvenWeiche<Z> {
         fn from(_: KurvenWeiche) -> Self {
@@ -184,7 +244,7 @@ pub mod deserialize {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct SKurvenWeiche;
     impl<Z> From<SKurvenWeiche> for weiche::SKurvenWeiche<Z> {
         fn from(_: SKurvenWeiche) -> Self {
@@ -199,7 +259,7 @@ pub mod deserialize {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct Kreuzung;
     impl<Z> From<Kreuzung> for kreuzung::Kreuzung<Z> {
         fn from(_: Kreuzung) -> Self {
