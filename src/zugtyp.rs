@@ -218,7 +218,7 @@ pub mod deserialize {
                                     zugtypen.insert(name, zugtyp);
                                 }
                                 Err(err) => {
-                                    warn!(
+                                    println!(
                                         "failed to parse yaml file \"{}\": {:?}",
                                         path.display(),
                                         err
@@ -341,14 +341,19 @@ pub mod deserialize {
     }
 
     #[derive(Debug, Deserialize)]
-    pub struct Weiche;
+    pub struct Weiche {
+        laenge: f32,
+        radius: f32,
+        winkel: f32,
+        richtung: weiche::Richtung,
+    }
     impl<Z> From<Weiche> for weiche::Weiche<Z> {
-        fn from(_: Weiche) -> Self {
+        fn from(Weiche { laenge, radius, winkel, richtung }: Weiche) -> Self {
             weiche::Weiche::new(
-                Length::new(0.),
-                Radius::new(0.),
-                Angle::new(0.),
-                weiche::Richtung::Links,
+                Length::new(laenge),
+                Radius::new(radius),
+                AngleDegrees::new(winkel).into(),
+                richtung,
             )
         }
     }
