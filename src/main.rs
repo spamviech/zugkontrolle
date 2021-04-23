@@ -143,17 +143,17 @@ use std::collections::HashMap;
 use zugkontrolle::zugtyp::{deserialize, value};
 
 fn main() -> iced::Result {
-    let zugtypen: HashMap<String, value::Zugtyp> = deserialize::Zugtyp::load_all_from_dir("zugtyp")
-        .into_iter()
-        .map(|(k, v)| (k, v.into()))
-        .collect();
-    println!("{:#?}", zugtypen);
-
     SimpleLogger::new()
         .with_level(log::LevelFilter::Off)
         .with_module_level("zugkontrolle", log::LevelFilter::Debug)
         .init()
         .expect("failed to initialize error logging");
+
+    let zugtypen: HashMap<String, value::Zugtyp> = deserialize::Zugtyp::load_all_from_dir("zugtyp")
+        .into_iter()
+        .map(|(k, v)| (k, v.into()))
+        .collect();
+    println!("{:#?}", zugtypen);
 
     // Märklin-Gleise
     let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();

@@ -84,14 +84,14 @@ pub mod value {
     }
     impl Ueberspannung {
         // TODO FesteSpannung benötigt einen zusätzlichen Anschluss (mit Überspannung), Pwm nicht (verwendet volle pwm duty_cycle)!
-        pub fn umdrehen_pwm(&self, geschwindigkeit: &mut Pwm) {
+        pub fn umdrehen_pwm(&self, _geschwindigkeit: &mut Pwm) {
             // TODO
             unimplemented!("umdrehen_pwm")
         }
         pub fn umdrehen_feste_spannung(
             &self,
-            anschluss: &mut Anschluss,
-            geschwindigkeit: &mut FesteSpannung,
+            _anschluss: &mut Anschluss,
+            _geschwindigkeit: &mut FesteSpannung,
         ) {
             // TODO
             unimplemented!("umdrehen_feste_spannung")
@@ -108,8 +108,8 @@ pub mod value {
     impl Schalter {
         pub fn fahrtrichtung_einstellen(
             fahrtrichtung: Fahrtrichtung,
-            anschluss: &mut Anschluss,
-            geschwindigkeit: &mut Geschwindigkeit,
+            _anschluss: &mut Anschluss,
+            _geschwindigkeit: &mut Geschwindigkeit,
         ) {
             // TODO
             unimplemented!("fahrtrichtung_einstellen({:?})", fahrtrichtung)
@@ -218,7 +218,7 @@ pub mod deserialize {
                                     zugtypen.insert(name, zugtyp);
                                 }
                                 Err(err) => {
-                                    println!(
+                                    warn!(
                                         "failed to parse yaml file \"{}\": {:?}",
                                         path.display(),
                                         err
@@ -342,19 +342,22 @@ pub mod deserialize {
 
     #[derive(Debug, Deserialize)]
     pub struct Weiche {
-        laenge: f32,
-        radius: f32,
-        winkel: f32,
-        richtung: weiche::Richtung,
+        pub laenge: f32,
+        pub radius: f32,
+        pub winkel: f32,
+        pub richtung: weiche::Richtung,
+        pub beschreibung: Option<String>,
     }
     impl<Z> From<Weiche> for weiche::Weiche<Z> {
-        fn from(Weiche { laenge, radius, winkel, richtung }: Weiche) -> Self {
-            weiche::Weiche::new(
-                Length::new(laenge),
-                Radius::new(radius),
-                AngleDegrees::new(winkel).into(),
+        fn from(Weiche { laenge, radius, winkel, richtung, beschreibung }: Weiche) -> Self {
+            weiche::Weiche {
+                zugtyp: PhantomData,
+                laenge: Length::new(laenge).to_abstand(),
+                radius: Radius::new(radius).to_abstand(),
+                winkel: AngleDegrees::new(winkel).into(),
                 richtung,
-            )
+                beschreibung,
+            }
         }
     }
 
@@ -380,17 +383,37 @@ pub mod deserialize {
     }
 
     #[derive(Debug, Deserialize)]
-    pub struct SKurvenWeiche;
+    pub struct SKurvenWeiche {
+        pub laenge: f32,
+        pub radius: f32,
+        pub winkel: f32,
+        pub radius_reverse: f32,
+        pub winkel_reverse: f32,
+        pub richtung: weiche::Richtung,
+        pub beschreibung: Option<String>,
+    }
     impl<Z> From<SKurvenWeiche> for weiche::SKurvenWeiche<Z> {
-        fn from(_: SKurvenWeiche) -> Self {
-            weiche::SKurvenWeiche::new(
-                Length::new(0.),
-                Radius::new(0.),
-                Angle::new(0.),
-                Radius::new(0.),
-                Angle::new(0.),
-                weiche::Richtung::Links,
-            )
+        fn from(
+            SKurvenWeiche {
+                laenge,
+                radius,
+                winkel,
+                radius_reverse,
+                winkel_reverse,
+                richtung,
+                beschreibung,
+            }: SKurvenWeiche,
+        ) -> Self {
+            weiche::SKurvenWeiche {
+                zugtyp: PhantomData,
+                laenge: Length::new(laenge).to_abstand(),
+                radius: Radius::new(radius).to_abstand(),
+                winkel: AngleDegrees::new(winkel).into(),
+                radius_reverse: Radius::new(radius_reverse).to_abstand(),
+                winkel_reverse: AngleDegrees::new(winkel_reverse).into(),
+                richtung,
+                beschreibung,
+            }
         }
     }
 
