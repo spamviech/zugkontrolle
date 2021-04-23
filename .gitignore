@@ -15,4 +15,6 @@ target/
 /Schaltpläne/*.synctex.gz
 /stuff/
 
-Issues.txt
+/Issues.txt
+/deps.dot
+/deps.png

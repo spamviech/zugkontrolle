@@ -15,7 +15,7 @@ use crate::gleis::{
 // Als Inspiration:
 // The GPIO war: macro bunkers for typestate explosions
 // https://www.ecorax.net/macro-bunker-1/
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Anschluss;
 
 /// Spurweite \[mm\]
@@ -39,25 +39,32 @@ pub mod geschwindigkeit {
 
     use super::*;
 
+    /// Pwm-basierte Geschwindigkeitskontrolle
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Pwm(Anschluss);
+
+    /// Geschwindigkeitskontrolle über mehrere Stromquellen mit fester Spannung
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct FesteSpannung(NonEmpty<Anschluss>);
+
+    /// Mögliche Geschwindigkeitswerte
+    ///
+    /// Pwm: wert/maximaler_wert bestimmt duty_cycle
+    /// FesteSpannung: wähle Anschluss wert (als Index), größere Werte verwenden immer den letzten Anschluss
+    #[derive(Debug)]
+    pub struct Wert(pub u8);
+
     // TODO vermutlich nur 2 Varianten, evtl. besser Methoden zu verwenden.
     pub enum Geschwindigkeit {
-        Pwm(Anschluss),
-        FesteSpannung(NonEmpty<Anschluss>),
+        Pwm(Pwm),
+        FesteSpannung(FesteSpannung),
     }
     impl Geschwindigkeit {
-        pub fn geschwindigkeit(&mut self, wert: u8) {
+        pub fn geschwindigkeit(&mut self, wert: Wert) {
             //TODO
             unimplemented!("geschwindigkeit({:?})", wert)
         }
     }
-
-    // TODO in zwei Datentypen aufteilen, Summentyp behalten?
-    // unterschiedliche assoziierte Typen zum Geschwindigkeit einstellen, keine Eigenschaft der Geschwindigkeit
-    // Nicht wirklich Eigenschaft eines Zugtyps, beide können parallel existieren.
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct Pwm;
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct FesteSpannung;
 }
 
 pub mod value {
@@ -76,11 +83,18 @@ pub mod value {
         zeit: Duration,
     }
     impl Uberspannung {
-        // TODO FesteSpannung benötigt einen zusätzlichen Anschluss!
-        // über associated Type regeln?
-        pub fn umdrehen(&self, geschwindigkeit: &mut Geschwindigkeit) {
+        // TODO FesteSpannung benötigt einen zusätzlichen Anschluss (mit Überspannung), Pwm nicht (verwendet volle pwm duty_cycle)!
+        pub fn umdrehen_pwm(&self, geschwindigkeit: &mut Pwm) {
             // TODO
-            unimplemented!("umdrehen")
+            unimplemented!("umdrehen_pwm")
+        }
+        pub fn umdrehen_feste_spannung(
+            &self,
+            anschluss: &mut Anschluss,
+            geschwindigkeit: &mut FesteSpannung,
+        ) {
+            // TODO
+            unimplemented!("umdrehen_feste_spannung")
         }
     }
 
