@@ -79,10 +79,10 @@ pub mod value {
     // in zwei Datentypen aufteilen, Summentyp behalten?
     // unterschiedliche Methoden: umdrehen(), fahrtrichtung_einstellen(Fahrtrichtung)
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Uberspannung {
-        zeit: Duration,
+    pub struct Ueberspannung {
+        pub zeit: Duration,
     }
-    impl Uberspannung {
+    impl Ueberspannung {
         // TODO FesteSpannung benötigt einen zusätzlichen Anschluss (mit Überspannung), Pwm nicht (verwendet volle pwm duty_cycle)!
         pub fn umdrehen_pwm(&self, geschwindigkeit: &mut Pwm) {
             // TODO
@@ -117,7 +117,7 @@ pub mod value {
     }
     #[derive(Debug, Serialize, Deserialize)]
     pub enum Umdrehen {
-        Uberspannung(Uberspannung),
+        Ueberspannung(Ueberspannung),
         Schalter(Schalter),
     }
 
@@ -176,10 +176,11 @@ pub mod deserialize {
     use std::path::Path;
     use std::{ffi::OsStr, marker::PhantomData};
 
+    use log::*;
     use serde::Deserialize;
     use walkdir::WalkDir;
 
-    use super::value::{self, Umdrehen};
+    use super::value::{self, Schalter};
     use crate::gleis::types::*;
     use crate::gleis::{gerade, kreuzung, kurve, weiche};
 
@@ -212,11 +213,26 @@ pub mod deserialize {
                     if let Some(name_ref) = path.file_stem().and_then(OsStr::to_str) {
                         let name = name_ref.to_string();
                         if let Ok(file) = File::open(path) {
-                            if let Ok(zugtyp) = serde_yaml::from_reader(file) {
-                                zugtypen.insert(name, zugtyp);
+                            match serde_yaml::from_reader(file) {
+                                Ok(zugtyp) => {
+                                    zugtypen.insert(name, zugtyp);
+                                }
+                                Err(err) => {
+                                    warn!(
+                                        "failed to parse yaml file \"{}\": {:?}",
+                                        path.display(),
+                                        err
+                                    )
+                                }
                             }
+                        } else {
+                            warn!("failed to open file: {:?}", path)
                         }
+                    } else {
+                        warn!("no file_stem: {:?}", path)
                     }
+                } else {
+                    warn!("no dir entry?")
                 }
             }
             zugtypen
@@ -238,7 +254,7 @@ pub mod deserialize {
         ) -> Self {
             value::Zugtyp {
                 spurweite: Spurweite(spurweite).to_abstand(),
-                umdrehen,
+                umdrehen: umdrehen.into(),
                 geraden: geraden.into_iter().map(Into::into).collect(),
                 kurven: kurven.into_iter().map(Into::into).collect(),
                 weichen: weichen.into_iter().map(Into::into).collect(),
@@ -246,6 +262,48 @@ pub mod deserialize {
                 kurven_weichen: kurven_weichen.into_iter().map(Into::into).collect(),
                 s_kurven_weichen: s_kurven_weichen.into_iter().map(Into::into).collect(),
                 kreuzungen: kreuzungen.into_iter().map(Into::into).collect(),
+            }
+        }
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub enum Duration {
+        Seconds(u64),
+        Millis(u64),
+        Micros(u64),
+        Nanos(u64),
+    }
+    impl From<Duration> for std::time::Duration {
+        fn from(duration: Duration) -> Self {
+            match duration {
+                Duration::Seconds(t) => std::time::Duration::from_secs(t),
+                Duration::Millis(t) => std::time::Duration::from_millis(t),
+                Duration::Micros(t) => std::time::Duration::from_micros(t),
+                Duration::Nanos(t) => std::time::Duration::from_nanos(t),
+            }
+        }
+    }
+    #[derive(Debug, Deserialize)]
+    pub struct Ueberspannung {
+        pub zeit: Duration,
+    }
+    impl From<Ueberspannung> for value::Ueberspannung {
+        fn from(Ueberspannung { zeit }: Ueberspannung) -> Self {
+            value::Ueberspannung { zeit: zeit.into() }
+        }
+    }
+    #[derive(Debug, Deserialize)]
+    pub enum Umdrehen {
+        Ueberspannung(Ueberspannung),
+        Schalter(Schalter),
+    }
+    impl From<Umdrehen> for value::Umdrehen {
+        fn from(umdrehen: Umdrehen) -> Self {
+            match umdrehen {
+                Umdrehen::Ueberspannung(ueberspannung) => {
+                    value::Umdrehen::Ueberspannung(ueberspannung.into())
+                }
+                Umdrehen::Schalter(schalter) => value::Umdrehen::Schalter(schalter),
             }
         }
     }

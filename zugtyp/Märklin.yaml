@@ -1,0 +1,31 @@
+spurweite: 16.5
+umdrehen:
+  Ueberspannung:
+    zeit:
+      Millis: 20
+geraden:
+  - {laenge: 180, beschreibung: 5106}
+  - {laenge: 90, beschreibung: 5107}
+  - {laenge: 70, beschreibung: 5129}
+  - {laenge: 45, beschreibung: 5108}
+  - {laenge: 33.5, beschreibung: 5109}
+  - {laenge: 22.5, beschreibung: 5110}
+  - {laenge: 16, beschreibung: 5210}
+  - {laenge: 8, beschreibung: 5208}
+industrie: &industrie 286.
+r1: &r1 360.
+r2: &r2 437.4
+kurven:
+  - {radius: *industrie, winkel: 45., beschreibung: 5120}
+  - {radius: *r1, winkel: 30., beschreibung: 5100}
+  - {radius: *r1, winkel: 15., beschreibung: 5101}
+  - {radius: *r1, winkel: 7.5, beschreibung: 5102}
+  - {radius: *r2, winkel: 30., beschreibung: 5200}
+  - {radius: *r2, winkel: 24.28, beschreibung: 5206}
+  - {radius: *r2, winkel: 15., beschreibung: 5201}
+  - {radius: *r2, winkel: 5.72, beschreibung: 5205}
+weichen: []
+dreiwege_weichen: []
+kurven_weichen: []
+s_kurven_weichen: []
+kreuzungen: []
