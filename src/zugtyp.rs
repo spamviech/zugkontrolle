@@ -39,13 +39,29 @@ pub mod geschwindigkeit {
 
     use super::*;
 
-    /// Pwm-basierte Geschwindigkeitskontrolle
+    /// Pwm-basierte Geschwindigkeitskontrolle (Märklin)
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Pwm(Anschluss);
+    pub struct PwmMaerklin(Anschluss);
+
+    /// Fahrtrichtung
+    #[derive(Debug)]
+    pub enum Fahrtrichtung {
+        Vorwaerts,
+        Rueckwaerts,
+    }
+    /// Pwm-basierte Geschwindigkeitskontrolle (Lego)
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct PwmLego {
+        geschwindigkeit: Anschluss,
+        umdrehen: Anschluss,
+    }
 
     /// Geschwindigkeitskontrolle über mehrere Stromquellen mit fester Spannung
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct FesteSpannung(NonEmpty<Anschluss>);
+    pub struct FesteSpannung {
+        geschwindigkeit: NonEmpty<Anschluss>,
+        umdrehen: Anschluss,
+    }
 
     /// Mögliche Geschwindigkeitswerte
     ///
@@ -54,15 +70,27 @@ pub mod geschwindigkeit {
     #[derive(Debug)]
     pub struct Wert(pub u8);
 
-    // TODO vermutlich nur 2 Varianten, evtl. besser Methoden zu verwenden.
-    pub enum Geschwindigkeit {
+    #[derive(Debug)]
+    pub enum Geschwindigkeit<Pwm> {
         Pwm(Pwm),
         FesteSpannung(FesteSpannung),
     }
-    impl Geschwindigkeit {
+    impl<Pwm: std::fmt::Debug> Geschwindigkeit<Pwm> {
         pub fn geschwindigkeit(&mut self, wert: Wert) {
             //TODO
-            unimplemented!("geschwindigkeit({:?})", wert)
+            unimplemented!("{:?}.geschwindigkeit({:?})", self, wert)
+        }
+    }
+    impl Geschwindigkeit<PwmMaerklin> {
+        pub fn umdrehen(&mut self) {
+            //TODO
+            unimplemented!("{:?}.umdrehen()", self)
+        }
+    }
+    impl Geschwindigkeit<PwmLego> {
+        pub fn fahrtrichtung_einstellen(&mut self, fahrtrichtung: Fahrtrichtung) {
+            //TODO
+            unimplemented!("{:?}.fahrtrichtung_einstellen({:?})", self, fahrtrichtung)
         }
     }
 }
@@ -70,7 +98,6 @@ pub mod geschwindigkeit {
 pub mod value {
     use std::time::Duration;
 
-    use super::geschwindigkeit::*;
     use super::*;
     use crate::gleis::types::*;
 
@@ -82,21 +109,6 @@ pub mod value {
     pub struct Ueberspannung {
         pub zeit: Duration,
     }
-    impl Ueberspannung {
-        // TODO FesteSpannung benötigt einen zusätzlichen Anschluss (mit Überspannung), Pwm nicht (verwendet volle pwm duty_cycle)!
-        pub fn umdrehen_pwm(&self, _geschwindigkeit: &mut Pwm) {
-            // TODO
-            unimplemented!("umdrehen_pwm")
-        }
-        pub fn umdrehen_feste_spannung(
-            &self,
-            _anschluss: &mut Anschluss,
-            _geschwindigkeit: &mut FesteSpannung,
-        ) {
-            // TODO
-            unimplemented!("umdrehen_feste_spannung")
-        }
-    }
 
     #[derive(Debug)]
     pub enum Fahrtrichtung {
@@ -105,16 +117,6 @@ pub mod value {
     }
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Schalter;
-    impl Schalter {
-        pub fn fahrtrichtung_einstellen(
-            fahrtrichtung: Fahrtrichtung,
-            _anschluss: &mut Anschluss,
-            _geschwindigkeit: &mut Geschwindigkeit,
-        ) {
-            // TODO
-            unimplemented!("fahrtrichtung_einstellen({:?})", fahrtrichtung)
-        }
-    }
     #[derive(Debug, Serialize, Deserialize)]
     pub enum Umdrehen {
         Ueberspannung(Ueberspannung),
