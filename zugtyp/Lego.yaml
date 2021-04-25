@@ -15,24 +15,10 @@ kurven_weichen: []
 wlaenge: &wlaenge 256 # 2 * länge
 winkel: &wwinkel 36.5625 # 1.625 * winkel
 winkel_reverse: &wrwinkel 14.0626 # 0.625 * winkel
-weiche: &test
-  laenge: *wlaenge
-  radius: *radius
-  winkel: *wwinkel
-  radius_reverse: *radius
-  winkel_reverse: *wrwinkel
-  richtung: Links
 s_kurven_weichen:
   - laenge: *wlaenge
     radius: *radius
     winkel: *wwinkel
     radius_reverse: *radius
     winkel_reverse: *wrwinkel
-    richtung: Links
-  - laenge: *wlaenge
-    radius: *radius
-    winkel: *wwinkel
-    radius_reverse: *radius
-    winkel_reverse: *wrwinkel
-    richtung: Rechts
 kreuzungen: []

@@ -169,6 +169,8 @@ impl<Z> std::fmt::Debug for AnyId<Z> {
 
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct GleiseMaps<Z> {
+    // TODO use Vecs instead
+    // ids don't need to persist between program executions!
     geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
     kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
     kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,
@@ -238,6 +240,8 @@ pub struct Gleise<Z> {
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
+    // TODO move into Mode enum
+    // Bauen, Fahren
     grabbed: Option<Grabbed<Z>>,
 }
 

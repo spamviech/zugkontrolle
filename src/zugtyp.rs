@@ -257,10 +257,13 @@ pub mod deserialize {
                 umdrehen: umdrehen.into(),
                 geraden: geraden.into_iter().map(Into::into).collect(),
                 kurven: kurven.into_iter().map(Into::into).collect(),
-                weichen: weichen.into_iter().map(Into::into).collect(),
+                weichen: weichen.into_iter().flat_map(Weiche::into).collect(),
                 dreiwege_weichen: dreiwege_weichen.into_iter().map(Into::into).collect(),
                 kurven_weichen: kurven_weichen.into_iter().map(Into::into).collect(),
-                s_kurven_weichen: s_kurven_weichen.into_iter().map(Into::into).collect(),
+                s_kurven_weichen: s_kurven_weichen
+                    .into_iter()
+                    .flat_map(SKurvenWeiche::into)
+                    .collect(),
                 kreuzungen: kreuzungen.into_iter().map(Into::into).collect(),
             }
         }
@@ -345,18 +348,31 @@ pub mod deserialize {
         pub laenge: f32,
         pub radius: f32,
         pub winkel: f32,
-        pub richtung: weiche::Richtung,
+        pub richtung: Option<weiche::Richtung>,
         pub beschreibung: Option<String>,
     }
-    impl<Z> From<Weiche> for weiche::Weiche<Z> {
-        fn from(Weiche { laenge, radius, winkel, richtung, beschreibung }: Weiche) -> Self {
-            weiche::Weiche {
+    impl Weiche {
+        fn into<Z>(self) -> Vec<weiche::Weiche<Z>> {
+            let Weiche { laenge, radius, winkel, richtung, beschreibung } = self;
+            let konstruktor = |richtung| weiche::Weiche {
                 zugtyp: PhantomData,
                 laenge: Length::new(laenge).to_abstand(),
                 radius: Radius::new(radius).to_abstand(),
                 winkel: AngleDegrees::new(winkel).into(),
                 richtung,
-                beschreibung,
+                beschreibung: beschreibung.map(|s| {
+                    s + match richtung {
+                        weiche::Richtung::Links => "L",
+                        weiche::Richtung::Rechts => "R",
+                    }
+                }),
+            };
+            match richtung {
+                Some(richtung) => vec![konstruktor(richtung)],
+                None => vec![
+                    konstruktor.clone()(weiche::Richtung::Links),
+                    konstruktor(weiche::Richtung::Rechts),
+                ],
             }
         }
     }
@@ -389,12 +405,12 @@ pub mod deserialize {
         pub winkel: f32,
         pub radius_reverse: f32,
         pub winkel_reverse: f32,
-        pub richtung: weiche::Richtung,
+        pub richtung: Option<weiche::Richtung>,
         pub beschreibung: Option<String>,
     }
-    impl<Z> From<SKurvenWeiche> for weiche::SKurvenWeiche<Z> {
-        fn from(
-            SKurvenWeiche {
+    impl SKurvenWeiche {
+        fn into<Z>(self) -> Vec<weiche::SKurvenWeiche<Z>> {
+            let SKurvenWeiche {
                 laenge,
                 radius,
                 winkel,
@@ -402,9 +418,8 @@ pub mod deserialize {
                 winkel_reverse,
                 richtung,
                 beschreibung,
-            }: SKurvenWeiche,
-        ) -> Self {
-            weiche::SKurvenWeiche {
+            } = self;
+            let konstruktor = |richtung| weiche::SKurvenWeiche {
                 zugtyp: PhantomData,
                 laenge: Length::new(laenge).to_abstand(),
                 radius: Radius::new(radius).to_abstand(),
@@ -412,7 +427,19 @@ pub mod deserialize {
                 radius_reverse: Radius::new(radius_reverse).to_abstand(),
                 winkel_reverse: AngleDegrees::new(winkel_reverse).into(),
                 richtung,
-                beschreibung,
+                beschreibung: beschreibung.map(|s| {
+                    s + match richtung {
+                        weiche::Richtung::Links => "L",
+                        weiche::Richtung::Rechts => "R",
+                    }
+                }),
+            };
+            match richtung {
+                Some(richtung) => vec![konstruktor(richtung)],
+                None => vec![
+                    konstruktor.clone()(weiche::Richtung::Links),
+                    konstruktor(weiche::Richtung::Rechts),
+                ],
             }
         }
     }

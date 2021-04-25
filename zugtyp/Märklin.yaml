@@ -49,40 +49,19 @@ kurven:
     winkel: 5.72
     beschreibung: 5205
 wlaenge: &wlaenge 180
-w5117: &w5117 30
-w5137: &w5137 22.5
-w5202: &w5202 24.28
 weichen:
   - laenge: *wlaenge
     radius: *r2
-    winkel: *w5117
-    richtung: Links
-    beschreibung: 5117L
+    winkel: 30
+    beschreibung: 5117
   - laenge: *wlaenge
     radius: *r2
-    winkel: *w5117
-    richtung: Rechts
-    beschreibung: 5117R
+    winkel: 22.5
+    beschreibung: 5137
   - laenge: *wlaenge
     radius: *r2
-    winkel: *w5137
-    richtung: Links
-    beschreibung: 5137L
-  - laenge: *wlaenge
-    radius: *r2
-    winkel: *w5137
-    richtung: Rechts
-    beschreibung: 5137R
-  - laenge: *wlaenge
-    radius: *r2
-    winkel: *w5202
-    richtung: Links
-    beschreibung: 5202L
-  - laenge: *wlaenge
-    radius: *r2
-    winkel: *w5202
-    richtung: Rechts
-    beschreibung: 5202R
+    winkel: 24.28
+    beschreibung: 5202
 dreiwege_weichen: []
 kurven_weichen: []
 s_kurven_weichen: []
