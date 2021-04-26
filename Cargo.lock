@@ -1986,7 +1986,7 @@ dependencies = [
 [[package]]
 name = "non-empty-vec"
 version = "0.1.2"
-source = "git+https://github.com/yihuang/non-empty-vec#8fd0cf1aee69ee0601403b2b6389b9281a5b335b"
+source = "git+https://github.com/yihuang/non-empty-vec?rev=8fd0cf1aee69ee0601403b2b6389b9281a5b335b#8fd0cf1aee69ee0601403b2b6389b9281a5b335b"
 dependencies = [
  "serde",
 ]

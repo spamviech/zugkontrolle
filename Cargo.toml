@@ -36,6 +36,7 @@ rust-pigpio = "0.2.0"
 [dependencies.non-empty-vec]
 # version = "0.1.2"
 git = "https://github.com/yihuang/non-empty-vec"
+rev = "8fd0cf1aee69ee0601403b2b6389b9281a5b335b"
 features = ["serde"]
 
 [dependencies.serde]
