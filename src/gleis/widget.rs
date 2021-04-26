@@ -167,10 +167,20 @@ impl<Z> std::fmt::Debug for AnyId<Z> {
     }
 }
 
+// TODO Konvertierungsfunktion von/zu Gleise<Z>
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
+pub struct GleiseVecs<Z> {
+    geraden: Vec<Gleis<Gerade<Z>>>,
+    kurven: Vec<Gleis<Kurve<Z>>>,
+    kreuzungen: Vec<Gleis<Kreuzung<Z>>>,
+    weichen: Vec<Gleis<Weiche<Z>>>,
+    dreiwege_weichen: Vec<Gleis<DreiwegeWeiche<Z>>>,
+    kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
+    s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
+}
+
+#[derive(zugkontrolle_derive::Debug)]
 pub struct GleiseMaps<Z> {
-    // TODO use Vecs instead
-    // ids don't need to persist between program executions!
     geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
     kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
     kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,

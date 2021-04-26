@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use iced::{Application, Clipboard, Command, Container, Element, Length, Settings};
+use iced::{Application, Clipboard, Command, Container, Element, Length, Row, Settings};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::types::*;
@@ -62,12 +62,13 @@ mod background {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     ResizePane(iced::pane_grid::ResizeEvent),
+    Gerade { laenge: canvas::X },
 }
 enum AnyGleise {
-    Maerklin(Gleise<Maerklin>),
+    Maerklin(Gleise<Maerklin>, iced::button::State),
     Lego(Gleise<Lego>),
 }
 struct Zugkontrolle {
@@ -79,8 +80,10 @@ impl Application for Zugkontrolle {
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
-        let (mut pane_state, pane_maerklin) =
-            iced::pane_grid::State::new(AnyGleise::Maerklin(gleise_maerklin));
+        let (mut pane_state, pane_maerklin) = iced::pane_grid::State::new(AnyGleise::Maerklin(
+            gleise_maerklin,
+            iced::button::State::new(),
+        ));
         pane_state
             .split(iced::pane_grid::Axis::Vertical, &pane_maerklin, AnyGleise::Lego(gleise_lego))
             .expect("Failed to split pane!");
@@ -100,6 +103,16 @@ impl Application for Zugkontrolle {
             Message::ResizePane(iced::pane_grid::ResizeEvent { split, ratio }) => {
                 self.pane_state.resize(&split, ratio)
             }
+            Message::Gerade { laenge } => {
+                println!(
+                    "{:?}",
+                    gerade::Gerade::<Maerklin> {
+                        zugtyp: std::marker::PhantomData,
+                        laenge: laenge.to_abstand(),
+                        beschreibung: None
+                    }
+                )
+            }
         }
 
         Command::none()
@@ -107,8 +120,29 @@ impl Application for Zugkontrolle {
 
     fn view(&mut self) -> Element<Self::Message> {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
-            AnyGleise::Maerklin(gleise_maerklin) => Container::new(
-                iced::Canvas::new(gleise_maerklin).width(Length::Fill).height(Length::Fill),
+            AnyGleise::Maerklin(gleise_maerklin, button_state) => Container::new(
+                Row::new()
+                    .push(
+                        iced::Button::new(
+                            button_state,
+                            iced::Canvas::new(maerklin::gerade_5106())
+                                .width(Length::Units(
+                                    (canvas::X(0.) + maerklin::gerade_5106().size().width).0 as u16,
+                                ))
+                                .height(Length::Units(
+                                    (canvas::Y(0.) + maerklin::gerade_5106().size().height).0
+                                        as u16,
+                                )),
+                        )
+                        .width(Length::Shrink)
+                        .height(Length::Shrink)
+                        .on_press(Message::Gerade {
+                            laenge: canvas::X(0.) + maerklin::gerade_5106().laenge,
+                        }),
+                    )
+                    .push(
+                        iced::Canvas::new(gleise_maerklin).width(Length::Fill).height(Length::Fill),
+                    ),
             )
             .width(Length::Fill)
             .height(Length::Fill)
@@ -139,9 +173,6 @@ impl Application for Zugkontrolle {
     }
 }
 
-use std::collections::HashMap;
-use zugkontrolle::zugtyp::{deserialize, value};
-
 fn main() -> iced::Result {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Off)
@@ -149,11 +180,15 @@ fn main() -> iced::Result {
         .init()
         .expect("failed to initialize error logging");
 
+    /*
+    use std::collections::HashMap;
+    use zugkontrolle::zugtyp::{deserialize, value};
     let zugtypen: HashMap<String, value::Zugtyp> = deserialize::Zugtyp::load_all_from_dir("zugtyp")
         .into_iter()
         .map(|(k, v)| (k, v.into()))
         .collect();
     println!("{:#?}", zugtypen);
+    */
 
     // Märklin-Gleise
     let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();
