@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use iced::{Application, Clipboard, Command, Container, Element, Length, Row, Settings};
+use iced::{Application, Clipboard, Column, Command, Container, Element, Length, Row, Settings};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::types::*;
@@ -65,10 +65,11 @@ mod background {
 #[derive(Debug, Clone)]
 enum Message {
     ResizePane(iced::pane_grid::ResizeEvent),
-    Gerade { laenge: canvas::X },
+    Gerade(gerade::Gerade<Maerklin>),
+    Kurve(kurve::Kurve<Maerklin>),
 }
 enum AnyGleise {
-    Maerklin(Gleise<Maerklin>, iced::button::State),
+    Maerklin(Gleise<Maerklin>, iced::button::State, iced::button::State),
     Lego(Gleise<Lego>),
 }
 struct Zugkontrolle {
@@ -82,6 +83,7 @@ impl Application for Zugkontrolle {
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
         let (mut pane_state, pane_maerklin) = iced::pane_grid::State::new(AnyGleise::Maerklin(
             gleise_maerklin,
+            iced::button::State::new(),
             iced::button::State::new(),
         ));
         pane_state
@@ -103,15 +105,11 @@ impl Application for Zugkontrolle {
             Message::ResizePane(iced::pane_grid::ResizeEvent { split, ratio }) => {
                 self.pane_state.resize(&split, ratio)
             }
-            Message::Gerade { laenge } => {
-                println!(
-                    "{:?}",
-                    gerade::Gerade::<Maerklin> {
-                        zugtyp: std::marker::PhantomData,
-                        laenge: laenge.to_abstand(),
-                        beschreibung: None
-                    }
-                )
+            Message::Gerade(gerade) => {
+                println!("{:?}", gerade)
+            }
+            Message::Kurve(kurve) => {
+                println!("{:?}", kurve)
             }
         }
 
@@ -120,25 +118,45 @@ impl Application for Zugkontrolle {
 
     fn view(&mut self) -> Element<Self::Message> {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
-            AnyGleise::Maerklin(gleise_maerklin, button_state) => Container::new(
+            AnyGleise::Maerklin(gleise_maerklin, gerade_state, kurve_state) => Container::new(
                 Row::new()
                     .push(
-                        iced::Button::new(
-                            button_state,
-                            iced::Canvas::new(maerklin::gerade_5106())
-                                .width(Length::Units(
-                                    (canvas::X(0.) + maerklin::gerade_5106().size().width).0 as u16,
-                                ))
-                                .height(Length::Units(
-                                    (canvas::Y(0.) + maerklin::gerade_5106().size().height).0
-                                        as u16,
-                                )),
-                        )
-                        .width(Length::Shrink)
-                        .height(Length::Shrink)
-                        .on_press(Message::Gerade {
-                            laenge: canvas::X(0.) + maerklin::gerade_5106().laenge,
-                        }),
+                        Column::new()
+                            .push(
+                                iced::Button::new(
+                                    gerade_state,
+                                    iced::Canvas::new(maerklin::gerade_5106())
+                                        .width(Length::Units(
+                                            (canvas::X(0.) + maerklin::gerade_5106().size().width).0
+                                                as u16,
+                                        ))
+                                        .height(Length::Units(
+                                            (canvas::Y(0.) + maerklin::gerade_5106().size().height)
+                                                .0
+                                                as u16,
+                                        )),
+                                )
+                                .width(Length::Shrink)
+                                .height(Length::Shrink)
+                                .on_press(Message::Gerade(maerklin::gerade_5106())),
+                            )
+                            .push(
+                                iced::Button::new(
+                                    kurve_state,
+                                    iced::Canvas::new(maerklin::kurve_5100())
+                                        .width(Length::Units(
+                                            (canvas::X(0.) + maerklin::kurve_5100().size().width).0
+                                                as u16,
+                                        ))
+                                        .height(Length::Units(
+                                            (canvas::Y(0.) + maerklin::kurve_5100().size().height).0
+                                                as u16,
+                                        )),
+                                )
+                                .width(Length::Shrink)
+                                .height(Length::Shrink)
+                                .on_press(Message::Kurve(maerklin::kurve_5100())),
+                            ),
                     )
                     .push(
                         iced::Canvas::new(gleise_maerklin).width(Length::Fill).height(Length::Fill),

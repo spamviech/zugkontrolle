@@ -19,7 +19,7 @@ use crate::gleis::{anchor, gerade, kurve};
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Weiche<Z> {
-    pub zugtyp: PhantomData<*const Z>,
+    pub zugtyp: PhantomData<Z>,
     pub laenge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,

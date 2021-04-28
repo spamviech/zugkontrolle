@@ -17,7 +17,7 @@ use super::types::*;
 /// Definition einer Gerade
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Gerade<Z> {
-    pub zugtyp: PhantomData<*const Z>,
+    pub zugtyp: PhantomData<Z>,
     pub laenge: canvas::Abstand<canvas::X>,
     pub beschreibung: Option<String>,
 }
@@ -127,7 +127,7 @@ pub(crate) fn size<Z: Zugtyp>(laenge: canvas::Abstand<canvas::X>) -> canvas::Siz
 }
 
 pub(crate) fn zeichne<Z, P, A>(
-    _zugtyp: PhantomData<*const Z>,
+    _zugtyp: PhantomData<Z>,
     laenge: canvas::Abstand<canvas::X>,
     beschraenkungen: bool,
     transformations: Vec<canvas::Transformation>,
@@ -180,7 +180,7 @@ fn zeichne_internal<Z, P, A>(
 }
 
 pub(crate) fn fuelle<Z, P, A>(
-    _zugtyp: PhantomData<*const Z>,
+    _zugtyp: PhantomData<Z>,
     laenge: canvas::Abstand<canvas::X>,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(

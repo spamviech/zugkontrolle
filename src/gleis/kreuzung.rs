@@ -16,7 +16,7 @@ use super::{anchor, gerade, kurve};
 /// Definition einer Kreuzung
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kreuzung<T> {
-    pub zugtyp: PhantomData<*const T>,
+    pub zugtyp: PhantomData<T>,
     pub laenge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub variante: Variante,

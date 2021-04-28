@@ -20,7 +20,7 @@ use super::types::*;
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kurve<Z> {
-    pub zugtyp: PhantomData<*const Z>,
+    pub zugtyp: PhantomData<Z>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
     pub beschreibung: Option<String>,
@@ -45,6 +45,30 @@ impl<Z> Kurve<Z> {
             winkel: angle,
             beschreibung: Some(description.into()),
         }
+    }
+}
+
+impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Kurve<Z> {
+    fn draw(
+        &self,
+        bounds: iced::Rectangle,
+        _cursor: iced::canvas::Cursor,
+    ) -> Vec<iced::canvas::Geometry> {
+        let mut iced_frame = iced::canvas::Frame::new(bounds.size());
+        let mut frame = canvas::Frame::new(&mut iced_frame);
+        for path in self.zeichne() {
+            frame.with_save(|frame| {
+                frame.stroke(
+                    &path,
+                    canvas::Stroke {
+                        color: canvas::Color::BLACK,
+                        width: 1.5,
+                        ..Default::default()
+                    },
+                );
+            });
+        }
+        vec![iced_frame.into_geometry()]
     }
 }
 
@@ -177,7 +201,7 @@ impl Beschraenkung {
 }
 
 pub(crate) fn zeichne<Z, P, A>(
-    _zugtyp: PhantomData<*const Z>,
+    _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
     beschraenkungen: Beschraenkung,
@@ -262,7 +286,7 @@ fn zeichne_internal<Z, P, A>(
 }
 
 pub(crate) fn fuelle<Z, P, A>(
-    _zugtyp: PhantomData<*const Z>,
+    _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
     transformations: Vec<canvas::Transformation>,
