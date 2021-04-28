@@ -362,7 +362,7 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
     let radius_vector = canvas::Vector::from(
         canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - relative_position,
     );
-    let laenge = radius_vector.length();
+    let laenge = radius_vector.length_radius();
     if laenge > radius_innen_abstand && laenge < radius_aussen_abstand {
         let mut angle: Angle = if radius_vector.dx > canvas::X(0.).to_abstand() {
             -Angle::acos(radius_vector.dy / laenge)

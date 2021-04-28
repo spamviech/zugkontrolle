@@ -1,7 +1,6 @@
 //! Koordinaten auf einem iced::canvas::Frame
 
 use std::convert::From;
-use std::marker::PhantomData;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
@@ -11,42 +10,47 @@ use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 /// Horizontale Koordinate auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct X(pub f32);
-impl X {
-    pub fn to_abstand(self) -> Abstand<X> {
-        Abstand(self.0, PhantomData)
-    }
-}
-impl Add<X> for Abstand<X> {
-    type Output = X;
+macro_rules! impl_with_abstand {
+    ($type: ident) => {
+        impl $type {
+            pub fn to_abstand(self) -> Abstand<$type> {
+                Abstand(self)
+            }
+        }
+        impl Add<$type> for Abstand<$type> {
+            type Output = $type;
 
-    fn add(self, X(rhs): X) -> Self::Output {
-        X(self.0 + rhs)
-    }
-}
-impl Add<Abstand<X>> for X {
-    type Output = Self;
+            fn add(self, $type(rhs): $type) -> Self::Output {
+                $type(self.0 .0 + rhs)
+            }
+        }
+        impl Add<Abstand<$type>> for $type {
+            type Output = Self;
 
-    fn add(self, Abstand(rhs, _phantom_data): Abstand<X>) -> Self {
-        X(self.0 + rhs)
-    }
-}
-impl AddAssign<Abstand<X>> for X {
-    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<X>) {
-        self.0 += rhs
-    }
-}
-impl Sub<Abstand<X>> for X {
-    type Output = Self;
+            fn add(self, Abstand($type(rhs)): Abstand<$type>) -> Self {
+                $type(self.0 + rhs)
+            }
+        }
+        impl AddAssign<Abstand<$type>> for $type {
+            fn add_assign(&mut self, Abstand($type(rhs)): Abstand<$type>) {
+                self.0 += rhs
+            }
+        }
+        impl Sub<Abstand<$type>> for $type {
+            type Output = Self;
 
-    fn sub(self, Abstand(rhs, _phantom_data): Abstand<X>) -> Self {
-        X(self.0 - rhs)
-    }
+            fn sub(self, Abstand($type(rhs)): Abstand<$type>) -> Self {
+                $type(self.0 - rhs)
+            }
+        }
+        impl SubAssign<Abstand<$type>> for $type {
+            fn sub_assign(&mut self, Abstand($type(rhs)): Abstand<$type>) {
+                self.0 -= rhs
+            }
+        }
+    };
 }
-impl SubAssign<Abstand<X>> for X {
-    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<X>) {
-        self.0 -= rhs
-    }
-}
+impl_with_abstand! {X}
 impl Neg for X {
     type Output = Self;
 
@@ -57,42 +61,7 @@ impl Neg for X {
 /// Vertikale Koordinate auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct Y(pub f32);
-impl Y {
-    pub fn to_abstand(self) -> Abstand<Y> {
-        Abstand(self.0, PhantomData)
-    }
-}
-impl Add<Y> for Abstand<Y> {
-    type Output = Y;
-
-    fn add(self, Y(rhs): Y) -> Self::Output {
-        Y(self.0 + rhs)
-    }
-}
-impl Add<Abstand<Y>> for Y {
-    type Output = Self;
-
-    fn add(self, Abstand(rhs, _phantom_data): Abstand<Y>) -> Self {
-        Y(self.0 + rhs)
-    }
-}
-impl AddAssign<Abstand<Y>> for Y {
-    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Y>) {
-        self.0 += rhs
-    }
-}
-impl Sub<Abstand<Y>> for Y {
-    type Output = Self;
-
-    fn sub(self, Abstand(rhs, _phantom_data): Abstand<Y>) -> Self {
-        Y(self.0 - rhs)
-    }
-}
-impl SubAssign<Abstand<Y>> for Y {
-    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Y>) {
-        self.0 -= rhs
-    }
-}
+impl_with_abstand! {Y}
 impl Neg for Y {
     type Output = Y;
 
@@ -103,148 +72,135 @@ impl Neg for Y {
 /// Radius auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct Radius(pub f32);
-impl Radius {
-    pub fn to_abstand(self) -> Abstand<Radius> {
-        Abstand(self.0, PhantomData)
-    }
-}
-impl Add<Radius> for Abstand<Radius> {
-    type Output = Radius;
+impl_with_abstand! {Radius}
 
-    fn add(self, Radius(rhs): Radius) -> Self::Output {
-        Radius(self.0 + rhs)
-    }
-}
-impl Add<Abstand<Radius>> for Radius {
-    type Output = Self;
-
-    fn add(self, Abstand(rhs, _phantom_data): Abstand<Radius>) -> Self {
-        Radius(self.0 + rhs)
-    }
-}
-impl AddAssign<Abstand<Radius>> for Radius {
-    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Radius>) {
-        self.0 += rhs
-    }
-}
-impl Sub<Abstand<Radius>> for Radius {
-    type Output = Self;
-
-    fn sub(self, Abstand(rhs, _phantom_data): Abstand<Radius>) -> Self {
-        Radius(self.0 - rhs)
-    }
-}
-impl SubAssign<Abstand<Radius>> for Radius {
-    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Abstand<Radius>) {
-        self.0 -= rhs
-    }
-}
 /// Abstand/Länge auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
-pub struct Abstand<T>(f32, PhantomData<*const T>);
-impl<T> Abstand<T> {
-    const fn new_from_mm(abstand_mm: f32) -> Self {
-        Abstand(abstand_mm, PhantomData)
-    }
+pub struct Abstand<T>(T);
+macro_rules! impl_abstand {
+    ($type:ident) => {
+        impl Abstand<$type> {
+            const fn new_from_mm(abstand_mm: f32) -> Self {
+                Abstand($type(abstand_mm))
+            }
 
-    pub fn min(&self, other: &Self) -> Self {
-        Abstand(self.0.min(other.0), self.1)
-    }
+            pub fn min(&self, other: &Self) -> Self {
+                Abstand($type(self.0 .0.min(other.0 .0)))
+            }
 
-    pub fn max(&self, other: &Self) -> Self {
-        Abstand(self.0.max(other.0), self.1)
-    }
+            pub fn max(&self, other: &Self) -> Self {
+                Abstand($type(self.0 .0.max(other.0 .0)))
+            }
 
-    pub fn as_x(self) -> Abstand<X> {
-        Abstand(self.0, PhantomData)
-    }
+            pub fn as_x(self) -> Abstand<X> {
+                Abstand(X(self.0 .0))
+            }
 
-    pub fn as_y(self) -> Abstand<Y> {
-        Abstand(self.0, PhantomData)
-    }
+            pub fn as_y(self) -> Abstand<Y> {
+                Abstand(Y(self.0 .0))
+            }
 
-    pub fn as_radius(self) -> Abstand<Radius> {
-        Abstand(self.0, PhantomData)
-    }
-}
-// with Self
-impl<T> Add<Self> for Abstand<T> {
-    type Output = Self;
+            pub fn as_radius(self) -> Abstand<Radius> {
+                Abstand(Radius(self.0 .0))
+            }
+        }
+        // with Self
+        impl AddAssign<Self> for Abstand<$type> {
+            fn add_assign(&mut self, Abstand($type(rhs)): Self) {
+                self.0 .0 += rhs
+            }
+        }
+        impl Add<Self> for Abstand<$type> {
+            type Output = Self;
 
-    fn add(self, Abstand(rhs, phantom_data): Self) -> Self {
-        Abstand(self.0 + rhs, phantom_data)
-    }
-}
-impl<T> AddAssign<Self> for Abstand<T> {
-    fn add_assign(&mut self, Abstand(rhs, _phantom_data): Self) {
-        self.0 += rhs
-    }
-}
-impl<T> Sub<Self> for Abstand<T> {
-    type Output = Self;
+            fn add(mut self, other: Self) -> Self {
+                self += other;
+                self
+            }
+        }
+        impl SubAssign<Self> for Abstand<$type> {
+            fn sub_assign(&mut self, Abstand($type(rhs)): Self) {
+                self.0 .0 -= rhs
+            }
+        }
+        impl Sub<Self> for Abstand<$type> {
+            type Output = Self;
 
-    fn sub(self, Abstand(rhs, phantom_data): Self) -> Self {
-        Abstand(self.0 - rhs, phantom_data)
-    }
+            fn sub(mut self, other: Self) -> Self {
+                self -= other;
+                self
+            }
+        }
+        // get ratio
+        impl Div<Abstand<X>> for Abstand<$type> {
+            type Output = f32;
+            fn div(self, Abstand(X(rhs)): Abstand<X>) -> Self::Output {
+                self.0 .0 / rhs
+            }
+        }
+        impl Div<Abstand<Y>> for Abstand<$type> {
+            type Output = f32;
+            fn div(self, Abstand(Y(rhs)): Abstand<Y>) -> Self::Output {
+                self.0 .0 / rhs
+            }
+        }
+        impl Div<Abstand<Radius>> for Abstand<$type> {
+            type Output = f32;
+            fn div(self, Abstand(Radius(rhs)): Abstand<Radius>) -> Self::Output {
+                self.0 .0 / rhs
+            }
+        }
+        // scale with f32
+        impl MulAssign<f32> for Abstand<$type> {
+            fn mul_assign(&mut self, rhs: f32) {
+                self.0 .0 *= rhs
+            }
+        }
+        impl Mul<f32> for Abstand<$type> {
+            type Output = Self;
+            fn mul(mut self, rhs: f32) -> Self::Output {
+                self *= rhs;
+                self
+            }
+        }
+        impl Mul<Abstand<$type>> for f32 {
+            type Output = Abstand<$type>;
+            fn mul(self, rhs: Abstand<$type>) -> Self::Output {
+                rhs * self
+            }
+        }
+        impl DivAssign<f32> for Abstand<$type> {
+            fn div_assign(&mut self, rhs: f32) {
+                self.0 .0 /= rhs
+            }
+        }
+        impl Div<f32> for Abstand<$type> {
+            type Output = Self;
+            fn div(mut self, rhs: f32) -> Self::Output {
+                self /= rhs;
+                self
+            }
+        }
+    };
 }
-impl<T> SubAssign<Self> for Abstand<T> {
-    fn sub_assign(&mut self, Abstand(rhs, _phantom_data): Self) {
-        self.0 -= rhs
-    }
-}
-// get ratio
-impl<A, B> Div<Abstand<B>> for Abstand<A> {
-    type Output = f32;
-    fn div(self, rhs: Abstand<B>) -> Self::Output {
-        self.0 / rhs.0
-    }
-}
-// scale with f32
-impl<T> MulAssign<f32> for Abstand<T> {
-    fn mul_assign(&mut self, rhs: f32) {
-        self.0 *= rhs
-    }
-}
-impl<T> Mul<f32> for Abstand<T> {
-    type Output = Self;
-    fn mul(mut self, rhs: f32) -> Self::Output {
-        self *= rhs;
-        self
-    }
-}
-impl<T> Mul<Abstand<T>> for f32 {
-    type Output = Abstand<T>;
-    fn mul(self, rhs: Abstand<T>) -> Self::Output {
-        rhs * self
-    }
-}
-impl<T> DivAssign<f32> for Abstand<T> {
-    fn div_assign(&mut self, rhs: f32) {
-        self.0 /= rhs
-    }
-}
-impl<T> Div<f32> for Abstand<T> {
-    type Output = Self;
-    fn div(mut self, rhs: f32) -> Self::Output {
-        self /= rhs;
-        self
-    }
-}
+impl_abstand! {X}
+impl_abstand! {Y}
+impl_abstand! {Radius}
 /// Umrechnung von mm-Größen auf Canvas-Koordinaten
 /// Verwenden dieser Funktion um evtl. in der Zukunft einen Faktor zu erlauben
 impl mm::Spurweite {
     pub const fn to_abstand(self) -> Abstand<Y> {
-        Abstand::new_from_mm(self.0)
+        Abstand::<Y>::new_from_mm(self.0)
     }
 }
 impl mm::Length {
     pub const fn to_abstand(self) -> Abstand<X> {
-        Abstand::new_from_mm(self.0)
+        Abstand::<X>::new_from_mm(self.0)
     }
 }
 impl mm::Radius {
     pub const fn to_abstand(self) -> Abstand<Radius> {
-        Abstand::new_from_mm(self.0)
+        Abstand::<Radius>::new_from_mm(self.0)
     }
 }
 
@@ -278,7 +234,7 @@ impl Size {
 }
 impl From<Size> for iced::Size<f32> {
     fn from(Size { width, height }: Size) -> Self {
-        iced::Size { width: width.0, height: height.0 }
+        iced::Size { width: width.0 .0, height: height.0 .0 }
     }
 }
 
@@ -294,14 +250,22 @@ impl Vector {
         Vector { dx: x.to_abstand(), dy: y.to_abstand() }
     }
     /// Berechne die Länge des Vektors.
-    pub fn length<T>(&self) -> Abstand<T> {
-        Abstand((self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt(), PhantomData)
+    pub fn length_x(&self) -> Abstand<X> {
+        Abstand(X((self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt()))
+    }
+    /// Berechne die Länge des Vektors.
+    pub fn length_y(&self) -> Abstand<Y> {
+        Abstand(Y((self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt()))
+    }
+    /// Berechne die Länge des Vektors.
+    pub fn length_radius(&self) -> Abstand<Radius> {
+        Abstand(Radius((self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt()))
     }
     // Winkel zwischen Richtungs-Vektor und x-Achse
     pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
-        let len = (self.dx.0 * self.dx.0 + self.dy.0 * self.dy.0).sqrt();
-        let acos_winkel = Angle::acos(self.dx.0 / len);
-        if self.dy.0 < 0. {
+        let len = (self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt();
+        let acos_winkel = Angle::acos(self.dx.0 .0 / len);
+        if self.dy.0 .0 < 0. {
             acos_winkel
         } else {
             -acos_winkel
@@ -320,25 +284,25 @@ impl Vector {
     ///
     /// Es gilt `self.scalar_product(other) == self.length() * other.length() * winkel_zwischen_self_und_other.cos()`.
     pub fn scalar_product(&self, other: &Vector) -> f32 {
-        self.dx.0 * other.dx.0 + self.dy.0 * other.dy.0
+        self.dx.0 .0 * other.dx.0 .0 + self.dy.0 .0 * other.dy.0 .0
     }
     /// Berechne das Skalarprodukt zweier Vektoren, normiert auf Einheitsvektoren.
     ///
     /// Es gilt `self.scalar_product_normalized(other) == winkel_zwischen_self_und_other.cos()`.
     pub fn scalar_product_normalized(&self, other: &Vector) -> f32 {
-        self.scalar_product(other) / (self.length::<X>().0 * other.length::<X>().0)
+        self.scalar_product(other) / (self.length_x().0 .0 * other.length_x().0 .0)
     }
 }
 impl From<Vector> for iced::Vector {
     fn from(Vector { dx, dy }: Vector) -> Self {
-        iced::Vector { x: dx.0, y: dy.0 }
+        iced::Vector { x: dx.0 .0, y: dy.0 .0 }
     }
 }
 impl Neg for Vector {
     type Output = Self;
     fn neg(mut self) -> Self::Output {
-        self.dx.0 *= -1.;
-        self.dy.0 *= -1.;
+        self.dx.0 .0 *= -1.;
+        self.dy.0 .0 *= -1.;
         self
     }
 }
@@ -466,45 +430,6 @@ impl Sub<Vector> for Point {
     type Output = Point;
     fn sub(mut self, other: Vector) -> Self::Output {
         self -= other;
-        self
-    }
-}
-// scale with Abstand<T>
-impl<T> MulAssign<Abstand<T>> for Vector {
-    fn mul_assign(&mut self, Abstand(other, PhantomData): Abstand<T>) {
-        self.dx *= other;
-        self.dy *= other;
-    }
-}
-impl<T> Mul<Abstand<T>> for Vector {
-    type Output = Vector;
-    fn mul(mut self, other: Abstand<T>) -> Self::Output {
-        self *= other;
-        self
-    }
-}
-impl<T> Mul<Vector> for Abstand<T> {
-    type Output = Vector;
-    fn mul(self, other: Vector) -> Self::Output {
-        other * self
-    }
-}
-impl<T> Mul<&Vector> for Abstand<T> {
-    type Output = Vector;
-    fn mul(self, other: &Vector) -> Self::Output {
-        *other * self
-    }
-}
-impl<T> DivAssign<Abstand<T>> for Vector {
-    fn div_assign(&mut self, Abstand(other, PhantomData): Abstand<T>) {
-        self.dx /= other;
-        self.dy /= other;
-    }
-}
-impl<T> Div<Abstand<T>> for Vector {
-    type Output = Vector;
-    fn div(mut self, other: Abstand<T>) -> Self::Output {
-        self /= other;
         self
     }
 }

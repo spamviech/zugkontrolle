@@ -378,7 +378,7 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                     let direction: canvas::Vector = anchor.direction.into();
                     let direction_side: canvas::Vector = direction.rotate(AngleDegrees::new(90.));
                     let anchor_position: canvas::Point = anchor.position.into();
-                    let scale: f32 = canvas::X(5.).to_abstand() / direction.length::<canvas::X>();
+                    let scale: f32 = canvas::X(5.).to_abstand() / direction.length_x();
                     let mut path_builder = canvas::PathBuilder::new();
                     path_builder.move_to(anchor_position + 0.5 * scale * direction_side);
                     path_builder.line_to(anchor_position + scale * direction);
