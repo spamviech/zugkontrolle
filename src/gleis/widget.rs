@@ -282,7 +282,7 @@ impl<Z> Gleise<Z> {
     }
 }
 
-fn move_to_position(frame: &mut canvas::Frame, position: &canvas::Position) {
+pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &canvas::Position) {
     // bewege Kontext zur Position
     frame.transformation(&canvas::Transformation::Translate(position.point.into()));
     // drehe Kontext um (0,0)
