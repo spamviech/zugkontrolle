@@ -44,8 +44,15 @@ version = "1.0.124"
 features = ["derive"]
 
 [dependencies.iced]
-version = "0.3.0"
+# ices_aw only works with git-version for now
+git = "https://github.com/hecrj/iced"
+rev = "4b8ba8309f6645cdcb5bd605f8dd88097f8ee5a7"
 features = ["glow","glow_canvas"]
+
+[dependencies.iced_aw]
+git = "https://github.com/iced-rs/iced_aw"
+rev = "cd2edf1dd3f1fff2598bbb01f1e538a22d3865e8"
+features = ["color_picker", "card", "modal", "tab_bar", "tabs"]
 
 [target.'cfg(all(unix, target_arch = "armv7"))'.dependencies]
 # can't be used on non-raspi systems

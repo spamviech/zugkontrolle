@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use iced::{Application, Clipboard, Column, Command, Container, Element, Length, Row, Settings};
+use iced::{Application, Clipboard, Command, Container, Element, Length, Row, Settings};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::button::{Button, ButtonMessage};
