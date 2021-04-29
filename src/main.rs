@@ -5,9 +5,16 @@ use std::fmt::Debug;
 use iced::{Application, Clipboard, Column, Command, Container, Element, Length, Row, Settings};
 use simple_logger::SimpleLogger;
 
+use zugkontrolle::gleis::button::{Button, ButtonMessage};
 use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::widget::{Gleis, GleisIdLock, Gleise, GleiseMap};
-use zugkontrolle::gleis::{anchor, gerade, kurve};
+use zugkontrolle::gleis::{
+    anchor,
+    gerade::{self, Gerade},
+    kreuzung::Kreuzung,
+    kurve::{self, Kurve},
+    weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
+};
 use zugkontrolle::zugtyp::{
     lego::{self, Lego},
     maerklin::{self, Maerklin},
@@ -68,11 +75,42 @@ mod background {
 #[derive(Debug, Clone)]
 enum Message {
     ResizePane(iced::pane_grid::ResizeEvent),
-    Gerade(gerade::Gerade<Maerklin>),
-    Kurve(kurve::Kurve<Maerklin>),
+    Gerade(Gerade<Maerklin>),
+    Kurve(Kurve<Maerklin>),
+    Weiche(Weiche<Maerklin>),
+    DreiwegeWeiche(DreiwegeWeiche<Maerklin>),
+    KurvenWeiche(KurvenWeiche<Maerklin>),
+    SKurvenWeiche(SKurvenWeiche<Maerklin>),
+    Kreuzung(Kreuzung<Maerklin>),
 }
+macro_rules! impl_button_message {
+    ($type:ident) => {
+        impl ButtonMessage<Message> for $type<Maerklin> {
+            fn to_message(&self) -> Message {
+                Message::$type(self.clone())
+            }
+        }
+    };
+}
+impl_button_message! {Gerade}
+impl_button_message! {Kurve}
+impl_button_message! {Weiche}
+impl_button_message! {DreiwegeWeiche}
+impl_button_message! {KurvenWeiche}
+impl_button_message! {SKurvenWeiche}
+impl_button_message! {Kreuzung}
+
 enum AnyGleise {
-    Maerklin(Gleise<Maerklin>, iced::button::State, iced::button::State),
+    Maerklin {
+        gleise: Gleise<Maerklin>,
+        geraden: Vec<Button<Gerade<Maerklin>>>,
+        kurven: Vec<Button<Kurve<Maerklin>>>,
+        weichen: Vec<Button<Weiche<Maerklin>>>,
+        dreiwege_weichen: Vec<Button<DreiwegeWeiche<Maerklin>>>,
+        kurven_weichen: Vec<Button<KurvenWeiche<Maerklin>>>,
+        s_kurven_weichen: Vec<Button<SKurvenWeiche<Maerklin>>>,
+        kreuzungen: Vec<Button<Kreuzung<Maerklin>>>,
+    },
     Lego(Gleise<Lego>),
 }
 struct Zugkontrolle {
@@ -84,11 +122,16 @@ impl Application for Zugkontrolle {
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
-        let (mut pane_state, pane_maerklin) = iced::pane_grid::State::new(AnyGleise::Maerklin(
-            gleise_maerklin,
-            iced::button::State::new(),
-            iced::button::State::new(),
-        ));
+        let (mut pane_state, pane_maerklin) = iced::pane_grid::State::new(AnyGleise::Maerklin {
+            gleise: gleise_maerklin,
+            geraden: Maerklin::geraden().into_iter().map(Button::new).collect(),
+            kurven: Maerklin::kurven().into_iter().map(Button::new).collect(),
+            weichen: Maerklin::weichen().into_iter().map(Button::new).collect(),
+            dreiwege_weichen: Maerklin::dreiwege_weichen().into_iter().map(Button::new).collect(),
+            kurven_weichen: Maerklin::kurven_weichen().into_iter().map(Button::new).collect(),
+            s_kurven_weichen: Maerklin::s_kurven_weichen().into_iter().map(Button::new).collect(),
+            kreuzungen: Maerklin::kreuzungen().into_iter().map(Button::new).collect(),
+        });
         pane_state
             .split(iced::pane_grid::Axis::Vertical, &pane_maerklin, AnyGleise::Lego(gleise_lego))
             .expect("Failed to split pane!");
@@ -108,12 +151,7 @@ impl Application for Zugkontrolle {
             Message::ResizePane(iced::pane_grid::ResizeEvent { split, ratio }) => {
                 self.pane_state.resize(&split, ratio)
             }
-            Message::Gerade(gerade) => {
-                println!("{:?}", gerade)
-            }
-            Message::Kurve(kurve) => {
-                println!("{:?}", kurve)
-            }
+            _ => println!("{:?}", message),
         }
 
         Command::none()
@@ -121,54 +159,45 @@ impl Application for Zugkontrolle {
 
     fn view(&mut self) -> Element<Self::Message> {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
-            AnyGleise::Maerklin(gleise_maerklin, gerade_state, kurve_state) => Container::new(
-                Row::new()
-                    .push(
-                        Column::new()
-                            .push(
-                                iced::Button::new(
-                                    gerade_state,
-                                    iced::Canvas::new(maerklin::gerade_5106())
-                                        .width(Length::Units(
-                                            (canvas::X(0.) + maerklin::gerade_5106().size().width).0
-                                                as u16,
-                                        ))
-                                        .height(Length::Units(
-                                            (canvas::Y(0.) + maerklin::gerade_5106().size().height)
-                                                .0
-                                                as u16,
-                                        )),
-                                )
-                                .width(Length::Shrink)
-                                .height(Length::Shrink)
-                                .on_press(Message::Gerade(maerklin::gerade_5106())),
-                            )
-                            .push(
-                                iced::Button::new(
-                                    kurve_state,
-                                    iced::Canvas::new(maerklin::kurve_5100())
-                                        .width(Length::Units(
-                                            (canvas::X(0.) + maerklin::kurve_5100().size().width).0
-                                                as u16,
-                                        ))
-                                        .height(Length::Units(
-                                            (canvas::Y(0.) + maerklin::kurve_5100().size().height).0
-                                                as u16,
-                                        )),
-                                )
-                                .width(Length::Shrink)
-                                .height(Length::Shrink)
-                                .on_press(Message::Kurve(maerklin::kurve_5100())),
-                            ),
-                    )
-                    .push(
-                        iced::Canvas::new(gleise_maerklin).width(Length::Fill).height(Length::Fill),
-                    ),
-            )
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(background::White)
-            .into(),
+            AnyGleise::Maerklin {
+                gleise,
+                geraden,
+                kurven,
+                weichen,
+                dreiwege_weichen,
+                kurven_weichen,
+                s_kurven_weichen,
+                kreuzungen,
+            } => {
+                let mut column = Column::new();
+                macro_rules! add_buttons {
+                    ($($vec: expr),*) => {
+                        $(
+                        for button in $vec {
+                            column = column.push(button.to_button());
+                        }
+                    )*
+                    }
+                }
+                add_buttons!(
+                    geraden,
+                    kurven,
+                    weichen,
+                    dreiwege_weichen,
+                    kurven_weichen,
+                    s_kurven_weichen,
+                    kreuzungen
+                );
+                Container::new(
+                    Row::new()
+                        .push(column)
+                        .push(iced::Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(background::White)
+                .into()
+            }
             AnyGleise::Lego(gleise_lego) => Container::new(
                 iced::Canvas::new(gleise_lego).width(Length::Fill).height(Length::Fill),
             )
