@@ -103,6 +103,7 @@ impl_button_message! {Kreuzung}
 enum AnyGleise {
     Maerklin {
         gleise: Gleise<Maerklin>,
+        scrollable_state: iced::scrollable::State,
         geraden: Vec<Button<Gerade<Maerklin>>>,
         kurven: Vec<Button<Kurve<Maerklin>>>,
         weichen: Vec<Button<Weiche<Maerklin>>>,
@@ -124,6 +125,7 @@ impl Application for Zugkontrolle {
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
         let (mut pane_state, pane_maerklin) = iced::pane_grid::State::new(AnyGleise::Maerklin {
             gleise: gleise_maerklin,
+            scrollable_state: iced::scrollable::State::new(),
             geraden: Maerklin::geraden().into_iter().map(Button::new).collect(),
             kurven: Maerklin::kurven().into_iter().map(Button::new).collect(),
             weichen: Maerklin::weichen().into_iter().map(Button::new).collect(),
@@ -161,6 +163,7 @@ impl Application for Zugkontrolle {
         let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
             AnyGleise::Maerklin {
                 gleise,
+                scrollable_state,
                 geraden,
                 kurven,
                 weichen,
@@ -169,12 +172,12 @@ impl Application for Zugkontrolle {
                 s_kurven_weichen,
                 kreuzungen,
             } => {
-                let mut column = Column::new();
+                let mut scrollable = iced::Scrollable::new(scrollable_state).height(Length::Fill);
                 macro_rules! add_buttons {
                     ($($vec: expr),*) => {
                         $(
                         for button in $vec {
-                            column = column.push(button.to_button());
+                            scrollable = scrollable.push(button.to_button());
                         }
                     )*
                     }
@@ -190,7 +193,7 @@ impl Application for Zugkontrolle {
                 );
                 Container::new(
                     Row::new()
-                        .push(column)
+                        .push(scrollable)
                         .push(iced::Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
                 )
                 .width(Length::Fill)
