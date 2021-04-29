@@ -2,11 +2,11 @@
 
 use std::f32::consts::PI;
 
-use super::gerade::Gerade;
-use super::kreuzung::{self, Kreuzung};
-use super::kurve::Kurve;
-use super::types::*;
-use super::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
+use crate::gleis::gerade::Gerade;
+use crate::gleis::kreuzung::{self, Kreuzung};
+use crate::gleis::kurve::Kurve;
+use crate::gleis::types::*;
+use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 // TODO
 // non_ascii_idents might be stabilized soon

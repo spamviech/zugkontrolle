@@ -9,6 +9,9 @@ use crate::gleis::{
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };
 
+pub mod lego;
+pub mod maerklin;
+
 /// TODO
 /// Wirkliche Implementierung in eigenem Modul erstellen
 /// Pin, I2C/PCF8574Port, weitere?

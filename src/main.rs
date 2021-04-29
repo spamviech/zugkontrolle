@@ -8,7 +8,10 @@ use simple_logger::SimpleLogger;
 use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::widget::{Gleis, GleisIdLock, Gleise, GleiseMap};
 use zugkontrolle::gleis::{anchor, gerade, kurve};
-use zugkontrolle::gleis::{lego, lego::Lego, maerklin, maerklin::Maerklin};
+use zugkontrolle::zugtyp::{
+    lego::{self, Lego},
+    maerklin::{self, Maerklin},
+};
 
 struct AppendGleise<'t, Z> {
     gleise: &'t mut Gleise<Z>,
