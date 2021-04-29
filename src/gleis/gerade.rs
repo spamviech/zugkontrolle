@@ -34,30 +34,6 @@ impl<Z> Gerade<Z> {
     }
 }
 
-impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gerade<Z> {
-    fn draw(
-        &self,
-        bounds: iced::Rectangle,
-        _cursor: iced::canvas::Cursor,
-    ) -> Vec<iced::canvas::Geometry> {
-        let mut iced_frame = iced::canvas::Frame::new(bounds.size());
-        let mut frame = canvas::Frame::new(&mut iced_frame);
-        for path in self.zeichne() {
-            frame.with_save(|frame| {
-                frame.stroke(
-                    &path,
-                    canvas::Stroke {
-                        color: canvas::Color::BLACK,
-                        width: 1.5,
-                        ..Default::default()
-                    },
-                );
-            });
-        }
-        vec![iced_frame.into_geometry()]
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, anchor::Lookup)]
 pub enum AnchorName {
     Anfang,
