@@ -585,14 +585,16 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ })
                 if cursor.is_over(&bounds) =>
             {
+                let mut event_status = iced::canvas::event::Status::Ignored;
                 if let Some(Grabbed { gleis_id, grab_location }) = &self.grabbed {
                     if let Some(in_pos) = cursor.position_in(&bounds) {
                         let point = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
                             - grab_location;
                         with_any_id!(gleis_id, relocate_grabbed, self, point);
+                        event_status = iced::canvas::event::Status::Captured
                     }
                 }
-                iced::canvas::event::Status::Captured
+                event_status
             }
             _otherwise => iced::canvas::event::Status::Ignored,
         };
