@@ -36,6 +36,7 @@ impl<T: Zeichnen> Button<T> {
                 .width(iced::Length::Units((canvas::X(0.) + size.width).0.ceil() as u16))
                 .height(iced::Length::Units((canvas::Y(0.) + size.height).0.ceil() as u16)),
         )
+        .padding(2)
         .on_press(message)
     }
 }

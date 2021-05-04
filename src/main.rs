@@ -178,7 +178,8 @@ impl Application for Zugkontrolle {
                     ($($vec: expr),*) => {
                         $(
                         for button in $vec {
-                            max_width = max_width.max((canvas::X(0.) + button.size().width).0.ceil() as u16);
+                            // include padding
+                            max_width = max_width.max((canvas::X(4.) + button.size().width).0.ceil() as u16);
                             scrollable = scrollable.push(
                                 button.to_button().width(Length::Fill).height(Length::Shrink)
                             );
