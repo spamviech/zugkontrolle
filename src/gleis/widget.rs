@@ -217,8 +217,13 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
 
 // Aktuelle Modus von /Gleise/
 #[derive(zugkontrolle_derive::Debug)]
-enum Mode<Z> {
-    Bauen { grabbed: Option<Grabbed<Z>> },
+enum Modus<Z> {
+    Bauen {
+        grabbed: Option<Grabbed<Z>>,
+        // TODO aktuelle Maus-y-Koordinate, für Hinzufügen aus Button?
+    },
+    // TODO
+    #[allow(dead_code)]
     Fahren,
 }
 /// Anzeige aller Gleise.
@@ -228,9 +233,7 @@ pub struct Gleise<Z> {
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
-    // TODO move into Mode enum
-    // Bauen, Fahren
-    grabbed: Option<Grabbed<Z>>,
+    modus: Modus<Z>,
 }
 
 impl<Z> Gleise<Z> {
@@ -248,7 +251,7 @@ impl<Z> Gleise<Z> {
             },
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
-            grabbed: None,
+            modus: Modus::Bauen { grabbed: None },
         }
     }
     fn next_id<T: Debug>(&mut self) -> (u64, GleisIdLock<T>) {
@@ -451,7 +454,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     kreuzungen,
                 },
             anchor_points,
-            grabbed,
+            modus,
             ..
         } = self;
         vec![canvas.draw(
@@ -463,7 +466,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 // TODO don't draw out of bound Gleise
                 // Zeichne Gleise
                 let is_grabbed = |parameter_id| {
-                    if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                    if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = modus {
                         parameter_id == gleis_id.id_as_any()
                     } else {
                         false
@@ -518,17 +521,19 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
                         ($map:expr, AnyId::$konstruktor:ident) => {
-                            if self.grabbed.is_none() {
+                            if let Modus::Bauen { grabbed: None } = self.modus {
                                 for (gleis_id, Gleis { definition, position }) in $map.iter() {
                                     let relative_pos = canvas::Vector::from(
                                         canvas_pos - canvas::Vector::from(position.point),
                                     );
                                     let rotated_pos = relative_pos.rotate(-position.winkel);
                                     if definition.innerhalb(rotated_pos) {
-                                        self.grabbed = Some(Grabbed {
-                                            gleis_id: AnyId::$konstruktor(gleis_id.clone()),
-                                            grab_location: relative_pos,
-                                        });
+                                        self.modus = Modus::Bauen {
+                                            grabbed: Some(Grabbed {
+                                                gleis_id: AnyId::$konstruktor(gleis_id.clone()),
+                                                grab_location: relative_pos,
+                                            }),
+                                        };
                                         break;
                                     }
                                 }
@@ -543,18 +548,18 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     find_clicked!(self.maps.s_kurven_weichen, AnyId::SKurvenWeiche);
                     find_clicked!(self.maps.kreuzungen, AnyId::Kreuzung);
                 }
-                if self.grabbed.is_some() {
-                    iced::canvas::event::Status::Captured
-                } else {
+                if let Modus::Bauen { grabbed: None } = self.modus {
                     iced::canvas::event::Status::Ignored
+                } else {
+                    iced::canvas::event::Status::Captured
                 }
             }
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if let Some(Grabbed { gleis_id, .. }) = &self.grabbed {
+                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
                     with_any_id!(gleis_id, snap_to_anchor, self);
-                    self.grabbed = None;
+                    self.modus = Modus::Bauen { grabbed: None };
                     iced::canvas::event::Status::Captured
                 } else {
                     iced::canvas::event::Status::Ignored
@@ -564,7 +569,9 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 if cursor.is_over(&bounds) =>
             {
                 let mut event_status = iced::canvas::event::Status::Ignored;
-                if let Some(Grabbed { gleis_id, grab_location }) = &self.grabbed {
+                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, grab_location }) } =
+                    &self.modus
+                {
                     if let Some(in_pos) = cursor.position_in(&bounds) {
                         let point = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
                             - grab_location;
