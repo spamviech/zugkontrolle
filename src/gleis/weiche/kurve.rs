@@ -70,7 +70,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let KurvenWeiche { laenge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(laenge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
-        canvas::Size { width: size_gerade.width.max(&size_kurve.width), height: size_kurve.height }
+        canvas::Size { width: size_gerade.width + size_kurve.width, height: size_kurve.height }
     }
 
     fn zeichne(&self) -> Vec<canvas::Path> {
