@@ -81,6 +81,7 @@ struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: canvas::Vector,
 }
+#[derive(zugkontrolle_derive::Debug)]
 enum AnyId<Z> {
     Gerade(GleisId<Gerade<Z>>),
     Kurve(GleisId<Kurve<Z>>),
@@ -135,35 +136,6 @@ macro_rules! with_any_id {
 impl<Z> AnyId<Z> {
     fn id_as_any(&self) -> GleisId<Any> {
         with_any_id!(self => @no_clone, GleisId::as_any)
-    }
-}
-
-impl<Z> std::fmt::Debug for AnyId<Z> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Grabbed::")?;
-        match self {
-            AnyId::Gerade(gleis_id) => {
-                write!(f, "Gerade({:?})", gleis_id)
-            }
-            AnyId::Kurve(gleis_id) => {
-                write!(f, "Kurve({:?})", gleis_id)
-            }
-            AnyId::Weiche(gleis_id) => {
-                write!(f, "Weiche({:?})", gleis_id)
-            }
-            AnyId::DreiwegeWeiche(gleis_id) => {
-                write!(f, "DreiwegeWeiche({:?})", gleis_id)
-            }
-            AnyId::KurvenWeiche(gleis_id) => {
-                write!(f, "KurvenWeiche({:?})", gleis_id)
-            }
-            AnyId::SKurvenWeiche(gleis_id) => {
-                write!(f, "SKurvenWeiche({:?})", gleis_id)
-            }
-            AnyId::Kreuzung(gleis_id) => {
-                write!(f, "Kreuzung({:?})", gleis_id)
-            }
-        }
     }
 }
 
@@ -243,6 +215,12 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
     }
 }
 
+// Aktuelle Modus von /Gleise/
+#[derive(zugkontrolle_derive::Debug)]
+enum Mode<Z> {
+    Bauen { grabbed: Option<Grabbed<Z>> },
+    Fahren,
+}
 /// Anzeige aller Gleise.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
