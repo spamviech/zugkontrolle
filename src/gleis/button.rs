@@ -18,6 +18,10 @@ impl<T> Button<T> {
     }
 }
 impl<T: Zeichnen> Button<T> {
+    pub fn size(&self) -> canvas::Size {
+        self.canvas.gleis.size()
+    }
+
     pub fn to_button<Message>(&mut self) -> iced::Button<Message>
     where
         Message: 'static + Clone,
@@ -29,11 +33,9 @@ impl<T: Zeichnen> Button<T> {
         iced::Button::new(
             state,
             iced::Canvas::new(canvas)
-                .width(iced::Length::Units((canvas::X(0.) + size.width).0 as u16))
-                .height(iced::Length::Units((canvas::Y(0.) + size.height).0 as u16)),
+                .width(iced::Length::Units((canvas::X(0.) + size.width).0.ceil() as u16))
+                .height(iced::Length::Units((canvas::Y(0.) + size.height).0.ceil() as u16)),
         )
-        .width(iced::Length::Shrink)
-        .height(iced::Length::Shrink)
         .on_press(message)
     }
 }

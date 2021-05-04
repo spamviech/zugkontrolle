@@ -172,12 +172,16 @@ impl Application for Zugkontrolle {
                 s_kurven_weichen,
                 kreuzungen,
             } => {
-                let mut scrollable = iced::Scrollable::new(scrollable_state).height(Length::Fill);
+                let mut scrollable = iced::Scrollable::new(scrollable_state);
+                let mut max_width = 0;
                 macro_rules! add_buttons {
                     ($($vec: expr),*) => {
                         $(
                         for button in $vec {
-                            scrollable = scrollable.push(button.to_button());
+                            max_width = max_width.max((canvas::X(0.) + button.size().width).0.ceil() as u16);
+                            scrollable = scrollable.push(
+                                button.to_button().width(Length::Fill).height(Length::Shrink)
+                            );
                         }
                     )*
                     }
@@ -193,7 +197,7 @@ impl Application for Zugkontrolle {
                 );
                 Container::new(
                     Row::new()
-                        .push(scrollable)
+                        .push(scrollable.width(Length::Units(max_width)).height(Length::Fill))
                         .push(iced::Canvas::new(gleise).width(Length::Fill).height(Length::Fill)),
                 )
                 .width(Length::Fill)
