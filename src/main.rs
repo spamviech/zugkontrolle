@@ -3,6 +3,7 @@
 use std::fmt::Debug;
 
 use iced::{Application, Clipboard, Command, Container, Element, Length, Row, Settings};
+use log::*;
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::button::{Button, ButtonMessage};
@@ -115,7 +116,9 @@ enum AnyGleise {
     Lego(Gleise<Lego>),
 }
 struct Zugkontrolle {
-    pane_state: iced::pane_grid::State<AnyGleise>,
+    pub pane_state: iced::pane_grid::State<AnyGleise>,
+    pub pane_maerklin: iced::pane_grid::Pane,
+    pub pane_lego: iced::pane_grid::Pane,
 }
 impl Application for Zugkontrolle {
     type Executor = iced::executor::Default;
@@ -134,10 +137,10 @@ impl Application for Zugkontrolle {
             s_kurven_weichen: Maerklin::s_kurven_weichen().into_iter().map(Button::new).collect(),
             kreuzungen: Maerklin::kreuzungen().into_iter().map(Button::new).collect(),
         });
-        pane_state
+        let (pane_lego, _pane_split) = pane_state
             .split(iced::pane_grid::Axis::Vertical, &pane_maerklin, AnyGleise::Lego(gleise_lego))
             .expect("Failed to split pane!");
-        (Zugkontrolle { pane_state }, Command::none())
+        (Zugkontrolle { pane_state, pane_maerklin, pane_lego }, Command::none())
     }
 
     fn title(&self) -> String {
@@ -149,11 +152,39 @@ impl Application for Zugkontrolle {
         message: Self::Message,
         _clipboard: &mut Clipboard,
     ) -> Command<Self::Message> {
+        macro_rules! add_gleis {
+            ($gleis: expr) => {
+                if let Some(AnyGleise::Maerklin { gleise, .. }) =
+                    self.pane_state.get_mut(&self.pane_maerklin)
+                {
+                    if let Some(y) = gleise.last_mouse_y() {
+                        gleise.add(Gleis {
+                            definition: $gleis,
+                            position: canvas::Position {
+                                point: canvas::Point { x: canvas::X(0.), y },
+                                winkel: Angle::new(0.),
+                            },
+                        });
+                    } else {
+                        warn!("last_mouse_y liefert None-Wert")
+                    }
+                } else {
+                    error!("Märklin-Pane nicht gefunden!")
+                }
+            };
+        }
         match message {
             Message::ResizePane(iced::pane_grid::ResizeEvent { split, ratio }) => {
                 self.pane_state.resize(&split, ratio)
             }
-            _ => println!("{:?}", message),
+            Message::Gerade(gerade) => add_gleis!(gerade),
+            Message::Kurve(kurve) => add_gleis!(kurve),
+            Message::Weiche(weiche) => add_gleis!(weiche),
+            Message::DreiwegeWeiche(dreiwege_weiche) => add_gleis!(dreiwege_weiche),
+            Message::KurvenWeiche(kurven_weiche) => add_gleis!(kurven_weiche),
+            Message::SKurvenWeiche(s_kurven_weiche) => add_gleis!(s_kurven_weiche),
+            Message::Kreuzung(kreuzung) => add_gleis!(kreuzung),
+            // _ => println!("{:?}", message),
         }
 
         Command::none()

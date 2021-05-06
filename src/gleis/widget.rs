@@ -220,6 +220,7 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
 enum Modus<Z> {
     Bauen {
         grabbed: Option<Grabbed<Z>>,
+        mouse_y: f32,
         // TODO aktuelle Maus-y-Koordinate, für Hinzufügen aus Button?
     },
     // TODO
@@ -233,6 +234,7 @@ pub struct Gleise<Z> {
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
+    // TODO add Pivot & Scale values
     modus: Modus<Z>,
 }
 
@@ -251,9 +253,19 @@ impl<Z> Gleise<Z> {
             },
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
-            modus: Modus::Bauen { grabbed: None },
+            modus: Modus::Bauen { grabbed: None, mouse_y: 0. },
         }
     }
+
+    /// last y-position of the cursor, relative to the canvas
+    pub fn last_mouse_y(&self) -> Option<canvas::Y> {
+        if let Modus::Bauen { mouse_y, .. } = self.modus {
+            Some(canvas::Y(mouse_y))
+        } else {
+            None
+        }
+    }
+
     fn next_id<T: Debug>(&mut self) -> (u64, GleisIdLock<T>) {
         let gleis_id: u64 = self.next_id;
         let gleis_id_lock: GleisIdLock<T> = GleisIdLock::new(gleis_id);
@@ -465,13 +477,13 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             |frame| {
                 // TODO don't draw out of bound Gleise
                 // Zeichne Gleise
-                let is_grabbed = |parameter_id| {
-                    if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = modus {
-                        parameter_id == gleis_id.id_as_any()
+                let grabbed_id =
+                    if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
+                        Some(gleis_id.id_as_any())
                     } else {
-                        false
-                    }
-                };
+                        None
+                    };
+                let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
                 let has_other_and_grabbed_id_at_point = |gleis_id, position| {
                     anchor_points.has_other_and_grabbed_id_at_point(
                         &gleis_id,
@@ -518,37 +530,42 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             )) if cursor.is_over(&bounds) => {
                 // TODO store bounding box in rtree as well, to avoid searching everything stored?
                 if let Some(in_pos) = cursor.position_in(&bounds) {
+                    let Gleise { maps, modus, .. } = self;
                     let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
                         ($map:expr, AnyId::$konstruktor:ident) => {
-                            if let Modus::Bauen { grabbed: None } = self.modus {
-                                for (gleis_id, Gleis { definition, position }) in $map.iter() {
-                                    let relative_pos = canvas::Vector::from(
-                                        canvas_pos - canvas::Vector::from(position.point),
-                                    );
-                                    let rotated_pos = relative_pos.rotate(-position.winkel);
-                                    if definition.innerhalb(rotated_pos) {
-                                        self.modus = Modus::Bauen {
-                                            grabbed: Some(Grabbed {
-                                                gleis_id: AnyId::$konstruktor(gleis_id.clone()),
-                                                grab_location: relative_pos,
-                                            }),
-                                        };
-                                        break;
-                                    }
-                                }
+                            if let Modus::Bauen { grabbed, .. } = modus {
+                                take_mut::take(grabbed, |grabbed| {
+                                    grabbed.or_else(|| {
+                                        for (gleis_id, Gleis { definition, position }) in
+                                            $map.iter()
+                                        {
+                                            let relative_pos = canvas::Vector::from(
+                                                canvas_pos - canvas::Vector::from(position.point),
+                                            );
+                                            let rotated_pos = relative_pos.rotate(-position.winkel);
+                                            if definition.innerhalb(rotated_pos) {
+                                                return Some(Grabbed {
+                                                    gleis_id: AnyId::$konstruktor(gleis_id.clone()),
+                                                    grab_location: relative_pos,
+                                                });
+                                            }
+                                        }
+                                        None
+                                    })
+                                })
                             }
                         };
                     }
-                    find_clicked!(self.maps.geraden, AnyId::Gerade);
-                    find_clicked!(self.maps.kurven, AnyId::Kurve);
-                    find_clicked!(self.maps.weichen, AnyId::Weiche);
-                    find_clicked!(self.maps.dreiwege_weichen, AnyId::DreiwegeWeiche);
-                    find_clicked!(self.maps.kurven_weichen, AnyId::KurvenWeiche);
-                    find_clicked!(self.maps.s_kurven_weichen, AnyId::SKurvenWeiche);
-                    find_clicked!(self.maps.kreuzungen, AnyId::Kreuzung);
+                    find_clicked!(maps.geraden, AnyId::Gerade);
+                    find_clicked!(maps.kurven, AnyId::Kurve);
+                    find_clicked!(maps.weichen, AnyId::Weiche);
+                    find_clicked!(maps.dreiwege_weichen, AnyId::DreiwegeWeiche);
+                    find_clicked!(maps.kurven_weichen, AnyId::KurvenWeiche);
+                    find_clicked!(maps.s_kurven_weichen, AnyId::SKurvenWeiche);
+                    find_clicked!(maps.kreuzungen, AnyId::Kreuzung);
                 }
-                if let Modus::Bauen { grabbed: None } = self.modus {
+                if let Modus::Bauen { grabbed: None, .. } = self.modus {
                     iced::canvas::event::Status::Ignored
                 } else {
                     iced::canvas::event::Status::Captured
@@ -557,26 +574,35 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
+                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), mouse_y } =
+                    &self.modus
+                {
+                    let mouse_y_copy = *mouse_y;
                     with_any_id!(gleis_id, snap_to_anchor, self);
-                    self.modus = Modus::Bauen { grabbed: None };
+                    self.modus = Modus::Bauen { grabbed: None, mouse_y: mouse_y_copy };
                     iced::canvas::event::Status::Captured
                 } else {
                     iced::canvas::event::Status::Ignored
                 }
             }
-            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ })
-                if cursor.is_over(&bounds) =>
-            {
+            iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
                 let mut event_status = iced::canvas::event::Status::Ignored;
-                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, grab_location }) } =
-                    &self.modus
-                {
+                if let Modus::Bauen { grabbed, mouse_y } = &mut self.modus {
+                    if let Some(pos) = cursor.position() {
+                        // position_in only returns a Some-value if it is in-bounds
+                        // make the calculation explicitly instead
+                        take_mut::take(mouse_y, |_mouse_y| pos.y - bounds.y)
+                    }
                     if let Some(in_pos) = cursor.position_in(&bounds) {
-                        let point = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
-                            - grab_location;
-                        with_any_id!(gleis_id, relocate_grabbed, self, point);
-                        event_status = iced::canvas::event::Status::Captured
+                        if cursor.is_over(&bounds) {
+                            if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
+                                let point =
+                                    canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
+                                        - grab_location;
+                                with_any_id!(gleis_id, relocate_grabbed, self, point);
+                                event_status = iced::canvas::event::Status::Captured
+                            }
+                        }
                     }
                 }
                 event_status
