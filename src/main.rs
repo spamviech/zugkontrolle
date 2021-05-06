@@ -157,17 +157,7 @@ impl Application for Zugkontrolle {
                 if let Some(AnyGleise::Maerklin { gleise, .. }) =
                     self.pane_state.get_mut(&self.pane_maerklin)
                 {
-                    if let Some(y) = gleise.last_mouse_y() {
-                        gleise.add(Gleis {
-                            definition: $gleis,
-                            position: canvas::Position {
-                                point: canvas::Point { x: canvas::X(0.), y },
-                                winkel: Angle::new(0.),
-                            },
-                        });
-                    } else {
-                        warn!("last_mouse_y liefert None-Wert")
-                    }
+                    gleise.add_at_mouse_height($gleis);
                 } else {
                     error!("Märklin-Pane nicht gefunden!")
                 }

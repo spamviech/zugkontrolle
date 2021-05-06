@@ -81,8 +81,9 @@ struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: canvas::Vector,
 }
+// TODO public due to trait requirement for add_grabbed
 #[derive(zugkontrolle_derive::Debug)]
-enum AnyId<Z> {
+pub enum AnyId<Z> {
     Gerade(GleisId<Gerade<Z>>),
     Kurve(GleisId<Kurve<Z>>),
     Weiche(GleisId<Weiche<Z>>),
@@ -138,6 +139,23 @@ impl<Z> AnyId<Z> {
         with_any_id!(self => @no_clone, GleisId::as_any)
     }
 }
+
+macro_rules! impl_any_id_from {
+    ($type: ident) => {
+        impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
+            fn from(input: GleisId<$type<Z>>) -> Self {
+                AnyId::$type(input)
+            }
+        }
+    };
+}
+impl_any_id_from! {Gerade}
+impl_any_id_from! {Kurve}
+impl_any_id_from! {Weiche}
+impl_any_id_from! {DreiwegeWeiche}
+impl_any_id_from! {KurvenWeiche}
+impl_any_id_from! {SKurvenWeiche}
+impl_any_id_from! {Kreuzung}
 
 // TODO Konvertierungsfunktion von/zu Gleise<Z>
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -220,8 +238,6 @@ impl<Z> GleiseMap<Z> for Kreuzung<Z> {
 enum Modus<Z> {
     Bauen {
         grabbed: Option<Grabbed<Z>>,
-        mouse_y: f32,
-        // TODO aktuelle Maus-y-Koordinate, für Hinzufügen aus Button?
     },
     // TODO
     #[allow(dead_code)]
@@ -231,10 +247,13 @@ enum Modus<Z> {
 #[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
     canvas: canvas::Cache,
+    // TODO actually use pivot and scale
+    pivot: canvas::Position,
+    scale: f32,
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
-    // TODO add Pivot & Scale values
+    last_mouse_y: canvas::Y,
     modus: Modus<Z>,
 }
 
@@ -242,6 +261,11 @@ impl<Z> Gleise<Z> {
     pub fn new() -> Self {
         Gleise {
             canvas: canvas::Cache::new(),
+            pivot: canvas::Position {
+                point: canvas::Point::new(canvas::X(0.), canvas::Y(0.)),
+                winkel: Angle::new(0.),
+            },
+            scale: 1.,
             maps: GleiseMaps {
                 geraden: HashMap::new(),
                 kurven: HashMap::new(),
@@ -253,16 +277,8 @@ impl<Z> Gleise<Z> {
             },
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
-            modus: Modus::Bauen { grabbed: None, mouse_y: 0. },
-        }
-    }
-
-    /// last y-position of the cursor, relative to the canvas
-    pub fn last_mouse_y(&self) -> Option<canvas::Y> {
-        if let Modus::Bauen { mouse_y, .. } = self.modus {
-            Some(canvas::Y(mouse_y))
-        } else {
-            None
+            last_mouse_y: canvas::Y(0.),
+            modus: Modus::Bauen { grabbed: None },
         }
     }
 
@@ -574,25 +590,22 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), mouse_y } =
-                    &self.modus
-                {
-                    let mouse_y_copy = *mouse_y;
+                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
                     with_any_id!(gleis_id, snap_to_anchor, self);
-                    self.modus = Modus::Bauen { grabbed: None, mouse_y: mouse_y_copy };
+                    self.modus = Modus::Bauen { grabbed: None };
                     iced::canvas::event::Status::Captured
                 } else {
                     iced::canvas::event::Status::Ignored
                 }
             }
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
+                if let Some(pos) = cursor.position() {
+                    // position_in only returns a Some-value if it is in-bounds
+                    // make the calculation explicitly instead
+                    self.last_mouse_y = canvas::Y(pos.y - bounds.y);
+                }
                 let mut event_status = iced::canvas::event::Status::Ignored;
-                if let Modus::Bauen { grabbed, mouse_y } = &mut self.modus {
-                    if let Some(pos) = cursor.position() {
-                        // position_in only returns a Some-value if it is in-bounds
-                        // make the calculation explicitly instead
-                        take_mut::take(mouse_y, |_mouse_y| pos.y - bounds.y)
-                    }
+                if let Modus::Bauen { grabbed } = &mut self.modus {
                     if let Some(in_pos) = cursor.position_in(&bounds) {
                         if cursor.is_over(&bounds) {
                             if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
@@ -673,6 +686,26 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.canvas.clear();
         // return value
         (gleis_id_lock, anchor_points)
+    }
+
+    /// Add a gleis at the height of the last known mouse position
+    /// x-position is at the left of the current visible canvas
+    // TODO only make crate-public after move of App into library?
+    // no grabbed, since buttons only react on mouse button release
+    // maybe simulate some drag&drop by making the list part of the canvas?
+    pub fn add_at_mouse_height<T>(&mut self, definition: T) -> (GleisIdLock<T>, T::AnchorPoints)
+    where
+        T: Debug + Zeichnen + GleiseMap<Z>,
+        GleisId<T>: Into<AnyId<Z>>,
+        T::AnchorPoints: anchor::Lookup<T::AnchorName>,
+    {
+        self.add(Gleis {
+            definition,
+            position: canvas::Position {
+                point: self.pivot.point + canvas::Vector::new(canvas::X(0.), self.last_mouse_y),
+                winkel: self.pivot.winkel,
+            },
+        })
     }
 
     /// Create a new gleis with anchor_name adjacent to the target_anchor_point.
