@@ -19,17 +19,19 @@ impl<T> Button<T> {
         }
     }
 }
+const PADDING: u16 = 3;
 impl<T: Zeichnen> Button<T> {
     pub fn size(&self) -> canvas::Size {
         // include padding
         let canvas::Size { width, height } = self.canvas.gleis.size();
+        let double_padding = 2. * PADDING as f32;
         canvas::Size {
-            width: width + canvas::X(6.).to_abstand(),
-            height: height + canvas::Y(6.).to_abstand(),
+            width: width + canvas::X(double_padding).to_abstand(),
+            height: height + canvas::Y(double_padding).to_abstand(),
         }
     }
 
-    pub fn to_iced<Message>(&mut self) -> iced::Button<Message>
+    pub fn to_iced<Message>(&mut self, width: Option<u16>) -> iced::Button<Message>
     where
         Message: 'static + Clone,
         T: ButtonMessage<Message>,
@@ -41,12 +43,14 @@ impl<T: Zeichnen> Button<T> {
             state,
             iced::Canvas::new(canvas)
                 // account for lines right at the edge
-                .width(iced::Length::Units((canvas::X(STROKE_WIDTH) + size.width).0.ceil() as u16))
+                .width(iced::Length::Units(
+                    width.unwrap_or((canvas::X(STROKE_WIDTH) + size.width).0.ceil() as u16)
+                ))
                 .height(iced::Length::Units(
                     (canvas::Y(STROKE_WIDTH) + size.height).0.ceil() as u16
                 )),
         )
-        .padding(3)
+        .padding(PADDING)
         .on_press(message)
     }
 }
@@ -63,12 +67,18 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
         // TODO adjust(scale) to size
+        let half_extra_width =
+            0.5 * (canvas::X(bounds.width).to_abstand() - self.gleis.size().width);
         vec![self.canvas.draw(
             canvas::Size::new(
                 canvas::X(bounds.width).to_abstand(),
                 canvas::Y(bounds.height).to_abstand(),
             ),
             |frame| {
+                frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
+                    dx: half_extra_width,
+                    dy: canvas::Y(0.).to_abstand(),
+                }));
                 for path in self.gleis.zeichne() {
                     frame.with_save(|frame| {
                         frame.stroke(&path, canvas::Stroke {

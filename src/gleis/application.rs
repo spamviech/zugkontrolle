@@ -119,7 +119,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     $(
                         for button in $vec {
                             scrollable = scrollable.push(
-                                button.to_iced()
+                                button.to_iced(Some(max_width))
                                     .width(iced::Length::Units(max_width))
                                     .height(iced::Length::Shrink)
                             );
