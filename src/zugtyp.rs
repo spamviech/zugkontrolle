@@ -112,7 +112,7 @@ pub mod value {
     // in zwei Datentypen aufteilen, Summentyp behalten?
     // unterschiedliche Methoden: umdrehen(), fahrtrichtung_einstellen(Fahrtrichtung)
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Ueberspannung {
+    pub struct Überspannung {
         pub zeit: Duration,
     }
 
@@ -125,7 +125,7 @@ pub mod value {
     pub struct Schalter;
     #[derive(Debug, Serialize, Deserialize)]
     pub enum Umdrehen {
-        Ueberspannung(Ueberspannung),
+        Überspannung(Überspannung),
         Schalter(Schalter),
     }
 
@@ -155,7 +155,7 @@ pub mod value {
         }
 
         /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-        pub fn beschraenkung(&self) -> canvas::Abstand<canvas::Y> {
+        pub fn beschränkung(&self) -> canvas::Abstand<canvas::Y> {
             self.spurweite + 2. * self.abstand()
         }
 
@@ -298,24 +298,24 @@ pub mod deserialize {
         }
     }
     #[derive(Debug, Deserialize)]
-    pub struct Ueberspannung {
+    pub struct Überspannung {
         pub zeit: Duration,
     }
-    impl From<Ueberspannung> for value::Ueberspannung {
-        fn from(Ueberspannung { zeit }: Ueberspannung) -> Self {
-            value::Ueberspannung { zeit: zeit.into() }
+    impl From<Überspannung> for value::Überspannung {
+        fn from(Überspannung { zeit }: Überspannung) -> Self {
+            value::Überspannung { zeit: zeit.into() }
         }
     }
     #[derive(Debug, Deserialize)]
     pub enum Umdrehen {
-        Ueberspannung(Ueberspannung),
+        Überspannung(Überspannung),
         Schalter(Schalter),
     }
     impl From<Umdrehen> for value::Umdrehen {
         fn from(umdrehen: Umdrehen) -> Self {
             match umdrehen {
-                Umdrehen::Ueberspannung(ueberspannung) => {
-                    value::Umdrehen::Ueberspannung(ueberspannung.into())
+                Umdrehen::Überspannung(überspannung) => {
+                    value::Umdrehen::Überspannung(überspannung.into())
                 },
                 Umdrehen::Schalter(schalter) => value::Umdrehen::Schalter(schalter),
             }
