@@ -21,7 +21,7 @@ use crate::gleis::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct KurvenWeiche<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub laenge: canvas::Abstand<canvas::X>,
+    pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
     pub richtung: Richtung,
@@ -31,7 +31,7 @@ impl<Z> KurvenWeiche<Z> {
     pub const fn new(length: Länge, radius: Radius, angle: Angle, richtung: Richtung) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
             richtung,
@@ -48,7 +48,7 @@ impl<Z> KurvenWeiche<Z> {
     ) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
             richtung,
@@ -68,8 +68,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> canvas::Size {
-        let KurvenWeiche { laenge, radius, winkel, .. } = *self;
-        let size_gerade = gerade::size::<Z>(laenge);
+        let KurvenWeiche { länge, radius, winkel, .. } = *self;
+        let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
         canvas::Size { width: size_gerade.width + size_kurve.width, height: size_kurve.height }
     }
@@ -77,7 +77,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
         let aussen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
-            canvas::X(0.) + self.laenge,
+            canvas::X(0.) + self.länge,
             canvas::Y(0.),
         ));
         // Zeichne Pfad
@@ -99,7 +99,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 false,
                 transformations.clone(),
                 canvas::PathBuilder::with_invert_y,
@@ -127,7 +127,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 false,
                 Vec::new(),
                 canvas::PathBuilder::with_normal_axis,
@@ -149,7 +149,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
         let aussen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
-            canvas::X(0.) + self.laenge,
+            canvas::X(0.) + self.länge,
             canvas::Y(0.),
         ));
         // Zeichne Pfad
@@ -170,7 +170,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             // Gerade vor äußerer Kurve
             paths.push(gerade::fuelle(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 transformations.clone(),
                 canvas::PathBuilder::with_invert_y,
             ));
@@ -195,7 +195,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             // Gerade vor äußerer Kurve
             paths.push(gerade::fuelle(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 Vec::new(),
                 canvas::PathBuilder::with_normal_axis,
             ));
@@ -229,7 +229,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             (
                 canvas::Position {
                     point: canvas::Point::new(
-                        canvas::X(0.) + self.laenge.min(&(0.5 * self.size().width)),
+                        canvas::X(0.) + self.länge.min(&(0.5 * self.size().width)),
                         start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
@@ -259,8 +259,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let mut relative_vector = relative_position - start_vector;
         relative_vector.dy *= multiplier;
         let verschoben_vector =
-            relative_vector - canvas::Vector { dx: self.laenge, dy: canvas::Y(0.).to_abstand() };
-        gerade::innerhalb::<Z>(self.laenge, relative_vector)
+            relative_vector - canvas::Vector { dx: self.länge, dy: canvas::Y(0.).to_abstand() };
+        gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, verschoben_vector)
     }
@@ -300,7 +300,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 direction: kurve_anchor_direction,
             },
             aussen: anchor::Anchor {
-                position: canvas::Point { x: kurve_anchor_x + self.laenge, y: kurve_anchor_y },
+                position: canvas::Point { x: kurve_anchor_x + self.länge, y: kurve_anchor_y },
                 direction: kurve_anchor_direction,
             },
         }

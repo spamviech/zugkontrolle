@@ -322,14 +322,14 @@ pub mod deserialize {
 
     #[derive(Debug, Deserialize)]
     pub struct Gerade {
-        pub laenge: f32,
+        pub länge: f32,
         pub beschreibung: Option<String>,
     }
     impl<Z> From<Gerade> for gerade::Gerade<Z> {
-        fn from(Gerade { laenge, beschreibung }: Gerade) -> Self {
+        fn from(Gerade { länge, beschreibung }: Gerade) -> Self {
             gerade::Gerade {
                 zugtyp: PhantomData,
-                laenge: Länge::new(laenge).to_abstand(),
+                länge: Länge::new(länge).to_abstand(),
                 beschreibung,
             }
         }
@@ -354,7 +354,7 @@ pub mod deserialize {
 
     #[derive(Debug, Deserialize)]
     pub struct Weiche {
-        pub laenge: f32,
+        pub länge: f32,
         pub radius: f32,
         pub winkel: f32,
         pub richtung: Option<weiche::Richtung>,
@@ -362,10 +362,10 @@ pub mod deserialize {
     }
     impl Weiche {
         fn into<Z>(self) -> Vec<weiche::Weiche<Z>> {
-            let Weiche { laenge, radius, winkel, richtung, beschreibung } = self;
+            let Weiche { länge, radius, winkel, richtung, beschreibung } = self;
             let konstruktor = |richtung| weiche::Weiche {
                 zugtyp: PhantomData,
-                laenge: Länge::new(laenge).to_abstand(),
+                länge: Länge::new(länge).to_abstand(),
                 radius: Radius::new(radius).to_abstand(),
                 winkel: AngleDegrees::new(winkel).into(),
                 richtung,
@@ -409,7 +409,7 @@ pub mod deserialize {
 
     #[derive(Debug, Deserialize)]
     pub struct SKurvenWeiche {
-        pub laenge: f32,
+        pub länge: f32,
         pub radius: f32,
         pub winkel: f32,
         pub radius_reverse: f32,
@@ -420,7 +420,7 @@ pub mod deserialize {
     impl SKurvenWeiche {
         fn into<Z>(self) -> Vec<weiche::SKurvenWeiche<Z>> {
             let SKurvenWeiche {
-                laenge,
+                länge,
                 radius,
                 winkel,
                 radius_reverse,
@@ -430,7 +430,7 @@ pub mod deserialize {
             } = self;
             let konstruktor = |richtung| weiche::SKurvenWeiche {
                 zugtyp: PhantomData,
-                laenge: Länge::new(laenge).to_abstand(),
+                länge: Länge::new(länge).to_abstand(),
                 radius: Radius::new(radius).to_abstand(),
                 winkel: AngleDegrees::new(winkel).into(),
                 radius_reverse: Radius::new(radius_reverse).to_abstand(),

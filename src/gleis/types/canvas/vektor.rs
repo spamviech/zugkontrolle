@@ -35,8 +35,8 @@ impl Vektor {
 
     /// Skalarprodukt zweier Vektoren
     ///
-    /// Es gilt `self.skalarprodukt(other) == self.laenge() * other.laenge() *
-    /// self.winkel(other).cos()`. Insbesondere gilt ´self.laenge() ==
+    /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() *
+    /// self.winkel(other).cos()`. Insbesondere gilt ´self.länge() ==
     /// self.skalarprodukt(self).sqrt()`
     pub fn skalarprodukt(&self, other: &Self) -> f32 {
         self.x * other.x + self.y * other.y

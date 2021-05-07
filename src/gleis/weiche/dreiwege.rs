@@ -20,7 +20,7 @@ use crate::gleis::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct DreiwegeWeiche<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub laenge: canvas::Abstand<canvas::X>,
+    pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
     pub beschreibung: Option<String>,
@@ -29,7 +29,7 @@ impl<Z> DreiwegeWeiche<Z> {
     pub const fn new(length: Länge, radius: Radius, angle: Angle) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
             beschreibung: None,
@@ -44,7 +44,7 @@ impl<Z> DreiwegeWeiche<Z> {
     ) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
             beschreibung: Some(description.into()),
@@ -64,8 +64,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> canvas::Size {
-        let DreiwegeWeiche { laenge, radius, winkel, .. } = *self;
-        let size_gerade = gerade::size::<Z>(laenge);
+        let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
+        let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
         let height_kurven = 2. * size_kurve.height - beschraenkung::<Z>();
         canvas::Size {
@@ -89,7 +89,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         // Gerade
         paths.push(gerade::zeichne(
             self.zugtyp,
-            self.laenge,
+            self.länge,
             true,
             rechts_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
@@ -131,7 +131,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         // Gerade
         paths.push(gerade::fuelle(
             self.zugtyp,
-            self.laenge,
+            self.länge,
             rechts_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
@@ -163,7 +163,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             (
                 canvas::Position {
                     point: canvas::Point::new(
-                        start_x + 0.5 * self.laenge,
+                        start_x + 0.5 * self.länge,
                         start_y + 0.5 * beschraenkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
@@ -186,7 +186,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             dx: relative_vector.dx,
             dy: beschraenkung::<Z>() - relative_vector.dy,
         };
-        gerade::innerhalb::<Z>(self.laenge, relative_vector)
+        gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, inverted_vector)
     }
@@ -194,7 +194,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
     fn anchor_points(&self) -> AnchorPoints {
         let height: canvas::Abstand<canvas::Y> = self.size().height;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let length: canvas::Abstand<canvas::X> = self.laenge;
+        let length: canvas::Abstand<canvas::X> = self.länge;
         let radius: canvas::Abstand<canvas::Radius> = self.radius;
         let radius_x: canvas::Abstand<canvas::X> = radius.as_x();
         let radius_y: canvas::Abstand<canvas::Y> = radius.as_y();

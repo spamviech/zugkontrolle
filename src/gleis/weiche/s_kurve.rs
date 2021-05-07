@@ -24,7 +24,7 @@ use crate::gleis::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct SKurvenWeiche<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub laenge: canvas::Abstand<canvas::X>,
+    pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub winkel: Angle,
     pub radius_reverse: canvas::Abstand<canvas::Radius>,
@@ -43,7 +43,7 @@ impl<Z> SKurvenWeiche<Z> {
     ) -> Self {
         SKurvenWeiche {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
             radius_reverse: radius_reverse.to_abstand(),
@@ -64,7 +64,7 @@ impl<Z> SKurvenWeiche<Z> {
     ) -> Self {
         SKurvenWeiche {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             winkel: angle,
             radius_reverse: radius_reverse.to_abstand(),
@@ -80,9 +80,9 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     type AnchorPoints = weiche::gerade::AnchorPoints;
 
     fn size(&self) -> canvas::Size {
-        let SKurvenWeiche { laenge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
+        let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
         let angle_difference = winkel - winkel_reverse;
-        let size_gerade = gerade::size::<Z>(laenge);
+        let size_gerade = gerade::size::<Z>(länge);
 
         //Breiten-Berechnung
         let factor_width = if winkel.abs() < Angle::new(0.5 * PI) { winkel.sin() } else { 1. };
@@ -170,7 +170,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             // Gerade
             paths.push(gerade::zeichne(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 true,
                 transformations.clone(),
                 canvas::PathBuilder::with_invert_y,
@@ -198,7 +198,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             // Gerade
             paths.push(gerade::zeichne(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 true,
                 Vec::new(),
                 canvas::PathBuilder::with_normal_axis,
@@ -253,7 +253,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             // Gerade
             paths.push(gerade::fuelle(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 transformations.clone(),
                 canvas::PathBuilder::with_invert_y,
             ));
@@ -278,7 +278,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             // Gerade
             paths.push(gerade::fuelle(
                 self.zugtyp,
-                self.laenge,
+                self.länge,
                 Vec::new(),
                 canvas::PathBuilder::with_normal_axis,
             ));
@@ -320,7 +320,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             (
                 canvas::Position {
                     point: canvas::Point::new(
-                        canvas::X(0.) + 0.5 * self.laenge,
+                        canvas::X(0.) + 0.5 * self.länge,
                         start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
@@ -359,7 +359,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         s_kurve_vector -=
             canvas::Vector { dx: canvas::X(0.).to_abstand(), dy: beschraenkung::<Z>() };
         s_kurve_vector.dy *= -1.;
-        gerade::innerhalb::<Z>(self.laenge, relative_vector)
+        gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius_reverse, self.winkel_reverse, s_kurve_vector)
     }
@@ -388,7 +388,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             },
             gerade: anchor::Anchor {
                 position: canvas::Point {
-                    x: canvas::X(0.) + self.laenge,
+                    x: canvas::X(0.) + self.länge,
                     y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
                 },
                 direction: canvas::Vector::new(canvas::X(1.), canvas::Y(multiplier * 0.)),

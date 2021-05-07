@@ -17,7 +17,7 @@ use super::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kreuzung<T> {
     pub zugtyp: PhantomData<T>,
-    pub laenge: canvas::Abstand<canvas::X>,
+    pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
     pub variante: Variante,
     pub beschreibung: Option<String>,
@@ -36,13 +36,13 @@ impl<Z> Kreuzung<Z> {
         // pi/2 doesn't work either, since it violates the formula
         // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
         // only for radius=0 as well both formulas are satisfied by any angle
-        Angle::new(2. * (0.5 * (self.laenge / self.radius)).atan())
+        Angle::new(2. * (0.5 * (self.länge / self.radius)).atan())
     }
 
     pub const fn new(length: Länge, radius: Radius, variante: Variante) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             variante,
             beschreibung: None,
@@ -57,7 +57,7 @@ impl<Z> Kreuzung<Z> {
     ) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
-            laenge: length.to_abstand(),
+            länge: length.to_abstand(),
             radius: radius.to_abstand(),
             variante,
             beschreibung: Some(description.into()),
@@ -82,7 +82,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let height_beschraenkung = beschraenkung::<Z>();
         let height_kurven = 2. * size_kurve.height - height_beschraenkung;
         canvas::Size::new(
-            self.laenge.max(&size_kurve.width),
+            self.länge.max(&size_kurve.width),
             height_beschraenkung.max(&height_kurven),
         )
     }
@@ -108,14 +108,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         ];
         paths.push(gerade::zeichne(
             self.zugtyp,
-            self.laenge,
+            self.länge,
             true,
             horizontal_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
         paths.push(gerade::zeichne(
             self.zugtyp,
-            self.laenge,
+            self.länge,
             true,
             gedreht_transformations.clone(),
             canvas::PathBuilder::with_invert_y,
@@ -164,13 +164,13 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         ];
         paths.push(gerade::fuelle(
             self.zugtyp,
-            self.laenge,
+            self.länge,
             horizontal_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
         paths.push(gerade::fuelle(
             self.zugtyp,
-            self.laenge,
+            self.länge,
             gedreht_transformations.clone(),
             canvas::PathBuilder::with_invert_y,
         ));
@@ -206,7 +206,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             (
                 canvas::Position {
                     point: canvas::Point::new(
-                        start_x + 0.5 * self.laenge,
+                        start_x + 0.5 * self.länge,
                         start_y + 0.5 * beschraenkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
@@ -231,8 +231,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let mut gedreht_vector = (relative_position - mid_vector).rotate(-winkel);
         gedreht_vector.dy *= -1.;
         gedreht_vector += mid_vector - start_vector;
-        gerade::innerhalb::<Z>(self.laenge, horizontal_vector)
-            || gerade::innerhalb::<Z>(self.laenge, gedreht_vector)
+        gerade::innerhalb::<Z>(self.länge, horizontal_vector)
+            || gerade::innerhalb::<Z>(self.länge, gedreht_vector)
             || (self.variante == Variante::MitKurve
                 && (kurve::innerhalb::<Z>(self.radius, winkel, horizontal_vector)
                     || kurve::innerhalb::<Z>(self.radius, winkel, gedreht_vector)))
@@ -241,7 +241,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let canvas::Size { width, height } = self.size();
         let anfang0_x: canvas::X = canvas::X(0.);
-        let ende0_x: canvas::X = anfang0_x + self.laenge;
+        let ende0_x: canvas::X = anfang0_x + self.länge;
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
         let radius_abstand_x: canvas::Abstand<canvas::X> = radius_abstand.as_x();
