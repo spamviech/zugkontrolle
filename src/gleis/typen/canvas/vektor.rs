@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::gleis::typen::winkel::{Trigonometrie, Winkel};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 /// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
 ///
 /// Addition zwischen Vektoren formen einen abelsche Gruppe

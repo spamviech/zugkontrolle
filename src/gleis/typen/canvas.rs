@@ -11,6 +11,7 @@ pub use iced::{
     HorizontalAlignment,
     VerticalAlignment,
 };
+use serde::{Deserialize, Serialize};
 
 use super::winkel::Winkel;
 
@@ -289,3 +290,36 @@ impl Cache {
 
 mod vektor;
 pub use vektor::Vektor;
+
+/// Variante von /iced::canvas::path::Arc/ mit /Invertiert/-Implementierung
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Bogen {
+    pub zentrum: Vektor,
+    pub radius: f32,
+    pub anfang: Winkel,
+    pub ende: Winkel,
+}
+impl Bogen {
+    pub fn new(zentrum: Vektor, radius: f32, anfang: Winkel, ende: Winkel) -> Self {
+        Bogen { zentrum, radius, anfang, ende }
+    }
+}
+
+// TODO ersetzte originale Position, entferne 2
+/// Position eines Gleises/Textes auf der Canvas
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Position2 {
+    pub punkt: Vektor,
+    pub winkel: Winkel,
+}
+impl Position2 {
+    /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.
+    pub fn transformation(&self, anchor: Vektor) -> Vektor {
+        self.punkt + anchor.rotiere(self.winkel)
+    }
+
+    /// Vektor nachdem das Objekt um den Winkel gedreht wird.
+    pub fn rotation(&self, richtung: Vektor) -> Vektor {
+        richtung.rotiere(self.winkel)
+    }
+}
