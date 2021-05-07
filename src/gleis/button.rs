@@ -1,7 +1,7 @@
 //! Knopf mit dem jeweiligen Gleis
 
+use super::gleise::move_to_position;
 use super::types::*;
-use super::widget::move_to_position;
 
 /// Ein Knopf, der ein Gleis anzeigt
 #[derive(Debug)]
@@ -22,7 +22,7 @@ impl<T: Zeichnen> Button<T> {
         self.canvas.gleis.size()
     }
 
-    pub fn to_button<Message>(&mut self) -> iced::Button<Message>
+    pub fn to_iced<Message>(&mut self) -> iced::Button<Message>
     where
         Message: 'static + Clone,
         T: ButtonMessage<Message>,
