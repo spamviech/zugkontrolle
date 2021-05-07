@@ -22,6 +22,7 @@ walkdir = "2.3.2"
 serde_yaml = "0.8.17"
 argh = "0.1.4"
 bincode = "1.3.2"
+version = "3.0.0"
 # probably best to only use one (if any)
 once = "0.3.4"
 once_cell = "1.7.2"
