@@ -65,7 +65,7 @@ Ein Kreis benötigt 16 Lego-PF-Kurven.
 Lego Spurweite: 38mm
 */
 const LENGTH_VALUE: f32 = 128.;
-const LENGTH: Length = Length::new(LENGTH_VALUE);
+const LENGTH: Länge = Länge::new(LENGTH_VALUE);
 const RADIUS: Radius = Radius::new(320.);
 const ANGLE_VALUE_DEGREE: f32 = 22.5;
 const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
@@ -87,7 +87,7 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 1 Noppe ist rund 0,8 cm (genauer: 0,79675... cm)
 1,00 cm sind rund 1,25 Noppen (genauer: 1,255...)
 */
-const DOUBLE_LENGTH: Length = Length::new(2. * LENGTH_VALUE);
+const DOUBLE_LENGTH: Länge = Länge::new(2. * LENGTH_VALUE);
 const ANGLE_OUTWARDS: Angle = Angle::new(1.625 * ANGLE_VALUE);
 const ANGLE_INWARDS: Angle = Angle::new(0.625 * ANGLE_VALUE);
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {

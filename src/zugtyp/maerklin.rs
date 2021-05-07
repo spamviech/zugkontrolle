@@ -97,28 +97,28 @@ Gerade
     5208: L8mm
 */
 pub fn gerade_5106() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(180.), "5106")
+    Gerade::new_with_description(Länge::new(180.), "5106")
 }
 pub fn gerade_5107() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(90.), "5107")
+    Gerade::new_with_description(Länge::new(90.), "5107")
 }
 pub fn gerade_5129() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(70.), "5129")
+    Gerade::new_with_description(Länge::new(70.), "5129")
 }
 pub fn gerade_5108() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(45.), "5108")
+    Gerade::new_with_description(Länge::new(45.), "5108")
 }
 pub fn gerade_5109() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(33.5), "5109")
+    Gerade::new_with_description(Länge::new(33.5), "5109")
 }
 pub fn gerade_5110() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(22.5), "5110")
+    Gerade::new_with_description(Länge::new(22.5), "5110")
 }
 pub fn gerade_5210() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(16.), "5210")
+    Gerade::new_with_description(Länge::new(16.), "5210")
 }
 pub fn gerade_5208() -> Gerade<Maerklin> {
-    Gerade::new_with_description(Length::new(8.), "5208")
+    Gerade::new_with_description(Länge::new(8.), "5208")
 }
 
 /*
@@ -169,7 +169,7 @@ pub fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Maerklin> {
         weiche::Richtung::Links => "5117L",
         weiche::Richtung::Rechts => "5117R",
     };
-    Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
+    Weiche::new_with_description(Länge::new(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
 }
 pub fn weiche_5117_rechts() -> Weiche<Maerklin> {
     weiche_5117(weiche::Richtung::Rechts)
@@ -183,7 +183,7 @@ pub fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Maerklin> {
         weiche::Richtung::Links => "5137L",
         weiche::Richtung::Rechts => "5137R",
     };
-    Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
+    Weiche::new_with_description(Länge::new(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
 }
 pub fn weiche_5137_rechts() -> Weiche<Maerklin> {
     weiche_5137(weiche::Richtung::Rechts)
@@ -197,7 +197,7 @@ pub fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Maerklin> {
         weiche::Richtung::Links => "5202L",
         weiche::Richtung::Rechts => "5202R",
     };
-    Weiche::new_with_description(Length::new(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
+    Weiche::new_with_description(Länge::new(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
 }
 pub fn weiche_5202_rechts() -> Weiche<Maerklin> {
     weiche_5202(weiche::Richtung::Rechts)
@@ -212,7 +212,7 @@ Dreiwege-Weiche
 */
 pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Maerklin> {
     DreiwegeWeiche::new_with_description(
-        Length::new(180.),
+        Länge::new(180.),
         RADIUS_R2,
         Angle::new(as_radians!(24.28)),
         "5214",
@@ -230,7 +230,7 @@ pub fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Maerklin> 
         weiche::Richtung::Rechts => "5140R",
     };
     KurvenWeiche::new_with_description(
-        Length::new(77.3),
+        Länge::new(77.3),
         RADIUS_R1,
         ANGLE_5140,
         richtung,
@@ -251,7 +251,7 @@ Kreuzung
 */
 pub fn kreuzung_5128() -> Kreuzung<Maerklin> {
     Kreuzung::new_with_description(
-        Length::new(193.),
+        Länge::new(193.),
         RADIUS_R1,
         kreuzung::Variante::MitKurve,
         "5128",
@@ -261,7 +261,7 @@ pub fn kreuzung_5128() -> Kreuzung<Maerklin> {
 // https://www.stummiforum.de/viewtopic.php?t=29741#p309938
 pub fn kreuzung_5207() -> Kreuzung<Maerklin> {
     Kreuzung::new_with_description(
-        Length::new(180.),
+        Länge::new(180.),
         RADIUS_R2,
         kreuzung::Variante::MitKurve,
         "5207",

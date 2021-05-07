@@ -34,7 +34,7 @@ pub struct SKurvenWeiche<Z> {
 }
 impl<Z> SKurvenWeiche<Z> {
     pub const fn new(
-        length: Length,
+        length: Länge,
         radius: Radius,
         angle: Angle,
         radius_reverse: Radius,
@@ -54,7 +54,7 @@ impl<Z> SKurvenWeiche<Z> {
     }
 
     pub fn new_with_description(
-        length: Length,
+        length: Länge,
         radius: Radius,
         angle: Angle,
         radius_reverse: Radius,

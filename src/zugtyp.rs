@@ -329,7 +329,7 @@ pub mod deserialize {
         fn from(Gerade { laenge, beschreibung }: Gerade) -> Self {
             gerade::Gerade {
                 zugtyp: PhantomData,
-                laenge: Length::new(laenge).to_abstand(),
+                laenge: Länge::new(laenge).to_abstand(),
                 beschreibung,
             }
         }
@@ -365,7 +365,7 @@ pub mod deserialize {
             let Weiche { laenge, radius, winkel, richtung, beschreibung } = self;
             let konstruktor = |richtung| weiche::Weiche {
                 zugtyp: PhantomData,
-                laenge: Length::new(laenge).to_abstand(),
+                laenge: Länge::new(laenge).to_abstand(),
                 radius: Radius::new(radius).to_abstand(),
                 winkel: AngleDegrees::new(winkel).into(),
                 richtung,
@@ -390,7 +390,7 @@ pub mod deserialize {
     pub struct DreiwegeWeiche;
     impl<Z> From<DreiwegeWeiche> for weiche::DreiwegeWeiche<Z> {
         fn from(_: DreiwegeWeiche) -> Self {
-            weiche::DreiwegeWeiche::new(Length::new(0.), Radius::new(0.), Angle::new(0.))
+            weiche::DreiwegeWeiche::new(Länge::new(0.), Radius::new(0.), Angle::new(0.))
         }
     }
 
@@ -399,7 +399,7 @@ pub mod deserialize {
     impl<Z> From<KurvenWeiche> for weiche::KurvenWeiche<Z> {
         fn from(_: KurvenWeiche) -> Self {
             weiche::KurvenWeiche::new(
-                Length::new(0.),
+                Länge::new(0.),
                 Radius::new(0.),
                 Angle::new(0.),
                 weiche::Richtung::Links,
@@ -430,7 +430,7 @@ pub mod deserialize {
             } = self;
             let konstruktor = |richtung| weiche::SKurvenWeiche {
                 zugtyp: PhantomData,
-                laenge: Length::new(laenge).to_abstand(),
+                laenge: Länge::new(laenge).to_abstand(),
                 radius: Radius::new(radius).to_abstand(),
                 winkel: AngleDegrees::new(winkel).into(),
                 radius_reverse: Radius::new(radius_reverse).to_abstand(),
@@ -457,7 +457,7 @@ pub mod deserialize {
     pub struct Kreuzung;
     impl<Z> From<Kreuzung> for kreuzung::Kreuzung<Z> {
         fn from(_: Kreuzung) -> Self {
-            kreuzung::Kreuzung::new(Length::new(0.), Radius::new(0.), kreuzung::Variante::OhneKurve)
+            kreuzung::Kreuzung::new(Länge::new(0.), Radius::new(0.), kreuzung::Variante::OhneKurve)
         }
     }
 }

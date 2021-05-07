@@ -39,7 +39,7 @@ impl<Z> Kreuzung<Z> {
         Angle::new(2. * (0.5 * (self.laenge / self.radius)).atan())
     }
 
-    pub const fn new(length: Length, radius: Radius, variante: Variante) -> Self {
+    pub const fn new(length: Länge, radius: Radius, variante: Variante) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
             laenge: length.to_abstand(),
@@ -50,7 +50,7 @@ impl<Z> Kreuzung<Z> {
     }
 
     pub fn new_with_description(
-        length: Length,
+        length: Länge,
         radius: Radius,
         variante: Variante,
         description: impl Into<String>,

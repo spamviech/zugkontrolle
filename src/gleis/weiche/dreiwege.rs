@@ -26,7 +26,7 @@ pub struct DreiwegeWeiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> DreiwegeWeiche<Z> {
-    pub const fn new(length: Length, radius: Radius, angle: Angle) -> Self {
+    pub const fn new(length: Länge, radius: Radius, angle: Angle) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
             laenge: length.to_abstand(),
@@ -37,7 +37,7 @@ impl<Z> DreiwegeWeiche<Z> {
     }
 
     pub fn new_with_description(
-        length: Length,
+        length: Länge,
         radius: Radius,
         angle: Angle,
         description: impl Into<String>,

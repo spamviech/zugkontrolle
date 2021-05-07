@@ -199,7 +199,7 @@ impl mm::Spurweite {
         Abstand::<Y>::new_from_mm(self.0)
     }
 }
-impl mm::Length {
+impl mm::Länge {
     pub const fn to_abstand(self) -> Abstand<X> {
         Abstand::<X>::new_from_mm(self.0)
     }
