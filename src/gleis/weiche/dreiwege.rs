@@ -116,7 +116,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<canvas::Path> {
         // utility sizes
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
@@ -129,14 +129,14 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             start_y + beschränkung::<Z>(),
         ))];
         // Gerade
-        paths.push(gerade::fuelle(
+        paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             rechts_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
         // Rechts
-        paths.push(kurve::fuelle(
+        paths.push(kurve::fülle(
             self.zugtyp,
             self.radius,
             self.winkel,
@@ -144,7 +144,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             canvas::PathBuilder::with_normal_axis,
         ));
         // Links
-        paths.push(kurve::fuelle(
+        paths.push(kurve::fülle(
             self.zugtyp,
             self.radius,
             self.winkel,

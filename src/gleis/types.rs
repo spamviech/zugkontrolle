@@ -48,7 +48,7 @@ where
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
-    fn fuelle(&self) -> Vec<canvas::Path>;
+    fn fülle(&self) -> Vec<canvas::Path>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(&self) -> Vec<canvas::Path>;

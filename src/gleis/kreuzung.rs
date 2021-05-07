@@ -79,11 +79,11 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
 
     fn size(&self) -> canvas::Size {
         let size_kurve = kurve::size::<Z>(self.radius, self.angle());
-        let height_beschraenkung = beschränkung::<Z>();
-        let height_kurven = 2. * size_kurve.height - height_beschraenkung;
+        let height_beschränkung = beschränkung::<Z>();
+        let height_kurven = 2. * size_kurve.height - height_beschränkung;
         canvas::Size::new(
             self.länge.max(&size_kurve.width),
-            height_beschraenkung.max(&height_kurven),
+            height_beschränkung.max(&height_kurven),
         )
     }
 
@@ -143,7 +143,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         paths
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<canvas::Path> {
         // utility sizes
         let canvas::Size { width, height } = self.size();
         let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
@@ -162,13 +162,13 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
             canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
         ];
-        paths.push(gerade::fuelle(
+        paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             horizontal_transformations.clone(),
             canvas::PathBuilder::with_normal_axis,
         ));
-        paths.push(gerade::fuelle(
+        paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             gedreht_transformations.clone(),
@@ -176,14 +176,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
-            paths.push(kurve::fuelle(
+            paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
                 angle,
                 horizontal_transformations,
                 canvas::PathBuilder::with_normal_axis,
             ));
-            paths.push(kurve::fuelle(
+            paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
                 angle,

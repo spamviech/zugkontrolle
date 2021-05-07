@@ -74,8 +74,8 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         )]
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
-        vec![fuelle(
+    fn fülle(&self) -> Vec<canvas::Path> {
+        vec![fülle(
             self.zugtyp,
             self.radius,
             self.winkel,
@@ -162,14 +162,14 @@ pub(crate) enum Beschränkung {
     Alle,
 }
 impl Beschränkung {
-    fn anfangs_beschraenkung(&self) -> bool {
+    fn anfangs_beschränkung(&self) -> bool {
         match self {
             Beschränkung::Alle => true,
             Beschränkung::Keine | Beschränkung::Ende => false,
         }
     }
 
-    fn end_beschraenkung(&self) -> bool {
+    fn end_beschränkung(&self) -> bool {
         match self {
             Beschränkung::Ende | Beschränkung::Alle => true,
             Beschränkung::Keine => false,
@@ -233,11 +233,11 @@ fn zeichne_internal<Z, P, A>(
     let begrenzung_y1: canvas::Y = begrenzung_y0 + beschränkung::<Z>() * winkel.cos();
     let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_außen_y;
     // Beschränkungen
-    if beschränkungen.anfangs_beschraenkung() {
+    if beschränkungen.anfangs_beschränkung() {
         path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
         path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
     }
-    if beschränkungen.end_beschraenkung() {
+    if beschränkungen.end_beschränkung() {
         path_builder.move_to(canvas::Point::new(begrenzung_x0, begrenzung_y0).into());
         path_builder.line_to(canvas::Point::new(begrenzung_x1, begrenzung_y1).into());
     }
@@ -262,7 +262,7 @@ fn zeichne_internal<Z, P, A>(
     );
 }
 
-pub(crate) fn fuelle<Z, P, A>(
+pub(crate) fn fülle<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
@@ -280,13 +280,13 @@ where
     let mut path_builder = canvas::PathBuilder::new();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fuelle_internal::<Z, P, A>(builder, radius, winkel)),
+        Box::new(move |builder| fülle_internal::<Z, P, A>(builder, radius, winkel)),
     );
     path_builder.build_under_transformations(transformations)
 }
 
 /// Geplant für canvas::PathType::EvenOdd
-fn fuelle_internal<Z, P, A>(
+fn fülle_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
@@ -307,8 +307,8 @@ fn fuelle_internal<Z, P, A>(
     let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_außen_abstand.as_y();
     // Koordinaten links
     let gleis_links: canvas::X = canvas::X(0.);
-    let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let gleis_links_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let beschränkung_oben: canvas::Y = canvas::Y(0.);
+    let gleis_links_oben: canvas::Y = beschränkung_oben + abstand::<Z>();
     let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
     // Koordinaten rechts
     let gleis_rechts_oben: canvas::Point = canvas::Point::new(

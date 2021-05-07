@@ -225,7 +225,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         paths
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<canvas::Path> {
         // utility sizes
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
@@ -250,14 +250,14 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 dy: self.size().height,
             })];
             // Gerade
-            paths.push(gerade::fuelle(
+            paths.push(gerade::fülle(
                 self.zugtyp,
                 self.länge,
                 transformations.clone(),
                 canvas::PathBuilder::with_invert_y,
             ));
             // Kurve nach außen
-            paths.push(kurve::fuelle(
+            paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
                 self.winkel,
@@ -266,7 +266,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             ));
             // Kurve nach innen
             transformations.extend(s_kurve_transformations(-1.));
-            paths.push(kurve::fuelle(
+            paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius_reverse,
                 self.winkel_reverse,
@@ -275,14 +275,14 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             ));
         } else {
             // Gerade
-            paths.push(gerade::fuelle(
+            paths.push(gerade::fülle(
                 self.zugtyp,
                 self.länge,
                 Vec::new(),
                 canvas::PathBuilder::with_normal_axis,
             ));
             // Kurve nach außen
-            paths.push(kurve::fuelle(
+            paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
                 self.winkel,
@@ -290,7 +290,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 canvas::PathBuilder::with_normal_axis,
             ));
             // Kurve nach innen
-            paths.push(kurve::fuelle(
+            paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius_reverse,
                 self.winkel_reverse,

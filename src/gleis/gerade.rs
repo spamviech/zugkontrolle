@@ -59,8 +59,8 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         )]
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
-        vec![fuelle(self.zugtyp, self.länge, Vec::new(), canvas::PathBuilder::with_normal_axis)]
+    fn fülle(&self) -> Vec<canvas::Path> {
+        vec![fülle(self.zugtyp, self.länge, Vec::new(), canvas::PathBuilder::with_normal_axis)]
     }
 
     fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
@@ -85,14 +85,14 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links: canvas::X = canvas::X(0.);
         let gleis_rechts: canvas::X = gleis_links + self.länge;
-        let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschränkung::<Z>();
+        let beschränkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschränkung::<Z>();
         AnchorPoints {
             anfang: anchor::Anchor {
-                position: canvas::Point { x: gleis_links, y: beschraenkung_mitte },
+                position: canvas::Point { x: gleis_links, y: beschränkung_mitte },
                 direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
             },
             ende: anchor::Anchor {
-                position: canvas::Point { x: gleis_rechts, y: beschraenkung_mitte },
+                position: canvas::Point { x: gleis_rechts, y: beschränkung_mitte },
                 direction: canvas::Vector::new(canvas::X(1.), canvas::Y(0.)),
             },
         }
@@ -137,16 +137,16 @@ fn zeichne_internal<Z, P, A>(
 {
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + länge;
-    let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschränkung::<Z>();
-    let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let beschränkung_oben: canvas::Y = canvas::Y(0.);
+    let beschränkung_unten: canvas::Y = beschränkung_oben + beschränkung::<Z>();
+    let gleis_oben: canvas::Y = beschränkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Beschränkungen
     if beschränkungen {
-        path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben).into());
-        path_builder.line_to(canvas::Point::new(gleis_links, beschraenkung_unten).into());
-        path_builder.move_to(canvas::Point::new(gleis_rechts, beschraenkung_oben).into());
-        path_builder.line_to(canvas::Point::new(gleis_rechts, beschraenkung_unten).into());
+        path_builder.move_to(canvas::Point::new(gleis_links, beschränkung_oben).into());
+        path_builder.line_to(canvas::Point::new(gleis_links, beschränkung_unten).into());
+        path_builder.move_to(canvas::Point::new(gleis_rechts, beschränkung_oben).into());
+        path_builder.line_to(canvas::Point::new(gleis_rechts, beschränkung_unten).into());
     }
     // Gleis
     path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());
@@ -156,7 +156,7 @@ fn zeichne_internal<Z, P, A>(
     // Beschreibung
 }
 
-pub(crate) fn fuelle<Z, P, A>(
+pub(crate) fn fülle<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     länge: canvas::Abstand<canvas::X>,
     transformations: Vec<canvas::Transformation>,
@@ -173,12 +173,12 @@ where
     let mut path_builder = canvas::PathBuilder::new();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fuelle_internal::<Z, P, A>(builder, länge)),
+        Box::new(move |builder| fülle_internal::<Z, P, A>(builder, länge)),
     );
     path_builder.build_under_transformations(transformations)
 }
 
-fn fuelle_internal<Z, P, A>(
+fn fülle_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     länge: canvas::Abstand<canvas::X>,
 ) where
@@ -189,8 +189,8 @@ fn fuelle_internal<Z, P, A>(
     // Koordinaten
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + länge;
-    let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
+    let beschränkung_oben: canvas::Y = canvas::Y(0.);
+    let gleis_oben: canvas::Y = beschränkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Zeichne Umriss
     path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());

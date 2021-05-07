@@ -123,7 +123,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         }
     }
 
-    fn fuelle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<canvas::Path> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
             let transformations = vec![canvas::Transformation::Translate(canvas::Vector {
@@ -131,13 +131,13 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                 dy: self.size().height,
             })];
             vec![
-                gerade::fuelle(
+                gerade::fülle(
                     zugtyp,
                     länge,
                     transformations.clone(),
                     canvas::PathBuilder::with_invert_y,
                 ),
-                kurve::fuelle(
+                kurve::fülle(
                     zugtyp,
                     radius,
                     winkel,
@@ -147,8 +147,8 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             ]
         } else {
             vec![
-                gerade::fuelle(zugtyp, länge, Vec::new(), canvas::PathBuilder::with_normal_axis),
-                kurve::fuelle(
+                gerade::fülle(zugtyp, länge, Vec::new(), canvas::PathBuilder::with_normal_axis),
+                kurve::fülle(
                     zugtyp,
                     radius,
                     winkel,

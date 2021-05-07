@@ -304,7 +304,7 @@ fn transparency<T>(gleis_id: &GleisId<T>, is_grabbed: &impl Fn(GleisId<Any>) -> 
         1.
     }
 }
-fn fuelle_alle_gleise<T: Zeichnen>(
+fn fülle_alle_gleise<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
@@ -313,7 +313,7 @@ fn fuelle_alle_gleise<T: Zeichnen>(
         frame.with_save(|frame| {
             move_to_position(frame, position);
             // einfärben
-            for path in definition.fuelle() {
+            for path in definition.fülle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
                     frame.fill(&path, canvas::Fill {
@@ -511,7 +511,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     };
                 }
                 // Hintergrund
-                mit_allen_gleisen!(fuelle_alle_gleise, is_grabbed);
+                mit_allen_gleisen!(fülle_alle_gleise, is_grabbed);
                 // Kontur
                 mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
                 // AnchorPoints
