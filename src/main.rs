@@ -2,8 +2,7 @@
 
 use std::fmt::Debug;
 
-use iced::{Application, Clipboard, Command, Container, Element, Length, Settings};
-use log::*;
+use iced::{Application, Clipboard, Command, Element, Length, Settings};
 use simple_logger::SimpleLogger;
 
 use zugkontrolle::gleis::gleise::{Gleis, GleisIdLock, Gleise, GleiseMap};
@@ -45,42 +44,51 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
     }
 }
 
-mod background {
-    pub(crate) struct White;
-    impl iced::container::StyleSheet for White {
-        fn style(&self) -> iced::container::Style {
-            iced::container::Style {
+mod style {
+    pub(crate) struct TabBar;
+    impl TabBar {
+        fn style(&self, tab_label_background: iced::Color) -> iced_aw::tab_bar::Style {
+            iced_aw::tab_bar::Style {
                 background: Some(iced::Background::Color(iced::Color::WHITE)),
-                ..Default::default()
+                border_color: Some(iced::Color::BLACK),
+                border_width: 0.,
+                tab_label_background: iced::Background::Color(tab_label_background),
+                tab_label_border_color: iced::Color::BLACK,
+                tab_label_border_width: 1.,
+                icon_color: iced::Color::BLACK,
+                text_color: iced::Color::BLACK,
             }
         }
     }
-    pub(crate) struct Black;
-    impl iced::container::StyleSheet for Black {
-        fn style(&self) -> iced::container::Style {
-            iced::container::Style {
-                background: Some(iced::Background::Color(iced::Color::BLACK)),
-                ..Default::default()
+    impl iced_aw::tab_bar::StyleSheet for TabBar {
+        fn active(&self, is_active: bool) -> iced_aw::tab_bar::Style {
+            let grey_value: f32;
+            if is_active {
+                grey_value = 0.8;
+            } else {
+                grey_value = 0.9;
             }
+            self.style(iced::Color::from_rgb(grey_value, grey_value, grey_value))
+        }
+
+        fn hovered(&self, _is_active: bool) -> iced_aw::tab_bar::Style {
+            let grey_value = 0.7;
+            self.style(iced::Color::from_rgb(grey_value, grey_value, grey_value))
         }
     }
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    ResizePane(iced::pane_grid::ResizeEvent),
+    TabSelected(usize),
     Maerklin(gleis::Message<Maerklin>),
     Lego(gleis::Message<Lego>),
 }
 
-enum AnyZugkontrolle {
-    Maerklin(Zugkontrolle<Maerklin>),
-    Lego(Zugkontrolle<Lego>),
-}
 struct App {
-    pub pane_state: iced::pane_grid::State<AnyZugkontrolle>,
-    pub pane_maerklin: iced::pane_grid::Pane,
-    pub pane_lego: iced::pane_grid::Pane,
+    pub active_tab: usize,
+    pub zugkontrolle_maerklin: Zugkontrolle<Maerklin>,
+    pub zugkontrolle_lego: Zugkontrolle<Lego>,
 }
 impl Application for App {
     type Executor = iced::executor::Default;
@@ -88,17 +96,14 @@ impl Application for App {
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
-        let (mut pane_state, pane_maerklin) = iced::pane_grid::State::new(
-            AnyZugkontrolle::Maerklin(Zugkontrolle::new(gleise_maerklin).0),
-        );
-        let (pane_lego, _pane_split) = pane_state
-            .split(
-                iced::pane_grid::Axis::Vertical,
-                &pane_maerklin,
-                AnyZugkontrolle::Lego(Zugkontrolle::new(gleise_lego).0),
-            )
-            .expect("Failed to split pane!");
-        (App { pane_state, pane_maerklin, pane_lego }, Command::none())
+        (
+            App {
+                active_tab: 0,
+                zugkontrolle_maerklin: Zugkontrolle::new(gleise_maerklin).0,
+                zugkontrolle_lego: Zugkontrolle::new(gleise_lego).0,
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
@@ -111,55 +116,36 @@ impl Application for App {
         clipboard: &mut Clipboard,
     ) -> Command<Self::Message> {
         match message {
-            Message::ResizePane(iced::pane_grid::ResizeEvent { split, ratio }) => {
-                self.pane_state.resize(&split, ratio)
+            Message::TabSelected(selected) => {
+                self.active_tab = selected;
             }
             Message::Maerklin(message) => {
-                if let Some(AnyZugkontrolle::Maerklin(zugkontrolle)) =
-                    self.pane_state.get_mut(&self.pane_maerklin)
-                {
-                    zugkontrolle.update(message, clipboard);
-                } else {
-                    error!("Märklin-Pane nicht gefunden!")
-                }
+                self.zugkontrolle_maerklin.update(message, clipboard);
             }
             Message::Lego(message) => {
-                if let Some(AnyZugkontrolle::Lego(zugkontrolle)) =
-                    self.pane_state.get_mut(&self.pane_lego)
-                {
-                    zugkontrolle.update(message, clipboard);
-                } else {
-                    error!("Lego-Pane nicht gefunden!")
-                }
-            } // _ => println!("{:?}", message),
+                self.zugkontrolle_lego.update(message, clipboard);
+            }
         }
 
         Command::none()
     }
 
     fn view(&mut self) -> Element<Self::Message> {
-        let paned_grid = iced::PaneGrid::new(&mut self.pane_state, |_pane, gleise| match gleise {
-            AnyZugkontrolle::Maerklin(zugkontrolle) => {
-                zugkontrolle.view().map(|message| Message::Maerklin(message)).into()
-            }
-            AnyZugkontrolle::Lego(zugkontrolle) => {
-                zugkontrolle.view().map(|message| Message::Lego(message)).into()
-            }
-        })
-        .spacing(1)
-        .on_resize(1, Message::ResizePane);
-        Container::new(
-            Container::new(paned_grid)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .style(background::Black)
-                .padding(1),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .style(background::White)
-        .padding(2)
-        .into()
+        let tabs = vec![
+            (
+                iced_aw::TabLabel::Text("Märklin".to_string()),
+                self.zugkontrolle_maerklin.view().map(Message::Maerklin).into(),
+            ),
+            (
+                iced_aw::TabLabel::Text("Lego".to_string()),
+                self.zugkontrolle_lego.view().map(Message::Lego).into(),
+            ),
+        ];
+        iced_aw::Tabs::with_tabs(self.active_tab, tabs, Message::TabSelected)
+            .tab_bar_style(style::TabBar)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
 
