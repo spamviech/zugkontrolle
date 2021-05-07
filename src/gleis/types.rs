@@ -11,11 +11,11 @@ pub mod canvas;
 pub mod mm;
 
 // re-exports
-pub use crate::zugtyp::{Anschluss, Zugtyp};
 pub use angle::*;
 pub use mm::*;
 
 use super::anchor;
+pub use crate::zugtyp::{Anschluss, Zugtyp};
 
 // abgeleitete Größe unter der Umrechnung 1mm
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes

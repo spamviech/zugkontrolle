@@ -38,6 +38,7 @@ impl<Z> KurvenWeiche<Z> {
             beschreibung: None,
         }
     }
+
     pub fn new_with_description(
         length: Length,
         radius: Radius,
@@ -219,11 +220,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 Richtung::Rechts => {
                     start_height = canvas::Y(0.);
                     multiplier = 1.;
-                }
+                },
                 Richtung::Links => {
                     start_height = canvas::Y(0.) + self.size().height;
                     multiplier = -1.;
-                }
+                },
             };
             (
                 canvas::Position {
@@ -247,11 +248,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             Richtung::Rechts => {
                 start_height = canvas::Y(0.);
                 multiplier = 1.;
-            }
+            },
             Richtung::Links => {
                 start_height = canvas::Y(0.) + self.size().height;
                 multiplier = -1.;
-            }
+            },
         };
         let start_vector = canvas::Vector::new(start_x, start_height);
         // sub-checks
@@ -271,11 +272,11 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             Richtung::Rechts => {
                 start_height = canvas::Y(0.);
                 multiplier = 1.;
-            }
+            },
             Richtung::Links => {
                 start_height = canvas::Y(0.) + self.size().height;
                 multiplier = -1.;
-            }
+            },
         };
         let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschraenkung::<Z>();
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;

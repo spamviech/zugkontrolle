@@ -141,7 +141,7 @@ impl<Z> AnyId<Z> {
 }
 
 macro_rules! impl_any_id_from {
-    ($type: ident) => {
+    ($type:ident) => {
         impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
             fn from(input: GleisId<$type<Z>>) -> Self {
                 AnyId::$type(input)
@@ -316,18 +316,15 @@ fn fuelle_alle_gleise<T: Zeichnen>(
             for path in definition.fuelle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
-                    frame.fill(
-                        &path,
-                        canvas::Fill {
-                            color: canvas::Color {
-                                r: 1.,
-                                g: 0.,
-                                b: 0.,
-                                a: transparency(gleis_id, &is_grabbed),
-                            },
-                            rule: canvas::FillRule::EvenOdd,
+                    frame.fill(&path, canvas::Fill {
+                        color: canvas::Color {
+                            r: 1.,
+                            g: 0.,
+                            b: 0.,
+                            a: transparency(gleis_id, &is_grabbed),
                         },
-                    );
+                        rule: canvas::FillRule::EvenOdd,
+                    });
                 });
             }
         })
@@ -344,17 +341,14 @@ fn zeichne_alle_gleise<T: Zeichnen>(
             // zeichne Kontur
             for path in definition.zeichne() {
                 frame.with_save(|frame| {
-                    frame.stroke(
-                        &path,
-                        canvas::Stroke {
-                            color: canvas::Color {
-                                a: transparency(gleis_id, &is_grabbed),
-                                ..canvas::Color::BLACK
-                            },
-                            width: 1.5,
-                            ..Default::default()
+                    frame.stroke(&path, canvas::Stroke {
+                        color: canvas::Color {
+                            a: transparency(gleis_id, &is_grabbed),
+                            ..canvas::Color::BLACK
                         },
-                    );
+                        width: 1.5,
+                        ..Default::default()
+                    });
                 });
             }
         })
@@ -372,13 +366,11 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
             // zeichne anchor points
             definition.anchor_points().foreach(|_name, &anchor| {
                 frame.with_save(|frame| {
-                    let (opposing, grabbed) = has_other_and_grabbed_id_at_point(
-                        gleis_id.as_any(),
-                        anchor::Anchor {
+                    let (opposing, grabbed) =
+                        has_other_and_grabbed_id_at_point(gleis_id.as_any(), anchor::Anchor {
                             position: position.transformation(anchor.position),
                             direction: position.rotation(anchor.direction),
-                        },
-                    );
+                        });
                     let color = if opposing {
                         canvas::Color::from_rgba(0., 1., 0., transparency(gleis_id, &is_grabbed))
                     } else {
@@ -549,7 +541,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     let Gleise { maps, modus, .. } = self;
                     let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
-                        ($map:expr, AnyId::$konstruktor:ident) => {
+                        ($map:expr,AnyId:: $konstruktor:ident) => {
                             if let Modus::Bauen { grabbed, .. } = modus {
                                 take_mut::take(grabbed, |grabbed| {
                                     grabbed.or_else(|| {
@@ -564,7 +556,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                                                 return Some(Grabbed {
                                                     gleis_id: AnyId::$konstruktor(gleis_id.clone()),
                                                     grab_location: relative_pos,
-                                                });
+                                                })
                                             }
                                         }
                                         None
@@ -586,7 +578,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 } else {
                     iced::canvas::event::Status::Captured
                 }
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
@@ -597,7 +589,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 } else {
                     iced::canvas::event::Status::Ignored
                 }
-            }
+            },
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
                 if let Some(pos) = cursor.position() {
                     // position_in only returns a Some-value if it is in-bounds
@@ -619,7 +611,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     }
                 }
                 event_status
-            }
+            },
             _otherwise => iced::canvas::event::Status::Ignored,
         };
         if event_status == iced::canvas::event::Status::Captured {
@@ -812,13 +804,10 @@ impl<Z: Zugtyp> Gleise<Z> {
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
             // delete from anchor_points
             definition.anchor_points().foreach(|_name, anchor| {
-                self.anchor_points.remove(
-                    gleis_id.as_any(),
-                    &anchor::Anchor {
-                        position: position.transformation(anchor.position),
-                        direction: position.rotation(anchor.direction),
-                    },
-                );
+                self.anchor_points.remove(gleis_id.as_any(), &anchor::Anchor {
+                    position: position.transformation(anchor.position),
+                    direction: position.rotation(anchor.direction),
+                });
             });
         }
         // make sure everyone knows about the deletion

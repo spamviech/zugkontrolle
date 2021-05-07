@@ -4,14 +4,15 @@ use std::f32::consts::PI;
 use std::{convert::From, marker::PhantomData};
 
 use iced;
-
-use super::angle::Angle;
-
 // re-exports
 pub use iced::{
     canvas::{Fill, FillRule, Stroke, Text},
-    Color, HorizontalAlignment, VerticalAlignment,
+    Color,
+    HorizontalAlignment,
+    VerticalAlignment,
 };
+
+use super::angle::Angle;
 
 pub mod coordinates;
 pub use coordinates::*;
@@ -155,7 +156,7 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     /// Strike an arc around (xc,xy) with given radius from angle1 to angle2 (clockwise).
     ///
     /// Start a new subgraph.
-    pub fn arc(&mut self, arc: A /*, new_sub_path: bool*/) {
+    pub fn arc(&mut self, arc: A /* , new_sub_path: bool */) {
         self.builder.arc(arc.to_arc().into())
     }
 
@@ -253,14 +254,17 @@ impl<'t> Frame<'t> {
 
     /// Draws the characters of the given Text on the Frame, filling them with the given color.
     ///
-    /// **Warning:** problems regarding transformation/rotation/scaling from /iced::canvas::Frame/ apply here as well!
+    /// **Warning:** problems regarding transformation/rotation/scaling from /iced::canvas::Frame/
+    /// apply here as well!
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.0.fill_text(text)
     }
 
-    /// Stores the current transform of the Frame and executes the given drawing operations, restoring the transform afterwards.
+    /// Stores the current transform of the Frame and executes the given drawing operations,
+    /// restoring the transform afterwards.
     ///
-    /// This method is useful to compose transforms and perform drawing operations in different coordinate systems.
+    /// This method is useful to compose transforms and perform drawing operations in different
+    /// coordinate systems.
     pub fn with_save(&mut self, action: impl for<'s> FnOnce(&'s mut Frame<'s>)) {
         self.0.with_save(|frame| action(&mut Frame(frame)))
     }
@@ -290,3 +294,6 @@ impl Cache {
         self.0.draw(bounds.into(), |frame| draw_fn(&mut Frame(frame)))
     }
 }
+
+mod vektor;
+pub use vektor::Vektor;

@@ -52,6 +52,7 @@ impl<Z> SKurvenWeiche<Z> {
             beschreibung: None,
         }
     }
+
     pub fn new_with_description(
         length: Length,
         radius: Radius,
@@ -310,11 +311,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 Richtung::Rechts => {
                     start_height = canvas::Y(0.);
                     multiplier = 1.;
-                }
+                },
                 Richtung::Links => {
                     start_height = canvas::Y(0.) + self.size().height;
                     multiplier = -1.;
-                }
+                },
             };
             (
                 canvas::Position {
@@ -338,11 +339,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             Richtung::Rechts => {
                 start_height = canvas::Y(0.);
                 multiplier = 1.;
-            }
+            },
             Richtung::Links => {
                 start_height = canvas::Y(0.) + self.size().height;
                 multiplier = -1.;
-            }
+            },
         };
         let start_vector = canvas::Vector::new(start_x, start_height);
         let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
@@ -370,11 +371,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             Richtung::Rechts => {
                 start_height = canvas::Y(0.);
                 multiplier = 1.;
-            }
+            },
             Richtung::Links => {
                 start_height = canvas::Y(0.) + self.size().height;
                 multiplier = -1.;
-            }
+            },
         };
         let angle_difference = self.winkel - self.winkel_reverse;
         weiche::gerade::AnchorPoints {

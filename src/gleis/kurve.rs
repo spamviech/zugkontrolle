@@ -34,6 +34,7 @@ impl<Z> Kurve<Z> {
             beschreibung: None,
         }
     }
+
     pub fn new_with_description(
         radius: Radius,
         angle: Angle,
@@ -374,7 +375,7 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
             angle += Angle(2. * std::f32::consts::PI)
         }
         if angle < winkel {
-            return true;
+            return true
         }
     }
     false

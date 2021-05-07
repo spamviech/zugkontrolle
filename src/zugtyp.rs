@@ -69,7 +69,8 @@ pub mod geschwindigkeit {
     /// Mögliche Geschwindigkeitswerte
     ///
     /// Pwm: wert/maximaler_wert bestimmt duty_cycle
-    /// FesteSpannung: wähle Anschluss wert (als Index), größere Werte verwenden immer den letzten Anschluss
+    /// FesteSpannung: wähle Anschluss wert (als Index), größere Werte verwenden immer den letzten
+    /// Anschluss
     #[derive(Debug)]
     pub struct Wert(pub u8);
 
@@ -150,10 +151,12 @@ pub mod value {
         pub fn abstand(&self) -> canvas::Abstand<canvas::Y> {
             self.spurweite / 3.
         }
+
         /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
         pub fn beschraenkung(&self) -> canvas::Abstand<canvas::Y> {
             self.spurweite + 2. * self.abstand()
         }
+
         /// Äußerster Radius (inklusive Beschränkung) einer Kurve
         pub fn radius_begrenzung_aussen(
             &self,
@@ -161,6 +164,7 @@ pub mod value {
         ) -> canvas::Abstand<canvas::Radius> {
             radius + 0.5 * self.spurweite.as_radius() + self.abstand().as_radius()
         }
+
         /// Innerster Radius (inklusive Beschränkung) einer Kurve
         pub fn radius_begrenzung_innen(
             &self,
@@ -221,14 +225,14 @@ pub mod deserialize {
                             match serde_yaml::from_reader(file) {
                                 Ok(zugtyp) => {
                                     zugtypen.insert(name, zugtyp);
-                                }
+                                },
                                 Err(err) => {
                                     warn!(
                                         "failed to parse yaml file \"{}\": {:?}",
                                         path.display(),
                                         err
                                     )
-                                }
+                                },
                             }
                         } else {
                             warn!("failed to open file: {:?}", path)
@@ -310,7 +314,7 @@ pub mod deserialize {
             match umdrehen {
                 Umdrehen::Ueberspannung(ueberspannung) => {
                     value::Umdrehen::Ueberspannung(ueberspannung.into())
-                }
+                },
                 Umdrehen::Schalter(schalter) => value::Umdrehen::Schalter(schalter),
             }
         }

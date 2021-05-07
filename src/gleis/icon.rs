@@ -215,7 +215,8 @@ mod test {
     #[test]
     fn detect_changes() {
         // TODO create Test to detect changes
-        // originally created using the /image/ crate, printing out the resulting ImageBuffer::into_raw()
+        // originally created using the /image/ crate, printing out the resulting
+        // ImageBuffer::into_raw()
         let buf = match image::open("Icon/Zugkontrolle.png").expect("failed to load image") {
             image::DynamicImage::ImageRgba8(buf) => buf,
             _ => unimplemented!(),

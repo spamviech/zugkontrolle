@@ -15,12 +15,14 @@ impl Length {
 }
 impl Div<Length> for Length {
     type Output = f32;
+
     fn div(self, other: Length) -> f32 {
         self.0 / other.0
     }
 }
 impl Div<Radius> for Length {
     type Output = f32;
+
     fn div(self, other: Radius) -> f32 {
         self.0 / other.0
     }
@@ -36,12 +38,14 @@ impl Radius {
 }
 impl Div<Radius> for Radius {
     type Output = f32;
+
     fn div(self, other: Radius) -> f32 {
         self.0 / other.0
     }
 }
 impl Div<Length> for Radius {
     type Output = f32;
+
     fn div(self, other: Length) -> f32 {
         self.0 / other.0
     }

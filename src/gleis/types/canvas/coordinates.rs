@@ -11,7 +11,7 @@ use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub struct X(pub f32);
 macro_rules! impl_with_abstand {
-    ($type: ident) => {
+    ($type:ident) => {
         impl $type {
             pub fn to_abstand(self) -> Abstand<$type> {
                 Abstand(self)
@@ -134,18 +134,21 @@ macro_rules! impl_abstand {
         // get ratio
         impl Div<Abstand<X>> for Abstand<$type> {
             type Output = f32;
+
             fn div(self, Abstand(X(rhs)): Abstand<X>) -> Self::Output {
                 self.0 .0 / rhs
             }
         }
         impl Div<Abstand<Y>> for Abstand<$type> {
             type Output = f32;
+
             fn div(self, Abstand(Y(rhs)): Abstand<Y>) -> Self::Output {
                 self.0 .0 / rhs
             }
         }
         impl Div<Abstand<Radius>> for Abstand<$type> {
             type Output = f32;
+
             fn div(self, Abstand(Radius(rhs)): Abstand<Radius>) -> Self::Output {
                 self.0 .0 / rhs
             }
@@ -158,6 +161,7 @@ macro_rules! impl_abstand {
         }
         impl Mul<f32> for Abstand<$type> {
             type Output = Self;
+
             fn mul(mut self, rhs: f32) -> Self::Output {
                 self *= rhs;
                 self
@@ -165,6 +169,7 @@ macro_rules! impl_abstand {
         }
         impl Mul<Abstand<$type>> for f32 {
             type Output = Abstand<$type>;
+
             fn mul(self, rhs: Abstand<$type>) -> Self::Output {
                 rhs * self
             }
@@ -176,6 +181,7 @@ macro_rules! impl_abstand {
         }
         impl Div<f32> for Abstand<$type> {
             type Output = Self;
+
             fn div(mut self, rhs: f32) -> Self::Output {
                 self /= rhs;
                 self
@@ -249,18 +255,22 @@ impl Vector {
     pub fn new(x: X, y: Y) -> Self {
         Vector { dx: x.to_abstand(), dy: y.to_abstand() }
     }
+
     /// Berechne die Länge des Vektors.
     pub fn length_x(&self) -> Abstand<X> {
         Abstand(X((self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt()))
     }
+
     /// Berechne die Länge des Vektors.
     pub fn length_y(&self) -> Abstand<Y> {
         Abstand(Y((self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt()))
     }
+
     /// Berechne die Länge des Vektors.
     pub fn length_radius(&self) -> Abstand<Radius> {
         Abstand(Radius((self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt()))
     }
+
     // Winkel zwischen Richtungs-Vektor und x-Achse
     pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
         let len = (self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt();
@@ -271,6 +281,7 @@ impl Vector {
             -acos_winkel
         }
     }
+
     /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist.
     pub fn rotate<T: Trigonometrie>(&self, winkel: T) -> Self {
         // https://de.wikipedia.org/wiki/Drehmatrix#Drehmatrix_der_Ebene_%E2%84%9D%C2%B2
@@ -280,12 +291,15 @@ impl Vector {
             dy: winkel.sin() * self.dx.as_y() + winkel.cos() * self.dy,
         }
     }
+
     /// Berechne das Skalarprodukt zweier Vektoren.
     ///
-    /// Es gilt `self.scalar_product(other) == self.length() * other.length() * winkel_zwischen_self_und_other.cos()`.
+    /// Es gilt `self.scalar_product(other) == self.length() * other.length() *
+    /// winkel_zwischen_self_und_other.cos()`.
     pub fn scalar_product(&self, other: &Vector) -> f32 {
         self.dx.0 .0 * other.dx.0 .0 + self.dy.0 .0 * other.dy.0 .0
     }
+
     /// Berechne das Skalarprodukt zweier Vektoren, normiert auf Einheitsvektoren.
     ///
     /// Es gilt `self.scalar_product_normalized(other) == winkel_zwischen_self_und_other.cos()`.
@@ -300,6 +314,7 @@ impl From<Vector> for iced::Vector {
 }
 impl Neg for Vector {
     type Output = Self;
+
     fn neg(mut self) -> Self::Output {
         self.dx.0 .0 *= -1.;
         self.dy.0 .0 *= -1.;
@@ -331,6 +346,7 @@ impl AddAssign<Vector> for Vector {
 }
 impl Add<Vector> for Vector {
     type Output = Self;
+
     fn add(mut self, other: Vector) -> Self::Output {
         self += other;
         self
@@ -338,6 +354,7 @@ impl Add<Vector> for Vector {
 }
 impl Add<&Vector> for Vector {
     type Output = Self;
+
     fn add(mut self, other: &Vector) -> Self::Output {
         self += other;
         self
@@ -357,6 +374,7 @@ impl SubAssign<Vector> for Vector {
 }
 impl Sub<&Vector> for Vector {
     type Output = Self;
+
     fn sub(mut self, other: &Vector) -> Self::Output {
         self -= other;
         self
@@ -364,6 +382,7 @@ impl Sub<&Vector> for Vector {
 }
 impl Sub<Vector> for Vector {
     type Output = Self;
+
     fn sub(mut self, other: Vector) -> Self::Output {
         self -= other;
         self
@@ -383,6 +402,7 @@ impl AddAssign<Vector> for Point {
 }
 impl Add<Vector> for Point {
     type Output = Point;
+
     fn add(mut self, other: Vector) -> Self::Output {
         self += other;
         self
@@ -390,6 +410,7 @@ impl Add<Vector> for Point {
 }
 impl Add<&Vector> for Point {
     type Output = Point;
+
     fn add(mut self, other: &Vector) -> Self::Output {
         self += other;
         self
@@ -397,12 +418,14 @@ impl Add<&Vector> for Point {
 }
 impl Add<Point> for &Vector {
     type Output = Point;
+
     fn add(self, other: Point) -> Self::Output {
         other + self
     }
 }
 impl Add<Point> for Vector {
     type Output = Point;
+
     fn add(self, other: Point) -> Self::Output {
         other + self
     }
@@ -421,6 +444,7 @@ impl SubAssign<Vector> for Point {
 }
 impl Sub<&Vector> for Point {
     type Output = Point;
+
     fn sub(mut self, other: &Vector) -> Self::Output {
         self -= other;
         self
@@ -428,6 +452,7 @@ impl Sub<&Vector> for Point {
 }
 impl Sub<Vector> for Point {
     type Output = Point;
+
     fn sub(mut self, other: Vector) -> Self::Output {
         self -= other;
         self
@@ -442,6 +467,7 @@ impl MulAssign<f32> for Vector {
 }
 impl Mul<f32> for Vector {
     type Output = Vector;
+
     fn mul(mut self, other: f32) -> Self::Output {
         self *= other;
         self
@@ -449,12 +475,14 @@ impl Mul<f32> for Vector {
 }
 impl Mul<Vector> for f32 {
     type Output = Vector;
+
     fn mul(self, other: Vector) -> Self::Output {
         other * self
     }
 }
 impl Mul<&Vector> for f32 {
     type Output = Vector;
+
     fn mul(self, other: &Vector) -> Self::Output {
         *other * self
     }
@@ -467,6 +495,7 @@ impl DivAssign<f32> for Vector {
 }
 impl Div<f32> for Vector {
     type Output = Vector;
+
     fn div(mut self, other: f32) -> Self::Output {
         self /= other;
         self

@@ -50,6 +50,7 @@ impl AddAssign<Angle> for Angle {
 }
 impl Add<Angle> for Angle {
     type Output = Self;
+
     fn add(mut self, other: Angle) -> Angle {
         self += other;
         self
@@ -62,6 +63,7 @@ impl AddAssign<AngleDegrees> for Angle {
 }
 impl Add<AngleDegrees> for Angle {
     type Output = Angle;
+
     fn add(mut self, other: AngleDegrees) -> Angle {
         self += other;
         self
@@ -74,6 +76,7 @@ impl SubAssign<Angle> for Angle {
 }
 impl Sub<Angle> for Angle {
     type Output = Self;
+
     fn sub(mut self, other: Angle) -> Angle {
         self -= other;
         self
@@ -86,6 +89,7 @@ impl SubAssign<AngleDegrees> for Angle {
 }
 impl Sub<AngleDegrees> for Angle {
     type Output = Angle;
+
     fn sub(mut self, other: AngleDegrees) -> Angle {
         self -= other;
         self
@@ -93,18 +97,21 @@ impl Sub<AngleDegrees> for Angle {
 }
 impl Neg for Angle {
     type Output = Self;
+
     fn neg(self) -> Self {
         Angle(-self.0)
     }
 }
 impl Mul<f32> for Angle {
     type Output = Self;
+
     fn mul(self, other: f32) -> Self {
         Angle(other * self.0)
     }
 }
 impl Mul<Angle> for f32 {
     type Output = Angle;
+
     fn mul(self, Angle(other): Angle) -> Angle {
         Angle(self * other)
     }
@@ -113,21 +120,27 @@ impl Trigonometrie for Angle {
     fn abs(&self) -> Angle {
         Angle(self.0.abs())
     }
+
     fn cos(&self) -> f32 {
         self.0.cos()
     }
+
     fn sin(&self) -> f32 {
         self.0.sin()
     }
+
     fn tan(&self) -> f32 {
         self.0.tan()
     }
+
     fn acos(input: f32) -> Self {
         Angle(input.acos())
     }
+
     fn asin(input: f32) -> Self {
         Angle(input.asin())
     }
+
     fn atan(input: f32) -> Self {
         Angle(input.atan())
     }
@@ -160,42 +173,49 @@ impl PartialOrd<Angle> for AngleDegrees {
 }
 impl Add<AngleDegrees> for AngleDegrees {
     type Output = Self;
+
     fn add(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
         AngleDegrees(self.0 + other)
     }
 }
 impl Add<Angle> for AngleDegrees {
     type Output = Angle;
+
     fn add(self, other: Angle) -> Angle {
         other + self
     }
 }
 impl Sub<AngleDegrees> for AngleDegrees {
     type Output = Self;
+
     fn sub(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
         AngleDegrees(self.0 - other)
     }
 }
 impl Sub<Angle> for AngleDegrees {
     type Output = Angle;
+
     fn sub(self, other: Angle) -> Angle {
         other - self
     }
 }
 impl Neg for AngleDegrees {
     type Output = Self;
+
     fn neg(self) -> Self {
         AngleDegrees(-self.0)
     }
 }
 impl Mul<f32> for AngleDegrees {
     type Output = Self;
+
     fn mul(self, other: f32) -> Self {
         AngleDegrees(other * self.0)
     }
 }
 impl Mul<AngleDegrees> for f32 {
     type Output = AngleDegrees;
+
     fn mul(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
         AngleDegrees(self * other)
     }
@@ -204,21 +224,27 @@ impl Trigonometrie for AngleDegrees {
     fn abs(&self) -> AngleDegrees {
         AngleDegrees(self.0.abs())
     }
+
     fn cos(&self) -> f32 {
         self.0.to_radians().cos()
     }
+
     fn sin(&self) -> f32 {
         self.0.to_radians().sin()
     }
+
     fn tan(&self) -> f32 {
         self.0.to_radians().tan()
     }
+
     fn acos(input: f32) -> Self {
         AngleDegrees(input.acos().to_degrees())
     }
+
     fn asin(input: f32) -> Self {
         AngleDegrees(input.asin().to_degrees())
     }
+
     fn atan(input: f32) -> Self {
         AngleDegrees(input.atan().to_degrees())
     }

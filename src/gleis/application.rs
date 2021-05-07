@@ -47,8 +47,8 @@ pub struct Zugkontrolle<Z> {
 }
 impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     type Executor = iced::executor::Default;
-    type Message = Message<Z>;
     type Flags = Gleise<Z>;
+    type Message = Message<Z>;
 
     fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
@@ -77,7 +77,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         _clipboard: &mut iced::Clipboard,
     ) -> iced::Command<Self::Message> {
         macro_rules! add_gleis {
-            ($gleis: expr) => {{
+            ($gleis:expr) => {{
                 self.gleise.add_at_mouse_height($gleis);
             }};
         }

@@ -3,8 +3,8 @@
 pub(crate) use rstar::primitives::PointWithData;
 
 use super::point::Anchor;
-use crate::gleis::types::canvas;
 use crate::gleis::gleise::{Any, GleisId};
+use crate::gleis::types::canvas;
 
 const SEARCH_RADIUS: f32 = 5.0;
 
@@ -71,7 +71,7 @@ impl RTree {
             {
                 opposing = true;
                 if grabbed {
-                    break;
+                    break
                 }
             }
             if !grabbed
@@ -80,7 +80,7 @@ impl RTree {
             {
                 grabbed = true;
                 if opposing {
-                    break;
+                    break
                 }
             }
         }

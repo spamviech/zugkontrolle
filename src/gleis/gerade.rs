@@ -25,6 +25,7 @@ impl<Z> Gerade<Z> {
     pub const fn new(length: Length) -> Self {
         Gerade { zugtyp: PhantomData, laenge: length.to_abstand(), beschreibung: None }
     }
+
     pub fn new_with_description(length: Length, description: impl Into<String>) -> Self {
         Gerade {
             zugtyp: PhantomData,

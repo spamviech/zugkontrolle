@@ -1,8 +1,8 @@
 //! Trait für failure-free lookup von /anchor::Anchor/
 
-use super::Anchor;
-
 pub use zugkontrolle_derive::Lookup;
+
+use super::Anchor;
 
 pub trait Lookup<AnchorName> {
     /// failure-free lookup for a specific /Anchor/.

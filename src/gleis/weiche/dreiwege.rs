@@ -35,6 +35,7 @@ impl<Z> DreiwegeWeiche<Z> {
             beschreibung: None,
         }
     }
+
     pub fn new_with_description(
         length: Length,
         radius: Radius,

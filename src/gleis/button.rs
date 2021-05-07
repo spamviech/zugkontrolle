@@ -71,14 +71,11 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
             |frame| {
                 for path in self.gleis.zeichne() {
                     frame.with_save(|frame| {
-                        frame.stroke(
-                            &path,
-                            canvas::Stroke {
-                                color: canvas::Color::BLACK,
-                                width: STROKE_WIDTH,
-                                ..Default::default()
-                            },
-                        );
+                        frame.stroke(&path, canvas::Stroke {
+                            color: canvas::Color::BLACK,
+                            width: STROKE_WIDTH,
+                            ..Default::default()
+                        });
                     });
                 }
                 if let Some((relative_position, content)) = self.gleis.beschreibung() {

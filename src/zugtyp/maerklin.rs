@@ -30,6 +30,7 @@ impl Zugtyp for Maerklin {
             gerade_5210(),
         ]
     }
+
     fn kurven() -> Vec<Kurve<Self>> {
         vec![
             kurve_5100(),
@@ -42,6 +43,7 @@ impl Zugtyp for Maerklin {
             kurve_5206(),
         ]
     }
+
     fn weichen() -> Vec<Weiche<Self>> {
         vec![
             weiche_5117_links(),
@@ -52,15 +54,19 @@ impl Zugtyp for Maerklin {
             weiche_5202_rechts(),
         ]
     }
+
     fn dreiwege_weichen() -> Vec<DreiwegeWeiche<Self>> {
         vec![dreiwege_weiche_5214()]
     }
+
     fn kurven_weichen() -> Vec<KurvenWeiche<Self>> {
         vec![kurven_weiche_5140_links(), kurven_weiche_5140_rechts()]
     }
+
     fn s_kurven_weichen() -> Vec<SKurvenWeiche<Self>> {
         vec![]
     }
+
     fn kreuzungen() -> Vec<Kreuzung<Self>> {
         vec![kreuzung_5128(), kreuzung_5207()]
     }

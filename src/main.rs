@@ -4,7 +4,6 @@ use std::fmt::Debug;
 
 use iced::{Application, Clipboard, Command, Element, Length, Settings};
 use simple_logger::SimpleLogger;
-
 use zugkontrolle::gleis::gleise::{Gleis, GleisIdLock, Gleise, GleiseMap};
 use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::{self, *};
@@ -92,8 +91,8 @@ struct App {
 }
 impl Application for App {
     type Executor = iced::executor::Default;
-    type Message = Message;
     type Flags = (Gleise<Maerklin>, Gleise<Lego>);
+    type Message = Message;
 
     fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
         (
@@ -118,13 +117,13 @@ impl Application for App {
         match message {
             Message::TabSelected(selected) => {
                 self.active_tab = selected;
-            }
+            },
             Message::Maerklin(message) => {
                 self.zugkontrolle_maerklin.update(message, clipboard);
-            }
+            },
             Message::Lego(message) => {
                 self.zugkontrolle_lego.update(message, clipboard);
-            }
+            },
         }
 
         Command::none()
@@ -186,13 +185,10 @@ fn main() -> iced::Result {
     let (_kreuzung1_lock, kreuzung1_anchor_points) = append_lego.append(lego::KREUZUNG);
     // relocate
     if let Some(gleis_id) = &*gerade_lock.read() {
-        gleise_lego.relocate(
-            gleis_id,
-            canvas::Position {
-                point: canvas::Point { x: canvas::X(250.), y: canvas::Y(10.) },
-                winkel: AngleDegrees::new(90.).into(),
-            },
-        );
+        gleise_lego.relocate(gleis_id, canvas::Position {
+            point: canvas::Point { x: canvas::X(250.), y: canvas::Y(10.) },
+            winkel: AngleDegrees::new(90.).into(),
+        });
     }
     // attach
     gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, weiche_anchor_points.gerade);
