@@ -107,7 +107,7 @@ impl Application for App {
     }
 
     fn title(&self) -> String {
-        "Zugkontrolle".to_string()
+        self.zugkontrolle_maerklin.title()
     }
 
     fn update(

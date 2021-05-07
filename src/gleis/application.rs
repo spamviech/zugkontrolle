@@ -1,5 +1,7 @@
 //! iced::Application für die Gleis-Anzeige
 
+use version::version;
+
 use super::*;
 
 mod background;
@@ -66,7 +68,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     }
 
     fn title(&self) -> String {
-        "Zugkontrolle".to_string()
+        format!("Zugkontrolle {}", version!())
     }
 
     fn update(
