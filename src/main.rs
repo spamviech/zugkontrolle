@@ -9,7 +9,7 @@ use zugkontrolle::gleis::types::*;
 use zugkontrolle::gleis::{self, *};
 use zugkontrolle::zugtyp::{
     lego::{self, Lego},
-    maerklin::{self, Maerklin},
+    märklin::{self, Märklin},
 };
 
 struct AppendGleise<'t, Z> {
@@ -80,25 +80,25 @@ mod style {
 #[derive(Debug, Clone)]
 enum Message {
     TabSelected(usize),
-    Maerklin(gleis::Message<Maerklin>),
+    Märklin(gleis::Message<Märklin>),
     Lego(gleis::Message<Lego>),
 }
 
 struct App {
     pub active_tab: usize,
-    pub zugkontrolle_maerklin: Zugkontrolle<Maerklin>,
+    pub zugkontrolle_märklin: Zugkontrolle<Märklin>,
     pub zugkontrolle_lego: Zugkontrolle<Lego>,
 }
 impl Application for App {
     type Executor = iced::executor::Default;
-    type Flags = (Gleise<Maerklin>, Gleise<Lego>);
+    type Flags = (Gleise<Märklin>, Gleise<Lego>);
     type Message = Message;
 
-    fn new((gleise_maerklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
+    fn new((gleise_märklin, gleise_lego): Self::Flags) -> (Self, Command<Self::Message>) {
         (
             App {
                 active_tab: 0,
-                zugkontrolle_maerklin: Zugkontrolle::new(gleise_maerklin).0,
+                zugkontrolle_märklin: Zugkontrolle::new(gleise_märklin).0,
                 zugkontrolle_lego: Zugkontrolle::new(gleise_lego).0,
             },
             Command::none(),
@@ -106,7 +106,7 @@ impl Application for App {
     }
 
     fn title(&self) -> String {
-        self.zugkontrolle_maerklin.title()
+        self.zugkontrolle_märklin.title()
     }
 
     fn update(
@@ -118,8 +118,8 @@ impl Application for App {
             Message::TabSelected(selected) => {
                 self.active_tab = selected;
             },
-            Message::Maerklin(message) => {
-                self.zugkontrolle_maerklin.update(message, clipboard);
+            Message::Märklin(message) => {
+                self.zugkontrolle_märklin.update(message, clipboard);
             },
             Message::Lego(message) => {
                 self.zugkontrolle_lego.update(message, clipboard);
@@ -133,7 +133,7 @@ impl Application for App {
         let tabs = vec![
             (
                 iced_aw::TabLabel::Text("Märklin".to_string()),
-                self.zugkontrolle_maerklin.view().map(Message::Maerklin).into(),
+                self.zugkontrolle_märklin.view().map(Message::Märklin).into(),
             ),
             (
                 iced_aw::TabLabel::Text("Lego".to_string()),
@@ -166,14 +166,14 @@ fn main() -> iced::Result {
     */
 
     // Märklin-Gleise
-    let mut gleise_maerklin: Gleise<Maerklin> = Gleise::new();
-    let mut append_maerklin = AppendGleise::new(&mut gleise_maerklin);
-    append_maerklin.append(maerklin::gerade_5106());
-    append_maerklin.append(maerklin::kurve_5100());
-    append_maerklin.append(maerklin::weiche_5202_links());
-    append_maerklin.append(maerklin::dreiwege_weiche_5214());
-    append_maerklin.append(maerklin::kurven_weiche_5140_links());
-    append_maerklin.append(maerklin::kreuzung_5207());
+    let mut gleise_märklin: Gleise<Märklin> = Gleise::new();
+    let mut append_märklin = AppendGleise::new(&mut gleise_märklin);
+    append_märklin.append(märklin::gerade_5106());
+    append_märklin.append(märklin::kurve_5100());
+    append_märklin.append(märklin::weiche_5202_links());
+    append_märklin.append(märklin::dreiwege_weiche_5214());
+    append_märklin.append(märklin::kurven_weiche_5140_links());
+    append_märklin.append(märklin::kreuzung_5207());
 
     // Lego-Gleise
     let mut gleise_lego: Gleise<Lego> = Gleise::new();
@@ -209,6 +209,6 @@ fn main() -> iced::Result {
             icon: Some(icon()),
             ..Default::default()
         },
-        ..Settings::with_flags((gleise_maerklin, gleise_lego))
+        ..Settings::with_flags((gleise_märklin, gleise_lego))
     })
 }

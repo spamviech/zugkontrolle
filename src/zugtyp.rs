@@ -10,7 +10,9 @@ use crate::gleis::{
 };
 
 pub mod lego;
-pub mod maerklin;
+// path attribute necessary due to non-ascii module name (at least for now)
+#[path = "./zugtyp/märklin.rs"]
+pub mod märklin;
 
 /// TODO
 /// Wirkliche Implementierung in eigenem Modul erstellen
@@ -44,7 +46,7 @@ pub mod geschwindigkeit {
 
     /// Pwm-basierte Geschwindigkeitskontrolle (Märklin)
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct PwmMaerklin(Anschluss);
+    pub struct PwmMärklin(Anschluss);
 
     /// Fahrtrichtung
     #[derive(Debug)]
@@ -85,7 +87,7 @@ pub mod geschwindigkeit {
             unimplemented!("{:?}.geschwindigkeit({:?})", self, wert)
         }
     }
-    impl Geschwindigkeit<PwmMaerklin> {
+    impl Geschwindigkeit<PwmMärklin> {
         pub fn umdrehen(&mut self) {
             //TODO
             unimplemented!("{:?}.umdrehen()", self)
