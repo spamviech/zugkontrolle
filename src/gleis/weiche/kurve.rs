@@ -60,7 +60,7 @@ impl<Z> KurvenWeiche<Z> {
 pub enum AnchorName {
     Anfang,
     Innen,
-    Aussen,
+    Außen,
 }
 
 impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
@@ -76,7 +76,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let aussen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
+        let außen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
             canvas::X(0.) + self.länge,
             canvas::Y(0.),
         ));
@@ -105,7 +105,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 canvas::PathBuilder::with_invert_y,
             ));
             // Äußere Kurve
-            transformations.push(aussen_transformation);
+            transformations.push(außen_transformation);
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius,
@@ -138,7 +138,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.radius,
                 self.winkel,
                 kurve::Beschraenkung::Ende,
-                vec![aussen_transformation],
+                vec![außen_transformation],
                 canvas::PathBuilder::with_normal_axis,
             ));
         }
@@ -148,7 +148,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let aussen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
+        let außen_transformation = canvas::Transformation::Translate(canvas::Vector::new(
             canvas::X(0.) + self.länge,
             canvas::Y(0.),
         ));
@@ -175,7 +175,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 canvas::PathBuilder::with_invert_y,
             ));
             // Äußere Kurve
-            transformations.push(aussen_transformation);
+            transformations.push(außen_transformation);
             paths.push(kurve::fuelle(
                 self.zugtyp,
                 self.radius,
@@ -204,7 +204,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius,
                 self.winkel,
-                vec![aussen_transformation],
+                vec![außen_transformation],
                 canvas::PathBuilder::with_normal_axis,
             ));
         }
@@ -299,7 +299,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 position: canvas::Point { x: kurve_anchor_x, y: kurve_anchor_y },
                 direction: kurve_anchor_direction,
             },
-            aussen: anchor::Anchor {
+            außen: anchor::Anchor {
                 position: canvas::Point { x: kurve_anchor_x + self.länge, y: kurve_anchor_y },
                 direction: kurve_anchor_direction,
             },

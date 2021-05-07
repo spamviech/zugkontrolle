@@ -136,18 +136,18 @@ pub(crate) fn size<Z: Zugtyp>(
     winkel: Angle,
 ) -> canvas::Size {
     // Breite
-    let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(radius);
-    let radius_begrenzung_aussen_y = radius_begrenzung_aussen.as_y();
+    let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
+    let radius_begrenzung_außen_y = radius_begrenzung_außen.as_y();
     let width_factor = if winkel.abs() < Angle::new(0.5 * PI) { winkel.sin() } else { 1. };
-    let width = radius_begrenzung_aussen.as_x() * width_factor;
+    let width = radius_begrenzung_außen.as_x() * width_factor;
     // Höhe des Bogen
     let angle_abs = winkel.abs();
     let comparison = if angle_abs < Angle::new(0.5 * PI) {
-        radius_begrenzung_aussen_y * (1. - winkel.cos()) + beschraenkung::<Z>() * winkel.cos()
+        radius_begrenzung_außen_y * (1. - winkel.cos()) + beschraenkung::<Z>() * winkel.cos()
     } else if angle_abs < Angle::new(PI) {
-        radius_begrenzung_aussen_y * (1. - winkel.cos())
+        radius_begrenzung_außen_y * (1. - winkel.cos())
     } else {
-        radius_begrenzung_aussen_y
+        radius_begrenzung_außen_y
     };
     // Mindesthöhe: Beschränkung einer Geraden
     let height = beschraenkung::<Z>().max(&comparison);
@@ -222,16 +222,16 @@ fn zeichne_internal<Z, P, A>(
     let gleis_links_oben: canvas::Y = canvas::Y(0.);
     let gleis_links_unten: canvas::Y = gleis_links_oben + beschraenkung::<Z>();
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius - 0.5 * spurweite;
-    let radius_aussen: canvas::Radius = radius_innen + spurweite;
-    let radius_begrenzung_aussen: canvas::Abstand<canvas::Radius> =
-        radius_aussen.to_abstand() + abstand::<Z>().as_radius();
-    let radius_begrenzung_aussen_y: canvas::Abstand<canvas::Y> = radius_begrenzung_aussen.as_y();
-    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_aussen.as_x() * winkel.sin();
+    let radius_außen: canvas::Radius = radius_innen + spurweite;
+    let radius_begrenzung_außen: canvas::Abstand<canvas::Radius> =
+        radius_außen.to_abstand() + abstand::<Z>().as_radius();
+    let radius_begrenzung_außen_y: canvas::Abstand<canvas::Y> = radius_begrenzung_außen.as_y();
+    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_außen.as_x() * winkel.sin();
     let begrenzung_y0: canvas::Y =
-        gleis_links_oben + radius_begrenzung_aussen_y * (1. - winkel.cos());
+        gleis_links_oben + radius_begrenzung_außen_y * (1. - winkel.cos());
     let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>().as_x() * winkel.sin();
     let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
-    let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen_y;
+    let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_außen_y;
     // Beschränkungen
     if beschränkungen.anfangs_beschraenkung() {
         path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
@@ -245,7 +245,7 @@ fn zeichne_internal<Z, P, A>(
     path_builder.arc(
         canvas::Arc {
             center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-            radius: canvas::Radius(0.) + radius_aussen.to_abstand(),
+            radius: canvas::Radius(0.) + radius_außen.to_abstand(),
             start: winkel_anfang,
             end: winkel_ende,
         }
@@ -301,10 +301,10 @@ fn fuelle_internal<Z, P, A>(
     let winkel_ende: Angle = winkel_anfang + winkel;
     let radius_innen_abstand = radius - 0.5 * spurweite;
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_innen_abstand;
-    let radius_aussen_abstand = radius + 0.5 * spurweite;
-    let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
-    let radius_aussen_abstand: canvas::Abstand<canvas::Radius> = radius_aussen.to_abstand();
-    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
+    let radius_außen_abstand = radius + 0.5 * spurweite;
+    let radius_außen: canvas::Radius = canvas::Radius(0.) + radius_außen_abstand;
+    let radius_außen_abstand: canvas::Abstand<canvas::Radius> = radius_außen.to_abstand();
+    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_außen_abstand.as_y();
     // Koordinaten links
     let gleis_links: canvas::X = canvas::X(0.);
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
@@ -312,8 +312,8 @@ fn fuelle_internal<Z, P, A>(
     let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
     // Koordinaten rechts
     let gleis_rechts_oben: canvas::Point = canvas::Point::new(
-        gleis_links + radius_aussen_abstand.as_x() * winkel.sin(),
-        gleis_links_oben + radius_aussen_abstand.as_y() * (1. - winkel.cos()),
+        gleis_links + radius_außen_abstand.as_x() * winkel.sin(),
+        gleis_links_oben + radius_außen_abstand.as_y() * (1. - winkel.cos()),
     );
     let gleis_rechts_unten: canvas::Point = canvas::Point::new(
         gleis_rechts_oben.x - spurweite.as_x() * winkel.sin(),
@@ -323,7 +323,7 @@ fn fuelle_internal<Z, P, A>(
     path_builder.arc(
         canvas::Arc {
             center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-            radius: radius_aussen,
+            radius: radius_außen,
             start: winkel_anfang,
             end: winkel_ende,
         }
@@ -356,15 +356,15 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
 ) -> bool {
     let spurweite = Z::SPURWEITE.to_abstand().as_radius();
     let radius_innen_abstand = radius - 0.5 * spurweite;
-    let radius_aussen_abstand = radius + 0.5 * spurweite;
-    let radius_aussen: canvas::Radius = canvas::Radius(0.) + radius_aussen_abstand;
-    let radius_aussen_abstand: canvas::Abstand<canvas::Radius> = radius_aussen.to_abstand();
-    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_aussen_abstand.as_y();
+    let radius_außen_abstand = radius + 0.5 * spurweite;
+    let radius_außen: canvas::Radius = canvas::Radius(0.) + radius_außen_abstand;
+    let radius_außen_abstand: canvas::Abstand<canvas::Radius> = radius_außen.to_abstand();
+    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_außen_abstand.as_y();
     let radius_vector = canvas::Vector::from(
         canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - relative_position,
     );
     let länge = radius_vector.length_radius();
-    if länge > radius_innen_abstand && länge < radius_aussen_abstand {
+    if länge > radius_innen_abstand && länge < radius_außen_abstand {
         let mut angle: Angle = if radius_vector.dx > canvas::X(0.).to_abstand() {
             -Angle::acos(radius_vector.dy / länge)
         } else {

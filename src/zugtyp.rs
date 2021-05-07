@@ -160,7 +160,7 @@ pub mod value {
         }
 
         /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-        pub fn radius_begrenzung_aussen(
+        pub fn radius_begrenzung_außen(
             &self,
             radius: canvas::Abstand<canvas::Radius>,
         ) -> canvas::Abstand<canvas::Radius> {

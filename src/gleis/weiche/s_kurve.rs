@@ -92,21 +92,21 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             1.
         }
         .max(0.);
-        let radius_aussen = radius_begrenzung_aussen::<Z>(radius);
-        let radius_aussen_x: canvas::Abstand<canvas::X> = radius_aussen.as_x();
+        let radius_außen = radius_begrenzung_außen::<Z>(radius);
+        let radius_außen_x: canvas::Abstand<canvas::X> = radius_außen.as_x();
         let radius_innen = radius_begrenzung_innen::<Z>(radius);
         let radius_innen_x: canvas::Abstand<canvas::X> = radius_innen.as_x();
-        let radius_reverse_aussen = radius_begrenzung_aussen::<Z>(radius_reverse);
+        let radius_reverse_außen = radius_begrenzung_außen::<Z>(radius_reverse);
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
-        let width_oben1: canvas::Abstand<canvas::X> = radius_aussen_x * factor_width;
+        let width_oben1: canvas::Abstand<canvas::X> = radius_außen_x * factor_width;
         let width_oben2: canvas::Abstand<canvas::X> =
-            radius_aussen_x * winkel.sin() + radius_reverse_innen.as_x() * factor_width_reverse;
+            radius_außen_x * winkel.sin() + radius_reverse_innen.as_x() * factor_width_reverse;
         let width_oben: canvas::Abstand<canvas::X> = width_oben1.max(&width_oben2);
         // untere Beschränkung
         let width_unten1: canvas::Abstand<canvas::X> = radius_innen_x * factor_width;
         let width_unten2: canvas::Abstand<canvas::X> =
-            radius_innen_x * winkel.sin() + radius_reverse_aussen.as_x() * factor_width_reverse;
+            radius_innen_x * winkel.sin() + radius_reverse_außen.as_x() * factor_width_reverse;
         let width_unten: canvas::Abstand<canvas::X> = width_unten1.max(&width_unten2);
 
         // Höhen-Berechnung
@@ -117,24 +117,23 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             1.
         }
         .max(0.);
-        let radius_aussen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_aussen::<Z>(radius).as_y();
+        let radius_außen: canvas::Abstand<canvas::Y> = radius_begrenzung_außen::<Z>(radius).as_y();
         let radius_reverse_innen: canvas::Abstand<canvas::Y> =
             radius_begrenzung_innen::<Z>(radius_reverse).as_y();
         // obere Beschränkung
-        let height_oben1: canvas::Abstand<canvas::Y> = radius_aussen * factor_height;
+        let height_oben1: canvas::Abstand<canvas::Y> = radius_außen * factor_height;
         let height_oben2: canvas::Abstand<canvas::Y> =
-            radius_aussen * (1. - winkel.cos()) + radius_reverse_innen * factor_height_reverse;
+            radius_außen * (1. - winkel.cos()) + radius_reverse_innen * factor_height_reverse;
         let height_oben: canvas::Abstand<canvas::Y> = height_oben1.max(&height_oben2);
         // untere Beschränkung
         let gleis_unten_start = beschraenkung::<Z>();
         let radius_innen: canvas::Abstand<canvas::Y> = radius_begrenzung_innen::<Z>(radius).as_y();
-        let radius_reverse_aussen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_aussen::<Z>(radius_reverse).as_y();
+        let radius_reverse_außen: canvas::Abstand<canvas::Y> =
+            radius_begrenzung_außen::<Z>(radius_reverse).as_y();
         let height_unten1 = gleis_unten_start + radius_innen * factor_height;
         let height_unten2 = gleis_unten_start
             + radius_innen * (1. - winkel.cos())
-            + radius_reverse_aussen * factor_height_reverse;
+            + radius_reverse_außen * factor_height_reverse;
         let height_unten = height_unten1.max(&height_unten2);
 
         canvas::Size {
@@ -145,13 +144,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
 
     fn zeichne(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
                 canvas::Transformation::Translate(canvas::Vector {
-                    dx: multiplier * radius_begrenzung_aussen.as_x() * winkel.sin(),
-                    dy: multiplier * radius_begrenzung_aussen.as_y() * (1. - winkel.cos()),
+                    dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
+                    dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
                 }),
                 canvas::Transformation::Rotate(winkel),
                 canvas::Transformation::Translate(canvas::Vector {
@@ -228,13 +227,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
 
     fn fuelle(&self) -> Vec<canvas::Path> {
         // utility sizes
-        let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
                 canvas::Transformation::Translate(canvas::Vector {
-                    dx: multiplier * radius_begrenzung_aussen.as_x() * winkel.sin(),
-                    dy: multiplier * radius_begrenzung_aussen.as_y() * (1. - winkel.cos()),
+                    dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
+                    dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
                 }),
                 canvas::Transformation::Rotate(winkel),
                 canvas::Transformation::Translate(canvas::Vector {
@@ -346,11 +345,11 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             },
         };
         let start_vector = canvas::Vector::new(start_x, start_height);
-        let radius_begrenzung_aussen = radius_begrenzung_aussen::<Z>(self.radius);
+        let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let multiplied_winkel = multiplier * self.winkel;
         let s_kurve_start_vector = canvas::Vector {
-            dx: multiplier * radius_begrenzung_aussen.as_x() * multiplied_winkel.sin(),
-            dy: radius_begrenzung_aussen.as_y() * (1. - multiplied_winkel.cos()),
+            dx: multiplier * radius_begrenzung_außen.as_x() * multiplied_winkel.sin(),
+            dy: radius_begrenzung_außen.as_y() * (1. - multiplied_winkel.cos()),
         };
         // sub-checks
         let mut relative_vector = relative_position - start_vector;

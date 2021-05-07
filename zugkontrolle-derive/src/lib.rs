@@ -34,7 +34,7 @@ fn impl_debug(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                     #(write!(f, "{}{:?}, ", #fs_str, #fs_vec)?);*;
                     write!(f, "}}")
                 }
-            }
+            },
             syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                 let fs_iter = unnamed.iter().map(|field| &field.ident);
                 let mut i: usize = 0;
@@ -50,7 +50,7 @@ fn impl_debug(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                     #(write!(f, "{:?}, ", #fs_str)?);*;
                     write!(f, ")")
                 }
-            }
+            },
             syn::Fields::Unit => quote! {
                 write!(f, "{}", #ident_str)?;
             },
@@ -75,7 +75,7 @@ fn impl_debug(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                                     write!(f, "}}")
                                 }
                             }
-                        }
+                        },
                         syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                             let fs_iter = unnamed.iter().map(|field| &field.ident);
                             let mut i: usize = 0;
@@ -92,7 +92,7 @@ fn impl_debug(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                                     write!(f, ")")
                                 }
                             }
-                        }
+                        },
                         syn::Fields::Unit => quote! {
                             #ident::#variant_ident  => write!(f, "{}", #variant_ident_str)
                         },
@@ -105,10 +105,10 @@ fn impl_debug(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                     #(#token_streams),*
                 }
             }
-        }
+        },
         _ => {
             unimplemented!("Unsupported data! Given ast: {:?}", ast)
-        }
+        },
     };
 
     let mut generic_lifetimes = Vec::new();
@@ -117,7 +117,7 @@ fn impl_debug(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         match g {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
             syn::GenericParam::Type(ty) => generic_types.push(&ty.ident),
-            syn::GenericParam::Const(_c) => {}
+            syn::GenericParam::Const(_c) => {},
         }
     }
 
@@ -154,7 +154,7 @@ fn impl_clone(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                         #(#fs_vec: Clone::clone(#fs_vec)),*
                     }
                 }
-            }
+            },
             syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                 let fs_iter = unnamed.iter().map(|field| &field.ident);
                 let mut i: usize = 0;
@@ -168,7 +168,7 @@ fn impl_clone(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                     let #ident (#(#fs_str),*) = self;
                     #ident (#(Clone::clone(#fs_str)),*)
                 }
-            }
+            },
             syn::Fields::Unit => quote! {#ident},
         },
         syn::Data::Enum(syn::DataEnum { variants, .. }) => {
@@ -185,7 +185,7 @@ fn impl_clone(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                                 }
                             }
                         }
-                    }
+                    },
                     syn::Fields::Unnamed(syn::FieldsUnnamed { unnamed, .. }) => {
                         let fs_iter = unnamed.iter().map(|field| &field.ident);
                         let mut i: usize = 0;
@@ -200,7 +200,7 @@ fn impl_clone(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                                 #ident::#variant_ident (#(Clone::clone(#fs_str)),*)
                             }
                         }
-                    }
+                    },
                     syn::Fields::Unit => quote! {#ident::#variant_ident => #ident::#variant_ident},
                 })
                 .collect();
@@ -209,10 +209,10 @@ fn impl_clone(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
                     #(#token_streams),*
                 }
             }
-        }
+        },
         _ => {
             unimplemented!("Unsupported data! Given ast: {:?}", ast)
-        }
+        },
     };
 
     let mut generic_lifetimes = Vec::new();
@@ -221,7 +221,7 @@ fn impl_clone(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         match g {
             syn::GenericParam::Lifetime(lt) => generic_lifetimes.push(&lt.lifetime),
             syn::GenericParam::Type(ty) => generic_types.push(&ty.ident),
-            syn::GenericParam::Const(_c) => {}
+            syn::GenericParam::Const(_c) => {},
         }
     }
 
@@ -257,12 +257,16 @@ fn impl_anchor_lookup(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         let enum_vis: &syn::Visibility = vis;
         let enum_variants: Vec<syn::Ident> =
             enum_data.variants.iter().map(|v| v.ident.clone()).collect();
-        // construct a struct using a snake_case field for every variant, each holding an anchor::Anchor
+        // construct a struct using a snake_case field for every variant, each holding an
+        // anchor::Anchor
         let struct_name: syn::Ident =
             format_ident!("{}Points", enum_name.to_string().trim_end_matches("Name"));
         let struct_fields: Vec<syn::Ident> = enum_variants
             .iter()
-            .map(|ident| format_ident!("{}", to_snake_case(&ident.to_string())))
+            // TODO fix upstream?
+            // to_snakecase wrongly adds a '_' before 'ß', even though it it a small letter
+            // possibly because there is no real uppercase character of it
+            .map(|ident| format_ident!("{}", to_snake_case(&ident.to_string()).replace("_ß", "ß")))
             .collect();
         let struct_definition: TokenStream = quote! {
             #[derive(Debug)]
