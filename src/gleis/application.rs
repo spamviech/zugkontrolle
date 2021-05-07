@@ -110,8 +110,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     ($($vec: expr),*) => {
                         $(
                         for button in $vec {
-                            // include padding
-                            max_width = max_width.max((canvas::X(4.) + button.size().width).0.ceil() as u16);
+                            max_width = max_width.max((canvas::X(0.) + button.size().width).0.ceil() as u16);
                             scrollable = scrollable.push(
                                 button.to_iced().width(iced::Length::Fill).height(iced::Length::Shrink)
                             );

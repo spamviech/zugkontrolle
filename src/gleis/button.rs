@@ -3,6 +3,8 @@
 use super::gleise::move_to_position;
 use super::types::*;
 
+const STROKE_WIDTH: f32 = 1.5;
+
 /// Ein Knopf, der ein Gleis anzeigt
 #[derive(Debug)]
 pub struct Button<T> {
@@ -19,7 +21,12 @@ impl<T> Button<T> {
 }
 impl<T: Zeichnen> Button<T> {
     pub fn size(&self) -> canvas::Size {
-        self.canvas.gleis.size()
+        // include padding
+        let canvas::Size { width, height } = self.canvas.gleis.size();
+        canvas::Size {
+            width: width + canvas::X(6.).to_abstand(),
+            height: height + canvas::Y(6.).to_abstand(),
+        }
     }
 
     pub fn to_iced<Message>(&mut self) -> iced::Button<Message>
@@ -33,10 +40,13 @@ impl<T: Zeichnen> Button<T> {
         iced::Button::new(
             state,
             iced::Canvas::new(canvas)
-                .width(iced::Length::Units((canvas::X(0.) + size.width).0.ceil() as u16))
-                .height(iced::Length::Units((canvas::Y(0.) + size.height).0.ceil() as u16)),
+                // account for lines right at the edge
+                .width(iced::Length::Units((canvas::X(STROKE_WIDTH) + size.width).0.ceil() as u16))
+                .height(iced::Length::Units(
+                    (canvas::Y(STROKE_WIDTH) + size.height).0.ceil() as u16
+                )),
         )
-        .padding(2)
+        .padding(1)
         .on_press(message)
     }
 }
@@ -52,7 +62,7 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
         bounds: iced::Rectangle,
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
-        // TODO adjust to size
+        // TODO adjust(scale) to size
         vec![self.canvas.draw(
             canvas::Size::new(
                 canvas::X(bounds.width).to_abstand(),
@@ -65,7 +75,7 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
                             &path,
                             canvas::Stroke {
                                 color: canvas::Color::BLACK,
-                                width: 1.5,
+                                width: STROKE_WIDTH,
                                 ..Default::default()
                             },
                         );
