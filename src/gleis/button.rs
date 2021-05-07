@@ -1,7 +1,7 @@
 //! Knopf mit dem jeweiligen Gleis
 
 use super::gleise::move_to_position;
-use super::types::*;
+use super::typen::*;
 
 const STROKE_WIDTH: f32 = 1.5;
 

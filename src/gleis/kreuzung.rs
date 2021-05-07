@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use super::types::*;
+use super::typen::*;
 use super::{anchor, gerade, kurve};
 
 /// Definition einer Kreuzung
@@ -28,15 +28,15 @@ pub enum Variante {
     OhneKurve,
 }
 impl<Z> Kreuzung<Z> {
-    fn angle(&self) -> Angle {
-        // angle solves the formula `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`
+    fn winkel(&self) -> Winkel {
+        // winkel solves the formula `x = L/2 * (1 + sin(alpha)) = R * cos(alpha)`
         // https://www.wolframalpha.com/input/?i=sin%28alpha%29-C*cos%28alpha%29%3DC
-        // length=0 gives angle=0, but is not properly defined,
+        // length=0 gives winkel=0, but is not properly defined,
         // since it violates the formula above (pi/2 required)
         // pi/2 doesn't work either, since it violates the formula
         // `y = L/2 * sin(alpha) = R * (1 - cos(alpha))`
-        // only for radius=0 as well both formulas are satisfied by any angle
-        Angle::new(2. * (0.5 * (self.länge / self.radius)).atan())
+        // only for radius=0 as well both formulas are satisfied by any winkel
+        Winkel::new(2. * (0.5 * (self.länge / self.radius)).atan())
     }
 
     pub const fn new(length: Länge, radius: Radius, variante: Variante) -> Self {
@@ -78,7 +78,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     type AnchorPoints = AnchorPoints;
 
     fn size(&self) -> canvas::Size {
-        let size_kurve = kurve::size::<Z>(self.radius, self.angle());
+        let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
         let height_beschränkung = beschränkung::<Z>();
         let height_kurven = 2. * size_kurve.height - height_beschränkung;
         canvas::Size::new(
@@ -94,14 +94,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
-        let angle = self.angle();
+        let winkel = self.winkel();
         let mut paths = Vec::new();
         // Geraden
         let horizontal_transformations =
             vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
         let gedreht_transformations = vec![
             canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
-            canvas::Transformation::Rotate(angle),
+            canvas::Transformation::Rotate(winkel),
             // transformations with assumed inverted y-Axis
             canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
             canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
@@ -125,7 +125,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius,
-                angle,
+                winkel,
                 kurve::Beschränkung::Keine,
                 horizontal_transformations,
                 canvas::PathBuilder::with_normal_axis,
@@ -133,7 +133,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             paths.push(kurve::zeichne(
                 self.zugtyp,
                 self.radius,
-                angle,
+                winkel,
                 kurve::Beschränkung::Keine,
                 gedreht_transformations,
                 canvas::PathBuilder::with_invert_y,
@@ -150,14 +150,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
         let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
-        let angle = self.angle();
+        let winkel = self.winkel();
         let mut paths = Vec::new();
         // Geraden
         let horizontal_transformations =
             vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
         let gedreht_transformations = vec![
             canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
-            canvas::Transformation::Rotate(angle),
+            canvas::Transformation::Rotate(winkel),
             // transformations with assumed inverted y-Axis
             canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
             canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
@@ -179,14 +179,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
-                angle,
+                winkel,
                 horizontal_transformations,
                 canvas::PathBuilder::with_normal_axis,
             ));
             paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
-                angle,
+                winkel,
                 gedreht_transformations,
                 canvas::PathBuilder::with_invert_y,
             ));
@@ -209,7 +209,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                         start_x + 0.5 * self.länge,
                         start_y + 0.5 * beschränkung::<Z>(),
                     ),
-                    winkel: Angle::new(0.),
+                    winkel: Winkel::new(0.),
                 },
                 text,
             )
@@ -225,7 +225,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let start_vector = canvas::Vector::new(start_x, start_y);
         let mid_vector = canvas::Vector::new(half_width, half_height);
-        let winkel = self.angle();
+        let winkel = self.winkel();
         // sub-checks
         let horizontal_vector = relative_position - start_vector;
         let mut gedreht_vector = (relative_position - mid_vector).rotate(-winkel);
@@ -246,11 +246,11 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
         let radius_abstand_x: canvas::Abstand<canvas::X> = radius_abstand.as_x();
         let radius_abstand_y: canvas::Abstand<canvas::Y> = radius_abstand.as_y();
-        let angle = self.angle();
-        let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand_x * angle.sin();
-        let anfang1_y: canvas::Y = half_height + radius_abstand_y * (1. - angle.cos());
-        let ende1_x: canvas::X = canvas::X(0.) + width - radius_abstand_x * angle.sin();
-        let ende1_y: canvas::Y = half_height - radius_abstand_y * (1. - angle.cos());
+        let winkel = self.winkel();
+        let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand_x * winkel.sin();
+        let anfang1_y: canvas::Y = half_height + radius_abstand_y * (1. - winkel.cos());
+        let ende1_x: canvas::X = canvas::X(0.) + width - radius_abstand_x * winkel.sin();
+        let ende1_y: canvas::Y = half_height - radius_abstand_y * (1. - winkel.cos());
         AnchorPoints {
             anfang_0: anchor::Anchor {
                 position: canvas::Point { x: anfang0_x, y: half_height },
@@ -262,11 +262,11 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             },
             anfang_1: anchor::Anchor {
                 position: canvas::Point { x: anfang1_x, y: anfang1_y },
-                direction: canvas::Vector::new(canvas::X(angle.cos()), canvas::Y(angle.sin())),
+                direction: canvas::Vector::new(canvas::X(winkel.cos()), canvas::Y(winkel.sin())),
             },
             ende_1: anchor::Anchor {
                 position: canvas::Point { x: ende1_x, y: ende1_y },
-                direction: canvas::Vector::new(canvas::X(-angle.cos()), canvas::Y(-angle.sin())),
+                direction: canvas::Vector::new(canvas::X(-winkel.cos()), canvas::Y(-winkel.sin())),
             },
         }
     }

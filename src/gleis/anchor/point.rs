@@ -2,7 +2,7 @@
 
 use rstar;
 
-use crate::gleis::types::*;
+use crate::gleis::typen::*;
 
 /// Ein /Anchor/ repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]

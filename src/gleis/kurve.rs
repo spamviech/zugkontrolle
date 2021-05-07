@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::anchor;
-use super::types::*;
+use super::typen::*;
 
 /// Definition einer Kurve
 ///
@@ -22,28 +22,23 @@ use super::types::*;
 pub struct Kurve<Z> {
     pub zugtyp: PhantomData<Z>,
     pub radius: canvas::Abstand<canvas::Radius>,
-    pub winkel: Angle,
+    pub winkel: Winkel,
     pub beschreibung: Option<String>,
 }
 impl<Z> Kurve<Z> {
-    pub const fn new(radius: Radius, angle: Angle) -> Self {
-        Kurve {
-            zugtyp: PhantomData,
-            radius: radius.to_abstand(),
-            winkel: angle,
-            beschreibung: None,
-        }
+    pub const fn new(radius: Radius, winkel: Winkel) -> Self {
+        Kurve { zugtyp: PhantomData, radius: radius.to_abstand(), winkel, beschreibung: None }
     }
 
     pub fn new_with_description(
         radius: Radius,
-        angle: Angle,
+        winkel: Winkel,
         description: impl Into<String>,
     ) -> Self {
         Kurve {
             zugtyp: PhantomData,
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             beschreibung: Some(description.into()),
         }
     }
@@ -95,7 +90,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                             + 0.5 * beschränkung::<Z>()
                             + self.radius.as_y() * (1. - half_angle.cos()),
                     ),
-                    winkel: Angle::new(0.),
+                    winkel: Winkel::new(0.),
                 },
                 text,
             )
@@ -133,18 +128,18 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 
 pub(crate) fn size<Z: Zugtyp>(
     radius: canvas::Abstand<canvas::Radius>,
-    winkel: Angle,
+    winkel: Winkel,
 ) -> canvas::Size {
     // Breite
     let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
     let radius_begrenzung_außen_y = radius_begrenzung_außen.as_y();
-    let width_factor = if winkel.abs() < Angle::new(0.5 * PI) { winkel.sin() } else { 1. };
+    let width_factor = if winkel.abs() < Winkel::new(0.5 * PI) { winkel.sin() } else { 1. };
     let width = radius_begrenzung_außen.as_x() * width_factor;
     // Höhe des Bogen
     let angle_abs = winkel.abs();
-    let comparison = if angle_abs < Angle::new(0.5 * PI) {
+    let comparison = if angle_abs < Winkel::new(0.5 * PI) {
         radius_begrenzung_außen_y * (1. - winkel.cos()) + beschränkung::<Z>() * winkel.cos()
-    } else if angle_abs < Angle::new(PI) {
+    } else if angle_abs < Winkel::new(PI) {
         radius_begrenzung_außen_y * (1. - winkel.cos())
     } else {
         radius_begrenzung_außen_y
@@ -180,7 +175,7 @@ impl Beschränkung {
 pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
-    winkel: Angle,
+    winkel: Winkel,
     beschränkungen: Beschränkung,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
@@ -207,7 +202,7 @@ where
 fn zeichne_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: canvas::Abstand<canvas::Radius>,
-    winkel: Angle,
+    winkel: Winkel,
     beschränkungen: Beschränkung,
 ) where
     Z: Zugtyp,
@@ -216,8 +211,8 @@ fn zeichne_internal<Z, P, A>(
 {
     // Utility Größen
     let spurweite: canvas::Abstand<canvas::Radius> = Z::SPURWEITE.to_abstand().as_radius();
-    let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
-    let winkel_ende: Angle = winkel_anfang + winkel;
+    let winkel_anfang: Winkel = Winkel::new(3. * PI / 2.);
+    let winkel_ende: Winkel = winkel_anfang + winkel;
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_links_oben: canvas::Y = canvas::Y(0.);
     let gleis_links_unten: canvas::Y = gleis_links_oben + beschränkung::<Z>();
@@ -265,7 +260,7 @@ fn zeichne_internal<Z, P, A>(
 pub(crate) fn fülle<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
-    winkel: Angle,
+    winkel: Winkel,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
         &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
@@ -289,7 +284,7 @@ where
 fn fülle_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: canvas::Abstand<canvas::Radius>,
-    winkel: Angle,
+    winkel: Winkel,
 ) where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
@@ -297,8 +292,8 @@ fn fülle_internal<Z, P, A>(
 {
     let spurweite = Z::SPURWEITE.to_abstand().as_radius();
     // Koordinaten für den Bogen
-    let winkel_anfang: Angle = Angle::new(3. * PI / 2.);
-    let winkel_ende: Angle = winkel_anfang + winkel;
+    let winkel_anfang: Winkel = Winkel::new(3. * PI / 2.);
+    let winkel_ende: Winkel = winkel_anfang + winkel;
     let radius_innen_abstand = radius - 0.5 * spurweite;
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_innen_abstand;
     let radius_außen_abstand = radius + 0.5 * spurweite;
@@ -351,7 +346,7 @@ fn fülle_internal<Z, P, A>(
 
 pub(crate) fn innerhalb<Z: Zugtyp>(
     radius: canvas::Abstand<canvas::Radius>,
-    winkel: Angle,
+    winkel: Winkel,
     relative_position: canvas::Vector,
 ) -> bool {
     let spurweite = Z::SPURWEITE.to_abstand().as_radius();
@@ -365,16 +360,16 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
     );
     let länge = radius_vector.length_radius();
     if länge > radius_innen_abstand && länge < radius_außen_abstand {
-        let mut angle: Angle = if radius_vector.dx > canvas::X(0.).to_abstand() {
-            -Angle::acos(radius_vector.dy / länge)
+        let mut test_winkel: Winkel = if radius_vector.dx > canvas::X(0.).to_abstand() {
+            -Winkel::acos(radius_vector.dy / länge)
         } else {
-            Angle::acos(radius_vector.dy / länge)
+            Winkel::acos(radius_vector.dy / länge)
         };
-        // normalize angle
-        while angle < Angle(0.) {
-            angle += Angle(2. * std::f32::consts::PI)
+        // normalisiere winkel
+        while test_winkel < Winkel(0.) {
+            test_winkel += Winkel(2. * std::f32::consts::PI)
         }
-        if angle < winkel {
+        if test_winkel < winkel {
             return true
         }
     }

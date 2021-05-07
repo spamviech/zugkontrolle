@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::types::*;
+use crate::gleis::typen::*;
 use crate::gleis::{anchor, gerade, kurve};
 
 /// Definition einer Dreiwege-Weiche
@@ -22,16 +22,16 @@ pub struct DreiwegeWeiche<Z> {
     pub zugtyp: PhantomData<Z>,
     pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
-    pub winkel: Angle,
+    pub winkel: Winkel,
     pub beschreibung: Option<String>,
 }
 impl<Z> DreiwegeWeiche<Z> {
-    pub const fn new(length: Länge, radius: Radius, angle: Angle) -> Self {
+    pub const fn new(length: Länge, radius: Radius, winkel: Winkel) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
             länge: length.to_abstand(),
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             beschreibung: None,
         }
     }
@@ -39,14 +39,14 @@ impl<Z> DreiwegeWeiche<Z> {
     pub fn new_with_description(
         length: Länge,
         radius: Radius,
-        angle: Angle,
+        winkel: Winkel,
         description: impl Into<String>,
     ) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
             länge: length.to_abstand(),
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             beschreibung: Some(description.into()),
         }
     }
@@ -166,7 +166,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
                         start_x + 0.5 * self.länge,
                         start_y + 0.5 * beschränkung::<Z>(),
                     ),
-                    winkel: Angle::new(0.),
+                    winkel: Winkel::new(0.),
                 },
                 text,
             )

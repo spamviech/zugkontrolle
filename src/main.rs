@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use iced::{Application, Clipboard, Command, Element, Length, Settings};
 use simple_logger::SimpleLogger;
 use zugkontrolle::gleis::gleise::{Gleis, GleisIdLock, Gleise, GleiseMap};
-use zugkontrolle::gleis::types::*;
+use zugkontrolle::gleis::typen::*;
 use zugkontrolle::gleis::{self, *};
 use zugkontrolle::zugtyp::{
     lego::{self, Lego},
@@ -35,7 +35,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
             definition,
             position: canvas::Position {
                 point: canvas::Point { x, y: self.y },
-                winkel: Angle::new(0.),
+                winkel: Winkel::new(0.),
             },
         });
         self.y += height + canvas::Y(25.).to_abstand();

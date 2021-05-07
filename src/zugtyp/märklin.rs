@@ -5,14 +5,9 @@ use std::f32::consts::PI;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kreuzung::{self, Kreuzung};
 use crate::gleis::kurve::Kurve;
-use crate::gleis::types::*;
+use crate::gleis::typen::*;
 use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
-// TODO
-// non_ascii_idents might be stabilized soon
-// use english names until then :(
-// (nightly crashes atm on Sized-check)
-// https://github.com/rust-lang/rust/issues/55467
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Märklin;
 impl Zugtyp for Märklin {
@@ -133,28 +128,28 @@ Kurve
     5205: 5.72°, R437.4mm
 */
 pub fn kurve_5120() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_INDUSTRIE, Angle::new(as_radians!(45.)), "5120")
+    Kurve::new_with_description(RADIUS_INDUSTRIE, Winkel::new(as_radians!(45.)), "5120")
 }
 pub fn kurve_5100() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(30.)), "5100")
+    Kurve::new_with_description(RADIUS_R1, Winkel::new(as_radians!(30.)), "5100")
 }
 pub fn kurve_5101() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(15.)), "5101")
+    Kurve::new_with_description(RADIUS_R1, Winkel::new(as_radians!(15.)), "5101")
 }
 pub fn kurve_5102() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R1, Angle::new(as_radians!(7.5)), "5102")
+    Kurve::new_with_description(RADIUS_R1, Winkel::new(as_radians!(7.5)), "5102")
 }
 pub fn kurve_5200() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(30.)), "5200")
+    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(30.)), "5200")
 }
 pub fn kurve_5206() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(24.28)), "5206")
+    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(24.28)), "5206")
 }
 pub fn kurve_5201() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(15.)), "5201")
+    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(15.)), "5201")
 }
 pub fn kurve_5205() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Angle::new(as_radians!(5.72)), "5205")
+    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(5.72)), "5205")
 }
 
 /*
@@ -163,7 +158,7 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-const ANGLE_5117: Angle = Angle::new(as_radians!(30.));
+const ANGLE_5117: Winkel = Winkel::new(as_radians!(30.));
 pub fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5117L",
@@ -177,7 +172,7 @@ pub fn weiche_5117_rechts() -> Weiche<Märklin> {
 pub fn weiche_5117_links() -> Weiche<Märklin> {
     weiche_5117(weiche::Richtung::Links)
 }
-const ANGLE_5137: Angle = Angle::new(as_radians!(22.5));
+const ANGLE_5137: Winkel = Winkel::new(as_radians!(22.5));
 pub fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5137L",
@@ -191,7 +186,7 @@ pub fn weiche_5137_rechts() -> Weiche<Märklin> {
 pub fn weiche_5137_links() -> Weiche<Märklin> {
     weiche_5137(weiche::Richtung::Links)
 }
-const ANGLE_5202: Angle = Angle::new(as_radians!(24.28));
+const ANGLE_5202: Winkel = Winkel::new(as_radians!(24.28));
 pub fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5202L",
@@ -214,7 +209,7 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Märklin> {
     DreiwegeWeiche::new_with_description(
         Länge::new(180.),
         RADIUS_R2,
-        Angle::new(as_radians!(24.28)),
+        Winkel::new(as_radians!(24.28)),
         "5214",
     )
 }
@@ -223,7 +218,7 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Märklin> {
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-const ANGLE_5140: Angle = Angle(as_radians!(30.));
+const ANGLE_5140: Winkel = Winkel(as_radians!(30.));
 pub fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5140L",

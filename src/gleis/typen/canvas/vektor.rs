@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::types::angle::{Angle, Trigonometrie};
+use crate::gleis::typen::winkel::{Trigonometrie, Winkel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
@@ -52,8 +52,8 @@ impl Vektor {
     /// Winkel zwischen zwei Vektoren (im Uhrzeigersinn)
     ///
     /// Definiert über `Vektor::skalarprodukt`.
-    pub fn winkel(&self, other: &Self) -> Angle {
-        Angle::acos(-self.skalarprodukt(other) / (self.länge() * other.länge()))
+    pub fn winkel(&self, other: &Self) -> Winkel {
+        Winkel::acos(-self.skalarprodukt(other) / (self.länge() * other.länge()))
     }
 
     /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist

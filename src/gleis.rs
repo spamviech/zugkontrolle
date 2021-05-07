@@ -8,7 +8,7 @@ pub mod gleise;
 pub mod icon;
 pub mod kreuzung;
 pub mod kurve;
-pub mod types;
+pub mod typen;
 pub mod weiche;
 
 pub use {
@@ -19,6 +19,6 @@ pub use {
     icon::icon,
     kreuzung::Kreuzung,
     kurve::Kurve,
-    types::*,
+    typen::*,
     weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche},
 };

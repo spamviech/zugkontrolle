@@ -105,7 +105,7 @@ pub mod value {
     use std::time::Duration;
 
     use super::*;
-    use crate::gleis::types::*;
+    use crate::gleis::typen::*;
 
     // TODO in Zugtyp hinzufügen
     // einziger wirklicher Unterschied zwischen Märklin/Lego
@@ -192,7 +192,7 @@ pub mod deserialize {
     use walkdir::WalkDir;
 
     use super::value::{self, Schalter};
-    use crate::gleis::types::*;
+    use crate::gleis::typen::*;
     use crate::gleis::{gerade, kreuzung, kurve, weiche};
 
     // TODO erstelle via Macro
@@ -392,7 +392,7 @@ pub mod deserialize {
     pub struct DreiwegeWeiche;
     impl<Z> From<DreiwegeWeiche> for weiche::DreiwegeWeiche<Z> {
         fn from(_: DreiwegeWeiche) -> Self {
-            weiche::DreiwegeWeiche::new(Länge::new(0.), Radius::new(0.), Angle::new(0.))
+            weiche::DreiwegeWeiche::new(Länge::new(0.), Radius::new(0.), Winkel::new(0.))
         }
     }
 
@@ -403,7 +403,7 @@ pub mod deserialize {
             weiche::KurvenWeiche::new(
                 Länge::new(0.),
                 Radius::new(0.),
-                Angle::new(0.),
+                Winkel::new(0.),
                 weiche::Richtung::Links,
             )
         }

@@ -5,7 +5,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::types::{angle::Angle, angle::Trigonometrie, mm};
+use crate::gleis::typen::{mm, winkel::Trigonometrie, winkel::Winkel};
 
 /// Horizontale Koordinate auf einem Canvas
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
@@ -272,9 +272,9 @@ impl Vector {
     }
 
     // Winkel zwischen Richtungs-Vektor und x-Achse
-    pub(crate) fn winkel_mit_x_achse(&self) -> Angle {
+    pub(crate) fn winkel_mit_x_achse(&self) -> Winkel {
         let len = (self.dx.0 .0 * self.dx.0 .0 + self.dy.0 .0 * self.dy.0 .0).sqrt();
-        let acos_winkel = Angle::acos(self.dx.0 .0 / len);
+        let acos_winkel = Winkel::acos(self.dx.0 .0 / len);
         if self.dy.0 .0 < 0. {
             acos_winkel
         } else {
@@ -507,11 +507,11 @@ impl Div<f32> for Vector {
 pub struct Arc {
     pub center: Point,
     pub radius: Radius,
-    pub start: Angle,
-    pub end: Angle,
+    pub start: Winkel,
+    pub end: Winkel,
 }
 impl Arc {
-    pub fn new(center: Point, radius: Radius, start: Angle, end: Angle) -> Self {
+    pub fn new(center: Point, radius: Radius, start: Winkel, end: Winkel) -> Self {
         Arc { center, radius, start, end }
     }
 }
@@ -530,7 +530,7 @@ impl From<Arc> for iced::canvas::path::Arc {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub point: Point,
-    pub winkel: Angle,
+    pub winkel: Winkel,
 }
 impl Position {
     /// Point nachdem das Objekt an die Position bewegt und um den Winkel gedreht wird.

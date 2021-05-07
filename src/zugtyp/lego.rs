@@ -5,7 +5,7 @@ use std::f32::consts::PI;
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kreuzung::{self, Kreuzung};
 use crate::gleis::kurve::Kurve;
-use crate::gleis::types::*;
+use crate::gleis::typen::*;
 use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,7 +72,7 @@ const ANGLE_VALUE: f32 = ANGLE_VALUE_DEGREE * PI / 180.;
 
 pub const GERADE: Gerade<Lego> = Gerade::new(LENGTH);
 
-const ANGLE: Angle = Angle::new(ANGLE_VALUE);
+const ANGLE: Winkel = Winkel::new(ANGLE_VALUE);
 pub const KURVE: Kurve<Lego> = Kurve::new(RADIUS, ANGLE);
 
 /*
@@ -88,8 +88,8 @@ Beim 4,5 V/12V System führte das Parallelgleis direkt am Hauptgleis entlang.
 1,00 cm sind rund 1,25 Noppen (genauer: 1,255...)
 */
 const DOUBLE_LENGTH: Länge = Länge::new(2. * LENGTH_VALUE);
-const ANGLE_OUTWARDS: Angle = Angle::new(1.625 * ANGLE_VALUE);
-const ANGLE_INWARDS: Angle = Angle::new(0.625 * ANGLE_VALUE);
+const ANGLE_OUTWARDS: Winkel = Winkel::new(1.625 * ANGLE_VALUE);
+const ANGLE_INWARDS: Winkel = Winkel::new(0.625 * ANGLE_VALUE);
 pub const fn weiche(richtung: weiche::Richtung) -> SKurvenWeiche<Lego> {
     SKurvenWeiche::new(DOUBLE_LENGTH, RADIUS, ANGLE_OUTWARDS, RADIUS, ANGLE_INWARDS, richtung)
 }

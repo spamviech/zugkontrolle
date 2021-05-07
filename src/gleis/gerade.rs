@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::anchor;
-use super::types::*;
+use super::typen::*;
 
 /// Definition einer Gerade
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -71,7 +71,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
                         canvas::X(0.) + 0.5 * self.länge,
                         canvas::Y(0.) + 0.5 * beschränkung::<Z>(),
                     ),
-                    winkel: Angle::new(0.),
+                    winkel: Winkel::new(0.),
                 },
                 text,
             )

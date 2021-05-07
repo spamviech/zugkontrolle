@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::gleis::types::*;
+use crate::gleis::typen::*;
 use crate::gleis::{anchor, gerade, kurve};
 
 /// Definition einer Weiche
@@ -22,17 +22,17 @@ pub struct Weiche<Z> {
     pub zugtyp: PhantomData<Z>,
     pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
-    pub winkel: Angle,
+    pub winkel: Winkel,
     pub richtung: Richtung,
     pub beschreibung: Option<String>,
 }
 impl<Z> Weiche<Z> {
-    pub const fn new(length: Länge, radius: Radius, angle: Angle, richtung: Richtung) -> Self {
+    pub const fn new(length: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
         Weiche {
             zugtyp: PhantomData,
             länge: length.to_abstand(),
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             richtung,
             beschreibung: None,
         }
@@ -41,7 +41,7 @@ impl<Z> Weiche<Z> {
     pub fn new_with_description(
         length: Länge,
         radius: Radius,
-        angle: Angle,
+        winkel: Winkel,
         richtung: Richtung,
         description: impl Into<String>,
     ) -> Self {
@@ -49,7 +49,7 @@ impl<Z> Weiche<Z> {
             zugtyp: PhantomData,
             länge: length.to_abstand(),
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             richtung,
             beschreibung: Some(description.into()),
         }
@@ -179,7 +179,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                         canvas::X(0.) + 0.5 * self.länge,
                         start_height + multiplier * 0.5 * beschränkung::<Z>(),
                     ),
-                    winkel: Angle::new(0.),
+                    winkel: Winkel::new(0.),
                 },
                 text,
             )

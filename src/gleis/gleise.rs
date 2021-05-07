@@ -13,7 +13,7 @@ use super::anchor::{self, Lookup};
 use super::gerade::Gerade;
 use super::kreuzung::Kreuzung;
 use super::kurve::Kurve;
-use super::types::*;
+use super::typen::*;
 use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 /// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
@@ -263,7 +263,7 @@ impl<Z> Gleise<Z> {
             canvas: canvas::Cache::new(),
             pivot: canvas::Position {
                 point: canvas::Point::new(canvas::X(0.), canvas::Y(0.)),
-                winkel: Angle::new(0.),
+                winkel: Winkel::new(0.),
             },
             scale: 1.,
             maps: GleiseMaps {
@@ -634,7 +634,7 @@ impl canvas::Position {
     {
         let anchor_points: T::AnchorPoints = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Angle = anchor_point.direction.winkel_mit_x_achse()
+        let winkel: Winkel = anchor_point.direction.winkel_mit_x_achse()
             - (-target_anchor_point.direction).winkel_mit_x_achse();
         canvas::Position {
             point: canvas::Point {

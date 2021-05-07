@@ -12,10 +12,10 @@ pub use iced::{
     VerticalAlignment,
 };
 
-use super::angle::Angle;
+use super::winkel::Winkel;
 
-pub mod coordinates;
-pub use coordinates::*;
+pub mod koordinaten;
+pub use koordinaten::*;
 
 /// Pfad auf dem Canvas
 ///
@@ -31,7 +31,7 @@ pub enum Transformation {
     /// Verschiebe alle Koordinaten um den übergebenen Vector.
     Translate(Vector),
     /// Rotiere alle Koordinaten um den Ursprung (im Uhrzeigersinn)
-    Rotate(Angle),
+    Rotate(Winkel),
     /// Skaliere alle Koordinaten (x',y') = (x*scale, y*scale)
     Scale(f32),
 }
@@ -79,14 +79,14 @@ impl From<Point> for Inverted<Point, Y> {
         Inverted(Point { y: -point.y, ..point }, PhantomData)
     }
 }
-impl From<Angle> for Inverted<Angle, X> {
-    fn from(angle: Angle) -> Self {
-        Inverted(Angle::new(PI) - angle, PhantomData)
+impl From<Winkel> for Inverted<Winkel, X> {
+    fn from(winkel: Winkel) -> Self {
+        Inverted(Winkel::new(PI) - winkel, PhantomData)
     }
 }
-impl From<Angle> for Inverted<Angle, Y> {
-    fn from(angle: Angle) -> Self {
-        Inverted(-angle, PhantomData)
+impl From<Winkel> for Inverted<Winkel, Y> {
+    fn from(winkel: Winkel) -> Self {
+        Inverted(-winkel, PhantomData)
     }
 }
 impl From<Arc> for Inverted<Arc, X> {
@@ -94,8 +94,8 @@ impl From<Arc> for Inverted<Arc, X> {
         Inverted(
             Arc {
                 center: Inverted::<Point, X>::from(arc.center).0,
-                start: Inverted::<Angle, X>::from(arc.start).0,
-                end: Inverted::<Angle, X>::from(arc.end).0,
+                start: Inverted::<Winkel, X>::from(arc.start).0,
+                end: Inverted::<Winkel, X>::from(arc.end).0,
                 ..arc
             },
             PhantomData,
@@ -107,8 +107,8 @@ impl From<Arc> for Inverted<Arc, Y> {
         Inverted(
             Arc {
                 center: Inverted::<Point, Y>::from(arc.center).0,
-                start: Inverted::<Angle, Y>::from(arc.start).0,
-                end: Inverted::<Angle, Y>::from(arc.end).0,
+                start: Inverted::<Winkel, Y>::from(arc.start).0,
+                end: Inverted::<Winkel, Y>::from(arc.end).0,
                 ..arc
             },
             PhantomData,
@@ -192,10 +192,6 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y)
-    ///
-    /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
-    /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
-    /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
     pub fn with_invert_x(
         &mut self,
         action: impl for<'s> FnOnce(&'s mut PathBuilder<Inverted<P, X>, Inverted<A, X>>),
@@ -209,10 +205,6 @@ impl<P: ToPoint, A: ToArc> PathBuilder<P, A> {
     }
 
     /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
-    ///
-    /// **ACHTUNG:** /arc_to/ hat den Bogen vmtl. in der falschen Richtung.
-    /// Aktionen werden in umgekehrter Reihenfolge ausgeführt,
-    /// vermutlich sollte davor/danach ein neuer (sub) path gestartet werden.
     pub fn with_invert_y(
         &mut self,
         action: impl for<'s> FnOnce(&'s mut PathBuilder<Inverted<P, Y>, Inverted<A, Y>>),
@@ -273,7 +265,7 @@ impl<'t> Frame<'t> {
     pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
             Transformation::Translate(vector) => self.0.translate((*vector).into()),
-            Transformation::Rotate(angle) => self.0.rotate(angle.0),
+            Transformation::Rotate(winkel) => self.0.rotate(winkel.0),
             Transformation::Scale(scale) => self.0.scale(*scale),
         }
     }

@@ -4,7 +4,7 @@ pub(crate) use rstar::primitives::PointWithData;
 
 use super::point::Anchor;
 use crate::gleis::gleise::{Any, GleisId};
-use crate::gleis::types::canvas;
+use crate::gleis::typen::canvas;
 
 const SEARCH_RADIUS: f32 = 5.0;
 

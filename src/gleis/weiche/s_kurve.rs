@@ -12,13 +12,13 @@ use std::marker::PhantomData;
 use serde::{Deserialize, Serialize};
 
 use super::Richtung;
-use crate::gleis::types::*;
+use crate::gleis::typen::*;
 use crate::gleis::weiche;
 use crate::gleis::{anchor, gerade, kurve};
 
 /// Definition einer Weiche mit S-Kurve
 ///
-/// Bei extremen Winkeln (<0, >90°, angle_reverse>angle) wird in negativen x,y-Werten gezeichnet!
+/// Bei extremen Winkeln (<0, >90°, angle_reverse>winkel) wird in negativen x,y-Werten gezeichnet!
 /// Zeichnen::width berücksichtigt nur positive x-Werte.
 /// Zeichnen::height berücksichtigt nur positive y-Werte.
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -26,9 +26,9 @@ pub struct SKurvenWeiche<Z> {
     pub zugtyp: PhantomData<Z>,
     pub länge: canvas::Abstand<canvas::X>,
     pub radius: canvas::Abstand<canvas::Radius>,
-    pub winkel: Angle,
+    pub winkel: Winkel,
     pub radius_reverse: canvas::Abstand<canvas::Radius>,
-    pub winkel_reverse: Angle,
+    pub winkel_reverse: Winkel,
     pub richtung: Richtung,
     pub beschreibung: Option<String>,
 }
@@ -36,16 +36,16 @@ impl<Z> SKurvenWeiche<Z> {
     pub const fn new(
         length: Länge,
         radius: Radius,
-        angle: Angle,
+        winkel: Winkel,
         radius_reverse: Radius,
-        angle_reverse: Angle,
+        angle_reverse: Winkel,
         direction: Richtung,
     ) -> Self {
         SKurvenWeiche {
             zugtyp: PhantomData,
             länge: length.to_abstand(),
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             radius_reverse: radius_reverse.to_abstand(),
             winkel_reverse: angle_reverse,
             richtung: direction,
@@ -56,9 +56,9 @@ impl<Z> SKurvenWeiche<Z> {
     pub fn new_with_description(
         length: Länge,
         radius: Radius,
-        angle: Angle,
+        winkel: Winkel,
         radius_reverse: Radius,
-        angle_reverse: Angle,
+        angle_reverse: Winkel,
         direction: Richtung,
         description: impl Into<String>,
     ) -> Self {
@@ -66,7 +66,7 @@ impl<Z> SKurvenWeiche<Z> {
             zugtyp: PhantomData,
             länge: length.to_abstand(),
             radius: radius.to_abstand(),
-            winkel: angle,
+            winkel,
             radius_reverse: radius_reverse.to_abstand(),
             winkel_reverse: angle_reverse,
             richtung: direction,
@@ -85,8 +85,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let size_gerade = gerade::size::<Z>(länge);
 
         //Breiten-Berechnung
-        let factor_width = if winkel.abs() < Angle::new(0.5 * PI) { winkel.sin() } else { 1. };
-        let factor_width_reverse = if angle_difference.abs() < Angle::new(0.5 * PI) {
+        let factor_width = if winkel.abs() < Winkel::new(0.5 * PI) { winkel.sin() } else { 1. };
+        let factor_width_reverse = if angle_difference.abs() < Winkel::new(0.5 * PI) {
             winkel.sin() - angle_difference.sin()
         } else {
             1.
@@ -110,8 +110,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let width_unten: canvas::Abstand<canvas::X> = width_unten1.max(&width_unten2);
 
         // Höhen-Berechnung
-        let factor_height = if winkel.abs() < Angle::new(PI) { 1. - winkel.cos() } else { 1. };
-        let factor_height_reverse = if angle_difference.abs() < Angle::new(PI) {
+        let factor_height = if winkel.abs() < Winkel::new(PI) { 1. - winkel.cos() } else { 1. };
+        let factor_height_reverse = if angle_difference.abs() < Winkel::new(PI) {
             angle_difference.cos() - winkel.cos()
         } else {
             1.
@@ -322,7 +322,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                         canvas::X(0.) + 0.5 * self.länge,
                         start_height + multiplier * 0.5 * beschränkung::<Z>(),
                     ),
-                    winkel: Angle::new(0.),
+                    winkel: Winkel::new(0.),
                 },
                 text,
             )

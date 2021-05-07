@@ -1,18 +1,12 @@
-//! newtypes for f64, to avoid mixing of length, radius, angle (radians/degree), etc.
+//! newtypes for f64, to avoid mixing of length, radius, winkel (radians/degree), etc.
 
-// TODO
-// non_ascii_idents might be stabilized soon
-// use english names until then :(
-// (nightly crashes atm on Sized-check)
-// https://github.com/rust-lang/rust/issues/55467
-
-pub mod angle;
 pub mod canvas;
 pub mod mm;
+pub mod winkel;
 
 // re-exports
-pub use angle::*;
 pub use mm::*;
+pub use winkel::*;
 
 use super::anchor;
 pub use crate::zugtyp::{Anschluss, Zugtyp};
