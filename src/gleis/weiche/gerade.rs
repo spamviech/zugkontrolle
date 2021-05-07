@@ -97,7 +97,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     zugtyp,
                     radius,
                     winkel,
-                    kurve::Beschraenkung::Ende,
+                    kurve::Beschränkung::Ende,
                     transformations,
                     canvas::PathBuilder::with_invert_y,
                 ),
@@ -115,7 +115,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     zugtyp,
                     radius,
                     winkel,
-                    kurve::Beschraenkung::Ende,
+                    kurve::Beschränkung::Ende,
                     Vec::new(),
                     canvas::PathBuilder::with_normal_axis,
                 ),
@@ -177,7 +177,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                 canvas::Position {
                     point: canvas::Point::new(
                         canvas::X(0.) + 0.5 * self.länge,
-                        start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                        start_height + multiplier * 0.5 * beschränkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
                 },
@@ -226,14 +226,14 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             anfang: anchor::Anchor {
                 position: canvas::Point {
                     x: canvas::X(0.),
-                    y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                    y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
                 },
                 direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
             },
             gerade: anchor::Anchor {
                 position: canvas::Point {
                     x: canvas::X(0.) + self.länge,
-                    y: start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                    y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
                 },
                 direction: canvas::Vector::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
             },
@@ -242,7 +242,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     x: canvas::X(0.) + self.winkel.sin() * self.radius.as_x(),
                     y: start_height
                         + multiplier
-                            * (0.5 * beschraenkung::<Z>()
+                            * (0.5 * beschränkung::<Z>()
                                 + self.radius.as_y() * (1. - self.winkel.cos())),
                 },
                 direction: canvas::Vector::new(

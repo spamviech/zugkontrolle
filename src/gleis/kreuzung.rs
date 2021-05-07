@@ -79,7 +79,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
 
     fn size(&self) -> canvas::Size {
         let size_kurve = kurve::size::<Z>(self.radius, self.angle());
-        let height_beschraenkung = beschraenkung::<Z>();
+        let height_beschraenkung = beschränkung::<Z>();
         let height_kurven = 2. * size_kurve.height - height_beschraenkung;
         canvas::Size::new(
             self.länge.max(&size_kurve.width),
@@ -93,7 +93,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let angle = self.angle();
         let mut paths = Vec::new();
         // Geraden
@@ -126,7 +126,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 self.zugtyp,
                 self.radius,
                 angle,
-                kurve::Beschraenkung::Keine,
+                kurve::Beschränkung::Keine,
                 horizontal_transformations,
                 canvas::PathBuilder::with_normal_axis,
             ));
@@ -134,7 +134,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 self.zugtyp,
                 self.radius,
                 angle,
-                kurve::Beschraenkung::Keine,
+                kurve::Beschränkung::Keine,
                 gedreht_transformations,
                 canvas::PathBuilder::with_invert_y,
             ));
@@ -149,7 +149,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let angle = self.angle();
         let mut paths = Vec::new();
         // Geraden
@@ -202,12 +202,12 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             let start_x: canvas::X = canvas::X(0.);
             let height: canvas::Abstand<canvas::Y> = size.height;
             let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-            let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+            let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
             (
                 canvas::Position {
                     point: canvas::Point::new(
                         start_x + 0.5 * self.länge,
-                        start_y + 0.5 * beschraenkung::<Z>(),
+                        start_y + 0.5 * beschränkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
                 },
@@ -222,7 +222,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let start_vector = canvas::Vector::new(start_x, start_y);
         let mid_vector = canvas::Vector::new(half_width, half_height);
         let winkel = self.angle();

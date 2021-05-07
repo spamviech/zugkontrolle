@@ -67,7 +67,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
-        let height_kurven = 2. * size_kurve.height - beschraenkung::<Z>();
+        let height_kurven = 2. * size_kurve.height - beschränkung::<Z>();
         canvas::Size {
             width: size_gerade.width.max(&size_kurve.width),
             height: size_gerade.height.max(&height_kurven),
@@ -78,13 +78,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         // utility sizes
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let mut paths = Vec::new();
         let rechts_transformations =
             vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
         let links_transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
             start_x,
-            start_y + beschraenkung::<Z>(),
+            start_y + beschränkung::<Z>(),
         ))];
         // Gerade
         paths.push(gerade::zeichne(
@@ -99,7 +99,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.zugtyp,
             self.radius,
             self.winkel,
-            kurve::Beschraenkung::Ende,
+            kurve::Beschränkung::Ende,
             rechts_transformations,
             canvas::PathBuilder::with_normal_axis,
         ));
@@ -108,7 +108,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.zugtyp,
             self.radius,
             self.winkel,
-            kurve::Beschraenkung::Ende,
+            kurve::Beschränkung::Ende,
             links_transformations,
             canvas::PathBuilder::with_invert_y,
         ));
@@ -120,13 +120,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         // utility sizes
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let mut paths = Vec::new();
         let rechts_transformations =
             vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
         let links_transformations = vec![canvas::Transformation::Translate(canvas::Vector::new(
             start_x,
-            start_y + beschraenkung::<Z>(),
+            start_y + beschränkung::<Z>(),
         ))];
         // Gerade
         paths.push(gerade::fuelle(
@@ -159,12 +159,12 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         self.beschreibung.as_ref().map(|text| {
             let start_x: canvas::X = canvas::X(0.);
             let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
-            let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+            let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
             (
                 canvas::Position {
                     point: canvas::Point::new(
                         start_x + 0.5 * self.länge,
-                        start_y + 0.5 * beschraenkung::<Z>(),
+                        start_y + 0.5 * beschränkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
                 },
@@ -178,13 +178,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let canvas::Size { width: _, height } = self.size();
         let start_x: canvas::X = canvas::X(0.);
         let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschraenkung::<Z>();
+        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
         let start_vector = canvas::Vector::new(start_x, start_y);
         // sub-checks
         let relative_vector = relative_position - start_vector;
         let inverted_vector = canvas::Vector {
             dx: relative_vector.dx,
-            dy: beschraenkung::<Z>() - relative_vector.dy,
+            dy: beschränkung::<Z>() - relative_vector.dy,
         };
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)

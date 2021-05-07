@@ -68,7 +68,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             self.zugtyp,
             self.radius,
             self.winkel,
-            Beschraenkung::Alle,
+            Beschränkung::Alle,
             Vec::new(),
             canvas::PathBuilder::with_normal_axis,
         )]
@@ -92,7 +92,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                     point: canvas::Point::new(
                         canvas::X(0.) + self.radius.as_x() * half_angle.sin(),
                         canvas::Y(0.)
-                            + 0.5 * beschraenkung::<Z>()
+                            + 0.5 * beschränkung::<Z>()
                             + self.radius.as_y() * (1. - half_angle.cos()),
                     ),
                     winkel: Angle::new(0.),
@@ -111,7 +111,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             anfang: anchor::Anchor {
                 position: canvas::Point {
                     x: canvas::X(0.),
-                    y: canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
+                    y: canvas::Y(0.) + 0.5 * beschränkung::<Z>(),
                 },
                 direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
             },
@@ -119,7 +119,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                 position: canvas::Point {
                     x: canvas::X(0.) + self.radius.as_x() * self.winkel.sin(),
                     y: canvas::Y(0.)
-                        + 0.5 * beschraenkung::<Z>()
+                        + 0.5 * beschränkung::<Z>()
                         + self.radius.as_y() * (1. - self.winkel.cos()),
                 },
                 direction: canvas::Vector::new(
@@ -143,36 +143,36 @@ pub(crate) fn size<Z: Zugtyp>(
     // Höhe des Bogen
     let angle_abs = winkel.abs();
     let comparison = if angle_abs < Angle::new(0.5 * PI) {
-        radius_begrenzung_außen_y * (1. - winkel.cos()) + beschraenkung::<Z>() * winkel.cos()
+        radius_begrenzung_außen_y * (1. - winkel.cos()) + beschränkung::<Z>() * winkel.cos()
     } else if angle_abs < Angle::new(PI) {
         radius_begrenzung_außen_y * (1. - winkel.cos())
     } else {
         radius_begrenzung_außen_y
     };
     // Mindesthöhe: Beschränkung einer Geraden
-    let height = beschraenkung::<Z>().max(&comparison);
+    let height = beschränkung::<Z>().max(&comparison);
     // Rückgabewert
     canvas::Size { width, height }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Beschraenkung {
+pub(crate) enum Beschränkung {
     Keine,
     Ende,
     Alle,
 }
-impl Beschraenkung {
+impl Beschränkung {
     fn anfangs_beschraenkung(&self) -> bool {
         match self {
-            Beschraenkung::Alle => true,
-            Beschraenkung::Keine | Beschraenkung::Ende => false,
+            Beschränkung::Alle => true,
+            Beschränkung::Keine | Beschränkung::Ende => false,
         }
     }
 
     fn end_beschraenkung(&self) -> bool {
         match self {
-            Beschraenkung::Ende | Beschraenkung::Alle => true,
-            Beschraenkung::Keine => false,
+            Beschränkung::Ende | Beschränkung::Alle => true,
+            Beschränkung::Keine => false,
         }
     }
 }
@@ -181,7 +181,7 @@ pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
-    beschränkungen: Beschraenkung,
+    beschränkungen: Beschränkung,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
         &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
@@ -208,7 +208,7 @@ fn zeichne_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
-    beschränkungen: Beschraenkung,
+    beschränkungen: Beschränkung,
 ) where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
@@ -220,7 +220,7 @@ fn zeichne_internal<Z, P, A>(
     let winkel_ende: Angle = winkel_anfang + winkel;
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_links_oben: canvas::Y = canvas::Y(0.);
-    let gleis_links_unten: canvas::Y = gleis_links_oben + beschraenkung::<Z>();
+    let gleis_links_unten: canvas::Y = gleis_links_oben + beschränkung::<Z>();
     let radius_innen: canvas::Radius = canvas::Radius(0.) + radius - 0.5 * spurweite;
     let radius_außen: canvas::Radius = radius_innen + spurweite;
     let radius_begrenzung_außen: canvas::Abstand<canvas::Radius> =
@@ -229,8 +229,8 @@ fn zeichne_internal<Z, P, A>(
     let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_außen.as_x() * winkel.sin();
     let begrenzung_y0: canvas::Y =
         gleis_links_oben + radius_begrenzung_außen_y * (1. - winkel.cos());
-    let begrenzung_x1: canvas::X = begrenzung_x0 - beschraenkung::<Z>().as_x() * winkel.sin();
-    let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
+    let begrenzung_x1: canvas::X = begrenzung_x0 - beschränkung::<Z>().as_x() * winkel.sin();
+    let begrenzung_y1: canvas::Y = begrenzung_y0 + beschränkung::<Z>() * winkel.cos();
     let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_außen_y;
     // Beschränkungen
     if beschränkungen.anfangs_beschraenkung() {

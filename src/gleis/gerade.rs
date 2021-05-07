@@ -69,7 +69,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
                 canvas::Position {
                     point: canvas::Point::new(
                         canvas::X(0.) + 0.5 * self.länge,
-                        canvas::Y(0.) + 0.5 * beschraenkung::<Z>(),
+                        canvas::Y(0.) + 0.5 * beschränkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
                 },
@@ -85,7 +85,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links: canvas::X = canvas::X(0.);
         let gleis_rechts: canvas::X = gleis_links + self.länge;
-        let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschraenkung::<Z>();
+        let beschraenkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschränkung::<Z>();
         AnchorPoints {
             anfang: anchor::Anchor {
                 position: canvas::Point { x: gleis_links, y: beschraenkung_mitte },
@@ -100,7 +100,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 }
 
 pub(crate) fn size<Z: Zugtyp>(länge: canvas::Abstand<canvas::X>) -> canvas::Size {
-    canvas::Size::new(länge, beschraenkung::<Z>())
+    canvas::Size::new(länge, beschränkung::<Z>())
 }
 
 pub(crate) fn zeichne<Z, P, A>(
@@ -138,7 +138,7 @@ fn zeichne_internal<Z, P, A>(
     let gleis_links: canvas::X = canvas::X(0.);
     let gleis_rechts: canvas::X = gleis_links + länge;
     let beschraenkung_oben: canvas::Y = canvas::Y(0.);
-    let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschraenkung::<Z>();
+    let beschraenkung_unten: canvas::Y = beschraenkung_oben + beschränkung::<Z>();
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Beschränkungen

@@ -23,7 +23,7 @@ pub fn abstand<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
     Z::SPURWEITE.to_abstand() / 3.
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschraenkung<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
+pub fn beschränkung<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
     Z::SPURWEITE.to_abstand() + 2. * abstand::<Z>()
 }
 /// Äußerster Radius (inklusive Beschränkung) einer Kurve

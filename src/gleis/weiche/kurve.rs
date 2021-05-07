@@ -92,7 +92,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius,
                 self.winkel,
-                kurve::Beschraenkung::Alle,
+                kurve::Beschränkung::Alle,
                 transformations.clone(),
                 canvas::PathBuilder::with_invert_y,
             ));
@@ -110,7 +110,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius,
                 self.winkel,
-                kurve::Beschraenkung::Ende,
+                kurve::Beschränkung::Ende,
                 transformations,
                 canvas::PathBuilder::with_invert_y,
             ));
@@ -120,7 +120,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius,
                 self.winkel,
-                kurve::Beschraenkung::Alle,
+                kurve::Beschränkung::Alle,
                 Vec::new(),
                 canvas::PathBuilder::with_normal_axis,
             ));
@@ -137,7 +137,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.zugtyp,
                 self.radius,
                 self.winkel,
-                kurve::Beschraenkung::Ende,
+                kurve::Beschränkung::Ende,
                 vec![außen_transformation],
                 canvas::PathBuilder::with_normal_axis,
             ));
@@ -230,7 +230,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 canvas::Position {
                     point: canvas::Point::new(
                         canvas::X(0.) + self.länge.min(&(0.5 * self.size().width)),
-                        start_height + multiplier * 0.5 * beschraenkung::<Z>(),
+                        start_height + multiplier * 0.5 * beschränkung::<Z>(),
                     ),
                     winkel: Angle::new(0.),
                 },
@@ -278,7 +278,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 multiplier = -1.;
             },
         };
-        let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschraenkung::<Z>();
+        let halbe_beschraenkung: canvas::Abstand<canvas::Y> = 0.5 * beschränkung::<Z>();
         let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
         let kurve_anchor_direction: canvas::Vector = canvas::Vector::new(
             canvas::X(self.winkel.cos()),
