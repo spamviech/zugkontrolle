@@ -3,6 +3,7 @@
 use super::*;
 
 mod background;
+mod scrollable;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
@@ -109,10 +110,16 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         macro_rules! add_buttons {
                     ($($vec: expr),*) => {
                         $(
-                        for button in $vec {
+                        for button in $vec.iter() {
                             max_width = max_width.max((canvas::X(0.) + button.size().width).0.ceil() as u16);
+                        }
+                    )*
+                    $(
+                        for button in $vec {
                             scrollable = scrollable.push(
-                                button.to_iced().width(iced::Length::Fill).height(iced::Length::Shrink)
+                                button.to_iced()
+                                    .width(iced::Length::Units(max_width))
+                                    .height(iced::Length::Shrink)
                             );
                         }
                     )*
@@ -127,13 +134,19 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             s_kurven_weichen,
             kreuzungen
         );
+        let scrollable_style = scrollable::Collection::new(10);
+        let scroller_width = scrollable_style.width();
         iced::Container::new(
             iced::Row::new()
                 .push(
                     iced::Container::new(
-                        scrollable.width(iced::Length::Fill).height(iced::Length::Fill),
+                        scrollable
+                            .scroller_width(scroller_width)
+                            .width(iced::Length::Fill)
+                            .height(iced::Length::Fill)
+                            .style(scrollable_style),
                     )
-                    .width(iced::Length::Units(max_width))
+                    .width(iced::Length::Units(max_width + scroller_width))
                     .height(iced::Length::Fill)
                     .style(background::White),
                 )

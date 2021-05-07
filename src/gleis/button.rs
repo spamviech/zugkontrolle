@@ -46,7 +46,7 @@ impl<T: Zeichnen> Button<T> {
                     (canvas::Y(STROKE_WIDTH) + size.height).0.ceil() as u16
                 )),
         )
-        .padding(1)
+        .padding(3)
         .on_press(message)
     }
 }
