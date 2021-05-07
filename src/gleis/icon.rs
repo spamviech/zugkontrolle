@@ -1,6 +1,8 @@
 //! Icon for the Application
 
 pub fn icon_raw() -> (u32, u32, Vec<u8>) {
+    // originally created using the /image/ crate, printing out the resulting
+    // ImageBuffer::into_raw(), hard-coded to avoid the /image/-dependency
     let width = 32;
     let height = 32;
     let data = vec![
@@ -214,9 +216,7 @@ mod test {
 
     #[test]
     fn detect_changes() {
-        // TODO create Test to detect changes
-        // originally created using the /image/ crate, printing out the resulting
-        // ImageBuffer::into_raw()
+        // Test to detect changes
         let buf = match image::open("Icon/Zugkontrolle.png").expect("failed to load image") {
             image::DynamicImage::ImageRgba8(buf) => buf,
             _ => unimplemented!(),
