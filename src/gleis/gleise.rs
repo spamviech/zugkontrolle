@@ -690,10 +690,12 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Add a gleis at the height of the last known mouse position
     /// x-position is at the left of the current visible canvas
-    // TODO only make crate-public after move of App into library?
     // no grabbed, since buttons only react on mouse button release
     // maybe simulate some drag&drop by making the list part of the canvas?
-    pub fn add_at_mouse_height<T>(&mut self, definition: T) -> (GleisIdLock<T>, T::AnchorPoints)
+    pub(crate) fn add_at_mouse_height<T>(
+        &mut self,
+        definition: T,
+    ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         GleisId<T>: Into<AnyId<Z>>,

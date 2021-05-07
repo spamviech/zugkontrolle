@@ -1,15 +1,6 @@
 //! Icon for the Application
 
-pub fn icon() -> iced::window::Icon {
-    // TODO create Test to detect changes
-    // originally created using the /image/ crate, printing out the resulting ImageBuffer::into_raw()
-    // let buf = match image::open("Icon/Zugkontrolle.png").expect("failed to load image") {
-    //     image::DynamicImage::ImageRgba8(buf) => buf,
-    //     _ => unimplemented!(),
-    // };
-    // let (width, height) = buf.dimensions();
-    // let data = buf.into_raw();
-    // println!("{}x{}\n{:?}", width, height, data);
+pub fn icon_raw() -> (u32, u32, Vec<u8>) {
     let width = 32;
     let height = 32;
     let data = vec![
@@ -209,6 +200,36 @@ pub fn icon() -> iced::window::Icon {
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
         255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     ];
+    (width, height, data)
+}
 
+pub fn icon() -> iced::window::Icon {
+    let (width, height, data) = icon_raw();
     iced::window::Icon::from_rgba(data, width, height).expect("failed to create Icon")
+}
+
+#[cfg(test)]
+mod test {
+    use super::{icon, icon_raw};
+
+    #[test]
+    fn detect_changes() {
+        // TODO create Test to detect changes
+        // originally created using the /image/ crate, printing out the resulting ImageBuffer::into_raw()
+        let buf = match image::open("Icon/Zugkontrolle.png").expect("failed to load image") {
+            image::DynamicImage::ImageRgba8(buf) => buf,
+            _ => unimplemented!(),
+        };
+        let (width_file, height_file) = buf.dimensions();
+        let data_file = buf.into_raw();
+        let (width, height, data) = icon_raw();
+
+        // check for equality
+        assert_eq!(width, width_file);
+        assert_eq!(height, height_file);
+        assert_eq!(data, data_file);
+
+        // check if creation succeeds (no panic from expect)
+        let _icon = icon();
+    }
 }
