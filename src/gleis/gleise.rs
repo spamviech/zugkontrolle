@@ -81,9 +81,8 @@ struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: canvas::Vector,
 }
-// TODO public due to trait requirement for add_grabbed
 #[derive(zugkontrolle_derive::Debug)]
-pub enum AnyId<Z> {
+pub(crate) enum AnyId<Z> {
     Gerade(GleisId<Gerade<Z>>),
     Kurve(GleisId<Kurve<Z>>),
     Weiche(GleisId<Weiche<Z>>),
