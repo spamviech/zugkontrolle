@@ -106,7 +106,7 @@ pub(crate) fn size<Z: Zugtyp>(länge: canvas::Abstand<canvas::X>) -> canvas::Siz
 pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     länge: canvas::Abstand<canvas::X>,
-    beschraenkungen: bool,
+    beschränkungen: bool,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
         &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
@@ -121,7 +121,7 @@ where
     let mut path_builder = canvas::PathBuilder::new();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, länge, beschraenkungen)),
+        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, länge, beschränkungen)),
     );
     path_builder.build_under_transformations(transformations)
 }
@@ -129,7 +129,7 @@ where
 fn zeichne_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     länge: canvas::Abstand<canvas::X>,
-    beschraenkungen: bool,
+    beschränkungen: bool,
 ) where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
@@ -142,7 +142,7 @@ fn zeichne_internal<Z, P, A>(
     let gleis_oben: canvas::Y = beschraenkung_oben + abstand::<Z>();
     let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
     // Beschränkungen
-    if beschraenkungen {
+    if beschränkungen {
         path_builder.move_to(canvas::Point::new(gleis_links, beschraenkung_oben).into());
         path_builder.line_to(canvas::Point::new(gleis_links, beschraenkung_unten).into());
         path_builder.move_to(canvas::Point::new(gleis_rechts, beschraenkung_oben).into());

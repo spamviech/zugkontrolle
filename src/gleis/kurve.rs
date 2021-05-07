@@ -181,7 +181,7 @@ pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
-    beschraenkungen: Beschraenkung,
+    beschränkungen: Beschraenkung,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
         &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
@@ -197,7 +197,7 @@ where
     with_invert_axis(
         &mut path_builder,
         Box::new(move |builder| {
-            zeichne_internal::<Z, P, A>(builder, radius, winkel, beschraenkungen)
+            zeichne_internal::<Z, P, A>(builder, radius, winkel, beschränkungen)
         }),
     );
     path_builder.build_under_transformations(transformations)
@@ -208,7 +208,7 @@ fn zeichne_internal<Z, P, A>(
     path_builder: &mut canvas::PathBuilder<P, A>,
     radius: canvas::Abstand<canvas::Radius>,
     winkel: Angle,
-    beschraenkungen: Beschraenkung,
+    beschränkungen: Beschraenkung,
 ) where
     Z: Zugtyp,
     P: From<canvas::Point> + canvas::ToPoint,
@@ -233,11 +233,11 @@ fn zeichne_internal<Z, P, A>(
     let begrenzung_y1: canvas::Y = begrenzung_y0 + beschraenkung::<Z>() * winkel.cos();
     let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_aussen_y;
     // Beschränkungen
-    if beschraenkungen.anfangs_beschraenkung() {
+    if beschränkungen.anfangs_beschraenkung() {
         path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
         path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
     }
-    if beschraenkungen.end_beschraenkung() {
+    if beschränkungen.end_beschraenkung() {
         path_builder.move_to(canvas::Point::new(begrenzung_x0, begrenzung_y0).into());
         path_builder.line_to(canvas::Point::new(begrenzung_x1, begrenzung_y1).into());
     }
