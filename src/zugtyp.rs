@@ -51,8 +51,8 @@ pub mod geschwindigkeit {
     /// Fahrtrichtung
     #[derive(Debug)]
     pub enum Fahrtrichtung {
-        Vorwaerts,
-        Rueckwaerts,
+        Vorwärts,
+        Rückwärts,
     }
     /// Pwm-basierte Geschwindigkeitskontrolle (Lego)
     #[derive(Debug, Serialize, Deserialize)]
@@ -118,8 +118,8 @@ pub mod value {
 
     #[derive(Debug)]
     pub enum Fahrtrichtung {
-        Vorwaerts,
-        Rueckwaerts,
+        Vorwärts,
+        Rückwärts,
     }
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Schalter;
