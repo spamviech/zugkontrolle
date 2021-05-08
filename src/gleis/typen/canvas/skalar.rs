@@ -12,6 +12,26 @@ use crate::gleis::typen::mm;
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Skalar(pub f32);
 
+impl Skalar {
+    /// Kopie des größeren Elements
+    pub fn max(&self, other: &Self) -> Self {
+        if self > other {
+            *self
+        } else {
+            *other
+        }
+    }
+
+    /// Kopie des kleineren Elements
+    pub fn min(&self, other: &Self) -> Self {
+        if self < other {
+            *self
+        } else {
+            *other
+        }
+    }
+}
+
 macro_rules! impl_from_mm {
     (mm:: $type:ident) => {
         impl mm::$type {
