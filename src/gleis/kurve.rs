@@ -237,11 +237,11 @@ fn zeichne_internal<Z, P, A, F, G>(
     let bogen_zentrum = gleis_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Beschränkungen
     if beschränkungen.anfangs_beschränkung() {
-        path_builder.move_to(gleis_links_oben.into(), zu_iced_vektor);
-        path_builder.line_to(gleis_links_unten.into(), zu_iced_vektor);
+        path_builder.move_to(gleis_links_oben.into(), &zu_iced_vektor);
+        path_builder.line_to(gleis_links_unten.into(), &zu_iced_vektor);
     }
     if beschränkungen.end_beschränkung() {
-        path_builder.move_to(begrenzung0.into(), zu_iced_vektor);
+        path_builder.move_to(begrenzung0.into(), &zu_iced_vektor);
         path_builder.line_to(begrenzung1.into(), zu_iced_vektor);
     }
     // Gleis
@@ -253,7 +253,7 @@ fn zeichne_internal<Z, P, A, F, G>(
             ende: winkel_ende,
         }
         .into(),
-        zu_iced_bogen,
+        &zu_iced_bogen,
     );
     path_builder.arc(
         Bogen {
@@ -338,7 +338,7 @@ fn fülle_internal<Z, P, A, F, G>(
             ende: winkel_ende,
         }
         .into(),
-        zu_iced_bogen,
+        &zu_iced_bogen,
     );
     path_builder.close();
     // untere Kurve
@@ -354,9 +354,9 @@ fn fülle_internal<Z, P, A, F, G>(
     );
     path_builder.close();
     // Zwischen-Teil
-    path_builder.move_to(gleis_links_oben.into(), zu_iced_vektor);
-    path_builder.line_to(gleis_rechts_oben.into(), zu_iced_vektor);
-    path_builder.line_to(gleis_rechts_unten.into(), zu_iced_vektor);
+    path_builder.move_to(gleis_links_oben.into(), &zu_iced_vektor);
+    path_builder.line_to(gleis_rechts_oben.into(), &zu_iced_vektor);
+    path_builder.line_to(gleis_rechts_unten.into(), &zu_iced_vektor);
     path_builder.line_to(gleis_links_unten.into(), zu_iced_vektor);
     path_builder.close();
 }

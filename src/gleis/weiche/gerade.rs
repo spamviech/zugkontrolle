@@ -74,7 +74,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn zeichne(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
         zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
     ) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
@@ -88,7 +88,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     true,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
-                    zu_iced_vektor,
+                    zu_iced_vektor.clone(),
                 ),
                 kurve::zeichne(
                     zugtyp,
@@ -109,7 +109,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     true,
                     Vec::new(),
                     pfad::Erbauer::with_normal_axis,
-                    zu_iced_vektor,
+                    zu_iced_vektor.clone(),
                 ),
                 kurve::zeichne(
                     zugtyp,
@@ -127,7 +127,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn fülle(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
         zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
     ) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
@@ -140,7 +140,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     länge,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
-                    zu_iced_vektor,
+                    zu_iced_vektor.clone(),
                 ),
                 kurve::fülle(
                     zugtyp,
@@ -159,7 +159,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     länge,
                     Vec::new(),
                     pfad::Erbauer::with_normal_axis,
-                    zu_iced_vektor,
+                    zu_iced_vektor.clone(),
                 ),
                 kurve::fülle(
                     zugtyp,

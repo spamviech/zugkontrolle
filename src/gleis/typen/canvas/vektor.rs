@@ -79,7 +79,7 @@ impl Vektor {
     /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
     /// und skaliert.
     pub fn zu_iced(self, pivot: Position, faktor: Skalar) -> iced::Vector {
-        let Vektor { x, y } = (self - pivot.punkt).rotiere(pivot.winkel);
+        let Vektor { x, y } = faktor * (self - pivot.punkt).rotiere(pivot.winkel);
         iced::Vector { x: x.0, y: y.0 }
     }
 
@@ -134,7 +134,7 @@ where
 {
     type Output = Vektor;
 
-    fn add(mut self, rhs: T) -> Self::Output {
+    fn add(self, rhs: T) -> Self::Output {
         *self + rhs
     }
 }
@@ -144,7 +144,7 @@ where
 {
     type Output = Vektor;
 
-    fn add(mut self, rhs: T) -> Self::Output {
+    fn add(self, rhs: T) -> Self::Output {
         &*self + rhs
     }
 }
@@ -196,7 +196,7 @@ where
 {
     type Output = Vektor;
 
-    fn sub(mut self, rhs: T) -> Self::Output {
+    fn sub(self, rhs: T) -> Self::Output {
         *self - rhs
     }
 }
@@ -206,7 +206,7 @@ where
 {
     type Output = Vektor;
 
-    fn sub(mut self, rhs: T) -> Self::Output {
+    fn sub(self, rhs: T) -> Self::Output {
         &*self - rhs
     }
 }

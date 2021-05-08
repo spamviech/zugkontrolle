@@ -80,8 +80,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
 
     fn zeichne(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
     ) -> Vec<Pfad> {
         // utility sizes
         let Vektor { x: width, y: height } = self.size();
@@ -109,7 +109,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             true,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor,
+            zu_iced_vektor.clone(),
         ));
         paths.push(gerade::zeichne(
             self.zugtyp,
@@ -117,7 +117,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             true,
             gedreht_transformations.clone(),
             pfad::Erbauer::with_invert_y,
-            zu_iced_vektor,
+            zu_iced_vektor.clone(),
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
@@ -128,8 +128,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 kurve::Beschränkung::Keine,
                 horizontal_transformations,
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor,
-                zu_iced_bogen,
+                zu_iced_vektor.clone(),
+                zu_iced_bogen.clone(),
             ));
             paths.push(kurve::zeichne(
                 self.zugtyp,
@@ -138,7 +138,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 kurve::Beschränkung::Keine,
                 gedreht_transformations,
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor,
+                zu_iced_vektor.clone(),
                 zu_iced_bogen,
             ));
         }
@@ -148,8 +148,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
 
     fn fülle(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
     ) -> Vec<Pfad> {
         // utility sizes
         let Vektor { x: width, y: height } = self.size();
@@ -176,14 +176,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             self.länge,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor,
+            zu_iced_vektor.clone(),
         ));
         paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             gedreht_transformations.clone(),
             pfad::Erbauer::with_invert_y,
-            zu_iced_vektor,
+            zu_iced_vektor.clone(),
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
@@ -193,8 +193,8 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 winkel,
                 horizontal_transformations,
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor,
-                zu_iced_bogen,
+                zu_iced_vektor.clone(),
+                zu_iced_bogen.clone(),
             ));
             paths.push(kurve::fülle(
                 self.zugtyp,
@@ -202,7 +202,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 winkel,
                 gedreht_transformations,
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor,
+                zu_iced_vektor.clone(),
                 zu_iced_bogen,
             ));
         }
@@ -251,15 +251,12 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let half_height = height.halbiert();
         let anfang0 = Vektor { x: Skalar(0.), y: half_height };
         let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };
-        let radius_abstand: Skalar = self.radius;
-        let radius_abstand_x: Skalar = radius_abstand;
-        let radius_abstand_y: Skalar = radius_abstand;
         let winkel = self.winkel();
         let anfang1 =
             self.radius * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
         let ende1 = Vektor {
             x: width - self.radius * Skalar(winkel.sin()),
-            y: half_height - radius_abstand_y * Skalar(1. - winkel.cos()),
+            y: half_height - self.radius * Skalar(1. - winkel.cos()),
         };
         AnchorPoints {
             anfang_0: anchor::Anchor { position: anfang0, richtung: winkel::PI },

@@ -14,7 +14,7 @@ pub use crate::zugtyp::{Anschluss, Zugtyp};
 
 // abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
 /// Abstand beider Schienen
-pub const fn spurweite<Z: Zugtyp>() -> Skalar {
+pub fn spurweite<Z: Zugtyp>() -> Skalar {
     Z::SPURWEITE.als_skalar()
 }
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
@@ -45,15 +45,15 @@ where
     /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
     fn fülle(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
     ) -> Vec<Pfad>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
     fn zeichne(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
     ) -> Vec<Pfad>;
 
     /// Beschreibung und Position (falls verfügbar)

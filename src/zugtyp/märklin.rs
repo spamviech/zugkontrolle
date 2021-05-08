@@ -149,13 +149,18 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-const ANGLE_5117: Winkel = WinkelGradmaß::neu(30.).into();
 pub fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5117L",
         weiche::Richtung::Rechts => "5117R",
     };
-    Weiche::neu_mit_beschreibung(Länge::neu(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
+    Weiche::neu_mit_beschreibung(
+        Länge::neu(180.),
+        RADIUS_R2,
+        WinkelGradmaß::neu(30.).into(),
+        richtung,
+        beschreibung,
+    )
 }
 pub fn weiche_5117_rechts() -> Weiche<Märklin> {
     weiche_5117(weiche::Richtung::Rechts)
@@ -163,13 +168,18 @@ pub fn weiche_5117_rechts() -> Weiche<Märklin> {
 pub fn weiche_5117_links() -> Weiche<Märklin> {
     weiche_5117(weiche::Richtung::Links)
 }
-const ANGLE_5137: Winkel = WinkelGradmaß::neu(22.5).into();
 pub fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5137L",
         weiche::Richtung::Rechts => "5137R",
     };
-    Weiche::neu_mit_beschreibung(Länge::neu(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
+    Weiche::neu_mit_beschreibung(
+        Länge::neu(180.),
+        RADIUS_R2,
+        WinkelGradmaß::neu(22.5).into(),
+        richtung,
+        beschreibung,
+    )
 }
 pub fn weiche_5137_rechts() -> Weiche<Märklin> {
     weiche_5137(weiche::Richtung::Rechts)
@@ -177,13 +187,18 @@ pub fn weiche_5137_rechts() -> Weiche<Märklin> {
 pub fn weiche_5137_links() -> Weiche<Märklin> {
     weiche_5137(weiche::Richtung::Links)
 }
-const ANGLE_5202: Winkel = WinkelGradmaß::neu(24.28).into();
 pub fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5202L",
         weiche::Richtung::Rechts => "5202R",
     };
-    Weiche::neu_mit_beschreibung(Länge::neu(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
+    Weiche::neu_mit_beschreibung(
+        Länge::neu(180.),
+        RADIUS_R2,
+        WinkelGradmaß::neu(24.28).into(),
+        richtung,
+        beschreibung,
+    )
 }
 pub fn weiche_5202_rechts() -> Weiche<Märklin> {
     weiche_5202(weiche::Richtung::Rechts)
@@ -209,7 +224,6 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Märklin> {
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-const ANGLE_5140: Winkel = WinkelGradmaß::neu(30.).into();
 pub fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5140L",
@@ -218,7 +232,7 @@ pub fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Märklin> 
     KurvenWeiche::neu_mit_beschreibung(
         Länge::neu(77.3),
         RADIUS_R1,
-        ANGLE_5140,
+        WinkelGradmaß::neu(30.).into(),
         richtung,
         beschreibung,
     )

@@ -110,7 +110,7 @@ pub(crate) fn size<Z: Zugtyp>(länge: Skalar) -> Vektor {
 }
 
 pub(crate) fn zeichne<Z, P, A, F>(
-    zugtyp: PhantomData<Z>,
+    _zugtyp: PhantomData<Z>,
     länge: Skalar,
     beschränkungen: bool,
     transformations: Vec<Transformation>,
@@ -156,20 +156,19 @@ fn zeichne_internal<Z, P, A, F>(
     // Beschränkungen
     if beschränkungen {
         path_builder
-            .move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into(), zu_iced_vektor);
+            .move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into(), &zu_iced_vektor);
         path_builder
-            .line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into(), zu_iced_vektor);
+            .line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into(), &zu_iced_vektor);
         path_builder
-            .move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into(), zu_iced_vektor);
+            .move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into(), &zu_iced_vektor);
         path_builder
-            .line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into(), zu_iced_vektor);
+            .line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into(), &zu_iced_vektor);
     }
     // Gleis
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), zu_iced_vektor);
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_unten }.into(), zu_iced_vektor);
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), &zu_iced_vektor);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), &zu_iced_vektor);
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_unten }.into(), &zu_iced_vektor);
     path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), zu_iced_vektor);
-    // Beschreibung
 }
 
 pub(crate) fn fülle<Z, P, A, F>(
@@ -213,10 +212,10 @@ fn fülle_internal<Z, P, A, F>(
     let gleis_oben = beschränkung_oben + abstand::<Z>();
     let gleis_unten = gleis_oben + spurweite::<Z>();
     // Zeichne Umriss
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into(), zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), zu_iced_vektor);
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), &zu_iced_vektor);
+    path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into(), &zu_iced_vektor);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), &zu_iced_vektor);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), &zu_iced_vektor);
     path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced_vektor);
 }
 

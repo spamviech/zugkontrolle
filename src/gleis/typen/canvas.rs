@@ -36,7 +36,7 @@ impl<'t> Frame<'t> {
     ) {
         self.with_save(|frame| {
             for transformation in transformationen {
-                frame.transformation(transformation, zu_iced)
+                frame.transformation(transformation, &zu_iced)
             }
             frame.0.stroke(pfad, stroke)
         })
@@ -51,7 +51,7 @@ impl<'t> Frame<'t> {
     ) {
         self.with_save(|frame| {
             for transformation in transformationen {
-                frame.transformation(transformation, zu_iced)
+                frame.transformation(transformation, &zu_iced)
             }
             frame.0.fill(pfad, fill)
         })

@@ -11,8 +11,8 @@ use crate::gleis::typen::winkel::{self, Winkel};
 ///
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
 pub struct Pfad {
-    pfad: iced::canvas::Path,
-    transformationen: Vec<Transformation>,
+    pub(crate) pfad: iced::canvas::Path,
+    pub(crate) transformationen: Vec<Transformation>,
 }
 
 /// Unterstützte Transformationen
@@ -48,11 +48,12 @@ impl Bogen {
     /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
     /// und skaliert.
     pub fn zu_iced(self, pivot: Position, faktor: Skalar) -> iced::canvas::path::Arc {
+        let pivot_winkel = pivot.winkel;
         iced::canvas::path::Arc {
             center: vector_to_point(Vektor::zu_iced(self.zentrum, pivot, faktor)),
             radius: (self.radius * faktor).0,
-            start_angle: (self.anfang + pivot.winkel).0,
-            end_angle: (self.ende + pivot.winkel).0,
+            start_angle: (self.anfang + pivot_winkel).0,
+            end_angle: (self.ende + pivot_winkel).0,
         }
     }
 
@@ -72,11 +73,12 @@ impl Bogen {
         pivot: Position,
         faktor: Skalar,
     ) -> Self {
+        let pivot_winkel = pivot.winkel;
         Bogen {
             zentrum: Vektor::von_iced(point_to_vector(center), pivot, faktor),
             radius: Skalar(radius) / faktor,
-            anfang: Winkel(start_angle) - pivot.winkel,
-            ende: Winkel(end_angle) - pivot.winkel,
+            anfang: Winkel(start_angle) - pivot_winkel,
+            ende: Winkel(end_angle) - pivot_winkel,
         }
     }
 }
