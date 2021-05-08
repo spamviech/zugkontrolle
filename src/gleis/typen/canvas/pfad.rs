@@ -114,13 +114,13 @@ impl<P: Into<Vektor>> From<Invertiert<P, Y>> for Vektor {
 impl<A: Into<Winkel>> From<Invertiert<A, X>> for Winkel {
     fn from(invertiert: Invertiert<A, X>) -> Self {
         let w = invertiert.0.into();
-        -w
+        winkel::PI - w
     }
 }
 impl<A: Into<Winkel>> From<Invertiert<A, Y>> for Winkel {
     fn from(invertiert: Invertiert<A, Y>) -> Self {
         let w = invertiert.0.into();
-        winkel::PI - w
+        -w
     }
 }
 impl<B, Achse> From<Invertiert<B, Achse>> for Bogen
@@ -185,8 +185,8 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     /// Zeichne den beschriebenen Bogen
     ///
     /// Beginnt einen neuen Unterpfad
-    pub fn arc(&mut self, arc: B, zu_iced: impl FnOnce(Bogen) -> iced::canvas::path::Arc) {
-        self.builder.arc(zu_iced(arc.into()))
+    pub fn arc(&mut self, bogen: B, zu_iced: impl FnOnce(Bogen) -> iced::canvas::path::Arc) {
+        self.builder.arc(zu_iced(bogen.into()))
     }
 
     /*
