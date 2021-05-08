@@ -20,26 +20,26 @@ pub struct DreiwegeWeiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> DreiwegeWeiche<Z> {
-    pub const fn new(length: Länge, radius: Radius, winkel: Winkel) -> Self {
+    pub const fn new(länge: Länge, radius: Radius, winkel: Winkel) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
             beschreibung: None,
         }
     }
 
     pub fn new_with_description(
-        length: Länge,
+        länge: Länge,
         radius: Radius,
         winkel: Winkel,
         description: impl Into<String>,
     ) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
             beschreibung: Some(description.into()),
         }
@@ -61,25 +61,23 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         let DreiwegeWeiche { länge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
-        let height_kurven = 2. * size_kurve.height - beschränkung::<Z>();
-        Vektor {
-            width: size_gerade.width.max(&size_kurve.width),
-            height: size_gerade.height.max(&height_kurven),
-        }
+        let height_kurven = size_kurve.y.doppelt() - beschränkung::<Z>();
+        Vektor { x: size_gerade.x.max(&size_kurve.x), y: size_gerade.y.max(&height_kurven) }
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(
+        &self,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+    ) -> Vec<Pfad> {
         // utility sizes
-        let start_x: canvas::X = canvas::X(0.);
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
-        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
+        let half_height = self.size().y.halbiert();
+        let beschränkung = beschränkung::<Z>();
+        let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         let mut paths = Vec::new();
-        let rechts_transformations =
-            vec![canvas::Transformation::Translate(Vektor::new(start_x, start_y))];
-        let links_transformations = vec![canvas::Transformation::Translate(Vektor::new(
-            start_x,
-            start_y + beschränkung::<Z>(),
-        ))];
+        let rechts_transformations = vec![Transformation::Translation(start)];
+        let links_transformations =
+            vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         // Gerade
         paths.push(gerade::zeichne(
             self.zugtyp,
@@ -87,6 +85,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             true,
             rechts_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
+            zu_iced_vektor,
         ));
         // Rechts
         paths.push(kurve::zeichne(
@@ -96,6 +95,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             kurve::Beschränkung::Ende,
             rechts_transformations,
             pfad::Erbauer::with_normal_axis,
+            zu_iced_vektor,
+            zu_iced_bogen,
         ));
         // Links
         paths.push(kurve::zeichne(
@@ -105,29 +106,33 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             kurve::Beschränkung::Ende,
             links_transformations,
             pfad::Erbauer::with_invert_y,
+            zu_iced_vektor,
+            zu_iced_bogen,
         ));
         // return value
         paths
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(
+        &self,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+    ) -> Vec<Pfad> {
         // utility sizes
-        let start_x: canvas::X = canvas::X(0.);
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
-        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
+        let half_height = self.size().y.halbiert();
+        let beschränkung = beschränkung::<Z>();
+        let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         let mut paths = Vec::new();
-        let rechts_transformations =
-            vec![canvas::Transformation::Translate(Vektor::new(start_x, start_y))];
-        let links_transformations = vec![canvas::Transformation::Translate(Vektor::new(
-            start_x,
-            start_y + beschränkung::<Z>(),
-        ))];
+        let rechts_transformations = vec![Transformation::Translation(start)];
+        let links_transformations =
+            vec![Transformation::Translation(start + Vektor { x: Skalar(0.), y: beschränkung })];
         // Gerade
         paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             rechts_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
+            zu_iced_vektor,
         ));
         // Rechts
         paths.push(kurve::fülle(
@@ -136,6 +141,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.winkel,
             rechts_transformations,
             pfad::Erbauer::with_normal_axis,
+            zu_iced_vektor,
+            zu_iced_bogen,
         ));
         // Links
         paths.push(kurve::fülle(
@@ -144,6 +151,8 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.winkel,
             links_transformations,
             pfad::Erbauer::with_invert_y,
+            zu_iced_vektor,
+            zu_iced_bogen,
         ));
         // return value
         paths
@@ -151,16 +160,13 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
 
     fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
-            let start_x: canvas::X = canvas::X(0.);
-            let half_height: canvas::Y = canvas::Y(0.) + 0.5 * self.size().height;
-            let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
+            let half_height = self.size().y.halbiert();
+            let halbe_beschränkung = beschränkung::<Z>().halbiert();
+            let start = Vektor { x: Skalar(0.), y: half_height - halbe_beschränkung };
             (
-                canvas::Position {
-                    point: Vektor::new(
-                        start_x + 0.5 * self.länge,
-                        start_y + 0.5 * beschränkung::<Z>(),
-                    ),
-                    winkel: Winkel::new(0.),
+                Position {
+                    punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
+                    winkel: winkel::ZERO,
                 },
                 text,
             )
@@ -169,50 +175,45 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {
         // utility sizes
-        let Vektor { width: _, height } = self.size();
-        let start_x: canvas::X = canvas::X(0.);
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
-        let start_vector = Vektor::new(start_x, start_y);
+        let Vektor { x: _, y: height } = self.size();
+        let half_height = height.halbiert();
+        let beschränkung = beschränkung::<Z>();
+        let start = Vektor { x: Skalar(0.), y: half_height - beschränkung.halbiert() };
         // sub-checks
-        let relative_vector = relative_position - start_vector;
-        let inverted_vector =
-            Vektor { dx: relative_vector.dx, dy: beschränkung::<Z>() - relative_vector.dy };
+        let relative_vector = relative_position - start;
+        let inverted_vector = Vektor { x: relative_vector.x, y: beschränkung - relative_vector.y };
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, inverted_vector)
     }
 
     fn anchor_points(&self) -> AnchorPoints {
-        let height: Skalar = self.size().height;
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let length: Skalar = self.länge;
+        let height: Skalar = self.size().y;
+        let half_height = height.halbiert();
+        let länge: Skalar = self.länge;
         let radius: Skalar = self.radius;
-        let radius_x: Skalar = radius.as_x();
-        let radius_y: Skalar = radius.as_y();
-        let anfang_x: canvas::X = canvas::X(0.);
+        let anfang = Vektor { x: Skalar(0.), y: half_height };
         AnchorPoints {
-            anfang: anchor::Anchor {
-                position: Vektor { x: anfang_x, y: half_height },
-                direction: Vektor::new(canvas::X(-1.), canvas::Y(0.)),
-            },
+            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
-                position: Vektor { x: anfang_x + length, y: half_height },
-                direction: Vektor::new(canvas::X(1.), canvas::Y(0.)),
+                position: anfang + Vektor { x: länge, y: Skalar(0.) },
+                richtung: winkel::ZERO,
             },
             links: anchor::Anchor {
-                position: Vektor {
-                    x: anfang_x + radius_x * self.winkel.sin(),
-                    y: half_height + radius_y * (1. - self.winkel.cos()),
-                },
-                direction: Vektor::new(canvas::X(self.winkel.cos()), canvas::Y(self.winkel.sin())),
+                position: anfang
+                    + Vektor {
+                        x: radius * Skalar(self.winkel.sin()),
+                        y: radius * Skalar(1. - self.winkel.cos()),
+                    },
+                richtung: self.winkel,
             },
             rechts: anchor::Anchor {
-                position: Vektor {
-                    x: anfang_x + radius_x * self.winkel.sin(),
-                    y: half_height - radius_y * (1. - self.winkel.cos()),
-                },
-                direction: Vektor::new(canvas::X(self.winkel.cos()), canvas::Y(-self.winkel.sin())),
+                position: anfang
+                    + Vektor {
+                        x: radius * Skalar(self.winkel.sin()),
+                        y: -radius * Skalar(1. - self.winkel.cos()),
+                    },
+                richtung: -self.winkel,
             },
         }
     }

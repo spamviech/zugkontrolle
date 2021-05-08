@@ -258,7 +258,7 @@ pub mod deserialize {
             }: Zugtyp,
         ) -> Self {
             value::Zugtyp {
-                spurweite: Spurweite(spurweite).to_abstand(),
+                spurweite: Spurweite(spurweite).als_skalar(),
                 umdrehen: umdrehen.into(),
                 geraden: geraden.into_iter().map(Into::into).collect(),
                 kurven: kurven.into_iter().map(Into::into).collect(),
@@ -325,7 +325,7 @@ pub mod deserialize {
         fn from(Gerade { länge, beschreibung }: Gerade) -> Self {
             gerade::Gerade {
                 zugtyp: PhantomData,
-                länge: Länge::new(länge).to_abstand(),
+                länge: Länge::new(länge).als_skalar(),
                 beschreibung,
             }
         }
@@ -341,7 +341,7 @@ pub mod deserialize {
         fn from(Kurve { radius, winkel, beschreibung }: Kurve) -> Self {
             kurve::Kurve {
                 zugtyp: PhantomData,
-                radius: Radius::new(radius).to_abstand(),
+                radius: Radius::new(radius).als_skalar(),
                 winkel: AngleDegrees::new(winkel).into(),
                 beschreibung,
             }
@@ -361,8 +361,8 @@ pub mod deserialize {
             let Weiche { länge, radius, winkel, richtung, beschreibung } = self;
             let konstruktor = |richtung| weiche::Weiche {
                 zugtyp: PhantomData,
-                länge: Länge::new(länge).to_abstand(),
-                radius: Radius::new(radius).to_abstand(),
+                länge: Länge::new(länge).als_skalar(),
+                radius: Radius::new(radius).als_skalar(),
                 winkel: AngleDegrees::new(winkel).into(),
                 richtung,
                 beschreibung: beschreibung.map(|s| {
@@ -426,10 +426,10 @@ pub mod deserialize {
             } = self;
             let konstruktor = |richtung| weiche::SKurvenWeiche {
                 zugtyp: PhantomData,
-                länge: Länge::new(länge).to_abstand(),
-                radius: Radius::new(radius).to_abstand(),
+                länge: Länge::new(länge).als_skalar(),
+                radius: Radius::new(radius).als_skalar(),
                 winkel: AngleDegrees::new(winkel).into(),
-                radius_reverse: Radius::new(radius_reverse).to_abstand(),
+                radius_reverse: Radius::new(radius_reverse).als_skalar(),
                 winkel_reverse: AngleDegrees::new(winkel_reverse).into(),
                 richtung,
                 beschreibung: beschreibung.map(|s| {

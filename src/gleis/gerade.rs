@@ -76,10 +76,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         self.beschreibung.as_ref().map(|text| {
             (
                 Position {
-                    punkt: Vektor {
-                        x: Skalar(0.5) * self.länge,
-                        y: Skalar(0.5) * beschränkung::<Z>(),
-                    },
+                    punkt: Vektor { x: self.länge.halbiert(), y: beschränkung::<Z>().halbiert() },
                     winkel: Winkel::new(0.),
                 },
                 text,
@@ -94,7 +91,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
     fn anchor_points(&self) -> Self::AnchorPoints {
         let gleis_links = Skalar(0.);
         let gleis_rechts = gleis_links + self.länge;
-        let beschränkung_mitte = Skalar(0.5) * beschränkung::<Z>();
+        let beschränkung_mitte = beschränkung::<Z>().halbiert();
         AnchorPoints {
             anfang: anchor::Anchor {
                 position: Vektor { x: gleis_links, y: beschränkung_mitte },
@@ -116,7 +113,7 @@ pub(crate) fn zeichne<Z, P, A, F>(
     zugtyp: PhantomData<Z>,
     länge: Skalar,
     beschränkungen: bool,
-    transformations: Vec<canvas::Transformation>,
+    transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
@@ -178,7 +175,7 @@ fn zeichne_internal<Z, P, A, F>(
 pub(crate) fn fülle<Z, P, A, F>(
     _zugtyp: PhantomData<Z>,
     länge: Skalar,
-    transformations: Vec<canvas::Transformation>,
+    transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,

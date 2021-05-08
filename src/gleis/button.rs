@@ -66,7 +66,7 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
         let half_extra_width = Skalar(0.5) * (Skalar(bounds.width) - self.gleis.size().x);
         vec![self.canvas.draw(bounds.size(), |frame| {
             frame.transformation(
-                &canvas::Transformation::Translation(Vektor { x: half_extra_width, y: Skalar(0.) }),
+                &Transformation::Translation(Vektor { x: half_extra_width, y: Skalar(0.) }),
                 Vektor::zu_iced_unskaliert,
             );
             for path in self.gleis.zeichne(Vektor::zu_iced_point_unskaliert) {

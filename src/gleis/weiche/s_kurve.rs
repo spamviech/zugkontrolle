@@ -28,7 +28,7 @@ pub struct SKurvenWeiche<Z> {
 }
 impl<Z> SKurvenWeiche<Z> {
     pub const fn new(
-        length: Länge,
+        länge: Länge,
         radius: Radius,
         winkel: Winkel,
         radius_reverse: Radius,
@@ -37,10 +37,10 @@ impl<Z> SKurvenWeiche<Z> {
     ) -> Self {
         SKurvenWeiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
-            radius_reverse: radius_reverse.to_abstand(),
+            radius_reverse: radius_reverse.als_skalar(),
             winkel_reverse: angle_reverse,
             richtung: direction,
             beschreibung: None,
@@ -48,7 +48,7 @@ impl<Z> SKurvenWeiche<Z> {
     }
 
     pub fn new_with_description(
-        length: Länge,
+        länge: Länge,
         radius: Radius,
         winkel: Winkel,
         radius_reverse: Radius,
@@ -58,10 +58,10 @@ impl<Z> SKurvenWeiche<Z> {
     ) -> Self {
         SKurvenWeiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
-            radius_reverse: radius_reverse.to_abstand(),
+            radius_reverse: radius_reverse.als_skalar(),
             winkel_reverse: angle_reverse,
             richtung: direction,
             beschreibung: Some(description.into()),
@@ -140,13 +140,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
-                canvas::Transformation::Translate(Vektor {
+                Transformation::Translation(Vektor {
                     dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
                     dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
                 }),
-                canvas::Transformation::Rotate(winkel),
-                canvas::Transformation::Translate(Vektor {
-                    dx: canvas::X(0.).to_abstand(),
+                Transformation::Rotation(winkel),
+                Transformation::Translation(Vektor {
+                    dx: canvas::X(0.).als_skalar(),
                     dy: multiplier * beschränkung::<Z>(),
                 }),
             ]
@@ -154,8 +154,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(Vektor {
-                dx: canvas::X(0.).to_abstand(),
+            let mut transformations = vec![Transformation::Translation(Vektor {
+                dx: canvas::X(0.).als_skalar(),
                 dy: self.size().height,
             })];
             // Gerade
@@ -223,13 +223,13 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
-                canvas::Transformation::Translate(Vektor {
+                Transformation::Translation(Vektor {
                     dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
                     dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
                 }),
-                canvas::Transformation::Rotate(winkel),
-                canvas::Transformation::Translate(Vektor {
-                    dx: canvas::X(0.).to_abstand(),
+                Transformation::Rotation(winkel),
+                Transformation::Translation(Vektor {
+                    dx: canvas::X(0.).als_skalar(),
                     dy: multiplier * beschränkung::<Z>(),
                 }),
             ]
@@ -237,8 +237,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(Vektor {
-                dx: canvas::X(0.).to_abstand(),
+            let mut transformations = vec![Transformation::Translation(Vektor {
+                dx: canvas::X(0.).als_skalar(),
                 dy: self.size().height,
             })];
             // Gerade
@@ -347,7 +347,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let mut relative_vector = relative_position - start_vector;
         relative_vector.dy *= multiplier;
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotate(-self.winkel);
-        s_kurve_vector -= Vektor { dx: canvas::X(0.).to_abstand(), dy: beschränkung::<Z>() };
+        s_kurve_vector -= Vektor { dx: canvas::X(0.).als_skalar(), dy: beschränkung::<Z>() };
         s_kurve_vector.dy *= -1.;
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)

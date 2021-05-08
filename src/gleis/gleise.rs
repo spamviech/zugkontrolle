@@ -292,9 +292,9 @@ impl<Z> Gleise<Z> {
 
 pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &canvas::Position) {
     // bewege Kontext zur Position
-    frame.transformation(&canvas::Transformation::Translate(position.point.into()));
+    frame.transformation(&Transformation::Translation(position.point.into()));
     // drehe Kontext um (0,0)
-    frame.transformation(&canvas::Transformation::Rotate(position.winkel));
+    frame.transformation(&Transformation::Rotation(position.winkel));
 }
 fn transparency<T>(gleis_id: &GleisId<T>, is_grabbed: &impl Fn(GleisId<Any>) -> bool) -> f32 {
     if is_grabbed(gleis_id.as_any()) {
@@ -378,7 +378,7 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                     let direction: Vektor = anchor.direction.into();
                     let direction_side: Vektor = direction.rotate(AngleDegrees::new(90.));
                     let anchor_position: Vektor = anchor.position.into();
-                    let scale: f32 = canvas::X(5.).to_abstand() / direction.length_x();
+                    let scale: f32 = canvas::X(5.).als_skalar() / direction.length_x();
                     let mut path_builder = pfad::Erbauer::new();
                     path_builder.move_to(anchor_position + 0.5 * scale * direction_side);
                     path_builder.line_to(anchor_position + scale * direction);
@@ -478,8 +478,8 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
         } = self;
         vec![canvas.draw(
             Vektor::new(
-                canvas::X(bounds.width).to_abstand(),
-                canvas::Y(bounds.height).to_abstand(),
+                canvas::X(bounds.width).als_skalar(),
+                canvas::Y(bounds.height).als_skalar(),
             ),
             |frame| {
                 // TODO don't draw out of bound Gleise
@@ -637,11 +637,11 @@ impl canvas::Position {
         canvas::Position {
             point: Vektor {
                 x: target_anchor_point.position.x
-                    - anchor_point.position.x.to_abstand() * winkel.cos()
-                    + anchor_point.position.y.to_abstand().as_x() * winkel.sin(),
+                    - anchor_point.position.x.als_skalar() * winkel.cos()
+                    + anchor_point.position.y.als_skalar().as_x() * winkel.sin(),
                 y: target_anchor_point.position.y
-                    - anchor_point.position.x.to_abstand().as_y() * winkel.sin()
-                    - anchor_point.position.y.to_abstand() * winkel.cos(),
+                    - anchor_point.position.x.als_skalar().as_y() * winkel.sin()
+                    - anchor_point.position.y.als_skalar() * winkel.cos(),
             },
             winkel,
         }

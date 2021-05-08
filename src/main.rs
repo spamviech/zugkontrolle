@@ -35,7 +35,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
             definition,
             position: canvas::Position { point: Vektor { x, y: self.y }, winkel: Winkel::new(0.) },
         });
-        self.y += height + canvas::Y(25.).to_abstand();
+        self.y += height + canvas::Y(25.).als_skalar();
         res
     }
 }

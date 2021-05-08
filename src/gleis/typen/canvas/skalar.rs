@@ -13,6 +13,16 @@ use crate::gleis::typen::mm;
 pub struct Skalar(pub f32);
 
 impl Skalar {
+    /// Doppelter Wert
+    pub fn doppelt(&self) -> Self {
+        Skalar(2.) * self
+    }
+
+    /// Halber Wert
+    pub fn halbiert(&self) -> Self {
+        Skalar(0.5) * self
+    }
+
     /// Kopie des größeren Elements
     pub fn max(&self, other: &Self) -> Self {
         if self > other {

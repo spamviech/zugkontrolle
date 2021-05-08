@@ -92,7 +92,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                 Position {
                     punkt: Vektor {
                         x: self.radius * Skalar(half_angle.sin()),
-                        y: Skalar(0.5) * beschränkung::<Z>()
+                        y: beschränkung::<Z>().halbiert()
                             + self.radius * Skalar(1. - half_angle.cos()),
                     },
                     winkel: Winkel::new(0.),
@@ -107,7 +107,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let halbe_beschränkung = Skalar(0.5) * beschränkung::<Z>();
+        let halbe_beschränkung = beschränkung::<Z>().halbiert();
         AnchorPoints {
             anfang: anchor::Anchor {
                 position: Vektor { x: Skalar(0.), y: halbe_beschränkung },
@@ -172,7 +172,7 @@ pub(crate) fn zeichne<Z, P, A, F, G>(
     radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
-    transformations: Vec<canvas::Transformation>,
+    transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
@@ -271,7 +271,7 @@ pub(crate) fn fülle<Z, P, A, F, G>(
     _zugtyp: PhantomData<Z>,
     radius: Skalar,
     winkel: Winkel,
-    transformations: Vec<canvas::Transformation>,
+    transformations: Vec<Transformation>,
     with_invert_axis: impl FnOnce(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,

@@ -22,11 +22,11 @@ pub struct KurvenWeiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> KurvenWeiche<Z> {
-    pub const fn new(length: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
+    pub const fn new(länge: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
             richtung,
             beschreibung: None,
@@ -34,7 +34,7 @@ impl<Z> KurvenWeiche<Z> {
     }
 
     pub fn new_with_description(
-        length: Länge,
+        länge: Länge,
         radius: Radius,
         winkel: Winkel,
         richtung: Richtung,
@@ -42,8 +42,8 @@ impl<Z> KurvenWeiche<Z> {
     ) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
             richtung,
             beschreibung: Some(description.into()),
@@ -70,15 +70,13 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
-        let außen_transformation = canvas::Transformation::Translate(Vektor::new(
-            canvas::X(0.) + self.länge,
-            canvas::Y(0.),
-        ));
+        let außen_transformation =
+            Transformation::Translation(Vektor::new(canvas::X(0.) + self.länge, canvas::Y(0.)));
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(Vektor {
-                dx: canvas::X(0.).to_abstand(),
+            let mut transformations = vec![Transformation::Translation(Vektor {
+                dx: canvas::X(0.).als_skalar(),
                 dy: self.size().height,
             })];
             // Innere Kurve
@@ -142,15 +140,13 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn fülle(&self) -> Vec<Pfad> {
         // utility sizes
-        let außen_transformation = canvas::Transformation::Translate(Vektor::new(
-            canvas::X(0.) + self.länge,
-            canvas::Y(0.),
-        ));
+        let außen_transformation =
+            Transformation::Translation(Vektor::new(canvas::X(0.) + self.länge, canvas::Y(0.)));
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(Vektor {
-                dx: canvas::X(0.).to_abstand(),
+            let mut transformations = vec![Transformation::Translation(Vektor {
+                dx: canvas::X(0.).als_skalar(),
                 dy: self.size().height,
             })];
             // Innere Kurve
@@ -253,7 +249,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let mut relative_vector = relative_position - start_vector;
         relative_vector.dy *= multiplier;
         let verschoben_vector =
-            relative_vector - Vektor { dx: self.länge, dy: canvas::Y(0.).to_abstand() };
+            relative_vector - Vektor { dx: self.länge, dy: canvas::Y(0.).als_skalar() };
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, verschoben_vector)

@@ -21,11 +21,11 @@ pub struct Weiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> Weiche<Z> {
-    pub const fn new(length: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
+    pub const fn new(länge: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
         Weiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
             richtung,
             beschreibung: None,
@@ -33,7 +33,7 @@ impl<Z> Weiche<Z> {
     }
 
     pub fn new_with_description(
-        length: Länge,
+        länge: Länge,
         radius: Radius,
         winkel: Winkel,
         richtung: Richtung,
@@ -41,8 +41,8 @@ impl<Z> Weiche<Z> {
     ) -> Self {
         Weiche {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            radius: radius.to_abstand(),
+            länge: länge.als_skalar(),
+            radius: radius.als_skalar(),
             winkel,
             richtung,
             beschreibung: Some(description.into()),
@@ -75,8 +75,8 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     fn zeichne(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
-            let transformations = vec![canvas::Transformation::Translate(Vektor {
-                dx: canvas::X(0.).to_abstand(),
+            let transformations = vec![Transformation::Translation(Vektor {
+                dx: canvas::X(0.).als_skalar(),
                 dy: self.size().height,
             })];
             vec![
@@ -114,8 +114,8 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     fn fülle(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
-            let transformations = vec![canvas::Transformation::Translate(Vektor {
-                dx: canvas::X(0.).to_abstand(),
+            let transformations = vec![Transformation::Translation(Vektor {
+                dx: canvas::X(0.).als_skalar(),
                 dy: self.size().height,
             })];
             vec![
