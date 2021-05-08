@@ -18,10 +18,10 @@ use crate::gleis::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct SKurvenWeiche<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub länge: canvas::Abstand<canvas::X>,
-    pub radius: canvas::Abstand<canvas::Radius>,
+    pub länge: Skalar,
+    pub radius: Skalar,
     pub winkel: Winkel,
-    pub radius_reverse: canvas::Abstand<canvas::Radius>,
+    pub radius_reverse: Skalar,
     pub winkel_reverse: Winkel,
     pub richtung: Richtung,
     pub beschreibung: Option<String>,
@@ -73,7 +73,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
     type AnchorName = weiche::gerade::AnchorName;
     type AnchorPoints = weiche::gerade::AnchorPoints;
 
-    fn size(&self) -> canvas::Size {
+    fn size(&self) -> Vektor {
         let SKurvenWeiche { länge, radius, winkel, radius_reverse, winkel_reverse, .. } = *self;
         let angle_difference = winkel - winkel_reverse;
         let size_gerade = gerade::size::<Z>(länge);
@@ -87,21 +87,21 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         }
         .max(0.);
         let radius_außen = radius_begrenzung_außen::<Z>(radius);
-        let radius_außen_x: canvas::Abstand<canvas::X> = radius_außen.as_x();
+        let radius_außen_x: Skalar = radius_außen.as_x();
         let radius_innen = radius_begrenzung_innen::<Z>(radius);
-        let radius_innen_x: canvas::Abstand<canvas::X> = radius_innen.as_x();
+        let radius_innen_x: Skalar = radius_innen.as_x();
         let radius_reverse_außen = radius_begrenzung_außen::<Z>(radius_reverse);
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
-        let width_oben1: canvas::Abstand<canvas::X> = radius_außen_x * factor_width;
-        let width_oben2: canvas::Abstand<canvas::X> =
+        let width_oben1: Skalar = radius_außen_x * factor_width;
+        let width_oben2: Skalar =
             radius_außen_x * winkel.sin() + radius_reverse_innen.as_x() * factor_width_reverse;
-        let width_oben: canvas::Abstand<canvas::X> = width_oben1.max(&width_oben2);
+        let width_oben: Skalar = width_oben1.max(&width_oben2);
         // untere Beschränkung
-        let width_unten1: canvas::Abstand<canvas::X> = radius_innen_x * factor_width;
-        let width_unten2: canvas::Abstand<canvas::X> =
+        let width_unten1: Skalar = radius_innen_x * factor_width;
+        let width_unten2: Skalar =
             radius_innen_x * winkel.sin() + radius_reverse_außen.as_x() * factor_width_reverse;
-        let width_unten: canvas::Abstand<canvas::X> = width_unten1.max(&width_unten2);
+        let width_unten: Skalar = width_unten1.max(&width_unten2);
 
         // Höhen-Berechnung
         let factor_height = if winkel.abs() < Winkel::new(PI) { 1. - winkel.cos() } else { 1. };
@@ -111,43 +111,41 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             1.
         }
         .max(0.);
-        let radius_außen: canvas::Abstand<canvas::Y> = radius_begrenzung_außen::<Z>(radius).as_y();
-        let radius_reverse_innen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_innen::<Z>(radius_reverse).as_y();
+        let radius_außen: Skalar = radius_begrenzung_außen::<Z>(radius).as_y();
+        let radius_reverse_innen: Skalar = radius_begrenzung_innen::<Z>(radius_reverse).as_y();
         // obere Beschränkung
-        let height_oben1: canvas::Abstand<canvas::Y> = radius_außen * factor_height;
-        let height_oben2: canvas::Abstand<canvas::Y> =
+        let height_oben1: Skalar = radius_außen * factor_height;
+        let height_oben2: Skalar =
             radius_außen * (1. - winkel.cos()) + radius_reverse_innen * factor_height_reverse;
-        let height_oben: canvas::Abstand<canvas::Y> = height_oben1.max(&height_oben2);
+        let height_oben: Skalar = height_oben1.max(&height_oben2);
         // untere Beschränkung
         let gleis_unten_start = beschränkung::<Z>();
-        let radius_innen: canvas::Abstand<canvas::Y> = radius_begrenzung_innen::<Z>(radius).as_y();
-        let radius_reverse_außen: canvas::Abstand<canvas::Y> =
-            radius_begrenzung_außen::<Z>(radius_reverse).as_y();
+        let radius_innen: Skalar = radius_begrenzung_innen::<Z>(radius).as_y();
+        let radius_reverse_außen: Skalar = radius_begrenzung_außen::<Z>(radius_reverse).as_y();
         let height_unten1 = gleis_unten_start + radius_innen * factor_height;
         let height_unten2 = gleis_unten_start
             + radius_innen * (1. - winkel.cos())
             + radius_reverse_außen * factor_height_reverse;
         let height_unten = height_unten1.max(&height_unten2);
 
-        canvas::Size {
+        Vektor {
             width: size_gerade.width.max(&width_oben.max(&width_unten)),
             height: height_oben.max(&height_unten),
         }
     }
 
-    fn zeichne(&self) -> Vec<canvas::Path> {
+    fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
-                canvas::Transformation::Translate(canvas::Vector {
+                canvas::Transformation::Translate(Vektor {
                     dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
                     dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
                 }),
                 canvas::Transformation::Rotate(winkel),
-                canvas::Transformation::Translate(canvas::Vector {
+                canvas::Transformation::Translate(Vektor {
                     dx: canvas::X(0.).to_abstand(),
                     dy: multiplier * beschränkung::<Z>(),
                 }),
@@ -156,7 +154,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+            let mut transformations = vec![canvas::Transformation::Translate(Vektor {
                 dx: canvas::X(0.).to_abstand(),
                 dy: self.size().height,
             })];
@@ -166,7 +164,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.länge,
                 true,
                 transformations.clone(),
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
@@ -175,7 +173,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel,
                 kurve::Beschränkung::Keine,
                 transformations.clone(),
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
             // Kurve nach innen
             transformations.extend(s_kurve_transformations(-1.));
@@ -185,7 +183,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel_reverse,
                 kurve::Beschränkung::Ende,
                 transformations,
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
         } else {
             // Gerade
@@ -194,7 +192,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.länge,
                 true,
                 Vec::new(),
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
@@ -203,7 +201,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel,
                 kurve::Beschränkung::Keine,
                 Vec::new(),
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
             // Kurve nach innen
             paths.push(kurve::zeichne(
@@ -212,25 +210,25 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel_reverse,
                 kurve::Beschränkung::Ende,
                 s_kurve_transformations(1.),
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
         }
         // return value
         paths
     }
 
-    fn fülle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<Pfad> {
         // utility sizes
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
-                canvas::Transformation::Translate(canvas::Vector {
+                canvas::Transformation::Translate(Vektor {
                     dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
                     dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
                 }),
                 canvas::Transformation::Rotate(winkel),
-                canvas::Transformation::Translate(canvas::Vector {
+                canvas::Transformation::Translate(Vektor {
                     dx: canvas::X(0.).to_abstand(),
                     dy: multiplier * beschränkung::<Z>(),
                 }),
@@ -239,7 +237,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+            let mut transformations = vec![canvas::Transformation::Translate(Vektor {
                 dx: canvas::X(0.).to_abstand(),
                 dy: self.size().height,
             })];
@@ -248,7 +246,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.zugtyp,
                 self.länge,
                 transformations.clone(),
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
             // Kurve nach außen
             paths.push(kurve::fülle(
@@ -256,7 +254,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.radius,
                 self.winkel,
                 transformations.clone(),
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
             // Kurve nach innen
             transformations.extend(s_kurve_transformations(-1.));
@@ -265,7 +263,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.radius_reverse,
                 self.winkel_reverse,
                 transformations,
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
         } else {
             // Gerade
@@ -273,7 +271,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.zugtyp,
                 self.länge,
                 Vec::new(),
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
             // Kurve nach außen
             paths.push(kurve::fülle(
@@ -281,7 +279,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.radius,
                 self.winkel,
                 Vec::new(),
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
             // Kurve nach innen
             paths.push(kurve::fülle(
@@ -289,7 +287,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.radius_reverse,
                 self.winkel_reverse,
                 s_kurve_transformations(1.),
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
         }
         // return value
@@ -312,7 +310,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             };
             (
                 canvas::Position {
-                    point: canvas::Point::new(
+                    point: Vektor::new(
                         canvas::X(0.) + 0.5 * self.länge,
                         start_height + multiplier * 0.5 * beschränkung::<Z>(),
                     ),
@@ -323,7 +321,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         })
     }
 
-    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+    fn innerhalb(&self, relative_position: Vektor) -> bool {
         // utility sizes
         let start_x: canvas::X = canvas::X(0.);
         let start_height: canvas::Y;
@@ -338,10 +336,10 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 multiplier = -1.;
             },
         };
-        let start_vector = canvas::Vector::new(start_x, start_height);
+        let start_vector = Vektor::new(start_x, start_height);
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let multiplied_winkel = multiplier * self.winkel;
-        let s_kurve_start_vector = canvas::Vector {
+        let s_kurve_start_vector = Vektor {
             dx: multiplier * radius_begrenzung_außen.as_x() * multiplied_winkel.sin(),
             dy: radius_begrenzung_außen.as_y() * (1. - multiplied_winkel.cos()),
         };
@@ -349,8 +347,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let mut relative_vector = relative_position - start_vector;
         relative_vector.dy *= multiplier;
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotate(-self.winkel);
-        s_kurve_vector -=
-            canvas::Vector { dx: canvas::X(0.).to_abstand(), dy: beschränkung::<Z>() };
+        s_kurve_vector -= Vektor { dx: canvas::X(0.).to_abstand(), dy: beschränkung::<Z>() };
         s_kurve_vector.dy *= -1.;
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
@@ -373,21 +370,21 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let angle_difference = self.winkel - self.winkel_reverse;
         weiche::gerade::AnchorPoints {
             anfang: anchor::Anchor {
-                position: canvas::Point {
+                position: Vektor {
                     x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
                 },
-                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
+                direction: Vektor::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
             },
             gerade: anchor::Anchor {
-                position: canvas::Point {
+                position: Vektor {
                     x: canvas::X(0.) + self.länge,
                     y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
                 },
-                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
+                direction: Vektor::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
             },
             kurve: anchor::Anchor {
-                position: canvas::Point {
+                position: Vektor {
                     x: canvas::X(0.)
                         + self.radius.as_x() * self.winkel.sin()
                         + self.radius_reverse.as_x() * (self.winkel.sin() - angle_difference.sin()),
@@ -398,7 +395,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                                 + self.radius_reverse.as_y()
                                     * (angle_difference.cos() - self.winkel.cos())),
                 },
-                direction: canvas::Vector::new(
+                direction: Vektor::new(
                     canvas::X(angle_difference.cos()),
                     canvas::Y(multiplier * angle_difference.sin()),
                 ),

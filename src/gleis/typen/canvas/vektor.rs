@@ -4,9 +4,10 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
+use super::skalar::Skalar;
+use super::Position;
 use crate::gleis::typen::winkel::{Trigonometrie, Winkel};
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 /// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
 ///
 /// Addition zwischen Vektoren formen einen abelsche Gruppe
@@ -14,9 +15,10 @@ use crate::gleis::typen::winkel::{Trigonometrie, Winkel};
 ///
 /// Multiplikation mit einem `f32` befolgt Distributivgesetzte mit der Addition von Vektoren.
 /// Multiplikation ist assoziativ mit Multiplikation zwischen zwei `f32`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Vektor {
-    pub x: f32,
-    pub y: f32,
+    pub x: Skalar,
+    pub y: Skalar,
 }
 
 impl Vektor {
@@ -25,7 +27,15 @@ impl Vektor {
     /// - additiv neutrales Element
     /// - Resultat einer Multiplikation mit 0.
     pub fn null_vektor() -> Self {
-        Vektor { x: 0., y: 0. }
+        Vektor { x: Skalar(0.), y: Skalar(0.) }
+    }
+
+    /// Erzeuge einen Vektor aus seinen Polarkoordinaten
+    ///
+    /// Winkel wachsen im Uhrzeigersinn.
+    /// y-Koordinaten wachsen nach unten.
+    pub fn polar_koordinaten(radius: Skalar, winkel: Winkel) -> Self {
+        Vektor { x: radius * Skalar(winkel.cos()), y: radius * Skalar(winkel.sin()) }
     }
 
     /// Einheitsvektor mit identischer Richtung
@@ -38,22 +48,22 @@ impl Vektor {
     /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() *
     /// self.winkel(other).cos()`. Insbesondere gilt ´self.länge() ==
     /// self.skalarprodukt(self).sqrt()`
-    pub fn skalarprodukt(&self, other: &Self) -> f32 {
+    pub fn skalarprodukt(&self, other: &Self) -> Skalar {
         self.x * other.x + self.y * other.y
     }
 
     /// Länge eines Vektors (euklidische Metrik)
     ///
     /// Definiert über `Vektor::skalarprodukt`.
-    pub fn länge(&self) -> f32 {
-        self.skalarprodukt(self).sqrt()
+    pub fn länge(&self) -> Skalar {
+        Skalar(self.skalarprodukt(self).0.sqrt())
     }
 
     /// Winkel zwischen zwei Vektoren (im Uhrzeigersinn)
     ///
     /// Definiert über `Vektor::skalarprodukt`.
     pub fn winkel(&self, other: &Self) -> Winkel {
-        Winkel::acos(-self.skalarprodukt(other) / (self.länge() * other.länge()))
+        Winkel::acos((-self.skalarprodukt(other) / (self.länge() * other.länge())).0)
     }
 
     /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist
@@ -61,9 +71,57 @@ impl Vektor {
         // https://de.wikipedia.org/wiki/Drehmatrix#Drehmatrix_der_Ebene_%E2%84%9D%C2%B2
         // geht von Drehung gegen den Uhrzeigersinn und nach oben steigender y-Achse aus
         Vektor {
-            x: winkel.cos() * self.x - winkel.sin() * self.y,
-            y: winkel.sin() * self.x + winkel.cos() * self.y,
+            x: Skalar(winkel.cos()) * self.x - Skalar(winkel.sin()) * self.y,
+            y: Skalar(winkel.sin()) * self.x + Skalar(winkel.cos()) * self.y,
         }
+    }
+
+    /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
+    /// und skaliert.
+    pub fn zu_iced(self, pivot: Position, faktor: Skalar) -> iced::Vector {
+        let Vektor { x, y } = (self - pivot.punkt).rotiere(pivot.winkel);
+        iced::Vector { x: x.0, y: y.0 }
+    }
+
+    /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
+    pub fn zu_iced_unskaliert(self) -> iced::Vector {
+        self.zu_iced(
+            Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
+            Skalar::multiplikativ_neutral(),
+        )
+    }
+
+    /// Konvertiere einen /iced::Vector/, invers zu /zu_iced/.
+    ///
+    /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
+    pub fn von_iced(iced::Vector { x, y }: iced::Vector, pivot: Position, faktor: Skalar) -> Self {
+        (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
+    }
+
+    /// Konvertiere zu einem /iced::Point/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
+    /// und skaliert.
+    pub fn zu_iced_point(self, pivot: Position, faktor: Skalar) -> iced::Point {
+        let Vektor { x, y } = (self - pivot.punkt).rotiere(pivot.winkel);
+        iced::Point { x: x.0, y: y.0 }
+    }
+
+    /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
+    pub fn zu_iced_point_unskaliert(self) -> iced::Point {
+        self.zu_iced_point(
+            Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
+            Skalar::multiplikativ_neutral(),
+        )
+    }
+
+    /// Konvertiere einen /iced::Point/, invers zu /zu_iced_point/.
+    ///
+    /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
+    pub fn von_iced_point(
+        iced::Point { x, y }: iced::Point,
+        pivot: Position,
+        faktor: Skalar,
+    ) -> Self {
+        (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
     }
 }
 
@@ -94,6 +152,26 @@ where
     fn add(mut self, rhs: T) -> Self::Output {
         self += rhs;
         self
+    }
+}
+impl<T> Add<T> for &Vektor
+where
+    Vektor: AddAssign<T>,
+{
+    type Output = Vektor;
+
+    fn add(mut self, rhs: T) -> Self::Output {
+        *self + rhs
+    }
+}
+impl<T> Add<T> for &mut Vektor
+where
+    Vektor: AddAssign<T>,
+{
+    type Output = Vektor;
+
+    fn add(mut self, rhs: T) -> Self::Output {
+        &*self + rhs
     }
 }
 // Monoid
@@ -138,10 +216,30 @@ where
         self
     }
 }
+impl<T> Sub<T> for &Vektor
+where
+    Vektor: SubAssign<T>,
+{
+    type Output = Vektor;
+
+    fn sub(mut self, rhs: T) -> Self::Output {
+        *self - rhs
+    }
+}
+impl<T> Sub<T> for &mut Vektor
+where
+    Vektor: SubAssign<T>,
+{
+    type Output = Vektor;
+
+    fn sub(mut self, rhs: T) -> Self::Output {
+        &*self - rhs
+    }
+}
 
 // Multiplikation/Division mit Skalar
-impl MulAssign<f32> for Vektor {
-    fn mul_assign(&mut self, rhs: f32) {
+impl MulAssign<Skalar> for Vektor {
+    fn mul_assign(&mut self, rhs: Skalar) {
         self.x *= rhs;
         self.y *= rhs;
     }
@@ -157,16 +255,16 @@ where
         self
     }
 }
-impl Mul<Vektor> for f32 {
+impl Mul<Vektor> for Skalar {
     type Output = Vektor;
 
     fn mul(self, rhs: Vektor) -> Self::Output {
         rhs * self
     }
 }
-impl DivAssign<f32> for Vektor {
-    fn div_assign(&mut self, rhs: f32) {
-        *self *= 1. / rhs;
+impl DivAssign<Skalar> for Vektor {
+    fn div_assign(&mut self, rhs: Skalar) {
+        *self *= Skalar::multiplikativ_neutral() / rhs;
     }
 }
 impl<T> Div<T> for Vektor

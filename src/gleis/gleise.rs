@@ -79,7 +79,7 @@ pub struct Gleis<T> {
 #[derive(zugkontrolle_derive::Debug)]
 struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
-    grab_location: canvas::Vector,
+    grab_location: Vektor,
 }
 #[derive(zugkontrolle_derive::Debug)]
 pub(crate) enum AnyId<Z> {
@@ -261,7 +261,7 @@ impl<Z> Gleise<Z> {
         Gleise {
             canvas: canvas::Cache::new(),
             pivot: canvas::Position {
-                point: canvas::Point::new(canvas::X(0.), canvas::Y(0.)),
+                point: Vektor::new(canvas::X(0.), canvas::Y(0.)),
                 winkel: Winkel::new(0.),
             },
             scale: 1.,
@@ -375,11 +375,11 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                     } else {
                         canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
                     };
-                    let direction: canvas::Vector = anchor.direction.into();
-                    let direction_side: canvas::Vector = direction.rotate(AngleDegrees::new(90.));
-                    let anchor_position: canvas::Point = anchor.position.into();
+                    let direction: Vektor = anchor.direction.into();
+                    let direction_side: Vektor = direction.rotate(AngleDegrees::new(90.));
+                    let anchor_position: Vektor = anchor.position.into();
                     let scale: f32 = canvas::X(5.).to_abstand() / direction.length_x();
-                    let mut path_builder = canvas::PathBuilder::new();
+                    let mut path_builder = pfad::Erbauer::new();
                     path_builder.move_to(anchor_position + 0.5 * scale * direction_side);
                     path_builder.line_to(anchor_position + scale * direction);
                     path_builder.line_to(anchor_position - 0.5 * scale * direction_side);
@@ -400,8 +400,8 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
 ) {
     for (_gleis_id, Gleis { definition, position }) in map.iter() {
         if let Some((relative_position, content)) = definition.beschreibung() {
-            let point = position.point
-                + canvas::Vector::from(relative_position.point).rotate(position.winkel);
+            let point =
+                position.point + Vektor::from(relative_position.point).rotate(position.winkel);
             let winkel = position.winkel + relative_position.winkel;
             let absolute_position = canvas::Position { point, winkel };
             frame.with_save(|frame| {
@@ -421,7 +421,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
 fn relocate_grabbed<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
     gleis_id: GleisId<T>,
     gleise: &mut Gleise<Z>,
-    point: canvas::Point,
+    point: Vektor,
 ) {
     let Gleis { position, .. } =
         T::get_map_mut(&mut gleise.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
@@ -477,7 +477,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             ..
         } = self;
         vec![canvas.draw(
-            canvas::Size::new(
+            Vektor::new(
                 canvas::X(bounds.width).to_abstand(),
                 canvas::Y(bounds.height).to_abstand(),
             ),
@@ -538,7 +538,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 // TODO store bounding box in rtree as well, to avoid searching everything stored?
                 if let Some(in_pos) = cursor.position_in(&bounds) {
                     let Gleise { maps, modus, .. } = self;
-                    let canvas_pos = canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
+                    let canvas_pos = Vektor::new(canvas::X(in_pos.x), canvas::Y(in_pos.y));
                     macro_rules! find_clicked {
                         ($map:expr,AnyId:: $konstruktor:ident) => {
                             if let Modus::Bauen { grabbed, .. } = modus {
@@ -547,8 +547,8 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                                         for (gleis_id, Gleis { definition, position }) in
                                             $map.iter()
                                         {
-                                            let relative_pos = canvas::Vector::from(
-                                                canvas_pos - canvas::Vector::from(position.point),
+                                            let relative_pos = Vektor::from(
+                                                canvas_pos - Vektor::from(position.point),
                                             );
                                             let rotated_pos = relative_pos.rotate(-position.winkel);
                                             if definition.innerhalb(rotated_pos) {
@@ -600,9 +600,8 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     if let Some(in_pos) = cursor.position_in(&bounds) {
                         if cursor.is_over(&bounds) {
                             if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
-                                let point =
-                                    canvas::Point::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
-                                        - grab_location;
+                                let point = Vektor::new(canvas::X(in_pos.x), canvas::Y(in_pos.y))
+                                    - grab_location;
                                 with_any_id!(gleis_id, relocate_grabbed, self, point);
                                 event_status = iced::canvas::event::Status::Captured
                             }
@@ -636,7 +635,7 @@ impl canvas::Position {
         let winkel: Winkel = anchor_point.direction.winkel_mit_x_achse()
             - (-target_anchor_point.direction).winkel_mit_x_achse();
         canvas::Position {
-            point: canvas::Point {
+            point: Vektor {
                 x: target_anchor_point.position.x
                     - anchor_point.position.x.to_abstand() * winkel.cos()
                     + anchor_point.position.y.to_abstand().as_x() * winkel.sin(),
@@ -695,7 +694,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         self.add(Gleis {
             definition,
             position: canvas::Position {
-                point: self.pivot.point + canvas::Vector::new(canvas::X(0.), self.last_mouse_y),
+                point: self.pivot.point + Vektor::new(canvas::X(0.), self.last_mouse_y),
                 winkel: self.pivot.winkel,
             },
         })

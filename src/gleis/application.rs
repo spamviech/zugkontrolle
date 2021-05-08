@@ -113,7 +113,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     ($($vec: expr),*) => {
                         $(
                         for button in $vec.iter() {
-                            max_width = max_width.max((canvas::X(0.) + button.size().width).0.ceil() as u16);
+                            max_width = max_width.max( button.size().x.0.ceil() as u16);
                         }
                     )*
                     $(

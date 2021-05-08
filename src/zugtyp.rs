@@ -131,7 +131,7 @@ pub mod value {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Zugtyp {
-        pub spurweite: canvas::Abstand<canvas::Y>,
+        pub spurweite: Skalar,
         pub umdrehen: Umdrehen,
         pub geraden: Vec<Gerade<()>>,
         pub kurven: Vec<Kurve<()>>,
@@ -145,33 +145,27 @@ pub mod value {
     // TODO Anstatt generic über <Z: Zugtyp> erhalten alle Zeichnen-Methoden einen &Zugtyp-Parameter
     impl Zugtyp {
         /// Spurweite für den gegebenen Zugtyp
-        pub fn spurweite(&self) -> canvas::Abstand<canvas::Y> {
+        pub fn spurweite(&self) -> Skalar {
             self.spurweite
         }
 
         /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-        pub fn abstand(&self) -> canvas::Abstand<canvas::Y> {
+        pub fn abstand(&self) -> Skalar {
             self.spurweite / 3.
         }
 
         /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-        pub fn beschränkung(&self) -> canvas::Abstand<canvas::Y> {
+        pub fn beschränkung(&self) -> Skalar {
             self.spurweite + 2. * self.abstand()
         }
 
         /// Äußerster Radius (inklusive Beschränkung) einer Kurve
-        pub fn radius_begrenzung_außen(
-            &self,
-            radius: canvas::Abstand<canvas::Radius>,
-        ) -> canvas::Abstand<canvas::Radius> {
+        pub fn radius_begrenzung_außen(&self, radius: Skalar) -> Skalar {
             radius + 0.5 * self.spurweite.as_radius() + self.abstand().as_radius()
         }
 
         /// Innerster Radius (inklusive Beschränkung) einer Kurve
-        pub fn radius_begrenzung_innen(
-            &self,
-            radius: canvas::Abstand<canvas::Radius>,
-        ) -> canvas::Abstand<canvas::Radius> {
+        pub fn radius_begrenzung_innen(&self, radius: Skalar) -> Skalar {
             radius - 0.5 * self.spurweite.as_radius() - self.abstand().as_radius()
         }
     }

@@ -14,8 +14,8 @@ use crate::gleis::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Weiche<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub länge: canvas::Abstand<canvas::X>,
-    pub radius: canvas::Abstand<canvas::Radius>,
+    pub länge: Skalar,
+    pub radius: Skalar,
     pub winkel: Winkel,
     pub richtung: Richtung,
     pub beschreibung: Option<String>,
@@ -65,17 +65,17 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn size(&self) -> canvas::Size {
+    fn size(&self) -> Vektor {
         let Weiche { länge, radius, winkel, .. } = *self;
         let gerade_size = gerade::size::<Z>(länge);
         let kurve_size = kurve::size::<Z>(radius, winkel);
-        canvas::Size { width: gerade_size.width.max(&kurve_size.width), height: kurve_size.height }
+        Vektor { width: gerade_size.width.max(&kurve_size.width), height: kurve_size.height }
     }
 
-    fn zeichne(&self) -> Vec<canvas::Path> {
+    fn zeichne(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
-            let transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+            let transformations = vec![canvas::Transformation::Translate(Vektor {
                 dx: canvas::X(0.).to_abstand(),
                 dy: self.size().height,
             })];
@@ -85,7 +85,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     länge,
                     true,
                     transformations.clone(),
-                    canvas::PathBuilder::with_invert_y,
+                    pfad::Erbauer::with_invert_y,
                 ),
                 kurve::zeichne(
                     zugtyp,
@@ -93,34 +93,28 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     winkel,
                     kurve::Beschränkung::Ende,
                     transformations,
-                    canvas::PathBuilder::with_invert_y,
+                    pfad::Erbauer::with_invert_y,
                 ),
             ]
         } else {
             vec![
-                gerade::zeichne(
-                    zugtyp,
-                    länge,
-                    true,
-                    Vec::new(),
-                    canvas::PathBuilder::with_normal_axis,
-                ),
+                gerade::zeichne(zugtyp, länge, true, Vec::new(), pfad::Erbauer::with_normal_axis),
                 kurve::zeichne(
                     zugtyp,
                     radius,
                     winkel,
                     kurve::Beschränkung::Ende,
                     Vec::new(),
-                    canvas::PathBuilder::with_normal_axis,
+                    pfad::Erbauer::with_normal_axis,
                 ),
             ]
         }
     }
 
-    fn fülle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
-            let transformations = vec![canvas::Transformation::Translate(canvas::Vector {
+            let transformations = vec![canvas::Transformation::Translate(Vektor {
                 dx: canvas::X(0.).to_abstand(),
                 dy: self.size().height,
             })];
@@ -129,26 +123,20 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     zugtyp,
                     länge,
                     transformations.clone(),
-                    canvas::PathBuilder::with_invert_y,
+                    pfad::Erbauer::with_invert_y,
                 ),
                 kurve::fülle(
                     zugtyp,
                     radius,
                     winkel,
                     transformations,
-                    canvas::PathBuilder::with_invert_y,
+                    pfad::Erbauer::with_invert_y,
                 ),
             ]
         } else {
             vec![
-                gerade::fülle(zugtyp, länge, Vec::new(), canvas::PathBuilder::with_normal_axis),
-                kurve::fülle(
-                    zugtyp,
-                    radius,
-                    winkel,
-                    Vec::new(),
-                    canvas::PathBuilder::with_normal_axis,
-                ),
+                gerade::fülle(zugtyp, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+                kurve::fülle(zugtyp, radius, winkel, Vec::new(), pfad::Erbauer::with_normal_axis),
             ]
         }
     }
@@ -169,7 +157,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             };
             (
                 canvas::Position {
-                    point: canvas::Point::new(
+                    point: Vektor::new(
                         canvas::X(0.) + 0.5 * self.länge,
                         start_height + multiplier * 0.5 * beschränkung::<Z>(),
                     ),
@@ -180,7 +168,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         })
     }
 
-    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+    fn innerhalb(&self, relative_position: Vektor) -> bool {
         // utility sizes
         let start_x: canvas::X = canvas::X(0.);
         let start_height: canvas::Y;
@@ -195,7 +183,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                 multiplier = -1.;
             },
         };
-        let start_vector = canvas::Vector::new(start_x, start_height);
+        let start_vector = Vektor::new(start_x, start_height);
         // sub-checks
         let mut relative_vector = relative_position - start_vector;
         relative_vector.dy *= multiplier;
@@ -218,28 +206,28 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         };
         AnchorPoints {
             anfang: anchor::Anchor {
-                position: canvas::Point {
+                position: Vektor {
                     x: canvas::X(0.),
                     y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
                 },
-                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
+                direction: Vektor::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
             },
             gerade: anchor::Anchor {
-                position: canvas::Point {
+                position: Vektor {
                     x: canvas::X(0.) + self.länge,
                     y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
                 },
-                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
+                direction: Vektor::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
             },
             kurve: anchor::Anchor {
-                position: canvas::Point {
+                position: Vektor {
                     x: canvas::X(0.) + self.winkel.sin() * self.radius.as_x(),
                     y: start_height
                         + multiplier
                             * (0.5 * beschränkung::<Z>()
                                 + self.radius.as_y() * (1. - self.winkel.cos())),
                 },
-                direction: canvas::Vector::new(
+                direction: Vektor::new(
                     canvas::X(self.winkel.cos()),
                     canvas::Y(multiplier * self.winkel.sin()),
                 ),

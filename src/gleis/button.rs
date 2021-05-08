@@ -3,7 +3,7 @@
 use super::gleise::move_to_position;
 use super::typen::*;
 
-const STROKE_WIDTH: f32 = 1.5;
+const STROKE_WIDTH: Skalar = Skalar(1.5);
 
 /// Ein Knopf, der ein Gleis anzeigt
 #[derive(Debug)]
@@ -21,14 +21,10 @@ impl<T> Button<T> {
 }
 const PADDING: u16 = 3;
 impl<T: Zeichnen> Button<T> {
-    pub fn size(&self) -> canvas::Size {
+    pub fn size(&self) -> Vektor {
         // include padding
-        let canvas::Size { width, height } = self.canvas.gleis.size();
-        let double_padding = 2. * PADDING as f32;
-        canvas::Size {
-            width: width + canvas::X(double_padding).to_abstand(),
-            height: height + canvas::Y(double_padding).to_abstand(),
-        }
+        let double_padding = Skalar(2. * PADDING as f32);
+        self.canvas.gleis.size() + Vektor { x: double_padding, y: double_padding }
     }
 
     pub fn to_iced<Message>(&mut self, width: Option<u16>) -> iced::Button<Message>
@@ -44,10 +40,10 @@ impl<T: Zeichnen> Button<T> {
             iced::Canvas::new(canvas)
                 // account for lines right at the edge
                 .width(iced::Length::Units(
-                    width.unwrap_or((canvas::X(STROKE_WIDTH) + size.width).0.ceil() as u16)
+                    width.unwrap_or((STROKE_WIDTH + size.x).0.ceil() as u16)
                 ))
                 .height(iced::Length::Units(
-                    (canvas::Y(STROKE_WIDTH) + size.height).0.ceil() as u16
+                    (STROKE_WIDTH + size.y).0.ceil() as u16
                 )),
         )
         .padding(PADDING)
@@ -67,42 +63,39 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
         // TODO adjust(scale) to size
-        let half_extra_width =
-            0.5 * (canvas::X(bounds.width).to_abstand() - self.gleis.size().width);
-        vec![self.canvas.draw(
-            canvas::Size::new(
-                canvas::X(bounds.width).to_abstand(),
-                canvas::Y(bounds.height).to_abstand(),
-            ),
-            |frame| {
-                frame.transformation(&canvas::Transformation::Translate(canvas::Vector {
-                    dx: half_extra_width,
-                    dy: canvas::Y(0.).to_abstand(),
-                }));
-                for path in self.gleis.zeichne() {
-                    frame.with_save(|frame| {
-                        frame.stroke(&path, canvas::Stroke {
+        let half_extra_width = Skalar(0.5) * (Skalar(bounds.width) - self.gleis.size().x);
+        vec![self.canvas.draw(bounds.size(), |frame| {
+            frame.transformation(
+                &canvas::Transformation::Translation(Vektor { x: half_extra_width, y: Skalar(0.) }),
+                Vektor::zu_iced_unskaliert,
+            );
+            for path in self.gleis.zeichne(Vektor::zu_iced_point_unskaliert) {
+                frame.with_save(|frame| {
+                    frame.stroke(
+                        &path,
+                        canvas::Stroke {
                             color: canvas::Color::BLACK,
-                            width: STROKE_WIDTH,
+                            width: STROKE_WIDTH.0,
                             ..Default::default()
-                        });
+                        },
+                        Vektor::zu_iced_unskaliert,
+                    );
+                });
+            }
+            if let Some((relative_position, content)) = self.gleis.beschreibung() {
+                frame.with_save(|frame| {
+                    move_to_position(frame, &relative_position);
+                    frame.fill_text(canvas::Text {
+                        content: content.to_string(),
+                        position: iced::Point::ORIGIN,
+                        color: canvas::Color::BLACK,
+                        horizontal_alignment: canvas::HorizontalAlignment::Center,
+                        vertical_alignment: canvas::VerticalAlignment::Center,
+                        ..Default::default()
                     });
-                }
-                if let Some((relative_position, content)) = self.gleis.beschreibung() {
-                    frame.with_save(|frame| {
-                        move_to_position(frame, &relative_position);
-                        frame.fill_text(canvas::Text {
-                            content: content.to_string(),
-                            position: iced::Point::ORIGIN,
-                            color: canvas::Color::BLACK,
-                            horizontal_alignment: canvas::HorizontalAlignment::Center,
-                            vertical_alignment: canvas::VerticalAlignment::Center,
-                            ..Default::default()
-                        });
-                    })
-                }
-            },
-        )]
+                })
+            }
+        })]
     }
 }
 

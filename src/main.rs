@@ -28,15 +28,12 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
-        let size: canvas::Size = definition.size();
+        let size: Vektor = definition.size();
         let x: canvas::X = canvas::X(150.) - 0.5 * size.width;
-        let height: canvas::Abstand<canvas::Y> = size.height;
+        let height: Skalar = size.height;
         let res = self.gleise.add(Gleis {
             definition,
-            position: canvas::Position {
-                point: canvas::Point { x, y: self.y },
-                winkel: Winkel::new(0.),
-            },
+            position: canvas::Position { point: Vektor { x, y: self.y }, winkel: Winkel::new(0.) },
         });
         self.y += height + canvas::Y(25.).to_abstand();
         res
@@ -186,7 +183,7 @@ fn main() -> iced::Result {
     // relocate
     if let Some(gleis_id) = &*gerade_lock.read() {
         gleise_lego.relocate(gleis_id, canvas::Position {
-            point: canvas::Point { x: canvas::X(250.), y: canvas::Y(10.) },
+            point: Vektor { x: canvas::X(250.), y: canvas::Y(10.) },
             winkel: AngleDegrees::new(90.).into(),
         });
     }

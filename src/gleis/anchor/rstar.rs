@@ -4,13 +4,13 @@ pub(crate) use rstar::primitives::PointWithData;
 
 use super::point::Anchor;
 use crate::gleis::gleise::{Any, GleisId};
-use crate::gleis::typen::canvas;
+use crate::gleis::typen::{Skalar, Vektor, Winkel};
 
-const SEARCH_RADIUS: f32 = 5.0;
+const SEARCH_RADIUS: Skalar = Skalar(5.0);
 
 /// R-Tree of all anchor points, specifying the corresponding widget definition
 #[derive(Debug)]
-pub(crate) struct RTree(rstar::RTree<PointWithData<(GleisId<Any>, canvas::Vector), canvas::Point>>);
+pub(crate) struct RTree(rstar::RTree<PointWithData<(GleisId<Any>, Winkel), Vektor>>);
 impl RTree {
     /// create a new RTree to store anchors with position data
     pub(crate) fn new() -> Self {
@@ -18,21 +18,17 @@ impl RTree {
     }
 
     /// insert an anchor into the RTree
-    pub(crate) fn insert(
-        &mut self,
-        gleis_id: GleisId<Any>,
-        Anchor { position, direction }: Anchor,
-    ) {
-        self.0.insert(PointWithData::new((gleis_id, direction), position))
+    pub(crate) fn insert(&mut self, gleis_id: GleisId<Any>, Anchor { position, richtung }: Anchor) {
+        self.0.insert(PointWithData::new((gleis_id, richtung), position))
     }
 
     /// remove one copy of the specified anchor from the RTree
     pub(crate) fn remove(
         &mut self,
         gleis_id: GleisId<Any>,
-        &Anchor { position, direction }: &Anchor,
+        &Anchor { position, richtung }: &Anchor,
     ) {
-        self.0.remove(&PointWithData::new((gleis_id, direction), position));
+        self.0.remove(&PointWithData::new((gleis_id, richtung), position));
     }
 
     /// Check if an anchor with a different id is present at the specified position,
@@ -40,13 +36,13 @@ impl RTree {
     pub(crate) fn get_other_id_at_point(
         &self,
         gleis_id: GleisId<Any>,
-        &Anchor { position, direction: _ }: &Anchor,
+        &Anchor { position, richtung: _ }: &Anchor,
     ) -> Option<Anchor> {
         self.0.locate_within_distance(position, SEARCH_RADIUS).find_map(|point_with_data| {
             let stored_position = point_with_data.position();
             let PointWithData { data: (stored_id, stored_direction), .. } = point_with_data;
             if stored_id != &gleis_id {
-                Some(Anchor { position: *stored_position, direction: *stored_direction })
+                Some(Anchor { position: *stored_position, richtung: *stored_direction })
             } else {
                 None
             }
@@ -59,7 +55,7 @@ impl RTree {
         &self,
         gleis_id: &GleisId<Any>,
         is_grabbed: impl Fn(&GleisId<Any>) -> bool,
-        &Anchor { position, direction }: &Anchor,
+        &Anchor { position, richtung }: &Anchor,
     ) -> (bool, bool) {
         let mut opposing: bool = false;
         let mut grabbed: bool = false;
@@ -67,7 +63,7 @@ impl RTree {
             let PointWithData { data: (stored_id, stored_direction), .. } = point_with_data;
             if !opposing
                 && stored_id != gleis_id
-                && direction.scalar_product_normalized(stored_direction) < -0.95
+                && (richtung - stored_direction).abs() < Winkel(5.)
             {
                 opposing = true;
                 if grabbed {

@@ -11,8 +11,8 @@ use super::{anchor, gerade, kurve};
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kreuzung<T> {
     pub zugtyp: PhantomData<T>,
-    pub länge: canvas::Abstand<canvas::X>,
-    pub radius: canvas::Abstand<canvas::Radius>,
+    pub länge: Skalar,
+    pub radius: Skalar,
     pub variante: Variante,
     pub beschreibung: Option<String>,
 }
@@ -71,48 +71,49 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn size(&self) -> canvas::Size {
+    fn size(&self) -> Vektor {
         let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
         let height_beschränkung = beschränkung::<Z>();
         let height_kurven = 2. * size_kurve.height - height_beschränkung;
-        canvas::Size::new(
-            self.länge.max(&size_kurve.width),
-            height_beschränkung.max(&height_kurven),
-        )
+        Vektor {
+            x: self.länge.max(&size_kurve.width), y: height_beschränkung.max(&height_kurven)
+        }
     }
 
-    fn zeichne(&self) -> Vec<canvas::Path> {
+    fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
-        let canvas::Size { width, height } = self.size();
-        let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
-        let start_x: canvas::X = canvas::X(0.);
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
+        let Vektor { x: width, y: height } = self.size();
+        let half_width = 0.5 * width;
+        let half_height = 0.5 * height;
+        let start = Vektor { x: Skalar(0.), y: half_height - 0.5 * beschränkung::<Z>() };
+        let zentrum = Vektor { x: 0.5 * width, y: half_height };
+        let start_invert_y = Vektor { x: start.x, y: -start.y };
+        let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
         let mut paths = Vec::new();
-        // Geraden
-        let horizontal_transformations =
-            vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
+        // Transformationen
+        let horizontal_transformations = vec![canvas::Transformation::Translate(start)];
         let gedreht_transformations = vec![
-            canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
+            canvas::Transformation::Translate(zentrum),
             canvas::Transformation::Rotate(winkel),
             // transformations with assumed inverted y-Axis
-            canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
-            canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
+            canvas::Transformation::Translate(-zentrum_invert_y),
+            canvas::Transformation::Translate(start_invert_y),
         ];
+        // Geraden
         paths.push(gerade::zeichne(
             self.zugtyp,
             self.länge,
             true,
             horizontal_transformations.clone(),
-            canvas::PathBuilder::with_normal_axis,
+            pfad::Erbauer::with_normal_axis,
         ));
         paths.push(gerade::zeichne(
             self.zugtyp,
             self.länge,
             true,
             gedreht_transformations.clone(),
-            canvas::PathBuilder::with_invert_y,
+            pfad::Erbauer::with_invert_y,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
@@ -122,7 +123,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 winkel,
                 kurve::Beschränkung::Keine,
                 horizontal_transformations,
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
             paths.push(kurve::zeichne(
                 self.zugtyp,
@@ -130,43 +131,45 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 winkel,
                 kurve::Beschränkung::Keine,
                 gedreht_transformations,
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
         }
         // return value
         paths
     }
 
-    fn fülle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<Pfad> {
         // utility sizes
-        let canvas::Size { width, height } = self.size();
-        let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
-        let start_x: canvas::X = canvas::X(0.);
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
+        let Vektor { x: width, y: height } = self.size();
+        let half_width = 0.5 * width;
+        let half_height = 0.5 * height;
+        let start = Vektor { x: Skalar(0.), y: half_height - 0.5 * beschränkung::<Z>() };
+        let zentrum = Vektor { x: 0.5 * width, y: half_height };
+        let start_invert_y = Vektor { x: start.x, y: -start.y };
+        let zentrum_invert_y = Vektor { x: zentrum.x, y: -zentrum.y };
         let winkel = self.winkel();
         let mut paths = Vec::new();
-        // Geraden
-        let horizontal_transformations =
-            vec![canvas::Transformation::Translate(canvas::Vector::new(start_x, start_y))];
+        // Transformationen
+        let horizontal_transformations = vec![canvas::Transformation::Translate(start)];
         let gedreht_transformations = vec![
-            canvas::Transformation::Translate(canvas::Vector::new(half_width, half_height)),
+            canvas::Transformation::Translate(zentrum),
             canvas::Transformation::Rotate(winkel),
             // transformations with assumed inverted y-Axis
-            canvas::Transformation::Translate(canvas::Vector::new(-half_width, half_height)),
-            canvas::Transformation::Translate(canvas::Vector::new(start_x, -start_y)),
+            canvas::Transformation::Translate(-zentrum_invert_y),
+            canvas::Transformation::Translate(start_invert_y),
         ];
+        // Geraden
         paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             horizontal_transformations.clone(),
-            canvas::PathBuilder::with_normal_axis,
+            pfad::Erbauer::with_normal_axis,
         ));
         paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             gedreht_transformations.clone(),
-            canvas::PathBuilder::with_invert_y,
+            pfad::Erbauer::with_invert_y,
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
@@ -175,14 +178,14 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 self.radius,
                 winkel,
                 horizontal_transformations,
-                canvas::PathBuilder::with_normal_axis,
+                pfad::Erbauer::with_normal_axis,
             ));
             paths.push(kurve::fülle(
                 self.zugtyp,
                 self.radius,
                 winkel,
                 gedreht_transformations,
-                canvas::PathBuilder::with_invert_y,
+                pfad::Erbauer::with_invert_y,
             ));
         }
         // return value
@@ -192,17 +195,12 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
             // utility sizes
-            let size: canvas::Size = self.size();
-            let start_x: canvas::X = canvas::X(0.);
-            let height: canvas::Abstand<canvas::Y> = size.height;
-            let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-            let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
+            let half_height = 0.5 * self.size().y;
+            let beschränkung = Z::beschränkung();
+            let start = Vektor { x: Skalar(0.), y: half_height - 0.5 * beschränkung };
             (
-                canvas::Position {
-                    point: canvas::Point::new(
-                        start_x + 0.5 * self.länge,
-                        start_y + 0.5 * beschränkung::<Z>(),
-                    ),
+                Position {
+                    punkt: start + Vektor { x: 0.5 * self.länge, y: 0.5 * beschränkung },
                     winkel: Winkel::new(0.),
                 },
                 text,
@@ -210,21 +208,19 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         })
     }
 
-    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+    fn innerhalb(&self, relative_position: Vektor) -> bool {
         // utility sizes
-        let canvas::Size { width, height } = self.size();
-        let half_width: canvas::X = canvas::X(0.) + 0.5 * width;
-        let start_x: canvas::X = canvas::X(0.);
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let start_y: canvas::Y = half_height - 0.5 * beschränkung::<Z>();
-        let start_vector = canvas::Vector::new(start_x, start_y);
-        let mid_vector = canvas::Vector::new(half_width, half_height);
+        let Vektor { x: width, y: height } = self.size();
+        let half_width = 0.5 * width;
+        let half_height = 0.5 * height;
+        let start = Vektor { x: Skalar(0.), y: half_height - 0.5 * beschränkung::<Z>() };
+        let zentrum = Vektor { x: half_width, y: half_height };
         let winkel = self.winkel();
         // sub-checks
-        let horizontal_vector = relative_position - start_vector;
-        let mut gedreht_vector = (relative_position - mid_vector).rotate(-winkel);
+        let horizontal_vector = relative_position - start;
+        let mut gedreht_vector = (relative_position - zentrum).rotate(-winkel);
         gedreht_vector.dy *= -1.;
-        gedreht_vector += mid_vector - start_vector;
+        gedreht_vector += zentrum - start;
         gerade::innerhalb::<Z>(self.länge, horizontal_vector)
             || gerade::innerhalb::<Z>(self.länge, gedreht_vector)
             || (self.variante == Variante::MitKurve
@@ -233,35 +229,24 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let canvas::Size { width, height } = self.size();
-        let anfang0_x: canvas::X = canvas::X(0.);
-        let ende0_x: canvas::X = anfang0_x + self.länge;
-        let half_height: canvas::Y = canvas::Y(0.) + 0.5 * height;
-        let radius_abstand: canvas::Abstand<canvas::Radius> = self.radius;
-        let radius_abstand_x: canvas::Abstand<canvas::X> = radius_abstand.as_x();
-        let radius_abstand_y: canvas::Abstand<canvas::Y> = radius_abstand.as_y();
+        let Vektor { x: width, y: height } = self.size();
+        let half_height = 0.5 * height;
+        let anfang0 = Vektor { x: Skalar(0.), y: half_height };
+        let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };
+        let radius_abstand: Skalar = self.radius;
+        let radius_abstand_x: Skalar = radius_abstand.as_x();
+        let radius_abstand_y: Skalar = radius_abstand.as_y();
         let winkel = self.winkel();
-        let anfang1_x: canvas::X = canvas::X(0.) + radius_abstand_x * winkel.sin();
-        let anfang1_y: canvas::Y = half_height + radius_abstand_y * (1. - winkel.cos());
-        let ende1_x: canvas::X = canvas::X(0.) + width - radius_abstand_x * winkel.sin();
-        let ende1_y: canvas::Y = half_height - radius_abstand_y * (1. - winkel.cos());
+        let anfang1 = self.radius * Vektor { x: winkel.sin(), y: (1. - winkel.cos()) };
+        let ende1 = Vektor {
+            x: width - self.radius * winkel.sin(),
+            y: half_height - radius_abstand_y * (1. - winkel.cos()),
+        };
         AnchorPoints {
-            anfang_0: anchor::Anchor {
-                position: canvas::Point { x: anfang0_x, y: half_height },
-                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
-            },
-            ende_0: anchor::Anchor {
-                position: canvas::Point { x: ende0_x, y: half_height },
-                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(0.)),
-            },
-            anfang_1: anchor::Anchor {
-                position: canvas::Point { x: anfang1_x, y: anfang1_y },
-                direction: canvas::Vector::new(canvas::X(winkel.cos()), canvas::Y(winkel.sin())),
-            },
-            ende_1: anchor::Anchor {
-                position: canvas::Point { x: ende1_x, y: ende1_y },
-                direction: canvas::Vector::new(canvas::X(-winkel.cos()), canvas::Y(-winkel.sin())),
-            },
+            anfang_0: anchor::Anchor { position: anfang0, richtung: winkel::PI },
+            ende_0: anchor::Anchor { position: ende0, richtung: winkel::ZERO },
+            anfang_1: anchor::Anchor { position: anfang1, richtung: winkel },
+            ende_1: anchor::Anchor { position: ende1, richtung: -winkel },
         }
     }
 }

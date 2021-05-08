@@ -21,25 +21,25 @@ use super::typen::*;
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Kurve<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub radius: canvas::Abstand<canvas::Radius>,
+    pub radius: Skalar,
     pub winkel: Winkel,
     pub beschreibung: Option<String>,
 }
 impl<Z> Kurve<Z> {
-    pub const fn new(radius: Radius, winkel: Winkel) -> Self {
-        Kurve { zugtyp: PhantomData, radius: radius.to_abstand(), winkel, beschreibung: None }
+    pub const fn neu(radius: Radius, winkel: Winkel) -> Self {
+        Kurve { zugtyp: PhantomData, radius: radius.als_skalar(), winkel, beschreibung: None }
     }
 
-    pub fn new_with_description(
+    pub fn neu_mit_beschreibung(
         radius: Radius,
         winkel: Winkel,
-        description: impl Into<String>,
+        beschreibung: impl Into<String>,
     ) -> Self {
         Kurve {
             zugtyp: PhantomData,
-            radius: radius.to_abstand(),
+            radius: radius.als_skalar(),
             winkel,
-            beschreibung: Some(description.into()),
+            beschreibung: Some(beschreibung.into()),
         }
     }
 }
@@ -54,42 +54,40 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn size(&self) -> canvas::Size {
+    fn size(&self) -> Vektor {
         size::<Z>(self.radius, self.winkel)
     }
 
-    fn zeichne(&self) -> Vec<canvas::Path> {
+    fn zeichne(&self) -> Vec<Pfad> {
         vec![zeichne(
             self.zugtyp,
             self.radius,
             self.winkel,
             Beschränkung::Alle,
             Vec::new(),
-            canvas::PathBuilder::with_normal_axis,
+            pfad::Erbauer::with_normal_axis,
         )]
     }
 
-    fn fülle(&self) -> Vec<canvas::Path> {
+    fn fülle(&self) -> Vec<Pfad> {
         vec![fülle(
             self.zugtyp,
             self.radius,
             self.winkel,
             Vec::new(),
-            canvas::PathBuilder::with_normal_axis,
+            pfad::Erbauer::with_normal_axis,
         )]
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+    fn beschreibung(&self) -> Option<(Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
             let half_angle = 0.5 * self.winkel;
             (
-                canvas::Position {
-                    point: canvas::Point::new(
-                        canvas::X(0.) + self.radius.as_x() * half_angle.sin(),
-                        canvas::Y(0.)
-                            + 0.5 * beschränkung::<Z>()
-                            + self.radius.as_y() * (1. - half_angle.cos()),
-                    ),
+                Position {
+                    punkt: Vektor {
+                        x: self.radius * half_angle.sin(),
+                        y: 0.5 * beschränkung::<Z>() + self.radius.as_y() * (1. - half_angle.cos()),
+                    },
                     winkel: Winkel::new(0.),
                 },
                 text,
@@ -97,39 +95,28 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         })
     }
 
-    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+    fn innerhalb(&self, relative_position: Vektor) -> bool {
         innerhalb::<Z>(self.radius, self.winkel, relative_position)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
         AnchorPoints {
             anfang: anchor::Anchor {
-                position: canvas::Point {
-                    x: canvas::X(0.),
-                    y: canvas::Y(0.) + 0.5 * beschränkung::<Z>(),
-                },
-                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
+                position: Vektor { x: Skalar(0.), y: 0.5 * beschränkung::<Z>() },
+                richtung: Winkel::PI,
             },
             ende: anchor::Anchor {
-                position: canvas::Point {
-                    x: canvas::X(0.) + self.radius.as_x() * self.winkel.sin(),
-                    y: canvas::Y(0.)
-                        + 0.5 * beschränkung::<Z>()
-                        + self.radius.as_y() * (1. - self.winkel.cos()),
+                position: Vektor {
+                    x: self.radius * self.winkel.sin(),
+                    y: 0.5 * beschränkung::<Z>() + self.radius * (1. - self.winkel.cos()),
                 },
-                direction: canvas::Vector::new(
-                    canvas::X(self.winkel.cos()),
-                    canvas::Y(self.winkel.sin()),
-                ),
+                richtung: self.winkel,
             },
         }
     }
 }
 
-pub(crate) fn size<Z: Zugtyp>(
-    radius: canvas::Abstand<canvas::Radius>,
-    winkel: Winkel,
-) -> canvas::Size {
+pub(crate) fn size<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Vektor {
     // Breite
     let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
     let radius_begrenzung_außen_y = radius_begrenzung_außen.as_y();
@@ -147,7 +134,7 @@ pub(crate) fn size<Z: Zugtyp>(
     // Mindesthöhe: Beschränkung einer Geraden
     let height = beschränkung::<Z>().max(&comparison);
     // Rückgabewert
-    canvas::Size { width, height }
+    Vektor { x: width, y: height }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -174,21 +161,21 @@ impl Beschränkung {
 
 pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
-    radius: canvas::Abstand<canvas::Radius>,
+    radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
-        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
-        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-) -> canvas::Path
+) -> Pfad
 where
     Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
-    let mut path_builder = canvas::PathBuilder::new();
+    let mut path_builder = pfad::Erbauer::new();
     with_invert_axis(
         &mut path_builder,
         Box::new(move |builder| {
@@ -200,58 +187,57 @@ where
 
 // factor_y is expected to be -1 or +1, although other values should work as well
 fn zeichne_internal<Z, P, A>(
-    path_builder: &mut canvas::PathBuilder<P, A>,
-    radius: canvas::Abstand<canvas::Radius>,
+    path_builder: &mut pfad::Erbauer<P, A>,
+    radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
 ) where
     Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
     // Utility Größen
-    let spurweite: canvas::Abstand<canvas::Radius> = Z::SPURWEITE.to_abstand().as_radius();
-    let winkel_anfang: Winkel = Winkel::new(3. * PI / 2.);
+    let spurweite: Skalar = spurweite::<Z>();
+    let beschränkung: Skalar = Z::beschränkung();
+    let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
-    let gleis_links: canvas::X = canvas::X(0.);
-    let gleis_links_oben: canvas::Y = canvas::Y(0.);
-    let gleis_links_unten: canvas::Y = gleis_links_oben + beschränkung::<Z>();
-    let radius_innen: canvas::Radius = canvas::Radius(0.) + radius - 0.5 * spurweite;
-    let radius_außen: canvas::Radius = radius_innen + spurweite;
-    let radius_begrenzung_außen: canvas::Abstand<canvas::Radius> =
-        radius_außen.to_abstand() + abstand::<Z>().as_radius();
-    let radius_begrenzung_außen_y: canvas::Abstand<canvas::Y> = radius_begrenzung_außen.as_y();
-    let begrenzung_x0: canvas::X = gleis_links + radius_begrenzung_außen.as_x() * winkel.sin();
-    let begrenzung_y0: canvas::Y =
-        gleis_links_oben + radius_begrenzung_außen_y * (1. - winkel.cos());
-    let begrenzung_x1: canvas::X = begrenzung_x0 - beschränkung::<Z>().as_x() * winkel.sin();
-    let begrenzung_y1: canvas::Y = begrenzung_y0 + beschränkung::<Z>() * winkel.cos();
-    let bogen_zentrum_y: canvas::Y = gleis_links_oben + radius_begrenzung_außen_y;
+    let gleis_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
+    let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: beschränkung };
+    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen(radius);
+    let radius_außen = radius_begrenzung_außen - abstand::<Z>();
+    let radius_innen = radius_außen - spurweite;
+    let begrenzung0 = gleis_links_oben
+        + Vektor {
+            x: radius_begrenzung_außen * winkel.sin(),
+            y: radius_begrenzung_außen * (1. - winkel.cos()),
+        };
+    let begrenzung1 = begrenzung0 + beschränkung * Vektor { x: -winkel.sin(), y: winkel.cos() };
+    let bogen_zentrum = gleis_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Beschränkungen
     if beschränkungen.anfangs_beschränkung() {
-        path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
-        path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
+        path_builder.move_to(gleis_links_oben);
+        path_builder.line_to(gleis_links_unten);
     }
     if beschränkungen.end_beschränkung() {
-        path_builder.move_to(canvas::Point::new(begrenzung_x0, begrenzung_y0).into());
-        path_builder.line_to(canvas::Point::new(begrenzung_x1, begrenzung_y1).into());
+        path_builder.move_to(begrenzung0);
+        path_builder.line_to(begrenzung1);
     }
     // Gleis
     path_builder.arc(
-        canvas::Arc {
-            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-            radius: canvas::Radius(0.) + radius_außen.to_abstand(),
-            start: winkel_anfang,
-            end: winkel_ende,
+        Bogen {
+            zentrum: bogen_zentrum,
+            radius: radius_außen,
+            anfang: winkel_anfang,
+            ende: winkel_ende,
         }
         .into(),
     );
     path_builder.arc(
-        canvas::Arc {
-            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
-            radius: canvas::Radius(0.) + radius_innen.to_abstand(),
-            start: winkel_anfang,
-            end: winkel_ende,
+        Bogen {
+            zentrum: bogen_zentrum,
+            radius: radius_innen,
+            anfang: winkel_anfang,
+            ende: winkel_ende,
         }
         .into(),
     );
@@ -259,20 +245,20 @@ fn zeichne_internal<Z, P, A>(
 
 pub(crate) fn fülle<Z, P, A>(
     _zugtyp: PhantomData<Z>,
-    radius: canvas::Abstand<canvas::Radius>,
+    radius: Skalar,
     winkel: Winkel,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
-        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
-        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-) -> canvas::Path
+) -> Pfad
 where
     Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
-    let mut path_builder = canvas::PathBuilder::new();
+    let mut path_builder = pfad::Erbauer::new();
     with_invert_axis(
         &mut path_builder,
         Box::new(move |builder| fülle_internal::<Z, P, A>(builder, radius, winkel)),
@@ -282,88 +268,85 @@ where
 
 /// Geplant für canvas::PathType::EvenOdd
 fn fülle_internal<Z, P, A>(
-    path_builder: &mut canvas::PathBuilder<P, A>,
-    radius: canvas::Abstand<canvas::Radius>,
+    _zugtyp: PhantomData<Z>,
+    path_builder: &mut pfad::Erbauer<P, A>,
+    radius: Skalar,
     winkel: Winkel,
+    zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+    zu_iced_bogen: impl Fn(Bogen) -> iced::Arc + 'static,
 ) where
-    Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    Z: 'static + Zugtyp,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
-    let spurweite = Z::SPURWEITE.to_abstand().as_radius();
+    let spurweite = spurweite::<Z>();
+    let beschränkung_links_oben = Vektor { x: Skalar(0.), y: Skalar(0.) };
     // Koordinaten für den Bogen
-    let winkel_anfang: Winkel = Winkel::new(3. * PI / 2.);
+    let winkel_anfang: Winkel = Winkel(3. * PI / 2.);
     let winkel_ende: Winkel = winkel_anfang + winkel;
-    let radius_innen_abstand = radius - 0.5 * spurweite;
-    let radius_innen: canvas::Radius = canvas::Radius(0.) + radius_innen_abstand;
-    let radius_außen_abstand = radius + 0.5 * spurweite;
-    let radius_außen: canvas::Radius = canvas::Radius(0.) + radius_außen_abstand;
-    let radius_außen_abstand: canvas::Abstand<canvas::Radius> = radius_außen.to_abstand();
-    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_außen_abstand.as_y();
+    let radius_begrenzung_außen: Skalar = radius_begrenzung_außen::<Z>(radius);
+    let radius_außen = radius_begrenzung_außen - abstand::<Z>();
+    let radius_innen = radius_außen - spurweite;
+    let bogen_zentrum =
+        beschränkung_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Koordinaten links
-    let gleis_links: canvas::X = canvas::X(0.);
-    let beschränkung_oben: canvas::Y = canvas::Y(0.);
-    let gleis_links_oben: canvas::Y = beschränkung_oben + abstand::<Z>();
-    let gleis_links_unten: canvas::Y = gleis_links_oben + Z::SPURWEITE.to_abstand();
+    let gleis_links_oben = beschränkung_links_oben + Vektor { x: Skalar(0.), y: abstand::<Z>() };
+    let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: spurweite::<Z>() };
     // Koordinaten rechts
-    let gleis_rechts_oben: canvas::Point = canvas::Point::new(
-        gleis_links + radius_außen_abstand.as_x() * winkel.sin(),
-        gleis_links_oben + radius_außen_abstand.as_y() * (1. - winkel.cos()),
-    );
-    let gleis_rechts_unten: canvas::Point = canvas::Point::new(
-        gleis_rechts_oben.x - spurweite.as_x() * winkel.sin(),
-        gleis_rechts_oben.y + spurweite.as_y() * winkel.cos(),
+    let gleis_rechts_oben: Vektor = gleis_links_oben
+        + radius_außen * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
+    let gleis_rechts_unten: Vektor = Vektor::new(
+        gleis_rechts_oben.x - spurweite * winkel.sin(),
+        gleis_rechts_oben.y + spurweite * winkel.cos(),
     );
     // obere Kurve
     path_builder.arc(
-        canvas::Arc {
-            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+        Bogen {
+            zentrum: bogen_zentrum,
             radius: radius_außen,
-            start: winkel_anfang,
-            end: winkel_ende,
+            anfang: winkel_anfang,
+            ende: winkel_ende,
         }
         .into(),
     );
     path_builder.close();
     // untere Kurve
     path_builder.arc(
-        canvas::Arc {
-            center: canvas::Point::new(gleis_links, bogen_zentrum_y),
+        Bogen {
+            zentrum: bogen_zentrum,
             radius: radius_innen,
-            start: winkel_anfang,
-            end: winkel_ende,
+            anfang: winkel_anfang,
+            ende: winkel_ende,
         }
         .into(),
     );
     path_builder.close();
     // Zwischen-Teil
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_links_oben).into());
+    path_builder.move_to(gleis_links_oben.into());
     path_builder.line_to(gleis_rechts_oben.into());
     path_builder.line_to(gleis_rechts_unten.into());
-    path_builder.line_to(canvas::Point::new(gleis_links, gleis_links_unten).into());
+    path_builder.line_to(gleis_links_unten.into());
     path_builder.close();
 }
 
 pub(crate) fn innerhalb<Z: Zugtyp>(
-    radius: canvas::Abstand<canvas::Radius>,
+    radius: Skalar,
     winkel: Winkel,
-    relative_position: canvas::Vector,
+    relative_position: Vektor,
 ) -> bool {
-    let spurweite = Z::SPURWEITE.to_abstand().as_radius();
-    let radius_innen_abstand = radius - 0.5 * spurweite;
-    let radius_außen_abstand = radius + 0.5 * spurweite;
-    let radius_außen: canvas::Radius = canvas::Radius(0.) + radius_außen_abstand;
-    let radius_außen_abstand: canvas::Abstand<canvas::Radius> = radius_außen.to_abstand();
-    let bogen_zentrum_y: canvas::Y = canvas::Y(0.) + abstand::<Z>() + radius_außen_abstand.as_y();
-    let radius_vector = canvas::Vector::from(
-        canvas::Point::new(canvas::X(0.), bogen_zentrum_y) - relative_position,
-    );
-    let länge = radius_vector.length_radius();
-    if länge > radius_innen_abstand && länge < radius_außen_abstand {
-        let mut test_winkel: Winkel = if radius_vector.dx > canvas::X(0.).to_abstand() {
-            -Winkel::acos(radius_vector.dy / länge)
+    let spurweite = spurweite::<Z>();
+    let abstand = abstand::<Z>();
+    let radius_begrenzung_aussen = radius_begrenzung_außen::<Z>(radius);
+    let radius_außen = radius_begrenzung_aussen - abstand;
+    let radius_innen = radius_außen - spurweite;
+    let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };
+    let radius_vector = bogen_zentrum - relative_position;
+    let länge = radius_vector.länge();
+    if länge > radius_innen && länge < radius_außen {
+        let mut test_winkel: Winkel = if radius_vector.x > Skalar(0.) {
+            -Winkel::acos((radius_vector.y / länge).0)
         } else {
-            Winkel::acos(radius_vector.dy / länge)
+            Winkel::acos((radius_vector.y / länge).0)
         };
         // normalisiere winkel
         while test_winkel < Winkel(0.) {

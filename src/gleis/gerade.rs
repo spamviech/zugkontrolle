@@ -1,11 +1,5 @@
 //! Definition und zeichnen einer Gerade
 
-// TODO
-// non_ascii_idents might be stabilized soon
-// use english names until then :(
-// (nightly crashes atm on Sized-check)
-// https://github.com/rust-lang/rust/issues/55467
-
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -18,19 +12,19 @@ use super::typen::*;
 #[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub struct Gerade<Z> {
     pub zugtyp: PhantomData<Z>,
-    pub länge: canvas::Abstand<canvas::X>,
+    pub länge: Skalar,
     pub beschreibung: Option<String>,
 }
 impl<Z> Gerade<Z> {
-    pub const fn new(length: Länge) -> Self {
-        Gerade { zugtyp: PhantomData, länge: length.to_abstand(), beschreibung: None }
+    pub const fn neu(länge: Länge) -> Self {
+        Gerade { zugtyp: PhantomData, länge: länge.als_skalar(), beschreibung: None }
     }
 
-    pub fn new_with_description(length: Länge, description: impl Into<String>) -> Self {
+    pub fn neu_mit_beschreibung(länge: Länge, beschreibung: impl Into<String>) -> Self {
         Gerade {
             zugtyp: PhantomData,
-            länge: length.to_abstand(),
-            beschreibung: Some(description.into()),
+            länge: länge.als_skalar(),
+            beschreibung: Some(beschreibung.into()),
         }
     }
 }
@@ -41,36 +35,37 @@ pub enum AnchorName {
     Ende,
 }
 
-impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
+impl<Z: 'static + Zugtyp> Zeichnen for Gerade<Z> {
     type AnchorName = AnchorName;
     type AnchorPoints = AnchorPoints;
 
-    fn size(&self) -> canvas::Size {
+    fn size(&self) -> Vektor {
         size::<Z>(self.länge)
     }
 
-    fn zeichne(&self) -> Vec<canvas::Path> {
+    fn zeichne(&self, zu_iced: impl Fn(Vektor) -> iced::Point + 'static) -> Vec<Pfad> {
         vec![zeichne(
             self.zugtyp,
             self.länge,
             true,
             Vec::new(),
-            canvas::PathBuilder::with_normal_axis,
+            pfad::Erbauer::with_normal_axis,
+            zu_iced,
         )]
     }
 
-    fn fülle(&self) -> Vec<canvas::Path> {
-        vec![fülle(self.zugtyp, self.länge, Vec::new(), canvas::PathBuilder::with_normal_axis)]
+    fn fülle(&self, zu_iced: impl Fn(Vektor) -> iced::Point + 'static) -> Vec<Pfad> {
+        vec![fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis, zu_iced)]
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+    fn beschreibung(&self) -> Option<(Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
             (
-                canvas::Position {
-                    point: canvas::Point::new(
-                        canvas::X(0.) + 0.5 * self.länge,
-                        canvas::Y(0.) + 0.5 * beschränkung::<Z>(),
-                    ),
+                Position {
+                    punkt: Vektor {
+                        x: Skalar(0.5) * self.länge,
+                        y: Skalar(0.5) * beschränkung::<Z>(),
+                    },
                     winkel: Winkel::new(0.),
                 },
                 text,
@@ -78,134 +73,137 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         })
     }
 
-    fn innerhalb(&self, relative_position: canvas::Vector) -> bool {
+    fn innerhalb(&self, relative_position: Vektor) -> bool {
         innerhalb::<Z>(self.länge, relative_position)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let gleis_links: canvas::X = canvas::X(0.);
-        let gleis_rechts: canvas::X = gleis_links + self.länge;
-        let beschränkung_mitte: canvas::Y = canvas::Y(0.) + 0.5 * beschränkung::<Z>();
+        let gleis_links = Skalar(0.);
+        let gleis_rechts = gleis_links + self.länge;
+        let beschränkung_mitte = Skalar(0.5) * beschränkung::<Z>();
         AnchorPoints {
             anfang: anchor::Anchor {
-                position: canvas::Point { x: gleis_links, y: beschränkung_mitte },
-                direction: canvas::Vector::new(canvas::X(-1.), canvas::Y(0.)),
+                position: Vektor { x: gleis_links, y: beschränkung_mitte },
+                richtung: winkel::PI,
             },
             ende: anchor::Anchor {
-                position: canvas::Point { x: gleis_rechts, y: beschränkung_mitte },
-                direction: canvas::Vector::new(canvas::X(1.), canvas::Y(0.)),
+                position: Vektor { x: gleis_rechts, y: beschränkung_mitte },
+                richtung: winkel::ZERO,
             },
         }
     }
 }
 
-pub(crate) fn size<Z: Zugtyp>(länge: canvas::Abstand<canvas::X>) -> canvas::Size {
-    canvas::Size::new(länge, beschränkung::<Z>())
+pub(crate) fn size<Z: Zugtyp>(länge: Skalar) -> Vektor {
+    Vektor { x: länge, y: beschränkung::<Z>() }
 }
 
 pub(crate) fn zeichne<Z, P, A>(
-    _zugtyp: PhantomData<Z>,
-    länge: canvas::Abstand<canvas::X>,
+    zugtyp: PhantomData<Z>,
+    länge: Skalar,
     beschränkungen: bool,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
-        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
-        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-) -> canvas::Path
+    zu_iced: impl Fn(Vektor) -> iced::Point + 'static,
+) -> Pfad
 where
-    Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    Z: 'static + Zugtyp,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
-    let mut path_builder = canvas::PathBuilder::new();
+    let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, länge, beschränkungen)),
+        Box::new(move |builder| zeichne_internal(zugtyp, builder, länge, beschränkungen, zu_iced)),
     );
-    path_builder.build_under_transformations(transformations)
+    path_builder.baue_unter_transformationen(transformations)
 }
 
 fn zeichne_internal<Z, P, A>(
-    path_builder: &mut canvas::PathBuilder<P, A>,
-    länge: canvas::Abstand<canvas::X>,
+    _zugtyp: PhantomData<Z>,
+    path_builder: &mut pfad::Erbauer<P, A>,
+    länge: Skalar,
     beschränkungen: bool,
+    zu_iced: impl Fn(Vektor) -> iced::Point,
 ) where
     Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
-    let gleis_links: canvas::X = canvas::X(0.);
-    let gleis_rechts: canvas::X = gleis_links + länge;
-    let beschränkung_oben: canvas::Y = canvas::Y(0.);
-    let beschränkung_unten: canvas::Y = beschränkung_oben + beschränkung::<Z>();
-    let gleis_oben: canvas::Y = beschränkung_oben + abstand::<Z>();
-    let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
+    let gleis_links = Skalar(0.);
+    let gleis_rechts = gleis_links + länge;
+    let beschränkung_oben = Skalar(0.);
+    let beschränkung_unten = beschränkung_oben + beschränkung::<Z>();
+    let gleis_oben = beschränkung_oben + abstand::<Z>();
+    let gleis_unten = gleis_oben + spurweite::<Z>();
     // Beschränkungen
     if beschränkungen {
-        path_builder.move_to(canvas::Point::new(gleis_links, beschränkung_oben).into());
-        path_builder.line_to(canvas::Point::new(gleis_links, beschränkung_unten).into());
-        path_builder.move_to(canvas::Point::new(gleis_rechts, beschränkung_oben).into());
-        path_builder.line_to(canvas::Point::new(gleis_rechts, beschränkung_unten).into());
+        path_builder.move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into(), zu_iced);
+        path_builder.line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into(), zu_iced);
+        path_builder.move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into(), zu_iced);
+        path_builder.line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into(), zu_iced);
     }
     // Gleis
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_unten).into());
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), zu_iced);
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_unten }.into(), zu_iced);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), zu_iced);
     // Beschreibung
 }
 
 pub(crate) fn fülle<Z, P, A>(
-    _zugtyp: PhantomData<Z>,
-    länge: canvas::Abstand<canvas::X>,
+    zugtyp: PhantomData<Z>,
+    länge: Skalar,
     transformations: Vec<canvas::Transformation>,
     with_invert_axis: impl FnOnce(
-        &mut canvas::PathBuilder<canvas::Point, canvas::Arc>,
-        Box<dyn for<'s> FnOnce(&'s mut canvas::PathBuilder<P, A>)>,
+        &mut pfad::Erbauer<Vektor, Bogen>,
+        Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-) -> canvas::Path
+    zu_iced: impl Fn(Vektor) -> iced::Point + 'static,
+) -> Pfad
 where
-    Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    Z: 'static + Zugtyp,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
-    let mut path_builder = canvas::PathBuilder::new();
+    let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fülle_internal::<Z, P, A>(builder, länge)),
+        Box::new(move |builder| fülle_internal(zugtyp, builder, länge, zu_iced)),
     );
-    path_builder.build_under_transformations(transformations)
+    path_builder.baue_unter_transformationen(transformations)
 }
 
 fn fülle_internal<Z, P, A>(
-    path_builder: &mut canvas::PathBuilder<P, A>,
-    länge: canvas::Abstand<canvas::X>,
+    _zugtyp: PhantomData<Z>,
+    path_builder: &mut pfad::Erbauer<P, A>,
+    länge: Skalar,
+    zu_iced: impl Fn(Vektor) -> iced::Point,
 ) where
     Z: Zugtyp,
-    P: From<canvas::Point> + canvas::ToPoint,
-    A: From<canvas::Arc> + canvas::ToArc,
+    P: From<Vektor> + Into<Vektor>,
+    A: From<Bogen> + Into<Bogen>,
 {
     // Koordinaten
-    let gleis_links: canvas::X = canvas::X(0.);
-    let gleis_rechts: canvas::X = gleis_links + länge;
-    let beschränkung_oben: canvas::Y = canvas::Y(0.);
-    let gleis_oben: canvas::Y = beschränkung_oben + abstand::<Z>();
-    let gleis_unten: canvas::Y = gleis_oben + Z::SPURWEITE.to_abstand();
+    let gleis_links = Skalar(0.);
+    let gleis_rechts = gleis_links + länge;
+    let beschränkung_oben = Skalar(0.);
+    let gleis_oben = beschränkung_oben + abstand::<Z>();
+    let gleis_unten = gleis_oben + spurweite::<Z>();
     // Zeichne Umriss
-    path_builder.move_to(canvas::Point::new(gleis_links, gleis_oben).into());
-    path_builder.line_to(canvas::Point::new(gleis_links, gleis_unten).into());
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_unten).into());
-    path_builder.line_to(canvas::Point::new(gleis_rechts, gleis_oben).into());
-    path_builder.line_to(canvas::Point::new(gleis_links, gleis_oben).into());
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced);
+    path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into(), zu_iced);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), zu_iced);
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), zu_iced);
+    path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced);
 }
 
-pub(crate) fn innerhalb<Z: Zugtyp>(
-    länge: canvas::Abstand<canvas::X>,
-    relative_position: canvas::Vector,
-) -> bool {
-    relative_position.dx >= canvas::X(0.).to_abstand()
-        && relative_position.dx <= länge
-        && relative_position.dy >= abstand::<Z>()
-        && relative_position.dy <= abstand::<Z>() + Z::SPURWEITE.to_abstand()
+pub(crate) fn innerhalb<Z: Zugtyp>(länge: Skalar, relative_position: Vektor) -> bool {
+    relative_position.x >= Skalar(0.)
+        && relative_position.x <= länge
+        && relative_position.y >= abstand::<Z>()
+        && relative_position.y <= abstand::<Z>() + spurweite::<Z>()
 }

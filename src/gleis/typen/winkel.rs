@@ -2,6 +2,7 @@
 
 use std::cmp::Ordering;
 use std::convert::From;
+use std::f32::consts;
 use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,15 @@ pub trait Trigonometrie {
     fn atan(input: f32) -> Self;
 }
 
+/// τ = 2. * π, i.e. a full circle
+pub const TAU: Winkel = Winkel(consts::TAU);
+/// π, i.e. a half circle
+pub const PI: Winkel = Winkel(consts::PI);
+/// π / 2., i.e. a quarter circle
+pub const FRAC_PI_2: Winkel = Winkel(consts::FRAC_PI_2);
+/// 0
+pub const ZERO: Winkel = Winkel(0.);
+
 /// Winkel \[Bogenmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub(crate) f32);
@@ -28,18 +38,18 @@ impl Winkel {
 }
 
 // automatically implements Trait Into
-impl From<AngleDegrees> for Winkel {
-    fn from(AngleDegrees(f): AngleDegrees) -> Winkel {
+impl From<WinkelGradmaß> for Winkel {
+    fn from(WinkelGradmaß(f): WinkelGradmaß) -> Winkel {
         Winkel(f.to_radians())
     }
 }
-impl PartialEq<AngleDegrees> for Winkel {
-    fn eq(&self, other: &AngleDegrees) -> bool {
+impl PartialEq<WinkelGradmaß> for Winkel {
+    fn eq(&self, other: &WinkelGradmaß) -> bool {
         self.eq(&Winkel::from(*other))
     }
 }
-impl PartialOrd<AngleDegrees> for Winkel {
-    fn partial_cmp(&self, other: &AngleDegrees) -> Option<Ordering> {
+impl PartialOrd<WinkelGradmaß> for Winkel {
+    fn partial_cmp(&self, other: &WinkelGradmaß) -> Option<Ordering> {
         self.partial_cmp(&Winkel::from(*other))
     }
 }
@@ -56,15 +66,15 @@ impl Add<Winkel> for Winkel {
         self
     }
 }
-impl AddAssign<AngleDegrees> for Winkel {
-    fn add_assign(&mut self, AngleDegrees(other): AngleDegrees) {
+impl AddAssign<WinkelGradmaß> for Winkel {
+    fn add_assign(&mut self, WinkelGradmaß(other): WinkelGradmaß) {
         self.0 += other.to_radians()
     }
 }
-impl Add<AngleDegrees> for Winkel {
+impl Add<WinkelGradmaß> for Winkel {
     type Output = Winkel;
 
-    fn add(mut self, other: AngleDegrees) -> Winkel {
+    fn add(mut self, other: WinkelGradmaß) -> Winkel {
         self += other;
         self
     }
@@ -82,15 +92,15 @@ impl Sub<Winkel> for Winkel {
         self
     }
 }
-impl SubAssign<AngleDegrees> for Winkel {
-    fn sub_assign(&mut self, AngleDegrees(other): AngleDegrees) {
+impl SubAssign<WinkelGradmaß> for Winkel {
+    fn sub_assign(&mut self, WinkelGradmaß(other): WinkelGradmaß) {
         self.0 -= other.to_radians()
     }
 }
-impl Sub<AngleDegrees> for Winkel {
+impl Sub<WinkelGradmaß> for Winkel {
     type Output = Winkel;
 
-    fn sub(mut self, other: AngleDegrees) -> Winkel {
+    fn sub(mut self, other: WinkelGradmaß) -> Winkel {
         self -= other;
         self
     }
@@ -148,81 +158,81 @@ impl Trigonometrie for Winkel {
 
 /// Winkel \[Gradmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
-pub struct AngleDegrees(f32);
+pub struct WinkelGradmaß(f32);
 
-impl AngleDegrees {
+impl WinkelGradmaß {
     pub const fn new(winkel: f32) -> Self {
-        AngleDegrees(winkel)
+        WinkelGradmaß(winkel)
     }
 }
 
-impl From<Winkel> for AngleDegrees {
-    fn from(Winkel(f): Winkel) -> AngleDegrees {
-        AngleDegrees(f.to_degrees())
+impl From<Winkel> for WinkelGradmaß {
+    fn from(Winkel(f): Winkel) -> WinkelGradmaß {
+        WinkelGradmaß(f.to_degrees())
     }
 }
-impl PartialEq<Winkel> for AngleDegrees {
+impl PartialEq<Winkel> for WinkelGradmaß {
     fn eq(&self, other: &Winkel) -> bool {
         Winkel::from(*self).eq(other)
     }
 }
-impl PartialOrd<Winkel> for AngleDegrees {
+impl PartialOrd<Winkel> for WinkelGradmaß {
     fn partial_cmp(&self, other: &Winkel) -> Option<Ordering> {
         Winkel::from(*self).partial_cmp(other)
     }
 }
-impl Add<AngleDegrees> for AngleDegrees {
+impl Add<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
-    fn add(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
-        AngleDegrees(self.0 + other)
+    fn add(self, WinkelGradmaß(other): WinkelGradmaß) -> WinkelGradmaß {
+        WinkelGradmaß(self.0 + other)
     }
 }
-impl Add<Winkel> for AngleDegrees {
+impl Add<Winkel> for WinkelGradmaß {
     type Output = Winkel;
 
     fn add(self, other: Winkel) -> Winkel {
         other + self
     }
 }
-impl Sub<AngleDegrees> for AngleDegrees {
+impl Sub<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
-    fn sub(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
-        AngleDegrees(self.0 - other)
+    fn sub(self, WinkelGradmaß(other): WinkelGradmaß) -> WinkelGradmaß {
+        WinkelGradmaß(self.0 - other)
     }
 }
-impl Sub<Winkel> for AngleDegrees {
+impl Sub<Winkel> for WinkelGradmaß {
     type Output = Winkel;
 
     fn sub(self, other: Winkel) -> Winkel {
         other - self
     }
 }
-impl Neg for AngleDegrees {
+impl Neg for WinkelGradmaß {
     type Output = Self;
 
     fn neg(self) -> Self {
-        AngleDegrees(-self.0)
+        WinkelGradmaß(-self.0)
     }
 }
-impl Mul<f32> for AngleDegrees {
+impl Mul<f32> for WinkelGradmaß {
     type Output = Self;
 
     fn mul(self, other: f32) -> Self {
-        AngleDegrees(other * self.0)
+        WinkelGradmaß(other * self.0)
     }
 }
-impl Mul<AngleDegrees> for f32 {
-    type Output = AngleDegrees;
+impl Mul<WinkelGradmaß> for f32 {
+    type Output = WinkelGradmaß;
 
-    fn mul(self, AngleDegrees(other): AngleDegrees) -> AngleDegrees {
-        AngleDegrees(self * other)
+    fn mul(self, WinkelGradmaß(other): WinkelGradmaß) -> WinkelGradmaß {
+        WinkelGradmaß(self * other)
     }
 }
-impl Trigonometrie for AngleDegrees {
-    fn abs(&self) -> AngleDegrees {
-        AngleDegrees(self.0.abs())
+impl Trigonometrie for WinkelGradmaß {
+    fn abs(&self) -> WinkelGradmaß {
+        WinkelGradmaß(self.0.abs())
     }
 
     fn cos(&self) -> f32 {
@@ -238,14 +248,14 @@ impl Trigonometrie for AngleDegrees {
     }
 
     fn acos(input: f32) -> Self {
-        AngleDegrees(input.acos().to_degrees())
+        WinkelGradmaß(input.acos().to_degrees())
     }
 
     fn asin(input: f32) -> Self {
-        AngleDegrees(input.asin().to_degrees())
+        WinkelGradmaß(input.asin().to_degrees())
     }
 
     fn atan(input: f32) -> Self {
-        AngleDegrees(input.atan().to_degrees())
+        WinkelGradmaß(input.atan().to_degrees())
     }
 }

@@ -7,17 +7,20 @@ use crate::gleis::typen::*;
 /// Ein /Anchor/ repräsentiert Anschlüsse eines Gleises.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Anchor {
-    pub position: canvas::Point,
-    pub direction: canvas::Vector,
+    /// Position des Anschluss
+    pub position: canvas::Vektor,
+    /// Ausgehende Richtung des Anschlusses als Winkel zur x-Achse
+    /// (im Uhrzeigersinn, y-Koordinate wächst nach unten)
+    pub richtung: Winkel,
 }
 // copy+paste from example implementation for IntegerPoint
-impl rstar::Point for canvas::Point {
+impl rstar::Point for canvas::Vektor {
     type Scalar = f32;
 
     const DIMENSIONS: usize = 2;
 
     fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self {
-        canvas::Point { x: canvas::X(generator(0)), y: canvas::Y(generator(1)) }
+        canvas::Vektor { x: generator(0), y: generator(1) }
     }
 
     fn nth(&self, index: usize) -> Self::Scalar {

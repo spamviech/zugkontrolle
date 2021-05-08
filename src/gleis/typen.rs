@@ -1,36 +1,37 @@
-//! newtypes for f64, to avoid mixing of length, radius, winkel (radians/degree), etc.
+//! newtypes auf f32, um zwischen mm-basierten und Pixel-basierten Größen zu unterscheiden
 
 pub mod canvas;
 pub mod mm;
 pub mod winkel;
 
 // re-exports
+pub use canvas::{pfad, Bogen, Cache, Frame, Pfad, Position, Skalar, Transformation, Vektor};
 pub use mm::*;
 pub use winkel::*;
 
 use super::anchor;
 pub use crate::zugtyp::{Anschluss, Zugtyp};
 
-// abgeleitete Größe unter der Umrechnung 1mm
+// abgeleitete Größe unter der Umrechnung von /mm/ auf /Pixel/
+/// Abstand beider Schienen
+pub const fn spurweite<Z: Zugtyp>() -> Skalar {
+    Z::SPURWEITE.als_skalar()
+}
 /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
-pub fn abstand<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
-    Z::SPURWEITE.to_abstand() / 3.
+pub fn abstand<Z: Zugtyp>() -> Skalar {
+    spurweite::<Z>() / Skalar(3.)
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
-pub fn beschränkung<Z: Zugtyp>() -> canvas::Abstand<canvas::Y> {
-    Z::SPURWEITE.to_abstand() + 2. * abstand::<Z>()
-}
-/// Äußerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_außen<Z: Zugtyp>(
-    radius: canvas::Abstand<canvas::Radius>,
-) -> canvas::Abstand<canvas::Radius> {
-    radius + 0.5 * Z::SPURWEITE.to_abstand().as_radius() + abstand::<Z>().as_radius()
+pub fn beschränkung<Z: Zugtyp>() -> Skalar {
+    spurweite::<Z>() + Skalar(2.) * abstand::<Z>()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
-pub fn radius_begrenzung_innen<Z: Zugtyp>(
-    radius: canvas::Abstand<canvas::Radius>,
-) -> canvas::Abstand<canvas::Radius> {
-    radius - 0.5 * Z::SPURWEITE.to_abstand().as_radius() - abstand::<Z>().as_radius()
+pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Skalar) -> Skalar {
+    radius - Skalar(0.5) * spurweite::<Z>() - abstand::<Z>()
+}
+/// Äußerster Radius (inklusive Beschränkung) einer Kurve
+pub fn radius_begrenzung_außen<Z: Zugtyp>(radius: Skalar) -> Skalar {
+    radius + Skalar(0.5) * spurweite::<Z>() + abstand::<Z>()
 }
 
 pub trait Zeichnen
@@ -38,20 +39,20 @@ where
     Self::AnchorPoints: anchor::Lookup<Self::AnchorName>,
 {
     /// Maximale x,y-Werte
-    fn size(&self) -> canvas::Size;
+    fn size(&self) -> Vektor;
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
-    fn fülle(&self) -> Vec<canvas::Path>;
+    fn fülle(&self, zu_iced: impl Fn(Vektor) -> iced::Point + 'static) -> Vec<Pfad>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
-    fn zeichne(&self) -> Vec<canvas::Path>;
+    fn zeichne(&self, zu_iced: impl Fn(Vektor) -> iced::Point + 'static) -> Vec<Pfad>;
 
     /// Beschreibung und Position (falls verfügbar)
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)>;
+    fn beschreibung(&self) -> Option<(Position, &String)>;
 
-    /// Zeigt der /canvas::Vector/ auf das Gleis?
-    fn innerhalb(&self, relative_position: canvas::Vector) -> bool;
+    /// Zeigt der /Vektor/ auf das Gleis?
+    fn innerhalb(&self, relative_position: Vektor) -> bool;
 
     /// Identifier for AnchorPoints.
     /// Ein enum wird empfohlen, aber andere Typen funktionieren ebenfalls.
