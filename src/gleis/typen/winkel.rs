@@ -29,7 +29,13 @@ pub const ZERO: Winkel = Winkel(0.);
 
 /// Winkel \[Bogenmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
-pub struct Winkel(pub(crate) f32);
+pub struct Winkel(pub f32);
+impl Winkel {
+    /// Absoluter Wert des Winkels
+    pub fn abs(&self) -> Self {
+        Winkel(self.0.abs())
+    }
+}
 
 // automatically implements Trait Into
 impl From<WinkelGradmaß> for Winkel {
@@ -57,20 +63,22 @@ impl AddAssign<&WinkelGradmaß> for Winkel {
         self.0 += other.to_radians()
     }
 }
-impl<'t, T> AddAssign<T> for Winkel
-where
-    Winkel: AddAssign<&'t T>,
-{
+impl AddAssign<Winkel> for Winkel {
     fn add_assign(&mut self, rhs: Winkel) {
-        self += &rhs
+        *self += &rhs
     }
 }
-impl<'t, T> AddAssign<&mut T> for Winkel
+impl AddAssign<WinkelGradmaß> for Winkel {
+    fn add_assign(&mut self, rhs: WinkelGradmaß) {
+        *self += &rhs
+    }
+}
+impl<T> AddAssign<&mut T> for Winkel
 where
-    Winkel: AddAssign<&'t T>,
+    Winkel: for<'s> AddAssign<&'s T>,
 {
-    fn add_assign(&mut self, rhs: &mut Winkel) {
-        self += &*rhs
+    fn add_assign(&mut self, rhs: &mut T) {
+        *self += &*rhs
     }
 }
 impl<T> Add<T> for Winkel
@@ -79,7 +87,7 @@ where
 {
     type Output = Self;
 
-    fn add(mut self, other: Winkel) -> Winkel {
+    fn add(mut self, other: T) -> Winkel {
         self += other;
         self
     }
@@ -94,29 +102,31 @@ impl SubAssign<&WinkelGradmaß> for Winkel {
         self.0 -= other.to_radians()
     }
 }
-impl<'t, T> SubAssign<T> for Winkel
-where
-    Winkel: SubAssign<&'t T>,
-{
+impl SubAssign<Winkel> for Winkel {
     fn sub_assign(&mut self, rhs: Winkel) {
-        self -= &rhs
+        *self -= &rhs
     }
 }
-impl<'t, T> SubAssign<&mut T> for Winkel
+impl SubAssign<WinkelGradmaß> for Winkel {
+    fn sub_assign(&mut self, rhs: WinkelGradmaß) {
+        *self -= &rhs
+    }
+}
+impl<T> SubAssign<&mut T> for Winkel
 where
-    Winkel: SubAssign<&'t T>,
+    Winkel: for<'s> SubAssign<&'s T>,
 {
-    fn sub_assign(&mut self, rhs: &mut Winkel) {
-        self -= &*rhs
+    fn sub_assign(&mut self, rhs: &mut T) {
+        *self -= &*rhs
     }
 }
 impl<T> Sub<T> for Winkel
 where
-    Winkel: Sub<T>,
+    Winkel: SubAssign<T>,
 {
     type Output = Self;
 
-    fn sub(mut self, other: T) -> Winkel {
+    fn sub(mut self, other: T) -> Self::Output {
         self -= other;
         self
     }

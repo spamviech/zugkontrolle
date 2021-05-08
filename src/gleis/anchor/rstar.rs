@@ -60,10 +60,11 @@ impl RTree {
         let mut opposing: bool = false;
         let mut grabbed: bool = false;
         for point_with_data in self.0.locate_within_distance(position, SEARCH_RADIUS.0) {
-            let PointWithData { data: (stored_id, stored_direction), .. } = point_with_data;
+            let PointWithData { data: (stored_id, gespeicherte_richtung), .. } = point_with_data;
+            let richtungs_unterschied: Winkel = richtung - gespeicherte_richtung;
             if !opposing
                 && stored_id != gleis_id
-                && (richtung - stored_direction).abs() < Winkel(5.)
+                && (richtung - gespeicherte_richtung).abs() < Winkel(5.)
             {
                 opposing = true;
                 if grabbed {
