@@ -77,7 +77,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
             (
                 Position {
                     punkt: Vektor { x: self.länge.halbiert(), y: beschränkung::<Z>().halbiert() },
-                    winkel: Winkel::new(0.),
+                    winkel: Winkel(0.),
                 },
                 text,
             )

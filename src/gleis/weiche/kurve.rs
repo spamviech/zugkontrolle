@@ -246,7 +246,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                         x: self.länge.min(&(self.size().y.halbiert())),
                         y: start_height + multiplier * beschränkung::<Z>().halbiert(),
                     },
-                    winkel: Winkel::new(0.),
+                    winkel: Winkel(0.),
                 },
                 text,
             )

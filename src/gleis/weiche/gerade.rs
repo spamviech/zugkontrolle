@@ -194,7 +194,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                         x: self.länge.halbiert(),
                         y: start_height + multiplier * beschränkung::<Z>().halbiert(),
                     },
-                    winkel: Winkel::new(0.),
+                    winkel: Winkel(0.),
                 },
                 text,
             )

@@ -151,22 +151,22 @@ pub mod value {
 
         /// Abstand seitlich der Schienen zum Anzeigen des Gleisendes
         pub fn abstand(&self) -> Skalar {
-            self.spurweite / 3.
+            self.spurweite / Skalar(3.)
         }
 
         /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
         pub fn beschränkung(&self) -> Skalar {
-            self.spurweite + 2. * self.abstand()
+            self.spurweite + self.abstand().doppelt()
         }
 
         /// Äußerster Radius (inklusive Beschränkung) einer Kurve
         pub fn radius_begrenzung_außen(&self, radius: Skalar) -> Skalar {
-            radius + 0.5 * self.spurweite.as_radius() + self.abstand().as_radius()
+            radius + self.spurweite.halbiert() + self.abstand()
         }
 
         /// Innerster Radius (inklusive Beschränkung) einer Kurve
         pub fn radius_begrenzung_innen(&self, radius: Skalar) -> Skalar {
-            radius - 0.5 * self.spurweite.as_radius() - self.abstand().as_radius()
+            radius - self.spurweite.halbiert() - self.abstand()
         }
     }
 
@@ -325,7 +325,7 @@ pub mod deserialize {
         fn from(Gerade { länge, beschreibung }: Gerade) -> Self {
             gerade::Gerade {
                 zugtyp: PhantomData,
-                länge: Länge::new(länge).als_skalar(),
+                länge: Länge::neu(länge).als_skalar(),
                 beschreibung,
             }
         }
@@ -341,8 +341,8 @@ pub mod deserialize {
         fn from(Kurve { radius, winkel, beschreibung }: Kurve) -> Self {
             kurve::Kurve {
                 zugtyp: PhantomData,
-                radius: Radius::new(radius).als_skalar(),
-                winkel: AngleDegrees::new(winkel).into(),
+                radius: Radius::neu(radius).als_skalar(),
+                winkel: WinkelGradmaß::neu(winkel).into(),
                 beschreibung,
             }
         }
@@ -361,9 +361,9 @@ pub mod deserialize {
             let Weiche { länge, radius, winkel, richtung, beschreibung } = self;
             let konstruktor = |richtung| weiche::Weiche {
                 zugtyp: PhantomData,
-                länge: Länge::new(länge).als_skalar(),
-                radius: Radius::new(radius).als_skalar(),
-                winkel: AngleDegrees::new(winkel).into(),
+                länge: Länge::neu(länge).als_skalar(),
+                radius: Radius::neu(radius).als_skalar(),
+                winkel: WinkelGradmaß::neu(winkel).into(),
                 richtung,
                 beschreibung: beschreibung.map(|s| {
                     s + match richtung {
@@ -386,7 +386,11 @@ pub mod deserialize {
     pub struct DreiwegeWeiche;
     impl<Z> From<DreiwegeWeiche> for weiche::DreiwegeWeiche<Z> {
         fn from(_: DreiwegeWeiche) -> Self {
-            weiche::DreiwegeWeiche::new(Länge::new(0.), Radius::new(0.), Winkel::new(0.))
+            weiche::DreiwegeWeiche::new(
+                Länge::neu(0.),
+                Radius::neu(0.),
+                WinkelGradmaß::neu(0.).into(),
+            )
         }
     }
 
@@ -395,9 +399,9 @@ pub mod deserialize {
     impl<Z> From<KurvenWeiche> for weiche::KurvenWeiche<Z> {
         fn from(_: KurvenWeiche) -> Self {
             weiche::KurvenWeiche::new(
-                Länge::new(0.),
-                Radius::new(0.),
-                Winkel::new(0.),
+                Länge::neu(0.),
+                Radius::neu(0.),
+                WinkelGradmaß::neu(0.).into(),
                 weiche::Richtung::Links,
             )
         }
@@ -426,11 +430,11 @@ pub mod deserialize {
             } = self;
             let konstruktor = |richtung| weiche::SKurvenWeiche {
                 zugtyp: PhantomData,
-                länge: Länge::new(länge).als_skalar(),
-                radius: Radius::new(radius).als_skalar(),
-                winkel: AngleDegrees::new(winkel).into(),
-                radius_reverse: Radius::new(radius_reverse).als_skalar(),
-                winkel_reverse: AngleDegrees::new(winkel_reverse).into(),
+                länge: Länge::neu(länge).als_skalar(),
+                radius: Radius::neu(radius).als_skalar(),
+                winkel: WinkelGradmaß::neu(winkel).into(),
+                radius_reverse: Radius::neu(radius_reverse).als_skalar(),
+                winkel_reverse: WinkelGradmaß::neu(winkel_reverse).into(),
                 richtung,
                 beschreibung: beschreibung.map(|s| {
                     s + match richtung {
@@ -453,7 +457,7 @@ pub mod deserialize {
     pub struct Kreuzung;
     impl<Z> From<Kreuzung> for kreuzung::Kreuzung<Z> {
         fn from(_: Kreuzung) -> Self {
-            kreuzung::Kreuzung::new(Länge::new(0.), Radius::new(0.), kreuzung::Variante::OhneKurve)
+            kreuzung::Kreuzung::new(Länge::neu(0.), Radius::neu(0.), kreuzung::Variante::OhneKurve)
         }
     }
 }

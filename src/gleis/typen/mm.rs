@@ -9,7 +9,7 @@ pub use crate::zugtyp::Spurweite;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Länge(pub(crate) f32);
 impl Länge {
-    pub const fn new(länge: f32) -> Self {
+    pub const fn neu(länge: f32) -> Self {
         Länge(länge)
     }
 }
@@ -32,7 +32,7 @@ impl Div<Radius> for Länge {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Radius(pub(crate) f32);
 impl Radius {
-    pub const fn new(radius: f32) -> Self {
+    pub const fn neu(radius: f32) -> Self {
         Radius(radius)
     }
 }

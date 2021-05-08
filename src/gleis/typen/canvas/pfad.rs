@@ -1,11 +1,10 @@
 //! Pfad auf einem Canvas und assoziierte Typen
 
-use std::f32::consts::PI;
 use std::marker::PhantomData;
 
 use super::skalar::Skalar;
 use super::vektor::Vektor;
-use crate::gleis::typen::winkel::Winkel;
+use crate::gleis::typen::winkel::{self, Winkel};
 
 /// Pfad auf dem Canvas
 ///
@@ -80,7 +79,7 @@ impl<A: Into<Winkel>> From<Invertiert<A, X>> for Winkel {
 impl<A: Into<Winkel>> From<Invertiert<A, Y>> for Winkel {
     fn from(invertiert: Invertiert<A, Y>) -> Self {
         let w = invertiert.0.into();
-        Winkel::new(PI) - w
+        winkel::PI - w
     }
 }
 impl<B, Achse> From<Invertiert<B, Achse>> for Bogen

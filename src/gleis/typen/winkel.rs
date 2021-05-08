@@ -185,6 +185,12 @@ impl Trigonometrie for Winkel {
 /// Winkel \[Gradmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub struct WinkelGradmaß(f32);
+impl WinkelGradmaß {
+    /// Konstruktor
+    pub const fn neu(grad: f32) -> Self {
+        WinkelGradmaß(grad)
+    }
+}
 
 impl From<Winkel> for WinkelGradmaß {
     fn from(Winkel(f): Winkel) -> WinkelGradmaß {

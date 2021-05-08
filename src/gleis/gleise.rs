@@ -252,7 +252,7 @@ pub struct Gleise<Z> {
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
     next_id: u64,
-    last_mouse_y: canvas::Y,
+    last_mouse: Vektor,
     modus: Modus<Z>,
 }
 
@@ -260,10 +260,7 @@ impl<Z> Gleise<Z> {
     pub fn new() -> Self {
         Gleise {
             canvas: canvas::Cache::new(),
-            pivot: Position {
-                point: Vektor::new(canvas::X(0.), canvas::Y(0.)),
-                winkel: Winkel::new(0.),
-            },
+            pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
             scale: 1.,
             maps: GleiseMaps {
                 geraden: HashMap::new(),
@@ -276,7 +273,7 @@ impl<Z> Gleise<Z> {
             },
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
-            last_mouse_y: canvas::Y(0.),
+            last_mouse: Vektor::null_vektor(),
             modus: Modus::Bauen { grabbed: None },
         }
     }

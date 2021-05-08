@@ -74,7 +74,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     fn size(&self) -> Vektor {
         let size_kurve = kurve::size::<Z>(self.radius, self.winkel());
         let height_beschränkung = beschränkung::<Z>();
-        let height_kurven = Skalar(2.) * size_kurve.y - height_beschränkung;
+        let height_kurven = size_kurve.y.doppelt() - height_beschränkung;
         Vektor { x: self.länge.max(&size_kurve.x), y: height_beschränkung.max(&height_kurven) }
     }
 
@@ -219,7 +219,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             (
                 Position {
                     punkt: start + Vektor { x: self.länge.halbiert(), y: halbe_beschränkung },
-                    winkel: Winkel::new(0.),
+                    winkel: Winkel(0.),
                 },
                 text,
             )

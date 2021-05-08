@@ -95,7 +95,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
                         y: beschränkung::<Z>().halbiert()
                             + self.radius * Skalar(1. - half_angle.cos()),
                     },
-                    winkel: Winkel::new(0.),
+                    winkel: Winkel(0.),
                 },
                 text,
             )
@@ -368,8 +368,8 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
 ) -> bool {
     let spurweite = spurweite::<Z>();
     let abstand = abstand::<Z>();
-    let radius_begrenzung_aussen = radius_begrenzung_außen::<Z>(radius);
-    let radius_außen = radius_begrenzung_aussen - abstand;
+    let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
+    let radius_außen = radius_begrenzung_außen - abstand;
     let radius_innen = radius_außen - spurweite;
     let bogen_zentrum = Vektor { x: Skalar(0.), y: abstand + radius_außen };
     let radius_vector = bogen_zentrum - relative_position;

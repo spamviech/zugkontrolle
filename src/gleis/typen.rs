@@ -23,7 +23,7 @@ pub fn abstand<Z: Zugtyp>() -> Skalar {
 }
 /// Länge der Beschränkung (Spurweite + Abstand auf beiden Seiten)
 pub fn beschränkung<Z: Zugtyp>() -> Skalar {
-    spurweite::<Z>() + Skalar(2.) * abstand::<Z>()
+    spurweite::<Z>() + abstand::<Z>().doppelt()
 }
 /// Innerster Radius (inklusive Beschränkung) einer Kurve
 pub fn radius_begrenzung_innen<Z: Zugtyp>(radius: Skalar) -> Skalar {
