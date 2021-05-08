@@ -247,22 +247,19 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let Vektor { x: width, y: height } = self.size();
+        let Vektor { x: _, y: height } = self.size();
         let half_height = height.halbiert();
         let anfang0 = Vektor { x: Skalar(0.), y: half_height };
         let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };
         let winkel = self.winkel();
-        let anfang1 =
-            self.radius * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
-        let ende1 = Vektor {
-            x: width - self.radius * Skalar(winkel.sin()),
-            y: half_height - self.radius * Skalar(1. - winkel.cos()),
-        };
+        let kurve = self.radius * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
+        let anfang1 = ende0 - kurve;
+        let ende1 = anfang0 + kurve;
         AnchorPoints {
             anfang_0: anchor::Anchor { position: anfang0, richtung: winkel::PI },
             ende_0: anchor::Anchor { position: ende0, richtung: winkel::ZERO },
-            anfang_1: anchor::Anchor { position: anfang1, richtung: winkel },
-            ende_1: anchor::Anchor { position: ende1, richtung: -winkel },
+            anfang_1: anchor::Anchor { position: anfang1, richtung: winkel::PI + winkel },
+            ende_1: anchor::Anchor { position: ende1, richtung: winkel },
         }
     }
 }

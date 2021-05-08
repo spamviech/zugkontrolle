@@ -70,8 +70,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn zeichne(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone+'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone+'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
     ) -> Vec<Pfad> {
         // utility sizes
         let außen_transformation =
@@ -152,8 +152,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn fülle(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector +Clone+ 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc +Clone+ 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
     ) -> Vec<Pfad> {
         // utility sizes
         let außen_transformation =
@@ -300,10 +300,10 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
             };
         AnchorPoints {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
-            innen: anchor::Anchor { position: innen, richtung: self.winkel },
+            innen: anchor::Anchor { position: innen, richtung: multiplier.0 * self.winkel },
             außen: anchor::Anchor {
                 position: innen + Vektor { x: self.länge, y: Skalar(0.) },
-                richtung: self.winkel,
+                richtung: multiplier.0 * self.winkel,
             },
         }
     }

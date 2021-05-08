@@ -184,7 +184,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     multiplier = Skalar(1.);
                 },
                 Richtung::Links => {
-                    start_height = self.size().y.halbiert();
+                    start_height = self.size().y;
                     multiplier = Skalar(-1.);
                 },
             };
