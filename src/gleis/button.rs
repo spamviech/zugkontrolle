@@ -69,7 +69,7 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
                 &Transformation::Translation(Vektor { x: half_extra_width, y: Skalar(0.) }),
                 Vektor::zu_iced_unskaliert,
             );
-            for path in self.gleis.zeichne(Vektor::zu_iced_point_unskaliert) {
+            for path in self.gleis.zeichne(Vektor::zu_iced_unskaliert, Bogen::zu_iced_unskaliert) {
                 frame.with_save(|frame| {
                     frame.stroke(
                         &path,
@@ -84,7 +84,7 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
             }
             if let Some((relative_position, content)) = self.gleis.beschreibung() {
                 frame.with_save(|frame| {
-                    move_to_position(frame, &relative_position);
+                    move_to_position(frame, &relative_position, Vektor::zu_iced_unskaliert);
                     frame.fill_text(canvas::Text {
                         content: content.to_string(),
                         position: iced::Point::ORIGIN,

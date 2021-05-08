@@ -45,7 +45,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 
     fn zeichne(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
         _zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
     ) -> Vec<Pfad> {
         vec![zeichne(
@@ -60,7 +60,7 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
 
     fn fülle(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
         _zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
     ) -> Vec<Pfad> {
         vec![fülle(
@@ -124,7 +124,7 @@ where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: 'static + Fn(Vektor) -> iced::Point,
+    F: 'static + Fn(Vektor) -> iced::Vector,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
@@ -145,7 +145,7 @@ fn zeichne_internal<Z, P, A, F>(
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: Fn(Vektor) -> iced::Point,
+    F: Fn(Vektor) -> iced::Vector,
 {
     let gleis_links = Skalar(0.);
     let gleis_rechts = gleis_links + länge;
@@ -186,7 +186,7 @@ where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: 'static + Fn(Vektor) -> iced::Point,
+    F: 'static + Fn(Vektor) -> iced::Vector,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
@@ -204,7 +204,7 @@ fn fülle_internal<Z, P, A, F>(
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: Fn(Vektor) -> iced::Point,
+    F: Fn(Vektor) -> iced::Vector,
 {
     // Koordinaten
     let gleis_links = Skalar(0.);

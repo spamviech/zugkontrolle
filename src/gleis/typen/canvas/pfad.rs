@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 
 use super::skalar::Skalar;
 use super::vektor::Vektor;
+use super::Position;
 use crate::gleis::typen::winkel::{self, Winkel};
 
 /// Pfad auf dem Canvas
@@ -25,6 +26,13 @@ pub enum Transformation {
     Skalieren(Skalar),
 }
 
+fn vector_to_point(iced::Vector { x, y }: iced::Vector) -> iced::Point {
+    iced::Point { x, y }
+}
+fn point_to_vector(iced::Point { x, y }: iced::Point) -> iced::Vector {
+    iced::Vector { x, y }
+}
+
 /// Variante von /iced::canvas::path::Arc/ mit /Invertiert/-Implementierung
 ///
 /// Beschreibt einen Bogen um /zentrum/ mit /radius/ von Winkel /anfang/ bis /ende/
@@ -37,8 +45,39 @@ pub struct Bogen {
     pub ende: Winkel,
 }
 impl Bogen {
-    pub fn new(zentrum: Vektor, radius: Skalar, anfang: Winkel, ende: Winkel) -> Self {
-        Bogen { zentrum, radius, anfang, ende }
+    /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
+    /// und skaliert.
+    pub fn zu_iced(self, pivot: Position, faktor: Skalar) -> iced::canvas::path::Arc {
+        iced::canvas::path::Arc {
+            center: vector_to_point(Vektor::zu_iced(self.zentrum, pivot, faktor)),
+            radius: (self.radius * faktor).0,
+            start_angle: (self.anfang + pivot.winkel).0,
+            end_angle: (self.ende + pivot.winkel).0,
+        }
+    }
+
+    /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
+    pub fn zu_iced_unskaliert(self) -> iced::canvas::path::Arc {
+        self.zu_iced(
+            Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
+            Skalar::multiplikativ_neutral(),
+        )
+    }
+
+    /// Konvertiere einen /iced::Vector/, invers zu /zu_iced/.
+    ///
+    /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
+    pub fn von_iced(
+        iced::canvas::path::Arc { center, radius, start_angle, end_angle }: iced::canvas::path::Arc,
+        pivot: Position,
+        faktor: Skalar,
+    ) -> Self {
+        Bogen {
+            zentrum: Vektor::von_iced(point_to_vector(center), pivot, faktor),
+            radius: Skalar(radius) / faktor,
+            anfang: Winkel(start_angle) - pivot.winkel,
+            ende: Winkel(end_angle) - pivot.winkel,
+        }
     }
 }
 
@@ -132,13 +171,13 @@ impl Erbauer<Vektor, Bogen> {
 
 impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     // Beginne einen neuen Unterpfad bei /punkt/
-    pub fn move_to(&mut self, punkt: V, zu_iced: impl FnOnce(Vektor) -> iced::Point) {
-        self.builder.move_to(zu_iced(punkt.into()))
+    pub fn move_to(&mut self, punkt: V, zu_iced: impl FnOnce(Vektor) -> iced::Vector) {
+        self.builder.move_to(vector_to_point(zu_iced(punkt.into())))
     }
 
     /// Zeichne einen Linie vom aktuellen Punkt zu /ziel/
-    pub fn line_to(&mut self, ziel: V, zu_iced: impl FnOnce(Vektor) -> iced::Point) {
-        self.builder.line_to(zu_iced(ziel.into()))
+    pub fn line_to(&mut self, ziel: V, zu_iced: impl FnOnce(Vektor) -> iced::Vector) {
+        self.builder.line_to(vector_to_point(zu_iced(ziel.into())))
     }
 
     /// Zeichne den beschriebenen Bogen

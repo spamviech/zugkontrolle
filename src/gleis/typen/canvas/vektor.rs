@@ -97,32 +97,6 @@ impl Vektor {
     pub fn von_iced(iced::Vector { x, y }: iced::Vector, pivot: Position, faktor: Skalar) -> Self {
         (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
     }
-
-    /// Konvertiere zu einem /iced::Point/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
-    /// und skaliert.
-    pub fn zu_iced_point(self, pivot: Position, faktor: Skalar) -> iced::Point {
-        let Vektor { x, y } = (self - pivot.punkt).rotiere(pivot.winkel);
-        iced::Point { x: x.0, y: y.0 }
-    }
-
-    /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
-    pub fn zu_iced_point_unskaliert(self) -> iced::Point {
-        self.zu_iced_point(
-            Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
-            Skalar::multiplikativ_neutral(),
-        )
-    }
-
-    /// Konvertiere einen /iced::Point/, invers zu /zu_iced_point/.
-    ///
-    /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
-    pub fn von_iced_point(
-        iced::Point { x, y }: iced::Point,
-        pivot: Position,
-        faktor: Skalar,
-    ) -> Self {
-        (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
-    }
 }
 
 // Ein Vektor-Raum ist eine (additive) abelsche Gruppe

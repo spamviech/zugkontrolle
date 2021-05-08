@@ -386,7 +386,7 @@ pub mod deserialize {
     pub struct DreiwegeWeiche;
     impl<Z> From<DreiwegeWeiche> for weiche::DreiwegeWeiche<Z> {
         fn from(_: DreiwegeWeiche) -> Self {
-            weiche::DreiwegeWeiche::new(
+            weiche::DreiwegeWeiche::neu(
                 Länge::neu(0.),
                 Radius::neu(0.),
                 WinkelGradmaß::neu(0.).into(),
@@ -398,7 +398,7 @@ pub mod deserialize {
     pub struct KurvenWeiche;
     impl<Z> From<KurvenWeiche> for weiche::KurvenWeiche<Z> {
         fn from(_: KurvenWeiche) -> Self {
-            weiche::KurvenWeiche::new(
+            weiche::KurvenWeiche::neu(
                 Länge::neu(0.),
                 Radius::neu(0.),
                 WinkelGradmaß::neu(0.).into(),
@@ -457,7 +457,7 @@ pub mod deserialize {
     pub struct Kreuzung;
     impl<Z> From<Kreuzung> for kreuzung::Kreuzung<Z> {
         fn from(_: Kreuzung) -> Self {
-            kreuzung::Kreuzung::new(Länge::neu(0.), Radius::neu(0.), kreuzung::Variante::OhneKurve)
+            kreuzung::Kreuzung::neu(Länge::neu(0.), Radius::neu(0.), kreuzung::Variante::OhneKurve)
         }
     }
 }

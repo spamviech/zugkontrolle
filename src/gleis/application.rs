@@ -78,7 +78,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     ) -> iced::Command<Self::Message> {
         macro_rules! add_gleis {
             ($gleis:expr) => {{
-                self.gleise.add_at_mouse_height($gleis);
+                self.gleise.add_at_mouse($gleis);
             }};
         }
         match message {

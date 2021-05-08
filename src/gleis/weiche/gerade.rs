@@ -74,7 +74,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn zeichne(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
         zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
     ) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
@@ -127,7 +127,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
 
     fn fülle(
         &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
         zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
     ) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
