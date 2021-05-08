@@ -31,12 +31,6 @@ pub const ZERO: Winkel = Winkel(0.);
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub(crate) f32);
 
-impl Winkel {
-    pub const fn new(winkel: f32) -> Self {
-        Winkel(winkel)
-    }
-}
-
 // automatically implements Trait Into
 impl From<WinkelGradmaß> for Winkel {
     fn from(WinkelGradmaß(f): WinkelGradmaß) -> Winkel {
@@ -53,12 +47,36 @@ impl PartialOrd<WinkelGradmaß> for Winkel {
         self.partial_cmp(&Winkel::from(*other))
     }
 }
-impl AddAssign<Winkel> for Winkel {
-    fn add_assign(&mut self, Winkel(other): Winkel) {
+impl AddAssign<&Winkel> for Winkel {
+    fn add_assign(&mut self, Winkel(other): &Winkel) {
         self.0 += other
     }
 }
-impl Add<Winkel> for Winkel {
+impl AddAssign<&WinkelGradmaß> for Winkel {
+    fn add_assign(&mut self, WinkelGradmaß(other): &WinkelGradmaß) {
+        self.0 += other.to_radians()
+    }
+}
+impl<'t, T> AddAssign<T> for Winkel
+where
+    Winkel: AddAssign<&'t T>,
+{
+    fn add_assign(&mut self, rhs: Winkel) {
+        self += &rhs
+    }
+}
+impl<'t, T> AddAssign<&mut T> for Winkel
+where
+    Winkel: AddAssign<&'t T>,
+{
+    fn add_assign(&mut self, rhs: &mut Winkel) {
+        self += &*rhs
+    }
+}
+impl<T> Add<T> for Winkel
+where
+    Winkel: AddAssign<T>,
+{
     type Output = Self;
 
     fn add(mut self, other: Winkel) -> Winkel {
@@ -66,41 +84,39 @@ impl Add<Winkel> for Winkel {
         self
     }
 }
-impl AddAssign<WinkelGradmaß> for Winkel {
-    fn add_assign(&mut self, WinkelGradmaß(other): WinkelGradmaß) {
-        self.0 += other.to_radians()
-    }
-}
-impl Add<WinkelGradmaß> for Winkel {
-    type Output = Winkel;
-
-    fn add(mut self, other: WinkelGradmaß) -> Winkel {
-        self += other;
-        self
-    }
-}
-impl SubAssign<Winkel> for Winkel {
-    fn sub_assign(&mut self, Winkel(other): Winkel) {
+impl SubAssign<&Winkel> for Winkel {
+    fn sub_assign(&mut self, Winkel(other): &Winkel) {
         self.0 -= other
     }
 }
-impl Sub<Winkel> for Winkel {
-    type Output = Self;
-
-    fn sub(mut self, other: Winkel) -> Winkel {
-        self -= other;
-        self
-    }
-}
-impl SubAssign<WinkelGradmaß> for Winkel {
-    fn sub_assign(&mut self, WinkelGradmaß(other): WinkelGradmaß) {
+impl SubAssign<&WinkelGradmaß> for Winkel {
+    fn sub_assign(&mut self, WinkelGradmaß(other): &WinkelGradmaß) {
         self.0 -= other.to_radians()
     }
 }
-impl Sub<WinkelGradmaß> for Winkel {
-    type Output = Winkel;
+impl<'t, T> SubAssign<T> for Winkel
+where
+    Winkel: SubAssign<&'t T>,
+{
+    fn sub_assign(&mut self, rhs: Winkel) {
+        self -= &rhs
+    }
+}
+impl<'t, T> SubAssign<&mut T> for Winkel
+where
+    Winkel: SubAssign<&'t T>,
+{
+    fn sub_assign(&mut self, rhs: &mut Winkel) {
+        self -= &*rhs
+    }
+}
+impl<T> Sub<T> for Winkel
+where
+    Winkel: Sub<T>,
+{
+    type Output = Self;
 
-    fn sub(mut self, other: WinkelGradmaß) -> Winkel {
+    fn sub(mut self, other: T) -> Winkel {
         self -= other;
         self
     }
@@ -159,12 +175,6 @@ impl Trigonometrie for Winkel {
 /// Winkel \[Gradmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd)]
 pub struct WinkelGradmaß(f32);
-
-impl WinkelGradmaß {
-    pub const fn new(winkel: f32) -> Self {
-        WinkelGradmaß(winkel)
-    }
-}
 
 impl From<Winkel> for WinkelGradmaß {
     fn from(Winkel(f): Winkel) -> WinkelGradmaß {

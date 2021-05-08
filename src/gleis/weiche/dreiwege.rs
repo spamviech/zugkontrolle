@@ -34,14 +34,14 @@ impl<Z> DreiwegeWeiche<Z> {
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
-        description: impl Into<String>,
+        beschreibung: impl Into<String>,
     ) -> Self {
         DreiwegeWeiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             winkel,
-            beschreibung: Some(description.into()),
+            beschreibung: Some(beschreibung.into()),
         }
     }
 }
@@ -158,7 +158,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+    fn beschreibung(&self) -> Option<(Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
             let half_height = self.size().y.halbiert();
             let halbe_beschränkung = beschränkung::<Z>().halbiert();

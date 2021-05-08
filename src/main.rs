@@ -33,7 +33,7 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let height: Skalar = size.height;
         let res = self.gleise.add(Gleis {
             definition,
-            position: canvas::Position { point: Vektor { x, y: self.y }, winkel: Winkel::new(0.) },
+            position: Position { point: Vektor { x, y: self.y }, winkel: Winkel::new(0.) },
         });
         self.y += height + canvas::Y(25.).als_skalar();
         res
@@ -182,7 +182,7 @@ fn main() -> iced::Result {
     let (_kreuzung1_lock, kreuzung1_anchor_points) = append_lego.append(lego::KREUZUNG);
     // relocate
     if let Some(gleis_id) = &*gerade_lock.read() {
-        gleise_lego.relocate(gleis_id, canvas::Position {
+        gleise_lego.relocate(gleis_id, Position {
             point: Vektor { x: canvas::X(250.), y: canvas::Y(10.) },
             winkel: AngleDegrees::new(90.).into(),
         });

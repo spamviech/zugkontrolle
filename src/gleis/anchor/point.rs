@@ -20,7 +20,7 @@ impl rstar::Point for canvas::Vektor {
     const DIMENSIONS: usize = 2;
 
     fn generate(generator: impl Fn(usize) -> Self::Scalar) -> Self {
-        canvas::Vektor { x: generator(0), y: generator(1) }
+        canvas::Vektor { x: Skalar(generator(0)), y: Skalar(generator(1)) }
     }
 
     fn nth(&self, index: usize) -> Self::Scalar {

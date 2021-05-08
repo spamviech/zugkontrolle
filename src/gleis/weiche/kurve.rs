@@ -38,7 +38,7 @@ impl<Z> KurvenWeiche<Z> {
         radius: Radius,
         winkel: Winkel,
         richtung: Richtung,
-        description: impl Into<String>,
+        beschreibung: impl Into<String>,
     ) -> Self {
         KurvenWeiche {
             zugtyp: PhantomData,
@@ -46,7 +46,7 @@ impl<Z> KurvenWeiche<Z> {
             radius: radius.als_skalar(),
             winkel,
             richtung,
-            beschreibung: Some(description.into()),
+            beschreibung: Some(beschreibung.into()),
         }
     }
 }
@@ -65,20 +65,22 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let KurvenWeiche { länge, radius, winkel, .. } = *self;
         let size_gerade = gerade::size::<Z>(länge);
         let size_kurve = kurve::size::<Z>(radius, winkel);
-        Vektor { width: size_gerade.width + size_kurve.width, height: size_kurve.height }
+        Vektor { x: size_gerade.x + size_kurve.x, y: size_kurve.y }
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(
+        &self,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+    ) -> Vec<Pfad> {
         // utility sizes
         let außen_transformation =
-            Transformation::Translation(Vektor::new(canvas::X(0.) + self.länge, canvas::Y(0.)));
+            Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![Transformation::Translation(Vektor {
-                dx: canvas::X(0.).als_skalar(),
-                dy: self.size().height,
-            })];
+            let mut transformations =
+                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
             paths.push(kurve::zeichne(
                 self.zugtyp,
@@ -87,6 +89,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Alle,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
@@ -95,6 +99,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 false,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
             ));
             // Äußere Kurve
             transformations.push(außen_transformation);
@@ -105,6 +110,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Ende,
                 transformations,
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         } else {
             // Innere Kurve
@@ -115,6 +122,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Alle,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
@@ -123,6 +132,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 false,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
             ));
             // Äußere Kurve
             paths.push(kurve::zeichne(
@@ -132,23 +142,27 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Ende,
                 vec![außen_transformation],
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         }
         // return value
         paths
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(
+        &self,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+    ) -> Vec<Pfad> {
         // utility sizes
         let außen_transformation =
-            Transformation::Translation(Vektor::new(canvas::X(0.) + self.länge, canvas::Y(0.)));
+            Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![Transformation::Translation(Vektor {
-                dx: canvas::X(0.).als_skalar(),
-                dy: self.size().height,
-            })];
+            let mut transformations =
+                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Innere Kurve
             paths.push(kurve::fülle(
                 self.zugtyp,
@@ -156,6 +170,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::fülle(
@@ -163,6 +179,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.länge,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
             ));
             // Äußere Kurve
             transformations.push(außen_transformation);
@@ -172,6 +189,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 transformations,
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         } else {
             // Innere Kurve
@@ -181,6 +200,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::fülle(
@@ -188,6 +209,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.länge,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
             ));
             // Äußere Kurve
             paths.push(kurve::fülle(
@@ -196,32 +218,34 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 vec![außen_transformation],
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         }
         // return value
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+    fn beschreibung(&self) -> Option<(Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
-            let start_height: canvas::Y;
-            let multiplier: f32;
+            let start_height: Skalar;
+            let multiplier: Skalar;
             match self.richtung {
                 Richtung::Rechts => {
-                    start_height = canvas::Y(0.);
-                    multiplier = 1.;
+                    start_height = Skalar(0.);
+                    multiplier = Skalar(1.);
                 },
                 Richtung::Links => {
-                    start_height = canvas::Y(0.) + self.size().height;
-                    multiplier = -1.;
+                    start_height = self.size().y;
+                    multiplier = Skalar(-1.);
                 },
             };
             (
-                canvas::Position {
-                    point: Vektor::new(
-                        canvas::X(0.) + self.länge.min(&(0.5 * self.size().width)),
-                        start_height + multiplier * 0.5 * beschränkung::<Z>(),
-                    ),
+                Position {
+                    punkt: Vektor {
+                        x: self.länge.min(&(self.size().y.halbiert())),
+                        y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+                    },
                     winkel: Winkel::new(0.),
                 },
                 text,
@@ -231,65 +255,55 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {
         // utility sizes
-        let start_x: canvas::X = canvas::X(0.);
-        let start_height: canvas::Y;
-        let multiplier: f32;
+        let start_height: Skalar;
+        let multiplier: Skalar;
         match self.richtung {
             Richtung::Rechts => {
-                start_height = canvas::Y(0.);
-                multiplier = 1.;
+                start_height = Skalar(0.);
+                multiplier = Skalar(1.);
             },
             Richtung::Links => {
-                start_height = canvas::Y(0.) + self.size().height;
-                multiplier = -1.;
+                start_height = self.size().y;
+                multiplier = Skalar(-1.);
             },
         };
-        let start_vector = Vektor::new(start_x, start_height);
+        let start_vector = Vektor { x: Skalar(0.), y: start_height };
         // sub-checks
         let mut relative_vector = relative_position - start_vector;
-        relative_vector.dy *= multiplier;
-        let verschoben_vector =
-            relative_vector - Vektor { dx: self.länge, dy: canvas::Y(0.).als_skalar() };
+        relative_vector.y *= multiplier;
+        let verschoben_vector = relative_vector - Vektor { x: self.länge, y: Skalar(0.) };
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, verschoben_vector)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let start_height: canvas::Y;
-        let multiplier: f32;
+        // utility sizes
+        let start_height: Skalar;
+        let multiplier: Skalar;
         match self.richtung {
             Richtung::Rechts => {
-                start_height = canvas::Y(0.);
-                multiplier = 1.;
+                start_height = Skalar(0.);
+                multiplier = Skalar(1.);
             },
             Richtung::Links => {
-                start_height = canvas::Y(0.) + self.size().height;
-                multiplier = -1.;
+                start_height = self.size().y;
+                multiplier = Skalar(-1.);
             },
         };
-        let halbe_beschränkung: Skalar = 0.5 * beschränkung::<Z>();
-        let radius_abstand: Skalar = self.radius;
-        let kurve_anchor_direction: Vektor =
-            Vektor::new(canvas::X(self.winkel.cos()), canvas::Y(multiplier * self.winkel.sin()));
-        let kurve_anchor_x: canvas::X = canvas::X(0.) + radius_abstand.as_x() * self.winkel.sin();
-        let kurve_anchor_y: canvas::Y = start_height
-            + multiplier * (halbe_beschränkung + radius_abstand.as_y() * (1. - self.winkel.cos()));
+        let halbe_beschränkung: Skalar = beschränkung::<Z>().halbiert();
+        let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
+        let innen = anfang
+            + Vektor {
+                x: self.radius * Skalar(self.winkel.sin()),
+                y: multiplier * self.radius * Skalar(1. - self.winkel.cos()),
+            };
         AnchorPoints {
-            anfang: anchor::Anchor {
-                position: Vektor {
-                    x: canvas::X(0.),
-                    y: start_height + multiplier * halbe_beschränkung,
-                },
-                direction: Vektor::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
-            },
-            innen: anchor::Anchor {
-                position: Vektor { x: kurve_anchor_x, y: kurve_anchor_y },
-                direction: kurve_anchor_direction,
-            },
+            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
+            innen: anchor::Anchor { position: innen, richtung: self.winkel },
             außen: anchor::Anchor {
-                position: Vektor { x: kurve_anchor_x + self.länge, y: kurve_anchor_y },
-                direction: kurve_anchor_direction,
+                position: innen + Vektor { x: self.länge, y: Skalar(0.) },
+                richtung: self.winkel,
             },
         }
     }

@@ -73,7 +73,7 @@ impl<T> Hash for GleisId<T> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
     pub definition: T,
-    pub position: canvas::Position,
+    pub position: Position,
 }
 
 #[derive(zugkontrolle_derive::Debug)]
@@ -247,7 +247,7 @@ enum Modus<Z> {
 pub struct Gleise<Z> {
     canvas: canvas::Cache,
     // TODO actually use pivot and scale
-    pivot: canvas::Position,
+    pivot: Position,
     scale: f32,
     maps: GleiseMaps<Z>,
     anchor_points: anchor::rstar::RTree,
@@ -260,7 +260,7 @@ impl<Z> Gleise<Z> {
     pub fn new() -> Self {
         Gleise {
             canvas: canvas::Cache::new(),
-            pivot: canvas::Position {
+            pivot: Position {
                 point: Vektor::new(canvas::X(0.), canvas::Y(0.)),
                 winkel: Winkel::new(0.),
             },
@@ -290,7 +290,7 @@ impl<Z> Gleise<Z> {
     }
 }
 
-pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &canvas::Position) {
+pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     // bewege Kontext zur Position
     frame.transformation(&Transformation::Translation(position.point.into()));
     // drehe Kontext um (0,0)
@@ -403,7 +403,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
             let point =
                 position.point + Vektor::from(relative_position.point).rotate(position.winkel);
             let winkel = position.winkel + relative_position.winkel;
-            let absolute_position = canvas::Position { point, winkel };
+            let absolute_position = Position { point, winkel };
             frame.with_save(|frame| {
                 move_to_position(frame, &absolute_position);
                 frame.fill_text(canvas::Text {
@@ -425,7 +425,7 @@ fn relocate_grabbed<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
 ) {
     let Gleis { position, .. } =
         T::get_map_mut(&mut gleise.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
-    let position_neu = canvas::Position { point, winkel: position.winkel };
+    let position_neu = Position { point, winkel: position.winkel };
     gleise.relocate(&gleis_id, position_neu);
 }
 fn snap_to_anchor<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
@@ -619,7 +619,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
     }
 }
 
-impl canvas::Position {
+impl Position {
     /// Position damit anchor::Anchor übereinander mit entgegengesetzter Richtung liegen
     fn attach_position<T>(
         definition: &T,
@@ -634,7 +634,7 @@ impl canvas::Position {
         let anchor_point = anchor_points.get(anchor_name);
         let winkel: Winkel = anchor_point.direction.winkel_mit_x_achse()
             - (-target_anchor_point.direction).winkel_mit_x_achse();
-        canvas::Position {
+        Position {
             point: Vektor {
                 x: target_anchor_point.position.x
                     - anchor_point.position.x.als_skalar() * winkel.cos()
@@ -693,7 +693,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     {
         self.add(Gleis {
             definition,
-            position: canvas::Position {
+            position: Position {
                 point: self.pivot.point + Vektor::new(canvas::X(0.), self.last_mouse_y),
                 winkel: self.pivot.winkel,
             },
@@ -712,8 +712,7 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         // calculate new position
-        let position =
-            canvas::Position::attach_position(&definition, anchor_name, target_anchor_point);
+        let position = Position::attach_position(&definition, anchor_name, target_anchor_point);
         // add new gleis
         self.add(Gleis { definition, position })
     }
@@ -721,11 +720,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     /// Move an existing gleis to the new position.
     ///
     /// This is called relocate instead of move since the latter is a reserved keyword.
-    pub fn relocate<T>(
-        &mut self,
-        gleis_id: &GleisId<T>,
-        position_neu: canvas::Position,
-    ) -> T::AnchorPoints
+    pub fn relocate<T>(&mut self, gleis_id: &GleisId<T>, position_neu: Position) -> T::AnchorPoints
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
@@ -777,7 +772,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             let Gleis { definition, .. } = T::get_map_mut(&mut self.maps)
                 .get(&gleis_id)
                 .expect(&format!("Gleis {:?} nicht mehr in HashMap", gleis_id));
-            canvas::Position::attach_position(definition, anchor_name, target_anchor_point)
+            Position::attach_position(definition, anchor_name, target_anchor_point)
         };
         // move gleis to new position
         self.relocate(gleis_id, position)
@@ -815,7 +810,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 }
 
-fn warn_poison<T: Debug>(poisoned: PoisonError<T>, description: &str) -> T {
-    warn!("Poisoned {} RwLock: {:?}! Trying to continue anyway.", description, poisoned);
+fn warn_poison<T: Debug>(poisoned: PoisonError<T>, beschreibung: &str) -> T {
+    warn!("Poisoned {} RwLock: {:?}! Trying to continue anyway.", beschreibung, poisoned);
     poisoned.into_inner()
 }

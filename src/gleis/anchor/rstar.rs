@@ -38,7 +38,7 @@ impl RTree {
         gleis_id: GleisId<Any>,
         &Anchor { position, richtung: _ }: &Anchor,
     ) -> Option<Anchor> {
-        self.0.locate_within_distance(position, SEARCH_RADIUS).find_map(|point_with_data| {
+        self.0.locate_within_distance(position, SEARCH_RADIUS.0).find_map(|point_with_data| {
             let stored_position = point_with_data.position();
             let PointWithData { data: (stored_id, stored_direction), .. } = point_with_data;
             if stored_id != &gleis_id {
@@ -59,7 +59,7 @@ impl RTree {
     ) -> (bool, bool) {
         let mut opposing: bool = false;
         let mut grabbed: bool = false;
-        for point_with_data in self.0.locate_within_distance(position, SEARCH_RADIUS) {
+        for point_with_data in self.0.locate_within_distance(position, SEARCH_RADIUS.0) {
             let PointWithData { data: (stored_id, stored_direction), .. } = point_with_data;
             if !opposing
                 && stored_id != gleis_id

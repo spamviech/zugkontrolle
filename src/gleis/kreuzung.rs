@@ -47,14 +47,14 @@ impl<Z> Kreuzung<Z> {
         länge: Länge,
         radius: Radius,
         variante: Variante,
-        description: impl Into<String>,
+        beschreibung: impl Into<String>,
     ) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
             radius: radius.als_skalar(),
             variante,
-            beschreibung: Some(description.into()),
+            beschreibung: Some(beschreibung.into()),
         }
     }
 }
@@ -210,7 +210,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+    fn beschreibung(&self) -> Option<(Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
             // utility sizes
             let half_height = self.size().y.halbiert();

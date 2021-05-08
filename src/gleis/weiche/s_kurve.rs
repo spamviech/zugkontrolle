@@ -54,7 +54,7 @@ impl<Z> SKurvenWeiche<Z> {
         radius_reverse: Radius,
         angle_reverse: Winkel,
         direction: Richtung,
-        description: impl Into<String>,
+        beschreibung: impl Into<String>,
     ) -> Self {
         SKurvenWeiche {
             zugtyp: PhantomData,
@@ -64,7 +64,7 @@ impl<Z> SKurvenWeiche<Z> {
             radius_reverse: radius_reverse.als_skalar(),
             winkel_reverse: angle_reverse,
             richtung: direction,
-            beschreibung: Some(description.into()),
+            beschreibung: Some(beschreibung.into()),
         }
     }
 }
@@ -87,20 +87,20 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         }
         .max(0.);
         let radius_außen = radius_begrenzung_außen::<Z>(radius);
-        let radius_außen_x: Skalar = radius_außen.as_x();
+        let radius_außen_x: Skalar = radius_außen;
         let radius_innen = radius_begrenzung_innen::<Z>(radius);
-        let radius_innen_x: Skalar = radius_innen.as_x();
+        let radius_innen_x: Skalar = radius_innen;
         let radius_reverse_außen = radius_begrenzung_außen::<Z>(radius_reverse);
         let radius_reverse_innen = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
         let width_oben1: Skalar = radius_außen_x * factor_width;
         let width_oben2: Skalar =
-            radius_außen_x * winkel.sin() + radius_reverse_innen.as_x() * factor_width_reverse;
+            radius_außen_x * winkel.sin() + radius_reverse_innen * factor_width_reverse;
         let width_oben: Skalar = width_oben1.max(&width_oben2);
         // untere Beschränkung
         let width_unten1: Skalar = radius_innen_x * factor_width;
         let width_unten2: Skalar =
-            radius_innen_x * winkel.sin() + radius_reverse_außen.as_x() * factor_width_reverse;
+            radius_innen_x * winkel.sin() + radius_reverse_außen * factor_width_reverse;
         let width_unten: Skalar = width_unten1.max(&width_unten2);
 
         // Höhen-Berechnung
@@ -111,8 +111,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
             1.
         }
         .max(0.);
-        let radius_außen: Skalar = radius_begrenzung_außen::<Z>(radius).as_y();
-        let radius_reverse_innen: Skalar = radius_begrenzung_innen::<Z>(radius_reverse).as_y();
+        let radius_außen: Skalar = radius_begrenzung_außen::<Z>(radius);
+        let radius_reverse_innen: Skalar = radius_begrenzung_innen::<Z>(radius_reverse);
         // obere Beschränkung
         let height_oben1: Skalar = radius_außen * factor_height;
         let height_oben2: Skalar =
@@ -120,8 +120,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let height_oben: Skalar = height_oben1.max(&height_oben2);
         // untere Beschränkung
         let gleis_unten_start = beschränkung::<Z>();
-        let radius_innen: Skalar = radius_begrenzung_innen::<Z>(radius).as_y();
-        let radius_reverse_außen: Skalar = radius_begrenzung_außen::<Z>(radius_reverse).as_y();
+        let radius_innen: Skalar = radius_begrenzung_innen::<Z>(radius);
+        let radius_reverse_außen: Skalar = radius_begrenzung_außen::<Z>(radius_reverse);
         let height_unten1 = gleis_unten_start + radius_innen * factor_height;
         let height_unten2 = gleis_unten_start
             + radius_innen * (1. - winkel.cos())
@@ -129,35 +129,37 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         let height_unten = height_unten1.max(&height_unten2);
 
         Vektor {
-            width: size_gerade.width.max(&width_oben.max(&width_unten)),
-            height: height_oben.max(&height_unten),
+            x: size_gerade.width.max(&width_oben.max(&width_unten)),
+            y: height_oben.max(&height_unten),
         }
     }
 
-    fn zeichne(&self) -> Vec<Pfad> {
+    fn zeichne(
+        &self,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+    ) -> Vec<Pfad> {
         // utility sizes
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
                 Transformation::Translation(Vektor {
-                    dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
-                    dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
+                    x: multiplier * radius_begrenzung_außen * winkel.sin(),
+                    y: multiplier * radius_begrenzung_außen * (1. - winkel.cos()),
                 }),
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
-                    dx: canvas::X(0.).als_skalar(),
-                    dy: multiplier * beschränkung::<Z>(),
+                    x: Skalar(0.),
+                    y: multiplier * beschränkung::<Z>(),
                 }),
             ]
         };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![Transformation::Translation(Vektor {
-                dx: canvas::X(0.).als_skalar(),
-                dy: self.size().height,
-            })];
+            let mut transformations =
+                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().height })];
             // Gerade
             paths.push(gerade::zeichne(
                 self.zugtyp,
@@ -193,6 +195,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 true,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
             ));
             // Kurve nach außen
             paths.push(kurve::zeichne(
@@ -202,6 +205,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 kurve::Beschränkung::Keine,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Kurve nach innen
             paths.push(kurve::zeichne(
@@ -211,42 +216,47 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 kurve::Beschränkung::Ende,
                 s_kurve_transformations(1.),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         }
         // return value
         paths
     }
 
-    fn fülle(&self) -> Vec<Pfad> {
+    fn fülle(
+        &self,
+        zu_iced_vektor: impl Fn(Vektor) -> iced::Point + 'static,
+        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
+    ) -> Vec<Pfad> {
         // utility sizes
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let s_kurve_transformations = |multiplier: f32| {
             let winkel = multiplier * self.winkel;
             vec![
                 Transformation::Translation(Vektor {
-                    dx: multiplier * radius_begrenzung_außen.as_x() * winkel.sin(),
-                    dy: multiplier * radius_begrenzung_außen.as_y() * (1. - winkel.cos()),
+                    x: multiplier * radius_begrenzung_außen * winkel.sin(),
+                    y: multiplier * radius_begrenzung_außen * (1. - winkel.cos()),
                 }),
                 Transformation::Rotation(winkel),
                 Transformation::Translation(Vektor {
-                    dx: canvas::X(0.).als_skalar(),
-                    dy: multiplier * beschränkung::<Z>(),
+                    x: Skalar(0.),
+                    y: multiplier * beschränkung::<Z>(),
                 }),
             ]
         };
         // Zeichne Pfad
         let mut paths = Vec::new();
         if self.richtung == Richtung::Links {
-            let mut transformations = vec![Transformation::Translation(Vektor {
-                dx: canvas::X(0.).als_skalar(),
-                dy: self.size().height,
-            })];
+            let mut transformations =
+                vec![Transformation::Translation(Vektor { x: Skalar(0.), y: self.size().y })];
             // Gerade
             paths.push(gerade::fülle(
                 self.zugtyp,
                 self.länge,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
             ));
             // Kurve nach außen
             paths.push(kurve::fülle(
@@ -255,6 +265,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Kurve nach innen
             transformations.extend(s_kurve_transformations(-1.));
@@ -264,6 +276,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel_reverse,
                 transformations,
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         } else {
             // Gerade
@@ -272,6 +286,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.länge,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
             ));
             // Kurve nach außen
             paths.push(kurve::fülle(
@@ -280,6 +295,8 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
             // Kurve nach innen
             paths.push(kurve::fülle(
@@ -288,33 +305,35 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
                 self.winkel_reverse,
                 s_kurve_transformations(1.),
                 pfad::Erbauer::with_invert_y,
+                zu_iced_vektor,
+                zu_iced_bogen,
             ));
         }
         // return value
         paths
     }
 
-    fn beschreibung(&self) -> Option<(canvas::Position, &String)> {
+    fn beschreibung(&self) -> Option<(Position, &String)> {
         self.beschreibung.as_ref().map(|text| {
-            let start_height: canvas::Y;
-            let multiplier: f32;
+            let start_height: Skalar;
+            let multiplier: Skalar;
             match self.richtung {
                 Richtung::Rechts => {
-                    start_height = canvas::Y(0.);
-                    multiplier = 1.;
+                    start_height = Skalar(0.);
+                    multiplier = Skalar(1.);
                 },
                 Richtung::Links => {
-                    start_height = canvas::Y(0.) + self.size().height;
-                    multiplier = -1.;
+                    start_height = self.size().y;
+                    multiplier = Skalar(-1.);
                 },
             };
             (
-                canvas::Position {
-                    point: Vektor::new(
-                        canvas::X(0.) + 0.5 * self.länge,
-                        start_height + multiplier * 0.5 * beschränkung::<Z>(),
-                    ),
-                    winkel: Winkel::new(0.),
+                Position {
+                    punkt: Vektor {
+                        x: self.länge.halbiert(),
+                        y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+                    },
+                    winkel: Winkel(0.),
                 },
                 text,
             )
@@ -323,82 +342,72 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
 
     fn innerhalb(&self, relative_position: Vektor) -> bool {
         // utility sizes
-        let start_x: canvas::X = canvas::X(0.);
-        let start_height: canvas::Y;
-        let multiplier: f32;
+        let start_height: Skalar;
+        let multiplier: Skalar;
         match self.richtung {
             Richtung::Rechts => {
-                start_height = canvas::Y(0.);
-                multiplier = 1.;
+                start_height = Skalar(0.);
+                multiplier = Skalar(1.);
             },
             Richtung::Links => {
-                start_height = canvas::Y(0.) + self.size().height;
-                multiplier = -1.;
+                start_height = self.size().y;
+                multiplier = Skalar(-1.);
             },
         };
-        let start_vector = Vektor::new(start_x, start_height);
+        let start_vector = Vektor { x: Skalar(0.), y: start_height };
         let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(self.radius);
         let multiplied_winkel = multiplier * self.winkel;
         let s_kurve_start_vector = Vektor {
-            dx: multiplier * radius_begrenzung_außen.as_x() * multiplied_winkel.sin(),
-            dy: radius_begrenzung_außen.as_y() * (1. - multiplied_winkel.cos()),
+            x: multiplier * radius_begrenzung_außen * multiplied_winkel.sin(),
+            y: radius_begrenzung_außen * (1. - multiplied_winkel.cos()),
         };
         // sub-checks
         let mut relative_vector = relative_position - start_vector;
-        relative_vector.dy *= multiplier;
+        relative_vector.y *= multiplier;
         let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotate(-self.winkel);
-        s_kurve_vector -= Vektor { dx: canvas::X(0.).als_skalar(), dy: beschränkung::<Z>() };
-        s_kurve_vector.dy *= -1.;
+        s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung::<Z>() };
+        s_kurve_vector.y = -s_kurve_vector.y;
         gerade::innerhalb::<Z>(self.länge, relative_vector)
             || kurve::innerhalb::<Z>(self.radius, self.winkel, relative_vector)
             || kurve::innerhalb::<Z>(self.radius_reverse, self.winkel_reverse, s_kurve_vector)
     }
 
     fn anchor_points(&self) -> Self::AnchorPoints {
-        let start_height: canvas::Y;
-        let multiplier: f32;
+        let start_height: Skalar;
+        let multiplier: Skalar;
         match self.richtung {
             Richtung::Rechts => {
-                start_height = canvas::Y(0.);
-                multiplier = 1.;
+                start_height = Skalar;
+                multiplier = Skalar(1.);
             },
             Richtung::Links => {
-                start_height = canvas::Y(0.) + self.size().height;
-                multiplier = -1.;
+                start_height = self.size().y;
+                multiplier = Skalar(-1.);
             },
         };
         let angle_difference = self.winkel - self.winkel_reverse;
+        let anfang = Vektor {
+            x: Skalar(0.),
+            y: start_height + multiplier * beschränkung::<Z>().halbiert(),
+        };
         weiche::gerade::AnchorPoints {
-            anfang: anchor::Anchor {
-                position: Vektor {
-                    x: canvas::X(0.),
-                    y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
-                },
-                direction: Vektor::new(canvas::X(-1.), canvas::Y(multiplier * 0.)),
-            },
+            anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },
             gerade: anchor::Anchor {
-                position: Vektor {
-                    x: canvas::X(0.) + self.länge,
-                    y: start_height + multiplier * 0.5 * beschränkung::<Z>(),
-                },
-                direction: Vektor::new(canvas::X(1.), canvas::Y(multiplier * 0.)),
+                position: anfang + Vektor { x: self.länge, y: Skalar(0.) },
+                richtung: winkel::ZERO,
             },
             kurve: anchor::Anchor {
-                position: Vektor {
-                    x: canvas::X(0.)
-                        + self.radius.as_x() * self.winkel.sin()
-                        + self.radius_reverse.as_x() * (self.winkel.sin() - angle_difference.sin()),
-                    y: start_height
-                        + multiplier
-                            * (0.5 * beschränkung::<Z>()
-                                + self.radius.as_y() * (1. - self.winkel.cos())
-                                + self.radius_reverse.as_y()
-                                    * (angle_difference.cos() - self.winkel.cos())),
-                },
-                direction: Vektor::new(
-                    canvas::X(angle_difference.cos()),
-                    canvas::Y(multiplier * angle_difference.sin()),
-                ),
+                position: anfang
+                    + Vektor {
+                        x: self.radius * Skalar(self.winkel.sin())
+                            + self.radius_reverse
+                                * Skalar(self.winkel.sin() - angle_difference.sin()),
+                        y: multiplier
+                            * (self.radius * Skalar(1. - self.winkel.cos())
+                                + self.radius_reverse
+                                    * Skalar(angle_difference.cos() - self.winkel.cos())),
+                    },
+                richtung: multiplier.0 * angle_difference,
             },
         }
     }
