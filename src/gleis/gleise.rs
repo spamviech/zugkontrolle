@@ -669,9 +669,9 @@ impl Position {
         T: Zeichnen,
         T::AnchorPoints: Lookup<T::AnchorName>,
     {
-        let anchor_points: T::AnchorPoints = definition.anchor_points();
+        let anchor_points = definition.anchor_points();
         let anchor_point = anchor_points.get(anchor_name);
-        let winkel: Winkel = anchor_point.richtung + target_anchor_point.richtung;
+        let winkel: Winkel = winkel::PI - anchor_point.richtung + target_anchor_point.richtung;
         Position {
             punkt: Vektor {
                 x: target_anchor_point.position.x - anchor_point.position.x * Skalar(winkel.cos())
