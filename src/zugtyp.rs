@@ -11,7 +11,7 @@ use crate::gleis::{
 
 pub mod lego;
 // path attribute necessary due to non-ascii module name (at least for now)
-#[path = "./zugtyp/märklin.rs"]
+#[path = "zugtyp/märklin.rs"]
 pub mod märklin;
 
 /// TODO
