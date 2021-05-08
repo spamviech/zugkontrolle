@@ -1,7 +1,5 @@
 //! This modules defines all Märklin rails I have access to.
 
-use std::f32::consts::PI;
-
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kreuzung::{self, Kreuzung};
 use crate::gleis::kurve::Kurve;
@@ -68,16 +66,9 @@ impl Zugtyp for Märklin {
 }
 
 // Märklin Kurven-Radien
-const RADIUS_INDUSTRIE: Radius = Radius::new(286.);
-const RADIUS_R1: Radius = Radius::new(360.);
-const RADIUS_R2: Radius = Radius::new(437.4);
-
-// floating point semantics aren't supported in const functions
-macro_rules! as_radians {
-    ($degrees:expr) => {
-        $degrees * PI / 180.
-    };
-}
+const RADIUS_INDUSTRIE: Radius = Radius::neu(286.);
+const RADIUS_R1: Radius = Radius::neu(360.);
+const RADIUS_R2: Radius = Radius::neu(437.4);
 
 /*
 H0 Spurweite: 16.5mm
@@ -92,28 +83,28 @@ Gerade
     5208: L8mm
 */
 pub fn gerade_5106() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(180.), "5106")
+    Gerade::neu_mit_beschreibung(Länge::neu(180.), "5106")
 }
 pub fn gerade_5107() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(90.), "5107")
+    Gerade::neu_mit_beschreibung(Länge::neu(90.), "5107")
 }
 pub fn gerade_5129() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(70.), "5129")
+    Gerade::neu_mit_beschreibung(Länge::neu(70.), "5129")
 }
 pub fn gerade_5108() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(45.), "5108")
+    Gerade::neu_mit_beschreibung(Länge::neu(45.), "5108")
 }
 pub fn gerade_5109() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(33.5), "5109")
+    Gerade::neu_mit_beschreibung(Länge::neu(33.5), "5109")
 }
 pub fn gerade_5110() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(22.5), "5110")
+    Gerade::neu_mit_beschreibung(Länge::neu(22.5), "5110")
 }
 pub fn gerade_5210() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(16.), "5210")
+    Gerade::neu_mit_beschreibung(Länge::neu(16.), "5210")
 }
 pub fn gerade_5208() -> Gerade<Märklin> {
-    Gerade::new_with_description(Länge::new(8.), "5208")
+    Gerade::neu_mit_beschreibung(Länge::neu(8.), "5208")
 }
 
 /*
@@ -128,28 +119,28 @@ Kurve
     5205: 5.72°, R437.4mm
 */
 pub fn kurve_5120() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_INDUSTRIE, Winkel::new(as_radians!(45.)), "5120")
+    Kurve::neu_mit_beschreibung(RADIUS_INDUSTRIE, WinkelGradmaß::neu(45.).into(), "5120")
 }
 pub fn kurve_5100() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R1, Winkel::new(as_radians!(30.)), "5100")
+    Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(30.).into(), "5100")
 }
 pub fn kurve_5101() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R1, Winkel::new(as_radians!(15.)), "5101")
+    Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(15.).into(), "5101")
 }
 pub fn kurve_5102() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R1, Winkel::new(as_radians!(7.5)), "5102")
+    Kurve::neu_mit_beschreibung(RADIUS_R1, WinkelGradmaß::neu(7.5).into(), "5102")
 }
 pub fn kurve_5200() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(30.)), "5200")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(30.).into(), "5200")
 }
 pub fn kurve_5206() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(24.28)), "5206")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(24.28).into(), "5206")
 }
 pub fn kurve_5201() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(15.)), "5201")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(15.).into(), "5201")
 }
 pub fn kurve_5205() -> Kurve<Märklin> {
-    Kurve::new_with_description(RADIUS_R2, Winkel::new(as_radians!(5.72)), "5205")
+    Kurve::neu_mit_beschreibung(RADIUS_R2, WinkelGradmaß::neu(5.72).into(), "5205")
 }
 
 /*
@@ -158,13 +149,13 @@ Weiche
     5137 L/R: L180mm, 22.5°, R437.4mm
     5202 L/R: L180mm, 24.28°, R437.4mm
 */
-const ANGLE_5117: Winkel = Winkel::new(as_radians!(30.));
+const ANGLE_5117: Winkel = WinkelGradmaß::neu(30.).into();
 pub fn weiche_5117(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5117L",
         weiche::Richtung::Rechts => "5117R",
     };
-    Weiche::new_with_description(Länge::new(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
+    Weiche::neu_mit_beschreibung(Länge::neu(180.), RADIUS_R2, ANGLE_5117, richtung, beschreibung)
 }
 pub fn weiche_5117_rechts() -> Weiche<Märklin> {
     weiche_5117(weiche::Richtung::Rechts)
@@ -172,13 +163,13 @@ pub fn weiche_5117_rechts() -> Weiche<Märklin> {
 pub fn weiche_5117_links() -> Weiche<Märklin> {
     weiche_5117(weiche::Richtung::Links)
 }
-const ANGLE_5137: Winkel = Winkel::new(as_radians!(22.5));
+const ANGLE_5137: Winkel = WinkelGradmaß::neu(22.5).into();
 pub fn weiche_5137(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5137L",
         weiche::Richtung::Rechts => "5137R",
     };
-    Weiche::new_with_description(Länge::new(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
+    Weiche::neu_mit_beschreibung(Länge::neu(180.), RADIUS_R2, ANGLE_5137, richtung, beschreibung)
 }
 pub fn weiche_5137_rechts() -> Weiche<Märklin> {
     weiche_5137(weiche::Richtung::Rechts)
@@ -186,13 +177,13 @@ pub fn weiche_5137_rechts() -> Weiche<Märklin> {
 pub fn weiche_5137_links() -> Weiche<Märklin> {
     weiche_5137(weiche::Richtung::Links)
 }
-const ANGLE_5202: Winkel = Winkel::new(as_radians!(24.28));
+const ANGLE_5202: Winkel = WinkelGradmaß::neu(24.28).into();
 pub fn weiche_5202(richtung: weiche::Richtung) -> Weiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5202L",
         weiche::Richtung::Rechts => "5202R",
     };
-    Weiche::new_with_description(Länge::new(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
+    Weiche::neu_mit_beschreibung(Länge::neu(180.), RADIUS_R2, ANGLE_5202, richtung, beschreibung)
 }
 pub fn weiche_5202_rechts() -> Weiche<Märklin> {
     weiche_5202(weiche::Richtung::Rechts)
@@ -206,10 +197,10 @@ Dreiwege-Weiche
     5214: L180mm, 24,28°, R437.4mm
 */
 pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Märklin> {
-    DreiwegeWeiche::new_with_description(
-        Länge::new(180.),
+    DreiwegeWeiche::neu_mit_beschreibung(
+        Länge::neu(180.),
         RADIUS_R2,
-        Winkel::new(as_radians!(24.28)),
+        WinkelGradmaß::neu(24.28).into(),
         "5214",
     )
 }
@@ -218,14 +209,14 @@ pub fn dreiwege_weiche_5214() -> DreiwegeWeiche<Märklin> {
 Kurven-Weiche
     5140 L/R: 30°, Rin360mm, Rout360mm @ 77.4mm (Gerade vor Bogen)
 */
-const ANGLE_5140: Winkel = Winkel(as_radians!(30.));
+const ANGLE_5140: Winkel = WinkelGradmaß::neu(30.).into();
 pub fn kurven_weiche_5140(richtung: weiche::Richtung) -> KurvenWeiche<Märklin> {
     let beschreibung = match richtung {
         weiche::Richtung::Links => "5140L",
         weiche::Richtung::Rechts => "5140R",
     };
-    KurvenWeiche::new_with_description(
-        Länge::new(77.3),
+    KurvenWeiche::neu_mit_beschreibung(
+        Länge::neu(77.3),
         RADIUS_R1,
         ANGLE_5140,
         richtung,
@@ -245,8 +236,8 @@ Kreuzung
     5207: L180mm, 24.28°, R437.4mm
 */
 pub fn kreuzung_5128() -> Kreuzung<Märklin> {
-    Kreuzung::new_with_description(
-        Länge::new(193.),
+    Kreuzung::neu_mit_beschreibung(
+        Länge::neu(193.),
         RADIUS_R1,
         kreuzung::Variante::MitKurve,
         "5128",
@@ -255,8 +246,8 @@ pub fn kreuzung_5128() -> Kreuzung<Märklin> {
 // Länge/Winkel 24.28 passt nicht!
 // https://www.stummiforum.de/viewtopic.php?t=29741#p309938
 pub fn kreuzung_5207() -> Kreuzung<Märklin> {
-    Kreuzung::new_with_description(
-        Länge::new(180.),
+    Kreuzung::neu_mit_beschreibung(
+        Länge::neu(180.),
         RADIUS_R2,
         kreuzung::Variante::MitKurve,
         "5207",

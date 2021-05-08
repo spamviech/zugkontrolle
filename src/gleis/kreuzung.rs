@@ -33,7 +33,7 @@ impl<Z> Kreuzung<Z> {
         Winkel(2. * (0.5 * (self.länge / self.radius).0).atan())
     }
 
-    pub const fn new(länge: Länge, radius: Radius, variante: Variante) -> Self {
+    pub const fn neu(länge: Länge, radius: Radius, variante: Variante) -> Self {
         Kreuzung {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
@@ -43,7 +43,7 @@ impl<Z> Kreuzung<Z> {
         }
     }
 
-    pub fn new_with_description(
+    pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
         variante: Variante,

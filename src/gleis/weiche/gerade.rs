@@ -21,7 +21,7 @@ pub struct Weiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> Weiche<Z> {
-    pub const fn new(länge: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
+    pub const fn neu(länge: Länge, radius: Radius, winkel: Winkel, richtung: Richtung) -> Self {
         Weiche {
             zugtyp: PhantomData,
             länge: länge.als_skalar(),
@@ -32,7 +32,7 @@ impl<Z> Weiche<Z> {
         }
     }
 
-    pub fn new_with_description(
+    pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
         winkel: Winkel,

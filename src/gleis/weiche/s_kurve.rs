@@ -26,7 +26,7 @@ pub struct SKurvenWeiche<Z> {
     pub beschreibung: Option<String>,
 }
 impl<Z> SKurvenWeiche<Z> {
-    pub const fn new(
+    pub const fn neu(
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
@@ -46,7 +46,7 @@ impl<Z> SKurvenWeiche<Z> {
         }
     }
 
-    pub fn new_with_description(
+    pub fn neu_mit_beschreibung(
         länge: Länge,
         radius: Radius,
         winkel: Winkel,
