@@ -14,11 +14,11 @@ use zugkontrolle::zugtyp::{
 
 struct AppendGleise<'t, Z> {
     gleise: &'t mut Gleise<Z>,
-    y: canvas::Y,
+    y: Skalar,
 }
 impl<'t, Z> AppendGleise<'t, Z> {
     fn new(gleise: &'t mut Gleise<Z>) -> AppendGleise<'t, Z> {
-        AppendGleise { gleise, y: canvas::Y(5.) }
+        AppendGleise { gleise, y: Skalar(5.) }
     }
 }
 
@@ -29,13 +29,11 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let size: Vektor = definition.size();
-        let x: canvas::X = canvas::X(150.) - 0.5 * size.width;
-        let height: Skalar = size.height;
-        let res = self.gleise.add(Gleis {
-            definition,
-            position: Position { point: Vektor { x, y: self.y }, winkel: Winkel::new(0.) },
-        });
-        self.y += height + canvas::Y(25.).als_skalar();
+        let punkt = Vektor { x: Skalar(150.) - size.x.halbiert(), y: self.y };
+        let height: Skalar = size.y;
+        let res =
+            self.gleise.add(Gleis { definition, position: Position { punkt, winkel: Winkel(0.) } });
+        self.y += height + Skalar(25.);
         res
     }
 }
@@ -183,8 +181,8 @@ fn main() -> iced::Result {
     // relocate
     if let Some(gleis_id) = &*gerade_lock.read() {
         gleise_lego.relocate(gleis_id, Position {
-            point: Vektor { x: canvas::X(250.), y: canvas::Y(10.) },
-            winkel: AngleDegrees::new(90.).into(),
+            punkt: Vektor { x: Skalar(250.), y: Skalar(10.) },
+            winkel: WinkelGradmaß::neu(90.).into(),
         });
     }
     // attach
