@@ -35,6 +35,17 @@ impl Winkel {
     pub fn abs(&self) -> Self {
         Winkel(self.0.abs())
     }
+
+    /// Normalisiert in den Bereich [-π,π)
+    pub fn normalisiert(mut self) -> Self {
+        while self < -PI {
+            self += TAU
+        }
+        while self >= PI {
+            self -= TAU
+        }
+        self
+    }
 }
 
 // automatically implements Trait Into

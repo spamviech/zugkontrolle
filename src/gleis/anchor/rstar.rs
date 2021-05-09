@@ -4,7 +4,7 @@ pub(crate) use rstar::primitives::PointWithData;
 
 use super::point::Anchor;
 use crate::gleis::gleise::{Any, GleisId};
-use crate::gleis::typen::{Skalar, Vektor, Winkel};
+use crate::gleis::typen::{winkel, Skalar, Vektor, Winkel};
 
 const SEARCH_RADIUS: Skalar = Skalar(5.0);
 
@@ -63,7 +63,8 @@ impl RTree {
             let PointWithData { data: (stored_id, gespeicherte_richtung), .. } = point_with_data;
             if !opposing
                 && stored_id != gleis_id
-                && (richtung - gespeicherte_richtung).abs() < Winkel(5.)
+                && (winkel::PI + richtung - gespeicherte_richtung).normalisiert().abs()
+                    < Winkel(0.1)
             {
                 opposing = true;
                 if grabbed {
