@@ -64,7 +64,7 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
     ) -> Vec<iced::canvas::Geometry> {
         // TODO adjust(scale) to size
         let half_extra_width = Skalar(0.5) * (Skalar(bounds.width) - self.gleis.size().x);
-        vec![self.canvas.draw_unskaliert(bounds.size(), |frame| {
+        vec![self.canvas.draw(bounds.size(), |frame| {
             frame.transformation(&Transformation::Translation(Vektor {
                 x: half_extra_width,
                 y: Skalar(0.),

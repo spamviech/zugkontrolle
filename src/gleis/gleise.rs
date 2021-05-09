@@ -474,25 +474,29 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             modus,
             ..
         } = self;
-        vec![canvas.draw(bounds.size(), &self.pivot, &self.skalieren, |frame| {
-            // TODO don't draw out of bound Gleise
-            // Zeichne Gleise
-            let grabbed_id =
-                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
-                    Some(gleis_id.id_as_any())
-                } else {
-                    None
+        vec![canvas.draw_skaliert_from_pivot(
+            bounds.size(),
+            &self.pivot,
+            &self.skalieren,
+            |frame| {
+                // TODO don't draw out of bound Gleise
+                // Zeichne Gleise
+                let grabbed_id =
+                    if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
+                        Some(gleis_id.id_as_any())
+                    } else {
+                        None
+                    };
+                let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
+                let has_other_and_grabbed_id_at_point = |gleis_id, position| {
+                    anchor_points.has_other_and_grabbed_id_at_point(
+                        &gleis_id,
+                        |id| is_grabbed(id.clone()),
+                        &position,
+                    )
                 };
-            let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
-            let has_other_and_grabbed_id_at_point = |gleis_id, position| {
-                anchor_points.has_other_and_grabbed_id_at_point(
-                    &gleis_id,
-                    |id| is_grabbed(id.clone()),
-                    &position,
-                )
-            };
 
-            macro_rules! mit_allen_gleisen {
+                macro_rules! mit_allen_gleisen {
                     ($funktion:expr$(, $($extra_args:expr),+)?) => {
                         $funktion(frame, geraden$(, $($extra_args),+)?);
                         $funktion(frame, kurven$(, $($extra_args),+)?);
@@ -503,19 +507,20 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         $funktion(frame, kreuzungen$(, $($extra_args),+)?);
                     };
                 }
-            // Hintergrund
-            mit_allen_gleisen!(fülle_alle_gleise, is_grabbed);
-            // Kontur
-            mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
-            // AnchorPoints
-            mit_allen_gleisen!(
-                zeichne_alle_anchor_points,
-                has_other_and_grabbed_id_at_point,
-                &is_grabbed
-            );
-            // Beschreibung
-            mit_allen_gleisen!(schreibe_alle_beschreibungen);
-        })]
+                // Hintergrund
+                mit_allen_gleisen!(fülle_alle_gleise, is_grabbed);
+                // Kontur
+                mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
+                // AnchorPoints
+                mit_allen_gleisen!(
+                    zeichne_alle_anchor_points,
+                    has_other_and_grabbed_id_at_point,
+                    &is_grabbed
+                );
+                // Beschreibung
+                mit_allen_gleisen!(schreibe_alle_beschreibungen);
+            },
+        )]
     }
 
     fn update(
@@ -532,11 +537,9 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 // TODO store bounding box in rtree as well, to avoid searching everything stored?
                 if let Some(in_pos) = cursor.position_in(&bounds) {
                     let Gleise { maps, modus, .. } = self;
-                    let canvas_pos = Vektor::von_iced(
-                        iced::Vector { x: in_pos.x, y: in_pos.y },
-                        &self.pivot,
-                        &self.skalieren,
-                    );
+                    let in_pos_vektor = Vektor { x: Skalar(in_pos.x), y: Skalar(in_pos.y) };
+                    let canvas_pos = self.pivot.punkt
+                        + (in_pos_vektor / self.skalieren).rotiere(-self.pivot.winkel);
                     macro_rules! find_clicked {
                         ($map:expr,AnyId:: $konstruktor:ident) => {
                             if let Modus::Bauen { grabbed, .. } = modus {
@@ -594,12 +597,14 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) };
                 }
                 let mut event_status = iced::canvas::event::Status::Ignored;
-                if let Modus::Bauen { grabbed } = &mut self.modus {
-                    if let Some(in_pos) = cursor.position_in(&bounds) {
-                        if cursor.is_over(&bounds) {
+                if cursor.is_over(&bounds) {
+                    if let Modus::Bauen { grabbed } = &mut self.modus {
+                        if let Some(in_pos) = cursor.position_in(&bounds) {
+                            let in_pos_vektor = Vektor { x: Skalar(in_pos.x), y: Skalar(in_pos.y) };
+                            let canvas_pos = self.pivot.punkt
+                                + (in_pos_vektor / self.skalieren).rotiere(-self.pivot.winkel);
                             if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
-                                let point = Vektor { x: Skalar(in_pos.x), y: Skalar(in_pos.y) }
-                                    - grab_location;
+                                let point = canvas_pos - grab_location;
                                 with_any_id!(gleis_id, relocate_grabbed, self, point);
                                 event_status = iced::canvas::event::Status::Captured
                             }

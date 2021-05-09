@@ -5,7 +5,6 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 use serde::{Deserialize, Serialize};
 
 use super::skalar::Skalar;
-use super::Position;
 use crate::gleis::typen::winkel::{Trigonometrie, Winkel};
 
 /// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
@@ -74,26 +73,6 @@ impl Vektor {
             x: Skalar(winkel.cos()) * self.x - Skalar(winkel.sin()) * self.y,
             y: Skalar(winkel.sin()) * self.x + Skalar(winkel.cos()) * self.y,
         }
-    }
-
-    /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
-    /// und skaliert.
-    pub fn zu_iced(self, pivot: &Position, faktor: &Skalar) -> iced::Vector {
-        // FIXME Probleme mit vorherigen Transformationen
-        let Vektor { x, y } = faktor * (self - pivot.punkt).rotiere(pivot.winkel);
-        iced::Vector { x: x.0, y: y.0 }
-    }
-
-    /// Konvertiere einen /iced::Vector/, invers zu /zu_iced/.
-    ///
-    /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
-    pub fn von_iced(
-        iced::Vector { x, y }: iced::Vector,
-        pivot: &Position,
-        faktor: &Skalar,
-    ) -> Self {
-        // FIXME Probleme mit vorherigen Transformationen
-        (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
     }
 }
 

@@ -25,38 +25,10 @@ pub use skalar::Skalar;
 /// Alle Koordinaten werden so transformiert, dass /pivot.punkt/ auf (0,0) vom /iced::Frame/ liegt.
 /// Anschließend werden die Koordinaten um /pivot.winkel/ gedreht.
 /// Danach werden alle Koordinaten mit dem /skalieren/-Faktor multipliziert.
-pub struct Frame<'t> {
-    frame: &'t mut iced::canvas::Frame,
-    pivot: &'t Position,
-    skalieren: &'t Skalar,
-}
+pub struct Frame<'t>(&'t mut iced::canvas::Frame);
 impl<'t> Frame<'t> {
-    pub fn with_new_frame(
-        size: iced::Size<f32>,
-        draw_fn: impl Fn(&mut Frame),
-    ) -> iced::canvas::Geometry {
-        let mut frame = iced::canvas::Frame::new(size);
-        let mut boxed_frame = Frame {
-            frame: &mut frame,
-            pivot: &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
-            skalieren: &Skalar(0.),
-        };
-        boxed_frame.with_save(|f| {
-            f.pivot_transformationen();
-            draw_fn(f)
-        });
-        frame.into_geometry()
-    }
-
-    fn pivot_transformationen(&mut self) {
-        self.transformation(&Transformation::Translation(self.pivot.punkt));
-        self.transformation(&Transformation::Rotation(self.pivot.winkel));
-        self.transformation(&Transformation::Translation(
-            Skalar(-2.) * self.pivot.punkt.rotiere(-self.pivot.winkel),
-        ));
-        self.transformation(&Transformation::Skalieren(
-            Skalar::multiplikativ_neutral() / self.skalieren,
-        ));
+    pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
+        Frame(frame)
     }
 
     /// Draws the stroke of the given Path on the Frame with the provided style.
@@ -65,7 +37,7 @@ impl<'t> Frame<'t> {
             for transformation in transformationen {
                 frame.transformation(transformation)
             }
-            frame.frame.stroke(pfad, stroke)
+            frame.0.stroke(pfad, stroke)
         })
     }
 
@@ -75,7 +47,7 @@ impl<'t> Frame<'t> {
             for transformation in transformationen {
                 frame.transformation(transformation)
             }
-            frame.frame.fill(pfad, fill)
+            frame.0.fill(pfad, fill)
         })
     }
 
@@ -85,7 +57,7 @@ impl<'t> Frame<'t> {
     /// apply here as well!
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         // TODO respect pivot point
-        self.frame.fill_text(text)
+        self.0.fill_text(text)
     }
 
     /// Stores the current transform of the Frame and executes the given drawing operations,
@@ -94,18 +66,17 @@ impl<'t> Frame<'t> {
     /// This method is useful to compose transforms and perform drawing operations in different
     /// coordinate systems.
     pub fn with_save(&mut self, action: impl for<'s> FnOnce(&'s mut Frame<'s>)) {
-        let Frame { frame, pivot, skalieren } = self;
-        frame.with_save(|frame| action(&mut Frame { frame, pivot, skalieren }))
+        self.0.with_save(|frame| action(&mut Frame(frame)))
     }
 
     /// Wende die übergebene Transformation auf den Frame an.
     pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
-            Transformation::Translation(vektor) => {
-                self.frame.translate(Vektor::zu_iced(*vektor, self.pivot, self.skalieren))
+            Transformation::Translation(Vektor { x, y }) => {
+                self.0.translate(iced::Vector { x: x.0, y: y.0 })
             },
-            Transformation::Rotation(winkel) => self.frame.rotate(winkel.0),
-            Transformation::Skalieren(scale) => self.frame.scale(scale.0),
+            Transformation::Rotation(winkel) => self.0.rotate(winkel.0),
+            Transformation::Skalieren(scale) => self.0.scale(scale.0),
         }
     }
 }
@@ -121,7 +92,7 @@ impl Cache {
         self.0.clear()
     }
 
-    pub fn draw(
+    pub(crate) fn draw_skaliert_from_pivot(
         &self,
         bounds: iced::Size<f32>,
         pivot: &Position,
@@ -129,20 +100,27 @@ impl Cache {
         draw_fn: impl Fn(&mut Frame),
     ) -> iced::canvas::Geometry {
         self.0.draw(bounds, |frame| {
-            let mut boxed_frame = Frame { frame, pivot, skalieren };
+            let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
-                f.pivot_transformationen();
+                // pivot transformationen
+                f.transformation(&Transformation::Translation(pivot.punkt));
+                f.transformation(&Transformation::Rotation(pivot.winkel));
+                f.transformation(&Transformation::Translation(
+                    Skalar(-2.) * pivot.punkt.rotiere(pivot.winkel),
+                ));
+                f.transformation(&Transformation::Skalieren(*skalieren));
+                // zeichne auf Frame
                 draw_fn(f)
             })
         })
     }
 
-    pub fn draw_unskaliert(
+    pub fn draw(
         &self,
         bounds: iced::Size<f32>,
         draw_fn: impl Fn(&mut Frame),
     ) -> iced::canvas::Geometry {
-        self.draw(
+        self.draw_skaliert_from_pivot(
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             &Skalar::multiplikativ_neutral(),
