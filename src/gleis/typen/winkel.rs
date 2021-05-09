@@ -7,15 +7,26 @@ use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
 
+use super::canvas::skalar::Skalar;
+
 /// Trigonometrische Funktionen (+ abs) für Winkel.
 pub trait Trigonometrie {
+    /// Absoluter Wert
     fn abs(&self) -> Self;
-    fn cos(&self) -> f32;
-    fn sin(&self) -> f32;
-    fn tan(&self) -> f32;
-    fn acos(input: f32) -> Self;
-    fn asin(input: f32) -> Self;
-    fn atan(input: f32) -> Self;
+    /// Normalisiert in den äquivalenten Bereich zu [-π,π)
+    fn normalisiert(self) -> Self;
+    /// Kosinus
+    fn cos(&self) -> Skalar;
+    /// Sinus
+    fn sin(&self) -> Skalar;
+    /// Tangens
+    fn tan(&self) -> Skalar;
+    /// Inverser Kosinus
+    fn acos(input: Skalar) -> Self;
+    /// Inverser Sinus
+    fn asin(input: Skalar) -> Self;
+    /// Inverser Tangens
+    fn atan(input: Skalar) -> Self;
 }
 
 /// τ = 2. * π, i.e. a full circle
@@ -30,23 +41,6 @@ pub const ZERO: Winkel = Winkel(0.);
 /// Winkel \[Bogenmaß\]
 #[derive(Debug, PartialEq, Clone, Copy, PartialOrd, Serialize, Deserialize)]
 pub struct Winkel(pub f32);
-impl Winkel {
-    /// Absoluter Wert des Winkels
-    pub fn abs(&self) -> Self {
-        Winkel(self.0.abs())
-    }
-
-    /// Normalisiert in den Bereich [-π,π)
-    pub fn normalisiert(mut self) -> Self {
-        while self < -PI {
-            self += TAU
-        }
-        while self >= PI {
-            self -= TAU
-        }
-        self
-    }
-}
 
 // automatically implements Trait Into
 impl From<WinkelGradmaß> for Winkel {
@@ -168,28 +162,38 @@ impl Trigonometrie for Winkel {
         Winkel(self.0.abs())
     }
 
-    fn cos(&self) -> f32 {
-        self.0.cos()
+    fn normalisiert(mut self) -> Self {
+        while self < -PI {
+            self += TAU
+        }
+        while self >= PI {
+            self -= TAU
+        }
+        self
     }
 
-    fn sin(&self) -> f32 {
-        self.0.sin()
+    fn cos(&self) -> Skalar {
+        Skalar(self.0.cos())
     }
 
-    fn tan(&self) -> f32 {
-        self.0.tan()
+    fn sin(&self) -> Skalar {
+        Skalar(self.0.sin())
     }
 
-    fn acos(input: f32) -> Self {
-        Winkel(input.acos())
+    fn tan(&self) -> Skalar {
+        Skalar(self.0.tan())
     }
 
-    fn asin(input: f32) -> Self {
-        Winkel(input.asin())
+    fn acos(input: Skalar) -> Self {
+        Winkel(input.0.acos())
     }
 
-    fn atan(input: f32) -> Self {
-        Winkel(input.atan())
+    fn asin(input: Skalar) -> Self {
+        Winkel(input.0.asin())
+    }
+
+    fn atan(input: Skalar) -> Self {
+        Winkel(input.0.atan())
     }
 }
 
@@ -218,11 +222,17 @@ impl PartialOrd<Winkel> for WinkelGradmaß {
         Winkel::from(*self).partial_cmp(other)
     }
 }
+impl AddAssign<WinkelGradmaß> for WinkelGradmaß {
+    fn add_assign(&mut self, rhs: WinkelGradmaß) {
+        self.0 += rhs.0
+    }
+}
 impl Add<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
-    fn add(self, WinkelGradmaß(other): WinkelGradmaß) -> WinkelGradmaß {
-        WinkelGradmaß(self.0 + other)
+    fn add(mut self, other: WinkelGradmaß) -> WinkelGradmaß {
+        self += other;
+        self
     }
 }
 impl Add<Winkel> for WinkelGradmaß {
@@ -232,11 +242,17 @@ impl Add<Winkel> for WinkelGradmaß {
         other + self
     }
 }
+impl SubAssign<WinkelGradmaß> for WinkelGradmaß {
+    fn sub_assign(&mut self, rhs: WinkelGradmaß) {
+        self.0 -= rhs.0
+    }
+}
 impl Sub<WinkelGradmaß> for WinkelGradmaß {
     type Output = Self;
 
-    fn sub(self, WinkelGradmaß(other): WinkelGradmaß) -> WinkelGradmaß {
-        WinkelGradmaß(self.0 - other)
+    fn sub(mut self, other: WinkelGradmaß) -> WinkelGradmaß {
+        self -= other;
+        self
     }
 }
 impl Sub<Winkel> for WinkelGradmaß {
@@ -272,27 +288,37 @@ impl Trigonometrie for WinkelGradmaß {
         WinkelGradmaß(self.0.abs())
     }
 
-    fn cos(&self) -> f32 {
-        self.0.to_radians().cos()
+    fn normalisiert(mut self) -> Self {
+        while self < -WinkelGradmaß(180.) {
+            self += WinkelGradmaß(360.)
+        }
+        while self >= WinkelGradmaß(180.) {
+            self -= WinkelGradmaß(360.)
+        }
+        self
     }
 
-    fn sin(&self) -> f32 {
-        self.0.to_radians().sin()
+    fn cos(&self) -> Skalar {
+        Skalar(self.0.to_radians().cos())
     }
 
-    fn tan(&self) -> f32 {
-        self.0.to_radians().tan()
+    fn sin(&self) -> Skalar {
+        Skalar(self.0.to_radians().sin())
     }
 
-    fn acos(input: f32) -> Self {
-        WinkelGradmaß(input.acos().to_degrees())
+    fn tan(&self) -> Skalar {
+        Skalar(self.0.to_radians().tan())
     }
 
-    fn asin(input: f32) -> Self {
-        WinkelGradmaß(input.asin().to_degrees())
+    fn acos(input: Skalar) -> Self {
+        WinkelGradmaß(input.0.acos().to_degrees())
     }
 
-    fn atan(input: f32) -> Self {
-        WinkelGradmaß(input.atan().to_degrees())
+    fn asin(input: Skalar) -> Self {
+        WinkelGradmaß(input.0.asin().to_degrees())
+    }
+
+    fn atan(input: Skalar) -> Self {
+        WinkelGradmaß(input.0.atan().to_degrees())
     }
 }

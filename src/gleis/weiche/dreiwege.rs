@@ -184,16 +184,16 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             links: anchor::Anchor {
                 position: anfang
                     + Vektor {
-                        x: radius * Skalar(self.winkel.sin()),
-                        y: radius * Skalar(1. - self.winkel.cos()),
+                        x: radius * self.winkel.sin(),
+                        y: radius * (Skalar(1.) - self.winkel.cos()),
                     },
                 richtung: self.winkel,
             },
             rechts: anchor::Anchor {
                 position: anfang
                     + Vektor {
-                        x: radius * Skalar(self.winkel.sin()),
-                        y: -radius * Skalar(1. - self.winkel.cos()),
+                        x: radius * self.winkel.sin(),
+                        y: -radius * (Skalar(1.) - self.winkel.cos()),
                     },
                 richtung: -self.winkel,
             },

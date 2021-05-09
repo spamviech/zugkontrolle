@@ -267,8 +267,8 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         let anfang = Vektor { x: Skalar(0.), y: start_height + multiplier * halbe_beschränkung };
         let innen = anfang
             + Vektor {
-                x: self.radius * Skalar(self.winkel.sin()),
-                y: multiplier * self.radius * Skalar(1. - self.winkel.cos()),
+                x: self.radius * self.winkel.sin(),
+                y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
             };
         AnchorPoints {
             anfang: anchor::Anchor { position: anfang, richtung: winkel::PI },

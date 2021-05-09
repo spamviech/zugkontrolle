@@ -671,11 +671,11 @@ impl Position {
         let winkel: Winkel = winkel::PI - anchor_point.richtung + target_anchor_point.richtung;
         Position {
             punkt: Vektor {
-                x: target_anchor_point.position.x - anchor_point.position.x * Skalar(winkel.cos())
-                    + anchor_point.position.y * Skalar(winkel.sin()),
+                x: target_anchor_point.position.x - anchor_point.position.x * winkel.cos()
+                    + anchor_point.position.y * winkel.sin(),
                 y: target_anchor_point.position.y
-                    - anchor_point.position.x * Skalar(winkel.sin())
-                    - anchor_point.position.y * Skalar(winkel.cos()),
+                    - anchor_point.position.x * winkel.sin()
+                    - anchor_point.position.y * winkel.cos(),
             },
             winkel,
         }

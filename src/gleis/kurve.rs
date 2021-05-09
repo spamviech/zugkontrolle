@@ -79,9 +79,9 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             (
                 Position {
                     punkt: Vektor {
-                        x: self.radius * Skalar(half_angle.sin()),
+                        x: self.radius * half_angle.sin(),
                         y: beschränkung::<Z>().halbiert()
-                            + self.radius * Skalar(1. - half_angle.cos()),
+                            + self.radius * (Skalar(1.) - half_angle.cos()),
                     },
                     winkel: Winkel(0.),
                 },
@@ -103,8 +103,8 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             },
             ende: anchor::Anchor {
                 position: Vektor {
-                    x: self.radius * Skalar(self.winkel.sin()),
-                    y: halbe_beschränkung + self.radius * Skalar(1. - self.winkel.cos()),
+                    x: self.radius * self.winkel.sin(),
+                    y: halbe_beschränkung + self.radius * (Skalar(1.) - self.winkel.cos()),
                 },
                 richtung: self.winkel,
             },
@@ -115,15 +115,14 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
 pub(crate) fn size<Z: Zugtyp>(radius: Skalar, winkel: Winkel) -> Vektor {
     // Breite
     let radius_begrenzung_außen = radius_begrenzung_außen::<Z>(radius);
-    let width_factor = Skalar(if winkel.abs() < winkel::FRAC_PI_2 { winkel.sin() } else { 1. });
+    let width_factor = if winkel.abs() < winkel::FRAC_PI_2 { winkel.sin() } else { Skalar(1.) };
     let width = radius_begrenzung_außen * width_factor;
     // Höhe des Bogen
     let angle_abs = winkel.abs();
     let comparison = if angle_abs < winkel::FRAC_PI_2 {
-        radius_begrenzung_außen * Skalar(1. - winkel.cos())
-            + beschränkung::<Z>() * Skalar(winkel.cos())
+        radius_begrenzung_außen * (Skalar(1.) - winkel.cos()) + beschränkung::<Z>() * winkel.cos()
     } else if angle_abs < winkel::PI {
-        radius_begrenzung_außen * Skalar(1. - winkel.cos())
+        radius_begrenzung_außen * (Skalar(1.) - winkel.cos())
     } else {
         radius_begrenzung_außen
     };
@@ -203,10 +202,8 @@ fn zeichne_internal<Z, P, A>(
     let radius_außen = radius_begrenzung_außen - abstand::<Z>();
     let radius_innen = radius_außen - spurweite;
     let begrenzung0 = gleis_links_oben
-        + radius_begrenzung_außen
-            * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
-    let begrenzung1 =
-        begrenzung0 + beschränkung * Vektor { x: Skalar(-winkel.sin()), y: Skalar(winkel.cos()) };
+        + radius_begrenzung_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
+    let begrenzung1 = begrenzung0 + beschränkung * Vektor { x: -winkel.sin(), y: winkel.cos() };
     let bogen_zentrum = gleis_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Beschränkungen
     if beschränkungen.anfangs_beschränkung() {
@@ -284,9 +281,9 @@ where
     let gleis_links_unten = gleis_links_oben + Vektor { x: Skalar(0.), y: spurweite };
     // Koordinaten rechts
     let gleis_rechts_oben: Vektor = gleis_links_oben
-        + radius_außen * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
-    let gleis_rechts_unten: Vektor = gleis_rechts_oben
-        + Vektor { x: -spurweite * Skalar(winkel.sin()), y: spurweite * Skalar(winkel.cos()) };
+        + radius_außen * Vektor { x: winkel.sin(), y: (Skalar(1.) - winkel.cos()) };
+    let gleis_rechts_unten: Vektor =
+        gleis_rechts_oben + Vektor { x: -spurweite * winkel.sin(), y: spurweite * winkel.cos() };
     // obere Kurve
     path_builder.arc(
         Bogen {
@@ -331,11 +328,8 @@ pub(crate) fn innerhalb<Z: Zugtyp>(
     let radius_vector = bogen_zentrum - relative_position;
     let länge = radius_vector.länge();
     if länge > radius_innen && länge < radius_außen {
-        let mut test_winkel: Winkel = if radius_vector.x > Skalar(0.) {
-            -Winkel::acos((radius_vector.y / länge).0)
-        } else {
-            Winkel::acos((radius_vector.y / länge).0)
-        };
+        let acos = Winkel::acos(radius_vector.y / länge);
+        let mut test_winkel: Winkel = if radius_vector.x > Skalar(0.) { -acos } else { acos };
         // normalisiere winkel
         while test_winkel < Winkel(0.) {
             test_winkel += Winkel(2. * std::f32::consts::PI)

@@ -34,7 +34,7 @@ impl Vektor {
     /// Winkel wachsen im Uhrzeigersinn.
     /// y-Koordinaten wachsen nach unten.
     pub fn polar_koordinaten(radius: Skalar, winkel: Winkel) -> Self {
-        Vektor { x: radius * Skalar(winkel.cos()), y: radius * Skalar(winkel.sin()) }
+        Vektor { x: radius * winkel.cos(), y: radius * winkel.sin() }
     }
 
     /// Einheitsvektor mit identischer Richtung
@@ -62,7 +62,7 @@ impl Vektor {
     ///
     /// Definiert über `Vektor::skalarprodukt`.
     pub fn winkel(&self, other: &Self) -> Winkel {
-        Winkel::acos((-self.skalarprodukt(other) / (self.länge() * other.länge())).0)
+        Winkel::acos(self.skalarprodukt(other) / (self.länge() * other.länge()))
     }
 
     /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist
@@ -70,8 +70,8 @@ impl Vektor {
         // https://de.wikipedia.org/wiki/Drehmatrix#Drehmatrix_der_Ebene_%E2%84%9D%C2%B2
         // geht von Drehung gegen den Uhrzeigersinn und nach oben steigender y-Achse aus
         Vektor {
-            x: Skalar(winkel.cos()) * self.x - Skalar(winkel.sin()) * self.y,
-            y: Skalar(winkel.sin()) * self.x + Skalar(winkel.cos()) * self.y,
+            x: winkel.cos() * self.x - winkel.sin() * self.y,
+            y: winkel.sin() * self.x + winkel.cos() * self.y,
         }
     }
 }

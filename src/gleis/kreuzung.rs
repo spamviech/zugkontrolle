@@ -232,7 +232,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let anfang0 = Vektor { x: Skalar(0.), y: half_height };
         let ende0 = anfang0 + Vektor { x: self.länge, y: Skalar(0.) };
         let winkel = self.winkel();
-        let kurve = self.radius * Vektor { x: Skalar(winkel.sin()), y: Skalar(1. - winkel.cos()) };
+        let kurve = self.radius * Vektor { x: winkel.sin(), y: Skalar(1.) - winkel.cos() };
         let anfang1 = ende0 - kurve;
         let ende1 = anfang0 + kurve;
         AnchorPoints {

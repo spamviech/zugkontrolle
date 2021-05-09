@@ -210,8 +210,8 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
             kurve: anchor::Anchor {
                 position: anfang
                     + Vektor {
-                        x: Skalar(self.winkel.sin()) * self.radius,
-                        y: multiplier * self.radius * Skalar(1. - self.winkel.cos()),
+                        x: self.winkel.sin() * self.radius,
+                        y: multiplier * self.radius * (Skalar(1.) - self.winkel.cos()),
                     },
                 richtung: multiplier.0 * self.winkel,
             },
