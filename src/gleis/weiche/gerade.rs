@@ -72,11 +72,7 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
         Vektor { x: gerade_size.x.max(&kurve_size.x), y: kurve_size.y }
     }
 
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
-    ) -> Vec<Pfad> {
+    fn zeichne(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
             let transformations =
@@ -88,7 +84,6 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     true,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
-                    zu_iced_vektor.clone(),
                 ),
                 kurve::zeichne(
                     zugtyp,
@@ -97,20 +92,11 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     kurve::Beschränkung::Ende,
                     transformations,
                     pfad::Erbauer::with_invert_y,
-                    zu_iced_vektor,
-                    zu_iced_bogen,
                 ),
             ]
         } else {
             vec![
-                gerade::zeichne(
-                    zugtyp,
-                    länge,
-                    true,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                    zu_iced_vektor.clone(),
-                ),
+                gerade::zeichne(zugtyp, länge, true, Vec::new(), pfad::Erbauer::with_normal_axis),
                 kurve::zeichne(
                     zugtyp,
                     radius,
@@ -118,18 +104,12 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     kurve::Beschränkung::Ende,
                     Vec::new(),
                     pfad::Erbauer::with_normal_axis,
-                    zu_iced_vektor,
-                    zu_iced_bogen,
                 ),
             ]
         }
     }
 
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
-    ) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<Pfad> {
         let Weiche { zugtyp, länge, radius, winkel, richtung, .. } = *self;
         if richtung == Richtung::Links {
             let transformations =
@@ -140,7 +120,6 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     länge,
                     transformations.clone(),
                     pfad::Erbauer::with_invert_y,
-                    zu_iced_vektor.clone(),
                 ),
                 kurve::fülle(
                     zugtyp,
@@ -148,28 +127,12 @@ impl<Z: Zugtyp> Zeichnen for Weiche<Z> {
                     winkel,
                     transformations,
                     pfad::Erbauer::with_invert_y,
-                    zu_iced_vektor,
-                    zu_iced_bogen,
                 ),
             ]
         } else {
             vec![
-                gerade::fülle(
-                    zugtyp,
-                    länge,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                    zu_iced_vektor.clone(),
-                ),
-                kurve::fülle(
-                    zugtyp,
-                    radius,
-                    winkel,
-                    Vec::new(),
-                    pfad::Erbauer::with_normal_axis,
-                    zu_iced_vektor,
-                    zu_iced_bogen,
-                ),
+                gerade::fülle(zugtyp, länge, Vec::new(), pfad::Erbauer::with_normal_axis),
+                kurve::fülle(zugtyp, radius, winkel, Vec::new(), pfad::Erbauer::with_normal_axis),
             ]
         }
     }

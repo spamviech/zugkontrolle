@@ -47,7 +47,7 @@ pub struct Bogen {
 impl Bogen {
     /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
     /// und skaliert.
-    pub fn zu_iced(self, pivot: Position, faktor: Skalar) -> iced::canvas::path::Arc {
+    pub fn zu_iced(self, pivot: &Position, faktor: &Skalar) -> iced::canvas::path::Arc {
         let pivot_winkel = pivot.winkel;
         iced::canvas::path::Arc {
             center: vector_to_point(Vektor::zu_iced(self.zentrum, pivot, faktor)),
@@ -60,8 +60,8 @@ impl Bogen {
     /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
     pub fn zu_iced_unskaliert(self) -> iced::canvas::path::Arc {
         self.zu_iced(
-            Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
-            Skalar::multiplikativ_neutral(),
+            &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
+            &Skalar::multiplikativ_neutral(),
         )
     }
 
@@ -70,8 +70,8 @@ impl Bogen {
     /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
     pub fn von_iced(
         iced::canvas::path::Arc { center, radius, start_angle, end_angle }: iced::canvas::path::Arc,
-        pivot: Position,
-        faktor: Skalar,
+        pivot: &Position,
+        faktor: &Skalar,
     ) -> Self {
         let pivot_winkel = pivot.winkel;
         Bogen {
@@ -173,20 +173,28 @@ impl Erbauer<Vektor, Bogen> {
 
 impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     // Beginne einen neuen Unterpfad bei /punkt/
-    pub fn move_to(&mut self, punkt: V, zu_iced: impl FnOnce(Vektor) -> iced::Vector) {
-        self.builder.move_to(vector_to_point(zu_iced(punkt.into())))
+    pub fn move_to(&mut self, punkt: V) {
+        let Vektor { x, y } = punkt.into();
+        self.builder.move_to(iced::Point { x: x.0, y: y.0 })
     }
 
     /// Zeichne einen Linie vom aktuellen Punkt zu /ziel/
-    pub fn line_to(&mut self, ziel: V, zu_iced: impl FnOnce(Vektor) -> iced::Vector) {
-        self.builder.line_to(vector_to_point(zu_iced(ziel.into())))
+    pub fn line_to(&mut self, ziel: V) {
+        let Vektor { x, y } = ziel.into();
+        self.builder.line_to(iced::Point { x: x.0, y: y.0 })
     }
 
     /// Zeichne den beschriebenen Bogen
     ///
     /// Beginnt einen neuen Unterpfad
-    pub fn arc(&mut self, bogen: B, zu_iced: impl FnOnce(Bogen) -> iced::canvas::path::Arc) {
-        self.builder.arc(zu_iced(bogen.into()))
+    pub fn arc(&mut self, bogen: B) {
+        let Bogen { zentrum: Vektor { x, y }, radius, anfang, ende } = bogen.into();
+        self.builder.arc(iced::canvas::path::Arc {
+            center: iced::Point { x: x.0, y: y.0 },
+            radius: radius.0,
+            start_angle: anfang.0,
+            end_angle: ende.0,
+        })
     }
 
     /*

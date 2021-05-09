@@ -52,11 +52,7 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
         size::<Z>(self.radius, self.winkel)
     }
 
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
-    ) -> Vec<Pfad> {
+    fn zeichne(&self) -> Vec<Pfad> {
         vec![zeichne(
             self.zugtyp,
             self.radius,
@@ -64,24 +60,16 @@ impl<Z: Zugtyp> Zeichnen for Kurve<Z> {
             Beschränkung::Alle,
             Vec::new(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor,
-            zu_iced_bogen,
         )]
     }
 
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
-    ) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<Pfad> {
         vec![fülle(
             self.zugtyp,
             self.radius,
             self.winkel,
             Vec::new(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor,
-            zu_iced_bogen,
         )]
     }
 
@@ -167,7 +155,7 @@ impl Beschränkung {
     }
 }
 
-pub(crate) fn zeichne<Z, P, A, F, G>(
+pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: Skalar,
     winkel: Winkel,
@@ -177,47 +165,32 @@ pub(crate) fn zeichne<Z, P, A, F, G>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-    zu_iced_vektor: F,
-    zu_iced_bogen: G,
 ) -> Pfad
 where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: 'static + Fn(Vektor) -> iced::Vector,
-    G: 'static + Fn(Bogen) -> iced::canvas::path::Arc,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
         Box::new(move |builder| {
-            zeichne_internal::<Z, P, A, F, G>(
-                builder,
-                radius,
-                winkel,
-                beschränkungen,
-                zu_iced_vektor,
-                zu_iced_bogen,
-            )
+            zeichne_internal::<Z, P, A>(builder, radius, winkel, beschränkungen)
         }),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
 // factor_y is expected to be -1 or +1, although other values should work as well
-fn zeichne_internal<Z, P, A, F, G>(
+fn zeichne_internal<Z, P, A>(
     path_builder: &mut pfad::Erbauer<P, A>,
     radius: Skalar,
     winkel: Winkel,
     beschränkungen: Beschränkung,
-    zu_iced_vektor: F,
-    zu_iced_bogen: G,
 ) where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: Fn(Vektor) -> iced::Vector,
-    G: Fn(Bogen) -> iced::canvas::path::Arc,
 {
     // Utility Größen
     let spurweite: Skalar = spurweite::<Z>();
@@ -237,12 +210,12 @@ fn zeichne_internal<Z, P, A, F, G>(
     let bogen_zentrum = gleis_links_oben + Vektor { x: Skalar(0.), y: radius_begrenzung_außen };
     // Beschränkungen
     if beschränkungen.anfangs_beschränkung() {
-        path_builder.move_to(gleis_links_oben.into(), &zu_iced_vektor);
-        path_builder.line_to(gleis_links_unten.into(), &zu_iced_vektor);
+        path_builder.move_to(gleis_links_oben.into());
+        path_builder.line_to(gleis_links_unten.into());
     }
     if beschränkungen.end_beschränkung() {
-        path_builder.move_to(begrenzung0.into(), &zu_iced_vektor);
-        path_builder.line_to(begrenzung1.into(), zu_iced_vektor);
+        path_builder.move_to(begrenzung0.into());
+        path_builder.line_to(begrenzung1.into());
     }
     // Gleis
     path_builder.arc(
@@ -253,7 +226,6 @@ fn zeichne_internal<Z, P, A, F, G>(
             ende: winkel_ende,
         }
         .into(),
-        &zu_iced_bogen,
     );
     path_builder.arc(
         Bogen {
@@ -263,11 +235,10 @@ fn zeichne_internal<Z, P, A, F, G>(
             ende: winkel_ende,
         }
         .into(),
-        zu_iced_bogen,
     );
 }
 
-pub(crate) fn fülle<Z, P, A, F, G>(
+pub(crate) fn fülle<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     radius: Skalar,
     winkel: Winkel,
@@ -276,39 +247,26 @@ pub(crate) fn fülle<Z, P, A, F, G>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-    zu_iced_vektor: F,
-    zu_iced_bogen: G,
 ) -> Pfad
 where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: 'static + Fn(Vektor) -> iced::Vector,
-    G: 'static + Fn(Bogen) -> iced::canvas::path::Arc,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| {
-            fülle_internal::<Z, P, A, F, G>(builder, radius, winkel, zu_iced_vektor, zu_iced_bogen)
-        }),
+        Box::new(move |builder| fülle_internal::<Z, P, A>(builder, radius, winkel)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
 /// Geplant für canvas::PathType::EvenOdd
-fn fülle_internal<Z, P, A, F, G>(
-    path_builder: &mut pfad::Erbauer<P, A>,
-    radius: Skalar,
-    winkel: Winkel,
-    zu_iced_vektor: F,
-    zu_iced_bogen: G,
-) where
+fn fülle_internal<Z, P, A>(path_builder: &mut pfad::Erbauer<P, A>, radius: Skalar, winkel: Winkel)
+where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: Fn(Vektor) -> iced::Vector,
-    G: Fn(Bogen) -> iced::canvas::path::Arc,
 {
     let spurweite = spurweite::<Z>();
     let abstand = abstand::<Z>();
@@ -338,7 +296,6 @@ fn fülle_internal<Z, P, A, F, G>(
             ende: winkel_ende,
         }
         .into(),
-        &zu_iced_bogen,
     );
     path_builder.close();
     // untere Kurve
@@ -350,14 +307,13 @@ fn fülle_internal<Z, P, A, F, G>(
             ende: winkel_ende,
         }
         .into(),
-        zu_iced_bogen,
     );
     path_builder.close();
     // Zwischen-Teil
-    path_builder.move_to(gleis_links_oben.into(), &zu_iced_vektor);
-    path_builder.line_to(gleis_rechts_oben.into(), &zu_iced_vektor);
-    path_builder.line_to(gleis_rechts_unten.into(), &zu_iced_vektor);
-    path_builder.line_to(gleis_links_unten.into(), zu_iced_vektor);
+    path_builder.move_to(gleis_links_oben.into());
+    path_builder.line_to(gleis_rechts_oben.into());
+    path_builder.line_to(gleis_rechts_unten.into());
+    path_builder.line_to(gleis_links_unten.into());
     path_builder.close();
 }
 

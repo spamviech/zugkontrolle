@@ -289,15 +289,11 @@ impl<Z> Gleise<Z> {
     }
 }
 
-pub(crate) fn move_to_position(
-    frame: &mut canvas::Frame,
-    position: &Position,
-    zu_iced_vektor: impl Fn(Vektor) -> iced::Vector,
-) {
+pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
     // bewege Kontext zur Position
-    frame.transformation(&Transformation::Translation(position.punkt), &zu_iced_vektor);
+    frame.transformation(&Transformation::Translation(position.punkt));
     // drehe Kontext um (0,0)
-    frame.transformation(&Transformation::Rotation(position.winkel), zu_iced_vektor);
+    frame.transformation(&Transformation::Rotation(position.winkel));
 }
 fn transparency<T>(gleis_id: &GleisId<T>, is_grabbed: &impl Fn(GleisId<Any>) -> bool) -> f32 {
     if is_grabbed(gleis_id.as_any()) {
@@ -310,29 +306,23 @@ fn fülle_alle_gleise<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
-    zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-    zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
-            move_to_position(frame, position, zu_iced_vektor.clone());
+            move_to_position(frame, position);
             // einfärben
-            for path in definition.fülle(zu_iced_vektor.clone(), zu_iced_bogen.clone()) {
+            for path in definition.fülle() {
                 frame.with_save(|frame| {
                     // TODO Farbe abhängig vom Streckenabschnitt
-                    frame.fill(
-                        &path,
-                        canvas::Fill {
-                            color: canvas::Color {
-                                r: 1.,
-                                g: 0.,
-                                b: 0.,
-                                a: transparency(gleis_id, &is_grabbed),
-                            },
-                            rule: canvas::FillRule::EvenOdd,
+                    frame.fill(&path, canvas::Fill {
+                        color: canvas::Color {
+                            r: 1.,
+                            g: 0.,
+                            b: 0.,
+                            a: transparency(gleis_id, &is_grabbed),
                         },
-                        zu_iced_vektor.clone(),
-                    );
+                        rule: canvas::FillRule::EvenOdd,
+                    });
                 });
             }
         })
@@ -342,27 +332,21 @@ fn zeichne_alle_gleise<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
-    zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-    zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
-            move_to_position(frame, position, zu_iced_vektor.clone());
+            move_to_position(frame, position);
             // zeichne Kontur
-            for path in definition.zeichne(zu_iced_vektor.clone(), zu_iced_bogen.clone()) {
+            for path in definition.zeichne() {
                 frame.with_save(|frame| {
-                    frame.stroke(
-                        &path,
-                        canvas::Stroke {
-                            color: canvas::Color {
-                                a: transparency(gleis_id, &is_grabbed),
-                                ..canvas::Color::BLACK
-                            },
-                            width: 1.5,
-                            ..Default::default()
+                    frame.stroke(&path, canvas::Stroke {
+                        color: canvas::Color {
+                            a: transparency(gleis_id, &is_grabbed),
+                            ..canvas::Color::BLACK
                         },
-                        zu_iced_vektor.clone(),
-                    );
+                        width: 1.5,
+                        ..Default::default()
+                    });
                 });
             }
         })
@@ -373,11 +357,10 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     map: &HashMap<GleisId<T>, Gleis<T>>,
     has_other_and_grabbed_id_at_point: impl Fn(GleisId<Any>, anchor::Anchor) -> (bool, bool),
     is_grabbed: impl Fn(GleisId<Any>) -> bool,
-    zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
 ) {
     for (gleis_id, Gleis { definition, position }) in map.iter() {
         frame.with_save(|frame| {
-            move_to_position(frame, position, &zu_iced_vektor);
+            move_to_position(frame, position);
             // zeichne anchor points
             definition.anchor_points().foreach(|_name, &anchor| {
                 frame.with_save(|frame| {
@@ -395,22 +378,14 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                     let direction_side: Vektor = Skalar(0.5) * direction.rotiere(winkel::FRAC_PI_2);
                     let anchor_position: Vektor = anchor.position;
                     let mut path_builder = pfad::Erbauer::neu();
-                    path_builder.move_to(anchor_position + direction_side, &zu_iced_vektor);
-                    path_builder.line_to(anchor_position + direction, &zu_iced_vektor);
-                    path_builder.line_to(anchor_position - direction_side, &zu_iced_vektor);
+                    path_builder.move_to(anchor_position + direction_side);
+                    path_builder.line_to(anchor_position + direction);
+                    path_builder.line_to(anchor_position - direction_side);
                     let path = path_builder.baue();
-                    frame.stroke(
-                        &path,
-                        canvas::Stroke { color, width: 1.5, ..Default::default() },
-                        &zu_iced_vektor,
-                    );
+                    frame.stroke(&path, canvas::Stroke { color, width: 1.5, ..Default::default() });
                     // fill on connect/snap for drag&drop
                     if grabbed {
-                        frame.fill(
-                            &path,
-                            canvas::Fill { color, ..Default::default() },
-                            &zu_iced_vektor,
-                        );
+                        frame.fill(&path, canvas::Fill { color, ..Default::default() });
                     }
                 });
             });
@@ -420,7 +395,6 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
 fn schreibe_alle_beschreibungen<T: Zeichnen>(
     frame: &mut canvas::Frame,
     map: &HashMap<GleisId<T>, Gleis<T>>,
-    zu_iced_vektor: impl Fn(Vektor) -> iced::Vector,
 ) {
     for (_gleis_id, Gleis { definition, position }) in map.iter() {
         if let Some((relative_position, content)) = definition.beschreibung() {
@@ -429,7 +403,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
             let winkel = position.winkel + relative_position.winkel;
             let absolute_position = Position { punkt, winkel };
             frame.with_save(|frame| {
-                move_to_position(frame, &absolute_position, &zu_iced_vektor);
+                move_to_position(frame, &absolute_position);
                 frame.fill_text(canvas::Text {
                     content: content.to_string(),
                     position: iced::Point::ORIGIN,
@@ -500,7 +474,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             modus,
             ..
         } = self;
-        vec![canvas.draw(bounds.size(), |frame| {
+        vec![canvas.draw(bounds.size(), &self.pivot, &self.skalieren, |frame| {
             // TODO don't draw out of bound Gleise
             // Zeichne Gleise
             let grabbed_id =
@@ -518,14 +492,6 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 )
             };
 
-            let pivot_clone = self.pivot.clone();
-            let skalieren_clone = self.skalieren.clone();
-            let zu_iced_vektor =
-                move |vektor| Vektor::zu_iced(vektor, pivot_clone.clone(), skalieren_clone.clone());
-            let pivot_clone = self.pivot.clone();
-            let skalieren_clone = self.skalieren.clone();
-            let zu_iced_bogen =
-                move |bogen| Bogen::zu_iced(bogen, pivot_clone.clone(), skalieren_clone.clone());
             macro_rules! mit_allen_gleisen {
                     ($funktion:expr$(, $($extra_args:expr),+)?) => {
                         $funktion(frame, geraden$(, $($extra_args),+)?);
@@ -538,28 +504,17 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     };
                 }
             // Hintergrund
-            mit_allen_gleisen!(
-                fülle_alle_gleise,
-                is_grabbed,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone()
-            );
+            mit_allen_gleisen!(fülle_alle_gleise, is_grabbed);
             // Kontur
-            mit_allen_gleisen!(
-                zeichne_alle_gleise,
-                is_grabbed,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone()
-            );
+            mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
             // AnchorPoints
             mit_allen_gleisen!(
                 zeichne_alle_anchor_points,
                 has_other_and_grabbed_id_at_point,
-                &is_grabbed,
-                zu_iced_vektor.clone()
+                &is_grabbed
             );
             // Beschreibung
-            mit_allen_gleisen!(schreibe_alle_beschreibungen, zu_iced_vektor.clone());
+            mit_allen_gleisen!(schreibe_alle_beschreibungen);
         })]
     }
 

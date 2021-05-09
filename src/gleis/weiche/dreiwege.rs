@@ -65,11 +65,7 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
         Vektor { x: size_gerade.x.max(&size_kurve.x), y: size_gerade.y.max(&height_kurven) }
     }
 
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad> {
+    fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
         let half_height = self.size().y.halbiert();
         let beschränkung = beschränkung::<Z>();
@@ -85,7 +81,6 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             true,
             rechts_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor.clone(),
         ));
         // Rechts
         paths.push(kurve::zeichne(
@@ -95,8 +90,6 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             kurve::Beschränkung::Ende,
             rechts_transformations,
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor.clone(),
-            zu_iced_bogen.clone(),
         ));
         // Links
         paths.push(kurve::zeichne(
@@ -106,18 +99,12 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             kurve::Beschränkung::Ende,
             links_transformations,
             pfad::Erbauer::with_invert_y,
-            zu_iced_vektor,
-            zu_iced_bogen,
         ));
         // return value
         paths
     }
 
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<Pfad> {
         // utility sizes
         let half_height = self.size().y.halbiert();
         let beschränkung = beschränkung::<Z>();
@@ -132,7 +119,6 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.länge,
             rechts_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor.clone(),
         ));
         // Rechts
         paths.push(kurve::fülle(
@@ -141,8 +127,6 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.winkel,
             rechts_transformations,
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor.clone(),
-            zu_iced_bogen.clone(),
         ));
         // Links
         paths.push(kurve::fülle(
@@ -151,8 +135,6 @@ impl<Z: Zugtyp> Zeichnen for DreiwegeWeiche<Z> {
             self.winkel,
             links_transformations,
             pfad::Erbauer::with_invert_y,
-            zu_iced_vektor,
-            zu_iced_bogen,
         ));
         // return value
         paths

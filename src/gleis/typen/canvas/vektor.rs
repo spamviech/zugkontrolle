@@ -78,7 +78,7 @@ impl Vektor {
 
     /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
     /// und skaliert.
-    pub fn zu_iced(self, pivot: Position, faktor: Skalar) -> iced::Vector {
+    pub fn zu_iced(self, pivot: &Position, faktor: &Skalar) -> iced::Vector {
         let Vektor { x, y } = faktor * (self - pivot.punkt).rotiere(pivot.winkel);
         iced::Vector { x: x.0, y: y.0 }
     }
@@ -86,15 +86,19 @@ impl Vektor {
     /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
     pub fn zu_iced_unskaliert(self) -> iced::Vector {
         self.zu_iced(
-            Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
-            Skalar::multiplikativ_neutral(),
+            &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
+            &Skalar::multiplikativ_neutral(),
         )
     }
 
     /// Konvertiere einen /iced::Vector/, invers zu /zu_iced/.
     ///
     /// iced-Koordinaten sind skaliert, gedreht und um einen pivot.punkt verschoben.
-    pub fn von_iced(iced::Vector { x, y }: iced::Vector, pivot: Position, faktor: Skalar) -> Self {
+    pub fn von_iced(
+        iced::Vector { x, y }: iced::Vector,
+        pivot: &Position,
+        faktor: &Skalar,
+    ) -> Self {
         (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
     }
 }
@@ -212,10 +216,20 @@ where
 }
 
 // Multiplikation/Division mit Skalar
-impl MulAssign<Skalar> for Vektor {
-    fn mul_assign(&mut self, rhs: Skalar) {
+impl MulAssign<&Skalar> for Vektor {
+    fn mul_assign(&mut self, rhs: &Skalar) {
         self.x *= rhs;
         self.y *= rhs;
+    }
+}
+impl MulAssign<Skalar> for Vektor {
+    fn mul_assign(&mut self, rhs: Skalar) {
+        *self *= &rhs;
+    }
+}
+impl MulAssign<&mut Skalar> for Vektor {
+    fn mul_assign(&mut self, rhs: &mut Skalar) {
+        *self *= &*rhs;
     }
 }
 impl<T> Mul<T> for Vektor
@@ -229,6 +243,13 @@ where
         self
     }
 }
+impl Mul<Vektor> for &Skalar {
+    type Output = Vektor;
+
+    fn mul(self, rhs: Vektor) -> Self::Output {
+        rhs * self
+    }
+}
 impl Mul<Vektor> for Skalar {
     type Output = Vektor;
 
@@ -236,9 +257,27 @@ impl Mul<Vektor> for Skalar {
         rhs * self
     }
 }
+impl Mul<Vektor> for &mut Skalar {
+    type Output = Vektor;
+
+    fn mul(self, rhs: Vektor) -> Self::Output {
+        rhs * self
+    }
+}
+impl DivAssign<&Skalar> for Vektor {
+    fn div_assign(&mut self, rhs: &Skalar) {
+        self.x /= rhs;
+        self.y /= rhs;
+    }
+}
 impl DivAssign<Skalar> for Vektor {
     fn div_assign(&mut self, rhs: Skalar) {
-        *self *= Skalar::multiplikativ_neutral() / rhs;
+        *self /= &rhs;
+    }
+}
+impl DivAssign<&mut Skalar> for Vektor {
+    fn div_assign(&mut self, rhs: &mut Skalar) {
+        *self /= &*rhs;
     }
 }
 impl<T> Div<T> for Vektor

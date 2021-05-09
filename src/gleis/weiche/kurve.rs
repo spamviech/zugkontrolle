@@ -68,11 +68,7 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
         Vektor { x: size_gerade.x + size_kurve.x, y: size_kurve.y }
     }
 
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad> {
+    fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
         let außen_transformation =
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
@@ -89,8 +85,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Alle,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone(),
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
@@ -99,7 +93,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 false,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor.clone(),
             ));
             // Äußere Kurve
             transformations.push(außen_transformation);
@@ -110,8 +103,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Ende,
                 transformations,
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor,
-                zu_iced_bogen,
             ));
         } else {
             // Innere Kurve
@@ -122,8 +113,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Alle,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone(),
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::zeichne(
@@ -132,7 +121,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 false,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor.clone(),
             ));
             // Äußere Kurve
             paths.push(kurve::zeichne(
@@ -142,19 +130,13 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 kurve::Beschränkung::Ende,
                 vec![außen_transformation],
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor,
-                zu_iced_bogen,
             ));
         }
         // return value
         paths
     }
 
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<Pfad> {
         // utility sizes
         let außen_transformation =
             Transformation::Translation(Vektor { x: self.länge, y: Skalar(0.) });
@@ -170,8 +152,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone(),
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::fülle(
@@ -179,7 +159,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.länge,
                 transformations.clone(),
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor.clone(),
             ));
             // Äußere Kurve
             transformations.push(außen_transformation);
@@ -189,8 +168,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 transformations,
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor,
-                zu_iced_bogen,
             ));
         } else {
             // Innere Kurve
@@ -200,8 +177,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone(),
             ));
             // Gerade vor äußerer Kurve
             paths.push(gerade::fülle(
@@ -209,7 +184,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.länge,
                 Vec::new(),
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor.clone(),
             ));
             // Äußere Kurve
             paths.push(kurve::fülle(
@@ -218,8 +192,6 @@ impl<Z: Zugtyp> Zeichnen for KurvenWeiche<Z> {
                 self.winkel,
                 vec![außen_transformation],
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor,
-                zu_iced_bogen,
             ));
         }
         // return value

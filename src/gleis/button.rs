@@ -64,27 +64,23 @@ impl<T: Zeichnen, Message> iced::canvas::Program<Message> for ButtonCanvas<T> {
     ) -> Vec<iced::canvas::Geometry> {
         // TODO adjust(scale) to size
         let half_extra_width = Skalar(0.5) * (Skalar(bounds.width) - self.gleis.size().x);
-        vec![self.canvas.draw(bounds.size(), |frame| {
-            frame.transformation(
-                &Transformation::Translation(Vektor { x: half_extra_width, y: Skalar(0.) }),
-                Vektor::zu_iced_unskaliert,
-            );
-            for path in self.gleis.zeichne(Vektor::zu_iced_unskaliert, Bogen::zu_iced_unskaliert) {
+        vec![self.canvas.draw_unskaliert(bounds.size(), |frame| {
+            frame.transformation(&Transformation::Translation(Vektor {
+                x: half_extra_width,
+                y: Skalar(0.),
+            }));
+            for path in self.gleis.zeichne() {
                 frame.with_save(|frame| {
-                    frame.stroke(
-                        &path,
-                        canvas::Stroke {
-                            color: canvas::Color::BLACK,
-                            width: STROKE_WIDTH.0,
-                            ..Default::default()
-                        },
-                        Vektor::zu_iced_unskaliert,
-                    );
+                    frame.stroke(&path, canvas::Stroke {
+                        color: canvas::Color::BLACK,
+                        width: STROKE_WIDTH.0,
+                        ..Default::default()
+                    });
                 });
             }
             if let Some((relative_position, content)) = self.gleis.beschreibung() {
                 frame.with_save(|frame| {
-                    move_to_position(frame, &relative_position, Vektor::zu_iced_unskaliert);
+                    move_to_position(frame, &relative_position);
                     frame.fill_text(canvas::Text {
                         content: content.to_string(),
                         position: iced::Point::ORIGIN,

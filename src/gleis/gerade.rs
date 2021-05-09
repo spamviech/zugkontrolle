@@ -43,33 +43,12 @@ impl<Z: Zugtyp> Zeichnen for Gerade<Z> {
         size::<Z>(self.länge)
     }
 
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        _zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
-    ) -> Vec<Pfad> {
-        vec![zeichne(
-            self.zugtyp,
-            self.länge,
-            true,
-            Vec::new(),
-            pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor,
-        )]
+    fn zeichne(&self) -> Vec<Pfad> {
+        vec![zeichne(self.zugtyp, self.länge, true, Vec::new(), pfad::Erbauer::with_normal_axis)]
     }
 
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + 'static,
-        _zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + 'static,
-    ) -> Vec<Pfad> {
-        vec![fülle(
-            self.zugtyp,
-            self.länge,
-            Vec::new(),
-            pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor,
-        )]
+    fn fülle(&self) -> Vec<Pfad> {
+        vec![fülle(self.zugtyp, self.länge, Vec::new(), pfad::Erbauer::with_normal_axis)]
     }
 
     fn beschreibung(&self) -> Option<(Position, &String)> {
@@ -109,7 +88,7 @@ pub(crate) fn size<Z: Zugtyp>(länge: Skalar) -> Vektor {
     Vektor { x: länge, y: beschränkung::<Z>() }
 }
 
-pub(crate) fn zeichne<Z, P, A, F>(
+pub(crate) fn zeichne<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     länge: Skalar,
     beschränkungen: bool,
@@ -118,34 +97,28 @@ pub(crate) fn zeichne<Z, P, A, F>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-    zu_iced_vektor: F,
 ) -> Pfad
 where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: 'static + Fn(Vektor) -> iced::Vector,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| {
-            zeichne_internal::<Z, P, A, F>(builder, länge, beschränkungen, zu_iced_vektor)
-        }),
+        Box::new(move |builder| zeichne_internal::<Z, P, A>(builder, länge, beschränkungen)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
-fn zeichne_internal<Z, P, A, F>(
+fn zeichne_internal<Z, P, A>(
     path_builder: &mut pfad::Erbauer<P, A>,
     länge: Skalar,
     beschränkungen: bool,
-    zu_iced_vektor: F,
 ) where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: Fn(Vektor) -> iced::Vector,
 {
     let gleis_links = Skalar(0.);
     let gleis_rechts = gleis_links + länge;
@@ -155,23 +128,19 @@ fn zeichne_internal<Z, P, A, F>(
     let gleis_unten = gleis_oben + spurweite::<Z>();
     // Beschränkungen
     if beschränkungen {
-        path_builder
-            .move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into(), &zu_iced_vektor);
-        path_builder
-            .line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into(), &zu_iced_vektor);
-        path_builder
-            .move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into(), &zu_iced_vektor);
-        path_builder
-            .line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into(), &zu_iced_vektor);
+        path_builder.move_to(Vektor { x: gleis_links, y: beschränkung_oben }.into());
+        path_builder.line_to(Vektor { x: gleis_links, y: beschränkung_unten }.into());
+        path_builder.move_to(Vektor { x: gleis_rechts, y: beschränkung_oben }.into());
+        path_builder.line_to(Vektor { x: gleis_rechts, y: beschränkung_unten }.into());
     }
     // Gleis
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), &zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), &zu_iced_vektor);
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_unten }.into(), &zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), zu_iced_vektor);
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into());
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_unten }.into());
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into());
 }
 
-pub(crate) fn fülle<Z, P, A, F>(
+pub(crate) fn fülle<Z, P, A>(
     _zugtyp: PhantomData<Z>,
     länge: Skalar,
     transformations: Vec<Transformation>,
@@ -179,31 +148,25 @@ pub(crate) fn fülle<Z, P, A, F>(
         &mut pfad::Erbauer<Vektor, Bogen>,
         Box<dyn for<'s> FnOnce(&'s mut pfad::Erbauer<P, A>)>,
     ),
-    zu_iced_vektor: F,
 ) -> Pfad
 where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: 'static + Fn(Vektor) -> iced::Vector,
 {
     let mut path_builder = pfad::Erbauer::neu();
     with_invert_axis(
         &mut path_builder,
-        Box::new(move |builder| fülle_internal::<Z, P, A, F>(builder, länge, zu_iced_vektor)),
+        Box::new(move |builder| fülle_internal::<Z, P, A>(builder, länge)),
     );
     path_builder.baue_unter_transformationen(transformations)
 }
 
-fn fülle_internal<Z, P, A, F>(
-    path_builder: &mut pfad::Erbauer<P, A>,
-    länge: Skalar,
-    zu_iced_vektor: F,
-) where
+fn fülle_internal<Z, P, A>(path_builder: &mut pfad::Erbauer<P, A>, länge: Skalar)
+where
     Z: Zugtyp,
     P: From<Vektor> + Into<Vektor>,
     A: From<Bogen> + Into<Bogen>,
-    F: Fn(Vektor) -> iced::Vector,
 {
     // Koordinaten
     let gleis_links = Skalar(0.);
@@ -212,11 +175,11 @@ fn fülle_internal<Z, P, A, F>(
     let gleis_oben = beschränkung_oben + abstand::<Z>();
     let gleis_unten = gleis_oben + spurweite::<Z>();
     // Zeichne Umriss
-    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into(), &zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into(), &zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into(), &zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into(), &zu_iced_vektor);
-    path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into(), zu_iced_vektor);
+    path_builder.move_to(Vektor { x: gleis_links, y: gleis_oben }.into());
+    path_builder.line_to(Vektor { x: gleis_links, y: gleis_unten }.into());
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_unten }.into());
+    path_builder.line_to(Vektor { x: gleis_rechts, y: gleis_oben }.into());
+    path_builder.line_to(Vektor { x: gleis_links, y: gleis_oben }.into());
 }
 
 pub(crate) fn innerhalb<Z: Zugtyp>(länge: Skalar, relative_position: Vektor) -> bool {

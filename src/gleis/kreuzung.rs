@@ -78,11 +78,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         Vektor { x: self.länge.max(&size_kurve.x), y: height_beschränkung.max(&height_kurven) }
     }
 
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad> {
+    fn zeichne(&self) -> Vec<Pfad> {
         // utility sizes
         let Vektor { x: width, y: height } = self.size();
         let half_width = width.halbiert();
@@ -109,7 +105,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             true,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor.clone(),
         ));
         paths.push(gerade::zeichne(
             self.zugtyp,
@@ -117,7 +112,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             true,
             gedreht_transformations.clone(),
             pfad::Erbauer::with_invert_y,
-            zu_iced_vektor.clone(),
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
@@ -128,8 +122,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 kurve::Beschränkung::Keine,
                 horizontal_transformations,
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone(),
             ));
             paths.push(kurve::zeichne(
                 self.zugtyp,
@@ -138,19 +130,13 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 kurve::Beschränkung::Keine,
                 gedreht_transformations,
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen,
             ));
         }
         // return value
         paths
     }
 
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad> {
+    fn fülle(&self) -> Vec<Pfad> {
         // utility sizes
         let Vektor { x: width, y: height } = self.size();
         let half_width = width.halbiert();
@@ -176,14 +162,12 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
             self.länge,
             horizontal_transformations.clone(),
             pfad::Erbauer::with_normal_axis,
-            zu_iced_vektor.clone(),
         ));
         paths.push(gerade::fülle(
             self.zugtyp,
             self.länge,
             gedreht_transformations.clone(),
             pfad::Erbauer::with_invert_y,
-            zu_iced_vektor.clone(),
         ));
         // Kurven
         if self.variante == Variante::MitKurve {
@@ -193,8 +177,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 winkel,
                 horizontal_transformations,
                 pfad::Erbauer::with_normal_axis,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen.clone(),
             ));
             paths.push(kurve::fülle(
                 self.zugtyp,
@@ -202,8 +184,6 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
                 winkel,
                 gedreht_transformations,
                 pfad::Erbauer::with_invert_y,
-                zu_iced_vektor.clone(),
-                zu_iced_bogen,
             ));
         }
         // return value

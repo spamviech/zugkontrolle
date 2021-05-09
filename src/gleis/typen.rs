@@ -43,18 +43,10 @@ where
 
     /// Erzeuge die Pfade für Färben des Hintergrunds.
     /// Alle Pfade werden mit /canvas::FillRule::EvenOdd/ gefüllt.
-    fn fülle(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad>;
+    fn fülle(&self) -> Vec<Pfad>;
 
     /// Erzeuge die Pfade für Darstellung der Linien.
-    fn zeichne(
-        &self,
-        zu_iced_vektor: impl Fn(Vektor) -> iced::Vector + Clone + 'static,
-        zu_iced_bogen: impl Fn(Bogen) -> iced::canvas::path::Arc + Clone + 'static,
-    ) -> Vec<Pfad>;
+    fn zeichne(&self) -> Vec<Pfad>;
 
     /// Beschreibung und Position (falls verfügbar)
     fn beschreibung(&self) -> Option<(Position, &String)>;
