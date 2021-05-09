@@ -31,12 +31,21 @@ pub struct Frame<'t> {
     skalieren: &'t Skalar,
 }
 impl<'t> Frame<'t> {
-    pub fn new(
-        frame: &'t mut iced::canvas::Frame,
-        pivot: &'t Position,
-        skalieren: &'t Skalar,
-    ) -> Self {
-        Frame { frame, pivot, skalieren }
+    pub fn with_new_frame(
+        size: iced::Size<f32>,
+        draw_fn: impl Fn(&mut Frame),
+    ) -> iced::canvas::Geometry {
+        let mut frame = iced::canvas::Frame::new(size);
+        let mut boxed_frame = Frame {
+            frame: &mut frame,
+            pivot: &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
+            skalieren: &Skalar(0.),
+        };
+        boxed_frame.with_save(|f| {
+            f.pivot_transformationen();
+            draw_fn(f)
+        });
+        frame.into_geometry()
     }
 
     fn pivot_transformationen(&mut self) {
@@ -53,7 +62,6 @@ impl<'t> Frame<'t> {
     /// Draws the stroke of the given Path on the Frame with the provided style.
     pub fn stroke(&mut self, Pfad { pfad, transformationen }: &Pfad, stroke: impl Into<Stroke>) {
         self.with_save(|frame| {
-            frame.pivot_transformationen();
             for transformation in transformationen {
                 frame.transformation(transformation)
             }
@@ -64,7 +72,6 @@ impl<'t> Frame<'t> {
     /// Draws the given Path on the Frame by filling it with the provided style.
     pub fn fill(&mut self, Pfad { pfad, transformationen }: &Pfad, fill: impl Into<Fill>) {
         self.with_save(|frame| {
-            frame.pivot_transformationen();
             for transformation in transformationen {
                 frame.transformation(transformation)
             }
@@ -77,6 +84,7 @@ impl<'t> Frame<'t> {
     /// **Warning:** problems regarding transformation/rotation/scaling from /iced::canvas::Frame/
     /// apply here as well!
     pub fn fill_text(&mut self, text: impl Into<Text>) {
+        // TODO respect pivot point
         self.frame.fill_text(text)
     }
 
@@ -120,7 +128,13 @@ impl Cache {
         skalieren: &Skalar,
         draw_fn: impl Fn(&mut Frame),
     ) -> iced::canvas::Geometry {
-        self.0.draw(bounds, |frame| draw_fn(&mut Frame { frame, pivot, skalieren }))
+        self.0.draw(bounds, |frame| {
+            let mut boxed_frame = Frame { frame, pivot, skalieren };
+            boxed_frame.with_save(|f| {
+                f.pivot_transformationen();
+                draw_fn(f)
+            })
+        })
     }
 
     pub fn draw_unskaliert(

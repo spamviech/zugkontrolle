@@ -532,7 +532,11 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 // TODO store bounding box in rtree as well, to avoid searching everything stored?
                 if let Some(in_pos) = cursor.position_in(&bounds) {
                     let Gleise { maps, modus, .. } = self;
-                    let canvas_pos = Vektor { x: Skalar(in_pos.x), y: Skalar(in_pos.y) };
+                    let canvas_pos = Vektor::von_iced(
+                        iced::Vector { x: in_pos.x, y: in_pos.y },
+                        &self.pivot,
+                        &self.skalieren,
+                    );
                     macro_rules! find_clicked {
                         ($map:expr,AnyId:: $konstruktor:ident) => {
                             if let Modus::Bauen { grabbed, .. } = modus {

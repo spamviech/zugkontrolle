@@ -79,16 +79,9 @@ impl Vektor {
     /// Konvertiere zu einem /iced::Vector/, relativ zu einem Pivot-Punkt und nachträglich gedreht.
     /// und skaliert.
     pub fn zu_iced(self, pivot: &Position, faktor: &Skalar) -> iced::Vector {
+        // FIXME Probleme mit vorherigen Transformationen
         let Vektor { x, y } = faktor * (self - pivot.punkt).rotiere(pivot.winkel);
         iced::Vector { x: x.0, y: y.0 }
-    }
-
-    /// Spezialfall von /zu_iced/, ohne verschieben, rotieren und skalieren.
-    pub fn zu_iced_unskaliert(self) -> iced::Vector {
-        self.zu_iced(
-            &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
-            &Skalar::multiplikativ_neutral(),
-        )
     }
 
     /// Konvertiere einen /iced::Vector/, invers zu /zu_iced/.
@@ -99,6 +92,7 @@ impl Vektor {
         pivot: &Position,
         faktor: &Skalar,
     ) -> Self {
+        // FIXME Probleme mit vorherigen Transformationen
         (Vektor { x: Skalar(x), y: Skalar(y) } / faktor).rotiere(-pivot.winkel) + pivot.punkt
     }
 }
