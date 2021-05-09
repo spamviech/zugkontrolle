@@ -190,7 +190,11 @@ fn main() -> iced::Result {
     gleise_lego.add_attach(lego::GERADE, gerade::AnchorName::Ende, kreuzung1_anchor_points.ende_1);
     // relocate-attach
     if let Some(gleis_id) = &*kurve_lock.read() {
-        gleise_lego.relocate_attach(gleis_id, kurve::AnchorName::Ende, weiche_anchor_points.kurve);
+        gleise_lego.relocate_attach(
+            gleis_id,
+            kurve::AnchorName::Anfang,
+            weiche_anchor_points.kurve,
+        );
     }
     // remove
     let kreuzung0_lock_clone = kreuzung0_lock.clone();
