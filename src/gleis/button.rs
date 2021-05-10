@@ -1,23 +1,32 @@
 //! Knopf mit dem jeweiligen Gleis
 
 use super::gleise::move_to_position;
-use super::style::background;
 use super::typen::*;
 
 const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;
 const PADDING: u16 = 2;
 const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
+const GREY_IN_BOUNDS_VALUE: f32 = 0.8;
+const GREY_IN_BOUNDS: iced::Color =
+    iced::Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
+const GREY_OUT_OF_BOUNDS_VALUE: f32 = 0.9;
+const GREY_OUT_OF_BOUNDS: iced::Color = iced::Color::from_rgb(
+    GREY_OUT_OF_BOUNDS_VALUE,
+    GREY_OUT_OF_BOUNDS_VALUE,
+    GREY_OUT_OF_BOUNDS_VALUE,
+);
 
 /// Ein Knopf, der ein Gleis anzeigt
 #[derive(Debug)]
 pub struct Button<T> {
     gleis: T,
     canvas: canvas::Cache,
+    in_bounds: bool,
 }
 impl<T> Button<T> {
     pub fn new(gleis: T) -> Self {
-        Button { gleis, canvas: canvas::Cache::new() }
+        Button { gleis, canvas: canvas::Cache::new(), in_bounds: false }
     }
 }
 impl<T: Zeichnen> Button<T> {
@@ -32,25 +41,29 @@ impl<T: Zeichnen> Button<T> {
         T: ButtonMessage<Message>,
     {
         let size = self.gleis.size();
+        // account for lines right at the edge
         iced::Container::new(
-            iced::Container::new(
-                // account for lines right at the edge
-                iced::Canvas::new(self)
-                    .width(iced::Length::Units(
-                        width.unwrap_or((STROKE_WIDTH + size.x).0.ceil() as u16),
-                    ))
-                    .height(iced::Length::Units((STROKE_WIDTH + size.y).0.ceil() as u16)),
-            )
-            .width(iced::Length::Shrink)
-            .height(iced::Length::Shrink)
-            .padding(PADDING)
-            .style(background::Grey(0.9)),
+            iced::Canvas::new(self)
+                .width(iced::Length::Units(
+                    width.unwrap_or((STROKE_WIDTH + size.x).0.ceil() as u16),
+                ))
+                .height(iced::Length::Units(
+                    (DOUBLE_PADDING + STROKE_WIDTH + size.y).0.ceil() as u16
+                )),
         )
-        .width(iced::Length::Shrink)
+        .width(iced::Length::Fill)
         .height(iced::Length::Shrink)
-        .padding(BORDER_WIDTH)
-        .style(background::BLACK)
     }
+}
+
+fn border_path(size: Vektor) -> Pfad {
+    let mut path_builder = pfad::Erbauer::neu();
+    path_builder.move_to(Vektor::null_vektor());
+    path_builder.line_to(Vektor { x: Skalar(0.), y: size.y });
+    path_builder.line_to(size);
+    path_builder.line_to(Vektor { x: size.x, y: Skalar(0.) });
+    path_builder.close();
+    path_builder.baue()
 }
 
 impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Message> for Button<T> {
@@ -60,18 +73,26 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
         _cursor: iced::canvas::Cursor,
     ) -> Vec<iced::canvas::Geometry> {
         vec![self.canvas.draw(bounds.size(), |frame| {
-            let bounds_width = Skalar(bounds.width);
-            let width = self.gleis.size().x;
-            if bounds_width > width {
+            let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
+            let border_path = border_path(bounds_vector);
+            frame.fill(&border_path, canvas::Fill {
+                color: if self.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
+                rule: canvas::FillRule::EvenOdd,
+            });
+            frame.stroke(&border_path, canvas::Stroke {
+                color: canvas::Color::BLACK,
+                width: BORDER_WIDTH as f32,
+                ..Default::default()
+            });
+            let size = self.gleis.size();
+            if bounds_vector.x > size.x {
                 // horizontal zentrieren
-                let half_extra_width = Skalar(0.5) * bounds_width - width;
-                frame.transformation(&Transformation::Translation(Vektor {
-                    x: half_extra_width,
-                    y: Skalar(0.),
-                }));
+                frame.transformation(&Transformation::Translation(
+                    Skalar(0.5) * (bounds_vector - size),
+                ));
             } else {
                 // skaliere zu vorhandener Breite
-                frame.transformation(&Transformation::Skalieren(bounds_width / width))
+                frame.transformation(&Transformation::Skalieren(bounds_vector.x / size.x))
             }
             for path in self.gleis.zeichne() {
                 frame.with_save(|frame| {
@@ -104,10 +125,15 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
         bounds: iced::Rectangle,
         cursor: iced::canvas::Cursor,
     ) -> (iced::canvas::event::Status, Option<Message>) {
+        let in_bounds = cursor.is_over(&bounds);
+        if self.in_bounds != in_bounds {
+            self.canvas.clear();
+            self.in_bounds = in_bounds;
+        }
         match event {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
-            )) if cursor.is_over(&bounds) => {
+            )) if self.in_bounds => {
                 (iced::canvas::event::Status::Captured, Some(self.gleis.to_message()))
             },
             _ => (iced::canvas::event::Status::Ignored, None),
