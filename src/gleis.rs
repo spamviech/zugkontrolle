@@ -8,6 +8,7 @@ pub mod gleise;
 pub mod icon;
 pub mod kreuzung;
 pub mod kurve;
+pub mod style;
 pub mod typen;
 pub mod weiche;
 

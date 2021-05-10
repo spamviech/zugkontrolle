@@ -2,10 +2,8 @@
 
 use version::version;
 
+use super::style::*;
 use super::*;
-
-mod background;
-mod scrollable;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
@@ -150,7 +148,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     )
                     .width(iced::Length::Units(max_width + scroller_width))
                     .height(iced::Length::Fill)
-                    .style(background::White),
+                    .style(background::WHITE),
                 )
                 .push(
                     iced::Container::new(
@@ -160,13 +158,13 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     )
                     .width(iced::Length::Fill)
                     .height(iced::Length::Fill)
-                    .style(background::White),
+                    .style(background::WHITE),
                 )
                 .spacing(1),
         )
         .width(iced::Length::Fill)
         .height(iced::Length::Fill)
-        .style(background::Black)
+        .style(background::BLACK)
         .into()
     }
 }
