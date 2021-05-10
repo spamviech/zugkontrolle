@@ -2,9 +2,11 @@
 
 use std::marker::PhantomData;
 
-use super::skalar::Skalar;
 use super::vektor::Vektor;
-use crate::gleis::typen::winkel::{self, Winkel};
+use crate::gleis::typen::{
+    skalar::Skalar,
+    winkel::{self, Winkel},
+};
 
 /// Pfad auf dem Canvas
 ///

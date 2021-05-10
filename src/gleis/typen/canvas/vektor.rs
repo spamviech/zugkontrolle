@@ -4,8 +4,10 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use serde::{Deserialize, Serialize};
 
-use super::skalar::Skalar;
-use crate::gleis::typen::winkel::{Trigonometrie, Winkel};
+use crate::gleis::typen::{
+    skalar::Skalar,
+    winkel::{Trigonometrie, Winkel},
+};
 
 /// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
 ///
