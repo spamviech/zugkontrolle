@@ -8,10 +8,10 @@ const BORDER_WIDTH: u16 = 1;
 const PADDING: u16 = 2;
 const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
 const GREY_IN_BOUNDS_VALUE: f32 = 0.8;
-const GREY_IN_BOUNDS: iced::Color =
-    iced::Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
+const GREY_IN_BOUNDS: canvas::Color =
+    canvas::Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
 const GREY_OUT_OF_BOUNDS_VALUE: f32 = 0.9;
-const GREY_OUT_OF_BOUNDS: iced::Color = iced::Color::from_rgb(
+const GREY_OUT_OF_BOUNDS: canvas::Color = canvas::Color::from_rgb(
     GREY_OUT_OF_BOUNDS_VALUE,
     GREY_OUT_OF_BOUNDS_VALUE,
     GREY_OUT_OF_BOUNDS_VALUE,

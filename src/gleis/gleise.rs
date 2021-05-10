@@ -477,7 +477,10 @@ impl<Z: Zugtyp> Gleise<Z> {
     // maybe simulate some drag&drop by making the list part of the canvas?
     // alternatively make drag&drop a toggle, so we can stay consistent with buttons behaviour
     // starting it?
-    pub(crate) fn add_at_mouse<T>(&mut self, definition: T) -> (GleisIdLock<T>, T::AnchorPoints)
+    pub(crate) fn add_grabbed_at_mouse<T>(
+        &mut self,
+        definition: T,
+    ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
         GleisId<T>: Into<AnyId<Z>>,
@@ -486,13 +489,19 @@ impl<Z: Zugtyp> Gleise<Z> {
         let mut canvas_position = self.last_mouse;
         canvas_position.x = canvas_position.x.max(&Skalar(0.)).min(&self.last_size.x);
         canvas_position.y = canvas_position.y.max(&Skalar(0.)).min(&self.last_size.y);
-        self.add(Gleis {
+        let result = self.add(Gleis {
             definition,
             position: Position {
                 punkt: self.pivot.punkt + canvas_position,
                 winkel: self.pivot.winkel,
             },
-        })
+        });
+        if let Modus::Bauen { grabbed } = &mut self.modus {
+            if let Some(gleis_id) = result.0.read().as_ref().map(GleisId::as_any_id) {
+                *grabbed = Some(Grabbed { gleis_id, grab_location: Vektor::null_vektor() });
+            }
+        }
+        result
     }
 
     /// Create a new gleis with anchor_name adjacent to the target_anchor_point.

@@ -74,19 +74,19 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         message: Self::Message,
         _clipboard: &mut iced::Clipboard,
     ) -> iced::Command<Self::Message> {
-        macro_rules! add_gleis {
+        macro_rules! add_grabbed_at_mouse {
             ($gleis:expr) => {{
-                self.gleise.add_at_mouse($gleis);
+                self.gleise.add_grabbed_at_mouse($gleis);
             }};
         }
         match message {
-            Message::Gerade(gerade) => add_gleis!(gerade),
-            Message::Kurve(kurve) => add_gleis!(kurve),
-            Message::Weiche(weiche) => add_gleis!(weiche),
-            Message::DreiwegeWeiche(dreiwege_weiche) => add_gleis!(dreiwege_weiche),
-            Message::KurvenWeiche(kurven_weiche) => add_gleis!(kurven_weiche),
-            Message::SKurvenWeiche(s_kurven_weiche) => add_gleis!(s_kurven_weiche),
-            Message::Kreuzung(kreuzung) => add_gleis!(kreuzung),
+            Message::Gerade(gerade) => add_grabbed_at_mouse!(gerade),
+            Message::Kurve(kurve) => add_grabbed_at_mouse!(kurve),
+            Message::Weiche(weiche) => add_grabbed_at_mouse!(weiche),
+            Message::DreiwegeWeiche(dreiwege_weiche) => add_grabbed_at_mouse!(dreiwege_weiche),
+            Message::KurvenWeiche(kurven_weiche) => add_grabbed_at_mouse!(kurven_weiche),
+            Message::SKurvenWeiche(s_kurven_weiche) => add_grabbed_at_mouse!(s_kurven_weiche),
+            Message::Kreuzung(kreuzung) => add_grabbed_at_mouse!(kreuzung),
         }
 
         iced::Command::none()
