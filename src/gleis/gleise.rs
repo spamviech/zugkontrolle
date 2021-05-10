@@ -2,11 +2,7 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
-use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use log::*;
 use serde::{Deserialize, Serialize};
 
 use super::anchor::{self, Lookup};
@@ -16,59 +12,9 @@ use super::kurve::Kurve;
 use super::typen::*;
 use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
-/// If GleisIdLock<Z>::read contains a Some, the GleisId<Z> is guaranteed to be valid.
-#[derive(zugkontrolle_derive::Clone, zugkontrolle_derive::Debug)]
-pub struct GleisIdLock<T>(Arc<RwLock<Option<GleisId<T>>>>);
-
-impl<T> GleisIdLock<T> {
-    fn new(gleis_id: u64) -> Self {
-        GleisIdLock(Arc::new(RwLock::new(Some(GleisId::new(gleis_id)))))
-    }
-
-    pub fn read(&self) -> RwLockReadGuard<Option<GleisId<T>>> {
-        self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
-    }
-
-    fn write(&self) -> RwLockWriteGuard<Option<GleisId<T>>> {
-        self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct Any;
-
-/// Identifier for a Gleis.  Will probably change between restarts.
-///
-/// The API will only provide &GleisIdLock<Z>.
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct GleisId<T>(u64, PhantomData<*const T>);
-impl<T> GleisId<T> {
-    pub fn new(gleis_id: u64) -> Self {
-        GleisId(gleis_id, PhantomData)
-    }
-
-    pub(crate) fn as_any(&self) -> GleisId<Any> {
-        GleisId::new(self.0)
-    }
-
-    // implemented as method, so it stays private
-    fn clone(&self) -> Self {
-        GleisId(self.0, self.1)
-    }
-}
-// explicit implementation needed due to phantom type
-// derived instead required corresponding Trait implemented on phantom type
-impl<T> PartialEq for GleisId<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl<T> Eq for GleisId<T> {}
-impl<T> Hash for GleisId<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
-    }
-}
+#[macro_use]
+pub mod id;
+pub use id::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gleis<T> {
@@ -81,80 +27,35 @@ struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: Vektor,
 }
-#[derive(zugkontrolle_derive::Debug)]
-pub(crate) enum AnyId<Z> {
-    Gerade(GleisId<Gerade<Z>>),
-    Kurve(GleisId<Kurve<Z>>),
-    Weiche(GleisId<Weiche<Z>>),
-    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>),
-    KurvenWeiche(GleisId<KurvenWeiche<Z>>),
-    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
-    Kreuzung(GleisId<Kreuzung<Z>>),
-}
-macro_rules! maybe_clone {
-    ($x:expr => @no_clone) => {
-        $x
-    };
-    ($x:expr $(=> @clone)?) => {
-        $x.clone()
-    };
-}
-macro_rules! with_any_id {
-    ($any_id: expr $(=> @$clone: tt)?, $function: expr$(, $($extra_arg:expr),+)?) => {
-        match $any_id {
-            AnyId::Gerade(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-            AnyId::Kurve(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-            AnyId::Weiche(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-            AnyId::DreiwegeWeiche(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-            AnyId::KurvenWeiche(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-            AnyId::SKurvenWeiche(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-            AnyId::Kreuzung(gleis_id) => {
-                let gleis_id_clone = maybe_clone!(gleis_id$(=> @$clone)?);
-                $function(gleis_id_clone$(, $($extra_arg),+)?)
-            }
-        }
-    };
-}
-impl<Z> AnyId<Z> {
-    fn id_as_any(&self) -> GleisId<Any> {
-        with_any_id!(self => @no_clone, GleisId::as_any)
+impl<Z> Grabbed<Z> {
+    fn find_clicked<T>(
+        grabbed: &mut Option<Grabbed<Z>>,
+        map: &mut HashMap<GleisId<T>, Gleis<T>>,
+        canvas_pos: Vektor,
+    ) where
+        T: Zeichnen,
+        GleisId<T>: Into<AnyId<Z>>,
+    {
+        // TODO store bounding box in rstar as well, to avoid searching everything stored?
+        take_mut::take(grabbed, |grabbed| {
+            grabbed.or({
+                let mut grabbed = None;
+                for (gleis_id, Gleis { definition, position }) in map.iter() {
+                    let relative_pos = canvas_pos - position.punkt;
+                    let rotated_pos = relative_pos.rotiere(-position.winkel);
+                    if definition.innerhalb(rotated_pos) {
+                        grabbed = Some(Grabbed {
+                            gleis_id: gleis_id.as_any_id(),
+                            grab_location: relative_pos,
+                        });
+                        break
+                    }
+                }
+                grabbed
+            })
+        })
     }
 }
-
-macro_rules! impl_any_id_from {
-    ($type:ident) => {
-        impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
-            fn from(input: GleisId<$type<Z>>) -> Self {
-                AnyId::$type(input)
-            }
-        }
-    };
-}
-impl_any_id_from! {Gerade}
-impl_any_id_from! {Kurve}
-impl_any_id_from! {Weiche}
-impl_any_id_from! {DreiwegeWeiche}
-impl_any_id_from! {KurvenWeiche}
-impl_any_id_from! {SKurvenWeiche}
-impl_any_id_from! {Kreuzung}
 
 // TODO Konvertierungsfunktion von/zu Gleise<Z>
 #[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
@@ -242,6 +143,7 @@ enum Modus<Z> {
     #[allow(dead_code)]
     Fahren,
 }
+
 /// Anzeige aller Gleise.
 #[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
@@ -422,44 +324,6 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
     }
 }
 
-fn relocate_grabbed<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
-    gleis_id: GleisId<T>,
-    gleise: &mut Gleise<Z>,
-    punkt: Vektor,
-) {
-    let Gleis { position, .. } =
-        T::get_map_mut(&mut gleise.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
-    let position_neu = Position { punkt, winkel: position.winkel };
-    gleise.relocate(&gleis_id, position_neu);
-}
-
-fn snap_to_anchor<Z: Zugtyp, T: Debug + Zeichnen + GleiseMap<Z>>(
-    gleis_id: GleisId<T>,
-    gleise: &mut Gleise<Z>,
-) {
-    let Gleis { definition, position } =
-        T::get_map_mut(&mut gleise.maps).get(&gleis_id).expect("failed to lookup grabbed Gleis");
-    // calculate absolute position for AnchorPoints
-    let anchor_points = definition.anchor_points().map(
-        |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
-            position: position.transformation(anchor_position),
-            richtung: position.winkel + richtung,
-        },
-    );
-    let mut snap = None;
-    anchor_points.foreach(|anchor_name, anchor| {
-        if snap.is_none() {
-            snap = gleise
-                .anchor_points
-                .get_other_id_at_point(gleis_id.as_any(), anchor)
-                .map(|snap_anchor| (anchor_name, snap_anchor))
-        }
-    });
-    if let Some((snap_name, snap_anchor)) = snap {
-        gleise.relocate_attach(&gleis_id, snap_name, snap_anchor);
-    };
-}
-
 fn get_canvas_position(
     bounds: &iced::Rectangle,
     cursor: &iced::canvas::Cursor,
@@ -488,35 +352,15 @@ fn grab_gleis_an_position<Z: Zugtyp>(
     skalieren: &Skalar,
 ) -> iced::canvas::event::Status {
     if cursor.is_over(&bounds) {
-        // TODO store bounding box in rtree as well, to avoid searching everything stored?
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
             if let Modus::Bauen { grabbed, .. } = modus {
-                macro_rules! find_clicked {
-                    ($map:expr, $konstruktor:ident) => {
-                        take_mut::take(grabbed, |grabbed| {
-                            grabbed.or_else(|| {
-                                for (gleis_id, Gleis { definition, position }) in $map.iter() {
-                                    let relative_pos = canvas_pos - position.punkt;
-                                    let rotated_pos = relative_pos.rotiere(-position.winkel);
-                                    if definition.innerhalb(rotated_pos) {
-                                        return Some(Grabbed {
-                                            gleis_id: AnyId::$konstruktor(gleis_id.clone()),
-                                            grab_location: relative_pos,
-                                        })
-                                    }
-                                }
-                                None
-                            })
-                        })
-                    };
-                }
-                find_clicked!(geraden, Gerade);
-                find_clicked!(kurven, Kurve);
-                find_clicked!(weichen, Weiche);
-                find_clicked!(dreiwege_weichen, DreiwegeWeiche);
-                find_clicked!(kurven_weichen, KurvenWeiche);
-                find_clicked!(s_kurven_weichen, SKurvenWeiche);
-                find_clicked!(kreuzungen, Kreuzung);
+                Grabbed::find_clicked(grabbed, geraden, canvas_pos);
+                Grabbed::find_clicked(grabbed, kurven, canvas_pos);
+                Grabbed::find_clicked(grabbed, weichen, canvas_pos);
+                Grabbed::find_clicked(grabbed, dreiwege_weichen, canvas_pos);
+                Grabbed::find_clicked(grabbed, kurven_weichen, canvas_pos);
+                Grabbed::find_clicked(grabbed, s_kurven_weichen, canvas_pos);
+                Grabbed::find_clicked(grabbed, kreuzungen, canvas_pos);
             }
         }
     }
@@ -566,7 +410,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 let has_other_and_grabbed_id_at_point = |gleis_id, position| {
                     anchor_points.has_other_and_grabbed_id_at_point(
                         &gleis_id,
-                        |id| is_grabbed(id.clone()),
+                        |id| is_grabbed(id.as_any()),
                         &position,
                     )
                 };
@@ -616,7 +460,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 iced::mouse::Button::Left,
             )) => {
                 if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
-                    with_any_id!(gleis_id, snap_to_anchor, self);
+                    with_any_id!(gleis_id.clone(), Gleise::snap_to_anchor, self);
                     self.modus = Modus::Bauen { grabbed: None };
                     iced::canvas::event::Status::Captured
                 } else {
@@ -638,7 +482,12 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         {
                             if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
                                 let point = canvas_pos - grab_location;
-                                with_any_id!(gleis_id, relocate_grabbed, self, point);
+                                with_any_id!(
+                                    gleis_id.clone(),
+                                    Gleise::relocate_grabbed,
+                                    self,
+                                    point
+                                );
                                 event_status = iced::canvas::event::Status::Captured
                             }
                         }
@@ -846,7 +695,43 @@ impl<Z: Zugtyp> Gleise<Z> {
     }
 }
 
-fn warn_poison<T: Debug>(poisoned: PoisonError<T>, beschreibung: &str) -> T {
-    warn!("Poisoned {} RwLock: {:?}! Trying to continue anyway.", beschreibung, poisoned);
-    poisoned.into_inner()
+impl<Z> Gleise<Z> {
+    fn relocate_grabbed<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>, punkt: Vektor)
+    where
+        Z: Zugtyp,
+        T: GleiseMap<Z>,
+    {
+        let Gleis { position, .. } =
+            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
+        let position_neu = Position { punkt, winkel: position.winkel };
+        self.relocate(&gleis_id, position_neu);
+    }
+
+    fn snap_to_anchor<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>)
+    where
+        Z: Zugtyp,
+        T: GleiseMap<Z>,
+    {
+        let Gleis { definition, position } =
+            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("failed to lookup grabbed Gleis");
+        // calculate absolute position for AnchorPoints
+        let anchor_points = definition.anchor_points().map(
+            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
+                position: position.transformation(anchor_position),
+                richtung: position.winkel + richtung,
+            },
+        );
+        let mut snap = None;
+        anchor_points.foreach(|anchor_name, anchor| {
+            if snap.is_none() {
+                snap = self
+                    .anchor_points
+                    .get_other_id_at_point(gleis_id.as_any(), anchor)
+                    .map(|snap_anchor| (anchor_name, snap_anchor))
+            }
+        });
+        if let Some((snap_name, snap_anchor)) = snap {
+            self.relocate_attach(&gleis_id, snap_name, snap_anchor);
+        };
+    }
 }
