@@ -3,24 +3,15 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize};
-
 use super::anchor::{self, Lookup};
-use super::gerade::Gerade;
-use super::kreuzung::Kreuzung;
-use super::kurve::Kurve;
 use super::typen::*;
-use super::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
 #[macro_use]
 pub mod id;
 pub use id::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Gleis<T> {
-    pub definition: T,
-    pub position: Position,
-}
+pub mod maps;
+pub use maps::*;
 
 #[derive(zugkontrolle_derive::Debug)]
 struct Grabbed<Z> {
@@ -54,82 +45,6 @@ impl<Z> Grabbed<Z> {
                 grabbed
             })
         })
-    }
-}
-
-// TODO Konvertierungsfunktion von/zu Gleise<Z>
-#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
-pub struct GleiseVecs<Z> {
-    geraden: Vec<Gleis<Gerade<Z>>>,
-    kurven: Vec<Gleis<Kurve<Z>>>,
-    kreuzungen: Vec<Gleis<Kreuzung<Z>>>,
-    weichen: Vec<Gleis<Weiche<Z>>>,
-    dreiwege_weichen: Vec<Gleis<DreiwegeWeiche<Z>>>,
-    kurven_weichen: Vec<Gleis<KurvenWeiche<Z>>>,
-    s_kurven_weichen: Vec<Gleis<SKurvenWeiche<Z>>>,
-}
-
-#[derive(zugkontrolle_derive::Debug)]
-pub struct GleiseMaps<Z> {
-    geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
-    kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
-    kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,
-    weichen: HashMap<GleisId<Weiche<Z>>, Gleis<Weiche<Z>>>,
-    dreiwege_weichen: HashMap<GleisId<DreiwegeWeiche<Z>>, Gleis<DreiwegeWeiche<Z>>>,
-    kurven_weichen: HashMap<GleisId<KurvenWeiche<Z>>, Gleis<KurvenWeiche<Z>>>,
-    s_kurven_weichen: HashMap<GleisId<SKurvenWeiche<Z>>, Gleis<SKurvenWeiche<Z>>>,
-}
-
-pub trait GleiseMap<Z>: Sized {
-    fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut HashMap<GleisId<Self>, Gleis<Self>>;
-}
-impl<Z> GleiseMap<Z> for Gerade<Z> {
-    fn get_map_mut(
-        GleiseMaps { geraden, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        geraden
-    }
-}
-impl<Z> GleiseMap<Z> for Kurve<Z> {
-    fn get_map_mut(
-        GleiseMaps { kurven, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        kurven
-    }
-}
-impl<Z> GleiseMap<Z> for Weiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        weichen
-    }
-}
-impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        kurven_weichen
-    }
-}
-impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { dreiwege_weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        dreiwege_weichen
-    }
-}
-impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { s_kurven_weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        s_kurven_weichen
-    }
-}
-impl<Z> GleiseMap<Z> for Kreuzung<Z> {
-    fn get_map_mut(
-        GleiseMaps { kreuzungen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
-        kreuzungen
     }
 }
 
