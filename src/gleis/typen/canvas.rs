@@ -91,7 +91,7 @@ impl Cache {
         self.0.clear()
     }
 
-    pub(crate) fn draw_skaliert_from_pivot(
+    pub(crate) fn draw_skaliert_von_pivot(
         &self,
         bounds: iced::Size<f32>,
         pivot: &Position,
@@ -119,7 +119,7 @@ impl Cache {
         bounds: iced::Size<f32>,
         draw_fn: impl Fn(&mut Frame),
     ) -> iced::canvas::Geometry {
-        self.draw_skaliert_from_pivot(
+        self.draw_skaliert_von_pivot(
             bounds,
             &Position { punkt: Vektor::null_vektor(), winkel: Winkel(0.) },
             &Skalar::multiplikativ_neutral(),

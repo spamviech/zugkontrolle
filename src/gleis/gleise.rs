@@ -308,29 +308,25 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             modus,
             ..
         } = self;
-        vec![canvas.draw_skaliert_from_pivot(
-            bounds.size(),
-            &self.pivot,
-            &self.skalieren,
-            |frame| {
-                // TODO don't draw out of bound Gleise
-                // Zeichne Gleise
-                let grabbed_id =
-                    if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
-                        Some(gleis_id.id_as_any())
-                    } else {
-                        None
-                    };
-                let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
-                let has_other_and_grabbed_id_at_point = |gleis_id, position| {
-                    anchor_points.has_other_and_grabbed_id_at_point(
-                        &gleis_id,
-                        |id| is_grabbed(id.as_any()),
-                        &position,
-                    )
+        vec![canvas.draw_skaliert_von_pivot(bounds.size(), &self.pivot, &self.skalieren, |frame| {
+            // TODO don't draw out of bound Gleise
+            // Zeichne Gleise
+            let grabbed_id =
+                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
+                    Some(gleis_id.id_as_any())
+                } else {
+                    None
                 };
+            let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
+            let has_other_and_grabbed_id_at_point = |gleis_id, position| {
+                anchor_points.has_other_and_grabbed_id_at_point(
+                    &gleis_id,
+                    |id| is_grabbed(id.as_any()),
+                    &position,
+                )
+            };
 
-                macro_rules! mit_allen_gleisen {
+            macro_rules! mit_allen_gleisen {
                     ($funktion:expr$(, $($extra_args:expr),+)?) => {
                         $funktion(frame, geraden$(, $($extra_args),+)?);
                         $funktion(frame, kurven$(, $($extra_args),+)?);
@@ -341,20 +337,19 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         $funktion(frame, kreuzungen$(, $($extra_args),+)?);
                     };
                 }
-                // Hintergrund
-                mit_allen_gleisen!(fülle_alle_gleise, is_grabbed);
-                // Kontur
-                mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
-                // AnchorPoints
-                mit_allen_gleisen!(
-                    zeichne_alle_anchor_points,
-                    has_other_and_grabbed_id_at_point,
-                    &is_grabbed
-                );
-                // Beschreibung
-                mit_allen_gleisen!(schreibe_alle_beschreibungen);
-            },
-        )]
+            // Hintergrund
+            mit_allen_gleisen!(fülle_alle_gleise, is_grabbed);
+            // Kontur
+            mit_allen_gleisen!(zeichne_alle_gleise, is_grabbed);
+            // AnchorPoints
+            mit_allen_gleisen!(
+                zeichne_alle_anchor_points,
+                has_other_and_grabbed_id_at_point,
+                &is_grabbed
+            );
+            // Beschreibung
+            mit_allen_gleisen!(schreibe_alle_beschreibungen);
+        })]
     }
 
     fn update(
