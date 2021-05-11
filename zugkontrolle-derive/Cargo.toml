@@ -9,8 +9,11 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-syn = "~1.0.64"
-quote = "~1.0.9"
-proc-macro2 = "~1.0.24"
-Inflector = "~0.11.4"
-proc-macro-crate = "~1.0.0"
+quote = "1.0.9"
+proc-macro2 = "1.0.24"
+Inflector = "0.11.4"
+proc-macro-crate = "1.0.0"
+
+[dependencies.syn]
+version = "1.0.72"
+features = ["full"]

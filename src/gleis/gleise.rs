@@ -49,6 +49,7 @@ impl<Z> Grabbed<Z> {
 }
 
 // Aktueller Modus von /Gleise/
+#[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
     Bauen {

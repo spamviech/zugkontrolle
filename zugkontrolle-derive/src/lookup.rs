@@ -1,5 +1,5 @@
-//! Derive of zugkontrolle::gleis::anchor::lookup::Lookup from an enum by creating an associated
-//! struct
+//! Derive of zugkontrolle::gleis::anchor::lookup::Lookup from an enum
+//! by creating an associated AnchorPoints struct
 
 use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
@@ -13,7 +13,10 @@ pub fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
     let enum_data = if let syn::Data::Enum(enum_data) = data {
         enum_data
     } else {
-        panic!("Not an enum: {:?}", ast)
+        let error_message = format!("Not an enum: {:?}", ast);
+        return quote! {
+            compile_error!(#error_message);
+        }
     };
 
     let base_ident: syn::Ident =

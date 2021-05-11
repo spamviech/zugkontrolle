@@ -33,3 +33,12 @@ pub fn anchor_lookup_derive(input: TokenStream) -> TokenStream {
     // Build the trait implementation
     lookup::impl_anchor_lookup(&ast).into()
 }
+
+mod modus;
+#[proc_macro_attribute]
+pub fn make_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = syn::parse_macro_input!(attr);
+    let ast = syn::parse_macro_input!(item);
+
+    modus::make_enum(args, ast).into()
+}
