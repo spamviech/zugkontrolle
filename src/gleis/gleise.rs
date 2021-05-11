@@ -104,6 +104,45 @@ impl<Z> Gleise<Z> {
         self.next_id += 1;
         (gleis_id, gleis_id_lock)
     }
+
+    fn relocate_grabbed<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>, punkt: Vektor)
+    where
+        Z: Zugtyp,
+        T: GleiseMap<Z>,
+    {
+        let Gleis { position, .. } =
+            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
+        let position_neu = Position { punkt, winkel: position.winkel };
+        self.relocate(&gleis_id, position_neu);
+    }
+
+    fn snap_to_anchor<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>)
+    where
+        Z: Zugtyp,
+        T: GleiseMap<Z>,
+    {
+        let Gleis { definition, position } =
+            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("failed to lookup grabbed Gleis");
+        // calculate absolute position for AnchorPoints
+        let anchor_points = definition.anchor_points().map(
+            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
+                position: position.transformation(anchor_position),
+                richtung: position.winkel + richtung,
+            },
+        );
+        let mut snap = None;
+        anchor_points.foreach(|anchor_name, anchor| {
+            if snap.is_none() {
+                snap = self
+                    .anchor_points
+                    .get_other_id_at_point(gleis_id.as_any(), anchor)
+                    .map(|snap_anchor| (anchor_name, snap_anchor))
+            }
+        });
+        if let Some((snap_name, snap_anchor)) = snap {
+            self.relocate_attach(&gleis_id, snap_name, snap_anchor);
+        };
+    }
 }
 
 pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {
@@ -612,46 +651,5 @@ impl<Z: Zugtyp> Gleise<Z> {
         *optional_id = None;
         // trigger redraw
         self.canvas.clear();
-    }
-}
-
-impl<Z> Gleise<Z> {
-    fn relocate_grabbed<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>, punkt: Vektor)
-    where
-        Z: Zugtyp,
-        T: GleiseMap<Z>,
-    {
-        let Gleis { position, .. } =
-            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("grabbed a non-existing gleis");
-        let position_neu = Position { punkt, winkel: position.winkel };
-        self.relocate(&gleis_id, position_neu);
-    }
-
-    fn snap_to_anchor<T: Debug + Zeichnen>(&mut self, gleis_id: GleisId<T>)
-    where
-        Z: Zugtyp,
-        T: GleiseMap<Z>,
-    {
-        let Gleis { definition, position } =
-            T::get_map_mut(&mut self.maps).get(&gleis_id).expect("failed to lookup grabbed Gleis");
-        // calculate absolute position for AnchorPoints
-        let anchor_points = definition.anchor_points().map(
-            |&anchor::Anchor { position: anchor_position, richtung }| anchor::Anchor {
-                position: position.transformation(anchor_position),
-                richtung: position.winkel + richtung,
-            },
-        );
-        let mut snap = None;
-        anchor_points.foreach(|anchor_name, anchor| {
-            if snap.is_none() {
-                snap = self
-                    .anchor_points
-                    .get_other_id_at_point(gleis_id.as_any(), anchor)
-                    .map(|snap_anchor| (anchor_name, snap_anchor))
-            }
-        });
-        if let Some((snap_name, snap_anchor)) = snap {
-            self.relocate_attach(&gleis_id, snap_name, snap_anchor);
-        };
     }
 }
