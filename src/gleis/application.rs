@@ -3,6 +3,7 @@
 use log::*;
 use version::version;
 
+use super::gleise::Modus;
 use super::style::*;
 use super::*;
 
@@ -33,28 +34,9 @@ impl_any_gleis_from! {KurvenWeiche}
 impl_any_gleis_from! {SKurvenWeiche}
 impl_any_gleis_from! {Kreuzung}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Modus {
-    Bauen,
-    Fahren,
-}
 impl Modus {
     fn make_radio<Z: 'static>(self, aktueller_modus: Option<Self>) -> iced::Radio<Message<Z>> {
         iced::Radio::new(self, self, aktueller_modus, Message::Modus)
-    }
-}
-impl std::fmt::Display for Modus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let display = match self {
-            Modus::Bauen => "Bauen",
-            Modus::Fahren => "Fahren",
-        };
-        write!(f, "{}", display)
-    }
-}
-impl From<Modus> for String {
-    fn from(modus: Modus) -> Self {
-        format!("{}", modus)
     }
 }
 

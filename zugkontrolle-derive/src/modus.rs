@@ -73,12 +73,27 @@ pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream 
     let syn::ItemEnum { vis, ident, variants, .. } = &ast;
     let enum_vis = arg_vis.unwrap_or(vis.clone());
     let enum_ident = arg_ident.unwrap_or(format_ident!("{}Enum", ident));
-    let enum_variants = variants.iter().map(|v| v.ident.clone());
+    let enum_variants: Vec<syn::Ident> = variants.iter().map(|v| v.ident.clone()).collect();
+    let enum_variants_str = enum_variants.iter().map(syn::Ident::to_string);
     quote!(
         #ast
 
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         #enum_vis enum #enum_ident {
             #(#enum_variants),*
+        }
+        impl std::fmt::Display for #enum_ident {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let display = match self {
+                    #(#enum_ident::#enum_variants => #enum_variants_str),*
+                };
+                write!(f, "{}", display)
+            }
+        }
+        impl From<#enum_ident> for String {
+            fn from(modus: #enum_ident) -> Self {
+                format!("{}", modus)
+            }
         }
     )
 }
