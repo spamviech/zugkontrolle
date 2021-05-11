@@ -48,9 +48,9 @@ impl<Z> Grabbed<Z> {
     }
 }
 
-// Aktuelle Modus von /Gleise/
+// Aktueller Modus von /Gleise/
 #[derive(zugkontrolle_derive::Debug)]
-enum Modus<Z> {
+enum ModusDaten<Z> {
     Bauen {
         grabbed: Option<Grabbed<Z>>,
     },
@@ -71,7 +71,7 @@ pub struct Gleise<Z> {
     next_id: u64,
     last_mouse: Vektor,
     last_size: Vektor,
-    modus: Modus<Z>,
+    modus: ModusDaten<Z>,
 }
 
 impl<Z> Gleise<Z> {
@@ -93,7 +93,7 @@ impl<Z> Gleise<Z> {
             next_id: 0,
             last_mouse: Vektor::null_vektor(),
             last_size: Vektor::null_vektor(),
-            modus: Modus::Bauen { grabbed: None },
+            modus: ModusDaten::Bauen { grabbed: None },
         }
     }
 
@@ -292,7 +292,7 @@ fn get_canvas_position(
 fn grab_gleis_an_position<Z: Zugtyp>(
     bounds: &iced::Rectangle,
     cursor: &iced::canvas::Cursor,
-    modus: &mut Modus<Z>,
+    modus: &mut ModusDaten<Z>,
     GleiseMaps {
         geraden,
         kurven,
@@ -307,7 +307,7 @@ fn grab_gleis_an_position<Z: Zugtyp>(
 ) -> iced::canvas::event::Status {
     if cursor.is_over(&bounds) {
         if let Some(canvas_pos) = get_canvas_position(&bounds, &cursor, pivot, skalieren) {
-            if let Modus::Bauen { grabbed, .. } = modus {
+            if let ModusDaten::Bauen { grabbed, .. } = modus {
                 Grabbed::find_clicked(grabbed, geraden, canvas_pos);
                 Grabbed::find_clicked(grabbed, kurven, canvas_pos);
                 Grabbed::find_clicked(grabbed, weichen, canvas_pos);
@@ -318,7 +318,7 @@ fn grab_gleis_an_position<Z: Zugtyp>(
             }
         }
     }
-    if let Modus::Bauen { grabbed: None, .. } = modus {
+    if let ModusDaten::Bauen { grabbed: None, .. } = modus {
         iced::canvas::event::Status::Ignored
     } else {
         iced::canvas::event::Status::Captured
@@ -351,7 +351,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             // TODO don't draw out of bound Gleise
             // Zeichne Gleise
             let grabbed_id =
-                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
+                if let ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }), .. } = modus {
                     Some(gleis_id.id_as_any())
                 } else {
                     None
@@ -408,9 +408,9 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if let Modus::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
+                if let ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
                     with_any_id!(gleis_id.clone(), Gleise::snap_to_anchor, self);
-                    self.modus = Modus::Bauen { grabbed: None };
+                    self.modus = ModusDaten::Bauen { grabbed: None };
                     iced::canvas::event::Status::Captured
                 } else {
                     iced::canvas::event::Status::Ignored
@@ -425,7 +425,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 }
                 let mut event_status = iced::canvas::event::Status::Ignored;
                 if cursor.is_over(&bounds) {
-                    if let Modus::Bauen { grabbed } = &mut self.modus {
+                    if let ModusDaten::Bauen { grabbed } = &mut self.modus {
                         if let Some(canvas_pos) =
                             get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                         {
@@ -536,7 +536,7 @@ impl<Z: Zugtyp> Gleise<Z> {
                 winkel: self.pivot.winkel,
             },
         });
-        if let Modus::Bauen { grabbed } = &mut self.modus {
+        if let ModusDaten::Bauen { grabbed } = &mut self.modus {
             if let Some(gleis_id) = result.0.read().as_ref().map(GleisId::as_any_id) {
                 *grabbed = Some(Grabbed { gleis_id, grab_location });
             }
