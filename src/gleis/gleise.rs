@@ -169,11 +169,13 @@ impl<Z> Gleise<Z> {
     /// Bewege aktuellen Pivot-Punkt um /bewegung/.
     pub fn bewege_pivot(&mut self, bewegung: Vektor) {
         self.pivot.punkt += bewegung;
+        self.canvas.clear();
     }
 
     /// Drehe die aktuelle Darstellung um /winkel/.
     pub fn drehen(&mut self, winkel: Winkel) {
         self.pivot.winkel += winkel;
+        self.canvas.clear();
     }
 
     /// Aktueller Skalierfaktor zur Darstellung.
@@ -183,7 +185,8 @@ impl<Z> Gleise<Z> {
 
     /// Skaliere die aktuelle Darstellung mit /skalieren/.
     pub fn skalieren(&mut self, skalieren: Skalar) {
-        self.skalieren *= skalieren
+        self.skalieren *= skalieren;
+        self.canvas.clear();
     }
 }
 

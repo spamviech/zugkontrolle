@@ -39,10 +39,29 @@ impl Modus {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Bewegen {
+    Oben,
+    Unten,
+    Links,
+    Rechts,
+}
+impl Bewegen {
+    fn bewegen(self) -> Vektor {
+        match self {
+            Bewegen::Oben => Vektor { x: Skalar(0.), y: Skalar(1.) },
+            Bewegen::Unten => Vektor { x: Skalar(0.), y: Skalar(-1.) },
+            Bewegen::Links => Vektor { x: Skalar(-1.), y: Skalar(0.) },
+            Bewegen::Rechts => Vektor { x: Skalar(1.), y: Skalar(0.) },
+        }
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
     Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
     Modus(Modus),
+    Bewegen(Bewegen),
 }
 
 impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
@@ -61,6 +80,11 @@ pub struct Zugkontrolle<Z> {
     kurven_weichen: Vec<Button<KurvenWeiche<Z>>>,
     s_kurven_weichen: Vec<Button<SKurvenWeiche<Z>>>,
     kreuzungen: Vec<Button<Kreuzung<Z>>>,
+    // TODO use a good-looking solution instead of simple buttons
+    oben: iced::button::State,
+    unten: iced::button::State,
+    links: iced::button::State,
+    rechts: iced::button::State,
 }
 impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     type Executor = iced::executor::Default;
@@ -79,6 +103,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                 kurven_weichen: Z::kurven_weichen().into_iter().map(Button::new).collect(),
                 s_kurven_weichen: Z::s_kurven_weichen().into_iter().map(Button::new).collect(),
                 kreuzungen: Z::kreuzungen().into_iter().map(Button::new).collect(),
+                oben: iced::button::State::new(),
+                unten: iced::button::State::new(),
+                links: iced::button::State::new(),
+                rechts: iced::button::State::new(),
             },
             iced::Command::none(),
         )
@@ -116,6 +144,9 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                 }
             },
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
+            Message::Bewegen(bewegen) => {
+                self.gleise.bewege_pivot(self.gleise.skalierfaktor() * bewegen.bewegen());
+            },
         }
 
         iced::Command::none()
@@ -132,6 +163,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
+            oben,
+            unten,
+            links,
+            rechts,
         } = self;
 
         let mut scrollable = iced::Scrollable::new(scrollable_state);
@@ -167,11 +202,33 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         }
         let scrollable_style = scrollable::Collection::new(10);
         let scroller_width = scrollable_style.width();
+        let move_buttons = iced::Column::new()
+            .push(
+                iced::Button::new(oben, iced::Text::new("^"))
+                    .on_press(Message::Bewegen(Bewegen::Oben)),
+            )
+            .push(
+                iced::Row::new()
+                    .push(
+                        iced::Button::new(links, iced::Text::new("<"))
+                            .on_press(Message::Bewegen(Bewegen::Links)),
+                    )
+                    .push(
+                        iced::Button::new(rechts, iced::Text::new(">"))
+                            .on_press(Message::Bewegen(Bewegen::Rechts)),
+                    ),
+            )
+            .push(
+                iced::Button::new(unten, iced::Text::new("v"))
+                    .on_press(Message::Bewegen(Bewegen::Unten)),
+            )
+            .align_items(iced::Align::Center);
         iced::Column::new()
             .push(
                 iced::Row::new()
                     .push(Modus::Bauen.make_radio(aktueller_modus))
                     .push(Modus::Fahren.make_radio(aktueller_modus))
+                    .push(move_buttons)
                     // TODO Save/Load/Move?/Rotate?
                     // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
                     // Fahren(Streckenabschnitt-Anzeige?)
