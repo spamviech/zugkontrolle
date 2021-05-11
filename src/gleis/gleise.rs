@@ -144,6 +144,20 @@ impl<Z> Gleise<Z> {
             self.relocate_attach(&gleis_id, snap_name, snap_anchor);
         };
     }
+
+    pub(crate) fn modus(&self) -> Modus {
+        match &self.modus {
+            ModusDaten::Bauen { .. } => Modus::Bauen,
+            ModusDaten::Fahren => Modus::Fahren,
+        }
+    }
+
+    pub(crate) fn moduswechsel(&mut self, modus: Modus) {
+        self.modus = match modus {
+            Modus::Bauen => ModusDaten::Bauen { grabbed: None },
+            Modus::Fahren => ModusDaten::Fahren,
+        };
+    }
 }
 
 pub(crate) fn move_to_position(frame: &mut canvas::Frame, position: &Position) {

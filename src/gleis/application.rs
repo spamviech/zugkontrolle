@@ -1,6 +1,5 @@
 //! iced::Application für die Gleis-Anzeige
 
-use log::*;
 use version::version;
 
 use super::gleise::Modus;
@@ -35,8 +34,8 @@ impl_any_gleis_from! {SKurvenWeiche}
 impl_any_gleis_from! {Kreuzung}
 
 impl Modus {
-    fn make_radio<Z: 'static>(self, aktueller_modus: Option<Self>) -> iced::Radio<Message<Z>> {
-        iced::Radio::new(self, self, aktueller_modus, Message::Modus)
+    fn make_radio<Z: 'static>(self, aktueller_modus: Self) -> iced::Radio<Message<Z>> {
+        iced::Radio::new(self, self, Some(aktueller_modus), Message::Modus)
     }
 }
 
@@ -53,8 +52,6 @@ impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
 }
 
 pub struct Zugkontrolle<Z> {
-    // TODO Frage bei Gleise<Z> nach aktuellem Modus
-    modus: Modus,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<Gerade<Z>>>,
@@ -73,7 +70,6 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
             Zugkontrolle {
-                modus: Modus::Bauen,
                 gleise,
                 scrollable_state: iced::scrollable::State::new(),
                 geraden: Z::geraden().into_iter().map(Button::new).collect(),
@@ -119,11 +115,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     AnyGleis::Kreuzung(kreuzung) => add_grabbed_at_mouse!(kreuzung),
                 }
             },
-            Message::Modus(modus) => {
-                // TODO informiere stattdessen gleise
-                self.modus = modus;
-                debug!("TODO Modus-Wechsel: {:?}", modus)
-            },
+            Message::Modus(modus) => self.gleise.moduswechsel(modus),
         }
 
         iced::Command::none()
@@ -131,7 +123,6 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
 
     fn view(&mut self) -> iced::Element<Self::Message> {
         let Zugkontrolle {
-            modus,
             gleise,
             scrollable_state,
             geraden,
@@ -174,8 +165,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         );
         let scrollable_style = scrollable::Collection::new(10);
         let scroller_width = scrollable_style.width();
-        // TODO frage stattdessen gleise
-        let aktueller_modus = Some(*modus);
+        let aktueller_modus = gleise.modus();
         iced::Column::new()
             .push(
                 iced::Row::new()
