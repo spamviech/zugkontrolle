@@ -1,5 +1,6 @@
 //! iced::Application für die Gleis-Anzeige
 
+use log::*;
 use version::version;
 
 use super::style::*;
@@ -32,9 +33,35 @@ impl_any_gleis_from! {KurvenWeiche}
 impl_any_gleis_from! {SKurvenWeiche}
 impl_any_gleis_from! {Kreuzung}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Modus {
+    Bauen,
+    Fahren,
+}
+impl Modus {
+    fn make_radio<Z: 'static>(self, aktueller_modus: Option<Self>) -> iced::Radio<Message<Z>> {
+        iced::Radio::new(self, self, aktueller_modus, Message::Modus)
+    }
+}
+impl std::fmt::Display for Modus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let display = match self {
+            Modus::Bauen => "Bauen",
+            Modus::Fahren => "Fahren",
+        };
+        write!(f, "{}", display)
+    }
+}
+impl From<Modus> for String {
+    fn from(modus: Modus) -> Self {
+        format!("{}", modus)
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
     Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
+    Modus(Modus),
 }
 
 impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
@@ -44,6 +71,8 @@ impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
 }
 
 pub struct Zugkontrolle<Z> {
+    // TODO Frage bei Gleise<Z> nach aktuellem Modus
+    modus: Modus,
     gleise: Gleise<Z>,
     scrollable_state: iced::scrollable::State,
     geraden: Vec<Button<Gerade<Z>>>,
@@ -62,6 +91,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     fn new(gleise: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
             Zugkontrolle {
+                modus: Modus::Bauen,
                 gleise,
                 scrollable_state: iced::scrollable::State::new(),
                 geraden: Z::geraden().into_iter().map(Button::new).collect(),
@@ -107,6 +137,11 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     AnyGleis::Kreuzung(kreuzung) => add_grabbed_at_mouse!(kreuzung),
                 }
             },
+            Message::Modus(modus) => {
+                // TODO informiere stattdessen gleise
+                self.modus = modus;
+                debug!("TODO Modus-Wechsel: {:?}", modus)
+            },
         }
 
         iced::Command::none()
@@ -114,6 +149,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
 
     fn view(&mut self) -> iced::Element<Self::Message> {
         let Zugkontrolle {
+            modus,
             gleise,
             scrollable_state,
             geraden,
@@ -154,25 +190,40 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         );
         let scrollable_style = scrollable::Collection::new(10);
         let scroller_width = scrollable_style.width();
-        iced::Row::new()
+        // TODO frage stattdessen gleise
+        let aktueller_modus = Some(*modus);
+        iced::Column::new()
             .push(
-                iced::Container::new(
-                    scrollable
-                        .scroller_width(scroller_width)
-                        .width(iced::Length::Fill)
-                        .height(iced::Length::Fill)
-                        .style(scrollable_style),
-                )
-                .width(iced::Length::Units(max_width + scroller_width))
-                .height(iced::Length::Fill),
+                iced::Row::new()
+                    .push(Modus::Bauen.make_radio(aktueller_modus))
+                    .push(Modus::Fahren.make_radio(aktueller_modus))
+                    .padding(5)
+                    .spacing(5),
             )
-            .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
+            .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
-                iced::Container::new(
-                    iced::Canvas::new(gleise).width(iced::Length::Fill).height(iced::Length::Fill),
-                )
-                .width(iced::Length::Fill)
-                .height(iced::Length::Fill),
+                iced::Row::new()
+                    .push(
+                        iced::Container::new(
+                            scrollable
+                                .scroller_width(scroller_width)
+                                .width(iced::Length::Fill)
+                                .height(iced::Length::Fill)
+                                .style(scrollable_style),
+                        )
+                        .width(iced::Length::Units(max_width + scroller_width))
+                        .height(iced::Length::Fill),
+                    )
+                    .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
+                    .push(
+                        iced::Container::new(
+                            iced::Canvas::new(gleise)
+                                .width(iced::Length::Fill)
+                                .height(iced::Length::Fill),
+                        )
+                        .width(iced::Length::Fill)
+                        .height(iced::Length::Fill),
+                    ),
             )
             .into()
     }
