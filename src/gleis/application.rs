@@ -2,7 +2,7 @@
 
 use version::version;
 
-use super::gleise::Modus;
+use super::gleise::*;
 use super::style::*;
 use super::*;
 
