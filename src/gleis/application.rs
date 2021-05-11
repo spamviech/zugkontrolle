@@ -6,7 +6,7 @@ use super::style::*;
 use super::*;
 
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
-pub enum Message<Z> {
+pub enum AnyGleis<Z> {
     Gerade(Gerade<Z>),
     Kurve(Kurve<Z>),
     Weiche(Weiche<Z>),
@@ -15,22 +15,33 @@ pub enum Message<Z> {
     SKurvenWeiche(SKurvenWeiche<Z>),
     Kreuzung(Kreuzung<Z>),
 }
-macro_rules! impl_button_message {
+macro_rules! impl_any_gleis_from {
     ($type:ident) => {
-        impl<Z> ButtonMessage<Message<Z>> for $type<Z> {
-            fn to_message(&self) -> Message<Z> {
-                Message::$type(self.clone())
+        impl<Z> From<$type<Z>> for AnyGleis<Z> {
+            fn from(gleis: $type<Z>) -> AnyGleis<Z> {
+                AnyGleis::$type(gleis)
             }
         }
     };
 }
-impl_button_message! {Gerade}
-impl_button_message! {Kurve}
-impl_button_message! {Weiche}
-impl_button_message! {DreiwegeWeiche}
-impl_button_message! {KurvenWeiche}
-impl_button_message! {SKurvenWeiche}
-impl_button_message! {Kreuzung}
+impl_any_gleis_from! {Gerade}
+impl_any_gleis_from! {Kurve}
+impl_any_gleis_from! {Weiche}
+impl_any_gleis_from! {DreiwegeWeiche}
+impl_any_gleis_from! {KurvenWeiche}
+impl_any_gleis_from! {SKurvenWeiche}
+impl_any_gleis_from! {Kreuzung}
+
+#[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
+pub enum Message<Z> {
+    Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
+}
+
+impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
+    fn to_message(&self, grab_location: Vektor) -> Message<Z> {
+        Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
+    }
+}
 
 pub struct Zugkontrolle<Z> {
     gleise: Gleise<Z>,
@@ -74,19 +85,28 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         message: Self::Message,
         _clipboard: &mut iced::Clipboard,
     ) -> iced::Command<Self::Message> {
-        macro_rules! add_grabbed_at_mouse {
-            ($gleis:expr) => {{
-                self.gleise.add_grabbed_at_mouse($gleis);
-            }};
-        }
         match message {
-            Message::Gerade(gerade) => add_grabbed_at_mouse!(gerade),
-            Message::Kurve(kurve) => add_grabbed_at_mouse!(kurve),
-            Message::Weiche(weiche) => add_grabbed_at_mouse!(weiche),
-            Message::DreiwegeWeiche(dreiwege_weiche) => add_grabbed_at_mouse!(dreiwege_weiche),
-            Message::KurvenWeiche(kurven_weiche) => add_grabbed_at_mouse!(kurven_weiche),
-            Message::SKurvenWeiche(s_kurven_weiche) => add_grabbed_at_mouse!(s_kurven_weiche),
-            Message::Kreuzung(kreuzung) => add_grabbed_at_mouse!(kreuzung),
+            Message::Gleis { gleis, grab_height } => {
+                macro_rules! add_grabbed_at_mouse {
+                    ($gleis:expr) => {{
+                        self.gleise
+                            .add_grabbed_at_mouse($gleis, Vektor { x: Skalar(0.), y: grab_height });
+                    }};
+                }
+                match gleis {
+                    AnyGleis::Gerade(gerade) => add_grabbed_at_mouse!(gerade),
+                    AnyGleis::Kurve(kurve) => add_grabbed_at_mouse!(kurve),
+                    AnyGleis::Weiche(weiche) => add_grabbed_at_mouse!(weiche),
+                    AnyGleis::DreiwegeWeiche(dreiwege_weiche) => {
+                        add_grabbed_at_mouse!(dreiwege_weiche)
+                    },
+                    AnyGleis::KurvenWeiche(kurven_weiche) => add_grabbed_at_mouse!(kurven_weiche),
+                    AnyGleis::SKurvenWeiche(s_kurven_weiche) => {
+                        add_grabbed_at_mouse!(s_kurven_weiche)
+                    },
+                    AnyGleis::Kreuzung(kreuzung) => add_grabbed_at_mouse!(kreuzung),
+                }
+            },
         }
 
         iced::Command::none()

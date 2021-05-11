@@ -480,6 +480,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     pub(crate) fn add_grabbed_at_mouse<T>(
         &mut self,
         definition: T,
+        grab_location: Vektor,
     ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
@@ -492,13 +493,13 @@ impl<Z: Zugtyp> Gleise<Z> {
         let result = self.add(Gleis {
             definition,
             position: Position {
-                punkt: self.pivot.punkt + canvas_position,
+                punkt: self.pivot.punkt + canvas_position - grab_location,
                 winkel: self.pivot.winkel,
             },
         });
         if let Modus::Bauen { grabbed } = &mut self.modus {
             if let Some(gleis_id) = result.0.read().as_ref().map(GleisId::as_any_id) {
-                *grabbed = Some(Grabbed { gleis_id, grab_location: Vektor::null_vektor() });
+                *grabbed = Some(Grabbed { gleis_id, grab_location });
             }
         }
         result

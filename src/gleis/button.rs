@@ -134,7 +134,12 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonPressed(
                 iced::mouse::Button::Left,
             )) if self.in_bounds => {
-                (iced::canvas::event::Status::Captured, Some(self.gleis.to_message()))
+                let iced::Point { x, y } =
+                    cursor.position_in(&bounds).unwrap_or(iced::Point { x: 0., y: 0. });
+                (
+                    iced::canvas::event::Status::Captured,
+                    Some(self.gleis.to_message(Vektor { x: Skalar(x), y: Skalar(y) })),
+                )
             },
             _ => (iced::canvas::event::Status::Ignored, None),
         }
@@ -142,5 +147,5 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
 }
 
 pub trait ButtonMessage<Message> {
-    fn to_message(&self) -> Message;
+    fn to_message(&self, grab_location: Vektor) -> Message;
 }
