@@ -138,7 +138,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         let mut max_width = 0;
         // TODO nur bei Modus Bauen
         // Fahren(Geschwindigkeit?)
-        macro_rules! add_buttons {
+        let aktueller_modus = gleise.modus();
+        match aktueller_modus {
+            Modus::Bauen => {
+                macro_rules! add_buttons {
                     ($($vec: expr),*) => {
                         $(
                         for button in $vec.iter() {
@@ -154,18 +157,22 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     )*
                     }
                 }
-        add_buttons!(
-            geraden,
-            kurven,
-            weichen,
-            dreiwege_weichen,
-            kurven_weichen,
-            s_kurven_weichen,
-            kreuzungen
-        );
+                add_buttons!(
+                    geraden,
+                    kurven,
+                    weichen,
+                    dreiwege_weichen,
+                    kurven_weichen,
+                    s_kurven_weichen,
+                    kreuzungen
+                );
+            },
+            Modus::Fahren => {
+                // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?
+            },
+        }
         let scrollable_style = scrollable::Collection::new(10);
         let scroller_width = scrollable_style.width();
-        let aktueller_modus = gleise.modus();
         iced::Column::new()
             .push(
                 iced::Row::new()
