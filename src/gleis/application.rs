@@ -163,6 +163,8 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
 
         let mut scrollable = iced::Scrollable::new(scrollable_state);
         let mut max_width = 0;
+        // TODO nur bei Modus Bauen
+        // Fahren(Geschwindigkeit?)
         macro_rules! add_buttons {
                     ($($vec: expr),*) => {
                         $(
@@ -197,6 +199,9 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                 iced::Row::new()
                     .push(Modus::Bauen.make_radio(aktueller_modus))
                     .push(Modus::Fahren.make_radio(aktueller_modus))
+                    // TODO Save/Load/Move?/Rotate?
+                    // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
+                    // Fahren(Streckenabschnitt-Anzeige?)
                     .padding(5)
                     .spacing(5),
             )
