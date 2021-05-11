@@ -145,18 +145,45 @@ impl<Z> Gleise<Z> {
         };
     }
 
-    pub(crate) fn modus(&self) -> Modus {
+    /// Aktueller Modus.
+    pub fn modus(&self) -> Modus {
         match &self.modus {
             ModusDaten::Bauen { .. } => Modus::Bauen,
             ModusDaten::Fahren => Modus::Fahren,
         }
     }
 
-    pub(crate) fn moduswechsel(&mut self, modus: Modus) {
+    /// Wechsel den aktuellen Modus zu /modus/.
+    pub fn moduswechsel(&mut self, modus: Modus) {
         self.modus = match modus {
             Modus::Bauen => ModusDaten::Bauen { grabbed: None },
             Modus::Fahren => ModusDaten::Fahren,
         };
+    }
+
+    /// Aktuelle Pivot-Punkt und Dreh-Winkel
+    pub fn pivot(&self) -> &Position {
+        &self.pivot
+    }
+
+    /// Bewege aktuellen Pivot-Punkt um /bewegung/.
+    pub fn bewege_pivot(&mut self, bewegung: Vektor) {
+        self.pivot.punkt += bewegung;
+    }
+
+    /// Drehe die aktuelle Darstellung um /winkel/.
+    pub fn drehen(&mut self, winkel: Winkel) {
+        self.pivot.winkel += winkel;
+    }
+
+    /// Aktueller Skalierfaktor zur Darstellung.
+    pub fn skalierfaktor(&self) -> Skalar {
+        self.skalieren
+    }
+
+    /// Skaliere die aktuelle Darstellung mit /skalieren/.
+    pub fn skalieren(&mut self, skalieren: Skalar) {
+        self.skalieren *= skalieren
     }
 }
 
