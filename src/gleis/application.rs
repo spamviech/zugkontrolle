@@ -135,26 +135,20 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         } = self;
 
         let mut scrollable = iced::Scrollable::new(scrollable_state);
-        let mut max_width = 0;
-        // TODO nur bei Modus Bauen
-        // Fahren(Geschwindigkeit?)
+        let mut max_width = None;
         let aktueller_modus = gleise.modus();
         match aktueller_modus {
             Modus::Bauen => {
                 macro_rules! add_buttons {
                     ($($vec: expr),*) => {
+                        max_width = Vec::new().into_iter()
+                            $(.chain($vec.iter().map(|button| button.size().x.0.ceil() as u16)))*
+                            .max();
                         $(
-                        for button in $vec.iter() {
-                            max_width = max_width.max( button.size().x.0.ceil() as u16);
-                        }
-                    )*
-                    $(
-                        for button in $vec {
-                            scrollable = scrollable.push(
-                                button.to_iced(Some(max_width))
-                            );
-                        }
-                    )*
+                            for button in $vec {
+                                scrollable = scrollable.push(button.to_iced(max_width));
+                            }
+                        )*
                     }
                 }
                 add_buttons!(
@@ -186,19 +180,22 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             )
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
-                iced::Row::new()
-                    .push(
-                        iced::Container::new(
-                            scrollable
-                                .scroller_width(scroller_width)
-                                .width(iced::Length::Fill)
-                                .height(iced::Length::Fill)
-                                .style(scrollable_style),
-                        )
-                        .width(iced::Length::Units(max_width + scroller_width))
-                        .height(iced::Length::Fill),
-                    )
-                    .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
+                max_width
+                    .map_or(iced::Row::new(), |width| {
+                        iced::Row::new()
+                            .push(
+                                iced::Container::new(
+                                    scrollable
+                                        .scroller_width(scroller_width)
+                                        .width(iced::Length::Fill)
+                                        .height(iced::Length::Fill)
+                                        .style(scrollable_style),
+                                )
+                                .width(iced::Length::Units(width + scroller_width))
+                                .height(iced::Length::Fill),
+                            )
+                            .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
+                    })
                     .push(
                         iced::Container::new(
                             iced::Canvas::new(gleise)
