@@ -62,6 +62,8 @@ pub enum Message<Z> {
     Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
     Modus(Modus),
     Bewegen(Bewegen),
+    Drehen(Winkel),
+    Skalieren(Skalar),
 }
 
 impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
@@ -85,6 +87,10 @@ pub struct Zugkontrolle<Z> {
     unten: iced::button::State,
     links: iced::button::State,
     rechts: iced::button::State,
+    clockwise: iced::button::State,
+    counter_clockwise: iced::button::State,
+    größer: iced::button::State,
+    kleiner: iced::button::State,
 }
 impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
     type Executor = iced::executor::Default;
@@ -107,6 +113,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                 unten: iced::button::State::new(),
                 links: iced::button::State::new(),
                 rechts: iced::button::State::new(),
+                clockwise: iced::button::State::new(),
+                counter_clockwise: iced::button::State::new(),
+                größer: iced::button::State::new(),
+                kleiner: iced::button::State::new(),
             },
             iced::Command::none(),
         )
@@ -147,6 +157,8 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             Message::Bewegen(bewegen) => {
                 self.gleise.bewege_pivot(self.gleise.skalierfaktor() * bewegen.bewegen());
             },
+            Message::Drehen(winkel) => self.gleise.drehen(winkel),
+            Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren),
         }
 
         iced::Command::none()
@@ -167,6 +179,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             unten,
             links,
             rechts,
+            clockwise,
+            counter_clockwise,
+            größer,
+            kleiner,
         } = self;
 
         let mut scrollable = iced::Scrollable::new(scrollable_state);
@@ -223,15 +239,37 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     .on_press(Message::Bewegen(Bewegen::Unten)),
             )
             .align_items(iced::Align::Center);
+        // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
+        let drehen_buttons = iced::Column::new()
+            .push(
+                iced::Button::new(counter_clockwise, iced::Text::new("cw" /* "↺" */))
+                    .on_press(Message::Drehen(Winkel(-0.25))),
+            )
+            .push(
+                iced::Button::new(clockwise, iced::Text::new("ccw" /* "↻" */))
+                    .on_press(Message::Drehen(Winkel(0.25))),
+            );
+        let skalieren_buttons = iced::Column::new()
+            .push(
+                iced::Button::new(größer, iced::Text::new("+"))
+                    .on_press(Message::Skalieren(Skalar(1.5))),
+            )
+            .push(
+                iced::Button::new(kleiner, iced::Text::new("-"))
+                    .on_press(Message::Skalieren(Skalar(0.75))),
+            );
+        // TODO Save/Load/Move?/Rotate?
+        // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
+        // Fahren(Streckenabschnitt-Anzeige?
         iced::Column::new()
             .push(
                 iced::Row::new()
                     .push(Modus::Bauen.make_radio(aktueller_modus))
                     .push(Modus::Fahren.make_radio(aktueller_modus))
+                    .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
                     .push(move_buttons)
-                    // TODO Save/Load/Move?/Rotate?
-                    // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
-                    // Fahren(Streckenabschnitt-Anzeige?)
+                    .push(drehen_buttons)
+                    .push(skalieren_buttons)
                     .padding(5)
                     .spacing(5),
             )
