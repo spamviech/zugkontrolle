@@ -134,35 +134,26 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         );
         let scrollable_style = scrollable::Collection::new(10);
         let scroller_width = scrollable_style.width();
-        iced::Container::new(
-            iced::Row::new()
-                .push(
-                    iced::Container::new(
-                        scrollable
-                            .scroller_width(scroller_width)
-                            .width(iced::Length::Fill)
-                            .height(iced::Length::Fill)
-                            .style(scrollable_style),
-                    )
-                    .width(iced::Length::Units(max_width + scroller_width))
-                    .height(iced::Length::Fill)
-                    .style(background::WHITE),
+        iced::Row::new()
+            .push(
+                iced::Container::new(
+                    scrollable
+                        .scroller_width(scroller_width)
+                        .width(iced::Length::Fill)
+                        .height(iced::Length::Fill)
+                        .style(scrollable_style),
                 )
-                .push(
-                    iced::Container::new(
-                        iced::Canvas::new(gleise)
-                            .width(iced::Length::Fill)
-                            .height(iced::Length::Fill),
-                    )
-                    .width(iced::Length::Fill)
-                    .height(iced::Length::Fill)
-                    .style(background::WHITE),
+                .width(iced::Length::Units(max_width + scroller_width))
+                .height(iced::Length::Fill),
+            )
+            .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
+            .push(
+                iced::Container::new(
+                    iced::Canvas::new(gleise).width(iced::Length::Fill).height(iced::Length::Fill),
                 )
-                .spacing(1),
-        )
-        .width(iced::Length::Fill)
-        .height(iced::Length::Fill)
-        .style(background::BLACK)
-        .into()
+                .width(iced::Length::Fill)
+                .height(iced::Length::Fill),
+            )
+            .into()
     }
 }

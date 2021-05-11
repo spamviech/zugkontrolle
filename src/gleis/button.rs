@@ -7,7 +7,7 @@ const STROKE_WIDTH: Skalar = Skalar(1.5);
 const BORDER_WIDTH: u16 = 1;
 const PADDING: u16 = 2;
 const DOUBLE_PADDING: Skalar = Skalar((2 * (BORDER_WIDTH + PADDING)) as f32);
-const GREY_IN_BOUNDS_VALUE: f32 = 0.8;
+const GREY_IN_BOUNDS_VALUE: f32 = 0.7;
 const GREY_IN_BOUNDS: canvas::Color =
     canvas::Color::from_rgb(GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE, GREY_IN_BOUNDS_VALUE);
 const GREY_OUT_OF_BOUNDS_VALUE: f32 = 0.9;
