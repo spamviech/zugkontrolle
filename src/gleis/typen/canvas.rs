@@ -101,13 +101,9 @@ impl Cache {
         self.0.draw(bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
-                // TODO transformation unter pivot+rotation ist falsch!
                 // pivot transformationen
-                f.transformation(&Transformation::Translation(pivot.punkt));
+                f.transformation(&Transformation::Translation(pivot.punkt.rotiere(-pivot.winkel)));
                 f.transformation(&Transformation::Rotation(pivot.winkel));
-                f.transformation(&Transformation::Translation(
-                    Skalar(-2.) * pivot.punkt.rotiere(-pivot.winkel),
-                ));
                 f.transformation(&Transformation::Skalieren(*skalieren));
                 // zeichne auf Frame
                 draw_fn(f)

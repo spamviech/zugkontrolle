@@ -51,10 +51,10 @@ pub enum Bewegen {
 impl Bewegen {
     fn bewegen(self) -> Vektor {
         match self {
-            Bewegen::Oben => Vektor { x: Skalar(0.), y: Skalar(1.) },
-            Bewegen::Unten => Vektor { x: Skalar(0.), y: Skalar(-1.) },
-            Bewegen::Links => Vektor { x: Skalar(1.), y: Skalar(0.) },
-            Bewegen::Rechts => Vektor { x: Skalar(-1.), y: Skalar(0.) },
+            Bewegen::Oben => Vektor { x: Skalar(0.), y: Skalar(-1.) },
+            Bewegen::Unten => Vektor { x: Skalar(0.), y: Skalar(1.) },
+            Bewegen::Links => Vektor { x: Skalar(-1.), y: Skalar(0.) },
+            Bewegen::Rechts => Vektor { x: Skalar(1.), y: Skalar(0.) },
         }
     }
 }
