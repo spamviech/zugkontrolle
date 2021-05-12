@@ -51,8 +51,8 @@ impl Bewegen {
         match self {
             Bewegen::Oben => Vektor { x: Skalar(0.), y: Skalar(1.) },
             Bewegen::Unten => Vektor { x: Skalar(0.), y: Skalar(-1.) },
-            Bewegen::Links => Vektor { x: Skalar(-1.), y: Skalar(0.) },
-            Bewegen::Rechts => Vektor { x: Skalar(1.), y: Skalar(0.) },
+            Bewegen::Links => Vektor { x: Skalar(1.), y: Skalar(0.) },
+            Bewegen::Rechts => Vektor { x: Skalar(-1.), y: Skalar(0.) },
         }
     }
 }
@@ -155,7 +155,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             },
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
             Message::Bewegen(bewegen) => {
-                self.gleise.bewege_pivot(self.gleise.skalierfaktor() * bewegen.bewegen());
+                self.gleise.bewege_pivot(
+                    self.gleise.skalierfaktor()
+                        * bewegen.bewegen().rotiere(self.gleise.pivot().winkel),
+                );
             },
             Message::Drehen(winkel) => self.gleise.drehen(winkel),
             Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren),
