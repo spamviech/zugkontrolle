@@ -1,5 +1,7 @@
 //! iced::Application für die Gleis-Anzeige
 
+use std::convert::identity;
+
 use version::version;
 
 use super::gleise::*;
@@ -34,8 +36,8 @@ impl_any_gleis_from! {SKurvenWeiche}
 impl_any_gleis_from! {Kreuzung}
 
 impl Modus {
-    fn make_radio<Z: 'static>(self, aktueller_modus: Self) -> iced::Radio<Message<Z>> {
-        iced::Radio::new(self, self, Some(aktueller_modus), Message::Modus)
+    fn make_radio(self, aktueller_modus: Self) -> iced::Radio<Modus> {
+        iced::Radio::new(self, self, Some(aktueller_modus), identity)
     }
 }
 
@@ -71,6 +73,17 @@ impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
         Message::Gleis { gleis: self.clone().into(), grab_height: grab_location.y }
     }
 }
+
+trait MitTeilNachricht<'t, Msg: 'static>: Into<iced::Element<'t, Msg>> {
+    fn mit_teil_nachricht<Z: 'static>(
+        self,
+        konstruktor: impl Fn(Msg) -> Message<Z> + 'static,
+    ) -> iced::Element<'t, Message<Z>> {
+        self.into().map(konstruktor)
+    }
+}
+
+impl<'t, T: Into<iced::Element<'t, Msg>>, Msg: 'static> MitTeilNachricht<'t, Msg> for T {}
 
 pub struct Zugkontrolle<Z> {
     gleise: Gleise<Z>,
@@ -225,55 +238,39 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             .push(Modus::Bauen.make_radio(aktueller_modus))
             .push(Modus::Fahren.make_radio(aktueller_modus));
         let move_buttons = iced::Column::new()
-            .push(
-                iced::Button::new(oben, iced::Text::new("^"))
-                    .on_press(Message::Bewegen(Bewegen::Oben)),
-            )
+            .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
             .push(
                 iced::Row::new()
+                    .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
                     .push(
-                        iced::Button::new(links, iced::Text::new("<"))
-                            .on_press(Message::Bewegen(Bewegen::Links)),
-                    )
-                    .push(
-                        iced::Button::new(rechts, iced::Text::new(">"))
-                            .on_press(Message::Bewegen(Bewegen::Rechts)),
+                        iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts),
                     ),
             )
-            .push(
-                iced::Button::new(unten, iced::Text::new("v"))
-                    .on_press(Message::Bewegen(Bewegen::Unten)),
-            )
+            .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
             .align_items(iced::Align::Center);
         // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
         let drehen_buttons = iced::Column::new()
             .push(
                 iced::Button::new(counter_clockwise, iced::Text::new("ccw" /* "↺" */))
-                    .on_press(Message::Drehen(Winkel(-0.25))),
+                    .on_press(Winkel(-0.25)),
             )
             .push(
                 iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
-                    .on_press(Message::Drehen(Winkel(0.25))),
+                    .on_press(Winkel(0.25)),
             );
         let skalieren_buttons = iced::Column::new()
-            .push(
-                iced::Button::new(größer, iced::Text::new("+"))
-                    .on_press(Message::Skalieren(Skalar(1.5))),
-            )
-            .push(
-                iced::Button::new(kleiner, iced::Text::new("-"))
-                    .on_press(Message::Skalieren(Skalar(0.75))),
-            );
+            .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalar(1.5)))
+            .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalar(0.75)));
         // TODO Save/Load/Move?/Rotate?
         // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
         // Fahren(Streckenabschnitt-Anzeige?
         iced::Column::new()
             .push(
                 iced::Row::new()
-                    .push(modus_radios)
-                    .push(move_buttons)
-                    .push(drehen_buttons)
-                    .push(skalieren_buttons)
+                    .push(modus_radios.mit_teil_nachricht(Message::Modus))
+                    .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
+                    .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
+                    .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
                     .padding(5)
                     .spacing(5)
                     .width(iced::Length::Fill)
