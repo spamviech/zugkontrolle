@@ -1,4 +1,4 @@
-//! newtypes für einen cairo::Context
+//! newtypes für einen iced::canvas::Frame und iced::canvas::Cache
 
 use iced;
 // re-exports
