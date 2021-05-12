@@ -101,6 +101,7 @@ impl Cache {
         self.0.draw(bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
+                // TODO Rotation nicht um Pivot-Punkt :(
                 // pivot transformationen
                 f.transformation(&Transformation::Translation(pivot.punkt.rotiere(-pivot.winkel)));
                 f.transformation(&Transformation::Rotation(pivot.winkel));

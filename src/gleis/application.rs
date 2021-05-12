@@ -59,13 +59,41 @@ impl Bewegen {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum Drehen {
+    Rechtsdrehend, // clockwise
+    Linksdrehend,  // counterclockwise
+}
+impl Drehen {
+    fn drehen(self) -> Winkel {
+        match self {
+            Drehen::Rechtsdrehend => winkel::TAU / 72.,
+            Drehen::Linksdrehend => -winkel::TAU / 72.,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Skalieren {
+    Größer,
+    Kleiner,
+}
+impl Skalieren {
+    fn skalieren(self) -> Skalar {
+        Skalar(match self {
+            Skalieren::Größer => 4. / 3.,
+            Skalieren::Kleiner => 3. / 4.,
+        })
+    }
+}
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum Message<Z> {
     Gleis { gleis: AnyGleis<Z>, grab_height: Skalar },
     Modus(Modus),
     Bewegen(Bewegen),
-    Drehen(Winkel),
-    Skalieren(Skalar),
+    Drehen(Drehen),
+    Skalieren(Skalieren),
 }
 
 impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
@@ -173,8 +201,8 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                         * bewegen.bewegen().rotiere(self.gleise.pivot().winkel),
                 );
             },
-            Message::Drehen(winkel) => self.gleise.drehen(winkel),
-            Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren),
+            Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
+            Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
         }
 
         iced::Command::none()
@@ -237,30 +265,27 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         let modus_radios = iced::Column::new()
             .push(Modus::Bauen.make_radio(aktueller_modus))
             .push(Modus::Fahren.make_radio(aktueller_modus));
+        let links_rechts_buttons = iced::Row::new()
+            .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
+            .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts));
         let move_buttons = iced::Column::new()
             .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
-            .push(
-                iced::Row::new()
-                    .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
-                    .push(
-                        iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts),
-                    ),
-            )
+            .push(links_rechts_buttons)
             .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
             .align_items(iced::Align::Center);
         // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
         let drehen_buttons = iced::Column::new()
             .push(
                 iced::Button::new(counter_clockwise, iced::Text::new("ccw" /* "↺" */))
-                    .on_press(Winkel(-0.25)),
+                    .on_press(Drehen::Linksdrehend),
             )
             .push(
                 iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
-                    .on_press(Winkel(0.25)),
+                    .on_press(Drehen::Rechtsdrehend),
             );
         let skalieren_buttons = iced::Column::new()
-            .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalar(1.5)))
-            .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalar(0.75)));
+            .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalieren::Größer))
+            .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalieren::Kleiner));
         // TODO Save/Load/Move?/Rotate?
         // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
         // Fahren(Streckenabschnitt-Anzeige?

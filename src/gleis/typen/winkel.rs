@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 use std::convert::From;
 use std::f32::consts;
-use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
 
@@ -143,18 +143,44 @@ impl Neg for Winkel {
         Winkel(-self.0)
     }
 }
+impl MulAssign<f32> for Winkel {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.0 *= rhs
+    }
+}
 impl Mul<f32> for Winkel {
     type Output = Self;
 
-    fn mul(self, other: f32) -> Self {
-        Winkel(other * self.0)
+    fn mul(mut self, other: f32) -> Self {
+        self *= other;
+        self
     }
 }
 impl Mul<Winkel> for f32 {
     type Output = Winkel;
 
-    fn mul(self, Winkel(other): Winkel) -> Winkel {
-        Winkel(self * other)
+    fn mul(self, other: Winkel) -> Winkel {
+        other * self
+    }
+}
+impl DivAssign<f32> for Winkel {
+    fn div_assign(&mut self, rhs: f32) {
+        self.0 /= rhs;
+    }
+}
+impl Div<f32> for Winkel {
+    type Output = Self;
+
+    fn div(mut self, other: f32) -> Self {
+        self /= other;
+        self
+    }
+}
+impl Div<Winkel> for f32 {
+    type Output = Winkel;
+
+    fn div(self, other: Winkel) -> Winkel {
+        other / self
     }
 }
 impl Trigonometrie for Winkel {
