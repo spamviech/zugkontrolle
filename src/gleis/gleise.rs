@@ -329,8 +329,13 @@ fn get_canvas_position(
     pivot: &Position,
     skalieren: &Skalar,
 ) -> Option<Vektor> {
-    cursor.position_in(bounds).map(|iced::Point { x, y }| {
-        pivot.punkt + (Vektor { x: Skalar(x), y: Skalar(y) } / skalieren).rotiere(-pivot.winkel)
+    // position_in only returns a Some-value if it is in-bounds
+    // position doesn't have this restriction, so use it
+    // and explicitly substract bounds-start instead
+    cursor.position().map(|pos| {
+        pivot.punkt
+            + (Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) } / skalieren)
+                .rotiere(-pivot.winkel)
     })
 }
 
@@ -462,18 +467,13 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 }
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
-                if let Some(pos) = cursor.position() {
-                    // position_in only returns a Some-value if it is in-bounds
-                    // make the calculation explicitly instead
-                    self.last_mouse =
-                        Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) };
-                }
                 let mut event_status = iced::canvas::event::Status::Ignored;
-                if cursor.is_over(&bounds) {
-                    if let ModusDaten::Bauen { grabbed } = &mut self.modus {
-                        if let Some(canvas_pos) =
-                            get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
-                        {
+                if let Some(canvas_pos) =
+                    get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
+                {
+                    self.last_mouse = canvas_pos;
+                    if cursor.is_over(&bounds) {
+                        if let ModusDaten::Bauen { grabbed } = &mut self.modus {
                             if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
                                 let point = canvas_pos - grab_location;
                                 with_any_id!(
@@ -572,12 +572,24 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let mut canvas_position = self.last_mouse;
-        canvas_position.x = canvas_position.x.max(&Skalar(0.)).min(&self.last_size.x);
-        canvas_position.y = canvas_position.y.max(&Skalar(0.)).min(&self.last_size.y);
+        let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiere(-self.pivot.winkel);
+        let cp_x = canvas_position.skalarprodukt(&ex);
+        if cp_x < Skalar(0.) {
+            canvas_position -= cp_x * ex;
+        } else if cp_x > self.last_size.x {
+            canvas_position -= (cp_x - self.last_size.x) * ex;
+        }
+        let ey = Vektor { x: Skalar(0.), y: Skalar(1.) }.rotiere(-self.pivot.winkel);
+        let cp_y = canvas_position.skalarprodukt(&ey);
+        if cp_y < Skalar(0.) {
+            canvas_position -= cp_y * ey;
+        } else if cp_y > self.last_size.y {
+            canvas_position -= (cp_y - self.last_size.y) * ey;
+        }
         let result = self.add(Gleis {
             definition,
             position: Position {
-                punkt: self.pivot.punkt + canvas_position - grab_location,
+                punkt: canvas_position - grab_location,
                 winkel: self.pivot.winkel,
             },
         });
