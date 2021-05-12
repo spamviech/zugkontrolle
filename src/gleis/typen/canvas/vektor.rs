@@ -9,6 +9,9 @@ use crate::gleis::typen::{
     winkel::{Trigonometrie, Winkel},
 };
 
+pub const EX: Vektor = Vektor { x: Skalar(1.), y: Skalar(0.) };
+pub const EY: Vektor = Vektor { x: Skalar(0.), y: Skalar(1.) };
+
 /// Vektoren über `f32` mit allen Funktionen für einen 2-dimensionen Vektorraum
 ///
 /// Addition zwischen Vektoren formen einen abelsche Gruppe
