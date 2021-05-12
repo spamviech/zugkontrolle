@@ -52,11 +52,8 @@ impl<Z> Grabbed<Z> {
 #[zugkontrolle_derive::make_enum(pub, Modus)]
 #[derive(zugkontrolle_derive::Debug)]
 enum ModusDaten<Z> {
-    Bauen {
-        grabbed: Option<Grabbed<Z>>,
-    },
-    // TODO
-    #[allow(dead_code)]
+    Bauen { grabbed: Option<Grabbed<Z>> },
+    // TODO Funktionalität hinzufügen
     Fahren,
 }
 
@@ -64,7 +61,6 @@ enum ModusDaten<Z> {
 #[derive(zugkontrolle_derive::Debug)]
 pub struct Gleise<Z> {
     canvas: canvas::Cache,
-    // TODO actually use pivot and scale
     pivot: Position,
     skalieren: Skalar,
     maps: GleiseMaps<Z>,
@@ -557,10 +553,6 @@ impl<Z: Zugtyp> Gleise<Z> {
 
     /// Add a gleis at the last known mouse position
     /// capped at the last known canvas size.
-    // FIXME not grabbed, since buttons only react on mouse button press+release
-    // maybe simulate some drag&drop by making the list part of the canvas?
-    // alternatively make drag&drop a toggle, so we can stay consistent with buttons behaviour
-    // starting it?
     pub(crate) fn add_grabbed_at_mouse<T>(
         &mut self,
         definition: T,
