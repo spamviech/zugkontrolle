@@ -25,6 +25,7 @@ pub use vektor::Vektor;
 /// Anschließend werden die Koordinaten um /pivot.winkel/ gedreht.
 /// Danach werden alle Koordinaten mit dem /skalieren/-Faktor multipliziert.
 pub struct Frame<'t>(&'t mut iced::canvas::Frame);
+// TODO fill_rectangle?
 impl<'t> Frame<'t> {
     pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
         Frame(frame)
@@ -69,6 +70,14 @@ impl<'t> Frame<'t> {
     }
 
     /// Wende die übergebene Transformation auf den Frame an.
+    ///
+    /// **ACHTUNG**: Durch die Art wie es in /iced/ implementiert ist wird die /transformation/
+    /// **vor** allen bisherigen ausgeführt.
+    ///
+    /// Links zum Implementierung verfolgen:
+    /// https://github.com/hecrj/iced/blob/master/graphics/src/widget/canvas/frame.rs#L234
+    /// https://docs.rs/lyon/0.17.5/lyon/math/type.Transform.html
+    /// https://docs.rs/euclid/0.22.3/euclid/struct.Transform2D.html#method.pre_rotate
     pub fn transformation(&mut self, transformation: &Transformation) {
         match transformation {
             Transformation::Translation(Vektor { x, y }) => {
@@ -101,11 +110,10 @@ impl Cache {
         self.0.draw(bounds, |frame| {
             let mut boxed_frame = Frame(frame);
             boxed_frame.with_save(|f| {
-                // TODO Rotation nicht um Pivot-Punkt :(
                 // pivot transformationen
-                f.transformation(&Transformation::Translation(pivot.punkt.rotiere(-pivot.winkel)));
-                f.transformation(&Transformation::Rotation(pivot.winkel));
                 f.transformation(&Transformation::Skalieren(*skalieren));
+                f.transformation(&Transformation::Rotation(pivot.winkel));
+                f.transformation(&Transformation::Translation(-pivot.punkt));
                 // zeichne auf Frame
                 draw_fn(f)
             })

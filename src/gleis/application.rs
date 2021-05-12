@@ -51,10 +51,10 @@ pub enum Bewegen {
 impl Bewegen {
     fn bewegen(self) -> Vektor {
         match self {
-            Bewegen::Oben => Vektor { x: Skalar(0.), y: Skalar(-1.) },
-            Bewegen::Unten => Vektor { x: Skalar(0.), y: Skalar(1.) },
-            Bewegen::Links => Vektor { x: Skalar(-1.), y: Skalar(0.) },
-            Bewegen::Rechts => Vektor { x: Skalar(1.), y: Skalar(0.) },
+            Bewegen::Oben => vektor::EY,
+            Bewegen::Unten => -vektor::EY,
+            Bewegen::Links => vektor::EX,
+            Bewegen::Rechts => -vektor::EX,
         }
     }
 }
@@ -198,7 +198,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             Message::Bewegen(bewegen) => {
                 self.gleise.bewege_pivot(
                     self.gleise.skalierfaktor()
-                        * bewegen.bewegen().rotiere(self.gleise.pivot().winkel),
+                        * bewegen.bewegen().rotiere(-self.gleise.pivot().winkel),
                 );
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
