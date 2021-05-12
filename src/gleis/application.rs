@@ -218,6 +218,9 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         }
         let scrollable_style = scrollable::Collection::new(10);
         let scroller_width = scrollable_style.width();
+        let modus_radios = iced::Column::new()
+            .push(Modus::Bauen.make_radio(aktueller_modus))
+            .push(Modus::Fahren.make_radio(aktueller_modus));
         let move_buttons = iced::Column::new()
             .push(
                 iced::Button::new(oben, iced::Text::new("^"))
@@ -242,11 +245,11 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
         let drehen_buttons = iced::Column::new()
             .push(
-                iced::Button::new(counter_clockwise, iced::Text::new("cw" /* "↺" */))
+                iced::Button::new(counter_clockwise, iced::Text::new("ccw" /* "↺" */))
                     .on_press(Message::Drehen(Winkel(-0.25))),
             )
             .push(
-                iced::Button::new(clockwise, iced::Text::new("ccw" /* "↻" */))
+                iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
                     .on_press(Message::Drehen(Winkel(0.25))),
             );
         let skalieren_buttons = iced::Column::new()
@@ -264,14 +267,14 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         iced::Column::new()
             .push(
                 iced::Row::new()
-                    .push(Modus::Bauen.make_radio(aktueller_modus))
-                    .push(Modus::Fahren.make_radio(aktueller_modus))
-                    .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
+                    .push(modus_radios)
                     .push(move_buttons)
                     .push(drehen_buttons)
                     .push(skalieren_buttons)
                     .padding(5)
-                    .spacing(5),
+                    .spacing(5)
+                    .width(iced::Length::Fill)
+                    .height(iced::Length::Shrink),
             )
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
