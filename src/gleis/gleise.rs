@@ -722,7 +722,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
         } = bincode::deserialize_from(file)?;
 
         if name != Z::NAME {
-            log::error!("falscher Zugtyp!")
+            return Err(Error::FalscherZugtyp(name))
         }
 
         // reset current state
@@ -764,6 +764,7 @@ impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise
 pub enum Error {
     IO(std::io::Error),
     Bincode(bincode::Error),
+    FalscherZugtyp(String),
 }
 impl From<std::io::Error> for Error {
     fn from(error: std::io::Error) -> Self {
