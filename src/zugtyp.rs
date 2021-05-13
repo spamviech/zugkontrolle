@@ -31,7 +31,7 @@ pub struct Spurweite(pub f32);
 pub trait Zugtyp: Sized {
     /// Spurweite in mm.
     const SPURWEITE: Spurweite;
-    const VALUE: Self;
+    const NAME: &'static str;
 
     fn geraden() -> Vec<Gerade<Self>>;
     fn kurven() -> Vec<Kurve<Self>>;

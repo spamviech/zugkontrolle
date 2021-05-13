@@ -20,9 +20,9 @@ pub struct Gleis<T> {
     pub position: Position,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(zugkontrolle_derive::Debug, Serialize, Deserialize)]
 pub(crate) struct GleiseVecs<Z> {
-    pub(crate) zugtyp: Z,
+    pub(crate) name: String,
     pub(crate) geraden: Vec<Gleis<Gerade<Z>>>,
     pub(crate) kurven: Vec<Gleis<Kurve<Z>>>,
     pub(crate) weichen: Vec<Gleis<Weiche<Z>>>,
@@ -39,7 +39,10 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
     fn from(maps: &GleiseMaps<Z>) -> Self {
         macro_rules! hashmaps_to_vecs {
             ($($map:ident),*) => {
-                GleiseVecs {zugtyp: Z::VALUE, $($map: maps.$map.iter().map(second).cloned().collect()),*}
+                GleiseVecs {
+                    name: Z::NAME.to_string(),
+                    $($map: maps.$map.iter().map(second).cloned().collect()),*
+                }
             };
         }
         hashmaps_to_vecs!(

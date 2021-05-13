@@ -10,8 +10,8 @@ use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, We
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Märklin;
 impl Zugtyp for Märklin {
+    const NAME: &'static str = "Märklin";
     const SPURWEITE: Spurweite = Spurweite(16.5);
-    const VALUE: Märklin = Märklin;
 
     fn geraden() -> Vec<Gerade<Self>> {
         vec![

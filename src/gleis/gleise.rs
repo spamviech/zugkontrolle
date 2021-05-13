@@ -1,7 +1,7 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
-use std::{collections::HashMap, io::Write};
-use std::{fmt::Debug, io::Read};
+use std::collections::HashMap;
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
@@ -698,29 +698,20 @@ impl<Z: Zugtyp> Gleise<Z> {
 }
 
 impl<Z: Zugtyp + Serialize> Gleise<Z> {
-    pub fn speichern(
-        &self,
-        pfad: impl AsRef<std::path::Path>,
-    ) -> std::result::Result<usize, Error> {
+    pub fn speichern(&self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Error> {
         let Gleise { maps, .. } = self;
         let vecs: GleiseVecs<Z> = maps.into();
-        let mut file = std::fs::File::create(pfad)?;
-        let bytes_written = file.write(&bincode::serialize(&vecs)?)?;
-        Ok(bytes_written)
+        let file = std::fs::File::create(pfad)?;
+        bincode::serialize_into(file, &vecs)?;
+        Ok(())
     }
 }
 
-impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
-    pub fn laden(
-        &mut self,
-        pfad: impl AsRef<std::path::Path>,
-    ) -> std::result::Result<usize, Error> {
-        // load data from disc
-        let mut buf = Vec::new();
-        let mut file = std::fs::File::open(pfad)?;
-        let bytes_read = file.read(&mut buf)?;
-        let GleiseVecs::<Z> {
-            zugtyp: _,
+impl<Z: Zugtyp + PartialEq + std::fmt::Debug + for<'de> Deserialize<'de>> Gleise<Z> {
+    pub fn laden(&mut self, pfad: impl AsRef<std::path::Path>) -> std::result::Result<(), Error> {
+        let file = std::fs::File::open(pfad)?;
+        let GleiseVecs {
+            name,
             geraden,
             kurven,
             weichen,
@@ -728,7 +719,11 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
             kurven_weichen,
             s_kurven_weichen,
             kreuzungen,
-        } = bincode::deserialize(&buf)?;
+        } = bincode::deserialize_from(file)?;
+
+        if name != Z::NAME {
+            log::error!("falscher Zugtyp!")
+        }
 
         // reset current state
         self.canvas.clear();
@@ -761,7 +756,7 @@ impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
             kreuzungen,
         );
 
-        Ok(bytes_read)
+        Ok(())
     }
 }
 

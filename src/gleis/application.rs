@@ -143,8 +143,8 @@ pub struct Zugkontrolle<Z> {
     pfad: iced::text_input::State,
     aktueller_pfad: String,
 }
-impl<Z: 'static + Zugtyp + Debug + Serialize + for<'de> Deserialize<'de> + Send> iced::Application
-    for Zugkontrolle<Z>
+impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<'de> + Send>
+    iced::Application for Zugkontrolle<Z>
 {
     type Executor = iced::executor::Default;
     type Flags = Gleise<Z>;
@@ -173,7 +173,7 @@ impl<Z: 'static + Zugtyp + Debug + Serialize + for<'de> Deserialize<'de> + Send>
                 speichern: iced::button::State::new(),
                 laden: iced::button::State::new(),
                 pfad: iced::text_input::State::new(),
-                aktueller_pfad: format!("{:?}.zug", Z::VALUE),
+                aktueller_pfad: format!("{}.zug", Z::NAME),
             },
             iced::Command::none(),
         )
@@ -228,7 +228,7 @@ impl<Z: 'static + Zugtyp + Debug + Serialize + for<'de> Deserialize<'de> + Send>
             Message::Laden => {
                 if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
                     // TODO show a message box with the error message
-                    error!("Error while loading fro {}: {:?}", self.aktueller_pfad, err)
+                    error!("Error while loading from {}: {:?}", self.aktueller_pfad, err)
                 }
             },
             Message::Pfad(pfad) => self.aktueller_pfad = pfad,

@@ -13,8 +13,8 @@ use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, We
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Lego;
 impl Zugtyp for Lego {
+    const NAME: &'static str = "Lego";
     const SPURWEITE: Spurweite = Spurweite(38.);
-    const VALUE: Lego = Lego;
 
     fn geraden() -> Vec<Gerade<Self>> {
         vec![GERADE]
