@@ -2,13 +2,15 @@
 
 use std::marker::PhantomData;
 
+use zugkontrolle_derive::chain;
+
 use super::vektor::{self, Vektor};
 use crate::gleis::typen::{
     skalar::Skalar,
     winkel::{self, Winkel},
 };
 
-/// Pfad auf dem Canvas
+/// Pfad auf dem Canvas.
 ///
 /// Transformationen werden ausgeführt, bevor der Pfad gezeichnet/gefüllt wird!
 pub struct Pfad {
@@ -19,28 +21,28 @@ pub struct Pfad {
 impl Pfad {
     /// Erzeuge ein Rechteck der gegebenen /größe/ unter den gegebenen /transformationen/.
     pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
-        let mut erbauer = Erbauer::neu();
-        erbauer.move_to(Vektor::null_vektor());
-        erbauer.line_to(größe.x * vektor::EX);
-        erbauer.line_to(größe);
-        erbauer.line_to(größe.y * vektor::EY);
-        erbauer.close();
-        erbauer.baue_unter_transformationen(transformationen)
+        Erbauer::neu()
+            .move_to_chain(Vektor::null_vektor())
+            .line_to_chain(größe.x * vektor::EX)
+            .line_to_chain(größe)
+            .line_to_chain(größe.y * vektor::EY)
+            .close_chain()
+            .baue_unter_transformationen(transformationen)
     }
 }
 
-/// Unterstützte Transformationen
+/// Unterstützte Transformationen.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Transformation {
     /// Verschiebe alle Koordinaten um den übergebenen Vector.
     Translation(Vektor),
-    /// Rotiere alle Koordinaten um den Ursprung (im Uhrzeigersinn)
+    /// Rotiere alle Koordinaten um den Ursprung (im Uhrzeigersinn).
     Rotation(Winkel),
-    /// Skaliere alle Koordinaten (x',y') = (x*scale, y*scale)
+    /// Skaliere alle Koordinaten (x',y') = (x*scale, y*scale).
     Skalieren(Skalar),
 }
 
-/// Variante von /iced::canvas::path::Arc/ mit /Invertiert/-Implementierung
+/// Variante von /iced::canvas::path::Arc/ mit /Invertiert/-Implementierung.
 ///
 /// Beschreibt einen Bogen um /zentrum/ mit /radius/ von Winkel /anfang/ bis /ende/
 /// (im Uhrzeigersinn, y-Achse wächst nach Unten)
@@ -52,13 +54,13 @@ pub struct Bogen {
     pub ende: Winkel,
 }
 
-/// Marker-Typ für 'Invertiert', X-Achse (Horizontal)
+/// Marker-Typ für 'Invertiert', X-Achse (Horizontal).
 #[derive(Debug)]
 pub struct X;
-/// Marker-Typ für 'Invertiert', Y-Achse (Vertikal)
+/// Marker-Typ für 'Invertiert', Y-Achse (Vertikal).
 #[derive(Debug)]
 pub struct Y;
-/// Hilf-Struktur um mich vor dummen Fehlern (z.B. doppeltes invertieren) zu bewahren
+/// Hilf-Struktur um mich vor dummen Fehlern (z.B. doppeltes invertieren) zu bewahren.
 #[derive(Debug)]
 pub struct Invertiert<T, Achse>(T, PhantomData<*const Achse>);
 impl<T, Achse> From<T> for Invertiert<T, Achse> {
@@ -123,44 +125,42 @@ pub struct Erbauer<V, B> {
 }
 
 impl Erbauer<Vektor, Bogen> {
-    /// Erstelle einen neuen Erbauer
+    /// Erstelle einen neuen Erbauer.
     pub fn neu() -> Self {
         Erbauer { builder: iced::canvas::path::Builder::new(), phantom_data: PhantomData }
     }
 
-    /// Finalisiere the Pfad und erzeuge den unveränderlichen Pfad
+    /// Finalisiere the Pfad und erzeuge den unveränderlichen Pfad.
     pub fn baue(self) -> Pfad {
         self.baue_unter_transformationen(Vec::new())
     }
 
     /// Finalisiere the Pfad und erzeuge den unveränderlichen Pfad
-    /// nach Anwendung der übergebenen Transformationen
+    /// nach Anwendung der übergebenen Transformationen.
     pub fn baue_unter_transformationen(self, transformationen: Vec<Transformation>) -> Pfad {
         Pfad { pfad: self.builder.build(), transformationen }
     }
 }
 
 impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
-    // Beginne einen neuen Unterpfad bei /punkt/
+    // Beginne einen neuen Unterpfad bei /punkt/.
+    #[chain]
     pub fn move_to(&mut self, punkt: V) {
         let Vektor { x, y } = punkt.into();
         self.builder.move_to(iced::Point { x: x.0, y: y.0 })
     }
 
-    pub fn move_to_chain(mut self, punkt: V) -> Self {
-        self.move_to(punkt);
-        self
-    }
-
-    /// Zeichne einen Linie vom aktuellen Punkt zu /ziel/
+    /// Zeichne einen Linie vom aktuellen Punkt zu /ziel/.
+    #[chain]
     pub fn line_to(&mut self, ziel: V) {
         let Vektor { x, y } = ziel.into();
         self.builder.line_to(iced::Point { x: x.0, y: y.0 })
     }
 
-    /// Zeichne den beschriebenen Bogen
+    /// Zeichne den beschriebenen Bogen.
     ///
     /// Beginnt einen neuen Unterpfad
+    #[chain]
     pub fn arc(&mut self, bogen: B) {
         let Bogen { zentrum: Vektor { x, y }, radius, anfang, ende } = bogen.into();
         self.builder.arc(iced::canvas::path::Arc {
@@ -190,19 +190,22 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     }
     */
 
-    /// Zeichne eine Linie vom aktuellen Punkt zum start des aktuellen Unterpfades
+    /// Zeichne eine Linie vom aktuellen Punkt zum start des aktuellen Unterpfades.
+    #[chain]
     pub fn close(&mut self) {
         self.builder.close()
     }
 
-    /// Alle Methoden der closure verwenden unveränderte Achsen (x',y') = (x,y)
+    /// Alle Methoden der closure verwenden unveränderte Achsen (x',y') = (x,y).
     ///
     /// Convenience-Funktion um nicht permanent no-op closures erstellen zu müssen.
+    #[chain]
     pub fn with_normal_axis(&mut self, action: impl for<'s> FnOnce(&'s mut Erbauer<V, B>)) {
         action(self)
     }
 
-    /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y)
+    /// Alle Methoden der closure verwenden eine gespiegelte x-Achse (x',y') = (-x,y).
+    #[chain]
     pub fn with_invert_x(
         &mut self,
         action: impl for<'s> FnOnce(&'s mut Erbauer<Invertiert<V, X>, Invertiert<B, X>>),
@@ -215,7 +218,8 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
         })
     }
 
-    /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y)
+    /// Alle Methoden der closure verwenden eine gespiegelte y-Achse (x',y') = (x,-y).
+    #[chain]
     pub fn with_invert_y(
         &mut self,
         action: impl for<'s> FnOnce(&'s mut Erbauer<Invertiert<V, Y>, Invertiert<B, Y>>),

@@ -5,7 +5,6 @@ use inflector::cases::snakecase::to_snake_case;
 use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
-use syn;
 
 pub fn impl_anchor_lookup(ast: &syn::DeriveInput) -> TokenStream {
     let syn::DeriveInput { ident, data, vis, .. } = ast;

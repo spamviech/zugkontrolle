@@ -2,7 +2,6 @@
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn;
 
 pub fn make_enum(args: Vec<syn::NestedMeta>, ast: syn::ItemEnum) -> TokenStream {
     // parse args

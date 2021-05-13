@@ -2,7 +2,6 @@
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn;
 
 pub fn impl_debug(ast: &syn::DeriveInput) -> TokenStream {
     let syn::DeriveInput { ident, data, generics, .. } = ast;
