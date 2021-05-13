@@ -1,4 +1,5 @@
 //! This modules defines all Märklin rails I have access to.
+use serde::{Deserialize, Serialize};
 
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kreuzung::{self, Kreuzung};
@@ -6,10 +7,11 @@ use crate::gleis::kurve::Kurve;
 use crate::gleis::typen::*;
 use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Märklin;
 impl Zugtyp for Märklin {
     const SPURWEITE: Spurweite = Spurweite(16.5);
+    const VALUE: Märklin = Märklin;
 
     fn geraden() -> Vec<Gerade<Self>> {
         vec![

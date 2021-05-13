@@ -2,16 +2,19 @@
 
 use std::f32::consts::PI;
 
+use serde::{Deserialize, Serialize};
+
 use crate::gleis::gerade::Gerade;
 use crate::gleis::kreuzung::{self, Kreuzung};
 use crate::gleis::kurve::Kurve;
 use crate::gleis::typen::*;
 use crate::gleis::weiche::{self, DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Lego;
 impl Zugtyp for Lego {
     const SPURWEITE: Spurweite = Spurweite(38.);
+    const VALUE: Lego = Lego;
 
     fn geraden() -> Vec<Gerade<Self>> {
         vec![GERADE]

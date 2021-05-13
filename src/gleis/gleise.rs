@@ -1,7 +1,9 @@
 //! Anzeige der GleisDefinition auf einem Canvas
 
-use std::collections::HashMap;
-use std::fmt::Debug;
+use std::{collections::HashMap, io::Write};
+use std::{fmt::Debug, io::Read};
+
+use serde::{Deserialize, Serialize};
 
 use super::anchor::{self, Lookup};
 use super::typen::*;
@@ -77,15 +79,7 @@ impl<Z> Gleise<Z> {
             canvas: canvas::Cache::new(),
             pivot: Position { punkt: Vektor { x: Skalar(0.), y: Skalar(0.) }, winkel: Winkel(0.) },
             skalieren: Skalar(1.),
-            maps: GleiseMaps {
-                geraden: HashMap::new(),
-                kurven: HashMap::new(),
-                weichen: HashMap::new(),
-                kurven_weichen: HashMap::new(),
-                dreiwege_weichen: HashMap::new(),
-                s_kurven_weichen: HashMap::new(),
-                kreuzungen: HashMap::new(),
-            },
+            maps: GleiseMaps::neu(),
             anchor_points: anchor::rstar::RTree::new(),
             next_id: 0,
             last_mouse: Vektor::null_vektor(),
@@ -700,5 +694,89 @@ impl<Z: Zugtyp> Gleise<Z> {
         *optional_id = None;
         // trigger redraw
         self.canvas.clear();
+    }
+}
+
+impl<Z: Zugtyp + Serialize> Gleise<Z> {
+    pub fn speichern(
+        &self,
+        pfad: impl AsRef<std::path::Path>,
+    ) -> std::result::Result<usize, Error> {
+        let Gleise { maps, .. } = self;
+        let vecs: GleiseVecs<Z> = maps.into();
+        let mut file = std::fs::File::create(pfad)?;
+        let bytes_written = file.write(&bincode::serialize(&vecs)?)?;
+        Ok(bytes_written)
+    }
+}
+
+impl<Z: Zugtyp + for<'de> Deserialize<'de>> Gleise<Z> {
+    pub fn laden(
+        &mut self,
+        pfad: impl AsRef<std::path::Path>,
+    ) -> std::result::Result<usize, Error> {
+        // load data from disc
+        let mut buf = Vec::new();
+        let mut file = std::fs::File::open(pfad)?;
+        let bytes_read = file.read(&mut buf)?;
+        let GleiseVecs::<Z> {
+            zugtyp: _,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        } = bincode::deserialize(&buf)?;
+
+        // reset current state
+        self.canvas.clear();
+        // TODO pivot, skalieren?
+        self.pivot = Position { punkt: Vektor::null_vektor(), winkel: winkel::ZERO };
+        self.skalieren = Skalar::multiplikativ_neutral();
+        self.maps = GleiseMaps::neu();
+        self.anchor_points = anchor::rstar::RTree::new();
+        self.next_id = 0;
+        // don't reset last_mouse, last_size
+        // TODO Modus?
+
+        // restore state from data
+        macro_rules! add_gleise {
+            ($($gleise: ident,)*) => {
+                $(
+                    for gleis in $gleise {
+                        self.add(gleis);
+                    }
+                );*
+            }
+        }
+        add_gleise!(
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        );
+
+        Ok(bytes_read)
+    }
+}
+
+#[derive(Debug)]
+pub enum Error {
+    IO(std::io::Error),
+    Bincode(bincode::Error),
+}
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Error::IO(error)
+    }
+}
+impl From<bincode::Error> for Error {
+    fn from(error: bincode::Error) -> Self {
+        Error::Bincode(error)
     }
 }

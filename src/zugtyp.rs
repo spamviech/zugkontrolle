@@ -10,9 +10,11 @@ use crate::gleis::{
 };
 
 pub mod lego;
+pub use lego::Lego;
 // path attribute necessary due to non-ascii module name (at least for now)
 #[path = "zugtyp/märklin.rs"]
 pub mod märklin;
+pub use märklin::Märklin;
 
 /// TODO
 /// Wirkliche Implementierung in eigenem Modul erstellen
@@ -29,6 +31,7 @@ pub struct Spurweite(pub f32);
 pub trait Zugtyp: Sized {
     /// Spurweite in mm.
     const SPURWEITE: Spurweite;
+    const VALUE: Self;
 
     fn geraden() -> Vec<Gerade<Self>>;
     fn kurven() -> Vec<Kurve<Self>>;
