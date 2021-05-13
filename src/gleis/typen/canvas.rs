@@ -25,7 +25,6 @@ pub use vektor::Vektor;
 /// Anschließend werden die Koordinaten um /pivot.winkel/ gedreht.
 /// Danach werden alle Koordinaten mit dem /skalieren/-Faktor multipliziert.
 pub struct Frame<'t>(&'t mut iced::canvas::Frame);
-// TODO fill_rectangle?
 impl<'t> Frame<'t> {
     pub fn neu(frame: &'t mut iced::canvas::Frame) -> Self {
         Frame(frame)
@@ -72,7 +71,7 @@ impl<'t> Frame<'t> {
     /// Wende die übergebene Transformation auf den Frame an.
     ///
     /// **ACHTUNG**: Durch die Art wie es in /iced/ implementiert ist wird die /transformation/
-    /// **vor** allen bisherigen ausgeführt.
+    /// **vor** allen bisherigen ausgeführt, getrennt durch /with_save/.
     ///
     /// Links zum Implementierung verfolgen:
     /// https://github.com/hecrj/iced/blob/master/graphics/src/widget/canvas/frame.rs#L234
@@ -143,11 +142,11 @@ pub struct Position {
 impl Position {
     /// Vektor nachdem das Objekt an die Position bewegt und um den Winkel gedreht wurde.
     pub fn transformation(&self, anchor: Vektor) -> Vektor {
-        self.punkt + anchor.rotiere(self.winkel)
+        self.punkt + anchor.rotiert(self.winkel)
     }
 
     /// Vektor nachdem er um den Winkel gedreht wurde.
     pub fn rotation(&self, richtung: Vektor) -> Vektor {
-        richtung.rotiere(self.winkel)
+        richtung.rotiert(self.winkel)
     }
 }

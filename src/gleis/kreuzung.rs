@@ -216,7 +216,7 @@ impl<Z: Zugtyp> Zeichnen for Kreuzung<Z> {
         let winkel = self.winkel();
         // sub-checks
         let horizontal_vector = relative_position - start;
-        let mut gedreht_vector = (relative_position - zentrum).rotiere(-winkel);
+        let mut gedreht_vector = (relative_position - zentrum).rotiert(-winkel);
         gedreht_vector.y = -gedreht_vector.y;
         gedreht_vector += zentrum - start;
         gerade::innerhalb::<Z>(self.länge, horizontal_vector)

@@ -339,7 +339,7 @@ impl<Z: Zugtyp> Zeichnen for SKurvenWeiche<Z> {
         // sub-checks
         let mut relative_vector = relative_position - start_vector;
         relative_vector.y *= multiplier;
-        let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiere(-self.winkel);
+        let mut s_kurve_vector = (relative_vector - s_kurve_start_vector).rotiert(-self.winkel);
         s_kurve_vector -= Vektor { x: Skalar(0.), y: beschränkung::<Z>() };
         s_kurve_vector.y = -s_kurve_vector.y;
         gerade::innerhalb::<Z>(self.länge, relative_vector)

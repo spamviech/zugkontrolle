@@ -33,7 +33,7 @@ impl<Z> Grabbed<Z> {
                 let mut grabbed = None;
                 for (gleis_id, Gleis { definition, position }) in map.iter() {
                     let relative_pos = canvas_pos - position.punkt;
-                    let rotated_pos = relative_pos.rotiere(-position.winkel);
+                    let rotated_pos = relative_pos.rotiert(-position.winkel);
                     if definition.innerhalb(rotated_pos) {
                         grabbed = Some(Grabbed {
                             gleis_id: gleis_id.as_any_id(),
@@ -276,7 +276,7 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
                         canvas::Color::from_rgba(0., 0., 1., transparency(gleis_id, &is_grabbed))
                     };
                     let direction: Vektor = Vektor::polar_koordinaten(Skalar(5.), anchor.richtung);
-                    let direction_side: Vektor = Skalar(0.5) * direction.rotiere(winkel::FRAC_PI_2);
+                    let direction_side: Vektor = Skalar(0.5) * direction.rotiert(winkel::FRAC_PI_2);
                     let anchor_position: Vektor = anchor.position;
                     let mut path_builder = pfad::Erbauer::neu();
                     path_builder.move_to(anchor_position + direction_side);
@@ -301,7 +301,7 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(
     for (_gleis_id, Gleis { definition, position }) in map.iter() {
         if let Some((relative_position, content)) = definition.beschreibung() {
             let punkt =
-                position.punkt + Vektor::from(relative_position.punkt).rotiere(position.winkel);
+                position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
             let winkel = position.winkel + relative_position.winkel;
             let absolute_position = Position { punkt, winkel };
             frame.with_save(|frame| {
@@ -331,7 +331,7 @@ fn get_canvas_position(
     cursor.position().map(|pos| {
         pivot.punkt
             + (Vektor { x: Skalar(pos.x - bounds.x), y: Skalar(pos.y - bounds.y) } / skalieren)
-                .rotiere(-pivot.winkel)
+                .rotiert(-pivot.winkel)
     })
 }
 
@@ -564,14 +564,14 @@ impl<Z: Zugtyp> Gleise<Z> {
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let mut canvas_position = self.last_mouse;
-        let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiere(-self.pivot.winkel);
+        let ex = Vektor { x: Skalar(1.), y: Skalar(0.) }.rotiert(-self.pivot.winkel);
         let cp_x = canvas_position.skalarprodukt(&ex);
         if cp_x < Skalar(0.) {
             canvas_position -= cp_x * ex;
         } else if cp_x > self.last_size.x {
             canvas_position -= (cp_x - self.last_size.x) * ex;
         }
-        let ey = Vektor { x: Skalar(0.), y: Skalar(1.) }.rotiere(-self.pivot.winkel);
+        let ey = Vektor { x: Skalar(0.), y: Skalar(1.) }.rotiert(-self.pivot.winkel);
         let cp_y = canvas_position.skalarprodukt(&ey);
         if cp_y < Skalar(0.) {
             canvas_position -= cp_y * ey;

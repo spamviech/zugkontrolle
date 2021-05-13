@@ -26,15 +26,15 @@ pub struct Vektor {
 }
 
 impl Vektor {
-    /// Nullvektor
+    /// Nullvektor.
     ///
-    /// - additiv neutrales Element
+    /// - additiv neutrales Element.
     /// - Resultat einer Multiplikation mit 0.
     pub fn null_vektor() -> Self {
         Vektor { x: Skalar(0.), y: Skalar(0.) }
     }
 
-    /// Erzeuge einen Vektor aus seinen Polarkoordinaten
+    /// Erzeuge einen Vektor aus seinen Polarkoordinaten.
     ///
     /// Winkel wachsen im Uhrzeigersinn.
     /// y-Koordinaten wachsen nach unten.
@@ -42,12 +42,18 @@ impl Vektor {
         Vektor { x: radius * winkel.cos(), y: radius * winkel.sin() }
     }
 
-    /// Einheitsvektor mit identischer Richtung
-    pub fn einheitsvektor(&self) -> Self {
-        self.clone() / self.länge()
+    /// Normalisiere den Vektor auf länge /Skalar(1.)/.
+    pub fn normalisiere(&mut self) {
+        *self /= self.länge();
     }
 
-    /// Skalarprodukt zweier Vektoren
+    /// Einheitsvektor mit identischer Richtung.
+    pub fn einheitsvektor(mut self) -> Self {
+        self.normalisiere();
+        self
+    }
+
+    /// Skalarprodukt zweier Vektoren.
     ///
     /// Es gilt `self.skalarprodukt(other) == self.länge() * other.länge() *
     /// self.winkel(other).cos()`. Insbesondere gilt ´self.länge() ==
@@ -56,28 +62,33 @@ impl Vektor {
         self.x * other.x + self.y * other.y
     }
 
-    /// Länge eines Vektors (euklidische Metrik)
+    /// Länge eines Vektors (euklidische Metrik).
     ///
     /// Definiert über `Vektor::skalarprodukt`.
     pub fn länge(&self) -> Skalar {
         Skalar(self.skalarprodukt(self).0.sqrt())
     }
 
-    /// Winkel zwischen zwei Vektoren (im Uhrzeigersinn)
+    /// Winkel zwischen zwei Vektoren (im Uhrzeigersinn).
     ///
     /// Definiert über `Vektor::skalarprodukt`.
     pub fn winkel(&self, other: &Self) -> Winkel {
         Winkel::acos(self.skalarprodukt(other) / (self.länge() * other.länge()))
     }
 
-    /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist
-    pub fn rotiere<T: Trigonometrie>(&self, winkel: T) -> Self {
-        // https://de.wikipedia.org/wiki/Drehmatrix#Drehmatrix_der_Ebene_%E2%84%9D%C2%B2
-        // geht von Drehung gegen den Uhrzeigersinn und nach oben steigender y-Achse aus
-        Vektor {
-            x: winkel.cos() * self.x - winkel.sin() * self.y,
-            y: winkel.sin() * self.x + winkel.cos() * self.y,
-        }
+    /// Rotiere einen Vektor um /winkel/ im Uhrzeigersinn.
+    pub fn rotiere<T: Trigonometrie>(&mut self, winkel: T) {
+        let Vektor { x, y } = *self;
+        let cos = winkel.cos();
+        let sin = winkel.sin();
+        self.x = cos * x - sin * y;
+        self.y = sin * x + cos * y;
+    }
+
+    /// Erzeuge einen Vektor, der um /winkel/ im Uhrzeigersinn rotiert ist.
+    pub fn rotiert<T: Trigonometrie>(mut self, winkel: T) -> Self {
+        self.rotiere(winkel);
+        self
     }
 }
 

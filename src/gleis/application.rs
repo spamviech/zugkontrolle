@@ -198,7 +198,7 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             Message::Bewegen(bewegen) => {
                 self.gleise.bewege_pivot(
                     self.gleise.skalierfaktor()
-                        * bewegen.bewegen().rotiere(-self.gleise.pivot().winkel),
+                        * bewegen.bewegen().rotiert(-self.gleise.pivot().winkel),
                 );
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
