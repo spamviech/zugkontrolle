@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use super::vektor::Vektor;
+use super::vektor::{self, Vektor};
 use crate::gleis::typen::{
     skalar::Skalar,
     winkel::{self, Winkel},
@@ -14,6 +14,19 @@ use crate::gleis::typen::{
 pub struct Pfad {
     pub(crate) pfad: iced::canvas::Path,
     pub(crate) transformationen: Vec<Transformation>,
+}
+
+impl Pfad {
+    /// Erzeuge ein Rechteck der gegebenen /größe/ unter den gegebenen /transformationen/.
+    pub fn rechteck(größe: Vektor, transformationen: Vec<Transformation>) -> Self {
+        let mut erbauer = Erbauer::neu();
+        erbauer.move_to(Vektor::null_vektor());
+        erbauer.line_to(größe.x * vektor::EX);
+        erbauer.line_to(größe);
+        erbauer.line_to(größe.y * vektor::EY);
+        erbauer.close();
+        erbauer.baue_unter_transformationen(transformationen)
+    }
 }
 
 /// Unterstützte Transformationen
@@ -132,6 +145,11 @@ impl<V: Into<Vektor>, B: Into<Bogen>> Erbauer<V, B> {
     pub fn move_to(&mut self, punkt: V) {
         let Vektor { x, y } = punkt.into();
         self.builder.move_to(iced::Point { x: x.0, y: y.0 })
+    }
+
+    pub fn move_to_chain(mut self, punkt: V) -> Self {
+        self.move_to(punkt);
+        self
     }
 
     /// Zeichne einen Linie vom aktuellen Punkt zu /ziel/

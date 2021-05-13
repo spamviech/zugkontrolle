@@ -56,16 +56,6 @@ impl<T: Zeichnen> Button<T> {
     }
 }
 
-fn border_path(size: Vektor) -> Pfad {
-    let mut path_builder = pfad::Erbauer::neu();
-    path_builder.move_to(Vektor::null_vektor());
-    path_builder.line_to(Vektor { x: Skalar(0.), y: size.y });
-    path_builder.line_to(size);
-    path_builder.line_to(Vektor { x: size.x, y: Skalar(0.) });
-    path_builder.close();
-    path_builder.baue()
-}
-
 impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Message> for Button<T> {
     fn draw(
         &self,
@@ -74,7 +64,7 @@ impl<T: Zeichnen + ButtonMessage<Message>, Message> iced::canvas::Program<Messag
     ) -> Vec<iced::canvas::Geometry> {
         vec![self.canvas.draw(bounds.size(), |frame| {
             let bounds_vector = Vektor { x: Skalar(bounds.width), y: Skalar(bounds.height) };
-            let border_path = border_path(bounds_vector);
+            let border_path = Pfad::rechteck(bounds_vector, Vec::new());
             frame.fill(&border_path, canvas::Fill {
                 color: if self.in_bounds { GREY_IN_BOUNDS } else { GREY_OUT_OF_BOUNDS },
                 rule: canvas::FillRule::EvenOdd,
