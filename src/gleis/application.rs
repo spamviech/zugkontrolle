@@ -1,7 +1,10 @@
 //! iced::Application für die Gleis-Anzeige
 
 use std::convert::identity;
+use std::fmt::Debug;
 
+use log::*;
+use serde::{Deserialize, Serialize};
 use version::version;
 
 use super::gleise::*;
@@ -94,6 +97,9 @@ pub enum Message<Z> {
     Bewegen(Bewegen),
     Drehen(Drehen),
     Skalieren(Skalieren),
+    Speichern,
+    Laden,
+    Pfad(String),
 }
 
 impl<T: Clone + Into<AnyGleis<Z>>, Z> ButtonMessage<Message<Z>> for T {
@@ -132,8 +138,14 @@ pub struct Zugkontrolle<Z> {
     counter_clockwise: iced::button::State,
     größer: iced::button::State,
     kleiner: iced::button::State,
+    speichern: iced::button::State,
+    laden: iced::button::State,
+    pfad: iced::text_input::State,
+    aktueller_pfad: String,
 }
-impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
+impl<Z: 'static + Zugtyp + Debug + Serialize + for<'de> Deserialize<'de> + Send> iced::Application
+    for Zugkontrolle<Z>
+{
     type Executor = iced::executor::Default;
     type Flags = Gleise<Z>;
     type Message = Message<Z>;
@@ -158,6 +170,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                 counter_clockwise: iced::button::State::new(),
                 größer: iced::button::State::new(),
                 kleiner: iced::button::State::new(),
+                speichern: iced::button::State::new(),
+                laden: iced::button::State::new(),
+                pfad: iced::text_input::State::new(),
+                aktueller_pfad: format!("{:?}.zug", Z::VALUE),
             },
             iced::Command::none(),
         )
@@ -203,6 +219,19 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
             Message::Skalieren(skalieren) => self.gleise.skalieren(skalieren.skalieren()),
+            Message::Speichern => {
+                if let Err(err) = self.gleise.speichern(&self.aktueller_pfad) {
+                    // TODO show a message box with the error message
+                    error!("Error while saving to {}: {:?}", self.aktueller_pfad, err)
+                }
+            },
+            Message::Laden => {
+                if let Err(err) = self.gleise.laden(&self.aktueller_pfad) {
+                    // TODO show a message box with the error message
+                    error!("Error while loading fro {}: {:?}", self.aktueller_pfad, err)
+                }
+            },
+            Message::Pfad(pfad) => self.aktueller_pfad = pfad,
         }
 
         iced::Command::none()
@@ -227,6 +256,10 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             counter_clockwise,
             größer,
             kleiner,
+            speichern,
+            laden,
+            pfad,
+            aktueller_pfad,
         } = self;
 
         let mut scrollable = iced::Scrollable::new(scrollable_state);
@@ -265,13 +298,14 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
         let modus_radios = iced::Column::new()
             .push(Modus::Bauen.make_radio(aktueller_modus))
             .push(Modus::Fahren.make_radio(aktueller_modus));
-        let links_rechts_buttons = iced::Row::new()
-            .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
-            .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts));
-        let move_buttons = iced::Column::new()
+        let oben_unten_buttons = iced::Column::new()
             .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
-            .push(links_rechts_buttons)
             .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
+            .align_items(iced::Align::Center);
+        let move_buttons = iced::Row::new()
+            .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
+            .push(oben_unten_buttons)
+            .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts))
             .align_items(iced::Align::Center);
         // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
         let drehen_buttons = iced::Column::new()
@@ -282,10 +316,31 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
             .push(
                 iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
                     .on_press(Drehen::Rechtsdrehend),
-            );
+            )
+            .align_items(iced::Align::Center);
         let skalieren_buttons = iced::Column::new()
             .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalieren::Größer))
-            .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalieren::Kleiner));
+            .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalieren::Kleiner))
+            .align_items(iced::Align::Center);
+        let speichern_laden = iced::Row::new()
+            .push(
+                iced::Column::new()
+                    .push(
+                        iced::Button::new(speichern, iced::Text::new("speichern"))
+                            .on_press(Message::Speichern),
+                    )
+                    .push(
+                        iced::Button::new(laden, iced::Text::new("laden")).on_press(Message::Laden),
+                    )
+                    .align_items(iced::Align::End),
+            )
+            .push(
+                iced::TextInput::new(pfad, "pfad", aktueller_pfad, Message::Pfad)
+                    .width(iced::Length::Units(250)),
+            )
+            .spacing(5)
+            .align_items(iced::Align::Center)
+            .width(iced::Length::Shrink);
         // TODO Save/Load/Move?/Rotate?
         // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
         // Fahren(Streckenabschnitt-Anzeige?
@@ -296,6 +351,8 @@ impl<Z: 'static + Zugtyp + Send> iced::Application for Zugkontrolle<Z> {
                     .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
                     .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
                     .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
+                    .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
+                    .push(speichern_laden)
                     .padding(5)
                     .spacing(5)
                     .width(iced::Length::Fill)
