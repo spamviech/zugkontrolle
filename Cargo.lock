@@ -2603,12 +2603,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-pigpio"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e42cf7e4445497bbdcf7e8a6cdef2b51c51f95c2c8744c934d029a1719c77f8"
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3509,6 +3503,7 @@ version = "2.0.0"
 dependencies = [
  "argh",
  "bincode",
+ "cfg_aliases",
  "iced",
  "iced_aw",
  "image",
@@ -3519,7 +3514,6 @@ dependencies = [
  "rascam",
  "rppal",
  "rstar",
- "rust-pigpio",
  "serde",
  "serde_yaml",
  "simple_logger",
