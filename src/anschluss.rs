@@ -5,6 +5,7 @@ use std::sync::{Arc, RwLock};
 
 use cfg_if::cfg_if;
 use log::debug;
+use once_cell::sync::Lazy;
 use paste::paste;
 
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
@@ -78,10 +79,13 @@ macro_rules! pcf8574_value {
 
 matrix! { ["Singleton für Zugriff auf raspberry pi Anschlüsse."] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
 impl Anschlüsse {
-    pub fn neu() -> Result<Self, Error> {
+    fn neu() -> Result<Self, Error> {
         Ok(matrix!(anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_value))
     }
 }
+
+pub static ANSCHLÜSSE: Lazy<RwLock<Anschlüsse>> =
+    Lazy::new(|| RwLock::new(Anschlüsse::neu().expect("static creation failed!")));
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -118,6 +122,11 @@ pub struct Pcf8574 {
     wert: u8,
 }
 impl Pcf8574 {
+    fn clone(&self) -> Self {
+        let Pcf8574 { a0, a1, a2, variante, wert } = self;
+        Pcf8574 { a0: *a0, a1: *a1, a2: *a2, variante: *variante, wert: *wert }
+    }
+
     pub fn ports(self) -> Pcf8574Ports {
         // drop for self will be called when last Arc goes out of scope
         let arc = Arc::new(RwLock::new(self));
@@ -135,10 +144,18 @@ impl Pcf8574 {
 }
 impl Drop for Pcf8574 {
     fn drop(&mut self) {
-        // TODO
-        // re-add to Anschlüsse
-        // might require storing an Arc or sth. similar
-        debug!("dropped {:?}", self)
+        match self {
+            Pcf8574 {
+                a0: Level::Low,
+                a1: Level::Low,
+                a2: Level::Low,
+                variante: Pcf8574Variante::Normal,
+                wert: _,
+            } => (&mut *(ANSCHLÜSSE.write().expect("poisoned static"))).llln = Some(self.clone()),
+            _ => {
+                debug!("dropped {:?}", self)
+            },
+        }
     }
 }
 
@@ -162,7 +179,7 @@ pub struct Pcf8574Port {
     port: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Pcf8574Variante {
     Normal,
     A,
