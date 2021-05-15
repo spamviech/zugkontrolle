@@ -7,7 +7,7 @@ use iced_native::{
     layout,
     mouse::{self, Button},
     overlay,
-    touch::{self, Finger},
+    touch,
     Clipboard,
     Element,
     Hasher,
@@ -17,7 +17,6 @@ use iced_native::{
     Rectangle,
     Widget,
 };
-use log::debug;
 
 pub struct Canvas<Message, P: Program<Message>>(iced::Canvas<Message, P>);
 
@@ -81,24 +80,21 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
     ) -> event::Status {
         if let iced_native::Event::Touch(touch_event) = event {
             match touch_event {
-                touch::Event::FingerPressed { id: Finger(0), position } => {
+                touch::Event::FingerPressed { id: _, position } => {
                     event = iced_native::Event::Mouse(mouse::Event::ButtonPressed(Button::Left));
                     cursor_position = position;
                 },
-                touch::Event::FingerLifted { id: Finger(0), position } => {
+                touch::Event::FingerLifted { id: _, position } => {
                     event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
                     cursor_position = position;
                 },
-                touch::Event::FingerLost { id: Finger(0), position } => {
+                touch::Event::FingerLost { id: _, position } => {
                     event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
                     cursor_position = position;
                 },
-                touch::Event::FingerMoved { id: Finger(0), position } => {
+                touch::Event::FingerMoved { id: _, position } => {
                     event = iced_native::Event::Mouse(mouse::Event::CursorMoved { position });
                     cursor_position = position;
-                },
-                _ => {
-                    debug!("Unprocessed touch event: {:?}", touch_event);
                 },
             }
         }
