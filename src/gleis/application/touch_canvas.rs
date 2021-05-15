@@ -5,7 +5,9 @@ use iced_graphics::{backend::Backend, Renderer};
 use iced_native::{
     event,
     layout,
+    mouse::{self, Button},
     overlay,
+    touch::{self, Finger},
     Clipboard,
     Element,
     Hasher,
@@ -70,15 +72,35 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
 
     fn on_event(
         &mut self,
-        event: iced_native::Event,
+        mut event: iced_native::Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        mut cursor_position: Point,
         renderer: &Renderer<B>,
         clipboard: &mut dyn Clipboard,
         messages: &mut Vec<Message>,
     ) -> event::Status {
-        if let iced_native::Event::Touch(touch) = event {
-            debug!("{:?}", touch);
+        if let iced_native::Event::Touch(touch_event) = event {
+            match touch_event {
+                touch::Event::FingerPressed { id: Finger(0), position } => {
+                    event = iced_native::Event::Mouse(mouse::Event::ButtonPressed(Button::Left));
+                    cursor_position = position;
+                },
+                touch::Event::FingerLifted { id: Finger(0), position } => {
+                    event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
+                    cursor_position = position;
+                },
+                touch::Event::FingerLost { id: Finger(0), position } => {
+                    event = iced_native::Event::Mouse(mouse::Event::ButtonReleased(Button::Left));
+                    cursor_position = position;
+                },
+                touch::Event::FingerMoved { id: Finger(0), position } => {
+                    event = iced_native::Event::Mouse(mouse::Event::CursorMoved { position });
+                    cursor_position = position;
+                },
+                _ => {
+                    debug!("Unprocessed touch event: {:?}", touch_event);
+                },
+            }
         }
         Widget::on_event(&mut self.0, event, layout, cursor_position, renderer, clipboard, messages)
     }
@@ -91,8 +113,7 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
     }
 }
 
-impl<'a, Message, P, B> From<Canvas<Message, P>>
-    for Element<'a, Message, Renderer<B>>
+impl<'a, Message, P, B> From<Canvas<Message, P>> for Element<'a, Message, Renderer<B>>
 where
     Message: 'static,
     P: Program<Message> + 'a,
