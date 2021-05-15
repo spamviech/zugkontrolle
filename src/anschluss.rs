@@ -6,9 +6,23 @@ use std::ops::Not;
 #[derive(Debug)]
 pub struct Anschlüsse {
     #[cfg(raspi)]
-    gpio: rppal::GPio,
+    gpio: rppal::gpio::Gpio,
     #[cfg(raspi)]
-    i2c: rppal::I2C,
+    i2c: rppal::gpio::I2c,
+    #[cfg(raspi)]
+    pwm: rppal::pwm::Pwm,
+}
+impl Anschlüsse {
+    pub fn neu() -> Result<Self, Error> {
+        Ok(Anschlüsse {
+            #[cfg(raspi)]
+            gpio: rppal::gpio::GPio::new()?,
+            #[cfg(raspi)]
+            i2c: rppal::i2c::I2C::new()?,
+            #[cfg(raspi)]
+            pwm: rppal::pwm::Pwm::new()?,
+        })
+    }
 }
 
 /// Ein Anschluss
@@ -58,3 +72,31 @@ impl Not for Level {
 
 #[cfg(raspi)]
 pub use rppal::gpio::Level;
+
+#[derive(Debug)]
+pub enum Error {
+    #[cfg(raspi)]
+    Gpio(rppal::gpio::Error),
+    #[cfg(raspi)]
+    I2c(rppal::i2c::Error),
+    #[cfg(raspi)]
+    Pwm(rppal::pwm::Error),
+}
+#[cfg(raspi)]
+impl From<rppal::gpio::Error> for Error {
+    fn from(error: rppal::gpio::Error) -> Self {
+        Error::Gpio(error)
+    }
+}
+#[cfg(raspi)]
+impl From<rppal::i2c::Error> for Error {
+    fn from(error: rppal::i2c::Error) -> Self {
+        Error::I2c(error)
+    }
+}
+#[cfg(raspi)]
+impl From<rppal::pwm::Error> for Error {
+    fn from(error: rppal::pwm::Error) -> Self {
+        Error::Pwm(error)
+    }
+}
