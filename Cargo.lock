@@ -2320,6 +2320,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acbf547ad0c65e31259204bd90935776d1c693cec2f4ff7abb7a1bbbd40dfe58"
+
+[[package]]
 name = "pathfinder_geometry"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3514,6 +3520,7 @@ dependencies = [
  "non-empty-vec",
  "once",
  "once_cell",
+ "paste",
  "rascam",
  "rppal",
  "rstar",

@@ -5,27 +5,81 @@ use std::sync::{Arc, RwLock};
 
 use cfg_if::cfg_if;
 use log::debug;
+use paste::paste;
 
-/// Singleton für Zugriff auf raspberry pi Anschlüsse.
-#[derive(Debug)]
-pub struct Anschlüsse {
-    #[cfg(raspi)]
-    gpio: rppal::gpio::Gpio,
-    #[cfg(raspi)]
-    i2c: rppal::gpio::I2c,
-    #[cfg(raspi)]
-    pwm: rppal::pwm::Pwm,
+/// originally taken from: https://www.ecorax.net/macro-bunker-1/
+/// adjusted to 4 arguments
+macro_rules! matrix {
+    ( $([$docstring:expr])? $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt: $value:ident) => {
+        matrix! { $([$docstring])? $inner_macro $($k $ls $ms $ns)+: $value}
+    };
+    ( $([$docstring:expr])? $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+: $value:ident) => {
+        matrix! { $([$docstring])? $inner_macro $($( $k $l $ms $ns )+)+: $value }
+    };
+    ( $([$docstring:expr])? $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+: $value:ident) => {
+        matrix! { $([$docstring])? $inner_macro $($( $k $l $m $ns )+)+: $value }
+    };
+    ( $([$docstring:expr])? $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+: $value:ident) => {
+         $inner_macro! { $([$docstring])? $($($k $l $m $n),+),+: $value }
+    };
 }
+macro_rules! anschlüsse {
+    {$([$docstring:expr])? $($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+        paste! {
+            $(
+                #[doc=$docstring]
+                #[derive(Debug)]
+            pub struct)? Anschlüsse {
+                #[cfg(raspi)]
+                gpio: rppal::gpio::Gpio,
+                #[cfg(raspi)]
+                i2c: rppal::gpio::I2c,
+                #[cfg(raspi)]
+                pwm: rppal::pwm::Pwm,
+                $(
+                    [<$k $l $m $n>]: $value!($k $l $m $n)
+                ),*
+            }
+        }
+    };
+}
+macro_rules! pcf8574_type {
+    ($($arg:tt)*) => {
+        Option<Pcf8574>
+    };
+}
+macro_rules! level {
+    (l) => {
+        Level::Low
+    };
+    (h) => {
+        Level::High
+    };
+}
+macro_rules! variante {
+    (n) => {
+        Pcf8574Variante::Normal
+    };
+    (a) => {
+        Pcf8574Variante::A
+    };
+}
+macro_rules! pcf8574_value {
+    ($a0:ident $a1:ident $a2:ident $var:ident) => {
+        Some(Pcf8574 {
+            a0: level!($a0),
+            a1: level!($a1),
+            a2: level!($a2),
+            variante: variante!($var),
+            wert: 0,
+        })
+    };
+}
+
+matrix! { ["Singleton für Zugriff auf raspberry pi Anschlüsse."] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
 impl Anschlüsse {
     pub fn neu() -> Result<Self, Error> {
-        Ok(Anschlüsse {
-            #[cfg(raspi)]
-            gpio: rppal::gpio::GPio::new()?,
-            #[cfg(raspi)]
-            i2c: rppal::i2c::I2C::new()?,
-            #[cfg(raspi)]
-            pwm: rppal::pwm::Pwm::new()?,
-        })
+        Ok(matrix!(anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_value))
     }
 }
 
