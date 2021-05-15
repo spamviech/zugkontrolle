@@ -91,11 +91,14 @@ impl<Message, P: Program<Message>, B: Backend> Widget<Message, Renderer<B>> for 
     }
 }
 
-impl<'a, Message, P: Program<Message>, B> From<Canvas<Message, P>> for Element<'a, Message, B>
+impl<'a, Message, P, B> From<Canvas<Message, P>>
+    for Element<'a, Message, Renderer<B>>
 where
-    iced::Canvas<Message, P>: Into<Element<'a, Message, B>>,
+    Message: 'static,
+    P: Program<Message> + 'a,
+    B: Backend,
 {
-    fn from(Canvas(canvas): Canvas<Message, P>) -> Self {
-        canvas.into()
+    fn from(canvas: Canvas<Message, P>) -> Element<'a, Message, Renderer<B>> {
+        Element::new(canvas)
     }
 }
