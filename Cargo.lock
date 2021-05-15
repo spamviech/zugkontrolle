@@ -3506,6 +3506,8 @@ dependencies = [
  "cfg_aliases",
  "iced",
  "iced_aw",
+ "iced_graphics",
+ "iced_native",
  "image",
  "log",
  "non-empty-vec",

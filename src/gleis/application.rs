@@ -11,6 +11,8 @@ use super::gleise::*;
 use super::style::*;
 use super::*;
 
+mod touch_canvas;
+
 #[derive(zugkontrolle_derive::Debug, zugkontrolle_derive::Clone)]
 pub enum AnyGleis<Z> {
     Gerade(Gerade<Z>),
@@ -296,7 +298,7 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             .push(
                 row_with_scrollable.push(
                     iced::Container::new(
-                        iced::Canvas::new(gleise)
+                        touch_canvas::Canvas::new(gleise)
                             .width(iced::Length::Fill)
                             .height(iced::Length::Fill),
                     )

@@ -45,6 +45,11 @@ features = ["derive"]
 version = "0.3.0"
 features = ["glow","glow_canvas"]
 
+[dependencies.iced_native]
+version = "0.4.0"
+[dependencies.iced_graphics]
+version = "0.2.0"
+
 [dependencies.iced_aw]
 git = "https://github.com/iced-rs/iced_aw"
 rev = "7a6918a50fa6784ce7d11348b71ea4331d9d6200"
