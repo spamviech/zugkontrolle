@@ -261,131 +261,186 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             pfad,
             aktueller_pfad,
         } = self;
-
-        let mut scrollable = iced::Scrollable::new(scrollable_state);
-        let mut max_width = None;
         let aktueller_modus = gleise.modus();
-        match aktueller_modus {
-            Modus::Bauen => {
-                macro_rules! add_buttons {
-                    ($($vec: expr),*) => {
-                        max_width = Vec::new().into_iter()
-                            $(.chain($vec.iter().map(|button| button.size().x.0.ceil() as u16)))*
-                            .max();
-                        $(
-                            for button in $vec {
-                                scrollable = scrollable.push(button.to_iced(max_width));
-                            }
-                        )*
-                    }
-                }
-                add_buttons!(
-                    geraden,
-                    kurven,
-                    weichen,
-                    dreiwege_weichen,
-                    kurven_weichen,
-                    s_kurven_weichen,
-                    kreuzungen
-                );
-            },
-            Modus::Fahren => {
-                // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?
-            },
-        }
-        let scrollable_style = scrollable::Collection::new(10);
-        let scroller_width = scrollable_style.width();
-        let modus_radios = iced::Column::new()
-            .push(Modus::Bauen.make_radio(aktueller_modus))
-            .push(Modus::Fahren.make_radio(aktueller_modus));
-        let oben_unten_buttons = iced::Column::new()
-            .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
-            .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
-            .align_items(iced::Align::Center);
-        let move_buttons = iced::Row::new()
-            .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
-            .push(oben_unten_buttons)
-            .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts))
-            .align_items(iced::Align::Center);
-        // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
-        let drehen_buttons = iced::Column::new()
-            .push(
-                iced::Button::new(counter_clockwise, iced::Text::new("ccw" /* "↺" */))
-                    .on_press(Drehen::Linksdrehend),
-            )
-            .push(
-                iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
-                    .on_press(Drehen::Rechtsdrehend),
-            )
-            .align_items(iced::Align::Center);
-        let skalieren_buttons = iced::Column::new()
-            .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalieren::Größer))
-            .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalieren::Kleiner))
-            .align_items(iced::Align::Center);
-        let speichern_laden = iced::Row::new()
-            .push(
-                iced::Column::new()
-                    .push(
-                        iced::Button::new(speichern, iced::Text::new("speichern"))
-                            .on_press(Message::Speichern),
-                    )
-                    .push(
-                        iced::Button::new(laden, iced::Text::new("laden")).on_press(Message::Laden),
-                    )
-                    .align_items(iced::Align::End),
-            )
-            .push(
-                iced::TextInput::new(pfad, "pfad", aktueller_pfad, Message::Pfad)
-                    .width(iced::Length::Units(250)),
-            )
-            .spacing(5)
-            .align_items(iced::Align::Center)
-            .width(iced::Length::Shrink);
-        // TODO Save/Load/Move?/Rotate?
-        // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
-        // Fahren(Streckenabschnitt-Anzeige?
+
+        let top_row = top_row(
+            aktueller_modus,
+            oben,
+            unten,
+            links,
+            rechts,
+            clockwise,
+            counter_clockwise,
+            größer,
+            kleiner,
+            speichern,
+            laden,
+            pfad,
+            aktueller_pfad,
+        );
+        let row_with_scrollable = row_with_scrollable(
+            aktueller_modus,
+            scrollable_state,
+            geraden,
+            kurven,
+            weichen,
+            dreiwege_weichen,
+            kurven_weichen,
+            s_kurven_weichen,
+            kreuzungen,
+        );
+
         iced::Column::new()
-            .push(
-                iced::Row::new()
-                    .push(modus_radios.mit_teil_nachricht(Message::Modus))
-                    .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
-                    .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
-                    .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
-                    .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
-                    .push(speichern_laden)
-                    .padding(5)
-                    .spacing(5)
-                    .width(iced::Length::Fill)
-                    .height(iced::Length::Shrink),
-            )
+            .push(top_row)
             .push(iced::Rule::horizontal(1).style(rule::SEPARATOR))
             .push(
-                max_width
-                    .map_or(iced::Row::new(), |width| {
-                        iced::Row::new()
-                            .push(
-                                iced::Container::new(
-                                    scrollable
-                                        .scroller_width(scroller_width)
-                                        .width(iced::Length::Fill)
-                                        .height(iced::Length::Fill)
-                                        .style(scrollable_style),
-                                )
-                                .width(iced::Length::Units(width + scroller_width))
-                                .height(iced::Length::Fill),
-                            )
-                            .push(iced::Rule::vertical(1).style(rule::SEPARATOR))
-                    })
-                    .push(
-                        iced::Container::new(
-                            iced::Canvas::new(gleise)
-                                .width(iced::Length::Fill)
-                                .height(iced::Length::Fill),
-                        )
-                        .width(iced::Length::Fill)
-                        .height(iced::Length::Fill),
-                    ),
+                row_with_scrollable.push(
+                    iced::Container::new(
+                        iced::Canvas::new(gleise)
+                            .width(iced::Length::Fill)
+                            .height(iced::Length::Fill),
+                    )
+                    .width(iced::Length::Fill)
+                    .height(iced::Length::Fill),
+                ),
             )
             .into()
+    }
+}
+
+fn top_row<'t, Z: 'static>(
+    aktueller_modus: Modus,
+    oben: &'t mut iced::button::State,
+    unten: &'t mut iced::button::State,
+    links: &'t mut iced::button::State,
+    rechts: &'t mut iced::button::State,
+    clockwise: &'t mut iced::button::State,
+    counter_clockwise: &'t mut iced::button::State,
+    größer: &'t mut iced::button::State,
+    kleiner: &'t mut iced::button::State,
+    speichern: &'t mut iced::button::State,
+    laden: &'t mut iced::button::State,
+    pfad: &'t mut iced::text_input::State,
+    aktueller_pfad: &'t str,
+) -> iced::Row<'t, Message<Z>> {
+    let modus_radios = iced::Column::new()
+        .push(Modus::Bauen.make_radio(aktueller_modus))
+        .push(Modus::Fahren.make_radio(aktueller_modus));
+    let oben_unten_buttons = iced::Column::new()
+        .push(iced::Button::new(oben, iced::Text::new("^")).on_press(Bewegen::Oben))
+        .push(iced::Button::new(unten, iced::Text::new("v")).on_press(Bewegen::Unten))
+        .align_items(iced::Align::Center);
+    let move_buttons = iced::Row::new()
+        .push(iced::Button::new(links, iced::Text::new("<")).on_press(Bewegen::Links))
+        .push(oben_unten_buttons)
+        .push(iced::Button::new(rechts, iced::Text::new(">")).on_press(Bewegen::Rechts))
+        .align_items(iced::Align::Center);
+    // unicode-support nicht vollständig in iced, daher ascii-basierter text für den Moment
+    let drehen_buttons = iced::Column::new()
+        .push(
+            iced::Button::new(counter_clockwise, iced::Text::new("ccw" /* "↺" */))
+                .on_press(Drehen::Linksdrehend),
+        )
+        .push(
+            iced::Button::new(clockwise, iced::Text::new("cw" /* "↻" */))
+                .on_press(Drehen::Rechtsdrehend),
+        )
+        .align_items(iced::Align::Center);
+    let skalieren_buttons = iced::Column::new()
+        .push(iced::Button::new(größer, iced::Text::new("+")).on_press(Skalieren::Größer))
+        .push(iced::Button::new(kleiner, iced::Text::new("-")).on_press(Skalieren::Kleiner))
+        .align_items(iced::Align::Center);
+    let speichern_laden = iced::Row::new()
+        .push(
+            iced::Column::new()
+                .push(
+                    iced::Button::new(speichern, iced::Text::new("speichern"))
+                        .on_press(Message::Speichern),
+                )
+                .push(iced::Button::new(laden, iced::Text::new("laden")).on_press(Message::Laden))
+                .align_items(iced::Align::End),
+        )
+        .push(
+            iced::TextInput::new(pfad, "pfad", aktueller_pfad, Message::Pfad)
+                .width(iced::Length::Units(250)),
+        )
+        .spacing(5)
+        .align_items(iced::Align::Center)
+        .width(iced::Length::Shrink);
+    iced::Row::new()
+        .push(modus_radios.mit_teil_nachricht(Message::Modus))
+        .push(move_buttons.mit_teil_nachricht(Message::Bewegen))
+        .push(drehen_buttons.mit_teil_nachricht(Message::Drehen))
+        .push(skalieren_buttons.mit_teil_nachricht(Message::Skalieren))
+        .push(iced::Space::new(iced::Length::Fill, iced::Length::Shrink))
+        .push(speichern_laden)
+        .padding(5)
+        .spacing(5)
+        .width(iced::Length::Fill)
+        .height(iced::Length::Shrink)
+}
+
+fn row_with_scrollable<'t, Z: 'static + Zugtyp>(
+    aktueller_modus: Modus,
+    scrollable_state: &'t mut iced::scrollable::State,
+    geraden: &'t mut Vec<Button<Gerade<Z>>>,
+    kurven: &'t mut Vec<Button<Kurve<Z>>>,
+    weichen: &'t mut Vec<Button<Weiche<Z>>>,
+    dreiwege_weichen: &'t mut Vec<Button<DreiwegeWeiche<Z>>>,
+    kurven_weichen: &'t mut Vec<Button<KurvenWeiche<Z>>>,
+    s_kurven_weichen: &'t mut Vec<Button<SKurvenWeiche<Z>>>,
+    kreuzungen: &'t mut Vec<Button<Kreuzung<Z>>>,
+) -> iced::Row<'t, Message<Z>> {
+    // TODO Save/Load/Move?/Rotate?
+    // Bauen(Streckenabschnitt?/Geschwindigkeit?/Löschen?)
+    // Fahren(Streckenabschnitt-Anzeige?
+    let mut scrollable = iced::Scrollable::new(scrollable_state);
+    let mut max_width = None;
+    match aktueller_modus {
+        Modus::Bauen => {
+            macro_rules! add_buttons {
+                ($($vec: expr),*) => {
+                    max_width = Vec::new().into_iter()
+                        $(.chain($vec.iter().map(|button| button.size().x.0.ceil() as u16)))*
+                        .max();
+                    $(
+                        for button in $vec {
+                            scrollable = scrollable.push(button.to_iced(max_width));
+                        }
+                    )*
+                }
+            }
+            add_buttons!(
+                geraden,
+                kurven,
+                weichen,
+                dreiwege_weichen,
+                kurven_weichen,
+                s_kurven_weichen,
+                kreuzungen
+            );
+        },
+        Modus::Fahren => {
+            // TODO Geschwindigkeiten?, Wegstrecken?, Pläne?
+        },
+    }
+    let scrollable_style = scrollable::Collection::new(10);
+    let scroller_width = scrollable_style.width();
+    let row = iced::Row::new();
+    match max_width {
+        Some(width) => row
+            .push(
+                iced::Container::new(
+                    scrollable
+                        .scroller_width(scroller_width)
+                        .width(iced::Length::Fill)
+                        .height(iced::Length::Fill)
+                        .style(scrollable_style),
+                )
+                .width(iced::Length::Units(width + scroller_width))
+                .height(iced::Length::Fill),
+            )
+            .push(iced::Rule::vertical(1).style(rule::SEPARATOR)),
+        None => row,
     }
 }
