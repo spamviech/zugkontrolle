@@ -362,7 +362,8 @@ fn top_row<'t, Z: 'static>(
         )
         .push(
             iced::TextInput::new(pfad, "pfad", aktueller_pfad, Message::Pfad)
-                .width(iced::Length::Units(250)),
+                .width(iced::Length::Units(250))
+                .padding(1),
         )
         .spacing(5)
         .align_items(iced::Align::Center)
