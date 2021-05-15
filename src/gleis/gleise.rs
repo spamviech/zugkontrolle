@@ -576,7 +576,7 @@ impl<Z: Zugtyp> Gleise<Z> {
             definition,
             position: Position {
                 punkt: canvas_position - grab_location,
-                winkel: self.pivot.winkel,
+                winkel: -self.pivot.winkel,
             },
         });
         if let ModusDaten::Bauen { grabbed } = &mut self.modus {
