@@ -4,6 +4,7 @@ use std::ops::Not;
 use std::sync::{Arc, RwLock};
 
 use cfg_if::cfg_if;
+use log::debug;
 
 /// Singleton für Zugriff auf raspberry pi Anschlüsse.
 #[derive(Debug)]
@@ -64,6 +65,7 @@ pub struct Pcf8574 {
 }
 impl Pcf8574 {
     pub fn ports(self) -> Pcf8574Ports {
+        // drop for self will be called when last Arc goes out of scope
         let arc = Arc::new(RwLock::new(self));
         Pcf8574Ports {
             p0: Pcf8574Port { pcf8574: arc.clone(), port: 0 },
@@ -75,6 +77,14 @@ impl Pcf8574 {
             p6: Pcf8574Port { pcf8574: arc.clone(), port: 6 },
             p7: Pcf8574Port { pcf8574: arc, port: 7 },
         }
+    }
+}
+impl Drop for Pcf8574 {
+    fn drop(&mut self) {
+        // TODO
+        // re-add to Anschlüsse
+        // might require storing an Arc or sth. similar
+        debug!("dropped {:?}", self)
     }
 }
 
