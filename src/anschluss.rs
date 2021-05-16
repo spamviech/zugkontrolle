@@ -11,35 +11,42 @@ use paste::paste;
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
 macro_rules! matrix {
-    ( $([$docstring:expr])? $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt: $value:ident) => {
-        matrix! { $([$docstring])? $inner_macro $($k $ls $ms $ns)+: $value}
+    ( $inner_macro:ident $ks:tt $ls:tt $ms:tt $ns:tt: $value:ident) => {
+        matrix! { [identity] $inner_macro $ks $ls $ms $ns: $value}
     };
-    ( $([$docstring:expr])? $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+: $value:ident) => {
-        matrix! { $([$docstring])? $inner_macro $($( $k $l $ms $ns )+)+: $value }
+    ( [$prefix:expr] $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt: $value:ident) => {
+        matrix! { [$prefix] $inner_macro $($k $ls $ms $ns)+: $value}
     };
-    ( $([$docstring:expr])? $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+: $value:ident) => {
-        matrix! { $([$docstring])? $inner_macro $($( $k $l $m $ns )+)+: $value }
+    ( [$prefix:expr] $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+: $value:ident) => {
+        matrix! { [$prefix] $inner_macro $($( $k $l $ms $ns )+)+: $value }
     };
-    ( $([$docstring:expr])? $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+: $value:ident) => {
-         $inner_macro! { $([$docstring])? $($($k $l $m $n),+),+: $value }
+    ( [$prefix:expr] $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+: $value:ident) => {
+        matrix! { [$prefix] $inner_macro $($( $k $l $m $ns )+)+: $value }
+    };
+    ( [$prefix:expr] $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+: $value:ident) => {
+         $inner_macro! { [$prefix] $($($k $l $m $n),+),+: $value }
+    };
+}
+macro_rules! identity {
+    ($($suffix:tt)*) => {
+        $($suffix)*
     };
 }
 macro_rules! anschlüsse {
-    {$([$docstring:expr])? $($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+    {[$prefix:expr] $($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
         paste! {
-            $(
-                #[doc=$docstring]
-                #[derive(Debug)]
-            pub struct)? Anschlüsse {
-                #[cfg(raspi)]
-                gpio: rppal::gpio::Gpio,
-                #[cfg(raspi)]
-                i2c: rppal::gpio::I2c,
-                #[cfg(raspi)]
-                pwm: rppal::pwm::Pwm,
-                $(
-                    [<$k $l $m $n>]: $value!($k $l $m $n)
-                ),*
+            $prefix! {
+                Anschlüsse {
+                    #[cfg(raspi)]
+                    gpio: rppal::gpio::Gpio,
+                    #[cfg(raspi)]
+                    i2c: rppal::gpio::I2c,
+                    #[cfg(raspi)]
+                    pwm: rppal::pwm::Pwm,
+                    $(
+                        [<$k $l $m $n>]: $value!($k $l $m $n)
+                    ),*
+                }
             }
         }
     };
@@ -47,6 +54,11 @@ macro_rules! anschlüsse {
 macro_rules! pcf8574_type {
     ($($arg:tt)*) => {
         Option<Pcf8574>
+    };
+}
+macro_rules! none {
+    ($($arg:tt)*) => {
+        None
     };
 }
 macro_rules! level {
@@ -65,27 +77,44 @@ macro_rules! variante {
         Pcf8574Variante::A
     };
 }
-macro_rules! pcf8574_value {
-    ($a0:ident $a1:ident $a2:ident $var:ident) => {
-        Some(Pcf8574 {
-            a0: level!($a0),
-            a1: level!($a1),
-            a2: level!($a2),
-            variante: variante!($var),
-            wert: 0,
-        })
+macro_rules! pub_struct_prefix {
+    ($($suffix: tt)*) => {
+        #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
+        #[derive(Debug)]
+        pub struct $($suffix)*
     };
 }
 
-matrix! { ["Singleton für Zugriff auf raspberry pi Anschlüsse."] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
+matrix! { [pub_struct_prefix] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
 impl Anschlüsse {
-    fn neu() -> Result<Self, Error> {
-        Ok(matrix!(anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_value))
+    fn neu() -> Result<Arc<RwLock<Self>>, Error> {
+        let arc = Arc::new(RwLock::new(matrix! {anschlüsse [l,h] [l,h] [l,h] [n,a]: none}));
+        macro_rules! pcf8574_value {
+            ($a0:ident $a1:ident $a2:ident $var:ident) => {
+                Some(Pcf8574 {
+                    a0: level!($a0),
+                    a1: level!($a1),
+                    a2: level!($a2),
+                    variante: variante!($var),
+                    wert: 0,
+                    anschlüsse: arc.clone(),
+                })
+            };
+        }
+
+        // Eigener Block um borrow-lifetime von arc zu beschränken
+        {
+            let anschlüsse = &mut *arc.write().expect("direkter write schlägt fehl");
+            anschlüsse.llln = pcf8574_value! {l l l n};
+            // TODO
+        }
+
+        Ok(arc)
     }
 }
 
-pub static ANSCHLÜSSE: Lazy<RwLock<Anschlüsse>> =
-    Lazy::new(|| RwLock::new(Anschlüsse::neu().expect("static creation failed!")));
+pub static ANSCHLÜSSE: Lazy<Arc<RwLock<Anschlüsse>>> =
+    Lazy::new(|| Anschlüsse::neu().expect("static creation failed!"));
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -120,11 +149,19 @@ pub struct Pcf8574 {
     a2: Level,
     variante: Pcf8574Variante,
     wert: u8,
+    anschlüsse: Arc<RwLock<Anschlüsse>>,
 }
 impl Pcf8574 {
     fn clone(&self) -> Self {
-        let Pcf8574 { a0, a1, a2, variante, wert } = self;
-        Pcf8574 { a0: *a0, a1: *a1, a2: *a2, variante: *variante, wert: *wert }
+        let Pcf8574 { a0, a1, a2, variante, wert, anschlüsse } = self;
+        Pcf8574 {
+            a0: *a0,
+            a1: *a1,
+            a2: *a2,
+            variante: *variante,
+            wert: *wert,
+            anschlüsse: anschlüsse.clone(),
+        }
     }
 
     pub fn ports(self) -> Pcf8574Ports {
@@ -144,6 +181,7 @@ impl Pcf8574 {
 }
 impl Drop for Pcf8574 {
     fn drop(&mut self) {
+        let clone = self.clone();
         match self {
             Pcf8574 {
                 a0: Level::Low,
@@ -151,7 +189,8 @@ impl Drop for Pcf8574 {
                 a2: Level::Low,
                 variante: Pcf8574Variante::Normal,
                 wert: _,
-            } => (&mut *(ANSCHLÜSSE.write().expect("poisoned static"))).llln = Some(self.clone()),
+                anschlüsse,
+            } => (&mut *(anschlüsse.write().expect("poisoned anschlüsse"))).llln = Some(clone),
             _ => {
                 debug!("dropped {:?}", self)
             },
