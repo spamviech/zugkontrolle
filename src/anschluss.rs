@@ -2,13 +2,12 @@
 
 use std::ops::Not;
 use std::sync::{
-    mpsc::{channel, RecvTimeoutError, Sender},
+    mpsc::{channel, Sender},
     Arc,
     Mutex,
     RwLock,
 };
 use std::thread;
-use std::time::Duration;
 
 use cfg_if::cfg_if;
 use log::{debug, error};
@@ -114,7 +113,7 @@ impl AnschlüsseData {
 
 /// Singleton für Zugriff auf raspberry pi Anschlüsse.
 #[derive(Debug)]
-pub struct Anschlüsse(Option<AnschlüsseData>);
+pub struct Anschlüsse(Option<AnschlüsseInternal>);
 impl Drop for Anschlüsse {
     fn drop(&mut self) {
         let Anschlüsse(option_data) = self;
@@ -142,7 +141,7 @@ impl Anschlüsse {
         }
     }
 
-    fn erstelle_static() -> Arc<Mutex<Result<AnschlüsseData, Error>>> {
+    fn erstelle_static() -> AnschlüsseStatic {
         macro_rules! make_anschlüsse {
             {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
                 paste! {
@@ -160,19 +159,17 @@ impl Anschlüsse {
                 }
             };
         }
-        let anschlüsse = llln_to_hhha! {make_anschlüsse: none};
-        let arc = Arc::new(Mutex::new(anschlüsse));
+        let inner = (llln_to_hhha! {make_anschlüsse: none}).map(|anschlüsse| {
+            let inner = Arc::new(Mutex::new(anschlüsse));
+            let inner_clone = inner.clone();
 
-        let (sender, receiver) = channel();
+            let (sender, receiver) = channel();
+            let sender_clone = sender.clone();
 
-        // erzeuge Thread der Rückgaben handelt
-        let sender_clone = sender.clone();
-        thread::spawn(move || {
-            // zur Rückgabe gemeldet
-            let mut stack = Vec::new();
-            loop {
-                match receiver.recv_timeout(Duration::from_secs(1)) {
-                    Ok((a0, a1, a2, variante, wert)) => match ANSCHLÜSSE.lock() {
+            // erzeuge Thread der Rückgaben handelt
+            thread::spawn(move || loop {
+                match receiver.recv() {
+                    Ok((a0, a1, a2, variante, wert)) => match inner_clone.lock() {
                         Ok(mut guard) => {
                             let pcf8574 = Pcf8574 {
                                 a0,
@@ -182,57 +179,45 @@ impl Anschlüsse {
                                 wert,
                                 sender: sender_clone.clone(),
                             };
-                            if let Ok(anschlüsse) = guard.as_mut() {
-                                anschlüsse.rückgabe(pcf8574)
-                            } else {
-                                stack.push(pcf8574);
-                            }
+                            guard.rückgabe(pcf8574)
                         },
                         Err(err) => {
                             error!("Anschlüsse-static poisoned: {}", err);
                             break
                         },
                     },
-                    Err(RecvTimeoutError::Timeout) => {
-                        if let Ok(mut guard) = ANSCHLÜSSE.try_lock() {
-                            if let Ok(anschlüsse) = guard.as_mut() {
-                                for pcf8574 in stack.drain(..) {
-                                    anschlüsse.rückgabe(pcf8574)
-                                }
-                            }
-                        }
-                    },
                     Err(err) => {
                         error!("Kanal für Pcf8574-Rückgabe geschlossen: {}", err);
                         break
                     },
                 }
+            });
+
+            macro_rules! pcf8574_value {
+                ($a0:ident $a1:ident $a2:ident $var:ident) => {
+                    Some(Pcf8574 {
+                        a0: level!($a0),
+                        a1: level!($a1),
+                        a2: level!($a2),
+                        variante: variante!($var),
+                        wert: 0,
+                        sender: sender.clone(),
+                    })
+                };
             }
-        });
 
-        macro_rules! pcf8574_value {
-            ($a0:ident $a1:ident $a2:ident $var:ident) => {
-                Some(Pcf8574 {
-                    a0: level!($a0),
-                    a1: level!($a1),
-                    a2: level!($a2),
-                    variante: variante!($var),
-                    wert: 0,
-                    sender: sender.clone(),
-                })
-            };
-        }
-
-        // Eigener Block um borrow-lifetime von arc zu beschränken
-        {
-            let mut guard = arc.lock().expect("poisoned bei Initialisierung");
-            if let Ok(anschlüsse) = guard.as_mut() {
+            // Eigener Block um borrow-lifetime von inner zu beschränken
+            {
+                let anschlüsse =
+                    &mut *inner.lock().expect("Anschlüsse poisoned vor Initialisierung");
                 anschlüsse.llln = pcf8574_value! {l l l n};
                 // TODO
             }
-        }
 
-        arc
+            inner
+        });
+
+        Arc::new(Mutex::new(inner))
     }
 
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
@@ -241,19 +226,31 @@ impl Anschlüsse {
     /// Der Drop-Handler von Pcf8574 zeigt erst bei neu erstellten Anschlüsse-Strukturen Wirkung.
     /// Diese Methode funktioniert direkt.
     pub fn rückgabe(&mut self, pcf8574: Pcf8574) {
-        if let Some(data) = &mut self.0 {
-            data.rückgabe(pcf8574)
+        if let Some(arc) = &self.0 {
+            if let Ok(mut guard) = arc.lock() {
+                guard.rückgabe(pcf8574)
+            }
         }
     }
 
     /// Versuche Zugriff auf den Pcf8574 mit der Adresse lll, normale Variante zu erhalten.
     pub fn llln(&mut self) -> Option<Pcf8574> {
-        self.0.as_mut().map(AnschlüsseData::llln).flatten()
+        if let Some(arc) = &self.0 {
+            if let Ok(mut guard) = arc.lock() {
+                guard.llln()
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 
-type MutexType = Result<AnschlüsseData, Error>;
-static ANSCHLÜSSE: Lazy<Arc<Mutex<MutexType>>> = Lazy::new(Anschlüsse::erstelle_static);
+type AnschlüsseInternal = Arc<Mutex<AnschlüsseData>>;
+type AnschlüsseResult = Result<AnschlüsseInternal, Error>;
+type AnschlüsseStatic = Arc<Mutex<AnschlüsseResult>>;
+static ANSCHLÜSSE: Lazy<AnschlüsseStatic> = Lazy::new(Anschlüsse::erstelle_static);
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -366,7 +363,7 @@ cfg_if! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Error {
     #[cfg(raspi)]
     Gpio(rppal::gpio::Error),
