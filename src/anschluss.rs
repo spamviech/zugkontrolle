@@ -2,6 +2,7 @@
 
 use std::ops::Not;
 use std::sync::{Arc, RwLock};
+use std::thread;
 
 use cfg_if::cfg_if;
 use log::debug;
@@ -196,8 +197,14 @@ impl Drop for Pcf8574 {
                 wert: _,
                 anschlüsse,
             } => {
-                debug!("dropped {:?}", clone);
-                (&mut *(anschlüsse.write().expect("poisoned anschlüsse"))).llln = Some(clone)
+                debug!("dropped llln");
+                let anschlüsse_clone = anschlüsse.clone();
+                thread::spawn(move || {
+                    debug!("start restore llln");
+                    (&mut *(anschlüsse_clone.write().expect("poisoned anschlüsse"))).llln =
+                        Some(clone);
+                    debug!("restored llln")
+                });
             },
             _ => {
                 debug!("dropped {:?}", self)
