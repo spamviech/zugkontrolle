@@ -143,12 +143,39 @@ impl Application for App {
     }
 }
 
+use zugkontrolle::anschluss::Anschlüsse;
+
 fn main() -> iced::Result {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Off)
+        .with_level(log::LevelFilter::Error)
         .with_module_level("zugkontrolle", log::LevelFilter::Debug)
         .init()
         .expect("failed to initialize error logging");
+
+    let anschlüsse = Anschlüsse::neu().expect("Erster Anschluss");
+    {
+        let mut guard = anschlüsse.write().expect("exklusiver Zugriff");
+        let llln0 = guard.llln();
+        let llln1 = guard.llln();
+        // drop guard muss vor drop llln0 passieren, sonst kommt es zu einem deadlock!
+        drop(guard);
+        println!("{:?}", llln0);
+        println!("{:?}", llln1);
+        drop(llln0);
+        drop(llln1);
+    }
+
+    {
+        let mut guard = anschlüsse.write().expect("exklusiver Zugriff");
+        let llln2 = guard.llln();
+        println!("{:?}", llln2);
+        drop(guard);
+        drop(llln2);
+    }
+
+    drop(anschlüsse);
+
+    std::process::exit(0);
 
     /*
     use std::collections::HashMap;

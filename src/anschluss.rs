@@ -87,7 +87,7 @@ macro_rules! pub_struct_prefix {
 
 matrix! { [pub_struct_prefix] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
 impl Anschlüsse {
-    fn neu() -> Result<Arc<RwLock<Self>>, Error> {
+    pub fn neu() -> Result<Arc<RwLock<Self>>, Error> {
         let arc = Arc::new(RwLock::new(matrix! {anschlüsse [l,h] [l,h] [l,h] [n,a]: none}));
         macro_rules! pcf8574_value {
             ($a0:ident $a1:ident $a2:ident $var:ident) => {
@@ -110,6 +110,11 @@ impl Anschlüsse {
         }
 
         Ok(arc)
+    }
+
+    pub fn llln(&mut self) -> Option<Pcf8574> {
+        // gebe aktuellen Wert zurück und speichere stattdessen None
+        std::mem::replace(&mut self.llln, None)
     }
 }
 
@@ -190,7 +195,10 @@ impl Drop for Pcf8574 {
                 variante: Pcf8574Variante::Normal,
                 wert: _,
                 anschlüsse,
-            } => (&mut *(anschlüsse.write().expect("poisoned anschlüsse"))).llln = Some(clone),
+            } => {
+                debug!("dropped {:?}", clone);
+                (&mut *(anschlüsse.write().expect("poisoned anschlüsse"))).llln = Some(clone)
+            },
             _ => {
                 debug!("dropped {:?}", self)
             },
