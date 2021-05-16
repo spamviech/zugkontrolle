@@ -2,7 +2,7 @@
 
 use std::ops::Not;
 use std::sync::{
-    mpsc::{channel, Sender},
+    mpsc::{channel, Receiver, Sender},
     Arc,
     Mutex,
     RwLock,
@@ -141,6 +141,32 @@ impl Anschlüsse {
         }
     }
 
+    fn listen_restore_messages(
+        sender: Sender<(Level, Level, Level, Pcf8574Variante, u8)>,
+        receiver: Receiver<(Level, Level, Level, Pcf8574Variante, u8)>,
+        inner: AnschlüsseInternal,
+    ) {
+        loop {
+            match receiver.recv() {
+                Ok((a0, a1, a2, variante, wert)) => match inner.lock() {
+                    Ok(mut guard) => {
+                        let pcf8574 =
+                            Pcf8574 { a0, a1, a2, variante, wert, sender: sender.clone() };
+                        guard.rückgabe(pcf8574)
+                    },
+                    Err(err) => {
+                        error!("Anschlüsse-static poisoned: {}", err);
+                        break
+                    },
+                },
+                Err(err) => {
+                    error!("Kanal für Pcf8574-Rückgabe geschlossen: {}", err);
+                    break
+                },
+            }
+        }
+    }
+
     fn erstelle_static() -> AnschlüsseStatic {
         macro_rules! make_anschlüsse {
             {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
@@ -167,30 +193,8 @@ impl Anschlüsse {
             let sender_clone = sender.clone();
 
             // erzeuge Thread der Rückgaben handelt
-            thread::spawn(move || loop {
-                match receiver.recv() {
-                    Ok((a0, a1, a2, variante, wert)) => match inner_clone.lock() {
-                        Ok(mut guard) => {
-                            let pcf8574 = Pcf8574 {
-                                a0,
-                                a1,
-                                a2,
-                                variante,
-                                wert,
-                                sender: sender_clone.clone(),
-                            };
-                            guard.rückgabe(pcf8574)
-                        },
-                        Err(err) => {
-                            error!("Anschlüsse-static poisoned: {}", err);
-                            break
-                        },
-                    },
-                    Err(err) => {
-                        error!("Kanal für Pcf8574-Rückgabe geschlossen: {}", err);
-                        break
-                    },
-                }
+            thread::spawn(move || {
+                Anschlüsse::listen_restore_messages(sender_clone, receiver, inner_clone)
             });
 
             macro_rules! pcf8574_value {
@@ -335,7 +339,7 @@ pub struct Pcf8574Port {
     port: u8,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pcf8574Variante {
     Normal,
     A,
@@ -391,5 +395,46 @@ cfg_if! {
                 Error::Pwm(error)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    use simple_logger::SimpleLogger;
+
+    use super::{Anschlüsse, Level, Pcf8574Variante};
+
+    #[test]
+    fn drop_semantics() {
+        SimpleLogger::new()
+            .with_level(log::LevelFilter::Error)
+            .with_module_level("zugkontrolle", log::LevelFilter::Debug)
+            .init()
+            .expect("failed to initialize error logging");
+
+        let mut anschlüsse = Anschlüsse::neu().expect("1.ter Aufruf von neu.");
+        Anschlüsse::neu().expect_err("2.ter Aufruf von neu.");
+        let llln = anschlüsse.llln().expect("1. Aufruf von llln.");
+        assert_eq!([llln.a0, llln.a1, llln.a2], [Level::Low, Level::Low, Level::Low]);
+        assert_eq!(llln.variante, Pcf8574Variante::Normal);
+        assert!(anschlüsse.llln().is_none(), "2. Aufruf von llln.");
+        drop(llln);
+        // Warte etwas, damit der restore-thread genug Zeit hat.
+        sleep(Duration::from_secs(1));
+        let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
+        drop(anschlüsse);
+
+        // jetzt sollte Anschlüsse wieder verfügbar sein
+        let mut anschlüsse = Anschlüsse::neu().expect("Aufruf von neu nach drop.");
+        assert!(anschlüsse.llln().is_none(), "Aufruf von llln mit vorherigem Ergebnis in scope.");
+        drop(llln);
+        // Warte etwas, damit der restore-thread genug Zeit hat.
+        sleep(Duration::from_secs(1));
+        let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
+        drop(llln);
+        drop(anschlüsse);
     }
 }
