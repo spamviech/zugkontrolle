@@ -2,12 +2,13 @@
 
 use std::ops::Not;
 use std::sync::{
-    mpsc::{channel, Receiver, Sender},
+    mpsc::{channel, RecvTimeoutError, Sender},
     Arc,
     Mutex,
     RwLock,
 };
 use std::thread;
+use std::time::Duration;
 
 use cfg_if::cfg_if;
 use log::{debug, error};
@@ -17,42 +18,34 @@ use paste::paste;
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
 macro_rules! matrix {
-    ( $inner_macro:ident $ks:tt $ls:tt $ms:tt $ns:tt: $value:ident) => {
-        matrix! { [identity] $inner_macro $ks $ls $ms $ns: $value}
+    ( $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt: $value:ident) => {
+        matrix! { $inner_macro $($k $ls $ms $ns)+: $value}
     };
-    ( [$prefix:expr] $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt: $value:ident) => {
-        matrix! { [$prefix] $inner_macro $($k $ls $ms $ns)+: $value}
+    ( $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+: $value:ident) => {
+        matrix! { $inner_macro $($( $k $l $ms $ns )+)+: $value }
     };
-    ( [$prefix:expr] $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+: $value:ident) => {
-        matrix! { [$prefix] $inner_macro $($( $k $l $ms $ns )+)+: $value }
+    ( $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+: $value:ident) => {
+        matrix! { $inner_macro $($( $k $l $m $ns )+)+: $value }
     };
-    ( [$prefix:expr] $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+: $value:ident) => {
-        matrix! { [$prefix] $inner_macro $($( $k $l $m $ns )+)+: $value }
-    };
-    ( [$prefix:expr] $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+: $value:ident) => {
-         $inner_macro! { [$prefix] $($($k $l $m $n),+),+: $value }
+    ( $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+: $value:ident) => {
+         $inner_macro! { $($($k $l $m $n),+),+: $value }
     };
 }
-macro_rules! identity {
-    ($($suffix:tt)*) => {
-        $($suffix)*
-    };
-}
-macro_rules! anschlüsse {
-    {[$prefix:expr] $($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+macro_rules! anschlüsse_data {
+    {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
         paste! {
-            $prefix! {
-                Anschlüsse {
-                    #[cfg(raspi)]
-                    gpio: rppal::gpio::Gpio,
-                    #[cfg(raspi)]
-                    i2c: rppal::gpio::I2c,
-                    #[cfg(raspi)]
-                    pwm: rppal::pwm::Pwm,
-                    $(
-                        [<$k $l $m $n>]: $value!($k $l $m $n)
-                    ),*
-                }
+            #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
+            #[derive(Debug)]
+            struct AnschlüsseData {
+                #[cfg(raspi)]
+                gpio: rppal::gpio::Gpio,
+                #[cfg(raspi)]
+                i2c: rppal::gpio::I2c,
+                #[cfg(raspi)]
+                pwm: rppal::pwm::Pwm,
+                $(
+                    [<$k $l $m $n>]: $value!($k $l $m $n)
+                ),*
             }
         }
     };
@@ -83,75 +76,122 @@ macro_rules! variante {
         Pcf8574Variante::A
     };
 }
-macro_rules! pub_struct_prefix {
-    ($($suffix: tt)*) => {
-        #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
-        #[derive(Debug)]
-        pub struct $($suffix)*
+macro_rules! llln_to_hhha {
+    ($inner_macro:ident : $value:ident) => {
+        matrix! {$inner_macro  [l,h] [l,h] [l,h] [n,a]: $value}
     };
 }
 
-matrix! { [pub_struct_prefix] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
+llln_to_hhha! { anschlüsse_data: pcf8574_type}
+impl AnschlüsseData {
+    /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
+    ///
+    /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
+    fn rückgabe(&mut self, pcf8574: Pcf8574) {
+        match pcf8574 {
+            Pcf8574 {
+                a0: Level::Low,
+                a1: Level::Low,
+                a2: Level::Low,
+                variante: Pcf8574Variante::Normal,
+                ..
+            } => {
+                debug!("rückgabe llln");
+                self.llln = Some(pcf8574);
+            },
+            _ => {
+                // TODO restore correct one
+                debug!("rückgabe {:?}", pcf8574)
+            },
+        }
+    }
+
+    fn llln(&mut self) -> Option<Pcf8574> {
+        // gebe aktuellen Wert zurück und speichere stattdessen None
+        std::mem::replace(&mut self.llln, None)
+    }
+}
+
+/// Singleton für Zugriff auf raspberry pi Anschlüsse.
+#[derive(Debug)]
+pub struct Anschlüsse(Option<AnschlüsseData>);
 impl Drop for Anschlüsse {
     fn drop(&mut self) {
+        let Anschlüsse(option_data) = self;
         if let Ok(mut guard) = ANSCHLÜSSE.lock() {
-            let anschlüsse = &mut *guard;
-            if let Err(Error::InVerwendung) = anschlüsse {
-                // let a = std::mem::replace(self);
-                todo!()
-                //TODO
+            let static_anschlüsse = &mut *guard;
+            if let Err(Error::InVerwendung) = static_anschlüsse {
+                if let Some(anschlüsse) = std::mem::replace(option_data, None) {
+                    *static_anschlüsse = Ok(anschlüsse);
+                } else {
+                    error!("None-Wert in Anschlüsse während drop!");
+                }
             }
         }
     }
 }
 impl Anschlüsse {
     pub fn neu() -> Result<Anschlüsse, Error> {
-        //TODO
-        todo!()
+        match ANSCHLÜSSE.lock() {
+            Ok(mut guard) => {
+                let anschlüsse = &mut *guard;
+                let data = std::mem::replace(anschlüsse, Err(Error::InVerwendung))?;
+                Ok(Anschlüsse(Some(data)))
+            },
+            Err(_er) => Err(Error::PoisonError),
+        }
     }
 
-    fn erstelle_static() -> Arc<Mutex<Result<Anschlüsse, Error>>> {
+    fn erstelle_static() -> Arc<Mutex<Result<AnschlüsseData, Error>>> {
         macro_rules! make_anschlüsse {
-            {[$prefix:expr] $($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+            {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
                 paste! {
-                    $prefix! {
-                        Ok(Anschlüsse {
-                            #[cfg(raspi)]
-                            gpio: rppal::gpio::Gpio::new()?,
-                            #[cfg(raspi)]
-                            i2c: rppal::gpio::I2c::new()?,
-                            #[cfg(raspi)]
-                            pwm: rppal::pwm::Pwm::new()?,
-                            $(
-                                [<$k $l $m $n>]: $value!($k $l $m $n)
-                            ),*
-                        })
-                    }
+                    Ok(AnschlüsseData {
+                        #[cfg(raspi)]
+                        gpio: rppal::gpio::Gpio::new()?,
+                        #[cfg(raspi)]
+                        i2c: rppal::gpio::I2c::new()?,
+                        #[cfg(raspi)]
+                        pwm: rppal::pwm::Pwm::new()?,
+                        $(
+                            [<$k $l $m $n>]: $value!($k $l $m $n)
+                        ),*
+                    })
                 }
             };
         }
-        let anschlüsse = matrix! {make_anschlüsse [l,h] [l,h] [l,h] [n,a]: none};
+        let anschlüsse = llln_to_hhha! {make_anschlüsse: none};
         let arc = Arc::new(Mutex::new(anschlüsse));
 
         let (sender, receiver) = channel();
 
         // erzeuge Thread der Rückgaben handelt
-        let arc_clone = arc.clone();
         thread::spawn(move || {
             // zur Rückgabe gemeldet
             let mut stack = Vec::new();
             loop {
-                match receiver.recv() {
-                    Ok(pcf8574) => {
-                        let mut guard = arc_clone.lock().expect("poisoned bei Initialisierung");
-                        if let Ok(anschlüsse) = guard.as_mut() {
-                            // TODO restore correct one
-                            todo!("{:?}", anschlüsse)
-                        } else {
-                            stack.push(pcf8574);
+                match receiver.recv_timeout(Duration::from_secs(1)) {
+                    Ok(pcf8574) => match ANSCHLÜSSE.lock() {
+                        Ok(mut guard) => {
+                            if let Ok(anschlüsse) = guard.as_mut() {
+                                anschlüsse.rückgabe(pcf8574)
+                            } else {
+                                stack.push(pcf8574);
+                            }
+                        },
+                        Err(err) => {
+                            error!("Anschlüsse-static poisoned: {}", err);
+                            break
+                        },
+                    },
+                    Err(RecvTimeoutError::Timeout) => {
+                        if let Ok(mut guard) = ANSCHLÜSSE.try_lock() {
+                            if let Ok(anschlüsse) = guard.as_mut() {
+                                for pcf8574 in stack.drain(..) {
+                                    anschlüsse.rückgabe(pcf8574)
+                                }
+                            }
                         }
-                        //TODO
-                        todo!()
                     },
                     Err(err) => {
                         error!("Kanal für Pcf8574-Rückgabe geschlossen: {}", err);
@@ -186,14 +226,25 @@ impl Anschlüsse {
         arc
     }
 
+    /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
+    ///
+    /// TODO
+    /// Der Drop-Handler von Pcf8574 zeigt erst bei neu erstellten Anschlüsse-Strukturen Wirkung.
+    /// Diese Methode funktioniert direkt.
+    pub fn rückgabe(&mut self, pcf8574: Pcf8574) {
+        if let Some(data) = &mut self.0 {
+            data.rückgabe(pcf8574)
+        }
+    }
+
+    /// Versuche Zugriff auf den Pcf8574 mit der Adresse lll, normale Variante zu erhalten.
     pub fn llln(&mut self) -> Option<Pcf8574> {
-        // gebe aktuellen Wert zurück und speichere stattdessen None
-        std::mem::replace(&mut self.llln, None)
+        self.0.as_mut().map(AnschlüsseData::llln).flatten()
     }
 }
 
-pub static ANSCHLÜSSE: Lazy<Arc<Mutex<Result<Anschlüsse, Error>>>> =
-    Lazy::new(Anschlüsse::erstelle_static);
+type MutexType = Result<AnschlüsseData, Error>;
+static ANSCHLÜSSE: Lazy<Arc<Mutex<MutexType>>> = Lazy::new(Anschlüsse::erstelle_static);
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -272,6 +323,9 @@ impl Drop for Pcf8574 {
             } => {
                 debug!("dropped llln");
                 if let Err(err) = sender.send(clone) {
+                    // TODO this will cause an infinite loop, since clone needs to be dropped
+                    // which will then try to send a clone of itself, failing as well
+                    // causing the clone's clone to be dropped, etc.
                     debug!("send error while dropping llln: {}", err)
                 }
             },
@@ -338,6 +392,7 @@ pub enum Error {
     I2c(rppal::i2c::Error),
     #[cfg(raspi)]
     Pwm(rppal::pwm::Error),
+    PoisonError,
     InVerwendung,
 }
 cfg_if! {
