@@ -166,13 +166,22 @@ impl Anschlüsse {
         let (sender, receiver) = channel();
 
         // erzeuge Thread der Rückgaben handelt
+        let sender_clone = sender.clone();
         thread::spawn(move || {
             // zur Rückgabe gemeldet
             let mut stack = Vec::new();
             loop {
                 match receiver.recv_timeout(Duration::from_secs(1)) {
-                    Ok(pcf8574) => match ANSCHLÜSSE.lock() {
+                    Ok((a0, a1, a2, variante, wert)) => match ANSCHLÜSSE.lock() {
                         Ok(mut guard) => {
+                            let pcf8574 = Pcf8574 {
+                                a0,
+                                a1,
+                                a2,
+                                variante,
+                                wert,
+                                sender: sender_clone.clone(),
+                            };
                             if let Ok(anschlüsse) = guard.as_mut() {
                                 anschlüsse.rückgabe(pcf8574)
                             } else {
@@ -279,21 +288,9 @@ pub struct Pcf8574 {
     a2: Level,
     variante: Pcf8574Variante,
     wert: u8,
-    sender: Sender<Pcf8574>,
+    sender: Sender<(Level, Level, Level, Pcf8574Variante, u8)>,
 }
 impl Pcf8574 {
-    fn clone(&self) -> Self {
-        let Pcf8574 { a0, a1, a2, variante, wert, sender } = self;
-        Pcf8574 {
-            a0: *a0,
-            a1: *a1,
-            a2: *a2,
-            variante: *variante,
-            wert: *wert,
-            sender: sender.clone(),
-        }
-    }
-
     pub fn ports(self) -> Pcf8574Ports {
         // drop for self will be called when last Arc goes out of scope
         let arc = Arc::new(RwLock::new(self));
@@ -311,27 +308,12 @@ impl Pcf8574 {
 }
 impl Drop for Pcf8574 {
     fn drop(&mut self) {
-        let clone = self.clone();
-        match self {
-            Pcf8574 {
-                a0: Level::Low,
-                a1: Level::Low,
-                a2: Level::Low,
-                variante: Pcf8574Variante::Normal,
-                wert: _,
-                sender,
-            } => {
-                debug!("dropped llln");
-                if let Err(err) = sender.send(clone) {
-                    // TODO this will cause an infinite loop, since clone needs to be dropped
-                    // which will then try to send a clone of itself, failing as well
-                    // causing the clone's clone to be dropped, etc.
-                    debug!("send error while dropping llln: {}", err)
-                }
-            },
-            _ => {
-                debug!("dropped {:?}", self)
-            },
+        let Pcf8574 { a0, a1, a2, variante, wert, sender } = self;
+        debug!("dropped {:?} {:?} {:?} {:?}", a0, a1, a2, variante);
+        // Schicke Werte als Tupel, um keine Probleme mit dem Drop-Handler zu bekommen.
+        // (Ein Klon würde bei send-Fehler eine Endlos-Schleife erzeugen)
+        if let Err(err) = sender.send((*a0, *a1, *a2, *variante, *wert)) {
+            debug!("send error while dropping: {}", err)
         }
     }
 }
