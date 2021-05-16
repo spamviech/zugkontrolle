@@ -405,7 +405,7 @@ mod test {
 
     use simple_logger::SimpleLogger;
 
-    use super::{Anschlüsse, Level, Pcf8574Variante};
+    use super::{Anschlüsse, Level, Pcf8574Ports, Pcf8574Variante};
 
     #[test]
     fn drop_semantics() {
@@ -431,6 +431,19 @@ mod test {
         let mut anschlüsse = Anschlüsse::neu().expect("Aufruf von neu nach drop.");
         assert!(anschlüsse.llln().is_none(), "Aufruf von llln mit vorherigem Ergebnis in scope.");
         drop(llln);
+        // Warte etwas, damit der restore-thread genug Zeit hat.
+        sleep(Duration::from_secs(1));
+        let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
+        let Pcf8574Ports { p0, p1, p2, p3, p4, p5, p6, p7 } = llln.ports();
+        assert!(anschlüsse.llln().is_none(), "Aufruf von llln mit ports in scope.");
+        drop(p0);
+        drop(p1);
+        drop(p2);
+        drop(p3);
+        drop(p4);
+        drop(p5);
+        drop(p6);
+        drop(p7);
         // Warte etwas, damit der restore-thread genug Zeit hat.
         sleep(Duration::from_secs(1));
         let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
