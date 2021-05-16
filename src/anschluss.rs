@@ -89,6 +89,10 @@ macro_rules! pub_struct_prefix {
 matrix! { [pub_struct_prefix] anschlüsse [l,h] [l,h] [l,h] [n,a]: pcf8574_type}
 impl Anschlüsse {
     pub fn neu() -> Result<Arc<RwLock<Self>>, Error> {
+        Ok(ANSCHLÜSSE.clone())
+    }
+
+    fn erstelle_static() -> Arc<RwLock<Self>> {
         let arc = Arc::new(RwLock::new(matrix! {anschlüsse [l,h] [l,h] [l,h] [n,a]: none}));
         macro_rules! pcf8574_value {
             ($a0:ident $a1:ident $a2:ident $var:ident) => {
@@ -110,7 +114,7 @@ impl Anschlüsse {
             // TODO
         }
 
-        Ok(arc)
+        arc
     }
 
     pub fn llln(&mut self) -> Option<Pcf8574> {
@@ -119,8 +123,7 @@ impl Anschlüsse {
     }
 }
 
-pub static ANSCHLÜSSE: Lazy<Arc<RwLock<Anschlüsse>>> =
-    Lazy::new(|| Anschlüsse::neu().expect("static creation failed!"));
+pub static ANSCHLÜSSE: Lazy<Arc<RwLock<Anschlüsse>>> = Lazy::new(Anschlüsse::erstelle_static);
 
 /// Ein Anschluss
 #[derive(Debug)]

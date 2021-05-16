@@ -157,20 +157,22 @@ fn main() -> iced::Result {
         let mut guard = anschlüsse.write().expect("exklusiver Zugriff");
         let llln0 = guard.llln();
         let llln1 = guard.llln();
-        // drop guard muss vor drop llln0 passieren, sonst kommt es zu einem deadlock!
-        drop(guard);
         println!("{:?}", llln0);
         println!("{:?}", llln1);
         drop(llln0);
         drop(llln1);
+        drop(guard);
     }
 
     {
-        let mut guard = anschlüsse.write().expect("exklusiver Zugriff");
-        let llln2 = guard.llln();
-        println!("{:?}", llln2);
-        drop(guard);
-        drop(llln2);
+        // spin until restored
+        let mut success = false;
+        while !success {
+            let mut guard = anschlüsse.write().expect("exklusiver Zugriff");
+            let llln2 = guard.llln();
+            success = llln2.is_some();
+            println!("{:?}", llln2);
+        }
     }
 
     drop(anschlüsse);
