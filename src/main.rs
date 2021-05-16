@@ -143,55 +143,12 @@ impl Application for App {
     }
 }
 
-use zugkontrolle::anschluss::Anschlüsse;
-
 fn main() -> iced::Result {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Error)
         .with_module_level("zugkontrolle", log::LevelFilter::Debug)
         .init()
         .expect("failed to initialize error logging");
-
-    let mut anschlüsse = Anschlüsse::neu().expect("Erster Aufruf");
-    Anschlüsse::neu().expect_err("Zweiter Aufruf");
-
-    let llln0 = anschlüsse.llln();
-    let llln1 = anschlüsse.llln();
-    println!("{:?}", llln0);
-    println!("{:?}", llln1);
-    drop(llln0);
-    drop(llln1);
-
-    {
-        // spin until restored or tried a lot
-        let mut tries = 0;
-        loop {
-            let llln2 = anschlüsse.llln();
-            if let Some(pcf8574) = llln2 {
-                println!("{}: {:?}", tries, pcf8574);
-            } else {
-                tries += 1;
-                if tries > 1000000 {
-                    println!("abort");
-                    break
-                }
-            }
-        }
-    }
-
-    drop(anschlüsse);
-
-    // warte etwas, damit der restore-thread fertig wird
-    // ...
-    // Ich weiß, ist alles andere als Ideal
-    std::thread::sleep(std::time::Duration::from_secs(10));
-
-    let mut anschlüsse2 = Anschlüsse::neu().expect("Aufruf nach drop");
-    anschlüsse2.llln().expect("sollte wiederhergestellt sein");
-    drop(anschlüsse2);
-
-    println!("exit");
-    std::process::exit(0);
 
     /*
     use std::collections::HashMap;
