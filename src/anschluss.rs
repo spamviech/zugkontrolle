@@ -224,25 +224,32 @@ impl Anschlüsse {
                 Anschlüsse::listen_restore_messages(sender_clone, receiver, inner_clone)
             });
 
-            macro_rules! pcf8574_value {
-                ($a0:ident $a1:ident $a2:ident $var:ident) => {
-                    Some(Pcf8574 {
-                        a0: level!($a0),
-                        a1: level!($a1),
-                        a2: level!($a2),
-                        variante: variante!($var),
-                        wert: 0,
-                        sender: sender.clone(),
-                    })
-                };
-            }
-
             // Eigener Block um borrow-lifetime von inner zu beschränken
             {
                 let anschlüsse =
                     &mut *inner.lock().expect("Anschlüsse poisoned vor Initialisierung");
-                anschlüsse.llln = pcf8574_value! {l l l n};
-                // TODO
+                macro_rules! pcf8574_value {
+                    ($a0:ident $a1:ident $a2:ident $var:ident) => {
+                        Some(Pcf8574 {
+                            a0: level!($a0),
+                            a1: level!($a1),
+                            a2: level!($a2),
+                            variante: variante!($var),
+                            wert: 0,
+                            sender: sender.clone(),
+                        })
+                    };
+                }
+                macro_rules! init_anschlüsse {
+                    {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+                        paste! {
+                            $(
+                                anschlüsse.[<$k $l $m $n>] = $value!($k $l $m $n)
+                            );*
+                        }
+                    };
+                }
+                llln_to_hhha! {init_anschlüsse: pcf8574_value}
             }
 
             inner
