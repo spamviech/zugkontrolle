@@ -57,15 +57,16 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
     }
 }
 
+pub type Map<T> = HashMap<GleisId<T>, Gleis<T>>;
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleiseMaps<Z> {
-    pub(crate) geraden: HashMap<GleisId<Gerade<Z>>, Gleis<Gerade<Z>>>,
-    pub(crate) kurven: HashMap<GleisId<Kurve<Z>>, Gleis<Kurve<Z>>>,
-    pub(crate) weichen: HashMap<GleisId<Weiche<Z>>, Gleis<Weiche<Z>>>,
-    pub(crate) dreiwege_weichen: HashMap<GleisId<DreiwegeWeiche<Z>>, Gleis<DreiwegeWeiche<Z>>>,
-    pub(crate) kurven_weichen: HashMap<GleisId<KurvenWeiche<Z>>, Gleis<KurvenWeiche<Z>>>,
-    pub(crate) s_kurven_weichen: HashMap<GleisId<SKurvenWeiche<Z>>, Gleis<SKurvenWeiche<Z>>>,
-    pub(crate) kreuzungen: HashMap<GleisId<Kreuzung<Z>>, Gleis<Kreuzung<Z>>>,
+    pub(crate) geraden: Map<Gerade<Z>>,
+    pub(crate) kurven: Map<Kurve<Z>>,
+    pub(crate) weichen: Map<Weiche<Z>>,
+    pub(crate) dreiwege_weichen: Map<DreiwegeWeiche<Z>>,
+    pub(crate) kurven_weichen: Map<KurvenWeiche<Z>>,
+    pub(crate) s_kurven_weichen: Map<SKurvenWeiche<Z>>,
+    pub(crate) kreuzungen: Map<Kreuzung<Z>>,
 }
 impl<Z> GleiseMaps<Z> {
     pub(crate) fn neu() -> Self {
@@ -82,54 +83,40 @@ impl<Z> GleiseMaps<Z> {
 }
 
 pub trait GleiseMap<Z>: Sized {
-    fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut HashMap<GleisId<Self>, Gleis<Self>>;
+    fn get_map_mut(gleise: &mut GleiseMaps<Z>) -> &mut Map<Self>;
 }
 impl<Z> GleiseMap<Z> for Gerade<Z> {
-    fn get_map_mut(
-        GleiseMaps { geraden, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { geraden, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         geraden
     }
 }
 impl<Z> GleiseMap<Z> for Kurve<Z> {
-    fn get_map_mut(
-        GleiseMaps { kurven, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { kurven, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         kurven
     }
 }
 impl<Z> GleiseMap<Z> for Weiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         weichen
     }
 }
 impl<Z> GleiseMap<Z> for KurvenWeiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { kurven_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         kurven_weichen
     }
 }
 impl<Z> GleiseMap<Z> for DreiwegeWeiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { dreiwege_weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { dreiwege_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         dreiwege_weichen
     }
 }
 impl<Z> GleiseMap<Z> for SKurvenWeiche<Z> {
-    fn get_map_mut(
-        GleiseMaps { s_kurven_weichen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { s_kurven_weichen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         s_kurven_weichen
     }
 }
 impl<Z> GleiseMap<Z> for Kreuzung<Z> {
-    fn get_map_mut(
-        GleiseMaps { kreuzungen, .. }: &mut GleiseMaps<Z>,
-    ) -> &mut HashMap<GleisId<Self>, Gleis<Self>> {
+    fn get_map_mut(GleiseMaps { kreuzungen, .. }: &mut GleiseMaps<Z>) -> &mut Map<Self> {
         kreuzungen
     }
 }
