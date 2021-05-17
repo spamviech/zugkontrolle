@@ -16,6 +16,13 @@ use paste::paste;
 use super::level::Level;
 use super::pcf8574::{self, Pcf8574};
 
+// TODO
+// reserviere_pin, poll_interrupts
+//  https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html
+// Gpio 2,3 nicht verfügbar (durch I2C belegt)
+//  https://docs.rs/rppal/0.12.0/rppal/i2c/index.html#i2c-buses
+// rückgabe über Anschluss-Typ?
+
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
 macro_rules! matrix {
@@ -42,8 +49,6 @@ macro_rules! anschlüsse_data {
                 gpio: rppal::gpio::Gpio,
                 #[cfg(raspi)]
                 i2c: rppal::gpio::I2c,
-                #[cfg(raspi)]
-                pwm: rppal::pwm::Pwm,
                 $(
                     [<$k $l $m $n>]: $value!($k $l $m $n)
                 ),*
