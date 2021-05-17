@@ -284,8 +284,12 @@ fn zeichne_alle_anchor_points<T: Zeichnen>(
     }
 }
 
-fn schreibe_alle_beschreibungen<T: Zeichnen>(frame: &mut canvas::Frame, map: &Map<T>) {
-    for (_gleis_id, (Gleis { definition, position }, _id_lock)) in map.iter() {
+fn schreibe_alle_beschreibungen<T: Zeichnen>(
+    frame: &mut canvas::Frame,
+    map: &Map<T>,
+    is_grabbed: impl Fn(GleisId<Any>) -> bool,
+) {
+    for (gleis_id, (Gleis { definition, position }, _id_lock)) in map.iter() {
         if let Some((relative_position, content)) = definition.beschreibung() {
             let punkt =
                 position.punkt + Vektor::from(relative_position.punkt).rotiert(position.winkel);
@@ -296,7 +300,10 @@ fn schreibe_alle_beschreibungen<T: Zeichnen>(frame: &mut canvas::Frame, map: &Ma
                 frame.fill_text(canvas::Text {
                     content: content.to_string(),
                     position: iced::Point::ORIGIN,
-                    color: canvas::Color::BLACK,
+                    color: canvas::Color {
+                        a: transparency(gleis_id, &is_grabbed),
+                        ..canvas::Color::BLACK
+                    },
                     horizontal_alignment: canvas::HorizontalAlignment::Center,
                     vertical_alignment: canvas::VerticalAlignment::Center,
                     ..Default::default()
@@ -421,7 +428,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 &is_grabbed
             );
             // Beschreibung
-            mit_allen_gleisen!(schreibe_alle_beschreibungen);
+            mit_allen_gleisen!(schreibe_alle_beschreibungen, is_grabbed);
         })]
     }
 
