@@ -1389,9 +1389,9 @@ dependencies = [
 
 [[package]]
 name = "guillotiere"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc7cccefbf418f663e11e9500326f46a44273dc598210bbedc8bbe95e696531f"
+checksum = "9253eedea82720b2bc91fe831c9ce3a31299955ed5eb19b9ed600a625b686212"
 dependencies = [
  "euclid",
  "svg_fmt",
@@ -3059,6 +3059,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ux"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88dfeb711b61ce620c0cb6fd9f8e3e678622f0c971da2a63c4b3e25e88ed012f"
+
+[[package]]
 name = "version"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3528,6 +3534,7 @@ dependencies = [
  "serde_yaml",
  "simple_logger",
  "take_mut",
+ "ux",
  "version",
  "walkdir",
  "zugkontrolle-derive",

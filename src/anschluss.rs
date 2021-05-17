@@ -13,6 +13,7 @@ use cfg_if::cfg_if;
 use log::{debug, error};
 use once_cell::sync::Lazy;
 use paste::paste;
+use ux::u3;
 
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
@@ -295,7 +296,19 @@ static ANSCHLÜSSE: Lazy<AnschlüsseStatic> = Lazy::new(Anschlüsse::erstelle_st
 #[derive(Debug)]
 pub enum Anschluss {
     Pin(Pin),
-    Pcf8574Port(Pcf8574Port),
+    Pcf8574Port(Port<Pcf8574>),
+}
+/// Ein Anschluss, konfiguriert für Output
+#[derive(Debug)]
+pub enum OutputAnschluss {
+    Pin(OutputPin),
+    Pcf8574Port(Port<OutputPcf8574>),
+}
+/// Ein Anschluss, konfiguriert für Input
+#[derive(Debug)]
+pub enum InputAnschluss {
+    Pin(InputPin),
+    Pcf8574Port(Port<InputPcf8574>),
 }
 
 /// Ein Gpio Pin.
@@ -326,22 +339,6 @@ pub struct Pcf8574 {
     wert: u8,
     sender: Sender<(Level, Level, Level, Pcf8574Variante, u8)>,
 }
-impl Pcf8574 {
-    pub fn ports(self) -> Pcf8574Ports {
-        // drop for self will be called when last Arc goes out of scope
-        let arc = Arc::new(RwLock::new(self));
-        Pcf8574Ports {
-            p0: Pcf8574Port { pcf8574: arc.clone(), port: 0 },
-            p1: Pcf8574Port { pcf8574: arc.clone(), port: 1 },
-            p2: Pcf8574Port { pcf8574: arc.clone(), port: 2 },
-            p3: Pcf8574Port { pcf8574: arc.clone(), port: 3 },
-            p4: Pcf8574Port { pcf8574: arc.clone(), port: 4 },
-            p5: Pcf8574Port { pcf8574: arc.clone(), port: 5 },
-            p6: Pcf8574Port { pcf8574: arc.clone(), port: 6 },
-            p7: Pcf8574Port { pcf8574: arc, port: 7 },
-        }
-    }
-}
 impl PartialEq for Pcf8574 {
     fn eq(&self, other: &Self) -> bool {
         self.a0 == other.a0
@@ -362,31 +359,60 @@ impl Drop for Pcf8574 {
         }
     }
 }
-
-/// Alle Ports eines PCF8574.
-#[derive(Debug)]
-pub struct Pcf8574Ports {
-    p0: Pcf8574Port,
-    p1: Pcf8574Port,
-    p2: Pcf8574Port,
-    p3: Pcf8574Port,
-    p4: Pcf8574Port,
-    p5: Pcf8574Port,
-    p6: Pcf8574Port,
-    p7: Pcf8574Port,
-}
-
-/// Ein Port eines PCF8574.
-#[derive(Debug)]
-pub struct Pcf8574Port {
-    pcf8574: Arc<RwLock<Pcf8574>>,
-    port: u8,
-}
-
+/// Variante eines Pcf8574, beeinflusst die I2C-Adresse.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pcf8574Variante {
     Normal,
     A,
+}
+/// Ein Pcf8574, konfiguriert für Output.
+#[derive(Debug)]
+pub struct OutputPcf8574(Pcf8574);
+/// Ein Pcf8574, konfiguriert für Input inklusive InterruptPin.
+#[derive(Debug)]
+pub struct InputPcf8574 {
+    pcf8574: Pcf8574,
+    interrupt: InputPin,
+}
+
+/// Ein Port eines PCF8574.
+#[derive(Debug)]
+pub struct Port<T> {
+    pcf8574: Arc<RwLock<T>>,
+    port: u3,
+}
+impl<T> Port<T> {
+    pub fn port(&self) -> u3 {
+        self.port
+    }
+}
+/// Alle Ports eines PCF8574.
+#[derive(Debug)]
+pub struct Ports<T> {
+    p0: Port<T>,
+    p1: Port<T>,
+    p2: Port<T>,
+    p3: Port<T>,
+    p4: Port<T>,
+    p5: Port<T>,
+    p6: Port<T>,
+    p7: Port<T>,
+}
+impl<T> From<T> for Ports<T> {
+    fn from(t: T) -> Self {
+        // for Pcf8574 as T, drop will be called when last Arc goes out of scope
+        let arc = Arc::new(RwLock::new(t));
+        Ports {
+            p0: Port { pcf8574: arc.clone(), port: u3::new(0) },
+            p1: Port { pcf8574: arc.clone(), port: u3::new(1) },
+            p2: Port { pcf8574: arc.clone(), port: u3::new(2) },
+            p3: Port { pcf8574: arc.clone(), port: u3::new(3) },
+            p4: Port { pcf8574: arc.clone(), port: u3::new(4) },
+            p5: Port { pcf8574: arc.clone(), port: u3::new(5) },
+            p6: Port { pcf8574: arc.clone(), port: u3::new(6) },
+            p7: Port { pcf8574: arc, port: u3::new(7) },
+        }
+    }
 }
 
 cfg_if! {
@@ -459,7 +485,7 @@ mod test {
 
     use simple_logger::SimpleLogger;
 
-    use super::{Anschlüsse, Level, Pcf8574Ports, Pcf8574Variante, SyncError};
+    use super::{Anschlüsse, Level, Pcf8574Variante, Ports, SyncError};
 
     #[test]
     fn drop_semantics() {
@@ -512,7 +538,7 @@ mod test {
         let llln = anschlüsse
             .reserviere_pcf8574(Level::Low, Level::Low, Level::Low, Pcf8574Variante::Normal)
             .expect("Aufruf von llln nach drop.");
-        let Pcf8574Ports { p0, p1, p2, p3, p4, p5, p6, p7 } = llln.ports();
+        let Ports { p0, p1, p2, p3, p4, p5, p6, p7 } = llln.into();
         assert_eq!(
             anschlüsse.reserviere_pcf8574(
                 Level::Low,
