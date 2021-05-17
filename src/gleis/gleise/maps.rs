@@ -5,7 +5,7 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use super::id::GleisId;
+use super::{id::GleisId, GleisIdLock};
 use crate::gleis::typen::*;
 use crate::gleis::{
     gerade::Gerade,
@@ -32,8 +32,8 @@ pub(crate) struct GleiseVecs<Z> {
     pub(crate) kreuzungen: Vec<Gleis<Kreuzung<Z>>>,
 }
 
-fn second<A, B>((_a, b): (A, B)) -> B {
-    b
+fn gleis<T: Clone>((_a, (b, _c)): (&GleisId<T>, &(Gleis<T>, GleisIdLock<T>))) -> Gleis<T> {
+    b.clone()
 }
 impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
     fn from(maps: &GleiseMaps<Z>) -> Self {
@@ -41,7 +41,7 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
             ($($map:ident),*) => {
                 GleiseVecs {
                     name: Z::NAME.to_string(),
-                    $($map: maps.$map.iter().map(second).cloned().collect()),*
+                    $($map: maps.$map.iter().map(gleis).collect()),*
                 }
             };
         }
@@ -57,7 +57,7 @@ impl<Z: Zugtyp> From<&GleiseMaps<Z>> for GleiseVecs<Z> {
     }
 }
 
-pub type Map<T> = HashMap<GleisId<T>, Gleis<T>>;
+pub type Map<T> = HashMap<GleisId<T>, (Gleis<T>, GleisIdLock<T>)>;
 #[derive(zugkontrolle_derive::Debug)]
 pub struct GleiseMaps<Z> {
     pub(crate) geraden: Map<Gerade<Z>>,
