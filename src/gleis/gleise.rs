@@ -19,6 +19,8 @@ pub use maps::*;
 struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: Vektor,
+    size: Vektor,
+    winkel: Winkel,
 }
 impl<Z> Grabbed<Z> {
     fn find_clicked<T>(
@@ -40,6 +42,8 @@ impl<Z> Grabbed<Z> {
                         grabbed = Some(Grabbed {
                             gleis_id: gleis_id.as_any_id(),
                             grab_location: relative_pos,
+                            size: definition.size(),
+                            winkel: position.winkel,
                         });
                         break
                     }
@@ -448,13 +452,17 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
             iced::canvas::Event::Mouse(iced::mouse::Event::ButtonReleased(
                 iced::mouse::Button::Left,
             )) => {
-                if let ModusDaten::Bauen { grabbed: Some(Grabbed { gleis_id, .. }) } = &self.modus {
-                    with_any_id!(gleis_id.clone(), Gleise::snap_to_anchor, self);
-                    self.modus = ModusDaten::Bauen { grabbed: None };
-                    iced::canvas::event::Status::Captured
-                } else {
-                    iced::canvas::event::Status::Ignored
+                let mut event_status = iced::canvas::event::Status::Ignored;
+                if let ModusDaten::Bauen { grabbed } = &mut self.modus {
+                    if let Some(Grabbed { gleis_id, .. }) = grabbed {
+                        // TODO lösche, wenn Maus außerhalb des aktuellen Canvas
+                        let gleis_id_clone = gleis_id.clone();
+                        *grabbed = None;
+                        with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self);
+                        event_status = iced::canvas::event::Status::Captured;
+                    }
                 }
+                event_status
             },
             iced::canvas::Event::Mouse(iced::mouse::Event::CursorMoved { position: _ }) => {
                 let mut event_status = iced::canvas::event::Status::Ignored;
@@ -462,17 +470,27 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                     get_canvas_position(&bounds, &cursor, &self.pivot, &self.skalieren)
                 {
                     self.last_mouse = canvas_pos;
-                    if cursor.is_over(&bounds) {
-                        if let ModusDaten::Bauen { grabbed } = &mut self.modus {
-                            if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
-                                let point = canvas_pos - grab_location;
-                                with_any_id!(
-                                    gleis_id.clone(),
-                                    Gleise::relocate_grabbed,
-                                    self,
-                                    point
-                                );
-                                event_status = iced::canvas::event::Status::Captured
+                    if let ModusDaten::Bauen { grabbed } = &mut self.modus {
+                        if let Some(Grabbed { gleis_id, grab_location, size, winkel }) = &*grabbed {
+                            if let Some(cursor_pos) = cursor.position_from(bounds.position()) {
+                                // TODO rotation passt nicht
+                                let max_x = size.rotiert(*winkel - self.pivot.winkel).x.0;
+                                let grab_x = grab_location.rotiert(self.pivot.winkel).x.0;
+                                // in-bounds or left of the canvas, with at least 1 pixel visible
+                                if cursor_pos.x >= grab_x - max_x
+                                    && cursor_pos.x <= bounds.width
+                                    && cursor_pos.y >= 0.
+                                    && cursor_pos.y <= bounds.height
+                                {
+                                    let point = canvas_pos - grab_location;
+                                    with_any_id!(
+                                        gleis_id.clone(),
+                                        Gleise::relocate_grabbed,
+                                        self,
+                                        point
+                                    );
+                                    event_status = iced::canvas::event::Status::Captured
+                                }
                             }
                         }
                     }
@@ -572,16 +590,15 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else if cp_y > self.last_size.y {
             canvas_position -= (cp_y - self.last_size.y) * ey;
         }
+        let size = definition.size();
+        let winkel = -self.pivot.winkel;
         let result = self.add(Gleis {
             definition,
-            position: Position {
-                punkt: canvas_position - grab_location,
-                winkel: -self.pivot.winkel,
-            },
+            position: Position { punkt: canvas_position - grab_location, winkel },
         });
         if let ModusDaten::Bauen { grabbed } = &mut self.modus {
             if let Some(gleis_id) = result.0.read().as_ref().map(GleisId::as_any_id) {
-                *grabbed = Some(Grabbed { gleis_id, grab_location });
+                *grabbed = Some(Grabbed { gleis_id, grab_location, size, winkel });
             }
         }
         result
