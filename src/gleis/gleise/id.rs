@@ -48,16 +48,9 @@ impl<T> GleisId<T> {
         GleisId::new(self.0)
     }
 
-    // implemented as method, so it stays private
+    // defined a method so it stays private
     fn clone(&self) -> Self {
         GleisId(self.0, self.1)
-    }
-
-    pub(crate) fn as_any_id<Z>(&self) -> AnyId<Z>
-    where
-        Self: Into<AnyId<Z>>,
-    {
-        self.clone().into()
     }
 }
 
@@ -77,37 +70,64 @@ impl<T> Hash for GleisId<T> {
 
 #[derive(zugkontrolle_derive::Debug)]
 pub(crate) enum AnyId<Z> {
-    Gerade(GleisId<Gerade<Z>>),
-    Kurve(GleisId<Kurve<Z>>),
-    Weiche(GleisId<Weiche<Z>>),
-    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>),
-    KurvenWeiche(GleisId<KurvenWeiche<Z>>),
-    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>),
-    Kreuzung(GleisId<Kreuzung<Z>>),
+    Gerade(GleisId<Gerade<Z>>, GleisIdLock<Gerade<Z>>),
+    Kurve(GleisId<Kurve<Z>>, GleisIdLock<Kurve<Z>>),
+    Weiche(GleisId<Weiche<Z>>, GleisIdLock<Weiche<Z>>),
+    DreiwegeWeiche(GleisId<DreiwegeWeiche<Z>>, GleisIdLock<DreiwegeWeiche<Z>>),
+    KurvenWeiche(GleisId<KurvenWeiche<Z>>, GleisIdLock<KurvenWeiche<Z>>),
+    SKurvenWeiche(GleisId<SKurvenWeiche<Z>>, GleisIdLock<SKurvenWeiche<Z>>),
+    Kreuzung(GleisId<Kreuzung<Z>>, GleisIdLock<Kreuzung<Z>>),
 }
 macro_rules! with_any_id {
     ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
         match $any_id {
-            AnyId::Gerade(gleis_id) => {
+            AnyId::Gerade(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::Kurve(gleis_id) => {
+            AnyId::Kurve(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::Weiche(gleis_id) => {
+            AnyId::Weiche(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::DreiwegeWeiche(gleis_id) => {
+            AnyId::DreiwegeWeiche(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::KurvenWeiche(gleis_id) => {
+            AnyId::KurvenWeiche(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::SKurvenWeiche(gleis_id) => {
+            AnyId::SKurvenWeiche(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
             }
-            AnyId::Kreuzung(gleis_id) => {
+            AnyId::Kreuzung(gleis_id, _gleis_id_lock) => {
                 $function($($objekt,)? gleis_id $($(, $extra_arg)*)?)
+            }
+        }
+    };
+}
+macro_rules! with_any_id_and_lock {
+    ($any_id: expr , $function: expr$(, $objekt:expr$(, $extra_arg:expr)*)?) => {
+        match $any_id {
+            AnyId::Gerade(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
+            }
+            AnyId::Kurve(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
+            }
+            AnyId::Weiche(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
+            }
+            AnyId::DreiwegeWeiche(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
+            }
+            AnyId::KurvenWeiche(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
+            }
+            AnyId::SKurvenWeiche(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
+            }
+            AnyId::Kreuzung(gleis_id, gleis_id_lock) => {
+                $function($($objekt,)? gleis_id, gleis_id_lock $($(, $extra_arg)*)?)
             }
         }
     };
@@ -117,16 +137,23 @@ impl<Z> AnyId<Z> {
         with_any_id!(self, GleisId::as_any)
     }
 
+    pub(crate) fn from_refs<T>(gleis_id: &GleisId<T>, gleis_id_lock: &GleisIdLock<T>) -> Self
+    where
+        (GleisId<T>, GleisIdLock<T>): Into<Self>,
+    {
+        (gleis_id.clone(), gleis_id_lock.clone()).into()
+    }
+
     pub(crate) fn clone(&self) -> Self {
-        with_any_id!(self, GleisId::as_any_id)
+        with_any_id_and_lock!(self, Self::from_refs)
     }
 }
 
 macro_rules! impl_any_id_from {
     ($type:ident) => {
-        impl<Z> From<GleisId<$type<Z>>> for AnyId<Z> {
-            fn from(input: GleisId<$type<Z>>) -> Self {
-                AnyId::$type(input)
+        impl<Z> From<(GleisId<$type<Z>>, GleisIdLock<$type<Z>>)> for AnyId<Z> {
+            fn from((gleis_id, gleis_id_lock): (GleisId<$type<Z>>, GleisIdLock<$type<Z>>)) -> Self {
+                AnyId::$type(gleis_id, gleis_id_lock)
             }
         }
     };

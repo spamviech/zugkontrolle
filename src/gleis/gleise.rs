@@ -18,28 +18,24 @@ pub use maps::*;
 struct Grabbed<Z> {
     gleis_id: AnyId<Z>,
     grab_location: Vektor,
-    size: Vektor,
-    winkel: Winkel,
 }
 impl<Z> Grabbed<Z> {
     fn find_clicked<T>(grabbed: &mut Option<Grabbed<Z>>, map: &mut Map<T>, canvas_pos: Vektor)
     where
         T: Zeichnen,
-        GleisId<T>: Into<AnyId<Z>>,
+        (GleisId<T>, GleisIdLock<T>): Into<AnyId<Z>>,
     {
         // TODO store bounding box in rstar as well, to avoid searching everything stored?
         take_mut::take(grabbed, |grabbed| {
             grabbed.or({
                 let mut grabbed = None;
-                for (gleis_id, (Gleis { definition, position }, _id_lock)) in map.iter() {
+                for (gleis_id, (Gleis { definition, position }, gleis_id_lock)) in map.iter() {
                     let relative_pos = canvas_pos - position.punkt;
                     let rotated_pos = relative_pos.rotiert(-position.winkel);
                     if definition.innerhalb(rotated_pos) {
                         grabbed = Some(Grabbed {
-                            gleis_id: gleis_id.as_any_id(),
+                            gleis_id: AnyId::from_refs(gleis_id, gleis_id_lock),
                             grab_location: relative_pos,
-                            size: definition.size(),
-                            winkel: position.winkel,
                         });
                         break
                     }
@@ -393,6 +389,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 } else {
                     None
                 };
+            // TODO markiere grabbed als "wird-gelöscht", falls cursor out of bounds ist
             let is_grabbed = |parameter_id| Some(parameter_id) == grabbed_id;
             let has_other_and_grabbed_id_at_point = |gleis_id, position| {
                 anchor_points.has_other_and_grabbed_id_at_point(
@@ -453,8 +450,7 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                         if cursor.is_over(&bounds) {
                             with_any_id!(gleis_id_clone, Gleise::snap_to_anchor, self);
                         } else {
-                            // TODO lösche, wenn Maus außerhalb des aktuellen Canvas
-                            // self.remove()
+                            with_any_id_and_lock!(gleis_id_clone, Gleise::remove_grabbed, self);
                         }
                         event_status = iced::canvas::event::Status::Captured;
                     }
@@ -468,27 +464,10 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
                 {
                     self.last_mouse = canvas_pos;
                     if let ModusDaten::Bauen { grabbed } = &mut self.modus {
-                        if let Some(Grabbed { gleis_id, grab_location, size, winkel }) = &*grabbed {
-                            if let Some(cursor_pos) = cursor.position_from(bounds.position()) {
-                                let max_x = size.rotiert(self.pivot.winkel + winkel).x.0;
-                                let grab_x = grab_location.rotiert(self.pivot.winkel).x.0;
-                                let extra_x = if max_x > 0. { max_x - grab_x } else { -grab_x };
-                                // in-bounds or left of the canvas, with at least 1 pixel visible
-                                if cursor_pos.x >= -extra_x
-                                    && cursor_pos.x <= bounds.width
-                                    && cursor_pos.y >= 0.
-                                    && cursor_pos.y <= bounds.height
-                                {
-                                    let point = canvas_pos - grab_location;
-                                    with_any_id!(
-                                        gleis_id.clone(),
-                                        Gleise::relocate_grabbed,
-                                        self,
-                                        point
-                                    );
-                                    event_status = iced::canvas::event::Status::Captured
-                                }
-                            }
+                        if let Some(Grabbed { gleis_id, grab_location }) = &*grabbed {
+                            let point = canvas_pos - grab_location;
+                            with_any_id!(gleis_id.clone(), Gleise::relocate_grabbed, self, point);
+                            event_status = iced::canvas::event::Status::Captured
                         }
                     }
                 }
@@ -570,7 +549,7 @@ impl<Z: Zugtyp> Gleise<Z> {
     ) -> (GleisIdLock<T>, T::AnchorPoints)
     where
         T: Debug + Zeichnen + GleiseMap<Z>,
-        GleisId<T>: Into<AnyId<Z>>,
+        (GleisId<T>, GleisIdLock<T>): Into<AnyId<Z>>,
         T::AnchorPoints: anchor::Lookup<T::AnchorName>,
     {
         let mut canvas_position = self.last_mouse;
@@ -588,15 +567,21 @@ impl<Z: Zugtyp> Gleise<Z> {
         } else if cp_y > self.last_size.y {
             canvas_position -= (cp_y - self.last_size.y) * ey;
         }
-        let size = definition.size();
-        let winkel = -self.pivot.winkel;
         let result = self.add(Gleis {
             definition,
-            position: Position { punkt: canvas_position - grab_location, winkel },
+            position: Position {
+                punkt: canvas_position - grab_location,
+                winkel: -self.pivot.winkel,
+            },
         });
         if let ModusDaten::Bauen { grabbed } = &mut self.modus {
-            if let Some(gleis_id) = result.0.read().as_ref().map(GleisId::as_any_id) {
-                *grabbed = Some(Grabbed { gleis_id, grab_location, size, winkel });
+            let gleis_id_lock = &result.0;
+            if let Some(gleis_id) = gleis_id_lock
+                .read()
+                .as_ref()
+                .map(|gleis_id| AnyId::from_refs(gleis_id, gleis_id_lock))
+            {
+                *grabbed = Some(Grabbed { gleis_id, grab_location });
             }
         }
         result
@@ -678,6 +663,16 @@ impl<Z: Zugtyp> Gleise<Z> {
         };
         // move gleis to new position
         self.relocate(gleis_id, position)
+    }
+
+    /// wrapper um Gleise::remove mit ignoriertem Argument für with_any_id_and_lock-Macro
+    #[inline]
+    fn remove_grabbed<T, A>(&mut self, _ignored: A, gleis_id_lock: GleisIdLock<T>)
+    where
+        T: Debug + Zeichnen + GleiseMap<Z>,
+        T::AnchorPoints: Lookup<T::AnchorName>,
+    {
+        self.remove(gleis_id_lock)
     }
 
     /// Remove the Gleis associated the the GleisId.
