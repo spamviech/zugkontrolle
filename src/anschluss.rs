@@ -1,6 +1,5 @@
 //! Mit Raspberry Pi schaltbarer Anschluss
 
-use std::ops::Not;
 use std::sync::{
     mpsc::{channel, Receiver, Sender},
     Arc,
@@ -8,6 +7,7 @@ use std::sync::{
     RwLock,
 };
 use std::thread;
+use std::{ops::Not, sync::PoisonError};
 
 use cfg_if::cfg_if;
 use log::{debug, error};
@@ -110,10 +110,30 @@ impl AnschlüsseData {
         llln_to_hhha! {match_pcf8574: none}
     }
 
-    // TODO claim-Funktion für alle Adressen
-    fn llln(&mut self) -> Option<Pcf8574> {
+    /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
+    fn reserviere_pcf8574(
+        &mut self,
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: Pcf8574Variante,
+    ) -> Option<Pcf8574> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
-        std::mem::replace(&mut self.llln, None)
+        macro_rules! reserviere_pcf8574 {
+            {$($k:ident $l:ident $m:ident $n:ident),*: $ignored:ident} => {
+                paste! {
+                    match (a0, a1,a2, variante) {
+                        $(
+                            (level!($k),level!($l),level!($m),variante!($n)) => {
+                                debug!("reserviere {:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n));
+                                std::mem::replace(&mut self.[<$k $l $m $n>], None)
+                            }
+                        ),*
+                    }
+                }
+            };
+        }
+        llln_to_hhha! {reserviere_pcf8574: none}
     }
 }
 
@@ -125,7 +145,7 @@ impl Drop for Anschlüsse {
         let Anschlüsse(option_data) = self;
         if let Ok(mut guard) = ANSCHLÜSSE.lock() {
             let static_anschlüsse = &mut *guard;
-            if let Err(Error::InVerwendung) = static_anschlüsse {
+            if let Err(Error::Sync(SyncError::InVerwendung)) = static_anschlüsse {
                 if let Some(anschlüsse) = std::mem::replace(option_data, None) {
                     *static_anschlüsse = Ok(anschlüsse);
                 } else {
@@ -140,10 +160,11 @@ impl Anschlüsse {
         match ANSCHLÜSSE.lock() {
             Ok(mut guard) => {
                 let anschlüsse = &mut *guard;
-                let data = std::mem::replace(anschlüsse, Err(Error::InVerwendung))?;
+                let data =
+                    std::mem::replace(anschlüsse, Err(Error::Sync(SyncError::InVerwendung)))?;
                 Ok(Anschlüsse(Some(data)))
             },
-            Err(_er) => Err(Error::PoisonError),
+            Err(_er) => Err(Error::Sync(SyncError::PoisonError)),
         }
     }
 
@@ -242,18 +263,19 @@ impl Anschlüsse {
         }
     }
 
-    // TODO claim-Funktion für alle Adressen
-    /// Versuche Zugriff auf den Pcf8574 mit der Adresse lll, normale Variante zu erhalten.
-    pub fn llln(&mut self) -> Option<Pcf8574> {
-        if let Some(arc) = &self.0 {
-            if let Ok(mut guard) = arc.lock() {
-                guard.llln()
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+    /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
+    pub fn reserviere_pcf8574(
+        &mut self,
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: Pcf8574Variante,
+    ) -> Result<Pcf8574, SyncError> {
+        self.0.as_mut().ok_or(SyncError::WertDropped).and_then(|arc| {
+            arc.lock().map_err(Into::into).and_then(|mut guard| {
+                guard.reserviere_pcf8574(a0, a1, a2, variante).ok_or(SyncError::InVerwendung)
+            })
+        })
     }
 }
 
@@ -313,6 +335,15 @@ impl Pcf8574 {
         }
     }
 }
+impl PartialEq for Pcf8574 {
+    fn eq(&self, other: &Self) -> bool {
+        self.a0 == other.a0
+            && self.a1 == other.a1
+            && self.a2 == other.a2
+            && self.variante == other.variante
+    }
+}
+impl Eq for Pcf8574 {}
 impl Drop for Pcf8574 {
     fn drop(&mut self) {
         let Pcf8574 { a0, a1, a2, variante, wert, sender } = self;
@@ -373,7 +404,7 @@ cfg_if! {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     #[cfg(raspi)]
     Gpio(rppal::gpio::Error),
@@ -381,8 +412,18 @@ pub enum Error {
     I2c(rppal::i2c::Error),
     #[cfg(raspi)]
     Pwm(rppal::pwm::Error),
+    Sync(SyncError),
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyncError {
     PoisonError,
     InVerwendung,
+    WertDropped,
+}
+impl<T> From<PoisonError<T>> for SyncError {
+    fn from(_: PoisonError<T>) -> Self {
+        SyncError::PoisonError
+    }
 }
 cfg_if! {
     if #[cfg(raspi)] {
@@ -411,7 +452,7 @@ mod test {
 
     use simple_logger::SimpleLogger;
 
-    use super::{Anschlüsse, Level, Pcf8574Ports, Pcf8574Variante};
+    use super::{Anschlüsse, Level, Pcf8574Ports, Pcf8574Variante, SyncError};
 
     #[test]
     fn drop_semantics() {
@@ -423,25 +464,58 @@ mod test {
 
         let mut anschlüsse = Anschlüsse::neu().expect("1.ter Aufruf von neu.");
         Anschlüsse::neu().expect_err("2.ter Aufruf von neu.");
-        let llln = anschlüsse.llln().expect("1. Aufruf von llln.");
+        let llln = anschlüsse
+            .reserviere_pcf8574(Level::Low, Level::Low, Level::Low, Pcf8574Variante::Normal)
+            .expect("1. Aufruf von llln.");
         assert_eq!([llln.a0, llln.a1, llln.a2], [Level::Low, Level::Low, Level::Low]);
         assert_eq!(llln.variante, Pcf8574Variante::Normal);
-        assert!(anschlüsse.llln().is_none(), "2. Aufruf von llln.");
+        assert_eq!(
+            anschlüsse.reserviere_pcf8574(
+                Level::Low,
+                Level::Low,
+                Level::Low,
+                Pcf8574Variante::Normal
+            ),
+            Err(SyncError::InVerwendung),
+            "2. Aufruf von llln."
+        );
         drop(llln);
         // Warte etwas, damit der restore-thread genug Zeit hat.
         sleep(Duration::from_secs(1));
-        let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
+        let llln = anschlüsse
+            .reserviere_pcf8574(Level::Low, Level::Low, Level::Low, Pcf8574Variante::Normal)
+            .expect("Aufruf von llln nach drop.");
         drop(anschlüsse);
 
         // jetzt sollte Anschlüsse wieder verfügbar sein
         let mut anschlüsse = Anschlüsse::neu().expect("Aufruf von neu nach drop.");
-        assert!(anschlüsse.llln().is_none(), "Aufruf von llln mit vorherigem Ergebnis in scope.");
+        assert_eq!(
+            anschlüsse.reserviere_pcf8574(
+                Level::Low,
+                Level::Low,
+                Level::Low,
+                Pcf8574Variante::Normal
+            ),
+            Err(SyncError::InVerwendung),
+            "Aufruf von llln mit vorherigem Ergebnis in scope."
+        );
         drop(llln);
         // Warte etwas, damit der restore-thread genug Zeit hat.
         sleep(Duration::from_secs(1));
-        let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
+        let llln = anschlüsse
+            .reserviere_pcf8574(Level::Low, Level::Low, Level::Low, Pcf8574Variante::Normal)
+            .expect("Aufruf von llln nach drop.");
         let Pcf8574Ports { p0, p1, p2, p3, p4, p5, p6, p7 } = llln.ports();
-        assert!(anschlüsse.llln().is_none(), "Aufruf von llln mit ports in scope.");
+        assert_eq!(
+            anschlüsse.reserviere_pcf8574(
+                Level::Low,
+                Level::Low,
+                Level::Low,
+                Pcf8574Variante::Normal
+            ),
+            Err(SyncError::InVerwendung),
+            "Aufruf von llln mit ports in scope."
+        );
         drop(p0);
         drop(p1);
         drop(p2);
@@ -452,7 +526,9 @@ mod test {
         drop(p7);
         // Warte etwas, damit der restore-thread genug Zeit hat.
         sleep(Duration::from_secs(1));
-        let llln = anschlüsse.llln().expect("Aufruf von llln nach drop.");
+        let llln = anschlüsse
+            .reserviere_pcf8574(Level::Low, Level::Low, Level::Low, Pcf8574Variante::Normal)
+            .expect("Aufruf von llln nach drop.");
         drop(llln);
         drop(anschlüsse);
     }
