@@ -87,24 +87,30 @@ impl AnschlüsseData {
     ///
     /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
     fn rückgabe(&mut self, pcf8574: Pcf8574) {
-        match pcf8574 {
-            Pcf8574 {
-                a0: Level::Low,
-                a1: Level::Low,
-                a2: Level::Low,
-                variante: Pcf8574Variante::Normal,
-                ..
-            } => {
-                debug!("rückgabe llln");
-                self.llln = Some(pcf8574);
-            },
-            _ => {
-                // TODO restore correct one
-                debug!("rückgabe {:?}", pcf8574)
-            },
+        macro_rules! match_pcf8574 {
+            {$($k:ident $l:ident $m:ident $n:ident),*: $ignored:ident} => {
+                paste! {
+                    match pcf8574 {
+                        $(
+                            Pcf8574 {
+                                a0: level!($k),
+                                a1: level!($l),
+                                a2: level!($m),
+                                variante: variante!($n),
+                                ..
+                            } => {
+                                debug!("rückgabe {:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n));
+                                self.[<$k $l $m $n>] = Some(pcf8574);
+                            }
+                        ),*
+                    }
+                }
+            };
         }
+        llln_to_hhha! {match_pcf8574: none}
     }
 
+    // TODO claim-Funktion für alle Adressen
     fn llln(&mut self) -> Option<Pcf8574> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
         std::mem::replace(&mut self.llln, None)
@@ -226,9 +232,8 @@ impl Anschlüsse {
 
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
     ///
-    /// TODO
-    /// Der Drop-Handler von Pcf8574 zeigt erst bei neu erstellten Anschlüsse-Strukturen Wirkung.
-    /// Diese Methode funktioniert direkt.
+    /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
+    /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
     pub fn rückgabe(&mut self, pcf8574: Pcf8574) {
         if let Some(arc) = &self.0 {
             if let Ok(mut guard) = arc.lock() {
@@ -237,6 +242,7 @@ impl Anschlüsse {
         }
     }
 
+    // TODO claim-Funktion für alle Adressen
     /// Versuche Zugriff auf den Pcf8574 mit der Adresse lll, normale Variante zu erhalten.
     pub fn llln(&mut self) -> Option<Pcf8574> {
         if let Some(arc) = &self.0 {
