@@ -6,7 +6,6 @@ use std::sync::{mpsc::Sender, Arc, PoisonError, RwLock};
 
 use cfg_if::cfg_if;
 use log::debug;
-#[cfg(raspi)]
 use log::error;
 use num_x::u3;
 #[cfg(raspi)]
@@ -302,7 +301,13 @@ macro_rules! impl_port_read {
                 if let Some(value) = values[usize::from(self.0.port)] {
                     Ok(value)
                 } else {
-                    panic!("Read from non-input Port: {:?}", self)
+                    error!("{:?} war nicht als input korrigiert!", self);
+                    // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
+                    {
+                        let pcf8574 = &mut *self.0.pcf8574.write()?;
+                        pcf8574.port_as_input(self.0.port)?;
+                    }
+                    self.read()
                 }
             }
         }
