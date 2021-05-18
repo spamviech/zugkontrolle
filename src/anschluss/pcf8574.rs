@@ -1,4 +1,4 @@
-//! PCF8574, gesteuert über I2C.
+//! Pcf8574, gesteuert über I2C.
 
 #[cfg(raspi)]
 use std::sync::Mutex;
@@ -32,7 +32,7 @@ impl From<Level> for Modus {
     }
 }
 
-/// Ein PCF8574, gesteuert über I2C.
+/// Ein Pcf8574, gesteuert über I2C.
 #[derive(Debug)]
 pub struct Pcf8574 {
     a0: Level,
@@ -132,6 +132,13 @@ impl Pcf8574 {
         }
     }
 
+    /// Konvertiere einen Port als Input.
+    fn port_as_input(&mut self, port: u3) -> Result<(), Error> {
+        self.write_port(port, Level::High)?;
+        self.ports[usize::from(port)] = Modus::Input;
+        Ok(())
+    }
+
     /// Schreibe auf einen Port des Pcf8574.
     /// Der Port wird automatisch als Output gesetzt.
     fn write_port(&mut self, port: u3, level: Level) -> Result<(), Error> {
@@ -212,6 +219,11 @@ impl InterruptPcf8574 {
         self.pcf8574.read()
     }
 
+    /// Konvertiere einen Port als Input.
+    fn port_as_input(&mut self, port: u3) -> Result<(), Error> {
+        self.pcf8574.port_as_input(port)
+    }
+
     /// Schreibe auf einen Port des Pcf8574.
     /// Der Port wird automatisch als Output gesetzt.
     #[inline]
@@ -220,7 +232,7 @@ impl InterruptPcf8574 {
     }
 }
 
-/// Ein Port eines PCF8574.
+/// Ein Port eines Pcf8574.
 #[derive(Debug)]
 pub struct Port<T> {
     pcf8574: Arc<RwLock<T>>,
@@ -231,7 +243,78 @@ impl<T> Port<T> {
         self.port
     }
 }
-/// Alle Ports eines PCF8574.
+macro_rules! impl_port_into {
+    ($type:ty) => {
+        impl Port<$type> {
+            /// Konfiguriere den Port für Output.
+            pub fn into_output(self) -> Result<OutputPort<$type>, Error> {
+                {
+                    let pcf8574 = &mut *self.pcf8574.write()?;
+                    pcf8574.write_port(self.port, Level::High)?;
+                }
+                Ok(OutputPort(self))
+            }
+
+            /// Konfiguriere den Port für Input.
+            pub fn into_input(self) -> Result<OutputPort<$type>, Error> {
+                {
+                    let pcf8574 = &mut *self.pcf8574.write()?;
+                    pcf8574.port_as_input(self.port)?;
+                }
+                Ok(OutputPort(self))
+            }
+        }
+    };
+}
+impl_port_into! {Pcf8574}
+impl_port_into! {InterruptPcf8574}
+
+// Ein Port eines Pcf8574, konfiguriert für Output.
+#[derive(Debug)]
+pub struct OutputPort<T>(Port<T>);
+macro_rules! impl_port_output {
+    ($type:ty) => {
+        impl OutputPort<$type> {
+            pub fn write(&mut self, level: Level) -> Result<(), Error> {
+                {
+                    let pcf8574 = &mut *self.0.pcf8574.write()?;
+                    pcf8574.write_port(self.0.port, level)?;
+                }
+                Ok(())
+            }
+        }
+    };
+}
+impl_port_output! {Pcf8574}
+impl_port_output! {InterruptPcf8574}
+
+// Ein Port eines Pcf8574, konfiguriert für Input.
+#[derive(Debug)]
+pub struct InputPort<T>(Port<T>);
+macro_rules! impl_port_read {
+    ($type:ty) => {
+        impl InputPort<$type> {
+            pub fn read(&mut self) -> Result<Level, Error> {
+                let values = {
+                    let pcf8574 = &mut *self.0.pcf8574.write()?;
+                    pcf8574.read()?
+                };
+                if let Some(value) = values[usize::from(self.0.port)] {
+                    Ok(value)
+                } else {
+                    panic!("Read from non-input Port: {:?}", self)
+                }
+            }
+        }
+    };
+}
+impl_port_read! {Pcf8574}
+impl_port_read! {InterruptPcf8574}
+// TODO Methoden für InputPort<InterruptPcf8574>
+// poll_interrupt, poll_async_interrupt, clear_async_interrupt
+//      interrupt pin is normally HIGH and switches to LOW on change
+
+/// Alle Ports eines Pcf8574.
 #[derive(Debug)]
 pub struct Ports<T> {
     pub p0: Port<T>,
