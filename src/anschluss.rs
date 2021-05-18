@@ -1,21 +1,24 @@
 //! Mit Raspberry Pi schaltbarer Anschluss
 
-// path attribute necessary due to non-ascii module name (at least for now)
-#[path = "anschluss/anschlüsse.rs"]
-pub mod anschlüsse;
-pub use anschlüsse::*;
-
-pub mod pin;
-pub use pin::*;
-
 pub mod level;
 pub use level::*;
 
 pub mod polarity;
 pub use polarity::*;
 
+pub mod trigger;
+pub use trigger::*;
+
+pub mod pin;
+pub use pin::*;
+
 pub mod pcf8574;
 pub use pcf8574::{InterruptPcf8574, Pcf8574, Port, Ports};
+
+// path attribute necessary due to non-ascii module name (at least for now)
+#[path = "anschluss/anschlüsse.rs"]
+pub mod anschlüsse;
+pub use anschlüsse::*;
 
 /// Ein Anschluss
 #[derive(Debug)]
