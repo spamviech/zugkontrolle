@@ -1,34 +1,167 @@
 //! PCF8574, gesteuert über I2C.
 
-use std::sync::{mpsc::Sender, Arc, RwLock};
+#[cfg(raspi)]
+use std::sync::Mutex;
+use std::sync::{mpsc::Sender, Arc, PoisonError, RwLock};
 
+use cfg_if::cfg_if;
 use log::debug;
-use ux::u3;
+#[cfg(raspi)]
+use log::error;
+use num_x::u3;
+#[cfg(raspi)]
+use num_x::u7;
+#[cfg(raspi)]
+use rppal::i2c;
 
 use super::level::Level;
 use super::pin::input;
 
+#[derive(Debug, Clone, Copy)]
+pub(super) enum Modus {
+    Input,
+    High,
+    Low,
+}
+impl From<Level> for Modus {
+    fn from(level: Level) -> Self {
+        match level {
+            Level::High => Modus::High,
+            Level::Low => Modus::Low,
+        }
+    }
+}
+
 /// Ein PCF8574, gesteuert über I2C.
 #[derive(Debug)]
 pub struct Pcf8574 {
-    pub(super) a0: Level,
-    pub(super) a1: Level,
-    pub(super) a2: Level,
-    pub(super) variante: Variante,
-    pub(super) sender: Sender<(Level, Level, Level, Variante)>,
+    a0: Level,
+    a1: Level,
+    a2: Level,
+    variante: Variante,
+    ports: [Modus; 8],
+    sender: Sender<(Level, Level, Level, Variante)>,
+    #[cfg(raspi)]
+    i2c: Arc<RwLock<i2c::I2C>>,
 }
+
 impl Pcf8574 {
-    pub fn into_input(self, interrupt: input::Pin) -> InputPcf8574 {
-        let mut input = InputPcf8574 { pcf8574: self, interrupt };
-        // TODO reicht das, damit kein port mehr Ausgabe erzeugt?
-        input.read();
-        input
+    pub(super) fn neu(
+        a0: Level,
+        a1: Level,
+        a2: Level,
+        variante: Variante,
+        sender: Sender<(Level, Level, Level, Variante)>,
+        #[cfg(raspi)] i2c: Arc<i2c::I2c>,
+    ) -> Self {
+        Pcf8574 {
+            a0,
+            a1,
+            a2,
+            variante,
+            sender,
+            ports: [Modus::Input; 8],
+            #[cfg(raspi)]
+            i2c,
+        }
     }
 
-    pub fn into_output(self, wert: u8) -> OutputPcf8574 {
-        let mut output = OutputPcf8574 { pcf8574: self, wert };
-        output.write(wert);
-        output
+    /// Assoziiere den angeschlossenen InterruptPin.
+    pub fn with_interrupt(self, interrupt: input::Pin) -> InterruptPcf8574 {
+        InterruptPcf8574 { pcf8574: self, interrupt }
+    }
+
+    /// Adress-Bits (a0, a1, a2) und Variante eines Pcf8574.
+    #[inline]
+    pub fn adresse(&self) -> (Level, Level, Level, Variante) {
+        (self.a0, self.a1, self.a2, self.variante)
+    }
+
+    #[cfg(raspi)]
+    /// 7-bit i2c-Adresse ohne R/W-Bit
+    fn i2c_adresse(&self) -> u7 {
+        let Pcf8574 { a0, a1, a2, variante, .. } = self;
+        let mut adresse = u7::new(match variante {
+            Variante::Normal => 0x20,
+            Variante::A => 0x38,
+        });
+        if let Level::High = a0 {
+            adresse = adresse + u7::new(0b100);
+        }
+        if let Level::High = a1 {
+            adresse = adresse + u7::new(0b010);
+        }
+        if let Level::High = a2 {
+            adresse = adresse + u7::new(0b001);
+        }
+        adresse
+    }
+
+    /// Lese von einem Pcf8574.
+    /// Nur als Input konfigurierte Ports werden als Some-Wert zurückgegeben.
+    ///
+    /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
+    fn read(&mut self) -> Result<[Option<Level>; 8], Error> {
+        cfg_if! {
+            if #[cfg(raspi)] {
+                if let Ok(mut i2c_channel) = &mut *self.i2c.lock() {
+                    i2c_channel.set_slave_address(self.i2c_adresse.into())?;
+                    let mut buf = [0; 1];
+                    let bytes_read = i2c_channel.read(&mut buf)?;
+                    if bytes_read != 1 {
+                        debug!("bytes_read = {} != 1", bytes_read)
+                    }
+                    let mut result = [None; 8];
+                    for (port, modus) in self.ports.iter().enumerate() {
+                        let port_bit = 2u8.pow(port as u32) as u8;
+                        if let Modus::Input = modus {
+                            Some(if (buf[0] & port_bit) > 0 { Level::High } else { Level::Low })
+                        } else {
+                            None
+                        }
+                    }
+                    Ok(result)
+                } else {
+                    error!("I2C-Mutex poisoned!");
+                    Err(Error::PoisonError)
+                }
+            } else {
+                debug!("{:?}.read()", self);
+                Err(Error::KeinRaspberryPi)
+            }
+        }
+    }
+
+    /// Schreibe auf einen Port des Pcf8574.
+    /// Der Port wird automatisch als Output gesetzt.
+    fn write_port(&mut self, port: u3, level: Level) -> Result<(), Error> {
+        self.ports[usize::from(port)] = level.into();
+        cfg_if! {
+            if #[cfg(raspi)] {
+                if let Ok(mut i2c_channel) = &mut *self.i2c.lock() {
+                    i2c_channel.set_slave_address(self.i2c_adresse.into())?;
+                    let mut wert = 0;
+                    for (port, modus) in self.ports.iter().enumerate() {
+                        wert |= match modus {
+                            Modus::Input | Modus::High => 2u8.pow(port as u32) as u8,
+                            Modus::Low => 0,
+                        };
+                    }
+                    let buf = [wert; 1];
+                    let bytes_written = i2c_channel.write(&buf)?;
+                    if bytes_written != 1 {
+                        debug!("bytes_written = {} != 1", bytes_written)
+                    }
+                    Ok(())
+                } else {
+                    error!("I2C-Mutex poisoned!");
+                    Err(Error::PoisonError)
+                }
+            } else {
+                debug!("{:?}.read()", self);
+                Err(Error::KeinRaspberryPi)
+            }
+        }
     }
 }
 impl PartialEq for Pcf8574 {
@@ -42,7 +175,7 @@ impl PartialEq for Pcf8574 {
 impl Eq for Pcf8574 {}
 impl Drop for Pcf8574 {
     fn drop(&mut self) {
-        let Pcf8574 { a0, a1, a2, variante, sender } = self;
+        let Pcf8574 { a0, a1, a2, variante, sender, .. } = self;
         debug!("dropped {:?} {:?} {:?} {:?}", a0, a1, a2, variante);
         // Schicke Werte als Tupel, um keine Probleme mit dem Drop-Handler zu bekommen.
         // (Ein Klon würde bei send-Fehler eine Endlos-Schleife erzeugen)
@@ -57,28 +190,33 @@ pub enum Variante {
     Normal,
     A,
 }
-/// Ein Pcf8574, konfiguriert für Output.
-#[derive(Debug)]
-pub struct OutputPcf8574 {
-    pcf8574: Pcf8574,
-    wert: u8,
-}
-impl OutputPcf8574 {
-    fn write(&mut self, wert: u8) {
-        // TODO
-        self.wert = wert;
-        todo!("verwende I2C")
-    }
-}
 /// Ein Pcf8574, konfiguriert für Input inklusive InterruptPin.
 #[derive(Debug)]
-pub struct InputPcf8574 {
+pub struct InterruptPcf8574 {
     pcf8574: Pcf8574,
     interrupt: input::Pin,
 }
-impl InputPcf8574 {
-    fn read(&mut self) -> u8 {
-        todo!("verwende I2C")
+impl InterruptPcf8574 {
+    /// Adress-Bits (a0, a1, a2) und Variante eines Pcf8574.
+    #[inline]
+    pub fn adresse(&self) -> (Level, Level, Level, Variante) {
+        self.pcf8574.adresse()
+    }
+
+    /// Lese von einem Pcf8574.
+    /// Nur als Input konfigurierte Ports werden als Some-Wert zurückgegeben.
+    ///
+    /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
+    #[inline]
+    fn read(&mut self) -> Result<[Option<Level>; 8], Error> {
+        self.pcf8574.read()
+    }
+
+    /// Schreibe auf einen Port des Pcf8574.
+    /// Der Port wird automatisch als Output gesetzt.
+    #[inline]
+    fn write_port(&mut self, port: u3, level: Level) -> Result<(), Error> {
+        self.pcf8574.write_port(port, level)
     }
 }
 
@@ -119,5 +257,24 @@ impl<T> From<T> for Ports<T> {
             p6: Port { pcf8574: arc.clone(), port: u3::new(6) },
             p7: Port { pcf8574: arc, port: u3::new(7) },
         }
+    }
+}
+
+pub enum Error {
+    #[cfg(raspi)]
+    I2c(i2c::Error),
+    #[cfg(not(raspi))]
+    KeinRaspberryPi,
+    PoisonError,
+}
+#[cfg(raspi)]
+impl From<i2c::Error> for Error {
+    fn from(error: i2c::Error) -> Self {
+        Error::I2c(error)
+    }
+}
+impl<T> From<PoisonError<T>> for Error {
+    fn from(_: PoisonError<T>) -> Self {
+        Error::PoisonError
     }
 }

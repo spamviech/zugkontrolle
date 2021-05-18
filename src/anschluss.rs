@@ -15,7 +15,7 @@ pub mod polarity;
 pub use polarity::*;
 
 pub mod pcf8574;
-pub use pcf8574::{InputPcf8574, OutputPcf8574, Pcf8574, Port, Ports};
+pub use pcf8574::{InterruptPcf8574, Pcf8574, Port, Ports};
 
 /// Ein Anschluss
 #[derive(Debug)]
@@ -27,13 +27,14 @@ pub enum Anschluss {
 #[derive(Debug)]
 pub enum OutputAnschluss {
     Pin(output::Pin),
-    Pcf8574Port(Port<OutputPcf8574>),
+    Pcf8574Port(Port<Pcf8574>),
+    InterruptPcf8574Port(Port<InterruptPcf8574>),
 }
 /// Ein Anschluss, konfiguriert für Input
 #[derive(Debug)]
 pub enum InputAnschluss {
     Pin(input::Pin),
-    Pcf8574Port(Port<InputPcf8574>),
+    Pcf8574Port(Port<InterruptPcf8574>),
 }
 
 #[cfg(test)]

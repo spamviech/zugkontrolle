@@ -20,8 +20,7 @@ fn drop_semantics() {
     let llln = anschlüsse
         .reserviere_pcf8574(Level::Low, Level::Low, Level::Low, pcf8574::Variante::Normal)
         .expect("1. Aufruf von llln.");
-    assert_eq!([llln.a0, llln.a1, llln.a2], [Level::Low, Level::Low, Level::Low]);
-    assert_eq!(llln.variante, pcf8574::Variante::Normal);
+    assert_eq!(llln.adresse(), (Level::Low, Level::Low, Level::Low, pcf8574::Variante::Normal));
     assert_eq!(
         anschlüsse.reserviere_pcf8574(
             Level::Low,

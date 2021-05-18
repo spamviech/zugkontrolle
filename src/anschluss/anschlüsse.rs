@@ -97,15 +97,9 @@ impl AnschlüsseData {
         macro_rules! match_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*: $ignored:ident} => {
                 paste! {
-                    match pcf8574 {
+                    match pcf8574.adresse() {
                         $(
-                            Pcf8574 {
-                                a0: level!($k),
-                                a1: level!($l),
-                                a2: level!($m),
-                                variante: variante!($n),
-                                ..
-                            } => {
+                            (level!($k), level!($l), level!($m),  variante!($n)) => {
                                 debug!("rückgabe {:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n));
                                 self.[<$k $l $m $n>] = Some(pcf8574);
                             }
@@ -184,7 +178,7 @@ impl Anschlüsse {
             match receiver.recv() {
                 Ok((a0, a1, a2, variante)) => match inner.lock() {
                     Ok(mut guard) => {
-                        let pcf8574 = Pcf8574 { a0, a1, a2, variante, sender: sender.clone() };
+                        let pcf8574 = Pcf8574::neu(a0, a1, a2, variante, sender.clone());
                         guard.rückgabe(pcf8574)
                     },
                     Err(err) => {
@@ -236,13 +230,14 @@ impl Anschlüsse {
                     &mut *inner.lock().expect("Anschlüsse poisoned vor Initialisierung");
                 macro_rules! pcf8574_value {
                     ($a0:ident $a1:ident $a2:ident $var:ident) => {
-                        Some(Pcf8574 {
-                            a0: level!($a0),
-                            a1: level!($a1),
-                            a2: level!($a2),
-                            variante: variante!($var),
-                            sender: sender.clone(),
-                        })
+                        Some(Pcf8574::neu(
+                            level!($a0),
+                            level!($a1),
+                            level!($a2),
+                            variante!($var),
+                            sender.clone(),
+                            // TODO i2c
+                        ))
                     };
                 }
                 macro_rules! init_anschlüsse {
