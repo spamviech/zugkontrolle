@@ -100,7 +100,7 @@ impl Pcf8574 {
     /// Nur als Input konfigurierte Ports werden als Some-Wert zurückgegeben.
     ///
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
-    fn read(&mut self) -> Result<[Option<Level>; 8], Error> {
+    fn read(&self) -> Result<[Option<Level>; 8], Error> {
         cfg_if! {
             if #[cfg(raspi)] {
                 if let Ok(mut i2c_channel) = &mut *self.i2c.lock() {
@@ -214,7 +214,7 @@ impl InterruptPcf8574 {
     ///
     /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
     #[inline]
-    fn read(&mut self) -> Result<[Option<Level>; 8], Error> {
+    fn read(&self) -> Result<[Option<Level>; 8], Error> {
         self.pcf8574.read()
     }
 
@@ -293,7 +293,7 @@ pub struct InputPort<T>(Port<T>);
 macro_rules! impl_port_read {
     ($type:ty) => {
         impl InputPort<$type> {
-            pub fn read(&mut self) -> Result<Level, Error> {
+            pub fn read(&self) -> Result<Level, Error> {
                 let values = {
                     let pcf8574 = &mut *self.0.pcf8574.write()?;
                     pcf8574.read()?
