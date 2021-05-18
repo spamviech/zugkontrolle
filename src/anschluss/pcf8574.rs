@@ -6,7 +6,7 @@ use log::debug;
 use ux::u3;
 
 use super::level::Level;
-use super::pin::InputPin;
+use super::pin::input;
 
 /// Ein PCF8574, gesteuert über I2C.
 #[derive(Debug)]
@@ -15,8 +15,21 @@ pub struct Pcf8574 {
     pub(super) a1: Level,
     pub(super) a2: Level,
     pub(super) variante: Variante,
-    pub(super) wert: u8,
-    pub(super) sender: Sender<(Level, Level, Level, Variante, u8)>,
+    pub(super) sender: Sender<(Level, Level, Level, Variante)>,
+}
+impl Pcf8574 {
+    pub fn into_input(self, interrupt: input::Pin) -> InputPcf8574 {
+        let mut input = InputPcf8574 { pcf8574: self, interrupt };
+        // TODO reicht das, damit kein port mehr Ausgabe erzeugt?
+        input.read();
+        input
+    }
+
+    pub fn into_output(self, wert: u8) -> OutputPcf8574 {
+        let mut output = OutputPcf8574 { pcf8574: self, wert };
+        output.write(wert);
+        output
+    }
 }
 impl PartialEq for Pcf8574 {
     fn eq(&self, other: &Self) -> bool {
@@ -29,11 +42,11 @@ impl PartialEq for Pcf8574 {
 impl Eq for Pcf8574 {}
 impl Drop for Pcf8574 {
     fn drop(&mut self) {
-        let Pcf8574 { a0, a1, a2, variante, wert, sender } = self;
+        let Pcf8574 { a0, a1, a2, variante, sender } = self;
         debug!("dropped {:?} {:?} {:?} {:?}", a0, a1, a2, variante);
         // Schicke Werte als Tupel, um keine Probleme mit dem Drop-Handler zu bekommen.
         // (Ein Klon würde bei send-Fehler eine Endlos-Schleife erzeugen)
-        if let Err(err) = sender.send((*a0, *a1, *a2, *variante, *wert)) {
+        if let Err(err) = sender.send((*a0, *a1, *a2, *variante)) {
             debug!("send error while dropping: {}", err)
         }
     }
@@ -46,12 +59,27 @@ pub enum Variante {
 }
 /// Ein Pcf8574, konfiguriert für Output.
 #[derive(Debug)]
-pub struct OutputPcf8574(Pcf8574);
+pub struct OutputPcf8574 {
+    pcf8574: Pcf8574,
+    wert: u8,
+}
+impl OutputPcf8574 {
+    fn write(&mut self, wert: u8) {
+        // TODO
+        self.wert = wert;
+        todo!("verwende I2C")
+    }
+}
 /// Ein Pcf8574, konfiguriert für Input inklusive InterruptPin.
 #[derive(Debug)]
 pub struct InputPcf8574 {
     pcf8574: Pcf8574,
-    interrupt: InputPin,
+    interrupt: input::Pin,
+}
+impl InputPcf8574 {
+    fn read(&mut self) -> u8 {
+        todo!("verwende I2C")
+    }
 }
 
 /// Ein Port eines PCF8574.

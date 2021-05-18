@@ -176,16 +176,15 @@ impl Anschlüsse {
     }
 
     fn listen_restore_messages(
-        sender: Sender<(Level, Level, Level, pcf8574::Variante, u8)>,
-        receiver: Receiver<(Level, Level, Level, pcf8574::Variante, u8)>,
+        sender: Sender<(Level, Level, Level, pcf8574::Variante)>,
+        receiver: Receiver<(Level, Level, Level, pcf8574::Variante)>,
         inner: AnschlüsseInternal,
     ) {
         loop {
             match receiver.recv() {
-                Ok((a0, a1, a2, variante, wert)) => match inner.lock() {
+                Ok((a0, a1, a2, variante)) => match inner.lock() {
                     Ok(mut guard) => {
-                        let pcf8574 =
-                            Pcf8574 { a0, a1, a2, variante, wert, sender: sender.clone() };
+                        let pcf8574 = Pcf8574 { a0, a1, a2, variante, sender: sender.clone() };
                         guard.rückgabe(pcf8574)
                     },
                     Err(err) => {
@@ -242,7 +241,6 @@ impl Anschlüsse {
                             a1: level!($a1),
                             a2: level!($a2),
                             variante: variante!($var),
-                            wert: 0,
                             sender: sender.clone(),
                         })
                     };

@@ -26,13 +26,13 @@ pub enum Anschluss {
 /// Ein Anschluss, konfiguriert für Output
 #[derive(Debug)]
 pub enum OutputAnschluss {
-    Pin(OutputPin),
+    Pin(output::Pin),
     Pcf8574Port(Port<OutputPcf8574>),
 }
 /// Ein Anschluss, konfiguriert für Input
 #[derive(Debug)]
 pub enum InputAnschluss {
-    Pin(InputPin),
+    Pin(input::Pin),
     Pcf8574Port(Port<InputPcf8574>),
 }
 
