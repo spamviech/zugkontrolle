@@ -11,6 +11,9 @@ pub use pin::*;
 pub mod level;
 pub use level::*;
 
+pub mod polarity;
+pub use polarity::*;
+
 pub mod pcf8574;
 pub use pcf8574::{InputPcf8574, OutputPcf8574, Pcf8574, Port, Ports};
 
