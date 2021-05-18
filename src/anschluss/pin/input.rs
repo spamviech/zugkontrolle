@@ -2,6 +2,8 @@
 
 use cfg_if::cfg_if;
 use log::debug;
+#[cfg(raspi)]
+use rppal::gpio;
 
 use crate::anschluss::{level::Level, trigger::Trigger};
 
@@ -84,13 +86,13 @@ impl Pin {
 
 pub enum Error {
     #[cfg(raspi)]
-    I2c(i2c::Error),
+    Gpio(gpio::Error),
     #[cfg(not(raspi))]
     KeinRaspberryPi,
 }
 #[cfg(raspi)]
-impl From<i2c::Error> for Error {
-    fn from(error: i2c::Error) -> Self {
+impl From<gpio::Error> for Error {
+    fn from(error: gpio::Error) -> Self {
         Error::I2c(error)
     }
 }
