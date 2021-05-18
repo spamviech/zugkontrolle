@@ -15,13 +15,7 @@ use paste::paste;
 
 use super::level::Level;
 use super::pcf8574::{self, Pcf8574};
-
-// TODO
-// reserviere_pin, poll_interrupts
-//  https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Gpio.html
-// Gpio 2,3 nicht verfügbar (durch I2C belegt)
-//  https://docs.rs/rppal/0.12.0/rppal/i2c/index.html#i2c-buses
-// rückgabe über Anschluss-Typ?
+use super::pin::Pin;
 
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
@@ -48,7 +42,7 @@ macro_rules! anschlüsse_data {
                 #[cfg(raspi)]
                 gpio: rppal::gpio::Gpio,
                 #[cfg(raspi)]
-                i2c: rppal::gpio::I2c,
+                i2c: Arc<Mutex<rppal::gpio::I2c>>,
                 $(
                     [<$k $l $m $n>]: $value!($k $l $m $n)
                 ),*
@@ -173,12 +167,21 @@ impl Anschlüsse {
         sender: Sender<(Level, Level, Level, pcf8574::Variante)>,
         receiver: Receiver<(Level, Level, Level, pcf8574::Variante)>,
         inner: AnschlüsseInternal,
+        #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2C>>,
     ) {
         loop {
             match receiver.recv() {
                 Ok((a0, a1, a2, variante)) => match inner.lock() {
                     Ok(mut guard) => {
-                        let pcf8574 = Pcf8574::neu(a0, a1, a2, variante, sender.clone());
+                        let pcf8574 = Pcf8574::neu(
+                            a0,
+                            a1,
+                            a2,
+                            variante,
+                            sender.clone(),
+                            #[cfg(raspi)]
+                            i2c,
+                        );
                         guard.rückgabe(pcf8574)
                     },
                     Err(err) => {
@@ -202,9 +205,7 @@ impl Anschlüsse {
                         #[cfg(raspi)]
                         gpio: rppal::gpio::Gpio::new()?,
                         #[cfg(raspi)]
-                        i2c: rppal::gpio::I2c::new()?,
-                        #[cfg(raspi)]
-                        pwm: rppal::pwm::Pwm::new()?,
+                        i2c: Arc::new(Mutex::new(rppal::gpio::I2c::new()?)),
                         $(
                             [<$k $l $m $n>]: $value!($k $l $m $n)
                         ),*
@@ -213,6 +214,9 @@ impl Anschlüsse {
             };
         }
         let inner = (llln_to_hhha! {make_anschlüsse: none}).map(|anschlüsse| {
+            #[cfg(raspi)]
+            let i2c_clone = anschlüsse.i2c.clone();
+
             let inner = Arc::new(Mutex::new(anschlüsse));
             let inner_clone = inner.clone();
 
@@ -236,7 +240,8 @@ impl Anschlüsse {
                             level!($a2),
                             variante!($var),
                             sender.clone(),
-                            // TODO i2c
+                            #[cfg(raspi)]
+                            i2c_clone.clone(),
                         ))
                     };
                 }
@@ -270,6 +275,21 @@ impl Anschlüsse {
         }
     }
 
+    pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Error> {
+        if let 2 | 3 = pin {
+            // Gpio 2,3 nicht verfügbar (durch I2C belegt)
+            return Err(Error::Sync(SyncError::InVerwendung))
+        }
+        cfg_if! {
+            if #[cfg(raspi)] {
+                Ok(Pin(self.gpio.get(pin)?))
+            } else {
+                Err(Error::Sync(SyncError::InVerwendung))
+            }
+        }
+    }
+
+    // TODO Direkt Port reservieren?
     /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
     pub fn reserviere_pcf8574(
         &mut self,
