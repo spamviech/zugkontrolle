@@ -93,6 +93,6 @@ pub enum Error {
 #[cfg(raspi)]
 impl From<gpio::Error> for Error {
     fn from(error: gpio::Error) -> Self {
-        Error::I2c(error)
+        Error::Gpio(error)
     }
 }
