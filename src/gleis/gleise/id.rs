@@ -18,7 +18,7 @@ use crate::gleis::weiche::{DreiwegeWeiche, KurvenWeiche, SKurvenWeiche, Weiche};
 pub struct GleisIdLock<T>(Arc<RwLock<Option<GleisId<T>>>>);
 
 impl<T> GleisIdLock<T> {
-    pub(crate) fn new(gleis_id: u64) -> Self {
+    pub(super) fn new(gleis_id: u64) -> Self {
         GleisIdLock(Arc::new(RwLock::new(Some(GleisId::new(gleis_id)))))
     }
 
@@ -26,7 +26,7 @@ impl<T> GleisIdLock<T> {
         self.0.read().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
 
-    pub(crate) fn write(&self) -> RwLockWriteGuard<Option<GleisId<T>>> {
+    pub(super) fn write(&self) -> RwLockWriteGuard<Option<GleisId<T>>> {
         self.0.write().unwrap_or_else(|poisoned| warn_poison(poisoned, "GleisId"))
     }
 }
@@ -137,14 +137,14 @@ impl<Z> AnyId<Z> {
         with_any_id!(self, GleisId::as_any)
     }
 
-    pub(crate) fn from_refs<T>(gleis_id: &GleisId<T>, gleis_id_lock: &GleisIdLock<T>) -> Self
+    pub(super) fn from_refs<T>(gleis_id: &GleisId<T>, gleis_id_lock: &GleisIdLock<T>) -> Self
     where
         (GleisId<T>, GleisIdLock<T>): Into<Self>,
     {
         (gleis_id.clone(), gleis_id_lock.clone()).into()
     }
 
-    pub(crate) fn clone(&self) -> Self {
+    pub(super) fn clone(&self) -> Self {
         with_any_id_and_lock!(self, Self::from_refs)
     }
 }
