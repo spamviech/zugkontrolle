@@ -1,8 +1,10 @@
 //! Pcf8574, gesteuert über I2C.
+//!
+//! Alle Methoden in diesem Modul können an einem Mutex blocken (exklusiver I2C-Zugriff).
+//! Der Zugriff auf diese Mutex ist auf dieses Modul beschränkt,
+//! so dass es zu keinen Deadlocks kommen sollte.
 
-#[cfg(raspi)]
-use std::sync::Mutex;
-use std::sync::{mpsc::Sender, Arc, PoisonError, RwLock};
+use std::sync::{mpsc::Sender, Arc, Mutex, PoisonError};
 
 use cfg_if::cfg_if;
 use log::debug;
@@ -11,10 +13,10 @@ use num_x::u3;
 #[cfg(raspi)]
 use num_x::u7;
 #[cfg(raspi)]
-use rppal::i2c;
+use rppal::{gpio, i2c};
 
-use super::level::Level;
 use super::pin::input;
+use super::{level::Level, trigger::Trigger};
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Modus {
@@ -234,7 +236,7 @@ impl InterruptPcf8574 {
 /// Ein Port eines Pcf8574.
 #[derive(Debug)]
 pub struct Port<T> {
-    pcf8574: Arc<RwLock<T>>,
+    pcf8574: Arc<Mutex<T>>,
     port: u3,
 }
 impl<T> Port<T> {
@@ -248,7 +250,7 @@ macro_rules! impl_port_into {
             /// Konfiguriere den Port für Output.
             pub fn into_output(self) -> Result<OutputPort<$type>, Error> {
                 {
-                    let pcf8574 = &mut *self.pcf8574.write()?;
+                    let pcf8574 = &mut *self.pcf8574.lock()?;
                     pcf8574.write_port(self.port, Level::High)?;
                 }
                 Ok(OutputPort(self))
@@ -257,7 +259,7 @@ macro_rules! impl_port_into {
             /// Konfiguriere den Port für Input.
             pub fn into_input(self) -> Result<OutputPort<$type>, Error> {
                 {
-                    let pcf8574 = &mut *self.pcf8574.write()?;
+                    let pcf8574 = &mut *self.pcf8574.lock()?;
                     pcf8574.port_as_input(self.port)?;
                 }
                 Ok(OutputPort(self))
@@ -276,7 +278,7 @@ macro_rules! impl_port_output {
         impl OutputPort<$type> {
             pub fn write(&mut self, level: Level) -> Result<(), Error> {
                 {
-                    let pcf8574 = &mut *self.0.pcf8574.write()?;
+                    let pcf8574 = &mut *self.0.pcf8574.lock()?;
                     pcf8574.write_port(self.0.port, level)?;
                 }
                 Ok(())
@@ -295,7 +297,7 @@ macro_rules! impl_port_read {
         impl InputPort<$type> {
             pub fn read(&self) -> Result<Level, Error> {
                 let values = {
-                    let pcf8574 = &mut *self.0.pcf8574.write()?;
+                    let pcf8574 = &mut *self.0.pcf8574.lock()?;
                     pcf8574.read()?
                 };
                 if let Some(value) = values[usize::from(self.0.port)] {
@@ -304,7 +306,7 @@ macro_rules! impl_port_read {
                     error!("{:?} war nicht als input korrigiert!", self);
                     // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
                     {
-                        let pcf8574 = &mut *self.0.pcf8574.write()?;
+                        let pcf8574 = &mut *self.0.pcf8574.lock()?;
                         pcf8574.port_as_input(self.0.port)?;
                     }
                     self.read()
@@ -315,9 +317,56 @@ macro_rules! impl_port_read {
 }
 impl_port_read! {Pcf8574}
 impl_port_read! {InterruptPcf8574}
-// TODO Methoden für InputPort<InterruptPcf8574>
-// poll_interrupt, poll_async_interrupt, clear_async_interrupt
-//      interrupt pin is normally HIGH and switches to LOW on change
+
+impl InputPort<InterruptPcf8574> {
+    /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
+    /// thread when the interrupt is triggered.
+    ///
+    /// The callback closure or function pointer is called with a single Level argument.
+    ///
+    /// Any previously configured (a)synchronous interrupt triggers for this pin are cleared when
+    /// set_async_interrupt is called, or when InputPin goes out of scope.
+    #[cfg_attr(not(raspi), allow(unused_variables))]
+    #[inline]
+    pub fn set_async_interrupt<C>(&mut self, trigger: Trigger, mut callback: C) -> Result<(), Error>
+    where
+        C: FnMut(Level) + Send + 'static,
+    {
+        let mut last = self.read()?;
+        let clone = InputPort(Port { pcf8574: self.0.pcf8574.clone(), port: self.0.port });
+        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        Ok(pcf8574.interrupt.set_async_interrupt(
+            Trigger::FallingEdge,
+            move |_level| match clone.read() {
+                Ok(current) => match trigger {
+                    Trigger::Both | Trigger::FallingEdge
+                        if last == Level::High && current == Level::Low =>
+                    {
+                        callback(current)
+                    },
+                    Trigger::Both | Trigger::RisingEdge
+                        if last == Level::High && current == Level::Low =>
+                    {
+                        callback(current)
+                    },
+                    _ => {
+                        last = current;
+                    },
+                },
+                Err(error) => {
+                    error!("Error while reading InputPort: {:?}", error);
+                },
+            },
+        )?)
+    }
+
+    /// Removes a previously configured asynchronous interrupt trigger.
+    #[inline]
+    pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
+        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        Ok(pcf8574.interrupt.clear_async_interrupt()?)
+    }
+}
 
 /// Alle Ports eines Pcf8574.
 #[derive(Debug)]
@@ -334,7 +383,7 @@ pub struct Ports<T> {
 impl<T> From<T> for Ports<T> {
     fn from(t: T) -> Self {
         // for Pcf8574 as T, drop will be called when last Arc goes out of scope
-        let arc = Arc::new(RwLock::new(t));
+        let arc = Arc::new(Mutex::new(t));
         Ports {
             p0: Port { pcf8574: arc.clone(), port: u3::new(0) },
             p1: Port { pcf8574: arc.clone(), port: u3::new(1) },
@@ -348,9 +397,12 @@ impl<T> From<T> for Ports<T> {
     }
 }
 
+#[derive(Debug)]
 pub enum Error {
     #[cfg(raspi)]
     I2c(i2c::Error),
+    #[cfg(raspi)]
+    Gpio(gpio::Error),
     #[cfg(not(raspi))]
     KeinRaspberryPi,
     PoisonError,
@@ -359,6 +411,16 @@ pub enum Error {
 impl From<i2c::Error> for Error {
     fn from(error: i2c::Error) -> Self {
         Error::I2c(error)
+    }
+}
+impl From<input::Error> for Error {
+    fn from(error: input::Error) -> Self {
+        match error {
+            #[cfg(raspi)]
+            input::Error::Gpio(err) => Error::Gpio(err),
+            #[cfg(not(raspi))]
+            input::Error::KeinRaspberryPi => Error::KeinRaspberryPi,
+        }
     }
 }
 impl<T> From<PoisonError<T>> for Error {
