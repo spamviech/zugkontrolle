@@ -95,37 +95,25 @@ impl Pin {
 
     #[cfg_attr(not(raspi), allow(unused_variables))]
     #[cfg_attr(not(raspi), inline)]
-    pub fn into_pwm(self, config: PwmConfig, polarity: Polarity) -> PwmPin {
-        PwmPin(
-            #[cfg(raspi)]
+    pub fn into_pwm(self) -> PwmPin {
+        cfg_if! {
+            if #[cfg(raspi)]
             {
-                if let Some(channel) = self.pwm_channel().and_then(|channel| {
-                    match config {
-                        PwmConfig::Period { period, pulse_width } => rppal::pwm::Pwm::with_period(
-                            channel,
-                            period,
-                            pulse_width,
-                            polarity,
-                            false,
-                        ),
-                        PwmConfig::Frequency { frequency, duty_cycle } => {
-                            rppal::pwm::Pwm::with_frequency(
-                                channel, frequency, duty_cycle, polarity, false,
-                            )
-                        },
-                    }
-                    .ok()
-                }) {
-                    // hardware pwm possible
-                    Pwm::Hardware(channel)
+                if let Some(pwm) = self.pwm_channel().and_then(|channel| pwm::Pwm::new().ok()) {
+                    let config = pwm.polarity().and_then(|polarity|
+                                    pwm.period().and_then(|period|
+                                    pwm.pulse_width().and_then(|pulse_width|
+                                    PwmConfig {time: PwmTime::Period {period, pulse_width}, polarity}))
+                                ).ok();
+                    PwmPin {pin: Pwm::Hardware(pwm, pin: self.0), config }
                 } else {
                     // fallback software pwm
-                    Pwm::Software { pin: self.0.into_output(), config, polarity }
+                   PwmPin {pin: Pwm::Software(self.0.into_output()), config: None }
                 }
-            },
-            #[cfg(not(raspi))]
-            self.0,
-        )
+            } else {
+                PwmPin {pin: self.0, config:None}
+            }
+        }
     }
 }
 /// Ein Gpio Pin konfiguriert für Input.
@@ -219,20 +207,59 @@ impl OutputPin {
 
 /// Ein Gpio Pin konfiguriert für Pwm.
 #[derive(Debug)]
-pub struct PwmPin(#[cfg(raspi)] Pwm, #[cfg(not(raspi))] u8);
+pub struct PwmPin {
+    #[cfg(raspi)]
+    pin: Pwm,
+    #[cfg(not(raspi))]
+    pin: u8,
+    config: Option<PwmConfig>,
+}
 #[cfg(raspi)]
 #[derive(Debug)]
 enum Pwm {
-    Hardware(pwm::Pwm),
-    Software { pin: gpio::OutputPin, config: PwmConfig, polarity: Polarity },
+    Hardware(pwm::Pwm, gpio::Pin),
+    Software(gpio::OutputPin),
 }
 /// Einstellung eines Pwm-Pulses.
 #[derive(Debug)]
-pub enum PwmConfig {
+pub struct PwmConfig {
+    time: PwmTime,
+    polarity: Polarity,
+}
+impl PwmConfig {
+    /// Smart-Konstruktor um invalide Konfigurationen zu verbieten.
+    ///
+    /// PwmTime::valide muss /true/ sein.
+    pub fn new(time: PwmTime, polarity: Polarity) -> Option<Self> {
+        if time.valide() {
+            Some(PwmConfig { time, polarity })
+        } else {
+            None
+        }
+    }
+}
+/// Zeit-Einstellung eines Pwm-Pulses.
+#[derive(Debug)]
+pub enum PwmTime {
     /// Periodendauer und Pulsweite.
     Period { period: Duration, pulse_width: Duration },
     /// Frequenz (in Herz) und Duty-cycle ([0,1]) als Prozentwert.
     Frequency { frequency: f64, duty_cycle: f64 },
+}
+impl PwmTime {
+    /// Nicht alle Zeit-Werte erlauben einen sinnvollen Pwm-Puls.
+    ///
+    /// Es muss gelten:
+    /// - period >= pulse_width
+    /// - 0 <= duty_cycle <= 1
+    pub fn valide(&self) -> bool {
+        match self {
+            PwmTime::Period { period, pulse_width } => pulse_width <= period,
+            PwmTime::Frequency { frequency: _, duty_cycle } => {
+                &0. <= duty_cycle && duty_cycle <= &1.
+            },
+        }
+    }
 }
 
 impl PwmPin {
@@ -242,13 +269,61 @@ impl PwmPin {
     pub fn pin(&self) -> u8 {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.pin()
+                match self.pin {
+                    // TODO
+                    Pwm::Hardware(pwm, pin) => pin.pin(),
+                    Pwm::Software(pin) => pin.pin(),
+                }
             } else {
                 // Pins sollten nur auf einem Raspi erzeugbar sein!
                 // Liefere Standard-Wert, der in näherer Zukunft nicht von Pins erreicht wird
-                self.0
+                self.pin
             }
         }
+    }
+
+    /// Wird Hardware-Pwm verwendet?
+    pub fn hardware_pwm(&self) -> bool {
+        cfg_if! {
+            if #[cfg(raspi)] {
+                match self.0 {
+                    Pwm::Hardware(_) => true,
+                    Pwm::HardwareFailedConfig(_) => true,
+                    Pwm::Software {..} => false,
+                }
+            } else {
+                false
+            }
+        }
+    }
+
+    /// Ist der Pwm-Puls aktiv?
+    pub fn is_enabled(&self) -> Option<PwmConfig> {
+        // TODO what about result value???
+        todo!()
+    }
+
+    /// Aktiviere den Pwm-Puls.
+    pub fn enable_with_config(&mut self, config: PwmConfig) {
+        // TODO what about result value???
+        todo!()
+
+        // hardware pwm
+        // let polarity_result = pwm_channel.set_polarity(config.polarity);
+        // let time_result = match &config.time {
+        //     PwmTime::Period { period, pulse_width } => pwm_channel
+        //         .set_period(period)
+        //         .and_then(|pwm_channel| pwm_channel.set_pulse_width(pulse_width)),
+        //     PwmTime::Frequency { frequency, duty_cycle } => pwm_channel
+        //         .set_frequency(frequency)
+        //         .and_then(|pwm_channel| pwm_channel.set_duty_cycle(duty_cycle)),
+        // };
+    }
+
+    /// Deaktiviere den Pwm-Puls
+    pub fn disable(&mut self) {
+        // TODO what about result value???
+        todo!()
     }
 
     // TODO cfg-reexport/stub-methods
