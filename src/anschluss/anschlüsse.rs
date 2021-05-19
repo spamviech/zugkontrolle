@@ -10,11 +10,12 @@ use std::thread;
 
 use cfg_if::cfg_if;
 use log::{debug, error};
+use num_x::u3;
 use once_cell::sync::Lazy;
 use paste::paste;
 
 use super::level::Level;
-use super::pcf8574::{self, Pcf8574};
+use super::pcf8574::{self, Pcf8574, Port};
 use super::pin::Pin;
 
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
@@ -44,8 +45,16 @@ macro_rules! anschlüsse_data {
                 #[cfg(raspi)]
                 i2c: Arc<Mutex<rppal::gpio::I2c>>,
                 $(
-                    [<$k $l $m $n>]: Option<Pcf8574>
-                ),*
+                    [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
+                    [<$k $l $m $n 0>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 1>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 2>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 3>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 4>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 5>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 6>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                    [<$k $l $m $n 7>]: Option<Port<Pcf8574, pcf8574::Nachricht>>,
+                )*
             }
         }
     };
@@ -77,18 +86,30 @@ impl AnschlüsseData {
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
     ///
     /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
-    fn rückgabe(&mut self, pcf8574: Pcf8574) {
+    fn rückgabe(&mut self, port: Port<Pcf8574, pcf8574::Nachricht>) -> Result<(), SyncError> {
         macro_rules! match_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
-                    match pcf8574.adresse() {
+                    match port.adresse() {
                         $(
-                            (level!($k), level!($l), level!($m),  variante!($n)) => {
-                                debug!("rückgabe {:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n));
-                                self.[<$k $l $m $n>] = Some(pcf8574);
+                            (level!($k), level!($l), level!($m), variante!($n)) => {
+                                debug!("rückgabe {:?}{:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n), port.port());
+                                match u8::from(port.port()) {
+                                    0 => self.[<$k $l $m $n 0>] = Some(port),
+                                    1 => self.[<$k $l $m $n 1>] = Some(port),
+                                    2 => self.[<$k $l $m $n 2>] = Some(port),
+                                    3 => self.[<$k $l $m $n 3>] = Some(port),
+                                    4 => self.[<$k $l $m $n 4>] = Some(port),
+                                    5 => self.[<$k $l $m $n 5>] = Some(port),
+                                    6 => self.[<$k $l $m $n 6>] = Some(port),
+                                    7 => self.[<$k $l $m $n 7>] = Some(port),
+                                    _ => error!("Port > 7!"),
+                                }
                             }
+                            //TODO port über macro-expansion
                         ),*
                     }
+                    Ok(())
                 }
             };
         }
@@ -96,29 +117,40 @@ impl AnschlüsseData {
     }
 
     /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
-    fn reserviere_pcf8574(
+    fn reserviere_pcf8574port(
         &mut self,
         a0: Level,
         a1: Level,
         a2: Level,
         variante: pcf8574::Variante,
-    ) -> Option<Pcf8574> {
+        port: u3,
+    ) -> Option<Port<Pcf8574, pcf8574::Nachricht>> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
         macro_rules! reserviere_pcf8574 {
-            {$($k:ident $l:ident $m:ident $n:ident),*: $ignored:ident} => {
+            {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
                     match (a0, a1,a2, variante) {
                         $(
                             (level!($k),level!($l),level!($m),variante!($n)) => {
-                                debug!("reserviere {:?}{:?}{:?}{:?}", level!($k), level!($l), level!($m), variante!($n));
-                                std::mem::replace(&mut self.[<$k $l $m $n>], None)
+                                debug!("reserviere {:?}{:?}{:?}{:?}{}", level!($k), level!($l), level!($m), variante!($n), 0);
+                                match u8::from(port) {
+                                    0 => std::mem::replace(&mut self.[<$k $l $m $n 0>], None),
+                                    1 => std::mem::replace(&mut self.[<$k $l $m $n 1>], None),
+                                    2 => std::mem::replace(&mut self.[<$k $l $m $n 2>], None),
+                                    3 => std::mem::replace(&mut self.[<$k $l $m $n 3>], None),
+                                    4 => std::mem::replace(&mut self.[<$k $l $m $n 4>], None),
+                                    5 => std::mem::replace(&mut self.[<$k $l $m $n 5>], None),
+                                    6 => std::mem::replace(&mut self.[<$k $l $m $n 6>], None),
+                                    7 => std::mem::replace(&mut self.[<$k $l $m $n 7>], None),
+                                    _ => None,
+                                }
                             }
                         ),*
                     }
                 }
             };
         }
-        llln_to_hhha! {reserviere_pcf8574: none}
+        llln_to_hhha! {reserviere_pcf8574}
     }
 }
 
@@ -154,25 +186,46 @@ impl Anschlüsse {
     }
 
     fn listen_restore_messages(
-        sender: Sender<(Level, Level, Level, pcf8574::Variante)>,
-        receiver: Receiver<(Level, Level, Level, pcf8574::Variante)>,
+        sender: Sender<(pcf8574::Nachricht, u3)>,
+        receiver: Receiver<(pcf8574::Nachricht, u3)>,
         inner: AnschlüsseInternal,
         #[cfg(raspi)] i2c: Arc<Mutex<i2c::I2C>>,
     ) {
         loop {
             match receiver.recv() {
-                Ok((a0, a1, a2, variante)) => match inner.lock() {
+                Ok((nachricht, port)) => match inner.lock() {
                     Ok(mut guard) => {
-                        let pcf8574 = Pcf8574::neu(
-                            a0,
-                            a1,
-                            a2,
-                            variante,
-                            sender.clone(),
-                            #[cfg(raspi)]
-                            i2c,
-                        );
-                        guard.rückgabe(pcf8574)
+                        let anschlüsse = &mut *guard;
+                        macro_rules! port_value {
+                            ($a0:ident $a1:ident $a2:ident $var:ident $port:expr) => {
+                                paste! {
+                                    Port::neu(
+                                        anschlüsse.[<$a0 $a1 $a2 $var>].clone(),
+                                        $port,
+                                        (level!{$a0}, level!{$a1}, level!{$a2}, variante!{$var}),
+                                        sender.clone()
+                                    )
+                                }
+                            };
+                        }
+                        macro_rules! match_nachricht {
+                            {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+                                paste! {
+                                    match nachricht {
+                                        $(
+                                            (level!($k),level!($l),level!($m),variante!($n)) => {
+                                                $value! {$k $l $m $n port}
+                                            }
+                                        )*
+                                    }
+                                }
+                            }
+                        }
+                        let port = llln_to_hhha! {match_nachricht: port_value};
+                        if let Err(err) = anschlüsse.rückgabe(port) {
+                            error!("Error bei rückgabe: {:?}", err);
+                            break
+                        }
                     },
                     Err(err) => {
                         error!("Anschlüsse-static poisoned: {}", err);
@@ -189,19 +242,36 @@ impl Anschlüsse {
 
     fn erstelle_static() -> AnschlüsseStatic {
         macro_rules! make_anschlüsse {
-            {$($k:ident $l:ident $m:ident $n:ident),*} => {
+            {$($a0:ident $a1:ident $a2:ident $var:ident),*} => {{
+                #[cfg(raspi)]
+                let i2c = Arc::new(Mutex::new(rppal::gpio::I2c::new()?));
                 paste! {
                     Ok(AnschlüsseData {
                         #[cfg(raspi)]
                         gpio: rppal::gpio::Gpio::new()?,
                         #[cfg(raspi)]
-                        i2c: Arc::new(Mutex::new(rppal::gpio::I2c::new()?)),
+                        i2c: i2c.clone(),
                         $(
-                            [<$k $l $m $n>]: None
-                        ),*
+                            [<$a0 $a1 $a2 $var>]: Arc::new(Mutex::new(Pcf8574::neu(
+                                level!($a0),
+                                level!($a1),
+                                level!($a2),
+                                variante!($var),
+                                #[cfg(raspi)]
+                                i2c.clone(),
+                            ))),
+                            [<$a0 $a1 $a2 $var 0>]: None,
+                            [<$a0 $a1 $a2 $var 1>]: None,
+                            [<$a0 $a1 $a2 $var 2>]: None,
+                            [<$a0 $a1 $a2 $var 3>]: None,
+                            [<$a0 $a1 $a2 $var 4>]: None,
+                            [<$a0 $a1 $a2 $var 5>]: None,
+                            [<$a0 $a1 $a2 $var 6>]: None,
+                            [<$a0 $a1 $a2 $var 7>]: None,
+                        )*
                     })
                 }
-            };
+            }};
         }
         let inner = (llln_to_hhha! {make_anschlüsse}).map(|anschlüsse| {
             #[cfg(raspi)]
@@ -222,29 +292,37 @@ impl Anschlüsse {
             {
                 let anschlüsse =
                     &mut *inner.lock().expect("Anschlüsse poisoned vor Initialisierung");
-                macro_rules! pcf8574_value {
-                    ($a0:ident $a1:ident $a2:ident $var:ident) => {
-                        Some(Pcf8574::neu(
-                            level!($a0),
-                            level!($a1),
-                            level!($a2),
-                            variante!($var),
-                            sender.clone(),
-                            #[cfg(raspi)]
-                            i2c_clone.clone(),
-                        ))
+                macro_rules! port_value {
+                    ($a0:ident $a1:ident $a2:ident $var:ident $port:expr) => {
+                        paste! {
+                            Some(
+                                Port::neu(
+                                    anschlüsse.[<$a0 $a1 $a2 $var>].clone(),
+                                    u3::new($port),
+                                    (level!{$a0}, level!{$a1}, level!{$a2}, variante!{$var}),
+                                    sender.clone()
+                                )
+                            )
+                        }
                     };
                 }
                 macro_rules! init_anschlüsse {
                     {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
                         paste! {
                             $(
-                                anschlüsse.[<$k $l $m $n>] = $value!($k $l $m $n)
-                            );*
+                                anschlüsse.[<$k $l $m $n 0>] = $value!($k $l $m $n 0);
+                                anschlüsse.[<$k $l $m $n 1>] = $value!($k $l $m $n 1);
+                                anschlüsse.[<$k $l $m $n 2>] = $value!($k $l $m $n 2);
+                                anschlüsse.[<$k $l $m $n 3>] = $value!($k $l $m $n 3);
+                                anschlüsse.[<$k $l $m $n 4>] = $value!($k $l $m $n 4);
+                                anschlüsse.[<$k $l $m $n 5>] = $value!($k $l $m $n 5);
+                                anschlüsse.[<$k $l $m $n 6>] = $value!($k $l $m $n 6);
+                                anschlüsse.[<$k $l $m $n 7>] = $value!($k $l $m $n 7);
+                            )*
                         }
                     };
                 }
-                llln_to_hhha! {init_anschlüsse: pcf8574_value}
+                llln_to_hhha! {init_anschlüsse: port_value}
             }
 
             inner
@@ -257,11 +335,11 @@ impl Anschlüsse {
     ///
     /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
     /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
-    pub fn rückgabe(&mut self, pcf8574: Pcf8574) {
+    pub fn rückgabe(&mut self, port: Port<Pcf8574, pcf8574::Nachricht>) -> Result<(), SyncError> {
         if let Some(arc) = &self.0 {
-            if let Ok(mut guard) = arc.lock() {
-                guard.rückgabe(pcf8574)
-            }
+            arc.lock()?.rückgabe(port)
+        } else {
+            Err(SyncError::InVerwendung)
         }
     }
 
@@ -281,16 +359,19 @@ impl Anschlüsse {
 
     // TODO Direkt Port reservieren?
     /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
-    pub fn reserviere_pcf8574(
+    pub fn reserviere_pcf8574port(
         &mut self,
         a0: Level,
         a1: Level,
         a2: Level,
         variante: pcf8574::Variante,
-    ) -> Result<Pcf8574, SyncError> {
+        port: u3,
+    ) -> Result<Port<Pcf8574, pcf8574::Nachricht>, SyncError> {
         self.0.as_mut().ok_or(SyncError::WertDropped).and_then(|arc| {
             arc.lock().map_err(Into::into).and_then(|mut guard| {
-                guard.reserviere_pcf8574(a0, a1, a2, variante).ok_or(SyncError::InVerwendung)
+                guard
+                    .reserviere_pcf8574port(a0, a1, a2, variante, port)
+                    .ok_or(SyncError::InVerwendung)
             })
         })
     }
@@ -311,15 +392,9 @@ pub enum Error {
     Pwm(rppal::pwm::Error),
     Sync(SyncError),
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyncError {
-    PoisonError,
-    InVerwendung,
-    WertDropped,
-}
-impl<T> From<PoisonError<T>> for SyncError {
-    fn from(_: PoisonError<T>) -> Self {
-        SyncError::PoisonError
+impl From<SyncError> for Error {
+    fn from(error: SyncError) -> Self {
+        Error::Sync(error)
     }
 }
 cfg_if! {
@@ -339,5 +414,16 @@ cfg_if! {
                 Error::Pwm(error)
             }
         }
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyncError {
+    PoisonError,
+    InVerwendung,
+    WertDropped,
+}
+impl<T> From<PoisonError<T>> for SyncError {
+    fn from(_: PoisonError<T>) -> Self {
+        SyncError::PoisonError
     }
 }
