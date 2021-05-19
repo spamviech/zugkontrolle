@@ -20,21 +20,21 @@ use super::pin::Pin;
 /// originally taken from: https://www.ecorax.net/macro-bunker-1/
 /// adjusted to 4 arguments
 macro_rules! matrix {
-    ( $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt: $value:ident) => {
-        matrix! { $inner_macro $($k $ls $ms $ns)+: $value}
+    ( $inner_macro:ident [$($k:ident),+] $ls:tt $ms:tt $ns:tt $(: $value:ident)?) => {
+        matrix! { $inner_macro $($k $ls $ms $ns)+ $(: $value)?}
     };
-    ( $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+: $value:ident) => {
-        matrix! { $inner_macro $($( $k $l $ms $ns )+)+: $value }
+    ( $inner_macro:ident $($k:ident [$($l:tt),+] $ms:tt $ns:tt)+ $(: $value:ident)?) => {
+        matrix! { $inner_macro $($( $k $l $ms $ns )+)+ $(: $value)? }
     };
-    ( $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+: $value:ident) => {
-        matrix! { $inner_macro $($( $k $l $m $ns )+)+: $value }
+    ( $inner_macro:ident $($k:ident $l:ident [$($m:tt),+] $ns:tt)+ $(: $value:ident)?) => {
+        matrix! { $inner_macro $($( $k $l $m $ns )+)+ $(: $value)? }
     };
-    ( $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+: $value:ident) => {
-         $inner_macro! { $($($k $l $m $n),+),+: $value }
+    ( $inner_macro:ident $($k:ident $l:ident $m:ident [$($n:tt),+])+ $(: $value:ident)?) => {
+         $inner_macro! { $($($k $l $m $n),+),+ $(: $value)? }
     };
 }
 macro_rules! anschlüsse_data {
-    {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+    {$($k:ident $l:ident $m:ident $n:ident),*} => {
         paste! {
             #[doc="Singleton für Zugriff auf raspberry pi Anschlüsse."]
             #[derive(Debug)]
@@ -44,20 +44,10 @@ macro_rules! anschlüsse_data {
                 #[cfg(raspi)]
                 i2c: Arc<Mutex<rppal::gpio::I2c>>,
                 $(
-                    [<$k $l $m $n>]: $value!($k $l $m $n)
+                    [<$k $l $m $n>]: Option<Pcf8574>
                 ),*
             }
         }
-    };
-}
-macro_rules! pcf8574_type {
-    ($($arg:tt)*) => {
-        Option<Pcf8574>
-    };
-}
-macro_rules! none {
-    ($($arg:tt)*) => {
-        None
     };
 }
 macro_rules! level {
@@ -77,19 +67,19 @@ macro_rules! variante {
     };
 }
 macro_rules! llln_to_hhha {
-    ($inner_macro:ident : $value:ident) => {
-        matrix! {$inner_macro  [l,h] [l,h] [l,h] [n,a]: $value}
+    ($inner_macro:ident $(: $value:ident)?) => {
+        matrix! {$inner_macro  [l,h] [l,h] [l,h] [n,a] $(: $value)?}
     };
 }
 
-llln_to_hhha! { anschlüsse_data: pcf8574_type}
+llln_to_hhha! { anschlüsse_data }
 impl AnschlüsseData {
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
     ///
     /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
     fn rückgabe(&mut self, pcf8574: Pcf8574) {
         macro_rules! match_pcf8574 {
-            {$($k:ident $l:ident $m:ident $n:ident),*: $ignored:ident} => {
+            {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
                     match pcf8574.adresse() {
                         $(
@@ -102,7 +92,7 @@ impl AnschlüsseData {
                 }
             };
         }
-        llln_to_hhha! {match_pcf8574: none}
+        llln_to_hhha! {match_pcf8574}
     }
 
     /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
@@ -199,7 +189,7 @@ impl Anschlüsse {
 
     fn erstelle_static() -> AnschlüsseStatic {
         macro_rules! make_anschlüsse {
-            {$($k:ident $l:ident $m:ident $n:ident),*: $value:ident} => {
+            {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
                     Ok(AnschlüsseData {
                         #[cfg(raspi)]
@@ -207,13 +197,13 @@ impl Anschlüsse {
                         #[cfg(raspi)]
                         i2c: Arc::new(Mutex::new(rppal::gpio::I2c::new()?)),
                         $(
-                            [<$k $l $m $n>]: $value!($k $l $m $n)
+                            [<$k $l $m $n>]: None
                         ),*
                     })
                 }
             };
         }
-        let inner = (llln_to_hhha! {make_anschlüsse: none}).map(|anschlüsse| {
+        let inner = (llln_to_hhha! {make_anschlüsse}).map(|anschlüsse| {
             #[cfg(raspi)]
             let i2c_clone = anschlüsse.i2c.clone();
 
