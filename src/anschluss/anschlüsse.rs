@@ -117,7 +117,7 @@ impl AnschlüsseData {
     }
 
     /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
-    fn reserviere_pcf8574port(
+    fn reserviere_pcf8574_port(
         &mut self,
         a0: Level,
         a1: Level,
@@ -343,6 +343,8 @@ impl Anschlüsse {
         }
     }
 
+    /// Reserviere den spezifizierten Pin zur exklusiven Nutzung.
+    /// Rückgabe über den Drop-Handler.
     pub fn reserviere_pin(&mut self, pin: u8) -> Result<Pin, Error> {
         if let 2 | 3 = pin {
             // Gpio 2,3 nicht verfügbar (durch I2C belegt)
@@ -357,9 +359,8 @@ impl Anschlüsse {
         }
     }
 
-    // TODO Direkt Port reservieren?
-    /// Reserviere den spezifizierten Pcf8574 zur exklusiven Nutzung.
-    pub fn reserviere_pcf8574port(
+    /// Reserviere den spezifizierten Pcf8574-Port zur exklusiven Nutzung.
+    pub fn reserviere_pcf8574_port(
         &mut self,
         a0: Level,
         a1: Level,
@@ -370,7 +371,7 @@ impl Anschlüsse {
         self.0.as_mut().ok_or(SyncError::WertDropped).and_then(|arc| {
             arc.lock().map_err(Into::into).and_then(|mut guard| {
                 guard
-                    .reserviere_pcf8574port(a0, a1, a2, variante, port)
+                    .reserviere_pcf8574_port(a0, a1, a2, variante, port)
                     .ok_or(SyncError::InVerwendung)
             })
         })

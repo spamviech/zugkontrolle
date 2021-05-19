@@ -230,6 +230,12 @@ pub struct Port<T, M: Clone + Debug> {
     nachricht: M,
     sender: Sender<(M, u3)>,
 }
+impl<T: PartialEq, M: Clone + Debug + PartialEq> PartialEq for Port<T, M> {
+    fn eq(&self, other: &Self) -> bool {
+        self.port == other.port && self.nachricht == other.nachricht
+    }
+}
+impl<T: Eq, M: Clone + Debug + Eq> Eq for Port<T, M> {}
 impl<T, M: Clone + Debug> Drop for Port<T, M> {
     fn drop(&mut self) {
         let Port { port, nachricht, sender, .. } = self;
