@@ -278,12 +278,12 @@ macro_rules! impl_port {
             }
 
             /// Konfiguriere den Port für Input.
-            pub fn into_input(self) -> Result<OutputPort<$type, M>, Error> {
+            pub fn into_input(self) -> Result<InputPort<$type, M>, Error> {
                 {
                     let pcf8574 = &mut *self.pcf8574.lock()?;
                     pcf8574.port_as_input(self.port)?;
                 }
-                Ok(OutputPort(self))
+                Ok(InputPort(self))
             }
         }
     };
