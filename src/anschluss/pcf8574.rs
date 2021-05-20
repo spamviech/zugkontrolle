@@ -224,19 +224,19 @@ impl InterruptPcf8574 {
 
 /// Ein Port eines Pcf8574.
 #[derive(Debug)]
-pub struct Port<T, M: Clone + Debug> {
+pub struct Port<T> {
     pcf8574: Arc<Mutex<T>>,
+    nachricht: Nachricht,
     port: u3,
-    nachricht: M,
-    sender: Sender<(M, u3)>,
+    sender: Sender<(Nachricht, u3)>,
 }
-impl<T: PartialEq, M: Clone + Debug + PartialEq> PartialEq for Port<T, M> {
+impl<T: PartialEq> PartialEq for Port<T> {
     fn eq(&self, other: &Self) -> bool {
         self.port == other.port && self.nachricht == other.nachricht
     }
 }
-impl<T: Eq, M: Clone + Debug + Eq> Eq for Port<T, M> {}
-impl<T, M: Clone + Debug> Drop for Port<T, M> {
+impl<T: Eq> Eq for Port<T> {}
+impl<T> Drop for Port<T> {
     fn drop(&mut self) {
         let Port { port, nachricht, sender, .. } = self;
         debug!("dropped {:?} {:?} ", nachricht, port);
@@ -247,17 +247,17 @@ impl<T, M: Clone + Debug> Drop for Port<T, M> {
         }
     }
 }
-impl<T, M: Clone + Debug> Port<T, M> {
+impl<T> Port<T> {
     pub(super) fn neu(
         pcf8574: Arc<Mutex<T>>,
+        nachricht: Nachricht,
         port: u3,
-        nachricht: M,
-        sender: Sender<(M, u3)>,
+        sender: Sender<(Nachricht, u3)>,
     ) -> Self {
         Port { pcf8574, port, nachricht, sender }
     }
 
-    pub fn adresse(&self) -> &M {
+    pub fn adresse(&self) -> &Nachricht {
         &self.nachricht
     }
 
@@ -267,9 +267,9 @@ impl<T, M: Clone + Debug> Port<T, M> {
 }
 macro_rules! impl_port {
     ($type:ty) => {
-        impl<M: Clone + Debug> Port<$type, M> {
+        impl Port<$type> {
             /// Konfiguriere den Port für Output.
-            pub fn into_output(self) -> Result<OutputPort<$type, M>, Error> {
+            pub fn into_output(self) -> Result<OutputPort<$type>, Error> {
                 {
                     let pcf8574 = &mut *self.pcf8574.lock()?;
                     pcf8574.write_port(self.port, Level::High)?;
@@ -278,7 +278,7 @@ macro_rules! impl_port {
             }
 
             /// Konfiguriere den Port für Input.
-            pub fn into_input(self) -> Result<InputPort<$type, M>, Error> {
+            pub fn into_input(self) -> Result<InputPort<$type>, Error> {
                 {
                     let pcf8574 = &mut *self.pcf8574.lock()?;
                     pcf8574.port_as_input(self.port)?;
@@ -293,10 +293,10 @@ impl_port! {InterruptPcf8574}
 
 // Ein Port eines Pcf8574, konfiguriert für Output.
 #[derive(Debug)]
-pub struct OutputPort<T, M: Clone + Debug>(Port<T, M>);
+pub struct OutputPort<T>(Port<T>);
 macro_rules! impl_port_output {
     ($type:ty) => {
-        impl<M: Clone + Debug> OutputPort<$type, M> {
+        impl OutputPort<$type> {
             pub fn write(&mut self, level: Level) -> Result<(), Error> {
                 {
                     let pcf8574 = &mut *self.0.pcf8574.lock()?;
@@ -312,10 +312,10 @@ impl_port_output! {InterruptPcf8574}
 
 // Ein Port eines Pcf8574, konfiguriert für Input.
 #[derive(Debug)]
-pub struct InputPort<T, M: Clone + Debug>(Port<T, M>);
+pub struct InputPort<T>(Port<T>);
 macro_rules! impl_port_read {
     ($type:ty) => {
-        impl<M: Clone + Debug> InputPort<$type, M> {
+        impl InputPort<$type> {
             pub fn read(&self) -> Result<Level, Error> {
                 let values = {
                     let pcf8574 = &mut *self.0.pcf8574.lock()?;
@@ -339,7 +339,7 @@ macro_rules! impl_port_read {
 impl_port_read! {Pcf8574}
 impl_port_read! {InterruptPcf8574}
 
-impl<M: Clone + Debug + Send + 'static> InputPort<InterruptPcf8574, M> {
+impl InputPort<InterruptPcf8574> {
     /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
     /// thread when the interrupt is triggered.
     ///

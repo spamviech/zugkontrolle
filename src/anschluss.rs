@@ -24,20 +24,20 @@ pub use anschlüsse::*;
 #[derive(Debug)]
 pub enum Anschluss {
     Pin(Pin),
-    Pcf8574Port(Port<Pcf8574, pcf8574::Nachricht>),
+    Pcf8574Port(Port<Pcf8574>),
 }
-/// Ein Anschluss, konfiguriert für Output
+/// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
 pub enum OutputAnschluss {
     Pin(output::Pin),
-    Pcf8574Port(Port<Pcf8574, pcf8574::Nachricht>),
-    InterruptPcf8574Port(Port<InterruptPcf8574, pcf8574::Nachricht>),
+    Pcf8574Port(Port<Pcf8574>),
+    InterruptPcf8574Port(Port<InterruptPcf8574>),
 }
-/// Ein Anschluss, konfiguriert für Input
+/// Ein Anschluss, konfiguriert für Input.
 #[derive(Debug)]
 pub enum InputAnschluss {
     Pin(input::Pin),
-    Pcf8574Port(Port<InterruptPcf8574, pcf8574::Nachricht>),
+    Pcf8574Port(Port<InterruptPcf8574>),
 }
 
 #[cfg(test)]
