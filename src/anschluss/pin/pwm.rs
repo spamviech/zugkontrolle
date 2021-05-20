@@ -10,7 +10,7 @@ use rppal::{gpio, pwm};
 use crate::anschluss::polarity::Polarity;
 
 /// Ein Gpio Pin konfiguriert für Pwm.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Pin {
     #[cfg(raspi)]
     pub(super) pin: Pwm,
@@ -19,7 +19,7 @@ pub struct Pin {
     pub(super) config: Option<Config>,
 }
 #[cfg(raspi)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Pwm {
     Hardware(pwm::Pwm, gpio::Pin),
     Software(gpio::OutputPin),

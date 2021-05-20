@@ -46,14 +46,14 @@ macro_rules! anschlüsse_data {
                 i2c: Arc<Mutex<rppal::gpio::I2c>>,
                 $(
                     [<$k $l $m $n>]: Arc<Mutex<Pcf8574>>,
-                    [<$k $l $m $n 0>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 1>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 2>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 3>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 4>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 5>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 6>]: Option<Port<Pcf8574>>,
-                    [<$k $l $m $n 7>]: Option<Port<Pcf8574>>,
+                    [<$k $l $m $n 0>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 1>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 2>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 3>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 4>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 5>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 6>]: Option<pcf8574::Port>,
+                    [<$k $l $m $n 7>]: Option<pcf8574::Port>,
                 )*
             }
         }
@@ -86,7 +86,7 @@ impl AnschlüsseData {
     /// Gebe den Pcf8574 an Anschlüsse zurück, so dass er von anderen verwendet werden kann.
     ///
     /// Wird vom Drop-handler ausgeführt, hier ist es explizit.
-    fn rückgabe(&mut self, port: Port<Pcf8574>) -> Result<(), SyncError> {
+    fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncError> {
         macro_rules! match_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
                 paste! {
@@ -124,7 +124,7 @@ impl AnschlüsseData {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Option<Port<Pcf8574>> {
+    ) -> Option<pcf8574::Port> {
         // gebe aktuellen Wert zurück und speichere stattdessen None
         macro_rules! reserviere_pcf8574 {
             {$($k:ident $l:ident $m:ident $n:ident),*} => {
@@ -335,7 +335,7 @@ impl Anschlüsse {
     ///
     /// Der Drop-Handler von Pcf8574 (und dem letzten Pcf8574Port) hat die selbe Auswirkung.
     /// Diese Methode ist explizit (keine Wartezeit, kann dafür blockieren).
-    pub fn rückgabe(&mut self, port: Port<Pcf8574>) -> Result<(), SyncError> {
+    pub fn rückgabe(&mut self, port: pcf8574::Port) -> Result<(), SyncError> {
         if let Some(arc) = &self.0 {
             arc.lock()?.rückgabe(port)
         } else {
@@ -367,7 +367,7 @@ impl Anschlüsse {
         a2: Level,
         variante: pcf8574::Variante,
         port: u3,
-    ) -> Result<Port<Pcf8574>, SyncError> {
+    ) -> Result<pcf8574::Port, SyncError> {
         self.0.as_mut().ok_or(SyncError::WertDropped).and_then(|arc| {
             arc.lock().map_err(Into::into).and_then(|mut guard| {
                 guard

@@ -6,7 +6,7 @@ use log::debug;
 use crate::anschluss::level::Level;
 
 /// Ein Gpio Pin konfiguriert für Output.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Pin(#[cfg(raspi)] pub(super) gpio::Pin, #[cfg(not(raspi))] pub(super) u8);
 
 impl Pin {

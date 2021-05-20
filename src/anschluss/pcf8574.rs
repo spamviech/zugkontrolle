@@ -42,6 +42,7 @@ pub struct Pcf8574 {
     a2: Level,
     variante: Variante,
     ports: [Modus; 8],
+    interrupt: Option<input::Pin>,
     #[cfg(raspi)]
     i2c: Arc<RwLock<i2c::I2C>>,
 }
@@ -62,21 +63,26 @@ impl Pcf8574 {
             a2,
             variante,
             ports: [Modus::Input; 8],
+            interrupt: None,
             #[cfg(raspi)]
             i2c,
         }
     }
 
     /// Assoziiere den angeschlossenen InterruptPin.
-    pub fn with_interrupt(self, interrupt: input::Pin) -> InterruptPcf8574 {
-        InterruptPcf8574 { pcf8574: self, interrupt }
+    /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
+    /// Interrupt-Callbacks werden nicht zurückgesetzt!
+    fn set_interrupt(&mut self, interrupt: input::Pin) -> Option<input::Pin> {
+        std::mem::replace(&mut self.interrupt, Some(interrupt))
     }
 
+    /*
     /// Adress-Bits (a0, a1, a2) und Variante eines Pcf8574.
     #[inline]
-    pub fn adresse(&self) -> (Level, Level, Level, Variante) {
+    fn adresse(&self) -> (Level, Level, Level, Variante) {
         (self.a0, self.a1, self.a2, self.variante)
     }
+    */
 
     #[cfg(raspi)]
     /// 7-bit i2c-Adresse ohne R/W-Bit
@@ -187,56 +193,22 @@ pub enum Variante {
     Normal,
     A,
 }
-/// Ein Pcf8574, konfiguriert für Input inklusive InterruptPin.
-#[derive(Debug)]
-pub struct InterruptPcf8574 {
-    pcf8574: Pcf8574,
-    interrupt: input::Pin,
-}
-impl InterruptPcf8574 {
-    /// Adress-Bits (a0, a1, a2) und Variante eines Pcf8574.
-    #[inline]
-    pub fn adresse(&self) -> (Level, Level, Level, Variante) {
-        self.pcf8574.adresse()
-    }
-
-    /// Lese von einem Pcf8574.
-    /// Nur als Input konfigurierte Ports werden als Some-Wert zurückgegeben.
-    ///
-    /// Bei Interrupt-basiertem lesen sollten alle Port gleichzeitig gelesen werden!
-    #[inline]
-    fn read(&self) -> Result<[Option<Level>; 8], Error> {
-        self.pcf8574.read()
-    }
-
-    /// Konvertiere einen Port als Input.
-    fn port_as_input(&mut self, port: u3) -> Result<(), Error> {
-        self.pcf8574.port_as_input(port)
-    }
-
-    /// Schreibe auf einen Port des Pcf8574.
-    /// Der Port wird automatisch als Output gesetzt.
-    #[inline]
-    fn write_port(&mut self, port: u3, level: Level) -> Result<(), Error> {
-        self.pcf8574.write_port(port, level)
-    }
-}
 
 /// Ein Port eines Pcf8574.
 #[derive(Debug)]
-pub struct Port<T> {
-    pcf8574: Arc<Mutex<T>>,
+pub struct Port {
+    pcf8574: Arc<Mutex<Pcf8574>>,
     nachricht: Nachricht,
     port: u3,
     sender: Sender<(Nachricht, u3)>,
 }
-impl<T: PartialEq> PartialEq for Port<T> {
+impl PartialEq for Port {
     fn eq(&self, other: &Self) -> bool {
         self.port == other.port && self.nachricht == other.nachricht
     }
 }
-impl<T: Eq> Eq for Port<T> {}
-impl<T> Drop for Port<T> {
+impl Eq for Port {}
+impl Drop for Port {
     fn drop(&mut self) {
         let Port { port, nachricht, sender, .. } = self;
         debug!("dropped {:?} {:?} ", nachricht, port);
@@ -247,9 +219,9 @@ impl<T> Drop for Port<T> {
         }
     }
 }
-impl<T> Port<T> {
+impl Port {
     pub(super) fn neu(
-        pcf8574: Arc<Mutex<T>>,
+        pcf8574: Arc<Mutex<Pcf8574>>,
         nachricht: Nachricht,
         port: u3,
         sender: Sender<(Nachricht, u3)>,
@@ -257,89 +229,100 @@ impl<T> Port<T> {
         Port { pcf8574, port, nachricht, sender }
     }
 
+    #[inline]
     pub fn adresse(&self) -> &Nachricht {
         &self.nachricht
     }
 
+    #[inline]
     pub fn port(&self) -> u3 {
         self.port
     }
-}
-macro_rules! impl_port {
-    ($type:ty) => {
-        impl Port<$type> {
-            /// Konfiguriere den Port für Output.
-            pub fn into_output(self) -> Result<OutputPort<$type>, Error> {
-                {
-                    let pcf8574 = &mut *self.pcf8574.lock()?;
-                    pcf8574.write_port(self.port, Level::High)?;
-                }
-                Ok(OutputPort(self))
-            }
 
-            /// Konfiguriere den Port für Input.
-            pub fn into_input(self) -> Result<InputPort<$type>, Error> {
-                {
-                    let pcf8574 = &mut *self.pcf8574.lock()?;
-                    pcf8574.port_as_input(self.port)?;
-                }
-                Ok(InputPort(self))
-            }
+    /// Konfiguriere den Port für Output.
+    pub fn into_output(self) -> Result<OutputPort, Error> {
+        {
+            let pcf8574 = &mut *self.pcf8574.lock()?;
+            pcf8574.write_port(self.port, Level::High)?;
         }
-    };
+        Ok(OutputPort(self))
+    }
+
+    /// Konfiguriere den Port für Input.
+    pub fn into_input(self) -> Result<InputPort, Error> {
+        {
+            let pcf8574 = &mut *self.pcf8574.lock()?;
+            pcf8574.port_as_input(self.port)?;
+        }
+        Ok(InputPort(self))
+    }
 }
-impl_port! {Pcf8574}
-impl_port! {InterruptPcf8574}
 
 // Ein Port eines Pcf8574, konfiguriert für Output.
 #[derive(Debug)]
-pub struct OutputPort<T>(Port<T>);
-macro_rules! impl_port_output {
-    ($type:ty) => {
-        impl OutputPort<$type> {
-            pub fn write(&mut self, level: Level) -> Result<(), Error> {
-                {
-                    let pcf8574 = &mut *self.0.pcf8574.lock()?;
-                    pcf8574.write_port(self.0.port, level)?;
-                }
-                Ok(())
-            }
+pub struct OutputPort(Port);
+
+impl OutputPort {
+    #[inline]
+    pub fn adresse(&self) -> &Nachricht {
+        self.0.adresse()
+    }
+
+    #[inline]
+    pub fn port(&self) -> u3 {
+        self.0.port()
+    }
+
+    pub fn write(&mut self, level: Level) -> Result<(), Error> {
+        {
+            let pcf8574 = &mut *self.0.pcf8574.lock()?;
+            pcf8574.write_port(self.0.port, level)?;
         }
-    };
+        Ok(())
+    }
 }
-impl_port_output! {Pcf8574}
-impl_port_output! {InterruptPcf8574}
 
 // Ein Port eines Pcf8574, konfiguriert für Input.
 #[derive(Debug)]
-pub struct InputPort<T>(Port<T>);
-macro_rules! impl_port_read {
-    ($type:ty) => {
-        impl InputPort<$type> {
-            pub fn read(&self) -> Result<Level, Error> {
-                let values = {
-                    let pcf8574 = &mut *self.0.pcf8574.lock()?;
-                    pcf8574.read()?
-                };
-                if let Some(value) = values[usize::from(self.0.port)] {
-                    Ok(value)
-                } else {
-                    error!("{:?} war nicht als input korrigiert!", self);
-                    // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
-                    {
-                        let pcf8574 = &mut *self.0.pcf8574.lock()?;
-                        pcf8574.port_as_input(self.0.port)?;
-                    }
-                    self.read()
-                }
-            }
-        }
-    };
-}
-impl_port_read! {Pcf8574}
-impl_port_read! {InterruptPcf8574}
+pub struct InputPort(Port);
 
-impl InputPort<InterruptPcf8574> {
+impl InputPort {
+    #[inline]
+    pub fn adresse(&self) -> &Nachricht {
+        self.0.adresse()
+    }
+
+    #[inline]
+    pub fn port(&self) -> u3 {
+        self.0.port()
+    }
+
+    pub fn read(&self) -> Result<Level, Error> {
+        let values = {
+            let pcf8574 = &mut *self.0.pcf8574.lock()?;
+            pcf8574.read()?
+        };
+        if let Some(value) = values[usize::from(self.0.port)] {
+            Ok(value)
+        } else {
+            error!("{:?} war nicht als input korrigiert!", self);
+            // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
+            {
+                let pcf8574 = &mut *self.0.pcf8574.lock()?;
+                pcf8574.port_as_input(self.0.port)?;
+            }
+            self.read()
+        }
+    }
+
+    /// Assoziiere den angeschlossenen InterruptPin für den Pcf8574.
+    /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
+    /// Interrupt-Callbacks werden nicht zurückgesetzt!
+    pub fn set_interrupt(&mut self, interrupt: input::Pin) -> Result<Option<input::Pin>, Error> {
+        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        Ok(pcf8574.set_interrupt(interrupt))
+    }
+
     /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
     /// thread when the interrupt is triggered.
     ///
@@ -361,7 +344,7 @@ impl InputPort<InterruptPcf8574> {
             nachricht: self.0.nachricht.clone(),
         });
         let pcf8574 = &mut *self.0.pcf8574.lock()?;
-        Ok(pcf8574.interrupt.set_async_interrupt(
+        Ok(pcf8574.interrupt.as_mut().ok_or(Error::KeinInterruptPin)?.set_async_interrupt(
             Trigger::FallingEdge,
             move |_level| match clone.read() {
                 Ok(current) => match trigger {
@@ -390,10 +373,11 @@ impl InputPort<InterruptPcf8574> {
     #[inline]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
         let pcf8574 = &mut *self.0.pcf8574.lock()?;
-        Ok(pcf8574.interrupt.clear_async_interrupt()?)
+        Ok(pcf8574.interrupt.as_mut().ok_or(Error::KeinInterruptPin)?.clear_async_interrupt()?)
     }
 }
 
+// TODO genauere Eingrenzung auf einzelne Methoden
 #[derive(Debug)]
 pub enum Error {
     #[cfg(raspi)]
@@ -403,6 +387,7 @@ pub enum Error {
     #[cfg(not(raspi))]
     KeinRaspberryPi,
     PoisonError,
+    KeinInterruptPin,
 }
 #[cfg(raspi)]
 impl From<i2c::Error> for Error {

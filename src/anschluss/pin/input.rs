@@ -8,7 +8,7 @@ use rppal::gpio;
 use crate::anschluss::{level::Level, trigger::Trigger};
 
 /// Ein Gpio Pin konfiguriert für Input.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Pin(#[cfg(raspi)] pub(super) gpio::InputPin, #[cfg(not(raspi))] pub(super) u8);
 
 impl Pin {

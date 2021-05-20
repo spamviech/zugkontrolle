@@ -11,7 +11,7 @@ pub mod output;
 pub mod pwm;
 
 /// Ein Gpio Pin.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Pin(#[cfg(raspi)] gpio::Pin, #[cfg(not(raspi))] u8);
 impl Pin {
     /// Returns the GPIO pin number.
