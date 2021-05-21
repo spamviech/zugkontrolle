@@ -30,7 +30,7 @@ impl Pin {
 
     /// Reads the pin’s logic level.
     #[inline]
-    pub fn read(&self) -> Result<Level, Error> {
+    pub fn read(&mut self) -> Result<Level, Error> {
         cfg_if! {
             if #[cfg(raspi)] {
                 Ok(self.0.read())
@@ -84,6 +84,7 @@ impl Pin {
     }
 }
 
+#[derive(Debug)]
 pub enum Error {
     #[cfg(raspi)]
     Gpio(gpio::Error),

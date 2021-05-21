@@ -29,54 +29,64 @@ impl Pin {
     /// Sets the pin’s output state.
     #[cfg_attr(not(raspi), allow(unused_variables))]
     #[inline]
-    pub fn write(&mut self, level: Level) {
+    pub fn write(&mut self, level: Level) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.write(level)
+                self.0.write(level);
+                Ok(())
             } else {
                 debug!("{:?}.write({:?})", self, level);
+                Err(Error::KeinRaspberryPi)
             }
         }
     }
 
     /// Returns `true` if the pin's output state is set to `Level::Low`.
     #[inline]
-    pub fn is_set_low(&self) -> bool {
+    pub fn is_set_low(&self) -> Result<bool, Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.is_set_low()
+                Ok(self.0.is_set_low())
             } else {
                 debug!("{:?}.is_set_low()", self);
-                false
+                Err(Error::KeinRaspberryPi)
             }
         }
     }
 
     /// Returns `true` if the pin's output state is set to `Level::High`.
     #[inline]
-    pub fn is_set_high(&self) -> bool {
+    pub fn is_set_high(&self) -> Result<bool, Error> {
         cfg_if! {
             if #[cfg(raspi)] {
-                self.0.is_set_high()
+                Ok(self.0.is_set_high())
             } else {
                 debug!("{:?}.is_set_high()", self);
-                false
+                Err(Error::KeinRaspberryPi)
             }
         }
     }
 
     /// Toggles the pin’s output state between Low and High.
     #[inline]
-    pub fn toggle(&mut self) {
+    pub fn toggle(&mut self) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
                 self.0.toggle()
+                Ok(())
             } else {
                 debug!("{:?}.toggle()", self);
+                Err(Error::KeinRaspberryPi)
             }
         }
     }
 
     // maybe re-export more methods?
     // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Pin.html
+}
+
+#[derive(Debug)]
+pub enum Error {
+    #[cfg(not(raspi))]
+    KeinRaspberryPi,
 }
