@@ -428,3 +428,8 @@ impl<T> From<PoisonError<T>> for SyncError {
         SyncError::PoisonError
     }
 }
+
+#[cfg(test)]
+// path attribute necessary due to non-ascii module name (at least for now)
+#[path = "anschlüsse/test.rs"]
+mod test;
