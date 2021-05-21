@@ -215,8 +215,8 @@ impl<Z: 'static + Zugtyp + Debug + PartialEq + Serialize + for<'de> Deserialize<
             Message::Modus(modus) => self.gleise.moduswechsel(modus),
             Message::Bewegen(bewegen) => {
                 self.gleise.bewege_pivot(
-                    self.gleise.skalierfaktor()
-                        * bewegen.bewegen().rotiert(-self.gleise.pivot().winkel),
+                    bewegen.bewegen().rotiert(-self.gleise.pivot().winkel)
+                        / self.gleise.skalierfaktor(),
                 );
             },
             Message::Drehen(drehen) => self.gleise.drehen(drehen.drehen()),
