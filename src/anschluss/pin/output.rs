@@ -65,6 +65,18 @@ impl Pin {
         }
     }
 
+    /// Toggles the pin’s output state between Low and High.
+    #[inline]
+    pub fn toggle(&mut self) {
+        cfg_if! {
+            if #[cfg(raspi)] {
+                self.0.toggle()
+            } else {
+                debug!("{:?}.toggle()", self);
+            }
+        }
+    }
+
     // maybe re-export more methods?
     // https://docs.rs/rppal/0.12.0/rppal/gpio/struct.Pin.html
 }

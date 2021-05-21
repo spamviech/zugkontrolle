@@ -19,7 +19,7 @@ use rppal::{gpio, i2c};
 use super::pin::input;
 use super::{level::Level, trigger::Trigger};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Modus {
     Input,
     High,
@@ -279,6 +279,31 @@ impl OutputPort {
             pcf8574.write_port(self.0.port, level)?;
         }
         Ok(())
+    }
+
+    pub fn is_set_high(&mut self) -> Result<bool, Error> {
+        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        Ok(pcf8574.ports[usize::from(self.port())] == Modus::High)
+    }
+
+    pub fn is_set_low(&mut self) -> Result<bool, Error> {
+        let pcf8574 = &mut *self.0.pcf8574.lock()?;
+        Ok(pcf8574.ports[usize::from(self.port())] == Modus::Low)
+    }
+
+    pub fn toggle(&mut self) -> Result<(), Error> {
+        let modus = {
+            let pcf8574 = &*self.0.pcf8574.lock()?;
+            pcf8574.ports[usize::from(self.port())]
+        };
+        match modus {
+            Modus::High => self.write(Level::Low),
+            Modus::Low => self.write(Level::High),
+            Modus::Input => {
+                error!("Output pin configured as input: {:?}", self);
+                self.write(Level::Low)
+            },
+        }
     }
 }
 
