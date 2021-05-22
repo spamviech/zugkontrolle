@@ -1,18 +1,22 @@
-//! Typen zur Steuerung einer Modelleisenbahn.
+//! Steuerung einer Modelleisenbahn.
 
-pub struct Streckenabschnitt;
+pub mod streckenabschnitt;
+pub use streckenabschnitt::*;
 
-// inklusive Kreuzung
-pub struct Weiche;
+pub mod weiche;
+pub use weiche::*;
 
-pub struct Kupplung;
+pub mod kupplung;
+pub use kupplung::*;
 
-// Geschwindigkeit: Pwm / Mehrere Anschlüsse mit konstanter Spannung
-// Umdrehen:
-//      Märklin: Pwm->Kein Extra-Anschluss, KS->Extra-Anschluss (Überspannung)
-//      Lego: Immer Extra-Anschluss (High-Low an Schienen wechseln)
-pub struct Geschwindigkeit;
+pub mod geschwindigkeit;
+pub use geschwindigkeit::*;
 
-pub struct Kontakt;
+pub mod kontakt;
+pub use kontakt::*;
 
-pub struct Wegstrecke;
+pub mod wegstrecke;
+pub use wegstrecke::*;
+
+pub mod plan;
+pub use plan::*;
