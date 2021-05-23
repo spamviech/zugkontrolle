@@ -55,7 +55,6 @@ impl<'t> Frame<'t> {
     /// **Warning:** problems regarding transformation/rotation/scaling from /iced::canvas::Frame/
     /// apply here as well!
     pub fn fill_text(&mut self, text: impl Into<Text>) {
-        // TODO respect pivot point
         self.0.fill_text(text)
     }
 
