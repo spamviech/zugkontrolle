@@ -5,7 +5,7 @@ use std::{thread::sleep, time::Duration};
 use crate::anschluss::{Error, Fließend, OutputAnschluss, Polarity};
 
 pub struct Kupplung {
-    // TODO name,farbe sind eigentlich nur für die Anzeige relevant
+    // TODO name ist eigentlich nur für die Anzeige relevant
     pub name: String,
     pub anschluss: OutputAnschluss,
     pub polarität: Polarity,
