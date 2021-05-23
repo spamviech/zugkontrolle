@@ -19,9 +19,8 @@ use rppal::{gpio, i2c};
 use super::pin::input;
 use super::{level::Level, trigger::Trigger};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Modus {
-    Input,
+    Input { trigger: Trigger, callback: Option<Box<dyn FnMut(Level) + Send + 'static>> },
     High,
     Low,
 }
@@ -33,6 +32,32 @@ impl From<Level> for Modus {
         }
     }
 }
+impl Debug for Modus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Modus::Input { trigger, callback: Some(_) } => {
+                write!(f, "Input {{trigger: {:?}, callback: Some(_)}}", trigger)
+            },
+            Modus::Input { trigger, callback: None } => {
+                write!(f, "Input {{trigger: {:?}, callback: None}}", trigger)
+            },
+            Modus::High => write!(f, "High"),
+            Modus::Low => write!(f, "Low"),
+        }
+    }
+}
+/// Gleichheit unabhängig vom callback.
+impl PartialEq for Modus {
+    fn eq(&self, other: &Modus) -> bool {
+        match (self, other) {
+            (Modus::Input { .. }, Modus::Input { .. }) => true,
+            (Modus::High, Modus::High) => true,
+            (Modus::Low, Modus::Low) => true,
+            _ => false,
+        }
+    }
+}
+impl Eq for Modus {}
 
 /// Ein Pcf8574, gesteuert über I2C.
 #[derive(Debug)]
@@ -62,7 +87,16 @@ impl Pcf8574 {
             a1,
             a2,
             variante,
-            ports: [Modus::Input; 8],
+            ports: [
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+                Modus::Input { trigger: Trigger::Disabled, callback: None },
+            ],
             interrupt: None,
             #[cfg(raspi)]
             i2c,
@@ -72,8 +106,66 @@ impl Pcf8574 {
     /// Assoziiere den angeschlossenen InterruptPin.
     /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
     /// Interrupt-Callbacks werden nicht zurückgesetzt!
-    fn set_interrupt(&mut self, interrupt: input::Pin) -> Option<input::Pin> {
-        std::mem::replace(&mut self.interrupt, Some(interrupt))
+    fn set_interrupt(
+        arc: &mut Arc<Mutex<Self>>,
+        mut interrupt: input::Pin,
+    ) -> Result<Option<input::Pin>, Error> {
+        let mut previous = {
+            // set up callback.
+            let pcf8574 = &mut *arc.lock()?;
+            let mut last = pcf8574.read()?;
+            let arc_clone = arc.clone();
+            interrupt.set_async_interrupt(Trigger::FallingEdge, move |_level| {
+                match arc_clone.lock() {
+                    Ok(mut guard) => {
+                        let pcf8574 = &mut *guard;
+                        match pcf8574.read() {
+                            Ok(current) => {
+                                for i in 0 .. 8 {
+                                    match (&mut pcf8574.ports[i], current[i], &mut last[i]) {
+                                        (
+                                            Modus::Input {
+                                                trigger: Trigger::Both | Trigger::FallingEdge,
+                                                callback: Some(callback),
+                                            },
+                                            Some(current),
+                                            Some(last),
+                                        ) if last == &mut Level::High && current == Level::Low => {
+                                            callback(current);
+                                        },
+                                        (
+                                            Modus::Input {
+                                                trigger: Trigger::Both | Trigger::RisingEdge,
+                                                callback: Some(callback),
+                                            },
+                                            Some(current),
+                                            Some(last),
+                                        ) if last == &mut Level::High && current == Level::Low => {
+                                            callback(current);
+                                        },
+                                        _ => {},
+                                    }
+                                    last[i] = current[i];
+                                }
+                            },
+                            Err(error) => {
+                                error!(
+                                    "Error while reading Pcf8574 while reacting to interrupt: {:?}",
+                                    error
+                                );
+                            },
+                        }
+                    },
+                    Err(_error) => {
+                        error!("Poison error on pcf8574-Mutex while reacting to interrupt!")
+                    },
+                }
+            })?;
+            std::mem::replace(&mut pcf8574.interrupt, Some(interrupt))
+        };
+        // clear interrupt on previous pin.
+        previous.as_mut().map(input::Pin::clear_async_interrupt);
+        Ok(previous)
     }
 
     /*
@@ -140,9 +232,19 @@ impl Pcf8574 {
     }
 
     /// Konvertiere einen Port als Input.
-    fn port_as_input(&mut self, port: u3) -> Result<(), Error> {
+    fn port_as_input<C: FnMut(Level) + Send + 'static>(
+        &mut self,
+        port: u3,
+        trigger: Trigger,
+        callback: Option<C>,
+    ) -> Result<(), Error> {
         self.write_port(port, Level::High)?;
-        self.ports[usize::from(port)] = Modus::Input;
+        // type annotations need, so extra let binding required
+        let callback: Option<Box<dyn FnMut(Level) + Send + 'static>> = match callback {
+            Some(c) => Some(Box::new(c)),
+            None => None,
+        };
+        self.ports[usize::from(port)] = Modus::Input { trigger, callback };
         Ok(())
     }
 
@@ -252,7 +354,7 @@ impl Port {
     pub fn into_input(self) -> Result<InputPort, Error> {
         {
             let pcf8574 = &mut *self.pcf8574.lock()?;
-            pcf8574.port_as_input(self.port)?;
+            pcf8574.port_as_input::<fn(Level)>(self.port, Trigger::Disabled, None)?;
         }
         Ok(InputPort(self))
     }
@@ -292,18 +394,19 @@ impl OutputPort {
     }
 
     pub fn toggle(&mut self) -> Result<(), Error> {
-        let modus = {
+        let level = {
             let pcf8574 = &*self.0.pcf8574.lock()?;
-            pcf8574.ports[usize::from(self.port())]
+            let modus = &pcf8574.ports[usize::from(self.port())];
+            match modus {
+                Modus::High => Level::Low,
+                Modus::Low => Level::High,
+                Modus::Input { .. } => {
+                    error!("Output pin configured as input: {:?}", self);
+                    Level::Low
+                },
+            }
         };
-        match modus {
-            Modus::High => self.write(Level::Low),
-            Modus::Low => self.write(Level::High),
-            Modus::Input => {
-                error!("Output pin configured as input: {:?}", self);
-                self.write(Level::Low)
-            },
-        }
+        self.write(level)
     }
 }
 
@@ -334,7 +437,7 @@ impl InputPort {
             // war nicht als Input konfiguriert -> erneut konfigurieren und neu versuchen
             {
                 let pcf8574 = &mut *self.0.pcf8574.lock()?;
-                pcf8574.port_as_input(self.0.port)?;
+                pcf8574.port_as_input::<fn(Level)>(self.0.port, Trigger::Disabled, None)?;
             }
             self.read()
         }
@@ -344,8 +447,7 @@ impl InputPort {
     /// Rückgabewert ist ein evtl. vorher konfigurierter InterruptPin.
     /// Interrupt-Callbacks werden nicht zurückgesetzt!
     pub fn set_interrupt(&mut self, interrupt: input::Pin) -> Result<Option<input::Pin>, Error> {
-        let pcf8574 = &mut *self.0.pcf8574.lock()?;
-        Ok(pcf8574.set_interrupt(interrupt))
+        Pcf8574::set_interrupt(&mut self.0.pcf8574, interrupt)
     }
 
     /// Configures an asynchronous interrupt trigger, which executes the callback on a separate
@@ -360,46 +462,19 @@ impl InputPort {
     pub fn set_async_interrupt(
         &mut self,
         trigger: Trigger,
-        mut callback: impl FnMut(Level) + Send + 'static,
+        callback: impl FnMut(Level) + Send + 'static,
     ) -> Result<(), Error> {
-        let mut last = self.read()?;
-        let clone = InputPort(Port {
-            pcf8574: self.0.pcf8574.clone(),
-            port: self.0.port,
-            sender: self.0.sender.clone(),
-            nachricht: self.0.nachricht.clone(),
-        });
+        let port = self.port();
         let pcf8574 = &mut *self.0.pcf8574.lock()?;
-        Ok(pcf8574.interrupt.as_mut().ok_or(Error::KeinInterruptPin)?.set_async_interrupt(
-            Trigger::FallingEdge,
-            move |_level| match clone.read() {
-                Ok(current) => match trigger {
-                    Trigger::Both | Trigger::FallingEdge
-                        if last == Level::High && current == Level::Low =>
-                    {
-                        callback(current)
-                    },
-                    Trigger::Both | Trigger::RisingEdge
-                        if last == Level::High && current == Level::Low =>
-                    {
-                        callback(current)
-                    },
-                    _ => {
-                        last = current;
-                    },
-                },
-                Err(error) => {
-                    error!("Error while reading InputPort: {:?}", error);
-                },
-            },
-        )?)
+        pcf8574.port_as_input(port, trigger, Some(callback))
     }
 
     /// Removes a previously configured asynchronous interrupt trigger.
     #[inline]
     pub fn clear_async_interrupt(&mut self) -> Result<(), Error> {
+        let port = self.port();
         let pcf8574 = &mut *self.0.pcf8574.lock()?;
-        Ok(pcf8574.interrupt.as_mut().ok_or(Error::KeinInterruptPin)?.clear_async_interrupt()?)
+        pcf8574.port_as_input::<fn(Level)>(port, Trigger::Disabled, None)
     }
 }
 
