@@ -65,9 +65,14 @@ pub enum Mittelleiter {
     },
 }
 
+// TODO als Zugtyp-Eigenschaft?
+const STOPPZEIT: Duration = Duration::from_millis(500);
+const PWM_FREQUENZ: f64 = 50.;
 // TODO Zugtyp-Eigenschaft, wenn Mittelleiter gewählt
 // oder allgemein (max_duty_cycle)?
 const FRAC_FAHRSPANNUNG_ÜBERSPANNUNG: f64 = 16. / 25.;
+const UMDREHENZEIT: Duration = Duration::from_millis(500);
+
 impl Geschwindigkeit<Mittelleiter> {
     /// 0 deaktiviert die Stromzufuhr.
     /// Werte über dem Maximalwert werden wie der Maximalwert behandelt.
@@ -86,11 +91,22 @@ impl Geschwindigkeit<Mittelleiter> {
 
     pub fn umdrehen(&mut self) -> Result<(), Error> {
         self.geschwindigkeit(0)?;
-        sleep(UMDREHENZEIT);
-        match &mut self.leiter {
-            Mittelleiter::Pwm { pin, polarität } => todo!(),
-            Mittelleiter::KonstanteSpannung { umdrehen, .. } => todo!(),
-        }
+        sleep(STOPPZEIT);
+        Ok(match &mut self.leiter {
+            Mittelleiter::Pwm { pin, polarität } => {
+                pin.enable_with_config(pwm::Config {
+                    polarity: *polarität,
+                    time: pwm::Time::Frequency { frequency: PWM_FREQUENZ, duty_cycle: 1. },
+                })?;
+                sleep(UMDREHENZEIT);
+                pin.disable()?
+            },
+            Mittelleiter::KonstanteSpannung { umdrehen, .. } => {
+                umdrehen.einstellen(Fließend::Fließend)?;
+                sleep(UMDREHENZEIT);
+                umdrehen.einstellen(Fließend::Gesperrt)?
+            },
+        })
     }
 }
 
@@ -122,11 +138,22 @@ impl Geschwindigkeit<Zweileiter> {
 
     pub fn fahrtrichtung(&mut self, neue_fahrtrichtung: Fahrtrichtung) -> Result<(), Error> {
         self.geschwindigkeit(0)?;
-        sleep(UMDREHENZEIT);
-        match &mut self.leiter {
-            Zweileiter::Pwm { fahrtrichtung, .. } => todo!(),
-            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => todo!(),
-        }
+        sleep(STOPPZEIT);
+        let fahrtrichtung = match &mut self.leiter {
+            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+        };
+        Ok(fahrtrichtung.einstellen(neue_fahrtrichtung.into())?)
+    }
+
+    pub fn umdrehen(&mut self) -> Result<(), Error> {
+        self.geschwindigkeit(0)?;
+        sleep(STOPPZEIT);
+        let fahrtrichtung = match &mut self.leiter {
+            Zweileiter::Pwm { fahrtrichtung, .. } => fahrtrichtung,
+            Zweileiter::KonstanteSpannung { fahrtrichtung, .. } => fahrtrichtung,
+        };
+        Ok(fahrtrichtung.umstellen()?)
     }
 }
 
@@ -135,10 +162,14 @@ pub enum Fahrtrichtung {
     Vorwärts,
     Rückwärts,
 }
-
-// TODO als Zugtyp-Eigenschaft?
-const UMDREHENZEIT: Duration = Duration::from_millis(500);
-const PWM_FREQUENZ: f64 = 50.;
+impl From<Fahrtrichtung> for Fließend {
+    fn from(fahrtrichtung: Fahrtrichtung) -> Self {
+        match fahrtrichtung {
+            Fahrtrichtung::Vorwärts => Fließend::Fließend,
+            Fahrtrichtung::Rückwärts => Fließend::Gesperrt,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum Error {
