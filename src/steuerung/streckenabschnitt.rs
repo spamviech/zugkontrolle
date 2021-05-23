@@ -1,6 +1,6 @@
 //! Ein Streckenabschnitt regelt die Stromzufuhr.
 
-use crate::anschluss::{Error, Fließend, OutputAnschluss, Polarity};
+use crate::anschluss::{Error, Fließend, OutputAnschluss};
 use crate::gleis::canvas;
 
 /// Steuerung der Stromzufuhr.
@@ -10,15 +10,14 @@ pub struct Streckenabschnitt {
     pub name: String,
     pub farbe: canvas::Color,
     pub anschluss: OutputAnschluss,
-    pub polarität: Polarity,
 }
 
 impl Streckenabschnitt {
     pub fn strom(&mut self, fließend: Fließend) -> Result<(), Error> {
-        self.anschluss.write(fließend.with_polarity(self.polarität))
+        self.anschluss.einstellen(fließend)
     }
 
     pub fn strom_umschalten(&mut self) -> Result<(), Error> {
-        self.anschluss.toggle()
+        self.anschluss.umstellen()
     }
 }

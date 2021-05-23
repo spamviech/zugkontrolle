@@ -39,10 +39,12 @@ impl From<pcf8574::Port> for Anschluss {
 }
 
 impl Anschluss {
-    pub fn into_output(self) -> Result<OutputAnschluss, Error> {
+    pub fn into_output(self, polarität: Polarity) -> Result<OutputAnschluss, Error> {
         Ok(match self {
-            Anschluss::Pin(pin) => OutputAnschluss::Pin(pin.into_output()),
-            Anschluss::Pcf8574Port(port) => OutputAnschluss::Pcf8574Port(port.into_output()?),
+            Anschluss::Pin(pin) => OutputAnschluss::Pin { pin: pin.into_output(), polarität },
+            Anschluss::Pcf8574Port(port) => {
+                OutputAnschluss::Pcf8574Port { port: port.into_output()?, polarität }
+            },
         })
     }
 
@@ -54,46 +56,57 @@ impl Anschluss {
     }
 }
 
-macro_rules! match_method {
-    ($export: ident => $method:ident$(($($arg:ident : $arg_ty: ty),+))?) => {
-        match_method! {$export => $method$(($($arg : $arg_ty),+))? -> ()}
-    };
-    ($export: ident => $method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty) => {
-        pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Error> {
-            Ok(match self {
-                $export::Pin(pin) => pin.$method($($($arg),+)?)?,
-                $export::Pcf8574Port(port) => port.$method($($($arg),+)?)?,
-            })
-        }
-    };
-}
-
 /// Ein Anschluss, konfiguriert für Output.
 #[derive(Debug)]
 pub enum OutputAnschluss {
-    Pin(output::Pin),
-    Pcf8574Port(pcf8574::OutputPort),
-}
-
-impl From<output::Pin> for OutputAnschluss {
-    fn from(pin: output::Pin) -> Self {
-        OutputAnschluss::Pin(pin)
-    }
-}
-impl From<pcf8574::OutputPort> for OutputAnschluss {
-    fn from(port: pcf8574::OutputPort) -> Self {
-        OutputAnschluss::Pcf8574Port(port)
-    }
+    Pin { pin: output::Pin, polarität: Polarity },
+    Pcf8574Port { port: pcf8574::OutputPort, polarität: Polarity },
 }
 
 impl OutputAnschluss {
-    match_method! {OutputAnschluss => write(level:Level)}
+    pub fn einstellen(&mut self, fließend: Fließend) -> Result<(), Error> {
+        Ok(match self {
+            OutputAnschluss::Pin { pin, polarität } => {
+                pin.write(fließend.with_polarity(*polarität))?
+            },
+            OutputAnschluss::Pcf8574Port { port, polarität } => {
+                port.write(fließend.with_polarity(*polarität))?
+            },
+        })
+    }
 
-    match_method! {OutputAnschluss => is_set_high -> bool}
+    pub fn ist_fließend(&mut self) -> Result<bool, Error> {
+        Ok(match self {
+            OutputAnschluss::Pin { pin, polarität } => match polarität {
+                Polarity::Normal => pin.is_set_high()?,
+                Polarity::Inverse => pin.is_set_low()?,
+            },
+            OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
+                Polarity::Normal => port.is_set_high()?,
+                Polarity::Inverse => port.is_set_low()?,
+            },
+        })
+    }
 
-    match_method! {OutputAnschluss => is_set_low -> bool}
+    pub fn ist_gesperrt(&mut self) -> Result<bool, Error> {
+        Ok(match self {
+            OutputAnschluss::Pin { pin, polarität } => match polarität {
+                Polarity::Normal => pin.is_set_low()?,
+                Polarity::Inverse => pin.is_set_high()?,
+            },
+            OutputAnschluss::Pcf8574Port { port, polarität } => match polarität {
+                Polarity::Normal => port.is_set_low()?,
+                Polarity::Inverse => port.is_set_high()?,
+            },
+        })
+    }
 
-    match_method! {OutputAnschluss => toggle}
+    pub fn umstellen(&mut self) -> Result<(), Error> {
+        Ok(match self {
+            OutputAnschluss::Pin { pin, .. } => pin.toggle()?,
+            OutputAnschluss::Pcf8574Port { port, .. } => port.toggle()?,
+        })
+    }
 }
 
 /// Ein Anschluss, konfiguriert für Input.
@@ -103,23 +116,26 @@ pub enum InputAnschluss {
     Pcf8574Port(pcf8574::InputPort),
 }
 
-impl From<input::Pin> for InputAnschluss {
-    fn from(pin: input::Pin) -> Self {
-        InputAnschluss::Pin(pin)
-    }
-}
-impl From<pcf8574::InputPort> for InputAnschluss {
-    fn from(port: pcf8574::InputPort) -> Self {
-        InputAnschluss::Pcf8574Port(port)
-    }
+macro_rules! match_method {
+    ( $method:ident$(($($arg:ident : $arg_ty: ty),+))?) => {
+        match_method! {$method$(($($arg : $arg_ty),+))? -> ()}
+    };
+    ($method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty) => {
+        pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Error> {
+            Ok(match self {
+                InputAnschluss::Pin(pin) => pin.$method($($($arg),+)?)?,
+                InputAnschluss::Pcf8574Port(port) => port.$method($($($arg),+)?)?,
+            })
+        }
+    };
 }
 
 impl InputAnschluss {
-    match_method! {InputAnschluss => read -> Level}
+    match_method! {read -> Level}
 
-    match_method! {InputAnschluss => set_async_interrupt(trigger: Trigger, callback: impl FnMut(Level) + Send + 'static)}
+    match_method! {set_async_interrupt(trigger: Trigger, callback: impl FnMut(Level) + Send + 'static)}
 
-    match_method! {InputAnschluss => clear_async_interrupt}
+    match_method! {clear_async_interrupt}
 }
 
 #[derive(Debug)]
