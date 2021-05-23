@@ -357,10 +357,11 @@ impl InputPort {
     /// set_async_interrupt is called, or when InputPin goes out of scope.
     #[cfg_attr(not(raspi), allow(unused_variables))]
     #[inline]
-    pub fn set_async_interrupt<C>(&mut self, trigger: Trigger, mut callback: C) -> Result<(), Error>
-    where
-        C: FnMut(Level) + Send + 'static,
-    {
+    pub fn set_async_interrupt(
+        &mut self,
+        trigger: Trigger,
+        mut callback: impl FnMut(Level) + Send + 'static,
+    ) -> Result<(), Error> {
         let mut last = self.read()?;
         let clone = InputPort(Port {
             pcf8574: self.0.pcf8574.clone(),

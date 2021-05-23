@@ -59,7 +59,7 @@ macro_rules! match_method {
         match_method! {$export => $method$(($($arg : $arg_ty),+))? -> ()}
     };
     ($export: ident => $method:ident$(($($arg:ident : $arg_ty: ty),+))? -> $result:ty) => {
-        pub fn $method(&mut self$(, $($arg: $arg_ty)+)?) -> Result<$result, Error> {
+        pub fn $method(&mut self$(, $($arg: $arg_ty),+)?) -> Result<$result, Error> {
             Ok(match self {
                 $export::Pin(pin) => pin.$method($($($arg),+)?)?,
                 $export::Pcf8574Port(port) => port.$method($($($arg),+)?)?,
@@ -116,6 +116,10 @@ impl From<pcf8574::InputPort> for InputAnschluss {
 
 impl InputAnschluss {
     match_method! {InputAnschluss => read -> Level}
+
+    match_method! {InputAnschluss => set_async_interrupt(trigger: Trigger, callback: impl FnMut(Level) + Send + 'static)}
+
+    match_method! {InputAnschluss => clear_async_interrupt}
 }
 
 #[derive(Debug)]

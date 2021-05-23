@@ -56,10 +56,11 @@ impl Pin {
     /// set_async_interrupt is called, or when InputPin goes out of scope.
     #[cfg_attr(not(raspi), allow(unused_variables))]
     #[inline]
-    pub fn set_async_interrupt<C>(&mut self, trigger: Trigger, callback: C) -> Result<(), Error>
-    where
-        C: FnMut(Level) + Send + 'static,
-    {
+    pub fn set_async_interrupt(
+        &mut self,
+        trigger: Trigger,
+        callback: impl FnMut(Level) + Send + 'static,
+    ) -> Result<(), Error> {
         cfg_if! {
             if #[cfg(raspi)] {
                 self.0.set_async_interrupt(trigger, callback)
