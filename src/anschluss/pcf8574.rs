@@ -238,6 +238,7 @@ impl Pcf8574 {
         trigger: Trigger,
         callback: Option<C>,
     ) -> Result<(), Error> {
+        #[cfg(raspi)]
         self.write_port(port, Level::High)?;
         // type annotations need, so extra let binding required
         let callback: Option<Box<dyn FnMut(Level) + Send + 'static>> = match callback {
@@ -266,7 +267,7 @@ impl Pcf8574 {
                     let buf = [wert; 1];
                     let bytes_written = i2c_channel.write(&buf)?;
                     if bytes_written != 1 {
-                        debug!("bytes_written = {} != 1", bytes_written)
+                        error!("bytes_written = {} != 1", bytes_written)
                     }
                     Ok(())
                 } else {
@@ -274,7 +275,7 @@ impl Pcf8574 {
                     Err(Error::PoisonError)
                 }
             } else {
-                debug!("{:?}.read()", self);
+                debug!("{:?}.write_port({}, {:?})", self, port, level);
                 Err(Error::KeinRaspberryPi)
             }
         }
@@ -345,7 +346,13 @@ impl Port {
     pub fn into_output(self) -> Result<OutputPort, Error> {
         {
             let pcf8574 = &mut *self.pcf8574.lock()?;
-            pcf8574.write_port(self.port, Level::High)?;
+            cfg_if! {
+                if #[cfg(raspi)] {
+                    pcf8574.write_port(self.port, Level::High)?;
+                } else {
+                    pcf8574.ports[usize::from(self.port)] = Modus::High;
+                }
+            }
         }
         Ok(OutputPort(self))
     }
