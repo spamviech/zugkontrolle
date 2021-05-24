@@ -3,20 +3,26 @@
 use std::fmt::Debug;
 
 use iced::{Application, Clipboard, Command, Element, Length, Settings};
+use num_x::u3;
 use simple_logger::SimpleLogger;
-use zugkontrolle::application::{
-    self,
-    gleis::{
-        anchor,
-        gleise::{Gleis, GleisIdLock, Gleise, GleiseMap},
-        typen::*,
-        *,
-    },
-    Zugkontrolle,
-};
+use zugkontrolle::anschluss::{pcf8574::Variante, Anschluss, Anschlüsse, Level, Polarity};
+use zugkontrolle::steuerung::streckenabschnitt::Name;
 use zugkontrolle::zugtyp::{
     lego::{self, Lego},
     märklin::{self, Märklin},
+};
+use zugkontrolle::{
+    application::{
+        self,
+        gleis::{
+            anchor,
+            gleise::{Gleis, GleisIdLock, Gleise, GleiseMap},
+            typen::*,
+            *,
+        },
+        Zugkontrolle,
+    },
+    steuerung::Streckenabschnitt,
 };
 
 struct AppendGleise<'t, Z> {
@@ -38,10 +44,37 @@ impl<'t, Z: Zugtyp + Eq + Debug> AppendGleise<'t, Z> {
         let size: Vektor = definition.size();
         let punkt = Vektor { x: Skalar(150.) - size.x.halbiert(), y: self.y };
         let height: Skalar = size.y;
+        let streckenabschnitt = Anschlüsse::neu()
+            .ok()
+            .and_then(|mut anschlüsse| {
+                // TODO pin funktioniert nur auf raspi
+                // TODO into_output/input funktioniert nur auf raspi
+                anschlüsse
+                    .reserviere_pcf8574_port(
+                        Level::Low,
+                        Level::Low,
+                        Level::Low,
+                        Variante::Normal,
+                        u3::new(0),
+                    )
+                    .ok()
+            })
+            .and_then(|port| Anschluss::from(port).into_output(Polarity::Normal).ok())
+            .map(|anschluss| Streckenabschnitt {
+                farbe: canvas::Color::from_rgb(1., 0., 0.),
+                anschluss,
+            })
+            .map(|streckenabschnitt| {
+                println!("a");
+                let name = Name("Test".to_string());
+                self.gleise.neuer_streckenabschnitt(name.clone(), streckenabschnitt);
+                println!("b");
+                name
+            });
         let res = self.gleise.add(Gleis {
             definition,
             position: Position { punkt, winkel: Winkel(0.) },
-            streckenabschnitt: None,
+            streckenabschnitt,
         });
         self.y += height + Skalar(25.);
         res
