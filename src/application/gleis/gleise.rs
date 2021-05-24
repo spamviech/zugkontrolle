@@ -499,6 +499,19 @@ impl<Z: Zugtyp, Message> iced::canvas::Program<Message> for Gleise<Z> {
         }
         (event_status, None)
     }
+
+    fn mouse_interaction(
+        &self,
+        bounds: iced::Rectangle,
+        cursor: iced::canvas::Cursor,
+    ) -> iced::mouse::Interaction {
+        match &self.modus {
+            ModusDaten::Bauen { grabbed: Some(_grabbed), .. } if cursor.is_over(&bounds) => {
+                iced::mouse::Interaction::Pointer
+            },
+            _ => iced::mouse::Interaction::default(),
+        }
+    }
 }
 
 impl Position {
